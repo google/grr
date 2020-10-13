@@ -22,16 +22,8 @@ from werkzeug import routing as werkzeug_routing
 from werkzeug import serving as werkzeug_serving
 from werkzeug import wrappers as werkzeug_wrappers
 from werkzeug import wsgi as werkzeug_wsgi
-from werkzeug.wrappers import json as werkzeug_wrappers_json
+from werkzeug.wrappers import json as werkzeug_wrappers_json  # type: ignore
 
-AVAILABLE_METRICS = [
-    "Mean User CPU Rate",
-    "Max User CPU Rate",
-    "Mean System CPU Rate",
-    "Max System CPU Rate",
-    "Mean Resident Memory MB",
-    "Max Resident Memory MB",
-]
 
 JSON_MIME_TYPE = "application/json"
 
@@ -40,6 +32,11 @@ flags.DEFINE_bool(
     default=False,
     allow_override=True,
     help="Print the GRR console version number and exit immediately.")
+
+_Datapoint = Tuple[float, int]
+_Datapoints = List[_Datapoint]
+_TargetWithDatapoints = collections.namedtuple("TargetWithDatapoints",
+                                               ["target", "datapoints"])
 
 
 class JSONRequest(werkzeug_wrappers_json.JSONMixin, werkzeug_wrappers.Request):
@@ -51,9 +48,111 @@ class JSONResponse(werkzeug_wrappers_json.JSONMixin,
 
   def __init__(self, response=None, *args, **kwargs) -> None:
     kwargs["mimetype"] = JSON_MIME_TYPE
-    if response is not None and not isinstance(response, werkzeug_wsgi.ClosingIterator):
+    if response is not None and not isinstance(response,
+                                               werkzeug_wsgi.ClosingIterator):
       response = json.dumps(response)
     super().__init__(response, *args, **kwargs)
+
+
+class Metric(object):
+  """A single metric that can be fetched from a
+  Fleetspeak-based GRR deployment."""
+
+  def __init__(self, name: str) -> None:
+    """Initializes a new metric."""
+    self.name = name
+
+  def ProcessQuery(self, req: JSONRequest):
+    """Processes the request JSON data and returns
+    data that can be read by Grafana (by JSON Datasource plugin)."""
+    raise NotImplementedError()
+
+
+class ClientResourceUsageMetric(Metric):
+
+  def __init__(self, name: str) -> None:
+    super().__init__(name)
+
+  def ProcessQuery(self, req: JSONRequest) -> _TargetWithDatapoints:
+    client_id = req["scopedVars"]["ClientID"]["value"]
+    start_range_ts = timeToProtoTimestamp(req["range"]["from"])
+    end_range_ts = timeToProtoTimestamp(req["range"]["to"])
+    records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
+        client_id, start_range_ts, end_range_ts)
+    datapoints = self._CreateDatapointsForTarget(records_list)
+    return _TargetWithDatapoints(target=self.name, datapoints=datapoints)
+
+  def _CreateDatapointsForTarget(self,
+      records_list: Iterable[resource_pb2.ClientResourceUsageRecord]
+  ) -> _Datapoints:
+    if self.name == "Mean User CPU Rate":
+      record_values = [record.mean_user_cpu_rate for record in records_list]
+    elif self.name == "Max User CPU Rate":
+      record_values = [record.max_user_cpu_rate for record in records_list]
+    elif self.name == "Mean System CPU Rate":
+      record_values = [record.mean_system_cpu_rate for record in records_list]
+    elif self.name == "Max System CPU Rate":
+      record_values = [record.max_system_cpu_rate for record in records_list]
+    elif self.name == "Mean Resident Memory MB":
+      record_values = [
+          # conversion from MiB to MB.
+          record.mean_resident_memory_mib * 1.049 for record in records_list
+      ]
+    elif self.name == "Max Resident Memory MB":
+      record_values = [
+          record.max_resident_memory_mib * 1.049 for record in records_list
+      ]
+    else:
+      raise NameError(
+          f"Target {self.name} is not a resource usage metric that can be " \
+          "fetched from Fleetspeak."
+      )
+    return [
+        (v,
+        r.server_timestamp.seconds * 1000 + r.server_timestamp.nanos // 1000000)
+        for (v, r) in zip(record_values, records_list)
+    ]
+
+
+class ClientsStatisticsMetric(Metric):
+
+  def __init__(self, name: str) -> None:
+    super().__init__(name)
+
+  def ProcessQuery(self, req: JSONRequest):
+    pass
+
+
+AVAILABLE_METRICS = {
+    "Mean User CPU Rate":
+        ClientResourceUsageMetric("Mean User CPU Rate"),
+    "Max User CPU Rate":
+        ClientResourceUsageMetric("Max User CPU Rate"),
+    "Mean System CPU Rate":
+        ClientResourceUsageMetric("Mean System CPU Rate"),
+    "Max System CPU Rate":
+        ClientResourceUsageMetric("Max System CPU Rate"),
+    "Mean Resident Memory MB":
+        ClientResourceUsageMetric("Mean Resident Memory MB"),
+    "Max Resident Memory MB":
+        ClientResourceUsageMetric("Max Resident Memory MB"),
+    "OS Platform Breakdown - 1 Day Active":
+        ClientsStatisticsMetric("OS Platform Breakdown - 1 Day Active"),
+    "OS Platform Breakdown - 7 Day Active":
+        ClientsStatisticsMetric("OS Platform Breakdown - 7 Day Active"),
+    "OS Platform Breakdown - 14 Day Active":
+        ClientsStatisticsMetric("OS Platform Breakdown - 14 Day Active"),
+    "OS Platform Breakdown - 30 Day Active":
+        ClientsStatisticsMetric("OS Platform Breakdown - 30 Day Active"),
+    "OS Release Version Breakdown - 1 Day Active":
+        ClientsStatisticsMetric("OS Release Version Breakdown - 1 Day Active"),
+    "OS Release Version Breakdown - 7 Day Active":
+        ClientsStatisticsMetric("OS Release Version Breakdown - 7 Day Active"),
+    "OS Release Version Breakdown - 14 Day Active":
+        ClientsStatisticsMetric("OS Release Version Breakdown - 14 Day Active"),
+    "OS Release Version Breakdown - 30 Day Active":
+        ClientsStatisticsMetric("OS Release Version Breakdown - 30 Day Active"),
+}
 
 
 class Grrafana(object):
@@ -81,11 +180,8 @@ class Grrafana(object):
   def _DispatchRequest(self, request: JSONRequest) -> JSONResponse:
     """Maps requests to different methods."""
     adapter = self._url_map.bind_to_environ(request.environ)
-    try:
-      endpoint, values = adapter.match()
-      return endpoint(request, **values)
-    except werkzeug_exceptions.HTTPException as e:
-      return e
+    endpoint, values = adapter.match()
+    return endpoint(request, **values)
 
   def __call__(self, environ, start_response) -> JSONResponse:
     request = JSONRequest(environ)
@@ -106,7 +202,7 @@ class Grrafana(object):
       # Grafana request issued on Panel > Queries page. Grafana expects the
       # list of metrics that can be listed on the dropdown-menu
       # called "Metric".
-      response = AVAILABLE_METRICS
+      response = list(AVAILABLE_METRICS.keys())
     else:
       # Grafana request issued on Variables > New/Edit page for variables of
       # type query. Grafana expectes the list of possible values of
@@ -121,90 +217,20 @@ class Grrafana(object):
     Given a client ID as a Grafana variable and targets (resource usages),
     returns datapoints in a format Grafana can interpret."""
     json_data = request.json
-    requested_client_id = _ExtractClientIdFromVariable(
-        json_data)  # There must be a ClientID variable declated in Grafana.
     requested_targets = [entry["target"] for entry in json_data["targets"]]
-    list_targets_with_datapoints = _FetchDatapointsForTargets(
-        client_id=requested_client_id,
-        start_range=json_data["range"]["from"],
-        end_range=json_data["range"]["to"],
-        targets=requested_targets)
-    response = [t._asdict() for t in list_targets_with_datapoints]
+    targets_with_datapoints = [AVAILABLE_METRICS[t].ProcessQuery(json_data) for t in requested_targets]
+    response = [t._asdict() for t in targets_with_datapoints]
     return JSONResponse(response=response)
 
   def _OnAnnotations(self, request: JSONRequest) -> JSONResponse:
     pass
 
 
-_Datapoint = Tuple[float, int]
-_Datapoints = List[_Datapoint]
-_TargetWithDatapoints = collections.namedtuple("TargetWithDatapoints",
-                                              ["target", "datapoints"])
-
-
-def _FetchDatapointsForTargets(
-    client_id: str, start_range: str,
-    end_range: str,
-    targets: Iterable[str]) -> List[_TargetWithDatapoints]:
-  """Fetches a list of <datapoint, timestamp> tuples for each target 
-  metric from Fleetspeak database."""
-  start_range_timestamp = timeToProtoTimestamp(start_range)
-  end_range_timestamp = timeToProtoTimestamp(end_range)
-  records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
-      client_id, start_range_timestamp, end_range_timestamp)
-  response = []
-  for target in targets:
-    datapoints_for_single_target = _CreateDatapointsForTarget(
-        target, records_list)
-    response.append(
-        _TargetWithDatapoints(target=target,
-                             datapoints=datapoints_for_single_target))
-  return response
-
-
 def timeToProtoTimestamp(
     grafana_time: str) -> timestamp_pb2.Timestamp:
-  date = dateutil.parser.parse(grafana_time)
+  date = dateutil.parser.parse(grafana_time)  # type: ignore
   return timestamp_pb2.Timestamp(seconds=int(date.timestamp()),
                                  nanos=date.microsecond * 1000)
-
-
-def _CreateDatapointsForTarget(
-    target: str,
-    records_list: Iterable[resource_pb2.ClientResourceUsageRecord]
-) -> _Datapoints:
-  if target == "Mean User CPU Rate":
-    record_values = [record.mean_user_cpu_rate for record in records_list]
-  elif target == "Max User CPU Rate":
-    record_values = [record.max_user_cpu_rate for record in records_list]
-  elif target == "Mean System CPU Rate":
-    record_values = [record.mean_system_cpu_rate for record in records_list]
-  elif target == "Max System CPU Rate":
-    record_values = [record.max_system_cpu_rate for record in records_list]
-  elif target == "Mean Resident Memory MB":
-    record_values = [
-        # conversion from MiB to MB.
-        record.mean_resident_memory_mib * 1.049 for record in records_list
-    ]
-  elif target == "Max Resident Memory MB":
-    record_values = [
-        record.max_resident_memory_mib * 1.049 for record in records_list
-    ]
-  else:
-    raise NameError(
-        f"Target {target} is not a resource usage metric that can be " \
-         "fetched from Fleetspeak."
-    )
-  return [
-      (v,
-      r.server_timestamp.seconds * 1000 + r.server_timestamp.nanos // 1000000)
-      for (v, r) in zip(record_values, records_list)
-  ]
-
-
-def _ExtractClientIdFromVariable(req: JSONRequest) -> str:
-  """Extracts the client ID from a Grafana JSON request."""
-  return req["scopedVars"]["ClientID"]["value"]
 
 
 def main(argv: Any) -> None:
