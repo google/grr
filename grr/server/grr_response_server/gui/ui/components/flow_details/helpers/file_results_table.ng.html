@@ -21,10 +21,10 @@
       <td class="hash"></td>
       <td class="number">{{ r.mode | fileMode }}</td>
       <td class="number"><human-readable-size [size]="r.size"></human-readable-size></td>
-      <td class="timestamp"><timestamp [date]="r.atime" [disableUnderlining]="true"></timestamp></td>
-      <td class="timestamp"><timestamp [date]="r.mtime" [disableUnderlining]="true"></timestamp></td>
-      <td class="timestamp"><timestamp [date]="r.ctime" [disableUnderlining]="true"></timestamp></td>
-      <td class="timestamp"><timestamp [date]="r.btime" [disableUnderlining]="true"></timestamp></td>
+      <td class="timestamp"><timestamp [date]="r.atime" [forceDisableUnderlining]="true"></timestamp></td>
+      <td class="timestamp"><timestamp [date]="r.mtime" [forceDisableUnderlining]="true"></timestamp></td>
+      <td class="timestamp"><timestamp [date]="r.ctime" [forceDisableUnderlining]="true"></timestamp></td>
+      <td class="timestamp"><timestamp [date]="r.btime" [forceDisableUnderlining]="true"></timestamp></td>
     </tr>
   </tbody>
 </table>
