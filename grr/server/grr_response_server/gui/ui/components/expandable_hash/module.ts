@@ -1,19 +1,21 @@
 import { NgModule } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ExpandableHash } from './expandable_hash'
-import { HashesModule } from '../hashes/module'
+import { Hashes } from './hashes/hashes'
+import { OverlayModule } from '@angular/cdk/overlay';
 
 
 @NgModule({
   imports: [
     CommonModule,
-    HashesModule,
+    OverlayModule,
   ],
   declarations: [
     ExpandableHash,
+    Hashes,
   ],
   exports: [
     ExpandableHash,
   ]
 })
-export class HashModule { }
+export class ExpandableHashModule { }

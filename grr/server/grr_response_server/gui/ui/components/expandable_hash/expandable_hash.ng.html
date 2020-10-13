@@ -1,2 +1,18 @@
-{{truncatedHash}}
-<hashes></hashes>
+<div class="container">
+    <div cdkOverlayOrigin #trigger="cdkOverlayOrigin"></div>
+
+    <div (mouseenter)="mouseEnter()">
+        {{truncatedHash}}
+    </div>
+
+    <ng-template
+        cdkConnectedOverlay 
+        [cdkConnectedOverlayOrigin]="trigger"
+        [cdkConnectedOverlayOpen]="hovered">
+        
+        <div (mouseleave)="mouseLeave()">
+            <hashes [hash]="hash"></hashes>
+        </div>
+    </ng-template>
+
+</div>

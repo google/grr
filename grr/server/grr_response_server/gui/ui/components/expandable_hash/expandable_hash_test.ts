@@ -1,6 +1,6 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ExpandableHash } from './expandable_hash';
+import { ExpandableHash, truncateIfNeeded, MAX_CHARACTERS_IN_TRUNCATED_HASH} from './expandable_hash';
 import { initTestEnvironment } from '@app/testing';
 
 initTestEnvironment();
@@ -27,33 +27,32 @@ fdescribe('HashComponent', () => { // TODO: Remove f
   });
 });
 
-fdescribe('truncateIfNeeded', () => { // TODO: Remove f
-  it('should truncate text bigger than the specified', () => {
-    const maxSize = 10;
-    const textSize = 20;
+describe('truncateIfNeeded', () => {
+
+  it('should truncate long text', () => {
+    const textSize = MAX_CHARACTERS_IN_TRUNCATED_HASH + 100;
 
     const longText = 'a'.repeat(textSize);
-    const truncated = ExpandableHash.truncateIfNeeded(longText, maxSize);
+    const truncated = truncateIfNeeded(longText);
 
-    expect(truncated.length).toEqual(maxSize);
+    expect(truncated.length).toEqual(MAX_CHARACTERS_IN_TRUNCATED_HASH);
   })
 
-  it('shouldn\'t truncate text smaller or equal to the specified', () => {
-    const maxSize = 10;
-    const textSize = 5;
+  it('shouldn\'t truncate small text', () => {
+    const textSize = MAX_CHARACTERS_IN_TRUNCATED_HASH;
 
     const shortText = 'a'.repeat(textSize);
-    const truncated = ExpandableHash.truncateIfNeeded(shortText, maxSize);
+    const truncated = truncateIfNeeded(shortText);
 
     expect(truncated.length).toEqual(textSize);
   })
 
   it('should put ellipsis to the truncated text', () => {
-    const maxSize = 10;
+    const ellipsis = '...';
 
-    const longText = 'thisisgoingtobeasha256hashprobably';
-    const expected = longText.slice(0, maxSize-3) + '...';
-    const truncated = ExpandableHash.truncateIfNeeded(longText, maxSize);
+    const longText = 'thisisgoingtobeasha256hashprobably'.repeat(10);
+    const expected = longText.slice(0, MAX_CHARACTERS_IN_TRUNCATED_HASH-ellipsis.length) + ellipsis;
+    const truncated = truncateIfNeeded(longText);
 
     expect(truncated).toEqual(expected);
   })

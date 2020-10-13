@@ -21,10 +21,11 @@ export declare interface FlowFileResult {
 export function flowFileResultFromStatEntry(statEntry: StatEntry):
     FlowFileResult {
   // TODO: Remove
+  const allHex = '0123456789abcdef'
   const temporaryLongDummyHash: Hash = {
-    sha256: 'sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256sha256',
-    md5: 'md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5md5',
-    sha1: 'sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1sha1'
+    sha256: allHex.repeat(2),
+    md5: allHex.repeat(2),
+    sha1: allHex.repeat(2)
   }
   const temporaryShortDummyHash: Hash = {
     sha256: 'sha256',

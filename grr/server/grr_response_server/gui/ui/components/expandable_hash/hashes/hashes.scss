@@ -1,0 +1,25 @@
+@use '~material-theme' as c;
+@use '~main' as main;
+@import '~@angular/material/theming';
+
+.container {
+    font-family: c.$google-sans-family;
+    background-color: c.mat-color(c.$background, app-bar);
+    border: 1px solid c.mat-color(c.$foreground, divider-light);
+    border-radius: 8px;
+    @include mat-elevation(2);
+    color: c.mat-color(c.$foreground, text-light);
+    padding: 5px;
+    
+    cursor: pointer;
+}
+
+.hashHolder {
+    margin: 1em;
+    white-space: nowrap;
+}
+
+.hashName {
+    font-weight: 500;
+}
+
