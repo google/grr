@@ -9,6 +9,10 @@ import { Hash } from '@app/lib/api/api_interfaces';
 export class Hashes implements OnInit {
   @Input() hash?: Hash;
 
+  get completeHashInformation(): string {
+    return `sha256: ${this.hash?.sha256}\nsha1: ${this.hash?.sha1}\nmd5: ${this.hash?.md5}`
+  }
+
   constructor() { }
 
   ngOnInit(): void {

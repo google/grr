@@ -2,7 +2,7 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Hashes } from './hashes';
 
-fdescribe('Hashes', () => { // TODO: Remove f
+describe('Hashes', () => {
   let component: Hashes;
   let fixture: ComponentFixture<Hashes>;
 

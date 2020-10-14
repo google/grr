@@ -5,7 +5,7 @@ import { initTestEnvironment } from '@app/testing';
 
 initTestEnvironment();
 
-fdescribe('HashComponent', () => { // TODO: Remove f
+describe('HashComponent', () => {
   let component: ExpandableHash;
   let fixture: ComponentFixture<ExpandableHash>;
 

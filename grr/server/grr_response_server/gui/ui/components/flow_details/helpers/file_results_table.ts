@@ -20,17 +20,12 @@ export declare interface FlowFileResult {
  */
 export function flowFileResultFromStatEntry(statEntry: StatEntry):
     FlowFileResult {
-  // TODO: Remove
+  // TODO: Change dummy data with actual data
   const allHex = '0123456789abcdef'
   const temporaryLongDummyHash: Hash = {
     sha256: allHex.repeat(2),
     md5: allHex.repeat(2),
     sha1: allHex.repeat(2)
-  }
-  const temporaryShortDummyHash: Hash = {
-    sha256: 'sha256',
-    md5: 'md5',
-    sha1: 'sha1'
   }
   return {
     statEntry,
