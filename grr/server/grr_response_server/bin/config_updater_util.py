@@ -438,8 +438,9 @@ class FleetspeakConfig:
     cp = config_pb2.Config()
     cp.configuration_name = "Fleetspeak"
     cp.components_config.mysql_data_source_name = (
-        "{user}:@tcp({host}:{port})/{db}".format(
+        "{user}:{password}@tcp({host}:{port})/{db}".format(
             user=self.mysql_username,
+            password=self.mysql_password,
             host=self.mysql_host,
             port=self.mysql_port,
             db=self.mysql_database))
