@@ -1,7 +1,7 @@
 <div *ngIf="date !== undefined; else dateUndefined"
   class="timestamp"
   [matTooltip]="date | relativeTimestamp"
-  matTooltipPosition="above"
+  matTooltipPosition="below"
   matTooltipClass="tooltip"
   [matTooltipDisabled]="completeFormat || !tooltipEnabled"
   [style.border-bottom]="(completeFormat || !tooltipEnabled || forceDisableUnderlining) ? 'none' : '1px dotted rgb(126, 126, 126)'">
