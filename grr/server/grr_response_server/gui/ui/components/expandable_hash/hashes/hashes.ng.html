@@ -1,36 +1,44 @@
 <div class="container mat-body-1">
-  <div class="heading">
-    <button class="copy-button" [cdkCopyToClipboard]="completeHashInformation" mat-icon-button aria-label="Copy path to clipboard">
+  <div *ngIf="atLeastOneHashAvailable" class="heading">
+    <button 
+      class="copy-button"
+      mat-icon-button
+      aria-label="Copy path to clipboard"
+      [cdkCopyToClipboard]="completeHashInformation">
       <mat-icon class="menu-icon">content_copy</mat-icon>
     </button>
 
     Copy complete hash information
   </div>
 
-  <div class="hashHolder">
+  <div *ngIf="hashes?.sha256" class="hashHolder">
     <div class="hashName">
       sha256: 
     </div>
     <div class="hashValue">
-      {{hash.sha256}}
+      {{hashes.sha256}}
     </div>
   </div>
 
-  <div class="hashHolder">
+  <div *ngIf="hashes?.sha1" class="hashHolder">
     <div class="hashName">
       sha1: 
     </div>
     <div class="hashValue">
-      {{hash.sha1}}
+      {{hashes.sha1}}
     </div>
   </div>
 
-  <div class="hashHolder">
+  <div *ngIf="hashes?.md5" class="hashHolder">
     <div class="hashName">
       md5: 
     </div>
     <div class="hashValue">
-      {{hash.md5}}
+      {{hashes.md5}}
     </div>
+  </div>
+
+  <div *ngIf="!atLeastOneHashAvailable" class="noHashes">
+    No available hashes to display
   </div>
 </div>

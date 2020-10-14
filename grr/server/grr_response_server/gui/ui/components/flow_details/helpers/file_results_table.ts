@@ -10,7 +10,7 @@ import {map} from 'rxjs/operators';
  */
 export declare interface FlowFileResult {
   readonly statEntry: StatEntry;
-  readonly hash: Hash;
+  readonly hashes: Hash;
 }
 
 /**
@@ -20,22 +20,23 @@ export declare interface FlowFileResult {
  */
 export function flowFileResultFromStatEntry(statEntry: StatEntry):
     FlowFileResult {
-  // TODO: Change dummy data with actual data
+  // TODO: use actual data
   const allHex = '0123456789abcdef'
-  const temporaryLongDummyHash: Hash = {
-    sha256: allHex.repeat(2),
-    md5: allHex.repeat(2),
-    sha1: allHex.repeat(2)
+  const temporaryLongDummyHashes: Hash = {
+    sha256: `${allHex.repeat(2)}sha256`,
+    md5: `${allHex.repeat(2)}md5`,
+    sha1: `${allHex.repeat(2)}sha1`
   }
   return {
     statEntry,
-    hash: temporaryLongDummyHash
+    hashes: temporaryLongDummyHashes
   };
 }
 
 
 declare interface TableRow {
   readonly path: string;
+  readonly hashes: Hash;
   readonly mode?: string;
   readonly uid: string;
   readonly gid: string;
@@ -74,7 +75,7 @@ export class FileResultsTable {
         return entries.map((e) => {
           return {
             path: e.statEntry.pathspec?.path ?? '',
-            hash: e.hash,
+            hashes: e.hashes,
             mode: e.statEntry.stMode,  // formatting will be handled by the pipe
             uid: e.statEntry.stUid?.toString() ?? '',
             gid: e.statEntry.stGid?.toString() ?? '',

@@ -1,18 +1,18 @@
 <div class="container">
-  <div cdkOverlayOrigin #trigger="cdkOverlayOrigin"></div>
+  <div cdkOverlayOrigin #topReference="cdkOverlayOrigin"></div>
 
-  <div (mouseenter)="mouseEnter()">
-    {{truncatedHash}}
+  <div (mouseenter)="mouseEnteredTruncatedHash()">
+    {{truncatedSha256}}
   </div>
 
   <ng-template
-    cdkConnectedOverlay 
-    [cdkConnectedOverlayOrigin]="trigger"
-    [cdkConnectedOverlayOpen]="hovered">
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="topReference"
+    [cdkConnectedOverlayOpen]="shouldDisplayPopup">
     <!-- TODO Check the scroll strategy -->
     
-    <div (mouseleave)="mouseLeave()">
-      <hashes [hash]="hash"></hashes>
+    <div (mouseleave)="mouseLeftPopup()">
+      <hashes [hashes]="hashes"></hashes>
     </div>
   </ng-template>
 

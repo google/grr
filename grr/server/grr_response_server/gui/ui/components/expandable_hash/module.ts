@@ -4,8 +4,8 @@ import { ExpandableHash } from './expandable_hash'
 import { Hashes } from './hashes/hashes'
 import { OverlayModule } from '@angular/cdk/overlay';
 import { ClipboardModule } from '@angular/cdk/clipboard';
-import {MatIconModule} from '@angular/material/icon';
-import {MatButtonModule} from '@angular/material/button';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 
 
 @NgModule({

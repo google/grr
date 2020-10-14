@@ -4,11 +4,14 @@ import { Hash } from '../../lib/api/api_interfaces'
 export const MAX_CHARACTERS_IN_TRUNCATED_HASH = 9; // TODO: Check
 export const SHA_256_NA_MESSAGE = 'sha256 n/a' // TODO: Check
 
-export function truncateIfNeeded(fullText: string): string {
+function truncate(fullText: string) {
   const ellipsis = '...';
+  return fullText.slice(0, MAX_CHARACTERS_IN_TRUNCATED_HASH - ellipsis.length) + ellipsis;
+}
 
+export function truncateIfNeeded(fullText: string): string {
   if (fullText.length > MAX_CHARACTERS_IN_TRUNCATED_HASH) {
-    return fullText.slice(0, MAX_CHARACTERS_IN_TRUNCATED_HASH - ellipsis.length) + ellipsis;
+    return truncate(fullText);
   } else {
     return fullText;
   }
@@ -19,30 +22,25 @@ export function truncateIfNeeded(fullText: string): string {
   templateUrl: './expandable_hash.ng.html',
   styleUrls: ['./expandable_hash.scss']
 })
-export class ExpandableHash implements OnInit {
-  @Input() hash?: Hash;
+export class ExpandableHash {
+  @Input() hashes?: Hash;
 
-  hovered = false;
+  shouldDisplayPopup = false;
 
-  get truncatedHash(): string {
-    // TODO: Check which hashes should be displayed if sha256 is not present
-    if (this.hash && this.hash.sha256) {
-      return truncateIfNeeded(this.hash.sha256);
+  get truncatedSha256(): string {
+    if (this.hashes?.sha256) {
+      return truncateIfNeeded(this.hashes.sha256);
     } else {
-      return SHA_256_NA_MESSAGE; // TODO: Check uppercase
+      return SHA_256_NA_MESSAGE;
     }
   }
 
   constructor() { }
 
-  ngOnInit(): void {
+  mouseEnteredTruncatedHash() {
+    this.shouldDisplayPopup = true;
   }
-
-  mouseEnter() {
-    this.hovered = true;
+  mouseLeftPopup() {
+    this.shouldDisplayPopup = false;
   }
-  mouseLeave() {
-    this.hovered = false;
-  }
-
 }

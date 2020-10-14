@@ -18,7 +18,7 @@
           <mat-icon class="menu-icon">content_copy</mat-icon>
         </button>
       </td>
-      <td class="hash"><expandable-hash [hash]="r.hash"></expandable-hash></td>
+      <td class="hash"><expandable-hash [hashes]="r.hashes"></expandable-hash></td>
       <td class="number">{{ r.mode | fileMode }}</td>
       <td class="number"><human-readable-size [size]="r.size"></human-readable-size></td>
       <td class="timestamp"><timestamp [date]="r.atime" [disableUnderlining]="true"></timestamp></td>
