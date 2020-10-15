@@ -1,6 +1,6 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ExpandableHash, truncateIfNeeded, MAX_CHARACTERS_IN_TRUNCATED_HASH} from './expandable_hash';
+import { ExpandableHash, truncateIfNeeded, MAX_CHARACTERS_IN_TRUNCATED_HASH, ELLIPSIS} from './expandable_hash';
 import { initTestEnvironment } from '@app/testing';
 
 import { OverlayModule } from '@angular/cdk/overlay';
@@ -28,7 +28,7 @@ describe('ExpandableHash component', () => {
   });
 
   function getDisplayedHashText() {
-    const hashDiv = fixture.debugElement.query(By.css('.truncatedHash'));
+    const hashDiv = fixture.debugElement.query(By.css('.truncated-hash'));
     return hashDiv.nativeElement.innerText;
   }
 
@@ -41,21 +41,21 @@ describe('ExpandableHash component', () => {
     expect(component).toBeTruthy();
   });
 
-  it('should truncate hash bigger than 9 symbols, keeping the first 6 and inserting an ellipsis', () => {
-    const justSha256 = {sha256: '1234567890'}
+  it('should truncate hash bigger than 7 symbols, keeping the first 6 and inserting an ellipsis', () => {
+    const justSha256 = {sha256: '12345678'}
     initComponentWithHashes(justSha256);
 
-    expect(getDisplayedHashText()).toEqual('123456...');
+    expect(getDisplayedHashText()).toEqual('123456' + ELLIPSIS);
   })
 
-  it('should display \'sha 256 n/a\' if no sha256', () => {
+  it('should display \'SHA-256 n/a\' if no SHA-256', () => {
     const noSha256 = {
       md5: 'md5',
       sha1: 'sha1'
     };
     initComponentWithHashes(noSha256);
 
-    expect(getDisplayedHashText()).toEqual('sha256 n/a');
+    expect(getDisplayedHashText()).toEqual('SHA-256 n/a');
   })
 });
 
@@ -70,14 +70,12 @@ describe('truncateIfNeeded', () => {
   })
 
   it('should put ellipsis to the truncated text', () => {
-    const ellipsis = '...';
-
     const longText = 'thisisgoingtobeasha256hashprobably'.repeat(10);
     const truncated = truncateIfNeeded(longText);
 
-    const lastThreeSymbols = truncated.slice(-3);
+    const lastThreeSymbols = truncated.slice(-1);
 
-    expect(lastThreeSymbols).toEqual(ellipsis);
+    expect(lastThreeSymbols).toEqual(ELLIPSIS);
   })
 
   it('should truncate long text', () => {
@@ -85,7 +83,7 @@ describe('truncateIfNeeded', () => {
 
     const longText = 'a'.repeat(textSize);
     const truncated = truncateIfNeeded(longText);
-    const withoutEllipsis = truncated.slice(0, -3);
+    const withoutEllipsis = truncated.slice(0, -1);
 
     expect(truncated.length).toEqual(MAX_CHARACTERS_IN_TRUNCATED_HASH);
     expect(longText.startsWith(withoutEllipsis)).toBeTrue();

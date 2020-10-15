@@ -1,14 +1,23 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { Hash } from '../../lib/api/api_interfaces'
 
-export const MAX_CHARACTERS_IN_TRUNCATED_HASH = 9; // TODO: Check
-export const SHA_256_NA_MESSAGE = 'sha256 n/a' // TODO: Check
+/** Number of characters to be displayed when not hovered */
+export const MAX_CHARACTERS_IN_TRUNCATED_HASH = 7; // TODO: Check
+
+/** Message to display if SHA-256 is undefined */
+export const SHA_256_NA_MESSAGE = 'SHA-256 n/a' // TODO: Check
+
+/** The 'Horizontal ellipsis' character: '…' */
+export const ELLIPSIS = '\u2026';
 
 function truncate(fullText: string) {
-  const ellipsis = '...';
-  return fullText.slice(0, MAX_CHARACTERS_IN_TRUNCATED_HASH - ellipsis.length) + ellipsis;
+  return fullText.slice(0, MAX_CHARACTERS_IN_TRUNCATED_HASH - ELLIPSIS.length) + ELLIPSIS;
 }
 
+/**
+ * Truncates the input and appends an ellipsis if it has more characters than the limit.
+ * The ellipsis is counted towards the limit as 1 character.
+ */
 export function truncateIfNeeded(fullText: string): string {
   if (fullText.length > MAX_CHARACTERS_IN_TRUNCATED_HASH) {
     return truncate(fullText);
@@ -17,6 +26,10 @@ export function truncateIfNeeded(fullText: string): string {
   }
 }
 
+/**
+ * Given multiple hashes, renders the SHA-256 value but truncated.
+ * When hovered, all supplied hashes are displayed in a pop-up, together with copy-to-clipboard buttons.
+ */
 @Component({
   selector: 'expandable-hash',
   templateUrl: './expandable_hash.ng.html',

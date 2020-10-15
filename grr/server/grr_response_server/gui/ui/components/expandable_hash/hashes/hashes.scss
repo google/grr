@@ -14,34 +14,33 @@
   padding: 1em;
 }
 
-// Mostly copied from file_results_table styles
 .copy-button {
   font-size: 16px;
 
   padding-right: 0.5em;
 
-  line-height: 18px !important;
-  height: 18px !important;
-  width: 18px !important;
+  line-height: 18px;
+  height: 18px;
+  width: 18px;
 
   mat-icon {
     font-size: 16px;
   }
 }
 
-.hashHolder {
+.hash-holder {
   margin-top: 1em;
   white-space: nowrap;
 }
 
-.hashName {
+.hash-name {
   font-weight: 500;
 }
 
-.hashValue {
+.hash-value {
   display: inline-block;
 }
 
-.noHashes {
+.no-hashes {
   font-style: italic;
 }

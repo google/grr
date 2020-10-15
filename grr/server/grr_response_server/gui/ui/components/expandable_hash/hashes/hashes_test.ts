@@ -42,10 +42,10 @@ describe('Hashes component', () => {
   }
 
   function unpackHashHolderDiv(hashDiv?: DebugElement): SingleHashFields {
-    const hashTypeDiv = hashDiv?.query(By.css('.hashName'));
+    const hashTypeDiv = hashDiv?.query(By.css('.hash-name'));
     const hashType = hashTypeDiv?.nativeElement.innerText;
 
-    const valueDiv = hashDiv?.query(By.css('.hashValue'));
+    const valueDiv = hashDiv?.query(By.css('.hash-value'));
     const value = valueDiv?.nativeElement.innerText;
 
     return {hashType, value};
@@ -54,7 +54,7 @@ describe('Hashes component', () => {
   function getDisplayedHashesWith(hashToUse: Hash) {
     const fixture = createComponentFixtureWith(hashToUse);
 
-    const holderDivs = fixture.debugElement.queryAll(By.css('.hashHolder'));
+    const holderDivs = fixture.debugElement.queryAll(By.css('.hash-holder'));
 
     return holderDivs.map(unpackHashHolderDiv);
   }
@@ -69,18 +69,18 @@ describe('Hashes component', () => {
     const noHashes = { };
     const fixture = createComponentFixtureWith(noHashes);
 
-    const noHashesDiv = fixture.debugElement.query(By.css('.noHashes'));
+    const noHashesDiv = fixture.debugElement.query(By.css('.no-hashes'));
 
     expect(noHashesDiv).toBeTruthy();
     expect(noHashesDiv.nativeElement.innerText).toEqual('no available hashes to display');
   })
 
-  it('should display sha256 hash', () => {
+  it('should display SHA-256 hash', () => {
     const sha256Only = {
       sha256: 'sha256-0123456789abcdef'
     };
 
-    const expectedHashName = 'sha256:'
+    const expectedHashName = 'SHA-256:'
     const expectedHashValue = sha256Only.sha256;
 
     const displayedHashes = getDisplayedHashesWith(sha256Only);
@@ -90,12 +90,12 @@ describe('Hashes component', () => {
     expect(displayedHashes[0].value).toEqual(expectedHashValue);
   })
 
-  it('should display sha1 hash', () => {
+  it('should display SHA-1 hash', () => {
     const sha1Only = {
       sha1: 'sha1-0123456789abcdef'
     };
 
-    const expectedHashName = 'sha1:'
+    const expectedHashName = 'SHA-1:'
     const expectedHashValue = sha1Only.sha1;
 
     const displayedHashes = getDisplayedHashesWith(sha1Only);
@@ -105,12 +105,12 @@ describe('Hashes component', () => {
     expect(displayedHashes[0].value).toEqual(expectedHashValue);
   })
 
-  it('should display md5 hash', () => {
+  it('should display MD5 hash', () => {
     const md5Only = {
       md5: 'md5-0123456789abcdef'
     };
 
-    const expectedHashName = 'md5:'
+    const expectedHashName = 'MD5:'
     const expectedHashValue = md5Only.md5;
 
     const displayedHashes = getDisplayedHashesWith(md5Only);
@@ -120,7 +120,7 @@ describe('Hashes component', () => {
     expect(displayedHashes[0].value).toEqual(expectedHashValue);
   })
 
-  it('should display all sha256, sha1 and md5', () => {
+  it('should display all SHA-256, SHA-1 and MD5', () => {
     const allHashes = {
       sha256: 'sha256-0123456789abcdef',
       sha1: 'sha1-0123456789abcdef',
@@ -130,13 +130,13 @@ describe('Hashes component', () => {
     const displayedHashes = getDisplayedHashesWith(allHashes);
 
     expect(displayedHashes.length).toEqual(3);
-    expect(displayedHashes[0].hashType).toEqual('sha256:');
+    expect(displayedHashes[0].hashType).toEqual('SHA-256:');
     expect(displayedHashes[0].value).toEqual(allHashes.sha256);
 
-    expect(displayedHashes[1].hashType).toEqual('sha1:');
+    expect(displayedHashes[1].hashType).toEqual('SHA-1:');
     expect(displayedHashes[1].value).toEqual(allHashes.sha1);
 
-    expect(displayedHashes[2].hashType).toEqual('md5:');
+    expect(displayedHashes[2].hashType).toEqual('MD5:');
     expect(displayedHashes[2].value).toEqual(allHashes.md5);
   })
 });
@@ -151,10 +151,10 @@ describe('HashTextAggregator', () => {
 
   it('should include the type of the hash', () => {
     const hashText = new HashTextAggregator();
-    const hashType = 'md5';
+    const hashType = 'MD5';
     const expectedBeginning = `${hashType}:`;
 
-    hashText.includeHashOfType('random', hashType);
+    hashText.appendHashTypeAndValue(hashType, 'random');
 
     expect(hashText.toString().startsWith(expectedBeginning)).toBeTrue();
   })
@@ -163,9 +163,9 @@ describe('HashTextAggregator', () => {
     const hashText = new HashTextAggregator();
     const expectedString = 'type1: hash1\ntype2: hash2\ntype3: hash3';
 
-    hashText.includeHashOfType('hash1', 'type1');
-    hashText.includeHashOfType('hash2', 'type2');
-    hashText.includeHashOfType('hash3', 'type3');
+    hashText.appendHashTypeAndValue('type1', 'hash1');
+    hashText.appendHashTypeAndValue('type2', 'hash2');
+    hashText.appendHashTypeAndValue('type3', 'hash3');
 
     expect(hashText.toString()).toEqual(expectedString);
   })
