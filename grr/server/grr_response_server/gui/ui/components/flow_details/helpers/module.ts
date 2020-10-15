@@ -27,6 +27,7 @@ import {ExpandableHashModule} from '../../expandable_hash/module';
     ClipboardModule,
     MatButtonModule,
     MatIconModule,
+    // Child component modules
     TimestampModule,
     HumanReadableSizeModule,
     ExpandableHashModule,
