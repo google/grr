@@ -1,4 +1,8 @@
 <div class="container mat-body-1">
+  <div *ngIf="!atLeastOneHashAvailable" class="noHashes">
+    no available hashes to display
+  </div>
+
   <div *ngIf="atLeastOneHashAvailable" class="heading">
     <button 
       class="copy-button"
@@ -6,63 +10,48 @@
       aria-label="Copy path to clipboard"
       [cdkCopyToClipboard]="completeHashInformation">
       <mat-icon class="menu-icon">content_copy</mat-icon>
-    </button>
-
-    Copy complete hash information
+    </button>&nbsp;Copy complete hash information
   </div>
 
   <div *ngIf="hashes?.sha256" class="hashHolder">
     <div class="hashName">
       sha256:
     </div>
-
     <button 
       class="copy-button"
       mat-icon-button
       aria-label="Copy sha256 to clipboard"
       [cdkCopyToClipboard]="hashes.sha256">
       <mat-icon class="menu-icon">content_copy</mat-icon>
-    </button>
-    <div class="hashValue">
-      {{hashes.sha256}}
-    </div>
+    </button>&nbsp;
+    <div class="hashValue">{{hashes.sha256}}</div>
   </div>
 
   <div *ngIf="hashes?.sha1" class="hashHolder">
     <div class="hashName">
-      sha1: 
+      sha1:
     </div>
-
     <button 
       class="copy-button"
       mat-icon-button
       aria-label="Copy sha1 to clipboard"
       [cdkCopyToClipboard]="hashes.sha1">
       <mat-icon class="menu-icon">content_copy</mat-icon>
-    </button>
-    <div class="hashValue">
-      {{hashes.sha1}}
-    </div>
+    </button>&nbsp;
+    <div class="hashValue">{{hashes.sha1}}</div>
   </div>
-
+  
   <div *ngIf="hashes?.md5" class="hashHolder">
     <div class="hashName">
-      md5: 
+      md5:
     </div>
-
     <button 
       class="copy-button"
       mat-icon-button
       aria-label="Copy md5 to clipboard"
       [cdkCopyToClipboard]="hashes.md5">
       <mat-icon class="menu-icon">content_copy</mat-icon>
-    </button>
-    <div class="hashValue">
-      {{hashes.md5}}
-    </div>
-  </div>
-
-  <div *ngIf="!atLeastOneHashAvailable" class="noHashes">
-    no available hashes to display
+    </button>&nbsp;
+    <div class="hashValue">{{hashes.md5}}</div>
   </div>
 </div>

@@ -12,21 +12,10 @@ import { MatButtonModule } from '@angular/material/button';
 
 initTestEnvironment();
 
-@Component({
-  template: `
-<hashes
-    [hashes]="hashes">
-</hashes>`
-})
-class HashesWrapperComponent {
-  hashes?: Hash;
-}
-
-fdescribe('Hashes component', () => {
+describe('Hashes component', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       declarations: [
-        HashesWrapperComponent,
         Hashes,
       ],
       imports: [
@@ -38,13 +27,13 @@ fdescribe('Hashes component', () => {
     .compileComponents();
   }));
 
-  function createHashesComponentWith(hashes: Hash):
-      ComponentFixture<HashesWrapperComponent> {
-    const component = TestBed.createComponent(HashesWrapperComponent);
-    component.componentInstance.hashes = hashes;
-    component.detectChanges();
+  function createComponentFixtureWith(hashes: Hash):
+      ComponentFixture<Hashes> {
+    const fixture = TestBed.createComponent(Hashes);
+    fixture.componentInstance.hashes = hashes;
+    fixture.detectChanges();
 
-    return component;
+    return fixture;
   }
 
   interface SingleHashFields {
@@ -63,24 +52,24 @@ fdescribe('Hashes component', () => {
   }
 
   function getDisplayedHashesWith(hashToUse: Hash) {
-    const component = createHashesComponentWith(hashToUse);
+    const fixture = createComponentFixtureWith(hashToUse);
 
-    const holderDivs = component.debugElement.queryAll(By.css('.hashHolder'));
+    const holderDivs = fixture.debugElement.queryAll(By.css('.hashHolder'));
 
     return holderDivs.map(unpackHashHolderDiv);
   }
 
   it('should create', () => {
     const noHashes = { };
-    const component = createHashesComponentWith(noHashes);
-    expect(component).toBeTruthy();
+    const fixture = createComponentFixtureWith(noHashes);
+    expect(fixture).toBeTruthy();
   });
 
   it('should display warning message if no hashes are available', () => {
     const noHashes = { };
-    const component = createHashesComponentWith(noHashes);
+    const fixture = createComponentFixtureWith(noHashes);
 
-    const noHashesDiv = component.debugElement.query(By.css('.noHashes'));
+    const noHashesDiv = fixture.debugElement.query(By.css('.noHashes'));
 
     expect(noHashesDiv).toBeTruthy();
     expect(noHashesDiv.nativeElement.innerText).toEqual('no available hashes to display');
