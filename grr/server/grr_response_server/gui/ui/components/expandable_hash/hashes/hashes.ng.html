@@ -15,6 +15,14 @@
     <div class="hashName">
       sha256:
     </div>
+
+    <button 
+      class="copy-button"
+      mat-icon-button
+      aria-label="Copy sha256 to clipboard"
+      [cdkCopyToClipboard]="hashes.sha256">
+      <mat-icon class="menu-icon">content_copy</mat-icon>
+    </button>
     <div class="hashValue">
       {{hashes.sha256}}
     </div>
@@ -24,6 +32,14 @@
     <div class="hashName">
       sha1: 
     </div>
+
+    <button 
+      class="copy-button"
+      mat-icon-button
+      aria-label="Copy sha1 to clipboard"
+      [cdkCopyToClipboard]="hashes.sha1">
+      <mat-icon class="menu-icon">content_copy</mat-icon>
+    </button>
     <div class="hashValue">
       {{hashes.sha1}}
     </div>
@@ -33,6 +49,14 @@
     <div class="hashName">
       md5: 
     </div>
+
+    <button 
+      class="copy-button"
+      mat-icon-button
+      aria-label="Copy md5 to clipboard"
+      [cdkCopyToClipboard]="hashes.md5">
+      <mat-icon class="menu-icon">content_copy</mat-icon>
+    </button>
     <div class="hashValue">
       {{hashes.md5}}
     </div>

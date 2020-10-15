@@ -1,15 +1,15 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { Hash } from '@app/lib/api/api_interfaces';
 
-export class HashText {
-  private currentBuffer = '';
+export class HashTextAggregator {
+  private textBuffer = '';
 
   private append(line: string) {
-    if (this.currentBuffer.length > 0) {
-      this.currentBuffer += '\n';
+    if (this.textBuffer.length > 0) {
+      this.textBuffer += '\n';
     }
 
-    this.currentBuffer += line;
+    this.textBuffer += line;
   }
 
   includeHashOfType(hashText: string, hashType: string) {
@@ -18,7 +18,7 @@ export class HashText {
   }
 
   toString() {
-    return this.currentBuffer;
+    return this.textBuffer;
   }
 }
 
@@ -31,7 +31,7 @@ export class Hashes {
   @Input() hashes?: Hash;
 
   get completeHashInformation(): string {
-    const hashText = new HashText();
+    const hashText = new HashTextAggregator();
 
     if (this.hashes?.sha256) {
       hashText.includeHashOfType(this.hashes.sha256, 'sha256');

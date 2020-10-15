@@ -2,9 +2,13 @@ import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 import {initTestEnvironment} from '@app/testing';
 import {By} from '@angular/platform-browser';
 
-import { Hashes, HashText } from './hashes';
+import { Hashes, HashTextAggregator } from './hashes';
 import { Hash } from '@app/lib/api/api_interfaces';
 import { Component, DebugElement } from '@angular/core';
+
+import { ClipboardModule } from '@angular/cdk/clipboard';
+import { MatIconModule } from '@angular/material/icon';
+import { MatButtonModule } from '@angular/material/button';
 
 initTestEnvironment();
 
@@ -18,12 +22,17 @@ class HashesWrapperComponent {
   hashes?: Hash;
 }
 
-fdescribe('Hashes component', () => { // TODO: Remove f
+fdescribe('Hashes component', () => {
   beforeEach(async(() => {
     TestBed.configureTestingModule({
       declarations: [
         HashesWrapperComponent,
         Hashes,
+      ],
+      imports: [
+        ClipboardModule,
+        MatIconModule,
+        MatButtonModule,
       ]
     })
     .compileComponents();
@@ -39,36 +48,26 @@ fdescribe('Hashes component', () => { // TODO: Remove f
   }
 
   interface SingleHashFields {
-    name: string,
+    hashType: string,
     value: string
   }
 
-  function unpackHashDiv(hashDiv: DebugElement): SingleHashFields {
-    const nameDiv = hashDiv.query(By.css('.hashName'));
-    const name = nameDiv?.nativeElement.innerText;
+  function unpackHashHolderDiv(hashDiv?: DebugElement): SingleHashFields {
+    const hashTypeDiv = hashDiv?.query(By.css('.hashName'));
+    const hashType = hashTypeDiv?.nativeElement.innerText;
 
-    const valueDiv = hashDiv.query(By.css('.hashValue'));
+    const valueDiv = hashDiv?.query(By.css('.hashValue'));
     const value = valueDiv?.nativeElement.innerText;
 
-    return {name, value};
+    return {hashType, value};
   }
 
-  function testWithSingleHash(hashFields: SingleHashFields) {
-    const expectedHashName = hashFields.name + ':';
-    const expectedHashValue = hashFields.value;
-
-    const hashToUse: Hash = {
-      [hashFields.name]: hashFields.value
-    };
-
+  function getDisplayedHashesWith(hashToUse: Hash) {
     const component = createHashesComponentWith(hashToUse);
 
-    const holderDiv = component.debugElement.query(By.css('.hashHolder'));
-    expect(holderDiv).toBeTruthy();
+    const holderDivs = component.debugElement.queryAll(By.css('.hashHolder'));
 
-    const hashFieldsToCheck = unpackHashDiv(holderDiv);
-    expect(hashFieldsToCheck.name).toEqual(expectedHashName);
-    expect(hashFieldsToCheck.value).toEqual(expectedHashValue);
+    return holderDivs.map(unpackHashHolderDiv);
   }
 
   it('should create', () => {
@@ -88,31 +87,81 @@ fdescribe('Hashes component', () => { // TODO: Remove f
   })
 
   it('should display sha256 hash', () => {
-    const sha256 = {name: 'sha256', value: '0123456789abcdef'};
-    testWithSingleHash(sha256);
+    const sha256Only = {
+      sha256: 'sha256-0123456789abcdef'
+    };
+
+    const expectedHashName = 'sha256:'
+    const expectedHashValue = sha256Only.sha256;
+
+    const displayedHashes = getDisplayedHashesWith(sha256Only);
+
+    expect(displayedHashes.length).toEqual(1);
+    expect(displayedHashes[0].hashType).toEqual(expectedHashName);
+    expect(displayedHashes[0].value).toEqual(expectedHashValue);
   })
 
   it('should display sha1 hash', () => {
-    const sha1 = {name: 'sha1', value: '0123456789abcdef'};
-    testWithSingleHash(sha1);
+    const sha1Only = {
+      sha1: 'sha1-0123456789abcdef'
+    };
+
+    const expectedHashName = 'sha1:'
+    const expectedHashValue = sha1Only.sha1;
+
+    const displayedHashes = getDisplayedHashesWith(sha1Only);
+
+    expect(displayedHashes.length).toEqual(1);
+    expect(displayedHashes[0].hashType).toEqual(expectedHashName);
+    expect(displayedHashes[0].value).toEqual(expectedHashValue);
   })
 
   it('should display md5 hash', () => {
-    const md5 = {name: 'md5', value: '0123456789abcdef'};
-    testWithSingleHash(md5);
+    const md5Only = {
+      md5: 'md5-0123456789abcdef'
+    };
+
+    const expectedHashName = 'md5:'
+    const expectedHashValue = md5Only.md5;
+
+    const displayedHashes = getDisplayedHashesWith(md5Only);
+
+    expect(displayedHashes.length).toEqual(1);
+    expect(displayedHashes[0].hashType).toEqual(expectedHashName);
+    expect(displayedHashes[0].value).toEqual(expectedHashValue);
+  })
+
+  it('should display all sha256, sha1 and md5', () => {
+    const allHashes = {
+      sha256: 'sha256-0123456789abcdef',
+      sha1: 'sha1-0123456789abcdef',
+      md5: 'md5-0123456789abcdef',
+    };
+
+    const displayedHashes = getDisplayedHashesWith(allHashes);
+
+    expect(displayedHashes.length).toEqual(3);
+    expect(displayedHashes[0].hashType).toEqual('sha256:');
+    expect(displayedHashes[0].value).toEqual(allHashes.sha256);
+
+    expect(displayedHashes[1].hashType).toEqual('sha1:');
+    expect(displayedHashes[1].value).toEqual(allHashes.sha1);
+
+    expect(displayedHashes[2].hashType).toEqual('md5:');
+    expect(displayedHashes[2].value).toEqual(allHashes.md5);
   })
 });
 
 
-describe('HashText', () => {
+describe('HashTextAggregator', () => {
   it('should yield an empty string when no hashes are added', () => {
-    const hashText = new HashText();
+    const hashText = new HashTextAggregator();
 
     expect(hashText.toString()).toEqual('');
   });
 
   it('should include the type of the hash', () => {
-    const hashText = new HashText();
+    const hashText = new HashTextAggregator();
     const hashType = 'md5';
     const expectedBeginning = `${hashType}:`;
 
@@ -122,7 +171,7 @@ describe('HashText', () => {
   })
 
   it('should add a newline before subsequent hashes', () => {
-    const hashText = new HashText();
+    const hashText = new HashTextAggregator();
     const expectedString = 'type1: hash1\ntype2: hash2\ntype3: hash3';
 
     hashText.includeHashOfType('hash1', 'type1');
