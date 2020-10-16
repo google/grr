@@ -1,3 +1,8 @@
-.query-holder, timeout-holder, ignore-checkbox-holder {
-  display: block;
+.container {
+  display: flex;
+  flex-direction: column;
+}
+
+.timeout {
+  width: 10em;
 }

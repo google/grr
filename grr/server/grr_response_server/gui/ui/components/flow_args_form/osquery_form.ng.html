@@ -1,16 +1,14 @@
-<div [formGroup]="form">
-  <mat-form-field appearance="outline" class='query-holder'>
+<div [formGroup]="form" class="container">
+  <mat-form-field appearance="outline">
     <mat-label>Query</mat-label>
-    <textarea matInput placeholder="" formControlName="query" cdkTextareaAutosize></textarea>
+    <textarea matInput placeholder="" formControlName="query" cdkTextareaAutosize class="query"></textarea>
   </mat-form-field>
 
-  <mat-form-field class='timeout-holder'>
+  <mat-form-field class="timeout">
     <mat-label>Timeout</mat-label>
     <input matInput placeholder="" formControlName="timeoutMillis">
     <span matSuffix>ms</span>
   </mat-form-field>
 
-  <div class='ignore-checkbox-holder'>
-    <mat-checkbox formControlName="ignoreStderrErrors">Ignore stderr errors</mat-checkbox>
-  </div>
+  <mat-checkbox formControlName="ignoreStderrErrors">Ignore stderr errors</mat-checkbox>
 </div>
