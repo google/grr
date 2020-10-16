@@ -1,8 +1,8 @@
 import { Component, OnInit, Input } from '@angular/core';
 import { Hash } from '../../lib/api/api_interfaces'
 
-/** Number of characters to be displayed when not hovered */
-export const MAX_CHARACTERS_IN_TRUNCATED_HASH = 7; // TODO: Check
+/** Max number of hash characters to be displayed when not hovered */
+export const TRUNCATED_HASH_CHAR_LIMIT = 7; // TODO: Check
 
 /** Message to display if SHA-256 is undefined */
 export const SHA_256_NA_MESSAGE = 'SHA-256 n/a' // TODO: Check
@@ -11,7 +11,7 @@ export const SHA_256_NA_MESSAGE = 'SHA-256 n/a' // TODO: Check
 export const ELLIPSIS = '\u2026';
 
 function truncate(fullText: string) {
-  return fullText.slice(0, MAX_CHARACTERS_IN_TRUNCATED_HASH - ELLIPSIS.length) + ELLIPSIS;
+  return fullText.slice(0, TRUNCATED_HASH_CHAR_LIMIT - ELLIPSIS.length) + ELLIPSIS;
 }
 
 /**
@@ -19,7 +19,7 @@ function truncate(fullText: string) {
  * The ellipsis is counted towards the limit as 1 character.
  */
 export function truncateIfNeeded(fullText: string): string {
-  if (fullText.length > MAX_CHARACTERS_IN_TRUNCATED_HASH) {
+  if (fullText.length > TRUNCATED_HASH_CHAR_LIMIT) {
     return truncate(fullText);
   } else {
     return fullText;

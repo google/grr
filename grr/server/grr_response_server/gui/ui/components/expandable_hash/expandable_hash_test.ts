@@ -1,6 +1,6 @@
 import { async, ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { ExpandableHash, truncateIfNeeded, MAX_CHARACTERS_IN_TRUNCATED_HASH, ELLIPSIS} from './expandable_hash';
+import { ExpandableHash, truncateIfNeeded, TRUNCATED_HASH_CHAR_LIMIT, ELLIPSIS} from './expandable_hash';
 import { initTestEnvironment } from '@app/testing';
 
 import { OverlayModule } from '@angular/cdk/overlay';
@@ -61,7 +61,7 @@ describe('ExpandableHash component', () => {
 
 describe('truncateIfNeeded', () => {
   it('shouldn\'t modify small text', () => {
-    const textSize = MAX_CHARACTERS_IN_TRUNCATED_HASH;
+    const textSize = TRUNCATED_HASH_CHAR_LIMIT;
 
     const shortText = 'a'.repeat(textSize);
     const truncated = truncateIfNeeded(shortText);
@@ -79,13 +79,13 @@ describe('truncateIfNeeded', () => {
   })
 
   it('should truncate long text', () => {
-    const textSize = MAX_CHARACTERS_IN_TRUNCATED_HASH + 100;
+    const textSize = TRUNCATED_HASH_CHAR_LIMIT + 100;
 
     const longText = 'a'.repeat(textSize);
     const truncated = truncateIfNeeded(longText);
     const withoutEllipsis = truncated.slice(0, -1);
 
-    expect(truncated.length).toEqual(MAX_CHARACTERS_IN_TRUNCATED_HASH);
+    expect(truncated.length).toEqual(TRUNCATED_HASH_CHAR_LIMIT);
     expect(longText.startsWith(withoutEllipsis)).toBeTrue();
   })
 })
