@@ -22,13 +22,13 @@ from grr_response_core import config as grr_config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
 from grr_response_core.lib import config_lib
+from grr_response_proto.api import config_pb2
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import maintenance_utils
 from grr_response_server import server_startup
 from grr_response_server.bin import config_updater_keys_util
 from grr_response_server.bin import config_updater_util
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 parser = argparse_flags.ArgumentParser(
     description=("Set configuration parameters for the GRR Server."
@@ -353,14 +353,14 @@ def main(args):
   elif args.subparser_name == "upload_python":
     config_updater_util.UploadSignedBinary(
         args.file,
-        rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK,
+        config_pb2.ApiGrrBinary.Type.PYTHON_HACK,
         args.platform,
         upload_subdirectory=args.upload_subdirectory)
 
   elif args.subparser_name == "upload_exe":
     config_updater_util.UploadSignedBinary(
         args.file,
-        rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
+        config_pb2.ApiGrrBinary.Type.EXECUTABLE,
         args.platform,
         upload_subdirectory=args.upload_subdirectory)
 

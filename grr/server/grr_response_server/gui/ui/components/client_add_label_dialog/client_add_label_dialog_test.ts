@@ -1,9 +1,10 @@
 import {OverlayContainer} from '@angular/cdk/overlay';
-import {async, ComponentFixture, inject, TestBed} from '@angular/core/testing';
+import {ComponentFixture, inject, TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule} from '@angular/forms';
 import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+
 import {ClientLabel} from '../../lib/models/client';
 import {ConfigFacade} from '../../store/config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
@@ -27,10 +28,7 @@ describe('Client Add Label Dialog', () => {
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
 
-  // TODO(user): Change to waitForAsync once we run on Angular 10, which
-  //  in turn requires TypeScript 3.9.
-  // tslint:disable-next-line:deprecation
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     configFacadeMock = mockConfigFacade();
 
     TestBed

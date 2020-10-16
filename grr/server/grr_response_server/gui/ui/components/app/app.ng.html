@@ -7,6 +7,9 @@
       <div class="title">GRR</div>
     </a>
     <span class="spacer"></span>
+    <a id="fallback-link" mat-icon-button href="{{fallbackLink$ | async}}" matTooltip="Open this page in the old UI" aria-label="Open this page in the old UI">
+      <mat-icon>history</mat-icon>
+    </a>
     <user-menu></user-menu>
   </mat-toolbar-row>
 </mat-toolbar>

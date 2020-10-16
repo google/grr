@@ -18,3 +18,8 @@ export type NonNullableKey<T, K extends keyof T> = Complete<Pick<T, K>>&T;
 
 /** Enforce an object's key to be truthy. */
 export type TruthyKey<T, K extends keyof T> = CompleteTruthy<Pick<T, K>>&T;
+
+/** Allow overwriting an object's readonly keys (for tests). */
+export type Writable<T> = {
+  -readonly[K in keyof T]: T[K];
+};

@@ -4,10 +4,13 @@
 
 <div class="clients-container mat-typography" *ngIf="(recentClients$ | async)?.length > 0">
   <h1>Recently accessed clients</h1>
-  <div *ngFor="let client of recentClients$ | async">
+  <div *ngFor="let client of recentClients$ | async; trackBy: trackClient">
     <a [routerLink]="['/clients', client.clientId]" mat-button>
       <mat-icon>computer</mat-icon>
       <h3>{{client.knowledgeBase.fqdn}} {{client.clientId}}</h3>
+      <mat-chip-list>
+      <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
+      </mat-chip-list>
     </a>
   </div>
 </div>

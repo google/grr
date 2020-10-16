@@ -2,6 +2,7 @@ import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import {MatButtonModule} from '@angular/material/button';
+import {MatChipsModule} from '@angular/material/chips';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
@@ -11,6 +12,7 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 import {ApiModule} from '@app/lib/api/module';
 
+import {OnlineChipModule} from '../online_chip/module';
 import {TimestampModule} from '../timestamp/module';
 
 import {Home} from './home';
@@ -32,6 +34,7 @@ import {SearchBox} from './search_box';
     // Angular Material modules.
     MatAutocompleteModule,
     MatButtonModule,
+    MatChipsModule,
     MatIconModule,
     MatInputModule,
     MatFormFieldModule,
@@ -42,6 +45,7 @@ import {SearchBox} from './search_box';
     HomeRoutingModule,
     ApiModule,
     TimestampModule,
+    OnlineChipModule,
   ],
   declarations: [Home, SearchBox],
 })
