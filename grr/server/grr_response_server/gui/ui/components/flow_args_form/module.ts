@@ -16,6 +16,7 @@ import {GlobExpressionExplanationModule} from '@app/components/form/glob_express
 
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
 import {FlowArgsForm} from './flow_args_form';
+import {OsqueryForm} from './osquery_form';
 
 /** Module for the FlowArgsForm component. */
 @NgModule({
@@ -37,12 +38,14 @@ import {FlowArgsForm} from './flow_args_form';
     CollectBrowserHistoryForm,
     CollectSingleFileForm,
     CollectMultipleFilesForm,
+    OsqueryForm,
     FallbackFlowArgsForm,
   ],
   entryComponents: [
     CollectBrowserHistoryForm,
     CollectSingleFileForm,
     CollectMultipleFilesForm,
+    OsqueryForm,
     FallbackFlowArgsForm,
   ],
   exports: [
