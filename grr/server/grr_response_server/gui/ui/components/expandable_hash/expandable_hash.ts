@@ -7,8 +7,8 @@ export const TRUNCATED_HASH_CHAR_LIMIT = 7; // TODO: Check
 /** Message to display if SHA-256 is undefined */
 export const SHA_256_NA_MESSAGE = 'SHA-256 n/a' // TODO: Check
 
-/** The 'Horizontal ellipsis' character: '…' */
-export const ELLIPSIS = '\u2026';
+/** The 'Horizontal ellipsis' character '…' */
+export const ELLIPSIS = '…';
 
 function truncate(fullText: string) {
   return fullText.slice(0, TRUNCATED_HASH_CHAR_LIMIT - ELLIPSIS.length) + ELLIPSIS;
