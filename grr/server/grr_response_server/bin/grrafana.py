@@ -1,11 +1,12 @@
 #!/usr/bin/env python
 # Lint as: python3
+from abc import ABC, abstractmethod
 from absl import app, flags
 import collections
 import dateutil
 import json
 import os
-from typing import Any, cast, Dict, List, Tuple, Iterable
+from typing import Any, Callable, cast, Dict, List, Tuple, Iterable
 
 from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 from google.protobuf import timestamp_pb2
@@ -13,6 +14,7 @@ from google.protobuf import timestamp_pb2
 from grr_response_core import config
 from grr_response_core.config import server as config_server
 from grr_response_core.config import contexts
+from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import server_startup
@@ -37,6 +39,8 @@ _Datapoint = Tuple[float, int]
 _Datapoints = List[_Datapoint]
 _TargetWithDatapoints = collections.namedtuple("TargetWithDatapoints",
                                                ["target", "datapoints"])
+_TableQueryResult = collections.namedtuple("TableQueryResult",
+                                           ["columns", "rows", "type"])
 
 
 class JSONRequest(werkzeug_wrappers_json.JSONMixin, werkzeug_wrappers.Request):
@@ -54,24 +58,27 @@ class JSONResponse(werkzeug_wrappers_json.JSONMixin,
     super().__init__(response, *args, **kwargs)
 
 
-class Metric(object):
+class Metric(ABC):
   """A single metric that can be fetched from a
   Fleetspeak-based GRR deployment."""
 
+  @abstractmethod
   def __init__(self, name: str) -> None:
     """Initializes a new metric."""
     self.name = name
 
+  @abstractmethod
   def ProcessQuery(self, req: JSONRequest):
     """Processes the request JSON data and returns
     data that can be read by Grafana (by JSON Datasource plugin)."""
-    raise NotImplementedError()
+    pass
 
 
 class ClientResourceUsageMetric(Metric):
 
-  def __init__(self, name: str) -> None:
+  def __init__(self, name: str, record_values_extract_fn: Callable) -> None:
     super().__init__(name)
+    self.record_values_extract_fn = record_values_extract_fn
 
   def ProcessQuery(self, req: JSONRequest) -> _TargetWithDatapoints:
     client_id = req["scopedVars"]["ClientID"]["value"]
@@ -79,79 +86,84 @@ class ClientResourceUsageMetric(Metric):
     end_range_ts = timeToProtoTimestamp(req["range"]["to"])
     records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
         client_id, start_range_ts, end_range_ts)
-    datapoints = self._CreateDatapointsForTarget(records_list)
+    record_values = self.record_values_extract_fn(records_list)
+    datapoints = [(v, r.server_timestamp.seconds * 1000 +
+                   r.server_timestamp.nanos // 1000000)
+                  for (v, r) in zip(record_values, records_list)]
     return _TargetWithDatapoints(target=self.name, datapoints=datapoints)
-
-  def _CreateDatapointsForTarget(self,
-      records_list: Iterable[resource_pb2.ClientResourceUsageRecord]
-  ) -> _Datapoints:
-    if self.name == "Mean User CPU Rate":
-      record_values = [record.mean_user_cpu_rate for record in records_list]
-    elif self.name == "Max User CPU Rate":
-      record_values = [record.max_user_cpu_rate for record in records_list]
-    elif self.name == "Mean System CPU Rate":
-      record_values = [record.mean_system_cpu_rate for record in records_list]
-    elif self.name == "Max System CPU Rate":
-      record_values = [record.max_system_cpu_rate for record in records_list]
-    elif self.name == "Mean Resident Memory MB":
-      record_values = [
-          # conversion from MiB to MB.
-          record.mean_resident_memory_mib * 1.049 for record in records_list
-      ]
-    elif self.name == "Max Resident Memory MB":
-      record_values = [
-          record.max_resident_memory_mib * 1.049 for record in records_list
-      ]
-    else:
-      raise NameError(
-          f"Target {self.name} is not a resource usage metric that can be " \
-          "fetched from Fleetspeak."
-      )
-    return [
-        (v,
-        r.server_timestamp.seconds * 1000 + r.server_timestamp.nanos // 1000000)
-        for (v, r) in zip(record_values, records_list)
-    ]
 
 
 class ClientsStatisticsMetric(Metric):
 
-  def __init__(self, name: str) -> None:
+  def __init__(self, name: str, statistics_extract_fn: Callable,
+               days_active: int) -> None:
     super().__init__(name)
+    self.statistics_extract_fn = statistics_extract_fn
+    self.days_active = days_active
 
   def ProcessQuery(self, req: JSONRequest):
-    pass
+    fleet_stats = self.statistics_extract_fn(frozenset([self.days_active]))
+    # for day_bucket in fleet_stats.GetDayBuckets():
+    # graph = rdf_stats.Graph(title="%d day actives for %s label" %
+    #                         (day_bucket, _ALL_CLIENT_FLEET_STATS_LABEL))
+    totals = fleet_stats.GetTotalsForDay(self.days_active)
+    print(totals)
+    return _TableQueryResult(columns=[{
+        "text": "Country",
+        "type": "string"
+    }, {
+        "text": "Number",
+        "type": "number"
+    }],
+                             rows=[["SE", 123], ["DE", 231], ["US", 321]],
+                             type="table")
+    # print(type(totals))
+    # datapoints = [
+    #     _TargetWithDatapoints(target=category_value, datapoints=num_actives)
+    #     for category_value, num_actives in sorted(totals.items())
+    # ]
+    # print(datapoints)
+    # for category_value, num_actives in sorted(totals.items()):
+    # graph.Append(label=category_value, y_value=num_actives)
+    # _TargetWithDatapoints(target=self.name, datapoints=datapoints)
+    # graph_series_by_label[_ALL_CLIENT_FLEET_STATS_LABEL].graphs.Append(graph)
+    # return _TargetWithDatapoints(target=self.name, datapoints=list(totals.items()))
 
 
-AVAILABLE_METRICS = {
-    "Mean User CPU Rate":
-        ClientResourceUsageMetric("Mean User CPU Rate"),
-    "Max User CPU Rate":
-        ClientResourceUsageMetric("Max User CPU Rate"),
-    "Mean System CPU Rate":
-        ClientResourceUsageMetric("Mean System CPU Rate"),
-    "Max System CPU Rate":
-        ClientResourceUsageMetric("Max System CPU Rate"),
-    "Mean Resident Memory MB":
-        ClientResourceUsageMetric("Mean Resident Memory MB"),
-    "Max Resident Memory MB":
-        ClientResourceUsageMetric("Max Resident Memory MB"),
-    "OS Platform Breakdown - 1 Day Active":
-        ClientsStatisticsMetric("OS Platform Breakdown - 1 Day Active"),
-    "OS Platform Breakdown - 7 Day Active":
-        ClientsStatisticsMetric("OS Platform Breakdown - 7 Day Active"),
-    "OS Platform Breakdown - 14 Day Active":
-        ClientsStatisticsMetric("OS Platform Breakdown - 14 Day Active"),
-    "OS Platform Breakdown - 30 Day Active":
-        ClientsStatisticsMetric("OS Platform Breakdown - 30 Day Active"),
-    "OS Release Version Breakdown - 1 Day Active":
-        ClientsStatisticsMetric("OS Release Version Breakdown - 1 Day Active"),
-    "OS Release Version Breakdown - 7 Day Active":
-        ClientsStatisticsMetric("OS Release Version Breakdown - 7 Day Active"),
-    "OS Release Version Breakdown - 14 Day Active":
-        ClientsStatisticsMetric("OS Release Version Breakdown - 14 Day Active"),
-    "OS Release Version Breakdown - 30 Day Active":
-        ClientsStatisticsMetric("OS Release Version Breakdown - 30 Day Active"),
+AVAILABLE_METRICS_LIST = [
+    ClientResourceUsageMetric(
+        "Mean User CPU Rate", lambda records_list:
+        [record.mean_user_cpu_rate for record in records_list]),
+    ClientResourceUsageMetric(
+        "Max User CPU Rate", lambda records_list:
+        [record.max_user_cpu_rate for record in records_list]),
+    ClientResourceUsageMetric(
+        "Mean System CPU Rate", lambda records_list:
+        [record.mean_system_cpu_rate for record in records_list]),
+    ClientResourceUsageMetric(
+        "Max System CPU Rate", lambda records_list:
+        [record.max_system_cpu_rate for record in records_list]),
+    ClientResourceUsageMetric(
+        "Mean Resident Memory MB", lambda records_list:
+        [record.mean_resident_memory_mib * 1.049 for record in records_list]),
+    ClientResourceUsageMetric(
+        "Max Resident Memory MB", lambda records_list:
+        [record.max_resident_memory_mib * 1.049 for record in records_list]),
+]
+AVAILABLE_METRICS_LIST.extend([
+    ClientsStatisticsMetric(
+        f"OS Platform Breakdown - {n_days} Day Active",
+        lambda buckets: data_store.REL_DB.CountClientPlatformsByLabel(buckets),
+        n_days) for n_days in [1, 7, 14, 30]
+])
+AVAILABLE_METRICS_LIST.extend([
+    ClientsStatisticsMetric(
+        f"OS Release Version Breakdown - {n_days} Day Active", lambda buckets:
+        data_store.REL_DB.CountClientPlatformReleasesByLabel(buckets), n_days)
+    for n_days in [1, 7, 14, 30]
+])
+AVAILABLE_METRICS_DICT = {
+    metric.name: metric for metric in AVAILABLE_METRICS_LIST
 }
 
 
@@ -202,7 +214,7 @@ class Grrafana(object):
       # Grafana request issued on Panel > Queries page. Grafana expects the
       # list of metrics that can be listed on the dropdown-menu
       # called "Metric".
-      response = list(AVAILABLE_METRICS.keys())
+      response = list(AVAILABLE_METRICS_DICT.keys())
     else:
       # Grafana request issued on Variables > New/Edit page for variables of
       # type query. Grafana expectes the list of possible values of
@@ -218,8 +230,12 @@ class Grrafana(object):
     returns datapoints in a format Grafana can interpret."""
     json_data = request.json
     requested_targets = [entry["target"] for entry in json_data["targets"]]
-    targets_with_datapoints = [AVAILABLE_METRICS[t].ProcessQuery(json_data) for t in requested_targets]
+    targets_with_datapoints = [
+        AVAILABLE_METRICS_DICT[target].ProcessQuery(json_data)
+        for target in requested_targets
+    ]
     response = [t._asdict() for t in targets_with_datapoints]
+    print(response)
     return JSONResponse(response=response)
 
   def _OnAnnotations(self, request: JSONRequest) -> JSONResponse:
@@ -244,6 +260,22 @@ def main(argv: Any) -> None:
   config.CONFIG.AddContext(contexts.GRRAFANA_CONTEXT,
                            "Context applied when running GRRafana server.")
   server_startup.Init()
+  # AVAILABLE_METRICS_LIST.extend([
+  #     ClientsStatisticsMetric(
+  #         f"OS Platform Breakdown - {n_days} Day Active",
+  #         data_store.REL_DB.CountClientPlatformsByLabel, n_days)
+  #     for n_days in [1, 7, 14, 30]
+  # ])
+  # AVAILABLE_METRICS_LIST.extend([
+  #     ClientsStatisticsMetric(
+  #         f"OS Release Version Breakdown - {n_days} Day Active",
+  #         data_store.REL_DB.CountClientPlatformReleasesByLabel, n_days)
+  #     for n_days in [1, 7, 14, 30]
+  # ])
+  # global AVAILABLE_METRICS_DICT
+  # AVAILABLE_METRICS_DICT = {
+  #     metric.name: metric for metric in AVAILABLE_METRICS_LIST
+  # }
   fleetspeak_connector.Init()
   werkzeug_serving.run_simple("127.0.0.1",
                               5000,
