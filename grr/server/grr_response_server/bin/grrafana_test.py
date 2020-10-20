@@ -181,6 +181,14 @@ class GrrafanaTest(absltest.TestCase):
         "Max System CPU Rate",
         "Mean Resident Memory MB",
         "Max Resident Memory MB",
+        "OS Platform Breakdown - 1 Day Active",
+        "OS Platform Breakdown - 7 Day Active",
+        "OS Platform Breakdown - 14 Day Active",
+        "OS Platform Breakdown - 30 Day Active",
+        "OS Release Version Breakdown - 1 Day Active",
+        "OS Release Version Breakdown - 7 Day Active",
+        "OS Release Version Breakdown - 14 Day Active",
+        "OS Release Version Breakdown - 30 Day Active",
     ])
 
   def testQuery(self):
@@ -209,7 +217,7 @@ class GrrafanaTest(absltest.TestCase):
         _TEST_CLIENT_RESOURCE_USAGE_RECORD_2
     ])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      self.assertRaises(NameError,
+      self.assertRaises(KeyError,
                         self.client.post,
                         "/query",
                         json=_TEST_INVALID_TARGET_QUERY)
