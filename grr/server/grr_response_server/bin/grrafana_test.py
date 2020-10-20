@@ -65,7 +65,7 @@ _TEST_CLIENT_RESOURCE_USAGE_RECORD_2 = {
     "mean_resident_memory_mib": 59,
     "max_resident_memory_mib": 59
 }
-_TEST_VALID_QUERY = {
+_TEST_VALID_RUD_QUERY = {
     'app': 'dashboard',
     'requestId': 'Q119',
     'timezone': 'browser',
@@ -117,20 +117,8 @@ _TEST_VALID_QUERY = {
     },
     'adhocFilters': []
 }
-_TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_QUERY)
+_TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_RUD_QUERY)
 _TEST_INVALID_TARGET_QUERY["targets"][0]["target"] = "unavailable_metric"
-
-
-def _MockConnReturningClients(grr_ids):
-  clients = []
-  for grr_id in grr_ids:
-    client = admin_pb2.Client(
-        client_id=fleetspeak_utils.GRRIDToFleetspeakID(grr_id))
-    clients.append(client)
-  conn = mock.MagicMock()
-  conn.outgoing.ListClients.return_value = admin_pb2.ListClientsResponse(
-      clients=clients)
-  return conn
 
 
 def _MockConnReturningRecords(client_ruds):
@@ -153,6 +141,12 @@ def _MockConnReturningRecords(client_ruds):
   conn.outgoing.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(
       records=records)
   return conn
+
+def _MockDatastoreReturningPlatformFleetStats():
+  data_store = mock.MagicMock()
+  fleet_stats = fleetspeak_utils.FleetStats()  # todo: init FleetStats object
+  data_store.REL_DB.CountClientPlatformsByLabel.return_value = fleet_stats
+  return data_store
 
 
 class GrrafanaTest(absltest.TestCase):
@@ -191,13 +185,13 @@ class GrrafanaTest(absltest.TestCase):
         "OS Release Version Breakdown - 30 Day Active",
     ])
 
-  def testQuery(self):
+  def testClientResourceUsageMetricQuery(self):
     conn = _MockConnReturningRecords([
         _TEST_CLIENT_RESOURCE_USAGE_RECORD_1,
         _TEST_CLIENT_RESOURCE_USAGE_RECORD_2
     ])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      valid_response = self.client.post("/query", json=_TEST_VALID_QUERY)
+      valid_response = self.client.post("/query", json=_TEST_VALID_RUD_QUERY)
       self.assertEqual(200, valid_response.status_code)
       self.assertEqual(valid_response.json, [{
           "target":
@@ -221,6 +215,10 @@ class GrrafanaTest(absltest.TestCase):
                         self.client.post,
                         "/query",
                         json=_TEST_INVALID_TARGET_QUERY)
+
+  def testClientsStatisticsMetric(self):
+    conn = _MockConnReturningFleetStats([
+    ])
 
 
 class timeToProtoTimestampTest(absltest.TestCase):
