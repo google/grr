@@ -153,7 +153,7 @@ AVAILABLE_METRICS_DICT = {
 
 class Grrafana(object):
   """GRRafana HTTP server instance.
-  
+
   A full description of all endpoints implemented within this HTTP
   server can be found in:
   https://github.com/simPod/grafana-json-datasource#api."""
@@ -190,7 +190,7 @@ class Grrafana(object):
 
   def _OnSearch(self, request: JSONRequest) -> JSONResponse:
     """Fetches available resource usage metrics.
-    
+
     Depending on the type of request Grafana is issuing, this method returns
     either available client resource usage metrics from the constant 
     AVAILABLE_METRICS, or possible values for a defined Grafana variable."""
@@ -209,7 +209,7 @@ class Grrafana(object):
 
   def _OnQuery(self, request: JSONRequest) -> JSONResponse:
     """Retrieves datapoints for Grafana.
-    
+
     Given a client ID as a Grafana variable and targets (resource usages),
     returns datapoints in a format Grafana can interpret."""
     json_data = request.json
@@ -219,7 +219,6 @@ class Grrafana(object):
         for target in requested_targets
     ]
     response = [t._asdict() for t in targets_with_datapoints]
-    print(response)
     return JSONResponse(response=response)
 
   def _OnAnnotations(self, request: JSONRequest) -> JSONResponse:
@@ -244,22 +243,6 @@ def main(argv: Any) -> None:
   config.CONFIG.AddContext(contexts.GRRAFANA_CONTEXT,
                            "Context applied when running GRRafana server.")
   server_startup.Init()
-  # AVAILABLE_METRICS_LIST.extend([
-  #     ClientsStatisticsMetric(
-  #         f"OS Platform Breakdown - {n_days} Day Active",
-  #         data_store.REL_DB.CountClientPlatformsByLabel, n_days)
-  #     for n_days in [1, 7, 14, 30]
-  # ])
-  # AVAILABLE_METRICS_LIST.extend([
-  #     ClientsStatisticsMetric(
-  #         f"OS Release Version Breakdown - {n_days} Day Active",
-  #         data_store.REL_DB.CountClientPlatformReleasesByLabel, n_days)
-  #     for n_days in [1, 7, 14, 30]
-  # ])
-  # global AVAILABLE_METRICS_DICT
-  # AVAILABLE_METRICS_DICT = {
-  #     metric.name: metric for metric in AVAILABLE_METRICS_LIST
-  # }
   fleetspeak_connector.Init()
   werkzeug_serving.run_simple("127.0.0.1",
                               5000,
