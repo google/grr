@@ -101,19 +101,21 @@ class ClientsStatisticsMetric(Metric):
     self.statistics_extract_fn = statistics_extract_fn
     self.days_active = days_active
 
-  def ProcessQuery(self, req: JSONRequest):
+  def ProcessQuery(self, req: JSONRequest) -> _TableQueryResult:
     fleet_stats = self.statistics_extract_fn(frozenset([self.days_active]))
     totals = fleet_stats.GetTotalsForDay(self.days_active)
-    return _TableQueryResult(columns=[{
+    return _TableQueryResult(
+      columns=[{
         "text": "Label", "type":"string"
       }, {
         "text": "Value", "type": "number"
       }],
-                            rows=[[label, value] for label, value
-                                  in totals.items()],
-                            type="table")
+      rows=[[label, value] for label, value
+            in totals.items()],
+      type="table")
 
 
+AVAILABLE_METRICS_LIST: List[Metric]
 AVAILABLE_METRICS_LIST = [
     ClientResourceUsageMetric(
         "Mean User CPU Rate", lambda records_list:
@@ -161,7 +163,9 @@ class Grrafana(object):
   def __init__(self) -> None:
     """Initializes a new GRRafana HTTP server instance."""
     self._url_map = werkzeug_routing.Map([
-        werkzeug_routing.Rule("/", endpoint=self._OnRoot, methods=["GET"]),
+        werkzeug_routing.Rule("/",
+                              endpoint=self._OnRoot,
+                              methods=["GET"]),
         werkzeug_routing.Rule("/search",
                               endpoint=self._OnSearch,
                               methods=["POST"]),
@@ -192,7 +196,7 @@ class Grrafana(object):
     """Fetches available resource usage metrics.
 
     Depending on the type of request Grafana is issuing, this method returns
-    either available client resource usage metrics from the constant 
+    either available client resource usage metrics from the constant
     AVAILABLE_METRICS, or possible values for a defined Grafana variable."""
     if "type" in request.json:
       # Grafana request issued on Panel > Queries page. Grafana expects the
