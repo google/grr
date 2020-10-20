@@ -627,3 +627,45 @@ export declare interface OsqueryArgs {
   readonly timeoutMillis?: DecimalString;
   readonly ignoreStderrErrors?: boolean;
 }
+
+/** OsqueryResult proto mapping. */
+export declare interface OsqueryResult {
+  readonly table?: OsqueryTable;
+  readonly stderr?: string;
+}
+
+/** OsqueryTable proto mapping */
+export declare interface OsqueryTable {
+  readonly query?: string;
+  readonly header?: OsqueryHeader;
+  readonly rows?: OsqueryRow[];
+}
+
+/** OsqueryHeader proto mapping */
+export declare interface OsqueryHeader {
+  readonly columns?: OsqueryColumn[];
+}
+
+/** OsqueryColumn proto mapping. */
+export declare interface OsqueryColumn {
+  readonly name?: string;
+  readonly type?: OsqueryType;
+}
+
+/**
+ * OsqueryColumn.type enum proto mapping.
+ */
+export enum OsqueryType {
+  UNKNOWN = 0,
+  TEXT = 1,
+  INTEGER = 2,
+  BIGINT = 3,
+  UNSIGNED_BIGINT = 4,
+  DOUBLE = 5,
+  BLOB = 6,
+}
+
+/** OsqueryRow proto mapping. */
+export declare interface OsqueryRow {
+  readonly values?: string[];
+}

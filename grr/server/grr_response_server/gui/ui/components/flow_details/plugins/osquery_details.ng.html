@@ -1,0 +1,29 @@
+<div *ngIf="flowRunning$ | async">
+  Flow is running…
+</div>
+
+<div *ngIf="(flowCompleted$ | async) && (resultTable$ | async)" class="table-container">
+  <table>
+    <thead>
+      <!-- TODO: Use trackBy -->
+      <th *ngFor="let column of (resultTable$ | async).header.columns">{{column.name}}</th>
+    </thead>
+    <tbody>
+      <tr *ngFor="let rowValues of (resultTable$ | async).rows">
+        <td *ngFor="let value of rowValues.values">
+          {{value}}
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<div *ngIf="flowError$ | async">
+  An error was encountered.
+  <div *ngIf="resultStderr$ | async">
+    <!-- TODO: Test if this works -->
+    stderr is: {{resultStderr$ | async}}
+  </div>
+</div>
+
+<button (click)="buttonClicked()">Click to query for events</button>

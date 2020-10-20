@@ -1,0 +1,48 @@
+@use '~material-theme' as c;
+
+table {
+  overflow: scroll;
+  display: block;
+  max-height: 30em;
+
+  border-spacing: 0;
+  color: c.mat-color(c.$foreground, text-light);
+  font-size: 14px;
+  padding: 1em 0;
+  width: 100%;
+
+  th {
+    border-bottom: none !important;
+    font-weight: 500;
+    text-align: left;
+    padding-bottom: 1.5em;
+  }
+
+  th,
+  td {
+    border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
+    padding-right: 1.5em;
+    vertical-align: top;
+  }
+
+  th:first-child,
+  td:first-child {
+    padding-left: 24px;
+  }
+
+  th:last-child,
+  td:last-child {
+    padding-right: 24px;
+  }
+
+  tbody {
+    td {
+      padding-top: 0.5em;
+      padding-bottom: 0.5em;
+    }
+
+    tr:last-child td {
+      border-bottom: none !important;
+    }
+  }
+}
