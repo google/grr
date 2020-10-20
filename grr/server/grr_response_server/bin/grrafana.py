@@ -103,31 +103,15 @@ class ClientsStatisticsMetric(Metric):
 
   def ProcessQuery(self, req: JSONRequest):
     fleet_stats = self.statistics_extract_fn(frozenset([self.days_active]))
-    # for day_bucket in fleet_stats.GetDayBuckets():
-    # graph = rdf_stats.Graph(title="%d day actives for %s label" %
-    #                         (day_bucket, _ALL_CLIENT_FLEET_STATS_LABEL))
     totals = fleet_stats.GetTotalsForDay(self.days_active)
-    print(totals)
     return _TableQueryResult(columns=[{
-        "text": "Country",
-        "type": "string"
-    }, {
-        "text": "Number",
-        "type": "number"
-    }],
-                             rows=[["SE", 123], ["DE", 231], ["US", 321]],
-                             type="table")
-    # print(type(totals))
-    # datapoints = [
-    #     _TargetWithDatapoints(target=category_value, datapoints=num_actives)
-    #     for category_value, num_actives in sorted(totals.items())
-    # ]
-    # print(datapoints)
-    # for category_value, num_actives in sorted(totals.items()):
-    # graph.Append(label=category_value, y_value=num_actives)
-    # _TargetWithDatapoints(target=self.name, datapoints=datapoints)
-    # graph_series_by_label[_ALL_CLIENT_FLEET_STATS_LABEL].graphs.Append(graph)
-    # return _TargetWithDatapoints(target=self.name, datapoints=list(totals.items()))
+        "text": "Label", "type":"string"
+      }, {
+        "text": "Value", "type": "number"
+      }],
+                            rows=[[label, value] for label, value
+                                  in totals.items()],
+                            type="table")
 
 
 AVAILABLE_METRICS_LIST = [
