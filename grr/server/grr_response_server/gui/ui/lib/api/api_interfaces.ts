@@ -620,3 +620,10 @@ export declare interface ApiListApproverSuggestionsResult {
 export declare interface ApproverSuggestion {
   readonly username?: string;
 }
+
+/** OsqueryArgs proto mapping. */
+export declare interface OsqueryArgs {
+  readonly query?: string;
+  readonly timeoutMillis?: DecimalString;
+  readonly ignoreStderrErrors?: boolean;
+}
