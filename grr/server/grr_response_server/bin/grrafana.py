@@ -28,6 +28,7 @@ from werkzeug.wrappers import json as werkzeug_wrappers_json  # type: ignore
 
 
 JSON_MIME_TYPE = "application/json"
+_FLEET_BREAKDOWN_DAY_BUCKETS = frozenset([1, 7, 14, 30])
 
 flags.DEFINE_bool(
     "version",
@@ -95,14 +96,14 @@ class ClientResourceUsageMetric(Metric):
 
 class ClientsStatisticsMetric(Metric):
 
-  def __init__(self, name: str, statistics_extract_fn: Callable,
+  def __init__(self, name: str, get_fleet_stats_fn: Callable,
                days_active: int) -> None:
     super().__init__(name)
-    self.statistics_extract_fn = statistics_extract_fn
+    self.get_fleet_stats_fn = get_fleet_stats_fn
     self.days_active = days_active
 
   def ProcessQuery(self, req: JSONRequest) -> _TableQueryResult:
-    fleet_stats = self.statistics_extract_fn(frozenset([self.days_active]))
+    fleet_stats = self.get_fleet_stats_fn(_FLEET_BREAKDOWN_DAY_BUCKETS)
     totals = fleet_stats.GetTotalsForDay(self.days_active)
     return _TableQueryResult(
       columns=[{
@@ -110,8 +111,7 @@ class ClientsStatisticsMetric(Metric):
       }, {
         "text": "Value", "type": "number"
       }],
-      rows=[[label, value] for label, value
-            in totals.items()],
+      rows=[[l, v] for l, v in totals.items()],
       type="table")
 
 
@@ -129,6 +129,7 @@ AVAILABLE_METRICS_LIST = [
     ClientResourceUsageMetric(
         "Max System CPU Rate", lambda records_list:
         [record.max_system_cpu_rate for record in records_list]),
+    # We multiply to convert from MiB to MB
     ClientResourceUsageMetric(
         "Mean Resident Memory MB", lambda records_list:
         [record.mean_resident_memory_mib * 1.049 for record in records_list]),
@@ -140,13 +141,13 @@ AVAILABLE_METRICS_LIST.extend([
     ClientsStatisticsMetric(
         f"OS Platform Breakdown - {n_days} Day Active",
         lambda buckets: data_store.REL_DB.CountClientPlatformsByLabel(buckets),
-        n_days) for n_days in [1, 7, 14, 30]
+        n_days) for n_days in _FLEET_BREAKDOWN_DAY_BUCKETS
 ])
 AVAILABLE_METRICS_LIST.extend([
     ClientsStatisticsMetric(
         f"OS Release Version Breakdown - {n_days} Day Active", lambda buckets:
         data_store.REL_DB.CountClientPlatformReleasesByLabel(buckets), n_days)
-    for n_days in [1, 7, 14, 30]
+    for n_days in _FLEET_BREAKDOWN_DAY_BUCKETS
 ])
 AVAILABLE_METRICS_DICT = {
     metric.name: metric for metric in AVAILABLE_METRICS_LIST
