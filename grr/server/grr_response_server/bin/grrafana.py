@@ -199,17 +199,7 @@ class Grrafana(object):
     Depending on the type of request Grafana is issuing, this method returns
     either available client resource usage metrics from the constant
     AVAILABLE_METRICS, or possible values for a defined Grafana variable."""
-    if "type" in request.json:
-      # Grafana request issued on Panel > Queries page. Grafana expects the
-      # list of metrics that can be listed on the dropdown-menu
-      # called "Metric".
-      response = list(AVAILABLE_METRICS_DICT.keys())
-    else:
-      # Grafana request issued on Variables > New/Edit page for variables of
-      # type query. Grafana expectes the list of possible values of
-      # the variable. At the moment, GRRafana doesn't support such variables,
-      # so it returns no possible values.
-      response = []
+    response = list(AVAILABLE_METRICS_DICT.keys())
     return JSONResponse(response=response)
 
   def _OnQuery(self, request: JSONRequest) -> JSONResponse:
