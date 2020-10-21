@@ -168,22 +168,22 @@ class GrrafanaTest(absltest.TestCase):
                                     'target': ''
                                 })
     self.assertEqual(200, response.status_code)
-    self.assertListEqual(response.json, [
+
+    expected_res = [
         "Mean User CPU Rate",
         "Max User CPU Rate",
         "Mean System CPU Rate",
         "Max System CPU Rate",
         "Mean Resident Memory MB",
-        "Max Resident Memory MB",
-        "OS Platform Breakdown - 1 Day Active",
-        "OS Platform Breakdown - 7 Day Active",
-        "OS Platform Breakdown - 14 Day Active",
-        "OS Platform Breakdown - 30 Day Active",
-        "OS Release Version Breakdown - 1 Day Active",
-        "OS Release Version Breakdown - 7 Day Active",
-        "OS Release Version Breakdown - 14 Day Active",
-        "OS Release Version Breakdown - 30 Day Active",
-    ])
+        "Max Resident Memory MB"
+    ]
+    expected_res.extend([
+        f"OS Platform Breakdown - {n_days} Day Active"
+        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS])
+    expected_res.extend([
+        f"OS Release Version Breakdown - {n_days} Day Active"
+        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS])
+    self.assertListEqual(response.json, expected_res)
 
   def testClientResourceUsageMetricQuery(self):
     conn = _MockConnReturningRecords([
