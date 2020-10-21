@@ -10,8 +10,9 @@ from google.protobuf import timestamp_pb2
 
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2, resource_pb2
 
+from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
-from grr_response_server import fleetspeak_utils
+from grr_response_server.fleet_utils import FleetStats
 from grr_response_server.bin import grrafana
 
 from werkzeug import serving as werkzeug_serving
@@ -65,14 +66,14 @@ _TEST_CLIENT_RESOURCE_USAGE_RECORD_2 = {
     "mean_resident_memory_mib": 59,
     "max_resident_memory_mib": 59
 }
-_TEST_CLIENT_BREAKDOWN_STATS = fleetspeak_utils.FleetStats(
-    day_buckets=rrafana._FLEET_BREAKDOWN_DAY_BUCKETS,
+_TEST_CLIENT_BREAKDOWN_STATS = FleetStats(
+    day_buckets=grrafana._FLEET_BREAKDOWN_DAY_BUCKETS,
     label_counts={1:  {"foo-label": {"bar-os": 3, "bar2-os": 4},
                        "bar-label": {"bar-os": 5, "foo-os": 1}},
                   7:  {"foo-label": {"bar-os": 6, "bar2-os": 5},
                        "bar-label": {"bar-os": 5, "foo-os": 2}},
                   14: {"foo-label": {"bar-os": 6, "bar2-os": 5},
-                       "bar-label": {"bar-os": 5, "foo-os": 2}}
+                       "bar-label": {"bar-os": 5, "foo-os": 2}},
                   30: {"foo-label": {"bar-os": 6, "bar2-os": 5},
                        "bar-label": {"bar-os": 5, "foo-os": 2}}},
     total_counts={1:  {"bar-os": 8, "bar2-os": 4, "foo-os": 1},
@@ -132,6 +133,51 @@ _TEST_VALID_RUD_QUERY = {
     },
     'adhocFilters': []
 }
+_TEST_VALID_CLIENT_STATS_QUERY = {
+      "app": "dashboard",
+      "requestId": "Q1",
+      "timezone": "browser",
+      "panelId": 12345,
+      "dashboardId": 1,
+      "range": {
+        "from": "2020-10-21T04:29:36.806Z",
+        "to": "2020-10-21T10:29:36.806Z",
+        "raw": {
+          "from": "now-6h",
+          "to": "now"
+        }
+      },
+      "timeInfo": "",
+      "interval": "15s",
+      "intervalMs": 15000,
+      "targets": [
+        {
+          "data": "",
+          "refId": "A",
+          "target": "OS Platform Breakdown - 7 Day Active",
+          "type": "timeseries",
+          "datasource": "JSON"
+        }
+      ],
+      "maxDataPoints": 1700,
+      "scopedVars": {
+        "__interval": {
+          "text": "15s",
+          "value": "15s"
+        },
+        "__interval_ms": {
+          "text": "15000",
+          "value": 15000
+        }
+      },
+      "startTime": 1603276176806,
+      "rangeRaw": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "adhocFilters": [],
+      "endTime": 1603276176858
+}
 _TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_RUD_QUERY)
 _TEST_INVALID_TARGET_QUERY["targets"][0]["target"] = "unavailable_metric"
 
@@ -159,9 +205,9 @@ def _MockConnReturningRecords(client_ruds):
 
 def _MockDatastoreReturningPlatformFleetStats(client_fleet_stats):
   client_fleet_stats.Validate()
-  data_store = mock.MagicMock()
-  data_store.REL_DB.CountClientPlatformsByLabel.return_value = client_fleet_stats
-  return data_store
+  REL_DB = mock.MagicMock()
+  REL_DB.CountClientPlatformsByLabel.return_value = client_fleet_stats
+  return REL_DB
 
 
 class GrrafanaTest(absltest.TestCase):
@@ -232,12 +278,13 @@ class GrrafanaTest(absltest.TestCase):
                         json=_TEST_INVALID_TARGET_QUERY)
 
   def testClientsStatisticsMetric(self):
-    data_store_mock = _MockDatastoreReturningPlatformFleetStats([
-        _TEST_CLIENT_BREAKDOWN_STATS_1,
-        _TEST_CLIENT_BREAKDOWN_STATS_2
-    ])
-    with mock.patch.object(data_store, "data_store", data_store_mock):
-      valid_response = self.client.post("/query", json=_TEST_VALID_CS_QUERY)
+    REL_DB = _MockDatastoreReturningPlatformFleetStats(
+        _TEST_CLIENT_BREAKDOWN_STATS
+    )
+    with mock.patch.object(data_store, "REL_DB", REL_DB):
+      valid_response = self.client.post("/query", json=_TEST_VALID_CLIENT_STATS_QUERY)
+      self.assertEqual(200, valid_response.status_code)
+      self.assertEqual(valid_response.json, [])
 
 
 class timeToProtoTimestampTest(absltest.TestCase):
