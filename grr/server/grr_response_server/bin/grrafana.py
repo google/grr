@@ -6,7 +6,7 @@ import collections
 import dateutil
 import json
 import os
-from typing import Any, Callable, cast, Dict, List, Tuple, Iterable
+from typing import Any, Callable, Dict, List, NamedTuple, Tuple
 
 from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 from google.protobuf import timestamp_pb2
@@ -38,10 +38,21 @@ flags.DEFINE_bool(
 
 _Datapoint = Tuple[float, int]
 _Datapoints = List[_Datapoint]
-_TargetWithDatapoints = collections.namedtuple("TargetWithDatapoints",
-                                               ["target", "datapoints"])
-_TableQueryResult = collections.namedtuple("TableQueryResult",
-                                           ["columns", "rows", "type"])
+
+
+class _TargetWithDatapoints(NamedTuple):
+  """A tuple that represents a processed resource usage data query."""
+
+  target: str
+  datapoints: _Datapoints
+
+
+class _TableQueryResult(NamedTuple):
+  """A tuple that represents a processed client statistics query."""
+
+  columns: List[Dict[str, str]]
+  rows: List[List[Any]]
+  type: str
 
 
 class JSONRequest(werkzeug_wrappers_json.JSONMixin, werkzeug_wrappers.Request):
@@ -76,6 +87,8 @@ class Metric(ABC):
 
 
 class ClientResourceUsageMetric(Metric):
+  """A metric that reprsents resource usage data for a single client,
+  fetched from Fleetspeak database."""
 
   def __init__(self, name: str, record_values_extract_fn: Callable) -> None:
     super().__init__(name)
