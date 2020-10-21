@@ -129,7 +129,7 @@ AVAILABLE_METRICS_LIST = [
     ClientResourceUsageMetric(
         "Max System CPU Rate", lambda records_list:
         [record.max_system_cpu_rate for record in records_list]),
-    # We multiply to convert from MiB to MB
+    # Converting MiB to MB
     ClientResourceUsageMetric(
         "Mean Resident Memory MB", lambda records_list:
         [record.mean_resident_memory_mib * 1.049 for record in records_list]),
