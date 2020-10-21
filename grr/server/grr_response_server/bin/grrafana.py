@@ -149,6 +149,12 @@ AVAILABLE_METRICS_LIST.extend([
         data_store.REL_DB.CountClientPlatformReleasesByLabel(buckets), n_days)
     for n_days in _FLEET_BREAKDOWN_DAY_BUCKETS
 ])
+AVAILABLE_METRICS_LIST.extend([
+    ClientsStatisticsMetric(
+        f"Client Version Strings - {n_days} Day Active", lambda buckets:
+        data_store.REL_DB.CountClientVersionStringsByLabel(buckets), n_days)
+    for n_days in _FLEET_BREAKDOWN_DAY_BUCKETS
+])
 AVAILABLE_METRICS_DICT = {
     metric.name: metric for metric in AVAILABLE_METRICS_LIST
 }
