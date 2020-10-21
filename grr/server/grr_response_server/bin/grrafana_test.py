@@ -65,6 +65,21 @@ _TEST_CLIENT_RESOURCE_USAGE_RECORD_2 = {
     "mean_resident_memory_mib": 59,
     "max_resident_memory_mib": 59
 }
+_TEST_CLIENT_BREAKDOWN_STATS = fleetspeak_utils.FleetStats(
+    day_buckets=rrafana._FLEET_BREAKDOWN_DAY_BUCKETS,
+    label_counts={1:  {"foo-label": {"bar-os": 3, "bar2-os": 4},
+                       "bar-label": {"bar-os": 5, "foo-os": 1}},
+                  7:  {"foo-label": {"bar-os": 6, "bar2-os": 5},
+                       "bar-label": {"bar-os": 5, "foo-os": 2}},
+                  14: {"foo-label": {"bar-os": 6, "bar2-os": 5},
+                       "bar-label": {"bar-os": 5, "foo-os": 2}}
+                  30: {"foo-label": {"bar-os": 6, "bar2-os": 5},
+                       "bar-label": {"bar-os": 5, "foo-os": 2}}},
+    total_counts={1:  {"bar-os": 8, "bar2-os": 4, "foo-os": 1},
+                  7:  {"bar-os": 11, "bar2-os": 5, "foo-os": 2},
+                  14: {"bar-os": 11, "bar2-os": 5, "foo-os": 2},
+                  30: {"bar-os": 11, "bar2-os": 5, "foo-os": 2}}
+)
 _TEST_VALID_RUD_QUERY = {
     'app': 'dashboard',
     'requestId': 'Q119',
@@ -142,10 +157,10 @@ def _MockConnReturningRecords(client_ruds):
       records=records)
   return conn
 
-def _MockDatastoreReturningPlatformFleetStats():
+def _MockDatastoreReturningPlatformFleetStats(client_fleet_stats):
+  client_fleet_stats.Validate()
   data_store = mock.MagicMock()
-  fleet_stats = fleetspeak_utils.FleetStats()  # todo: init FleetStats object
-  data_store.REL_DB.CountClientPlatformsByLabel.return_value = fleet_stats
+  data_store.REL_DB.CountClientPlatformsByLabel.return_value = client_fleet_stats
   return data_store
 
 
@@ -217,8 +232,12 @@ class GrrafanaTest(absltest.TestCase):
                         json=_TEST_INVALID_TARGET_QUERY)
 
   def testClientsStatisticsMetric(self):
-    conn = _MockConnReturningFleetStats([
+    data_store_mock = _MockDatastoreReturningPlatformFleetStats([
+        _TEST_CLIENT_BREAKDOWN_STATS_1,
+        _TEST_CLIENT_BREAKDOWN_STATS_2
     ])
+    with mock.patch.object(data_store, "data_store", data_store_mock):
+      valid_response = self.client.post("/query", json=_TEST_VALID_CS_QUERY)
 
 
 class timeToProtoTimestampTest(absltest.TestCase):
