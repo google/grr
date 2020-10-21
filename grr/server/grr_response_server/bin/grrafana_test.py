@@ -68,18 +68,20 @@ _TEST_CLIENT_RESOURCE_USAGE_RECORD_2 = {
 }
 _TEST_CLIENT_BREAKDOWN_STATS = FleetStats(
     day_buckets=grrafana._FLEET_BREAKDOWN_DAY_BUCKETS,
-    label_counts={1:  {"foo-label": {"bar-os": 3, "bar2-os": 4},
+    label_counts={1:  {"foo-label": {"bar-os": 3, "baz-os": 4},
                        "bar-label": {"bar-os": 5, "foo-os": 1}},
-                  7:  {"foo-label": {"bar-os": 6, "bar2-os": 5},
+                  7:  {"foo-label": {"bar-os": 6, "baz-os": 5},
                        "bar-label": {"bar-os": 5, "foo-os": 2}},
-                  14: {"foo-label": {"bar-os": 6, "bar2-os": 5},
-                       "bar-label": {"bar-os": 5, "foo-os": 2}},
-                  30: {"foo-label": {"bar-os": 6, "bar2-os": 5},
-                       "bar-label": {"bar-os": 5, "foo-os": 2}}},
-    total_counts={1:  {"bar-os": 8, "bar2-os": 4, "foo-os": 1},
-                  7:  {"bar-os": 11, "bar2-os": 5, "foo-os": 2},
-                  14: {"bar-os": 11, "bar2-os": 5, "foo-os": 2},
-                  30: {"bar-os": 11, "bar2-os": 5, "foo-os": 2}}
+                  14: {"foo-label": {"bar-os": 6, "baz-os": 5},
+                       "bar-label": {"bar-os": 5, "foo-os": 2},
+                       "baz-label": {"bar-os":1}},
+                  30: {"foo-label": {"bar-os": 6, "baz-os": 5},
+                       "bar-label": {"bar-os": 5, "foo-os": 2},
+                       "baz-label": {"bar-os": 3, "foo-os": 1}}},
+    total_counts={1:  {"bar-os": 8, "baz-os": 4, "foo-os": 1},
+                  7:  {"bar-os": 11, "baz-os": 5, "foo-os": 2},
+                  14: {"bar-os": 12, "baz-os": 5, "foo-os": 2},
+                  30: {"bar-os": 14, "baz-os": 5, "foo-os": 3}}
 )
 _TEST_VALID_RUD_QUERY = {
     'app': 'dashboard',
@@ -284,7 +286,13 @@ class GrrafanaTest(absltest.TestCase):
     with mock.patch.object(data_store, "REL_DB", REL_DB):
       valid_response = self.client.post("/query", json=_TEST_VALID_CLIENT_STATS_QUERY)
       self.assertEqual(200, valid_response.status_code)
-      self.assertEqual(valid_response.json, [])
+      expected_res = [{
+        'columns': [{'text': 'Label', 'type': 'string'},
+                    {'text': 'Value', 'type': 'number'}],
+        'rows':    [['bar-os', 11], ['baz-os', 5], ['foo-os', 2]],
+        'type':    'table'
+      }]
+      self.assertEqual(valid_response.json, expected_res)
 
 
 class timeToProtoTimestampTest(absltest.TestCase):
