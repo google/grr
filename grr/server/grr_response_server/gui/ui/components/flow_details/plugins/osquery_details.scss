@@ -1,18 +1,35 @@
 @use '~material-theme' as c;
 
-.query {
+$header-left-padding: 24px;
+
+.in-progress, .error {
+  color: c.mat-color(c.$foreground, text-light);
+
+  border-top: 1px solid c.mat-color(c.$foreground, divider-light);
+  padding: 0.5em 0 0.5em $header-left-padding;
+
+  display: flex;
+  align-items: center;
+
+  font-family: c.$google-sans-display-family;
+  font-weight: 400;
+
+  word-break: break-word;
+}
+
+.results-query {
   margin: 2em;
   font-size: 14px;
   display: block;
   text-align: center;
 }
 
-.query-label {
+.results-query-label {
   font-weight: 500;
   display: inline;
 }
 
-.query-text {
+.results-query-text {
   display: inline;
 }
 

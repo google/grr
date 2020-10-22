@@ -1,36 +1,34 @@
-<div *ngIf="flowRunning$ | async">
-  Flow is running…
+<div *ngIf="flowRunning$ | async" class="in-progress">
+  {{ (args$ | async).query }}
 </div>
 
-<div *ngIf="(flowCompleted$ | async) && (resultTable$ | async)">
-  <div class="query">
-    <div class="query-label">Query:</div>&nbsp;
-    <div class="query-text">{{(resultTable$ | async).query}}</div>
-  </div>
+<div *ngIf="flowCompleted$ | async" class='results'>
+  <div *ngIf="resultTable$ | async as resultTable">
+    <div class="results-query">
+      <div class="results-query-label">Query:</div>&nbsp;
+      <div class="results-query-text">{{resultTable.query}}</div>
+    </div>
 
-  <div class="table-container">
-    <table>
-      <thead>
-        <!-- TODO: Use trackBy -->
-        <th *ngFor="let column of (resultTable$ | async).header.columns">{{column.name}}</th>
-      </thead>
-      <tbody>
-        <tr *ngFor="let rowValues of (resultTable$ | async).rows">
-          <td *ngFor="let value of rowValues.values">
-            {{value}}
-          </td>
-        </tr>
-      </tbody>
-    </table>
+    <div class="table-container">
+      <table>
+        <thead>
+          <th *ngFor="let column of resultTable.header.columns">{{column.name}}</th>
+        </thead>
+        <tbody>
+          <tr *ngFor="let rowValues of resultTable.rows">
+            <td *ngFor="let value of rowValues.values">
+              {{value}}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </div>
 
-<div *ngIf="flowError$ | async">
+<div *ngIf="flowError$ | async" class="error">
   An error was encountered.
-  <div *ngIf="resultStderr$ | async">
-    <!-- TODO: Test if this works -->
-    stderr is: {{resultStderr$ | async}}
+  <div *ngIf="resultStderr$ | async as resultStderr">
+    stderr is: {{resultStderr}}
   </div>
 </div>
-
-<button (click)="buttonClicked()">Click to query for events</button>
