@@ -39,18 +39,17 @@ export class OsqueryDetails extends Plugin implements OnDestroy {
 
   constructor() {
     super();
-
     this.autocloseSubscription(this.flowCompleted$)
       .subscribe((completed) => {
         if (completed) {
           this.loadResults();
         }
-    })
+    });
   }
 
   flagTargetState(targetState: FlowState): Observable<boolean> {
     return this.flowListEntry$.pipe(
-      map((listEntry) => listEntry.flow.state === targetState)
+      map((listEntry) => listEntry.flow.state === targetState) // TODO: Use filter
     );
   }
 
@@ -60,14 +59,12 @@ export class OsqueryDetails extends Plugin implements OnDestroy {
 
   loadResults() {
     if (!this.hasLoadedResults) {
-      super.queryFlowResults({offset: 0, count: 1});
+      this.queryFlowResults({offset: 0, count: 1});
       this.hasLoadedResults = true;
-      console.log('Flow completed, loading results')
     }
   }
 
   buttonClicked() {
-    console.log('Button clicked!');
     super.queryFlowResults({offset: 0, count: 1});
   }
 

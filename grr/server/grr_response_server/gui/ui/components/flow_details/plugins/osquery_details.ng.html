@@ -2,20 +2,27 @@
   Flow is running…
 </div>
 
-<div *ngIf="(flowCompleted$ | async) && (resultTable$ | async)" class="table-container">
-  <table>
-    <thead>
-      <!-- TODO: Use trackBy -->
-      <th *ngFor="let column of (resultTable$ | async).header.columns">{{column.name}}</th>
-    </thead>
-    <tbody>
-      <tr *ngFor="let rowValues of (resultTable$ | async).rows">
-        <td *ngFor="let value of rowValues.values">
-          {{value}}
-        </td>
-      </tr>
-    </tbody>
-  </table>
+<div *ngIf="(flowCompleted$ | async) && (resultTable$ | async)">
+  <div class="query">
+    <div class="query-label">Query:</div>&nbsp;
+    <div class="query-text">{{(resultTable$ | async).query}}</div>
+  </div>
+
+  <div class="table-container">
+    <table>
+      <thead>
+        <!-- TODO: Use trackBy -->
+        <th *ngFor="let column of (resultTable$ | async).header.columns">{{column.name}}</th>
+      </thead>
+      <tbody>
+        <tr *ngFor="let rowValues of (resultTable$ | async).rows">
+          <td *ngFor="let value of rowValues.values">
+            {{value}}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
 </div>
 
 <div *ngIf="flowError$ | async">

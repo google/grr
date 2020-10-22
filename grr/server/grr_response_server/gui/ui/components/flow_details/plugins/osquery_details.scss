@@ -1,10 +1,29 @@
 @use '~material-theme' as c;
 
-table {
-  overflow: scroll;
+.query {
+  margin: 2em;
+  font-size: 14px;
   display: block;
+  text-align: center;
+}
+
+.query-label {
+  font-weight: 500;
+  display: inline;
+}
+
+.query-text {
+  display: inline;
+}
+
+.table-container {
+  overflow: scroll;
   max-height: 30em;
 
+  border-top: 1px dashed c.mat-color(c.$foreground, divider-light);
+}
+
+table {
   border-spacing: 0;
   color: c.mat-color(c.$foreground, text-light);
   font-size: 14px;
@@ -12,7 +31,7 @@ table {
   width: 100%;
 
   th {
-    border-bottom: none !important;
+    border-bottom: none;
     font-weight: 500;
     text-align: left;
     padding-bottom: 1.5em;
@@ -42,7 +61,47 @@ table {
     }
 
     tr:last-child td {
-      border-bottom: none !important;
+      border-bottom: none;
     }
   }
+
+  .path {
+    word-break: break-word;
+    min-width: 200px;
+    width: 30%;
+
+    .copy-button {
+      font-size: 16px;
+      visibility: hidden;
+
+      line-height: 18px;
+      height: 18px;
+      width: 18px;
+
+      mat-icon {
+        font-size: 16px;
+      }
+    }
+
+    &:hover .copy-button {
+      visibility: visible;
+    }
+  }
+
+  .number {
+    white-space: nowrap;
+  }
+
+  .timestamp {
+    width: 10%;
+  }
+
+  .number {
+    width: 10%;
+  }
+}
+
+button.load-more {
+  width: 100%;
+  margin-bottom: 0.5em;
 }
