@@ -45,7 +45,6 @@ import { OsqueryDetails } from './osquery_details';
     MatInputModule,
     MatCardModule,
     HelpersModule,
-    CommonModule, // TODO: Remove
   ],
   declarations: [
     DefaultDetails,
