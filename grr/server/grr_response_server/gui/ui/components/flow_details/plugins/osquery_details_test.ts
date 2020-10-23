@@ -3,40 +3,24 @@ import {initTestEnvironment} from '@app/testing';
 
 import {PluginsModule} from './module';
 import { OsqueryDetails } from './osquery_details';
-import { newFlowListEntry, newFlow } from '@app/lib/models/model_test_util';
-import { FlowState, FlowListEntry, FlowResultSet, FlowResultSetState } from '@app/lib/models/flow';
+import { newFlowListEntry } from '@app/lib/models/model_test_util';
+import { FlowState, FlowListEntry } from '@app/lib/models/flow';
 import { By } from '@angular/platform-browser';
-import { DebugElement, Component } from '@angular/core';
-import { OsqueryResult, OsqueryTable } from '@app/lib/api/api_interfaces';
+import { DebugElement } from '@angular/core';
 
 
 initTestEnvironment();
 
 /** Helper class to build a FlowListEntry objects in a declarative manner */
 class FlowListEntryBuilder {
-  private flowListEntry = {
-    flow: {
-      flowId: '',
-      clientId: '',
-      lastActiveAt: new Date(),
-      startedAt: new Date(),
-      name: '',
-      creator: '',
-      args: {
-        query: '',
-      },
-      progress: '',
-      state: FlowState.UNSET,
-    },
-    resultSets: [] as any[],
-  }
+  private flowListEntry: any = newFlowListEntry({args: {query: ''}});
   private stderr = '';
-  private table: any = {
+  private table = {
     query: '',
     header: {
-      columns: []
+      columns: [] as any,
     },
-    rows: []
+    rows: [] as any[],
   };
 
   withFlowState(state: FlowState): FlowListEntryBuilder {
@@ -47,15 +31,6 @@ class FlowListEntryBuilder {
   withQuery(query: string): FlowListEntryBuilder {
     this.flowListEntry.flow.args.query = query;
     this.table.query = query;
-    return this;
-  }
-
-  withResult(result: OsqueryResult): FlowListEntryBuilder {
-    this.flowListEntry.resultSets = [{
-      items: [{
-        payload: result,
-      }],
-    }];
     return this;
   }
 
@@ -71,19 +46,23 @@ class FlowListEntryBuilder {
   }
 
   build(): FlowListEntry {
+    this.includeResultSet();
+    return this.flowListEntry as FlowListEntry;
+  }
+
+  private includeResultSet(): void {
     this.flowListEntry.resultSets = [{
       items: [{
         payload: {
-          table: this.table,
           stderr: this.stderr,
-        }
-      }]
-    }]
-    return this.flowListEntry as FlowListEntry;
+          table: this.table,
+        },
+      }],
+    }];
   }
 }
 
-/** Helper class to parse all elements of interest from the OsqueryDetails DOM */
+/** Helper class/data structure to parse and expose all elements of interest from the OsqueryDetails DOM */
 class ParsedElements {
   inProgressDiv = this.elementBySelector('.in-progress');
   inProgressText = this.innerText(this.inProgressDiv);
@@ -106,11 +85,11 @@ class ParsedElements {
 
   constructor(private readonly ofFixture: ComponentFixture<OsqueryDetails>) { }
 
-  elementBySelector(selector: string, root: DebugElement=this.ofFixture.debugElement) {
+  private elementBySelector(selector: string, root: DebugElement=this.ofFixture.debugElement) {
     return root?.query(By.css(selector));
   }
 
-  innerText(ofElement: DebugElement) {
+  private innerText(ofElement: DebugElement) {
     return ofElement?.nativeElement.innerText;
   }
 }

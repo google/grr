@@ -1,9 +1,10 @@
-import { Component, ChangeDetectionStrategy, OnInit, OnDestroy } from '@angular/core';
-import {Plugin} from './plugin';
-import { map, tap, flatMap, takeUntil, filter } from 'rxjs/operators';
-import { FlowState, FlowResultSet, FlowResult, FlowListEntry } from '@app/lib/models/flow';
-import { Observable, Subject, from } from 'rxjs';
-import { OsqueryResult, OsqueryArgs } from '@app/lib/api/api_interfaces';
+import { Component, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
+import { Plugin } from './plugin';
+import { map, flatMap, takeUntil, filter, take } from 'rxjs/operators';
+import { FlowState } from '@app/lib/models/flow';
+import { Observable, Subject } from 'rxjs';
+import { OsqueryResult, OsqueryArgs, OsqueryColumn, OsqueryRow } from '@app/lib/api/api_interfaces';
+import { isNonNull } from '@app/lib/preconditions';
 
 /**
  * Component that displays the details (status, errors, results) for a particular Osquery Flow.
@@ -15,33 +16,32 @@ import { OsqueryResult, OsqueryArgs } from '@app/lib/api/api_interfaces';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OsqueryDetails extends Plugin implements OnDestroy {
-  private readonly onDestroyHappened$ = new Subject<void>();
+  readonly unsubscribe$ = new Subject<void>();
 
-  hasLoadedResults = false;
+  readonly flowRunning$ = this.flagByState(FlowState.RUNNING);
+  readonly flowCompleted$ = this.flagByState(FlowState.FINISHED);
+  readonly flowError$ = this.flagByState(FlowState.ERROR);
 
-  flowRunning$ = this.flagByState(FlowState.RUNNING);
-  flowCompleted$ = this.flagByState(FlowState.FINISHED);
-  flowError$ = this.flagByState(FlowState.ERROR);
-
-  args$: Observable<OsqueryArgs> = this.flowListEntry$.pipe(
+  readonly args$: Observable<OsqueryArgs> = this.flowListEntry$.pipe(
       map((flowListEntry) => flowListEntry.flow.args as OsqueryArgs)
   );
 
-  osqueryResult$: Observable<OsqueryResult> = this.flowListEntry$.pipe(
+  readonly osqueryResult$: Observable<OsqueryResult> = this.flowListEntry$.pipe(
     flatMap((listEntry) => listEntry.resultSets),
     flatMap((singleResultSet) => singleResultSet?.items),
+    filter(isNonNull),
     map((singleItem) => singleItem?.payload as OsqueryResult)
   );
 
-  resultTable$ = this.osqueryResult$.pipe(
+  readonly resultTable$ = this.osqueryResult$.pipe(
     map((result) => result?.table),
   );
 
-  resultStderr$ = this.osqueryResult$.pipe(
+  readonly resultStderr$ = this.osqueryResult$.pipe(
     map((result) => result?.stderr)
   );
 
-  flagByState(targetState: FlowState): Observable<boolean> {
+  private flagByState(targetState: FlowState): Observable<boolean> {
     return this.flowListEntry$.pipe(
       map((listEntry) => listEntry.flow.state === targetState)
     );
@@ -49,23 +49,32 @@ export class OsqueryDetails extends Plugin implements OnDestroy {
 
   constructor() {
     super();
-    this.completeOnDestroy(this.flowCompleted$)
+    this.flowCompleted$
+      .pipe(
+        takeUntil(this.unsubscribe$),
+        filter(completed => completed),
+        take(1))
       .subscribe(() => this.loadResults());
   }
 
-  completeOnDestroy<T>(obs: Observable<T>): Observable<T> {
-    return obs.pipe(takeUntil(this.onDestroyHappened$));
-  }
-
-  loadResults() {
-    if (!this.hasLoadedResults) {
-      this.queryFlowResults({offset: 0, count: 1});
-      this.hasLoadedResults = true;
-    }
+  private loadResults() {
+    this.queryFlowResults({offset: 0, count: 1});
   }
 
   ngOnDestroy() {
-    this.onDestroyHappened$.next();
-    this.onDestroyHappened$.complete();
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
+  }
+
+  trackColumnByName(index: number, column: OsqueryColumn) {
+    return column.name;
+  }
+
+  trackCellByValue(index: number, cell: string) {
+    return cell;
+  }
+
+  trackRowByContents(index: number, row: OsqueryRow) {
+    return row.values?.join();
   }
 }
