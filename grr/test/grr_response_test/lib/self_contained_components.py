@@ -392,6 +392,9 @@ def StartServerProcesses(
         _StartComponent(
             "grr_response_server.bin.worker",
             Args()),
+        _StartComponent(
+            "grr_response_server.bin.grrafana",
+            Args()),
     ]
 
 
