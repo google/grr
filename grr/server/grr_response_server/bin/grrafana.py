@@ -6,7 +6,7 @@ import collections
 from dateutil import parser
 import json
 import os
-from typing import Any, Callable, Dict, List, NamedTuple, Tuple
+from typing import Any, Callable, Dict, FrozenSet, List, NamedTuple, Tuple
 
 from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 from google.protobuf import timestamp_pb2
@@ -83,7 +83,6 @@ class Metric(abc.ABC):
   """A single metric that can be fetched from a
   Fleetspeak-based GRR deployment."""
 
-  @abc.abstractmethod
   def __init__(self, name: str) -> None:
     """Initializes a new metric."""
     self._name = name
@@ -93,7 +92,7 @@ class Metric(abc.ABC):
     return self._name
 
   @abc.abstractmethod
-  def ProcessQuery(self, req: JSONRequest):
+  def ProcessQuery(self, req: JSONRequest) -> NamedTuple:
     """Processes the request JSON data and returns
     data that can be read by Grafana (by JSON Datasource plugin)."""
     pass
@@ -109,7 +108,8 @@ class ClientResourceUsageMetric(Metric):
     super().__init__(name)
     self._record_values_extract_fn = record_values_extract_fn
 
-  def ProcessQuery(self, req: JSONRequest) -> _TargetWithDatapoints:
+  # TODO: Return type error issues at python/mypy#3915, python/typing#431
+  def ProcessQuery(self, req: JSONRequest) -> _TargetWithDatapoints:  # type: ignore[override]
     client_id = req["scopedVars"]["ClientID"]["value"]
     start_range_ts = timeToProtoTimestamp(req["range"]["from"])
     end_range_ts = timeToProtoTimestamp(req["range"]["to"])
@@ -127,13 +127,14 @@ class ClientsStatisticsMetric(Metric):
 
   def __init__(self,
                name: str,
-               get_fleet_stats_fn: Callable[[frozenset], fleet_utils.FleetStats],
+               get_fleet_stats_fn: Callable[[FrozenSet[int]], fleet_utils.FleetStats],
                days_active: int) -> None:
     super().__init__(name)
     self._get_fleet_stats_fn = get_fleet_stats_fn
     self._days_active = days_active
 
-  def ProcessQuery(self, req: JSONRequest) -> _TableQueryResult:
+  # TODO: Return type error issues at python/mypy#3915, python/typing#431
+  def ProcessQuery(self, req: JSONRequest) -> _TableQueryResult:  # type: ignore[override]
     fleet_stats = self._get_fleet_stats_fn(_FLEET_BREAKDOWN_DAY_BUCKETS)
     totals = fleet_stats.GetTotalsForDay(self._days_active)
     return _TableQueryResult(
