@@ -12,11 +12,11 @@
     <div class="table-container">
       <table>
         <thead>
-          <th *ngFor="let column of resultTable.header.columns; trackBy: trackColumnByName">{{column.name}}</th>
+          <th *ngFor="let column of resultTable.header.columns; trackBy: trackByIndex">{{column.name}}</th>
         </thead>
         <tbody>
-          <tr *ngFor="let row of resultTable.rows; trackBy: trackRowByContents">
-            <td *ngFor="let cellValue of row.values; trackBy: trackCellByValue">
+          <tr *ngFor="let row of resultTable.rows; trackBy: trackByIndex">
+            <td *ngFor="let cellValue of row.values; trackBy: trackByIndex">
               {{cellValue}}
             </td>
           </tr>

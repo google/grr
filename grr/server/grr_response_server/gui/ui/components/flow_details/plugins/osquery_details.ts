@@ -66,15 +66,7 @@ export class OsqueryDetails extends Plugin implements OnDestroy {
     this.unsubscribe$.complete();
   }
 
-  trackColumnByName(index: number, column: OsqueryColumn) {
-    return column.name;
-  }
-
-  trackCellByValue(index: number, cell: string) {
-    return cell;
-  }
-
-  trackRowByContents(index: number, row: OsqueryRow) {
-    return row.values?.join();
+  trackByIndex(index: number, item: unknown): number {
+    return index;
   }
 }
