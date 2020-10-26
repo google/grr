@@ -3,7 +3,7 @@
 import abc
 from absl import app, flags
 import collections
-import dateutil
+from dateutil import parser
 import json
 import os
 from typing import Any, Callable, Dict, List, NamedTuple, Tuple
@@ -256,7 +256,7 @@ class Grrafana(object):
 
 def timeToProtoTimestamp(
     grafana_time: str) -> timestamp_pb2.Timestamp:
-  date = dateutil.parser.parse(grafana_time)  # type: ignore
+  date = parser.parse(grafana_time)
   return timestamp_pb2.Timestamp(seconds=int(date.timestamp()),
                                  nanos=date.microsecond * 1000)
 
