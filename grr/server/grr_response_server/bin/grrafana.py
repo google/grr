@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
-from abc import ABC, abstractmethod
+import abc
 from absl import app, flags
 import collections
 import dateutil
@@ -15,6 +15,7 @@ from grr_response_core import config
 from grr_response_core.config import server as config_server
 from grr_response_core.config import contexts
 from grr_response_server import data_store
+from grr_response_server import fleet_utils
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import server_startup
@@ -70,16 +71,20 @@ class JSONResponse(werkzeug_wrappers_json.JSONMixin,
     super().__init__(response, *args, **kwargs)
 
 
-class Metric(ABC):
+class Metric(abc.ABC):
   """A single metric that can be fetched from a
   Fleetspeak-based GRR deployment."""
 
-  @abstractmethod
+  @abc.abstractmethod
   def __init__(self, name: str) -> None:
     """Initializes a new metric."""
-    self.name = name
+    self._name = name
 
-  @abstractmethod
+  def GetName(self) -> str:
+    """Returns the name of the metric."""
+    return self._name
+
+  @abc.abstractmethod
   def ProcessQuery(self, req: JSONRequest):
     """Processes the request JSON data and returns
     data that can be read by Grafana (by JSON Datasource plugin)."""
@@ -90,9 +95,11 @@ class ClientResourceUsageMetric(Metric):
   """A metric that reprsents resource usage data for a single client,
   fetched from Fleetspeak database."""
 
-  def __init__(self, name: str, record_values_extract_fn: Callable) -> None:
+  def __init__(self,
+               name: str,
+               record_values_extract_fn: Callable[[List[resource_pb2.ClientResourceUsageRecord]], List[float]]) -> None:
     super().__init__(name)
-    self.record_values_extract_fn = record_values_extract_fn
+    self._record_values_extract_fn = record_values_extract_fn
 
   def ProcessQuery(self, req: JSONRequest) -> _TargetWithDatapoints:
     client_id = req["scopedVars"]["ClientID"]["value"]
@@ -100,24 +107,26 @@ class ClientResourceUsageMetric(Metric):
     end_range_ts = timeToProtoTimestamp(req["range"]["to"])
     records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
         client_id, start_range_ts, end_range_ts)
-    record_values = self.record_values_extract_fn(records_list)
+    record_values = self._record_values_extract_fn(records_list)
     datapoints = [(v, r.server_timestamp.seconds * 1000 +
                    r.server_timestamp.nanos // 1000000)
                   for (v, r) in zip(record_values, records_list)]
-    return _TargetWithDatapoints(target=self.name, datapoints=datapoints)
+    return _TargetWithDatapoints(target=self._name, datapoints=datapoints)
 
 
 class ClientsStatisticsMetric(Metric):
 
-  def __init__(self, name: str, get_fleet_stats_fn: Callable,
+  def __init__(self,
+               name: str,
+               get_fleet_stats_fn: Callable[[frozenset], fleet_utils.FleetStats],
                days_active: int) -> None:
     super().__init__(name)
-    self.get_fleet_stats_fn = get_fleet_stats_fn
-    self.days_active = days_active
+    self._get_fleet_stats_fn = get_fleet_stats_fn
+    self._days_active = days_active
 
   def ProcessQuery(self, req: JSONRequest) -> _TableQueryResult:
-    fleet_stats = self.get_fleet_stats_fn(_FLEET_BREAKDOWN_DAY_BUCKETS)
-    totals = fleet_stats.GetTotalsForDay(self.days_active)
+    fleet_stats = self._get_fleet_stats_fn(_FLEET_BREAKDOWN_DAY_BUCKETS)
+    totals = fleet_stats.GetTotalsForDay(self._days_active)
     return _TableQueryResult(
       columns=[{
         "text": "Label", "type":"string"
@@ -169,7 +178,7 @@ AVAILABLE_METRICS_LIST.extend([
     for n_days in _FLEET_BREAKDOWN_DAY_BUCKETS
 ])
 AVAILABLE_METRICS_DICT = {
-    metric.name: metric for metric in AVAILABLE_METRICS_LIST
+    metric.GetName(): metric for metric in AVAILABLE_METRICS_LIST
 }
 
 
