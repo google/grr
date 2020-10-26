@@ -37,7 +37,15 @@ flags.DEFINE_bool(
     allow_override=True,
     help="Print the GRR console version number and exit immediately.")
 
-_Datapoint = Tuple[float, int]
+
+class _Datapoint(NamedTuple):
+  """A datapoint represents a single time-value data point
+  returned from Fleetspeak's database."""
+
+  nanos: float
+  value: int
+
+
 _Datapoints = List[_Datapoint]
 
 
@@ -108,8 +116,9 @@ class ClientResourceUsageMetric(Metric):
     records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
         client_id, start_range_ts, end_range_ts)
     record_values = self._record_values_extract_fn(records_list)
-    datapoints = [(v, r.server_timestamp.seconds * 1000 +
-                   r.server_timestamp.nanos // 1000000)
+    datapoints = [_Datapoint(nanos=v,
+                             value=r.server_timestamp.seconds * 1000 +
+                                   r.server_timestamp.nanos // 1000000)
                   for (v, r) in zip(record_values, records_list)]
     return _TargetWithDatapoints(target=self._name, datapoints=datapoints)
 
@@ -159,25 +168,22 @@ AVAILABLE_METRICS_LIST = [
         "Max Resident Memory MB", lambda records_list:
         [record.max_resident_memory_mib * 1.049 for record in records_list]),
 ]
-AVAILABLE_METRICS_LIST.extend([
-    ClientsStatisticsMetric(
-        f"OS Platform Breakdown - {n_days} Day Active",
-        lambda buckets: data_store.REL_DB.CountClientPlatformsByLabel(buckets),
-        n_days) for n_days in _FLEET_BREAKDOWN_DAY_BUCKETS
-])
-AVAILABLE_METRICS_LIST.extend([
-    ClientsStatisticsMetric(
-        f"OS Release Version Breakdown - {n_days} Day Active", lambda buckets:
-        data_store.REL_DB.CountClientPlatformReleasesByLabel(buckets), n_days)
-    for n_days in _FLEET_BREAKDOWN_DAY_BUCKETS
-])
-AVAILABLE_METRICS_LIST.extend([
-    ClientsStatisticsMetric(
-        f"Client Version Strings - {n_days} Day Active", lambda buckets:
-        data_store.REL_DB.CountClientVersionStringsByLabel(buckets), n_days)
-    for n_days in _FLEET_BREAKDOWN_DAY_BUCKETS
-])
-AVAILABLE_METRICS_DICT = {
+client_statistics_names_fns = [
+    (lambda n_days:  f"OS Platform Breakdown - {n_days} Day Active",
+     lambda buckets: data_store.REL_DB.CountClientPlatformsByLabel(buckets)),
+    (lambda n_days:  f"OS Release Version Breakdown - {n_days} Day Active",
+     lambda buckets: data_store.REL_DB.CountClientPlatformReleasesByLabel(buckets)),
+    (lambda n_days:  f"Client Version Strings - {n_days} Day Active",
+     lambda buckets: data_store.REL_DB.CountClientVersionStringsByLabel(buckets))
+]
+for metric_name_fn, metric_extract_fn in client_statistics_names_fns:
+  for n_days in _FLEET_BREAKDOWN_DAY_BUCKETS:
+    AVAILABLE_METRICS_LIST.append(
+        ClientsStatisticsMetric(metric_name_fn(n_days),
+                                metric_extract_fn,
+                                n_days)
+    )
+AVAILABLE_METRICS_BY_NAME = {
     metric.GetName(): metric for metric in AVAILABLE_METRICS_LIST
 }
 
@@ -227,7 +233,7 @@ class Grrafana(object):
     Depending on the type of request Grafana is issuing, this method returns
     either available client resource usage metrics from the constant
     AVAILABLE_METRICS, or possible values for a defined Grafana variable."""
-    response = list(AVAILABLE_METRICS_DICT.keys())
+    response = list(AVAILABLE_METRICS_BY_NAME.keys())
     return JSONResponse(response=response)
 
   def _OnQuery(self, request: JSONRequest) -> JSONResponse:
@@ -238,7 +244,7 @@ class Grrafana(object):
     json_data = request.json
     requested_targets = [entry["target"] for entry in json_data["targets"]]
     targets_with_datapoints = [
-        AVAILABLE_METRICS_DICT[target].ProcessQuery(json_data)
+        AVAILABLE_METRICS_BY_NAME[target].ProcessQuery(json_data)
         for target in requested_targets
     ]
     response = [t._asdict() for t in targets_with_datapoints]

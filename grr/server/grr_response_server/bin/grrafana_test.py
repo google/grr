@@ -277,10 +277,8 @@ class GrrafanaTest(absltest.TestCase):
         _TEST_CLIENT_RESOURCE_USAGE_RECORD_2
     ])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      self.assertRaises(KeyError,
-                        self.client.post,
-                        "/query",
-                        json=_TEST_INVALID_TARGET_QUERY)
+      with self.assertRaises(KeyError):
+        self.client.post("/query", json=_TEST_INVALID_TARGET_QUERY)
 
   def testClientsStatisticsMetric(self):
     REL_DB = _MockDatastoreReturningPlatformFleetStats(
