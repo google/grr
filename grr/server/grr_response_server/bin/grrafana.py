@@ -87,7 +87,8 @@ class Metric(abc.ABC):
     """Initializes a new metric."""
     self._name = name
 
-  def GetName(self) -> str:
+  @property
+  def name(self) -> str:
     """Returns the name of the metric."""
     return self._name
 
@@ -185,7 +186,7 @@ for metric_name_fn, metric_extract_fn in client_statistics_names_fns:
                                 n_days)
     )
 AVAILABLE_METRICS_BY_NAME = {
-    metric.GetName(): metric for metric in AVAILABLE_METRICS_LIST
+    metric.name: metric for metric in AVAILABLE_METRICS_LIST
 }
 
 
