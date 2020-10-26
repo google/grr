@@ -7,7 +7,7 @@ import {translateApproval, translateClient} from '@app/lib/api_translation/clien
 import {translateFlow, translateFlowResult, translateScheduledFlow} from '@app/lib/api_translation/flow';
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, ScheduledFlow, updateFlowListEntryResultSet} from '@app/lib/models/flow';
 import {combineLatest, Observable, of, Subject, timer} from 'rxjs';
-import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mapTo, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
+import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mapTo, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom, groupBy} from 'rxjs/operators';
 
 import {translateApproverSuggestions} from '../lib/api_translation/user';
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
@@ -15,6 +15,7 @@ import {isNonNull} from '../lib/preconditions';
 
 import {ConfigFacade} from './config_facade';
 import {UserFacade} from './user_facade';
+import { queuedExhaustMap } from '@app/lib/queued_exhaust_map';
 
 
 
@@ -355,9 +356,13 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   /** An effect querying results of a given flow. */
   private readonly queryFlowResultsImpl = this.effect<FlowResultsQuery>(
       obs$ => obs$.pipe(
-          takeUntil(this.selectedClientIdChanged$),
-          withLatestFrom(this.selectedClientId$),
-          exhaustMap(([query, clientId]) => {
+        takeUntil(this.selectedClientIdChanged$),
+        withLatestFrom(this.selectedClientId$),
+        groupBy(([query, clientId]) => {
+          return query; // TODO: Group by flowId, tag and type 
+        }),
+        mergeMap(group$ => group$.pipe(
+          queuedExhaustMap(([query, clientId]) => {
             return combineLatest([
               of(query),
               this.httpApiService.listResultsForFlow(clientId, query),
@@ -373,7 +378,10 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           tap((flowResultSet) => {
             this.updateFlowResults(flowResultSet);
           }),
-          ));
+          )
+        )
+      )
+    );
 
   /** A subject triggered every time the queryFlowResults() method is called. */
   private readonly queryFlowResultsSubject$ = new Subject<FlowResultsQuery>();
