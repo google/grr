@@ -99,9 +99,8 @@ export function newClientApproval(args: Partial<ClientApproval> = {}):
 
 /**
  * A helper function to construct a FlowResultSet object.
- * Feel free to extend it with more default arguments.
  */
-export function newResultSet(payload = { }): FlowResultSet {
+export function newFlowResultSet(payload = { }): FlowResultSet {
   return {
     items: [{
       payload,

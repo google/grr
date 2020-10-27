@@ -16,7 +16,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let row of resultTable.rows; trackBy: trackByIndex">
-            <td *ngFor="let cellValue of row.values; trackBy: trackByIndex">
+            <td *ngFor="let cellValue of row.values">
               {{cellValue}}
             </td>
           </tr>

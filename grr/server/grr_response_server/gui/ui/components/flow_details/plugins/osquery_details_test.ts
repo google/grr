@@ -3,7 +3,7 @@ import {initTestEnvironment} from '@app/testing';
 
 import {PluginsModule} from './module';
 import { OsqueryDetails } from './osquery_details';
-import { newFlowListEntry, newResultSet } from '@app/lib/models/model_test_util';
+import { newFlowListEntry, newFlowResultSet } from '@app/lib/models/model_test_util';
 import { FlowState, FlowListEntry, FlowResultSet } from '@app/lib/models/flow';
 import { By } from '@angular/platform-browser';
 import { DebugElement } from '@angular/core';
@@ -69,7 +69,7 @@ class FlowListEntryBuilder {
       table: this.table,
     }
     this.flowListEntry.resultSets = [
-      newResultSet(payload) as DeepMutable<FlowResultSet>,
+      newFlowResultSet(payload) as DeepMutable<FlowResultSet>,
     ];
   }
 }

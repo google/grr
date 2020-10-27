@@ -30,7 +30,7 @@ export class OsqueryDetails extends Plugin implements OnDestroy {
     flatMap((listEntry) => listEntry.resultSets),
     flatMap((singleResultSet) => singleResultSet?.items),
     filter(isNonNull),
-    map((singleItem) => singleItem?.payload as OsqueryResult)
+    map((singleItem) => singleItem.payload as OsqueryResult),
   );
 
   readonly resultTable$ = this.osqueryResult$.pipe(
