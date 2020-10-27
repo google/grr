@@ -3,24 +3,26 @@ import {initTestEnvironment} from '@app/testing';
 
 import {PluginsModule} from './module';
 import { OsqueryDetails } from './osquery_details';
-import { newFlowListEntry } from '@app/lib/models/model_test_util';
-import { FlowState, FlowListEntry } from '@app/lib/models/flow';
+import { newFlowListEntry, newResultSet } from '@app/lib/models/model_test_util';
+import { FlowState, FlowListEntry, FlowResultSet } from '@app/lib/models/flow';
 import { By } from '@angular/platform-browser';
 import { DebugElement } from '@angular/core';
-
+import { OsqueryColumn, OsqueryRow } from '@app/lib/api/api_interfaces';
+import { DeepMutable } from '@app/lib/type_utils';
 
 initTestEnvironment();
 
 /** Helper class to build a FlowListEntry objects in a declarative manner */
 class FlowListEntryBuilder {
-  private flowListEntry: any = newFlowListEntry({args: {query: ''}});
+  private flowListEntry = newFlowListEntry({args: {query: ''}})  as DeepMutable<FlowListEntry>;
+
   private stderr = '';
   private table = {
     query: '',
     header: {
-      columns: [] as any,
+      columns: [] as OsqueryColumn[],
     },
-    rows: [] as any[],
+    rows: [] as OsqueryRow[],
   };
 
   withFlowState(state: FlowState): FlowListEntryBuilder {
@@ -29,7 +31,7 @@ class FlowListEntryBuilder {
   }
 
   withQuery(query: string): FlowListEntryBuilder {
-    this.flowListEntry.flow.args.query = query;
+    this.setFlowArgsQuery(query);
     this.table.query = query;
     return this;
   }
@@ -50,15 +52,25 @@ class FlowListEntryBuilder {
     return this.flowListEntry as FlowListEntry;
   }
 
+  private setFlowArgsQuery(query: string): void {
+    if (this.flowListEntry.flow.args instanceof Object) {
+      this.flowListEntry.flow.args = {
+        ...this.flowListEntry.flow.args,
+        query,
+      };
+    } else {
+      this.flowListEntry.flow.args = { query };
+    }
+  }
+
   private includeResultSet(): void {
-    this.flowListEntry.resultSets = [{
-      items: [{
-        payload: {
-          stderr: this.stderr,
-          table: this.table,
-        },
-      }],
-    }];
+    const payload = {
+      stderr: this.stderr,
+      table: this.table,
+    }
+    this.flowListEntry.resultSets = [
+      newResultSet(payload) as DeepMutable<FlowResultSet>,
+    ];
   }
 }
 
