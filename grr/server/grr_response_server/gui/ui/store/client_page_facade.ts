@@ -358,8 +358,13 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       obs$ => obs$.pipe(
         takeUntil(this.selectedClientIdChanged$),
         withLatestFrom(this.selectedClientId$),
+        // Below we are grouping the requests by flowId, tag and type, and
+        // for each group we use a queuedExhaustMap with queue size 1 to send http request
+        // for results.
+        // TODO: Think about how we should split the code so it's cleaner
+        // TODO: Add tests to ensure the intended functionality
         groupBy(([query, clientId]) => {
-          return query; // TODO: Group by flowId, tag and type 
+          return [query.flowId, query.withTag, query.withType].join('-');
         }),
         mergeMap(group$ => group$.pipe(
           queuedExhaustMap(([query, clientId]) => {

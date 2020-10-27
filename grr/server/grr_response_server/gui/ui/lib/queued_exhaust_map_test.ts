@@ -3,7 +3,7 @@ import { queuedExhaustMap } from './queued_exhaust_map';
 import { delay } from 'rxjs/operators';
 import { fakeAsync, tick } from '@angular/core/testing';
 
-fdescribe('queuedExhaustMap', () => {
+describe('queuedExhaustMap', () => {
   it('shouldn\'t discard anything if there is just one element (queue size 1)', () => {
     const valuePassed = 'dummy value';
 

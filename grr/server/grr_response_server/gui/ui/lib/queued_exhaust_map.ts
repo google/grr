@@ -23,7 +23,7 @@ class RequestTracker<T> {
  * Observables and merged in the output Observable in a serialized fashion, waiting for
  * each one to complete before merging the next.
  *
- * TODO: Currently only queue of size 1 is supported.
+ * Currently only queue of size 1 is supported.
  */
 export function queuedExhaustMap<T, O extends ObservableInput<any>> (
   project: (value: T, index: number) => O, queueSize: 1 = 1
