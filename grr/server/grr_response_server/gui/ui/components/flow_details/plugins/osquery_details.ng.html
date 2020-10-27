@@ -5,8 +5,8 @@
 <div *ngIf="flowCompleted$ | async" class='results'>
   <div *ngIf="resultTable$ | async as resultTable">
     <div class="results-query">
-      <div class="results-query-label">Query:</div>&nbsp;
-      <div class="results-query-text">{{resultTable.query}}</div>
+      <span class="results-query-label">Query:</span>
+      <span class="results-query-text">{{resultTable.query}}</span>
     </div>
 
     <div class="table-container">

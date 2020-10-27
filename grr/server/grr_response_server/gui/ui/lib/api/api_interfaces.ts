@@ -638,12 +638,12 @@ export declare interface OsqueryResult {
 export declare interface OsqueryTable {
   readonly query?: string;
   readonly header?: OsqueryHeader;
-  readonly rows?: OsqueryRow[];
+  readonly rows?: ReadonlyArray<OsqueryRow>;
 }
 
 /** OsqueryHeader proto mapping */
 export declare interface OsqueryHeader {
-  readonly columns?: OsqueryColumn[];
+  readonly columns?: ReadonlyArray<OsqueryColumn>;
 }
 
 /** OsqueryColumn proto mapping. */
@@ -667,5 +667,5 @@ export enum OsqueryType {
 
 /** OsqueryRow proto mapping. */
 export declare interface OsqueryRow {
-  readonly values?: string[];
+  readonly values?: ReadonlyArray<string>;
 }

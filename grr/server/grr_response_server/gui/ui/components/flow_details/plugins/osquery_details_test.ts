@@ -20,9 +20,9 @@ class FlowListEntryBuilder {
   private table = {
     query: '',
     header: {
-      columns: [] as OsqueryColumn[],
+      columns: [] as ReadonlyArray<OsqueryColumn>,
     },
-    rows: [] as OsqueryRow[],
+    rows: [] as ReadonlyArray<OsqueryRow>,
   };
 
   withFlowState(state: FlowState): FlowListEntryBuilder {
@@ -41,7 +41,7 @@ class FlowListEntryBuilder {
     return this;
   }
 
-  withTable(columns: string[], values: string[][]): FlowListEntryBuilder {
+  withTable(columns: ReadonlyArray<string>, values: ReadonlyArray<ReadonlyArray<string>>): FlowListEntryBuilder {
     this.table.header.columns = columns.map((colName) => ({name: colName}));
     this.table.rows = values.map((rowValues) => ({values: rowValues}));
     return this;
