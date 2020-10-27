@@ -357,7 +357,16 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       obs$ => obs$.pipe(
           takeUntil(this.selectedClientIdChanged$),
           withLatestFrom(this.selectedClientId$),
-          exhaustMap(([query, clientId]) => {
+          // TODO: In case there are multiple concurrent requests for results,
+          // exhaustMap will discard all but the first request, until the first request
+          // completes. This is intended for requests coming from the same component,
+          // but it will also discard requests coming from multiple different components which
+          // are concurrent with the first request to arrive. This causes only
+          // the first request to be satisfied.
+          // The current use of mergeMap however would allow multiple concurrent requests
+          // from the same component to be active, which might lead to more data traffic.
+          // This will be addressed in the next PR.
+          mergeMap(([query, clientId]) => {
             return combineLatest([
               of(query),
               this.httpApiService.listResultsForFlow(clientId, query),

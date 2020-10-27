@@ -5,6 +5,7 @@ import {CollectSingleFileDetails} from '@app/components/flow_details/plugins/col
 import {DefaultDetails} from './plugins/default_details';
 import {MultiGetFileDetails} from './plugins/multi_get_file_details';
 import {Plugin} from './plugins/plugin';
+import { OsqueryDetails } from './plugins/osquery_details';
 
 /**
  * Default details plugin to be used when no appropriate plugin is found.
@@ -18,4 +19,5 @@ export const FLOW_DETAILS_PLUGIN_REGISTRY: {[key: string]: Type<Plugin>} = {
   'MultiGetFile': MultiGetFileDetails,
   'CollectBrowserHistory': CollectBrowserHistoryDetails,
   'CollectSingleFile': CollectSingleFileDetails,
+  'OsqueryFlow': OsqueryDetails,
 };
