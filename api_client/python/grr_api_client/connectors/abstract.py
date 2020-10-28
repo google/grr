@@ -25,10 +25,12 @@ class Connector(abc.ABC):
       handler_name: str,
       args: Optional[message.Message],
   ) -> Optional[message.Message]:
+
     """Sends a request to the GRR server.
     Args:
       handler_name: A handler to which the request should be delivered to.
       args: Arguments of the request to pass to the handler.
+
     Returns:
       A response from the server (if any).
     """
@@ -41,9 +43,11 @@ class Connector(abc.ABC):
       args: message.Message,
   ) -> utils.BinaryChunkIterator:
     """Sends a streaming request to the GRR server.
+
     Args:
       handler_name: A handler to which the request should be delivered to.
       args: Arguments of the request to pass to the handler.
+
     Returns:
       An iterator over binary chunks that the server responded with.
     """
