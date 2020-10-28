@@ -107,6 +107,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
           client_id=self.client_id,
           username="test",
           token=self.token,
+          # This has to be TSK, since test_img.dd is an EXT3 file system.
           pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     # Now check that the right files were downloaded.
@@ -174,15 +175,19 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
     if client_mock is None:
       client_mock = self.MockClient(client_id=self.client_id)
 
-    session_id = flow_test_lib.TestFlowHelper(
-        collectors.ArtifactCollectorFlow.__name__,
-        client_mock=client_mock,
-        client_id=self.client_id,
-        artifact_list=artifact_list,
-        token=self.token,
-        **kw)
+    # This has to be TSK, since test_img.dd is an EXT3 file system.
+    with test_lib.ConfigOverrider(
+        {"Server.raw_filesystem_access_pathtype": "TSK"}):
 
-    return flow_test_lib.GetFlowResults(self.client_id, session_id)
+      session_id = flow_test_lib.TestFlowHelper(
+          collectors.ArtifactCollectorFlow.__name__,
+          client_mock=client_mock,
+          client_id=self.client_id,
+          artifact_list=artifact_list,
+          token=self.token,
+          **kw)
+
+      return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
   @parser_test_lib.WithParser("Chrome", chrome_history.ChromeHistoryParser)
   def testChrome(self):

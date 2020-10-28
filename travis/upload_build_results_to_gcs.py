@@ -22,6 +22,14 @@ flags.DEFINE_string("encrypted_service_key", "",
                     "Path to Travis's GCP service account key.")
 flags.DEFINE_string("build_results_dir", "",
                     "Path to the local directory containing build results.")
+flags.DEFINE_string(
+    "openapi_json_dir", "",
+    "Path to the local directory containing the generated "
+    "OpenAPI description JSON.")
+flags.DEFINE_string(
+    "openapi_docs_dir", "",
+    "Path to the local directory containing the generated "
+    "documentation HTML.")
 
 # Environment variables.
 _TRAVIS_COMMIT = "TRAVIS_COMMIT"
@@ -30,6 +38,7 @@ _TRAVIS_JOB_NUMBER = "TRAVIS_JOB_NUMBER"
 _SERVICE_FILE_ENCRYPTION_KEY_VAR = "SERVICE_FILE_ENCRYPTION_KEY_VAR"
 _SERVICE_FILE_ENCRYPTION_IV_VAR = "SERVICE_FILE_ENCRYPTION_IV_VAR"
 _GCS_BUCKET = "GCS_BUCKET"
+_GCS_BUCKET_OPENAPI = "GCS_BUCKET_OPENAPI"
 _GCS_TAG = "GCS_TAG"
 _APPVEYOR_ACCOUNT_NAME = "APPVEYOR_ACCOUNT_NAME"
 _APPVEYOR_TOKEN = "APPVEYOR_TOKEN"
@@ -80,16 +89,12 @@ def _GetGCSBuildResultsDir() -> str:
   try:
     commit_timestamp = int(git_output.decode("utf-8").strip())
   except ValueError:
-    raise ValueError(
-        "Received invalid response from git: {}.".format(git_output))
+    raise ValueError(f"Received invalid response from git: {git_output}.")
   formatted_commit_timestamp = datetime.datetime.utcfromtimestamp(
       commit_timestamp).strftime(_GCS_BUCKET_TIME_FORMAT)
-  destination_dir = ("{commit_timestamp}_{travis_commit}/"
-                     "travis_job_{travis_job_number}_{gcs_tag}").format(
-                         commit_timestamp=formatted_commit_timestamp,
-                         travis_commit=os.environ[_TRAVIS_COMMIT],
-                         travis_job_number=os.environ[_TRAVIS_JOB_NUMBER],
-                         gcs_tag=os.environ[_GCS_TAG])
+  destination_dir = (
+      f"{formatted_commit_timestamp}_{os.environ[_TRAVIS_COMMIT]}/"
+      f"travis_job_{os.environ[_TRAVIS_JOB_NUMBER]}_{os.environ[_GCS_TAG]}")
   return destination_dir
 
 
@@ -121,8 +126,21 @@ def _DecryptGCPServiceFileTo(service_file_path: str):
   except Exception as e:
     redacted_message = _GetRedactedExceptionMessage(e)
     raise DecryptionError(
-        "{} encountered when trying to decrypt the GCP service key: {}".format(
-            e.__class__.__name__, redacted_message))
+        f"{e.__class__.__name__} "
+        f"encountered when trying to decrypt the GCP service key: "
+        f"{redacted_message}")
+
+
+def _UploadDirectory(local_dir: str, gcs_bucket: storage.Bucket, gcs_dir: str):
+  """Upload the contents of a local directory to a GCS Bucket."""
+  for file_name in os.listdir(local_dir):
+    path = os.path.join(local_dir, file_name)
+    if not os.path.isfile(path):
+      logging.info("Skipping %s as it's not a file.", path)
+      continue
+    logging.info("Uploading: %s", path)
+    gcs_blob = gcs_bucket.blob(f"{gcs_dir}/{file_name}")
+    gcs_blob.upload_from_filename(path)
 
 
 def _UploadBuildResults(gcs_bucket: storage.Bucket, gcs_build_results_dir: str):
@@ -130,17 +148,30 @@ def _UploadBuildResults(gcs_bucket: storage.Bucket, gcs_build_results_dir: str):
   logging.info("Will upload build results to gs://%s/%s.",
                os.environ[_GCS_BUCKET], gcs_build_results_dir)
 
-  for build_result in os.listdir(flags.FLAGS.build_results_dir):
-    path = os.path.join(flags.FLAGS.build_results_dir, build_result)
-    if not os.path.isfile(path):
-      logging.info("Skipping %s as it's not a file.", path)
-      continue
-    logging.info("Uploading: %s", path)
-    gcs_blob = gcs_bucket.blob("{}/{}".format(gcs_build_results_dir,
-                                              build_result))
-    gcs_blob.upload_from_filename(path)
+  _UploadDirectory(flags.FLAGS.build_results_dir, gcs_bucket,
+                   gcs_build_results_dir)
 
-  logging.info("GCS upload done.")
+  logging.info("GCS build results upload done.")
+
+
+def _UploadOpenApiJson(gcs_bucket: storage.Bucket, gcs_openapi_dir: str):
+  """Uploads the generated OpenAPI description JSON to Google Cloud Storage."""
+  logging.info("Will upload generated OpenAPI JSON to gs://%s/%s.",
+               os.environ[_GCS_BUCKET_OPENAPI], gcs_openapi_dir)
+
+  _UploadDirectory(flags.FLAGS.openapi_json_dir, gcs_bucket, gcs_openapi_dir)
+
+  logging.info("GCS OpenAPI JSON upload done.")
+
+
+def _UploadDocumentation(gcs_bucket: storage.Bucket, gcs_docs_dir: str):
+  """Uploads the generated GRR API documentation to Google Cloud Storage."""
+  logging.info("Will upload generated GRR API documentation to gs://%s/%s.",
+               os.environ[_GCS_BUCKET_OPENAPI], gcs_docs_dir)
+
+  _UploadDirectory(flags.FLAGS.openapi_docs_dir, gcs_bucket, gcs_docs_dir)
+
+  logging.info("GCS GRR API documentation upload done.")
 
 
 def _TriggerAppveyorBuild(project_slug_var_name: str):
@@ -160,17 +191,17 @@ def _TriggerAppveyorBuild(project_slug_var_name: str):
       "commitId": os.environ[_TRAVIS_COMMIT],
   }
   logging.info("Will trigger Appveyor build with params: %s", data)
-  headers = {"Authorization": "Bearer {}".format(os.environ[_APPVEYOR_TOKEN])}
+  headers = {"Authorization": f"Bearer {os.environ[_APPVEYOR_TOKEN]}"}
   try:
     response = requests.post(_APPVEYOR_API_URL, json=data, headers=headers)
   except Exception as e:
     redacted_message = _GetRedactedExceptionMessage(e)
-    raise AppveyorError("{} encountered on POST request: {}".format(
-        e.__class__.__name__, redacted_message))
-  if not response.ok:
     raise AppveyorError(
-        "Failed to trigger Appveyor build; got response {}.".format(
-            response.status_code))
+        f"{e.__class__.__name__} encountered on POST request: {redacted_message}"
+    )
+  if not response.ok:
+    raise AppveyorError(f"Failed to trigger Appveyor build; got response "
+                        f"{response.status_code}.")
 
 
 def _UpdateLatestServerDebDirectory(gcs_bucket: storage.Bucket,
@@ -191,8 +222,8 @@ def _UpdateLatestServerDebDirectory(gcs_bucket: storage.Bucket,
 
   for gcs_blob in new_build_results:
     build_result_filename = gcs_blob.name.split("/")[-1]
-    latest_build_result_path = "{}/{}".format(_LATEST_SERVER_DEB_GCS_DIR,
-                                              build_result_filename)
+    latest_build_result_path = (
+        f"{_LATEST_SERVER_DEB_GCS_DIR}/{build_result_filename}")
     logging.info("Copying blob %s (%s) -> %s", gcs_blob, gcs_bucket,
                  latest_build_result_path)
     gcs_bucket.copy_blob(
@@ -216,6 +247,13 @@ def main(argv):
     gcs_bucket = gcs_client.get_bucket(os.environ[_GCS_BUCKET])
     gcs_build_results_dir = _GetGCSBuildResultsDir()
     _UploadBuildResults(gcs_bucket, gcs_build_results_dir)
+
+    # Upload the generated OpenAPI description and the generated documentation.
+    if flags.FLAGS.openapi_json_dir:
+      gcs_bucket_openapi = (
+          gcs_client.get_bucket(os.environ[_GCS_BUCKET_OPENAPI]))
+      _UploadOpenApiJson(gcs_bucket_openapi, "openapi_description")
+      _UploadDocumentation(gcs_bucket_openapi, "documentation")
   finally:
     shutil.rmtree(temp_dir)
 

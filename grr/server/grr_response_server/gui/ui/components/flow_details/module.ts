@@ -1,3 +1,4 @@
+import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
@@ -24,6 +25,7 @@ import {PluginsModule} from './plugins/module';
 @NgModule({
   imports: [
     BrowserAnimationsModule,
+    ClipboardModule,
     RouterModule,
     CommonModule,
     MatButtonModule,

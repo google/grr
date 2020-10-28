@@ -3,7 +3,18 @@
     <div class="header">
       <!-- Basic flow information. -->
       <div class="flow-header">
-        <div class="flow-title">{{flowDescriptor?.friendlyName || flow.name}}</div>
+        <div>
+          <a class="flow-title" routerLink="." [fragment]="flow.flowId" [name]="flow.flowId"
+            title="Direct link to flow {{flow.flowId}}">
+            {{flowDescriptor?.friendlyName || flow.name}}
+            <mat-icon>link</mat-icon>
+          </a>
+          <button mat-button class="mat-small monospace flow-id" title="Copy flow ID to clipboard"
+            [cdkCopyToClipboard]="flow.flowId">
+            {{flow.flowId}}
+            <mat-icon size="8px">content_copy</mat-icon>
+          </button>
+        </div>
         <div class="flow-info">
           <span class="user-name">
             <user-image [username]="flow.creator" size="16px"></user-image>

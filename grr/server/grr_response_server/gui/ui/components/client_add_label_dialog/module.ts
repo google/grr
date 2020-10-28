@@ -23,6 +23,9 @@ import {ClientAddLabelDialog} from './client_add_label_dialog';
   declarations: [
     ClientAddLabelDialog,
   ],
+  entryComponents: [
+    ClientAddLabelDialog,
+  ],
   exports: [
     ClientAddLabelDialog,
   ],

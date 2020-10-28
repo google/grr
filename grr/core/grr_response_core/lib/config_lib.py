@@ -21,6 +21,7 @@ import re
 import sys
 import traceback
 from typing import cast
+from typing import Optional
 from typing import Text
 
 from absl import flags
@@ -1561,6 +1562,21 @@ class GrrConfigManager(object):
             default=default,
             description=help))
 
+  def DEFINE_semantic_enum(self,
+                           enum_container: rdf_structs.EnumContainer,
+                           name: str,
+                           default: Optional[rdf_structs.EnumNamedValue] = None,
+                           help: str = "") -> None:
+    if not isinstance(enum_container, rdf_structs.EnumContainer):
+      raise ValueError("enum_container must be an EnumContainer.")
+
+    self.AddOption(
+        type_info.RDFEnumType(
+            enum_container=enum_container,
+            name=name,
+            default=default,
+            description=help))
+
   def DEFINE_semantic_struct(self, semantic_type, name, default=None, help=""):
     if not issubclass(semantic_type, rdf_structs.RDFStruct):
       raise ValueError("DEFINE_semantic_struct should be used for types based "
@@ -1637,6 +1653,13 @@ def DEFINE_list(name, default, help):
 
 def DEFINE_semantic_value(semantic_type, name, default=None, help=""):
   _CONFIG.DEFINE_semantic_value(semantic_type, name, default=default, help=help)
+
+
+def DEFINE_semantic_enum(semantic_enum: rdf_structs.EnumContainer,
+                         name: str,
+                         default: Optional[rdf_structs.EnumNamedValue] = None,
+                         help: str = "") -> None:
+  _CONFIG.DEFINE_semantic_enum(semantic_enum, name, default=default, help=help)
 
 
 def DEFINE_semantic_struct(semantic_type, name, default=None, help=""):

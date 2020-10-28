@@ -22,6 +22,8 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import temp
 from grr.test_lib import test_lib
 
@@ -263,6 +265,45 @@ Section1.foobar:
     self.assertIsInstance(values, rdf_file_finder.FileFinderArgs)
     self.assertEqual(values.paths, ["a/b", "b/c"])
     self.assertEqual(values.pathtype, "TSK")
+
+  def testSemanticEnum(self):
+    conf = config_lib.GrrConfigManager()
+
+    conf.DEFINE_semantic_enum(
+        enum_container=rdf_paths.PathSpec.PathType,
+        name="Foo.Bar",
+        default=rdf_paths.PathSpec.PathType.TSK)
+    conf.Initialize(parser=config_lib.YamlParser, data="Foo.Bar: NTFS")
+
+    value = conf.Get("Foo.Bar")
+    self.assertIsInstance(value, rdf_structs.EnumNamedValue)
+    self.assertEqual(value, "NTFS")
+    self.assertEqual(value.id, 5)
+
+  def testSemanticEnum_defaultValue(self):
+    conf = config_lib.GrrConfigManager()
+
+    conf.DEFINE_semantic_enum(
+        enum_container=rdf_paths.PathSpec.PathType,
+        name="Foo.Bar",
+        default=rdf_paths.PathSpec.PathType.TSK)
+    conf.Initialize(parser=config_lib.YamlParser, data="")
+
+    value = conf.Get("Foo.Bar")
+    self.assertIsInstance(value, rdf_structs.EnumNamedValue)
+    self.assertEqual(value, "TSK")
+
+  def testSemanticEnum_invalidValue(self):
+    conf = config_lib.GrrConfigManager()
+
+    conf.DEFINE_semantic_enum(
+        enum_container=rdf_paths.PathSpec.PathType,
+        name="Foo.Bar",
+        default=rdf_paths.PathSpec.PathType.TSK)
+    conf.Initialize(parser=config_lib.YamlParser, data="Foo.Bar: Invalid")
+
+    with self.assertRaises(ValueError):
+      conf.Get("Foo.Bar")
 
 
 class ConfigLibTest(test_lib.GRRBaseTest):

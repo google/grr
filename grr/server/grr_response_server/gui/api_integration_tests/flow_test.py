@@ -14,9 +14,7 @@ import zipfile
 from absl import app
 
 from grr_api_client import errors as grr_api_errors
-from grr_api_client import utils as grr_api_utils
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -205,8 +203,7 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     result_flow = self.api.Client(client_id=client_id).Flow(flow_id).Get()
 
     with self.assertRaises(grr_api_errors.PollTimeoutError):
-      with utils.Stubber(grr_api_utils, "DEFAULT_POLL_TIMEOUT", 1):
-        result_flow.WaitUntilDone()
+      result_flow.WaitUntilDone(timeout=1)
 
   def _SetupFlowWithStatEntryResults(self):
     client_id = self.SetupClient(0)

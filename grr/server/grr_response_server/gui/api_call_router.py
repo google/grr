@@ -305,6 +305,7 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
+  @Category("Clients")
   @ArgsType(api_client.ApiGetLastClientIPAddressArgs)
   @ResultType(api_client.ApiGetLastClientIPAddressResult)
   @Http("GET", "/api/clients/<client_id>/last-ip")
@@ -1393,6 +1394,27 @@ class ApiCallRouterStub(ApiCallRouter):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_metadata.ApiGetGrrVersionHandler:
     """Returns version of the GRR server."""
+    raise NotImplementedError()
+
+  @Category("Metadata")
+  @ResultType(api_metadata.ApiGetOpenApiDescriptionResult)
+  @Http("GET", "/api/metadata/openapi")
+  @NoAuditLogRequired()
+  def GetOpenApiDescription(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
+    """Returns a description of the API following the OpenAPI specification.
+
+    Args:
+      args: None, this API method does not require any arguments.
+      context: the API call context.
+
+    Returns:
+      An ApiGetOpenApiDescriptionHandler object whose Handle method is used to
+      create and return the OpenAPI description of the GRR API.
+    """
     raise NotImplementedError()
 
 

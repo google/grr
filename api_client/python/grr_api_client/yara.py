@@ -26,4 +26,7 @@ def UploadYaraSignature(
   args = yara_pb2.ApiUploadYaraSignatureArgs(signature=signature)
 
   response = context.SendRequest("UploadYaraSignature", args)
+  if not isinstance(response, yara_pb2.ApiUploadYaraSignatureResult):
+    raise TypeError(f"Unexpected response type: {type(response)}")
+
   return response.blob_id

@@ -1,4 +1,4 @@
-import {async, TestBed} from '@angular/core/testing';
+import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {CollectBrowserHistoryDetails} from '@app/components/flow_details/plugins/collect_browser_history_details';
@@ -7,6 +7,7 @@ import {BrowserProgressStatus, CollectBrowserHistoryArgs, CollectBrowserHistoryA
 import {FlowState} from '@app/lib/models/flow';
 import {newFlowListEntry} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
+
 import {PluginsModule} from './module';
 
 
@@ -15,7 +16,7 @@ import {PluginsModule} from './module';
 initTestEnvironment();
 
 describe('collect-browser-history-details component', () => {
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed
         .configureTestingModule({
           imports: [

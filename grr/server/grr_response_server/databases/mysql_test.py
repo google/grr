@@ -288,6 +288,31 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
         self.assertFalse(connection.rollback.called)
         self.assertTrue(connection.close.called)
 
+  @mock.patch.object(mysql, "_SleepWithBackoff", lambda _: None)
+  def testRetryOnRetryableError(self):
+    call_count = 0
+
+    def RaisesRetryableError(connection):
+      nonlocal call_count
+      call_count += 1
+      self.AddUser(connection, str(call_count), str(call_count))
+      if call_count == 1:
+        raise mysql_utils.RetryableError()
+
+    self.db.delegate._RunInTransaction(RaisesRetryableError)
+    self.assertEqual(call_count, 2)
+    users = self.db.delegate._RunInTransaction(self.ListUsers, readonly=True)
+    self.assertLen(users, 1)
+
+  @mock.patch.object(mysql, "_SleepWithBackoff", lambda _: None)
+  def testRetryOnRetryableError_maxRetries(self):
+
+    def RaisesRetryableError(cursor):
+      raise mysql_utils.RetryableError()
+
+    with self.assertRaises(mysql_utils.RetryableError):
+      self.db.delegate._RunInTransaction(RaisesRetryableError)
+
   @mock.patch.object(mysql, "_SleepWithBackoff")
   @mock.patch.object(mysql, "_MAX_RETRY_COUNT", 2)
   def testDoNotRetryPermanentErrors(self, sleep_with_backoff_fn):

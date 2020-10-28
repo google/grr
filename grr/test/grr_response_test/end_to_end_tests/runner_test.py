@@ -47,7 +47,8 @@ class FakeApi(object):
     linux_binary.path = runner.E2ETestRunner.LINUX_TEST_BINARY_PATH
     windows_binary = mock.Mock(spec=api_config.GrrBinary)
     windows_binary.path = runner.E2ETestRunner.WINDOWS_TEST_BINARY_PATH
-    return api_utils.ItemsIterator(items=[linux_binary, windows_binary])
+    return api_utils.ItemsIterator(
+        items=[linux_binary, windows_binary], total_count=2)
 
   def Client(self, client_id):
     self.request_count += 1

@@ -336,11 +336,26 @@ def _InstallBundledFleetspeak():
       command_line=f"\"{fleetspeak_client}\" -config \"{fleetspeak_config}\"")
 
 
+def _MaybeInterpolateFleetspeakServiceConfig():
+  """Interpolates the fleetspeak service config if present."""
+  fleetspeak_unsigned_config_path = os.path.join(
+      config.CONFIG["Client.install_path"],
+      config.CONFIG["Client.fleetspeak_unsigned_config_fname"])
+  template_path = f"{fleetspeak_unsigned_config_path}.in"
+  if not os.path.exists(template_path):
+    return
+  with open(template_path, "r") as source:
+    with open(fleetspeak_unsigned_config_path, "w") as dest:
+      interpolated = config.CONFIG.InterpolateValue(source.read())
+      dest.write(interpolated.replace("\\", "\\\\"))
+
+
 def _Run():
   """Installs the windows client binary."""
   _CheckForWow64()
   _StopPreviousService()
   _CopyToSystemDir()
+  _MaybeInterpolateFleetspeakServiceConfig()
 
   if not config.CONFIG["Client.fleetspeak_enabled"]:
     _InstallNanny()

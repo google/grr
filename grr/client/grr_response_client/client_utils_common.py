@@ -9,6 +9,7 @@ import hashlib
 import logging
 import os
 import platform
+import shlex
 import subprocess
 import threading
 import time
@@ -146,6 +147,11 @@ def IsExecutionAllowed(cmd, args):
   the list).
   A deployment-specific list is also checked (see local/binary_whitelist.py).
   """
+  allowed_commands = map(shlex.split, config.CONFIG["Client.allowed_commands"])
+  allowed_commands = list(allowed_commands)
+  if [cmd] + list(args) in allowed_commands:
+    return True
+
   if platform.system() == "Windows":
     allowlist = [
         ("arp.exe", ["-a"]),

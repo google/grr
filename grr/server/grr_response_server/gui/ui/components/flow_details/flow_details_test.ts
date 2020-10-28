@@ -1,7 +1,8 @@
 import {Component} from '@angular/core';
-import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {RouterTestingModule} from '@angular/router/testing';
 import {DefaultDetails} from '@app/components/flow_details/plugins/default_details';
 import {MultiGetFileDetails} from '@app/components/flow_details/plugins/multi_get_file_details';
 import {Plugin} from '@app/components/flow_details/plugins/plugin';
@@ -42,12 +43,13 @@ class TestHostComponent {
 }
 
 describe('FlowDetails Component', () => {
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed
         .configureTestingModule({
           imports: [
             NoopAnimationsModule,
             FlowDetailsModule,
+            RouterTestingModule.withRoutes([]),
           ],
           declarations: [
             TestHostComponent,

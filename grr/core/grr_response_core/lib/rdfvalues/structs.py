@@ -10,7 +10,7 @@ import collections
 import copy
 import functools
 import struct
-from typing import ByteString, Iterator, Sequence, Text, Type, TypeVar, cast
+from typing import ByteString, Iterator, Optional, Sequence, Text, Type, TypeVar, cast
 
 from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
@@ -2066,6 +2066,13 @@ class EnumContainer(object):
 
   def FromInt(self, v):
     return getattr(self, self.reverse_enum[v])
+
+  def FromString(self, v: str) -> Optional[EnumNamedValue]:
+    if not v:
+      return None
+    if v not in self.enum_dict:
+      raise ValueError(f"Invalid value {v} for {self.name}.")
+    return getattr(self, v)
 
 
 class RDFProtoStruct(RDFStruct):

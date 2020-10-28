@@ -10,6 +10,7 @@ from grr_response_core import version
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 VERSION = version.Version()
 
@@ -309,3 +310,9 @@ config_lib.DEFINE_integer(
     help="Maximum number of client ids to place in a single Fleetspeak "
     "ListClients() API request.")
 
+
+config_lib.DEFINE_semantic_enum(
+    rdf_paths.PathSpec.PathType,
+    "Server.raw_filesystem_access_pathtype",
+    default=rdf_paths.PathSpec.PathType.NTFS,
+    help="PathType to use for raw filesystem access on Windows.")

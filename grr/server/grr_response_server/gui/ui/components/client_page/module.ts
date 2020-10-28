@@ -11,8 +11,8 @@ import {ApprovalModule} from '../approval/module';
 import {ClientDetailsModule} from '../client_details/module';
 import {ClientOverviewModule} from '../client_overview/module';
 
-import {Client} from './client';
-import {ClientRoutingModule} from './routing';
+import {ClientPage} from './client_page';
+import {ClientPageRoutingModule} from './routing';
 
 /**
  * Module for the client details component.
@@ -21,7 +21,7 @@ import {ClientRoutingModule} from './routing';
   imports: [
     BrowserAnimationsModule,
     RouterModule,
-    ClientRoutingModule,
+    ClientPageRoutingModule,
     ApprovalModule,
     FlowFormModule,
     FlowListModule,
@@ -32,8 +32,8 @@ import {ClientRoutingModule} from './routing';
     MatIconModule,
   ],
   declarations: [
-    Client,
+    ClientPage,
   ],
 })
-export class ClientModule {
+export class ClientPageModule {
 }

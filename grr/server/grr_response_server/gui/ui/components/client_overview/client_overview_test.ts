@@ -1,5 +1,5 @@
 import {Location} from '@angular/common';
-import {async, TestBed} from '@angular/core/testing';
+import {discardPeriodicTasks, fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {MatChip, MatChipList} from '@angular/material/chips';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -19,10 +19,7 @@ describe('Client Overview', () => {
   let facade: ClientPageFacadeMock;
   let location: Location;
 
-  // TODO(user): Change to waitForAsync once we run on Angular 10, which
-  //  in turn requires TypeScript 3.9.
-  // tslint:disable-next-line:deprecation
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     facade = mockClientPageFacade();
 
     TestBed
@@ -104,30 +101,31 @@ describe('Client Overview', () => {
     snackbarDiv!.remove();
   });
 
-  it('snackbar action undoes a removal of client label', () => {
-    const fixture = TestBed.createComponent(ClientOverview);
-    fixture.detectChanges();  // Ensure ngOnInit hook completes.
+  it('snackbar action undoes a removal of client label', fakeAsync(() => {
+       const fixture = TestBed.createComponent(ClientOverview);
+       fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-    facade.selectedClientSubject.next(newClient({
-      clientId: 'C.1234',
-      labels: [{name: 'testlabel', owner: ''}],
-    }));
-    fixture.detectChanges();
+       facade.selectedClientSubject.next(newClient({
+         clientId: 'C.1234',
+         labels: [{name: 'testlabel', owner: ''}],
+       }));
+       fixture.detectChanges();
 
-    const labelsChipList = fixture.debugElement.query(By.directive(MatChipList))
-                               .componentInstance.chips.toArray() as MatChip[];
-    labelsChipList[0].remove();
-    facade.lastRemovedClientLabelSubject.next('testlabel');
-    fixture.detectChanges();
+       const labelsChipList =
+           fixture.debugElement.query(By.directive(MatChipList))
+               .componentInstance.chips.toArray() as MatChip[];
+       labelsChipList[0].remove();
+       facade.lastRemovedClientLabelSubject.next('testlabel');
+       fixture.detectChanges();
 
-    expect(facade.addClientLabel).not.toHaveBeenCalled();
+       expect(facade.addClientLabel).not.toHaveBeenCalled();
 
-    const snackbarDivButton =
-        document.querySelector('div.mat-simple-snackbar-action button');
-    snackbarDivButton!.dispatchEvent(new MouseEvent('click'));
-    fixture.detectChanges();
-    // TODO(user): Fix test.
-    // fixture.whenRenderingDone().then(() => {
-    //      expect(facade.addClientLabel).toHaveBeenCalledWith('testlabel'); });
-  });
+       const snackbarDivButton =
+           document.querySelector('div.mat-simple-snackbar-action button');
+       snackbarDivButton!.dispatchEvent(new MouseEvent('click'));
+       fixture.detectChanges();
+       tick();
+       discardPeriodicTasks();
+       expect(facade.addClientLabel).toHaveBeenCalledWith('testlabel');
+     }));
 });

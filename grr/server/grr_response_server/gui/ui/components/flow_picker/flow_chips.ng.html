@@ -1,0 +1,7 @@
+<div class="flow-chips">
+  <div class="buttons">
+    <button *ngFor="let fli of flows$ | async; trackBy: trackByFlowName"
+      [matTooltip]="fli.description"
+      mat-stroked-button (click)="flowSelected.emit(fli)">{{ fli.friendlyName }}</button>
+  </div>
+</div>

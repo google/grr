@@ -6,10 +6,17 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import time
+from typing import Callable
+from typing import IO
+from typing import Iterator
+from typing import TypeVar
+from typing import Union
 
-
+from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
 
+from google.protobuf import descriptor
+from google.protobuf import message
 from google.protobuf import symbol_database
 
 from grr_api_client import errors
@@ -41,28 +48,38 @@ class ProtobufTypeNotFound(errors.Error):
   pass
 
 
-class ItemsIterator(object):
+_T = TypeVar("_T")
+
+
+class ItemsIterator(Iterator[_T]):
   """Iterator object with a total_count property."""
 
-  def __init__(self, items=None, total_count=None):
-    super(ItemsIterator, self).__init__()
+  def __init__(
+      self,
+      items: Iterator[_T],
+      total_count: int,
+  ) -> None:
+    super().__init__()
 
     self.items = items
     self.total_count = total_count
 
-  def __iter__(self):
+  def __iter__(self) -> Iterator[_T]:
     for i in self.items:
       yield i
 
-  def __next__(self):
+  def __next__(self) -> _T:
     return next(self.items)
 
-  # TODO: Compatibility method for Python 2.
-  def next(self):
-    return self.__next__()
+
+_T1 = TypeVar("_T1")
+_T2 = TypeVar("_T2")
 
 
-def MapItemsIterator(function, items):
+def MapItemsIterator(
+    function: Callable[[_T1], _T2],
+    items: ItemsIterator[_T1],
+) -> ItemsIterator[_T2]:
   """Maps ItemsIterator via given function."""
   return ItemsIterator(
       items=map(function, items), total_count=items.total_count)
@@ -71,69 +88,41 @@ def MapItemsIterator(function, items):
 class BinaryChunkIterator(object):
   """Iterator object for binary streams."""
 
-  def __init__(self, chunks=None, total_size=None, on_close=None):
+  def __init__(self, chunks: Iterator[bytes]) -> None:
     super(BinaryChunkIterator, self).__init__()
 
-    self.chunks = chunks
-    self.total_size = total_size
-    self.on_close = on_close
+    self.chunks = chunks  # type: Iterator[bytes]
 
-  def Close(self):
-    if self.on_close:
-      self.on_close()
-      self.on_close = None
-
-  def __exit__(self, unused_type, unused_value, unused_traceback):
-    self.Close()
-
-  def __iter__(self):
+  def __iter__(self) -> Iterator[bytes]:
     for c in self.chunks:
       yield c
-    self.Close()
 
-  def __next__(self):
-    try:
-      return next(self.chunks)
-    except StopIteration:
-      self.Close()
-      raise
+  def __next__(self) -> bytes:
+    return next(self.chunks)
 
-  # TODO: Compatibility method for Python 2.
-  def next(self):
-    return self.__next__()
-
-  def WriteToStream(self, out):
-    for c in self.chunks:
+  def WriteToStream(self, out: IO[bytes]) -> None:
+    for c in self:
       out.write(c)
-    self.Close()
 
-  def WriteToFile(self, file_name):
+  def WriteToFile(self, file_name: str) -> None:
     with open(file_name, "wb") as fd:
       self.WriteToStream(fd)
 
 
 # Default poll interval in seconds.
-DEFAULT_POLL_INTERVAL = 15
+DEFAULT_POLL_INTERVAL: int = 15
 
 # Default poll timeout in seconds.
-DEFAULT_POLL_TIMEOUT = 3600
+DEFAULT_POLL_TIMEOUT: int = 3600
 
 
-def Poll(generator=None, condition=None, interval=None, timeout=None):
+def Poll(
+    generator: Callable[[], _T],
+    condition: Callable[[_T], bool],
+    interval: int = DEFAULT_POLL_INTERVAL,
+    timeout: int = DEFAULT_POLL_TIMEOUT,
+) -> _T:
   """Periodically calls generator function until a condition is satisfied."""
-
-  if not generator:
-    raise ValueError("generator has to be a lambda")
-
-  if not condition:
-    raise ValueError("condition has to be a lambda")
-
-  if interval is None:
-    interval = DEFAULT_POLL_INTERVAL
-
-  if timeout is None:
-    timeout = DEFAULT_POLL_TIMEOUT
-
   started = time.time()
   while True:
     obj = generator()
@@ -150,7 +139,7 @@ def Poll(generator=None, condition=None, interval=None, timeout=None):
 AFF4_PREFIX = "aff4:/"
 
 
-def UrnStringToClientId(urn):
+def UrnStringToClientId(urn: str) -> str:
   """Converts given URN string to a client id string."""
   if urn.startswith(AFF4_PREFIX):
     urn = urn[len(AFF4_PREFIX):]
@@ -159,7 +148,7 @@ def UrnStringToClientId(urn):
   return components[0]
 
 
-def UrnStringToHuntId(urn):
+def UrnStringToHuntId(urn: str) -> str:
   """Converts given URN string to a flow id string."""
   if urn.startswith(AFF4_PREFIX):
     urn = urn[len(AFF4_PREFIX):]
@@ -171,17 +160,17 @@ def UrnStringToHuntId(urn):
   return components[-1]
 
 
-TYPE_URL_PREFIX = "type.googleapis.com/"
-GRR_PACKAGE_NAME = metadata_pb2.DESCRIPTOR.package
+TYPE_URL_PREFIX: str = "type.googleapis.com/"
+GRR_PACKAGE_NAME: str = metadata_pb2.DESCRIPTOR.package
 
 
-def GetTypeUrl(proto):
+def GetTypeUrl(proto: message.Message) -> str:
   """Returns type URL for a given proto."""
 
   return TYPE_URL_PREFIX + proto.DESCRIPTOR.full_name
 
 
-def TypeUrlToMessage(type_url):
+def TypeUrlToMessage(type_url: str) -> message.Message:
   """Returns a message instance corresponding to a given type URL."""
 
   if not type_url.startswith(TYPE_URL_PREFIX):
@@ -204,22 +193,31 @@ def TypeUrlToMessage(type_url):
     raise ProtobufTypeNotFound(str(e))
 
 
-def CopyProto(proto):
+_M = TypeVar("_M", bound=message.Message)
+
+
+def CopyProto(proto: _M) -> _M:
   new_proto = proto.__class__()
   new_proto.ParseFromString(proto.SerializeToString())
   return new_proto
 
 
 class UnknownProtobuf(object):
+  """An unknown protobuf message."""
 
-  def __init__(self, proto_type, proto_any):
+  def __init__(
+      self,
+      proto_type: str,
+      proto_any: any_pb2.Any,
+  ) -> None:
     super(UnknownProtobuf, self).__init__()
 
-    self.type = proto_type
-    self.original_value = proto_any
+    self.type = proto_type  # type: str
+    self.original_value = proto_any  # type: any_pb2.Any
 
 
-def UnpackAny(proto_any):
+def UnpackAny(
+    proto_any: any_pb2.Any) -> Union[UnknownProtobuf, message.Message]:
   try:
     proto = TypeUrlToMessage(proto_any.type_url)
   except ProtobufTypeNotFound as e:
@@ -229,7 +227,10 @@ def UnpackAny(proto_any):
   return proto
 
 
-def RegisterProtoDescriptors(db, *additional_descriptors):
+def RegisterProtoDescriptors(
+    db: symbol_database.SymbolDatabase,
+    *additional_descriptors: descriptor.DescriptorBase,
+) -> None:
   """Registers all API-releated descriptors in a given symbol DB."""
   db.RegisterFileDescriptor(apple_firmware_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(artifact_pb2.DESCRIPTOR)

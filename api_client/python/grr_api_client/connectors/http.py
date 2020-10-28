@@ -6,10 +6,18 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
+import contextlib
 import json
 import logging
+import re
+from typing import Any
+from typing import Dict
+from typing import Iterable
+from typing import Iterator
+from typing import NamedTuple
 from typing import Optional
 from typing import Tuple
+from typing import Union
 from urllib import parse as urlparse
 
 import pkg_resources
@@ -17,7 +25,9 @@ import requests
 
 from werkzeug import routing
 
+from google.protobuf import descriptor
 from google.protobuf import json_format
+from google.protobuf import message
 from google.protobuf import symbol_database
 from grr_api_client import errors
 from grr_api_client import utils
@@ -28,7 +38,76 @@ from grr_response_proto.api import reflection_pb2
 logger = logging.getLogger(__name__)
 
 
-VersionTuple = Tuple[int, int, int, int]
+_VERSION_STRING_PATTERN = re.compile(r"(\d+)\.(\d+)\.(\d+)\.post(\d+)")
+
+
+class VersionTuple(NamedTuple):
+  """A tuple that represents the GRR's version metadata."""
+
+  major: int
+  minor: int
+  revision: int
+  release: int
+
+  @classmethod
+  def FromJson(
+      cls,
+      json_str: str,
+  ) -> "VersionTuple":
+    """Creates a version tuple from a JSON response.
+
+    The JSON response must be serialized variant of the `ApiGetGrrVersionResult`
+    message.
+
+    Args:
+      json_str: A string object with version information JSON data.
+
+    Returns:
+      Parsed version tuple.
+    """
+    result = metadata_pb2.ApiGetGrrVersionResult()
+    json_format.Parse(json_str, result, ignore_unknown_fields=True)
+
+    return cls.FromProto(result)
+
+  @classmethod
+  def FromProto(
+      cls,
+      proto: metadata_pb2.ApiGetGrrVersionResult,
+  ) -> "VersionTuple":
+    """Creates a version tuple from a server response.
+
+    Args:
+      proto: A server response with version information.
+
+    Returns:
+      Parsed version tuple.
+    """
+    return VersionTuple(
+        major=proto.major,
+        minor=proto.minor,
+        revision=proto.revision,
+        release=proto.release)
+
+  @classmethod
+  def FromString(cls, string: str) -> "VersionTuple":
+    """Creates a version tuple from a version string (like '1.3.3.post7').
+
+    Args:
+      string: A version string.
+
+    Returns:
+      Parsed version tuple.
+    """
+    match = _VERSION_STRING_PATTERN.match(string)
+    if match is None:
+      raise ValueError(f"Incorrect version string: {string!r}")
+
+    return VersionTuple(
+        major=int(match[1]),
+        minor=int(match[2]),
+        revision=int(match[3]),
+        release=int(match[4].lstrip("post")))
 
 
 class Error(Exception):
@@ -42,27 +121,41 @@ class HttpConnector(abstract.Connector):
   DEFAULT_PAGE_SIZE = 50
   DEFAULT_BINARY_CHUNK_SIZE = 66560
 
-  def __init__(self,
-               api_endpoint=None,
-               auth=None,
-               proxies=None,
-               verify=True,
-               cert=None,
-               trust_env=True,
-               page_size=None,
-               validate_version=True):
+  def __init__(
+      self,
+      api_endpoint: str,
+      auth: Optional[Tuple[str, str]] = None,
+      proxies: Optional[Dict[str, str]] = None,
+      verify: Optional[bool] = None,
+      cert: Optional[str] = None,
+      trust_env: Optional[bool] = None,
+      page_size: Optional[int] = None,
+      validate_version: Optional[bool] = None,
+  ):
     super(HttpConnector, self).__init__()
 
-    self.api_endpoint = api_endpoint
-    self.auth = auth
-    self.proxies = proxies
-    self.verify = verify
-    self.cert = cert
-    self.trust_env = trust_env
-    self._page_size = page_size or self.DEFAULT_PAGE_SIZE
+    if verify is None:
+      verify = True
 
-    self.csrf_token = None
-    self.api_methods = {}
+    if trust_env is None:
+      trust_env = True
+
+    if page_size is None:
+      page_size = self.DEFAULT_PAGE_SIZE
+
+    if validate_version is None:
+      validate_version = True
+
+    self.api_endpoint = api_endpoint  # type: str
+    self.auth = auth  # type: Optional[Tuple[str, str]]
+    self.proxies = proxies  # type: Optional[Dict[str, str]]
+    self.verify = verify  # type: bool
+    self.cert = cert  # type: Optional[str]
+    self.trust_env = trust_env  # type: bool
+    self._page_size = page_size  # type: int
+
+    self.csrf_token = None  # type: Optional[str]
+    self.api_methods = {}  # type: Dict[str, reflection_pb2.ApiMethod]
 
     self._server_version = None  # type: Optional[VersionTuple]
     self._api_client_version = None  # type: Optional[VersionTuple]
@@ -70,7 +163,7 @@ class HttpConnector(abstract.Connector):
     if validate_version:
       self._ValidateVersion()
 
-  def _GetCSRFToken(self):
+  def _GetCSRFToken(self) -> Optional[str]:
     logger.debug("Fetching CSRF token from %s...", self.api_endpoint)
 
     with requests.Session() as session:
@@ -144,7 +237,7 @@ class HttpConnector(abstract.Connector):
     self.urls = self.handlers_map.bind(
         parsed_endpoint_url.netloc, url_scheme=parsed_endpoint_url.scheme)
 
-  def _FetchVersion(self) -> Optional[metadata_pb2.ApiGetGrrVersionResult]:
+  def _FetchVersion(self) -> Optional[VersionTuple]:
     """Fetches version information about the GRR server.
 
     Note that it might be the case that the server version is so old that it
@@ -179,11 +272,8 @@ class HttpConnector(abstract.Connector):
     except errors.Error:
       return None
 
-    result = metadata_pb2.ApiGetGrrVersionResult()
     json_str = response.content.decode("utf-8").lstrip(self.JSON_PREFIX)
-    json_format.Parse(json_str, result, ignore_unknown_fields=True)
-
-    return result
+    return VersionTuple.FromJson(json_str)
 
   def _InitializeIfNeeded(self):
     if not self.csrf_token:
@@ -191,7 +281,11 @@ class HttpConnector(abstract.Connector):
     if not self.api_methods:
       self._FetchRoutingMap()
 
-  def _CoerceValueToQueryStringType(self, field, value):
+  def _CoerceValueToQueryStringType(
+      self,
+      field: descriptor.FieldDescriptor,
+      value: Any,
+  ) -> Union[int, str]:
     if isinstance(value, bool):
       value = int(value)
     elif field.enum_type:
@@ -199,8 +293,12 @@ class HttpConnector(abstract.Connector):
 
     return value
 
-  def _GetMethodUrlAndPathParamsNames(self, handler_name, args):
-    path_params = {}
+  def _GetMethodUrlAndPathParamsNames(
+      self,
+      handler_name: str,
+      args: message.Message,
+  ) -> Tuple[reflection_pb2.ApiMethod, str, Iterable[str]]:
+    path_params = {}  # Dict[str, Union[int, str]]
     if args:
       for field, value in args.ListFields():
         if self.handlers_map.is_endpoint_expecting(handler_name, field.name):
@@ -219,8 +317,12 @@ class HttpConnector(abstract.Connector):
 
     return method, url, list(path_params.keys())
 
-  def _ArgsToQueryParams(self, args, exclude_names):
-    if not args:
+  def _ArgsToQueryParams(
+      self,
+      args: Optional[message.Message],
+      exclude_names: Iterable[str],
+  ) -> Dict[str, Union[int, str]]:
+    if args is None:
       return {}
 
     # Using OrderedDict guarantess stable order of query parameters in the
@@ -232,8 +334,12 @@ class HttpConnector(abstract.Connector):
 
     return result
 
-  def _ArgsToBody(self, args, exclude_names):
-    if not args:
+  def _ArgsToBody(
+      self,
+      args: Optional[message.Message],
+      exclude_names: Iterable[str],
+  ) -> Optional[str]:
+    if args is None:
       return None
 
     args_copy = utils.CopyProto(args)
@@ -243,7 +349,7 @@ class HttpConnector(abstract.Connector):
 
     return json_format.MessageToJson(args_copy)
 
-  def _CheckResponseStatus(self, response):
+  def _CheckResponseStatus(self, response: requests.Response):
     if response.status_code == 200:
       return
 
@@ -253,22 +359,29 @@ class HttpConnector(abstract.Connector):
     try:
       # TODO(hanuszczak): `json` package should not be used.
       parsed_json = json.loads(json_str)
-      message = parsed_json["message"] + "\n" + parsed_json.get("traceBack", "")
+      json_message = (
+          parsed_json["message"] + "\n" + parsed_json.get("traceBack", ""))
     except (ValueError, KeyError):
-      message = content
+      json_message = content
 
     if response.status_code == 403:
-      raise errors.AccessForbiddenError(message)
+      raise errors.AccessForbiddenError(json_message)
     elif response.status_code == 404:
-      raise errors.ResourceNotFoundError(message)
+      raise errors.ResourceNotFoundError(json_message)
     elif response.status_code == 422:
-      raise errors.InvalidArgumentError(message)
+      raise errors.InvalidArgumentError(json_message)
+    elif response.status_code == 429:
+      raise errors.ResourceExhaustedError(json_message)
     elif response.status_code == 501:
-      raise errors.ApiNotImplementedError(message)
+      raise errors.ApiNotImplementedError(json_message)
     else:
-      raise errors.UnknownError(message)
+      raise errors.UnknownError(json_message)
 
-  def BuildRequest(self, method_name, args):
+  def BuildRequest(
+      self,
+      method_name: str,
+      args: Optional[message.Message],
+  ) -> requests.Request:
     self._InitializeIfNeeded()
     method, url, path_params_names = self._GetMethodUrlAndPathParamsNames(
         method_name, args)
@@ -295,10 +408,14 @@ class HttpConnector(abstract.Connector):
         auth=self.auth)
 
   @property
-  def page_size(self):
+  def page_size(self) -> int:
     return self._page_size
 
-  def SendRequest(self, handler_name, args):
+  def SendRequest(
+      self,
+      handler_name: str,
+      args: Optional[message.Message],
+  ) -> Optional[message.Message]:
     self._InitializeIfNeeded()
     method_descriptor = self.api_methods[handler_name]
 
@@ -323,7 +440,11 @@ class HttpConnector(abstract.Connector):
       json_format.Parse(json_str, result, ignore_unknown_fields=True)
       return result
 
-  def SendStreamingRequest(self, handler_name, args):
+  def SendStreamingRequest(
+      self,
+      handler_name: str,
+      args: message.Message,
+  ) -> utils.BinaryChunkIterator:
     self._InitializeIfNeeded()
     method_descriptor = self.api_methods[handler_name]
 
@@ -339,15 +460,13 @@ class HttpConnector(abstract.Connector):
     response = session.send(prepped_request, **options)
     self._CheckResponseStatus(response)
 
-    def GenerateChunks():
-      for chunk in response.iter_content(self.DEFAULT_BINARY_CHUNK_SIZE):
-        yield chunk
+    def GenerateChunks() -> Iterator[bytes]:
+      with contextlib.closing(session):
+        with contextlib.closing(response):
+          for chunk in response.iter_content(self.DEFAULT_BINARY_CHUNK_SIZE):
+            yield chunk
 
-    def Close():
-      response.close()
-      session.close()
-
-    return utils.BinaryChunkIterator(chunks=GenerateChunks(), on_close=Close)
+    return utils.BinaryChunkIterator(chunks=GenerateChunks())
 
   def _ValidateVersion(self):
     """Validates that the API client is compatible the GRR server.
@@ -372,16 +491,7 @@ class HttpConnector(abstract.Connector):
   def server_version(self) -> Optional[VersionTuple]:
     """Retrieves (lazily) the version server tuple."""
     if self._server_version is None:
-      version = self._FetchVersion()
-      if version is None:
-        return None
-
-      self._server_version = (
-          version.major,
-          version.minor,
-          version.revision,
-          version.release,
-      )
+      self._server_version = self._FetchVersion()
 
     return self._server_version
 
@@ -396,10 +506,6 @@ class HttpConnector(abstract.Connector):
         # a PIP package. In such case, it is not possible to retrieve version.
         return None
 
-      (major, minor, revision, release) = distribution.version.split(".")
-      major, minor, revision = int(major), int(minor), int(revision)
-      release = int(release.lstrip("post"))
-
-      self._api_client_version = (major, minor, revision, release)
+      self._api_client_version = VersionTuple.FromString(distribution.version)
 
     return self._api_client_version

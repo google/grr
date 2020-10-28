@@ -497,6 +497,7 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
       # This single reflection method is needed for API libraries to work
       # correctly.
       "ListApiMethods",
+      "GetOpenApiDescription",
       # TODO(user): Remove methods below as soon as they are deprecated
       # in favor of the methods above.
       "StartRobotGetFilesOperation",

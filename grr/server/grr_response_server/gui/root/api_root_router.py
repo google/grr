@@ -10,8 +10,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Optional
+
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_router
 
+from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.root.api_plugins import binary_management as api_binary_management
@@ -101,3 +105,17 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   @api_call_router.NoAuditLogRequired()
   def ListApiMethods(self, args, context=None):
     return api_reflection.ApiListApiMethodsHandler(self)
+
+  # Metadata methods.
+  # ===========================================================
+  #
+  @api_call_router.Category("Metadata")
+  @api_call_router.ResultType(api_metadata.ApiGetOpenApiDescriptionResult)
+  @api_call_router.Http("GET", "/api/metadata/openapi")
+  @api_call_router.NoAuditLogRequired()
+  def GetOpenApiDescription(
+      self,
+      args: None,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_metadata.ApiGetOpenApiDescriptionHandler:
+    return api_metadata.ApiGetOpenApiDescriptionHandler(self)

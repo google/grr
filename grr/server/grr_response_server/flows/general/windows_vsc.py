@@ -5,6 +5,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from grr_response_core import config
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
@@ -47,7 +48,9 @@ class ListVolumeShadowCopies(flow_base.FlowBase):
         path_spec = rdf_paths.PathSpec(
             path=device_object, pathtype=rdf_paths.PathSpec.PathType.OS)
 
-        path_spec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
+        path_spec.Append(
+            path="/",
+            pathtype=config.CONFIG["Server.raw_filesystem_access_pathtype"])
 
         self.Log("Listing Volume Shadow Copy device: %s.", device_object)
         self.CallClient(

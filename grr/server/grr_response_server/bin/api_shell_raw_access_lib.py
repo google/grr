@@ -5,6 +5,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Optional
+
+from google.protobuf import message
+
 from grr_api_client import connectors
 from grr_api_client import errors
 from grr_api_client import utils
@@ -85,17 +89,25 @@ class RawConnector(connectors.Connector):
       raise errors.UnknownError(e)
 
   @property
-  def page_size(self):
+  def page_size(self) -> int:
     return self._page_size
 
-  def SendRequest(self, method_name, args):
-    rdf_result = self._CallMethod(method_name, args)
+  def SendRequest(
+      self,
+      handler_name: str,
+      args: message.Message,
+  ) -> Optional[message.Message]:
+    rdf_result = self._CallMethod(handler_name, args)
 
     if rdf_result is not None:
       return rdf_result.AsPrimitiveProto()
     else:
       return None
 
-  def SendStreamingRequest(self, method_name, args):
-    binary_stream = self._CallMethod(method_name, args)
+  def SendStreamingRequest(
+      self,
+      handler_name: str,
+      args: message.Message,
+  ) -> utils.BinaryChunkIterator:
+    binary_stream = self._CallMethod(handler_name, args)
     return utils.BinaryChunkIterator(chunks=binary_stream.content_generator)

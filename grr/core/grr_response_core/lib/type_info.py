@@ -11,6 +11,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
+from typing import Optional
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
@@ -151,6 +152,28 @@ class RDFValueType(TypeInfoObject):
 
   def FromString(self, string):
     return serialization.FromHumanReadable(self.rdfclass, string)
+
+
+# This file can't depend on rdf_structs (cyclic dependency), so
+# args/return values of type EnumContainer are not type annotated.
+class RDFEnumType(TypeInfoObject):
+  """An arg which must be an stringified enum value."""
+
+  def __init__(self, enum_container, **kwargs):
+    super().__init__(**kwargs)
+    self._enum_container = enum_container
+
+  def Value(self, value: Optional[str]):
+    if value is None:
+      return
+
+    if isinstance(value, str):
+      return self.FromString(value)
+
+    raise ValueError("Invalid value {value} for RDFEnumType.")
+
+  def FromString(self, string: str):
+    return self._enum_container.FromString(string)
 
 
 class RDFStructDictType(TypeInfoObject):
