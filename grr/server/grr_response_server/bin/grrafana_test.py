@@ -10,8 +10,9 @@ from google.protobuf import timestamp_pb2
 
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2, resource_pb2
 
+from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
-from grr_response_server import fleetspeak_utils
+from grr_response_server.fleet_utils import FleetStats
 from grr_response_server.bin import grrafana
 
 from werkzeug import serving as werkzeug_serving
@@ -65,7 +66,24 @@ _TEST_CLIENT_RESOURCE_USAGE_RECORD_2 = {
     "mean_resident_memory_mib": 59,
     "max_resident_memory_mib": 59
 }
-_TEST_VALID_QUERY = {
+_TEST_CLIENT_BREAKDOWN_STATS = FleetStats(
+    day_buckets=grrafana._FLEET_BREAKDOWN_DAY_BUCKETS,
+    label_counts={1:  {"foo-label": {"bar-os": 3, "baz-os": 4},
+                       "bar-label": {"bar-os": 5, "foo-os": 1}},
+                  7:  {"foo-label": {"bar-os": 6, "baz-os": 5},
+                       "bar-label": {"bar-os": 5, "foo-os": 2}},
+                  14: {"foo-label": {"bar-os": 6, "baz-os": 5},
+                       "bar-label": {"bar-os": 5, "foo-os": 2},
+                       "baz-label": {"bar-os":1}},
+                  30: {"foo-label": {"bar-os": 6, "baz-os": 5},
+                       "bar-label": {"bar-os": 5, "foo-os": 2},
+                       "baz-label": {"bar-os": 3, "foo-os": 1}}},
+    total_counts={1:  {"bar-os": 8, "baz-os": 4, "foo-os": 1},
+                  7:  {"bar-os": 11, "baz-os": 5, "foo-os": 2},
+                  14: {"bar-os": 12, "baz-os": 5, "foo-os": 2},
+                  30: {"bar-os": 14, "baz-os": 5, "foo-os": 3}}
+)
+_TEST_VALID_RUD_QUERY = {
     'app': 'dashboard',
     'requestId': 'Q119',
     'timezone': 'browser',
@@ -117,20 +135,53 @@ _TEST_VALID_QUERY = {
     },
     'adhocFilters': []
 }
-_TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_QUERY)
+_TEST_VALID_CLIENT_STATS_QUERY = {
+      "app": "dashboard",
+      "requestId": "Q1",
+      "timezone": "browser",
+      "panelId": 12345,
+      "dashboardId": 1,
+      "range": {
+        "from": "2020-10-21T04:29:36.806Z",
+        "to": "2020-10-21T10:29:36.806Z",
+        "raw": {
+          "from": "now-6h",
+          "to": "now"
+        }
+      },
+      "timeInfo": "",
+      "interval": "15s",
+      "intervalMs": 15000,
+      "targets": [
+        {
+          "data": "",
+          "refId": "A",
+          "target": "OS Platform Breakdown - 7 Day Active",
+          "type": "timeseries",
+          "datasource": "JSON"
+        }
+      ],
+      "maxDataPoints": 1700,
+      "scopedVars": {
+        "__interval": {
+          "text": "15s",
+          "value": "15s"
+        },
+        "__interval_ms": {
+          "text": "15000",
+          "value": 15000
+        }
+      },
+      "startTime": 1603276176806,
+      "rangeRaw": {
+        "from": "now-6h",
+        "to": "now"
+      },
+      "adhocFilters": [],
+      "endTime": 1603276176858
+}
+_TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_RUD_QUERY)
 _TEST_INVALID_TARGET_QUERY["targets"][0]["target"] = "unavailable_metric"
-
-
-def _MockConnReturningClients(grr_ids):
-  clients = []
-  for grr_id in grr_ids:
-    client = admin_pb2.Client(
-        client_id=fleetspeak_utils.GRRIDToFleetspeakID(grr_id))
-    clients.append(client)
-  conn = mock.MagicMock()
-  conn.outgoing.ListClients.return_value = admin_pb2.ListClientsResponse(
-      clients=clients)
-  return conn
 
 
 def _MockConnReturningRecords(client_ruds):
@@ -154,6 +205,12 @@ def _MockConnReturningRecords(client_ruds):
       records=records)
   return conn
 
+def _MockDatastoreReturningPlatformFleetStats(client_fleet_stats):
+  client_fleet_stats.Validate()
+  REL_DB = mock.MagicMock()
+  REL_DB.CountClientPlatformsByLabel.return_value = client_fleet_stats
+  return REL_DB
+
 
 class GrrafanaTest(absltest.TestCase):
   """Test the GRRafana HTTP server."""
@@ -174,22 +231,33 @@ class GrrafanaTest(absltest.TestCase):
                                     'target': ''
                                 })
     self.assertEqual(200, response.status_code)
-    self.assertListEqual(response.json, [
+
+    expected_res = [
         "Mean User CPU Rate",
         "Max User CPU Rate",
         "Mean System CPU Rate",
         "Max System CPU Rate",
         "Mean Resident Memory MB",
-        "Max Resident Memory MB",
-    ])
+        "Max Resident Memory MB"
+    ]
+    expected_res.extend([
+        f"OS Platform Breakdown - {n_days} Day Active"
+        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS])
+    expected_res.extend([
+        f"OS Release Version Breakdown - {n_days} Day Active"
+        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS])
+    expected_res.extend([
+        f"Client Version Strings - {n_days} Day Active"
+        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS])
+    self.assertListEqual(response.json, expected_res)
 
-  def testQuery(self):
+  def testClientResourceUsageMetricQuery(self):
     conn = _MockConnReturningRecords([
         _TEST_CLIENT_RESOURCE_USAGE_RECORD_1,
         _TEST_CLIENT_RESOURCE_USAGE_RECORD_2
     ])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      valid_response = self.client.post("/query", json=_TEST_VALID_QUERY)
+      valid_response = self.client.post("/query", json=_TEST_VALID_RUD_QUERY)
       self.assertEqual(200, valid_response.status_code)
       self.assertEqual(valid_response.json, [{
           "target":
@@ -209,10 +277,23 @@ class GrrafanaTest(absltest.TestCase):
         _TEST_CLIENT_RESOURCE_USAGE_RECORD_2
     ])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
-      self.assertRaises(NameError,
-                        self.client.post,
-                        "/query",
-                        json=_TEST_INVALID_TARGET_QUERY)
+      with self.assertRaises(KeyError):
+        self.client.post("/query", json=_TEST_INVALID_TARGET_QUERY)
+
+  def testClientsStatisticsMetric(self):
+    REL_DB = _MockDatastoreReturningPlatformFleetStats(
+        _TEST_CLIENT_BREAKDOWN_STATS
+    )
+    with mock.patch.object(data_store, "REL_DB", REL_DB):
+      valid_response = self.client.post("/query", json=_TEST_VALID_CLIENT_STATS_QUERY)
+      self.assertEqual(200, valid_response.status_code)
+      expected_res = [{
+        'columns': [{'text': 'Label', 'type': 'string'},
+                    {'text': 'Value', 'type': 'number'}],
+        'rows':    [['bar-os', 11], ['baz-os', 5], ['foo-os', 2]],
+        'type':    'table'
+      }]
+      self.assertEqual(valid_response.json, expected_res)
 
 
 class timeToProtoTimestampTest(absltest.TestCase):
