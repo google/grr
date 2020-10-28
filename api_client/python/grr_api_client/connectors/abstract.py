@@ -25,8 +25,8 @@ class Connector(abc.ABC):
       handler_name: str,
       args: Optional[message.Message],
   ) -> Optional[message.Message]:
-
     """Sends a request to the GRR server.
+
     Args:
       handler_name: A handler to which the request should be delivered to.
       args: Arguments of the request to pass to the handler.
