@@ -1,29 +1,30 @@
-<div *ngIf="flowRunning$ | async" class="in-progress">
-  {{ (args$ | async).query }}
+<div *ngIf="resultTable$ | async as tableToDisplay; else noResultTable">
+  <osquery-results-table
+    [tableToDisplay]="tableToDisplay">
+  </osquery-results-table>
 </div>
 
-<div *ngIf="flowCompleted$ | async" class='results'>
-  <div *ngIf="resultTable$ | async as resultTable">
-    <div class="results-query">
-      <span class="results-query-label">Query:</span>
-      <span class="results-query-text">{{resultTable.query}}</span>
-    </div>
+<ng-template #noResultTable>
+  <div *ngIf="progressTable$ | async as tableToDisplay; else noTable">
+    <osquery-results-table
+      [tableToDisplay]="tableToDisplay">
+    </osquery-results-table>
 
-    <div class="table-container">
-      <table>
-        <thead>
-          <th *ngFor="let column of resultTable.header.columns; trackBy: trackByIndex">{{column.name}}</th>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of resultTable.rows; trackBy: trackByIndex">
-            <td *ngFor="let cellValue of row.values">
-              {{cellValue}}
-            </td>
-          </tr>
-        </tbody>
-      </table>
+    <div *ngIf="additionalRowsAvailable$ | async as additionalRowsAvailable">
+      {{additionalRowsAvailable}} rows are hidden.
+      <button (click)="fullTableRequested()">Get full table</button>
     </div>
   </div>
+</ng-template>
+
+<ng-template #noTable>
+  <div *ngIf="flowRunning$ | async" class="in-progress">
+    Query in progress: {{ (args$ | async).query }}
+  </div>
+</ng-template>
+
+<!-- TODO: Remove the thing below if you don't need it -->
+<div *ngIf="flowCompleted$ | async" class='results'>
 </div>
 
 <div *ngIf="flowError$ | async" class="error">

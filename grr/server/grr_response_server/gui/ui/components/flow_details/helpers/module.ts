@@ -11,7 +11,7 @@ import {FileResultsTable} from './file_results_table';
 
 import {TimestampModule} from '../../timestamp/module';
 import {HumanReadableSizeModule} from '../../human_readable_size/module';
-
+import { OsqueryResultsTable } from './osquery_results_table';
 
 
 /**
@@ -32,10 +32,12 @@ import {HumanReadableSizeModule} from '../../human_readable_size/module';
   declarations: [
     FileResultsTable,
     FileModePipe,
+    OsqueryResultsTable,
   ],
   exports: [
     FileResultsTable,
     FileModePipe,
+    OsqueryResultsTable,
   ],
 })
 export class HelpersModule {
