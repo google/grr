@@ -152,10 +152,54 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       self._RunQuery("UPDATE time SET day = -1;")
 
 
+def _CreateDictTable(column_number, row_number) -> List[OrderedDict]:
+  def CellValue(col_number, row_number):
+    return (f"col-{col_number}", f"col-{col_number}, row-{row_number}")
+
+  return [
+    OrderedDict(
+      CellValue(col_number, row_number) for col_number in range(column_number)
+    ) for row_number in range(row_number)
+  ]
+
+
 class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(FakeOsqueryFlowTest, self).setUp()
     self.client_id = self.SetupClient(0)
+
+  def _NewTestFlowStartAndRun(self, query):
+    session_id = flow_test_lib.TestFlowHelper(
+        osquery_flow.OsqueryFlow.__name__,
+        action_mocks.ActionMock(osquery_action.Osquery),
+        client_id=self.client_id,
+        token=self.token,
+        query=query)
+    return session_id
+
+  def _RunQuery(self, query):
+    session_id = self._NewTestFlowStartAndRun(query)
+    return flow_test_lib.GetFlowResults(self.client_id, session_id)
+
+  def _AssertTablesMatch(
+    self,
+    table: rdf_osquery.OsqueryTable,
+    expected: List[OrderedDict]
+  ) -> None:
+    first_row = expected[0]
+    expected_columns = list(first_row.keys())
+
+    self.assertLen(table.header.columns, len(expected_columns))
+
+    column_pairs = zip(table.header.columns, expected_columns)
+    for table_col, expected_col_name in column_pairs:
+      self.assertEqual(table_col.name, expected_col_name)
+
+    for col_name in expected_columns:
+      table_col_values = list(table.Column(col_name))
+      expected_col_vlues = [row[col_name] for row in expected]
+
+      self.assertEqual(table_col_values, expected_col_vlues)
 
   def testSuccess(self):
     test_table = [
@@ -180,73 +224,35 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testProgressDoesntTruncate10Rows(self):
     query = "doesn't matter"
-    number_of_columns = 5
-    number_of_rows = 10
+    column_number = 5
+    row_number = 10
 
-    test_table = _CreateDictTable(number_of_columns, number_of_rows)
+    test_table = _CreateDictTable(column_number, row_number)
     test_table_json = json.Dump(test_table)
 
     with osquery_test_lib.FakeOsqueryiOutput(stdout=test_table_json, stderr=""):
       flow_id = self._NewTestFlowStartAndRun(query)
-      progress: rdf_osquery.OsqueryProgress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+      progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
-    self.assertEqual(progress.total_rows_count, number_of_rows)
+    self.assertEqual(progress.total_rows_count, row_number)
     self.assertEqual(progress.partial_table.query, query)
     self._AssertTablesMatch(progress.partial_table, test_table)
 
   def testProgressTruncates20RowsTo10(self):
     query = "doesn't matter"
-    number_of_columns = 5
-    number_of_rows = 20
+    column_number = 5
+    row_number = 20
 
-    test_table = _CreateDictTable(number_of_columns, number_of_rows)
+    test_table = _CreateDictTable(column_number, row_number)
     test_table_json = json.Dump(test_table)
 
     with osquery_test_lib.FakeOsqueryiOutput(stdout=test_table_json, stderr=""):
       flow_id = self._NewTestFlowStartAndRun(query)
-      progress: rdf_osquery.OsqueryProgress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+      progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
-    self.assertEqual(progress.total_rows_count, number_of_rows)
+    self.assertEqual(progress.total_rows_count, row_number)
     self.assertEqual(progress.partial_table.query, query)
     self._AssertTablesMatch(progress.partial_table, test_table[:10])
-
-  def _NewTestFlowStartAndRun(self, query):
-    session_id = flow_test_lib.TestFlowHelper(
-        osquery_flow.OsqueryFlow.__name__,
-        action_mocks.ActionMock(osquery_action.Osquery),
-        client_id=self.client_id,
-        token=self.token,
-        query=query)
-    return session_id
-
-  def _RunQuery(self, query):
-    session_id = self._NewTestFlowStartAndRun(query)
-    return flow_test_lib.GetFlowResults(self.client_id, session_id)
-
-  def _AssertTablesMatch(self, table: rdf_osquery.OsqueryTable, expected: List[OrderedDict]) -> None:
-    first_row = expected[0]
-    expected_columns = list(first_row.keys())
-
-    self.assertLen(table.header.columns, len(expected_columns))
-
-    for table_col, expected_col_name in zip(table.header.columns, expected_columns):
-      self.assertEqual(table_col.name, expected_col_name)
-
-    for col_name in expected_columns:
-      table_col_values = list(table.Column(col_name))
-      expected_col_vlues = [row[col_name] for row in expected]
-
-      self.assertEqual(table_col_values, expected_col_vlues)
-
-
-def _CreateDictTable(number_of_columns, number_of_rows) -> List[OrderedDict]:
-  def _GetCellValue(col_number, row_number):
-    return (f"col-{col_number}", f"col-{col_number}, row-{row_number}")
-
-  return [
-    OrderedDict(_GetCellValue(col_number, row_number) for col_number in range(number_of_columns))
-    for row_number in range(number_of_rows)
-  ]
 
 
 if __name__ == "__main__":
