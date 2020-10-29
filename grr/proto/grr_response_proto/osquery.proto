@@ -44,6 +44,6 @@ message OsqueryResult {
 }
 
 message OsqueryProgress {
-  optional OsqueryTable partialTable = 1;
-  optional uint64 totalRowsCount = 2;
+  optional OsqueryTable partial_table = 1;
+  optional uint64 total_rows_count = 2;
 }

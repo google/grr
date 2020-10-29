@@ -27,8 +27,8 @@ class OsqueryFlow(flow_base.FlowBase):
 
   def Start(self):
     super(OsqueryFlow, self).Start()
-
     self.state.progress = rdf_osquery.OsqueryProgress()
+
     self.CallClient(
         server_stubs.Osquery,
         request=self.args,
@@ -38,16 +38,21 @@ class OsqueryFlow(flow_base.FlowBase):
     if not responses.success:
       raise flow_base.FlowError(responses.status)
 
+    self.UpdateProgress(responses)
+
     for response in responses:
-      self.UpdateProgress(response.table)
       self.SendReply(response)
 
   def GetProgress(self) -> rdf_osquery.OsqueryProgress:
     return self.state.progress
 
-  def UpdateProgress(self, table: rdf_osquery.OsqueryTable) -> None:
-    self.state.progress.partialTable = TruncateRows(table)
-    self.state.progress.totalRowsCount = len(table.rows)
+  def UpdateProgress(self, responses: flow_responses.Responses[rdf_osquery.OsqueryResult]) -> None:
+    # XXX: Less than TRUNCATED_ROWS_COUNT will be used if the original table is split into chunks smaller than that 
+    first_chunk = responses.responses[0]
+    table = first_chunk.table
+
+    self.state.progress.partial_table = TruncateRows(table)
+    self.state.progress.total_rows_count = len(table.rows)
 
 
 def TruncateRows(table: rdf_osquery.OsqueryTable) -> rdf_osquery.OsqueryTable:
