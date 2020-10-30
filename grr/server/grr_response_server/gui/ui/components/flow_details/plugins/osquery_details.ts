@@ -1,9 +1,9 @@
-import { Component, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { Plugin } from './plugin';
-import { map, flatMap, takeUntil, filter, take, tap } from 'rxjs/operators';
+import { map, flatMap, filter } from 'rxjs/operators';
 import { FlowState } from '@app/lib/models/flow';
-import { Observable, Subject } from 'rxjs';
-import { OsqueryResult, OsqueryArgs, OsqueryColumn, OsqueryRow, OsqueryProgress } from '@app/lib/api/api_interfaces';
+import { Observable } from 'rxjs';
+import { OsqueryResult, OsqueryArgs, OsqueryProgress } from '@app/lib/api/api_interfaces';
 import { isNonNull } from '@app/lib/preconditions';
 
 /**
@@ -21,7 +21,7 @@ export class OsqueryDetails extends Plugin {
   readonly flowError$ = this.flagByState(FlowState.ERROR);
 
   readonly args$: Observable<OsqueryArgs> = this.flowListEntry$.pipe(
-      map(flowListEntry => flowListEntry.flow.args as OsqueryArgs)
+      map(flowListEntry => flowListEntry.flow.args as OsqueryArgs),
   );
 
   readonly osqueryResults$: Observable<OsqueryResult> = this.flowListEntry$.pipe(
@@ -36,7 +36,7 @@ export class OsqueryDetails extends Plugin {
   );
 
   readonly resultsStderr$ = this.osqueryResults$.pipe(
-    map(result => result?.stderr)
+    map(result => result?.stderr),
   );
 
   readonly osqueryProgress$: Observable<OsqueryProgress> = this.flowListEntry$.pipe(
