@@ -1,35 +1,31 @@
-<div *ngIf="resultTable$ | async as tableToDisplay; else noResultTable">
-  <osquery-results-table
-    [tableToDisplay]="tableToDisplay">
-  </osquery-results-table>
+<div *ngIf="flowError$ | async; else noError" class="error">
+  An error was encountered.
+  <div *ngIf="resultsStderr$ | async as resultsStderr">
+    stderr is: {{resultsStderr}}
+  </div>
 </div>
 
-<ng-template #noResultTable>
-  <div *ngIf="progressTable$ | async as tableToDisplay; else noTable">
-    <osquery-results-table
-      [tableToDisplay]="tableToDisplay">
-    </osquery-results-table>
-
-    <div *ngIf="additionalRowsAvailable$ | async as additionalRowsAvailable">
-      {{additionalRowsAvailable}} rows are hidden.
-      <button (click)="fullTableRequested()">Get full table</button>
-    </div>
-  </div>
-</ng-template>
-
-<ng-template #noTable>
+<ng-template #noError>
   <div *ngIf="flowRunning$ | async" class="in-progress">
     Query in progress: {{ (args$ | async).query }}
   </div>
-</ng-template>
 
-<!-- TODO: Remove the thing below if you don't need it -->
-<div *ngIf="flowCompleted$ | async" class='results'>
-</div>
-
-<div *ngIf="flowError$ | async" class="error">
-  An error was encountered.
-  <div *ngIf="resultStderr$ | async as resultStderr">
-    stderr is: {{resultStderr}}
+  <div *ngIf="resultsTable$ | async as resultsTable; else noResultsTable" class="results-table">
+    <osquery-results-table
+      [tableToDisplay]="resultsTable">
+    </osquery-results-table>
   </div>
-</div>
+
+  <ng-template #noResultsTable>
+    <div *ngIf="progressTable$ | async as progressTable" class="progress-table">
+      <div *ngIf="additionalRowsAvailable$ | async as additionalRowsAvailable" class="show-additional">
+        <span class="show-additional-text">{{additionalRowsAvailable}} row(s) hidden.</span>
+        <button (click)="fullTableRequested()">Display the full table</button>
+      </div>
+
+      <osquery-results-table
+        [tableToDisplay]="progressTable">
+      </osquery-results-table>
+    </div>
+  </ng-template>
+</ng-template>

@@ -1,6 +1,6 @@
 import { Component, ChangeDetectionStrategy, OnDestroy } from '@angular/core';
 import { Plugin } from './plugin';
-import { map, flatMap, takeUntil, filter, take } from 'rxjs/operators';
+import { map, flatMap, takeUntil, filter, take, tap } from 'rxjs/operators';
 import { FlowState } from '@app/lib/models/flow';
 import { Observable, Subject } from 'rxjs';
 import { OsqueryResult, OsqueryArgs, OsqueryColumn, OsqueryRow, OsqueryProgress } from '@app/lib/api/api_interfaces';
@@ -24,18 +24,18 @@ export class OsqueryDetails extends Plugin {
       map(flowListEntry => flowListEntry.flow.args as OsqueryArgs)
   );
 
-  readonly osqueryResult$: Observable<OsqueryResult> = this.flowListEntry$.pipe(
+  readonly osqueryResults$: Observable<OsqueryResult> = this.flowListEntry$.pipe(
     flatMap(listEntry => listEntry.resultSets),
     flatMap(singleResultSet => singleResultSet?.items),
     filter(isNonNull),
     map(singleItem => singleItem.payload as OsqueryResult),
   );
 
-  readonly resultTable$ = this.osqueryResult$.pipe(
+  readonly resultsTable$ = this.osqueryResults$.pipe(
     map(result => result?.table),
   );
 
-  readonly resultStderr$ = this.osqueryResult$.pipe(
+  readonly resultsStderr$ = this.osqueryResults$.pipe(
     map(result => result?.stderr)
   );
 
@@ -50,11 +50,11 @@ export class OsqueryDetails extends Plugin {
 
   readonly additionalRowsAvailable$ = this.osqueryProgress$.pipe(
     map(progress => {
-      const progressTableLength = BigInt(progress.partialTable?.rows?.length);
-      const fullTableLength = BigInt(progress.totalRowsCount);
+      const progressTableLength = progress.partialTable?.rows?.length;
+      const fullTableLength = progress.totalRowsCount;
 
       if (isNonNull(progressTableLength) && isNonNull(fullTableLength)) {
-        return fullTableLength - progressTableLength;
+        return BigInt(fullTableLength) - BigInt(progressTableLength);
       } else {
         return null;
       }
