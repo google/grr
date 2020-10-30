@@ -4,7 +4,7 @@ import { OsqueryTableBuilder, ParsedDetailsTable } from './osquery_test_utils';
 import { DebugElement } from '@angular/core';
 import { OsqueryResultsTable } from './osquery_results_table';
 
-fdescribe('OsqueryResultsTable Component', () => {
+describe('OsqueryResultsTable Component', () => {
   beforeEach(async(() => {
     TestBed
       .configureTestingModule({

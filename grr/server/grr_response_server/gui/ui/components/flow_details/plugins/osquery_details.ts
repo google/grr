@@ -67,11 +67,11 @@ export class OsqueryDetails extends Plugin {
     );
   }
 
-  private loadResults() {
-    this.queryFlowResults({offset: 0, count: 1});
+  private loadCompleteResults() {
+    this.queryFlowResults({offset: 0, count: 1}); // TODO: Fetch more chunks if present
   }
 
   fullTableRequested() {
-    this.loadResults();
+    this.loadCompleteResults();
   }
 }
