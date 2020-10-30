@@ -2,7 +2,7 @@ import { Component, ChangeDetectionStrategy, Input } from '@angular/core';
 import { OsqueryTable } from '@app/lib/api/api_interfaces';
 
 /**
- * Component that displays the details (status, errors, results) for a particular Osquery Flow.
+ * Component that displays an OsqueryTable object as a HTML table.
  */
 @Component({
   selector: 'osquery-results-table',
@@ -13,4 +13,8 @@ import { OsqueryTable } from '@app/lib/api/api_interfaces';
 export class OsqueryResultsTable {
   @Input()
   tableToDisplay?: OsqueryTable;
+
+  trackByIndex(index: number, item: unknown): number {
+    return index;
+  }
 }

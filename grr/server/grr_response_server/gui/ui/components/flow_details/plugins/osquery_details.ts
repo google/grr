@@ -74,8 +74,4 @@ export class OsqueryDetails extends Plugin {
   fullTableRequested() {
     this.loadResults();
   }
-
-  trackByIndex(index: number, item: unknown): number {
-    return index;
-  }
 }
