@@ -11,6 +11,7 @@ import time
 
 from typing import List
 from collections import OrderedDict
+import json
 
 from absl import app
 
@@ -18,7 +19,6 @@ from grr_response_client.client_actions import osquery as osquery_action
 from grr_response_core import config
 from grr_response_core.lib.util import temp
 from grr_response_core.lib.util import text
-from grr_response_core.lib.util.compat import json
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_server.flows.general import osquery as osquery_flow
 from grr.test_lib import action_mocks
@@ -164,6 +164,7 @@ def _CreateDictTable(column_number, row_number) -> List[OrderedDict]:
 
 
 class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
+
   def setUp(self):
     super(FakeOsqueryFlowTest, self).setUp()
     self.client_id = self.SetupClient(0)
@@ -184,7 +185,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
   def _AssertTablesMatch(
     self,
     table: rdf_osquery.OsqueryTable,
-    expected: List[OrderedDict]
+    expected: List[OrderedDict],
   ) -> None:
     first_row = expected[0]
     expected_columns = list(first_row.keys())
@@ -206,7 +207,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       OrderedDict([ ("foo", "quux"), ("bar", "norf"), ("baz", "thud") ]),
       OrderedDict([ ("foo", "blargh"), ("bar", "plugh"), ("baz", "ztesch") ]),
     ]
-    stdout = json.Dump(test_table)
+    stdout = json.dumps(test_table)
   
     with osquery_test_lib.FakeOsqueryiOutput(stdout=stdout, stderr=""):
       results = self._RunQuery("SELECT foo, bar, baz FROM foobarbaz;")
@@ -228,13 +229,13 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     row_number = 10
 
     test_table = _CreateDictTable(column_number, row_number)
-    test_table_json = json.Dump(test_table)
+    test_table_json = json.dumps(test_table)
 
     with osquery_test_lib.FakeOsqueryiOutput(stdout=test_table_json, stderr=""):
       flow_id = self._NewTestFlowStartAndRun(query)
       progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
-    self.assertEqual(progress.total_rows_count, row_number)
+    self.assertEqual(progress.total_row_count, row_number)
     self.assertEqual(progress.partial_table.query, query)
     self._AssertTablesMatch(progress.partial_table, test_table)
 
@@ -244,15 +245,35 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     row_number = 20
 
     test_table = _CreateDictTable(column_number, row_number)
-    test_table_json = json.Dump(test_table)
+    test_table_json = json.dumps(test_table)
 
     with osquery_test_lib.FakeOsqueryiOutput(stdout=test_table_json, stderr=""):
       flow_id = self._NewTestFlowStartAndRun(query)
       progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
-    self.assertEqual(progress.total_rows_count, row_number)
+    self.assertEqual(progress.total_row_count, row_number)
     self.assertEqual(progress.partial_table.query, query)
     self._AssertTablesMatch(progress.partial_table, test_table[:10])
+
+  def testTotalRowCountIncludesAllChunks(self):
+    row_count = 100
+    split_pieces = 10
+
+    # Not using _CreateDictTable here in order to control the exact size of the
+    # test table in bytes, and thus control the number of chunks
+    cell_value = 'fixed'
+    table = [{'column1': cell_value} for _ in range(row_count)]
+    table_json = json.dumps(table)
+
+    table_bytes = row_count * len(cell_value.encode('utf-8'))
+    chunk_bytes = table_bytes // split_pieces
+
+    with test_lib.ConfigOverrider({"Osquery.max_chunk_size": chunk_bytes}):
+      with osquery_test_lib.FakeOsqueryiOutput(stdout=table_json, stderr=""):
+        flow_id = self._NewTestFlowStartAndRun("doesn't matter")
+        progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+
+    self.assertEqual(progress.total_row_count, row_count)
 
 
 if __name__ == "__main__":

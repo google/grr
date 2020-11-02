@@ -12,16 +12,14 @@ from grr_response_server import server_stubs
 from grr_response_server import flow_responses
 
 
-TRUNCATED_ROWS_COUNT = 10
+TRUNCATED_ROW_COUNT = 10
 
-def _TruncateRows(table: rdf_osquery.OsqueryTable) -> rdf_osquery.OsqueryTable:
-  result = rdf_osquery.OsqueryTable()
-
-  result.query = table.query
-  result.header = table.header
-  result.rows = table.rows[:TRUNCATED_ROWS_COUNT]
-
-  return result
+def _GetTotalRowCount(
+  responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
+) -> int:
+  project_length = lambda cur_response: len(cur_response.table.rows)
+  row_lengths = map(project_length, responses)
+  return sum(row_lengths)
 
 
 class OsqueryFlow(flow_base.FlowBase):
@@ -36,16 +34,16 @@ class OsqueryFlow(flow_base.FlowBase):
 
   def _UpdateProgress(
     self,
-    responses: flow_responses.Responses[rdf_osquery.OsqueryResult]
+    responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
   ) -> None:
-    # XXX: Less than TRUNCATED_ROWS_COUNT will be used if the original table is
+    # XXX: Less than TRUNCATED_ROW_COUNT will be used if the original table is
     # split into chunks smaller than that. It is expected that the limit will
     # always be smaller than the chunk size, so this shouldn't happen.
     first_chunk = responses.responses[0]
     table = first_chunk.table
 
-    self.state.progress.partial_table = _TruncateRows(table)
-    self.state.progress.total_rows_count = len(table.rows)
+    self.state.progress.partial_table = table.Truncated(TRUNCATED_ROW_COUNT)
+    self.state.progress.total_row_count = _GetTotalRowCount(responses)
 
   def Start(self):
     super(OsqueryFlow, self).Start()
@@ -58,7 +56,7 @@ class OsqueryFlow(flow_base.FlowBase):
 
   def Process(
       self,
-      responses: flow_responses.Responses[rdf_osquery.OsqueryResult]
+      responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
   ) -> None:
     if not responses.success:
       raise flow_base.FlowError(responses.status)
