@@ -420,7 +420,7 @@ class FlowBase(metaclass=FlowRegistry):
   def SendReply(self, response, tag=None):
     """Allows this flow to send a message to its parent flow.
 
-    If this flow does not have a parent, the message is ignored.
+    If this flow does not have a parent, the message is saved to the database as flow result.
 
     Args:
       response: An RDFValue() instance to be sent to the parent.

@@ -20,6 +20,7 @@ import {CollectBrowserHistoryDetails} from './collect_browser_history_details';
 import {CollectSingleFileDetails} from './collect_single_file_details';
 import {DefaultDetails} from './default_details';
 import {MultiGetFileDetails} from './multi_get_file_details';
+import { OsqueryDetails } from './osquery_details';
 
 
 /**
@@ -50,18 +51,21 @@ import {MultiGetFileDetails} from './multi_get_file_details';
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,
     CollectSingleFileDetails,
+    OsqueryDetails,
   ],
   exports: [
     DefaultDetails,
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,
     CollectSingleFileDetails,
+    OsqueryDetails,
   ],
   entryComponents: [
     DefaultDetails,
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,
     CollectSingleFileDetails,
+    OsqueryDetails,
   ]
 })
 export class PluginsModule {

@@ -82,3 +82,9 @@ class OsqueryResult(rdf_structs.RDFProtoStruct):
 
   protobuf = osquery_pb2.OsqueryResult
   rdf_deps = [OsqueryTable]
+
+class OsqueryProgress(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper class for the `OsqueryProgress` proto."""
+
+  protobuf = osquery_pb2.OsqueryProgress
+  rdf_deps = [OsqueryTable]
