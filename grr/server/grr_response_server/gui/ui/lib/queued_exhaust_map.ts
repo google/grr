@@ -1,20 +1,39 @@
 import { ObservableInput, OperatorFunction, ObservedValueOf, pipe, EMPTY } from 'rxjs';
-import { concatMap, tap } from 'rxjs/operators';
+import { concatMap, tap, map } from 'rxjs/operators';
 
 class NotImplementedError extends Error { };
 
-class RequestTracker<T> {
-  lastValue?: T;
-  isLastValueSet = false;
+interface RequestTracker<T> {
+  recordLastTag(tag: T): void;
+  shouldProcess(thisTag: T): boolean;
+}
 
-  recordLast(value: T): void {
-    this.lastValue = value;
-    this.isLastValueSet = true;
+class SingleIndexTracker implements RequestTracker<number> {
+  private lastIndex = -1;
+
+  recordLastTag(tag: number): void {
+    this.lastIndex = tag;
   }
 
-  shouldProcess(value: T): boolean {
-    return this.isLastValueSet && this.lastValue === value;
+  shouldProcess(thisTag: number): boolean {
+    return this.lastIndex === thisTag;
   }
+}
+
+class ValueWithTag<V, T> {
+  constructor(
+    readonly value: V,
+    readonly tag: T,
+  ) { }
+}
+
+function tagByIndex<V>(indexTracker: SingleIndexTracker) {
+  return pipe(
+    map((value: V, index) => new ValueWithTag(value, index)),
+    tap((valueWithTag: ValueWithTag<V, number>) => {
+      indexTracker.recordLastTag(valueWithTag.tag);
+    }),
+  );
 }
 
 /**
@@ -23,24 +42,25 @@ class RequestTracker<T> {
  * Observables and merged in the output Observable in a serialized fashion, waiting for
  * each one to complete before merging the next.
  *
- * Currently only queue of size 1 is supported.
+ * Important notes:
+ * - Currently only queue of size 1 is supported.
+ * - If the source produces values faster than this operation discards them, no values will
+ * be emitted.
  */
-export function queuedExhaustMap<T, O extends ObservableInput<any>> (
-  project: (value: T, index: number) => O, queueSize: 1 = 1
-): OperatorFunction<T, ObservedValueOf<O>> {
+export function queuedExhaustMap<V, O extends ObservableInput<any>> (
+  project: (value: V, index: number) => O, queueSize: 1 = 1
+): OperatorFunction<V, ObservedValueOf<O>> {
   if (queueSize !== 1) {
     throw new NotImplementedError('Queue size different than 1 is not implemented yet.');
   }
 
-  const requestTracker = new RequestTracker<T>();
+  const requestTracker = new SingleIndexTracker();
 
   return pipe(
-    tap((value) => {
-      requestTracker.recordLast(value);
-    }),
-    concatMap((value: T, index: number) => {
-      if (requestTracker.shouldProcess(value)) {
-        return project(value, index);
+    tagByIndex(requestTracker),
+    concatMap((valueWithTag, index) => {
+      if (requestTracker.shouldProcess(valueWithTag.tag)) {
+        return project(valueWithTag.value, index);
       } else {
         return EMPTY;
       }

@@ -59,6 +59,15 @@ interface ClientPageState {
   readonly approverSuggestions?: ReadonlyArray<string>;
 }
 
+/** Generates a string tag for a FlowResultsQuery using the fields: flowId, withType, withTag */
+export function uniqueTagForQuery(query: FlowResultsQuery): string {
+  const encodedFlowId = encodeURIComponent(query.flowId);
+  const encodedType = query.withType ? encodeURIComponent(query.withType) : 'typeMissing';
+  const encodedTag = query.withTag ? encodeURIComponent(query.withTag) : 'tagMissing';
+
+  return [encodedFlowId, encodedType, encodedTag].join('/'); // '/' won't occur in encoded fields
+}
+
 /**
  * ComponentStore implementation used by the ClientPageFacade. Shouldn't be
  * used directly. Declared as an exported global symbol to make dependency
@@ -359,12 +368,10 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         takeUntil(this.selectedClientIdChanged$),
         withLatestFrom(this.selectedClientId$),
         // Below we are grouping the requests by flowId, tag and type, and
-        // for each group we use a queuedExhaustMap with queue size 1 to send http request
-        // for results.
-        // TODO: Think about how we should split the code so it's cleaner
-        // TODO: Add tests to ensure the intended functionality
+        // for each group we use a queuedExhaustMap with queue size 1 to send a http
+        // request for results.
         groupBy(([query, clientId]) => {
-          return [query.flowId, query.withTag, query.withType].join('-');
+          return uniqueTagForQuery(query);
         }),
         mergeMap(group$ => group$.pipe(
           queuedExhaustMap(([query, clientId]) => {
@@ -400,7 +407,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
     const fleSelector =
         this.select((state) => state.flowListEntries[query.flowId]);
-
     return combineLatest([
              timer(0, this.configService.config.flowResultsPollingIntervalMs),
              fleSelector,

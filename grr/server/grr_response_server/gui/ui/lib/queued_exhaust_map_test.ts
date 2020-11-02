@@ -50,6 +50,33 @@ describe('queuedExhaustMap', () => {
     tick(blockTimeMs);
     expect(processedValues).toEqual(['initial', 'lastSaved']);
   }));
+
+  it(
+    'should discard all but the last emissions of the same element concurrent with something else (queue size 1)',
+    fakeAsync(() => {
+      const blockTimeMs = 1000;
+      const infTime = blockTimeMs * 100;
+      const sameElement = 'this is repeated multiple times';
+
+      const sameValueWithDelay$ = of(sameElement, sameElement, sameElement, sameElement).pipe(
+        queuedExhaustMap((value) => {
+          return of(value).pipe(
+            delay(blockTimeMs),
+          );
+        }, 1),
+      );
+
+      const processedValues = getProcessedValues(sameValueWithDelay$);
+
+      tick(blockTimeMs);
+      expect(processedValues).toEqual([sameElement]);
+
+      tick(blockTimeMs);
+      expect(processedValues).toEqual([sameElement, sameElement]);
+
+      tick(infTime);
+      expect(processedValues.length).toEqual(2);
+    }));
 });
 
 function getProcessedValues<T>(observable$: Observable<T>) {
