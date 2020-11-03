@@ -41,8 +41,8 @@ class OsqueryFlow(flow_base.FlowBase):
     # always be smaller than the chunk size, so this shouldn't happen.
     first_chunk = responses.responses[0]
     table = first_chunk.table
-
     self.state.progress.partial_table = table.Truncated(TRUNCATED_ROW_COUNT)
+
     self.state.progress.total_row_count = _GetTotalRowCount(responses)
 
   def Start(self):
