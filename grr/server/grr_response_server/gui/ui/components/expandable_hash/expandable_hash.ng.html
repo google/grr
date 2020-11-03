@@ -1,19 +1,30 @@
-<div class="container">
-  <div cdkOverlayOrigin #topReference="cdkOverlayOrigin"></div>
+<div *ngIf="atLeastOneHashAvailable; else noHashes">
+  <div
+    cdkOverlayOrigin
+    #topReference="cdkOverlayOrigin"
+    (mouseenter)="mouseEnteredTextArea()"
+    (mouseleave)="mouseLeftTextArea()">
 
-  <div (mouseenter)="mouseEnteredTruncatedHash()" class="truncated-hash">
-    {{truncatedSha256}}
+    <span class="bottom-border">
+      Copy value
+    </span>
   </div>
 
   <ng-template
+    *ngIf="atLeastOneHashAvailable"
     cdkConnectedOverlay
     [cdkConnectedOverlayOrigin]="topReference"
-    [cdkConnectedOverlayOpen]="shouldDisplayPopup">
-    <!-- TODO Check the scroll strategy -->
-    
-    <div (mouseleave)="mouseLeftPopup()">
+    [cdkConnectedOverlayOpen]="shouldShowPopup">
+
+    <div
+      (mouseenter)="mouseEnteredPopup()"
+      (mouseleave)="mouseLeftPopup()">
+
       <hashes [hashes]="hashes"></hashes>
     </div>
   </ng-template>
-
 </div>
+
+<ng-template #noHashes>
+  <span>–</span>
+</ng-template>

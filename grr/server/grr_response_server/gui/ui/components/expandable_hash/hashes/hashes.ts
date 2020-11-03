@@ -1,4 +1,4 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, Input } from '@angular/core';
 import { Hash } from '@app/lib/api/api_interfaces';
 
 /** Functionality to aggregate a number of (hashType, hashValue) pairs into a single string */
@@ -48,12 +48,14 @@ export class Hashes {
     return hashText.toString();
   }
 
-  get atLeastOneHashAvailable(): boolean {
+  get hashesAvailable(): number {
     if (this.hashes === undefined) {
-      return false;
+      return 0;
     }
 
-    return (this.hashes.sha256 ?? this.hashes.sha1 ?? this.hashes.md5) !== undefined;
+    return [this.hashes.sha256, this.hashes.sha1, this.hashes.md5]
+      .map(hash => hash ? 1 : 0 as number)
+      .reduce((total, current) => total+current);
   }
 
   constructor() { }

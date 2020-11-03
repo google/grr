@@ -11,13 +11,11 @@
   font-family: c.$google-sans-family;
   color: c.mat-color(c.$foreground, text-light);
 
-  padding: 1em;
+  padding: 0.5em;
 }
 
 .copy-button {
   font-size: 16px;
-
-  padding-right: 0.5em;
 
   line-height: 18px;
   height: 18px;
@@ -29,12 +27,13 @@
 }
 
 .hash-holder {
-  margin-top: 1em;
+  margin-top: 0.3em;
   white-space: nowrap;
 }
 
 .hash-name {
-  font-weight: 500;
+  font-weight: bold;
+  margin-right: 0.5em;
 }
 
 .hash-value {

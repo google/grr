@@ -1,34 +1,11 @@
-import { Component, OnInit, Input } from '@angular/core';
+import { Component, Input, ChangeDetectorRef } from '@angular/core';
 import { Hash } from '../../lib/api/api_interfaces'
 
-/** Max number of hash characters to be displayed when not hovered */
-export const TRUNCATED_HASH_CHAR_LIMIT = 7; // TODO: Check
-
-/** Message to display if SHA-256 is undefined */
-export const SHA_256_NA_MESSAGE = 'SHA-256 n/a' // TODO: Check
-
-/** The 'Horizontal ellipsis' character '…' */
-export const ELLIPSIS = '…';
-
-function truncate(fullText: string) {
-  return fullText.slice(0, TRUNCATED_HASH_CHAR_LIMIT - ELLIPSIS.length) + ELLIPSIS;
-}
+const MAX_TIME_MOUSE_IN_FLIGHT_MS = 200;
 
 /**
- * Truncates the input and appends an ellipsis if it has more characters than the limit.
- * The ellipsis is counted towards the limit as 1 character.
- */
-export function truncateIfNeeded(fullText: string): string {
-  if (fullText.length > TRUNCATED_HASH_CHAR_LIMIT) {
-    return truncate(fullText);
-  } else {
-    return fullText;
-  }
-}
-
-/**
- * Given multiple hashes, renders the SHA-256 value but truncated.
- * When hovered, all supplied hashes are displayed in a pop-up, together with copy-to-clipboard buttons.
+ * Displays a default text. When the text is hovered, a pop-up appears
+ * with all available hashes, together with copy-to-clipboard buttons.
  */
 @Component({
   selector: 'expandable-hash',
@@ -38,22 +15,57 @@ export function truncateIfNeeded(fullText: string): string {
 export class ExpandableHash {
   @Input() hashes?: Hash;
 
-  shouldDisplayPopup = false;
+  shouldShowPopup = false;
 
-  get truncatedSha256(): string {
-    if (this.hashes?.sha256) {
-      return truncateIfNeeded(this.hashes.sha256);
-    } else {
-      return SHA_256_NA_MESSAGE;
+  private mouseInsidePopup = false;
+  private mouseInsideTextArea = false;
+
+  private lastTimeout?: number;
+
+  get atLeastOneHashAvailable() {
+    return (this.hashes?.sha256 ?? this.hashes?.sha1 ?? this.hashes?.md5) !== undefined;
+  }
+
+  constructor(private changeDetectorRef: ChangeDetectorRef) { }
+
+  mouseEnteredTextArea() {
+    this.showPopupNow();
+    this.mouseInsideTextArea = true;
+  }
+  mouseLeftTextArea() {
+    this.schedulePopupHiding();
+    this.mouseInsideTextArea = false;
+  }
+
+  mouseEnteredPopup() {
+    this.showPopupNow();
+    this.mouseInsidePopup = true;
+  }
+  mouseLeftPopup() {
+    this.hidePopupNow(false);
+    this.mouseInsidePopup = false;
+  }
+
+  private schedulePopupHiding() {
+    if (this.lastTimeout) {
+      window.clearTimeout(this.lastTimeout);
+    }
+
+    this.lastTimeout = window.setTimeout(() => {
+      if (!this.mouseInsidePopup && !this.mouseInsideTextArea) {
+        this.hidePopupNow(true);
+      }
+    }, MAX_TIME_MOUSE_IN_FLIGHT_MS);
+  }
+
+  private hidePopupNow(forceChangeDetection: boolean) {
+    this.shouldShowPopup = false;
+    if (forceChangeDetection) {
+      this.changeDetectorRef.detectChanges();
     }
   }
 
-  constructor() { }
-
-  mouseEnteredTruncatedHash() {
-    this.shouldDisplayPopup = true;
-  }
-  mouseLeftPopup() {
-    this.shouldDisplayPopup = false;
+  private showPopupNow() {
+    this.shouldShowPopup = true;
   }
 }

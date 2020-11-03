@@ -73,7 +73,7 @@ describe('Hashes component', () => {
 
     expect(noHashesDiv).toBeTruthy();
     expect(noHashesDiv.nativeElement.innerText).toEqual('no available hashes to display');
-  })
+  });
 
   it('should display SHA-256 hash', () => {
     const sha256Only = {
@@ -88,7 +88,7 @@ describe('Hashes component', () => {
     expect(displayedHashes.length).toEqual(1);
     expect(displayedHashes[0].hashType).toEqual(expectedHashName);
     expect(displayedHashes[0].value).toEqual(expectedHashValue);
-  })
+  });
 
   it('should display SHA-1 hash', () => {
     const sha1Only = {
@@ -103,7 +103,7 @@ describe('Hashes component', () => {
     expect(displayedHashes.length).toEqual(1);
     expect(displayedHashes[0].hashType).toEqual(expectedHashName);
     expect(displayedHashes[0].value).toEqual(expectedHashValue);
-  })
+  });
 
   it('should display MD5 hash', () => {
     const md5Only = {
@@ -118,7 +118,7 @@ describe('Hashes component', () => {
     expect(displayedHashes.length).toEqual(1);
     expect(displayedHashes[0].hashType).toEqual(expectedHashName);
     expect(displayedHashes[0].value).toEqual(expectedHashValue);
-  })
+  });
 
   it('should display all SHA-256, SHA-1 and MD5', () => {
     const allHashes = {
@@ -138,7 +138,7 @@ describe('Hashes component', () => {
 
     expect(displayedHashes[2].hashType).toEqual('MD5:');
     expect(displayedHashes[2].value).toEqual(allHashes.md5);
-  })
+  });
 });
 
 
@@ -157,7 +157,7 @@ describe('HashTextAggregator', () => {
     hashText.appendHashTypeAndValue(hashType, 'random');
 
     expect(hashText.toString().startsWith(expectedBeginning)).toBeTrue();
-  })
+  });
 
   it('should add a newline before subsequent hashes', () => {
     const hashText = new HashTextAggregator();
@@ -168,5 +168,5 @@ describe('HashTextAggregator', () => {
     hashText.appendHashTypeAndValue('type3', 'hash3');
 
     expect(hashText.toString()).toEqual(expectedString);
-  })
-})
+  });
+});
