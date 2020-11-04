@@ -11,12 +11,12 @@ interface RequestTracker<T> {
 class SingleIndexTracker implements RequestTracker<number> {
   private lastIndex = -1;
 
-  recordLastTag(tag: number): void {
-    this.lastIndex = tag;
+  recordLastTag(index: number): void {
+    this.lastIndex = index;
   }
 
-  shouldProcess(thisTag: number): boolean {
-    return this.lastIndex === thisTag;
+  shouldProcess(thisIndex: number): boolean {
+    return this.lastIndex === thisIndex;
   }
 }
 
@@ -42,10 +42,14 @@ function tagByIndex<V>(indexTracker: SingleIndexTracker) {
  * Observables and merged in the output Observable in a serialized fashion, waiting for
  * each one to complete before merging the next.
  *
- * Important notes:
- * - Currently only queue of size 1 is supported.
+ * Warnings:
+ * - The implementation uses concatMap and shares its weaknesses: if source values arrive
+ * endlessly and faster than their corresponding inner Observables can complete, this will
+ * result in memory issues as inner Observables amass in an unbounded buffer waiting for
+ * their turn to be subscribed to.
  * - If the source produces values faster than this operation discards them, no values will
  * be emitted.
+ * - Currently only queue of size 1 is supported.
  */
 export function queuedExhaustMap<V, O extends ObservableInput<any>> (
   project: (value: V, index: number) => O, queueSize: 1 = 1

@@ -13,13 +13,13 @@ describe('queuedExhaustMap', () => {
       }, 1),
     );
 
-    const processedValues = getProcessedValues(singleValue$);
-    expect(processedValues).toEqual([valuePassed]);
+    const getLatestValues = emittedValuesWatcher(singleValue$);
+    expect(getLatestValues()).toEqual([valuePassed]);
   });
 
   it('shouldn\'t discard anything if there are no concurrent elements (queue size 1)', () => {
     const repeatTimes = 10;
-    const sentValues = Array(repeatTimes).map((_value, index) => index);
+    const sentValues = Array(repeatTimes).map((_, index) => index);
 
     const manyValues$ = from(sentValues).pipe(
       queuedExhaustMap((value) => {
@@ -27,8 +27,8 @@ describe('queuedExhaustMap', () => {
       }, 1),
     );
 
-    const processedValues = getProcessedValues(manyValues$);
-    expect(processedValues).toEqual(sentValues);
+    const getLatestValues = emittedValuesWatcher(manyValues$);
+    expect(getLatestValues()).toEqual(sentValues);
   });
 
   it('should discard everything but the last concurrent element (queue size 1)', fakeAsync(() => {
@@ -42,13 +42,13 @@ describe('queuedExhaustMap', () => {
       }, 1),
     );
 
-    const processedValues = getProcessedValues(manyValuesWithDelay$);
+    const getLatestValues = emittedValuesWatcher(manyValuesWithDelay$);
 
     tick(blockTimeMs);
-    expect(processedValues).toEqual(['initial']);
+    expect(getLatestValues()).toEqual(['initial']);
 
     tick(blockTimeMs);
-    expect(processedValues).toEqual(['initial', 'lastSaved']);
+    expect(getLatestValues()).toEqual(['initial', 'lastSaved']);
   }));
 
   it(
@@ -66,23 +66,25 @@ describe('queuedExhaustMap', () => {
         }, 1),
       );
 
-      const processedValues = getProcessedValues(sameValueWithDelay$);
+      const getLatestValues = emittedValuesWatcher(sameValueWithDelay$);
 
       tick(blockTimeMs);
-      expect(processedValues).toEqual([sameElement]);
+      expect(getLatestValues()).toEqual([sameElement]);
 
       tick(blockTimeMs);
-      expect(processedValues).toEqual([sameElement, sameElement]);
+      expect(getLatestValues()).toEqual([sameElement, sameElement]);
 
       tick(infTime);
-      expect(processedValues.length).toEqual(2);
+      expect(getLatestValues().length).toEqual(2);
     }));
 });
 
-function getProcessedValues<T>(observable$: Observable<T>) {
-  const processedValues = Array();
+function emittedValuesWatcher<T>(observable$: Observable<T>): () => ReadonlyArray<T> {
+  const emittedValues: T[] = [];
+
   observable$.subscribe((value) => {
-    processedValues.push(value)
+    emittedValues.push(value)
   });
-  return processedValues;
+
+  return () => emittedValues;
 }
