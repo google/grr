@@ -11,9 +11,7 @@
       [cdkCopyToClipboard]="hashes.sha256">
       <mat-icon class="menu-icon">content_copy</mat-icon>
     </button>&nbsp;
-    <span class="hash-name">
-      SHA-256
-    </span>
+    <span class="hash-name">SHA-256</span>
     <div class="hash-value">{{hashes.sha256}}</div>
   </div>
 
@@ -25,9 +23,7 @@
       [cdkCopyToClipboard]="hashes.sha1">
       <mat-icon class="menu-icon">content_copy</mat-icon>
     </button>&nbsp;
-    <span class="hash-name">
-      SHA-1
-    </span>
+    <span class="hash-name">SHA-1</span>
     <div class="hash-value">{{hashes.sha1}}</div>
   </div>
 
@@ -39,13 +35,11 @@
       [cdkCopyToClipboard]="hashes.md5">
       <mat-icon class="menu-icon">content_copy</mat-icon>
     </button>&nbsp;
-    <span class="hash-name">
-      MD5
-    </span>
+    <span class="hash-name">MD5</span>
     <div class="hash-value">{{hashes.md5}}</div>
   </div>
 
-  <div *ngIf="hashesAvailable > 1" class="hash-holder">
+  <div *ngIf="hashesAvailable > 1" class="copy-all-section">
     <button
     class="copy-button"
       mat-icon-button
@@ -53,6 +47,6 @@
       [cdkCopyToClipboard]="completeHashInformation">
       <mat-icon class="menu-icon">content_copy</mat-icon>
     </button>&nbsp;
-    <span>All hash information</span>
+    <span class="copy-all-text">All hash information</span>
   </div>
 </div>

@@ -28,7 +28,7 @@ describe('ExpandableHash component', () => {
   });
 
   function getDisplayedHashText() {
-    const hashDiv = fixture.debugElement.query(By.css('.truncated-hash'));
+    const hashDiv = fixture.debugElement.query(By.css('.displayed-text'));
     return hashDiv.nativeElement.innerText;
   }
 
@@ -37,7 +37,22 @@ describe('ExpandableHash component', () => {
     fixture.detectChanges();
   }
 
-  it('should create', () => {
-    expect(component).toBeTruthy();
+  it('should display en dash (–) if no hashes are available', () => {
+    const noHashes = { };
+    const emDash = '–';
+
+    initComponentWithHashes(noHashes);
+
+    expect(getDisplayedHashText()).toBe(emDash);
+  });
+
+  it('should display text if 1 hash is available', () => {
+    const oneHash = {
+      sha256: 'sha256',
+    };
+
+    initComponentWithHashes(oneHash);
+
+    expect(getDisplayedHashText()).toBe('Copy value');
   });
 });

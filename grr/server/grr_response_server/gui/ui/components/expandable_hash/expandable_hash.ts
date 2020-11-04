@@ -46,6 +46,10 @@ export class ExpandableHash {
     this.mouseInsidePopup = false;
   }
 
+  private showPopupNow() {
+    this.shouldShowPopup = true;
+  }
+
   private schedulePopupHiding() {
     if (this.lastTimeout) {
       window.clearTimeout(this.lastTimeout);
@@ -63,9 +67,5 @@ export class ExpandableHash {
     if (forceChangeDetection) {
       this.changeDetectorRef.detectChanges();
     }
-  }
-
-  private showPopupNow() {
-    this.shouldShowPopup = true;
   }
 }

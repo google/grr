@@ -4,7 +4,7 @@ import {By} from '@angular/platform-browser';
 
 import { Hashes, HashTextAggregator } from './hashes';
 import { Hash } from '@app/lib/api/api_interfaces';
-import { Component, DebugElement } from '@angular/core';
+import { DebugElement } from '@angular/core';
 
 import { ClipboardModule } from '@angular/cdk/clipboard';
 import { MatIconModule } from '@angular/material/icon';
@@ -51,28 +51,49 @@ describe('Hashes component', () => {
     return {hashType, value};
   }
 
-  function getDisplayedHashesWith(hashToUse: Hash) {
-    const fixture = createComponentFixtureWith(hashToUse);
-
+  function getDisplayedHashes(fixture: ComponentFixture<Hashes>): SingleHashFields[] {
     const holderDivs = fixture.debugElement.queryAll(By.css('.hash-holder'));
-
     return holderDivs.map(unpackHashHolderDiv);
   }
 
-  it('should create', () => {
-    const noHashes = { };
-    const fixture = createComponentFixtureWith(noHashes);
-    expect(fixture).toBeTruthy();
-  });
-
-  it('should display warning message if no hashes are available', () => {
+  it('should display just a warning message if no hashes are available', () => {
     const noHashes = { };
     const fixture = createComponentFixtureWith(noHashes);
 
     const noHashesDiv = fixture.debugElement.query(By.css('.no-hashes'));
+    const copyAllDiv = fixture.debugElement.query(By.css('.copy-all-section'));
+    const displayedHashes = getDisplayedHashes(fixture);
+
+    expect(displayedHashes.length).toBe(0);
+    expect(copyAllDiv).toBeFalsy();
 
     expect(noHashesDiv).toBeTruthy();
-    expect(noHashesDiv.nativeElement.innerText).toEqual('no available hashes to display');
+    expect(noHashesDiv.nativeElement.innerText).toEqual('No available hashes to display.');
+  });
+
+  it('should\'t display copy all if 1 hash is present', () => {
+    const oneHash = {
+      sha256: 'sha256',
+    };
+    const fixture = createComponentFixtureWith(oneHash);
+
+    const copyAllDiv = fixture.debugElement.query(By.css('.copy-all-section'));
+
+    expect(copyAllDiv).toBeFalsy();
+  });
+
+  it('should display copy all with text if 2 hashes are present', () => {
+    const twoHashes = {
+      sha256: 'sha256',
+      md5: 'md5',
+    };
+    const fixture = createComponentFixtureWith(twoHashes);
+
+    const copyAllDiv = fixture.debugElement.query(By.css('.copy-all-section'));
+    const copyAllText = copyAllDiv.query(By.css('.copy-all-text')).nativeElement.innerText;
+
+    expect(copyAllDiv).toBeTruthy();
+    expect(copyAllText).toBe('All hash information');
   });
 
   it('should display SHA-256 hash', () => {
@@ -80,10 +101,11 @@ describe('Hashes component', () => {
       sha256: 'sha256-0123456789abcdef'
     };
 
-    const expectedHashName = 'SHA-256:'
+    const expectedHashName = 'SHA-256'
     const expectedHashValue = sha256Only.sha256;
 
-    const displayedHashes = getDisplayedHashesWith(sha256Only);
+    const fixture = createComponentFixtureWith(sha256Only);
+    const displayedHashes = getDisplayedHashes(fixture);
 
     expect(displayedHashes.length).toEqual(1);
     expect(displayedHashes[0].hashType).toEqual(expectedHashName);
@@ -95,10 +117,11 @@ describe('Hashes component', () => {
       sha1: 'sha1-0123456789abcdef'
     };
 
-    const expectedHashName = 'SHA-1:'
+    const expectedHashName = 'SHA-1'
     const expectedHashValue = sha1Only.sha1;
 
-    const displayedHashes = getDisplayedHashesWith(sha1Only);
+    const fixture = createComponentFixtureWith(sha1Only);
+    const displayedHashes = getDisplayedHashes(fixture);
 
     expect(displayedHashes.length).toEqual(1);
     expect(displayedHashes[0].hashType).toEqual(expectedHashName);
@@ -110,10 +133,11 @@ describe('Hashes component', () => {
       md5: 'md5-0123456789abcdef'
     };
 
-    const expectedHashName = 'MD5:'
+    const expectedHashName = 'MD5'
     const expectedHashValue = md5Only.md5;
 
-    const displayedHashes = getDisplayedHashesWith(md5Only);
+    const fixture = createComponentFixtureWith(md5Only);
+    const displayedHashes = getDisplayedHashes(fixture);
 
     expect(displayedHashes.length).toEqual(1);
     expect(displayedHashes[0].hashType).toEqual(expectedHashName);
@@ -127,16 +151,17 @@ describe('Hashes component', () => {
       md5: 'md5-0123456789abcdef',
     };
 
-    const displayedHashes = getDisplayedHashesWith(allHashes);
+    const fixture = createComponentFixtureWith(allHashes);
+    const displayedHashes = getDisplayedHashes(fixture);
 
     expect(displayedHashes.length).toEqual(3);
-    expect(displayedHashes[0].hashType).toEqual('SHA-256:');
+    expect(displayedHashes[0].hashType).toEqual('SHA-256');
     expect(displayedHashes[0].value).toEqual(allHashes.sha256);
 
-    expect(displayedHashes[1].hashType).toEqual('SHA-1:');
+    expect(displayedHashes[1].hashType).toEqual('SHA-1');
     expect(displayedHashes[1].value).toEqual(allHashes.sha1);
 
-    expect(displayedHashes[2].hashType).toEqual('MD5:');
+    expect(displayedHashes[2].hashType).toEqual('MD5');
     expect(displayedHashes[2].value).toEqual(allHashes.md5);
   });
 });

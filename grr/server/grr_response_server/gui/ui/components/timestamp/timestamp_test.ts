@@ -66,7 +66,7 @@ describe('Timestamp Component', () => {
        componentInstance.date = date;
        componentInstance.completeFormat = true;
        fixture.detectChanges();
-       expect(fixture.debugElement.query(By.css('.timestamp'))
+       expect(fixture.debugElement.query(By.css('.ts_component_timestamp'))
                   .nativeElement.innerText)
            .toEqual('2020-07-01 12:50:00 UTC 10 minutes ago content_copy');
 
