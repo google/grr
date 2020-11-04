@@ -47,8 +47,6 @@ function tagByIndex<V>(indexTracker: SingleIndexTracker) {
  * endlessly and faster than their corresponding inner Observables can complete, this will
  * result in memory issues as inner Observables amass in an unbounded buffer waiting for
  * their turn to be subscribed to.
- * - If the source produces values faster than this operation discards them, no values will
- * be emitted.
  * - Currently only queue of size 1 is supported.
  */
 export function queuedExhaustMap<V, O extends ObservableInput<any>> (
