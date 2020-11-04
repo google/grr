@@ -21,15 +21,15 @@ export declare interface FlowFileResult {
 export function flowFileResultFromStatEntry(statEntry: StatEntry):
     FlowFileResult {
   // TODO(simstoykov): use actual data
-  const allHex = '0123456789abcdef'
+  const allHex = '0123456789abcdef';
   const temporaryLongDummyHashes: Hash = {
     sha256: `${allHex.repeat(2)}sha256`,
     md5: `${allHex.repeat(2)}md5`,
     sha1: `${allHex.repeat(2)}sha1`,
-  }
+  };
   return {
     statEntry,
-    hashes: temporaryLongDummyHashes
+    hashes: temporaryLongDummyHashes,
   };
 }
 
