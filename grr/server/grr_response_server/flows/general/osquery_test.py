@@ -9,8 +9,7 @@ import io
 import os
 import time
 
-from typing import List
-from collections import OrderedDict
+from contextlib import contextmanager
 import json
 
 from absl import app
@@ -19,7 +18,6 @@ from grr_response_client.client_actions import osquery as osquery_action
 from grr_response_core import config
 from grr_response_core.lib.util import temp
 from grr_response_core.lib.util import text
-from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_server.flows.general import osquery as osquery_flow
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -152,15 +150,12 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       self._RunQuery("UPDATE time SET day = -1;")
 
 
-def _CreateDictTable(column_number, row_number) -> List[OrderedDict]:
-  def CellValue(col_number, row_number):
-    return (f"col-{col_number}", f"col-{col_number}, row-{row_number}")
-
-  return [
-    OrderedDict(
-      CellValue(col_number, row_number) for col_number in range(column_number)
-    ) for row_number in range(row_number)
-  ]
+@contextmanager
+def PatchTruncationLimitTo(new_value: int):
+  old_value = osquery_flow.TRUNCATED_ROW_COUNT
+  osquery_flow.TRUNCATED_ROW_COUNT = new_value
+  yield
+  osquery_flow.TRUNCATED_ROW_COUNT = old_value
 
 
 class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
@@ -169,7 +164,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     super(FakeOsqueryFlowTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
-  def _NewTestFlowStartAndRun(self, query):
+  def _InitializeFlow(self, query):
     session_id = flow_test_lib.TestFlowHelper(
         osquery_flow.OsqueryFlow.__name__,
         action_mocks.ActionMock(osquery_action.Osquery),
@@ -179,43 +174,29 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     return session_id
 
   def _RunQuery(self, query):
-    session_id = self._NewTestFlowStartAndRun(query)
+    session_id = self._InitializeFlow(query)
     return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
-  def _AssertTablesMatch(
-    self,
-    table: rdf_osquery.OsqueryTable,
-    expected: List[OrderedDict],
-  ) -> None:
-    first_row = expected[0]
-    expected_columns = list(first_row.keys())
-
-    self.assertLen(table.header.columns, len(expected_columns))
-
-    column_pairs = zip(table.header.columns, expected_columns)
-    for table_col, expected_col_name in column_pairs:
-      self.assertEqual(table_col.name, expected_col_name)
-
-    for col_name in expected_columns:
-      table_col_values = list(table.Column(col_name))
-      expected_col_vlues = [row[col_name] for row in expected]
-
-      self.assertEqual(table_col_values, expected_col_vlues)
-
   def testSuccess(self):
-    test_table = [
-      OrderedDict([ ("foo", "quux"), ("bar", "norf"), ("baz", "thud") ]),
-      OrderedDict([ ("foo", "blargh"), ("bar", "plugh"), ("baz", "ztesch") ]),
+    stdout = """
+    [
+      { "foo": "quux", "bar": "norf", "baz": "thud" },
+      { "foo": "blargh", "bar": "plugh", "baz": "ztesch" }
     ]
-    stdout = json.dumps(test_table)
-  
+    """
     with osquery_test_lib.FakeOsqueryiOutput(stdout=stdout, stderr=""):
       results = self._RunQuery("SELECT foo, bar, baz FROM foobarbaz;")
 
     self.assertLen(results, 1)
 
     table = results[0].table
-    self._AssertTablesMatch(table, test_table)
+    self.assertLen(table.header.columns, 3)
+    self.assertEqual(table.header.columns[0].name, "foo")
+    self.assertEqual(table.header.columns[1].name, "bar")
+    self.assertEqual(table.header.columns[2].name, "baz")
+    self.assertEqual(list(table.Column("foo")), ["quux", "blargh"])
+    self.assertEqual(list(table.Column("bar")), ["norf", "plugh"])
+    self.assertEqual(list(table.Column("baz")), ["thud", "ztesch"])
 
   def testFailure(self):
     stderr = "Error: near '*': syntax error"
@@ -223,46 +204,46 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       with self.assertRaises(RuntimeError):
         self._RunQuery("SELECT * FROM *;")
 
-  def testProgressDoesntTruncate10Rows(self):
-    query = "doesn't matter"
-    column_number = 5
-    row_number = 10
+  def testSmallerTruncationLimit(self):
+    two_row_table = """
+    [
+      { "col1": "cell-1-1", "col2": "cell-1-2", "col3": "cell-1-3" },
+      { "col1": "cell-2-1", "col2": "cell-2-2", "col3": "cell-2-3" }
+    ]
+    """
+    truncate_limit = 1
 
-    test_table = _CreateDictTable(column_number, row_number)
-    test_table_json = json.dumps(test_table)
+    with osquery_test_lib.FakeOsqueryiOutput(stdout=two_row_table, stderr=""):
+      with PatchTruncationLimitTo(truncate_limit):
+        flow_id = self._InitializeFlow("query doesn't matter")
+        progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
-    with osquery_test_lib.FakeOsqueryiOutput(stdout=test_table_json, stderr=""):
-      flow_id = self._NewTestFlowStartAndRun(query)
-      progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+    self.assertEqual(len(progress.partial_table.rows), truncate_limit)
 
-    self.assertEqual(progress.total_row_count, row_number)
-    self.assertEqual(progress.partial_table.query, query)
-    self._AssertTablesMatch(progress.partial_table, test_table)
+  def testBiggerTruncationLimit(self):
+    three_row_table = """
+    [
+      { "col1": "cell-1-1", "col2": "cell-1-2", "col3": "cell-1-3" },
+      { "col1": "cell-2-1", "col2": "cell-2-2", "col3": "cell-2-3" },
+      { "col1": "cell-3-1", "col2": "cell-3-2", "col3": "cell-3-3" }
+    ]
+    """
+    truncate_limit = 5
 
-  def testProgressTruncates20RowsTo10(self):
-    query = "doesn't matter"
-    column_number = 5
-    row_number = 20
+    with osquery_test_lib.FakeOsqueryiOutput(stdout=three_row_table, stderr=""):
+      with PatchTruncationLimitTo(truncate_limit):
+        flow_id = self._InitializeFlow("query doesn't matter")
+        progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
-    test_table = _CreateDictTable(column_number, row_number)
-    test_table_json = json.dumps(test_table)
+    self.assertEqual(len(progress.partial_table.rows), 3)
 
-    with osquery_test_lib.FakeOsqueryiOutput(stdout=test_table_json, stderr=""):
-      flow_id = self._NewTestFlowStartAndRun(query)
-      progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
-
-    self.assertEqual(progress.total_row_count, row_number)
-    self.assertEqual(progress.partial_table.query, query)
-    self._AssertTablesMatch(progress.partial_table, test_table[:10])
-
-  def testTotalRowCountIncludesAllChunks(self):
+  def testChunksSmallerThanTruncation(self):
     row_count = 100
+    truncate_limit = 70
     split_pieces = 10
 
-    # Not using _CreateDictTable here in order to control the exact size of the
-    # test table in bytes, and thus control the number of chunks
     cell_value = 'fixed'
-    table = [{'column1': cell_value} for _ in range(row_count)]
+    table = [{'column1': cell_value}] * row_count
     table_json = json.dumps(table)
 
     table_bytes = row_count * len(cell_value.encode('utf-8'))
@@ -270,7 +251,26 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     with test_lib.ConfigOverrider({"Osquery.max_chunk_size": chunk_bytes}):
       with osquery_test_lib.FakeOsqueryiOutput(stdout=table_json, stderr=""):
-        flow_id = self._NewTestFlowStartAndRun("doesn't matter")
+        with PatchTruncationLimitTo(truncate_limit):
+          flow_id = self._InitializeFlow("doesn't matter")
+          progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+
+    self.assertEqual(len(progress.partial_table.rows), truncate_limit)
+
+  def testTotalRowCountIncludesAllChunks(self):
+    row_count = 100
+    split_pieces = 10
+
+    cell_value = 'fixed'
+    table = [{'column1': cell_value}] * row_count
+    table_json = json.dumps(table)
+
+    table_bytes = row_count * len(cell_value.encode('utf-8'))
+    chunk_bytes = table_bytes // split_pieces
+
+    with test_lib.ConfigOverrider({"Osquery.max_chunk_size": chunk_bytes}):
+      with osquery_test_lib.FakeOsqueryiOutput(stdout=table_json, stderr=""):
+        flow_id = self._InitializeFlow("doesn't matter")
         progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
     self.assertEqual(progress.total_row_count, row_count)

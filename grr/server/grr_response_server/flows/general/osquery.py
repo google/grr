@@ -14,12 +14,33 @@ from grr_response_server import flow_responses
 
 TRUNCATED_ROW_COUNT = 10
 
+
 def _GetTotalRowCount(
   responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
 ) -> int:
-  project_length = lambda cur_response: len(cur_response.table.rows)
-  row_lengths = map(project_length, responses)
+  get_row_lengths = lambda response: len(response.table.rows)
+  row_lengths = map(get_row_lengths, responses)
   return sum(row_lengths)
+
+
+def _GetTruncatedTable(
+  responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
+) -> rdf_osquery.OsqueryTable:
+  get_table = lambda response: response.table
+
+  head_table = get_table(responses.responses[0])
+  tail_tables = map(get_table, responses.responses[1:])
+
+  result = head_table.Truncated(TRUNCATED_ROW_COUNT)
+
+  for table in tail_tables:
+    to_add = TRUNCATED_ROW_COUNT - len(result.rows)
+    if to_add == 0:
+      break
+
+    result.rows.Extend(table.rows[:to_add])
+
+  return result
 
 
 class OsqueryFlow(flow_base.FlowBase):
@@ -36,13 +57,7 @@ class OsqueryFlow(flow_base.FlowBase):
     self,
     responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
   ) -> None:
-    # XXX: Less than TRUNCATED_ROW_COUNT will be used if the original table is
-    # split into chunks smaller than that. It is expected that the limit will
-    # always be smaller than the chunk size, so this shouldn't happen.
-    first_chunk = responses.responses[0]
-    table = first_chunk.table
-    self.state.progress.partial_table = table.Truncated(TRUNCATED_ROW_COUNT)
-
+    self.state.progress.partial_table = _GetTruncatedTable(responses)
     self.state.progress.total_row_count = _GetTotalRowCount(responses)
 
   def Start(self):
