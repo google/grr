@@ -8,7 +8,7 @@ import { OsqueryFlowListEntryBuilder, ParsedOsqueryDetails } from '../helpers/os
 
 initTestEnvironment();
 
-describe('osquery-details component', () => {
+fdescribe('osquery-details component', () => {
   beforeEach(async(() => {
     TestBed
         .configureTestingModule({
@@ -47,6 +47,8 @@ describe('osquery-details component', () => {
     expect(parsedElements.resultsTableDiv).toBeFalsy();
     expect(parsedElements.progressTableDiv).toBeFalsy();
     expect(parsedElements.errorDiv).toBeFalsy();
+    expect(parsedElements.showAdditionalDiv).toBeFalsy();
+    expect(parsedElements.errorAdditionalDiv).toBeFalsy();
 
     expect(parsedElements.inProgressDiv).toBeTruthy();
     expect(parsedElements.inProgressText).toEqual(expectedQueryText);
@@ -65,6 +67,8 @@ describe('osquery-details component', () => {
     expect(parsedElements.inProgressDiv).toBeFalsy();
     expect(parsedElements.resultsTableDiv).toBeFalsy();
     expect(parsedElements.progressTableDiv).toBeFalsy();
+    expect(parsedElements.showAdditionalDiv).toBeFalsy();
+    expect(parsedElements.errorAdditionalDiv).toBeFalsy();
 
     expect(parsedElements.errorDiv).toBeTruthy();
     expect(parsedElements.stdErrDiv).toBeTruthy();
@@ -88,13 +92,14 @@ describe('osquery-details component', () => {
     expect(parsedElements.inProgressDiv).toBeFalsy();
     expect(parsedElements.errorDiv).toBeFalsy();
     expect(parsedElements.resultsTableDiv).toBeFalsy();
+    expect(parsedElements.errorAdditionalDiv).toBeFalsy();
 
     expect(parsedElements.progressTableDiv).toBeTruthy();
 
     expect(parsedElements.showAdditionalDiv).toBeFalsy();
   });
 
-  it('should display progress table, correct label and a button to request more if results are truncated', () => {
+  it('should display progress table, and a button with count to request more if results are truncated', () => {
     const testQuery = 'grr?';
     const testColName = 'column';
     const testCellValue = 'grr!';
@@ -111,14 +116,36 @@ describe('osquery-details component', () => {
     expect(parsedElements.inProgressDiv).toBeFalsy();
     expect(parsedElements.errorDiv).toBeFalsy();
     expect(parsedElements.resultsTableDiv).toBeFalsy();
+    expect(parsedElements.errorAdditionalDiv).toBeFalsy();
 
     expect(parsedElements.progressTableDiv).toBeTruthy();
 
     expect(parsedElements.showAdditionalDiv).toBeTruthy();
-
-    expect(parsedElements.showAdditionalTextDiv).toBeTruthy();
-    expect(parsedElements.showAdditionalTextText).toEqual('1 row(s) hidden.');
-
     expect(parsedElements.showAdditionalButton).toBeTruthy();
-  })
+    expect(parsedElements.showAdditionalButtonText).toBe('View all rows (1 more)');
+  });
+
+  it('shouldn\'t display the show-additional section if flow is still in progress', () => {
+    const testFlowListEntry = new OsqueryFlowListEntryBuilder()
+      .withFlowState(FlowState.RUNNING);
+
+    const fixture = createFixtureFrom(testFlowListEntry);
+    const parsedElements = new ParsedOsqueryDetails(fixture.debugElement);
+
+    expect(parsedElements.showAdditionalDiv).toBeFalsy();
+  });
+
+  it('should display error-show-additional section if result and progress are undefined (for some reason)', () => {
+    const testFlowListEntry = new OsqueryFlowListEntryBuilder()
+      .withFlowState(FlowState.FINISHED);
+
+    const fixture = createFixtureFrom(testFlowListEntry);
+    const parsedElements = new ParsedOsqueryDetails(fixture.debugElement);
+
+    expect(parsedElements.errorAdditionalDiv).toBeTruthy();
+    expect(parsedElements.errorAdditionalSpan).toBeTruthy();
+    expect(parsedElements.errorAdditionalSpanText).toBe('Results might be missing or incomplete.');
+    expect(parsedElements.errorAdditionalButton).toBeTruthy();
+    expect(parsedElements.errorAdditionalButtonText).toBe('Try requesting the full table');
+  });
 });

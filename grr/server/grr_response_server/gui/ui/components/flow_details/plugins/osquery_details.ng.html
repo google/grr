@@ -6,26 +6,38 @@
 </div>
 
 <ng-template #noError>
-  <div *ngIf="flowRunning$ | async" class="in-progress">
+  <div *ngIf="flowRunning$ | async; else showResults" class="in-progress">
     Query in progress: {{ (args$ | async).query }}
   </div>
 
-  <div *ngIf="resultsTable$ | async as resultsTable; else noResultsTable" class="results-table">
-    <osquery-results-table
-      [tableToDisplay]="resultsTable">
-    </osquery-results-table>
-  </div>
-
-  <ng-template #noResultsTable>
-    <div *ngIf="progressTable$ | async as progressTable" class="progress-table">
-      <div *ngIf="additionalRowsAvailable$ | async as additionalRowsAvailable" class="show-additional">
-        <span class="show-additional-text">{{additionalRowsAvailable}} row(s) hidden.</span>
-        <button (click)="fullTableRequested()">Display the full table</button>
-      </div>
-
+  <ng-template #showResults>
+    <div *ngIf="resultsTable$ | async as resultsTable; else noResultsTable" class="results-table">
       <osquery-results-table
-        [tableToDisplay]="progressTable">
+        [tableToDisplay]="resultsTable">
       </osquery-results-table>
     </div>
+
+    <ng-template #noResultsTable>
+      <div *ngIf="progressTable$ | async as progressTable; else noTables" class="progress-table">
+        <osquery-results-table
+          [tableToDisplay]="progressTable">
+        </osquery-results-table>
+
+        <ng-container *ngIf="(additionalRowsAvailable$ | async) !== 0">
+          <div
+          *ngIf="additionalRowsAvailable$ | async as additionalCount; else progressCountUndefined"
+          class="show-additional">
+            <button (click)="fullTableRequested()">View all rows ({{additionalCount}} more)</button>
+          </div>
+        </ng-container>
+      </div>
+    </ng-template>
+
+    <ng-template #noTables #progressCountUndefined>
+      <div class="error-show-additional">
+        <span>Results might be missing or incomplete.</span>
+        <button (click)="fullTableRequested()">Try requesting the full table</button>
+      </div>
+    </ng-template>
   </ng-template>
 </ng-template>

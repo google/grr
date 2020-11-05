@@ -631,7 +631,7 @@ export declare interface OsqueryArgs {
 /** OsqueryProgress proto mapping */
 export declare interface OsqueryProgress {
   readonly partialTable?: OsqueryTable;
-  readonly totalRowsCount?: DecimalString;
+  readonly totalRowCount?: DecimalString;
 }
 
 /** OsqueryResult proto mapping. */

@@ -51,10 +51,10 @@ export class OsqueryDetails extends Plugin {
   readonly additionalRowsAvailable$ = this.osqueryProgress$.pipe(
     map(progress => {
       const progressTableLength = progress.partialTable?.rows?.length;
-      const fullTableLength = progress.totalRowsCount;
+      const fullTableLength = progress.totalRowCount;
 
       if (isNonNull(progressTableLength) && isNonNull(fullTableLength)) {
-        return BigInt(fullTableLength) - BigInt(progressTableLength);
+        return Number(fullTableLength) - Number(progressTableLength);
       } else {
         return null;
       }

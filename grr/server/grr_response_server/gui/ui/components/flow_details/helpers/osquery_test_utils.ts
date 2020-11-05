@@ -151,7 +151,7 @@ export class OsqueryFlowListEntryBuilder {
 
   private includeProgress(): void {
     const progress = {
-      totalRowsCount: this.progressRowsCount,
+      totalRowCount: this.progressRowsCount,
       partialTable: this.progressTableBuilder.buildWithQueryIfDefined(this.query),
     };
     this.flowListEntry.flow.progress = progress;
@@ -198,11 +198,16 @@ export class ParsedOsqueryDetails {
   progressTableDiv = elementBySelector('.progress-table', this.rootElement);
 
   showAdditionalDiv = elementBySelector('.show-additional', this.progressTableDiv);
-
-  showAdditionalTextDiv = elementBySelector('.show-additional-text', this.showAdditionalDiv);
-  showAdditionalTextText = innerText(this.showAdditionalTextDiv);
-
   showAdditionalButton = elementBySelector('button', this.showAdditionalDiv);
+  showAdditionalButtonText = this.showAdditionalButton?.nativeElement?.textContent;
+
+  errorAdditionalDiv = elementBySelector('.error-show-additional', this.rootElement);
+
+  errorAdditionalSpan = elementBySelector('span', this.errorAdditionalDiv);
+  errorAdditionalSpanText = innerText(this.errorAdditionalSpan);
+
+  errorAdditionalButton = elementBySelector('button', this.errorAdditionalDiv);
+  errorAdditionalButtonText = this.errorAdditionalButton?.nativeElement?.textContent;
 
   constructor(private readonly rootElement: DebugElement) { }
 }
