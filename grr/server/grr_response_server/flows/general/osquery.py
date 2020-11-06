@@ -12,15 +12,38 @@ from grr_response_server import server_stubs
 from grr_response_server import flow_responses
 
 
-TRUNCATED_ROWS_COUNT = 10
+TRUNCATED_ROW_COUNT = 10
 
-def _TruncateRows(table: rdf_osquery.OsqueryTable) -> rdf_osquery.OsqueryTable:
-  result = rdf_osquery.OsqueryTable()
 
-  result.query = table.query
-  result.header = table.header
-  result.rows = table.rows[:TRUNCATED_ROWS_COUNT]
+def _GetTotalRowCount(
+  responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
+) -> int:
+  get_row_lengths = lambda response: len(response.table.rows)
+  row_lengths = map(get_row_lengths, responses)
+  return sum(row_lengths)
 
+
+def _GetTruncatedTable(
+  responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
+) -> rdf_osquery.OsqueryTable:
+  """
+  Constructs an OsqueryTable by extracting the first TRUNCATED_ROW_COUNT rows
+  from the tables contained in the given OsqueryResult list.
+
+  Args:
+    responses: List of OsqueryResult elements from which to construct the
+    truncated table.
+  """
+  tables = [response.table for response in responses]
+
+  result = tables[0].Truncated(TRUNCATED_ROW_COUNT)
+
+  for table in tables[1:]:
+    to_add = TRUNCATED_ROW_COUNT - len(result.rows)
+    if to_add == 0:
+      break
+
+    result.rows.Extend(table.rows[:to_add])
   return result
 
 
@@ -36,16 +59,10 @@ class OsqueryFlow(flow_base.FlowBase):
 
   def _UpdateProgress(
     self,
-    responses: flow_responses.Responses[rdf_osquery.OsqueryResult]
+    responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
   ) -> None:
-    # XXX: Less than TRUNCATED_ROWS_COUNT will be used if the original table is
-    # split into chunks smaller than that. It is expected that the limit will
-    # always be smaller than the chunk size, so this shouldn't happen.
-    first_chunk = responses.responses[0]
-    table = first_chunk.table
-
-    self.state.progress.partial_table = _TruncateRows(table)
-    self.state.progress.total_rows_count = len(table.rows)
+    self.state.progress.partial_table = _GetTruncatedTable(responses)
+    self.state.progress.total_row_count = _GetTotalRowCount(responses)
 
   def Start(self):
     super(OsqueryFlow, self).Start()
@@ -58,7 +75,7 @@ class OsqueryFlow(flow_base.FlowBase):
 
   def Process(
       self,
-      responses: flow_responses.Responses[rdf_osquery.OsqueryResult]
+      responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
   ) -> None:
     if not responses.success:
       raise flow_base.FlowError(responses.status)

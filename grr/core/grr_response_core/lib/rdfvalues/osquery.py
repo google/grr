@@ -76,6 +76,22 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
     for row in self.rows:
       yield row.values[column_idx]
 
+  def Truncated(self, row_count: int) -> 'OsqueryTable':
+    """
+    Returns a fresh table with the first few rows of the original one.
+    It doesn't modify the original table.
+
+    Args:
+      row_count: The number of rows to keep in the truncated table
+    """
+    result = OsqueryTable()
+
+    result.query = self.query
+    result.header = self.header
+    result.rows = self.rows[:row_count]
+
+    return result
+
 
 class OsqueryResult(rdf_structs.RDFProtoStruct):
   """An RDF wrapper class for the `OsqueryTable` proto."""
