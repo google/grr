@@ -26,20 +26,24 @@ def _GetTotalRowCount(
 def _GetTruncatedTable(
   responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
 ) -> rdf_osquery.OsqueryTable:
-  get_table = lambda response: response.table
+  """
+  Constructs an OsqueryTable by extracting the first TRUNCATED_ROW_COUNT rows
+  from the tables contained in the given OsqueryResult list.
 
-  head_table = get_table(responses.responses[0])
-  tail_tables = map(get_table, responses.responses[1:])
+  Args:
+    responses: List of OsqueryResult elements from which to construct the
+    truncated table.
+  """
+  tables = [response.table for response in responses]
 
-  result = head_table.Truncated(TRUNCATED_ROW_COUNT)
+  result = tables[0].Truncated(TRUNCATED_ROW_COUNT)
 
-  for table in tail_tables:
+  for table in tables[1:]:
     to_add = TRUNCATED_ROW_COUNT - len(result.rows)
     if to_add == 0:
       break
 
     result.rows.Extend(table.rows[:to_add])
-
   return result
 
 

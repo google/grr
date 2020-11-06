@@ -9,8 +9,8 @@ import io
 import os
 import time
 
-from contextlib import contextmanager
 import json
+import mock
 
 from absl import app
 
@@ -38,7 +38,7 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     super(OsqueryFlowTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
-  def _RunQuery(self, query):
+  def _RunFlow(self, query):
     session_id = flow_test_lib.TestFlowHelper(
         osquery_flow.OsqueryFlow.__name__,
         action_mocks.ActionMock(osquery_action.Osquery),
@@ -49,7 +49,7 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testTime(self):
     time_before = int(time.time())
-    results = self._RunQuery("SELECT unix_time FROM time;")
+    results = self._RunFlow("SELECT unix_time FROM time;")
     time_after = int(time.time())
 
     self.assertLen(results, 1)
@@ -70,7 +70,7 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       with io.open(baz_path, "wb") as filedesc:
         filedesc.write(b"BAZ")
 
-      results = self._RunQuery("""
+      results = self._RunFlow("""
         SELECT * FROM file
         WHERE directory = "{}"
         ORDER BY path;
@@ -96,7 +96,7 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       with io.open(filepath, "wb") as filedesc:
         filedesc.write(content)
 
-      results = self._RunQuery("""
+      results = self._RunFlow("""
         SELECT md5, sha256 FROM hash
         WHERE path = "{}";
       """.format(filepath))
@@ -125,7 +125,7 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
       # Size limit is set so that each chunk should contain 2 rows.
       with test_lib.ConfigOverrider({"Osquery.max_chunk_size": 10}):
-        results = self._RunQuery(query)
+        results = self._RunFlow(query)
 
       # Since each chunk is expected to have 2 rows, number of rows should be
       # equal to twice the amount of chunks.
@@ -147,15 +147,7 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testFailure(self):
     with self.assertRaises(RuntimeError):
-      self._RunQuery("UPDATE time SET day = -1;")
-
-
-@contextmanager
-def PatchTruncationLimitTo(new_value: int):
-  old_value = osquery_flow.TRUNCATED_ROW_COUNT
-  osquery_flow.TRUNCATED_ROW_COUNT = new_value
-  yield
-  osquery_flow.TRUNCATED_ROW_COUNT = old_value
+      self._RunFlow("UPDATE time SET day = -1;")
 
 
 class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
@@ -173,7 +165,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         query=query)
     return session_id
 
-  def _RunQuery(self, query):
+  def _RunFlow(self, query):
     session_id = self._InitializeFlow(query)
     return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
@@ -185,7 +177,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     ]
     """
     with osquery_test_lib.FakeOsqueryiOutput(stdout=stdout, stderr=""):
-      results = self._RunQuery("SELECT foo, bar, baz FROM foobarbaz;")
+      results = self._RunFlow("SELECT foo, bar, baz FROM foobarbaz;")
 
     self.assertLen(results, 1)
 
@@ -202,7 +194,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     stderr = "Error: near '*': syntax error"
     with osquery_test_lib.FakeOsqueryiOutput(stdout="", stderr=stderr):
       with self.assertRaises(RuntimeError):
-        self._RunQuery("SELECT * FROM *;")
+        self._RunFlow("SELECT * FROM *;")
 
   def testSmallerTruncationLimit(self):
     two_row_table = """
@@ -211,14 +203,14 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       { "col1": "cell-2-1", "col2": "cell-2-2", "col3": "cell-2-3" }
     ]
     """
-    truncate_limit = 1
+    max_rows = 1
 
     with osquery_test_lib.FakeOsqueryiOutput(stdout=two_row_table, stderr=""):
-      with PatchTruncationLimitTo(truncate_limit):
+      with mock.patch.object(osquery_flow, "TRUNCATED_ROW_COUNT", max_rows):
         flow_id = self._InitializeFlow("query doesn't matter")
         progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
-    self.assertEqual(len(progress.partial_table.rows), truncate_limit)
+    self.assertEqual(len(progress.partial_table.rows), max_rows)
 
   def testBiggerTruncationLimit(self):
     three_row_table = """
@@ -228,10 +220,10 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       { "col1": "cell-3-1", "col2": "cell-3-2", "col3": "cell-3-3" }
     ]
     """
-    truncate_limit = 5
+    max_rows = 5
 
     with osquery_test_lib.FakeOsqueryiOutput(stdout=three_row_table, stderr=""):
-      with PatchTruncationLimitTo(truncate_limit):
+      with mock.patch.object(osquery_flow, "TRUNCATED_ROW_COUNT", max_rows):
         flow_id = self._InitializeFlow("query doesn't matter")
         progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
@@ -239,7 +231,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testChunksSmallerThanTruncation(self):
     row_count = 100
-    truncate_limit = 70
+    max_rows = 70
     split_pieces = 10
 
     cell_value = 'fixed'
@@ -251,11 +243,11 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     with test_lib.ConfigOverrider({"Osquery.max_chunk_size": chunk_bytes}):
       with osquery_test_lib.FakeOsqueryiOutput(stdout=table_json, stderr=""):
-        with PatchTruncationLimitTo(truncate_limit):
+        with mock.patch.object(osquery_flow, "TRUNCATED_ROW_COUNT", max_rows):
           flow_id = self._InitializeFlow("doesn't matter")
           progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
-    self.assertEqual(len(progress.partial_table.rows), truncate_limit)
+    self.assertEqual(len(progress.partial_table.rows), max_rows)
 
   def testTotalRowCountIncludesAllChunks(self):
     row_count = 100
