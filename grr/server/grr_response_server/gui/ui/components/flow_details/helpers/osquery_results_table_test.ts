@@ -39,7 +39,7 @@ describe('OsqueryResultsTable Component', () => {
     : DebugElement {
     const fixture = TestBed.createComponent(OsqueryResultsTable);
 
-    fixture.componentInstance.tableToDisplay = osqueryTable;
+    fixture.componentInstance.table = osqueryTable;
     fixture.detectChanges();
 
     return fixture.debugElement;

@@ -12,7 +12,7 @@ import { OsqueryTable } from '@app/lib/api/api_interfaces';
 })
 export class OsqueryResultsTable {
   @Input()
-  tableToDisplay?: OsqueryTable;
+  table?: OsqueryTable;
 
   trackByIndex(index: number, item: unknown): number {
     return index;

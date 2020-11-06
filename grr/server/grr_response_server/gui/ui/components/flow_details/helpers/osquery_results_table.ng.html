@@ -1,17 +1,17 @@
 <div class="results-query">
   <span class="results-query-label">Query:</span>
-  <span class="results-query-text">{{tableToDisplay.query}}</span>
+  <span class="results-query-text">{{table.query}}</span>
 </div>
 
 <div class="table-container">
   <table>
     <thead>
-      <th *ngFor="let column of tableToDisplay.header.columns; trackBy: trackByIndex">
+      <th *ngFor="let column of table.header.columns; trackBy: trackByIndex">
         {{column.name}}
       </th>
     </thead>
     <tbody>
-      <tr *ngFor="let row of tableToDisplay.rows; trackBy: trackByIndex">
+      <tr *ngFor="let row of table.rows; trackBy: trackByIndex">
         <td *ngFor="let cellValue of row.values">
           {{cellValue}}
         </td>
