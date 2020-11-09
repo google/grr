@@ -4,18 +4,18 @@ import { DebugElement } from '@angular/core';
 import { OsqueryResultsTable } from './osquery_results_table';
 import { By } from '@angular/platform-browser';
 import { OsqueryTable } from '@app/lib/api/api_interfaces';
-import { newOsqueryTable } from '../plugins/osquery_details_test';
+import { newOsqueryTable } from '@app/lib/models/model_test_util';
 
 /** Helper data structure to parse an osquery_results_table */
 class OsqueryResultsTableDOM {
-  queryDiv = this.rootElement.query(By.css('.results-query-text'));
-  queryText = this.queryDiv.nativeElement.innerText;
+  readonly queryDiv = this.rootElement.query(By.css('.results-query-text'));
+  readonly queryText = this.queryDiv.nativeElement.innerText;
 
-  columnElements = this.rootElement.queryAll(By.css('th'));
-  columnsText = this.columnElements.map(columnElement => columnElement.nativeElement.innerText);
+  readonly columnElements = this.rootElement.queryAll(By.css('th'));
+  readonly columnsText = this.columnElements.map(columnElement => columnElement.nativeElement.innerText);
 
-  cellDivs = this.rootElement.queryAll(By.css('td'));
-  cellsText = this.cellDivs.map(cellDiv => cellDiv.nativeElement.innerText);
+  readonly cellDivs = this.rootElement.queryAll(By.css('td'));
+  readonly cellsText = this.cellDivs.map(cellDiv => cellDiv.nativeElement.innerText);
 
   constructor(private readonly rootElement: DebugElement) { }
 }

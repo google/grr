@@ -6,54 +6,34 @@ import { OsqueryDetails } from './osquery_details';
 import { FlowState, FlowListEntry } from '@app/lib/models/flow';
 import { DebugElement } from '@angular/core';
 import { By } from '@angular/platform-browser';
-import { newFlowListEntry, newFlowResultSet, newFlow } from '@app/lib/models/model_test_util';
+import { newFlowListEntry, newFlowResultSet, newFlow, newOsqueryTable } from '@app/lib/models/model_test_util';
 
 initTestEnvironment();
 
-/**
- * Builds an OsqueryTable
- * @param query The Osquery query which produced this table
- * @param columns Column names of the table
- * @param rows Array of arrays containing row values
- */
-export function newOsqueryTable(
-  query: string,
-  columns: ReadonlyArray<string>,
-  rows: ReadonlyArray<ReadonlyArray<string>>,
-) {
-  return {
-    query,
-    header: {
-      columns: columns.map(colName => ({name: colName})),
-    },
-    rows: rows.map(rowValues => ({values: rowValues})),
-  };
-}
-
 /** Helper data structure to parse and expose all elements of interest from the OsqueryDetails DOM */
 class OsqueryDetailsDOM {
-  inProgressDiv = this.rootElement?.query(By.css('.in-progress'));
-  inProgressText = this.inProgressDiv?.nativeElement.innerText;
+  readonly inProgressDiv = this.rootElement?.query(By.css('.in-progress'));
+  readonly inProgressText = this.inProgressDiv?.nativeElement.innerText;
 
-  errorDiv = this.rootElement?.query(By.css('.error'));
-  stdErrDiv = this.errorDiv?.query(By.css('div'));
-  stdErrText = this.stdErrDiv?.nativeElement.innerText;
+  readonly errorDiv = this.rootElement?.query(By.css('.error'));
+  readonly stdErrDiv = this.errorDiv?.query(By.css('div'));
+  readonly stdErrText = this.stdErrDiv?.nativeElement.innerText;
 
-  resultsTableDiv = this.rootElement.query(By.css('.results-table'));
+  readonly resultsTableDiv = this.rootElement.query(By.css('.results-table'));
 
-  progressTableDiv = this.rootElement.query(By.css('.progress-table'));
+  readonly progressTableDiv = this.rootElement.query(By.css('.progress-table'));
 
-  showAdditionalDiv = this.progressTableDiv?.query(By.css('.show-additional'));
-  showAdditionalButton = this.showAdditionalDiv?.query(By.css('button'));
-  showAdditionalButtonText = this.showAdditionalButton?.nativeElement.textContent;
+  readonly showAdditionalDiv = this.progressTableDiv?.query(By.css('.show-additional'));
+  readonly showAdditionalButton = this.showAdditionalDiv?.query(By.css('button'));
+  readonly showAdditionalButtonText = this.showAdditionalButton?.nativeElement.textContent;
 
-  errorAdditionalDiv = this.rootElement.query(By.css('.error-show-additional'));
+  readonly errorAdditionalDiv = this.rootElement.query(By.css('.error-show-additional'));
 
-  errorAdditionalSpan = this.errorAdditionalDiv?.query(By.css('span'));
-  errorAdditionalSpanText = this.errorAdditionalSpan?.nativeElement.innerText;
+  readonly errorAdditionalSpan = this.errorAdditionalDiv?.query(By.css('span'));
+  readonly errorAdditionalSpanText = this.errorAdditionalSpan?.nativeElement.innerText;
 
-  errorAdditionalButton = this.errorAdditionalDiv?.query(By.css('button'));
-  errorAdditionalButtonText = this.errorAdditionalButton?.nativeElement.textContent;
+  readonly errorAdditionalButton = this.errorAdditionalDiv?.query(By.css('button'));
+  readonly errorAdditionalButtonText = this.errorAdditionalButton?.nativeElement.textContent;
 
   constructor(private readonly rootElement: DebugElement) { }
 }
