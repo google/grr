@@ -32,11 +32,11 @@ export class OsqueryDetails extends Plugin {
   );
 
   readonly resultsTable$ = this.osqueryResults$.pipe(
-    map(result => result?.table),
+    map(result => result.table),
   );
 
   readonly resultsStderr$ = this.osqueryResults$.pipe(
-    map(result => result?.stderr),
+    map(result => result.stderr),
   );
 
   readonly osqueryProgress$: Observable<OsqueryProgress> = this.flowListEntry$.pipe(

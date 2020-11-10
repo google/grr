@@ -9,13 +9,16 @@ import { newOsqueryTable } from '@app/lib/models/model_test_util';
 /** Helper data structure to parse an osquery_results_table */
 class OsqueryResultsTableDOM {
   readonly queryDiv = this.rootElement.query(By.css('.results-query-text'));
-  readonly queryText = this.queryDiv.nativeElement.innerText;
+  readonly queryText = this.queryDiv?.nativeElement.innerText;
 
   readonly columnElements = this.rootElement.queryAll(By.css('th'));
   readonly columnsText = this.columnElements.map(columnElement => columnElement.nativeElement.innerText);
 
   readonly cellDivs = this.rootElement.queryAll(By.css('td'));
   readonly cellsText = this.cellDivs.map(cellDiv => cellDiv.nativeElement.innerText);
+
+  readonly errorDiv = this.rootElement.query(By.css('.error'));
+  readonly errorText = this.errorDiv?.nativeElement.innerText;
 
   constructor(private readonly rootElement: DebugElement) { }
 }
@@ -35,7 +38,7 @@ describe('OsqueryResultsTable Component', () => {
    * Function that creates a component fixture which is supplied with the
    * OsqueryTable values provided
    */
-  function createElementFrom(osqueryTable: OsqueryTable)
+  function createElementFrom(osqueryTable?: OsqueryTable)
     : DebugElement {
     const fixture = TestBed.createComponent(OsqueryResultsTable);
 
@@ -60,6 +63,8 @@ describe('OsqueryResultsTable Component', () => {
     const osqueryResultsTable = createElementFrom(table);
     const parsedTable = new OsqueryResultsTableDOM(osqueryResultsTable);
 
+    expect(parsedTable.errorDiv).toBeFalsy();
+
     expect(parsedTable.columnElements.length).toEqual(columnNumber);
     expect(parsedTable.columnsText).toEqual(columns);
 
@@ -69,4 +74,16 @@ describe('OsqueryResultsTable Component', () => {
     expect(parsedTable.queryDiv).toBeTruthy();
     expect(parsedTable.queryText).toEqual(query);
   });
+
+  it('should display message if table is not pressent', () => {
+    const osqueryResultsTable = createElementFrom(undefined);
+    const parsedTable = new OsqueryResultsTableDOM(osqueryResultsTable);
+
+    expect(parsedTable.columnElements.length).toBe(0);
+    expect(parsedTable.cellDivs.length).toBe(0);
+    expect(parsedTable.queryDiv).toBeFalsy();
+
+    expect(parsedTable.errorDiv).toBeTruthy();
+    expect(parsedTable.errorText).toBe('No table to display.');
+  })
 });
