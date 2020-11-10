@@ -113,23 +113,3 @@ export function newFlowResultSet(payload = { }): FlowResultSet {
     state: FlowResultSetState.FETCHED,
   }
 }
-
-/**
- * Builds an OsqueryTable
- * @param query The Osquery query which produced this table
- * @param columns Column names of the table
- * @param rows Array of arrays containing values for each row
- */
-export function newOsqueryTable(
-  query: string,
-  columns: ReadonlyArray<string>,
-  rows: ReadonlyArray<ReadonlyArray<string>>,
-): OsqueryTable {
-  return {
-    query,
-    header: {
-      columns: columns.map(colName => ({name: colName})),
-    },
-    rows: rows.map(rowValues => ({values: rowValues})),
-  };
-}

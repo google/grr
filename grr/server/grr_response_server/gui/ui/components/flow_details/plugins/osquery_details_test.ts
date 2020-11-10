@@ -6,34 +6,26 @@ import { OsqueryDetails } from './osquery_details';
 import { FlowState, FlowListEntry } from '@app/lib/models/flow';
 import { DebugElement } from '@angular/core';
 import { By } from '@angular/platform-browser';
-import { newFlowListEntry, newFlowResultSet, newFlow, newOsqueryTable } from '@app/lib/models/model_test_util';
+import { newFlowListEntry, newFlowResultSet, newFlow } from '@app/lib/models/model_test_util';
+import { OsqueryResultsTableDOM, newOsqueryTable } from '../helpers/osquery_test_util';
 
 initTestEnvironment();
 
 /** Helper data structure to parse and expose all elements of interest from the OsqueryDetails DOM */
 class OsqueryDetailsDOM {
-  readonly inProgressDiv = this.rootElement?.query(By.css('.in-progress'));
+  readonly inProgressDiv = this.rootElement.query(By.css('.in-progress'));
   readonly inProgressText = this.inProgressDiv?.nativeElement.innerText;
 
-  readonly errorDiv = this.rootElement?.query(By.css('.error'));
+  readonly errorDiv = this.rootElement.query(By.css('.error'));
   readonly stdErrDiv = this.errorDiv?.query(By.css('div'));
   readonly stdErrText = this.stdErrDiv?.nativeElement.innerText;
 
-  readonly resultsTableDiv = this.rootElement.query(By.css('.results-table'));
+  readonly displayedTableRoot? = this.rootElement.query(By.css('osquery-results-table'));
+  readonly displayedTable = this.displayedTableRoot ? new OsqueryResultsTableDOM(this.displayedTableRoot) : null;
 
-  readonly progressTableDiv = this.rootElement.query(By.css('.progress-table'));
-
-  readonly showAdditionalDiv = this.progressTableDiv?.query(By.css('.show-additional'));
+  readonly showAdditionalDiv = this.rootElement.query(By.css('.show-additional'));
   readonly showAdditionalButton = this.showAdditionalDiv?.query(By.css('button'));
   readonly showAdditionalButtonText = this.showAdditionalButton?.nativeElement.textContent;
-
-  readonly errorAdditionalDiv = this.rootElement.query(By.css('.error-show-additional'));
-
-  readonly errorAdditionalSpan = this.errorAdditionalDiv?.query(By.css('span'));
-  readonly errorAdditionalSpanText = this.errorAdditionalSpan?.nativeElement.innerText;
-
-  readonly errorAdditionalButton = this.errorAdditionalDiv?.query(By.css('button'));
-  readonly errorAdditionalButtonText = this.errorAdditionalButton?.nativeElement.textContent;
 
   constructor(private readonly rootElement: DebugElement) { }
 }
@@ -78,11 +70,9 @@ describe('osquery-details component', () => {
     const fixture = createFixtureFrom(testFlowListEntry);
     const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
-    expect(parsedElements.resultsTableDiv).toBeFalsy();
-    expect(parsedElements.progressTableDiv).toBeFalsy();
+    expect(parsedElements.displayedTable).toBeFalsy();
     expect(parsedElements.errorDiv).toBeFalsy();
     expect(parsedElements.showAdditionalDiv).toBeFalsy();
-    expect(parsedElements.errorAdditionalDiv).toBeFalsy();
 
     expect(parsedElements.inProgressDiv).toBeTruthy();
     expect(parsedElements.inProgressText).toEqual(expectedQueryText);
@@ -107,10 +97,8 @@ describe('osquery-details component', () => {
     const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
     expect(parsedElements.inProgressDiv).toBeFalsy();
-    expect(parsedElements.resultsTableDiv).toBeFalsy();
-    expect(parsedElements.progressTableDiv).toBeFalsy();
+    expect(parsedElements.displayedTable).toBeFalsy();
     expect(parsedElements.showAdditionalDiv).toBeFalsy();
-    expect(parsedElements.errorAdditionalDiv).toBeFalsy();
 
     expect(parsedElements.errorDiv).toBeTruthy();
     expect(parsedElements.stdErrDiv).toBeTruthy();
@@ -138,10 +126,8 @@ describe('osquery-details component', () => {
 
     expect(parsedElements.inProgressDiv).toBeFalsy();
     expect(parsedElements.errorDiv).toBeFalsy();
-    expect(parsedElements.resultsTableDiv).toBeFalsy();
-    expect(parsedElements.errorAdditionalDiv).toBeFalsy();
 
-    expect(parsedElements.progressTableDiv).toBeTruthy();
+    expect(parsedElements.displayedTable).toBeTruthy();
 
     expect(parsedElements.showAdditionalDiv).toBeFalsy();
   });
@@ -167,14 +153,42 @@ describe('osquery-details component', () => {
 
     expect(parsedElements.inProgressDiv).toBeFalsy();
     expect(parsedElements.errorDiv).toBeFalsy();
-    expect(parsedElements.resultsTableDiv).toBeFalsy();
-    expect(parsedElements.errorAdditionalDiv).toBeFalsy();
 
-    expect(parsedElements.progressTableDiv).toBeTruthy();
+    expect(parsedElements.displayedTable).toBeTruthy();
 
     expect(parsedElements.showAdditionalDiv).toBeTruthy();
     expect(parsedElements.showAdditionalButton).toBeTruthy();
     expect(parsedElements.showAdditionalButtonText).toBe('View all rows (1 more)');
+  });
+
+  it('should display the results table instead of the progress table when both present', () => {
+    const resultColumns = ['resultCol1', 'resultCol2'];
+    const resultCells = [['result-1-1', 'result-1-2'], ['result-2-1', 'result-2-2']];
+
+    const progressColumns = ['progressCol1', 'progressCol2'];
+    const progressCells = [['progress-1-1', 'progress-1-2']];
+
+    const testFlowListEntry = {
+      flow: newFlow({
+        state: FlowState.FINISHED,
+        progress: {
+          partialTable: newOsqueryTable('doesnt matter', progressColumns, progressCells),
+          totalRowCount: 2,
+        },
+      }),
+      resultSets: [
+        newFlowResultSet({
+          table: newOsqueryTable('doesnt matter', resultColumns, resultCells),
+        }),
+      ],
+    };
+
+    const fixture = createFixtureFrom(testFlowListEntry);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+    expect(parsedElements.displayedTable).toBeTruthy();
+    expect(parsedElements.displayedTable?.columnsText).toEqual(resultColumns);
+    expect(parsedElements.displayedTable?.cellsText).toEqual(resultCells.flat());
   });
 
   it('shouldn\'t display the show-additional section if flow is still in progress', () => {
@@ -190,20 +204,5 @@ describe('osquery-details component', () => {
     const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
     expect(parsedElements.showAdditionalDiv).toBeFalsy();
-  });
-
-  it('should display error-show-additional section if result and progress are undefined (for some reason)', () => {
-    const testFlowListEntry = newFlowListEntry({
-      state: FlowState.FINISHED,
-    });
-
-    const fixture = createFixtureFrom(testFlowListEntry);
-    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
-
-    expect(parsedElements.errorAdditionalDiv).toBeTruthy();
-    expect(parsedElements.errorAdditionalSpan).toBeTruthy();
-    expect(parsedElements.errorAdditionalSpanText).toBe('Results might be missing or incomplete.');
-    expect(parsedElements.errorAdditionalButton).toBeTruthy();
-    expect(parsedElements.errorAdditionalButtonText).toBe('Try requesting the full table');
   });
 });
