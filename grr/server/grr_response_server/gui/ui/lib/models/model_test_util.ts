@@ -4,6 +4,7 @@
 import {Client, ClientApproval} from '@app/lib/models/client';
 
 import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow, FlowResultSet, FlowResultSetState} from './flow';
+import { OsqueryTable } from '../api/api_interfaces';
 
 
 function randomHex(length: number): string {

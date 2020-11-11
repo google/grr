@@ -1,111 +1,47 @@
-import {async, TestBed, ComponentFixture} from '@angular/core/testing';
-import {initTestEnvironment} from '@app/testing';
+import { async, TestBed, ComponentFixture} from '@angular/core/testing';
+import { initTestEnvironment } from '@app/testing';
 
-import {PluginsModule} from './module';
+import { PluginsModule } from './module';
 import { OsqueryDetails } from './osquery_details';
-import { newFlowListEntry, newFlowResultSet } from '@app/lib/models/model_test_util';
-import { FlowState, FlowListEntry, FlowResultSet } from '@app/lib/models/flow';
-import { By } from '@angular/platform-browser';
+import { FlowState, FlowListEntry } from '@app/lib/models/flow';
 import { DebugElement } from '@angular/core';
-import { OsqueryColumn, OsqueryRow } from '@app/lib/api/api_interfaces';
-import { DeepMutable } from '@app/lib/type_utils';
+import { By } from '@angular/platform-browser';
+import { newFlowListEntry, newFlowResultSet, newFlow } from '@app/lib/models/model_test_util';
+import { OsqueryResultsTableDOM, newOsqueryTable } from '../helpers/osquery_test_util';
 
 initTestEnvironment();
 
-/** Helper class to build a FlowListEntry objects in a declarative manner */
-class FlowListEntryBuilder {
-  private flowListEntry = newFlowListEntry({args: {query: ''}})  as DeepMutable<FlowListEntry>;
+/** Helper data structure to parse and expose all elements of interest from the OsqueryDetails DOM */
+class OsqueryDetailsDOM {
+  readonly inProgressDiv = this.rootElement.query(By.css('.in-progress'));
+  readonly inProgressText = this.inProgressDiv?.nativeElement.innerText;
 
-  private stderr = '';
-  private table = {
-    query: '',
-    header: {
-      columns: [] as ReadonlyArray<OsqueryColumn>,
-    },
-    rows: [] as ReadonlyArray<OsqueryRow>,
-  };
+  readonly errorDiv = this.rootElement.query(By.css('.error'));
+  readonly stdErrDiv = this.errorDiv?.query(By.css('div'));
+  readonly stdErrText = this.stdErrDiv?.nativeElement.innerText;
 
-  withFlowState(state: FlowState): FlowListEntryBuilder {
-    this.flowListEntry.flow.state = state;
-    return this;
-  }
+  readonly displayedTableRoot? = this.rootElement.query(By.css('osquery-results-table'));
+  readonly displayedTable = this.displayedTableRoot ? new OsqueryResultsTableDOM(this.displayedTableRoot) : null;
 
-  withQuery(query: string): FlowListEntryBuilder {
-    this.setFlowArgsQuery(query);
-    this.table.query = query;
-    return this;
-  }
+  readonly showAdditionalDiv = this.rootElement.query(By.css('.show-additional'));
+  readonly showAdditionalButton = this.showAdditionalDiv?.query(By.css('button'));
+  readonly showAdditionalButtonText = this.showAdditionalButton?.nativeElement.textContent;
 
-  withStderr(stderr: string): FlowListEntryBuilder {
-    this.stderr = stderr;
-    return this;
-  }
-
-  withTable(columns: ReadonlyArray<string>, values: ReadonlyArray<ReadonlyArray<string>>): FlowListEntryBuilder {
-    this.table.header.columns = columns.map((colName) => ({name: colName}));
-    this.table.rows = values.map((rowValues) => ({values: rowValues}));
-    return this;
-  }
-
-  build(): FlowListEntry {
-    this.includeResultSet();
-    return this.flowListEntry as FlowListEntry;
-  }
-
-  private setFlowArgsQuery(query: string): void {
-    if (this.flowListEntry.flow.args instanceof Object) {
-      this.flowListEntry.flow.args = {
-        ...this.flowListEntry.flow.args,
-        query,
-      };
-    } else {
-      this.flowListEntry.flow.args = { query };
-    }
-  }
-
-  private includeResultSet(): void {
-    const payload = {
-      stderr: this.stderr,
-      table: this.table,
-    }
-    this.flowListEntry.resultSets = [
-      newFlowResultSet(payload) as DeepMutable<FlowResultSet>,
-    ];
-  }
+  constructor(private readonly rootElement: DebugElement) { }
 }
 
-/** Helper class/data structure to parse and expose all elements of interest from the OsqueryDetails DOM */
-class ParsedElements {
-  inProgressDiv = this.elementBySelector('.in-progress');
-  inProgressText = this.innerText(this.inProgressDiv);
+/**
+ * Function that creates a component fixture which is supplied with the
+ * FlowListEntry value provided
+ */
+function createFixtureFrom(flowListEntry: FlowListEntry)
+  : ComponentFixture<OsqueryDetails> {
+  const fixture = TestBed.createComponent(OsqueryDetails);
+  fixture.componentInstance.flowListEntry = flowListEntry;
+  fixture.detectChanges();
 
-  resultsDiv = this.elementBySelector('.results');
-
-  resultsQueryDiv = this.elementBySelector('.results-query-text');
-  resultsQueryText = this.innerText(this.resultsQueryDiv);
-
-  resultsTableColumn = this.elementBySelector('th');
-  resultsTableColumnText = this.innerText(this.resultsTableColumn);
-
-  resultsTableCellDiv = this.elementBySelector('td');
-  resultsTableCellText = this.innerText(this.resultsTableCellDiv);
-
-  errorDiv = this.elementBySelector('.error');
-
-  stdErrDiv = this.elementBySelector('div', this.errorDiv);
-  stdErrText = this.innerText(this.stdErrDiv);
-
-  constructor(private readonly ofFixture: ComponentFixture<OsqueryDetails>) { }
-
-  private elementBySelector(selector: string, root: DebugElement=this.ofFixture.debugElement) {
-    return root?.query(By.css(selector));
-  }
-
-  private innerText(ofElement: DebugElement) {
-    return ofElement?.nativeElement.innerText;
-  }
+  return fixture;
 }
-
 
 describe('osquery-details component', () => {
   beforeEach(async(() => {
@@ -120,75 +56,166 @@ describe('osquery-details component', () => {
         .compileComponents();
   }));
 
-  /**
-   * Function that creates a component fixture which is supplied with
-   * FlowListEntry values provided by the builder
-   */
-  function createFixtureFrom(flowListEntryBuilder: FlowListEntryBuilder)
-    : ComponentFixture<OsqueryDetails> {
-    const fixture = TestBed.createComponent(OsqueryDetails);
-    fixture.componentInstance.flowListEntry = flowListEntryBuilder.build();
-    fixture.detectChanges();
-
-    return fixture;
-  }
-
   it('should display only the query argument when flow is still running', () => {
     const testQuery = 'SELECT * FROM users LIMIT 10;';
-    const testFlowListEntry = new FlowListEntryBuilder()
-      .withFlowState(FlowState.RUNNING)
-      .withQuery(testQuery);
+    const testFlowListEntry = newFlowListEntry({
+      state: FlowState.RUNNING,
+      args: {
+        query: testQuery,
+      },
+    });
+
+    const expectedQueryText = `Query in progress: ${testQuery}`;
 
     const fixture = createFixtureFrom(testFlowListEntry);
-    const parsedElements = new ParsedElements(fixture);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
-    expect(parsedElements.resultsDiv).toBeFalsy();
+    expect(parsedElements.displayedTable).toBeFalsy();
     expect(parsedElements.errorDiv).toBeFalsy();
+    expect(parsedElements.showAdditionalDiv).toBeFalsy();
 
     expect(parsedElements.inProgressDiv).toBeTruthy();
-    expect(parsedElements.inProgressText).toEqual(testQuery);
-  })
+    expect(parsedElements.inProgressText).toEqual(expectedQueryText);
+  });
 
   it('should display only the stderr error if the flow encounters an error', () => {
     const testStderr = 'just a standard err';
     const exptectedText = `stderr is: ${testStderr}`;
-    const testFlowListEntry = new FlowListEntryBuilder()
-      .withFlowState(FlowState.ERROR)
-      .withStderr(testStderr);
+
+    const testFlowListEntry = {
+      flow: newFlow({
+        state: FlowState.ERROR,
+      }),
+      resultSets: [
+        newFlowResultSet({
+          stderr: testStderr,
+        }),
+      ],
+    };
 
     const fixture = createFixtureFrom(testFlowListEntry);
-    const parsedElements = new ParsedElements(fixture);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
     expect(parsedElements.inProgressDiv).toBeFalsy();
-    expect(parsedElements.resultsDiv).toBeFalsy();
+    expect(parsedElements.displayedTable).toBeFalsy();
+    expect(parsedElements.showAdditionalDiv).toBeFalsy();
 
     expect(parsedElements.errorDiv).toBeTruthy();
     expect(parsedElements.stdErrDiv).toBeTruthy();
     expect(parsedElements.stdErrText).toEqual(exptectedText);
-  })
+  });
 
-  it('should display results with the query', () => {
-    const testQuery = 'SELECT * FROM users LIMIT 10;';
+  it('should display progress table with no "show additional" section if results are not truncated', () => {
+    const testQuery = 'grr?';
     const testColName = 'column';
-    const testCellValue = 'cell';
+    const testCellValue = 'grr!';
 
-    const testFlowListEntry = new FlowListEntryBuilder()
-      .withFlowState(FlowState.FINISHED)
-      .withTable([testColName], [[testCellValue]])
-      .withQuery(testQuery);
+    const testFlowListEntry = newFlowListEntry({
+      state: FlowState.FINISHED,
+      progress: {
+        partialTable: newOsqueryTable(testQuery, [testColName], [[testCellValue]]),
+        totalRowCount: 1, // Not more than the number of rows in the progress table (1),
+      },
+      args: {
+        query: testQuery,
+      }
+    });
 
     const fixture = createFixtureFrom(testFlowListEntry);
-    const parsedElements = new ParsedElements(fixture);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
     expect(parsedElements.inProgressDiv).toBeFalsy();
     expect(parsedElements.errorDiv).toBeFalsy();
 
-    expect(parsedElements.resultsDiv).toBeTruthy();
+    expect(parsedElements.displayedTable).toBeTruthy();
 
-    expect(parsedElements.resultsQueryDiv).toBeTruthy();
-    expect(parsedElements.resultsQueryText).toEqual(testQuery);
+    expect(parsedElements.showAdditionalDiv).toBeFalsy();
+  });
 
-    expect(parsedElements.resultsTableCellDiv).toBeTruthy();
-    expect(parsedElements.resultsTableCellText).toEqual(testCellValue);
-  })
+  it('should display progress table, and a button with count to request more if results are truncated', () => {
+    const testQuery = 'grr?';
+    const testColName = 'column';
+    const testCellValue = 'grr!';
+
+    const testFlowListEntry = newFlowListEntry({
+      state: FlowState.FINISHED,
+      progress: {
+        partialTable: newOsqueryTable(testQuery, [testColName], [[testCellValue]]),
+        totalRowCount: 2, // More than the number of rows in the progress table (1),
+      },
+      args: {
+        query: testQuery,
+      }
+    });
+
+    const fixture = createFixtureFrom(testFlowListEntry);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+    expect(parsedElements.inProgressDiv).toBeFalsy();
+    expect(parsedElements.errorDiv).toBeFalsy();
+
+    expect(parsedElements.displayedTable).toBeTruthy();
+
+    expect(parsedElements.showAdditionalDiv).toBeTruthy();
+    expect(parsedElements.showAdditionalButton).toBeTruthy();
+    expect(parsedElements.showAdditionalButtonText).toBe('View all rows (1 more)');
+  });
+
+  it('should display the results table instead of the progress table when both present', () => {
+    const resultColumns = ['resultCol1', 'resultCol2'];
+    const resultCells = [['result-1-1', 'result-1-2'], ['result-2-1', 'result-2-2']];
+
+    const progressColumns = ['progressCol1', 'progressCol2'];
+    const progressCells = [['progress-1-1', 'progress-1-2']];
+
+    const testFlowListEntry = {
+      flow: newFlow({
+        state: FlowState.FINISHED,
+        progress: {
+          partialTable: newOsqueryTable('doesnt matter', progressColumns, progressCells),
+          totalRowCount: 2,
+        },
+      }),
+      resultSets: [
+        newFlowResultSet({
+          table: newOsqueryTable('doesnt matter', resultColumns, resultCells),
+        }),
+      ],
+    };
+
+    const fixture = createFixtureFrom(testFlowListEntry);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+    expect(parsedElements.displayedTable).toBeTruthy();
+    expect(parsedElements.displayedTable?.columnsText).toEqual(resultColumns);
+    expect(parsedElements.displayedTable?.cellsText).toEqual(resultCells.flat());
+  });
+
+  it('shouldn\'t display the show-additional section if flow is still in progress', () => {
+    const testQuery = 'grr?';
+    const testFlowListEntry = newFlowListEntry({
+      state: FlowState.RUNNING,
+      args: {
+        query: testQuery,
+      }
+    });
+
+    const fixture = createFixtureFrom(testFlowListEntry);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+    expect(parsedElements.showAdditionalDiv).toBeFalsy();
+  });
+
+  it('should display the show-additional section if no table or progress is available (for some reason)', () => {
+    const testFlowListEntry = newFlowListEntry({
+      state: FlowState.FINISHED,
+    });
+
+    const fixture = createFixtureFrom(testFlowListEntry);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+    expect(parsedElements.showAdditionalDiv).toBeTruthy();
+    expect(parsedElements.showAdditionalButton).toBeTruthy();
+    expect(parsedElements.showAdditionalButtonText).toBe('View all rows (? more)');
+  });
 });

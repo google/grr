@@ -628,6 +628,12 @@ export declare interface OsqueryArgs {
   readonly ignoreStderrErrors?: boolean;
 }
 
+/** OsqueryProgress proto mapping */
+export declare interface OsqueryProgress {
+  readonly partialTable?: OsqueryTable;
+  readonly totalRowCount?: DecimalString;
+}
+
 /** OsqueryResult proto mapping. */
 export declare interface OsqueryResult {
   readonly table?: OsqueryTable;

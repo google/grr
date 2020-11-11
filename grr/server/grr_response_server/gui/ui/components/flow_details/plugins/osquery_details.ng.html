@@ -1,34 +1,23 @@
-<div *ngIf="flowRunning$ | async" class="in-progress">
-  {{ (args$ | async).query }}
-</div>
-
-<div *ngIf="flowCompleted$ | async" class='results'>
-  <div *ngIf="resultTable$ | async as resultTable">
-    <div class="results-query">
-      <span class="results-query-label">Query:</span>
-      <span class="results-query-text">{{resultTable.query}}</span>
-    </div>
-
-    <div class="table-container">
-      <table>
-        <thead>
-          <th *ngFor="let column of resultTable.header.columns; trackBy: trackByIndex">{{column.name}}</th>
-        </thead>
-        <tbody>
-          <tr *ngFor="let row of resultTable.rows; trackBy: trackByIndex">
-            <td *ngFor="let cellValue of row.values">
-              {{cellValue}}
-            </td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</div>
-
 <div *ngIf="flowError$ | async" class="error">
   An error was encountered.
-  <div *ngIf="resultStderr$ | async as resultStderr">
-    stderr is: {{resultStderr}}
+  <div *ngIf="resultsStderr$ | async as resultsStderr">
+    stderr is: {{resultsStderr}}
   </div>
 </div>
+
+<div *ngIf="flowRunning$ | async" class="in-progress">
+  Query in progress: {{ (args$ | async).query }}
+</div>
+
+<ng-container *ngIf="flowCompleted$ | async">
+  <osquery-results-table
+    *ngIf="displayTable$ | async as displayTable"
+    [table]="displayTable">
+  </osquery-results-table>
+
+  <div
+    *ngIf="additionalRowsAvailable$ | async as additionalCount"
+    class="show-additional">
+    <button (click)="loadCompleteResults()">View all rows ({{additionalCount}} more)</button>
+  </div>
+</ng-container>
