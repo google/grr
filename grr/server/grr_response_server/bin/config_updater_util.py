@@ -446,7 +446,7 @@ class FleetspeakConfig:
             db=self.mysql_database))
     cp.components_config.https_config.listen_address = "{}:{}".format(
         self.external_hostname, self.https_port)
-    cp.components_config.https_config.disable_streaming = True
+    cp.components_config.https_config.disable_streaming = False
     cp.components_config.admin_config.listen_address = "localhost:{}".format(
         self.admin_port)
     cp.public_host_port.append(cp.components_config.https_config.listen_address)
