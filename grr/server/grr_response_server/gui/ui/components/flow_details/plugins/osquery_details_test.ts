@@ -205,4 +205,17 @@ describe('osquery-details component', () => {
 
     expect(parsedElements.showAdditionalDiv).toBeFalsy();
   });
+
+  it('should display the show-additional section if no table or progress is available (for some reason)', () => {
+    const testFlowListEntry = newFlowListEntry({
+      state: FlowState.FINISHED,
+    });
+
+    const fixture = createFixtureFrom(testFlowListEntry);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+    expect(parsedElements.showAdditionalDiv).toBeTruthy();
+    expect(parsedElements.showAdditionalButton).toBeTruthy();
+    expect(parsedElements.showAdditionalButtonText).toBe('View all rows (? more)');
+  });
 });
