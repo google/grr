@@ -16,9 +16,9 @@ import { isNonNull } from '@app/lib/preconditions';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OsqueryDetails extends Plugin {
-  private readonly flowError$ = this.flagByState(FlowState.ERROR);
-  private readonly flowRunning$ = this.flagByState(FlowState.RUNNING);
-  private readonly flowCompleted$ = this.flagByState(FlowState.FINISHED);
+  readonly flowError$ = this.flagByState(FlowState.ERROR);
+  readonly flowRunning$ = this.flagByState(FlowState.RUNNING);
+  readonly flowCompleted$ = this.flagByState(FlowState.FINISHED);
 
   private readonly osqueryResults$: Observable<OsqueryResult> = this.flowListEntry$.pipe(
     flatMap(listEntry => listEntry.resultSets),
@@ -42,12 +42,12 @@ export class OsqueryDetails extends Plugin {
     filter(isNonNull),
   );
 
-  private readonly displayTable$ = concat(
+  readonly displayTable$ = concat(
     this.progressTable$.pipe(takeUntil(this.resultsTable$)),
     this.resultsTable$,
   );
 
-  private readonly additionalRowsAvailable$ = combineLatest([
+  readonly additionalRowsAvailable$ = combineLatest([
     this.osqueryProgress$.pipe(
       map(progress => progress.totalRowCount),
       startWith(null),
@@ -66,11 +66,11 @@ export class OsqueryDetails extends Plugin {
     }),
   );
 
-  private readonly args$: Observable<OsqueryArgs> = this.flowListEntry$.pipe(
+  readonly args$: Observable<OsqueryArgs> = this.flowListEntry$.pipe(
       map(flowListEntry => flowListEntry.flow.args as OsqueryArgs),
   );
 
-  private readonly resultsStderr$ = this.osqueryResults$.pipe(
+  readonly resultsStderr$ = this.osqueryResults$.pipe(
     map(result => result.stderr),
   );
 
@@ -80,7 +80,7 @@ export class OsqueryDetails extends Plugin {
     );
   }
 
-  private loadCompleteResults() {
+  loadCompleteResults() {
     this.queryFlowResults({offset: 0, count: 1}); // TODO: Fetch more chunks if present
   }
 }
