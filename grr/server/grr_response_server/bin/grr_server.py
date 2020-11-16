@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # Lint as: python3
 """This is a single binary that runs all the GRR components.
+
 To use this entry point you must run "grr_config_updater initialize" first.
 """
 from __future__ import absolute_import
