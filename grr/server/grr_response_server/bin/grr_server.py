@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """This is a single binary that runs all the GRR components.
-
 To use this entry point you must run "grr_config_updater initialize" first.
 """
 from __future__ import absolute_import
@@ -18,6 +17,7 @@ from grr_response_core.config import server as config_server
 from grr_response_server import server_startup
 from grr_response_server.bin import fleetspeak_frontend
 from grr_response_server.bin import frontend
+from grr_response_server.bin import grrafana
 from grr_response_server.bin import worker
 from grr_response_server.gui import admin_ui
 
@@ -29,7 +29,7 @@ flags.DEFINE_bool(
     help="Print the GRR server version number and exit immediately.")
 
 flags.DEFINE_string("component", None,
-                    "Component to start: [frontend|admin_ui|worker].")
+                    "Component to start: [frontend|admin_ui|worker|grrafana].")
 
 
 def main(argv):
@@ -60,6 +60,10 @@ def main(argv):
   # Start as an AdminUI.
   elif flags.FLAGS.component.startswith("admin_ui"):
     admin_ui.main([argv])
+
+  # Start as GRRafana.
+  elif flags.FLAGS.component.startswith("grrafana"):
+    grrafana.main([argv])
 
   # Raise on invalid component.
   else:
