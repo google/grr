@@ -30,7 +30,7 @@ from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr_response_server.gui.api_plugins import yara as api_yara
-from grr_response_server.gui.api_plugins import osquer as osquery_flow
+from grr_response_server.gui.api_plugins import osquery as api_osquery
 
 
 class Http(object):
@@ -727,18 +727,16 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Flows")
-  @ArgsType(osquery_flow.ApiGetOsqueryResulstsArgs)
+  @ArgsType(api_osquery.ApiGetOsqueryResultsArgs)
   @ResultBinaryStream()
-  @Http("GET", "/api/osquery")
+  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/osquery-results/<format>")
   def GetOsqueryResults(
-    self,
-    args,
-    context,
+      self,
+      args: api_osquery.ApiGetOsqueryResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
   ):
     """Export Osquery results for a client and a flow in the specified format."""
-    print("I was called!")
     raise NotImplementedError()
-
 
   # Cron jobs methods.
   # =================

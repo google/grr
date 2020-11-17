@@ -24,6 +24,7 @@ from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr_response_server.gui.api_plugins import yara as api_yara
+from grr_response_server.gui.api_plugins import osquery as api_osquery
 
 
 class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
@@ -218,6 +219,13 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiUnscheduleFlowHandler:
     return api_flow.ApiUnscheduleFlowHandler()
+
+  def GetOsqueryResults(
+      self,
+      args: api_osquery.ApiGetOsqueryResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    return api_osquery.ApiGetOsqueryResultsHandler()
 
   # Cron jobs methods.
   # =================
