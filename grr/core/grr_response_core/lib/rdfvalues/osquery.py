@@ -99,6 +99,13 @@ class OsqueryResult(rdf_structs.RDFProtoStruct):
   protobuf = osquery_pb2.OsqueryResult
   rdf_deps = [OsqueryTable]
 
+  def GetTableColumns(self):
+    return [column.name for column in self.table.header.columns]
+  
+  def GetTableRows(self):
+    return [row.values for row in self.table.rows]
+
+
 class OsqueryProgress(rdf_structs.RDFProtoStruct):
   """An RDF wrapper class for the `OsqueryProgress` proto."""
 

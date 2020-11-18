@@ -58,5 +58,32 @@ class OsqueryTableTest(absltest.TestCase):
     self.assertEqual(column_values, ["cell1"])
 
 
+class OsqueryResultTest(absltest.TestCase):
+
+  def testGetTableColumns(self):
+    table = rdf_osquery.OsqueryTable()
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="A"))
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="B"))
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="C"))
+
+    result = rdf_osquery.OsqueryResult()
+    result.table = table
+
+    self.assertEqual(result.GetTableColumns(), ["A", "B", "C"])
+
+  def testGetTableRows(self):
+    table = rdf_osquery.OsqueryTable()
+    table.header.columns.append(rdf_osquery.OsqueryColumn(name="A"))
+
+    table.rows.append(rdf_osquery.OsqueryRow(values=["cell1"]))
+    table.rows.append(rdf_osquery.OsqueryRow(values=["cell2"]))
+    table.rows.append(rdf_osquery.OsqueryRow(values=["cell3"]))
+
+    result = rdf_osquery.OsqueryResult()
+    result.table = table
+
+    self.assertEqual(result.GetTableRows(), [["cell1"], ["cell2"], ["cell3"]])
+
+
 if __name__ == "__main__":
   absltest.main()
