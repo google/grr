@@ -6,8 +6,11 @@ from __future__ import unicode_literals
 
 from typing import Any
 from typing import Dict
+from typing import Optional
 from typing import Text
+from typing import Tuple
 
+from google.protobuf import message
 from grr_api_client import artifact
 from grr_api_client import client
 from grr_api_client import config
@@ -18,30 +21,44 @@ from grr_api_client import metadata
 from grr_api_client import root
 from grr_api_client import types
 from grr_api_client import user
+from grr_api_client import utils
 from grr_api_client import yara
+from grr_response_proto import flows_pb2
+from grr_response_proto.api import config_pb2
 from grr_response_proto.api import hunt_pb2
 
 
 class GrrApi(object):
   """Root GRR API object."""
 
-  def __init__(self, connector=None):
+  def __init__(self, connector: connectors.Connector):
     super(GrrApi, self).__init__()
 
     self._context = context.GrrApiContext(connector=connector)
-    self.types = types.Types(context=self._context)
-    self.root = root.RootGrrApi(context=self._context)
+    self.types = types.Types(context=self._context)  # type: types.Types
+    self.root = root.RootGrrApi(context=self._context)  # type: root.RootGrrApi
 
-  def Client(self, client_id):
+  def Client(self, client_id: str) -> client.ClientRef:
     return client.ClientRef(client_id=client_id, context=self._context)
 
-  def SearchClients(self, query=None):
+  def SearchClients(
+      self,
+      query: Optional[str] = None,
+  ) -> utils.ItemsIterator[client.Client]:
     return client.SearchClients(query, context=self._context)
 
-  def Hunt(self, hunt_id):
+  def Hunt(
+      self,
+      hunt_id: str,
+  ) -> hunt.HuntRef:
     return hunt.HuntRef(hunt_id=hunt_id, context=self._context)
 
-  def CreateHunt(self, flow_name=None, flow_args=None, hunt_runner_args=None):
+  def CreateHunt(
+      self,
+      flow_name: Optional[str] = None,
+      flow_args: Optional[message.Message] = None,
+      hunt_runner_args: Optional[flows_pb2.HuntRunnerArgs] = None,
+  ) -> hunt.Hunt:
     return hunt.CreateHunt(
         flow_name=flow_name,
         flow_args=flow_args,
@@ -49,28 +66,33 @@ class GrrApi(object):
         context=self._context)
 
   def CreatePerClientFileCollectionHunt(
-      self, hunt_args: hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs
+      self,
+      hunt_args: hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs,
   ) -> hunt.Hunt:
     return hunt.CreatePerClientFileCollectionHunt(
         hunt_args, context=self._context)
 
-  def ListHunts(self):
+  def ListHunts(self) -> utils.ItemsIterator[hunt.Hunt]:
     return hunt.ListHunts(context=self._context)
 
-  def ListHuntApprovals(self):
+  def ListHuntApprovals(self) -> utils.ItemsIterator[hunt.HuntApproval]:
     return hunt.ListHuntApprovals(context=self._context)
 
-  def ListGrrBinaries(self):
+  def ListGrrBinaries(self) -> utils.ItemsIterator[config.GrrBinary]:
     return config.ListGrrBinaries(context=self._context)
 
-  def ListArtifacts(self):
+  def ListArtifacts(self) -> utils.ItemsIterator[artifact.Artifact]:
     return artifact.ListArtifacts(context=self._context)
 
-  def GrrBinary(self, binary_type, path):
+  def GrrBinary(
+      self,
+      binary_type: config_pb2.ApiGrrBinary.Type,
+      path: str,
+  ) -> config.GrrBinaryRef:
     return config.GrrBinaryRef(
         binary_type=binary_type, path=path, context=self._context)
 
-  def GrrUser(self):
+  def GrrUser(self) -> user.GrrUser:
     return user.GrrUser(context=self._context)
 
   def UploadYaraSignature(self, signature: Text) -> bytes:
@@ -85,7 +107,7 @@ class GrrApi(object):
     return yara.UploadYaraSignature(signature, context=self._context)
 
   @property
-  def username(self):
+  def username(self) -> str:
     return self._context.username
 
   def GetOpenApiDescription(self) -> Dict[str, Any]:
@@ -93,14 +115,16 @@ class GrrApi(object):
     return metadata.GetOpenApiDescription(context=self._context)
 
 
-def InitHttp(api_endpoint=None,
-             page_size=None,
-             auth=None,
-             proxies=None,
-             verify=None,
-             cert=None,
-             trust_env=True,
-             validate_version=True):
+def InitHttp(
+    api_endpoint: str,
+    page_size: Optional[int] = None,
+    auth: Optional[Tuple[str, str]] = None,
+    proxies: Optional[Dict[str, str]] = None,
+    verify: Optional[bool] = None,
+    cert: Optional[bytes] = None,
+    trust_env: Optional[bool] = None,
+    validate_version: Optional[bool] = None,
+) -> GrrApi:
   """Inits an GRR API object with a HTTP connector."""
 
   connector = connectors.HttpConnector(

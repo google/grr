@@ -296,8 +296,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
       # If a similar flow did run recently, just return it.
       return ApiRobotReturnDuplicateFlowHandler(flow_id=e.flow_id)
     except throttle.DailyFlowRequestLimitExceededError as e:
-      # Raise UnauthorizedAccess so that the user gets an HTTP 403.
-      raise access_control.UnauthorizedAccess(str(e))
+      # Raise ResourceExhaustedError so that the user gets an HTTP 429.
+      raise api_call_handler_base.ResourceExhaustedError(str(e))
 
     return ApiRobotCreateFlowHandler(
         override_flow_name=override_flow_name,

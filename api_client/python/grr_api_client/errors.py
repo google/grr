@@ -22,6 +22,12 @@ class AccessForbiddenError(Error):
   """Raised when resource access is forbidden."""
 
 
+# Conceptually ResourceExhaustedError is still an AccessForbiddenError, as
+# it means that the access to resource was forbidden due to the lack of quota.
+class ResourceExhaustedError(AccessForbiddenError):
+  """Raised when resource can't be accessed due to exhausted quota."""
+
+
 class ApiNotImplementedError(Error):
   """Raised when API method is not implemented."""
 

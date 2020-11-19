@@ -1,4 +1,4 @@
-import {async, TestBed} from '@angular/core/testing';
+import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {initTestEnvironment} from '../../testing';
@@ -11,10 +11,7 @@ import {HumanReadableSizeModule} from './module';
 initTestEnvironment();
 
 describe('HumanReadableSizeComponent', () => {
-  // TODO(user): Change to waitForAsync once we run on Angular 10, which
-  //  in turn requires TypeScript 3.9.
-  // tslint:disable-next-line:deprecation
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed
         .configureTestingModule({
           imports: [
