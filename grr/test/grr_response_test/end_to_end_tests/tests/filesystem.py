@@ -35,6 +35,10 @@ class TestListDirectoryTSKLinux(test_base.EndToEndTest):
   platforms = [test_base.EndToEndTest.Platform.LINUX]
 
   def runTest(self):
+    if self.os_release == "CentOS Linux":
+      self.skipTest(
+          "TSK is not supported on CentOS due to an xfs root filesystem.")
+
     # We look for the directories inside /usr. It's very difficult to find a
     # file common across all versions of default OS X, Ubuntu, and CentOS that
     # isn't symlinked and doesn't live in a huge directory that takes forever to
@@ -87,6 +91,10 @@ class TestFindTSKLinux(test_base.EndToEndTest):
   platforms = [test_base.EndToEndTest.Platform.LINUX]
 
   def runTest(self):
+    if self.os_release == "CentOS Linux":
+      self.skipTest(
+          "TSK is not supported on CentOS due to an xfs root filesystem.")
+
     args = self.grr_api.types.CreateFlowArgs("FindFiles")
     # Cut down the number of files by specifying a partial regex
     # match, we just want to find /usr/bin/diff, when run on a real

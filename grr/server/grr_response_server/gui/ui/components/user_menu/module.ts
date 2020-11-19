@@ -7,6 +7,7 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatMenuModule} from '@angular/material/menu';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -21,17 +22,18 @@ import {UserMenu} from './user_menu';
 @NgModule({
   imports: [
     BrowserAnimationsModule,
-    RouterModule,
     CommonModule,
+    FormsModule,
     MatButtonModule,
     MatCardModule,
-    MatFormFieldModule,
-    MatMenuModule,
-    MatIconModule,
-    ReactiveFormsModule,
-    FormsModule,
-    MatInputModule,
     MatCardModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatMenuModule,
+    MatTooltipModule,
+    ReactiveFormsModule,
+    RouterModule,
     UserImageModule,
   ],
   declarations: [
