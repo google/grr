@@ -27,6 +27,7 @@ from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import yara as api_yara
+from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -440,6 +441,14 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiUnscheduleFlowHandler:
     return self.delegate.UnscheduleFlow(args, context=context)
+
+  def GetOsqueryResults(
+      self,
+      args: api_osquery.ApiGetOsqueryResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    # TODO(simstoykov): Check whether we need to perform any approval checks
+    return self.delegate.GetOsqueryResults(args, context=context)
 
   # Cron jobs methods.
   # =================
