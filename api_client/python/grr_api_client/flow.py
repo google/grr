@@ -106,7 +106,7 @@ class FlowBase(object):
         client_id=self.client_id, flow_id=self.flow_id, format=fmt)
     return self._context.SendStreamingRequest("GetCollectedTimeline", args)
 
-  def GetOsqueryResults(self, fmt):
+  def GetOsqueryResults(self, fmt: osquery_pb2.ApiGetOsqueryResultsArgs.Format):
     args = osquery_pb2.ApiGetOsqueryResultsArgs(
         client_id=self.client_id, flow_id=self.flow_id, format=fmt)
     return self._context.SendStreamingRequest("GetOsqueryResults", args)
