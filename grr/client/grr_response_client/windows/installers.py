@@ -48,15 +48,18 @@ def _StartService(service_name):
   Args:
     service_name: string The name of the service to be started.
   """
-  try:
-    win32serviceutil.StartService(service_name)
-    logging.info("Service '%s' started.", service_name)
-  except pywintypes.error as e:
-    if getattr(e, "winerror", None) == winerror.ERROR_SERVICE_DOES_NOT_EXIST:
-      logging.debug("Tried to start '%s', but the service is not installed.",
-                    service_name)
-    else:
-      logging.exception("Encountered error trying to start '%s':", service_name)
+  for i in range(3):
+    try:
+      win32serviceutil.StartService(service_name)
+      logging.info("Service '%s' started.", service_name)
+      return
+    except pywintypes.error as e:
+      if getattr(e, "winerror", None) == winerror.ERROR_SERVICE_DOES_NOT_EXIST:
+        logging.debug("Tried to start '%s', but the service is not installed.",
+                      service_name)
+      else:
+        logging.exception("Encountered error trying to start '%s':", service_name)
+    time.sleep(10)
 
 
 def _StopService(service_name, service_binary_name=None):
