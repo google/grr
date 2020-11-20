@@ -1,30 +1,25 @@
-<div *ngIf="atLeastOneHashAvailable; else noHashes">
-  <div
-    cdkOverlayOrigin
-    #topReference="cdkOverlayOrigin"
-    (mouseenter)="mouseEnteredTextArea()"
-    (mouseleave)="mouseLeftTextArea()">
-
-    <span class="bottom-border displayed-text">
-      Copy value
-    </span>
-  </div>
-
-  <ng-template
-    *ngIf="atLeastOneHashAvailable"
-    cdkConnectedOverlay
-    [cdkConnectedOverlayOrigin]="topReference"
-    [cdkConnectedOverlayOpen]="shouldShowPopup">
-
-    <div
-      (mouseenter)="mouseEnteredPopup()"
-      (mouseleave)="mouseLeftPopup()">
-
-      <hashes [hashes]="hashes"></hashes>
-    </div>
-  </ng-template>
-</div>
+<ng-container *ngIf="hashesAvailable; else noHashes">
+  <span [matMenuTriggerFor]="menu" class="show-button">Copy value</span>
+  <mat-menu #menu="matMenu">
+    <button
+      *ngIf="hashes.sha256 as hashText"
+      mat-menu-item
+      [cdkCopyToClipboard]="hashText">Copy SHA-256</button>
+    <button
+      *ngIf="hashes.sha1 as hashText"
+      mat-menu-item
+      [cdkCopyToClipboard]="hashText">Copy SHA-1</button>
+    <button
+      *ngIf="hashes.md5 as hashText"
+      mat-menu-item
+      [cdkCopyToClipboard]="hashText">Copy MD5</button>
+    <button
+      *ngIf="hashesAvailable > 1"
+      mat-menu-item
+      [cdkCopyToClipboard]="completeHashInformation">Copy all</button>
+  </mat-menu>
+</ng-container>
 
 <ng-template #noHashes>
-  <span class="displayed-text">–</span>
+  <span class="no-hashes">–</span>
 </ng-template>
