@@ -69,7 +69,8 @@ class OsqueryResultTest(absltest.TestCase):
     result = rdf_osquery.OsqueryResult()
     result.table = table
 
-    self.assertEqual(result.GetTableColumns(), ["A", "B", "C"])
+    cols = list(result.GetTableColumns())
+    self.assertEqual(["A", "B", "C"], cols)
 
   def testGetTableRows(self):
     table = rdf_osquery.OsqueryTable()
@@ -82,7 +83,8 @@ class OsqueryResultTest(absltest.TestCase):
     result = rdf_osquery.OsqueryResult()
     result.table = table
 
-    self.assertEqual(result.GetTableRows(), [["cell1"], ["cell2"], ["cell3"]])
+    rows = list(result.GetTableRows())
+    self.assertEqual([["cell1"], ["cell2"], ["cell3"]], rows)
 
 
 if __name__ == "__main__":

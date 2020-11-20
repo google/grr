@@ -3,20 +3,20 @@
 """A module with API handlers related to the Osquery flow"""
 from grr_response_server.flows.general import osquery
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
-
 from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_context
 from grr_response_server import data_store
-
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
 
 from typing import Optional
 from typing import Text
 from typing import Generator
+from typing import Iterable
+from io import StringIO
+import csv
 
 
 class ApiGetOsqueryResultsArgs(rdf_structs.RDFProtoStruct):
@@ -99,15 +99,18 @@ def _ParseToCsvBytes(
     if not added_columns:
       added_columns = True
       columns = result.GetTableColumns()
-      yield _ListToCsvBytes(columns)
+      yield _LineToCsvBytes(columns)
 
-    row_bytes = [_ListToCsvBytes(row) for row in result.GetTableRows()]
-    yield from row_bytes
+    yield from map(_LineToCsvBytes, result.GetTableRows())
 
 
-def _ListToCsvBytes(values: List[str]) -> bytes:
-  csv_text = ','.join(values) + '\n'
-  return csv_text.encode('utf-8')
+def _LineToCsvBytes(values: Iterable[str]) -> bytes:
+  # newline='' : https://docs.python.org/3.6/library/csv.html#id3
+  with StringIO(newline='') as output:
+    csv_writer = csv.writer(output)
+    csv_writer.writerow(values)
+
+    return output.getvalue().encode("utf-8")
 
 
 # We aim to hold around ~100MB of results into memory.

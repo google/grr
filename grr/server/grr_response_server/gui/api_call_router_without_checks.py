@@ -225,6 +225,7 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
       args: api_osquery.ApiGetOsqueryResultsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ):
+    del args, context  # Unused.
     return api_osquery.ApiGetOsqueryResultsHandler()
 
   # Cron jobs methods.

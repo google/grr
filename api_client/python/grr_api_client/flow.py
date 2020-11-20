@@ -108,7 +108,7 @@ class FlowBase(object):
 
   def GetOsqueryResults(
       self,
-      fmt: osquery_pb2.ApiGetOsqueryResultsArgs.Format
+      fmt: osquery_pb2.ApiGetOsqueryResultsArgs.Format,
   ) -> utils.BinaryChunkIterator:
     args = osquery_pb2.ApiGetOsqueryResultsArgs(
         client_id=self.client_id, flow_id=self.flow_id, format=fmt)

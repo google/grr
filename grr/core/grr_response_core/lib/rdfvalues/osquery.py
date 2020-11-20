@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from typing import Iterator
+from typing import Sequence
 from typing import Text
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -99,11 +100,11 @@ class OsqueryResult(rdf_structs.RDFProtoStruct):
   protobuf = osquery_pb2.OsqueryResult
   rdf_deps = [OsqueryTable]
 
-  def GetTableColumns(self):
-    return [column.name for column in self.table.header.columns]
+  def GetTableColumns(self) -> Iterator[str]:
+    return (column.name for column in self.table.header.columns)
   
-  def GetTableRows(self):
-    return [row.values for row in self.table.rows]
+  def GetTableRows(self) -> Iterator[Sequence[str]]:
+    return (row.values for row in self.table.rows)
 
 
 class OsqueryProgress(rdf_structs.RDFProtoStruct):

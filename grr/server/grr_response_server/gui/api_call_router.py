@@ -729,8 +729,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Flows")
   @ArgsType(api_osquery.ApiGetOsqueryResultsArgs)
   @ResultBinaryStream()
-  @Http("GET", 
-      "/api/clients/<client_id>/flows/<flow_id>/osquery-results/<format>")
+  @Http("GET",
+        "/api/clients/<client_id>/flows/<flow_id>/osquery-results/<format>")
   def GetOsqueryResults(
       self,
       args: api_osquery.ApiGetOsqueryResultsArgs,

@@ -6,14 +6,11 @@ import "grr_response_proto/semantic.proto";
 
 message ApiGetOsqueryResultsArgs {
   enum Format {
-    CSV = 0;
+    UNSPECIFIED = 0;
+    CSV = 1;
   }
 
-  // An identifier of the client for which to retrieve results.
   optional string client_id = 1 [(sem_type) = { type: "ApiClientId" }];
-
-  // An identifier of the Osquery flow for which to retrieve results.
   optional string flow_id = 2 [(sem_type) = { type: "ApiFlowId" }];
-
   optional Format format = 3;
 }

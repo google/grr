@@ -1,25 +1,20 @@
-#!/usr/bin/env python
 # Lint as: python3
-"""Integration tests for the Osquery flow, its api client and api endpoints."""
+"""Integration tests for the Osquery flow, its API client and API endpoints."""
 from grr_response_server.gui import api_integration_test_lib
+from grr_response_server.flows.general import osquery as osquery_flow
 from grr.test_lib import osquery_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import action_mocks
-
-from grr_response_server.flows.general import osquery as osquery_flow
-
 from grr_response_client.client_actions import osquery as osquery_action
-
 from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
-
 from grr_api_client import utils
 
 import json
 
 
 class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
-  """Tests exporting of Osquery results using functionality in the api client"""
+  """Tests exporting of Osquery results using functionality in the API client"""
 
   def _RunOsqueryExportResults(self, stdout: str) -> utils.BinaryChunkIterator:
     client_id = self.SetupClient(0)
@@ -45,7 +40,7 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
       { "foo": "blargh", "bar": "plugh", "baz": "ztesch" }
     ]
     """
-    expected_text = "foo,bar,baz\nquux,norf,thud\nblargh,plugh,ztesch\n"
+    expected_text = "foo,bar,baz\r\nquux,norf,thud\r\nblargh,plugh,ztesch\r\n"
     expected_bytes = expected_text.encode("utf-8")
 
     results_iterator = self._RunOsqueryExportResults(stdout)
@@ -63,7 +58,7 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
     results_iterator = self._RunOsqueryExportResults(stdout)
     csv_bytes = next(results_iterator)
 
-    expected_text = "\n"
+    expected_text = "\r\n"
     expected_bytes = expected_text.encode("utf-8")
     self.assertEqual(expected_bytes, csv_bytes)
 
@@ -77,7 +72,7 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
     results_iterator = self._RunOsqueryExportResults(stdout)
     csv_bytes = next(results_iterator)
 
-    expected_text = "🇬 🇷 🇷\n🔝🔝🔝\n"
+    expected_text = "🇬 🇷 🇷\r\n🔝🔝🔝\r\n"
     expected_bytes = expected_text.encode("utf-8")
     self.assertEqual(expected_bytes, csv_bytes)
 
@@ -96,6 +91,6 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
       results_iterator = self._RunOsqueryExportResults(table_json)
     csv_bytes = next(results_iterator)
 
-    expected_text = 'column1\n' + "\n".join([cell_value] * row_count) + "\n"
-    expected_bytes = expected_text.encode("utf-8")
+    expected_rows = "\r\n".join([cell_value] * row_count)
+    expected_bytes = ('column1\r\n' + expected_rows + "\r\n").encode("utf-8")
     self.assertEqual(expected_bytes, csv_bytes)
