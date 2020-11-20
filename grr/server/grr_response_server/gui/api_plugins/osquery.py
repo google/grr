@@ -15,14 +15,13 @@ from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
 
 from typing import Optional
-from typing import Iterator
 from typing import Text
-from typing import List
 from typing import Generator
 
 
 class ApiGetOsqueryResultsArgs(rdf_structs.RDFProtoStruct):
   """An RDF wrapper class for the arguments of Osquery exporter."""
+
   protobuf = api_osquery_pb2.ApiGetOsqueryResultsArgs
   rdf_deps = [
       api_client.ApiClientId,
@@ -62,7 +61,7 @@ def _StreamCsv(
 ) -> api_call_handler_base.ApiBinaryStream:
   filename = f"osquery_{flow_id}.csv"
 
-  results = _FetchOsqueryResults(client_id, flow_id)
+  results = _FetchOsqueryResults(client_id=client_id, flow_id=flow_id)
   content = _ParseToCsvBytes(results)
 
   return api_call_handler_base.ApiBinaryStream(filename, content)
@@ -78,7 +77,7 @@ def _FetchOsqueryResults(
   while last_fetched_count != 0:
     data_fetched = data_store.REL_DB.ReadFlowResults(
       offset=next_to_fetch,
-      count=_FETCH_RESULTS_BATCH_COUNT,
+      count=_RESULTS_TO_FETCH_AT_ONCE,
       client_id=client_id,
       flow_id=flow_id)
 
@@ -111,4 +110,6 @@ def _ListToCsvBytes(values: List[str]) -> bytes:
   return csv_text.encode('utf-8')
 
 
-_FETCH_RESULTS_BATCH_COUNT = 100
+# We aim to hold around ~100MB of results into memory.
+# Default Osquery.max_chunk_size is 1 MiB.
+_RESULTS_TO_FETCH_AT_ONCE = 100
