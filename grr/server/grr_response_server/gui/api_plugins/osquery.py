@@ -111,5 +111,5 @@ def _ListToCsvBytes(values: List[str]) -> bytes:
 
 
 # We aim to hold around ~100MB of results into memory.
-# Default Osquery.max_chunk_size is 1 MiB.
+# At the moment of writing this, default Osquery.max_chunk_size is 1 MiB.
 _RESULTS_TO_FETCH_AT_ONCE = 100
