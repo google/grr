@@ -17,6 +17,7 @@
       <flow-form></flow-form>
     </div>
     <div class="client-flows">
+      <scheduled-flow-list [creator]="currentUser$ | async" [clientId]="id$ | async"></scheduled-flow-list>
       <flow-list></flow-list>
       <div [style.height.px]="approvalHeight">
         <!-- Placeholder behind Approval bottom sheet to allow scrolling to the

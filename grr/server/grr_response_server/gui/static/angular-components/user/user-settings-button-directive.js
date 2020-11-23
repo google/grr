@@ -1,6 +1,8 @@
 goog.module('grrUi.user.userSettingsButtonDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 
 /**
@@ -13,7 +15,7 @@ const UserSettingsButtonController = class {
    * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
    * @param {!angular.$timeout} $timeout
    * @param {!angular.$window} $window
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, $uibModal, $timeout, $window, grrApiService) {
@@ -29,7 +31,7 @@ const UserSettingsButtonController = class {
     /** @private {!angular.$window} */
     this.window_ = $window;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @type {?boolean} */

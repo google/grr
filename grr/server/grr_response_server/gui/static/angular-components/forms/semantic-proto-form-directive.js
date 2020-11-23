@@ -1,6 +1,8 @@
 goog.module('grrUi.forms.semanticProtoFormDirective');
 goog.module.declareLegacyNamespace();
 
+const reflectionService = goog.requireType('grrUi.core.reflectionService');
+
 
 
 /**
@@ -11,7 +13,7 @@ const SemanticProtoFormController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.Attributes} $attrs
-   * @param {!grrUi.core.reflectionService.ReflectionService}
+   * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
    * @ngInject
    */
@@ -19,7 +21,7 @@ const SemanticProtoFormController = class {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
 
     /** @type {boolean} */

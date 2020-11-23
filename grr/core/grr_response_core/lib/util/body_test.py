@@ -80,6 +80,13 @@ class StreamTest(absltest.TestCase):
     self.assertLen(rows, 1)
     self.assertEqual(rows[0][1].encode("utf-8"), entry.path)
 
+  def testNonUnicode(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = b"/\xff\x00\x00/\xfb\xfa\xf5"
+
+    content = b"".join(body.Stream(iter([entry])))
+    self.assertIn(b"/\xff\x00\x00/\xfb\xfa\xf5", content)
+
   def testHandlesDelimiterQuotesAndLineTerminatorsInPath(self):
 
     def _Test(c):

@@ -1,6 +1,7 @@
 goog.module('grrUi.semantic.semanticVersionedProtoDirective');
 goog.module.declareLegacyNamespace();
 
+const reflectionService = goog.requireType('grrUi.core.reflectionService');
 const {buildNonUnionItems} = goog.require('grrUi.semantic.semanticProtoDirective');
 
 
@@ -12,7 +13,7 @@ const {buildNonUnionItems} = goog.require('grrUi.semantic.semanticProtoDirective
 var SemanticVersionedProtoController = class {
   /**
    * @param {!angular.Scope} $scope Directive's scope.
-   * @param {!grrUi.core.reflectionService.ReflectionService}
+   * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
    * @ngInject
    */
@@ -20,7 +21,7 @@ var SemanticVersionedProtoController = class {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
 
     /** @export {Array<Object>} */

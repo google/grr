@@ -1,6 +1,7 @@
 goog.module('grrUi.acl.requestApprovalDialogDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
 const {stringToList} = goog.require('grrUi.core.utils');
 
 
@@ -13,7 +14,7 @@ const RequestApprovalDialogController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.$q} $q
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, $q, grrApiService) {
@@ -23,7 +24,7 @@ const RequestApprovalDialogController = class {
     /** @private {!angular.$q} */
     this.q_ = $q;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @export {?string} */

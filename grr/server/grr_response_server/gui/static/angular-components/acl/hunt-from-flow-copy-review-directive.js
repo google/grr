@@ -1,6 +1,8 @@
 goog.module('grrUi.acl.huntFromFlowCopyReviewDirective');
 goog.module.declareLegacyNamespace();
 
+const routingService = goog.requireType('grrUi.routing.routingService');
+
 
 
 /**
@@ -10,7 +12,7 @@ goog.module.declareLegacyNamespace();
 const HuntFromFlowCopyReviewController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @param {!routingService.RoutingService} grrRoutingService
    * @ngInject
    */
   constructor($scope, grrRoutingService) {

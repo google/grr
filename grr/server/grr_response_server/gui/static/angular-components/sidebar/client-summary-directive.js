@@ -1,6 +1,9 @@
 goog.module('grrUi.sidebar.clientSummaryDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const timeService = goog.requireType('grrUi.core.timeService');
+
 
 
 /**
@@ -10,18 +13,18 @@ goog.module.declareLegacyNamespace();
 const ClientSummaryController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.core.timeService.TimeService} grrTimeService
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!timeService.TimeService} grrTimeService
    * @ngInject
    */
   constructor($scope, grrApiService, grrTimeService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.core.timeService.TimeService} */
+    /** @private {!timeService.TimeService} */
     this.grrTimeService_ = grrTimeService;
 
     /** @type {string} */

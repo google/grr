@@ -4,13 +4,7 @@
 
 This defines the Database abstraction, which defines the methods used by GRR on
 a logical relational database model.
-
-WIP, will eventually replace datastore.py.
-
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import abc
 import collections
@@ -607,15 +601,17 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def WriteClientMetadata(self,
-                          client_id,
-                          certificate=None,
-                          fleetspeak_enabled=None,
-                          first_seen=None,
-                          last_ping=None,
-                          last_clock=None,
-                          last_ip=None,
-                          last_foreman=None):
+  def WriteClientMetadata(
+      self,
+      client_id,
+      certificate=None,
+      fleetspeak_enabled=None,
+      first_seen=None,
+      last_ping=None,
+      last_clock=None,
+      last_ip=None,
+      last_foreman=None,
+      fleetspeak_validation_info: Optional[Dict[str, str]] = None):
     """Write metadata about the client.
 
     Updates one or more client metadata fields for the given client_id. Any of
@@ -638,6 +634,7 @@ class Database(metaclass=abc.ABCMeta):
         ip address for the client.
       last_foreman: An rdfvalue.Datetime, indicating the last time that the
         client sent a foreman message to the server.
+      fleetspeak_validation_info: A dict with validation info from Fleetspeak.
     """
 
   def DeleteClient(self, client_id):
@@ -2961,15 +2958,17 @@ class DatabaseValidationWrapper(Database):
 
     return artifact
 
-  def WriteClientMetadata(self,
-                          client_id,
-                          certificate=None,
-                          fleetspeak_enabled=None,
-                          first_seen=None,
-                          last_ping=None,
-                          last_clock=None,
-                          last_ip=None,
-                          last_foreman=None):
+  def WriteClientMetadata(
+      self,
+      client_id,
+      certificate=None,
+      fleetspeak_enabled=None,
+      first_seen=None,
+      last_ping=None,
+      last_clock=None,
+      last_ip=None,
+      last_foreman=None,
+      fleetspeak_validation_info: Optional[Dict[str, str]] = None):
     precondition.ValidateClientId(client_id)
     precondition.AssertOptionalType(certificate, rdf_crypto.RDFX509Cert)
     precondition.AssertOptionalType(fleetspeak_enabled, bool)
@@ -2979,6 +2978,9 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertOptionalType(last_ip, rdf_client_network.NetworkAddress)
     precondition.AssertOptionalType(last_foreman, rdfvalue.RDFDatetime)
 
+    if fleetspeak_validation_info is not None:
+      precondition.AssertDictType(fleetspeak_validation_info, str, str)
+
     return self.delegate.WriteClientMetadata(
         client_id,
         certificate=certificate,
@@ -2987,7 +2989,8 @@ class DatabaseValidationWrapper(Database):
         last_ping=last_ping,
         last_clock=last_clock,
         last_ip=last_ip,
-        last_foreman=last_foreman)
+        last_foreman=last_foreman,
+        fleetspeak_validation_info=fleetspeak_validation_info)
 
   def DeleteClient(self, client_id):
     precondition.ValidateClientId(client_id)

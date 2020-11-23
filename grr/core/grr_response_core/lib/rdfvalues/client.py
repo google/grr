@@ -5,9 +5,6 @@
 This module contains the RDFValue implementations used to communicate with the
 client.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import binascii
 import hashlib
@@ -17,7 +14,7 @@ import re
 import socket
 import struct
 import sys
-from typing import Text
+from typing import Mapping, Text
 
 import distro
 import psutil
@@ -646,6 +643,27 @@ class EdrAgent(rdf_structs.RDFProtoStruct):
   rdf_deps = []
 
 
+class FleetspeakValidationInfoTag(rdf_structs.RDFProtoStruct):
+  """Dictionary entry in FleetspeakValidationInfo."""
+  protobuf = jobs_pb2.FleetspeakValidationInfoTag
+
+
+class FleetspeakValidationInfo(rdf_structs.RDFProtoStruct):
+  """Dictionary-like struct containing Fleetspeak ValidationInfo."""
+  protobuf = jobs_pb2.FleetspeakValidationInfo
+  rdf_deps = [FleetspeakValidationInfoTag]
+
+  @classmethod
+  def FromStringDict(cls, dct: Mapping[str, str]) -> "FleetspeakValidationInfo":
+    instance = cls()
+    for key, value in dct.items():
+      instance.tags.Append(key=key, value=value)
+    return instance
+
+  def ToStringDict(self) -> Mapping[str, str]:
+    return {tag.key: tag.value for tag in self.tags}
+
+
 class ClientSummary(rdf_structs.RDFProtoStruct):
   """Object containing client's summary data."""
   protobuf = jobs_pb2.ClientSummary
@@ -657,6 +675,7 @@ class ClientSummary(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
       Uname,
       User,
+      FleetspeakValidationInfo,
   ]
 
 

@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """A module with assertion functions for checking preconditions."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import collections
 import re
 from typing import Sized, Text
@@ -79,7 +75,7 @@ def AssertDictType(dct, expected_key_type, expected_value_type):
     TypeError: If given dictionary is not really a dictionary or not all its
                keys and values have the expected type.
   """
-  AssertType(dct, dict)
+  AssertType(dct, collections.Mapping)
   for key, value in dct.items():
     AssertType(key, expected_key_type)
     AssertType(value, expected_value_type)

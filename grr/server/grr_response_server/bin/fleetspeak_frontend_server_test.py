@@ -57,8 +57,10 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
       fs_message = fs_common_pb2.Message(
           message_type="GrrMessage",
           source=fs_common_pb2.Address(
-              client_id=fs_client_id, service_name=FS_SERVICE_NAME))
+              client_id=fs_client_id, service_name=FS_SERVICE_NAME),
+      )
       fs_message.data.Pack(grr_message.AsPrimitiveProto())
+      fs_message.validation_info.tags["foo"] = "bar"
       fs_messages.append(fs_message)
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123)):
@@ -69,6 +71,9 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
     client_data = data_store.REL_DB.MultiReadClientMetadata([client_id])
     self.assertEqual(client_data[client_id].ping,
                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123))
+    self.assertEqual(
+        client_data[client_id].last_fleetspeak_validation_info.ToStringDict(),
+        {"foo": "bar"})
 
     flow_data = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
         client_id, flow_id)
@@ -111,6 +116,7 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
         source=fs_common_pb2.Address(
             client_id=fs_client_id, service_name=FS_SERVICE_NAME))
     fs_message.data.Pack(packed_messages.AsPrimitiveProto())
+    fs_message.validation_info.tags["foo"] = "bar"
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123)):
       fs_server.Process(fs_message, None)
@@ -119,6 +125,9 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
     client_data = data_store.REL_DB.MultiReadClientMetadata([client_id])
     self.assertEqual(client_data[client_id].ping,
                      rdfvalue.RDFDatetime.FromSecondsSinceEpoch(123))
+    self.assertEqual(
+        client_data[client_id].last_fleetspeak_validation_info.ToStringDict(),
+        {"foo": "bar"})
 
     flow_data = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
         client_id, flow_id)

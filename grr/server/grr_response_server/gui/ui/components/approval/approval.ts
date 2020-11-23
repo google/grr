@@ -74,8 +74,6 @@ export class Approval implements OnDestroy {
       }),
   );
 
-  readonly scheduledFlows$ = this.clientPageFacade.scheduledFlows$;
-
   readonly approverSuggestions$ =
       this.clientPageFacade.approverSuggestions$.pipe(
           map(approverSuggestions => approverSuggestions.filter(

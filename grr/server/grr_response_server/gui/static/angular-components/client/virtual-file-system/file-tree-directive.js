@@ -1,6 +1,9 @@
 goog.module('grrUi.client.virtualFileSystem.fileTreeDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
+const routingService = goog.requireType('grrUi.routing.routingService');
 const {REFRESH_FOLDER_EVENT} = goog.require('grrUi.client.virtualFileSystem.events');
 const {ensurePathIsFolder, getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils');
 const {getFileId} = goog.require('grrUi.client.virtualFileSystem.fileViewDirective');
@@ -15,8 +18,8 @@ const FileTreeController = class {
    * @param {!angular.Scope} $rootScope
    * @param {!angular.Scope} $scope
    * @param {!angular.jQuery} $element
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!routingService.RoutingService} grrRoutingService
    * @ngInject
    */
   constructor($rootScope, $scope, $element, grrApiService, grrRoutingService) {
@@ -32,14 +35,14 @@ const FileTreeController = class {
     /** @private {!Object} */
     this.treeElement_ = $element.find('#file-tree');
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.routing.routingService.RoutingService} */
+    /** @private {!routingService.RoutingService} */
     this.grrRoutingService_ = grrRoutingService;
 
     /**
-     * @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController}
+     * @type {!fileContextDirective.FileContextController}
      */
     this.fileContext;
 

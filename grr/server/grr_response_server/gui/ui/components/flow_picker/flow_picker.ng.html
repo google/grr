@@ -54,6 +54,9 @@
   [cdkConnectedOverlayOffsetY]="-20"
   [cdkConnectedOverlayWidth]="textInputWidth$ | async"
   [cdkConnectedOverlayHeight]="450"
+  (attach)="overviewOverlayAttached$.next(true)"
+  (detach)="overviewOverlayAttached$.next(false)"
+  (overlayOutsideClick)="overlayOutsideClick($event)"
 >
   <flows-overview [flowsByCategory]="flowsByCategory$ | async" (flowSelected)="selectFlow($event)"></flows-overview>
 </ng-template>

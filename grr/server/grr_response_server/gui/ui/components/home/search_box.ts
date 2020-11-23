@@ -8,11 +8,6 @@ import {BehaviorSubject, fromEvent, Observable, of, Subject} from 'rxjs';
 import {debounceTime, distinctUntilChanged, filter, map, switchMap, takeUntil, withLatestFrom} from 'rxjs/operators';
 
 /**
- * Time window (in minutes) in which a client is considered online.
- */
-export const CLIENT_ONLINE_WINDOW = 5;
-
-/**
  * Search box component.
  *
  * NOTE: This has no effective dependency on NgRx store. i.e. it's
@@ -44,7 +39,7 @@ export class SearchBox implements AfterViewInit, OnDestroy {
 
   private readonly unsubscribe$ = new Subject<void>();
 
-  clients = new BehaviorSubject<Client[]>([]);
+  readonly clients$ = new BehaviorSubject<Client[]>([]);
 
   ngAfterViewInit() {
     // We can't initialize enterPressed$ as a class attribute, since it
@@ -56,7 +51,7 @@ export class SearchBox implements AfterViewInit, OnDestroy {
                 filter(e => e.key === 'Enter'),
                 distinctUntilChanged(),
                 withLatestFrom(this.inputFormControl.valueChanges),
-                map(([event, query]) => query),
+                map(([, query]) => query),
                 filter(query => query !== ''),
             );
     enterPressed$.pipe(takeUntil(this.unsubscribe$)).subscribe(query => {
@@ -70,7 +65,7 @@ export class SearchBox implements AfterViewInit, OnDestroy {
             distinctUntilChanged(),
             switchMap(query => this.searchClients(query)),
             )
-        .subscribe(this.clients);
+        .subscribe(this.clients$);
   }
 
   ngOnDestroy() {
@@ -91,13 +86,8 @@ export class SearchBox implements AfterViewInit, OnDestroy {
         response => response.items ? response.items.map(translateClient) : []));
   }
 
-  isOnline(date: Date) {
-    return (Math.abs(Date.now() - date.getTime()) / 1000 / 60) <
-        CLIENT_ONLINE_WINDOW;
-  }
-
-  selectClient(fqdn: string) {
-    this.querySubmitted.emit(fqdn);
+  selectClient(clientId: string) {
+    this.querySubmitted.emit(clientId);
   }
 
   trackClient(index: number, client: Client) {

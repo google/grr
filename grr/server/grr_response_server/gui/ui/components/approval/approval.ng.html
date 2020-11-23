@@ -89,10 +89,4 @@
 
       <button mat-flat-button color="primary" type="submit">Request access</button>
     </form>
-
-    <div *ngIf="(scheduledFlows$ | async)?.length">
-      <h2 class="mat-h2">Scheduled flows</h2>
-      <scheduled-flow-list></scheduled-flow-list>
-    </div>
-  </div>
 </div>

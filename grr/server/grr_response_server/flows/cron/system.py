@@ -234,10 +234,10 @@ class InterrogationHuntMixin(object):
         flow_args,
         self.token.username,
         client_limit=0,
-        client_rate=50,
+        client_rate=config.CONFIG["Cron.interrogate_client_rate"],
         crash_limit=config.CONFIG["Cron.interrogate_crash_limit"],
         description=description,
-        duration=rdfvalue.Duration.From(1, rdfvalue.WEEKS),
+        duration=config.CONFIG["Cron.interrogate_duration"],
         output_plugins=self.GetOutputPlugins())
     self.Log("Started hunt %s.", hunt_id)
 

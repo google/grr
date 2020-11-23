@@ -300,6 +300,11 @@ class Interrogate(flow_base.FlowBase):
 
     self.state.client.startup_info.client_info = response
 
+    metadata = data_store.REL_DB.ReadClientMetadata(self.client_id)
+    if metadata and metadata.last_fleetspeak_validation_info:
+      self.state.client.fleetspeak_validation_info = (
+          metadata.last_fleetspeak_validation_info)
+
   def ClientConfiguration(self, responses):
     """Process client config."""
     if not responses.success:

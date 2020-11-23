@@ -1,6 +1,9 @@
 goog.module('grrUi.forms.outputPluginDescriptorFormDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const reflectionService = goog.requireType('grrUi.core.reflectionService');
+
 
 
 /**
@@ -10,8 +13,8 @@ goog.module.declareLegacyNamespace();
 const OutputPluginDescriptorFormController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.core.reflectionService.ReflectionService}
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
    * @ngInject
    */
@@ -19,10 +22,10 @@ const OutputPluginDescriptorFormController = class {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
 
     /** @type {Object} */

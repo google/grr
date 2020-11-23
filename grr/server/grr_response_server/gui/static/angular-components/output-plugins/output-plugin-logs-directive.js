@@ -1,6 +1,8 @@
 goog.module('grrUi.outputPlugins.outputPluginLogsDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 
 /**
@@ -11,7 +13,7 @@ const OutputPluginLogsController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, $uibModal, grrApiService) {
@@ -21,7 +23,7 @@ const OutputPluginLogsController = class {
     /** @private {!angularUi.$uibModal} */
     this.uibModal_ = $uibModal;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @type {?number} */

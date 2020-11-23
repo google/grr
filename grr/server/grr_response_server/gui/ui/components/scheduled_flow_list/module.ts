@@ -2,8 +2,12 @@ import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
+import {MatMenuModule} from '@angular/material/menu';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
+
+import {UserImageModule} from '../user_image/module';
 
 import {ScheduledFlowList} from './scheduled_flow_list';
 
@@ -13,10 +17,13 @@ import {ScheduledFlowList} from './scheduled_flow_list';
 @NgModule({
   imports: [
     BrowserAnimationsModule,
-    RouterModule,
     CommonModule,
-    MatIconModule,
     MatButtonModule,
+    MatIconModule,
+    MatMenuModule,
+    MatTooltipModule,
+    RouterModule,
+    UserImageModule,
   ],
   declarations: [
     ScheduledFlowList,

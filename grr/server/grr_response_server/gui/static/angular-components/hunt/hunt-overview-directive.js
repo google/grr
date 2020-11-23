@@ -1,6 +1,8 @@
 goog.module('grrUi.hunt.huntOverviewDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const routingService = goog.requireType('grrUi.routing.routingService');
 const {huntExpirationTime} = goog.require('grrUi.hunt.utils');
 
 
@@ -26,8 +28,8 @@ exports.setAutoRefreshInterval = function(millis) {
 const HuntOverviewController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!routingService.RoutingService} grrRoutingService
    * @ngInject
    */
   constructor($scope, grrApiService, grrRoutingService) {
@@ -37,10 +39,10 @@ const HuntOverviewController = class {
     /** @type {string} */
     this.scope_.huntId;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.routing.routingService.RoutingService} */
+    /** @private {!routingService.RoutingService} */
     this.grrRoutingService_ = grrRoutingService;
 
     /** @export {string} */

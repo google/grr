@@ -1,6 +1,8 @@
 goog.module('grrUi.semantic.clientUrnDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 
 /**
@@ -11,7 +13,7 @@ var ClientUrnController = class {
   /**
    * @param {!angular.Scope} $scope Directive's scope.
    * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
-   * @param {!grrUi.core.apiService.ApiService} grrApiService GRR Aff4 service.
+   * @param {!apiService.ApiService} grrApiService GRR Aff4 service.
    * @ngInject
    */
   constructor($scope, $uibModal, grrApiService) {
@@ -24,7 +26,7 @@ var ClientUrnController = class {
     /** @private {!angularUi.$uibModal} */
     this.uibModal_ = $uibModal;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @export {Object} */

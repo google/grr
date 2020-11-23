@@ -94,7 +94,7 @@ describe('FlowsOverview component', () => {
     fixture.detectChanges();
 
     const links = fixture.debugElement.queryAll(By.css('a'));
-    links[0].nativeElement.dispatchEvent(new MouseEvent('mousedown'));
+    links[0].nativeElement.dispatchEvent(new MouseEvent('click'));
     fixture.detectChanges();
 
     expect(selectedFlowListItem).toBe(flowsByCategory.get('Browser')![0]);

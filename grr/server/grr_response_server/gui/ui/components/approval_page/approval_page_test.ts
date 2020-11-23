@@ -15,6 +15,8 @@ import {ClientPageFacade} from '../../store/client_page_facade';
 import {mockClientPageFacade} from '../../store/client_page_facade_test_util';
 import {ConfigFacade} from '../../store/config_facade';
 import {mockConfigFacade} from '../../store/config_facade_test_util';
+import {ScheduledFlowFacade} from '../../store/scheduled_flow_facade';
+import {mockScheduledFlowFacade} from '../../store/scheduled_flow_facade_test_util';
 import {UserFacade} from '../../store/user_facade';
 import {mockUserFacade} from '../../store/user_facade_test_util';
 import {initTestEnvironment} from '../../testing';
@@ -69,6 +71,10 @@ describe('ApprovalPage Component', () => {
             {
               provide: ClientPageFacade,
               useFactory: mockClientPageFacade,
+            },
+            {
+              provide: ScheduledFlowFacade,
+              useFactory: mockScheduledFlowFacade,
             },
           ],
 

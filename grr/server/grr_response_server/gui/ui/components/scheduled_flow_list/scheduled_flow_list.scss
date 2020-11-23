@@ -1,0 +1,63 @@
+@use '~material-theme' as c;
+
+h1.mat-h1 {
+  font-family: c.$google-sans-display-family;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 24px;
+}
+
+.container {
+  position: relative;
+  padding: 0;
+  margin: 0 0 1em;
+  background-color: c.mat-color(c.$background, app-bar);
+  border: 1px solid c.mat-color(c.$foreground, divider-light);
+  border-radius: 8px;
+
+  .header-wrapper {
+    .header {
+      padding: 18px 0 18px 24px;
+      display: flex;
+
+      .flow-header {
+        flex-grow: 1;
+
+        display: flex;
+        align-items: center;
+
+        mat-icon {
+          vertical-align: middle;
+        }
+
+        .flow-title {
+          font-family: c.$google-sans-display-family;
+          font-size: 105%;
+          color: c.mat-color(c.$foreground, text);
+        }
+
+        .flow-info {
+          flex-grow: 1;
+          padding-left: 3em;
+          padding-top: 2px;
+          font-size: 85%;
+          color: c.mat-color(c.$foreground, text-light);
+        }
+
+        .flow-status {
+          padding-top: 6px;
+          color: c.mat-color(c.$foreground, danger);
+        }
+      }
+
+      .menu-button {
+        .menu-icon {
+          opacity: 0.2;
+          font-size: 250%;
+          position: relative;
+          left: -5.5px;
+        }
+      }
+    }
+  }
+}

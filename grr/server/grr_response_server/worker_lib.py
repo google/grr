@@ -31,8 +31,8 @@ class Error(Exception):
 
 def ProcessMessageHandlerRequests(requests):
   """Processes message handler requests."""
-  logging.debug("Leased message handler request ids: %s",
-                ",".join(str(r.request_id) for r in requests))
+  logging.info("Leased message handler request ids: %s",
+               ",".join(str(r.request_id) for r in requests))
   grouped_requests = collection.Group(requests, lambda r: r.handler_name)
   for handler_name, requests_for_handler in grouped_requests.items():
     handler_cls = handler_registry.handler_name_map.get(handler_name)
@@ -52,8 +52,8 @@ def ProcessMessageHandlerRequests(requests):
       logging.exception("Exception while processing message handler %s: %s",
                         handler_name, e)
 
-  logging.debug("Deleting message handler request ids: %s",
-                ",".join(str(r.request_id) for r in requests))
+  logging.info("Deleting message handler request ids: %s",
+               ",".join(str(r.request_id) for r in requests))
   data_store.REL_DB.DeleteMessageHandlerRequests(requests)
 
 

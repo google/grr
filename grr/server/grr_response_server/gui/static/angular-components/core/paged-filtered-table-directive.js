@@ -1,6 +1,8 @@
 goog.module('grrUi.core.pagedFilteredTableDirective');
 goog.module.declareLegacyNamespace();
 
+const itemsProviderController = goog.requireType('grrUi.core.itemsProviderController');
+
 
 
 /**
@@ -104,7 +106,7 @@ const PagedFilteredTableController = class {
 
     /**
      * Items provider to be used for fetching items to be displayed.
-     * @export {grrUi.core.itemsProviderController.ItemsProviderController}
+     * @export {itemsProviderController.ItemsProviderController}
      */
     this.itemsProvider;
 
@@ -272,7 +274,7 @@ const PagedFilteredTableController = class {
   /**
    * Handles fetched unfiltered items.
    *
-   * @param {!grrUi.core.itemsProviderController.Items} items
+   * @param {!itemsProviderController.Items} items
    * @private
    */
   onFetchedUnfilteredItems_(items) {
@@ -327,7 +329,7 @@ const PagedFilteredTableController = class {
   /**
    * Handles fetched filtered items.
    *
-   * @param {!grrUi.core.itemsProviderController.Items} items
+   * @param {!itemsProviderController.Items} items
    * @private
    */
   onFetchedFilteredItems_(items) {

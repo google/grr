@@ -1,6 +1,7 @@
 goog.module('grrUi.client.clientDialogService');
 goog.module.declareLegacyNamespace();
 
+const dialogService = goog.requireType('grrUi.core.dialogService');
 const {AddClientsLabelsDialogDirective} = goog.require('grrUi.client.addClientsLabelsDialogDirective');
 const {RemoveClientsLabelsDialogDirective} = goog.require('grrUi.client.removeClientsLabelsDialogDirective');
 
@@ -13,11 +14,11 @@ const {RemoveClientsLabelsDialogDirective} = goog.require('grrUi.client.removeCl
  */
 exports.ClientDialogService = class {
   /**
-   * @param {grrUi.core.dialogService.DialogService} grrDialogService
+   * @param {dialogService.DialogService} grrDialogService
    * @ngInject
    */
   constructor(grrDialogService) {
-    /** @private {grrUi.core.dialogService.DialogService} */
+    /** @private {dialogService.DialogService} */
     this.grrDialogService_ = grrDialogService;
   }
 

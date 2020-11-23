@@ -1292,7 +1292,7 @@ def ResolveHostnameToIP(host, port):
   # string. To ensure type correctness until support for Python 2 is dropped,
   # we always decode this value.
   if compatibility.PY2:
-    result = result.decode("ascii")
+    result = result.decode("ascii")  # pytype: disable=attribute-error
   return result
 
 

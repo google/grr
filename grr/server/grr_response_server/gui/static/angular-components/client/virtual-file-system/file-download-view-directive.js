@@ -1,13 +1,17 @@
 goog.module('grrUi.client.virtualFileSystem.fileDownloadViewDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
 const {REFRESH_FILE_EVENT} = goog.require('grrUi.client.virtualFileSystem.events');
 const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
 
 
 
+/** @const */
 var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
+/** @const */
 var OPERATION_POLL_INTERVAL_MS = 1000;
 
 
@@ -20,7 +24,7 @@ const FileDownloadViewController = class {
    * @param {!angular.Scope} $rootScope
    * @param {!angular.Scope} $scope
    * @param {!angular.$interval} $interval
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($rootScope, $scope, $interval, grrApiService) {
@@ -34,11 +38,11 @@ const FileDownloadViewController = class {
     this.interval_ = $interval;
 
     /**
-     * @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController}
+     * @type {!fileContextDirective.FileContextController}
      */
     this.fileContext;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @type {?string} */

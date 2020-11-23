@@ -1,6 +1,8 @@
 goog.module('grrUi.client.virtualFileSystem.fileTimelineDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
 const {REFRESH_FILE_EVENT, REFRESH_FOLDER_EVENT} = goog.require('grrUi.client.virtualFileSystem.events');
 const {getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils');
 
@@ -13,18 +15,18 @@ const FileTimelineController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.$interval} $interval
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, $interval, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /**
-     * @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController}
+     * @type {!fileContextDirective.FileContextController}
      */
     this.fileContext;
 
