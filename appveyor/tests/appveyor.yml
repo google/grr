@@ -26,7 +26,7 @@ install:
   wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
   fi
 - python3.6 -m venv "${HOME}/INSTALL"
-- ${HOME}/INSTALL/bin/pip install pytest-xdist==1.28.0
+- ${HOME}/INSTALL/bin/pip install pytest-xdist==2.1.0
 - travis/install.sh
 
 # Appveyor will try to build any Visual Studio projects it finds

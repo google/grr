@@ -66,7 +66,7 @@ setup_args = dict(
         "flaky==3.6.1",
         "mock==4.0.2",
         "mox==0.5.3",
-        "pytest==5.4.3",
+        "pytest==6.1.2",
         "selenium==3.141.0",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
