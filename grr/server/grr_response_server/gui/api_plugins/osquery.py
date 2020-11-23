@@ -13,8 +13,8 @@ from grr_response_server.gui.api_plugins import flow as api_flow
 
 from typing import Optional
 from typing import Text
-from typing import Generator
 from typing import Iterable
+from typing import Iterator
 from io import StringIO
 import csv
 
@@ -69,8 +69,8 @@ def _StreamCsv(
 
 def _FetchOsqueryResults(
     client_id: Text, 
-    flow_id: Text
-) -> Generator[rdf_osquery.OsqueryResult, None, None]:
+    flow_id: Text,
+) -> Iterator[rdf_osquery.OsqueryResult]:
   next_to_fetch = 0
   last_fetched_count = None
 
@@ -91,8 +91,8 @@ def _FetchOsqueryResults(
 
 
 def _ParseToCsvBytes(
-    osquery_results: Generator[rdf_osquery.OsqueryResult, None, None]
-) -> Generator[bytes, None, None]:
+    osquery_results: Iterator[rdf_osquery.OsqueryResult],
+) -> Iterator[bytes]:
   added_columns = False
 
   for result in osquery_results:
