@@ -9,10 +9,10 @@ from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 class UtilsTest(unittest.TestCase):
 
   def testListToCSVBytes(self):
-    received_bytes = api_osquery._LineToCsvBytes(["a", "b", "c", "d"])
+    output_bytes = api_osquery._LineToCsvBytes(["a", "b", "c", "d"])
+    output_text = output_bytes.decode("utf-8")
 
-    csv_correct_bytes = "a,b,c,d\r\n".encode("utf-8")
-    self.assertEqual(received_bytes, csv_correct_bytes)
+    self.assertEqual("a,b,c,d\r\n", output_text)
 
   def testSomeTextToCsvBytes(self):
     table = rdf_osquery.OsqueryTable()
@@ -25,13 +25,10 @@ class UtilsTest(unittest.TestCase):
     result = rdf_osquery.OsqueryResult()
     result.table = table
 
-    result_bytes = list(api_osquery._ParseToCsvBytes([result]))
+    output_bytes = api_osquery._ParseToCsvBytes([result])
+    output_text = list(map(lambda b: b.decode("utf-8"), output_bytes))
 
-    expected_bytes = [
-      "A,B\r\n".encode("utf-8"),
-      "1-A,1-B\r\n".encode("utf-8"),
-      "2-A,2-B\r\n".encode("utf-8")]
-    self.assertListEqual(expected_bytes, result_bytes)
+    self.assertListEqual(["A,B\r\n", "1-A,1-B\r\n", "2-A,2-B\r\n"], output_text)
 
   def testTextWithCommasToCsvBytes(self):
     table = rdf_osquery.OsqueryTable()
@@ -41,9 +38,7 @@ class UtilsTest(unittest.TestCase):
     result = rdf_osquery.OsqueryResult()
     result.table = table
 
-    result_bytes = list(api_osquery._ParseToCsvBytes([result]))
+    output_bytes = api_osquery._ParseToCsvBytes([result])
+    output_text = list(map(lambda b: b.decode("utf-8"), output_bytes))
 
-    expected_bytes = [
-      "\"c,o,l,u,m,n\"\r\n".encode("utf-8"),
-      "\"c,e,l,l\"\r\n".encode("utf-8")]
-    self.assertListEqual(expected_bytes, result_bytes)
+    self.assertListEqual(["\"c,o,l,u,m,n\"\r\n", "\"c,e,l,l\"\r\n"], output_text)
