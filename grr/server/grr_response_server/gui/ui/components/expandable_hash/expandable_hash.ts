@@ -20,7 +20,7 @@ export class HashTextAggregator {
 }
 
 /**
- * Displays a default text. When the text is hovered, a pop-up appears
+ * Displays a default text. When the text is hovered, a menu appears
  * with all available hashes, together with copy-to-clipboard buttons.
  */
 @Component({

@@ -1,4 +1,4 @@
-import { async, ComponentFixture, TestBed, tick, fakeAsync, waitForAsync } from '@angular/core/testing';
+import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 
 import { ExpandableHash, HashTextAggregator } from './expandable_hash';
 import { initTestEnvironment } from '@app/testing';
@@ -9,17 +9,23 @@ import { DebugElement } from '@angular/core';
 import { MatButtonModule } from '@angular/material/button';
 import { MatMenuModule } from '@angular/material/menu';
 import { ClipboardModule } from '@angular/cdk/clipboard';
+import { MatIconModule } from '@angular/material/icon';
 
 initTestEnvironment();
 
-fdescribe('ExpandableHash component', () => {
+describe('ExpandableHash component', () => {
   let component: ExpandableHash;
   let fixture: ComponentFixture<ExpandableHash>;
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
       declarations: [ ExpandableHash ],
-      imports: [ ClipboardModule, MatMenuModule, MatButtonModule ]
+      imports: [
+        ClipboardModule,
+        MatMenuModule,
+        MatButtonModule,
+        MatIconModule,
+      ],
     })
     .compileComponents();
   }));
@@ -37,11 +43,6 @@ fdescribe('ExpandableHash component', () => {
     noHashesSpan = this.root.query(By.css('.no-hashes'));
     noHashesSpanText = this.noHashesSpan?.nativeElement.innerText;
 
-    copyMenu = this.root.query(By.css('mat-menu'));
-
-    copyButtons = this.root.queryAll(By.css('button'));
-    copyButtonsText = this.copyButtons.map(button => button.nativeElement.innerText);
-
     constructor(readonly root: DebugElement) { }
   }
 
@@ -51,25 +52,19 @@ fdescribe('ExpandableHash component', () => {
     return new ExpandableHashDOM(fixture.debugElement);
   }
 
-  function expandMenu(oldDOM: ExpandableHashDOM): ExpandableHashDOM {
-    oldDOM.expandButton.triggerEventHandler('click', null);
-    oldDOM.expandButton.nativeElement.click();
-    tick();
-    fixture.detectChanges();
-    return new ExpandableHashDOM(fixture.debugElement);
-  }
-
-  it('should display en dash (–) if no hashes are available', () => {
+  it('should only display an en dash (–) if no hashes are available', () => {
     const noHashes = { };
     const emDash = '–';
 
     const DOM = initComponentWithHashes(noHashes);
 
+    expect(DOM.expandButton).toBeFalsy();
+
     expect(DOM.noHashesSpan).toBeTruthy();
     expect(DOM.noHashesSpanText).toBe(emDash);
   });
 
-  it('should display \"Copy value\" text if 1 hash is available', () => {
+  it('should only display \"Copy value\" text if 1 hash is available', () => {
     const oneHash = {
       sha256: 'sha256',
     };
@@ -78,104 +73,11 @@ fdescribe('ExpandableHash component', () => {
 
     const DOM = initComponentWithHashes(oneHash);
 
+    expect(DOM.noHashesSpan).toBeFalsy();
+
     expect(DOM.expandButton).toBeTruthy();
     expect(DOM.expandButtonText).toBe('Copy value');
   });
-
-  it('should\'t display menu button "Copy all" if just 1 hash is present', fakeAsync(() => {
-    const oneHash = {
-      sha256: 'sha256',
-    };
-    const initialDOM = initComponentWithHashes(oneHash);
-    const DOM = expandMenu(initialDOM);
-
-    expect(DOM.copyMenu).toBeTruthy();
-    expect(DOM.copyButtons.length).toBe(1);
-    expect(DOM.copyButtonsText[0]).not.toBe('Copy all');
-  }));
-
-  // it('should display copy all with text if 2 hashes are present', () => {
-  //   const twoHashes = {
-  //     sha256: 'sha256',
-  //     md5: 'md5',
-  //   };
-  //   const fixture = createComponentFixtureWith(twoHashes);
-
-  //   const copyAllDiv = fixture.debugElement.query(By.css('.copy-all-section'));
-  //   const copyAllText = copyAllDiv.query(By.css('.copy-all-text')).nativeElement.innerText;
-
-  //   expect(copyAllDiv).toBeTruthy();
-  //   expect(copyAllText).toBe('All hash information');
-  // });
-
-  // it('should display SHA-256 hash', () => {
-  //   const sha256Only = {
-  //     sha256: 'sha256-0123456789abcdef'
-  //   };
-
-  //   const expectedHashName = 'SHA-256'
-  //   const expectedHashValue = sha256Only.sha256;
-
-  //   const fixture = createComponentFixtureWith(sha256Only);
-  //   const displayedHashes = getDisplayedHashes(fixture);
-
-  //   expect(displayedHashes.length).toEqual(1);
-  //   expect(displayedHashes[0].hashType).toEqual(expectedHashName);
-  //   expect(displayedHashes[0].value).toEqual(expectedHashValue);
-  // });
-
-  // it('should display SHA-1 hash', () => {
-  //   const sha1Only = {
-  //     sha1: 'sha1-0123456789abcdef'
-  //   };
-
-  //   const expectedHashName = 'SHA-1'
-  //   const expectedHashValue = sha1Only.sha1;
-
-  //   const fixture = createComponentFixtureWith(sha1Only);
-  //   const displayedHashes = getDisplayedHashes(fixture);
-
-  //   expect(displayedHashes.length).toEqual(1);
-  //   expect(displayedHashes[0].hashType).toEqual(expectedHashName);
-  //   expect(displayedHashes[0].value).toEqual(expectedHashValue);
-  // });
-
-  // it('should display MD5 hash', () => {
-  //   const md5Only = {
-  //     md5: 'md5-0123456789abcdef'
-  //   };
-
-  //   const expectedHashName = 'MD5'
-  //   const expectedHashValue = md5Only.md5;
-
-  //   const fixture = createComponentFixtureWith(md5Only);
-  //   const displayedHashes = getDisplayedHashes(fixture);
-
-  //   expect(displayedHashes.length).toEqual(1);
-  //   expect(displayedHashes[0].hashType).toEqual(expectedHashName);
-  //   expect(displayedHashes[0].value).toEqual(expectedHashValue);
-  // });
-
-  // it('should display all SHA-256, SHA-1 and MD5', () => {
-  //   const allHashes = {
-  //     sha256: 'sha256-0123456789abcdef',
-  //     sha1: 'sha1-0123456789abcdef',
-  //     md5: 'md5-0123456789abcdef',
-  //   };
-
-  //   const fixture = createComponentFixtureWith(allHashes);
-  //   const displayedHashes = getDisplayedHashes(fixture);
-
-  //   expect(displayedHashes.length).toEqual(3);
-  //   expect(displayedHashes[0].hashType).toEqual('SHA-256');
-  //   expect(displayedHashes[0].value).toEqual(allHashes.sha256);
-
-  //   expect(displayedHashes[1].hashType).toEqual('SHA-1');
-  //   expect(displayedHashes[1].value).toEqual(allHashes.sha1);
-
-  //   expect(displayedHashes[2].hashType).toEqual('MD5');
-  //   expect(displayedHashes[2].value).toEqual(allHashes.md5);
-  // });
 });
 
 describe('HashTextAggregator', () => {
