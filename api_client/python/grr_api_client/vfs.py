@@ -4,40 +4,22 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import abc
-from typing import Optional
-from typing import Sequence
-
-from google.protobuf import message
-from grr_api_client import context as api_context
 from grr_api_client import utils
 from grr_response_proto.api import vfs_pb2
 
 
-class FileOperation(metaclass=abc.ABCMeta):
+class FileOperation(object):
   """Base wrapper class for file operations."""
 
-  # TODO(hanuszczak): This should be typed with a generic type parameter for a
-  # state enum type. However, in the generated code, proto enums types are not
-  # Python types and cannot be applied to types like `Generic` or `Optional`.
-  @classmethod
-  @abc.abstractmethod
-  def RunningState(cls) -> int:
-    raise NotImplementedError()
+  # States have to be defined by child classes.
+  STATE_RUNNING = None
+  STATE_FINISHED = None
 
-  # TODO(hanuszczak): See comment for `RunningState`.
-  @classmethod
-  @abc.abstractmethod
-  def FinishedState(cls) -> int:
-    raise NotImplementedError()
-
-  def __init__(
-      self,
-      client_id: str,
-      operation_id: str,
-      target_file: "FileBase",
-      context: api_context.GrrApiContext,
-  ):
+  def __init__(self,
+               client_id=None,
+               operation_id=None,
+               target_file=None,
+               context=None):
     super(FileOperation, self).__init__()
 
     if not client_id:
@@ -49,19 +31,18 @@ class FileOperation(metaclass=abc.ABCMeta):
     if not target_file:
       raise ValueError("target_file can't be empty")
 
-    self.client_id = client_id  # type: str
-    self.operation_id = operation_id  # type: str
-    self.target_file = target_file  # type: FileBase
-    self._context = context  # type: api_context.GrrApiContext
+    if not context:
+      raise ValueError("context can't be empty")
 
-  @abc.abstractmethod
-  def GetState(self) -> int:
+    self.client_id = client_id
+    self.operation_id = operation_id
+    self.target_file = target_file
+    self._context = context
+
+  def GetState(self):
     raise NotImplementedError()
 
-  def WaitUntilDone(
-      self,
-      timeout: Optional[int] = None,
-  ) -> "FileOperation":
+  def WaitUntilDone(self, timeout=None):
     """Wait until the operation is done.
 
     Args:
@@ -76,7 +57,7 @@ class FileOperation(metaclass=abc.ABCMeta):
 
     utils.Poll(
         generator=self.GetState,
-        condition=lambda s: s != self.__class__.RunningState(),
+        condition=lambda s: s != self.__class__.STATE_RUNNING,
         timeout=timeout)
     self.target_file = self.target_file.Get()
     return self
@@ -85,66 +66,31 @@ class FileOperation(metaclass=abc.ABCMeta):
 class RefreshOperation(FileOperation):
   """Wrapper class for refresh operations."""
 
-  # TODO(hanuszczak): These definitions are kept for backward compatibility and
-  # should be removed after some grace period.
   STATE_RUNNING = vfs_pb2.ApiGetVfsRefreshOperationStateResult.RUNNING
   STATE_FINISHED = vfs_pb2.ApiGetVfsRefreshOperationStateResult.FINISHED
 
-  @classmethod
-  def RunningState(cls) -> vfs_pb2.ApiGetVfsRefreshOperationStateResult.State:
-    return vfs_pb2.ApiGetVfsRefreshOperationStateResult.RUNNING
-
-  @classmethod
-  def FinishedState(cls) -> vfs_pb2.ApiGetVfsRefreshOperationStateResult.State:
-    return vfs_pb2.ApiGetVfsRefreshOperationStateResult.FINISHED
-
-  def GetState(self) -> vfs_pb2.ApiGetVfsRefreshOperationStateResult.State:
+  def GetState(self):
     args = vfs_pb2.ApiGetVfsRefreshOperationStateArgs(
         client_id=self.client_id, operation_id=self.operation_id)
-
-    response = self._context.SendRequest("GetVfsRefreshOperationState", args)
-    if not isinstance(response, vfs_pb2.ApiGetVfsRefreshOperationStateResult):
-      raise TypeError(f"Unexpected response type: {type(response)}")
-
-    return response.state
+    return self._context.SendRequest("GetVfsRefreshOperationState", args).state
 
 
 class CollectOperation(FileOperation):
   """Wrapper class for collect operations."""
 
-  # TODO(hanuszczak): These definitions are kept for backward compatibility and
-  # should be removed after some grace period.
   STATE_RUNNING = vfs_pb2.ApiGetVfsFileContentUpdateStateResult.RUNNING
   STATE_FINISHED = vfs_pb2.ApiGetVfsFileContentUpdateStateResult.FINISHED
 
-  @classmethod
-  def RunningState(cls) -> vfs_pb2.ApiGetVfsFileContentUpdateStateResult.State:
-    return vfs_pb2.ApiGetVfsFileContentUpdateStateResult.RUNNING
-
-  @classmethod
-  def FinishedState(cls) -> vfs_pb2.ApiGetVfsFileContentUpdateStateResult.State:
-    return vfs_pb2.ApiGetVfsFileContentUpdateStateResult.FINISHED
-
-  def GetState(self) -> vfs_pb2.ApiGetVfsFileContentUpdateStateResult.State:
+  def GetState(self):
     args = vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
         client_id=self.client_id, operation_id=self.operation_id)
-
-    response = self._context.SendRequest("GetVfsFileContentUpdateState", args)
-    if not isinstance(response, vfs_pb2.ApiGetVfsFileContentUpdateStateResult):
-      raise TypeError(f"Unexpected response type: {type(response)}")
-
-    return response.state
+    return self._context.SendRequest("GetVfsFileContentUpdateState", args).state
 
 
 class FileBase(object):
   """Base class for FlowRef and Flow."""
 
-  def __init__(
-      self,
-      client_id: str,
-      path: str,
-      context: api_context.GrrApiContext,
-  ):
+  def __init__(self, client_id=None, path=None, context=None):
     super(FileBase, self).__init__()
 
     if not client_id:
@@ -153,128 +99,94 @@ class FileBase(object):
     if not path:
       raise ValueError("path can't be empty")
 
-    self.client_id = client_id  # type: str
-    self.path = path  # type: str
-    self._context = context  # type: api_context.GrrApiContext
+    if not context:
+      raise ValueError("context can't be empty")
 
-  def GetBlob(
-      self,
-      timestamp: Optional[int] = None,
-  ) -> utils.BinaryChunkIterator:
+    self.client_id = client_id
+    self.path = path
+    self._context = context
+
+  def GetBlob(self, timestamp=None):
     args = vfs_pb2.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path=self.path)
-    if timestamp is not None:
+    if timestamp:
       args.timestamp = timestamp
     return self._context.SendStreamingRequest("GetFileBlob", args)
 
-  def GetBlobWithOffset(
-      self,
-      offset: int,
-      timestamp: Optional[int] = None,
-  ) -> utils.BinaryChunkIterator:
+  def GetBlobWithOffset(self, offset, timestamp=None):
     args = vfs_pb2.ApiGetFileBlobArgs(
         client_id=self.client_id, file_path=self.path, offset=offset)
-    if timestamp is not None:
+    if timestamp:
       args.timestamp = timestamp
     return self._context.SendStreamingRequest("GetFileBlob", args)
 
-  def ListFiles(self) -> utils.ItemsIterator["File"]:
-    """Lists files under the directory."""
+  def ListFiles(self):
     args = vfs_pb2.ApiListFilesArgs(
         client_id=self.client_id, file_path=self.path)
     items = self._context.SendIteratorRequest("ListFiles", args)
 
-    def MapDataToFile(data: message.Message) -> "File":
-      if not isinstance(data, vfs_pb2.ApiFile):
-        raise TypeError(f"Unexpected response type: {type(data)}")
-
+    def MapDataToFile(data):
       return File(client_id=self.client_id, data=data, context=self._context)
 
     return utils.MapItemsIterator(MapDataToFile, items)
 
-  def GetFilesArchive(self) -> utils.BinaryChunkIterator:
+  def GetFilesArchive(self):
     args = vfs_pb2.ApiGetVfsFilesArchiveArgs(
         client_id=self.client_id, file_path=self.path)
     return self._context.SendStreamingRequest("GetVfsFilesArchive", args)
 
-  def GetVersionTimes(self) -> Sequence[int]:
+  def GetVersionTimes(self):
     args = vfs_pb2.ApiGetFileVersionTimesArgs(
         client_id=self.client_id, file_path=self.path)
+    return self._context.SendRequest("GetFileVersionTimes", args).times
 
-    result = self._context.SendRequest("GetFileVersionTimes", args)
-    if not isinstance(result, vfs_pb2.ApiGetFileVersionTimesResult):
-      raise TypeError(f"Unexpected result type: {type(result)}")
-
-    return result.times
-
-  def Refresh(self) -> RefreshOperation:
+  def Refresh(self):
     args = vfs_pb2.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path=self.path)
-
     result = self._context.SendRequest("CreateVfsRefreshOperation", args)
-    if not isinstance(result, vfs_pb2.ApiCreateVfsRefreshOperationResult):
-      raise TypeError(f"Unexpected result type: {type(result)}")
-
     return RefreshOperation(
         client_id=self.client_id,
         operation_id=result.operation_id,
         target_file=self,
         context=self._context)
 
-  def RefreshRecursively(self, max_depth: int = 5) -> RefreshOperation:
+  def RefreshRecursively(self, max_depth=5):
     args = vfs_pb2.ApiCreateVfsRefreshOperationArgs(
         client_id=self.client_id, file_path=self.path, max_depth=max_depth)
-
     result = self._context.SendRequest("CreateVfsRefreshOperation", args)
-    if not isinstance(result, vfs_pb2.ApiCreateVfsRefreshOperationResult):
-      raise TypeError(f"Unexpected result type: {type(result)}")
-
     return RefreshOperation(
         client_id=self.client_id,
         operation_id=result.operation_id,
         target_file=self,
         context=self._context)
 
-  def Collect(self) -> "CollectOperation":
+  def Collect(self):
     args = vfs_pb2.ApiUpdateVfsFileContentArgs(
         client_id=self.client_id, file_path=self.path)
-
     result = self._context.SendRequest("UpdateVfsFileContent", args)
-    if not isinstance(result, vfs_pb2.ApiUpdateVfsFileContentResult):
-      raise TypeError(f"Unexpected result type: {type(result)}")
-
     return CollectOperation(
         client_id=self.client_id,
         operation_id=result.operation_id,
         target_file=self,
         context=self._context)
 
-  def GetTimeline(self) -> Sequence[vfs_pb2.ApiVfsTimelineItem]:
+  def GetTimeline(self):
     args = vfs_pb2.ApiGetVfsTimelineArgs(
         client_id=self.client_id, file_path=self.path)
+    return self._context.SendRequest("GetVfsTimeline", args).items
 
-    result = self._context.SendRequest("GetVfsTimeline", args)
-    if not isinstance(result, vfs_pb2.ApiGetVfsTimelineResult):
-      raise TypeError(f"Unexpected result type: {type(result)}")
-
-    return result.items
-
-  def GetTimelineAsCsv(self) -> utils.BinaryChunkIterator:
+  def GetTimelineAsCsv(self):
     args = vfs_pb2.ApiGetVfsTimelineAsCsvArgs(
         client_id=self.client_id, file_path=self.path)
     return self._context.SendStreamingRequest("GetVfsTimelineAsCsv", args)
 
-  def Get(self) -> "File":
+  def Get(self):
     """Fetch file's data and return proper File object."""
 
     args = vfs_pb2.ApiGetFileDetailsArgs(
         client_id=self.client_id, file_path=self.path)
-
-    data = self._context.SendRequest("GetFileDetails", args)
-    if not isinstance(data, vfs_pb2.ApiGetFileDetailsResult):
-      raise TypeError(f"Unexpected result type: {type(data)}")
-
-    return File(client_id=self.client_id, data=data.file, context=self._context)
+    data = self._context.SendRequest("GetFileDetails", args).file
+    return File(client_id=self.client_id, data=data, context=self._context)
 
 
 class FileRef(FileBase):
@@ -284,17 +196,15 @@ class FileRef(FileBase):
 class File(FileBase):
   """File object with fetched data."""
 
-  def __init__(
-      self,
-      client_id: str,
-      data: vfs_pb2.ApiFile,
-      context: api_context.GrrApiContext,
-  ):
+  def __init__(self, client_id=None, data=None, context=None):
+    if data is None:
+      raise ValueError("data can't be None")
+
     super(File, self).__init__(
         client_id=client_id, path=data.path, context=context)
 
-    self.data = data  # type: vfs_pb2.ApiFile
+    self.data = data
 
   @property
-  def is_directory(self) -> bool:
+  def is_directory(self):
     return self.data.is_directory

@@ -1,25 +1,5 @@
-@use '~material-theme' as c;
-
 :host {
   display: block;
-
-  .mat-form-field {
-    width: 100%;
-
-    &[hidden] {
-      display: none;
-    }
-
-    .mat-form-field-wrapper {
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
-
-    mat-icon {
-      margin-right: 0.5em;
-      color: c.mat-color(c.$foreground, divider);
-    }
-  }
 }
 
 .column {
@@ -41,32 +21,4 @@ button {
 
 mat-form-field {
   width: 100%;
-
-  input:read-only {
-    cursor: default;
-  }
-}
-
-.highlight {
-  font-weight: 900;
-}
-
-.category-title {
-  font-size: 12px;
-}
-
-.flow-title {
-  font-weight: 400;
-  font-size: 14px;
-  height: 19px;
-}
-
-.flow-description {
-  font-weight: 300;
-  font-size: 14px;
-}
-
-.common-flows h3 {
-  font-size: 13px;
-  margin-bottom: 6px;
 }

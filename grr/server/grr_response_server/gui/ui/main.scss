@@ -33,19 +33,3 @@ html {
 .mat-input-element.monospace {
   font-family: 'Roboto Mono', monospace;
 }
-
-// Flow search results appear on a CDK overlay layer, so their styling has
-// to be defined globally.
-.flow-search-results {
-  .mat-optgroup-label {
-    background-color: mat-color($background, darker-background);
-    line-height: 24px;
-    height: 24px;
-  }
-
-  .mat-optgroup .mat-option:not(.mat-option-multiple) {
-    padding-left: 16px;
-    height: 50px;
-    line-height: 24px;
-  }
-}

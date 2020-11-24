@@ -135,26 +135,26 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       });
 
   private updateFlowsFn(state: ClientPageState, flows: Flow[]) {
-    const newEntries = flows.map((flow) => {
-      const fle =
-          state.flowListEntries[flow.flowId] ?? flowListEntryFromFlow(flow);
-      return {...fle, flow};
+    const flowsToUpdate: FlowListEntry[] = flows.map((f) => {
+      const existing = state.flowListEntries[f.flowId];
+      if (existing) {
+        return {...existing, flow: f};
+      } else {
+        return flowListEntryFromFlow(f);
+      }
     });
-
-    const flowListEntries = {...state.flowListEntries};
-    for (const fle of newEntries) {
-      flowListEntries[fle.flow.flowId] = fle;
+    const newFlowListEntries = {...state.flowListEntries};
+    for (const f of flowsToUpdate) {
+      newFlowListEntries[f.flow.flowId] = f;
     }
 
-    const flowListEntrySequence =
-        Object.values(flowListEntries)
-            .sort((a, b) => +b.flow.startedAt - +a.flow.startedAt)
-            .map(f => f.flow.flowId);
+    const sortedFlows = [...flows];
+    sortedFlows.sort((a, b) => b.startedAt.valueOf() - a.startedAt.valueOf());
 
     return {
       ...state,
-      flowListEntries,
-      flowListEntrySequence,
+      flowListEntries: newFlowListEntries,
+      flowListEntrySequence: sortedFlows.map(f => f.flowId),
     };
   }
   // Reducer updating flows.

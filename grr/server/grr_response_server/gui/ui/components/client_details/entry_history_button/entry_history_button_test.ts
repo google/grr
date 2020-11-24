@@ -1,4 +1,4 @@
-import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {async, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Subject} from 'rxjs';
@@ -8,7 +8,6 @@ import {Client} from '../../../lib/models/client';
 import {newClient} from '../../../lib/models/model_test_util';
 import {getClientEntriesChanged} from '../../../store/client_details_diff';
 import {ClientDetailsFacade} from '../../../store/client_details_facade';
-import {ClientDetailsFacadeMock, mockClientDetailsFacade} from '../../../store/client_details_facade_test_util';
 import {initTestEnvironment} from '../../../testing';
 
 import {EntryHistoryButton} from './entry_history_button';
@@ -19,7 +18,7 @@ import {EntryHistoryButtonModule} from './module';
 initTestEnvironment();
 
 describe('Entry History Button Component', () => {
-  let facade: ClientDetailsFacadeMock;
+  let facade: ClientDetailsFacade;
   const clientVersionsMock = [
     newClient({
       clientId: 'C.1234',
@@ -52,9 +51,10 @@ describe('Entry History Button Component', () => {
     }),
   ];
 
-  beforeEach(waitForAsync(() => {
-    facade = mockClientDetailsFacade();
-
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
+  beforeEach(async(() => {
     TestBed
         .configureTestingModule({
           imports: [
@@ -63,20 +63,22 @@ describe('Entry History Button Component', () => {
             EntryHistoryButtonModule,
           ],
 
-          providers: [
-            {provide: ClientDetailsFacade, useFactory: () => facade},
-          ],
         })
         .compileComponents();
+
+    facade = TestBed.inject(ClientDetailsFacade);
   }));
 
   it('shows "1 change" button when there is one change', fakeAsync(() => {
+       const subject = new Subject<Map<string, ReadonlyArray<Client>>>();
+       Object.defineProperty(
+           facade, 'selectedClientEntriesChanged$', {get: () => subject});
+
        const fixture = TestBed.createComponent(EntryHistoryButton);
        fixture.componentInstance.path = 'knowledgeBase.fqdn';
        fixture.detectChanges();
 
-       facade.selectedClientEntriesChangedSubject.next(
-           getClientEntriesChanged(clientVersionsMock));
+       subject.next(getClientEntriesChanged(clientVersionsMock));
        tick();
        fixture.detectChanges();
 

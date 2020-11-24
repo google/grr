@@ -1,4 +1,4 @@
-import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
+import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowFormModule} from '@app/components/flow_form/module';
 import {CollectBrowserHistoryArgsBrowser} from '@app/lib/api/api_interfaces';
@@ -37,7 +37,7 @@ describe('FlowForm Component', () => {
   let configFacade: ConfigFacadeMock;
   let clientPageFacade: ClientPageFacadeMock;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(async(() => {
     configFacade = mockConfigFacade();
     clientPageFacade = mockClientPageFacade();
 

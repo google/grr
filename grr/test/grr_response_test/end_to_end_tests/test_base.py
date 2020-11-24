@@ -187,10 +187,6 @@ class EndToEndTest(absltest.TestCase, metaclass=EndToEndTestMetaclass):
   def platform(self):
     return self.client.data.os_info.system
 
-  @property
-  def os_release(self):
-    return self.client.data.os_info.release
-
   def RunFlowAndWait(self, flow_name, args=None, runner_args=None):
     """Runs a flow and busy-waits until its completion."""
     if runner_args is None:

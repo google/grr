@@ -1,4 +1,4 @@
-import {discardPeriodicTasks, fakeAsync, TestBed, waitForAsync} from '@angular/core/testing';
+import {async, discardPeriodicTasks, fakeAsync, TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -11,7 +11,10 @@ import {Timestamp} from './timestamp';
 initTestEnvironment();
 
 describe('Timestamp Component', () => {
-  beforeEach(waitForAsync(() => {
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
+  beforeEach(async(() => {
     TestBed
         .configureTestingModule({
           imports: [

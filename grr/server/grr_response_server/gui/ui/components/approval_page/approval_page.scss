@@ -1,15 +1,9 @@
-@use '~main' as main;
-
 :host {
   display: block;
 }
 
-.container {
-  height: calc(100vh - #{main.$toolbar-height});
-}
-
 .wrapper {
-  padding: 2em 0;
+  padding: 2em;
   background-color: #bdc1c6;
 
   mat-card {
@@ -44,17 +38,5 @@
       font-size: 14px;
       padding-left: 2em;
     }
-  }
-}
-
-client-overview {
-  max-width: 1280px;
-  width: 80%;
-  display: block;
-  margin: 0 auto;
-
-  .goto-details {
-    margin-left: auto;
-    align-self: flex-end;
   }
 }

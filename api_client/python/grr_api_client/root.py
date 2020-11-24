@@ -5,17 +5,14 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import hashlib
-from typing import Callable
-from typing import IO
-from typing import Optional
 
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.asymmetric import padding
 from cryptography.hazmat.primitives.asymmetric import rsa
+from typing import Text
 
 from grr_api_client import context as api_context
 from grr_api_client import utils
-from grr_response_proto.api import config_pb2
 from grr_response_proto.api import user_pb2
 from grr_response_proto.api.root import binary_management_pb2
 from grr_response_proto.api.root import client_management_pb2
@@ -28,24 +25,17 @@ class GrrUserBase(object):
   USER_TYPE_STANDARD = user_pb2.ApiGrrUser.USER_TYPE_STANDARD
   USER_TYPE_ADMIN = user_pb2.ApiGrrUser.USER_TYPE_ADMIN
 
-  def __init__(
-      self,
-      username: str,
-      context: api_context.GrrApiContext,
-  ):
+  def __init__(self, username=None, context=None):
     super(GrrUserBase, self).__init__()
 
-    self.username = username  # type: str
-    self._context = context  # type: api_context.GrrApiContext
+    self.username = username
+    self._context = context
 
-  def Get(self) -> "GrrUser":
+  def Get(self):
     """Fetches user's data and returns it wrapped in a Grruser object."""
 
     args = user_management_pb2.ApiGetGrrUserArgs(username=self.username)
     data = self._context.SendRequest("GetGrrUser", args)
-    if not isinstance(data, user_pb2.ApiGrrUser):
-      raise TypeError(f"Unexpected response type: '{type(data)}'")
-
     return GrrUser(data=data, context=self._context)
 
   def Delete(self):
@@ -54,17 +44,11 @@ class GrrUserBase(object):
     args = user_management_pb2.ApiDeleteGrrUserArgs(username=self.username)
     self._context.SendRequest("DeleteGrrUser", args)
 
-  # TODO(hanuszczak): Python's protobuf enums don't currently work with
-  # `Optional`.
-  def Modify(
-      self,
-      user_type: Optional[int] = None,
-      password: Optional[str] = None,
-      email: Optional[str] = None,
-  ) -> "GrrUser":
+  def Modify(self, user_type=None, password=None, email=None):
     """Modifies user's type and/or password."""
 
-    args = user_management_pb2.ApiModifyGrrUserArgs(username=self.username)
+    args = user_management_pb2.ApiModifyGrrUserArgs(
+        username=self.username, user_type=user_type)
 
     if user_type is not None:
       args.user_type = user_type
@@ -76,12 +60,9 @@ class GrrUserBase(object):
       args.email = email
 
     data = self._context.SendRequest("ModifyGrrUser", args)
-    if not isinstance(data, user_pb2.ApiGrrUser):
-      raise TypeError(f"Unexpected response type: '{type(data)}'")
-
     return GrrUser(data=data, context=self._context)
 
-  def __repr__(self) -> str:
+  def __repr__(self):
     return "<%s %s>" % (self.__class__.__name__, self.username)
 
 
@@ -92,14 +73,10 @@ class GrrUserRef(GrrUserBase):
 class GrrUser(GrrUserBase):
   """A fetched GRR user object wrapper."""
 
-  def __init__(
-      self,
-      data: user_pb2.ApiGrrUser,
-      context: api_context.GrrApiContext,
-  ):
+  def __init__(self, data=None, context=None):
     super(GrrUser, self).__init__(username=data.username, context=context)
 
-    self.data = data  # type: user_pb2.ApiGrrUser
+    self.data = data
 
 
 class GrrBinaryRef(object):
@@ -107,34 +84,36 @@ class GrrBinaryRef(object):
 
   CHUNK_SIZE = 512 * 1024
 
-  def __init__(
-      self,
-      binary_type: config_pb2.ApiGrrBinary.Type,
-      path: str,
-      context: api_context.GrrApiContext,
-  ):
+  def __init__(self, binary_type=None, path=None, context=None):
     super(GrrBinaryRef, self).__init__()
 
-    self.binary_type = binary_type  # type: config_pb2.ApiGrrBinary.Type
-    self.path = path  # type: str
-    self._context = context  # type: api_context.GrrApiContext
+    self.binary_type = binary_type
+    self.path = path
+    self._context = context
 
-  def _DefaultBlobSign(
-      self,
-      blob_bytes: bytes,
-      private_key: rsa.RSAPrivateKey,
-  ) -> bytes:
+  def _DefaultBlobSign(self, blob_bytes, private_key=None):
+    if not private_key:
+      raise ValueError("private_key can't be empty.")
+
     padding_algorithm = padding.PKCS1v15()
     return private_key.sign(blob_bytes, padding_algorithm, hashes.SHA256())
 
-  def DefaultUploadSigner(
-      self,
-      private_key: rsa.RSAPrivateKey,
-  ) -> Callable[[bytes], bytes]:
+  def DefaultUploadSigner(self, private_key):
+    if not private_key:
+      raise ValueError("private_key can't be empty.")
+
+    if not isinstance(private_key, rsa.RSAPrivateKey):
+      raise ValueError("private_key has to be cryptography.io's RSAPrivateKey")
+
     return lambda b: self._DefaultBlobSign(b, private_key=private_key)
 
-  def Upload(self, fd: IO[bytes], sign_fn: Callable[[bytes], bytes]):
+  def Upload(self, fd, sign_fn=None):
     """Uploads data from a given stream and signs them with a given key."""
+
+    if not sign_fn:
+      raise ValueError("sign_fn can't be empty. "
+                       "See DefaultUploadSigner as a possible option.")
+
     args = binary_management_pb2.ApiUploadGrrBinaryArgs(
         type=self.binary_type, path=self.path)
 
@@ -164,13 +143,10 @@ class GrrBinaryRef(object):
 class ClientRef(object):
   """Reference class pointing to a GRR client."""
 
-  def __init__(
-      self,
-      client_id: str,
-      context: api_context.GrrApiContext,
-  ) -> None:
-    self.client_id = client_id  # type: str
-    self._context = context  # type: api_context.GrrApiContext
+  def __init__(self, client_id: Text,
+               context: api_context.GrrApiContext) -> None:
+    self.client_id = client_id
+    self._context = context
 
   def KillFleetspeak(self, force: bool) -> None:
     """Kills fleetspeak on the given client."""
@@ -185,29 +161,22 @@ class ClientRef(object):
     args.client_id = self.client_id
     self._context.SendRequest("RestartFleetspeakGrrService", args)
 
-  def __repr__(self) -> str:
+  def __repr__(self) -> Text:
     return "<{} client_id={}>".format(self.__class__.__name__, self.client_id)
 
 
 class RootGrrApi(object):
   """Object providing access to root-level access GRR methods."""
 
-  def __init__(
-      self,
-      context: api_context.GrrApiContext,
-  ):
+  def __init__(self, context=None):
     super(RootGrrApi, self).__init__()
-    self._context = context  # type: api_context.GrrApiContext
+    self._context = context
 
-  # TODO(hanuszczak): Python's protobuf enums don't currently work with
-  # `Optional`.
-  def CreateGrrUser(
-      self,
-      username: str,
-      user_type: Optional[int] = None,
-      password: Optional[str] = None,
-      email: Optional[str] = None,
-  ) -> GrrUser:
+  def CreateGrrUser(self,
+                    username=None,
+                    user_type=None,
+                    password=None,
+                    email=None):
     """Creates a new GRR user of a given type with a given username/password."""
 
     if not username:
@@ -225,22 +194,14 @@ class RootGrrApi(object):
       args.email = email
 
     data = self._context.SendRequest("CreateGrrUser", args)
-    if not isinstance(data, user_pb2.ApiGrrUser):
-      raise TypeError(f"Unexpected response type: '{type(data)}'")
-
     return GrrUser(data=data, context=self._context)
 
-  def GrrUser(
-      self,
-      username: str,
-  ) -> GrrUserRef:
+  def GrrUser(self, username):
     """Returns a reference to a GRR user."""
 
     return GrrUserRef(username=username, context=self._context)
 
-  # TODO(hanuszczak): Investigate why `pytype` does not allow to specify the
-  # type for the returned iterator more concretely.
-  def ListGrrUsers(self) -> utils.ItemsIterator:
+  def ListGrrUsers(self):
     """Lists all registered GRR users."""
 
     args = user_management_pb2.ApiListGrrUsersArgs()
@@ -249,17 +210,10 @@ class RootGrrApi(object):
     return utils.MapItemsIterator(
         lambda data: GrrUser(data=data, context=self._context), items)
 
-  def GrrBinary(
-      self,
-      binary_type: config_pb2.ApiGrrBinary.Type,
-      path: str,
-  ) -> GrrBinaryRef:
+  def GrrBinary(self, binary_type, path):
     return GrrBinaryRef(
         binary_type=binary_type, path=path, context=self._context)
 
-  def Client(
-      self,
-      client_id: str,
-  ) -> ClientRef:
+  def Client(self, client_id: Text) -> ClientRef:
     """Returns a reference to a GRR client."""
     return ClientRef(client_id, self._context)

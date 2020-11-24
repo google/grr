@@ -20,7 +20,6 @@ from grr_response_core import config as grr_config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_proto import objects_pb2
-from grr_response_proto.api import config_pb2
 from grr_response_server import data_store
 from grr_response_server import signed_binary_utils
 from grr_response_server.bin import config_updater_util
@@ -145,7 +144,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
         f.write(b"print('Hello, world!')")
       config_updater_util.UploadSignedBinary(
           python_hack_path,
-          config_pb2.ApiGrrBinary.Type.PYTHON_HACK,
+          objects_pb2.SignedBinaryID.BinaryType.PYTHON_HACK,
           "linux",
           upload_subdirectory="test")
       python_hack_urn = rdfvalue.RDFURN(
@@ -164,7 +163,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
         f.write(b"\xaa\xbb\xcc\xdd")
       config_updater_util.UploadSignedBinary(
           executable_path,
-          config_pb2.ApiGrrBinary.Type.EXECUTABLE,
+          objects_pb2.SignedBinaryID.BinaryType.EXECUTABLE,
           "windows",
           upload_subdirectory="anti-malware/registry-tools")
       executable_urn = rdfvalue.RDFURN(
@@ -189,7 +188,7 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
         with self.assertRaisesWithLiteralMatch(
             config_updater_util.BinaryTooLargeError, expected_message):
           config_updater_util.UploadSignedBinary(
-              executable_path, config_pb2.ApiGrrBinary.Type.EXECUTABLE,
+              executable_path, objects_pb2.SignedBinaryID.BinaryType.EXECUTABLE,
               "windows")
 
   @mock.patch.object(getpass, "getpass")

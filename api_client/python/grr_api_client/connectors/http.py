@@ -121,30 +121,16 @@ class HttpConnector(abstract.Connector):
   DEFAULT_PAGE_SIZE = 50
   DEFAULT_BINARY_CHUNK_SIZE = 66560
 
-  def __init__(
-      self,
-      api_endpoint: str,
-      auth: Optional[Tuple[str, str]] = None,
-      proxies: Optional[Dict[str, str]] = None,
-      verify: Optional[bool] = None,
-      cert: Optional[str] = None,
-      trust_env: Optional[bool] = None,
-      page_size: Optional[int] = None,
-      validate_version: Optional[bool] = None,
-  ):
+  def __init__(self,
+               api_endpoint: str,
+               auth: Optional[Tuple[str, str]] = None,
+               proxies: Optional[Dict[str, str]] = None,
+               verify: bool = True,
+               cert: Optional[str] = None,
+               trust_env: bool = True,
+               page_size: Optional[int] = None,
+               validate_version: bool = True):
     super(HttpConnector, self).__init__()
-
-    if verify is None:
-      verify = True
-
-    if trust_env is None:
-      trust_env = True
-
-    if page_size is None:
-      page_size = self.DEFAULT_PAGE_SIZE
-
-    if validate_version is None:
-      validate_version = True
 
     self.api_endpoint = api_endpoint  # type: str
     self.auth = auth  # type: Optional[Tuple[str, str]]
@@ -152,7 +138,7 @@ class HttpConnector(abstract.Connector):
     self.verify = verify  # type: bool
     self.cert = cert  # type: Optional[str]
     self.trust_env = trust_env  # type: bool
-    self._page_size = page_size  # type: int
+    self._page_size = page_size or self.DEFAULT_PAGE_SIZE  # type: int
 
     self.csrf_token = None  # type: Optional[str]
     self.api_methods = {}  # type: Dict[str, reflection_pb2.ApiMethod]
@@ -370,8 +356,6 @@ class HttpConnector(abstract.Connector):
       raise errors.ResourceNotFoundError(json_message)
     elif response.status_code == 422:
       raise errors.InvalidArgumentError(json_message)
-    elif response.status_code == 429:
-      raise errors.ResourceExhaustedError(json_message)
     elif response.status_code == 501:
       raise errors.ApiNotImplementedError(json_message)
     else:

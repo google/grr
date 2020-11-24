@@ -19,7 +19,11 @@ export type NonNullableKey<T, K extends keyof T> = Complete<Pick<T, K>>&T;
 /** Enforce an object's key to be truthy. */
 export type TruthyKey<T, K extends keyof T> = CompleteTruthy<Pick<T, K>>&T;
 
-/** Allow overwriting an object's readonly keys (for tests). */
-export type Writable<T> = {
-  -readonly[K in keyof T]: T[K];
+/** Recursively removes the readonly modifier of fields */
+export type DeepMutable<T> = {
+  -readonly[P in keyof T]:
+  T[P] extends (infer U)[] ? DeepMutable<U>[] :
+  T[P] extends Date ? T[P] :
+  T[P] extends object ? DeepMutable<T[P]> :
+  T[P];
 };

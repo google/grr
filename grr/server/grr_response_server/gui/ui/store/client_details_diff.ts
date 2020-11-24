@@ -1,6 +1,4 @@
-
-import * as DeepDiffMod from 'deep-diff';
-const DeepDiff = (DeepDiffMod as any).default;
+import * as DeepDiff from 'deep-diff';
 
 import {Client} from '../lib/models/client';
 

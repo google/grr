@@ -1,5 +1,5 @@
 import {OverlayContainer} from '@angular/cdk/overlay';
-import {discardPeriodicTasks, fakeAsync, inject, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {async, discardPeriodicTasks, fakeAsync, inject, TestBed, tick} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ApiClient, ApiSearchClientResult} from '@app/lib/api/api_interfaces';
@@ -53,7 +53,7 @@ describe('SearchBox Component', () => {
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(async(() => {
     httpApiService = jasmine.createSpyObj('HttpApiService', ['searchClients']);
     TestBed
         .configureTestingModule({

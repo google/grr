@@ -1,4 +1,4 @@
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 import {FlowListModule} from '@app/components/flow_list/module';
@@ -24,7 +24,7 @@ describe('FlowList Component', () => {
   let configFacade: ConfigFacadeMock;
   let clientPageFacade: Partial<ClientPageFacade>;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(async(() => {
     flowListEntries$ = new Subject();
     selectedClient$ = new ReplaySubject(1);
     configFacade = mockConfigFacade();

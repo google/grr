@@ -11,7 +11,6 @@ import zipfile
 
 from absl import app
 
-from grr_api_client import errors
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.util import compatibility
 from grr_response_server.flows.general import file_finder
@@ -71,7 +70,7 @@ users:
                           self.token.username)
 
     client_ref = self.api.Client(client_id=self.client_id)
-    with self.assertRaises(errors.AccessForbiddenError):
+    with self.assertRaises(RuntimeError):
       client_ref.CreateFlow(name=processes.ListProcesses.__name__)
 
   def testFileFinderWorkflowWorks(self):
@@ -142,7 +141,7 @@ users:
         flow_cls=file_finder.FileFinder, client_id=self.client_id)
 
     flow_ref = self.api.Client(client_id=self.client_id).Flow(flow_id)
-    with self.assertRaises(errors.AccessForbiddenError):
+    with self.assertRaises(RuntimeError):
       flow_ref.Get()
 
   def testNoThrottlingDoneByDefault(self):
@@ -193,8 +192,7 @@ users:
         name=file_finder.FileFinder.__name__, args=args[1])
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
-    with self.assertRaisesRegex(errors.ResourceExhaustedError,
-                                "2 flows run since"):
+    with self.assertRaisesRegex(RuntimeError, "2 flows run since"):
       client_ref.CreateFlow(name=file_finder.FileFinder.__name__, args=args[2])
 
   def testFileFinderThrottlingByDuplicateIntervalWorks(self):

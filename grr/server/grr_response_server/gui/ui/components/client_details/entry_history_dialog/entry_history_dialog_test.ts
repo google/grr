@@ -1,9 +1,8 @@
 import {OverlayContainer} from '@angular/cdk/overlay';
-import {ComponentFixture, inject, TestBed, waitForAsync} from '@angular/core/testing';
+import {async, ComponentFixture, inject, TestBed} from '@angular/core/testing';
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-
 import {Client} from '../../../lib/models/client';
 import {newClient} from '../../../lib/models/model_test_util';
 import {initTestEnvironment} from '../../../testing';
@@ -23,7 +22,10 @@ describe('Entry History Dialog', () => {
   let clientVersions: Client[];
   let providedData: EntryHistoryDialogParams;
 
-  beforeEach(waitForAsync(() => {
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
+  beforeEach(async(() => {
     clientVersions = [
       newClient({
         osInfo: {

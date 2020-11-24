@@ -1,4 +1,4 @@
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {async, TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute} from '@angular/router';
@@ -9,10 +9,6 @@ import {Subject} from 'rxjs';
 import {newClientApproval} from '../../lib/models/model_test_util';
 import {ApprovalPageFacade} from '../../store/approval_page_facade';
 import {ApprovalPageFacadeMock, mockApprovalPageFacade} from '../../store/approval_page_facade_test_util';
-import {ClientDetailsFacade} from '../../store/client_details_facade';
-import {mockClientDetailsFacade} from '../../store/client_details_facade_test_util';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {mockClientPageFacade} from '../../store/client_page_facade_test_util';
 import {ConfigFacade} from '../../store/config_facade';
 import {mockConfigFacade} from '../../store/config_facade_test_util';
 import {UserFacade} from '../../store/user_facade';
@@ -31,7 +27,10 @@ describe('ApprovalPage Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
   let approvalPageFacade: ApprovalPageFacadeMock;
 
-  beforeEach(waitForAsync(() => {
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
+  beforeEach(async(() => {
     paramsSubject = new Subject();
     approvalPageFacade = mockApprovalPageFacade();
 
@@ -61,15 +60,7 @@ describe('ApprovalPage Component', () => {
             {
               provide: ConfigFacade,
               useFactory: mockConfigFacade,
-            },
-            {
-              provide: ClientDetailsFacade,
-              useFactory: mockClientDetailsFacade,
-            },
-            {
-              provide: ClientPageFacade,
-              useFactory: mockClientPageFacade,
-            },
+            }
           ],
 
         })

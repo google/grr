@@ -11,18 +11,12 @@ from __future__ import unicode_literals
 
 import datetime
 import io
-from typing import List
-from typing import Optional
-from typing import Sequence
-from typing import Text
-from typing import Union
 
 from IPython.lib import pretty
+from typing import Text, Sequence, List, Optional
 
-from google.protobuf import message
 from grr_api_client import client
 from grr_api_client import errors as api_errors
-from grr_api_client import utils as api_utils
 from grr_colab import _api
 from grr_colab import _timeout
 from grr_colab import errors
@@ -285,12 +279,7 @@ class Client(object):
       raise errors.ApprovalMissingError(self.id, e)
 
     _timeout.await_flow(interrogate)
-
-    result = list(interrogate.ListResults())[0].payload
-    if not isinstance(result, jobs_pb2.ClientSummary):
-      raise TypeError(f'Unexpected flow result type: {type(result)!r}')
-
-    self._summary = result
+    self._summary = list(interrogate.ListResults())[0].payload
     return self._summary
 
   def ps(self) -> Sequence[sysinfo_pb2.Process]:
@@ -303,15 +292,7 @@ class Client(object):
       raise errors.ApprovalMissingError(self.id, e)
 
     _timeout.await_flow(ps)
-
-    def process(result: message.Message) -> sysinfo_pb2.Process:
-      if not isinstance(result, sysinfo_pb2.Process):
-        raise TypeError(f'Unexpected flow result type: {type(result)!r}')
-
-      return result
-
-    results = [process(response.payload) for response in ps.ListResults()]
-    return representer.ProcessList(results)
+    return representer.ProcessList([_.payload for _ in ps.ListResults()])
 
   def ls(self, path: Text, max_depth: int = 1) -> Sequence[jobs_pb2.StatEntry]:
     """Lists contents of a given directory.
@@ -390,17 +371,10 @@ class Client(object):
       raise errors.ApprovalMissingError(self.id, e)
 
     _timeout.await_flow(oq)
+    return list(oq.ListResults())[0].payload.table
 
-    result = list(oq.ListResults())[0].payload
-    if not isinstance(result, osquery_pb2.OsqueryResult):
-      raise TypeError(f'Unexpected flow result type: {type(result)}')
-
-    return result.table
-
-  def collect(
-      self,
-      artifact: Text,
-  ) -> Sequence[Union[message.Message, api_utils.UnknownProtobuf]]:
+  def collect(self,
+              artifact: Text) -> Sequence[artifact_pb2.ClientActionResult]:
     """Collects specified artifact.
 
     Args:
@@ -426,8 +400,8 @@ class Client(object):
       self,
       signature: Text,
       pids: Optional[Sequence[int]] = None,
-      regex: Optional[Text] = None,
-  ) -> Sequence[flows_pb2.YaraProcessScanMatch]:
+      regex: Optional[Text] = None
+  ) -> Sequence[flows_pb2.YaraProcessScanResponse]:
     """Scans processes using provided YARA rule.
 
     Args:
@@ -456,14 +430,7 @@ class Client(object):
       raise errors.ApprovalMissingError(self.id, e)
 
     _timeout.await_flow(yara)
-
-    def yara_result(result: message.Message) -> flows_pb2.YaraProcessScanMatch:
-      if not isinstance(result, flows_pb2.YaraProcessScanMatch):
-        raise TypeError(f'Unexpected flow result type: {type(result)!r}')
-
-      return result
-
-    return [yara_result(result.payload) for result in yara.ListResults()]
+    return [_.payload for _ in yara.ListResults()]
 
   def wget(self, path: Text) -> Text:
     """Downloads a file and returns a link to it.

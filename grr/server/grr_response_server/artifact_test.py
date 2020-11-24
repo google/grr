@@ -11,7 +11,6 @@ import logging
 import os
 import subprocess
 from typing import Collection
-from typing import IO
 from typing import Iterable
 from typing import Iterator
 
@@ -1147,103 +1146,6 @@ class ParserApplicatorTest(absltest.TestCase):
         client_id=self.client_id, components=components)
 
     file_store.AddFileWithUnknownHash(client_path, [blob_ref])
-
-  def testSingleResponseAndSingleFileParser(self):
-
-    class FooParser(parsers.SingleResponseParser[rdfvalue.RDFString]):
-
-      supported_artifacts = ["Quux"]
-
-      def ParseResponse(
-          self,
-          knowledge_base: rdf_client.KnowledgeBase,
-          response: rdfvalue.RDFValue,
-      ) -> Iterator[rdfvalue.RDFString]:
-        del knowledge_base  # Unused.
-
-        if not isinstance(response, rdfvalue.RDFString):
-          raise TypeError(f"Unexpected response type: {type(response)}")
-
-        yield rdfvalue.RDFString(f"FOO-{response}")
-
-    class BarParser(parsers.SingleFileParser[rdfvalue.RDFString]):
-
-      supported_artifacts = ["Quux"]
-
-      def ParseFile(
-          self,
-          knowledge_base: rdf_client.KnowledgeBase,
-          pathspec: rdf_paths.PathSpec,
-          filedesc: IO[bytes],
-      ) -> Iterator[rdfvalue.RDFString]:
-        del knowledge_base, pathspec, filedesc  # Unused.
-        yield rdfvalue.RDFString("BAR")
-
-    with parser_test_lib._ParserContext("Foo", FooParser):
-      with parser_test_lib._ParserContext("Bar", BarParser):
-        factory = parsers.ArtifactParserFactory("Quux")
-        knowledge_base = rdf_client.KnowledgeBase()
-
-        applicator = artifact.ParserApplicator(
-            factory, client_id=self.client_id, knowledge_base=knowledge_base)
-
-        applicator.Apply([
-            rdfvalue.RDFString("THUD"),
-            rdfvalue.RDFString("BLARGH"),
-        ])
-
-        responses = list(applicator.Responses())
-        self.assertLen(responses, 2)
-        self.assertEqual(responses[0], rdfvalue.RDFString("FOO-THUD"))
-        self.assertEqual(responses[1], rdfvalue.RDFString("FOO-BLARGH"))
-
-  def testSingleResponseAndSingleFileParserWithStatResponse(self):
-
-    class FooParser(parsers.SingleResponseParser[rdfvalue.RDFString]):
-
-      supported_artifacts = ["Quux"]
-
-      def ParseResponse(
-          self,
-          knowledge_base: rdf_client.KnowledgeBase,
-          response: rdfvalue.RDFValue,
-      ) -> Iterator[rdfvalue.RDFString]:
-        del knowledge_base  # Unused.
-
-        if not isinstance(response, rdf_client_fs.StatEntry):
-          raise TypeError(f"Unexpected response type: {type(response)}")
-
-        yield rdfvalue.RDFString(f"PATH('{response.pathspec.path}')")
-
-    class BarParser(parsers.SingleFileParser[rdfvalue.RDFString]):
-
-      supported_artifacts = ["Quux"]
-
-      def ParseFile(
-          self,
-          knowledge_base: rdf_client.KnowledgeBase,
-          pathspec: rdf_paths.PathSpec,
-          filedesc: IO[bytes],
-      ) -> Iterator[rdfvalue.RDFString]:
-        raise NotImplementedError()
-
-    with parser_test_lib._ParserContext("Foo", FooParser):
-      with parser_test_lib._ParserContext("Bar", BarParser):
-        factory = parsers.ArtifactParserFactory("Quux")
-        knowledge_base = rdf_client.KnowledgeBase()
-
-        stat_entry = rdf_client_fs.StatEntry()
-        stat_entry.pathspec.path = "foo/bar/baz"
-        stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
-
-        applicator = artifact.ParserApplicator(
-            factory, client_id=self.client_id, knowledge_base=knowledge_base)
-
-        applicator.Apply([stat_entry])
-
-        responses = list(applicator.Responses())
-        self.assertLen(responses, 1)
-        self.assertEqual(responses[0], "PATH('foo/bar/baz')")
 
   def testTimestamp(self):
 

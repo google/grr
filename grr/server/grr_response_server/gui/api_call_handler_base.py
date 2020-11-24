@@ -9,7 +9,6 @@ from typing import Text
 
 from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import precondition
-from grr_response_server import access_control
 
 
 class Error(Exception):
@@ -18,12 +17,6 @@ class Error(Exception):
 
 class ResourceNotFoundError(Error):
   """Raised when a resource could not be found."""
-
-
-# ResourceExhaustedError is a more concrete case of UnauthorizedAccess errorsL
-# resource exists, but access gets forbidden because of the lack of quota.
-class ResourceExhaustedError(access_control.UnauthorizedAccess):
-  """Raised when a resource can't be fetched due to quota restrictions."""
 
 
 class ApiBinaryStream(object):

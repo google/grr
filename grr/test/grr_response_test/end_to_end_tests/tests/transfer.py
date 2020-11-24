@@ -24,10 +24,6 @@ class TestTransferLinux(test_base.AbstractFileTransferTest):
     self.CheckELFMagic(path)
 
   def testGetFileTSK(self):
-    if self.os_release == "CentOS Linux":
-      self.skipTest(
-          "TSK is not supported on CentOS due to an xfs root filesystem.")
-
     args = self.grr_api.types.CreateFlowArgs("GetFile")
     args.pathspec.path = "/usr/bin/diff"
     args.pathspec.pathtype = args.pathspec.TSK

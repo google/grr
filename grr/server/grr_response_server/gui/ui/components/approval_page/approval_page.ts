@@ -1,5 +1,4 @@
-import {Component, OnDestroy, ViewChild} from '@angular/core';
-import {MatDrawer} from '@angular/material/sidenav';
+import {Component, OnDestroy} from '@angular/core';
 import {Title} from '@angular/platform-browser';
 import {ActivatedRoute} from '@angular/router';
 import {combineLatest, Subject} from 'rxjs';
@@ -8,7 +7,6 @@ import {map, takeUntil, tap} from 'rxjs/operators';
 import {ClientApproval} from '../../lib/models/client';
 import {assertNonNull} from '../../lib/preconditions';
 import {ApprovalPageFacade} from '../../store/approval_page_facade';
-import {ClientPageFacade} from '../../store/client_page_facade';
 import {UserFacade} from '../../store/user_facade';
 
 
@@ -33,16 +31,10 @@ export class ApprovalPage implements OnDestroy {
               map(([approval, user]) => user.name !== approval.requestor &&
                       !approval.approvers.includes(user.name)));
 
-  @ViewChild('clientDetailsDrawer') clientDetailsDrawer!: MatDrawer;
-
-
   constructor(
       route: ActivatedRoute,
       private readonly title: Title,
       private readonly approvalPageFacade: ApprovalPageFacade,
-      // TODO(user): Refactor ClientOverview to not require ClientPageFacade in
-      // ApprovalPage.
-      private readonly clientPageFacade: ClientPageFacade,
       private readonly userFacade: UserFacade,
   ) {
     this.title.setTitle('GRR | Approval');
@@ -62,7 +54,6 @@ export class ApprovalPage implements OnDestroy {
 
           this.approvalPageFacade.selectApproval(
               {clientId, requestor, approvalId});
-          this.clientPageFacade.selectClient(clientId);
         });
   }
 
@@ -81,9 +72,5 @@ export class ApprovalPage implements OnDestroy {
 
   grantApproval() {
     this.approvalPageFacade.grantApproval();
-  }
-
-  onClientDetailsButtonClick() {
-    this.clientDetailsDrawer.toggle();
   }
 }

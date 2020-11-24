@@ -30,11 +30,11 @@ declare global {
  * Component displaying the details and actions for a single Client.
  */
 @Component({
-  templateUrl: './client_page.ng.html',
-  styleUrls: ['./client_page.scss'],
+  templateUrl: './client.ng.html',
+  styleUrls: ['./client.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ClientPage implements OnInit, AfterViewInit, OnDestroy {
+export class Client implements OnInit, AfterViewInit, OnDestroy {
   static readonly CLIENT_DETAILS_ROUTE = 'details';
 
   readonly id$ = this.route.paramMap.pipe(
@@ -85,7 +85,7 @@ export class ClientPage implements OnInit, AfterViewInit, OnDestroy {
     this.resizeObserver.observe(this.approvalViewContainer.nativeElement);
 
     const urlTokens = this.router.routerState.snapshot.url.split('/');
-    if (urlTokens[urlTokens.length - 1] === ClientPage.CLIENT_DETAILS_ROUTE) {
+    if (urlTokens[urlTokens.length - 1] === Client.CLIENT_DETAILS_ROUTE) {
       this.clientDetailsDrawer.open();
     }
 

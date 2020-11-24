@@ -524,41 +524,6 @@ describe('ClientPageFacade', () => {
     });
   });
 
-  it('preserves existing flowListEntries$ when starting flow', (done) => {
-    clientPageFacade.startFlowConfiguration('StartedFlow1');
-    clientPageFacade.startFlow({});
-
-    apiStartFlow$.next({
-      flowId: '1',
-      clientId: 'C.1234',
-      lastActiveAt: '2000',
-      startedAt: '2000',
-      creator: 'rick',
-      name: 'StartedFlow1',
-      state: ApiFlowState.RUNNING,
-    });
-
-    clientPageFacade.startFlowConfiguration('StartedFlow2');
-    clientPageFacade.startFlow({});
-
-    apiStartFlow$.next({
-      flowId: '2',
-      clientId: 'C.1234',
-      lastActiveAt: '2000',
-      startedAt: '2000',
-      creator: 'rick',
-      name: 'StartedFlow2',
-      state: ApiFlowState.RUNNING,
-    });
-
-    clientPageFacade.flowListEntries$.subscribe(flows => {
-      expect(flows.map(fle => fle.flow.name)).toEqual([
-        'StartedFlow1', 'StartedFlow2'
-      ]);
-      done();
-    });
-  });
-
   it('calls the API on scheduleFlow', () => {
     clientPageFacade.startFlowConfiguration('ListProcesses');
     clientPageFacade.scheduleFlow({foo: 1});

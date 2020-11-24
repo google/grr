@@ -183,5 +183,4 @@ def Register():
   parsers.MULTI_FILE_PARSER_FACTORY.Register(
       "Rsyslog", config_file.RsyslogParser)
 
-
   # pyformat: enable

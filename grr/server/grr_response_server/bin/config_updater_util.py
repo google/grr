@@ -15,7 +15,7 @@ import socket
 import subprocess
 import sys
 import time
-from typing import Optional, Text, Generator
+from typing import Optional, Text
 from urllib import parse as urlparse
 
 import MySQLdb
@@ -197,16 +197,11 @@ def CheckMySQLConnection(db_options):
     try:
       connection_options = dict(
           host=db_options["Mysql.host"],
+          port=db_options["Mysql.port"],
           db=db_options["Mysql.database_name"],
           user=db_options["Mysql.database_username"],
           passwd=db_options["Mysql.database_password"],
           charset="utf8")
-
-      if "Mysql.port" in db_options:
-        connection_options["port"] = db_options["Mysql.port"]
-
-      if "Mysql.unix_socket" in db_options:
-        connection_options["unix_socket"] = db_options["Mysql.unix_socket"]
 
       ssl_enabled = "Mysql.client_key_path" in db_options
       if ssl_enabled:
@@ -336,7 +331,6 @@ class FleetspeakConfig:
     self.mysql_host: str = None
     self.mysql_port = 3306
     self.mysql_database: str = None
-    self.mysql_unix_socket: str = None
     self.config_dir = "/etc/fleetspeak-server"
 
   def Prompt(self, config):
@@ -390,15 +384,8 @@ class FleetspeakConfig:
                                     "^[\\.A-Za-z0-9-]+$", self.mysql_host or
                                     config["Mysql.host"])
     self.mysql_port = RetryIntQuestion(
-        "Fleetspeak MySQL Port (0 for local socket)", self.mysql_port or
-        0) or None
-
-    if self.mysql_port is None:
-      # golang's mysql connector needs the socket specified explicitly.
-      self.mysql_unix_socket = RetryQuestion(
-          "Fleetspeak MySQL local socket path", ".+",
-          self._FindMysqlUnixSocket() or "")
-
+        "Fleetspeak MySQL Port (local socket currently not supported)",
+        self.mysql_port)
     self.mysql_database = RetryQuestion("Fleetspeak MySQL Database",
                                         "^[A-Za-z0-9-]+$",
                                         self.mysql_database or "fleetspeak")
@@ -450,21 +437,12 @@ class FleetspeakConfig:
 
     cp = config_pb2.Config()
     cp.configuration_name = "Fleetspeak"
-    if self.mysql_unix_socket:
-      cp.components_config.mysql_data_source_name = (
-          "{user}:{password}@unix({socket})/{db}".format(
-              user=self.mysql_username,
-              password=self.mysql_password,
-              socket=self.mysql_unix_socket,
-              db=self.mysql_database))
-    else:
-      cp.components_config.mysql_data_source_name = (
-          "{user}:{password}@tcp({host}:{port})/{db}".format(
-              user=self.mysql_username,
-              password=self.mysql_password,
-              host=self.mysql_host,
-              port=self.mysql_port,
-              db=self.mysql_database))
+    cp.components_config.mysql_data_source_name = (
+        "{user}:@tcp({host}:{port})/{db}".format(
+            user=self.mysql_username,
+            host=self.mysql_host,
+            port=self.mysql_port,
+            db=self.mysql_database))
     cp.components_config.https_config.listen_address = "{}:{}".format(
         self.external_hostname, self.https_port)
     cp.components_config.https_config.disable_streaming = True
@@ -533,48 +511,21 @@ class FleetspeakConfig:
     """Checks the MySQL configuration by attempting a connection."""
     db_options = {
         "Mysql.host": self.mysql_host,
+        "Mysql.port": self.mysql_port,
         "Mysql.database_name": self.mysql_database,
         "Mysql.database_username": self.mysql_username,
         "Mysql.database_password": self.mysql_password,
     }
-    if self.mysql_port is not None:
-      db_options["Mysql.port"] = self.mysql_port
-    if self.mysql_unix_socket is not None:
-      db_options["Mysql.unix_socket"] = self.mysql_unix_socket
     # In Python, localhost is automatically mapped to connecting via the UNIX
     # domain socket.
     # However, for Go we require a TCP connection at the moment.
     # So if the host is localhost, try to connect to 127.0.0.1 to force TCP.
-    if db_options["Mysql.host"] == "localhost" and "Mysql.port" in db_options:
+    if db_options["Mysql.host"] == "localhost":
       db_options_localhost = dict(db_options)
       db_options_localhost["Mysql.host"] = "127.0.0.1"
       if CheckMySQLConnection(db_options_localhost):
         return True
     return CheckMySQLConnection(db_options)
-
-  def _ListUnixSockets(self) -> Generator[str, None, None]:
-    """Returns paths of all active UNIX sockets."""
-    # Example /proc/net/unix:
-    #
-    # Num       RefCount Protocol Flags    Type St Inode Path
-    # [...]
-    # 0000000000000000: 00000002 00000000 00010000 0001 01 42013 \
-    #    /run/mysqld/mysqld.sock
-    # [...]
-    hex_digit = "[0-9a-fA-F]"
-    regex = re.compile(f"^{hex_digit}+: ({hex_digit}+ +){{6}}(.*)$")
-    with open("/proc/net/unix") as f:
-      for line in f:
-        line = line.strip("\n")
-        match = regex.match(line)
-        if match:
-          yield match.group(2)
-
-  def _FindMysqlUnixSocket(self) -> Optional[str]:
-    for socket_path in self._ListUnixSockets():
-      if "mysql" in socket_path:
-        return socket_path
-    return None
 
 
 def ConfigureDatastore(config):
@@ -963,7 +914,7 @@ def UploadSignedBinary(source_path,
       upload_subdirectory,
       os.path.basename(source_path),
   ])
-  binary = root_api.GrrBinary(binary_type, binary_path)
+  binary = root_api.GrrBinary(int(binary_type), binary_path)
 
   with open(source_path, "rb") as fd:
     binary.Upload(

@@ -1,19 +1,12 @@
 import {NgModule} from '@angular/core';
 import {RouterModule, Routes} from '@angular/router';
-
-import {RoutesWithLegacyLinks} from '../../lib/routing';
-
 import {ClientSearch} from './client_search';
 
 /**
  * Routes used by the client search page.
  */
-export const CLIENT_SEARCH_ROUTES: Routes&RoutesWithLegacyLinks = [
-  {
-    path: 'clients',
-    component: ClientSearch,
-    data: {legacyLink: '#/search?q=:q'}
-  },
+export const CLIENT_SEARCH_ROUTES: Routes = [
+  {path: 'clients', component: ClientSearch},
 ];
 
 /**

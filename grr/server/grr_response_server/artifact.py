@@ -24,6 +24,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
+from grr_response_core.lib.util import precondition
 from grr_response_proto import flows_pb2
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
@@ -380,30 +381,12 @@ class ParserApplicator(object):
 
     self._ApplyMultiResponse(responses)
 
-    # File parsers accept only stat responses. It might be possible that an
-    # artifact declares multiple sources and has multiple parsers attached (each
-    # for different kind of source). Thus, artifacts are not "well typed" now
-    # we must supply parsers only with something they support.
-    stat_responses = []  # type: List[rdf_client_fs.StatEntry]
-    for response in responses:
-      if isinstance(response, rdf_client_fs.StatEntry):
-        stat_responses.append(response)
-
     has_single_file_parsers = self._factory.HasSingleFileParsers()
     has_multi_file_parsers = self._factory.HasMultiFileParsers()
 
     if has_single_file_parsers or has_multi_file_parsers:
-      pathspecs = [response.pathspec for response in stat_responses]
-      # It might be also the case that artifact has both regular response parser
-      # and file parser attached and sources that don't collect files but yield
-      # stat entries.
-      #
-      # TODO(hanuszczak): This is a quick workaround that works for now, but
-      # can lead to spurious file being parsed if the file was collected in the
-      # past and now only a stat entry response came. A proper solution would be
-      # to tag responses with artifact source and then make parsers define what
-      # sources they support.
-      pathspecs = list(filter(self._HasFile, pathspecs))
+      precondition.AssertIterableType(responses, rdf_client_fs.StatEntry)
+      pathspecs = [response.pathspec for response in responses]
       filedescs = [self._OpenFile(pathspec) for pathspec in pathspecs]
 
       for pathspec, filedesc in zip(pathspecs, filedescs):
@@ -468,11 +451,6 @@ class ParserApplicator(object):
         self._results.AddResponses(results)
       except parsers.ParseError as error:
         self._results.AddError(error)
-
-  def _HasFile(self, pathspec: rdf_paths.PathSpec) -> bool:
-    """Checks whether any file for the given pathspec was ever collected."""
-    client_path = db.ClientPath.FromPathSpec(self._client_id, pathspec)
-    return file_store.GetLastCollectionPathInfo(client_path) is not None
 
   def _OpenFile(self, pathspec: rdf_paths.PathSpec) -> file_store.BlobStream:
     # TODO(amoser): This is not super efficient, AFF4 provided an api to open

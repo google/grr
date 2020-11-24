@@ -47,8 +47,4 @@ export class Home {
   onQuerySubmitted(query: string) {
     this.router.navigate(['/clients'], {queryParams: {'q': query}});
   }
-
-  trackClient(index: number, client: Client) {
-    return client.clientId;
-  }
 }

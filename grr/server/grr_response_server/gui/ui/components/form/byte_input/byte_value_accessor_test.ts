@@ -1,5 +1,5 @@
 import {Component, DebugElement} from '@angular/core';
-import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
+import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 import {FormControl} from '@angular/forms';
 import {ReactiveFormsModule} from '@angular/forms';
 import {By} from '@angular/platform-browser';
@@ -21,7 +21,7 @@ describe('ByteValueAccessor', () => {
   let fixture: ComponentFixture<TestHostComponent>;
   let input: DebugElement;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(async(() => {
     TestBed
         .configureTestingModule({
           imports: [

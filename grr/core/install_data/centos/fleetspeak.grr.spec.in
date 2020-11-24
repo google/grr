@@ -8,9 +8,6 @@ License: APL2
 Source: \%{name}-\%{version}.tar.gz
 URL: https://github.com/google/grr
 AutoReqProv: no
-%if "%(ClientBuilder.extra_package_dependencies)" != ""
-Requires: %(ClientBuilder.extra_package_dependencies)
-%endif
 
 # Disable binary stripping or pyinstaller files won't work.
 %global __os_install_post \%{nil}

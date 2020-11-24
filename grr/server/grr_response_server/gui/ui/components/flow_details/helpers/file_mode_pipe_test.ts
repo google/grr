@@ -1,8 +1,7 @@
 import {Component} from '@angular/core';
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {async, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {initTestEnvironment} from '@app/testing';
-
 import {HelpersModule} from './module';
 
 
@@ -15,7 +14,7 @@ class TestHostComponent {
 initTestEnvironment();
 
 describe('FileResultTable render()', () => {
-  beforeEach(waitForAsync(() => {
+  beforeEach(async(() => {
     TestBed
         .configureTestingModule({
           imports: [

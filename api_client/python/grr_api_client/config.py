@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from grr_api_client import context as api_context
 from grr_api_client import utils
 from grr_response_proto.api import config_pb2
 
@@ -12,28 +11,28 @@ from grr_response_proto.api import config_pb2
 class GrrBinaryBase(object):
   """Base class for GrrBinary references and objects."""
 
-  def __init__(
-      self,
-      binary_type: config_pb2.ApiGrrBinary.Type,
-      path: str,
-      context: api_context.GrrApiContext,
-  ):
+  def __init__(self, binary_type=None, path=None, context=None):
     super(GrrBinaryBase, self).__init__()
+
+    if not binary_type:
+      raise ValueError("binary_type can't be empty")
+
+    if not path:
+      raise ValueError("path can't be empty")
+
+    if not context:
+      raise ValueError("context can't be empty")
 
     self.binary_type = binary_type
     self.path = path
     self._context = context
 
-  def Get(self) -> "GrrBinary":
+  def Get(self):
     args = config_pb2.ApiGetGrrBinaryArgs(type=self.binary_type, path=self.path)
-
     data = self._context.SendRequest("GetGrrBinary", args)
-    if not isinstance(data, config_pb2.ApiGrrBinary):
-      raise TypeError(f"Unexpected response type: {type(data)}")
-
     return GrrBinary(data=data, context=self._context)
 
-  def GetBlob(self) -> utils.BinaryChunkIterator:
+  def GetBlob(self):
     args = config_pb2.ApiGetGrrBinaryBlobArgs(
         type=self.binary_type, path=self.path)
     return self._context.SendStreamingRequest("GetGrrBinaryBlob", args)
@@ -46,19 +45,17 @@ class GrrBinaryRef(GrrBinaryBase):
 class GrrBinary(GrrBinaryBase):
   """GRR binary object with fetched data."""
 
-  def __init__(
-      self,
-      data: config_pb2.ApiGrrBinary,
-      context: api_context.GrrApiContext,
-  ):
+  def __init__(self, data=None, context=None):
+    if data is None:
+      raise ValueError("data can't be None")
+
     super(GrrBinary, self).__init__(
         binary_type=data.type, path=data.path, context=context)
 
-    self.data = data  # type: config_pb2.ApiGrrBinary
+    self.data = data
 
 
-def ListGrrBinaries(
-    context: api_context.GrrApiContext) -> utils.ItemsIterator[GrrBinary]:
+def ListGrrBinaries(context=None):
   """Lists all registered Grr binaries."""
 
   items = context.SendIteratorRequest("ListGrrBinaries", None)

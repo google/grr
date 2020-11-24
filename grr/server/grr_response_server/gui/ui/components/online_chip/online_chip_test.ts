@@ -1,5 +1,5 @@
 import {Component} from '@angular/core';
-import {discardPeriodicTasks, fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {async, discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {initTestEnvironment} from '../../testing';
@@ -23,7 +23,10 @@ describe('Status Chip Component', () => {
   const STATUS_ONLINE = 'Online';
   const STATUS_OFFLINE = 'Offline';
 
-  beforeEach(waitForAsync(() => {
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
+  beforeEach(async(() => {
     TestBed
         .configureTestingModule({
           imports: [

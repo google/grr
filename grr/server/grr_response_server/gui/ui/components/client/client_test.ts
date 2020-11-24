@@ -1,5 +1,5 @@
 import {Location} from '@angular/common';
-import {discardPeriodicTasks, fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {async, discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {MatDrawer} from '@angular/material/sidenav';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -10,7 +10,6 @@ import {Subject} from 'rxjs';
 
 import {newClient} from '../../lib/models/model_test_util';
 import {ClientDetailsFacade} from '../../store/client_details_facade';
-import {ClientDetailsFacadeMock, mockClientDetailsFacade} from '../../store/client_details_facade_test_util';
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
 import {ConfigFacade} from '../../store/config_facade';
@@ -20,38 +19,37 @@ import {mockUserFacade, UserFacadeMock} from '../../store/user_facade_test_util'
 import {initTestEnvironment} from '../../testing';
 import {ClientDetailsModule} from '../client_details/module';
 
-import {ClientPage as ClientComponent} from './client_page';
-import {ClientPageModule} from './module';
+import {Client as ClientComponent} from './client';
+import {ClientModule} from './module';
 
-import {CLIENT_PAGE_ROUTES} from './routing';
+import {CLIENT_ROUTES} from './routing';
 
 
 initTestEnvironment();
 
-describe('ClientPage Component', () => {
+describe('Client Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
   let clientPageFacade: ClientPageFacadeMock;
-  let clientDetailsFacade: ClientDetailsFacadeMock;
+  let clientDetailsFacade: ClientDetailsFacade;
   let configFacade: ConfigFacadeMock;
   let userFacade: UserFacadeMock;
   let location: Location;
   let router: Router;
 
-  beforeEach(waitForAsync(() => {
+  beforeEach(async(() => {
     paramsSubject = new Subject();
     configFacade = mockConfigFacade();
     userFacade = mockUserFacade();
     clientPageFacade = mockClientPageFacade();
-    clientDetailsFacade = mockClientDetailsFacade();
 
     TestBed
         .configureTestingModule({
           imports: [
             ApiModule,
             NoopAnimationsModule,
-            ClientPageModule,
+            ClientModule,
             ClientDetailsModule,
-            RouterTestingModule.withRoutes(CLIENT_PAGE_ROUTES),
+            RouterTestingModule.withRoutes(CLIENT_ROUTES),
           ],
           providers: [
             {
@@ -64,20 +62,19 @@ describe('ClientPage Component', () => {
             {provide: ConfigFacade, useFactory: () => configFacade},
             {provide: UserFacade, useFactory: () => userFacade},
             {provide: ClientPageFacade, useFactory: () => clientPageFacade},
-            {
-              provide: ClientDetailsFacade,
-              useFactory: () => clientDetailsFacade
-            },
           ],
 
         })
         .compileComponents();
 
+    clientDetailsFacade = TestBed.inject(ClientDetailsFacade);
     location = TestBed.inject(Location);
     router = TestBed.inject(Router);
   }));
 
   it('loads client information on route change', () => {
+    spyOn(clientDetailsFacade, 'selectClient');
+
     const fixture = TestBed.createComponent(ClientComponent);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
@@ -89,6 +86,9 @@ describe('ClientPage Component', () => {
 
   it('correctly updates URL when navigating from main page to details page',
      fakeAsync(() => {
+       // Prevent warnings from 404-ing API requests.
+       spyOn(clientDetailsFacade, 'selectClient');
+
        const fixture = TestBed.createComponent(ClientComponent);
        router.navigate(['clients/C.1234']);
        tick();
@@ -121,6 +121,9 @@ describe('ClientPage Component', () => {
 
   it('correctly updates URL when navigating from details page to main page',
      fakeAsync(() => {
+       // Prevent warnings from 404-ing API requests.
+       spyOn(clientDetailsFacade, 'selectClient');
+
        const fixture = TestBed.createComponent(ClientComponent);
        router.navigate(['clients/C.1234/details']);
        tick();

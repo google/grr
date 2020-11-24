@@ -133,10 +133,6 @@ class TestHttpApiRouter(api_call_router.ApiCallRouter):
   def FailureUnauthorized(self, args, context=None):
     raise access_control.UnauthorizedAccess("oh no")
 
-  @api_call_router.Http("GET", "/failure/resource-exhausted")
-  def FailureResourceExhausted(self, args, context=None):
-    raise api_call_handler_base.ResourceExhaustedError("exhausted")
-
   @api_call_router.Http("GET", "/failure/invalid-argument")
   def FailureInvalidArgument(self, args, context=None):
     raise ValueError("oh no")
@@ -350,9 +346,6 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
         fields=["SampleGet", "http", "SUCCESS"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "RESOURCE_EXHAUSTED"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_ACCESS_PROBE_LATENCY,
         fields=["SampleGet", "http", "FORBIDDEN"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_ACCESS_PROBE_LATENCY,
@@ -381,9 +374,6 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
         fields=["SampleGet", "http", "FORBIDDEN"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "RESOURCE_EXHAUSTED"]), \
-    self.assertStatsCounterDelta(
-        0, http_api.API_METHOD_LATENCY,
         fields=["SampleGet", "http", "NOT_FOUND"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_METHOD_LATENCY,
@@ -403,31 +393,27 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     def CheckMethod(url, method_name, status):
       # pylint: disable=g-backslash-continuation
       with self.assertStatsCounterDelta(
-          1 if status == "SUCCESS" else 0,
+          status == "SUCCESS" and 1 or 0,
           http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "SUCCESS"]), \
       self.assertStatsCounterDelta(
-          1 if status == "FORBIDDEN" else 0,
+          status == "FORBIDDEN" and 1 or 0,
           http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "FORBIDDEN"]), \
       self.assertStatsCounterDelta(
-          1 if status == "RESOURCE_EXHAUSTED" else 0,
-          http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "RESOURCE_EXHAUSTED"]), \
-      self.assertStatsCounterDelta(
-          1 if status == "NOT_FOUND" else 0,
+          status == "NOT_FOUND" and 1 or 0,
           http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "NOT_FOUND"]), \
       self.assertStatsCounterDelta(
-          1 if status == "NOT_IMPLEMENTED" else 0,
+          status == "NOT_IMPLEMENTED" and 1 or 0,
           http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "NOT_IMPLEMENTED"]), \
       self.assertStatsCounterDelta(
-          1 if status == "INVALID_ARGUMENT" else 0,
+          status == "INVALID_ARGUMENT" and 1 or 0,
           http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "INVALID_ARGUMENT"]), \
       self.assertStatsCounterDelta(
-          1 if status == "SERVER_ERROR" else 0,
+          status == "SERVER_ERROR" and 1 or 0,
           http_api.API_METHOD_LATENCY,
           fields=[method_name, "http", "SERVER_ERROR"]):
         # pylint: enable=g-backslash-continuation
@@ -438,8 +424,6 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     CheckMethod("/failure/server-error", "FailureServerError", "SERVER_ERROR")
     CheckMethod("/failure/not-implemented", "FailureNotImplemented",
                 "NOT_IMPLEMENTED")
-    CheckMethod("/failure/resource-exhausted", "FailureResourceExhausted",
-                "RESOURCE_EXHAUSTED")
     CheckMethod("/failure/unauthorized", "FailureUnauthorized", "FORBIDDEN")
     CheckMethod("/failure/invalid-argument", "FailureInvalidArgument",
                 "INVALID_ARGUMENT")

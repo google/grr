@@ -519,16 +519,6 @@ class HttpRequestHandler(object):
             method_name=method_metadata.name,
             no_audit_log=method_metadata.no_audit_log_required,
             context=context)
-    # ResourceExhaustedError inherits from UnauthorizedAccess, so it
-    # should be above UnauthorizedAccess in the code.
-    except api_call_handler_base.ResourceExhaustedError as e:
-      error_message = str(e)
-      return self._BuildResponse(
-          http.client.TOO_MANY_REQUESTS,
-          {"message": f"Quota exceeded: {error_message}"},
-          method_name=method_metadata.name,
-          no_audit_log=method_metadata.no_audit_log_required,
-          context=context)
     except access_control.UnauthorizedAccess as e:
       error_message = str(e)
       logging.warning("Access denied for %s (HTTP %s %s): %s",
@@ -598,8 +588,6 @@ def RenderHttpResponse(request):
     status = "SUCCESS"
   elif response.status_code == http.client.FORBIDDEN:
     status = "FORBIDDEN"
-  elif response.status_code == http.client.TOO_MANY_REQUESTS:
-    status = "RESOURCE_EXHAUSTED"
   elif response.status_code == http.client.NOT_FOUND:
     status = "NOT_FOUND"
   elif response.status_code == http.client.UNPROCESSABLE_ENTITY:

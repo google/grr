@@ -527,12 +527,6 @@ config_lib.DEFINE_string(
     help="Full commandline for signtool to verify signatures.")
 
 config_lib.DEFINE_string(
-    "ClientBuilder.extra_package_dependencies",
-    default="",
-    help="Extra dependencies, put verbatim into \"Depends:\" in debian/control "
-    "or into \"Requires:\" in the RPM spec file.")
-
-config_lib.DEFINE_string(
     name="ClientRepacker.output_basename",
     default=("%(Client.prefix)%(Client.name)_"
              "%(Template.version_string)_%(Template.arch)"),

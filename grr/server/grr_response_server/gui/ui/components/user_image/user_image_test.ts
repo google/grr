@@ -1,5 +1,5 @@
 import {Component} from '@angular/core';
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {async, TestBed} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {initTestEnvironment} from '@app/testing';
@@ -21,7 +21,10 @@ class TestHostComponent {
 describe('UserImage Component', () => {
   let configFacade: ConfigFacadeMock;
 
-  beforeEach(waitForAsync(() => {
+  // TODO(user): Change to waitForAsync once we run on Angular 10, which
+  //  in turn requires TypeScript 3.9.
+  // tslint:disable-next-line:deprecation
+  beforeEach(async(() => {
     configFacade = mockConfigFacade();
 
     TestBed

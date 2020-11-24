@@ -41,12 +41,5 @@
     mat-icon {
       margin-right: 0.5em;
     }
-
-    mat-chip-list {
-      display: inline-block;
-      padding-left: 0.5em;
-      /** Prevent online chip from changing cursor and hover effect. */
-      pointer-events: none;
-    }
   }
 }

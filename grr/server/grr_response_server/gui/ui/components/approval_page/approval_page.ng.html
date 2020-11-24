@@ -1,9 +1,3 @@
-<mat-drawer-container class="container" [class.noscroll]="clientDetailsDrawer.opened">
-  <mat-drawer #clientDetailsDrawer position="end">
-    <client-details *ngIf="approval$ | async as approval" [clientId]="approval.subject.clientId"></client-details>
-  </mat-drawer>
-
-  <mat-drawer-content>
 <div *ngIf="approval$ | async as approval" class="wrapper">
   <mat-card>
     <mat-card-header>
@@ -68,10 +62,3 @@
     </mat-card-actions>
   </mat-card>
 </div>
-<client-overview>
-  <button mat-button class="goto-details" (click)="onClientDetailsButtonClick()">Client details
-    <mat-icon>{{clientDetailsDrawer.opened ? 'keyboard_arrow_right' : 'keyboard_arrow_left'}}</mat-icon>
-  </button>
-</client-overview>
-</mat-drawer-content>
-</mat-drawer-container>

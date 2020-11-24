@@ -1,11 +1,10 @@
 import {Component} from '@angular/core';
-import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
+import {async, ComponentFixture, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowFileResult, flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
 import {StatEntry} from '@app/lib/api/api_interfaces';
 import {newPathSpec} from '@app/lib/api/api_test_util';
 import {initTestEnvironment} from '@app/testing';
-
 import {HelpersModule} from './module';
 
 
@@ -34,7 +33,7 @@ class TestHostComponent {
 }
 
 describe('FileResultsTable Component', () => {
-  beforeEach(waitForAsync(() => {
+  beforeEach(async(() => {
     TestBed
         .configureTestingModule({
           imports: [
