@@ -121,12 +121,13 @@ def FetchClientResourceUsageRecords(
     client_id: str, start_range: timestamp_pb2.Timestamp,
     end_range: timestamp_pb2.Timestamp
 ) -> List[resource_pb2.ClientResourceUsageRecord]:
-  """Returns aggregated resource usage metrics of a client
-  in Fleetspeak-enabled database within a specified time range.
+  """Returns aggregated resource usage metrics of a client from Fleetspeak.
+
   Args:
     client_id: Id of the client to fetch Fleetspeak resource usage records for.
     start_range: Start timestamp of range.
     end_range: end timestamp of range.
+
   Returns:
     A list of client resource usage records retrieved from Fleetspeak.
   """
@@ -138,4 +139,3 @@ def FetchClientResourceUsageRecords(
   if not res.records:
     return []
   return list(res.records)
-

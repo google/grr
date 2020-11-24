@@ -1,22 +1,22 @@
 #!/usr/bin/env python
 # Lint as: python3
 """Unittest for GRRafana HTTP server."""
-from absl.testing import absltest
-from absl import app
 import copy
+
+from absl import app
+from absl.testing import absltest
 import mock
+from werkzeug import test as werkzeug_test
 
 from google.protobuf import timestamp_pb2
 
-from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2, resource_pb2
-
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
-from grr_response_server.fleet_utils import FleetStats
 from grr_response_server.bin import grrafana
+from grr_response_server.fleet_utils import FleetStats
 
-from werkzeug import serving as werkzeug_serving
-from werkzeug import test as werkzeug_test
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 
 _TEST_CLIENT_ID_1 = "C.0000000000000001"
 _TEST_CLIENT_ID_2 = "C.0000000000000002"
@@ -68,117 +68,171 @@ _TEST_CLIENT_RESOURCE_USAGE_RECORD_2 = {
 }
 _TEST_CLIENT_BREAKDOWN_STATS = FleetStats(
     day_buckets=grrafana._FLEET_BREAKDOWN_DAY_BUCKETS,
-    label_counts={1:  {"foo-label": {"bar-os": 3, "baz-os": 4},
-                       "bar-label": {"bar-os": 5, "foo-os": 1}},
-                  7:  {"foo-label": {"bar-os": 6, "baz-os": 5},
-                       "bar-label": {"bar-os": 5, "foo-os": 2}},
-                  14: {"foo-label": {"bar-os": 6, "baz-os": 5},
-                       "bar-label": {"bar-os": 5, "foo-os": 2},
-                       "baz-label": {"bar-os":1}},
-                  30: {"foo-label": {"bar-os": 6, "baz-os": 5},
-                       "bar-label": {"bar-os": 5, "foo-os": 2},
-                       "baz-label": {"bar-os": 3, "foo-os": 1}}},
-    total_counts={1:  {"bar-os": 8, "baz-os": 4, "foo-os": 1},
-                  7:  {"bar-os": 11, "baz-os": 5, "foo-os": 2},
-                  14: {"bar-os": 12, "baz-os": 5, "foo-os": 2},
-                  30: {"bar-os": 14, "baz-os": 5, "foo-os": 3}}
-)
+    label_counts={
+        1: {
+            "foo-label": {
+                "bar-os": 3,
+                "baz-os": 4
+            },
+            "bar-label": {
+                "bar-os": 5,
+                "foo-os": 1
+            }
+        },
+        7: {
+            "foo-label": {
+                "bar-os": 6,
+                "baz-os": 5
+            },
+            "bar-label": {
+                "bar-os": 5,
+                "foo-os": 2
+            }
+        },
+        14: {
+            "foo-label": {
+                "bar-os": 6,
+                "baz-os": 5
+            },
+            "bar-label": {
+                "bar-os": 5,
+                "foo-os": 2
+            },
+            "baz-label": {
+                "bar-os": 1
+            }
+        },
+        30: {
+            "foo-label": {
+                "bar-os": 6,
+                "baz-os": 5
+            },
+            "bar-label": {
+                "bar-os": 5,
+                "foo-os": 2
+            },
+            "baz-label": {
+                "bar-os": 3,
+                "foo-os": 1
+            }
+        }
+    },
+    total_counts={
+        1: {
+            "bar-os": 8,
+            "baz-os": 4,
+            "foo-os": 1
+        },
+        7: {
+            "bar-os": 11,
+            "baz-os": 5,
+            "foo-os": 2
+        },
+        14: {
+            "bar-os": 12,
+            "baz-os": 5,
+            "foo-os": 2
+        },
+        30: {
+            "bar-os": 14,
+            "baz-os": 5,
+            "foo-os": 3
+        }
+    })
 _TEST_VALID_RUD_QUERY = {
-    'app': 'dashboard',
-    'requestId': 'Q119',
-    'timezone': 'browser',
-    'panelId': 2,
-    'dashboardId': 77,
-    'range': {
-        'from': _START_RANGE_TIMESTAMP,
-        'to': _END_RANGE_TIMESTAMP,
-        'raw': {
-            'from': _START_RANGE_TIMESTAMP,
-            'to': _END_RANGE_TIMESTAMP
+    "app": "dashboard",
+    "requestId": "Q119",
+    "timezone": "browser",
+    "panelId": 2,
+    "dashboardId": 77,
+    "range": {
+        "from": _START_RANGE_TIMESTAMP,
+        "to": _END_RANGE_TIMESTAMP,
+        "raw": {
+            "from": _START_RANGE_TIMESTAMP,
+            "to": _END_RANGE_TIMESTAMP
         }
     },
-    'timeInfo': '',
-    'interval': '10m',
-    'intervalMs': 600000,
-    'targets': [{
-        'data': None,
-        'target': 'Max User CPU Rate',
-        'refId': 'A',
-        'hide': False,
-        'type': 'timeseries'
+    "timeInfo": "",
+    "interval": "10m",
+    "intervalMs": 600000,
+    "targets": [{
+        "data": None,
+        "target": "Max User CPU Rate",
+        "refId": "A",
+        "hide": False,
+        "type": "timeseries"
     }, {
-        'data': None,
-        'target': 'Mean System CPU Rate',
-        'refId': 'A',
-        'hide': False,
-        'type': 'timeseries'
+        "data": None,
+        "target": "Mean System CPU Rate",
+        "refId": "A",
+        "hide": False,
+        "type": "timeseries"
     }],
-    'maxDataPoints': 800,
-    'scopedVars': {
-        'ClientID': {
-            'text': _TEST_CLIENT_ID_1,
-            'value': _TEST_CLIENT_ID_1
+    "maxDataPoints": 800,
+    "scopedVars": {
+        "ClientID": {
+            "text": _TEST_CLIENT_ID_1,
+            "value": _TEST_CLIENT_ID_1
         },
-        '__interval': {
-            'text': '10m',
-            'value': '10m'
+        "__interval": {
+            "text": "10m",
+            "value": "10m"
         },
-        '__interval_ms': {
-            'text': '600000',
-            'value': 600000
+        "__interval_ms": {
+            "text": "600000",
+            "value": 600000
         }
     },
-    'startTime': 1598782453496,
-    'rangeRaw': {
-        'from': _START_RANGE_TIMESTAMP,
-        'to': _END_RANGE_TIMESTAMP
+    "startTime": 1598782453496,
+    "rangeRaw": {
+        "from": _START_RANGE_TIMESTAMP,
+        "to": _END_RANGE_TIMESTAMP
     },
-    'adhocFilters': []
+    "adhocFilters": []
 }
 _TEST_VALID_CLIENT_STATS_QUERY = {
-      "app": "dashboard",
-      "requestId": "Q1",
-      "timezone": "browser",
-      "panelId": 12345,
-      "dashboardId": 1,
-      "range": {
+    "app": "dashboard",
+    "requestId": "Q1",
+    "timezone": "browser",
+    "panelId": 12345,
+    "dashboardId": 1,
+    "range": {
         "from": "2020-10-21T04:29:36.806Z",
         "to": "2020-10-21T10:29:36.806Z",
         "raw": {
-          "from": "now-6h",
-          "to": "now"
+            "from": "now-6h",
+            "to": "now"
         }
-      },
-      "timeInfo": "",
-      "interval": "15s",
-      "intervalMs": 15000,
-      "targets": [
-        {
-          "data": "",
-          "refId": "A",
-          "target": "OS Platform Breakdown - 7 Day Active",
-          "type": "timeseries",
-          "datasource": "JSON"
-        }
-      ],
-      "maxDataPoints": 1700,
-      "scopedVars": {
+    },
+    "timeInfo": "",
+    "interval": "15s",
+    "intervalMs": 15000,
+    "targets": [{
+        "data": "",
+        "refId": "A",
+        "target": "OS Platform Breakdown - 7 Day Active",
+        "type": "timeseries",
+        "datasource": "JSON"
+    }],
+    "maxDataPoints": 1700,
+    "scopedVars": {
         "__interval": {
-          "text": "15s",
-          "value": "15s"
+            "text": "15s",
+            "value": "15s"
         },
         "__interval_ms": {
-          "text": "15000",
-          "value": 15000
+            "text": "15000",
+            "value": 15000
         }
-      },
-      "startTime": 1603276176806,
-      "rangeRaw": {
+    },
+    "startTime": 1603276176806,
+    "rangeRaw": {
         "from": "now-6h",
         "to": "now"
-      },
-      "adhocFilters": [],
-      "endTime": 1603276176858
+    },
+    "adhocFilters": [],
+    "endTime": 1603276176858
 }
 _TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_RUD_QUERY)
 _TEST_INVALID_TARGET_QUERY["targets"][0]["target"] = "unavailable_metric"
@@ -205,11 +259,12 @@ def _MockConnReturningRecords(client_ruds):
       records=records)
   return conn
 
+
 def _MockDatastoreReturningPlatformFleetStats(client_fleet_stats):
   client_fleet_stats.Validate()
-  REL_DB = mock.MagicMock()
-  REL_DB.CountClientPlatformsByLabel.return_value = client_fleet_stats
-  return REL_DB
+  rel_db = mock.MagicMock()
+  rel_db.CountClientPlatformsByLabel.return_value = client_fleet_stats
+  return rel_db
 
 
 class GrrafanaTest(absltest.TestCase):
@@ -217,38 +272,38 @@ class GrrafanaTest(absltest.TestCase):
 
   def setUp(self):
     super(GrrafanaTest, self).setUp()
-    self.client = werkzeug_test.Client(application=grrafana.Grrafana(),
-                                       response_wrapper=grrafana.JSONResponse)
+    self.client = werkzeug_test.Client(
+        application=grrafana.Grrafana(), response_wrapper=grrafana.JSONResponse)
 
   def testRoot(self):
     response = self.client.get("/")
     self.assertEqual(200, response.status_code)
 
   def testSearchMetrics(self):
-    response = self.client.post("/search",
-                                json={
-                                    'type': 'timeseries',
-                                    'target': ''
-                                })
+    response = self.client.post(
+        "/search", json={
+            "type": "timeseries",
+            "target": ""
+        })
     self.assertEqual(200, response.status_code)
 
     expected_res = [
-        "Mean User CPU Rate",
-        "Max User CPU Rate",
-        "Mean System CPU Rate",
-        "Max System CPU Rate",
-        "Mean Resident Memory MB",
+        "Mean User CPU Rate", "Max User CPU Rate", "Mean System CPU Rate",
+        "Max System CPU Rate", "Mean Resident Memory MB",
         "Max Resident Memory MB"
     ]
     expected_res.extend([
         f"OS Platform Breakdown - {n_days} Day Active"
-        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS])
+        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS
+    ])
     expected_res.extend([
         f"OS Release Version Breakdown - {n_days} Day Active"
-        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS])
+        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS
+    ])
     expected_res.extend([
         f"Client Version Strings - {n_days} Day Active"
-        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS])
+        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS
+    ])
     self.assertListEqual(response.json, expected_res)
 
   def testClientResourceUsageMetricQuery(self):
@@ -281,31 +336,35 @@ class GrrafanaTest(absltest.TestCase):
         self.client.post("/query", json=_TEST_INVALID_TARGET_QUERY)
 
   def testClientsStatisticsMetric(self):
-    REL_DB = _MockDatastoreReturningPlatformFleetStats(
-        _TEST_CLIENT_BREAKDOWN_STATS
-    )
-    with mock.patch.object(data_store, "REL_DB", REL_DB):
-      valid_response = self.client.post("/query", json=_TEST_VALID_CLIENT_STATS_QUERY)
+    rel_db = _MockDatastoreReturningPlatformFleetStats(
+        _TEST_CLIENT_BREAKDOWN_STATS)
+    with mock.patch.object(data_store, "REL_DB", rel_db):
+      valid_response = self.client.post(
+          "/query", json=_TEST_VALID_CLIENT_STATS_QUERY)
       self.assertEqual(200, valid_response.status_code)
       expected_res = [{
-        'columns': [{'text': 'Label', 'type': 'string'},
-                    {'text': 'Value', 'type': 'number'}],
-        'rows':    [['bar-os', 11], ['baz-os', 5], ['foo-os', 2]],
-        'type':    'table'
+          "columns": [{
+              "text": "Label",
+              "type": "string"
+          }, {
+              "text": "Value",
+              "type": "number"
+          }],
+          "rows": [["bar-os", 11], ["baz-os", 5], ["foo-os", 2]],
+          "type": "table"
       }]
       self.assertEqual(valid_response.json, expected_res)
 
 
-class timeToProtoTimestampTest(absltest.TestCase):
-  """Test the conversion between a timestamp issued by Grafana
-  (ISO 8601) to a Timestamp object transferable to Fleetspeak by gRPC."""
+class TimeToProtoTimestampTest(absltest.TestCase):
+  """Tests the conversion between Grafana and proto timestamps."""
 
-  def testtimeToProtoTimestamp(self):
+  def testTimeToProtoTimestamp(self):
     self.assertEqual(
-        grrafana.timeToProtoTimestamp(_START_RANGE_TIMESTAMP),
+        grrafana.TimeToProtoTimestamp(_START_RANGE_TIMESTAMP),
         timestamp_pb2.Timestamp(seconds=1597328417, nanos=(158 * 1000000)))
     self.assertEqual(
-        grrafana.timeToProtoTimestamp(_END_RANGE_TIMESTAMP),
+        grrafana.TimeToProtoTimestamp(_END_RANGE_TIMESTAMP),
         timestamp_pb2.Timestamp(seconds=1597770958, nanos=(761 * 1000000)))
 
 
