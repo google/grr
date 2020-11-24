@@ -10,30 +10,32 @@ import {FlowListModule} from '@app/components/flow_list/module';
 import {ApprovalModule} from '../approval/module';
 import {ClientDetailsModule} from '../client_details/module';
 import {ClientOverviewModule} from '../client_overview/module';
+import {ScheduledFlowListModule} from '../scheduled_flow_list/module';
 
-import {Client} from './client';
-import {ClientRoutingModule} from './routing';
+import {ClientPage} from './client_page';
+import {ClientPageRoutingModule} from './routing';
 
 /**
  * Module for the client details component.
  */
 @NgModule({
   imports: [
-    BrowserAnimationsModule,
-    RouterModule,
-    ClientRoutingModule,
     ApprovalModule,
+    BrowserAnimationsModule,
+    ClientDetailsModule,
+    ClientOverviewModule,
+    ClientPageRoutingModule,
     FlowFormModule,
     FlowListModule,
-    ClientOverviewModule,
-    MatSidenavModule,
-    ClientDetailsModule,
     MatButtonModule,
     MatIconModule,
+    MatSidenavModule,
+    RouterModule,
+    ScheduledFlowListModule,
   ],
   declarations: [
-    Client,
+    ClientPage,
   ],
 })
-export class ClientModule {
+export class ClientPageModule {
 }

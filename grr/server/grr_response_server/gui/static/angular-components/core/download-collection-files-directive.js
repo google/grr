@@ -1,6 +1,8 @@
 goog.module('grrUi.core.downloadCollectionFilesDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 
 /**
@@ -32,14 +34,14 @@ const DownloadCollectionFilesController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.$window} $window
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, $window, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @type {string} */

@@ -1,4 +1,4 @@
-import {async, TestBed} from '@angular/core/testing';
+import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {MultiGetFileDetails} from '@app/components/flow_details/plugins/multi_get_file_details';
 import {PathSpecProgressStatus} from '@app/lib/api/api_interfaces';
@@ -14,7 +14,7 @@ import {PluginsModule} from './module';
 initTestEnvironment();
 
 describe('multi-get-file-details component', () => {
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed
         .configureTestingModule({
           imports: [

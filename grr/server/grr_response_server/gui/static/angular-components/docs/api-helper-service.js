@@ -1,6 +1,8 @@
 goog.module('grrUi.docs.apiHelperService');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 
 /**
@@ -11,14 +13,14 @@ goog.module.declareLegacyNamespace();
 exports.ApiHelperService = class {
   /**
    * @param {!angular.$q} $q
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($q, grrApiService) {
     /** @private {!angular.$q} */
     this.q_ = $q;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @private {!Array<Object>} */

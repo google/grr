@@ -12,6 +12,12 @@ $width: 80%;
   height: calc(100vh - #{main.$toolbar-height});
 
   client-overview {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: $max-width;
+    width: $width;
+
     .goto-details {
       margin-left: auto;
       margin-right: 2em;
@@ -34,11 +40,16 @@ $width: 80%;
       max-width: $max-width;
       width: $width;
     }
+    background: c.mat-color(c.$background, app-bar);
   }
 
   .client-flows {
+    padding-top: 2em;
     background-color: c.mat-color(c.$background, darker-background);
-    flow-list {
+
+    flow-list,
+    scheduled-flow-list {
+      display: block;
       margin-left: auto;
       margin-right: auto;
       max-width: $max-width;
@@ -50,5 +61,9 @@ $width: 80%;
     /* mat-chip-list causes slight horizontal scrolling otherwise. */
     display: block;
     overflow: hidden;
+  }
+
+  .mat-drawer-content {
+    background-color: c.mat-color(c.$background, app-bar);
   }
 }

@@ -342,7 +342,10 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
   def testFleetspeakClient(self, mock_labels_fn):
     mock_labels_fn.return_value = ["foo", "bar"]
     client_id = "C.0000000000000001"
-    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    data_store.REL_DB.WriteClientMetadata(
+        client_id,
+        fleetspeak_enabled=True,
+        fleetspeak_validation_info={"IP": "12.34.56.78"})
     client_mock = action_mocks.InterrogatedClient()
     client_mock.InitializeClient(
         fqdn="fleetspeak.test.com",
@@ -368,6 +371,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self._CheckNetworkInfo(snapshot)
     labels = data_store.REL_DB.ReadClientLabels(client_id)
     self.assertCountEqual([l.name for l in labels], ["foo", "bar"])
+    self.assertEqual(snapshot.fleetspeak_validation_info.ToStringDict(),
+                     {"IP": "12.34.56.78"})
 
   @parser_test_lib.WithAllParsers
   @mock.patch.object(fleetspeak_utils, "GetLabelsFromFleetspeak")

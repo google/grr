@@ -4,13 +4,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import configparser
+from distutils.command.build_py import build_py
 import os
 import shutil
 import subprocess
 import sys
-
-import configparser
-from distutils.command.build_py import build_py
 
 from setuptools import find_packages
 from setuptools import setup
@@ -35,7 +34,7 @@ def get_config():
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
-  config = configparser.SafeConfigParser()
+  config = configparser.ConfigParser()
   config.read(ini_path)
   return config
 
@@ -103,6 +102,7 @@ class Sdist(sdist):
 
 
 VERSION = get_config()
+PACKAGES = find_packages()
 
 setup_args = dict(
     name="grr-response-proto",
@@ -117,7 +117,8 @@ setup_args = dict(
         "develop": Develop,
         "sdist": Sdist,
     },
-    packages=find_packages(),
+    package_data={package: ["py.typed", "*.pyi"] for package in PACKAGES},
+    packages=PACKAGES,
     install_requires=[
         PROTOBUF,
     ],

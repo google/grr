@@ -1,6 +1,10 @@
-:host {
-  display: block;
-  padding-top: 2em;
+@use '~material-theme' as c;
+
+h1.mat-h1 {
+  font-family: c.$google-sans-display-family;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 24px;
 }
 
 .flow-item {

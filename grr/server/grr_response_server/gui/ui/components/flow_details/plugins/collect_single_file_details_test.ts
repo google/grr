@@ -1,4 +1,4 @@
-import {async, TestBed} from '@angular/core/testing';
+import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {CollectSingleFileDetails} from '@app/components/flow_details/plugins/collect_single_file_details';
 import {CollectSingleFileArgs, CollectSingleFileProgress, CollectSingleFileProgressStatus, PathSpecPathType} from '@app/lib/api/api_interfaces';
@@ -13,7 +13,7 @@ import {PluginsModule} from './module';
 initTestEnvironment();
 
 describe('collect-single-file-details component', () => {
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed
         .configureTestingModule({
           imports: [

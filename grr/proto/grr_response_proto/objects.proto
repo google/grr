@@ -21,7 +21,7 @@ message StringMapEntry {
   optional string value = 2;
 }
 
-// Next field: 18
+// Next field: 19
 message ClientSnapshot {
   optional string client_id = 1 [(sem_type) = {
     description: "The client id of this client.",
@@ -76,6 +76,8 @@ message ClientSnapshot {
 
   // Information about EDR agents present on the client.
   repeated EdrAgent edr_agents = 17;
+
+  optional FleetspeakValidationInfo fleetspeak_validation_info = 18;
 }
 
 message ClientMetadata {
@@ -110,6 +112,7 @@ message ClientMetadata {
     description: "Timestamp for the latest change of startup information for "
                  "this client.",
   }];
+  optional FleetspeakValidationInfo last_fleetspeak_validation_info = 10;
 }
 
 message ClientFullInfo {

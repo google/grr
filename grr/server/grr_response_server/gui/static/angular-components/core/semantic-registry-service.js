@@ -1,6 +1,8 @@
 goog.module('grrUi.core.semanticRegistryService');
 goog.module.declareLegacyNamespace();
 
+const reflectionService = goog.requireType('grrUi.core.reflectionService');
+
 
 
 /**
@@ -11,7 +13,7 @@ goog.module.declareLegacyNamespace();
 exports.SemanticRegistryService = class {
   /**
    * @param {!angular.$q} $q
-   * @param {!grrUi.core.reflectionService.ReflectionService}
+   * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
    * @ngInject
    */
@@ -19,7 +21,7 @@ exports.SemanticRegistryService = class {
     /** @private {!angular.$q} */
     this.q_ = $q;
 
-    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
 
     /** @private {!Object<string, Object>} */

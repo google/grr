@@ -1,16 +1,19 @@
 goog.module('grrUi.client.virtualFileSystem.vfsFilesArchiveButtonDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
 const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
 const {getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils');
 
 
+/** @const */
 var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 
 /** @const {number} */
 exports.DOWNLOAD_EVERYTHING_REENABLE_DELAY = 30000;
 
+/** @const */
 var DOWNLOAD_EVERYTHING_REENABLE_DELAY =
     exports.DOWNLOAD_EVERYTHING_REENABLE_DELAY;
 
@@ -24,7 +27,7 @@ const VfsFilesArchiveButtonController = class {
    * @param {!angular.Scope} $rootScope
    * @param {!angular.Scope} $scope
    * @param {!angular.$timeout} $timeout
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($rootScope, $scope, $timeout, grrApiService) {
@@ -37,7 +40,7 @@ const VfsFilesArchiveButtonController = class {
     /** @private {!angular.$timeout} */
     this.timeout_ = $timeout;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @type {boolean} */

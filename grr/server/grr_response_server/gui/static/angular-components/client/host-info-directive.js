@@ -1,8 +1,14 @@
 goog.module('grrUi.client.hostInfoDirective');
 goog.module.declareLegacyNamespace();
 
+const aclDialogService = goog.requireType('grrUi.acl.aclDialogService');
+const apiService = goog.requireType('grrUi.core.apiService');
+const dialogService = goog.requireType('grrUi.core.dialogService');
+const routingService = goog.requireType('grrUi.routing.routingService');
 
 
+
+/** @const */
 var OPERATION_POLL_INTERVAL_MS = 1000;
 
 
@@ -14,10 +20,10 @@ const HostInfoController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.$interval} $interval
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
-   * @param {!grrUi.acl.aclDialogService.AclDialogService} grrAclDialogService
-   * @param {!grrUi.core.dialogService.DialogService} grrDialogService
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!routingService.RoutingService} grrRoutingService
+   * @param {!aclDialogService.AclDialogService} grrAclDialogService
+   * @param {!dialogService.DialogService} grrDialogService
    * @ngInject
    */
   constructor(
@@ -29,16 +35,16 @@ const HostInfoController = class {
     /** @private {!angular.$interval} */
     this.interval_ = $interval;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.routing.routingService.RoutingService} */
+    /** @private {!routingService.RoutingService} */
     this.grrRoutingService_ = grrRoutingService;
 
-    /** @private {!grrUi.acl.aclDialogService.AclDialogService} */
+    /** @private {!aclDialogService.AclDialogService} */
     this.grrAclDialogService_ = grrAclDialogService;
 
-    /** @private {!grrUi.core.dialogService.DialogService} */
+    /** @private {!dialogService.DialogService} */
     this.grrDialogService_ = grrDialogService;
 
     /** @type {string} */

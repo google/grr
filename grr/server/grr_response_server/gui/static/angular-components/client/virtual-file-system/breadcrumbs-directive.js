@@ -1,6 +1,8 @@
 goog.module('grrUi.client.virtualFileSystem.breadcrumbsDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 
 /**
@@ -11,7 +13,7 @@ const BreadcrumbsController = class {
   /**
    * @param {!angular.Scope} $rootScope
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($rootScope, $scope, grrApiService) {

@@ -29,6 +29,7 @@ class InMemoryDBClientMixin(object):
                           last_ping=None,
                           last_clock=None,
                           last_ip=None,
+                          fleetspeak_validation_info=None,
                           last_foreman=None):
     """Write metadata about the client."""
     md = {}
@@ -53,8 +54,13 @@ class InMemoryDBClientMixin(object):
     if last_foreman is not None:
       md["last_foreman_time"] = last_foreman
 
-    if not md:
-      raise ValueError("NOOP write.")
+    if fleetspeak_validation_info:
+      pb = rdf_client.FleetspeakValidationInfo.FromStringDict(
+          fleetspeak_validation_info)
+      md["last_fleetspeak_validation_info"] = pb.SerializeToBytes()
+    else:
+      # Write null for empty or non-existent validation info.
+      md["last_fleetspeak_validation_info"] = None
 
     self.metadatas.setdefault(client_id, {}).update(md)
 
@@ -67,7 +73,7 @@ class InMemoryDBClientMixin(object):
       if md is None:
         continue
 
-      res[client_id] = rdf_objects.ClientMetadata(
+      metadata = rdf_objects.ClientMetadata(
           certificate=md.get("certificate"),
           fleetspeak_enabled=md.get("fleetspeak_enabled"),
           first_seen=md.get("first_seen"),
@@ -77,6 +83,13 @@ class InMemoryDBClientMixin(object):
           last_foreman_time=md.get("last_foreman_time"),
           last_crash_timestamp=md.get("last_crash_timestamp"),
           startup_info_timestamp=md.get("startup_info_timestamp"))
+
+      fsvi = md.get("last_fleetspeak_validation_info")
+      if fsvi is not None:
+        pb = rdf_client.FleetspeakValidationInfo.FromSerializedBytes(fsvi)
+        metadata.last_fleetspeak_validation_info = pb
+
+      res[client_id] = metadata
 
     return res
 

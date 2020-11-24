@@ -1,6 +1,8 @@
 goog.module('grrUi.client.removeClientsLabelsDialogDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 
 /**
@@ -11,7 +13,7 @@ const RemoveClientsLabelsDialogController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.$q} $q
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, $q, grrApiService) {
@@ -21,7 +23,7 @@ const RemoveClientsLabelsDialogController = class {
     /** @private {!angular.$q} */
     this.q_ = $q;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @export {Array<string>} */

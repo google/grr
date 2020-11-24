@@ -1,6 +1,9 @@
 goog.module('grrUi.flow.clientFlowsListDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const routingService = goog.requireType('grrUi.routing.routingService');
+
 
 
 /**
@@ -12,8 +15,8 @@ const ClientFlowsListController = class {
    * @param {!angular.Scope} $scope
    * @param {!angular.$timeout} $timeout
    * @param {!angularUi.$uibModal} $uibModal
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!routingService.RoutingService} grrRoutingService
    * @ngInject
    */
   constructor($scope, $timeout, $uibModal, grrApiService, grrRoutingService) {
@@ -26,10 +29,10 @@ const ClientFlowsListController = class {
     /** @private {!angularUi.$uibModal} */
     this.uibModal_ = $uibModal;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.routing.routingService.RoutingService} */
+    /** @private {!routingService.RoutingService} */
     this.grrRoutingService_ = grrRoutingService;
 
     /** @type {?string} */

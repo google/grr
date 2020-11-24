@@ -1,13 +1,14 @@
+import {HttpErrorResponse} from '@angular/common/http';
 import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {ConfigService} from '@app/components/config/config';
 import {ApiClient, ApiClientApproval, ApiFlow, ApiFlowState, ApiScheduledFlow, ApproverSuggestion} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
+import {HttpApiService, MissingApprovalError} from '@app/lib/api/http_api_service';
 import {Client, ClientApproval} from '@app/lib/models/client';
 import {FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow, FlowResultsQuery} from '@app/lib/models/flow';
 import {newClient, newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
 import {ClientPageFacade, uniqueTagForQuery} from '@app/store/client_page_facade';
 import {initTestEnvironment, removeUndefinedKeys} from '@app/testing';
-import {of, Subject} from 'rxjs';
+import {of, Subject, throwError} from 'rxjs';
 
 import {ConfigFacade} from './config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from './config_facade_test_util';
@@ -93,68 +94,83 @@ describe('ClientPageFacade', () => {
     userFacade.currentUserSubject.next({name: 'testuser'});
   });
 
-  it('calls the API on latestApproval$ subscription', () => {
-    clientPageFacade.latestApproval$.subscribe();
-    expect(httpApiService.listApprovals).toHaveBeenCalledWith('C.1234');
-  });
+  it('polls the API on latestApproval$ subscription ', fakeAsync(() => {
+       httpApiService.listApprovals =
+           jasmine.createSpy('listApprovals').and.callFake(() => of([]));
+       clientPageFacade.latestApproval$.subscribe();
 
-  it('emits latest pending approval in latestApproval$', (done) => {
-    const expected: ClientApproval = {
-      status: {type: 'pending', reason: 'Need at least 1 more approvers.'},
-      reason: 'Pending reason',
-      requestor: 'testuser',
-      clientId: 'C.1234',
-      approvalId: '2',
-      requestedApprovers: ['b', 'c'],
-      approvers: [],
-      subject: newClient({
-        clientId: 'C.1234',
-        fleetspeakEnabled: false,
-      }),
-    };
+       tick(configService.config.approvalPollingIntervalMs * 2 + 1);
+       discardPeriodicTasks();
 
-    clientPageFacade.latestApproval$.subscribe(approval => {
-      if (approval !== undefined) {
-        expect(removeUndefinedKeys(approval)).toEqual(expected);
-        done();
-      }
-    });
+       // First call happens at 0, next one at approvalPollingIntervalMs
+       // and the next one at approvalPollingIntervalMs * 2.
+       expect(httpApiService.listApprovals).toHaveBeenCalledTimes(3);
+     }));
 
-    apiListApprovals$.next([
-      {
-        subject: {
-          clientId: 'C.1234',
-          fleetspeakEnabled: false,
-          knowledgeBase: {},
-          labels: [],
-          age: '0',
-        },
-        id: '1',
-        reason: 'Old reason',
-        requestor: 'testuser',
-        isValid: false,
-        isValidMessage: 'Approval request is expired.',
-        approvers: ['testuser'],
-        notifiedUsers: ['b', 'c'],
-      },
-      {
-        subject: {
-          clientId: 'C.1234',
-          fleetspeakEnabled: false,
-          knowledgeBase: {},
-          labels: [],
-          age: '0',
-        },
-        id: '2',
-        reason: 'Pending reason',
-        requestor: 'testuser',
-        isValid: false,
-        isValidMessage: 'Need at least 1 more approvers.',
-        approvers: ['testuser'],
-        notifiedUsers: ['b', 'c'],
-      },
-    ]);
-  });
+  it('emits latest pending approval in latestApproval$', fakeAsync(() => {
+       const expected: ClientApproval = {
+         status: {type: 'pending', reason: 'Need at least 1 more approvers.'},
+         reason: 'Pending reason',
+         requestor: 'testuser',
+         clientId: 'C.1234',
+         approvalId: '2',
+         requestedApprovers: ['b', 'c'],
+         approvers: [],
+         subject: newClient({
+           clientId: 'C.1234',
+           fleetspeakEnabled: false,
+         }),
+       };
+
+       let latestApproval: ClientApproval|undefined = undefined;
+       clientPageFacade.latestApproval$.subscribe(approval => {
+         latestApproval = approval;
+         if (approval !== undefined) {
+           expect(removeUndefinedKeys(latestApproval)).toEqual(expected);
+         }
+       });
+
+       tick(configService.config.approvalPollingIntervalMs * 2 + 1);
+
+
+       apiListApprovals$.next([
+         {
+           subject: {
+             clientId: 'C.1234',
+             fleetspeakEnabled: false,
+             knowledgeBase: {},
+             labels: [],
+             age: '0',
+           },
+           id: '1',
+           reason: 'Old reason',
+           requestor: 'testuser',
+           isValid: false,
+           isValidMessage: 'Approval request is expired.',
+           approvers: ['testuser'],
+           notifiedUsers: ['b', 'c'],
+         },
+         {
+           subject: {
+             clientId: 'C.1234',
+             fleetspeakEnabled: false,
+             knowledgeBase: {},
+             labels: [],
+             age: '0',
+           },
+           id: '2',
+           reason: 'Pending reason',
+           requestor: 'testuser',
+           isValid: false,
+           isValidMessage: 'Need at least 1 more approvers.',
+           approvers: ['testuser'],
+           notifiedUsers: ['b', 'c'],
+         },
+       ]);
+
+       discardPeriodicTasks();
+       expect(latestApproval).not.toBeUndefined();
+     }));
 
   it('calls the listFlow API on flowListEntries$ subscription',
      fakeAsync(() => {
@@ -248,6 +264,23 @@ describe('ClientPageFacade', () => {
   it('polls and updates flowListEntries$ periodically', fakeAsync(() => {
        httpApiService.listFlowsForClient =
            jasmine.createSpy('listFlowsForClient').and.callFake(() => of([]));
+       clientPageFacade.flowListEntries$.subscribe();
+
+       tick(configService.config.flowListPollingIntervalMs * 2 + 1);
+       discardPeriodicTasks();
+
+       // First call happens at 0, next one at flowListPollingIntervalMs
+       // and the next one at flowListPollingIntervalMs * 2.
+       expect(httpApiService.listFlowsForClient).toHaveBeenCalledTimes(3);
+     }));
+
+  it('continues polling flowListEntries$ on error', fakeAsync(() => {
+       httpApiService.listFlowsForClient =
+           jasmine.createSpy('listFlowsForClient')
+               .and.callFake(
+                   () => throwError(
+                       new MissingApprovalError(new HttpErrorResponse(
+                           {error: {message: 'Approval missing'}}))));
        clientPageFacade.flowListEntries$.subscribe();
 
        tick(configService.config.flowListPollingIntervalMs * 2 + 1);
@@ -524,40 +557,46 @@ describe('ClientPageFacade', () => {
     });
   });
 
+  it('preserves existing flowListEntries$ when starting flow', (done) => {
+    clientPageFacade.startFlowConfiguration('StartedFlow1');
+    clientPageFacade.startFlow({});
+
+    apiStartFlow$.next({
+      flowId: '1',
+      clientId: 'C.1234',
+      lastActiveAt: '2000',
+      startedAt: '2000',
+      creator: 'rick',
+      name: 'StartedFlow1',
+      state: ApiFlowState.RUNNING,
+    });
+
+    clientPageFacade.startFlowConfiguration('StartedFlow2');
+    clientPageFacade.startFlow({});
+
+    apiStartFlow$.next({
+      flowId: '2',
+      clientId: 'C.1234',
+      lastActiveAt: '2000',
+      startedAt: '2000',
+      creator: 'rick',
+      name: 'StartedFlow2',
+      state: ApiFlowState.RUNNING,
+    });
+
+    clientPageFacade.flowListEntries$.subscribe(flows => {
+      expect(flows.map(fle => fle.flow.name)).toEqual([
+        'StartedFlow1', 'StartedFlow2'
+      ]);
+      done();
+    });
+  });
+
   it('calls the API on scheduleFlow', () => {
     clientPageFacade.startFlowConfiguration('ListProcesses');
     clientPageFacade.scheduleFlow({foo: 1});
     expect(httpApiService.scheduleFlow)
         .toHaveBeenCalledWith('C.1234', 'ListProcesses', {foo: 1});
-  });
-
-  it('emits the scheduled flow in scheduledFlows$', (done) => {
-    clientPageFacade.startFlowConfiguration('ListProcesses');
-    clientPageFacade.scheduleFlow({foobar: 9000});
-
-    apiScheduleFlow$.next({
-      scheduledFlowId: '1',
-      clientId: 'C.1234',
-      creator: 'testuser',
-      createTime: '999000',
-      flowName: 'ListProcesses',
-      flowArgs: {foobar: 9000},
-    });
-
-    const expected: ScheduledFlow[] = [{
-      scheduledFlowId: '1',
-      clientId: 'C.1234',
-      creator: 'testuser',
-      createTime: new Date(999),
-      flowName: 'ListProcesses',
-      flowArgs: {foobar: 9000},
-      error: undefined,
-    }];
-
-    clientPageFacade.scheduledFlows$.subscribe(scheduledFlows => {
-      expect(scheduledFlows).toEqual(expected);
-      done();
-    });
   });
 
   it('emits the error in startFlowState', (done) => {
@@ -712,89 +751,6 @@ describe('ClientPageFacade', () => {
        });
      });
 
-  it('calls the listScheduledFlows API on scheduledFlows$ subscription',
-     fakeAsync(() => {
-       clientPageFacade.scheduledFlows$.subscribe();
-
-       // This is needed since flow list entries are updated in a timer loop
-       // and the first call is scheduled after 0 milliseconds (meaning it
-       // will happen right after it was scheduled, but still asynchronously).
-       tick(1);
-       discardPeriodicTasks();
-
-       expect(httpApiService.listScheduledFlows)
-           .toHaveBeenCalledWith('C.1234', 'testuser');
-     }));
-
-  it('emits ScheduledFlows', fakeAsync(() => {
-       const expected: ScheduledFlow[] = [
-         {
-           scheduledFlowId: '1',
-           clientId: 'C.1234',
-           creator: 'testuser',
-           createTime: new Date(999),
-           flowName: 'ListProcesses',
-           flowArgs: {foobar: 9000},
-           error: undefined,
-         },
-         {
-           scheduledFlowId: '2',
-           clientId: 'C.1234',
-           creator: 'testuser',
-           createTime: new Date(999),
-           flowName: 'GetFile',
-           flowArgs: {foobar: 5},
-           error: 'foobazzle invalid',
-         },
-       ];
-
-       let numCalls = 0;
-       clientPageFacade.scheduledFlows$.subscribe(scheduledFlows => {
-         numCalls++;
-         if (numCalls === 2) {
-           expect(scheduledFlows).toEqual(expected);
-         }
-       });
-       tick(1);
-       discardPeriodicTasks();
-
-       apiListScheduledFlows$.next([
-         {
-           scheduledFlowId: '1',
-           clientId: 'C.1234',
-           creator: 'testuser',
-           createTime: '999000',
-           flowName: 'ListProcesses',
-           flowArgs: {foobar: 9000},
-         },
-         {
-           scheduledFlowId: '2',
-           clientId: 'C.1234',
-           creator: 'testuser',
-           createTime: '999000',
-           flowName: 'GetFile',
-           flowArgs: {foobar: 5},
-           error: 'foobazzle invalid',
-         },
-       ]);
-       apiListScheduledFlows$.complete();
-       expect(numCalls).toBe(2);
-     }));
-
-  it('polls and updates scheduledFlows$ periodically', fakeAsync(() => {
-       httpApiService.listScheduledFlows =
-           jasmine.createSpy('listScheduledFlows').and.callFake(() => of([]));
-
-       clientPageFacade.scheduledFlows$.subscribe();
-
-       tick(configService.config.flowListPollingIntervalMs * 2 + 1);
-       discardPeriodicTasks();
-
-       // First call happens at 0, next one at flowListPollingIntervalMs
-       // and the next one at flowListPollingIntervalMs * 2.
-       expect(httpApiService.listScheduledFlows).toHaveBeenCalledTimes(3);
-     }));
-
   it('fetches client data only after selectedClient$ is subscribed to',
      fakeAsync(() => {
        expect(httpApiService.fetchClient).not.toHaveBeenCalled();
@@ -845,7 +801,6 @@ describe('ClientPageFacade', () => {
        // will happen right after it was scheduled, but still asynchronously).
        tick(1);
        expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
-
        subscribtion.unsubscribe();
        // Fast forward for another 2 polling intervals, to check if
        // the client is still fetched or not after unsubscribe.
@@ -854,6 +809,33 @@ describe('ClientPageFacade', () => {
        discardPeriodicTasks();
 
        expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
+     }));
+
+  it('shares polling between subscriptions to selectedClient$',
+     fakeAsync(() => {
+       const subscribtion = clientPageFacade.selectedClient$.subscribe();
+       const subscribtion2 = clientPageFacade.selectedClient$.subscribe();
+
+       // This is needed since selected client is updated in a timer loop
+       // and the first call is scheduled after 0 milliseconds (meaning it
+       // will happen right after it was scheduled, but still asynchronously).
+       tick(1);
+       expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
+       subscribtion.unsubscribe();
+       subscribtion2.unsubscribe();
+       // Fast forward for another 2 polling intervals, to check if
+       // the client is still fetched or not after unsubscribe.
+       // The number of calls to fetchClient() should stay the same
+       tick(configService.config.selectedClientPollingIntervalMs * 2 + 1);
+       discardPeriodicTasks();
+
+       expect(httpApiService.fetchClient).toHaveBeenCalledTimes(1);
+     }));
+
+  it('does not poll prior to subscription to selectedClient$', fakeAsync(() => {
+       tick(configService.config.selectedClientPollingIntervalMs * 2 + 1);
+       discardPeriodicTasks();
+       expect(httpApiService.fetchClient).toHaveBeenCalledTimes(0);
      }));
 
   it('updates selectedClient$ with changed client data when underlying API client data changes.',

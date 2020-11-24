@@ -1,6 +1,8 @@
 goog.module('grrUi.outputPlugins.outputPluginNoteDirective');
 goog.module.declareLegacyNamespace();
 
+const semanticRegistryService = goog.requireType('grrUi.core.semanticRegistryService');
+
 
 
 /**
@@ -10,7 +12,7 @@ goog.module.declareLegacyNamespace();
 const OutputPluginNoteController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+   * @param {!semanticRegistryService.SemanticRegistryService}
    *     grrOutputPluginsDirectivesRegistryService
    * @ngInject
    */
@@ -31,7 +33,7 @@ const OutputPluginNoteController = class {
     this.pluginErrorsUrl;
 
     /**
-     * @private {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+     * @private {!semanticRegistryService.SemanticRegistryService}
      */
     this.grrOutputPluginsDirectivesRegistryService_ =
         grrOutputPluginsDirectivesRegistryService;

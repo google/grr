@@ -1,6 +1,6 @@
 import {Location} from '@angular/common';
 import {Component} from '@angular/core';
-import {async, fakeAsync, TestBed, tick} from '@angular/core/testing';
+import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 import {initTestEnvironment} from '@app/testing';
@@ -23,7 +23,7 @@ class TestComponent {
 describe('Home Component', () => {
   let homePageFacade: HomePageFacadeMock;
 
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     homePageFacade = mockHomePageFacade();
 
     TestBed

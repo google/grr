@@ -5,12 +5,12 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import configparser
 import glob
 import os
 import re
 import shutil
 
-import configparser
 from setuptools import setup
 from setuptools.command.sdist import sdist
 
@@ -30,7 +30,7 @@ def get_config():
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
-  config = configparser.SafeConfigParser()
+  config = configparser.ConfigParser()
   config.read(ini_path)
   return config
 

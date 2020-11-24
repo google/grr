@@ -1,6 +1,8 @@
 goog.module('grrUi.user.approverInputDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 /**
  * Controller for ApproverInputDirective.
@@ -8,7 +10,7 @@ goog.module.declareLegacyNamespace();
  */
 const ApproverInputController = class {
   /**
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @param {!angular.$q} $q
    * @ngInject
    */

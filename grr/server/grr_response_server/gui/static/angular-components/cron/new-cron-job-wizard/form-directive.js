@@ -1,6 +1,8 @@
 goog.module('grrUi.cron.newCronJobWizard.formDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const reflectionService = goog.requireType('grrUi.core.reflectionService');
 const {DEFAULT_PLUGIN_URL} = goog.require('grrUi.hunt.newHuntWizard.formDirective');
 
 
@@ -12,19 +14,19 @@ const {DEFAULT_PLUGIN_URL} = goog.require('grrUi.hunt.newHuntWizard.formDirectiv
 const FormController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.reflectionService.ReflectionService}
+   * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, grrReflectionService, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @private {!Object<string, Object>} */

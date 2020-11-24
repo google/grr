@@ -1,6 +1,7 @@
 goog.module('grrUi.semantic.semanticDiffAnnotatedProtoDirective');
 goog.module.declareLegacyNamespace();
 
+const reflectionService = goog.requireType('grrUi.core.reflectionService');
 const {buildItems} = goog.require('grrUi.semantic.semanticProtoDirective');
 
 
@@ -12,7 +13,7 @@ const {buildItems} = goog.require('grrUi.semantic.semanticProtoDirective');
 var SemanticDiffAnnotatedProtoController = class {
   /**
    * @param {!angular.Scope} $scope Directive's scope.
-   * @param {!grrUi.core.reflectionService.ReflectionService}
+   * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
    * @ngInject
    */
@@ -20,7 +21,7 @@ var SemanticDiffAnnotatedProtoController = class {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
 
     /** @type {Array<Object>} */

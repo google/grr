@@ -1,0 +1,8 @@
+<mat-card class="flows-overview">
+  <div class="category" *ngFor="let category of categories$ | async; trackBy: trackByCategoryTitle">
+    <div class="title">{{ category.title }}</div>
+    <div class="item" *ngFor="let item of category.items; trackBy: trackByFlowName">
+      <a (click)="flowSelected.emit(item)" mat-button [matTooltip]="item.description">{{ item.friendlyName }}</a>
+    </div>
+  </div>
+</mat-card>

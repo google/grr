@@ -10,6 +10,7 @@ import io
 
 from typing import Text, Sequence
 
+from google.protobuf import message
 from grr_api_client import client
 from grr_api_client import errors as api_errors
 from grr_colab import _timeout
@@ -129,8 +130,9 @@ class FileSystem(object):
       raise errors.ApprovalMissingError(self.id, e)
 
     _timeout.await_flow(ff)
-    return representer.BufferReferenceList(
-        [list(_.payload.matches)[0] for _ in ff.ListResults()])
+
+    results = [_first_match(result.payload) for result in ff.ListResults()]
+    return representer.BufferReferenceList(results)
 
   def fgrep(self, path: Text,
             literal: bytes) -> Sequence[jobs_pb2.BufferReference]:
@@ -162,8 +164,9 @@ class FileSystem(object):
       raise errors.ApprovalMissingError(self.id, e)
 
     _timeout.await_flow(ff)
-    return representer.BufferReferenceList(
-        [list(_.payload.matches)[0] for _ in ff.ListResults()])
+
+    results = [_first_match(result.payload) for result in ff.ListResults()]
+    return representer.BufferReferenceList(results)
 
   def wget(self, path: Text) -> Text:
     """Downloads a file and returns a link to it.
@@ -210,3 +213,19 @@ class FileSystem(object):
       raise errors.ApprovalMissingError(self.id, e)
 
     _timeout.await_flow(gf)
+
+
+def _first_match(result: message.Message) -> jobs_pb2.BufferReference:
+  """Returns first match of a file finder result.
+
+  Args:
+    result: A file finder result message.
+
+  Raises:
+    IndexError: If given result does not have any matches.
+    TypeError: If given result message is not a file finder result.
+  """
+  if not isinstance(result, flows_pb2.FileFinderResult):
+    raise TypeError(f'Unexpected flow result type: {type(result)}')
+
+  return result.matches[0]

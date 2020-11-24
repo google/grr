@@ -1866,5 +1866,78 @@ class DatabaseTestClientsMixin(object):
     with self.assertRaises(db.UnknownClientError):
       self.db.ReadClientFullInfo(client_id)
 
+  def testFleetspeakValidationInfoIsInitiallyUnset(self):
+    client_id = "C.fc413187fefa1dcf"
+    self.db.WriteClientMetadata(
+        client_id, first_seen=rdfvalue.RDFDatetime(100000000))
+
+    res = self.db.MultiReadClientMetadata([client_id])
+    self.assertLen(res, 1)
+    metadata = res[client_id]
+    self.assertFalse(metadata.last_fleetspeak_validation_info)
+
+  def testWritesFleetspeakValidationInfo(self):
+    client_id = "C.fc413187fefa1dcf"
+
+    self.db.WriteClientMetadata(
+        client_id, fleetspeak_validation_info={
+            "foo": "bar",
+            "12": "34"
+        })
+
+    res = self.db.MultiReadClientMetadata([client_id])
+    self.assertLen(res, 1)
+    metadata = res[client_id]
+    self.assertEqual(metadata.last_fleetspeak_validation_info.ToStringDict(), {
+        "foo": "bar",
+        "12": "34"
+    })
+
+  def testOverwritesFleetspeakValidationInfo(self):
+    client_id = "C.fc413187fefa1dcf"
+
+    self.db.WriteClientMetadata(
+        client_id, fleetspeak_validation_info={
+            "foo": "bar",
+            "12": "34"
+        })
+    self.db.WriteClientMetadata(
+        client_id, fleetspeak_validation_info={
+            "foo": "bar",
+            "new": "1234"
+        })
+
+    res = self.db.MultiReadClientMetadata([client_id])
+    self.assertLen(res, 1)
+    metadata = res[client_id]
+    self.assertEqual(metadata.last_fleetspeak_validation_info.ToStringDict(), {
+        "foo": "bar",
+        "new": "1234"
+    })
+
+  def testRemovesFleetspeakValidationInfoWhenValidationInfoIsEmpty(self):
+    client_id = "C.fc413187fefa1dcf"
+
+    self.db.WriteClientMetadata(
+        client_id, fleetspeak_validation_info={"foo": "bar"})
+    self.db.WriteClientMetadata(client_id, fleetspeak_validation_info={})
+
+    res = self.db.MultiReadClientMetadata([client_id])
+    self.assertLen(res, 1)
+    metadata = res[client_id]
+    self.assertFalse(metadata.last_fleetspeak_validation_info)
+
+  def testRemovesFleetspeakValidationInfoWhenValidationInfoIsNotPresent(self):
+    client_id = "C.fc413187fefa1dcf"
+
+    self.db.WriteClientMetadata(
+        client_id, fleetspeak_validation_info={"foo": "bar"})
+    self.db.WriteClientMetadata(client_id)
+
+    res = self.db.MultiReadClientMetadata([client_id])
+    self.assertLen(res, 1)
+    metadata = res[client_id]
+    self.assertFalse(metadata.last_fleetspeak_validation_info)
+
 
 # This file is a test library and thus does not require a __main__ block.

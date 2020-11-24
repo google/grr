@@ -1,6 +1,8 @@
 goog.module('grrUi.semantic.timestampDirective');
 goog.module.declareLegacyNamespace();
 
+const timeService = goog.requireType('grrUi.core.timeService');
+
 
 
 /**
@@ -11,7 +13,7 @@ const TimestampController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.jQuery} $element
-   * @param {!grrUi.core.timeService.TimeService} grrTimeService
+   * @param {!timeService.TimeService} grrTimeService
    * @ngInject
    */
   constructor($scope, $element, grrTimeService) {
@@ -33,7 +35,7 @@ const TimestampController = class {
     /** @private {!angular.jQuery} $element */
     this.element_ = $element;
 
-    /** @private {grrUi.core.timeService.TimeService} grrTimeService */
+    /** @private {timeService.TimeService} grrTimeService */
     this.timeService_ = grrTimeService;
 
     this.scope_.$watch('::value', this.onValueChange.bind(this));

@@ -1,6 +1,8 @@
 goog.module('grrUi.core.wizardFormDirective');
 goog.module.declareLegacyNamespace();
 
+const wizardFormPageDirective = goog.requireType('grrUi.core.wizardFormPageDirective');
+
 
 
 /**
@@ -85,7 +87,7 @@ exports.WizardFormController = class {
   /**
    * Registers a new page. Used by grr-wizard-form-page directives.
    *
-   * @param {grrUi.core.wizardFormPageDirective.WizardFormPageController}
+   * @param {wizardFormPageDirective.WizardFormPageController}
    *     pageController
    * @export
    */

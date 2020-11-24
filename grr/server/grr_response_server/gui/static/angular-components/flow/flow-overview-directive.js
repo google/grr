@@ -1,6 +1,8 @@
 goog.module('grrUi.flow.flowOverviewDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 /** @type {number} */
 let AUTO_REFRESH_INTERVAL_MS = 15 * 1000;
@@ -23,14 +25,14 @@ exports.setAutoRefreshInterval = function(millis) {
 const FlowOverviewController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @export {Object} */

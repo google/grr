@@ -1,6 +1,7 @@
 goog.module('grrUi.artifact.artifactDialogService');
 goog.module.declareLegacyNamespace();
 
+const dialogService = goog.requireType('grrUi.core.dialogService');
 const {DeleteArtifactsDialogDirective} = goog.require('grrUi.artifact.deleteArtifactsDialogDirective');
 const {UploadArtifactDialogDirective} = goog.require('grrUi.artifact.uploadArtifactDialogDirective');
 
@@ -13,11 +14,11 @@ const {UploadArtifactDialogDirective} = goog.require('grrUi.artifact.uploadArtif
  */
 exports.ArtifactDialogService = class {
   /**
-   * @param {grrUi.core.dialogService.DialogService} grrDialogService
+   * @param {dialogService.DialogService} grrDialogService
    * @ngInject
    */
   constructor(grrDialogService) {
-    /** @private {grrUi.core.dialogService.DialogService} */
+    /** @private {dialogService.DialogService} */
     this.grrDialogService_ = grrDialogService;
   }
 

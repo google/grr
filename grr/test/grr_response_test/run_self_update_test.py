@@ -132,7 +132,10 @@ def main(argv):
   args.binary_path = binary_id
   f = grrapi.Client(client_id).CreateFlow(name="UpdateClient", args=args)
   try:
-    f.WaitUntilDone(timeout=60)
+    # Timeout has to be rather significant, since at the moment installers
+    # are uploaded in chunks of 512Kb, each chunk requiring a round-trip
+    # to/from the client.
+    f.WaitUntilDone(timeout=180)
     print("Update flow finished successfully. This should never happen: "
           "the client should have been restarted.")
     sys.exit(-1)

@@ -1,16 +1,18 @@
+@use '~main' as main;
+
 :host {
   display: block;
 }
 
+.container {
+  height: calc(100vh - #{main.$toolbar-height});
+}
+
 .wrapper {
-  padding: 2em;
+  padding: 2em 0;
   background-color: #bdc1c6;
 
   mat-card {
-    width: 80%;
-    max-width: 1280px;
-    margin: 0 auto;
-
     mat-card-header {
       font-size: 18px;
       margin-top: 0.8em;
@@ -39,4 +41,22 @@
       padding-left: 2em;
     }
   }
+}
+
+client-overview,
+scheduled-flow-list,
+.wrapper mat-card {
+  max-width: 1280px;
+  width: 80%;
+  display: block;
+  margin: 0 auto;
+}
+
+scheduled-flow-list {
+  margin-top: 2em;
+}
+
+client-overview .goto-details {
+  margin-left: auto;
+  align-self: flex-end;
 }

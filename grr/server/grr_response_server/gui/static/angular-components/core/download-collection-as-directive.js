@@ -1,10 +1,12 @@
 goog.module('grrUi.core.downloadCollectionAsDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
 const {ServerErrorButtonDirective} = goog.require('grrUi.core.serverErrorButtonDirective');
 
 
 
+/** @const */
 var ERROR_EVENT_NAME = ServerErrorButtonDirective.error_event_name;
 
 
@@ -16,7 +18,7 @@ const DownloadCollectionAsController = class {
   /**
    * @param {!angular.Scope} $rootScope
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($rootScope, $scope, grrApiService) {
@@ -26,7 +28,7 @@ const DownloadCollectionAsController = class {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @type {Object} */
