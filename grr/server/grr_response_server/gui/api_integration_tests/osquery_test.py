@@ -33,7 +33,6 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
     return result_flow.GetOsqueryResults(format_csv)
 
   def testExportSomeResults(self):
-
     stdout = """
     [
       { "foo": "quux", "bar": "norf" },

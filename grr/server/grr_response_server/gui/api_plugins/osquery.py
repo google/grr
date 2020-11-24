@@ -85,7 +85,7 @@ def _FetchOsqueryResults(
     next_to_fetch += last_fetched_count
 
     for datum in data_fetched:
-      if type(datum.payload) != rdf_osquery.OsqueryResult:
+      if not isinstance(datum.payload, rdf_osquery.OsqueryResult):
         raise ValueError(f"Incorrect payload type: {type(datum.payload)}")
       yield datum.payload
 
