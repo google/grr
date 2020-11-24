@@ -69,13 +69,20 @@ class JSONRequest(werkzeug_wrappers_json.JSONMixin, werkzeug_wrappers.Request):
 
 class JSONResponse(werkzeug_wrappers_json.JSONMixin,
                    werkzeug_wrappers.Response):
+  """JSON-enabled response class."""
 
-  def __init__(self, response=None, **kwargs) -> None:
+  # Python allows passing positional arguments as keyword arguments
+  # and vice-versa. Here response is defined as a keyword argument,
+  # just as it's done in werkzeug_wrappers.Response. However, it's
+  # always passed as a positional argument. Hence, we define it
+  # as a keyword argument that has to be passed as a positional one.
+  # This is very dirty and a cleaner solution should be found.
+  def __init__(self, response=None, *args, **kwargs) -> None:  # pylint: disable=keyword-arg-before-vararg
     kwargs["mimetype"] = JSON_MIME_TYPE
     if response is not None and not isinstance(response,
                                                werkzeug_wsgi.ClosingIterator):
       response = json.dumps(response)
-    super().__init__(response=response, **kwargs)
+    super().__init__(response, *args, **kwargs)
 
 
 class Metric(abc.ABC):
