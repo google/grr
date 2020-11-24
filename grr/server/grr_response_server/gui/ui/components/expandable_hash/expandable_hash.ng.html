@@ -1,22 +1,37 @@
 <ng-container *ngIf="hashesAvailable; else noHashes">
-  <span [matMenuTriggerFor]="menu" class="show-button">Copy value</span>
+  <span [matMenuTriggerFor]="menu" class="button-expand">Copy value</span>
   <mat-menu #menu="matMenu">
     <button
-      *ngIf="hashes.sha256 as hashText"
+      *ngIf="hashes.sha256 as hashValue"
       mat-menu-item
-      [cdkCopyToClipboard]="hashText">Copy SHA-256</button>
+      [cdkCopyToClipboard]="hashValue">
+      <mat-icon class="menu-icon">content_copy</mat-icon>
+      <span class="hash-name">SHA-256</span>
+      <span class="hash-value">{{hashValue}}</span>
+    </button>
     <button
-      *ngIf="hashes.sha1 as hashText"
+      *ngIf="hashes.sha1 as hashValue"
       mat-menu-item
-      [cdkCopyToClipboard]="hashText">Copy SHA-1</button>
+      [cdkCopyToClipboard]="hashValue">
+      <mat-icon class="menu-icon">content_copy</mat-icon>
+      <span class="hash-name">SHA-1</span>
+      <span class="hash-value">{{hashValue}}</span>
+    </button>
     <button
-      *ngIf="hashes.md5 as hashText"
+      *ngIf="hashes.md5 as hashValue"
       mat-menu-item
-      [cdkCopyToClipboard]="hashText">Copy MD5</button>
+      [cdkCopyToClipboard]="hashValue">
+      <mat-icon class="menu-icon">content_copy</mat-icon>
+      <span class="hash-name">MD5</span>
+      <span class="hash-value">{{hashValue}}</span>
+    </button>
     <button
       *ngIf="hashesAvailable > 1"
       mat-menu-item
-      [cdkCopyToClipboard]="completeHashInformation">Copy all</button>
+      [cdkCopyToClipboard]="completeHashInformation">
+      <mat-icon class="menu-icon">content_copy</mat-icon>
+      <span>All hash information</span>
+    </button>
   </mat-menu>
 </ng-container>
 

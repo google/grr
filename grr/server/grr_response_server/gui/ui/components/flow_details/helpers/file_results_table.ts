@@ -23,8 +23,8 @@ export function flowFileResultFromStatEntry(statEntry: StatEntry):
   // TODO(simstoykov): use actual data
   const allHex = '0123456789abcdef';
   const temporaryLongDummyHashes: Hash = {
-    // sha256: `${allHex.repeat(2)}sha256`,
-    // md5: `${allHex.repeat(2)}md5`,
+    sha256: `${allHex.repeat(2)}sha256`,
+    md5: `${allHex.repeat(2)}md5`,
     sha1: `${allHex.repeat(2)}sha1`,
   };
   return {

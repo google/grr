@@ -1,8 +1,26 @@
-.show-button {
+.button-expand {
   border-bottom: 1px dotted rgb(126, 126, 126);
   cursor: pointer;
 }
 
-.menu-item {
-  padding: 0.3em;
+.hash-name {
+  font-weight: bold;
+  margin-right: 0.5em;
+}
+
+.hash-name::after {
+  content: ":";
+}
+
+.menu-icon {
+  font-size: 16px;
+  margin-right: 0.3em;
+
+  line-height: 18px;
+  height: 18px;
+  width: 18px;
+
+  mat-icon {
+    font-size: 16px;
+  }
 }

@@ -31,8 +31,8 @@ fdescribe('ExpandableHash component', () => {
   });
 
   class ExpandableHashDOM {
-    showButton = this.root.query(By.css('.show-button'));
-    showButtonText = this.showButton?.nativeElement.innerText;
+    expandButton = this.root.query(By.css('.button-expand'));
+    expandButtonText = this.expandButton?.nativeElement.innerText;
 
     noHashesSpan = this.root.query(By.css('.no-hashes'));
     noHashesSpanText = this.noHashesSpan?.nativeElement.innerText;
@@ -52,8 +52,8 @@ fdescribe('ExpandableHash component', () => {
   }
 
   function expandMenu(oldDOM: ExpandableHashDOM): ExpandableHashDOM {
-    oldDOM.showButton.triggerEventHandler('click', null);
-    oldDOM.showButton.nativeElement.click();
+    oldDOM.expandButton.triggerEventHandler('click', null);
+    oldDOM.expandButton.nativeElement.click();
     tick();
     fixture.detectChanges();
     return new ExpandableHashDOM(fixture.debugElement);
@@ -78,8 +78,8 @@ fdescribe('ExpandableHash component', () => {
 
     const DOM = initComponentWithHashes(oneHash);
 
-    expect(DOM.showButton).toBeTruthy();
-    expect(DOM.showButtonText).toBe('Copy value');
+    expect(DOM.expandButton).toBeTruthy();
+    expect(DOM.expandButtonText).toBe('Copy value');
   });
 
   it('should\'t display menu button "Copy all" if just 1 hash is present', fakeAsync(() => {
