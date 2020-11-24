@@ -141,7 +141,7 @@ setup_args = dict(
         "biplist==1.0.3",
         "cryptography==2.9.2",
         "distro==1.5.0",
-        "fleetspeak==0.1.7",
+        "fleetspeak==0.1.8",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipaddr==2.2.0",
         "ipython==7.15.0",

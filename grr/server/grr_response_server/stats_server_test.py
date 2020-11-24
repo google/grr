@@ -45,7 +45,7 @@ class StatsServerTest(base_stats_server_test.StatsServerTestMixin,
       server = stats_server.StatsServer(port)
       server.Start()
       self.addCleanup(server.Stop)
-      res = requests.get("http://localhost:{}/metrics".format(port))
+      res = requests.get("http://[::1]:{}/metrics".format(port))
 
     text_fd = io.StringIO(res.text)
     families = prometheus_parser.text_fd_to_metric_families(text_fd)
