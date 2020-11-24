@@ -36,17 +36,16 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
 
     stdout = """
     [
-      { "foo": "quux", "bar": "norf", "baz": "thud" },
-      { "foo": "blargh", "bar": "plugh", "baz": "ztesch" }
+      { "foo": "quux", "bar": "norf" },
+      { "foo": "blargh", "bar": "plugh" }
     ]
     """
-    expected_text = "foo,bar,baz\r\nquux,norf,thud\r\nblargh,plugh,ztesch\r\n"
-    expected_bytes = expected_text.encode("utf-8")
 
     results_iterator = self._RunOsqueryExportResults(stdout)
+    output_bytes = next(results_iterator)
+    output_text = output_bytes.decode("utf-8")
 
-    csv_bytes = next(results_iterator)
-    self.assertEqual(expected_bytes, csv_bytes)
+    self.assertEqual("foo,bar\r\nquux,norf\r\nblargh,plugh\r\n", output_text)
 
   def testExportNoRows(self):
     stdout = """
@@ -56,11 +55,10 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
     """
 
     results_iterator = self._RunOsqueryExportResults(stdout)
-    csv_bytes = next(results_iterator)
+    output_bytes = next(results_iterator)
+    output_text = output_bytes.decode("utf-8")
 
-    expected_text = "\r\n"
-    expected_bytes = expected_text.encode("utf-8")
-    self.assertEqual(expected_bytes, csv_bytes)
+    self.assertEqual("\r\n", output_text)
 
   def testExportUnicodeCharacters(self):
     stdout = """
@@ -70,27 +68,26 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
     """
 
     results_iterator = self._RunOsqueryExportResults(stdout)
-    csv_bytes = next(results_iterator)
+    output_bytes = next(results_iterator)
+    output_text = output_bytes.decode("utf-8")
 
-    expected_text = "🇬 🇷 🇷\r\n🔝🔝🔝\r\n"
-    expected_bytes = expected_text.encode("utf-8")
-    self.assertEqual(expected_bytes, csv_bytes)
+    self.assertEqual("🇬 🇷 🇷\r\n🔝🔝🔝\r\n", output_text)
 
   def testExportMultipleChunks(self):
     row_count = 100
     split_pieces = 10
 
-    cell_value = 'fixed'
-    table = [{'column1': cell_value}] * row_count
+    cell_value = "fixed"
+    table = [{"column1": cell_value}] * row_count
     table_json = json.dumps(table)
 
-    table_bytes = row_count * len(cell_value.encode('utf-8'))
+    table_bytes = row_count * len(cell_value.encode("utf-8"))
     chunk_bytes = table_bytes // split_pieces
 
     with test_lib.ConfigOverrider({"Osquery.max_chunk_size": chunk_bytes}):
       results_iterator = self._RunOsqueryExportResults(table_json)
-    csv_bytes = next(results_iterator)
+    output_bytes = next(results_iterator)
+    output_text = output_bytes.decode("utf-8")
 
     expected_rows = "\r\n".join([cell_value] * row_count)
-    expected_bytes = ('column1\r\n' + expected_rows + "\r\n").encode("utf-8")
-    self.assertEqual(expected_bytes, csv_bytes)
+    self.assertEqual("column1\r\n" + expected_rows + "\r\n", output_text)

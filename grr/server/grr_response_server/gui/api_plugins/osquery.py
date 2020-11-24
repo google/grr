@@ -106,7 +106,7 @@ def _ParseToCsvBytes(
 
 def _LineToCsvBytes(values: Iterable[str]) -> bytes:
   # newline='' : https://docs.python.org/3.6/library/csv.html#id3
-  with StringIO(newline='') as output:
+  with StringIO(newline="") as output:
     csv_writer = csv.writer(output)
     csv_writer.writerow(values)
 

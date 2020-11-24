@@ -14,7 +14,6 @@ class UtilsTest(unittest.TestCase):
     csv_correct_bytes = "a,b,c,d\r\n".encode("utf-8")
     self.assertEqual(received_bytes, csv_correct_bytes)
 
-
   def testSomeTextToCsvBytes(self):
     table = rdf_osquery.OsqueryTable()
     table.header.columns.append(rdf_osquery.OsqueryColumn(name="A"))

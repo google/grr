@@ -77,7 +77,7 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
     for row in self.rows:
       yield row.values[column_idx]
 
-  def Truncated(self, row_count: int) -> 'OsqueryTable':
+  def Truncated(self, row_count: int) -> "OsqueryTable":
     """
     Returns a fresh table with the first few rows of the original one.
     It doesn't modify the original table.
