@@ -1,23 +1,6 @@
 import { Component, Input, ViewEncapsulation } from '@angular/core';
 import { Hash } from '../../lib/api/api_interfaces'
 
-/** Functionality to aggregate a number of (hashType, hashValue) pairs into a single string */
-export class HashTextAggregator {
-  private textBuffer: string[] = [];
-
-  private append(line: string) {
-    this.textBuffer.push(line);
-  }
-
-  appendHashTypeAndValue(hashType: string, hashValue: string) {
-    const line = `${hashType}: ${hashValue}`;
-    this.append(line);
-  }
-
-  toString(): string {
-    return this.textBuffer.join('\n');
-  }
-}
 
 /**
  * Displays a default text. When the text is hovered, a menu appears
@@ -48,22 +31,21 @@ export class ExpandableHash {
   }
 
   get completeHashInformation(): string {
-    const hashText = new HashTextAggregator();
-
     if (this.hashes === undefined) {
       return '';
     }
 
+    const hashLines: string[] = [];
     if (this.hashes.sha256) {
-      hashText.appendHashTypeAndValue('SHA-256', this.hashes.sha256);
+      hashLines.push(`SHA-256: ${this.hashes.sha256}`);
     }
     if (this.hashes.sha1) {
-      hashText.appendHashTypeAndValue('SHA-1', this.hashes.sha1);
+      hashLines.push(`SHA-1: ${this.hashes.sha1}`);
     }
     if (this.hashes.md5) {
-      hashText.appendHashTypeAndValue('MD5', this.hashes.md5);
+      hashLines.push(`MD5: ${this.hashes.md5}`);
     }
 
-    return hashText.toString();
+    return hashLines.join('\n');
   }
 }

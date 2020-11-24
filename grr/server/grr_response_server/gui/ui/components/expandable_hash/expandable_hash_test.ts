@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
 
-import { ExpandableHash, HashTextAggregator } from './expandable_hash';
+import { ExpandableHash } from './expandable_hash';
 import { initTestEnvironment } from '@app/testing';
 
 import { By } from '@angular/platform-browser';
@@ -56,12 +56,12 @@ describe('ExpandableHash component', () => {
     const noHashes = { };
     const emDash = '–';
 
-    const DOM = initComponentWithHashes(noHashes);
+    const dom = initComponentWithHashes(noHashes);
 
-    expect(DOM.expandButton).toBeFalsy();
+    expect(dom.expandButton).toBeFalsy();
 
-    expect(DOM.noHashesSpan).toBeTruthy();
-    expect(DOM.noHashesSpanText).toBe(emDash);
+    expect(dom.noHashesSpan).toBeTruthy();
+    expect(dom.noHashesSpanText).toBe(emDash);
   });
 
   it('should only display \"Copy value\" text if 1 hash is available', () => {
@@ -71,40 +71,11 @@ describe('ExpandableHash component', () => {
 
     initComponentWithHashes(oneHash);
 
-    const DOM = initComponentWithHashes(oneHash);
+    const dom = initComponentWithHashes(oneHash);
 
-    expect(DOM.noHashesSpan).toBeFalsy();
+    expect(dom.noHashesSpan).toBeFalsy();
 
-    expect(DOM.expandButton).toBeTruthy();
-    expect(DOM.expandButtonText).toBe('Copy value');
-  });
-});
-
-describe('HashTextAggregator', () => {
-  it('should produce an empty string when no hashes are added', () => {
-    const hashText = new HashTextAggregator();
-
-    expect(hashText.toString()).toEqual('');
-  });
-
-  it('should include the type of the hash', () => {
-    const hashText = new HashTextAggregator();
-    const hashType = 'MD5';
-    const expectedBeginning = `${hashType}:`;
-
-    hashText.appendHashTypeAndValue(hashType, 'random');
-
-    expect(hashText.toString().startsWith(expectedBeginning)).toBeTrue();
-  });
-
-  it('should add a newline before subsequent hashes', () => {
-    const hashText = new HashTextAggregator();
-    const expectedString = 'type1: hash1\ntype2: hash2\ntype3: hash3';
-
-    hashText.appendHashTypeAndValue('type1', 'hash1');
-    hashText.appendHashTypeAndValue('type2', 'hash2');
-    hashText.appendHashTypeAndValue('type3', 'hash3');
-
-    expect(hashText.toString()).toEqual(expectedString);
+    expect(dom.expandButton).toBeTruthy();
+    expect(dom.expandButtonText).toBe('Copy value');
   });
 });
