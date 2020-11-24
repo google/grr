@@ -1,4 +1,4 @@
-import { Component, Input } from '@angular/core';
+import { Component, Input, ViewEncapsulation } from '@angular/core';
 import { Hash } from '../../lib/api/api_interfaces'
 
 /** Functionality to aggregate a number of (hashType, hashValue) pairs into a single string */
@@ -26,7 +26,13 @@ export class HashTextAggregator {
 @Component({
   selector: 'expandable-hash',
   templateUrl: './expandable_hash.ng.html',
-  styleUrls: ['./expandable_hash.scss']
+  styleUrls: ['./expandable_hash.scss'],
+
+  // Disabled style encapsulation is needed because we want to style the mat-menu.
+  // The mat-menu uses an overlay which is placed at a separate place in the DOM.
+  // Thus, the only way to apply custom styles to the mat-menu is by effectively
+  // making all the styles global (since ::ng-deep is deprecated).
+  encapsulation: ViewEncapsulation.None,
 })
 export class ExpandableHash {
   @Input() hashes?: Hash;

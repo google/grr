@@ -37,10 +37,10 @@ describe('ExpandableHash component', () => {
   });
 
   class ExpandableHashDOM {
-    expandButton = this.root.query(By.css('.button-expand'));
+    expandButton = this.root.query(By.css('.button-expand-expandable-hash-class'));
     expandButtonText = this.expandButton?.nativeElement.innerText;
 
-    noHashesSpan = this.root.query(By.css('.no-hashes'));
+    noHashesSpan = this.root.query(By.css('.no-hashes-expandable-hash-class'));
     noHashesSpanText = this.noHashesSpan?.nativeElement.innerText;
 
     constructor(readonly root: DebugElement) { }

@@ -1,18 +1,21 @@
-.button-expand {
+// NOTE: Styles used here are effectively global because of "encapsulation: ViewEncapsulation.None".
+// Make sure to narrow them enough, so that they don't bleed out unintentionally.
+
+.button-expand-expandable-hash-class {
   border-bottom: 1px dotted rgb(126, 126, 126);
   cursor: pointer;
 }
 
-.hash-name {
+.hash-name-expandable-hash-class {
   font-weight: bold;
   margin-right: 0.5em;
 }
 
-.hash-name::after {
+.hash-name-expandable-hash-class::after {
   content: ":";
 }
 
-.menu-icon {
+.menu-icon-expandable-hash-class {
   font-size: 16px;
   margin-right: 0.3em;
 
@@ -23,4 +26,8 @@
   mat-icon {
     font-size: 16px;
   }
+}
+
+.big-width-expandable-hash-class {
+  max-width: none;
 }
