@@ -7,6 +7,7 @@ import {filter, map, takeUntil} from 'rxjs/operators';
 
 import {isNonNull} from '../../lib/preconditions';
 import {ClientPageFacade} from '../../store/client_page_facade';
+import {UserFacade} from '../../store/user_facade';
 import {Approval} from '../approval/approval';
 
 // Minimalistic polyfill for ResizeObserver typings. These typings represent a
@@ -44,6 +45,10 @@ export class ClientPage implements OnInit, AfterViewInit, OnDestroy {
 
   readonly client$ = this.clientPageFacade.selectedClient$;
 
+  readonly currentUser$ = this.userFacade.currentUser$.pipe(
+      map(user => user.name),
+  );
+
   private readonly unsubscribe$ = new Subject<void>();
 
   @ViewChild('clientDetailsDrawer') clientDetailsDrawer!: MatDrawer;
@@ -60,6 +65,7 @@ export class ClientPage implements OnInit, AfterViewInit, OnDestroy {
   constructor(
       private readonly route: ActivatedRoute,
       private readonly clientPageFacade: ClientPageFacade,
+      private readonly userFacade: UserFacade,
       private readonly title: Title,
       private readonly changeDetectorRef: ChangeDetectorRef,
       private readonly router: Router,

@@ -1,6 +1,8 @@
 goog.module('grrUi.core.disableIfNoTraitDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 
 /**
@@ -10,14 +12,14 @@ goog.module.declareLegacyNamespace();
 const DisableIfNoTraitController = class {
   /**
    * @param {!angular.Attributes} $attrs
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($attrs, grrApiService) {
     /** @private {!angular.Attributes} */
     this.attrs_ = $attrs;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @private {string|undefined} */

@@ -1,11 +1,14 @@
 goog.module('grrUi.client.virtualFileSystem.fileDetailsDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
 const {REFRESH_FILE_EVENT} = goog.require('grrUi.client.virtualFileSystem.events');
 const {VersionDropdownDirective} = goog.require('grrUi.core.versionDropdownDirective');
 
 
 
+/** @const */
 var REFRESH_VERSIONS_EVENT = VersionDropdownDirective.REFRESH_VERSIONS_EVENT;
 
 /**
@@ -15,14 +18,14 @@ var REFRESH_VERSIONS_EVENT = VersionDropdownDirective.REFRESH_VERSIONS_EVENT;
 const FileDetailsController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @type {string} */
@@ -32,7 +35,7 @@ const FileDetailsController = class {
     this.fileVersionUrl;
 
     /**
-     * @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController}
+     * @type {!fileContextDirective.FileContextController}
      */
     this.fileContext;
 

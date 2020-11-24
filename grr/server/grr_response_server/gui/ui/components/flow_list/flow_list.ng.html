@@ -1,3 +1,4 @@
+<h1 *ngIf="(entries$ | async)?.length > 0" class="mat-h1">All flows</h1>
 <!-- trackBy is needed, since otherwise ngFor will recreate inner components
   on every change. -->
 <div *ngFor="let entry of entries$ | async; trackBy: entryTrackByFunction">

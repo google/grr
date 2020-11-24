@@ -1,11 +1,14 @@
 goog.module('grrUi.client.virtualFileSystem.recursiveListButtonDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const reflectionService = goog.requireType('grrUi.core.reflectionService');
 const {REFRESH_FOLDER_EVENT} = goog.require('grrUi.client.virtualFileSystem.events');
 const {ensurePathIsFolder, getFolderFromPath} = goog.require('grrUi.client.virtualFileSystem.utils');
 
 
 
+/** @const */
 var OPERATION_POLL_INTERVAL_MS = 1000;
 
 
@@ -20,8 +23,8 @@ const RecursiveListButtonController = class {
    * @param {!angular.Scope} $scope
    * @param {!angular.$timeout} $timeout
    * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.core.reflectionService.ReflectionService}
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
    * @ngInject
    */
@@ -40,10 +43,10 @@ const RecursiveListButtonController = class {
     /** @private {!angularUi.$uibModal} */
     this.uibModal_ = $uibModal;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
 
     /** @type {?string} */

@@ -1,6 +1,8 @@
 goog.module('grrUi.client.virtualFileSystem.fileViewDirective');
 goog.module.declareLegacyNamespace();
 
+const routingService = goog.requireType('grrUi.routing.routingService');
+
 
 /**
  * Replaces all non-alphanumeric characters with their hex representation.
@@ -61,14 +63,14 @@ exports.getFilePathFromId = function(fileId) {
 const FileViewController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @param {!routingService.RoutingService} grrRoutingService
    * @ngInject
    */
   constructor($scope, grrRoutingService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.routing.routingService.RoutingService} */
+    /** @private {!routingService.RoutingService} */
     this.grrRoutingService_ = grrRoutingService;
 
     /** @type {string} */

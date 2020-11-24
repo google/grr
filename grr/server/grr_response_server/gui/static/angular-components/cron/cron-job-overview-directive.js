@@ -1,6 +1,8 @@
 goog.module('grrUi.cron.cronJobOverviewDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 /**
  * Controller for CronJobOverviewDirective.
@@ -9,7 +11,7 @@ goog.module.declareLegacyNamespace();
 const CronJobOverviewController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, grrApiService) {
@@ -19,7 +21,7 @@ const CronJobOverviewController = class {
     /** @type {string} */
     this.scope_.cronJobId;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @export {Object} */

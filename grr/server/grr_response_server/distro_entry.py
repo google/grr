@@ -43,3 +43,8 @@ def Worker():
 def AdminUI():
   from grr_response_server.gui import admin_ui
   app.run(admin_ui.main)
+
+
+def Grrafana():
+  from grr_response_server.bin import grrafana
+  app.run(grrafana.main)

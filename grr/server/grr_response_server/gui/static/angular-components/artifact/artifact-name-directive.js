@@ -1,6 +1,8 @@
 goog.module('grrUi.artifact.artifactNameDirective');
 goog.module.declareLegacyNamespace();
 
+const artifactDescriptorsService = goog.requireType('grrUi.artifact.artifactDescriptorsService');
+
 
 
 /** @const {string} */
@@ -20,7 +22,7 @@ var UNKNOWN_ARTIFACT_TYPE = 'UNKNOWN';
 const ArtifactNameController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
+   * @param {!artifactDescriptorsService.ArtifactDescriptorsService}
    *     grrArtifactDescriptorsService
    * @ngInject
    */
@@ -29,7 +31,7 @@ const ArtifactNameController = class {
     this.scope_ = $scope;
 
     /**
-     * @private {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
+     * @private {!artifactDescriptorsService.ArtifactDescriptorsService}
      */
     this.grrArtifactDescriptorsService_ = grrArtifactDescriptorsService;
 

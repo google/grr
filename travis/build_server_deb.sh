@@ -9,7 +9,7 @@ function create_changelog() {
   fi
   pyscript="
 import configparser
-config = configparser.SafeConfigParser()
+config = configparser.ConfigParser()
 config.read('version.ini')
 print('%s.%s.%s-%s' % (
     config.get('Version', 'major'),

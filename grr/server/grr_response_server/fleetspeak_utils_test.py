@@ -8,6 +8,8 @@ from __future__ import unicode_literals
 from absl import app
 import mock
 
+from google.protobuf import timestamp_pb2
+
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
@@ -16,6 +18,7 @@ from grr.test_lib import test_lib
 from fleetspeak.src.common.proto.fleetspeak import common_pb2
 from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 
 _TEST_CLIENT_ID = "C.0000000000000001"
 
@@ -132,6 +135,36 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     restart_req = fs_system_pb2.RestartServiceRequest()
     fs_message.data.Unpack(restart_req)
     self.assertEqual(restart_req.name, "GRR")
+
+  def testFetchClientResourceUsageRecords(self):
+    conn = mock.MagicMock()
+    conn.outgoing.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(
+        records=[{
+            "mean_user_cpu_rate": 1,
+            "max_system_cpu_rate": 2
+        }, {
+            "mean_user_cpu_rate": 4,
+            "max_system_cpu_rate": 8
+        }])
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      expected_records_list = [
+          resource_pb2.ClientResourceUsageRecord(
+              mean_user_cpu_rate=1, max_system_cpu_rate=2),
+          resource_pb2.ClientResourceUsageRecord(
+              mean_user_cpu_rate=4, max_system_cpu_rate=8)
+      ]
+      arbitrary_date = timestamp_pb2.Timestamp(seconds=1, nanos=1)
+      self.assertListEqual(
+          fleetspeak_utils.FetchClientResourceUsageRecords(
+              client_id=_TEST_CLIENT_ID,
+              start_range=arbitrary_date,
+              end_range=arbitrary_date), expected_records_list)
+      conn.outgoing.FetchClientResourceUsageRecords.assert_called_once()
+      conn.outgoing.FetchClientResourceUsageRecords.assert_called_with(
+          admin_pb2.FetchClientResourceUsageRecordsRequest(
+              client_id=fleetspeak_utils.GRRIDToFleetspeakID(_TEST_CLIENT_ID),
+              start_timestamp=arbitrary_date,
+              end_timestamp=arbitrary_date))
 
 
 def main(argv):

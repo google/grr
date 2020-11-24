@@ -1,6 +1,7 @@
 goog.module('grrUi.acl.aclDialogService');
 goog.module.declareLegacyNamespace();
 
+const dialogService = goog.requireType('grrUi.core.dialogService');
 const {RequestApprovalDialogDirective} = goog.require('grrUi.acl.requestApprovalDialogDirective');
 const {stripAff4Prefix} = goog.require('grrUi.core.utils');
 /**
@@ -18,14 +19,14 @@ const {stripAff4Prefix} = goog.require('grrUi.core.utils');
 exports.AclDialogService = class {
   /**
    * @param {angular.Scope} $rootScope The Angular root scope.
-   * @param {grrUi.core.dialogService.DialogService} grrDialogService
+   * @param {dialogService.DialogService} grrDialogService
    * @ngInject
    */
   constructor($rootScope, grrDialogService) {
     /** @private {angular.Scope} */
     this.rootScope_ = $rootScope;
 
-    /** @private {grrUi.core.dialogService.DialogService} */
+    /** @private {dialogService.DialogService} */
     this.grrDialogService_ = grrDialogService;
   }
 

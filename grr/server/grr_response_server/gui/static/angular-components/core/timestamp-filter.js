@@ -1,12 +1,14 @@
 goog.module('grrUi.core.timestampFilter');
 goog.module.declareLegacyNamespace();
 
+const timeService = goog.requireType('grrUi.core.timeService');
+
 
 
 /**
  * Converts the input to a date string.
  *
- * @param {grrUi.core.timeService.TimeService} grrTimeService
+ * @param {timeService.TimeService} grrTimeService
  * @param {number} value Timestamp value in microseconds.
  * @return {string} Date string.
  */
@@ -22,7 +24,7 @@ const filterImplementation = function(grrTimeService, value) {
 /**
  * Angular filter definition.
  *
- * @param {grrUi.core.timeService.TimeService} grrTimeService
+ * @param {timeService.TimeService} grrTimeService
  * @return {!Function}
  * @export
  * @ngInject

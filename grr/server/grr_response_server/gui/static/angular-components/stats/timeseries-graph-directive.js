@@ -1,6 +1,7 @@
 goog.module('grrUi.stats.timeseriesGraphDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
 const {buildTimeseriesGraph} = goog.require('grrUi.stats.graphUtils');
 
 /**
@@ -21,7 +22,7 @@ const TimeseriesGraphController = class {
    * @param {!angular.Scope} $scope
    * @param {!angular.jQuery} $element Element this directive operates on.
    * @param {!angular.$interval} $interval
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, $element, $interval, grrApiService) {
@@ -34,7 +35,7 @@ const TimeseriesGraphController = class {
     /** @private {!angular.$interval} */
     this.interval_ = $interval;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @export {!Array.<number>} */

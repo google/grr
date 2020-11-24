@@ -8,11 +8,37 @@ from __future__ import unicode_literals
 import collections
 
 from absl import app
+from absl.testing import absltest
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server import signed_binary_utils
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
+
+
+class SignedBinaryIDFromURNTest(absltest.TestCase):
+
+  def testCorrectlyConvertsPythonHackURN(self):
+    self.assertEqual(
+        signed_binary_utils.SignedBinaryIDFromURN(
+            rdfvalue.RDFURN("aff4:/config/python_hacks/foo")),
+        rdf_objects.SignedBinaryID(
+            binary_type=rdf_objects.SignedBinaryID.BinaryType.PYTHON_HACK,
+            path="foo"))
+
+  def testCorrectlyConvertsExecutableURN(self):
+    self.assertEqual(
+        signed_binary_utils.SignedBinaryIDFromURN(
+            rdfvalue.RDFURN("aff4:/config/executables/foo")),
+        rdf_objects.SignedBinaryID(
+            binary_type=rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
+            path="foo"))
+
+  def testRaisesWhenNeitherPythonHackNorExecutableURNIsPassed(self):
+    with self.assertRaises(ValueError):
+      signed_binary_utils.SignedBinaryIDFromURN(
+          rdfvalue.RDFURN("aff4:/foo/bar"))
 
 
 class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
@@ -58,6 +84,27 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
         test_urn)
     self.assertGreater(timestamp.AsMicrosecondsSinceEpoch(), 0)
     self.assertCountEqual(list(blobs_iter), test_blobs)
+
+  def testReadIndividualBlobsFromSignedBinary(self):
+    test_urn = rdfvalue.RDFURN("aff4:/config/executables/foo")
+    test_blobs = [
+        rdf_crypto.SignedBlob().Sign(b"\x00\x11\x22", self._private_key),
+        rdf_crypto.SignedBlob().Sign(b"\x33\x44\x55", self._private_key),
+        rdf_crypto.SignedBlob().Sign(b"\x66\x77\x88", self._private_key),
+        rdf_crypto.SignedBlob().Sign(b"\x99", self._private_key)
+    ]
+    signed_binary_utils.WriteSignedBinaryBlobs(test_urn, test_blobs)
+
+    with self.assertRaises(ValueError):
+      signed_binary_utils.FetchBlobForSignedBinaryByURN(test_urn, -1)
+
+    for i, test_blob in enumerate(test_blobs):
+      blob = signed_binary_utils.FetchBlobForSignedBinaryByURN(test_urn, i)
+      self.assertEqual(blob.data, test_blob.data)
+
+    with self.assertRaises(signed_binary_utils.BlobIndexOutOfBoundsError):
+      signed_binary_utils.FetchBlobForSignedBinaryByURN(test_urn,
+                                                        len(test_blobs))
 
   def testFetchSizeOfSignedBinary(self):
     binary1_urn = rdfvalue.RDFURN("aff4:/config/executables/foo1")

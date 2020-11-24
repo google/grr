@@ -1,6 +1,8 @@
 goog.module('grrUi.semantic.semanticValueDirective');
 goog.module.declareLegacyNamespace();
 
+const semanticRegistryService = goog.requireType('grrUi.core.semanticRegistryService');
+
 
 /**
  * @type {Object<string,
@@ -121,7 +123,7 @@ const SemanticValueController = class {
    * @param {!angular.Scope} $scope
    * @param {!angular.$compile} $compile
    * @param {!jQuery} $element
-   * @param {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+   * @param {!semanticRegistryService.SemanticRegistryService}
    *     grrSemanticValueDirectivesRegistryService
    * @ngInject
    */
@@ -140,7 +142,7 @@ const SemanticValueController = class {
     this.element_ = $element;
 
     /**
-     * @private {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+     * @private {!semanticRegistryService.SemanticRegistryService}
      */
     this.grrSemanticValueDirectivesRegistryService_ =
         grrSemanticValueDirectivesRegistryService;

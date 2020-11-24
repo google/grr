@@ -1,11 +1,14 @@
 goog.module('grrUi.flow.flowsListDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
 const {InfiniteTableController} = goog.require('grrUi.core.infiniteTableDirective');
 
 
 
+/** @const */
 var TABLE_KEY_NAME = InfiniteTableController.UNIQUE_KEY_NAME;
+/** @const */
 var TABLE_ROW_HASH = InfiniteTableController.ROW_HASH_NAME;
 
 
@@ -142,7 +145,7 @@ const FlowsListController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.jQuery} $element
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, $element, grrApiService) {

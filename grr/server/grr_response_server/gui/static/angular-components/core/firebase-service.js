@@ -1,6 +1,8 @@
 goog.module('grrUi.core.firebaseService');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 
 /**
@@ -11,14 +13,14 @@ goog.module.declareLegacyNamespace();
 exports.FirebaseService = class {
   /**
    * @param {!angular.$http} $http The Angular http service.
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($http, grrApiService) {
     /** @private {angular.$http} */
     this.http_ = $http;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
   }
 

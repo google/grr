@@ -10,7 +10,7 @@ import {of} from 'rxjs';
 
 import {HomeModule} from './module';
 
-import {CLIENT_ONLINE_WINDOW, SearchBox} from './search_box';
+import {SearchBox} from './search_box';
 
 
 initTestEnvironment();
@@ -155,60 +155,4 @@ describe('SearchBox Component', () => {
 
     expect(emitSpy).toHaveBeenCalledWith('foo');
   });
-
-  it('displays offline/online icon', fakeAsync(() => {
-       const fixture = TestBed.createComponent(SearchBox);
-       // Make sure ngAfterViewInit hook gets processed.
-       fixture.detectChanges();
-
-       const date = new Date();
-       date.setMinutes(date.getMinutes() - CLIENT_ONLINE_WINDOW);
-
-       const clientA = {
-         clientId: 'C.1234',
-         knowledgeBase: {
-           fqdn: 'foo',
-           os: 'Linux',
-         },
-         lastSeenAt: String(date.getTime() * 1000),
-         labels: [],
-         age: '1571789996679000',
-       };
-
-       date.setMinutes(date.getMinutes() + CLIENT_ONLINE_WINDOW);
-
-       const clientB = {
-         clientId: 'C.1234',
-         knowledgeBase: {
-           fqdn: 'bar',
-           os: 'Linux',
-         },
-         lastSeenAt: String(date.getTime() * 1000),
-         labels: [],
-         age: '1571789996679000',
-       };
-
-       const searchResults: ApiSearchClientResult = {items: [clientA, clientB]};
-       httpApiService.searchClients.and.returnValue(of(searchResults));
-
-       const inputElement =
-           fixture.debugElement.query(By.css('input')).nativeElement;
-       inputElement.dispatchEvent(new Event('focusin'));
-       inputElement.value = 'foo';
-       inputElement.dispatchEvent(new Event('input'));
-
-       fixture.detectChanges();
-       // Move clock ahead to trigger debounce period.
-       tick(350);
-       fixture.detectChanges();
-       // Remove period timer resulting from the tick call.
-       discardPeriodicTasks();
-
-       const online =
-           overlayContainerElement.querySelectorAll('mat-option .online-icon');
-       expect(online.length).toBe(1);
-       const offline =
-           overlayContainerElement.querySelectorAll('mat-option .offline-icon');
-       expect(offline.length).toBe(1);
-     }));
 });

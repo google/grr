@@ -18,7 +18,7 @@ cd "${DEB_TEMPDIR}"
 
 pyscript="
 import configparser
-config = configparser.SafeConfigParser()
+config = configparser.ConfigParser()
 config.read('${APPVEYOR_BUILD_FOLDER}/version.ini')
 print('%s.%s.%s-%s' % (
     config.get('Version', 'major'),

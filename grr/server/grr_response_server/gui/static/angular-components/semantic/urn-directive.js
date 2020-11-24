@@ -1,6 +1,7 @@
 goog.module('grrUi.semantic.urnDirective');
 goog.module.declareLegacyNamespace();
 
+const routingService = goog.requireType('grrUi.routing.routingService');
 const {aff4UrnToUrl} = goog.require('grrUi.routing.aff4UrnToUrl');
 
 
@@ -12,14 +13,14 @@ const {aff4UrnToUrl} = goog.require('grrUi.routing.aff4UrnToUrl');
 const UrnController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @param {!routingService.RoutingService} grrRoutingService
    * @ngInject
    */
   constructor($scope, grrRoutingService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.routing.routingService.RoutingService} */
+    /** @private {!routingService.RoutingService} */
     this.grrRoutingService_ = grrRoutingService;
 
     /** @type {string} */

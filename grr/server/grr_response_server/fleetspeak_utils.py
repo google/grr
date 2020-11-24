@@ -6,7 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import binascii
-from typing import Text
+from typing import Text, List
+
+from google.protobuf import timestamp_pb2
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -16,6 +18,7 @@ from grr_response_server import fleetspeak_connector
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 
 
 def IsFleetspeakEnabledClient(grr_id):
@@ -69,7 +72,7 @@ def RestartFleetspeakGrrService(grr_id: Text) -> None:
   fleetspeak_connector.CONN.outgoing.InsertMessage(fs_msg)
 
 
-def FleetspeakIDToGRRID(fs_id):
+def FleetspeakIDToGRRID(fs_id: bytes) -> str:
   return "C." + text.Hexify(fs_id)
 
 
@@ -112,3 +115,27 @@ def GetLabelsFromFleetspeak(client_id):
       grr_labels.append(fs_label.label)
 
   return grr_labels
+
+
+def FetchClientResourceUsageRecords(
+    client_id: str, start_range: timestamp_pb2.Timestamp,
+    end_range: timestamp_pb2.Timestamp
+) -> List[resource_pb2.ClientResourceUsageRecord]:
+  """Returns aggregated resource usage metrics of a client from Fleetspeak.
+
+  Args:
+    client_id: Id of the client to fetch Fleetspeak resource usage records for.
+    start_range: Start timestamp of range.
+    end_range: end timestamp of range.
+
+  Returns:
+    A list of client resource usage records retrieved from Fleetspeak.
+  """
+  res = fleetspeak_connector.CONN.outgoing.FetchClientResourceUsageRecords(
+      admin_pb2.FetchClientResourceUsageRecordsRequest(
+          client_id=GRRIDToFleetspeakID(client_id),
+          start_timestamp=start_range,
+          end_timestamp=end_range))
+  if not res.records:
+    return []
+  return list(res.records)

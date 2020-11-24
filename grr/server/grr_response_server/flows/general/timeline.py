@@ -109,7 +109,14 @@ def Blobs(
       client_id=client_id,
       flow_id=flow_id,
       offset=0,
-      count=_READ_FLOW_RESULTS_COUNT)
+      count=_READ_FLOW_MAX_RESULTS_COUNT)
+
+  # `_READ_FLOW_MAX_RESULTS_COUNT` is far too much than we should ever get. If
+  # we really got this many results that it means this assumption is not correct
+  # and we should fail loudly to investigate this issue.
+  if len(results) >= _READ_FLOW_MAX_RESULTS_COUNT:
+    message = f"Unexpected number of timeline results: {len(results)}"
+    raise AssertionError(message)
 
   for result in results:
     payload = result.payload
@@ -133,7 +140,7 @@ def Blobs(
 # per flow (because each result is just a block of references to much bigger
 # blobs). Just to be on the safe side, we use a number two orders of magnitude
 # bigger.
-_READ_FLOW_RESULTS_COUNT = 1024
+_READ_FLOW_MAX_RESULTS_COUNT = 1024
 
 # An amount of time to wait for the blobs with timeline entries to appear in the
 # blob store. This is needed, because blobs are not guaranteed to be processed

@@ -30,7 +30,7 @@ class StatsServerTestMixin(metaclass=abc.ABCMeta):
     raise NotImplementedError()
 
   def url(self, path="/"):
-    return "http://localhost:{}{}".format(self.server.port, path)
+    return "http://[::1]:{}{}".format(self.server.port, path)
 
   def testHealth(self):
     response = requests.get(self.url("/healthz"))

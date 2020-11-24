@@ -1,8 +1,11 @@
 goog.module('grrUi.core.apiService');
 goog.module.declareLegacyNamespace();
 
+const loadingIndicatorService = goog.requireType('grrUi.core.loadingIndicatorService');
 
 
+
+/** @const */
 var UNAUTHORIZED_API_RESPONSE_EVENT = 'UnauthorizedApiResponse';
 
 /**
@@ -140,7 +143,7 @@ exports.ApiService = class {
    * @param {!angular.$q} $q
    * @param {!angular.$interval} $interval
    * @param {angular.Scope} $rootScope The Angular root scope.
-   * @param {!grrUi.core.loadingIndicatorService.LoadingIndicatorService}
+   * @param {!loadingIndicatorService.LoadingIndicatorService}
    *     grrLoadingIndicatorService
    * @ngInject
    */
@@ -157,7 +160,7 @@ exports.ApiService = class {
     /** @private {angular.Scope} */
     this.rootScope_ = $rootScope;
 
-    /** @private {grrUi.core.loadingIndicatorService.LoadingIndicatorService} */
+    /** @private {loadingIndicatorService.LoadingIndicatorService} */
     this.grrLoadingIndicatorService_ = grrLoadingIndicatorService;
 
     /** @private {!angular.$q.Deferred} */
@@ -405,7 +408,8 @@ exports.ApiService = class {
 
               var deferred = this.q_.defer();
 
-              var iframe = document.createElement('iframe');
+              var iframe = /** @type {!HTMLIFrameElement} */ (
+                  document.createElement('iframe'));
               iframe.src = url;
               angular.element(iframe).addClass('grr-binary-download');
               document.body.appendChild(iframe);

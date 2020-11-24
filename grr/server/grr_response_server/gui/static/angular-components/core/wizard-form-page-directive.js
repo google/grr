@@ -1,6 +1,8 @@
 goog.module('grrUi.core.wizardFormPageDirective');
 goog.module.declareLegacyNamespace();
 
+const wizardFormDirective = goog.requireType('grrUi.core.wizardFormDirective');
+
 
 
 /**
@@ -20,7 +22,7 @@ exports.WizardFormPageController = class {
     /** @private {!angular.Attributes} */
     this.attrs_ = $attrs;
 
-    /** @type {!grrUi.core.wizardFormDirective.WizardFormController} */
+    /** @type {!wizardFormDirective.WizardFormController} */
     this.formController;
 
     /** @type {string} */
