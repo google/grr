@@ -38,6 +38,7 @@ class MySQLDBClientMixin(object):
                           last_clock=None,
                           last_ip=None,
                           last_foreman=None,
+                          fleetspeak_validation_info=None,
                           cursor=None):
     """Write metadata about the client."""
     placeholders = []
@@ -68,6 +69,15 @@ class MySQLDBClientMixin(object):
       placeholders.append("FROM_UNIXTIME(%(last_foreman)s)")
       values["last_foreman"] = mysql_utils.RDFDatetimeToTimestamp(last_foreman)
 
+    placeholders.append("%(last_fleetspeak_validation_info)s")
+    if fleetspeak_validation_info:
+      pb = rdf_client.FleetspeakValidationInfo.FromStringDict(
+          fleetspeak_validation_info)
+      values["last_fleetspeak_validation_info"] = pb.SerializeToBytes()
+    else:
+      # Write null for empty or non-existent validation info.
+      values["last_fleetspeak_validation_info"] = None
+
     updates = []
     for column in values.keys():
       updates.append("{column} = VALUES({column})".format(column=column))
@@ -87,22 +97,31 @@ class MySQLDBClientMixin(object):
   def MultiReadClientMetadata(self, client_ids, cursor=None):
     """Reads ClientMetadata records for a list of clients."""
     ids = [db_utils.ClientIDToInt(client_id) for client_id in client_ids]
-    query = ("SELECT client_id, fleetspeak_enabled, certificate, "
-             "UNIX_TIMESTAMP(last_ping), "
-             "UNIX_TIMESTAMP(last_clock), last_ip, "
-             "UNIX_TIMESTAMP(last_foreman), UNIX_TIMESTAMP(first_seen), "
-             "UNIX_TIMESTAMP(last_crash_timestamp), "
-             "UNIX_TIMESTAMP(last_startup_timestamp) FROM "
-             "clients WHERE client_id IN ({})").format(", ".join(["%s"] *
-                                                                 len(ids)))
+    query = """
+      SELECT
+        client_id,
+        fleetspeak_enabled,
+        certificate,
+        UNIX_TIMESTAMP(last_ping),
+        UNIX_TIMESTAMP(last_clock),
+        last_ip,
+        UNIX_TIMESTAMP(last_foreman),
+        UNIX_TIMESTAMP(first_seen),
+        UNIX_TIMESTAMP(last_crash_timestamp),
+        UNIX_TIMESTAMP(last_startup_timestamp),
+        last_fleetspeak_validation_info
+      FROM
+        clients
+      WHERE
+        client_id IN ({})""".format(", ".join(["%s"] * len(ids)))
     ret = {}
     cursor.execute(query, ids)
     while True:
       row = cursor.fetchone()
       if not row:
         break
-      cid, fs, crt, ping, clk, ip, foreman, first, lct, lst = row
-      ret[db_utils.IntToClientID(cid)] = rdf_objects.ClientMetadata(
+      cid, fs, crt, ping, clk, ip, foreman, first, lct, lst, fsvi = row
+      metadata = rdf_objects.ClientMetadata(
           certificate=crt,
           fleetspeak_enabled=fs,
           first_seen=mysql_utils.TimestampToRDFDatetime(first),
@@ -113,6 +132,13 @@ class MySQLDBClientMixin(object):
           last_foreman_time=mysql_utils.TimestampToRDFDatetime(foreman),
           startup_info_timestamp=mysql_utils.TimestampToRDFDatetime(lst),
           last_crash_timestamp=mysql_utils.TimestampToRDFDatetime(lct))
+
+      if fsvi:
+        metadata.last_fleetspeak_validation_info = (
+            rdf_client.FleetspeakValidationInfo.FromSerializedBytes(fsvi))
+
+      ret[db_utils.IntToClientID(cid)] = metadata
+
     return ret
 
   @mysql_utils.WithTransaction()

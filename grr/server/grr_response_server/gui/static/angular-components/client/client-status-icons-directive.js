@@ -1,6 +1,8 @@
 goog.module('grrUi.client.clientStatusIconsDirective');
 goog.module.declareLegacyNamespace();
 
+const timeService = goog.requireType('grrUi.core.timeService');
+
 
 /**
  * @typedef {{
@@ -19,7 +21,7 @@ const ClientStatusIconsController = class {
    * @param {!angular.Scope} $scope
    * @param {!angular.Scope} $rootScope
    * @param {!angularUi.$uibModal} $uibModal
-   * @param {!grrUi.core.timeService.TimeService} grrTimeService
+   * @param {!timeService.TimeService} grrTimeService
    * @ngInject
    */
   constructor($scope, $rootScope, $uibModal, grrTimeService) {
@@ -32,7 +34,7 @@ const ClientStatusIconsController = class {
     /** @private @const {!angularUi.$uibModal} */
     this.uibModal_ = $uibModal;
 
-    /** @private @const {!grrUi.core.timeService.TimeService} */
+    /** @private @const {!timeService.TimeService} */
     this.grrTimeService_ = grrTimeService;
 
     /** @export {?string} */

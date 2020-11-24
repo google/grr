@@ -1,6 +1,8 @@
 goog.module('grrUi.hunt.rapidHuntStatusDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 /**
  * Helper function to validate FileFinderArgs.path.
@@ -51,14 +53,14 @@ const isEligible = exports.isEligible;
 const RapidHuntStatusController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     this.enabled = false;

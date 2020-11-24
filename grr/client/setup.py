@@ -37,7 +37,7 @@ def get_config():
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
-  config = configparser.SafeConfigParser()
+  config = configparser.ConfigParser()
   config.read(ini_path)
   return config
 

@@ -9,11 +9,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import configparser
 import itertools
 import os
 import shutil
 import subprocess
-import sys
 
 from setuptools import find_packages
 from setuptools import setup
@@ -21,15 +21,6 @@ from setuptools.command.develop import develop
 from setuptools.command.sdist import sdist
 
 GRR_NO_MAKE_UI_FILES_VAR = "GRR_NO_MAKE_UI_FILES"
-
-
-# TODO: Fix this import once support for Python 2 is dropped.
-# pylint: disable=g-import-not-at-top
-if sys.version_info.major == 2:
-  import ConfigParser as configparser
-else:
-  import configparser
-# pylint: enable=g-import-not-at-top
 
 
 def find_data_files(source, ignore_dirs=None):
@@ -68,7 +59,7 @@ def get_config():
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
-  config = configparser.SafeConfigParser()
+  config = configparser.ConfigParser()
   config.read(ini_path)
   return config
 

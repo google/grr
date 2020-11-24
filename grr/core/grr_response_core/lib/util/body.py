@@ -63,7 +63,7 @@ def Stream(
         str(entry.mtime_ns // 10**9),  # mtime
         str(entry.ctime_ns // 10**9),  # ctime
         "0",  # crtime
-    ]).encode("utf-8")
+    ]).encode("utf-8", "surrogateescape")
 
     # Account for the newline.
     total_size += len(row) + 1

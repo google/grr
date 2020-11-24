@@ -1,6 +1,9 @@
 goog.module('grrUi.flow.flowApiHelperDirective');
 goog.module.declareLegacyNamespace();
 
+const apiHelperService = goog.requireType('grrUi.docs.apiHelperService');
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 
 /**
@@ -10,18 +13,18 @@ goog.module.declareLegacyNamespace();
 const FlowApiHelperController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.docs.apiHelperService.ApiHelperService} grrApiHelperService
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!apiHelperService.ApiHelperService} grrApiHelperService
    * @ngInject
    */
   constructor($scope, grrApiService, grrApiHelperService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.docs.apiHelperService.ApiHelperService} */
+    /** @private {!apiHelperService.ApiHelperService} */
     this.grrApiHelperService_ = grrApiHelperService;
 
     /** @type {string} */

@@ -21,6 +21,11 @@ parser.add_argument(
     default=False,
     help="Clean compiled protos.")
 
+parser.add_argument(
+    "--mypy-protobuf",
+    default="",
+    help="A path to the mypy protobuf generator plugin.")
+
 args = parser.parse_args()
 
 ROOT = os.path.dirname(os.path.abspath(__file__))
@@ -78,6 +83,12 @@ def MakeProto():
           "--proto_path=%s" % ROOT,
           proto
       ]
+
+      if args.mypy_protobuf:
+        mypy_protobuf = os.path.realpath(args.mypy_protobuf)
+        command.append(f"--plugin=protoc-gen-mypy={mypy_protobuf}")
+        command.append(f"--mypy_out={ROOT}")
+
       print(
           "Compiling %s with (cwd: %s): %s" % (proto, ROOT, " ".join(command)))
       # The protoc compiler is too dumb to deal with full paths - it expects a

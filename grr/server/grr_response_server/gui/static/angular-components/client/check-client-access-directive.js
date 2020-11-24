@@ -1,6 +1,9 @@
 goog.module('grrUi.client.checkClientAccessDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const routingService = goog.requireType('grrUi.routing.routingService');
+
 
 
 /**
@@ -11,8 +14,8 @@ const CheckClientAccessController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.$timeout} $timeout
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!routingService.RoutingService} grrRoutingService
    * @ngInject
    */
   constructor($scope, $timeout, grrApiService, grrRoutingService) {
@@ -22,10 +25,10 @@ const CheckClientAccessController = class {
     /** @private {!angular.$timeout} */
     this.timeout_ = $timeout;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.routing.routingService.RoutingService} */
+    /** @private {!routingService.RoutingService} */
     this.grrRoutingService_ = grrRoutingService;
 
     this.scope_.$watch('clientId', this.onClientIdChange_.bind(this));

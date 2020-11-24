@@ -5,9 +5,6 @@
 This package contains the rdfvalue wrappers around the top level datastore
 objects defined by objects.proto.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import functools
 import hashlib
@@ -65,6 +62,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
       rdf_client_fs.Volume,
       rdfvalue.ByteSize,
       rdfvalue.RDFDatetime,
+      rdf_client.FleetspeakValidationInfo,
   ]
 
   def __init__(self, *args, **kwargs):
@@ -137,6 +135,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
                                                    kb.os_minor_version)
 
     summary.edr_agents = self.edr_agents
+    summary.fleetspeak_validation_info = self.fleetspeak_validation_info
 
     hwi = self.hardware_info
     if hwi:
@@ -153,6 +152,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
         summary.cloud_instance_id = cloud_instance.amazon.instance_id
       else:
         raise ValueError("Bad cloud type: %s" % cloud_instance.cloud_type)
+
     return summary
 
 
@@ -163,6 +163,7 @@ class ClientMetadata(rdf_structs.RDFProtoStruct):
       rdf_client_network.NetworkAddress,
       rdf_crypto.RDFX509Cert,
       rdfvalue.RDFDatetime,
+      rdf_client.FleetspeakValidationInfo,
   ]
 
 

@@ -7,6 +7,7 @@ import {MatSidenavModule} from '@angular/material/sidenav';
 
 import {ClientDetailsModule} from '../client_details/module';
 import {ClientOverviewModule} from '../client_overview/module';
+import {ScheduledFlowListModule} from '../scheduled_flow_list/module';
 import {UserImageModule} from '../user_image/module';
 
 import {ApprovalPage} from './approval_page';
@@ -22,6 +23,7 @@ import {ApprovalRoutingModule} from './routing';
     MatCardModule,
     MatIconModule,
     MatSidenavModule,
+    ScheduledFlowListModule,
     UserImageModule,
   ],
   declarations: [

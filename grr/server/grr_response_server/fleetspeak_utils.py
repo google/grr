@@ -72,7 +72,7 @@ def RestartFleetspeakGrrService(grr_id: Text) -> None:
   fleetspeak_connector.CONN.outgoing.InsertMessage(fs_msg)
 
 
-def FleetspeakIDToGRRID(fs_id):
+def FleetspeakIDToGRRID(fs_id: bytes) -> str:
   return "C." + text.Hexify(fs_id)
 
 

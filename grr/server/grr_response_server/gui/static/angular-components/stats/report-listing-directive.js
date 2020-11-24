@@ -1,6 +1,7 @@
 goog.module('grrUi.stats.reportListingDirective');
 goog.module.declareLegacyNamespace();
 
+const reportDescsService = goog.requireType('grrUi.stats.reportDescsService');
 const {upperCaseToTitleCase} = goog.require('grrUi.core.utils');
 
 
@@ -54,7 +55,7 @@ const ReportListingController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.jQuery} $element
-   * @param {!grrUi.stats.reportDescsService.ReportDescsService}
+   * @param {!reportDescsService.ReportDescsService}
    *     grrReportDescsService
    * @ngInject
    */
@@ -65,7 +66,7 @@ const ReportListingController = class {
     /** @private {!angular.jQuery} */
     this.element_ = $element;
 
-    /** @private {!grrUi.stats.reportDescsService.ReportDescsService} */
+    /** @private {!reportDescsService.ReportDescsService} */
     this.grrReportDescsService_ = grrReportDescsService;
 
     /** @private {!Object} */

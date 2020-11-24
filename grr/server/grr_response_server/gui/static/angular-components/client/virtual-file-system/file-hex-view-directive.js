@@ -1,6 +1,9 @@
 goog.module('grrUi.client.virtualFileSystem.fileHexViewDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const fileContextDirective = goog.requireType('grrUi.client.virtualFileSystem.fileContextDirective');
+
 
 
 /**
@@ -10,18 +13,18 @@ goog.module.declareLegacyNamespace();
 const FileHexViewController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /**
-     * @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController}
+     * @type {!fileContextDirective.FileContextController}
      */
     this.fileContext;
 

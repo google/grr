@@ -3,9 +3,11 @@ import {FormControl} from '@angular/forms';
 import {MatAutocompleteTrigger} from '@angular/material/autocomplete';
 import {FuzzyMatcher, StringWithHighlights, stringWithHighlightsFromMatch} from '@app/lib/fuzzy_matcher';
 import {isNonNull} from '@app/lib/preconditions';
-import {BehaviorSubject, combineLatest, fromEvent, Observable, Subject} from 'rxjs';
-import {debounceTime, filter, map, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
+import {BehaviorSubject, fromEvent, merge, Observable, Subject} from 'rxjs';
+import {debounceTime, filter, map, mapTo, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
+
 import {ClientPageFacade} from '../../store/client_page_facade';
+
 import {FlowListItem, FlowListItemService, FlowsByCategory} from './flow_list_item';
 
 
@@ -36,11 +38,6 @@ function stringWithHighlightsFromString(s: string): StringWithHighlights {
 enum InputToShow {
   READONLY,
   AUTOCOMPLETE,
-}
-
-enum FocusState {
-  FOCUSED,
-  BLURRED,
 }
 
 /**
@@ -79,7 +76,9 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
 
   readonly textInput = new FormControl('');
   readonly textInputWidth$ = new Subject<number>();
-  private readonly textInputFocus$ = new Subject<FocusState>();
+
+
+  private readonly textInputFocused$ = new Subject<boolean>();
 
   readonly commonFlows$: Observable<ReadonlyArray<FlowListItem>> =
       this.flowListItemService.commonFlowNames$.pipe(
@@ -127,11 +126,42 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
       }),
   );
 
-  readonly overviewOverlayOpened$: Observable<boolean> =
-      combineLatest([this.textInput$, this.textInputFocus$])
-          .pipe(
-              map(([v, focus]) => v === '' && focus === FocusState.FOCUSED),
-          );
+  // Subject synced with overlay's attach/detach events.
+  readonly overviewOverlayAttached$ = new Subject<boolean>();
+
+  // Subject used to force-hide the overview overlay.
+  readonly overviewOverlayForceHidden$ = new Subject<void>();
+
+  // When the input becomes empty or the input field gets focused while being
+  // empty, the overview panel has to be attached. Whenever the input field is
+  // non-empty, the overview panel has to be detached.
+  //
+  // Whenever the overview panel becomes detached, we have to make sure
+  // overviewOverlayOpened$ is in sync and reports false - otherwise it
+  // won't be attached correctly next time.
+  readonly overviewOverlayOpened$: Observable<boolean> = merge(
+      // If text input changes - emit true if it's empty and focused,
+      // false otherwise.
+      this.textInput$.pipe(
+          withLatestFrom(this.textInputFocused$),
+          map(([inputValue, isFocused]) => inputValue === '' && isFocused),
+          ),
+      // If text input becomes focused - emit true if it's empty.
+      this.textInputFocused$.pipe(
+          withLatestFrom(this.textInput$),
+          filter(([isFocused, inputValue]) => inputValue === '' && isFocused),
+          mapTo(true),
+          ),
+      // If the overlay becomes detached, emit false.
+      this.overviewOverlayAttached$.pipe(
+          filter(v => !v),
+          ),
+      // If the overlay is being forcibly hidden, pass-through the false
+      // value.
+      this.overviewOverlayForceHidden$.pipe(
+          mapTo(true),
+          ),
+  );
 
   readonly autoCompleteCategories$:
       Observable<ReadonlyArray<FlowAutoCompleteCategory>> =
@@ -257,17 +287,36 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
     this.textInput.setValue('');
   }
 
+  overlayOutsideClick(event: MouseEvent) {
+    // If the outside click lands on something other than the matAutocomplete
+    // input, hide the overlay.
+    if (event.target !== this.textInputElement.nativeElement) {
+      this.overviewOverlayForceHidden$.next();
+    }
+  }
+
   ngAfterViewInit() {
     fromEvent(this.textInputElement.nativeElement, 'focus')
         .pipe(takeUntil(this.unsubscribe$))
         .subscribe(() => {
-          this.textInputFocus$.next(FocusState.FOCUSED);
+          this.textInputFocused$.next(true);
         });
     fromEvent(this.textInputElement.nativeElement, 'blur')
         .pipe(takeUntil(this.unsubscribe$))
         .subscribe(() => {
-          this.textInputFocus$.next(FocusState.BLURRED);
+          this.textInputFocused$.next(false);
         });
+    // Overlay seems to ignore first escape key press in certain
+    // scenarios when used together with matAutocomplete. Making sure
+    // the overlay is hidden when Esc is pressed.
+    fromEvent(this.textInputElement.nativeElement, 'keydown', {capture: true})
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe((e: Event) => {
+          if ((e as KeyboardEvent).key === 'Escape') {
+            this.overviewOverlayAttached$.next(false);
+          }
+        });
+
     fromEvent(window, 'resize')
         .pipe(
             takeUntil(this.unsubscribe$),

@@ -246,7 +246,8 @@ class DarwinClientBuilder(build.ClientBuilder):
     self._CreateInstallDirs()
     self._InterpolateFiles()
     self._CopyGRRPyinstallerBinaries()
-    self._CopyBundledFleetspeak()
+    if fleetspeak_bundled:
+      self._CopyBundledFleetspeak()
     self._SignGRRPyinstallerBinaries()
     self._WriteClientConfig()
     self._Set755Permissions()

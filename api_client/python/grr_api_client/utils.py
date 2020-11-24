@@ -229,31 +229,42 @@ def UnpackAny(
 
 def RegisterProtoDescriptors(
     db: symbol_database.SymbolDatabase,
-    *additional_descriptors: descriptor.DescriptorBase,
+    *additional_descriptors: descriptor.FileDescriptor,
 ) -> None:
   """Registers all API-releated descriptors in a given symbol DB."""
-  db.RegisterFileDescriptor(apple_firmware_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(artifact_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(client_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(config_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(cron_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(flow_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(hunt_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(metadata_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(output_plugin_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(reflection_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(stats_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(user_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(vfs_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(yara_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, apple_firmware_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, artifact_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, client_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, config_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, cron_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, flow_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, hunt_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, metadata_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, output_plugin_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, reflection_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, stats_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, user_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, vfs_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, yara_pb2.DESCRIPTOR)
 
-  db.RegisterFileDescriptor(checks_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(deprecated_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(flows_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(jobs_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(osquery_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(timeline_pb2.DESCRIPTOR)
-  db.RegisterFileDescriptor(wrappers_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, checks_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, deprecated_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, flows_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, jobs_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, osquery_pb2.DESCRIPTOR)
+  _RegisterFileDescriptor(db, timeline_pb2.DESCRIPTOR)
+
+  _RegisterFileDescriptor(db,
+                          wrappers_pb2.DESCRIPTOR)  # type: ignore[attr-defined]
 
   for d in additional_descriptors:
-    db.RegisterFileDescriptor(d)
+    _RegisterFileDescriptor(db, d)
+
+
+# TODO(https://github.com/python/typeshed/issues/4666): Remove once resolved.
+def _RegisterFileDescriptor(
+    database: symbol_database.SymbolDatabase,
+    filedesc: descriptor.FileDescriptor,
+) -> None:
+  """A workaround to the ill-typed stub file."""
+  database.RegisterFileDescriptor(filedesc)  # type: ignore[arg-type]

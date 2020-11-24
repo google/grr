@@ -1,6 +1,7 @@
 goog.module('grrUi.hunt.huntGraphDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
 const {buildTimeseriesGraph} = goog.require('grrUi.stats.graphUtils');
 
 
@@ -12,7 +13,7 @@ const HuntGraphController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.jQuery} $element Element this directive operates on.
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, $element, grrApiService) {
@@ -22,7 +23,7 @@ const HuntGraphController = class {
     /** @private {!angular.jQuery} */
     this.element_ = $element;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @type {string} */

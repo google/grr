@@ -152,7 +152,7 @@ describe('FlowPicker Component', () => {
     const link = Array.from(links).find(
         l => l.textContent?.includes('Forensic artifacts'));
     assertNonNull(link);
-    link.dispatchEvent(new MouseEvent('mousedown'));
+    link.dispatchEvent(new MouseEvent('click'));
     fixture.detectChanges();
 
     expect(overlayContainerElement.querySelectorAll('flows-overview').length)

@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 # Lint as: python3
 """The GRR frontend server."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import logging
 import time
+
+from typing import Iterable
 
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
@@ -325,7 +323,8 @@ class FrontEndServer(object):
   # logic depends on blobs being in the blob store to do file hashing.
   _SHORTCUT_HANDLERS = frozenset([transfer.BlobHandler.handler_name])
 
-  def ReceiveMessages(self, client_id, messages):
+  def ReceiveMessages(self, client_id: str,
+                      messages: Iterable[rdf_flows.GrrMessage]):
     """Receives and processes the messages.
 
     For each message we update the request object, and place the

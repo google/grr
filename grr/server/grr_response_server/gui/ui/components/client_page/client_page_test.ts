@@ -15,6 +15,8 @@ import {ClientPageFacade} from '../../store/client_page_facade';
 import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
 import {ConfigFacade} from '../../store/config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
+import {ScheduledFlowFacade} from '../../store/scheduled_flow_facade';
+import {mockScheduledFlowFacade} from '../../store/scheduled_flow_facade_test_util';
 import {UserFacade} from '../../store/user_facade';
 import {mockUserFacade, UserFacadeMock} from '../../store/user_facade_test_util';
 import {initTestEnvironment} from '../../testing';
@@ -67,6 +69,10 @@ describe('ClientPage Component', () => {
             {
               provide: ClientDetailsFacade,
               useFactory: () => clientDetailsFacade
+            },
+            {
+              provide: ScheduledFlowFacade,
+              useFactory: mockScheduledFlowFacade,
             },
           ],
 

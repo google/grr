@@ -1,6 +1,7 @@
 goog.module('grrUi.forms.semanticProtoRepeatedFieldFormDirective');
 goog.module.declareLegacyNamespace();
 
+const semanticRegistryService = goog.requireType('grrUi.core.semanticRegistryService');
 const {camelCaseToDashDelimited} = goog.require('grrUi.core.utils');
 
 
@@ -14,7 +15,7 @@ const SemanticProtoRepeatedFieldFormController = class {
    * @param {!angular.Scope} $scope
    * @param {!angular.jQuery} $element
    * @param {!angular.$compile} $compile
-   * @param {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+   * @param {!semanticRegistryService.SemanticRegistryService}
    *     grrSemanticRepeatedFormDirectivesRegistryService
    * @ngInject
    */
@@ -31,7 +32,7 @@ const SemanticProtoRepeatedFieldFormController = class {
     this.compile_ = $compile;
 
     /**
-     * @private {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+     * @private {!semanticRegistryService.SemanticRegistryService}
      */
     this.grrSemanticRepeatedFormDirectivesRegistryService_ =
         grrSemanticRepeatedFormDirectivesRegistryService;

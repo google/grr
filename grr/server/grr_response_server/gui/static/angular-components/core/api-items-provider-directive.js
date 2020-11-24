@@ -1,6 +1,7 @@
 goog.module('grrUi.core.apiItemsProviderDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
 const {Items, ItemsProviderController} = goog.require('grrUi.core.itemsProviderController');
 
 
@@ -15,7 +16,7 @@ exports.ApiItemsProviderController = class {
    * @param {!angular.Scope} $scope
    * @param {!angular.Attributes} $attrs
    * @param {!angular.$parse} $parse
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @param {!angular.$log} $log
    * @ngInject
    */
@@ -25,7 +26,7 @@ exports.ApiItemsProviderController = class {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @private {!angular.$log} */

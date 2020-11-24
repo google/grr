@@ -1,6 +1,8 @@
 goog.module('grrUi.core.clockDirective');
 goog.module.declareLegacyNamespace();
 
+const timeService = goog.requireType('grrUi.core.timeService');
+
 
 
 /**
@@ -11,11 +13,11 @@ const ClockController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.$interval} $interval
-   * @param {!grrUi.core.timeService.TimeService} grrTimeService
+   * @param {!timeService.TimeService} grrTimeService
    * @ngInject
    */
   constructor($scope, $interval, grrTimeService) {
-    /** @private {grrUi.core.timeService.TimeService} */
+    /** @private {timeService.TimeService} */
     this.grrTimeService_ = grrTimeService;
 
     /** @type {string} The formatted clock to be displayed. */

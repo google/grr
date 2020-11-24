@@ -1,6 +1,8 @@
 goog.module('grrUi.forms.globExpressionFormDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 /**
  * Return a list of autocomplete suggestions that include a search term,
@@ -51,7 +53,7 @@ exports.getSuggestions = function(expression, entries) {
  */
 const GlobExpressionFormController = class {
   /**
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @param {!angular.Scope} $scope
    * @ngInject
    */

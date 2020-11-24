@@ -1,6 +1,8 @@
 goog.module('grrUi.docs.apiQuerySpecDirective');
 goog.module.declareLegacyNamespace();
 
+const reflectionService = goog.requireType('grrUi.core.reflectionService');
+
 
 
 /**
@@ -10,7 +12,7 @@ goog.module.declareLegacyNamespace();
 const ApiQuerySpecController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.reflectionService.ReflectionService}
+   * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
    * @ngInject
    */
@@ -18,7 +20,7 @@ const ApiQuerySpecController = class {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
 
     /** @export {Array.<Object>} */

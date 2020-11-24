@@ -100,6 +100,17 @@ config_lib.DEFINE_integer(
     "Maximum number of client crashes to allow for an Interrogate cron hunt "
     "before stopping the hunt.")
 
+config_lib.DEFINE_integer(
+    "Cron.interrogate_client_rate", 50,
+    "Client rate setting for the periodical Interrogate cron hunt.")
+
+config_lib.DEFINE_semantic_value(
+    rdfvalue.Duration, "Cron.interrogate_duration",
+    rdfvalue.Duration.From(1, rdfvalue.WEEKS),
+    "Duration of the Interrogate cron hunt. The hunt is run weekly, so "
+    "default duration is 1w. In certain cases the duration might be extended "
+    "to accommodate for the clients that rarely show up online.")
+
 config_lib.DEFINE_string("Frontend.bind_address", "::",
                          "The ip address to bind.")
 
