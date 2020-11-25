@@ -283,7 +283,7 @@ config_lib.DEFINE_integer(
     "greater than this limit, the hunt gets stopped.")
 
 # GRRafana HTTP Server settings.
-config_lib.DEFINE_string("GRRafana.server",
+config_lib.DEFINE_string("GRRafana.bind",
                          default="localhost",
                          help="The GRRafana server address.")
 
