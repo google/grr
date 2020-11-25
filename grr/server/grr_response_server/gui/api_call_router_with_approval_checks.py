@@ -15,8 +15,8 @@ from grr_response_core.stats import metrics
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.databases import db
-from grr_response_server.flows.general import timeline
 from grr_response_server.flows.general import osquery
+from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
@@ -25,10 +25,10 @@ from grr_response_server.gui import approval_checks
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.gui.api_plugins import metadata as api_metadata
+from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import yara as api_yara
-from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -453,7 +453,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
           str(args.client_id), str(args.flow_id))
     except db.UnknownFlowError:
       raise api_call_handler_base.ResourceNotFoundError(
-          f"Flow with client id %s and flow id %s could not be found" %
+          "Flow with client id %s and flow id %s could not be found" %
           (args.client_id, args.flow_id))
 
     if flow.flow_class_name != osquery.OsqueryFlow.__name__:

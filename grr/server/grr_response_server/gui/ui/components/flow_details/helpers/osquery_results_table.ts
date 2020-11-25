@@ -1,5 +1,5 @@
-import { Component, ChangeDetectionStrategy, Input } from '@angular/core';
-import { OsqueryTable } from '@app/lib/api/api_interfaces';
+import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import {OsqueryTable} from '@app/lib/api/api_interfaces';
 
 /**
  * Component that displays an OsqueryTable object as a HTML table.
@@ -11,10 +11,9 @@ import { OsqueryTable } from '@app/lib/api/api_interfaces';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class OsqueryResultsTable {
-  @Input()
-  table?: OsqueryTable;
+  @Input() table?: OsqueryTable;
 
-  trackByIndex(index: number, item: unknown): number {
+  trackByIndex(index: number, {}): number {
     return index;
   }
 }

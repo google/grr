@@ -6,13 +6,12 @@ from __future__ import unicode_literals
 
 import hashlib
 import io
+import json
 import os
 import time
 
-import json
-import mock
-
 from absl import app
+import mock
 
 from grr_response_client.client_actions import osquery as osquery_action
 from grr_response_core import config
@@ -234,11 +233,11 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     max_rows = 70
     split_pieces = 10
 
-    cell_value = 'fixed'
-    table = [{'column1': cell_value}] * row_count
+    cell_value = "fixed"
+    table = [{"column1": cell_value}] * row_count
     table_json = json.dumps(table)
 
-    table_bytes = row_count * len(cell_value.encode('utf-8'))
+    table_bytes = row_count * len(cell_value.encode("utf-8"))
     chunk_bytes = table_bytes // split_pieces
 
     with test_lib.ConfigOverrider({"Osquery.max_chunk_size": chunk_bytes}):
@@ -253,11 +252,11 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     row_count = 100
     split_pieces = 10
 
-    cell_value = 'fixed'
-    table = [{'column1': cell_value}] * row_count
+    cell_value = "fixed"
+    table = [{"column1": cell_value}] * row_count
     table_json = json.dumps(table)
 
-    table_bytes = row_count * len(cell_value.encode('utf-8'))
+    table_bytes = row_count * len(cell_value.encode("utf-8"))
     chunk_bytes = table_bytes // split_pieces
 
     with test_lib.ConfigOverrider({"Osquery.max_chunk_size": chunk_bytes}):

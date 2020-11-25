@@ -1,31 +1,33 @@
+#!/usr/bin/env python
 # Lint as: python3
 """Integration tests for the Osquery flow, its API client and API endpoints."""
-from grr_response_server.gui import api_integration_test_lib
-from grr_response_server.flows.general import osquery as osquery_flow
-from grr.test_lib import osquery_test_lib
-from grr.test_lib import flow_test_lib
-from grr.test_lib import test_lib
-from grr.test_lib import action_mocks
-from grr_response_client.client_actions import osquery as osquery_action
-from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
-from grr_api_client import utils
-
 import json
+
+from absl import app
+
+from grr_api_client import utils
+from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
+from grr_response_server.flows.general import osquery as osquery_flow
+from grr_response_server.gui import api_integration_test_lib
+from grr.test_lib import action_mocks
+from grr.test_lib import flow_test_lib
+from grr.test_lib import osquery_test_lib
+from grr.test_lib import test_lib
 
 
 class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
-  """Tests exporting of Osquery results using functionality in the API client"""
+  """Tests exporting Osquery results using functionality in the API client."""
 
   def _RunOsqueryExportResults(self, stdout: str) -> utils.BinaryChunkIterator:
     client_id = self.SetupClient(0)
 
     with osquery_test_lib.FakeOsqueryiOutput(stdout=stdout, stderr=""):
       flow_id = flow_test_lib.TestFlowHelper(
-        osquery_flow.OsqueryFlow.__name__,
-        action_mocks.ActionMock(osquery_action.Osquery),
-        client_id=client_id,
-        token=self.token,
-        query="doesn't matter")
+          osquery_flow.OsqueryFlow.__name__,
+          action_mocks.OsqueryClientMock(),
+          client_id=client_id,
+          token=self.token,
+          query="doesn't matter")
       result_flow = self.api.Client(client_id=client_id).Flow(flow_id)
       result_flow.WaitUntilDone()
 
@@ -90,3 +92,11 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
 
     expected_rows = "\r\n".join([cell_value] * row_count)
     self.assertEqual("column1\r\n" + expected_rows + "\r\n", output_text)
+
+
+def main(argv):
+  test_lib.main(argv)
+
+
+if __name__ == "__main__":
+  app.run(main)

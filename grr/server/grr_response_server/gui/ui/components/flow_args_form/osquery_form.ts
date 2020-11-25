@@ -1,9 +1,9 @@
 import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
+import {FormControl, FormGroup, Validators} from '@angular/forms';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
+import {shareReplay} from 'rxjs/operators';
 
 import {OsqueryArgs} from '../../lib/api/api_interfaces';
-import {FormGroup, FormControl, Validators} from '@angular/forms';
-import {shareReplay} from 'rxjs/operators';
 
 
 /** Form that configures an Osquery flow. */
@@ -13,7 +13,8 @@ import {shareReplay} from 'rxjs/operators';
   styleUrls: ['./osquery_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements OnInit {
+export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
+    OnInit {
   readonly form = new FormGroup({
     query: new FormControl(null, Validators.required),
     timeoutMillis: new FormControl(null, Validators.required),

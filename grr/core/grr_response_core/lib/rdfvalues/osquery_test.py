@@ -54,7 +54,7 @@ class OsqueryTableTest(absltest.TestCase):
     truncated = table.Truncated(1)
     column_values = list(truncated.Column("A"))
 
-    self.assertEqual(len(truncated.rows), 1)
+    self.assertLen(truncated.rows, 1)
     self.assertEqual(column_values, ["cell1"])
 
 

@@ -2,9 +2,8 @@
 // tslint:disable:enforce-comments-on-exported-symbols
 
 import {Client, ClientApproval} from '@app/lib/models/client';
+import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowState, ScheduledFlow} from './flow';
 
-import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow, FlowResultSet, FlowResultSetState} from './flow';
-import { OsqueryTable } from '../api/api_interfaces';
 
 
 function randomHex(length: number): string {
@@ -98,7 +97,7 @@ export function newClientApproval(args: Partial<ClientApproval> = {}):
   };
 }
 
-export function newFlowResultSet(payload = { }): FlowResultSet {
+export function newFlowResultSet(payload = {}): FlowResultSet {
   return {
     items: [{
       payload,
@@ -111,5 +110,5 @@ export function newFlowResultSet(payload = { }): FlowResultSet {
       count: 0,
     },
     state: FlowResultSetState.FETCHED,
-  }
+  };
 }

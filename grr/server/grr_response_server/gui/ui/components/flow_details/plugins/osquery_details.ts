@@ -1,13 +1,15 @@
-import { Component, ChangeDetectionStrategy } from '@angular/core';
-import { Plugin } from './plugin';
-import { map, flatMap, filter, takeUntil, startWith } from 'rxjs/operators';
-import { FlowState } from '@app/lib/models/flow';
-import { Observable, concat, combineLatest } from 'rxjs';
-import { OsqueryResult, OsqueryArgs, OsqueryProgress } from '@app/lib/api/api_interfaces';
-import { isNonNull } from '@app/lib/preconditions';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {OsqueryArgs, OsqueryProgress, OsqueryResult} from '@app/lib/api/api_interfaces';
+import {FlowState} from '@app/lib/models/flow';
+import {isNonNull} from '@app/lib/preconditions';
+import {combineLatest, concat, Observable} from 'rxjs';
+import {filter, flatMap, map, startWith, takeUntil} from 'rxjs/operators';
+
+import {Plugin} from './plugin';
 
 /**
- * Component that displays the details (status, errors, results) for a particular Osquery Flow.
+ * Component that displays the details (status, errors, results) for a
+ * particular Osquery Flow.
  */
 @Component({
   selector: 'osquery-details',
@@ -20,67 +22,71 @@ export class OsqueryDetails extends Plugin {
   readonly flowRunning$ = this.flagByState(FlowState.RUNNING);
   readonly flowCompleted$ = this.flagByState(FlowState.FINISHED);
 
-  private readonly osqueryResults$: Observable<OsqueryResult> = this.flowListEntry$.pipe(
-    flatMap(listEntry => listEntry.resultSets),
-    flatMap(singleResultSet => singleResultSet?.items),
-    filter(isNonNull),
-    map(singleItem => singleItem.payload as OsqueryResult),
-  );
+  private readonly osqueryResults$: Observable<OsqueryResult> =
+      this.flowListEntry$.pipe(
+          flatMap(listEntry => listEntry.resultSets),
+          flatMap(singleResultSet => singleResultSet?.items),
+          filter(isNonNull),
+          map(singleItem => singleItem.payload as OsqueryResult),
+      );
 
-  private readonly osqueryProgress$: Observable<OsqueryProgress> = this.flowListEntry$.pipe(
-    map(listEntry => listEntry.flow.progress as OsqueryProgress),
-    filter(isNonNull),
-  );
+  private readonly osqueryProgress$: Observable<OsqueryProgress> =
+      this.flowListEntry$.pipe(
+          map(listEntry => listEntry.flow.progress as OsqueryProgress),
+          filter(isNonNull),
+      );
 
   private readonly resultsTable$ = this.osqueryResults$.pipe(
-    map(result => result.table),
-    filter(isNonNull),
+      map(result => result.table),
+      filter(isNonNull),
   );
 
   private readonly progressTable$ = this.osqueryProgress$.pipe(
-    map(progress => progress.partialTable),
-    filter(isNonNull),
+      map(progress => progress.partialTable),
+      filter(isNonNull),
   );
 
   readonly displayTable$ = concat(
-    this.progressTable$.pipe(takeUntil(this.resultsTable$)),
-    this.resultsTable$,
+      this.progressTable$.pipe(takeUntil(this.resultsTable$)),
+      this.resultsTable$,
   );
 
-  readonly additionalRowsAvailable$ = combineLatest([
-    this.osqueryProgress$.pipe(
-      map(progress => progress.totalRowCount),
-      startWith(null),
-    ),
-    this.displayTable$.pipe(
-      map(table => table.rows?.length),
-      startWith(null),
-    ),
-  ]).pipe(
-    map(([totalRowCount, displayedRowCount]) => {
-      if (isNonNull(totalRowCount) && isNonNull(displayedRowCount)) {
-        return Number(totalRowCount) - displayedRowCount;
-      } else {
-        return '?';
-      }
-    }),
-  );
+  readonly additionalRowsAvailable$ =
+      combineLatest([
+        this.osqueryProgress$.pipe(
+            map(progress => progress.totalRowCount),
+            startWith(null),
+            ),
+        this.displayTable$.pipe(
+            map(table => table.rows?.length),
+            startWith(null),
+            ),
+      ])
+          .pipe(
+              map(([totalRowCount, displayedRowCount]) => {
+                if (isNonNull(totalRowCount) && isNonNull(displayedRowCount)) {
+                  return Number(totalRowCount) - displayedRowCount;
+                } else {
+                  return '?';
+                }
+              }),
+          );
 
   readonly args$: Observable<OsqueryArgs> = this.flowListEntry$.pipe(
       map(flowListEntry => flowListEntry.flow.args as OsqueryArgs),
   );
 
   readonly resultsStderr$ = this.osqueryResults$.pipe(
-    map(result => result.stderr),
+      map(result => result.stderr),
   );
 
   private flagByState(targetState: FlowState): Observable<boolean> {
     return this.flowListEntry$.pipe(
-      map(listEntry => listEntry.flow.state === targetState)
-    );
+        map(listEntry => listEntry.flow.state === targetState));
   }
 
   loadCompleteResults() {
-    this.queryFlowResults({offset: 0, count: 1}); // TODO: Fetch more chunks if present
+    this.queryFlowResults(
+        {offset: 0, count: 1});  // TODO: Fetch more chunks if present
   }
 }

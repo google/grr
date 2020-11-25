@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 # Lint as: python3
-import unittest
+from absl.testing import absltest
 
-from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
+from grr_response_server.gui.api_plugins import osquery as api_osquery
 
 
-class UtilsTest(unittest.TestCase):
+class UtilsTest(absltest.TestCase):
+  """Test for osquery utils."""
 
   def testListToCSVBytes(self):
     output_bytes = api_osquery._LineToCsvBytes(["a", "b", "c", "d"])
@@ -41,4 +42,9 @@ class UtilsTest(unittest.TestCase):
     output_bytes = api_osquery._ParseToCsvBytes([result])
     output_text = list(map(lambda b: b.decode("utf-8"), output_bytes))
 
-    self.assertListEqual(["\"c,o,l,u,m,n\"\r\n", "\"c,e,l,l\"\r\n"], output_text)
+    self.assertListEqual(["\"c,o,l,u,m,n\"\r\n", "\"c,e,l,l\"\r\n"],
+                         output_text)
+
+
+if __name__ == "__main__":
+  absltest.main()

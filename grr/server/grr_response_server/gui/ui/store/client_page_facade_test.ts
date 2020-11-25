@@ -4,17 +4,17 @@ import {ConfigService} from '@app/components/config/config';
 import {ApiClient, ApiClientApproval, ApiFlow, ApiFlowState, ApiScheduledFlow, ApproverSuggestion} from '@app/lib/api/api_interfaces';
 import {HttpApiService, MissingApprovalError} from '@app/lib/api/http_api_service';
 import {Client, ClientApproval} from '@app/lib/models/client';
-import {FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow, FlowResultsQuery} from '@app/lib/models/flow';
+import {FlowListEntry, flowListEntryFromFlow, FlowResultsQuery, FlowState} from '@app/lib/models/flow';
 import {newClient, newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
 import {ClientPageFacade, uniqueTagForQuery} from '@app/store/client_page_facade';
 import {initTestEnvironment, removeUndefinedKeys} from '@app/testing';
 import {of, Subject, throwError} from 'rxjs';
-
+import {delay} from 'rxjs/operators';
 import {ConfigFacade} from './config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from './config_facade_test_util';
 import {UserFacade} from './user_facade';
 import {mockUserFacade, UserFacadeMock} from './user_facade_test_util';
-import { delay } from 'rxjs/operators';
+
 
 initTestEnvironment();
 
@@ -441,80 +441,82 @@ describe('ClientPageFacade', () => {
        expect(numCalls).toBe(3);
      }));
 
-  it('only discards late concurrent queries that originate from identical flows', fakeAsync(() => {
-    const delayMs = 10;
-    const apiFlowTemplate = {
-      clientId: 'C.1234',
-      lastActiveAt: '999000',
-      startedAt: '123000',
-      creator: 'rick',
-      name: 'ListProcesses',
-      state: ApiFlowState.RUNNING,
-    };
-    const queryTemplate = {
-      offset: 0,
-      count: 1,
-    };
+  it('only discards late concurrent queries that originate from identical flows',
+     fakeAsync(() => {
+       const delayMs = 10;
+       const apiFlowTemplate = {
+         clientId: 'C.1234',
+         lastActiveAt: '999000',
+         startedAt: '123000',
+         creator: 'rick',
+         name: 'ListProcesses',
+         state: ApiFlowState.RUNNING,
+       };
+       const queryTemplate = {
+         offset: 0,
+         count: 1,
+       };
 
-    const flowId1 = '1';
-    const flowId2 = '2';
-    const flowId3 = '3';
+       const flowId1 = '1';
+       const flowId2 = '2';
+       const flowId3 = '3';
 
-    const flowList = [
-      {
-        ...apiFlowTemplate,
-        flowId: flowId1,
-      },
-      {
-        ...apiFlowTemplate,
-        flowId: flowId2,
-      },
-      {
-        ...apiFlowTemplate,
-        flowId: flowId3,
-      },
-    ];
+       const flowList = [
+         {
+           ...apiFlowTemplate,
+           flowId: flowId1,
+         },
+         {
+           ...apiFlowTemplate,
+           flowId: flowId2,
+         },
+         {
+           ...apiFlowTemplate,
+           flowId: flowId3,
+         },
+       ];
 
-    clientPageFacade.flowListEntries$.subscribe();
+       clientPageFacade.flowListEntries$.subscribe();
 
-    httpApiService.listFlowsForClient =
-        jasmine.createSpy('listFlowsForClient')
-            .and.callFake(() => of(flowList));
-    tick(1);
+       httpApiService.listFlowsForClient =
+           jasmine.createSpy('listFlowsForClient')
+               .and.callFake(() => of(flowList));
+       tick(1);
 
-    httpApiService.listResultsForFlow = jasmine.createSpy('listResultsForFlow').and.callFake(() => {
-      return of([]).pipe(
-        delay(delayMs),
-      );
-    });
+       httpApiService.listResultsForFlow =
+           jasmine.createSpy('listResultsForFlow').and.callFake(() => {
+             return of([]).pipe(
+                 delay(delayMs),
+             );
+           });
 
-    const queryFlow1 = {
-      ...queryTemplate,
-      flowId: flowId1,
-    };
-    const queryFlow2 = {
-      ...queryTemplate,
-      flowId: flowId2,
-    };
-    const queryFlow3 = {
-      ...queryTemplate,
-      flowId: flowId3,
-    };
+       const queryFlow1 = {
+         ...queryTemplate,
+         flowId: flowId1,
+       };
+       const queryFlow2 = {
+         ...queryTemplate,
+         flowId: flowId2,
+       };
+       const queryFlow3 = {
+         ...queryTemplate,
+         flowId: flowId3,
+       };
 
-    clientPageFacade.queryFlowResults(queryFlow1);
-    clientPageFacade.queryFlowResults(queryFlow1); // discarded
+       clientPageFacade.queryFlowResults(queryFlow1);
+       clientPageFacade.queryFlowResults(queryFlow1);  // discarded
 
-    clientPageFacade.queryFlowResults(queryFlow2);
-    clientPageFacade.queryFlowResults(queryFlow2); // discarded
+       clientPageFacade.queryFlowResults(queryFlow2);
+       clientPageFacade.queryFlowResults(queryFlow2);  // discarded
 
-    clientPageFacade.queryFlowResults(queryFlow3);
-    clientPageFacade.queryFlowResults(queryFlow3); // discarded
+       clientPageFacade.queryFlowResults(queryFlow3);
+       clientPageFacade.queryFlowResults(queryFlow3);  // discarded
 
-    tick(3 * delayMs);
-    discardPeriodicTasks();
+       tick(3 * delayMs);
+       discardPeriodicTasks();
 
-    expect(httpApiService.listResultsForFlow).toHaveBeenCalledTimes(3);
-  }));
+       expect(httpApiService.listResultsForFlow).toHaveBeenCalledTimes(3);
+     }));
 
   it('calls the API on startFlow', () => {
     clientPageFacade.startFlowConfiguration('ListProcesses');
@@ -929,42 +931,48 @@ describe('uniqueTagForQuery', () => {
     count: 1,
   };
 
-  it('should produce the same tags for the same flowId, withType, withTag', () => {
-    const firstQuery: FlowResultsQuery = {
-      ...defaultQuery,
-      offset: 1,
-      count: 1,
-    };
+  it('should produce the same tags for the same flowId, withType, withTag',
+     () => {
+       const firstQuery: FlowResultsQuery = {
+         ...defaultQuery,
+         offset: 1,
+         count: 1,
+       };
 
-    const secondQuery: FlowResultsQuery = {
-      ...defaultQuery,
-      offset: 2,
-      count: 2,
-    };
+       const secondQuery: FlowResultsQuery = {
+         ...defaultQuery,
+         offset: 2,
+         count: 2,
+       };
 
-    expect(uniqueTagForQuery(firstQuery)).toBe(uniqueTagForQuery(secondQuery));
-  });
+       expect(uniqueTagForQuery(firstQuery))
+           .toBe(uniqueTagForQuery(secondQuery));
+     });
 
-  it('should produce different tags for different flowId or withType or withTag', () => {
-    const differentId = {
-      ...defaultQuery,
-      flowId: 'otherId',
-    };
+  it('should produce different tags for different flowId or withType or withTag',
+     () => {
+       const differentId = {
+         ...defaultQuery,
+         flowId: 'otherId',
+       };
 
-    const differentType = {
-      ...defaultQuery,
-      withType: 'otherType',
-    };
+       const differentType = {
+         ...defaultQuery,
+         withType: 'otherType',
+       };
 
-    const differentTag = {
-      ...defaultQuery,
-      withTag: 'otherTag',
-    };
+       const differentTag = {
+         ...defaultQuery,
+         withTag: 'otherTag',
+       };
 
-    expect(uniqueTagForQuery(differentId)).not.toBe(uniqueTagForQuery(defaultQuery));
-    expect(uniqueTagForQuery(differentType)).not.toBe(uniqueTagForQuery(defaultQuery));
-    expect(uniqueTagForQuery(differentTag)).not.toBe(uniqueTagForQuery(defaultQuery));
-  });
+       expect(uniqueTagForQuery(differentId))
+           .not.toBe(uniqueTagForQuery(defaultQuery));
+       expect(uniqueTagForQuery(differentType))
+           .not.toBe(uniqueTagForQuery(defaultQuery));
+       expect(uniqueTagForQuery(differentTag))
+           .not.toBe(uniqueTagForQuery(defaultQuery));
+     });
 
   it('should encode the separator', () => {
     const noSpecialCharacters = defaultQuery;

@@ -11,8 +11,8 @@ from grr_api_client import context as api_context
 from grr_api_client import errors
 from grr_api_client import utils
 from grr_response_proto.api import flow_pb2
-from grr_response_proto.api import timeline_pb2
 from grr_response_proto.api import osquery_pb2
+from grr_response_proto.api import timeline_pb2
 
 
 class FlowResult(object):

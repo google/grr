@@ -1,22 +1,23 @@
 #!/usr/bin/env python
 # Lint as: python3
-"""A module with API handlers related to the Osquery flow"""
-from grr_response_server.flows.general import osquery
-from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
-from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_server.gui import api_call_handler_base
-from grr_response_server.gui import api_call_context
-from grr_response_server import data_store
-from grr_response_server.gui.api_plugins import client as api_client
-from grr_response_server.gui.api_plugins import flow as api_flow
+"""A module with API handlers related to the Osquery flow."""
+import csv
+import io
 
-from typing import Optional
-from typing import Text
 from typing import Iterable
 from typing import Iterator
-from io import StringIO
-import csv
+from typing import Optional
+from typing import Text
+
+from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto.api import osquery_pb2 as api_osquery_pb2
+from grr_response_server import data_store
+from grr_response_server.flows.general import osquery
+from grr_response_server.gui import api_call_context
+from grr_response_server.gui import api_call_handler_base
+from grr_response_server.gui.api_plugins import client as api_client
+from grr_response_server.gui.api_plugins import flow as api_flow
 
 
 class ApiGetOsqueryResultsArgs(rdf_structs.RDFProtoStruct):
@@ -68,18 +69,19 @@ def _StreamCsv(
 
 
 def _FetchOsqueryResults(
-    client_id: Text, 
+    client_id: Text,
     flow_id: Text,
 ) -> Iterator[rdf_osquery.OsqueryResult]:
+  """Fetches results for given client and flow ids."""
   next_to_fetch = 0
   last_fetched_count = None
 
   while last_fetched_count != 0:
     data_fetched = data_store.REL_DB.ReadFlowResults(
-      offset=next_to_fetch,
-      count=_RESULTS_TO_FETCH_AT_ONCE,
-      client_id=client_id,
-      flow_id=flow_id)
+        offset=next_to_fetch,
+        count=_RESULTS_TO_FETCH_AT_ONCE,
+        client_id=client_id,
+        flow_id=flow_id)
 
     last_fetched_count = len(data_fetched)
     next_to_fetch += last_fetched_count
@@ -91,8 +93,8 @@ def _FetchOsqueryResults(
 
 
 def _ParseToCsvBytes(
-    osquery_results: Iterator[rdf_osquery.OsqueryResult],
-) -> Iterator[bytes]:
+    osquery_results: Iterator[rdf_osquery.OsqueryResult],) -> Iterator[bytes]:
+  """Parses osquery results into chunks of bytes."""
   added_columns = False
 
   for result in osquery_results:
@@ -106,7 +108,7 @@ def _ParseToCsvBytes(
 
 def _LineToCsvBytes(values: Iterable[str]) -> bytes:
   # newline='' : https://docs.python.org/3.6/library/csv.html#id3
-  with StringIO(newline="") as output:
+  with io.StringIO(newline="") as output:
     csv_writer = csv.writer(output)
     csv_writer.writerow(values)
 

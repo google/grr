@@ -11,6 +11,7 @@ import itertools
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
+from grr_response_client.client_actions import osquery
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_core import config
@@ -293,6 +294,12 @@ class GrepClientMock(ActionMock):
                          searching.Grep, standard.HashBuffer,
                          standard.GetFileStat, standard.TransferBuffer, *args,
                          **kwargs)
+
+
+class OsqueryClientMock(ActionMock):
+
+  def __init__(self, *args, **kwargs):
+    super(OsqueryClientMock, self).__init__(osquery.Osquery, *args, **kwargs)
 
 
 class UpdateAgentClientMock(ActionMock):

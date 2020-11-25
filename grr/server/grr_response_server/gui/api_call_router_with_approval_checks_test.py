@@ -10,8 +10,8 @@ import mock
 
 from grr_response_server import access_control
 
-from grr_response_server.flows.general import timeline
 from grr_response_server.flows.general import osquery
+from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router_with_approval_checks as api_router
@@ -19,8 +19,8 @@ from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
-from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import osquery as api_osquery
+from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
 
@@ -254,8 +254,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
     args = api_osquery.ApiGetOsqueryResultsArgs(
         client_id=client_id, flow_id=flow_id)
-    self.CheckMethodIsNotAccessChecked(
-        self.router.GetOsqueryResults, args=args)
+    self.CheckMethodIsNotAccessChecked(self.router.GetOsqueryResults, args=args)
 
   def testGetOsqueryResultsRefusesAccessIfPartOfHuntButWrongFlow(self):
     client_id = self.SetupClient(0)
@@ -280,8 +279,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   def testGetOsqueryResultsChecksClientAccessIfNotPartOfHunt(self):
     client_id = self.SetupClient(0)
-    flow_id = flow_test_lib.StartFlow(
-        osquery.OsqueryFlow, client_id=client_id)
+    flow_id = flow_test_lib.StartFlow(osquery.OsqueryFlow, client_id=client_id)
 
     args = api_osquery.ApiGetOsqueryResultsArgs(
         client_id=client_id, flow_id=flow_id)

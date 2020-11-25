@@ -78,12 +78,15 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
       yield row.values[column_idx]
 
   def Truncated(self, row_count: int) -> "OsqueryTable":
-    """
-    Returns a fresh table with the first few rows of the original one.
-    It doesn't modify the original table.
+    """Returns a fresh table with the first few rows of the original one.
+
+    Truncated doesn't modify the original table.
 
     Args:
       row_count: The number of rows to keep in the truncated table
+
+    Returns:
+      New OsqueryTable object with maximum row_count rows.
     """
     result = OsqueryTable()
 
@@ -102,7 +105,7 @@ class OsqueryResult(rdf_structs.RDFProtoStruct):
 
   def GetTableColumns(self) -> Iterator[str]:
     return (column.name for column in self.table.header.columns)
-  
+
   def GetTableRows(self) -> Iterator[Sequence[str]]:
     return (row.values for row in self.table.rows)
 
