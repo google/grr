@@ -8,6 +8,7 @@ from __future__ import unicode_literals
 
 import binascii
 import io
+import os
 import zipfile
 
 from absl import app
@@ -488,7 +489,7 @@ class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
 
 class ApiCreateVfsRefreshOperationHandlerTest(
     notification_test_lib.NotificationTestMixin,
-    api_test_lib.ApiCallHandlerTest):
+    api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiCreateVfsRefreshOperationHandler."""
 
   def setUp(self):
@@ -570,6 +571,47 @@ class ApiCreateVfsRefreshOperationHandlerTest(
     self.assertEqual(
         pending_notifications[0].reference.vfs_file.path_components,
         ["Users", "Shared"])
+
+  def testPathTranslation_TSK(self):
+    self._testPathTranslation(
+        "/fs/tsk/c/foo",
+        rdf_paths.PathSpec(
+            path="/c/foo", pathtype=rdf_paths.PathSpec.PathType.TSK))
+
+  def testPathTranslation_NTFS(self):
+    self._testPathTranslation(
+        "/fs/ntfs/c/foo",
+        rdf_paths.PathSpec(
+            path="/c/foo", pathtype=rdf_paths.PathSpec.PathType.NTFS))
+
+  def testPathTranslation_OS(self):
+    self._testPathTranslation(
+        "/fs/os/c/foo",
+        rdf_paths.PathSpec(
+            path="/c/foo", pathtype=rdf_paths.PathSpec.PathType.OS))
+
+  def testPathTranslation_REGISTRY(self):
+    self._testPathTranslation(
+        "/registry/c/foo",
+        rdf_paths.PathSpec(
+            path="/c/foo", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
+
+  def testPathTranslation_TMPFILE(self):
+    self._testPathTranslation(
+        "/temp/c/foo",
+        rdf_paths.PathSpec(
+            path="/c/foo", pathtype=rdf_paths.PathSpec.PathType.TMPFILE))
+
+  def _testPathTranslation(self, directory: str,
+                           expected_pathspec: rdf_paths.PathSpec) -> None:
+    self.CreateFileVersions(self.client_id,
+                            os.path.join(directory, "some_file.txt"))
+    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
+        client_id=self.client_id, file_path=directory)
+    result = self.handler.Handle(args, context=self.context)
+    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id,
+                                                result.operation_id)
+    self.assertEqual(flow_obj.args.pathspec, expected_pathspec)
 
 
 class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,

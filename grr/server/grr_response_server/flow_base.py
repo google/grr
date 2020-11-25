@@ -618,7 +618,7 @@ class FlowBase(metaclass=FlowRegistry):
     if self.ShouldSendNotifications():
       self.NotifyAboutEnd()
 
-  def Log(self, format_str, *args):
+  def Log(self, format_str: str, *args: object) -> None:
     """Logs the message using the flow's standard logging.
 
     Args:
