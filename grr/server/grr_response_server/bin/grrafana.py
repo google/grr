@@ -297,7 +297,7 @@ def main(argv: Any) -> None:
                            "Context applied when running GRRafana server.")
   server_startup.Init()
   fleetspeak_connector.Init()
-  werkzeug_serving.run_simple(config.CONFIG["GRRafana.server"],
+  werkzeug_serving.run_simple(config.CONFIG["GRRafana.bind"],
                               config.CONFIG["GRRafana.port"],
                               Grrafana())
 
