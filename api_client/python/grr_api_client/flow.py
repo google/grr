@@ -12,6 +12,7 @@ from grr_api_client import errors
 from grr_api_client import utils
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import timeline_pb2
+from grr_response_proto.api import osquery_pb2
 
 
 class FlowResult(object):
@@ -104,6 +105,14 @@ class FlowBase(object):
     args = timeline_pb2.ApiGetCollectedTimelineArgs(
         client_id=self.client_id, flow_id=self.flow_id, format=fmt)
     return self._context.SendStreamingRequest("GetCollectedTimeline", args)
+
+  def GetOsqueryResults(
+      self,
+      fmt: osquery_pb2.ApiGetOsqueryResultsArgs.Format,
+  ) -> utils.BinaryChunkIterator:
+    args = osquery_pb2.ApiGetOsqueryResultsArgs(
+        client_id=self.client_id, flow_id=self.flow_id, format=fmt)
+    return self._context.SendStreamingRequest("GetOsqueryResults", args)
 
   def Get(self) -> "Flow":
     """Fetch flow's data and return proper Flow object."""

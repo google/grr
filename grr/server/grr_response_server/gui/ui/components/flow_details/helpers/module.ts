@@ -9,6 +9,9 @@ import {FileModePipe} from '@app/components/flow_details/helpers/file_mode_pipe'
 
 import {FileResultsTable} from './file_results_table';
 
+import {TimestampModule} from '../../timestamp/module';
+import {HumanReadableSizeModule} from '../../human_readable_size/module';
+import { OsqueryResultsTable } from './osquery_results_table';
 
 
 /**
@@ -23,14 +26,18 @@ import {FileResultsTable} from './file_results_table';
     ClipboardModule,
     MatButtonModule,
     MatIconModule,
+    TimestampModule,
+    HumanReadableSizeModule,
   ],
   declarations: [
     FileResultsTable,
     FileModePipe,
+    OsqueryResultsTable,
   ],
   exports: [
     FileResultsTable,
     FileModePipe,
+    OsqueryResultsTable,
   ],
 })
 export class HelpersModule {

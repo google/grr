@@ -5,12 +5,14 @@ import {CollectSingleFileForm} from '@app/components/flow_args_form/collect_sing
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
+import {OsqueryForm} from './osquery_form';
 
 /** Mapping from flow name to Component class to configure the Flow. */
 export const FORMS: {[key: string]: Type<FlowArgumentForm<unknown>>} = {
   'CollectBrowserHistory': CollectBrowserHistoryForm,
   'CollectMultipleFiles': CollectMultipleFilesForm,
   'CollectSingleFile': CollectSingleFileForm,
+  'OsqueryFlow': OsqueryForm,
 
   // Show empty form as fallback for flows that typically do not require
   // configuration.

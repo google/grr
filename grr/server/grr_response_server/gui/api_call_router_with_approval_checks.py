@@ -16,6 +16,7 @@ from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.flows.general import timeline
+from grr_response_server.flows.general import osquery
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
@@ -27,6 +28,7 @@ from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import yara as api_yara
+from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -440,6 +442,28 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiUnscheduleFlowHandler:
     return self.delegate.UnscheduleFlow(args, context=context)
+
+  def GetOsqueryResults(
+      self,
+      args: api_osquery.ApiGetOsqueryResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    try:
+      flow = data_store.REL_DB.ReadFlowObject(
+          str(args.client_id), str(args.flow_id))
+    except db.UnknownFlowError:
+      raise api_call_handler_base.ResourceNotFoundError(
+          f"Flow with client id %s and flow id %s could not be found" %
+          (args.client_id, args.flow_id))
+
+    if flow.flow_class_name != osquery.OsqueryFlow.__name__:
+      raise ValueError("Flow '{}' is not an osquery flow".format(flow.flow_id))
+
+    # Check for client access if this flow was not scheduled as part of a hunt.
+    if flow.parent_hunt_id != flow.flow_id:
+      self.access_checker.CheckClientAccess(context, args.client_id)
+
+    return self.delegate.GetOsqueryResults(args, context=context)
 
   # Cron jobs methods.
   # =================

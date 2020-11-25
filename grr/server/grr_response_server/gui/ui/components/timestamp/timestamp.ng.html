@@ -1,10 +1,10 @@
 <div *ngIf="date !== undefined; else dateUndefined"
   class="timestamp"
   [matTooltip]="date | relativeTimestamp"
-  matTooltipPosition="above"
+  matTooltipPosition="below"
   matTooltipClass="tooltip"
   [matTooltipDisabled]="completeFormat || !tooltipEnabled"
-  [style.border-bottom]="(completeFormat || !tooltipEnabled) ? 'none' : '1px dotted rgb(126, 126, 126)'">
+  [style.border-bottom]="(completeFormat || !tooltipEnabled || forceDisableUnderlining) ? 'none' : '1px dotted rgb(126, 126, 126)'">
   {{date | date:'yyyy-MM-dd HH:mm:ss':timezone}} {{timezone}}
 
   <div class="inline_relative" *ngIf="completeFormat">

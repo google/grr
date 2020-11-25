@@ -74,6 +74,20 @@ describe('FileResultsTable Component', () => {
     };
   }
 
+  /**
+   * Used for more explicit indexing of table rows
+   */
+  enum CellIndexOf {
+    path = 0,
+    hash,
+    mode,
+    size,
+    atime,
+    mtime,
+    ctime,
+    btime
+  }
+
   it('correctly presents a single row', () => {
     const fixture = createComponent(
         [flowFileResultFromStatEntry(createStatEntry(0))],
@@ -85,14 +99,14 @@ describe('FileResultsTable Component', () => {
     expect(rows.length).toBe(2);
 
     const cells = rows[1].querySelectorAll('td');
-    expect(cells[0].innerText.trim()).toBe('/home/foo/bar/0');
+    expect(cells[CellIndexOf.path].innerText.trim()).toBe('/home/foo/bar/0');
     // No support for hashes yet, ignoring cell #1.
-    expect(cells[2].innerText).toBe('-rw-r--r--');
-    expect(cells[3].innerText).toBe('142');
-    expect(cells[4].innerText).toBe('1970-01-02 02:53:20');
-    expect(cells[5].innerText).toBe('1970-01-17 04:53:20');
-    expect(cells[6].innerText).toBe('1970-06-12 12:53:20');
-    expect(cells[7].innerText).toBe('1974-06-09 08:53:20');
+    expect(cells[CellIndexOf.mode].innerText).toBe('-rw-r--r--');
+    expect(cells[CellIndexOf.size].innerText).toBe('142 B');
+    expect(cells[CellIndexOf.atime].innerText).toBe('1970-01-02 14:53:20 UTC');
+    expect(cells[CellIndexOf.mtime].innerText).toBe('1970-01-17 04:53:20 UTC');
+    expect(cells[CellIndexOf.ctime].innerText).toBe('1970-06-12 00:53:20 UTC');
+    expect(cells[CellIndexOf.btime].innerText).toBe('1974-06-09 08:53:20 UTC');
   });
 
   it('correctly presents 2 rows', () => {
@@ -109,24 +123,24 @@ describe('FileResultsTable Component', () => {
     expect(rows.length).toBe(3);
 
     let cells = rows[1].querySelectorAll('td');
-    expect(cells[0].innerText.trim()).toBe('/home/foo/bar/0');
+    expect(cells[CellIndexOf.path].innerText.trim()).toBe('/home/foo/bar/0');
     // No support for hashes yet, ignoring cell #1.
-    expect(cells[2].innerText).toBe('-rw-r--r--');
-    expect(cells[3].innerText).toBe('142');
-    expect(cells[4].innerText).toBe('1970-01-02 02:53:20');
-    expect(cells[5].innerText).toBe('1970-01-17 04:53:20');
-    expect(cells[6].innerText).toBe('1970-06-12 12:53:20');
-    expect(cells[7].innerText).toBe('1974-06-09 08:53:20');
+    expect(cells[CellIndexOf.mode].innerText).toBe('-rw-r--r--');
+    expect(cells[CellIndexOf.size].innerText).toBe('142 B');
+    expect(cells[CellIndexOf.atime].innerText).toBe('1970-01-02 14:53:20 UTC');
+    expect(cells[CellIndexOf.mtime].innerText).toBe('1970-01-17 04:53:20 UTC');
+    expect(cells[CellIndexOf.ctime].innerText).toBe('1970-06-12 00:53:20 UTC');
+    expect(cells[CellIndexOf.btime].innerText).toBe('1974-06-09 08:53:20 UTC');
 
     cells = rows[2].querySelectorAll('td');
-    expect(cells[0].innerText.trim()).toBe('/home/foo/bar/1');
+    expect(cells[CellIndexOf.path].innerText.trim()).toBe('/home/foo/bar/1');
     // No support for hashes yet, ignoring cell #1.
-    expect(cells[2].innerText).toBe('-rw-r--r--');
-    expect(cells[3].innerText).toBe('242');
-    expect(cells[4].innerText).toBe('1970-01-03 06:40:00');
-    expect(cells[5].innerText).toBe('1970-01-28 06:40:00');
-    expect(cells[6].innerText).toBe('1970-10-05 06:40:00');
-    expect(cells[7].innerText).toBe('1977-08-09 06:40:00');
+    expect(cells[CellIndexOf.mode].innerText).toBe('-rw-r--r--');
+    expect(cells[CellIndexOf.size].innerText).toBe('242 B');
+    expect(cells[CellIndexOf.atime].innerText).toBe('1970-01-03 18:40:00 UTC');
+    expect(cells[CellIndexOf.mtime].innerText).toBe('1970-01-28 18:40:00 UTC');
+    expect(cells[CellIndexOf.ctime].innerText).toBe('1970-10-05 18:40:00 UTC');
+    expect(cells[CellIndexOf.btime].innerText).toBe('1977-08-09 18:40:00 UTC');
   });
 
 
@@ -159,4 +173,35 @@ describe('FileResultsTable Component', () => {
 
     expect(fixture.componentInstance.loadMoreTriggered).toHaveBeenCalled();
   });
+
+  it('uses timestamp components for dates', () => {
+    const fixture = createComponent(
+        [flowFileResultFromStatEntry(createStatEntry(0))],
+        2,
+    );
+
+    const rows = fixture.nativeElement.querySelectorAll('tr');
+    // Rows include the header.
+    expect(rows.length).toBe(2);
+    const cells = rows[1].querySelectorAll('td');
+
+    expect(cells[CellIndexOf.atime].querySelector('timestamp')).toBeTruthy();
+    expect(cells[CellIndexOf.mtime].querySelector('timestamp')).toBeTruthy();
+    expect(cells[CellIndexOf.ctime].querySelector('timestamp')).toBeTruthy();
+    expect(cells[CellIndexOf.btime].querySelector('timestamp')).toBeTruthy();
+  })
+
+  it('uses human-readable-size components for the size', () => {
+    const fixture = createComponent(
+        [flowFileResultFromStatEntry(createStatEntry(0))],
+        2,
+    );
+
+    const rows = fixture.nativeElement.querySelectorAll('tr');
+    // Rows include the header.
+    expect(rows.length).toBe(2);
+    const cells = rows[1].querySelectorAll('td');
+
+    expect(cells[CellIndexOf.size].querySelector('human-readable-size')).toBeTruthy();
+  })
 });

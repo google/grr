@@ -620,3 +620,58 @@ export declare interface ApiListApproverSuggestionsResult {
 export declare interface ApproverSuggestion {
   readonly username?: string;
 }
+
+/** OsqueryArgs proto mapping. */
+export declare interface OsqueryArgs {
+  readonly query?: string;
+  readonly timeoutMillis?: DecimalString;
+  readonly ignoreStderrErrors?: boolean;
+}
+
+/** OsqueryProgress proto mapping */
+export declare interface OsqueryProgress {
+  readonly partialTable?: OsqueryTable;
+  readonly totalRowCount?: DecimalString;
+}
+
+/** OsqueryResult proto mapping. */
+export declare interface OsqueryResult {
+  readonly table?: OsqueryTable;
+  readonly stderr?: string;
+}
+
+/** OsqueryTable proto mapping */
+export declare interface OsqueryTable {
+  readonly query?: string;
+  readonly header?: OsqueryHeader;
+  readonly rows?: ReadonlyArray<OsqueryRow>;
+}
+
+/** OsqueryHeader proto mapping */
+export declare interface OsqueryHeader {
+  readonly columns?: ReadonlyArray<OsqueryColumn>;
+}
+
+/** OsqueryColumn proto mapping. */
+export declare interface OsqueryColumn {
+  readonly name?: string;
+  readonly type?: OsqueryType;
+}
+
+/**
+ * OsqueryColumn.type enum proto mapping.
+ */
+export enum OsqueryType {
+  UNKNOWN = 0,
+  TEXT = 1,
+  INTEGER = 2,
+  BIGINT = 3,
+  UNSIGNED_BIGINT = 4,
+  DOUBLE = 5,
+  BLOB = 6,
+}
+
+/** OsqueryRow proto mapping. */
+export declare interface OsqueryRow {
+  readonly values?: ReadonlyArray<string>;
+}
