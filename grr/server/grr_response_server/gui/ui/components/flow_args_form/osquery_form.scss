@@ -3,6 +3,23 @@
   flex-direction: column;
 }
 
+.query {
+  margin-bottom: 1.25em;
+  height: auto;
+}
+
+.autocomplete-hint {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.CodeMirror {
+  border: 1px solid #eee;
+  height: auto;
+  width: 100%;
+  overflow-x: scroll;
+}
+
 .timeout {
   width: 10em;
 }

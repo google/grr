@@ -6,6 +6,11 @@
 // Include all theme-styles for the components based on the current theme.
 @include angular-material-theme($theme);
 
+// The 3 styles imported below are needed for the Osquery query editor
+@import '~codemirror/lib/codemirror.css';
+@import '~codemirror/theme/idea.css';
+@import '~codemirror/addon/hint/show-hint.css';
+
 $toolbar-height: 64px;
 
 app,

@@ -1,8 +1,8 @@
 <div [formGroup]="form" class="container">
-  <mat-form-field appearance="outline">
-    <mat-label>Query</mat-label>
-    <textarea matInput placeholder="" formControlName="query" cdkTextareaAutosize class="query"></textarea>
-  </mat-form-field>
+  <div class="query">
+    <div class="mat-small autocomplete-hint">Press Ctrl+Space for autocompletion</div>
+    <textarea #editorTarget formControlName="query"></textarea>
+  </div>
 
   <mat-form-field class="timeout">
     <mat-label>Timeout</mat-label>
