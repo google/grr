@@ -26,6 +26,8 @@
     "@ngrx/entity": "^10.0.0",
     "@ngrx/store": "^10.0.0",
     "@ngrx/store-devtools": "^10.0.0",
+    "@types/codemirror": "0.0.100",
+    "codemirror": "^5.58.3",
     "deep-diff": "^0.3.4",
     "luxon": "^1.24.1",
     "rxjs": "~6.5.4",
