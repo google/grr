@@ -80,6 +80,24 @@ export class OsqueryDetails extends Plugin {
       map(result => result.stderr),
   );
 
+  readonly exportCsvLink$ = this.flowListEntry$.pipe(
+      map(fle => {
+        const clientId = fle.flow.clientId;
+        const flowId = fle.flow.flowId;
+
+        if (clientId && flowId) {
+          return `/api/clients/${clientId}/flows/${flowId}/osquery-results/CSV`;
+        } else {
+          return null;
+        }
+      }),
+      filter(isNonNull),
+  );
+
+  readonly atLeastOneRowAvailable$ = this.displayTable$.pipe(
+      map(table => table.rows?.length),
+  );
+
   private flagByState(targetState: FlowState): Observable<boolean> {
     return this.flowListEntry$.pipe(
         map(listEntry => listEntry.flow.state === targetState));
