@@ -11,6 +11,10 @@ import {
 } from '@angular/core';
 
 import * as CodeMirror from 'codemirror';
+// importing sql-hint is needed for SQL syntax highlighting
+import 'codemirror/addon/hint/sql-hint.js';
+// importing show-hint is needed for the autocomplete pop-up
+import 'codemirror/addon/hint/show-hint.js';
 
 
 /** Displays a code editor. */
@@ -34,7 +38,7 @@ export class CodeEditor implements AfterViewInit {
 
   private initializeEditor(): void {
     const editor = CodeMirror.fromTextArea(this.editorTarget.nativeElement, {
-      value: this.initialValue,
+      value: '',
       mode: 'text/x-sqlite',
       theme: 'idea',
       extraKeys: {'Ctrl-Space': 'autocomplete'},
@@ -45,5 +49,7 @@ export class CodeEditor implements AfterViewInit {
     editor.on('change', () => {
       this.latestValue.emit(editor.getValue());
     });
+
+    editor.setValue(this.initialValue);
   }
 }

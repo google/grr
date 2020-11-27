@@ -3,10 +3,6 @@ import {FormControl, FormGroup, Validators} from '@angular/forms';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 import {shareReplay} from 'rxjs/operators';
 
-import * as CodeMirror from 'codemirror';
-import 'codemirror/addon/hint/show-hint.js';
-import 'codemirror/addon/hint/sql-hint.js';
-
 import {OsqueryArgs} from '../../lib/api/api_interfaces';
 
 
@@ -19,6 +15,8 @@ import {OsqueryArgs} from '../../lib/api/api_interfaces';
 })
 export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
     OnInit {
+  readonly defaultQueryDisplayed = 'SELECT * FROM system_info;';
+
   readonly form = new FormGroup({
     query: new FormControl(null, Validators.required),
     timeoutMillis: new FormControl(null, Validators.required),
