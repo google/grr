@@ -17,11 +17,11 @@ $header-left-padding: 24px;
   word-break: break-word;
 }
 
-.export-button, .show-additional {
+.export-button-holder, .show-additional {
   display: flex;
   justify-content: flex-end;
 }
 
-.export-button {
+.export-button-holder {
   align-items: center;
 }

@@ -30,8 +30,10 @@ class OsqueryDetailsDOM {
       new OsqueryResultsTableDOM(this.displayedTableRoot) :
       null;
 
-  readonly exportCsvButton? = this.rootElement.query(By.css('.export-button'));
+  readonly exportCsvButton? =
+      this.rootElement.query(By.css('.export-button-holder a'));
   readonly exportCsvButtonText? = this.exportCsvButton?.nativeElement.innerText;
+  readonly exportCsvButtonLink? = this.exportCsvButton?.attributes.href;
 
   readonly showAdditionalDiv? =
       this.rootElement.query(By.css('.show-additional'));
@@ -298,12 +300,12 @@ describe('osquery-details component', () => {
     expect(parsedElements.exportCsvButton).toBeFalsy();
   });
 
-  it('should display the export button if the table is not empty', () => {
+  it('should display the export button with correct href if the table is not empty', () => {
     const testFlowListEntry = {
       flow: newFlow({
         state: FlowState.FINISHED,
-        flowId: 'flowId',
-        clientId: 'clientId',
+        clientId: 'someClient123',
+        flowId: 'someFlow321',
       }),
       resultSets: [
         newFlowResultSet({
@@ -318,5 +320,7 @@ describe('osquery-details component', () => {
 
     expect(parsedElements.exportCsvButton).toBeTruthy();
     expect(parsedElements.exportCsvButtonText).toBe('Download results as CSV');
+    expect(parsedElements.exportCsvButtonLink).toBe(
+        '/api/clients/someClient123/flows/someFlow321/osquery-results/CSV');
   });
 });

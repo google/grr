@@ -94,7 +94,7 @@ export class OsqueryDetails extends Plugin {
       filter(isNonNull),
   );
 
-  readonly atLeastOneRowAvailable$ = this.displayTable$.pipe(
+  readonly numberOfRowsAvailable$ = this.displayTable$.pipe(
       map(table => table.rows?.length),
   );
 

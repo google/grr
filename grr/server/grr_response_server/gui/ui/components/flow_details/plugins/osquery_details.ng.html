@@ -11,12 +11,12 @@
 
 <ng-container *ngIf="flowCompleted$ | async">
   <div
-    *ngIf="atLeastOneRowAvailable$ | async"
-    class="flow-details-summary-actions export-button">
+    *ngIf="numberOfRowsAvailable$ | async"
+    class="flow-details-summary-actions export-button-holder">
     <a
       *ngIf="exportCsvLink$ | async as exportCsvLink"
       [href]="exportCsvLink"
-      target="_blank"
+      download
       mat-stroked-button color="primary">
       Download results as CSV
     </a>
