@@ -10,6 +10,18 @@
 </div>
 
 <ng-container *ngIf="flowCompleted$ | async">
+  <div
+    *ngIf="numberOfRowsAvailable$ | async"
+    class="flow-details-summary-actions export-button-holder">
+    <a
+      *ngIf="exportCsvLink$ | async as exportCsvLink"
+      [href]="exportCsvLink"
+      download
+      mat-stroked-button color="primary">
+      Download results as CSV
+    </a>
+  </div>
+
   <osquery-results-table
     *ngIf="displayTable$ | async as displayTable"
     [table]="displayTable">

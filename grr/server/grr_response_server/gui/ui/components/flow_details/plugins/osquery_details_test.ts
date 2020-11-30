@@ -17,24 +17,29 @@ initTestEnvironment();
  * OsqueryDetails DOM
  */
 class OsqueryDetailsDOM {
-  readonly inProgressDiv = this.rootElement.query(By.css('.in-progress'));
-  readonly inProgressText = this.inProgressDiv?.nativeElement.innerText;
+  readonly inProgressDiv? = this.rootElement.query(By.css('.in-progress'));
+  readonly inProgressText? = this.inProgressDiv?.nativeElement.innerText;
 
-  readonly errorDiv = this.rootElement.query(By.css('.error'));
-  readonly stdErrDiv = this.errorDiv?.query(By.css('div'));
-  readonly stdErrText = this.stdErrDiv?.nativeElement.innerText;
+  readonly errorDiv? = this.rootElement.query(By.css('.error'));
+  readonly stdErrDiv? = this.errorDiv?.query(By.css('div'));
+  readonly stdErrText? = this.stdErrDiv?.nativeElement.innerText;
 
   readonly displayedTableRoot? =
       this.rootElement.query(By.css('osquery-results-table'));
-  readonly displayedTable = this.displayedTableRoot ?
+  readonly displayedTable? = this.displayedTableRoot ?
       new OsqueryResultsTableDOM(this.displayedTableRoot) :
       null;
 
-  readonly showAdditionalDiv =
+  readonly exportCsvButton? =
+      this.rootElement.query(By.css('.export-button-holder a'));
+  readonly exportCsvButtonText? = this.exportCsvButton?.nativeElement.innerText;
+  readonly exportCsvButtonLink? = this.exportCsvButton?.attributes.href;
+
+  readonly showAdditionalDiv? =
       this.rootElement.query(By.css('.show-additional'));
-  readonly showAdditionalButton =
+  readonly showAdditionalButton? =
       this.showAdditionalDiv?.query(By.css('button'));
-  readonly showAdditionalButtonText =
+  readonly showAdditionalButtonText? =
       this.showAdditionalButton?.nativeElement.textContent;
 
   constructor(private readonly rootElement: DebugElement) {}
@@ -246,4 +251,76 @@ describe('osquery-details component', () => {
        expect(parsedElements.showAdditionalButtonText)
            .toBe('View all rows (? more)');
      });
+
+  it('shouldn\'t display the export button if flow is still running',
+    () => {
+      const testFlowListEntry = newFlowListEntry({
+        state: FlowState.RUNNING,
+        args: {
+          query: 'random',
+        },
+      });
+
+      const fixture = createFixtureFrom(testFlowListEntry);
+      const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+      expect(parsedElements.exportCsvButton).toBeFalsy();
+    });
+
+  it('shouldn\'t display the export button if the flow encountered an error',
+    () => {
+      const testFlowListEntry = newFlowListEntry({
+        state: FlowState.ERROR,
+      });
+
+      const fixture = createFixtureFrom(testFlowListEntry);
+      const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+      expect(parsedElements.exportCsvButton).toBeFalsy();
+    });
+
+  it('shouldn\'t display the export button if the table is empty', () => {
+    const testFlowListEntry = {
+      flow: newFlow({
+        state: FlowState.FINISHED,
+        flowId: 'flowId',
+        clientId: 'clientId',
+      }),
+      resultSets: [
+        newFlowResultSet({
+          table:
+              newOsqueryTable('doesnt matter', ['c1', 'c2'], []),
+        }),
+      ],
+    };
+
+    const fixture = createFixtureFrom(testFlowListEntry);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+    expect(parsedElements.exportCsvButton).toBeFalsy();
+  });
+
+  it('should display the export button with correct href if the table is not empty', () => {
+    const testFlowListEntry = {
+      flow: newFlow({
+        state: FlowState.FINISHED,
+        clientId: 'someClient123',
+        flowId: 'someFlow321',
+      }),
+      resultSets: [
+        newFlowResultSet({
+          table:
+              newOsqueryTable('doesnt matter', ['column'], [['cell']]),
+        }),
+      ],
+    };
+
+    const fixture = createFixtureFrom(testFlowListEntry);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+    expect(parsedElements.exportCsvButton).toBeTruthy();
+    expect(parsedElements.exportCsvButtonText).toBe('Download results as CSV');
+    expect(parsedElements.exportCsvButtonLink).toBe(
+        '/api/clients/someClient123/flows/someFlow321/osquery-results/CSV');
+  });
 });
