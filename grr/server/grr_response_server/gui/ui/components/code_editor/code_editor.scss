@@ -16,5 +16,6 @@
   height: auto;
   min-height: 4em;
 
+  // Without explicitly setting the z-index, the editor was displayed on top of the "Access approval" panel.
   z-index: 0;
 }

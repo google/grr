@@ -1,8 +1,6 @@
 <div [formGroup]="form" class="container">
   <div class="query">
-    <code-editor
-      (latestValue)="updateQuery($event)"
-      [initialValue]="defaultQueryDisplayed"></code-editor>
+    <code-editor formControlName="query"></code-editor>
   </div>
 
   <mat-form-field class="timeout">

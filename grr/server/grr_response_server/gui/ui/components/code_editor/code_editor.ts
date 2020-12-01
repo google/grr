@@ -5,10 +5,10 @@ import {
     ElementRef,
     AfterViewInit,
     ViewEncapsulation,
-    Output,
-    EventEmitter,
     Input,
+    forwardRef,
 } from '@angular/core';
+import { NG_VALUE_ACCESSOR, ControlValueAccessor } from '@angular/forms';
 
 import * as CodeMirror from 'codemirror';
 // importing sql-hint is needed for SQL syntax highlighting
@@ -16,6 +16,7 @@ import 'codemirror/addon/hint/sql-hint.js';
 // importing show-hint is needed for the autocomplete pop-up
 import 'codemirror/addon/hint/show-hint.js';
 
+type OnChangeFn = (textValue: string) => void;
 
 /** Displays a code editor. */
 @Component({
@@ -24,20 +25,50 @@ import 'codemirror/addon/hint/show-hint.js';
   styleUrls: ['./code_editor.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => CodeEditor),
+      multi: true,
+    },
+  ],
 })
-export class CodeEditor implements AfterViewInit {
+export class CodeEditor implements AfterViewInit, ControlValueAccessor {
   @ViewChild('editorTarget')
   private readonly editorTarget!: ElementRef;
+  private editor?: CodeMirror.Editor;
 
-  @Input() initialValue = '';
-  @Output() latestValue = new EventEmitter<string>();
+  private latestOverwrite = '';
+  @Input()
+  set editorValue(newValue: string) {
+    this.latestOverwrite = newValue;
+    this.editor?.setValue(newValue);
+  }
+  get editorValue() {
+    return this.editor?.getValue() || '';
+  }
+
+  // ControlValueAccessor functionality for Angular Forms interoperability
+  announceValueChanged: OnChangeFn = () => { };
+  writeValue(value: string): void {
+    this.editorValue = value;
+  }
+  registerOnChange(fn: OnChangeFn): void {
+    this.announceValueChanged = fn;
+  }
+  registerOnTouched(): void { }
 
   ngAfterViewInit(): void {
     this.initializeEditor();
+
+    // We have to re-set the editor value so that it contains the initial text
+    // because input arguments are bound prior to ngAfterViewInit, when editor
+    // was still undefined.
+    this.editorValue = this.latestOverwrite;
   }
 
   private initializeEditor(): void {
-    const editor = CodeMirror.fromTextArea(this.editorTarget.nativeElement, {
+    this.editor = CodeMirror.fromTextArea(this.editorTarget.nativeElement, {
       value: '',
       mode: 'text/x-sqlite',
       theme: 'idea',
@@ -46,10 +77,8 @@ export class CodeEditor implements AfterViewInit {
       lineWrapping: true,
     });
 
-    editor.on('change', () => {
-      this.latestValue.emit(editor.getValue());
+    this.editor.on('change', () => {
+      this.announceValueChanged(this.editorValue);
     });
-
-    editor.setValue(this.initialValue);
   }
 }
