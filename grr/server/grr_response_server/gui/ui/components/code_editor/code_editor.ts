@@ -41,11 +41,14 @@ export class CodeEditor implements AfterViewInit, ControlValueAccessor {
   private latestOverwrite = '';
   @Input()
   set editorValue(newValue: string) {
-    this.latestOverwrite = newValue;
+    // The editor is initialized in ngAfterViewInit, and will be undefined
+    // before that, including when @Input() arguments are set.
+    // See ngAfterViewInit.
     this.editor?.setValue(newValue);
+    this.latestOverwrite = newValue;
   }
   get editorValue() {
-    return this.editor?.getValue() || '';
+    return this.editor?.getValue() ?? '';
   }
 
   // ControlValueAccessor functionality for Angular Forms interoperability
