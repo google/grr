@@ -12,7 +12,6 @@ from dateutil import parser
 from werkzeug import routing as werkzeug_routing
 from werkzeug import serving as werkzeug_serving
 from werkzeug import wrappers as werkzeug_wrappers
-from werkzeug import wsgi as werkzeug_wsgi
 from werkzeug.wrappers import json as werkzeug_wrappers_json  # type: ignore
 
 from google.protobuf import timestamp_pb2
@@ -239,8 +238,8 @@ class Grrafana(object):
       JSON response.
     """
     response = list(AVAILABLE_METRICS_BY_NAME.keys())
-    return JSONResponse(response=json.dumps(response),
-                        content_type=JSON_MIME_TYPE)
+    return JSONResponse(
+        response=json.dumps(response), content_type=JSON_MIME_TYPE)
 
   def _OnQuery(self, request: JSONRequest) -> JSONResponse:
     """Retrieves datapoints for Grafana.
@@ -261,8 +260,8 @@ class Grrafana(object):
         for target in requested_targets
     ]
     response = [t._asdict() for t in targets_with_datapoints]
-    return JSONResponse(response=json.dumps(response),
-                        content_type=JSON_MIME_TYPE)
+    return JSONResponse(
+        response=json.dumps(response), content_type=JSON_MIME_TYPE)
 
   def _OnAnnotations(self, unused_request: JSONRequest) -> JSONResponse:
     return JSONResponse(content_type=JSON_MIME_TYPE)
@@ -287,8 +286,7 @@ def main(argv: Any) -> None:
   server_startup.Init()
   fleetspeak_connector.Init()
   werkzeug_serving.run_simple(config.CONFIG["GRRafana.bind"],
-                              config.CONFIG["GRRafana.port"],
-                              Grrafana())
+                              config.CONFIG["GRRafana.port"], Grrafana())
 
 
 if __name__ == "__main__":
