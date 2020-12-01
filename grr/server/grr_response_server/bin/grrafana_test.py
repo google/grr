@@ -234,6 +234,51 @@ _TEST_VALID_CLIENT_STATS_QUERY = {
     "adhocFilters": [],
     "endTime": 1603276176858
 }
+_TEST_VALID_LAST_ACTIVE_QUERY = {
+  "app": "dashboard",
+  "requestId": "Q43206",
+  "timezone": "browser",
+  "panelId": 23763571993,
+  "dashboardId": null,
+  "range": {
+    "from": "2020-10-02T13:36:28.519Z",
+    "to": "2020-12-01T13:36:28.519Z",
+    "raw": {
+      "from": "now-60d",
+      "to": "now"
+    }
+  },
+  "timeInfo": "",
+  "interval": "1h",
+  "intervalMs": 3600000,
+  "targets": [
+    {
+      "refId": "A",
+      "data": "",
+      "target": "Client Last Active - 3 days active",
+      "type": "timeseries",
+      "datasource": "grrafana"
+    }
+  ],
+  "maxDataPoints": 1825,
+  "scopedVars": {
+   "__interval": {
+     "text": "1h",
+     "value": "1h"
+    },
+   "__interval_ms": {
+      "text": "3600000",
+      "value": 3600000
+    }
+  },
+  "startTime": 1606829788519,
+  "rangeRaw": {
+    "from": "now-60d",
+    "to": "now"
+  },
+  "adhocFilters": [],
+  "endTime": 1606829788548
+}
 _TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_RUD_QUERY)
 _TEST_INVALID_TARGET_QUERY["targets"][0]["target"] = "unavailable_metric"
 
@@ -264,6 +309,12 @@ def _MockDatastoreReturningPlatformFleetStats(client_fleet_stats):
   client_fleet_stats.Validate()
   rel_db = mock.MagicMock()
   rel_db.CountClientPlatformsByLabel.return_value = client_fleet_stats
+  return rel_db
+
+
+def _MockDatastoreReturningAllGraphSeries(graph_series):
+  rel_db = mock.MagicMock()
+  rel_db.ReadAllClientGraphSeries.return_value = graph_series
   return rel_db
 
 
@@ -357,6 +408,16 @@ class GrrafanaTest(absltest.TestCase):
           "rows": [["bar-os", 11], ["baz-os", 5], ["foo-os", 2]],
           "type": "table"
       }]
+      self.assertEqual(valid_response.json, expected_res)
+
+  def testLastActiveMetric(self):
+    rel_db = _MockDatastoreReturningAllGraphSeries(
+      _TEST_LAST_ACTIVE_STATS)
+    with mock.patch.object(data_store, "REL_DB", rel_db):
+      valid_response = self.client.post(
+          "/query", json=_TEST_VALID_LAST_ACTIVE_QUERY)
+      self.assertEqual(200, valid_response.status_code)
+      expected_res = []
       self.assertEqual(valid_response.json, expected_res)
 
 
