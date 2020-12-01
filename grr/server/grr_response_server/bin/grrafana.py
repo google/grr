@@ -118,9 +118,9 @@ class ClientResourceUsageMetric(Metric):
     self._record_values_extract_fn = record_values_extract_fn
 
   # Note: return type error issues at python/mypy#3915, python/typing#431
-  def ProcessQuery(
+  def ProcessQuery(  # type: ignore[override]
       self,
-      req: JSONRequest) -> _TargetWithDatapoints:  # type: ignore[override]
+      req: JSONRequest) -> _TargetWithDatapoints:
     client_id = req["scopedVars"]["ClientID"]["value"]
     start_range_ts = TimeToProtoTimestamp(req["range"]["from"])
     end_range_ts = TimeToProtoTimestamp(req["range"]["to"])
@@ -151,8 +151,8 @@ class ClientsStatisticsMetric(Metric):
     self._days_active = days_active
 
   # Note: return type error issues at python/mypy#3915, python/typing#431
-  def ProcessQuery(
-      self, req: JSONRequest) -> _TableQueryResult:  # type: ignore[override]
+  def ProcessQuery(  # type: ignore[override]
+                   self, req: JSONRequest) -> _TableQueryResult:
     fleet_stats = self._get_fleet_stats_fn(_FLEET_BREAKDOWN_DAY_BUCKETS)
     totals = fleet_stats.GetTotalsForDay(self._days_active)
     return _TableQueryResult(
