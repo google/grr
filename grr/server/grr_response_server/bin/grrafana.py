@@ -286,8 +286,9 @@ def main(argv: Any) -> None:
                            "Context applied when running GRRafana server.")
   server_startup.Init()
   fleetspeak_connector.Init()
-  werkzeug_serving.run_simple(
-      "127.0.0.1", 5000, Grrafana(), use_debugger=True, use_reloader=True)
+  werkzeug_serving.run_simple(config.CONFIG["GRRafana.bind"],
+                              config.CONFIG["GRRafana.port"],
+                              Grrafana())
 
 
 if __name__ == "__main__":
