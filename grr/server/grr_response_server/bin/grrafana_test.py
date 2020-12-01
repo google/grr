@@ -304,6 +304,10 @@ class GrrafanaTest(absltest.TestCase):
         f"Client Version Strings - {n_days} Day Active"
         for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS
     ])
+    expected_res.extend([
+        f"Client Last Active - {n_days} days active"
+        for n_days in grrafana._LAST_ACTIVE_DAY_BUCKETS
+    ])
     self.assertListEqual(response.json, expected_res)
 
   def testClientResourceUsageMetricQuery(self):
