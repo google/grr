@@ -10,6 +10,8 @@ from werkzeug import test as werkzeug_test
 
 from google.protobuf import timestamp_pb2
 
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server.bin import grrafana
@@ -139,6 +141,21 @@ _TEST_CLIENT_BREAKDOWN_STATS = FleetStats(
             "foo-os": 3
         }
     })
+_TEST_LAST_ACTIVE_STATS = {
+    rdfvalue.RDFDatetime.FromHumanReadable('2020-11-25 12:29:49'): rdf_stats.ClientGraphSeries(
+        graphs=[rdf_stats.Graph(
+            data=[rdf_stats.Sample(x_value=86400000000, y_value=1),
+                  rdf_stats.Sample(x_value=172800000000, y_value=1),
+                  rdf_stats.Sample(x_value=259200000000, y_value=1),
+                  rdf_stats.Sample(x_value=604800000000, y_value=1),
+                  rdf_stats.Sample(x_value=1209600000000, y_value=1),
+                  rdf_stats.Sample(x_value=2592000000000, y_value=1),
+                  rdf_stats.Sample(x_value=5184000000000, y_value=1),
+            ]
+        )],
+        report_type=rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE
+    )
+}
 _TEST_VALID_RUD_QUERY = {
     "app": "dashboard",
     "requestId": "Q119",
@@ -239,7 +256,7 @@ _TEST_VALID_LAST_ACTIVE_QUERY = {
   "requestId": "Q43206",
   "timezone": "browser",
   "panelId": 23763571993,
-  "dashboardId": null,
+  "dashboardId": 1,
   "range": {
     "from": "2020-10-02T13:36:28.519Z",
     "to": "2020-12-01T13:36:28.519Z",
@@ -312,9 +329,9 @@ def _MockDatastoreReturningPlatformFleetStats(client_fleet_stats):
   return rel_db
 
 
-def _MockDatastoreReturningAllGraphSeries(graph_series):
+def _MockDatastoreReturningAllGraphSeries(graph_series_with_timestamps):
   rel_db = mock.MagicMock()
-  rel_db.ReadAllClientGraphSeries.return_value = graph_series
+  rel_db.ReadAllClientGraphSeries.return_value = graph_series_with_timestamps
   return rel_db
 
 
@@ -417,7 +434,10 @@ class GrrafanaTest(absltest.TestCase):
       valid_response = self.client.post(
           "/query", json=_TEST_VALID_LAST_ACTIVE_QUERY)
       self.assertEqual(200, valid_response.status_code)
-      expected_res = []
+      expected_res = [
+         {"target": "Client Last Active - 3 days active",
+          "datapoints": [[1, 1606307389000]]}
+      ]
       self.assertEqual(valid_response.json, expected_res)
 
 
