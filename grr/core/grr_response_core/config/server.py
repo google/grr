@@ -282,7 +282,7 @@ config_lib.DEFINE_integer(
     "If the average network usage per client becomes "
     "greater than this limit, the hunt gets stopped.")
 
-# GRRafana HTTP Server settings.
+# Grafana Source HTTP Server settings.
 config_lib.DEFINE_string(
     "GrafanaSourceServer.bind", default="localhost", help="The Grafana Source Server address.")
 

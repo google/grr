@@ -62,7 +62,7 @@ def main(argv):
   elif flags.FLAGS.component.startswith("admin_ui"):
     admin_ui.main([argv])
 
-  # Start as GRRafana.
+  # Start as Grafana Source Server.
   elif flags.FLAGS.component.startswith("grafana_source_server"):
     grafana_source_server.main([argv])
 
