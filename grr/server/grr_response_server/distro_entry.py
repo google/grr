@@ -45,6 +45,6 @@ def AdminUI():
   app.run(admin_ui.main)
 
 
-def Grrafana():
-  from grr_response_server.bin import grrafana
-  app.run(grrafana.main)
+def GrafanaSourceServer():
+  from grr_response_server.bin import grafana_source_server
+  app.run(grafana_source_server.main)

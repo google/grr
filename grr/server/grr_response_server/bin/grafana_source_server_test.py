@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
-"""Unittest for GRRafana HTTP server."""
+"""Unittest for Grafana Source HTTP Server."""
 import copy
 
 from absl import app
@@ -12,7 +12,7 @@ from google.protobuf import timestamp_pb2
 
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
-from grr_response_server.bin import grrafana
+from grr_response_server.bin import grafana_source_server
 from grr_response_server.fleet_utils import FleetStats
 
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
@@ -67,7 +67,7 @@ _TEST_CLIENT_RESOURCE_USAGE_RECORD_2 = {
     "max_resident_memory_mib": 59
 }
 _TEST_CLIENT_BREAKDOWN_STATS = FleetStats(
-    day_buckets=grrafana._FLEET_BREAKDOWN_DAY_BUCKETS,
+    day_buckets=grafana_source_server._FLEET_BREAKDOWN_DAY_BUCKETS,
     label_counts={
         1: {
             "foo-label": {
@@ -267,13 +267,14 @@ def _MockDatastoreReturningPlatformFleetStats(client_fleet_stats):
   return rel_db
 
 
-class GrrafanaTest(absltest.TestCase):
-  """Test the GRRafana HTTP server."""
+class GrafanaSourceServerTest(absltest.TestCase):
+  """Test the Grafana Source HTTP Server."""
 
   def setUp(self):
-    super(GrrafanaTest, self).setUp()
+    super(GrafanaSourceServerTest, self).setUp()
     self.client = werkzeug_test.Client(
-        application=grrafana.Grrafana(), response_wrapper=grrafana.JSONResponse)
+        application=grafana_source_server.GrafanaSourceServer(),
+        response_wrapper=grafana_source_server.JSONResponse)
 
   def testRoot(self):
     response = self.client.get("/")
@@ -294,15 +295,15 @@ class GrrafanaTest(absltest.TestCase):
     ]
     expected_res.extend([
         f"OS Platform Breakdown - {n_days} Day Active"
-        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS
+        for n_days in grafana_source_server._FLEET_BREAKDOWN_DAY_BUCKETS
     ])
     expected_res.extend([
         f"OS Release Version Breakdown - {n_days} Day Active"
-        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS
+        for n_days in grafana_source_server._FLEET_BREAKDOWN_DAY_BUCKETS
     ])
     expected_res.extend([
         f"Client Version Strings - {n_days} Day Active"
-        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS
+        for n_days in grafana_source_server._FLEET_BREAKDOWN_DAY_BUCKETS
     ])
     self.assertListEqual(response.json, expected_res)
 
@@ -361,10 +362,10 @@ class TimeToProtoTimestampTest(absltest.TestCase):
 
   def testTimeToProtoTimestamp(self):
     self.assertEqual(
-        grrafana.TimeToProtoTimestamp(_START_RANGE_TIMESTAMP),
+        grafana_source_server.TimeToProtoTimestamp(_START_RANGE_TIMESTAMP),
         timestamp_pb2.Timestamp(seconds=1597328417, nanos=(158 * 1000000)))
     self.assertEqual(
-        grrafana.TimeToProtoTimestamp(_END_RANGE_TIMESTAMP),
+        grafana_source_server.TimeToProtoTimestamp(_END_RANGE_TIMESTAMP),
         timestamp_pb2.Timestamp(seconds=1597770958, nanos=(761 * 1000000)))
 
 

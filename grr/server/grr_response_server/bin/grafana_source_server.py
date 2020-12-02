@@ -189,8 +189,8 @@ AVAILABLE_METRICS_BY_NAME = {
 }
 
 
-class Grrafana(object):
-  """GRRafana HTTP server instance.
+class GrafanaSourceServer(object):
+  """Grafana Source HTTP server instance.
 
   A full description of all endpoints implemented within this HTTP
   server can be found in:
@@ -278,15 +278,15 @@ def main(argv: Any) -> None:
   del argv  # Unused.
 
   if flags.FLAGS.version:
-    print(f"GRRafana server {config_server.VERSION['packageversion']}")
+    print(f"Grafana Source Server {config_server.VERSION['packageversion']}")
     return
 
-  config.CONFIG.AddContext(contexts.GRRAFANA_CONTEXT,
-                           "Context applied when running GRRafana server.")
+  config.CONFIG.AddContext(contexts.GRAFANA_SOURCE_SERVER_CONTEXT,
+                           "Context applied when running Grafana Source Server.")
   server_startup.Init()
   fleetspeak_connector.Init()
-  werkzeug_serving.run_simple(config.CONFIG["GRRafana.bind"],
-                              config.CONFIG["GRRafana.port"], Grrafana())
+  werkzeug_serving.run_simple(config.CONFIG["grafana_source_server.bind"],
+                              config.CONFIG["grafana_source_server.port"], GrafanaSourceServer())
 
 
 if __name__ == "__main__":
