@@ -285,8 +285,8 @@ def main(argv: Any) -> None:
                            "Context applied when running Grafana Source Server.")
   server_startup.Init()
   fleetspeak_connector.Init()
-  werkzeug_serving.run_simple(config.CONFIG["grafana_source_server.bind"],
-                              config.CONFIG["grafana_source_server.port"], GrafanaSourceServer())
+  werkzeug_serving.run_simple(config.CONFIG["GrafanaSourceServer.bind"],
+                              config.CONFIG["GrafanaSourceServer.port"], GrafanaSourceServer())
 
 
 if __name__ == "__main__":
