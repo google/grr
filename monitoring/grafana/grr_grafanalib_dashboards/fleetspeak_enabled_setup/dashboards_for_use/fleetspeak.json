@@ -67,7 +67,7 @@
           },
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -163,7 +163,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -259,7 +259,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -365,7 +365,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -530,7 +530,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -652,7 +652,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -758,7 +758,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -854,7 +854,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -950,7 +950,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -1125,7 +1125,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -1247,7 +1247,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -1343,7 +1343,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -1439,7 +1439,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -1614,7 +1614,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -1736,7 +1736,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
@@ -1832,7 +1832,7 @@
         {
           "aliasColors": {},
           "bars": false,
-          "datasource": "fleetspeak",
+          "datasource": "grr-server",
           "description": null,
           "editable": true,
           "error": false,
