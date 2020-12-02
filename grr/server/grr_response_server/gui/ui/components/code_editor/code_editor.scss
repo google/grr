@@ -1,0 +1,21 @@
+// Styles declared here are effectively global because of "ViewEncapsulation.None"
+@import '~codemirror/lib/codemirror.css';
+@import '~codemirror/theme/idea.css';
+@import '~codemirror/addon/hint/show-hint.css';
+
+.autocomplete-hint {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.CodeMirror {
+  border: 1px solid #eee;
+  width: 100%;
+  overflow-x: scroll;
+
+  height: auto;
+  min-height: 4em;
+
+  // Without explicitly setting the z-index, the editor was displayed on top of the "Access approval" panel.
+  z-index: 0;
+}

@@ -15,8 +15,10 @@ import {OsqueryArgs} from '../../lib/api/api_interfaces';
 })
 export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
     OnInit {
+  private readonly defaultQueryDisplayed = 'SELECT * FROM users LIMIT 10;';
+
   readonly form = new FormGroup({
-    query: new FormControl(null, Validators.required),
+    query: new FormControl(this.defaultQueryDisplayed, Validators.required),
     timeoutMillis: new FormControl(null, Validators.required),
     ignoreStderrErrors: new FormControl(null),
   });
@@ -24,7 +26,7 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
   @Output() readonly formValues$ = this.form.valueChanges.pipe(shareReplay(1));
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
 
-  ngOnInit() {
+  ngOnInit(): void {
     this.form.patchValue(this.defaultFlowArgs);
   }
 }
