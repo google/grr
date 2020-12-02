@@ -282,12 +282,12 @@ config_lib.DEFINE_integer(
     "If the average network usage per client becomes "
     "greater than this limit, the hunt gets stopped.")
 
-# GRRafana HTTP Server settings.
+# Grafana Source HTTP Server settings.
 config_lib.DEFINE_string(
-    "GRRafana.bind", default="localhost", help="The GRRafana server address.")
+    "GrafanaSourceServer.bind", default="localhost", help="The Grafana Source Server address.")
 
 config_lib.DEFINE_integer(
-    "GRRafana.port", default=5000, help="The GRRafana server port.")
+    "GrafanaSourceServer.port", default=5000, help="The Grafana Source Server port.")
 
 # Fleetspeak server-side integration flags.
 config_lib.DEFINE_string(
