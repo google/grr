@@ -26,7 +26,7 @@ import 'codemirror/addon/hint/show-hint.js';
 type OnChangeFn = (textValue: string) => void;
 
 /** The core functionality of the code editor */
-class CodeEditorCore implements AfterViewInit {
+class CodeEditorCore implements AfterViewInit, ControlValueAccessor {
   @ViewChild('editorTarget')
   private readonly editorTarget!: ElementRef;
   protected editor?: CodeMirror.Editor;
@@ -45,7 +45,15 @@ class CodeEditorCore implements AfterViewInit {
   }
   protected readonly editorValueChanges$ = new Subject<string>();
 
-  protected announceValueChanged: OnChangeFn = () => { };
+  // ControlValueAccessor functionality
+  private announceValueChanged: OnChangeFn = () => { };
+  writeValue(value: string): void {
+    this.editorValue = value;
+  }
+  registerOnChange(fn: OnChangeFn): void {
+    this.announceValueChanged = fn;
+  }
+  registerOnTouched(): void { }
 
   ngAfterViewInit(): void {
     this.initializeEditor();
@@ -74,25 +82,32 @@ class CodeEditorCore implements AfterViewInit {
 }
 
 /**
- * Extends the core editor with ControlValueAccessor functoinality.
- * This allows the code editor to be used as a Angular form field.
+ * Displays a code editor.
+ * It can be used as an Angular form field, and it can be put inside
+ * <mat-form-field></mat-form-field> tags.
+ *
+ * @see {@link CodeEditorCore}
  */
-class EditorWithCva extends CodeEditorCore implements ControlValueAccessor {
-  writeValue(value: string): void {
-    this.editorValue = value;
-  }
-  registerOnChange(fn: OnChangeFn): void {
-    this.announceValueChanged = fn;
-  }
-  registerOnTouched(): void { }
-}
-
-/**
- * Extends the editor with MatFormFieldControl functionality.
- * This allows the editor to be used inside <mat-form-field></mat-form-field>
- * tags.
- */
-class EditorWithCvaAndMffc extends EditorWithCva
+@Component({
+  selector: 'code-editor',
+  templateUrl: './code_editor.ng.html',
+  styleUrls: ['./code_editor.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+  encapsulation: ViewEncapsulation.None,
+  providers: [
+    {
+      provide: NG_VALUE_ACCESSOR,
+      useExisting: forwardRef(() => CodeEditor),
+      multi: true,
+    },
+    {
+      provide: MatFormFieldControl,
+      useExisting: CodeEditor,
+      multi: true,
+    }
+  ],
+})
+export class CodeEditor extends CodeEditorCore
     implements MatFormFieldControl<string>, OnDestroy {
   private static uniqueNumber = 0;
 
@@ -100,11 +115,15 @@ class EditorWithCvaAndMffc extends EditorWithCva
 
   readonly controlType = 'code-editor';
 
+  private _id?: string;
   @HostBinding()
   get id(): string {
-    const uniqueId = `${this.controlType}-${EditorWithCvaAndMffc.uniqueNumber}`;
-    EditorWithCvaAndMffc.uniqueNumber += 1;
-    return uniqueId;
+    if (!this._id) {
+      this._id = `${this.controlType}-${CodeEditor.uniqueNumber}`;
+      CodeEditor.uniqueNumber += 1;
+    }
+
+    return this._id;
   }
 
   get value(): string {
@@ -155,8 +174,8 @@ class EditorWithCvaAndMffc extends EditorWithCva
   setDescribedByIds(ids: string[]): void { }
 
   constructor(
-      protected focusMonitor: FocusMonitor,
-      protected rootElement: ElementRef<HTMLElement>,
+      private focusMonitor: FocusMonitor,
+      private rootElement: ElementRef<HTMLElement>,
   ) {
     super();
     focusMonitor.monitor(rootElement.nativeElement, true).subscribe(
@@ -177,38 +196,5 @@ class EditorWithCvaAndMffc extends EditorWithCva
 
     this.unsubscribe$.next();
     this.unsubscribe$.complete();
-  }
-}
-
-/**
- * Displays a code editor.
- * It can be used as an Angular form field, and it can be put inside
- * <mat-form-field></mat-form-field> tags.
- */
-@Component({
-  selector: 'code-editor',
-  templateUrl: './code_editor.ng.html',
-  styleUrls: ['./code_editor.scss'],
-  changeDetection: ChangeDetectionStrategy.OnPush,
-  encapsulation: ViewEncapsulation.None,
-  providers: [
-    {
-      provide: NG_VALUE_ACCESSOR,
-      useExisting: forwardRef(() => CodeEditor),
-      multi: true,
-    },
-    {
-      provide: MatFormFieldControl,
-      useExisting: CodeEditor,
-      multi: true,
-    }
-  ],
-})
-export class CodeEditor extends EditorWithCvaAndMffc {
-  constructor(
-    protected focusMonitor: FocusMonitor,
-    protected rootElement: ElementRef<HTMLElement>,
-) {
-    super(focusMonitor, rootElement);
   }
 }
