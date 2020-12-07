@@ -1,0 +1,42 @@
+<mat-dialog-content>
+  <mat-form-field appearance="outline" class="main-container-osquery-helper">
+    <mat-label>Search for Osquery tables (type in at least {{minCharactersToSearch}} characters)</mat-label>
+
+    <input
+      type="text"
+      matInput
+      [formControl]="searchControl"
+      [matAutocomplete]="auto">
+
+    <mat-autocomplete #auto="matAutocomplete" class="mat-autocomplete-osquery-helper">
+      <mat-optgroup
+        *ngFor="let categoryWithResults$ of filteredCategories; trackBy: trackCategoryWithResultsByName"
+        [label]="(categoryWithResults$ | async).name">
+        <ng-container *ngIf="(categoryWithResults$ | async).tablesMatchResults.length > 0">
+
+          <mat-option
+            *ngFor="let tableMatchResult of (categoryWithResults$ | async).tablesMatchResults; trackBy: trackMatchResultByTableName"
+            [value]="tableMatchResult.name.value"
+            class="item-container-osquery-helper">
+            <table-info-item
+              [tableMatchResult]="tableMatchResult">
+            </table-info-item>
+          </mat-option>
+
+        </ng-container>
+      </mat-optgroup>
+    </mat-autocomplete>
+  </mat-form-field>
+</mat-dialog-content>
+
+<mat-dialog-actions align="end">
+  <button [mat-dialog-close]="null" mat-button color="primary">Cancel</button>
+
+  <button
+    [mat-dialog-close]="queryToReturn$ | async"
+    [disabled]="!(queryToReturn$ | async)"
+    mat-button
+    color="primary">
+    Select all columns from this table
+  </button>
+</mat-dialog-actions>
