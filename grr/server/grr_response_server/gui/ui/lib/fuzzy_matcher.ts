@@ -251,6 +251,27 @@ export class FuzzyMatcher {
   }
 }
 
+/** FuzzyMatcher for just one element. @see {@link FuzzyMatcher} */
+export class SingleElementFuzzyMatcher extends FuzzyMatcher {
+  constructor(subject: string) {
+    super([subject]);
+  }
+
+  match(input: string): never {
+    throw Error(`Did you mean to call matchSingle(input: string)?`);
+  }
+
+  matchSingle(input: string): Match | null {
+    const matches = super.match(input);
+
+    if (matches.length === 1) {
+      return super.match(input)[0];
+    } else {
+      return null;
+    }
+  }
+}
+
 /**
  * StringWithHighlightsPart is a part of a string with highlights. Such a string
  * is comprised of multiple parts, each either highlighted or not.
