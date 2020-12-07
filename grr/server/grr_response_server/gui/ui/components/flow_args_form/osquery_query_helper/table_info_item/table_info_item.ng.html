@@ -17,7 +17,6 @@
       <span
         *ngFor="let part of convertToHighlightedParts(columnValueWithResult); trackBy: trackByIndex"
         [ngClass]="{'highlight': part.highlight}">{{part.value}}</span>
-        <!-- {{columnValueWithResult.value}} -->
     </span>
   </span>
 
