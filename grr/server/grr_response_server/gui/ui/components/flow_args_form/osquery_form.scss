@@ -1,13 +1,17 @@
-.container {
+.main-container {
   display: flex;
   flex-direction: column;
 }
 
-.query {
-  margin-bottom: 1.25em;
+.query-section {
   height: auto;
 }
 
-.timeout {
+.editor-form-field {
+  display: block;
+  cursor: text;
+}
+
+.timeout-form-field {
   width: 10em;
 }
