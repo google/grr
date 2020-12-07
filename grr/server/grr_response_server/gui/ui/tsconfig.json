@@ -29,7 +29,9 @@
     ],
     "paths": {
       "@app/*": ["./*"]
-    }
+    },
+    "resolveJsonModule": true,
+    "esModuleInterop": true
   },
   "angularCompilerOptions": {
     "fullTemplateTypeCheck": true,
