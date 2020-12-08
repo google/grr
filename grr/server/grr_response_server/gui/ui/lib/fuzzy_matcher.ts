@@ -261,13 +261,13 @@ export class SingleElementFuzzyMatcher extends FuzzyMatcher {
     throw Error(`Did you mean to call matchSingle(input: string)?`);
   }
 
-  matchSingle(input: string): Match | null {
+  matchSingle(input: string): Match | undefined {
     const matches = super.match(input);
 
     if (matches.length === 1) {
       return super.match(input)[0];
     } else {
-      return null;
+      return undefined;
     }
   }
 }

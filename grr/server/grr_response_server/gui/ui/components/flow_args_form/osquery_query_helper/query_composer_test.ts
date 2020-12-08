@@ -1,7 +1,7 @@
 import {newOsqueryTableSpec, newOsqueryColumnSpec} from './osquery_table_specs';
-import {QueryComposer} from './osquery_query_helper';
+import {constructSelectAllFromTable} from './query_composer';
 
-fdescribe('QueryComposer', () => {
+describe('QueryComposer', () => {
   it('shouldn\'t add a WHERE clause if there are no required fields', () => {
     const tableSpec = newOsqueryTableSpec({
       columns: [
@@ -11,7 +11,7 @@ fdescribe('QueryComposer', () => {
       ],
     });
 
-    const query = QueryComposer.constructSelectAllFromTable(tableSpec);
+    const query = constructSelectAllFromTable(tableSpec);
 
     expect(query).not.toContain('WHERE');
   });
@@ -30,7 +30,7 @@ fdescribe('QueryComposer', () => {
       ],
     });
 
-    const query = QueryComposer.constructSelectAllFromTable(tableSpec);
+    const query = constructSelectAllFromTable(tableSpec);
     expect(query).toContain('WHERE\n\trequired_column LIKE ""');
   });
 
@@ -46,7 +46,7 @@ fdescribe('QueryComposer', () => {
       ],
     });
 
-    const query = QueryComposer.constructSelectAllFromTable(tableSpec);
+    const query = constructSelectAllFromTable(tableSpec);
 
     expect(query).toContain('SELECT\n\tfirst_column,\n\tsecond_column');
   });
@@ -54,7 +54,7 @@ fdescribe('QueryComposer', () => {
   it('should add a semicolon at the end', () => {
     const tableSpec = newOsqueryTableSpec();
 
-    const query = QueryComposer.constructSelectAllFromTable(tableSpec);
+    const query = constructSelectAllFromTable(tableSpec);
 
     expect(query.slice(-1)).toBe(';');
   })

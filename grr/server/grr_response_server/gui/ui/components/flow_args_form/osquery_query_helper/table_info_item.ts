@@ -1,13 +1,12 @@
 import {Component, Input} from '@angular/core';
-import {StringWithHighlightsPart, stringWithHighlightsFromMatch} from '@app/lib/fuzzy_matcher';
-import {ValueWithMatchResult} from '../osquery_query_helper';
-
-
-export declare interface MatchResultForTable {
-  name: ValueWithMatchResult;
-  description: ValueWithMatchResult;
-  columns: ReadonlyArray<ValueWithMatchResult>;
-}
+import {
+  StringWithHighlightsPart,
+  stringWithHighlightsFromMatch,
+} from '@app/lib/fuzzy_matcher';
+import {
+  MatchResultForTable,
+  ValueWithMatchResult
+} from './osquery_helper_interfaces';
 
 
 /** An item containing table info to display in the query helper menu */
