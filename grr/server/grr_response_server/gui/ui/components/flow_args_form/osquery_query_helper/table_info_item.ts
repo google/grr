@@ -4,13 +4,7 @@ import {
   stringWithHighlightsFromMatch,
   Match,
 } from '@app/lib/fuzzy_matcher';
-import {
-  MatchResultForTable,
-  ValueWithMatchResult,
-  MatchAnything,
-  MATCH_ANYTHING
-} from './osquery_helper_interfaces';
-import { OsqueryTableSpec } from './osquery_table_specs';
+import {OsqueryTableSpec} from './osquery_table_specs';
 
 
 /** An item containing table info to display in the query helper menu */
@@ -37,9 +31,7 @@ export class TableInfoItem {
     const matchResult = this.matchMap?.get(subject);
 
     if (matchResult) {
-      const stringWithHighlights = stringWithHighlightsFromMatch(
-          matchResult,
-      );
+      const stringWithHighlights = stringWithHighlightsFromMatch(matchResult);
       return stringWithHighlights.parts;
     } else {
       return [
@@ -49,13 +41,6 @@ export class TableInfoItem {
         }
       ];
     }
-  }
-
-  trackMatchResultByValue(
-      _index: number,
-      valueWithMatchResult: ValueWithMatchResult,
-  ): string {
-    return valueWithMatchResult.value;
   }
 
   trackByIndex(index: number, _element: unknown): number {

@@ -1,21 +1,21 @@
 <div class="item-header">
   <span class="table-name">
     <span
-      *ngFor="let part of convertToHighlightedParts(tableMatchResult.name); trackBy: trackByIndex"
+      *ngFor="let part of convertToHighlightedParts(tableSpec.name); trackBy: trackByIndex"
       [ngClass]="{'highlight': part.highlight}">{{part.value}}</span>
   </span>
   <span class="table-description">
     <span
-      *ngFor="let part of convertToHighlightedParts(tableMatchResult.description); trackBy: trackByIndex"
+      *ngFor="let part of convertToHighlightedParts(tableSpec.description); trackBy: trackByIndex"
       [ngClass]="{'highlight': part.highlight}">{{part.value}}</span>
   </span>
 </div>
 
 <div class="item-content">
   <span class="columns-content">
-    <span *ngFor="let columnValueWithResult of tableMatchResult.columns; trackBy: trackMatchResultByValue" class="space-before">
+    <span *ngFor="let column of tableSpec.columns" class="space-before">
       <span
-        *ngFor="let part of convertToHighlightedParts(columnValueWithResult); trackBy: trackByIndex"
+        *ngFor="let part of convertToHighlightedParts(column.name); trackBy: trackByIndex"
         [ngClass]="{'highlight': part.highlight}">{{part.value}}</span>
     </span>
   </span>

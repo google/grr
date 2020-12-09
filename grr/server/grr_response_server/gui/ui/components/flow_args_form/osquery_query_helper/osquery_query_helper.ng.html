@@ -9,23 +9,21 @@
       [matAutocomplete]="auto">
 
     <mat-autocomplete #auto="matAutocomplete" class="mat-autocomplete-osquery-helper">
-      <ng-container *ngIf="searchValues$ | async as keyword">
-        <mat-optgroup
-          *ngFor="let categoryWithMatchMap of getFilteredCategories(keyword); trackBy: trackCategoryByName"
-          [label]="categoryWithMatchMap.categoryName">
+      <mat-optgroup
+        *ngFor="let categoryWithMatchMap of filteredCategories$ | async; trackBy: trackCategoryByName"
+        [label]="categoryWithMatchMap.categoryName">
 
-          <mat-option
-            *ngFor="let tableSpec of categoryWithMatchMap.tableSpecs; trackBy: trackTableSpecByName"
-            [value]="tableSpec.name"
-            class="item-container-osquery-helper">
-            <table-info-item
-              [matchMap]="categoryWithMatchMap.matchMap"
-              [tableSpec]="tableSpec">
-            </table-info-item>
-          </mat-option>
+        <mat-option
+          *ngFor="let tableSpec of categoryWithMatchMap.tableSpecs; trackBy: trackTableSpecByName"
+          [value]="tableSpec.name"
+          class="item-container-osquery-helper">
+          <table-info-item
+            [matchMap]="categoryWithMatchMap.matchMap"
+            [tableSpec]="tableSpec">
+          </table-info-item>
+        </mat-option>
 
-        </mat-optgroup>
-      </ng-container>
+      </mat-optgroup>
     </mat-autocomplete>
   </mat-form-field>
 </mat-dialog-content>

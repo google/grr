@@ -1,6 +1,25 @@
 import {OsqueryTableSpec, nameToTable, OsqueryColumnSpec} from './osquery_table_specs';
 import {isNonNull} from '@app/lib/preconditions';
-import { Match } from '@app/lib/fuzzy_matcher';
+import {Match} from '@app/lib/fuzzy_matcher';
+
+/**
+ * Holds a table category name, all the Osquery table
+ * specifications in this category, and all string subjects that are relevant
+ * for fuzzy-matching.
+ */
+export interface TableCategory {
+  readonly categoryName: string;
+  readonly tableSpecs: ReadonlyArray<OsqueryTableSpec>;
+  readonly subjects: ReadonlyArray<string>;
+}
+
+/**
+ * Same as {@link TableCategory}, but also holds a mapping from string subjects
+ * too match results.
+ */
+export interface TableCategoryWithMatchMap extends TableCategory {
+  readonly matchMap: Map<string, Match>;
+}
 
 function columnSpecsToSubjects(
     columnSpecs: ReadonlyArray<OsqueryColumnSpec>,
@@ -19,25 +38,6 @@ function tableSpecsToSubjects(
     ...descriptions,
     ...columns.flat(),
   ];
-}
-
-/**
- * Holds a table category name, all the Osquery table
- * specifications in this category, and all string subjects that are relevant
- * for fuzzy-matching.
- */
-export interface TableCategory {
-  readonly categoryName: string;
-  readonly tableSpecs: ReadonlyArray<OsqueryTableSpec>;
-  readonly subjects: ReadonlyArray<string>;
-}
-
-/**
- * Same as {@link TableCategory}, but also holds a mapping from string subjects
- * too match results.s
- */
-export interface TableCategoryWithMatchMap extends TableCategory {
-  readonly matchMap: Map<string, Match>;
 }
 
 /**
