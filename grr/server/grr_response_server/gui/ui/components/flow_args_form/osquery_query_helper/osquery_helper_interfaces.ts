@@ -1,80 +1,90 @@
-import {SingleElementFuzzyMatcher, Match} from '@app/lib/fuzzy_matcher';
-import {OsqueryTableSpec, nameToTable} from './osquery_table_specs';
+import {OsqueryTableSpec, nameToTable, OsqueryColumnSpec} from './osquery_table_specs';
 import {isNonNull} from '@app/lib/preconditions';
+import { Match } from '@app/lib/fuzzy_matcher';
 
-/** Holds a string with a matcher which can be used to "fuzzy match" it
- * against a keyword
- */
-export interface ValueWithMatcher {
-  readonly value: string;
-  readonly matcher: SingleElementFuzzyMatcher;
+function columnSpecsToSubjects(
+    columnSpecs: ReadonlyArray<OsqueryColumnSpec>,
+): ReadonlyArray<string> {
+  return columnSpecs.map(column => column.name);
+}
+
+function tableSpecsToSubjects(
+    tableSpecs: ReadonlyArray<OsqueryTableSpec>,
+): ReadonlyArray<string> {
+  const names = tableSpecs.map(spec => spec.name);
+  const descriptions = tableSpecs.map(spec => spec.description);
+  const columns = tableSpecs.map(spec => columnSpecsToSubjects(spec.columns));
+  return [
+    ...names,
+    ...descriptions,
+    ...columns.flat(),
+  ];
 }
 
 /**
- * Holds the table name, table description and column names, together with
- * "fuzzy matchers" for them.
+ * Holds a table category name, all the Osquery table
+ * specifications in this category, and all string subjects that are relevant
+ * for fuzzy-matching.
  */
-export class TableSpecWithMatchers {
-  readonly tableNameMatcher: ValueWithMatcher;
-  readonly tableDescriptionMatcher: ValueWithMatcher;
-  readonly columNameMatchers: ReadonlyArray<ValueWithMatcher>;
-
-  constructor(tableSpec: OsqueryTableSpec) {
-    this.tableNameMatcher = {
-      value: tableSpec.name,
-      matcher: new SingleElementFuzzyMatcher(tableSpec.name),
-    };
-
-    this.tableDescriptionMatcher = {
-      value: tableSpec.description,
-      matcher: new SingleElementFuzzyMatcher(tableSpec.description),
-    };
-
-    this.columNameMatchers = tableSpec.columns.map(
-        column => ({
-          value: column.name,
-          matcher: new SingleElementFuzzyMatcher(column.name),
-        }),
-    );
-  }
+export interface TableCategory {
+  readonly categoryName: string;
+  readonly tableSpecs: ReadonlyArray<OsqueryTableSpec>;
+  readonly subjects: ReadonlyArray<string>;
 }
 
 /**
- * Holds a table category name, together with all the Osquery table
- * specifications in this category (each containing a matcher for its values).
+ * Same as {@link TableCategory}, but also holds a mapping from string subjects
+ * too match results.s
  */
-export interface TableCategoryWithMatchers {
-  readonly name: string;
-  readonly tableSpecs: ReadonlyArray<TableSpecWithMatchers>;
+export interface TableCategoryWithMatchMap extends TableCategory {
+  readonly matchMap: Map<string, Match>;
+}
+
+/**
+ * Returns a string array with all strings inside a table category to be
+ * considered for matching. Those are: category name, table names, table
+ * descriptions, and the names of all table columns.
+ */
+export function tableCategoryToSubjects(
+    category: TableCategory,
+): ReadonlyArray<string> {
+  return [
+    category.categoryName,
+    ...tableSpecsToSubjects(category.tableSpecs),
+  ]
 }
 
 /**
  * Given a table category name and Osquery table specs to put inside it,
- * the function creates matchers for the values inside the table specs and
- * packs everything into a table category with matchers.
+ * the function extracts all relevant subjects for future fuzzy matching and
+ * packs everything into a table category.
  */
 export function tableCategoryFromSpecs(
     categoryName: string,
-    justTableSpecs: ReadonlyArray<OsqueryTableSpec>,
-): TableCategoryWithMatchers {
-  const tableSpecsWithMatchers = justTableSpecs.map(
-      tableSpec => new TableSpecWithMatchers(tableSpec));
+    tableSpecs: ReadonlyArray<OsqueryTableSpec>,
+): TableCategory {
+  const subjects = [
+    categoryName,
+    ...tableSpecsToSubjects(tableSpecs),
+  ];
+
   return {
-    name: categoryName,
-    tableSpecs: tableSpecsWithMatchers,
+    categoryName,
+    tableSpecs,
+    subjects,
   };
 }
 
 /**
  * Given a category name and an array of Osquery table names to put inside,
- * it looks up the table specifications, bundles them up with matchers, and
- * produces a table category with matchers.
+ * it looks up the table specifications, finds the relevant subject strings for
+ * fuzzy matching and bundles everything together.
  */
 export function tableCategoryFromNames(
     categoryName: string,
     tableNames: ReadonlyArray<string>,
-): TableCategoryWithMatchers {
-  const justTableSpecs = tableNames.map(tableName => {
+): TableCategory {
+  const tableSpecs = tableNames.map(tableName => {
     const tableSpec = nameToTable(tableName);
     if (!isNonNull(tableSpec)) {
       throw Error(`Table not found: ${tableName} (category ${categoryName})`);
@@ -82,30 +92,5 @@ export function tableCategoryFromNames(
     return tableSpec;
   });
 
-  return tableCategoryFromSpecs(categoryName, justTableSpecs);
-}
-
-/** Holds a string with results from fuzzy-matching it against some keyword. */
-export interface ValueWithMatchResult {
-  readonly value: string;
-  readonly matchResult?: Match;
-}
-
-/**
- * Table name, description and column values, bundled with results from
- * matching them against some keyword.
- */
-export declare interface MatchResultForTable {
-  name: ValueWithMatchResult;
-  description: ValueWithMatchResult;
-  columns: ReadonlyArray<ValueWithMatchResult>;
-}
-
-/**
- * Holds a category name and an array of table specification values with
- * results from matching those values against some keyword.
- */
-export interface CategoryWithMatchResults {
-  readonly name: string;
-  readonly tablesMatchResults: ReadonlyArray<MatchResultForTable>;
+  return tableCategoryFromSpecs(categoryName, tableSpecs);
 }

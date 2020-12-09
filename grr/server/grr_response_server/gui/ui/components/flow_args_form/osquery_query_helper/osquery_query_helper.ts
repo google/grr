@@ -12,18 +12,18 @@ import {
   shareReplay,
 } from 'rxjs/operators';
 
-import {allTableSpecs, nameToTable} from './osquery_table_specs';
+import {allTableSpecs, nameToTable, OsqueryTableSpec} from './osquery_table_specs';
 import {isNonNull} from '@app/lib/preconditions';
 import {constructSelectAllFromTable} from './query_composer';
 import {
   tableCategoryFromNames,
   tableCategoryFromSpecs,
-  CategoryWithMatchResults,
-  TableCategoryWithMatchers,
-  ValueWithMatcher,
-  ValueWithMatchResult,
-  MatchResultForTable,
+  tableCategoryToSubjects,
+  TableCategory,
+  TableCategoryWithMatchMap,
+  FilteredCategories,
 } from './osquery_helper_interfaces';
+import { FuzzyMatcher, Match, stringWithHighlightsFromMatch } from '@app/lib/fuzzy_matcher';
 
 
 /** A helper component for the OsqueryForm to aid in writing the query */
@@ -45,7 +45,7 @@ export class OsqueryQueryHelper implements OnDestroy {
 
   readonly searchControl = new FormControl('');
 
-  private readonly searchValues$ = this.searchControl.valueChanges.pipe(
+  readonly searchValues$ = this.searchControl.valueChanges.pipe(
     filter(isNonNull),
     debounceTime(OsqueryQueryHelper.INPUT_DEBOUNCE_TIME_MS),
     map(searchValue => {
@@ -57,8 +57,8 @@ export class OsqueryQueryHelper implements OnDestroy {
     }),
     startWith(''),
     distinctUntilChanged(),
-
     takeUntil(this.unsubscribe$),
+
     // Without sharing the execution, unsubscribing and subscribing again will
     // produce an un-needed '' first value.
     shareReplay(1),
@@ -76,100 +76,68 @@ export class OsqueryQueryHelper implements OnDestroy {
       }),
   );
 
-  private readonly categoriesWithMatchers = [
+  private readonly tableCategories = [
       tableCategoryFromNames('Suggested', ['users', 'file']),
       tableCategoryFromSpecs('All tables', allTableSpecs),
   ];
 
-  readonly filteredCategories: ReadonlyArray<
-      Observable<CategoryWithMatchResults>
-  > = this.categoriesWithMatchers.map(
-      (categoryWithMatchers: TableCategoryWithMatchers) => {
-        return this.searchValues$.pipe(
-            map(keyword => {
-              return this.getMatchingTablesInCategory(
-                  categoryWithMatchers,
-                  keyword,
-              );
-            }),
-        );
+  private readonly allStringToMatch: ReadonlyArray<string> =
+      this.tableCategories.map(category => category.subjects).flat();
+  private readonly fuzzyMatcher = new FuzzyMatcher(this.allStringToMatch);
+
+  getFilteredCategories(
+      keyword: string,
+  ): ReadonlyArray<TableCategoryWithMatchMap> {
+    const matchMap = this.computeMatchMap(keyword);
+
+    const all = this.tableCategories.map((tableCategory: TableCategory) => {
+      if (keyword === '') {
+        // If the search is empty we want to display all categories and tables,
+        // so we don't filter out anything.
+        return {
+          ...tableCategory,
+          matchMap,
+        }
       }
-  );
 
-  private getMatchingTablesInCategory(
-      categoryWithMatchers: TableCategoryWithMatchers,
-      keyword: string,
-  ): CategoryWithMatchResults {
-    const tablesMatchResults = categoryWithMatchers.tableSpecs.map(
-        tableWithMatchers => {
-          const nameMatchResult = this.matchValue(
-              tableWithMatchers.tableNameMatcher,
-              keyword,
-          );
-          const descriptionMatchResult = this.matchValue(
-              tableWithMatchers.tableDescriptionMatcher,
-              keyword,
-          );
-          const columnMatchResults = tableWithMatchers.columNameMatchers.map(
-              columnMatcher => this.matchValue(columnMatcher, keyword)
-          );
-
-          return this.getMatchResultForTable(
-              nameMatchResult,
-              descriptionMatchResult,
-              columnMatchResults,
-              keyword !== '',
-          );
-        }).filter(
-            isNonNull
-        );
-
-    return {
-      name: categoryWithMatchers.name,
-      tablesMatchResults,
-    };
-  }
-
-  private matchValue(
-      valueWithMatcher: ValueWithMatcher,
-      keyword: string,
-  ): ValueWithMatchResult {
-    if (keyword === '') {
-      return {
-        value: valueWithMatcher.value,
-        matchResult: undefined,
-      };
-    }
-
-    const matchResult = valueWithMatcher.matcher.matchSingle(keyword);
-    return {
-      value: valueWithMatcher.value,
-      matchResult,
-    };
-  }
-
-  private getMatchResultForTable(
-      nameMatch: ValueWithMatchResult,
-      descriptionMatch: ValueWithMatchResult,
-      columnMatches: ReadonlyArray<ValueWithMatchResult>,
-      discardIfNothingMatches: boolean,
-  ): MatchResultForTable | undefined {
-    if (discardIfNothingMatches) {
-      const noMatchInName = !isNonNull(nameMatch.matchResult);
-      const noMatchInDescription = !isNonNull(descriptionMatch.matchResult);
-      const noMatchInColumns = columnMatches.every(
-          columnMatch => !isNonNull(columnMatch.matchResult),
+      return this.filterTablesInCategory(
+          tableCategory,
+          matchMap,
       );
+    });
 
-      if (noMatchInName && noMatchInDescription && noMatchInColumns) {
-        return undefined;
-      }
+    return all.filter(categoryWithEligibleTables =>
+        categoryWithEligibleTables.tableSpecs.length > 0);
+  }
+
+  private computeMatchMap(keyword: string): Map<string, Match> {
+    if (keyword === '') {
+      return new Map<string, Match>();
     }
 
+    const matches = this.fuzzyMatcher.match(keyword);
+    return new Map(matches.map(match => [match.subject, match]));
+  }
+
+  private filterTablesInCategory(
+      tableCategory: TableCategory,
+      matchMap: Map<string, Match>,
+  ): TableCategoryWithMatchMap {
+    const eligibleTables = tableCategory.tableSpecs.filter(
+        tableSpec => {
+          const nameMatch = matchMap.get(tableSpec.name);
+          const descriptionMatch = matchMap.get(tableSpec.description);
+          const columnMatches = tableSpec.columns.map(
+              column => matchMap.get(column.name));
+
+          return isNonNull(nameMatch) || isNonNull(descriptionMatch) ||
+              columnMatches.some(isNonNull);
+        });
+
     return {
-      name: nameMatch,
-      description: descriptionMatch,
-      columns: columnMatches,
+      ...tableCategory,
+      tableSpecs: eligibleTables,
+      matchMap,
     };
   }
 
@@ -178,17 +146,17 @@ export class OsqueryQueryHelper implements OnDestroy {
     this.unsubscribe$.complete();
   }
 
-  trackCategoryWithResultsByName(
+  trackCategoryByName(
       _index: number,
-      category: CategoryWithMatchResults,
+      category: TableCategory,
   ): string {
-    return category.name;
+    return category.categoryName;
   }
 
-  trackMatchResultByTableName(
+  trackTableSpecByName(
       _index: number,
-      matchResult: MatchResultForTable,
+      tableSpec: OsqueryTableSpec,
   ): string {
-    return matchResult.name.value;
+    return tableSpec.name;
   }
 }

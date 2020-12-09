@@ -2,11 +2,15 @@ import {Component, Input} from '@angular/core';
 import {
   StringWithHighlightsPart,
   stringWithHighlightsFromMatch,
+  Match,
 } from '@app/lib/fuzzy_matcher';
 import {
   MatchResultForTable,
-  ValueWithMatchResult
+  ValueWithMatchResult,
+  MatchAnything,
+  MATCH_ANYTHING
 } from './osquery_helper_interfaces';
+import { OsqueryTableSpec } from './osquery_table_specs';
 
 
 /** An item containing table info to display in the query helper menu */
@@ -17,25 +21,30 @@ import {
 })
 export class TableInfoItem {
   @Input()
-  tableMatchResult?: MatchResultForTable;
+  tableSpec?: OsqueryTableSpec;
+
+  @Input()
+  matchMap?: Map<string, Match>;
 
   get docsLinkToTable(): string {
-    const tableName = this.tableMatchResult?.name.value;
+    const tableName = this.tableSpec?.name;
     return `https://osquery.io/schema/4.5.1/#${tableName}`;
   }
 
   convertToHighlightedParts(
-      valueWithMatchResult: ValueWithMatchResult,
+      subject: string,
   ): ReadonlyArray<StringWithHighlightsPart> {
-    if (valueWithMatchResult.matchResult) {
+    const matchResult = this.matchMap?.get(subject);
+
+    if (matchResult) {
       const stringWithHighlights = stringWithHighlightsFromMatch(
-          valueWithMatchResult.matchResult,
+          matchResult,
       );
       return stringWithHighlights.parts;
     } else {
       return [
         {
-          value: valueWithMatchResult.value,
+          value: subject,
           highlight: false,
         }
       ];
