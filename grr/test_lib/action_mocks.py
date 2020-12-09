@@ -299,7 +299,13 @@ class GrepClientMock(ActionMock):
 class OsqueryClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(OsqueryClientMock, self).__init__(osquery.Osquery, *args, **kwargs)
+    super(OsqueryClientMock, self).__init__(
+        #  Osquery action mocks below
+        osquery.Osquery,
+        #  MultiGetFile action mocks below 
+        standard.HashFile, standard.GetFileStat, standard.HashBuffer,
+        standard.TransferBuffer, file_fingerprint.FingerprintFile,
+        *args, **kwargs)
 
 
 class UpdateAgentClientMock(ActionMock):

@@ -33,7 +33,7 @@ FLAGS = flags.FLAGS
 
 
 def _Query(query: Text, **kwargs) -> List[rdf_osquery.OsqueryResult]:
-  args = rdf_osquery.OsqueryArgs(query=query, **kwargs)
+  args = rdf_osquery.OsqueryActionArgs(query=query, **kwargs)
   return list(osquery.Osquery().Process(args))
 
 

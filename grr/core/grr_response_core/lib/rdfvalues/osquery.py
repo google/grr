@@ -10,6 +10,7 @@ from typing import Sequence
 from typing import Text
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_proto import osquery_pb2
 
 
@@ -24,6 +25,13 @@ class OsqueryArgs(rdf_structs.RDFProtoStruct):
 
     if not self.HasField("timeout_millis"):
       self.timeout_millis = 5 * 60 * 1000  # 5 minutes.
+
+
+class OsqueryActionArgs(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper class for the `OsqueryActionArgs` proto."""
+
+  protobuf = osquery_pb2.OsqueryActionArgs
+  rdf_deps = []
 
 
 class OsqueryColumn(rdf_structs.RDFProtoStruct):
@@ -57,7 +65,7 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
     """Iterates over values of a given column.
 
     Args:
-      column_name: A nome of the column to retrieve the values for.
+      column_name: A name of the column to retrieve the values for.
 
     Yields:
       Values of the specified column.
@@ -115,3 +123,10 @@ class OsqueryProgress(rdf_structs.RDFProtoStruct):
 
   protobuf = osquery_pb2.OsqueryProgress
   rdf_deps = [OsqueryTable]
+
+
+class OsqueryFileCollectInfo(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper class for the `OsqueryFileCollectInfo` proto."""
+
+  protobuf = osquery_pb2.OsqueryFileCollectInfo
+  rdf_deps = [rdf_client_fs.StatEntry]
