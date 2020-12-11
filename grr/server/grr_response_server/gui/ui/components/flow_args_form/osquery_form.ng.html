@@ -1,13 +1,35 @@
-<div [formGroup]="form" class="container">
-  <div class="query">
-    <code-editor formControlName="query"></code-editor>
+<div [formGroup]="form" class="main-container">
+  <div class="query-section">
+    <mat-form-field appearance="outline" class="editor-form-field">
+      <mat-label>SQL query</mat-label>
+      <code-editor formControlName="query"></code-editor>
+
+      <button
+        type="button"
+        mat-button color="primary"
+        (click)="browseTablesClicked()">Browse Osquery tables and example queries</button>
+    </mat-form-field>
   </div>
 
-  <mat-form-field class="timeout">
-    <mat-label>Timeout</mat-label>
-    <input type="number" matInput placeholder="" formControlName="timeoutMillis">
-    <span matSuffix>ms</span>
-  </mat-form-field>
+  <span>
+    <button
+      type="button"
+      *ngIf="!settingsShown"
+      (click)="openSettings()"
+      mat-button
+      color="primary">
+      <mat-icon>keyboard_arrow_down</mat-icon>
+      <span>Show low-level settings</span>
+    </button>
+  </span>
 
-  <mat-checkbox formControlName="ignoreStderrErrors">Ignore stderr errors</mat-checkbox>
+  <ng-container *ngIf="settingsShown">
+    <mat-form-field class="timeout-form-field">
+      <mat-label>Timeout</mat-label>
+      <input type="number" matInput placeholder="" formControlName="timeoutMillis">
+      <span matSuffix>ms</span>
+    </mat-form-field>
+
+    <mat-checkbox formControlName="ignoreStderrErrors">Ignore stderr errors</mat-checkbox>
+  </ng-container>
 </div>
