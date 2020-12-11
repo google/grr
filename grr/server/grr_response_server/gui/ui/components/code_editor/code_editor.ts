@@ -17,7 +17,7 @@ import {FocusMonitor} from '@angular/cdk/a11y';
 import {takeUntil} from 'rxjs/operators';
 import {isNonNull} from '@app/lib/preconditions';
 
-import CodeMirror from 'codemirror';
+import * as CodeMirror from 'codemirror';
 // importing sql-hint is needed for SQL syntax highlighting
 import 'codemirror/addon/hint/sql-hint.js';
 // importing show-hint is needed for the autocomplete pop-up
@@ -32,7 +32,6 @@ class CodeEditorCore implements AfterViewInit, ControlValueAccessor {
   protected editor?: CodeMirror.Editor;
 
   private latestOverwrite = '';
-  @Input()
   set editorValue(newValue: string) {
     // The editor is initialized in ngAfterViewInit, and will be undefined
     // before that, including when @Input() arguments are set.
@@ -47,8 +46,8 @@ class CodeEditorCore implements AfterViewInit, ControlValueAccessor {
 
   // ControlValueAccessor functionality
   private announceValueChanged: OnChangeFn = () => { };
-  writeValue(value: string): void {
-    this.editorValue = value;
+  writeValue(value: string | undefined | null): void {
+    this.editorValue = value ?? '';
   }
   registerOnChange(fn: OnChangeFn): void {
     this.announceValueChanged = fn;
@@ -115,22 +114,17 @@ export class CodeEditor extends CodeEditorCore
 
   readonly controlType = 'code-editor';
 
-  private _id?: string;
+  /**
+   * ID to associate all labels and hints of the enclosing mat-form-field with.
+   */
   @HostBinding()
-  get id(): string {
-    if (!this._id) {
-      this._id = `${this.controlType}-${CodeEditor.uniqueNumber}`;
-      CodeEditor.uniqueNumber += 1;
-    }
+  readonly id: string;
 
-    return this._id;
-  }
-
-  get value(): string {
+  get value() {
     return this.editorValue;
   }
-  set value(newValue: string) {
-    this.editorValue = newValue;
+  set value(newValue: string | null) {
+    this.editorValue = newValue ?? '';
   }
 
   get empty(): boolean {
@@ -178,6 +172,10 @@ export class CodeEditor extends CodeEditorCore
       private rootElement: ElementRef<HTMLElement>,
   ) {
     super();
+
+    this.id = `${this.controlType}-${CodeEditor.uniqueNumber}`;
+    CodeEditor.uniqueNumber += 1;
+
     focusMonitor.monitor(rootElement.nativeElement, true).subscribe(
         focused => {
           this.focused = isNonNull(focused);
