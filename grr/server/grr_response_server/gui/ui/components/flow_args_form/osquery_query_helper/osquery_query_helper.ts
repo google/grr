@@ -20,7 +20,7 @@ import {
   tableCategoryFromSpecs,
   TableCategory,
   TableCategoryWithMatchMap,
-} from './osquery_helper_interfaces';
+} from './osquery_helper_model';
 import { FuzzyMatcher, Match } from '@app/lib/fuzzy_matcher';
 
 

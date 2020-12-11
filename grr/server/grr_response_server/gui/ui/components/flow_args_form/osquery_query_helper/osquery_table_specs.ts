@@ -1,4 +1,4 @@
-import tablesJson from '../../../../static/osquery_table_specs_4_5_1.json';
+import {tableSpecs451} from '../../../../static/osquery_raw_table_specs.4.5.1';
 
 export interface OsqueryColumnSpec {
   readonly name: string;
@@ -14,12 +14,12 @@ export interface OsqueryTableSpec {
   readonly platforms: ReadonlyArray<string>;
 }
 
-export const allTableSpecs: ReadonlyArray<OsqueryTableSpec> = tablesJson;
+export const allTableSpecs: ReadonlyArray<OsqueryTableSpec> = tableSpecs451;
 
 export function nameToTable(name: string) {
   const matches = allTableSpecs.filter(tableSpec => tableSpec.name === name);
   if (matches.length === 0) {
-    return null;
+    return undefined;
   } else if (matches.length === 1) {
     return matches[0];
   } else {

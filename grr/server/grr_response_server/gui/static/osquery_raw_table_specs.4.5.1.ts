@@ -1,4 +1,4 @@
-[
+export const tableSpecs451 = [
   {
     "cacheable":false,
     "evented":false,
