@@ -21,7 +21,7 @@ import {
   TableCategory,
   TableCategoryWithMatchMap,
 } from './osquery_helper_model';
-import { FuzzyMatcher, Match } from '@app/lib/fuzzy_matcher';
+import {FuzzyMatcher, Match} from '@app/lib/fuzzy_matcher';
 
 
 /** A helper component for the OsqueryForm to aid in writing the query */
@@ -72,8 +72,9 @@ export class OsqueryQueryHelper implements OnDestroy {
       }),
   );
 
+  readonly suggestedTableNames = ['users', 'file'];
   private readonly tableCategories = [
-      tableCategoryFromNames('Suggested', ['users', 'file']),
+      tableCategoryFromNames('Suggested', this.suggestedTableNames),
       tableCategoryFromSpecs('All tables', allTableSpecs),
   ];
 
