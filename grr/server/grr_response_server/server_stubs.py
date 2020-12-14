@@ -407,7 +407,7 @@ class YaraProcessDump(ClientActionStub):
 class Osquery(ClientActionStub):
   """A stub class for the osquery action plugin."""
 
-  in_rdfvalue = rdf_osquery.OsqueryActionArgs
+  in_rdfvalue = rdf_osquery.OsqueryArgs
   out_rdfvalues = [rdf_osquery.OsqueryResult]
 
 

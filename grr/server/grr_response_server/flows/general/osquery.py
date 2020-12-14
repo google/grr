@@ -64,25 +64,19 @@ def _GetTruncatedTable(
 
 def _ExtractFileInfo(
     result: rdf_flow_objects.FlowResult,
-) -> rdf_osquery.OsqueryFileCollectInfo:
+) -> rdf_osquery.OsqueryCollectedFile:
   if not isinstance(result.payload, rdf_client_fs.StatEntry):
     raise _ResultNotRelevantError
 
   stat_entry = result.payload
-  return rdf_osquery.OsqueryFileCollectInfo(stat_entry=stat_entry)
-
-
-def _PathSpecFromFileName(file_name: str) -> rdf_paths.PathSpec:
-  return rdf_paths.PathSpec(
-      path=file_name,
-      pathtype=rdf_paths.PathSpec.PathType.OS)
+  return rdf_osquery.OsqueryCollectedFile(stat_entry=stat_entry)
 
 
 class _ResultNotRelevantError(ValueError):
   pass
 
 
-class _FileCollectionLimitsExceeded(Exception):
+class FileCollectionLimitsExceeded(flow_base.FlowError):
   pass
 
 
@@ -93,7 +87,7 @@ class OsqueryFlow(flow_base.FlowBase):
   category = "/Collectors/"
   behaviours = flow_base.BEHAVIOUR_BASIC
 
-  args_type = rdf_osquery.OsqueryArgs
+  args_type = rdf_osquery.OsqueryFlowArgs
   progress_type = rdf_osquery.OsqueryProgress
 
   def _UpdateProgress(
@@ -107,27 +101,21 @@ class OsqueryFlow(flow_base.FlowBase):
       self,
       responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
   ) -> List[rdf_paths.PathSpec]:
-    columns_for_collection = self.args.file_collect_columns
-    if len(columns_for_collection) == 0:
+    if len(self.args.file_collect_columns) == 0:
       return []
-
-    if len(columns_for_collection) > FILE_COLLECT_LIMIT_MAX_COLUMNS:
-      message = (f"Requested file collection for {len(columns_for_collection)} "
-          f"columns, but the limit is {FILE_COLLECT_LIMIT_MAX_COLUMNS} columns")
-      raise _FileCollectionLimitsExceeded(message)
 
     total_row_count = _GetTotalRowCount(responses)
     if total_row_count > FILE_COLLECT_LIMIT_MAX_ROWS:
       message = (f"Requested file collection on a table with {total_row_count} "
           f"rows, but the limit is {FILE_COLLECT_LIMIT_MAX_ROWS} rows")
-      raise _FileCollectionLimitsExceeded(message)
+      raise FileCollectionLimitsExceeded(message)
 
     file_names = []
     for osquery_result in responses:
-      for column in columns_for_collection:
+      for column in self.args.file_collect_columns:
         file_names.extend(osquery_result.table.Column(column))
 
-    return list(map(_PathSpecFromFileName, file_names))
+    return [rdf_paths.PathSpec.OS(path=file_name) for file_name in file_names]
 
   def _FileCollectionFromColumns(
       self,
@@ -143,9 +131,16 @@ class OsqueryFlow(flow_base.FlowBase):
 
   def Start(self):
     super(OsqueryFlow, self).Start()
+
+    if len(self.args.file_collect_columns) > FILE_COLLECT_LIMIT_MAX_COLUMNS:
+      message = (f"Requested file collection for "
+          f"{len(self.args.file_collect_columns)} columns, but the limit is"
+          f"{FILE_COLLECT_LIMIT_MAX_COLUMNS} columns")
+      raise FileCollectionLimitsExceeded(message)
+
     self.state.progress = rdf_osquery.OsqueryProgress()
 
-    action_args = rdf_osquery.OsqueryActionArgs(
+    action_args = rdf_osquery.OsqueryArgs(
         query=self.args.query,
         timeout_millis=self.args.timeout_millis,
         ignore_stderr_errors=self.args.ignore_stderr_errors)
@@ -166,10 +161,7 @@ class OsqueryFlow(flow_base.FlowBase):
     for response in responses:
       self.SendReply(response)
 
-    try:
-      self._FileCollectionFromColumns(responses)
-    except _FileCollectionLimitsExceeded as e:
-      raise flow_base.FlowError(str(e))
+    self._FileCollectionFromColumns(responses)
 
   def GetProgress(self) -> rdf_osquery.OsqueryProgress:
     return self.state.progress

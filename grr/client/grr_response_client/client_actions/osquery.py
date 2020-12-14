@@ -61,7 +61,7 @@ class TimeoutError(Error):  # pylint: disable=redefined-builtin
 class Osquery(actions.ActionPlugin):
   """An action plugin class for talking with osquery."""
 
-  in_rdfvalue = rdf_osquery.OsqueryActionArgs
+  in_rdfvalue = rdf_osquery.OsqueryArgs
   out_rdfvalues = [rdf_osquery.OsqueryResult]
 
   def Run(self, args):
@@ -222,7 +222,7 @@ def ParseRow(header: rdf_osquery.OsqueryHeader,
 ProcOutput = NamedTuple("ProcOutput", [("stdout", Text), ("stderr", Text)])  # pytype: disable=wrong-arg-types
 
 
-def Query(args: rdf_osquery.OsqueryActionArgs) -> ProcOutput:
+def Query(args: rdf_osquery.OsqueryArgs) -> ProcOutput:
   """Calls osquery with given query and returns its output.
 
   Args:

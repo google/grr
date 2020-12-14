@@ -16,14 +16,14 @@ enum OsqueryType {
   BLOB = 6;
 }
 
-message OsqueryArgs {
+message OsqueryFlowArgs {
   optional string query = 1;
   optional uint64 timeout_millis = 2;
   optional bool ignore_stderr_errors = 3;
   repeated string file_collect_columns = 4;
 }
 
-message OsqueryActionArgs {
+message OsqueryArgs {
   optional string query = 1;
   optional uint64 timeout_millis = 2;
   optional bool ignore_stderr_errors = 3;
@@ -58,6 +58,6 @@ message OsqueryProgress {
   optional uint64 total_row_count = 2;
 }
 
-message OsqueryFileCollectInfo {
+message OsqueryCollectedFile {
   optional StatEntry stat_entry = 1;
 }

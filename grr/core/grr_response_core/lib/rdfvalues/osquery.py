@@ -14,10 +14,10 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_proto import osquery_pb2
 
 
-class OsqueryArgs(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the `OsqueryArgs` proto."""
+class OsqueryFlowArgs(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper class for the `OsqueryFlowArgs` proto."""
 
-  protobuf = osquery_pb2.OsqueryArgs
+  protobuf = osquery_pb2.OsqueryFlowArgs
   rdf_deps = []
 
   def __init__(self, *args, **kwargs):
@@ -27,10 +27,10 @@ class OsqueryArgs(rdf_structs.RDFProtoStruct):
       self.timeout_millis = 5 * 60 * 1000  # 5 minutes.
 
 
-class OsqueryActionArgs(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the `OsqueryActionArgs` proto."""
+class OsqueryArgs(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper class for the `OsqueryArgs` proto."""
 
-  protobuf = osquery_pb2.OsqueryActionArgs
+  protobuf = osquery_pb2.OsqueryArgs
   rdf_deps = []
 
 
@@ -125,8 +125,8 @@ class OsqueryProgress(rdf_structs.RDFProtoStruct):
   rdf_deps = [OsqueryTable]
 
 
-class OsqueryFileCollectInfo(rdf_structs.RDFProtoStruct):
-  """An RDF wrapper class for the `OsqueryFileCollectInfo` proto."""
+class OsqueryCollectedFile(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper class for the `OsqueryCollectedFile` proto."""
 
-  protobuf = osquery_pb2.OsqueryFileCollectInfo
+  protobuf = osquery_pb2.OsqueryCollectedFile
   rdf_deps = [rdf_client_fs.StatEntry]

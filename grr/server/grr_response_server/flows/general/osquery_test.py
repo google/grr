@@ -274,16 +274,10 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
   def testFlowTruncatesFileAboveSingleLimit(self):
     with temp.AutoTempFilePath() as temp_file_path:
       target_bytes = 2**20  # 1 MiB
-
-      phrase = "This is a > 1 MiB file\n"
-      phrase_bytes = len(phrase.encode("utf-8"))
-      repeat_times = target_bytes // phrase_bytes + 1
-      to_write = phrase.encode("utf-8") * repeat_times
-
       less_than_necessary_bytes = target_bytes // 2
 
       with io.open(temp_file_path, "wb") as fd:
-        fd.write(to_write)
+        fd.write(b"1" * target_bytes)
 
       table = f"""
       [
@@ -310,16 +304,10 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
   def testFlowDoesntCollectSingleFileAboveTotalLimit(self):
     with temp.AutoTempFilePath() as temp_file_path:
       target_bytes = 2**20  # 1 MiB
-
-      phrase = "This is a > 1 MiB file\n"
-      phrase_bytes = len(phrase.encode("utf-8"))
-      repeat_times = target_bytes // phrase_bytes + 1
-      to_write = phrase.encode("utf-8") * repeat_times
-
       less_than_necessary_bytes = target_bytes // 2
 
       with io.open(temp_file_path, "wb") as fd:
-        fd.write(to_write)
+        fd.write(b"1" * target_bytes)
 
       table = f"""
       [
@@ -367,16 +355,10 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       with io.open(temp_file_path, "wb") as fd:
         fd.write("Just sample text to put in the file.".encode('utf-8'))
 
-      table = f"""
-      [
-        {{ "collect1": "{temp_file_path}", "collect2": "{temp_file_path}"}}
-      ]
-      """
-
       with mock.patch.object(osquery_flow, "FILE_COLLECT_LIMIT_MAX_COLUMNS", 1):
-        with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
-          with self.assertRaises(RuntimeError):
-            self._RunFlow("Doesn't matter", ["collect1", "collect2"])
+        # Should raise immediately, no need to fake Osquery output
+        with self.assertRaises(RuntimeError):
+          self._RunFlow("Doesn't matter", ["collect1", "collect2"])
 
   def testFlowDoesntCollectWhenRowsAboveLimit(self):
     with temp.AutoTempFilePath() as temp_file_path:
