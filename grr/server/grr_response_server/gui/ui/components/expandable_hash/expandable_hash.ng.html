@@ -1,5 +1,11 @@
 <ng-container *ngIf="hashesAvailable; else noHashes">
-  <span [matMenuTriggerFor]="menu" class="button-expand-expandable-hash-class" mat-button>Copy value</span>
+  <button
+    [matMenuTriggerFor]="menu"
+    class="button-expand-expandable-hash-class"
+    mat-button>
+    Copy value
+  </button>
+
   <mat-menu #menu="matMenu" class="big-width-expandable-hash-class">
     <button
       *ngIf="hashes.sha256 as hashValue"
@@ -9,6 +15,7 @@
       <span class="hash-name-expandable-hash-class">SHA-256</span>
       <span class="hash-value-expandable-hash-class">{{hashValue}}</span>
     </button>
+
     <button
       *ngIf="hashes.sha1 as hashValue"
       mat-menu-item
@@ -17,6 +24,7 @@
       <span class="hash-name-expandable-hash-class">SHA-1</span>
       <span class="hash-value-expandable-hash-class">{{hashValue}}</span>
     </button>
+
     <button
       *ngIf="hashes.md5 as hashValue"
       mat-menu-item
@@ -25,6 +33,7 @@
       <span class="hash-name-expandable-hash-class">MD5</span>
       <span class="hash-value-expandable-hash-class">{{hashValue}}</span>
     </button>
+
     <button
       *ngIf="hashesAvailable > 1"
       mat-menu-item
