@@ -1,21 +1,27 @@
-import { ComponentFixture, TestBed, waitForAsync } from '@angular/core/testing';
+import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 
-import { ExpandableHash } from './expandable_hash';
-import { initTestEnvironment } from '@app/testing';
+import {ExpandableHash} from './expandable_hash';
+import {initTestEnvironment} from '@app/testing';
 
-import { By } from '@angular/platform-browser';
-import { Hash } from '@app/lib/api/api_interfaces';
-import { DebugElement } from '@angular/core';
-import { MatButtonModule } from '@angular/material/button';
-import { MatMenuModule } from '@angular/material/menu';
-import { ClipboardModule } from '@angular/cdk/clipboard';
-import { MatIconModule } from '@angular/material/icon';
+import {By} from '@angular/platform-browser';
+import {Hash} from '@app/lib/api/api_interfaces';
+import {DebugElement} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
+import {MatMenuModule} from '@angular/material/menu';
+import {ClipboardModule} from '@angular/cdk/clipboard';
+import {MatIconModule} from '@angular/material/icon';
+
+import {HarnessLoader} from '@angular/cdk/testing';
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
+import {MatMenuHarness} from '@angular/material/menu/testing';
+import {MatButtonHarness} from '@angular/material/button/testing';
 
 initTestEnvironment();
 
 describe('ExpandableHash component', () => {
   let component: ExpandableHash;
   let fixture: ComponentFixture<ExpandableHash>;
+  let harnessLoader: HarnessLoader;
 
   beforeEach(waitForAsync(() => {
     TestBed.configureTestingModule({
@@ -33,6 +39,7 @@ describe('ExpandableHash component', () => {
   beforeEach(() => {
     fixture = TestBed.createComponent(ExpandableHash);
     component = fixture.componentInstance;
+    harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     fixture.detectChanges();
   });
 
@@ -69,8 +76,6 @@ describe('ExpandableHash component', () => {
       sha256: 'sha256',
     };
 
-    initComponentWithHashes(oneHash);
-
     const dom = initComponentWithHashes(oneHash);
 
     expect(dom.noHashesSpan).toBeFalsy();
@@ -78,4 +83,18 @@ describe('ExpandableHash component', () => {
     expect(dom.expandButton).toBeTruthy();
     expect(dom.expandButtonText).toBe('Copy value');
   });
+
+  fit('should display all three hashes and a copy button if all hashes are',
+      async () => {
+        const matButton  = await harnessLoader.getHarness<MatButtonHarness>(
+            MatButtonHarness.with(),
+        );
+        await matButton.click();
+
+        const expandedMenu = await harnessLoader.getHarness<MatMenuHarness>(
+            MatMenuHarness.with({triggerText: 'Copy value'}));
+
+        const menuItems = await expandedMenu.getItems();
+        expect(menuItems.length).toBe(4);
+      });
 });
