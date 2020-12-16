@@ -9,7 +9,7 @@ import {take} from 'rxjs/operators';
 
 initTestEnvironment();
 
-fdescribe('OsqueryQueryHelper component', () => {
+describe('OsqueryQueryHelper component', () => {
   beforeEach(() => {
     return TestBed
         .configureTestingModule({

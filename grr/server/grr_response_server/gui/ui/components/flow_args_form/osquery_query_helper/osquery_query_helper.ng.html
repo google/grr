@@ -34,8 +34,8 @@
   <button
     [mat-dialog-close]="queryToReturn$ | async"
     [disabled]="!(queryToReturn$ | async)"
-    mat-button
+    mat-flat-button
     color="primary">
-    Select all columns from this table
+    Overwrite query with template from this table
   </button>
 </mat-dialog-actions>

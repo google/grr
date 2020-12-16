@@ -30,7 +30,11 @@ import {FuzzyMatcher, Match} from '@app/lib/fuzzy_matcher';
   templateUrl: './osquery_query_helper.ng.html',
   styleUrls: ['./osquery_query_helper.scss'],
 
-  // This makes all styles effectively global.
+  // This makes all styles effectively global. We need that in order to style
+  // the mat-autocomplete element. Its elements are placed at a different
+  // place in the DOM not inside this component, and so style encapsulation
+  // wouldn't allow our styles to reach them.
+  // https://github.com/angular/components/issues/11764#issuecomment-400370834
   encapsulation: ViewEncapsulation.None,
 })
 export class OsqueryQueryHelper implements OnDestroy {

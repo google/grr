@@ -15,7 +15,7 @@ export interface TableCategory {
 
 /**
  * Same as {@link TableCategory}, but also holds a mapping from string subjects
- * too match results.
+ * to match results.
  */
 export interface TableCategoryWithMatchMap extends TableCategory {
   readonly matchMap: Map<string, Match>;
