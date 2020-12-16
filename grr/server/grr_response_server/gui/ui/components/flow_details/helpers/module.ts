@@ -10,9 +10,6 @@ import {FileModePipe} from '@app/components/flow_details/helpers/file_mode_pipe'
 
 import {HumanReadableSizeModule} from '../../human_readable_size/module';
 import {TimestampModule} from '../../timestamp/module';
-
-import {TimestampModule} from '../../timestamp/module';
-import {HumanReadableSizeModule} from '../../human_readable_size/module';
 import {ExpandableHashModule} from '../../expandable_hash/module';
 
 import {FileResultsTable} from './file_results_table';
