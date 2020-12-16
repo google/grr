@@ -1,7 +1,5 @@
-
-
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
-import {StatEntry} from '@app/lib/api/api_interfaces';
+import {StatEntry, Hash} from '@app/lib/api/api_interfaces';
 import {createOptionalDateSeconds} from '@app/lib/api_translation/primitive';
 import {combineLatest, Observable, ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
@@ -12,7 +10,7 @@ import {map} from 'rxjs/operators';
  */
 export declare interface FlowFileResult {
   readonly statEntry: StatEntry;
-  // TODO(user): add support for hashes (here and in the component).
+  readonly hashes: Hash;
 }
 
 /**
@@ -22,14 +20,22 @@ export declare interface FlowFileResult {
  */
 export function flowFileResultFromStatEntry(statEntry: StatEntry):
     FlowFileResult {
+  // TODO(simstoykov): use actual data
+  const allHex = '0123456789abcdef';
+  const temporaryLongDummyHashes: Hash = {
+    sha256: `${allHex.repeat(2)}sha256`,
+    md5: `${allHex.repeat(2)}md5`,
+    sha1: `${allHex.repeat(2)}sha1`,
+  };
   return {
     statEntry,
+    hashes: temporaryLongDummyHashes,
   };
 }
 
-
 declare interface TableRow {
   readonly path: string;
+  readonly hashes: Hash;
   readonly mode?: string;
   readonly uid: string;
   readonly gid: string;
@@ -68,6 +74,7 @@ export class FileResultsTable {
         return entries.map((e) => {
           return {
             path: e.statEntry.pathspec?.path ?? '',
+            hashes: e.hashes,
             mode: e.statEntry.stMode,  // formatting will be handled by the pipe
             uid: e.statEntry.stUid?.toString() ?? '',
             gid: e.statEntry.stGid?.toString() ?? '',
