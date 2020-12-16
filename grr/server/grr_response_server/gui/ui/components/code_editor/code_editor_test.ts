@@ -41,7 +41,7 @@ describe('CodeEditor Component', () => {
           ],
           declarations: [
             TestHostComponent,
-          ]
+          ],
         })
         .compileComponents();
   });
