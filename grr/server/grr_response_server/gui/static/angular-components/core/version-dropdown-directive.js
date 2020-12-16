@@ -1,8 +1,11 @@
 goog.module('grrUi.core.versionDropdownDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
 
 
+
+/** @const */
 var REFRESH_VERSIONS_EVENT = 'RefreshVersionsEvent';
 
 
@@ -13,14 +16,14 @@ var REFRESH_VERSIONS_EVENT = 'RefreshVersionsEvent';
 const VersionDropdownController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @type {Array} */

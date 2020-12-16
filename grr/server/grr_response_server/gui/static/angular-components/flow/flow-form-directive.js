@@ -1,6 +1,7 @@
 goog.module('grrUi.flow.flowFormDirective');
 goog.module.declareLegacyNamespace();
 
+const reflectionService = goog.requireType('grrUi.core.reflectionService');
 const {valueHasErrors} = goog.require('grrUi.forms.utils');
 
 
@@ -11,7 +12,7 @@ const {valueHasErrors} = goog.require('grrUi.forms.utils');
 const FlowFormController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.reflectionService.ReflectionService}
+   * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
    * @ngInject
    */
@@ -19,7 +20,7 @@ const FlowFormController = class {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
 
     /** @type {Object} */

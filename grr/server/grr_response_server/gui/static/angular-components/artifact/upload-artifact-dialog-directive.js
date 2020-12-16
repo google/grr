@@ -1,6 +1,9 @@
 goog.module('grrUi.artifact.uploadArtifactDialogDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const artifactDescriptorsService = goog.requireType('grrUi.artifact.artifactDescriptorsService');
+
 
 
 /**
@@ -11,8 +14,8 @@ const UploadArtifactDialogController = class {
   /**
    * @param {!angular.Scope} $scope
    * @param {!angular.$q} $q
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!artifactDescriptorsService.ArtifactDescriptorsService}
    *     grrArtifactDescriptorsService
    * @ngInject
    */
@@ -23,11 +26,11 @@ const UploadArtifactDialogController = class {
     /** @private {!angular.$q} */
     this.q_ = $q;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /**
-     * @private {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
+     * @private {!artifactDescriptorsService.ArtifactDescriptorsService}
      */
     this.grrArtifactDescriptorsService_ = grrArtifactDescriptorsService;
 

@@ -2,6 +2,7 @@ import {EventEmitter, Input, Output} from '@angular/core';
 import {FlowListEntry, FlowResultsQuery} from '@app/lib/models/flow';
 import {ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
+import {makeLegacyLink} from '../../../lib/routing';
 
 /**
  * Flow results query without the flowId field.
@@ -33,10 +34,7 @@ export abstract class Plugin {
 
   readonly fallbackUrl$ = this.flowListEntry$.pipe(map(fle => {
     const {flowId, clientId} = fle.flow;
-    const url = new URL(window.location.origin);
-    url.pathname = '/';
-    url.hash = `#/clients/${clientId}/flows/${flowId}`;
-    return url.toString();
+    return makeLegacyLink(`#/clients/${clientId}/flows/${flowId}`);
   }));
 
   /**

@@ -10,6 +10,7 @@ import mock
 
 from grr_response_server import access_control
 
+from grr_response_server.flows.general import osquery
 from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
@@ -18,6 +19,7 @@ from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
+from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
@@ -33,7 +35,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   # ACCESS_CHECKED_METHODS is used to identify the methods that are tested
   # for being checked for necessary access rights. This list is used
-  # in testAllOtherMethodsAreNotAccessChecked.
+  # in testAllOtherMethodsAreNotAccessChecked. It is populated below in batches
+  # to group tests.
   ACCESS_CHECKED_METHODS = []
 
   def setUp(self):
@@ -232,6 +235,56 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
         client_id=client_id, flow_id=flow_id)
     self.CheckMethodIsAccessChecked(
         self.router.GetCollectedTimeline, "CheckClientAccess", args=args)
+
+  ACCESS_CHECKED_METHODS.extend([
+      "GetOsqueryResults",
+  ])
+
+  def testGetOsqueryResultsRaisesIfFlowIsNotFound(self):
+    args = api_osquery.ApiGetOsqueryResultsArgs(
+        client_id=self.client_id, flow_id="12345678")
+    with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
+      self.router.GetOsqueryResults(args, context=self.context)
+
+  def testGetOsqueryResultsGrantsAccessIfPartOfHunt(self):
+    client_id = self.SetupClient(0)
+    hunt_id = self.CreateHunt()
+    flow_id = flow_test_lib.StartFlow(
+        osquery.OsqueryFlow, client_id=client_id, parent_hunt_id=hunt_id)
+
+    args = api_osquery.ApiGetOsqueryResultsArgs(
+        client_id=client_id, flow_id=flow_id)
+    self.CheckMethodIsNotAccessChecked(self.router.GetOsqueryResults, args=args)
+
+  def testGetOsqueryResultsRefusesAccessIfPartOfHuntButWrongFlow(self):
+    client_id = self.SetupClient(0)
+    hunt_id = self.CreateHunt()
+    flow_id = flow_test_lib.StartFlow(
+        flow_test_lib.DummyFlow, client_id=client_id, parent_hunt_id=hunt_id)
+
+    args = api_osquery.ApiGetOsqueryResultsArgs(
+        client_id=client_id, flow_id=flow_id)
+    with self.assertRaises(ValueError):
+      self.router.GetOsqueryResults(args=args, context=self.context)
+
+  def testGetOsqueryResultsRefusesAccessIfWrongFlow(self):
+    client_id = self.SetupClient(0)
+    flow_id = flow_test_lib.StartFlow(
+        flow_test_lib.DummyFlow, client_id=client_id)
+
+    args = api_osquery.ApiGetOsqueryResultsArgs(
+        client_id=client_id, flow_id=flow_id)
+    with self.assertRaises(ValueError):
+      self.router.GetOsqueryResults(args=args, context=self.context)
+
+  def testGetOsqueryResultsChecksClientAccessIfNotPartOfHunt(self):
+    client_id = self.SetupClient(0)
+    flow_id = flow_test_lib.StartFlow(osquery.OsqueryFlow, client_id=client_id)
+
+    args = api_osquery.ApiGetOsqueryResultsArgs(
+        client_id=client_id, flow_id=flow_id)
+    self.CheckMethodIsAccessChecked(
+        self.router.GetOsqueryResults, "CheckClientAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
       "ListFlows",

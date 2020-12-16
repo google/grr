@@ -23,6 +23,7 @@ from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.gui.api_plugins import metadata as api_metadata
+from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.gui.api_plugins import reflection as api_reflection
 from grr_response_server.gui.api_plugins import stats as api_stats
@@ -723,6 +724,19 @@ class ApiCallRouterStub(ApiCallRouter):
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiUnscheduleFlowHandler:
     """Unschedules and deletes a previously scheduled flow."""
+    raise NotImplementedError()
+
+  @Category("Flows")
+  @ArgsType(api_osquery.ApiGetOsqueryResultsArgs)
+  @ResultBinaryStream()
+  @Http("GET",
+        "/api/clients/<client_id>/flows/<flow_id>/osquery-results/<format>")
+  def GetOsqueryResults(
+      self,
+      args: api_osquery.ApiGetOsqueryResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ):
+    """Export Osquery results for a client and a flow in the specified format."""
     raise NotImplementedError()
 
   # Cron jobs methods.

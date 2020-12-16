@@ -2,8 +2,8 @@
 // tslint:disable:enforce-comments-on-exported-symbols
 
 import {Client, ClientApproval} from '@app/lib/models/client';
+import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowState, ScheduledFlow} from './flow';
 
-import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowState, ScheduledFlow} from './flow';
 
 
 function randomHex(length: number): string {
@@ -94,5 +94,21 @@ export function newClientApproval(args: Partial<ClientApproval> = {}):
     approvers: ['msan'],
     subject: newClient({clientId, ...args.subject}),
     ...args,
+  };
+}
+
+export function newFlowResultSet(payload = {}): FlowResultSet {
+  return {
+    items: [{
+      payload,
+      tag: '',
+      timestamp: new Date(),
+    }],
+    sourceQuery: {
+      flowId: '',
+      offset: 0,
+      count: 0,
+    },
+    state: FlowResultSetState.FETCHED,
   };
 }

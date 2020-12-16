@@ -6,6 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from typing import Iterator
+from typing import Sequence
 from typing import Text
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -76,9 +77,41 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
     for row in self.rows:
       yield row.values[column_idx]
 
+  def Truncated(self, row_count: int) -> "OsqueryTable":
+    """Returns a fresh table with the first few rows of the original one.
+
+    Truncated doesn't modify the original table.
+
+    Args:
+      row_count: The number of rows to keep in the truncated table
+
+    Returns:
+      New OsqueryTable object with maximum row_count rows.
+    """
+    result = OsqueryTable()
+
+    result.query = self.query
+    result.header = self.header
+    result.rows = self.rows[:row_count]
+
+    return result
+
 
 class OsqueryResult(rdf_structs.RDFProtoStruct):
   """An RDF wrapper class for the `OsqueryTable` proto."""
 
   protobuf = osquery_pb2.OsqueryResult
+  rdf_deps = [OsqueryTable]
+
+  def GetTableColumns(self) -> Iterator[str]:
+    return (column.name for column in self.table.header.columns)
+
+  def GetTableRows(self) -> Iterator[Sequence[str]]:
+    return (row.values for row in self.table.rows)
+
+
+class OsqueryProgress(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper class for the `OsqueryProgress` proto."""
+
+  protobuf = osquery_pb2.OsqueryProgress
   rdf_deps = [OsqueryTable]

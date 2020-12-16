@@ -1,6 +1,9 @@
 goog.module('grrUi.user.userDashboardDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const routingService = goog.requireType('grrUi.routing.routingService');
+
 const MAX_SHOWN_CLIENTS = 7;
 
 /**
@@ -55,18 +58,18 @@ exports.filterOutDuplicateApprovals = filterOutDuplicateApprovals;
 const UserDashboardController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!routingService.RoutingService} grrRoutingService
    * @ngInject
    */
   constructor($scope, grrApiService, grrRoutingService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.routing.routingService.RoutingService} */
+    /** @private {!routingService.RoutingService} */
     this.grrRoutingService_ = grrRoutingService;
 
     /** @type {Array<Object>} */

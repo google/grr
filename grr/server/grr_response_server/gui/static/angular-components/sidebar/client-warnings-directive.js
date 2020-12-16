@@ -1,6 +1,8 @@
 goog.module('grrUi.sidebar.clientWarningsDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+
 
 /**
  * Checks if a given client label matches a given AdminUIClientWarningRule.
@@ -22,14 +24,14 @@ const checkIfLabelMatchesRule = (label, rule) => {
 const ClientWarningsController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @private {!Array<Object>} */

@@ -1,12 +1,16 @@
 goog.module('grrUi.user.userNotificationButtonDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
 
 
+
+/** @const */
 var SECOND = 1000;
 
 // This interval will be used by the notification button and the desktop
 // notifications directive to refetch the notifications.
+/** @const */
 var FETCH_INTERVAL = 10 * SECOND;
 
 
@@ -19,7 +23,7 @@ const UserNotificationButtonController = class {
    * @param {!angular.Scope} $scope
    * @param {!angular.$interval} $interval
    * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
+   * @param {!apiService.ApiService} grrApiService
    * @ngInject
    */
   constructor($scope, $interval, $uibModal, grrApiService) {
@@ -32,7 +36,7 @@ const UserNotificationButtonController = class {
     /** @private {!angularUi.$uibModal} */
     this.uibModal_ = $uibModal;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /** @type {number} */

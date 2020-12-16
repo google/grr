@@ -1824,7 +1824,7 @@ message CloudInstance {
 }
 
 // This is a summary of a GRR client.
-// Next field: 16
+// Next field: 17
 message ClientSummary {
   option (semantic) = {
     description: "A summary of the client information."
@@ -1891,6 +1891,10 @@ message ClientSummary {
 
   // Information about EDR agents present on the client.
   repeated EdrAgent edr_agents = 15;
+
+  optional FleetspeakValidationInfo fleetspeak_validation_info = 16 [
+    (sem_type) = { description: "Fleetspeak ValidationInfo (e.g. IP address)" }
+  ];
 }
 
 // Information about Endpoint Detection and Response agents.
@@ -2048,4 +2052,13 @@ message BlobImageChunkDescriptor {
 message BlobImageDescriptor {
   repeated BlobImageChunkDescriptor chunks = 1;
   optional uint64 chunk_size = 2;
+}
+
+message FleetspeakValidationInfoTag {
+  optional string key = 1;
+  optional string value = 2;
+}
+
+message FleetspeakValidationInfo {
+  repeated FleetspeakValidationInfoTag tags = 1;
 }

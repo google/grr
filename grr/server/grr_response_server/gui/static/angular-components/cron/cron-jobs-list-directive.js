@@ -1,6 +1,10 @@
 goog.module('grrUi.cron.cronJobsListDirective');
 goog.module.declareLegacyNamespace();
 
+const aclDialogService = goog.requireType('grrUi.acl.aclDialogService');
+const apiService = goog.requireType('grrUi.core.apiService');
+const dialogService = goog.requireType('grrUi.core.dialogService');
+const timeService = goog.requireType('grrUi.core.timeService');
 const {stripAff4Prefix} = goog.require('grrUi.core.utils');
 
 
@@ -14,10 +18,10 @@ const CronJobsListController = class {
    * @param {!angular.Scope} $scope
    * @param {!angularUi.$uibModal} $uibModal Bootstrap UI modal service.
    * @param {!angular.$q} $q
-   * @param {!grrUi.core.timeService.TimeService} grrTimeService
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.core.dialogService.DialogService} grrDialogService
-   * @param {!grrUi.acl.aclDialogService.AclDialogService} grrAclDialogService
+   * @param {!timeService.TimeService} grrTimeService
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!dialogService.DialogService} grrDialogService
+   * @param {!aclDialogService.AclDialogService} grrAclDialogService
    * @ngInject
    */
   constructor(
@@ -32,16 +36,16 @@ const CronJobsListController = class {
     /** @private {!angular.$q} */
     this.q_ = $q;
 
-    /** @private {!grrUi.core.timeService.TimeService} */
+    /** @private {!timeService.TimeService} */
     this.timeService_ = grrTimeService;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.core.dialogService.DialogService} */
+    /** @private {!dialogService.DialogService} */
     this.grrDialogService_ = grrDialogService;
 
-    /** @private {!grrUi.acl.aclDialogService.AclDialogService} */
+    /** @private {!aclDialogService.AclDialogService} */
     this.grrAclDialogService_ = grrAclDialogService;
 
     /** @type {!Object<string, Object>} */

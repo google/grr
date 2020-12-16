@@ -1,8 +1,12 @@
 goog.module('grrUi.core.searchBoxDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const routingService = goog.requireType('grrUi.routing.routingService');
 
 
+
+/** @const */
 var SEARCH_KEYWORDS = ['host', 'mac', 'ip', 'user', 'label'];
 
 /**
@@ -14,8 +18,8 @@ const SearchBoxController = class {
    * @param {!angular.Scope} $scope
    * @param {!angular.jQuery} $element
    * @param {!angular.$interval} $interval
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!routingService.RoutingService} grrRoutingService
    * @ngInject
    */
   constructor($scope, $element, $interval, grrApiService, grrRoutingService) {
@@ -28,10 +32,10 @@ const SearchBoxController = class {
     /** @private {!angular.$interval} */
     this.interval_ = $interval;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {!grrUi.routing.routingService.RoutingService} */
+    /** @private {!routingService.RoutingService} */
     this.grrRoutingService_ = grrRoutingService;
 
     /** @export {string} */

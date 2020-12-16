@@ -1,10 +1,11 @@
 import {Component} from '@angular/core';
-import {async, ComponentFixture, TestBed} from '@angular/core/testing';
+import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowFileResult, flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
 import {StatEntry} from '@app/lib/api/api_interfaces';
 import {newPathSpec} from '@app/lib/api/api_test_util';
 import {initTestEnvironment} from '@app/testing';
+
 import {HelpersModule} from './module';
 
 
@@ -33,7 +34,7 @@ class TestHostComponent {
 }
 
 describe('FileResultsTable Component', () => {
-  beforeEach(async(() => {
+  beforeEach(waitForAsync(() => {
     TestBed
         .configureTestingModule({
           imports: [
@@ -76,16 +77,7 @@ describe('FileResultsTable Component', () => {
   /**
    * Used for more explicit indexing of table rows
    */
-  enum CellIndexOf {
-    path = 0,
-    hash,
-    mode,
-    size,
-    atime,
-    mtime,
-    ctime,
-    btime
-  }
+  enum CellIndexOf { PATH = 0, HASH, MODE, SIZE, ATIME, MTIME, CTIME, BTIME }
 
   it('correctly presents a single row', () => {
     const fixture = createComponent(
@@ -98,14 +90,14 @@ describe('FileResultsTable Component', () => {
     expect(rows.length).toBe(2);
 
     const cells = rows[1].querySelectorAll('td');
-    expect(cells[CellIndexOf.path].innerText.trim()).toBe('/home/foo/bar/0');
+    expect(cells[CellIndexOf.PATH].innerText.trim()).toBe('/home/foo/bar/0');
     // No support for hashes yet, ignoring cell #1.
-    expect(cells[CellIndexOf.mode].innerText).toBe('-rw-r--r--');
-    expect(cells[CellIndexOf.size].innerText).toBe('142 B');
-    expect(cells[CellIndexOf.atime].innerText).toBe('1970-01-02 14:53:20 UTC');
-    expect(cells[CellIndexOf.mtime].innerText).toBe('1970-01-17 04:53:20 UTC');
-    expect(cells[CellIndexOf.ctime].innerText).toBe('1970-06-12 00:53:20 UTC');
-    expect(cells[CellIndexOf.btime].innerText).toBe('1974-06-09 08:53:20 UTC');
+    expect(cells[CellIndexOf.MODE].innerText).toBe('-rw-r--r--');
+    expect(cells[CellIndexOf.SIZE].innerText).toBe('142 B');
+    expect(cells[CellIndexOf.ATIME].innerText).toBe('1970-01-02 14:53:20 UTC');
+    expect(cells[CellIndexOf.MTIME].innerText).toBe('1970-01-17 04:53:20 UTC');
+    expect(cells[CellIndexOf.CTIME].innerText).toBe('1970-06-12 00:53:20 UTC');
+    expect(cells[CellIndexOf.BTIME].innerText).toBe('1974-06-09 08:53:20 UTC');
   });
 
   it('correctly presents 2 rows', () => {
@@ -122,24 +114,24 @@ describe('FileResultsTable Component', () => {
     expect(rows.length).toBe(3);
 
     let cells = rows[1].querySelectorAll('td');
-    expect(cells[CellIndexOf.path].innerText.trim()).toBe('/home/foo/bar/0');
+    expect(cells[CellIndexOf.PATH].innerText.trim()).toBe('/home/foo/bar/0');
     // No support for hashes yet, ignoring cell #1.
-    expect(cells[CellIndexOf.mode].innerText).toBe('-rw-r--r--');
-    expect(cells[CellIndexOf.size].innerText).toBe('142 B');
-    expect(cells[CellIndexOf.atime].innerText).toBe('1970-01-02 14:53:20 UTC');
-    expect(cells[CellIndexOf.mtime].innerText).toBe('1970-01-17 04:53:20 UTC');
-    expect(cells[CellIndexOf.ctime].innerText).toBe('1970-06-12 00:53:20 UTC');
-    expect(cells[CellIndexOf.btime].innerText).toBe('1974-06-09 08:53:20 UTC');
+    expect(cells[CellIndexOf.MODE].innerText).toBe('-rw-r--r--');
+    expect(cells[CellIndexOf.SIZE].innerText).toBe('142 B');
+    expect(cells[CellIndexOf.ATIME].innerText).toBe('1970-01-02 14:53:20 UTC');
+    expect(cells[CellIndexOf.MTIME].innerText).toBe('1970-01-17 04:53:20 UTC');
+    expect(cells[CellIndexOf.CTIME].innerText).toBe('1970-06-12 00:53:20 UTC');
+    expect(cells[CellIndexOf.BTIME].innerText).toBe('1974-06-09 08:53:20 UTC');
 
     cells = rows[2].querySelectorAll('td');
-    expect(cells[CellIndexOf.path].innerText.trim()).toBe('/home/foo/bar/1');
+    expect(cells[CellIndexOf.PATH].innerText.trim()).toBe('/home/foo/bar/1');
     // No support for hashes yet, ignoring cell #1.
-    expect(cells[CellIndexOf.mode].innerText).toBe('-rw-r--r--');
-    expect(cells[CellIndexOf.size].innerText).toBe('242 B');
-    expect(cells[CellIndexOf.atime].innerText).toBe('1970-01-03 18:40:00 UTC');
-    expect(cells[CellIndexOf.mtime].innerText).toBe('1970-01-28 18:40:00 UTC');
-    expect(cells[CellIndexOf.ctime].innerText).toBe('1970-10-05 18:40:00 UTC');
-    expect(cells[CellIndexOf.btime].innerText).toBe('1977-08-09 18:40:00 UTC');
+    expect(cells[CellIndexOf.MODE].innerText).toBe('-rw-r--r--');
+    expect(cells[CellIndexOf.SIZE].innerText).toBe('242 B');
+    expect(cells[CellIndexOf.ATIME].innerText).toBe('1970-01-03 18:40:00 UTC');
+    expect(cells[CellIndexOf.MTIME].innerText).toBe('1970-01-28 18:40:00 UTC');
+    expect(cells[CellIndexOf.CTIME].innerText).toBe('1970-10-05 18:40:00 UTC');
+    expect(cells[CellIndexOf.BTIME].innerText).toBe('1977-08-09 18:40:00 UTC');
   });
 
 
@@ -184,11 +176,11 @@ describe('FileResultsTable Component', () => {
     expect(rows.length).toBe(2);
     const cells = rows[1].querySelectorAll('td');
 
-    expect(cells[CellIndexOf.atime].querySelector('timestamp')).toBeTruthy();
-    expect(cells[CellIndexOf.mtime].querySelector('timestamp')).toBeTruthy();
-    expect(cells[CellIndexOf.ctime].querySelector('timestamp')).toBeTruthy();
-    expect(cells[CellIndexOf.btime].querySelector('timestamp')).toBeTruthy();
-  })
+    expect(cells[CellIndexOf.ATIME].querySelector('timestamp')).toBeTruthy();
+    expect(cells[CellIndexOf.MTIME].querySelector('timestamp')).toBeTruthy();
+    expect(cells[CellIndexOf.CTIME].querySelector('timestamp')).toBeTruthy();
+    expect(cells[CellIndexOf.BTIME].querySelector('timestamp')).toBeTruthy();
+  });
 
   it('uses human-readable-size components for the size', () => {
     const fixture = createComponent(
@@ -201,6 +193,7 @@ describe('FileResultsTable Component', () => {
     expect(rows.length).toBe(2);
     const cells = rows[1].querySelectorAll('td');
 
-    expect(cells[CellIndexOf.size].querySelector('human-readable-size')).toBeTruthy();
-  })
+    expect(cells[CellIndexOf.SIZE].querySelector('human-readable-size'))
+        .toBeTruthy();
+  });
 });

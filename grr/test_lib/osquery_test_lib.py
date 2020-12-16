@@ -5,7 +5,6 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import contextlib
-import io
 import os
 import platform
 import stat
@@ -54,7 +53,7 @@ def _FakeOsqueryiScript(script: Text) -> Iterator[None]:
   # files hold a write lock that makes it impossible to be read by subprocesses.
   with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
     filepath = os.path.join(dirpath, "__script__")
-    with io.open(filepath, "w") as filedesc:
+    with open(filepath, "w", encoding="utf-8") as filedesc:
       filedesc.write(script)
 
     # Make the file executable.

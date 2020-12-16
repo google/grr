@@ -110,6 +110,10 @@ class TestRawFilesystemAccessUsesTskOnNonWindows(test_base.EndToEndTest):
   ]
 
   def runTest(self):
+    if self.os_release == "CentOS Linux":
+      self.skipTest(
+          "TSK is not supported on CentOS due to an xfs root filesystem.")
+
     args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
     args.use_raw_filesystem_access = True
     args.artifact_list.append("UserHomeDirs")

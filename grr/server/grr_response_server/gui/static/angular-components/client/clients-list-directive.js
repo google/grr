@@ -1,6 +1,9 @@
 goog.module('grrUi.client.clientsListDirective');
 goog.module.declareLegacyNamespace();
 
+const clientDialogService = goog.requireType('grrUi.client.clientDialogService');
+const routingService = goog.requireType('grrUi.routing.routingService');
+
 
 
 /**
@@ -10,19 +13,19 @@ goog.module.declareLegacyNamespace();
 const ClientsListController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.client.clientDialogService.ClientDialogService}
+   * @param {!clientDialogService.ClientDialogService}
    *     grrClientDialogService
-   * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+   * @param {!routingService.RoutingService} grrRoutingService
    * @ngInject
    */
   constructor($scope, grrClientDialogService, grrRoutingService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.routing.routingService.RoutingService} */
+    /** @private {!routingService.RoutingService} */
     this.grrRoutingService_ = grrRoutingService;
 
-    /** @private {!grrUi.client.clientDialogService.ClientDialogService} */
+    /** @private {!clientDialogService.ClientDialogService} */
     this.grrClientDialogService_ = grrClientDialogService;
 
     /**

@@ -37,6 +37,14 @@ interface ClientApprovalKey {
   readonly requestor: string;
 }
 
+/** Access denied because the requestor is missing a valid approval. */
+export class MissingApprovalError extends Error {
+  constructor(response: HttpErrorResponse) {
+    super(response.error?.message ?? response.message);
+  }
+}
+
+
 /** Interceptor that enables the sending of cookies for all HTTP requests. */
 @Injectable()
 export class WithCredentialsInterceptor implements HttpInterceptor {
@@ -157,7 +165,16 @@ export class HttpApiService {
     return this.http
         .get<ApiListFlowsResult>(
             `${URL_PREFIX}/clients/${clientId}/flows`, {params})
-        .pipe(map(res => res.items ?? []));
+        .pipe(
+            catchError((err: HttpErrorResponse) => {
+              if (err.status === 403) {
+                return throwError(new MissingApprovalError(err));
+              } else {
+                return throwError(err);
+              }
+            }),
+            map(res => res.items ?? []),
+        );
   }
 
   /** Lists all scheduled flows for the given client and user. */

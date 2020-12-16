@@ -1,64 +1,81 @@
-<div *ngIf="approval$ | async as approval" class="wrapper">
-  <mat-card>
-    <mat-card-header>
-      <mat-card-title>Approval request</mat-card-title>
-    </mat-card-header>
-    <mat-card-content>
+<mat-drawer-container class="container" [class.noscroll]="clientDetailsDrawer.opened">
+  <mat-drawer #clientDetailsDrawer position="end">
+    <client-details *ngIf="approval$ | async as approval" [clientId]="approval.subject.clientId"></client-details>
+  </mat-drawer>
 
-      <table>
-        <tr>
-          <td>Requested by:</td>
-          <td>
-            <user-image [username]="approval.requestor" size="16px"></user-image>
-            {{approval.requestor}}
-          </td>
-        </tr>
-        <tr>
-          <td>Sent to:</td>
-          <td>
-            <span *ngFor="let approver of approval.requestedApprovers; last as isLast">
-              <user-image [username]="approver" size="16px"></user-image>
-              {{approver}}{{isLast ? "" : ","}}
-            </span>
-          </td>
-        </tr>
-        <tr>
-          <td>Reason:</td>
-          <td>
-            {{approval.reason}}
-          </td>
-        </tr>
-        <tr>
-          <td>Client:</td>
-          <td>
-            {{approval.subject.knowledgeBase.fqdn}} ({{approval.subject.clientId}})
-          </td>
-        </tr>
-        <tr>
-          <td>Status:</td>
-          <td>
-            {{approval.status.type}}
-          </td>
-        </tr>
-        <tr *ngIf="approval.approvers.length > 0">
-          <td>Granted by:</td>
-          <td>
-            <span *ngFor="let approver of approval.approvers; last as isLast">
-              <user-image [username]="approver" size="16px"></user-image>
-              {{approver}}{{isLast ? "" : ","}}
-            </span>
-          </td>
-        </tr>
-      </table>
-    </mat-card-content>
-    <mat-card-actions>
-      <button mat-flat-button color="primary" [disabled]="(canGrant$ | async) !== true" (click)="grantApproval()">
-        Grant full access
-      </button>
-      <div class="explanation">
-        This will grant {{approval.requestor}} rights to run flows, collect arbitrary data, and
-        view all previously executed flows on {{approval.subject.knowledgeBase.fqdn || approval.subject.clientId}}.
+  <mat-drawer-content>
+    <div *ngIf="approval$ | async as approval">
+      <div class="wrapper">
+        <mat-card>
+          <mat-card-header>
+            <mat-card-title>Approval request</mat-card-title>
+          </mat-card-header>
+          <mat-card-content>
+
+            <table>
+              <tr>
+                <td>Requested by:</td>
+                <td>
+                  <user-image [username]="approval.requestor" size="16px"></user-image>
+                  {{approval.requestor}}
+                </td>
+              </tr>
+              <tr>
+                <td>Sent to:</td>
+                <td>
+                  <span *ngFor="let approver of approval.requestedApprovers; last as isLast">
+                    <user-image [username]="approver" size="16px"></user-image>
+                    {{approver}}{{isLast ? "" : ","}}
+                  </span>
+                </td>
+              </tr>
+              <tr>
+                <td>Reason:</td>
+                <td>
+                  {{approval.reason}}
+                </td>
+              </tr>
+              <tr>
+                <td>Client:</td>
+                <td>
+                  {{approval.subject.knowledgeBase.fqdn}} ({{approval.subject.clientId}})
+                </td>
+              </tr>
+              <tr>
+                <td>Status:</td>
+                <td>
+                  {{approval.status.type}}
+                </td>
+              </tr>
+              <tr *ngIf="approval.approvers.length > 0">
+                <td>Granted by:</td>
+                <td>
+                  <span *ngFor="let approver of approval.approvers; last as isLast">
+                    <user-image [username]="approver" size="16px"></user-image>
+                    {{approver}}{{isLast ? "" : ","}}
+                  </span>
+                </td>
+              </tr>
+            </table>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-flat-button color="primary" [disabled]="(canGrant$ | async) !== true" (click)="grantApproval()">
+              Grant full access
+            </button>
+            <div class="explanation">
+              This will grant {{approval.requestor}} rights to run flows, collect arbitrary data, and
+              view all previously executed flows on
+              {{approval.subject.knowledgeBase.fqdn || approval.subject.clientId}}.
+            </div>
+          </mat-card-actions>
+        </mat-card>
       </div>
-    </mat-card-actions>
-  </mat-card>
-</div>
+      <client-overview>
+        <button mat-button class="goto-details" (click)="onClientDetailsButtonClick()">Client details
+          <mat-icon>{{clientDetailsDrawer.opened ? 'keyboard_arrow_right' : 'keyboard_arrow_left'}}</mat-icon>
+        </button>
+      </client-overview>
+      <scheduled-flow-list [creator]="approval.requestor" [clientId]="approval.subject.clientId"></scheduled-flow-list>
+    </div>
+  </mat-drawer-content>
+</mat-drawer-container>

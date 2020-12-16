@@ -1,29 +1,62 @@
-<div *ngIf="selectedFlow$ | async as selectedFlow else picker">
-  <mat-form-field appearance="outline">
-    <mat-chip-list>
-      <mat-chip [selectable]="false" [removable]="true" (removed)="unselectFlow()">
-        {{selectedFlow.friendlyName}}
-      </mat-chip>
-    </mat-chip-list>
-  </mat-form-field>
+<!-- Show a readonly field with a slightly different design (mat-label is present here, but is missing from the autocomplete input)
+     when a flow is selected. -->
+<mat-form-field class="readonly-field" hideRequiredMarker="true" appearance="outline" color="primary" [hidden]="(inputToShow$ | async) !== inputToShowEnum.READONLY">
+  <mat-label>Selected Flow</mat-label>
+  <input name="flowSearchBox" matInput [readonly]="true" [ngModel]="textInput.valueChanges | async">
+  <button mat-button matSuffix mat-icon-button aria-label="Clear" (click)="deselectFlow()">
+    <mat-icon>close</mat-icon>
+  </button>
+</mat-form-field>
+
+<mat-form-field class="autocomplete-field" hideRequiredMarker="true" appearance="outline" color="primary" [hidden]="(inputToShow$ | async) !== inputToShowEnum.AUTOCOMPLETE"
+  cdkOverlayOrigin #overlayTrigger="cdkOverlayOrigin">
+  <mat-icon matPrefix>search</mat-icon>
+  <input #textInputElement placeholder="Search for a flow"
+         name="flowSearchBox"
+         matInput
+         [formControl]="textInput"
+         [matAutocomplete]="auto">
+  <button mat-button *ngIf="textInput.value !== ''" matSuffix mat-icon-button aria-label="Clear" (click)="clearInput()">
+    <mat-icon>close</mat-icon>
+  </button>
+
+  <mat-autocomplete #auto="matAutocomplete" [autoActiveFirstOption]="true" [displayWith]="displayWith" (optionSelected)="selectFlow($event.option.value)">
+    <div class="flow-search-results">
+        <mat-optgroup *ngFor="let category of autoCompleteCategories$ | async; trackBy: trackCategory">
+            <span class="category-title" *ngFor="let part of category.title.parts"
+              [ngClass]="{'highlight': part.highlight}">{{part.value}}</span>
+
+            <mat-option *ngFor="let option of category.options; trackBy: trackOption" [value]="option.flowListItem">
+              <div class="flow-title">
+                <span *ngFor="let part of option.title.parts"
+                  [ngClass]="{'highlight': part.highlight}">{{part.value}}</span>
+              </div>
+              <div class="flow-description">
+                {{ option.flowListItem.description }}
+              </div>
+            </mat-option>
+        </mat-optgroup>
+    </div>
+  </mat-autocomplete>
+</mat-form-field>
+
+<div class="common-flows" *ngIf="(selectedFlow$ | async) === undefined">
+  <h3 class="mat-h3">Common flows</h3>
+  <flow-chips [flows]="commonFlows$ | async" (flowSelected)="selectFlow($event)"></flow-chips>
 </div>
 
-<ng-template #picker>
-<form #form>
-  <mat-form-field appearance="outline">
-    <mat-label>What data would you like to collect?</mat-label>
-    <input matInput [formControl]="textInput">
-  </mat-form-field>
-  <div *ngIf="flowEntries$ | async as flowEntries">
-    <div *ngFor="let category of flowEntries.keys()" class="column">
-      <h3 class="mat-h3">{{category}}</h3>
-      <button *ngFor="let entry of flowEntries.get(category); trackBy: trackFlowDescriptor"
-              mat-flat-button color="primary" type="button"
-              [class.faded]="!entry.highlighted"
-              (click)="selectFlow(entry.name)">
-        {{entry.friendlyName}}
-      </button>
-    </div>
-  </div>
-</form>
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="overlayTrigger"
+  [cdkConnectedOverlayOpen]="overviewOverlayOpened$ | async"
+  [cdkConnectedOverlayGrowAfterOpen]="true"
+  [cdkConnectedOverlayFlexibleDimensions]="true"
+  [cdkConnectedOverlayOffsetY]="-20"
+  [cdkConnectedOverlayWidth]="textInputWidth$ | async"
+  [cdkConnectedOverlayHeight]="450"
+  (attach)="overviewOverlayAttached$.next(true)"
+  (detach)="overviewOverlayAttached$.next(false)"
+  (overlayOutsideClick)="overlayOutsideClick($event)"
+>
+  <flows-overview [flowsByCategory]="flowsByCategory$ | async" (flowSelected)="selectFlow($event)"></flows-overview>
 </ng-template>

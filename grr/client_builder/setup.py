@@ -4,10 +4,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import configparser
 import os
 import shutil
 
-import configparser
 from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.sdist import sdist
@@ -24,7 +24,7 @@ def get_config():
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
-  config = configparser.SafeConfigParser()
+  config = configparser.ConfigParser()
   config.read(ini_path)
   return config
 

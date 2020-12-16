@@ -1,6 +1,8 @@
 goog.module('grrUi.forms.semanticValueFormDirective');
 goog.module.declareLegacyNamespace();
 
+const semanticRegistryService = goog.requireType('grrUi.core.semanticRegistryService');
+
 
 
 /**
@@ -29,7 +31,7 @@ exports.SemanticValueFormController = class {
    * @param {!angular.Scope} $scope
    * @param {!angular.$compile} $compile
    * @param {!angular.jQuery} $element
-   * @param {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+   * @param {!semanticRegistryService.SemanticRegistryService}
    *     grrSemanticFormDirectivesRegistryService
    * @ngInject
    */
@@ -48,7 +50,7 @@ exports.SemanticValueFormController = class {
     this.elementScope_;
 
     /**
-     * @private {!grrUi.core.semanticRegistryService.SemanticRegistryService}
+     * @private {!semanticRegistryService.SemanticRegistryService}
      */
     this.grrSemanticFormDirectivesRegistryService_ =
         grrSemanticFormDirectivesRegistryService;

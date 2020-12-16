@@ -1,6 +1,8 @@
 goog.module('grrUi.user.userDesktopNotificationsDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const timeService = goog.requireType('grrUi.core.timeService');
 const {UserNotificationButtonDirective} = goog.require('grrUi.user.userNotificationButtonDirective');
 const {annotateApiNotification, openReference} = goog.require('grrUi.user.userNotificationItemDirective');
 
@@ -13,8 +15,10 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
+/** @const */
 var FETCH_INTERVAL = UserNotificationButtonDirective.fetch_interval;
 
+/** @const */
 var MAX_DISPLAYED_NOTIFICATIONS = 2;
 
 
@@ -28,8 +32,8 @@ const UserDesktopNotificationsController = class {
    * @param {!angular.$interval} $interval
    * @param {!angular.$window} $window
    * @param {!angular.$location} $location
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.core.timeService.TimeService} grrTimeService
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!timeService.TimeService} grrTimeService
    * @ngInject
    */
   constructor(
@@ -50,10 +54,10 @@ const UserDesktopNotificationsController = class {
     /** @private {!angular.$location} */
     this.location_ = $location;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
-    /** @private {grrUi.core.timeService.TimeService} grrTimeService */
+    /** @private {timeService.TimeService} grrTimeService */
     this.timeService_ = grrTimeService;
 
     /** @private {Array.<Object>} */

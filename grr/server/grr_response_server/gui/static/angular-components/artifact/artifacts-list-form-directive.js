@@ -1,6 +1,8 @@
 goog.module('grrUi.artifact.artifactsListFormDirective');
 goog.module.declareLegacyNamespace();
 
+const artifactDescriptorsService = goog.requireType('grrUi.artifact.artifactDescriptorsService');
+
 
 
 /**
@@ -10,7 +12,7 @@ goog.module.declareLegacyNamespace();
 const ArtifactsListFormController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
+   * @param {!artifactDescriptorsService.ArtifactDescriptorsService}
    *     grrArtifactDescriptorsService
    * @ngInject
    */
@@ -19,7 +21,7 @@ const ArtifactsListFormController = class {
     this.scope_ = $scope;
 
     /**
-     * @private {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
+     * @private {!artifactDescriptorsService.ArtifactDescriptorsService}
      */
     this.grrArtifactDescriptorsService_ = grrArtifactDescriptorsService;
 

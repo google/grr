@@ -1,3 +1,4 @@
 <span *ngIf="currentUsername$ | async as currentUsername">
-  <user-image [username]="currentUsername" size="32px"></user-image>
+  <user-image [username]="currentUsername" size="32px"
+    matTooltip="Logged in as {{currentUsername}}" title=""></user-image>
 </span>

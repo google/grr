@@ -90,7 +90,8 @@ class CollectSingleFileTest(gui_test_lib.GRRSeleniumTest):
       )
       self.WaitUntil(
           self.IsElementPresent,
-          "css=collect-single-file-details .collected-result:contains('4242')")
+          "css=collect-single-file-details .collected-result:contains('4.14 KiB')"
+      )
       self.WaitUntilNot(self.IsElementPresent,
                         "css=collect-single-file-details .requested-path")
 

@@ -18,6 +18,9 @@ function uniqueClients(clients: ReadonlyArray<Client>): ReadonlyArray<Client> {
   return unique;
 }
 
+const CLIENT_ID_RE = /^[C]\.[0-9A-F]{16}$/i;
+
+
 /**
  * Provides the top-most component for the GRR UI home page.
  */
@@ -45,6 +48,14 @@ export class Home {
    * the client search.
    */
   onQuerySubmitted(query: string) {
-    this.router.navigate(['/clients'], {queryParams: {'q': query}});
+    if (query.match(CLIENT_ID_RE)) {
+      this.router.navigate(['/clients', query]);
+    } else {
+      this.router.navigate(['/clients'], {queryParams: {'q': query}});
+    }
+  }
+
+  trackClient(index: number, client: Client) {
+    return client.clientId;
   }
 }

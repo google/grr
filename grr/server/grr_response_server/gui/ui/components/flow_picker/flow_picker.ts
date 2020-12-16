@@ -1,52 +1,43 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild} from '@angular/core';
 import {FormControl} from '@angular/forms';
-import {FlowDescriptor} from '@app/lib/models/flow';
-import {combineLatest, fromEvent, Subject} from 'rxjs';
-import {filter, map, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
+import {MatAutocompleteTrigger} from '@angular/material/autocomplete';
+import {FuzzyMatcher, StringWithHighlights, stringWithHighlightsFromMatch} from '@app/lib/fuzzy_matcher';
+import {isNonNull} from '@app/lib/preconditions';
+import {BehaviorSubject, fromEvent, merge, Observable, Subject} from 'rxjs';
+import {debounceTime, filter, map, mapTo, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
 import {ClientPageFacade} from '../../store/client_page_facade';
-import {ConfigFacade} from '../../store/config_facade';
-import {FORMS} from '../flow_args_form/sub_forms';
 
-// During early development of UI v2, we don't want to display all legacy flows.
-// These flows have no form, so displaying them only clutters the UI for the
-// user. Instead, only show flows that have a form implemented.
-const FLOW_DESCRIPTORS_WITH_FORM = new Set(Object.keys(FORMS));
+import {FlowListItem, FlowListItemService, FlowsByCategory} from './flow_list_item';
 
-function flowDescriptorHasForm(fd: FlowDescriptor): boolean {
-  return FLOW_DESCRIPTORS_WITH_FORM.has(fd.name);
+
+
+interface FlowAutoCompleteOption {
+  readonly title: StringWithHighlights;
+  readonly flowListItem: FlowListItem;
 }
 
-function groupByCategory(entries: FlowEntry[]):
-    ReadonlyMap<string, ReadonlyArray<FlowEntry>> {
-  const map = new Map<string, FlowEntry[]>();
-  entries.forEach(entry => {
-    const arr = map.get(entry.category);
-    if (arr === undefined) {
-      map.set(entry.category, [entry]);
-    } else {
-      arr.push(entry);
-    }
-  });
-  return map;
+interface FlowAutoCompleteCategory {
+  readonly title: StringWithHighlights;
+  readonly options: ReadonlyArray<FlowAutoCompleteOption>;
 }
 
-interface FlowEntry extends FlowDescriptor {
-  highlighted: boolean;
+function stringWithHighlightsFromString(s: string): StringWithHighlights {
+  return {
+    value: s,
+    parts: [{
+      value: s,
+      highlight: false,
+    }]
+  };
 }
 
-/**
- * Returns a function that converts a FlowDescriptor to a FlowEntry,
- * adding a `highlighted` attribute that is true iff the FlowDescriptor should
- * be highlighted based on the user input `highlightQuery`.
- */
-function highlightWith(highlightQuery: string):
-    ((fd: FlowDescriptor) => FlowEntry) {
-  highlightQuery = highlightQuery.toLowerCase();
-  return fd => ({
-           ...fd,
-           highlighted: fd.friendlyName.toLowerCase().includes(highlightQuery),
-         });
+// FlowPicker shows either readonly input or autocomplete input, depending
+// on whether a flow is selected. This is due to different stylings of
+// both components.
+enum InputToShow {
+  READONLY,
+  AUTOCOMPLETE,
 }
 
 /**
@@ -58,61 +49,284 @@ function highlightWith(highlightQuery: string):
   styleUrls: ['./flow_picker.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FlowPicker implements OnDestroy, AfterViewInit {
+export class FlowPicker implements AfterViewInit, OnDestroy {
   private readonly unsubscribe$ = new Subject<void>();
 
+  readonly flowsByCategory$ = this.flowListItemService.flowsByCategory$;
+
+  private readonly flowsByName$: Observable<ReadonlyMap<string, FlowListItem>> =
+      this.flowsByCategory$.pipe(map(
+          fbc => new Map(
+              Array.from(fbc.values()).flat().map(fli => [fli.name, fli]))));
+
+  // Matcher used to filter flows by title.
+  private readonly flowTitlesMatcher$: Observable<FuzzyMatcher> =
+      this.flowsByCategory$.pipe(
+          map(fbc => new FuzzyMatcher(
+                  Array.from(fbc.values()).flat().map(f => f.friendlyName))));
+  // Matcher used to filter flows by category.
+  private readonly flowCategoriesMatcher$: Observable<FuzzyMatcher> =
+      this.flowsByCategory$.pipe(
+          map(fbc => new FuzzyMatcher(Array.from(fbc.keys()))));
+
+  // selectedFlow$ emits a value every time a flow is selected. undefined
+  // is emitted whenever selection is cleared (and is also the default value).
+  readonly selectedFlow$ =
+      new BehaviorSubject<FlowListItem|undefined>(undefined);
+
   readonly textInput = new FormControl('');
-  @ViewChild('form') form!: ElementRef<HTMLFormElement>;
+  readonly textInputWidth$ = new Subject<number>();
 
-  private readonly textInput$ = this.textInput.valueChanges.pipe(
-      startWith(''),
+
+  private readonly textInputFocused$ = new Subject<boolean>();
+
+  readonly commonFlows$: Observable<ReadonlyArray<FlowListItem>> =
+      this.flowListItemService.commonFlowNames$.pipe(
+          withLatestFrom(this.flowsByCategory$),
+          map(([fNames, flowsByCategory]) => {
+            const result = Array.from(flowsByCategory.values())
+                               .flat()
+                               .filter(fli => fNames.includes(fli.name));
+            result.sort((a, b) => a.friendlyName.localeCompare(b.friendlyName));
+            return result;
+          }),
+      );
+
+  @ViewChild(MatAutocompleteTrigger, {static: false})
+  autocompleteTrigger!: MatAutocompleteTrigger;
+
+  @ViewChild('textInputElement')
+  textInputElement!: ElementRef<HTMLInputElement>;
+
+  private readonly textInput$: Observable<string> =
+      this.textInput.valueChanges.pipe(
+          startWith(''),
+          filter(isNonNull),
+          map(v => {
+            // Autocomplete sends in a string when user types text in, and
+            // a selected value whenever one is selected. Thus we have to
+            // use reflection to determine the correct type.
+            if (typeof v === 'string') {
+              return v;
+            } else {
+              return (v as FlowListItem).friendlyName;
+            }
+          }),
+      );
+
+  readonly inputToShowEnum = InputToShow;
+
+  readonly inputToShow$: Observable<InputToShow> = this.selectedFlow$.pipe(
+      map(selectedFlow => {
+        if (selectedFlow !== undefined) {
+          return InputToShow.READONLY;
+        } else {
+          return InputToShow.AUTOCOMPLETE;
+        }
+      }),
   );
 
-  private readonly flowDescriptors$ = this.configFacade.flowDescriptors$.pipe(
-      map(fds => Array.from(fds.values())),
-      map(fds => fds.filter(flowDescriptorHasForm)),
+  // Subject synced with overlay's attach/detach events.
+  readonly overviewOverlayAttached$ = new Subject<boolean>();
+
+  // Subject used to force-hide the overview overlay.
+  readonly overviewOverlayForceHidden$ = new Subject<void>();
+
+  // When the input becomes empty or the input field gets focused while being
+  // empty, the overview panel has to be attached. Whenever the input field is
+  // non-empty, the overview panel has to be detached.
+  //
+  // Whenever the overview panel becomes detached, we have to make sure
+  // overviewOverlayOpened$ is in sync and reports false - otherwise it
+  // won't be attached correctly next time.
+  readonly overviewOverlayOpened$: Observable<boolean> = merge(
+      // If text input changes - emit true if it's empty and focused,
+      // false otherwise.
+      this.textInput$.pipe(
+          withLatestFrom(this.textInputFocused$),
+          map(([inputValue, isFocused]) => inputValue === '' && isFocused),
+          ),
+      // If text input becomes focused - emit true if it's empty.
+      this.textInputFocused$.pipe(
+          withLatestFrom(this.textInput$),
+          filter(([isFocused, inputValue]) => inputValue === '' && isFocused),
+          mapTo(true),
+          ),
+      // If the overlay becomes detached, emit false.
+      this.overviewOverlayAttached$.pipe(
+          filter(v => !v),
+          ),
+      // If the overlay is being forcibly hidden, pass-through the false
+      // value.
+      this.overviewOverlayForceHidden$.pipe(
+          mapTo(true),
+          ),
   );
 
-  readonly flowEntries$ =
-      combineLatest([this.flowDescriptors$, this.textInput$])
-          .pipe(
-              map(([fds, textInput]) => fds.map(highlightWith(textInput))),
-              map(groupByCategory),
+  readonly autoCompleteCategories$:
+      Observable<ReadonlyArray<FlowAutoCompleteCategory>> =
+          this.textInput$.pipe(
+              startWith(''),
+              withLatestFrom(
+                  this.flowsByCategory$, this.flowTitlesMatcher$,
+                  this.flowCategoriesMatcher$),
+              map(([v, flowsByCategory, titlesMatcher, categoriesMatcher]) =>
+                      this.buildCategories(
+                          v, flowsByCategory, titlesMatcher,
+                          categoriesMatcher)),
           );
 
-  readonly selectedFlow$ = this.clientPageFacade.selectedFlowDescriptor$;
+
+  private buildCategories(
+      query: string, flowsByCategory: FlowsByCategory,
+      titlesMatcher: FuzzyMatcher, categoriesMatcher: FuzzyMatcher):
+      ReadonlyArray<FlowAutoCompleteCategory> {
+    const acCategories: FlowAutoCompleteCategory[] = [];
+    if (query === '') {
+      return [];
+    } else {
+      const titleMatches = titlesMatcher.match(query);
+      const titleMatchesMap = new Map(titleMatches.map(m => [m.subject, m]));
+      const categoryMatches = categoriesMatcher.match(query);
+      const categoryMatchesMap =
+          new Map(categoryMatches.map(m => [m.subject, m]));
+
+      for (const [category, items] of flowsByCategory) {
+        const categoryMatch = categoryMatchesMap.get(category);
+        const acOptions: FlowAutoCompleteOption[] = [];
+
+        for (const item of items) {
+          const titleMatch = titleMatchesMap.get(item.friendlyName);
+          if (categoryMatch !== undefined || titleMatch !== undefined) {
+            acOptions.push({
+              title: titleMatch !== undefined ?
+                  stringWithHighlightsFromMatch(titleMatch) :
+                  stringWithHighlightsFromString(item.friendlyName),
+              flowListItem: item,
+            });
+          }
+        }
+
+        if (acOptions.length > 0) {
+          acOptions.sort((a, b) => a.title.value.localeCompare(b.title.value));
+          acCategories.push({
+            title: categoryMatch !== undefined ?
+                stringWithHighlightsFromMatch(categoryMatch) :
+                stringWithHighlightsFromString(category),
+            options: acOptions,
+          });
+        }
+      }
+    }
+
+    acCategories.sort((a, b) => a.title.value.localeCompare(b.title.value));
+    return acCategories;
+  }
 
   constructor(
-      private readonly configFacade: ConfigFacade,
       private readonly clientPageFacade: ClientPageFacade,
-  ) {}
-
-  ngAfterViewInit() {
-    fromEvent(this.form.nativeElement, 'submit')
+      private readonly flowListItemService: FlowListItemService,
+  ) {
+    this.clientPageFacade.selectedFlowDescriptor$
         .pipe(
             takeUntil(this.unsubscribe$),
-            withLatestFrom(this.flowEntries$),
-            map(([_, entries]) => Array.from(entries.values()).flat()),
-            // Only select a flow on enter press if there is exactly 1
-            // highlighted flow that matches the user input.
-            map((entries: FlowEntry[]) => entries.filter(f => f.highlighted)),
-            filter(entries => entries.length === 1),
+            withLatestFrom(this.flowsByName$),
             )
-        .subscribe(([fd]) => {
-          this.selectFlow(fd.name);
+        .subscribe(([fd, flowsByName]) => {
+          const flowListItem = flowsByName.get(fd?.name ?? '');
+          if (flowListItem !== undefined) {
+            this.selectFlow(flowListItem);
+          }
         });
   }
 
-  unselectFlow() {
+  trackCategory({}, category: FlowAutoCompleteCategory): string {
+    return category.title.value;
+  }
+
+  trackOption({}, option: FlowAutoCompleteOption): string {
+    return option.flowListItem.name;
+  }
+
+  displayWith(value: FlowListItem): string {
+    return value.friendlyName;
+  }
+
+  selectFlow(fli: FlowListItem) {
+    if (this.selectedFlow$.value === fli) {
+      return;
+    }
+    this.textInput.setValue(fli.friendlyName);
+    this.clientPageFacade.startFlowConfiguration(fli.name);
+    this.autocompleteTrigger.closePanel();
+    this.selectedFlow$.next(fli);
+  }
+
+  deselectFlow() {
+    if (this.selectedFlow$.value === undefined) {
+      return;
+    }
+
     this.clientPageFacade.stopFlowConfiguration();
+    this.selectedFlow$.next(undefined);
+
+    this.textInput.setValue('');
+    // clearInput() is called in the "clear button"'s click handler.
+    // The autocomplete input field loses focus when the "clear button" is
+    // clicked. However, the 'blur' event handler of the autocomplete input
+    // is called after the click handler of the "clear button". Thus, we have
+    // to call the openPanel() function after the current event handler
+    // finishes.
+    setTimeout(() => {
+      this.autocompleteTrigger.openPanel();
+      this.textInputElement.nativeElement.focus();
+    }, 0);
   }
 
-  selectFlow(name: string) {
-    this.clientPageFacade.startFlowConfiguration(name);
+  clearInput() {
+    this.textInput.setValue('');
   }
 
-  trackFlowDescriptor(index: number, fd: FlowDescriptor) {
-    return fd.name;
+  overlayOutsideClick(event: MouseEvent) {
+    // If the outside click lands on something other than the matAutocomplete
+    // input, hide the overlay.
+    if (event.target !== this.textInputElement.nativeElement) {
+      this.overviewOverlayForceHidden$.next();
+    }
+  }
+
+  ngAfterViewInit() {
+    fromEvent(this.textInputElement.nativeElement, 'focus')
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe(() => {
+          this.textInputFocused$.next(true);
+        });
+    fromEvent(this.textInputElement.nativeElement, 'blur')
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe(() => {
+          this.textInputFocused$.next(false);
+        });
+    // Overlay seems to ignore first escape key press in certain
+    // scenarios when used together with matAutocomplete. Making sure
+    // the overlay is hidden when Esc is pressed.
+    fromEvent(this.textInputElement.nativeElement, 'keydown', {capture: true})
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe((e: Event) => {
+          if ((e as KeyboardEvent).key === 'Escape') {
+            this.overviewOverlayAttached$.next(false);
+          }
+        });
+
+    fromEvent(window, 'resize')
+        .pipe(
+            takeUntil(this.unsubscribe$),
+            startWith(null),
+            debounceTime(100),
+            )
+        .subscribe(() => {
+          this.textInputWidth$.next(
+              this.textInputElement.nativeElement.clientWidth);
+        });
   }
 
   ngOnDestroy() {

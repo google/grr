@@ -12,7 +12,6 @@ import {MatInputModule} from '@angular/material/input';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
-import {ScheduledFlowListModule} from '../scheduled_flow_list/module';
 import {UserImageModule} from '../user_image/module';
 
 import {Approval} from './approval';
@@ -35,7 +34,6 @@ import {Approval} from './approval';
     MatInputModule,
     ReactiveFormsModule,
     RouterModule,
-    ScheduledFlowListModule,
     UserImageModule,
   ],
   declarations: [

@@ -1,0 +1,35 @@
+<div *ngIf="flowError$ | async" class="error">
+  An error was encountered.
+  <div *ngIf="resultsStderr$ | async as resultsStderr">
+    stderr is: {{resultsStderr}}
+  </div>
+</div>
+
+<div *ngIf="flowRunning$ | async" class="in-progress">
+  Query in progress: {{ (args$ | async).query }}
+</div>
+
+<ng-container *ngIf="flowCompleted$ | async">
+  <div
+    *ngIf="numberOfRowsAvailable$ | async"
+    class="flow-details-summary-actions export-button-holder">
+    <a
+      *ngIf="exportCsvLink$ | async as exportCsvLink"
+      [href]="exportCsvLink"
+      download
+      mat-stroked-button color="primary">
+      Download results as CSV
+    </a>
+  </div>
+
+  <osquery-results-table
+    *ngIf="displayTable$ | async as displayTable"
+    [table]="displayTable">
+  </osquery-results-table>
+
+  <div
+    *ngIf="additionalRowsAvailable$ | async as additionalCount"
+    class="show-additional">
+    <button (click)="loadCompleteResults()">View all rows ({{additionalCount}} more)</button>
+  </div>
+</ng-container>

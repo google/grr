@@ -757,7 +757,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
 
     if path_type == rdf_objects.PathInfo.PathType.TSK:
       pathspec.pathtype = pathspec.PathType.TSK
-    if path_type == rdf_objects.PathInfo.PathType.NTFS:
+    elif path_type == rdf_objects.PathInfo.PathType.NTFS:
       pathspec.pathtype = pathspec.PathType.NTFS
     elif path_type == rdf_objects.PathInfo.PathType.OS:
       pathspec.pathtype = pathspec.PathType.OS
@@ -766,7 +766,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
     elif path_type == rdf_objects.PathInfo.PathType.TEMP:
       pathspec.pathtype = pathspec.PathType.TMPFILE
     else:
-      raise ValueError("Invalid path_type: %r" % self.path_type)
+      raise ValueError("Invalid path_type: %r" % path_type)
 
     return pathspec
 

@@ -4,9 +4,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+from typing import Optional
+from typing import Sequence
+from typing import Union
+
+from google.protobuf import message
 from grr_api_client import client
 from grr_api_client import context as context_lib
 from grr_api_client import utils
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_proto.api import hunt_pb2
 from grr_response_proto.api import timeline_pb2
 from grr_response_proto.api import user_pb2
@@ -15,11 +22,13 @@ from grr_response_proto.api import user_pb2
 class HuntApprovalBase(object):
   """Base class for HuntApproval and HuntApprovalRef."""
 
-  def __init__(self,
-               hunt_id=None,
-               approval_id=None,
-               username=None,
-               context=None):
+  def __init__(
+      self,
+      hunt_id: str,
+      approval_id: str,
+      username: str,
+      context: context_lib.GrrApiContext,
+  ):
     super(HuntApprovalBase, self).__init__()
 
     if not hunt_id:
@@ -31,24 +40,27 @@ class HuntApprovalBase(object):
     if not username:
       raise ValueError("username can't be empty.")
 
-    self.hunt_id = hunt_id
-    self.approval_id = approval_id
-    self.username = username
+    self.hunt_id = hunt_id  # type: str
+    self.approval_id = approval_id  # type: str
+    self.username = username  # type: str
 
-    self._context = context
+    self._context = context  # type: context_lib.GrrApiContext
 
   # TODO(hanuszczak): There was an unresolved reference in this function, yet
   # none of the test caught it, indicating insufficient test coverage.
-  def Grant(self):
+  def Grant(self) -> "HuntApproval":
     args = user_pb2.ApiGrantHuntApprovalArgs(
         hunt_id=self.hunt_id,
         username=self.username,
         approval_id=self.approval_id)
     data = self._context.SendRequest("GrantHuntApproval", args)
+    if not isinstance(data, user_pb2.ApiHuntApproval):
+      raise TypeError(f"Unexpected response type: '{type(data)}'")
+
     return HuntApproval(
         data=data, username=self.username, context=self._context)
 
-  def Get(self):
+  def Get(self) -> "HuntApproval":
     """Fetch and return a proper HuntApproval object."""
 
     args = user_pb2.ApiGetHuntApprovalArgs(
@@ -56,10 +68,16 @@ class HuntApprovalBase(object):
         approval_id=self.approval_id,
         username=self.username)
     result = self._context.SendRequest("GetHuntApproval", args)
+    if not isinstance(result, user_pb2.ApiHuntApproval):
+      raise TypeError(f"Unexpected response type: '{type(result)}'")
+
     return HuntApproval(
         data=result, username=self._context.username, context=self._context)
 
-  def WaitUntilValid(self, timeout=None):
+  def WaitUntilValid(
+      self,
+      timeout: int = utils.DEFAULT_POLL_TIMEOUT,
+  ) -> "HuntApproval":
     """Wait until the approval is valid (i.e. - approved).
 
     Args:
@@ -84,60 +102,75 @@ class HuntApprovalRef(HuntApprovalBase):
 class HuntApproval(HuntApprovalBase):
   """Hunt approval object with fetched data."""
 
-  def __init__(self, data=None, username=None, context=None):
-
-    if data is None:
-      raise ValueError("data can't be None")
-
+  def __init__(
+      self,
+      data: user_pb2.ApiHuntApproval,
+      username: str,
+      context: context_lib.GrrApiContext,
+  ):
     super(HuntApproval, self).__init__(
         hunt_id=utils.UrnStringToHuntId(data.subject.urn),
         approval_id=data.id,
         username=username,
         context=context)
 
-    self.data = data
+    self.data = data  # type: user_pb2.ApiHuntApproval
 
 
 class HuntResult(object):
   """Wrapper class for hunt results."""
 
-  def __init__(self, data=None, context=None):
+  def __init__(
+      self,
+      data: hunt_pb2.ApiHuntResult,
+      context: context_lib.GrrApiContext,
+  ):
     super(HuntResult, self).__init__()
-    self.data = data
+    self.data = data  # type: hunt_pb2.ApiHuntResult
 
     self.client = client.ClientRef(
-        client_id=utils.UrnStringToClientId(data.client_id), context=context)
-    self.timestamp = data.timestamp
+        client_id=utils.UrnStringToClientId(data.client_id),
+        context=context)  # type: client.ClientRef
+    self.timestamp = data.timestamp  # type: int
 
   @property
-  def payload(self):
+  def payload(self) -> Union[message.Message, utils.UnknownProtobuf]:
     return utils.UnpackAny(self.data.payload)
 
 
 class HuntError(object):
   """Wrapper class for hunt errors."""
 
-  def __init__(self, data=None, context=None):
+  def __init__(
+      self,
+      data: hunt_pb2.ApiHuntError,
+      context: context_lib.GrrApiContext,
+  ):
     super(HuntError, self).__init__()
 
-    self.data = data
-    self.log_message = self.data.log_message
-    self.backtrace = self.data.backtrace
+    self.data = data  # type: hunt_pb2.ApiHuntError
+    self.log_message = self.data.log_message  # type: str
+    self.backtrace = self.data.backtrace  # type: str
 
     self.client = client.ClientRef(
-        client_id=utils.UrnStringToClientId(data.client_id), context=context)
+        client_id=utils.UrnStringToClientId(data.client_id),
+        context=context)  # type: client.ClientRef
 
 
 class HuntLog(object):
   """Wrapper class for hunt logs."""
 
-  def __init__(self, data=None, context=None):
+  def __init__(
+      self,
+      data: hunt_pb2.ApiHuntLog,
+      context: context_lib.GrrApiContext,
+  ):
     super(HuntLog, self).__init__()
 
-    self.data = data
-    self.log_message = self.data.log_message
+    self.data = data  # type: hunt_pb2.ApiHuntLog
+    self.log_message = self.data.log_message  # str
 
-    self.client = None
+    self.client = None  # type: Optional[client.ClientRef]
     if data.client_id:
       self.client = client.ClientRef(
           client_id=utils.UrnStringToClientId(data.client_id), context=context)
@@ -146,25 +179,37 @@ class HuntLog(object):
 class HuntClient(client.ClientRef):
   """Wrapper class for hunt clients."""
 
-  def __init__(self, data=None, context=None):
+  def __init__(
+      self,
+      data: hunt_pb2.ApiHuntClient,
+      context: context_lib.GrrApiContext,
+  ):
     super(HuntClient, self).__init__(client_id=data.client_id, context=context)
 
-    self.data = data
+    self.data = data  # type: hunt_pb2.ApiHuntClient
 
 
 class HuntBase(object):
   """Base class for HuntRef and Hunt."""
 
-  def __init__(self, hunt_id=None, context=None):
+  def __init__(
+      self,
+      hunt_id: str,
+      context: context_lib.GrrApiContext,
+  ):
     super(HuntBase, self).__init__()
 
     if not hunt_id:
       raise ValueError("hunt_id can't be empty.")
 
-    self.hunt_id = hunt_id
-    self._context = context
+    self.hunt_id = hunt_id  # type: str
+    self._context = context  # type: context_lib.GrrApiContext
 
-  def Approval(self, username, approval_id):
+  def Approval(
+      self,
+      username: str,
+      approval_id: str,
+  ) -> HuntApprovalRef:
     """Returns a reference to an approval."""
 
     return HuntApprovalRef(
@@ -173,10 +218,12 @@ class HuntBase(object):
         approval_id=approval_id,
         context=self._context)
 
-  def CreateApproval(self,
-                     reason=None,
-                     notified_users=None,
-                     email_cc_addresses=None):
+  def CreateApproval(
+      self,
+      reason: str,
+      notified_users: Sequence[str],
+      email_cc_addresses: Optional[Sequence[str]] = None,
+  ) -> HuntApproval:
     """Create a new approval for the current user to access this hunt."""
 
     if not reason:
@@ -185,18 +232,29 @@ class HuntBase(object):
     if not notified_users:
       raise ValueError("notified_users list can't be empty.")
 
+    if email_cc_addresses is None:
+      email_cc_addresses = []
+
     approval = user_pb2.ApiHuntApproval(
         reason=reason,
         notified_users=notified_users,
-        email_cc_addresses=email_cc_addresses or [])
+        email_cc_addresses=email_cc_addresses)
     args = user_pb2.ApiCreateHuntApprovalArgs(
         hunt_id=self.hunt_id, approval=approval)
 
     data = self._context.SendRequest("CreateHuntApproval", args)
+    if not isinstance(data, user_pb2.ApiHuntApproval):
+      raise TypeError(f"unexpected response type: '{type(data)}'")
+
     return HuntApproval(
         data=data, username=self._context.username, context=self._context)
 
-  def Modify(self, client_limit=None, client_rate=None, duration=None):
+  def Modify(
+      self,
+      client_limit: Optional[int] = None,
+      client_rate: Optional[int] = None,
+      duration: Optional[int] = None,
+  ) -> "Hunt":
     """Modifies a number of hunt arguments."""
     args = hunt_pb2.ApiModifyHuntArgs(hunt_id=self.hunt_id)
 
@@ -210,43 +268,52 @@ class HuntBase(object):
       args.duration = duration
 
     data = self._context.SendRequest("ModifyHunt", args)
+    if not isinstance(data, hunt_pb2.ApiHunt):
+      raise TypeError(f"Unexpected response type: '{type(data)}'")
+
     return Hunt(data=data, context=self._context)
 
   def Delete(self):
     args = hunt_pb2.ApiDeleteHuntArgs(hunt_id=self.hunt_id)
     self._context.SendRequest("DeleteHunt", args)
 
-  def Start(self):
+  def Start(self) -> "Hunt":
     args = hunt_pb2.ApiModifyHuntArgs(
         hunt_id=self.hunt_id, state=hunt_pb2.ApiHunt.STARTED)
     data = self._context.SendRequest("ModifyHunt", args)
+    if not isinstance(data, hunt_pb2.ApiHunt):
+      raise TypeError(f"Unexpected response type: '{type(data)}'")
+
     return Hunt(data=data, context=self._context)
 
-  def Stop(self):
+  def Stop(self) -> "Hunt":
     args = hunt_pb2.ApiModifyHuntArgs(
         hunt_id=self.hunt_id, state=hunt_pb2.ApiHunt.STOPPED)
     data = self._context.SendRequest("ModifyHunt", args)
+    if not isinstance(data, hunt_pb2.ApiHunt):
+      raise TypeError(f"Unexpected response type: '{type(data)}'")
+
     return Hunt(data=data, context=self._context)
 
-  def ListResults(self):
+  def ListResults(self) -> utils.ItemsIterator[HuntResult]:
     args = hunt_pb2.ApiListHuntResultsArgs(hunt_id=self.hunt_id)
     items = self._context.SendIteratorRequest("ListHuntResults", args)
     return utils.MapItemsIterator(
         lambda data: HuntResult(data=data, context=self._context), items)
 
-  def ListLogs(self):
+  def ListLogs(self) -> utils.ItemsIterator[HuntLog]:
     args = hunt_pb2.ApiListHuntLogsArgs(hunt_id=self.hunt_id)
     items = self._context.SendIteratorRequest("ListHuntLogs", args)
     return utils.MapItemsIterator(
         lambda data: HuntLog(data=data, context=self._context), items)
 
-  def ListErrors(self):
+  def ListErrors(self) -> utils.ItemsIterator[HuntError]:
     args = hunt_pb2.ApiListHuntErrorsArgs(hunt_id=self.hunt_id)
     items = self._context.SendIteratorRequest("ListHuntErrors", args)
     return utils.MapItemsIterator(
         lambda data: HuntError(data=data, context=self._context), items)
 
-  def ListCrashes(self):
+  def ListCrashes(self) -> utils.ItemsIterator[client.ClientCrash]:
     args = hunt_pb2.ApiListHuntCrashesArgs(hunt_id=self.hunt_id)
     items = self._context.SendIteratorRequest("ListHuntCrashes", args)
     return utils.MapItemsIterator(
@@ -257,26 +324,43 @@ class HuntBase(object):
   CLIENT_STATUS_OUTSTANDING = hunt_pb2.ApiListHuntClientsArgs.OUTSTANDING
   CLIENT_STATUS_COMPLETED = hunt_pb2.ApiListHuntClientsArgs.COMPLETED
 
-  def ListClients(self, client_status):
+  def ListClients(
+      self,
+      client_status: hunt_pb2.ApiListHuntClientsArgs.ClientStatus,
+  ) -> utils.ItemsIterator[HuntClient]:
     args = hunt_pb2.ApiListHuntClientsArgs(
         hunt_id=self.hunt_id, client_status=client_status)
     items = self._context.SendIteratorRequest("ListHuntClients", args)
     return utils.MapItemsIterator(
         lambda data: HuntClient(data=data, context=self._context), items)
 
-  def GetClientCompletionStats(self):
+  def GetClientCompletionStats(
+      self) -> hunt_pb2.ApiGetHuntClientCompletionStatsResult:
     args = hunt_pb2.ApiGetHuntClientCompletionStatsArgs(hunt_id=self.hunt_id)
-    return self._context.SendRequest("GetHuntClientCompletionStats", args)
 
-  def GetStats(self):
+    response = self._context.SendRequest("GetHuntClientCompletionStats", args)
+    if not isinstance(response, hunt_pb2.ApiGetHuntClientCompletionStatsResult):
+      raise TypeError(f"Unexpected response type: '{type(response)}'")
+
+    return response
+
+  def GetStats(self) -> jobs_pb2.ClientResourcesStats:
     args = hunt_pb2.ApiGetHuntStatsArgs(hunt_id=self.hunt_id)
-    return self._context.SendRequest("GetHuntStats", args).stats
 
-  def GetFilesArchive(self):
+    response = self._context.SendRequest("GetHuntStats", args)
+    if not isinstance(response, hunt_pb2.ApiGetHuntStatsResult):
+      raise TypeError(f"Unexpected response type: '{type(response)}'")
+
+    return response.stats
+
+  def GetFilesArchive(self) -> utils.BinaryChunkIterator:
     args = hunt_pb2.ApiGetHuntFilesArchiveArgs(hunt_id=self.hunt_id)
     return self._context.SendStreamingRequest("GetHuntFilesArchive", args)
 
-  def GetExportedResults(self, plugin_name):
+  def GetExportedResults(
+      self,
+      plugin_name: str,
+  ) -> utils.BinaryChunkIterator:
     args = hunt_pb2.ApiGetExportedHuntResultsArgs(
         hunt_id=self.hunt_id, plugin_name=plugin_name)
     return self._context.SendStreamingRequest("GetExportedHuntResults", args)
@@ -284,7 +368,7 @@ class HuntBase(object):
   def GetCollectedTimelines(
       self,
       fmt=timeline_pb2.ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED,
-  ):
+  ) -> utils.BinaryChunkIterator:
     args = timeline_pb2.ApiGetCollectedHuntTimelinesArgs()
     args.hunt_id = self.hunt_id
     args.format = fmt
@@ -295,32 +379,38 @@ class HuntBase(object):
 class HuntRef(HuntBase):
   """Ref to a hunt."""
 
-  def Get(self):
+  def Get(self) -> "Hunt":
     """Fetch hunt's data and return proper Hunt object."""
 
     args = hunt_pb2.ApiGetHuntArgs(hunt_id=self.hunt_id)
     data = self._context.SendRequest("GetHunt", args)
+    if not isinstance(data, hunt_pb2.ApiHunt):
+      raise TypeError(f"Unexpected response type: '{type(data)}'")
+
     return Hunt(data=data, context=self._context)
 
 
 class Hunt(HuntBase):
   """Hunt object with fetched data."""
 
-  def __init__(self, data=None, context=None):
-    if data is None:
-      raise ValueError("data can't be None")
-
+  def __init__(
+      self,
+      data: hunt_pb2.ApiHunt,
+      context: context_lib.GrrApiContext,
+  ):
     hunt_id = utils.UrnStringToHuntId(data.urn)
 
     super(Hunt, self).__init__(hunt_id=hunt_id, context=context)
 
-    self.data = data
+    self.data = data  # type: hunt_pb2.ApiHunt
 
 
-def CreateHunt(flow_name=None,
-               flow_args=None,
-               hunt_runner_args=None,
-               context=None):
+def CreateHunt(
+    flow_name: str,
+    flow_args: message.Message,
+    hunt_runner_args: flows_pb2.HuntRunnerArgs,
+    context: context_lib.GrrApiContext,
+) -> Hunt:
   """Creates a new hunt.
 
   Args:
@@ -351,7 +441,7 @@ def CreateHunt(flow_name=None,
 
   data = context.SendRequest("CreateHunt", request)
   if not isinstance(data, hunt_pb2.ApiHunt):
-    raise TypeError(f"Unexpected response type: {type(data)}")
+    raise TypeError(f"Unexpected response type: '{type(data)}'")
 
   return Hunt(data=data, context=context)
 
@@ -363,12 +453,12 @@ def CreatePerClientFileCollectionHunt(
 
   data = context.SendRequest("CreatePerClientFileCollectionHunt", hunt_args)
   if not isinstance(data, hunt_pb2.ApiHunt):
-    raise TypeError(f"Unexpected response type: {type(data)}")
+    raise TypeError(f"Unexpected response type: '{type(data)}'")
 
   return Hunt(data=data, context=context)
 
 
-def ListHunts(context=None):
+def ListHunts(context: context_lib.GrrApiContext) -> utils.ItemsIterator[Hunt]:
   """List all GRR hunts."""
 
   items = context.SendIteratorRequest("ListHunts", hunt_pb2.ApiListHuntsArgs())
@@ -378,7 +468,8 @@ def ListHunts(context=None):
 
 # TODO(hanuszczak): There was an unresolved reference in this function, yet none
 # of the test caught it, indicating insufficient test coverage.
-def ListHuntApprovals(context=None):
+def ListHuntApprovals(
+    context: context_lib.GrrApiContext) -> utils.ItemsIterator[HuntApproval]:
   """List all hunt approvals belonging to requesting user."""
   items = context.SendIteratorRequest("ListHuntApprovals",
                                       user_pb2.ApiListHuntApprovalsArgs())

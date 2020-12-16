@@ -52,7 +52,7 @@ def get_config():
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
-  config = configparser.SafeConfigParser()
+  config = configparser.ConfigParser()
   config.read(ini_path)
   return config
 
@@ -139,13 +139,11 @@ setup_args = dict(
     },
     install_requires=[
         "biplist==1.0.3",
-        "configparser==5.0.0",
         "cryptography==2.9.2",
         "distro==1.5.0",
-        "fleetspeak==0.1.7",
+        "fleetspeak==0.1.8",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipaddr==2.2.0",
-        "ipaddress==1.0.23",
         "ipython==7.15.0",
         "pexpect==4.8.0",
         "pip>=8.1.1",

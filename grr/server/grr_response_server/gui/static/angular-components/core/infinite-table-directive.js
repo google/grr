@@ -1,6 +1,8 @@
 goog.module('grrUi.core.infiniteTableDirective');
 goog.module.declareLegacyNamespace();
 
+const itemsProviderController = goog.requireType('grrUi.core.itemsProviderController');
+
 
 
 /**
@@ -43,7 +45,7 @@ exports.InfiniteTableController = class {
 
     /**
      * Items provider to be used for fetching items to be displayed.
-     * @export {grrUi.core.itemsProviderController.ItemsProviderController}
+     * @export {itemsProviderController.ItemsProviderController}
      */
     this.itemsProvider;
 
@@ -427,7 +429,7 @@ exports.InfiniteTableController = class {
    * Adds freshly fetched items to the fetchedItems list and updates internal
    * state. Called when new data arrive from items provider.
    *
-   * @param {!grrUi.core.itemsProviderController.Items} newlyFetchedItems
+   * @param {!itemsProviderController.Items} newlyFetchedItems
    * @private
    */
   onItemsFetched_(newlyFetchedItems) {

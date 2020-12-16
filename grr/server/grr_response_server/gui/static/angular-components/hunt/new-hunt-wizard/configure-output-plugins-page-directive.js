@@ -1,6 +1,8 @@
 goog.module('grrUi.hunt.newHuntWizard.configureOutputPluginsPageDirective');
 goog.module.declareLegacyNamespace();
 
+const reflectionService = goog.requireType('grrUi.core.reflectionService');
+
 
 
 /**
@@ -10,7 +12,7 @@ goog.module.declareLegacyNamespace();
 const ConfigureOutputPluginsPageController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.reflectionService.ReflectionService}
+   * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
    * @ngInject
    */
@@ -18,7 +20,7 @@ const ConfigureOutputPluginsPageController = class {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
 
     /** @type {Object} */

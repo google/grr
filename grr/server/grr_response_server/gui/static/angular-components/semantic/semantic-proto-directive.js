@@ -1,6 +1,8 @@
 goog.module('grrUi.semantic.semanticProtoDirective');
 goog.module.declareLegacyNamespace();
 
+const reflectionService = goog.requireType('grrUi.core.reflectionService');
+
 
 
 /**
@@ -175,7 +177,7 @@ var buildItems = exports.buildItems;
 var SemanticProtoController = class {
   /**
    * @param {!angular.Scope} $scope Directive's scope.
-   * @param {!grrUi.core.reflectionService.ReflectionService}
+   * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
    * @ngInject
    */
@@ -183,7 +185,7 @@ var SemanticProtoController = class {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.reflectionService.ReflectionService} */
+    /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
 
     /** @export {Array.<Object>} */

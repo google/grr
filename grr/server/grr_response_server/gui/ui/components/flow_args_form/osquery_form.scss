@@ -1,0 +1,17 @@
+.main-container {
+  display: flex;
+  flex-direction: column;
+}
+
+.query-section {
+  height: auto;
+}
+
+.editor-form-field {
+  display: block;
+  cursor: text;
+}
+
+.timeout-form-field {
+  width: 10em;
+}

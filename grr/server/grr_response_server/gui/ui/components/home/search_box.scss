@@ -19,11 +19,7 @@
 }
 
 .search-results {
-  .online-icon {
-    color: #32cd32;
-  }
-
-  .offline-icon {
-    color: #f00;
+  online-chip {
+    margin-left: 0.5em;
   }
 }

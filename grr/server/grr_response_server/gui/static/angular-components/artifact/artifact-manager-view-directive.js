@@ -1,6 +1,9 @@
 goog.module('grrUi.artifact.artifactManagerViewDirective');
 goog.module.declareLegacyNamespace();
 
+const apiService = goog.requireType('grrUi.core.apiService');
+const artifactDialogService = goog.requireType('grrUi.artifact.artifactDialogService');
+
 
 
 /**
@@ -10,8 +13,8 @@ goog.module.declareLegacyNamespace();
 const ArtifactManagerViewController = class {
   /**
    * @param {!angular.Scope} $scope
-   * @param {!grrUi.core.apiService.ApiService} grrApiService
-   * @param {!grrUi.artifact.artifactDialogService.ArtifactDialogService}
+   * @param {!apiService.ApiService} grrApiService
+   * @param {!artifactDialogService.ArtifactDialogService}
    *     grrArtifactDialogService
    * @ngInject
    */
@@ -19,11 +22,11 @@ const ArtifactManagerViewController = class {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
-    /** @private {!grrUi.core.apiService.ApiService} */
+    /** @private {!apiService.ApiService} */
     this.grrApiService_ = grrApiService;
 
     /**
-     * @private {!grrUi.artifact.artifactDialogService.ArtifactDialogService}
+     * @private {!artifactDialogService.ArtifactDialogService}
      */
     this.grrArtifactDialogService_ = grrArtifactDialogService;
 
