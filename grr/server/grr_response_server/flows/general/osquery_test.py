@@ -291,16 +291,8 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
           "FILE_COLLECT_LIMIT_MAX_SINGLE_FILE_BYTES",
           less_than_necessary_bytes):
         with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
-          results = self._RunFlow("Doesn't matter", ["collect_collumn"])
-
-    self.assertLen(results, 2)
-    self.assertEqual(type(results[0]), rdf_osquery.OsqueryResult)
-    self.assertEqual(type(results[1]), rdf_client_fs.StatEntry)
-
-    client_path = db.ClientPath.FromPathSpec(
-        self.client_id, results[1].pathspec)
-    byte_content = file_store.OpenFile(client_path).read()
-    self.assertEqual(len(byte_content), less_than_necessary_bytes)
+          with self.assertRaises(RuntimeError):
+            results = self._RunFlow("Doesn't matter", ["collect_collumn"])
 
   def testFlowDoesntCollectSingleFileAboveTotalLimit(self):
     with temp.AutoTempFilePath() as temp_file_path:
@@ -321,11 +313,8 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
           "FILE_COLLECT_LIMIT_MAX_TOTAL_BYTES",
           less_than_necessary_bytes):
         with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
-          results = self._RunFlow("Doesn't matter", ["collect_collumn"])
-
-    # Assert that only the OsqueryResult is returned (no file results)
-    self.assertLen(results, 1)
-    self.assertEqual(type(results[0]), rdf_osquery.OsqueryResult)
+          with self.assertRaises(RuntimeError):
+            self._RunFlow("Doesn't matter", ["collect_collumn"])
 
   def testFlowCollectFile(self):
     with temp.AutoTempFilePath() as temp_file_path:

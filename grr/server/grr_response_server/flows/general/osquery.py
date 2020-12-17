@@ -12,6 +12,7 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
+from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.flows.general import transfer
@@ -82,7 +83,7 @@ class FileCollectionLimitsExceeded(flow_base.FlowError):
   pass
 
 
-class OsqueryFlow(flow_base.FlowBase):
+class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
   """A flow mixin wrapping the osquery client action."""
 
   friendly_name = "Osquery"
@@ -124,15 +125,51 @@ class OsqueryFlow(flow_base.FlowBase):
       responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
   ) -> None:
     pathspecs = self._GetPathSpecsToCollect(responses)
-    self.CallFlow(
-        transfer.MultiGetFile.__name__,
-        pathspecs=pathspecs,
-        file_size=FILE_COLLECT_LIMIT_MAX_SINGLE_FILE_BYTES,
-        network_bytes_limit=FILE_COLLECT_LIMIT_MAX_TOTAL_BYTES,
-        next_state=compatibility.GetName(self.ProcessCollectedFiles))
+
+    stub = server_stubs.GetFileStat
+    for pathspec in pathspecs:
+      request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
+      self.CallClient(
+          stub,
+          request,
+          next_state=compatibility.GetName(self._StatForFileArrived))
+
+  def _StatForFileArrived(
+      self,
+      responses: flow_responses.Responses[rdf_client_fs.StatEntry],
+  ) -> None:
+    if not responses.success:
+      # TODO(simstoykov): Take note of this and report to the user with other
+      # flow results, instead of failing the flow.
+      raise flow_base.FlowError(
+        f"Error when attempted to stat file: {responses.status}")
+
+    if len(responses) != 1:
+      raise NotImplementedError(
+          f"Response from stat has length {len(responses)}, instead of 1.")
+
+    stat_entry = list(responses)[0]
+
+    if stat_entry.st_size > FILE_COLLECT_LIMIT_MAX_SINGLE_FILE_BYTES:
+      # TODO(simstoykov): Report to the user with other flow results instead of
+      # failing the flow.
+      file_path = stat_entry.pathspec.CollapsePath()
+      raise flow_base.FlowError(
+          f"File with path {file_path} is too big: {stat_entry.st_size} bytes "
+          f"when the limit is {FILE_COLLECT_LIMIT_MAX_SINGLE_FILE_BYTES} bytes")
+
+    next_total_size = self.state.total_collected_bytes + stat_entry.st_size
+    if next_total_size > FILE_COLLECT_LIMIT_MAX_TOTAL_BYTES:
+      # TODO(simstoykov): Consider reporting to the user and giving the
+      # collected files so far and the other results.
+      raise flow_base.FlowError("Files for collection exceed the total size "
+          f"limit of ${FILE_COLLECT_LIMIT_MAX_SINGLE_FILE_BYTES} bytes")
+
+    self.StartFileFetch(stat_entry.pathspec)
 
   def Start(self):
-    super(OsqueryFlow, self).Start()
+    super(OsqueryFlow, self).Start(
+        file_size=FILE_COLLECT_LIMIT_MAX_SINGLE_FILE_BYTES)
 
     if len(self.args.file_collect_columns) > FILE_COLLECT_LIMIT_MAX_COLUMNS:
       message = (f"Requested file collection for "
@@ -142,6 +179,7 @@ class OsqueryFlow(flow_base.FlowBase):
 
     self.state.progress = rdf_osquery.OsqueryProgress()
     self.state.path_to_count = { }
+    self.state.total_collected_bytes = 0
 
     action_args = rdf_osquery.OsqueryArgs(
         query=self.args.query,
@@ -161,6 +199,7 @@ class OsqueryFlow(flow_base.FlowBase):
 
     self._UpdateProgress(responses)
 
+    # Make Osquery results available before files are collected
     for response in responses:
       self.SendReply(response)
 
@@ -169,15 +208,12 @@ class OsqueryFlow(flow_base.FlowBase):
   def GetProgress(self) -> rdf_osquery.OsqueryProgress:
     return self.state.progress
 
-  def ProcessCollectedFiles(
-      self,
-      responses: flow_responses.Responses[rdf_client_fs.StatEntry],
-  ) -> None:
-    if not responses.success:
-      raise flow_base.FlowError(responses.status)
-
-    for result in responses:
-      self.SendReply(result)
+  def ReceiveFetchedFile(self,
+                         stat_entry,
+                         file_hash,
+                         request_data=None,
+                         is_duplicate=False) -> None:
+    self.SendReply(stat_entry)
 
   def GetFilesArchiveMappings(
       self,
