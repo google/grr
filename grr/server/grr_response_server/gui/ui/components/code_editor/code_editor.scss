@@ -1,6 +1,6 @@
 // Styles declared here are effectively global because of "ViewEncapsulation.None"
 @import '~codemirror/lib/codemirror.css';
-@import '~codemirror/theme/idea.css';
+@import '~codemirror/theme/neo.css';
 @import '~codemirror/addon/hint/show-hint.css';
 
 .autocomplete-hint {
@@ -9,13 +9,21 @@
 }
 
 .CodeMirror {
-  border: 1px solid #eee;
   width: 100%;
-  overflow-x: scroll;
 
   height: auto;
-  min-height: 4em;
+
+  font-family: 'Roboto Mono', monospace;
+  font-size: 14px;
 
   // Without explicitly setting the z-index, the editor was displayed on top of the "Access approval" panel.
   z-index: 0;
+}
+
+.cm-s-neo .CodeMirror-cursor {
+  width: 1px;
+  border: 0;
+  background: black;
+
+  z-index: 1;
 }

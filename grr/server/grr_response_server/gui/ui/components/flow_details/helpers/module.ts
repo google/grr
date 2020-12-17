@@ -10,6 +10,7 @@ import {FileModePipe} from '@app/components/flow_details/helpers/file_mode_pipe'
 
 import {HumanReadableSizeModule} from '../../human_readable_size/module';
 import {TimestampModule} from '../../timestamp/module';
+import {ExpandableHashModule} from '../../expandable_hash/module';
 
 import {FileResultsTable} from './file_results_table';
 import {OsqueryResultsTable} from './osquery_results_table';
@@ -28,8 +29,10 @@ import {OsqueryResultsTable} from './osquery_results_table';
     MatCardModule,
     MatButtonModule,
     MatIconModule,
+    // Child component modules
     TimestampModule,
     HumanReadableSizeModule,
+    ExpandableHashModule,
   ],
   declarations: [
     FileResultsTable,
