@@ -6,12 +6,14 @@ from __future__ import division
 from __future__ import unicode_literals
 from typing import Iterator
 from typing import List
+from typing import Dict
 
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.flows.general import transfer
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
@@ -139,6 +141,7 @@ class OsqueryFlow(flow_base.FlowBase):
       raise FileCollectionLimitsExceeded(message)
 
     self.state.progress = rdf_osquery.OsqueryProgress()
+    self.state.path_to_count = { }
 
     action_args = rdf_osquery.OsqueryArgs(
         query=self.args.query,
@@ -180,6 +183,23 @@ class OsqueryFlow(flow_base.FlowBase):
       self,
       flow_results: Iterator[rdf_flow_objects.FlowResult],
   ) -> Iterator[flow_base.ClientPathArchiveMapping]:
+    def _GetUniqueSuffixFor(target_path_so_far: str) -> str:
+      times_used_before = self.state.path_to_count.get(target_path_so_far, 0)
+      self.state.path_to_count[target_path_so_far] = times_used_before + 1
+
+      if times_used_before > 0:
+        return f"-{times_used_before}"
+      else:
+        return ""
+
+    def GenerateTargetPath(pathspec: rdf_paths.PathSpec) -> str:
+      path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
+      client_string_path = "/".join(path_info.components)
+
+      target_path = f"osquery_collected_files/{client_string_path}"
+      target_path += _GetUniqueSuffixFor(target_path)
+      return target_path
+
     for result in flow_results:
       try:
         osquery_file = _ExtractFileInfo(result)
@@ -188,11 +208,6 @@ class OsqueryFlow(flow_base.FlowBase):
 
       client_path = db.ClientPath.FromPathSpec(
           self.client_id, osquery_file.stat_entry.pathspec)
-
-      # This approach keeps the client directory structure
-      # TODO(simstoykov): Check whether we should really keep the tree structure
-      # TODO(simstoykov): What checks need to be performed on the full_client_path?
-      full_client_path = osquery_file.stat_entry.pathspec.path
-      target_path = f"osquery_collected_files{full_client_path}"
+      target_path = GenerateTargetPath(osquery_file.stat_entry.pathspec)
 
       yield flow_base.ClientPathArchiveMapping(client_path, target_path)

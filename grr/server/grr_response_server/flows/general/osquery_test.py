@@ -22,6 +22,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_server.flows.general import osquery as osquery_flow
 from grr_response_server.databases import db
 from grr_response_server import file_store
+from grr_response_server import flow_base
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import osquery_test_lib
@@ -376,6 +377,82 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
           with self.assertRaises(RuntimeError):
             self._RunFlow("Doesn't matter", ["collect_collumn"])
+
+  def testArchiveMappingsForMultipleFiles(self):
+    with temp.AutoTempFilePath() as temp_file_path1, \
+         temp.AutoTempFilePath() as temp_file_path2:
+      with io.open(temp_file_path1, "wb") as fd:
+        fd.write("Just sample text to put in the file 1.".encode('utf-8'))
+      with io.open(temp_file_path2, "wb") as fd:
+        fd.write("Just sample text to put in the file 2.".encode('utf-8'))
+
+      table = f"""
+      [
+        {{ "collect_column": "{temp_file_path1}" }},
+        {{ "collect_column": "{temp_file_path2}" }}
+      ]
+      """
+
+      with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+          flow_id = self._InitializeFlow("Doesn't matter", ["collect_column"])
+
+    flow = flow_base.FlowBase.CreateFlowInstance(
+        flow_test_lib.GetFlowObj(self.client_id, flow_id))
+    results = flow_test_lib.GetRawFlowResults(self.client_id, flow_id)
+
+    mappings = list(flow.GetFilesArchiveMappings(results))
+    self.assertCountEqual(mappings, [
+        flow_base.ClientPathArchiveMapping(
+            db.ClientPath.OS(self.client_id,
+                             temp_file_path1.split("/")[1:]),
+            f"osquery_collected_files{temp_file_path1}",
+        ),
+        flow_base.ClientPathArchiveMapping(
+            db.ClientPath.OS(self.client_id,
+                             temp_file_path2.split("/")[1:]),
+            f"osquery_collected_files{temp_file_path2}",
+        ),
+    ])
+
+  def testArchiveMappingsForDuplicateFilesInResult(self):
+    with temp.AutoTempFilePath() as temp_file_path:
+      with io.open(temp_file_path, "wb") as fd:
+        fd.write("Just sample text to put in the file.".encode('utf-8'))
+
+      table = f"""
+      [
+        {{ "collect_column": "{temp_file_path}" }}
+      ]
+      """
+
+      with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+          flow_id = self._InitializeFlow("Doesn't matter", ["collect_column"])
+
+    flow = flow_base.FlowBase.CreateFlowInstance(
+        flow_test_lib.GetFlowObj(self.client_id, flow_id))
+    results = flow_test_lib.GetRawFlowResults(self.client_id, flow_id)
+
+    # This is how we emulate duplicate filenames in the results
+    duplicated_results = results + results + results
+
+    mappings = list(flow.GetFilesArchiveMappings(duplicated_results))
+    self.assertCountEqual(mappings, [
+        flow_base.ClientPathArchiveMapping(
+            db.ClientPath.OS(self.client_id,
+                             temp_file_path.split("/")[1:]),
+            f"osquery_collected_files{temp_file_path}",
+        ),
+        flow_base.ClientPathArchiveMapping(
+            db.ClientPath.OS(self.client_id,
+                             temp_file_path.split("/")[1:]),
+            f"osquery_collected_files{temp_file_path}-1",
+        ),
+        flow_base.ClientPathArchiveMapping(
+            db.ClientPath.OS(self.client_id,
+                             temp_file_path.split("/")[1:]),
+            f"osquery_collected_files{temp_file_path}-2",
+        ),
+    ])
 
 
 if __name__ == "__main__":
