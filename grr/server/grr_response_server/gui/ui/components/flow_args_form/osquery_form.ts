@@ -3,6 +3,8 @@ import {FormControl, FormGroup, Validators} from '@angular/forms';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 import {shareReplay} from 'rxjs/operators';
 import {MatDialog} from '@angular/material/dialog';
+import {MatChipInputEvent} from '@angular/material/chips';
+import {COMMA, ENTER} from '@angular/cdk/keycodes';
 
 import {OsqueryArgs} from '../../lib/api/api_interfaces';
 import {OsqueryQueryHelper} from './osquery_query_helper/osquery_query_helper';
@@ -24,9 +26,25 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
     query: new FormControl(this.defaultQueryDisplayed, Validators.required),
     timeoutMillis: new FormControl(null, Validators.required),
     ignoreStderrErrors: new FormControl(null),
+    fileCollectColumns: new FormControl([]),
   });
 
-  settingsShown = false;
+  fileCollectionSettingsShown = false;
+  lowLevelSettingsShown = false;
+
+  readonly separatorKeysCodes: number[] = [ENTER, COMMA];
+
+  get fileCollectColumnsControl() {
+    const control = this.form.get('fileCollectColumns');
+    if (!control) {
+      throw Error('fileCollectColumns form control is null');
+    }
+
+    return control;
+  }
+  get fileCollectColumns() {
+    return this.fileCollectColumnsControl?.value as Array<string>;
+  }
 
   @Output() readonly formValues$ = this.form.valueChanges.pipe(shareReplay(1));
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
@@ -46,11 +64,43 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
   }
 
   ngOnInit(): void {
+    if (this.defaultFlowArgs.fileCollectColumns &&
+        this.defaultFlowArgs.fileCollectColumns.length > 0) {
+        this.fileCollectionSettingsShown = true;
+    }
+
     this.form.patchValue(this.defaultFlowArgs);
   }
 
+  openCollection() {
+    this.fileCollectionSettingsShown = true;
+  }
+
   openSettings() {
-    this.settingsShown = true;
+    this.lowLevelSettingsShown = true;
+  }
+
+  addFileCollectedColumn(event: MatChipInputEvent): void {
+    const inputElement = event.input;
+    const value = event.value ?? '';
+
+    if (value.trim()) {
+      this.fileCollectColumns.push(value.trim());
+      this.fileCollectColumnsControl.markAsDirty();
+    }
+
+    if (inputElement) {
+      inputElement.value = '';
+    }
+  }
+
+  removeFileCollectedColumn(column: string): void {
+    const index = this.fileCollectColumns.indexOf(column);
+
+    if (index >= 0) {
+      this.fileCollectColumns.splice(index, 1);
+      this.fileCollectColumnsControl.markAsDirty();
+    }
   }
 
   private overwriteQuery(newValue: string): void {

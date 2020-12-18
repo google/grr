@@ -8,6 +8,7 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {MatDialogModule} from '@angular/material/dialog';
+import {MatChipsModule} from '@angular/material/chips';
 import {RouterModule} from '@angular/router';
 import {CollectBrowserHistoryForm} from '@app/components/flow_args_form/collect_browser_history_form';
 import {CollectMultipleFilesForm} from '@app/components/flow_args_form/collect_multiple_files_form';
@@ -28,6 +29,7 @@ import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
     RouterModule,
     CommonModule,
     MatCheckboxModule,
+    MatChipsModule,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,

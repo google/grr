@@ -1,7 +1,7 @@
 import {initTestEnvironment} from '@app/testing';
 import {OsqueryQueryHelper} from './osquery_query_helper';
 import {OsqueryQueryHelperModule} from './module';
-import {TestBed, fakeAsync, tick} from '@angular/core/testing';
+import {TestBed, fakeAsync, tick, waitForAsync} from '@angular/core/testing';
 import {nameToTable} from './osquery_table_specs';
 import {isNonNull} from '@app/lib/preconditions';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -10,7 +10,7 @@ import {take} from 'rxjs/operators';
 initTestEnvironment();
 
 describe('OsqueryQueryHelper component', () => {
-  beforeEach(() => {
+  beforeEach(waitForAsync(() => {
     return TestBed
         .configureTestingModule({
           imports: [
@@ -19,7 +19,7 @@ describe('OsqueryQueryHelper component', () => {
           ],
         })
         .compileComponents();
-  });
+  }));
 
   function constructFixture() {
     const fixture = TestBed.createComponent(OsqueryQueryHelper);

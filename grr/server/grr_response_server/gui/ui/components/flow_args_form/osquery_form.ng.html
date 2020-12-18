@@ -15,16 +15,50 @@
   <span>
     <button
       type="button"
-      *ngIf="!settingsShown"
+      *ngIf="!fileCollectionSettingsShown"
+      (click)="openCollection()"
+      mat-button
+      color="primary">
+      <span>Show file collection settings</span>
+      <mat-icon>keyboard_arrow_right</mat-icon>
+    </button>
+  </span>
+  <div [class]="fileCollectionSettingsShown ? 'collection-container' : 'hide-content'">
+    <mat-form-field>
+      <mat-chip-list
+        #chipList
+        aria-label="Columns for file collection"
+        formControlName="fileCollectColumns">
+        <mat-chip
+          *ngFor="let columnName of fileCollectColumns"
+          [selectable]="false"
+          [removable]="true"
+          (removed)="removeFileCollectedColumn(columnName)">
+          {{columnName}}
+          <mat-icon matChipRemove>cancel</mat-icon>
+        </mat-chip>
+        <input
+          placeholder="Specify table columns to collect files from"
+          [matChipInputFor]="chipList"
+          [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
+          [matChipInputAddOnBlur]="true"
+          (matChipInputTokenEnd)="addFileCollectedColumn($event)">
+      </mat-chip-list>
+    </mat-form-field>
+  </div>
+
+  <span>
+    <button
+      type="button"
+      *ngIf="!lowLevelSettingsShown"
       (click)="openSettings()"
       mat-button
       color="primary">
-      <mat-icon>keyboard_arrow_down</mat-icon>
       <span>Show low-level settings</span>
+      <mat-icon>keyboard_arrow_right</mat-icon>
     </button>
   </span>
-
-  <ng-container *ngIf="settingsShown">
+  <div [class]="lowLevelSettingsShown ? 'settings-container' : 'hide-content'">
     <mat-form-field class="timeout-form-field">
       <mat-label>Timeout</mat-label>
       <input type="number" matInput placeholder="" formControlName="timeoutMillis">
@@ -32,5 +66,5 @@
     </mat-form-field>
 
     <mat-checkbox formControlName="ignoreStderrErrors">Ignore stderr errors</mat-checkbox>
-  </ng-container>
+  </div>
 </div>
