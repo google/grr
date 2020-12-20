@@ -1,8 +1,5 @@
-import {initTestEnvironment} from '@app/testing';
 import {waitForAsync, TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
-import {CodeEditorModule} from '../code_editor/module';
 import {MatIconModule} from '@angular/material/icon';
 import {MatButtonModule} from '@angular/material/button';
 import {MatDialogModule} from '@angular/material/dialog';
@@ -11,12 +8,15 @@ import {MatChipsModule} from '@angular/material/chips';
 import {ReactiveFormsModule} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
-import {OsqueryForm} from './osquery_form';
-import {OsqueryFlowArgs} from '@app/lib/api/api_interfaces';
 import {By} from '@angular/platform-browser';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {MatButtonHarness} from '@angular/material/button/testing';
-import {MatChipListHarness} from '@angular/material/chips/testing';
+
+import {initTestEnvironment} from '@app/testing';
+import {OsqueryForm} from './osquery_form';
+import {OsqueryFlowArgs} from '@app/lib/api/api_interfaces';
+import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
+import {CodeEditorModule} from '../code_editor/module';
 
 initTestEnvironment();
 
@@ -36,6 +36,7 @@ describe('OsqueryForm', () => {
             ReactiveFormsModule,
             MatFormFieldModule,
             MatInputModule,
+            MatIconModule,
           ],
         })
         .compileComponents();
@@ -67,7 +68,7 @@ describe('OsqueryForm', () => {
     expect(browseSpecsButton).toBeTruthy();
   });
 
-  it('should display file collection settings and expand on click ',
+  it('should display button for file collection settings and expand on click ',
       async () => {
         const fixture = constructFixture();
         const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
@@ -82,7 +83,7 @@ describe('OsqueryForm', () => {
         expect(fileCollectionContainer).toBeTruthy();
       });
 
-  it('should display low-level settings and expand on click ',
+  it('should display button for low-level settings and expand on click ',
       async () => {
         const fixture = constructFixture();
         const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
@@ -94,6 +95,17 @@ describe('OsqueryForm', () => {
 
         const lowLevelSettingsContainer =
             fixture.debugElement.query(By.css('.settings-container'));
+        expect(lowLevelSettingsContainer).toBeTruthy();
+      });
+
+  it('should have collection settings expanded when default flow args contain collection columns,',
+      () => {
+        const fixture = constructFixture({
+          fileCollectColumns: ['some collumn to collect files from'],
+        });
+
+        const lowLevelSettingsContainer =
+            fixture.debugElement.query(By.css('.collection-container'));
         expect(lowLevelSettingsContainer).toBeTruthy();
       });
 });
