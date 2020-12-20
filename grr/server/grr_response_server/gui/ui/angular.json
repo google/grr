@@ -125,10 +125,6 @@
           }
         }
       }
-    }
-  },
-  "defaultProject": "ui",
-  "cli": {
-    "analytics": false
-  }
+    }},
+  "defaultProject": "ui"
 }
