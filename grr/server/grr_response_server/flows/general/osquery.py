@@ -70,13 +70,13 @@ def _ExtractFileInfo(
     result: rdf_flow_objects.FlowResult,
 ) -> rdf_server_osquery.OsqueryCollectedFile:
   if not isinstance(result.payload, rdf_client_fs.StatEntry):
-    raise _ResultNotRelevantError
+    raise _ResultNotRelevant
 
   stat_entry = result.payload
   return rdf_server_osquery.OsqueryCollectedFile(stat_entry=stat_entry)
 
 
-class _ResultNotRelevantError(ValueError):
+class _ResultNotRelevant(ValueError):
   pass
 
 
@@ -168,6 +168,19 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
     self.StartFileFetch(stat_entry.pathspec)
 
+  def _GenerateTargetArchivePath(self, pathspec: rdf_paths.PathSpec) -> str:
+    path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
+    client_string_path = "/".join(path_info.components)
+
+    target_path = f"osquery_collected_files/{client_string_path}"
+
+    times_used_before = self.state.path_to_count.get(target_path, 0)
+    self.state.path_to_count[target_path] = times_used_before + 1
+    if times_used_before > 0:
+      target_path = f"{target_path}-{times_used_before}"
+
+    return target_path
+
   def Start(self):
     super(OsqueryFlow, self).Start(
         file_size=FILE_COLLECTION_MAX_SINGLE_FILE_BYTES)
@@ -220,31 +233,17 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
       self,
       flow_results: Iterator[rdf_flow_objects.FlowResult],
   ) -> Iterator[flow_base.ClientPathArchiveMapping]:
-    def _GetUniqueSuffixFor(target_path_so_far: str) -> str:
-      times_used_before = self.state.path_to_count.get(target_path_so_far, 0)
-      self.state.path_to_count[target_path_so_far] = times_used_before + 1
-
-      if times_used_before > 0:
-        return f"-{times_used_before}"
-      else:
-        return ""
-
-    def GenerateTargetPath(pathspec: rdf_paths.PathSpec) -> str:
-      path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
-      client_string_path = "/".join(path_info.components)
-
-      target_path = f"osquery_collected_files/{client_string_path}"
-      target_path += _GetUniqueSuffixFor(target_path)
-      return target_path
-
     for result in flow_results:
       try:
         osquery_file = _ExtractFileInfo(result)
-      except _ResultNotRelevantError:
+      except _ResultNotRelevant:
         continue
 
       client_path = db.ClientPath.FromPathSpec(
           self.client_id, osquery_file.stat_entry.pathspec)
-      target_path = GenerateTargetPath(osquery_file.stat_entry.pathspec)
+      target_path = self._GenerateTargetArchivePath(
+          osquery_file.stat_entry.pathspec)
 
-      yield flow_base.ClientPathArchiveMapping(client_path, target_path)
+      yield flow_base.ClientPathArchiveMapping(
+          client_path=client_path,
+          archive_path=target_path)

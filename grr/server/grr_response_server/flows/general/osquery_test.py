@@ -319,8 +319,8 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testFlowCollectFile(self):
     with temp.AutoTempFilePath() as temp_file_path:
-      with io.open(temp_file_path, "wb") as fd:
-        fd.write("Just sample text to put in the file.".encode('utf-8'))
+      with io.open(temp_file_path, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file.")
 
       table = f"""
       [
@@ -343,8 +343,8 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testFlowDoesntCollectWhenColumnsAboveLimit(self):
     with temp.AutoTempFilePath() as temp_file_path:
-      with io.open(temp_file_path, "wb") as fd:
-        fd.write("Just sample text to put in the file.".encode('utf-8'))
+      with io.open(temp_file_path, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file.")
 
       with mock.patch.object(osquery_flow, "FILE_COLLECTION_MAX_COLUMNS", 1):
         # Should raise immediately, no need to fake Osquery output
@@ -353,8 +353,8 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testFlowDoesntCollectWhenRowsAboveLimit(self):
     with temp.AutoTempFilePath() as temp_file_path:
-      with io.open(temp_file_path, "wb") as fd:
-        fd.write("Just sample text to put in the file.".encode('utf-8'))
+      with io.open(temp_file_path, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file.")
 
       table = f"""
       [
@@ -369,12 +369,14 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
             self._RunFlow("Doesn't matter", ["collect_collumn"])
 
   def testArchiveMappingsForMultipleFiles(self):
-    with temp.AutoTempFilePath() as temp_file_path1, \
-         temp.AutoTempFilePath() as temp_file_path2:
-      with io.open(temp_file_path1, "wb") as fd:
-        fd.write("Just sample text to put in the file 1.".encode('utf-8'))
-      with io.open(temp_file_path2, "wb") as fd:
-        fd.write("Just sample text to put in the file 2.".encode('utf-8'))
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dir_path:
+      temp_file_path1 = os.path.join(temp_dir_path, "foo")
+      temp_file_path2 = os.path.join(temp_dir_path, "bar")
+
+      with io.open(temp_file_path1, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file 1.")
+      with io.open(temp_file_path2, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file 2.")
 
       table = f"""
       [
@@ -406,8 +408,8 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def testArchiveMappingsForDuplicateFilesInResult(self):
     with temp.AutoTempFilePath() as temp_file_path:
-      with io.open(temp_file_path, "wb") as fd:
-        fd.write("Just sample text to put in the file.".encode('utf-8'))
+      with io.open(temp_file_path, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file.")
 
       table = f"""
       [
