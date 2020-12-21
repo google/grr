@@ -1,3 +1,5 @@
+{{flowListEntry$ | async | json}}
+
 <div *ngIf="flowError$ | async" class="error">
   An error was encountered.
   <div *ngIf="resultsStderr$ | async as resultsStderr">
