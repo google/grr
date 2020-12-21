@@ -7,9 +7,9 @@ from __future__ import unicode_literals
 
 import queue
 import time
+from unittest import mock
 
 from absl import app
-import mock
 import requests
 
 from grr_response_client import comms

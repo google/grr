@@ -23,9 +23,10 @@ class StreamTest(absltest.TestCase):
     entry.atime_ns = 123 * 1_000_000_000
     entry.mtime_ns = 456 * 1_000_000_000
     entry.ctime_ns = 789 * 1_000_000_000
+    entry.btime_ns = 1337 * 1_000_000_000
 
     content = b"".join(body.Stream(iter([entry]))).decode("utf-8")
-    expected = "0|/foo/bar/baz|404|-rw-r--r--|13|7|42|123|456|789|0\n"
+    expected = "0|/foo/bar/baz|404|-rw-r--r--|13|7|42|123|456|789|1337\n"
 
     self.assertEqual(content, expected)
 

@@ -10,6 +10,7 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 import {CollectBrowserHistoryForm} from '@app/components/flow_args_form/collect_browser_history_form';
 import {CollectMultipleFilesForm} from '@app/components/flow_args_form/collect_multiple_files_form';
+import {HelpersModule} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/module';
 import {CollectSingleFileForm} from '@app/components/flow_args_form/collect_single_file_form';
 import {ByteComponentsModule} from '@app/components/form/byte_input/module';
 import {GlobExpressionExplanationModule} from '@app/components/form/glob_expression_form_field/module';
@@ -32,6 +33,7 @@ import {OsqueryForm} from './osquery_form';
     MatButtonModule,
     ByteComponentsModule,
     GlobExpressionExplanationModule,
+    HelpersModule,
   ],
   declarations: [
     FlowArgsForm,

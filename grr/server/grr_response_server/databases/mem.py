@@ -157,3 +157,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     precondition.AssertType(obj, rdfvalue.RDFValue)
 
     return obj.__class__.FromSerializedBytes(obj.SerializeToBytes())
+
+  def Now(self) -> rdfvalue.RDFDatetime:
+    del self  # Unused.
+    return rdfvalue.RDFDatetime.Now()

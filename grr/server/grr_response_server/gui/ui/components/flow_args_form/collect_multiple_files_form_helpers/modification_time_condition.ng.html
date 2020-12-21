@@ -1,0 +1,16 @@
+<condition-panel
+  title="Modification time"
+  [formGroup]="controlContainer.control"
+  (conditionRemoved)="conditionRemoved.emit()">
+
+  <mat-form-field appearance="outline">
+    <mat-label>Min last modified time</mat-label>
+    <input matInput placeholder="" formControlName="minLastModifiedTime">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Max last modified time</mat-label>
+    <input matInput placeholder="" formControlName="maxLastModifiedTime">
+  </mat-form-field>
+
+</condition-panel>

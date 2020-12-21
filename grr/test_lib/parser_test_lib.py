@@ -5,8 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import functools
-
-import mock
+from unittest import mock
 
 from grr_response_core.lib import factory
 from grr_response_core.lib import parsers

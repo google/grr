@@ -14,11 +14,10 @@ from typing import Collection
 from typing import IO
 from typing import Iterable
 from typing import Iterator
+from unittest import mock
 
 from absl import app
 from absl.testing import absltest
-
-import mock
 
 from grr_response_client import actions
 from grr_response_client.client_actions import searching

@@ -706,8 +706,13 @@ describe('ClientPageFacade', () => {
         ));
     clientPageFacade.startFlowConfiguration('KeepAlive');
     clientPageFacade.selectedFlowDescriptor$.subscribe(flow => {
-      expect(flow!.name).toEqual('KeepAlive');
-      expect(flow!.defaultArgs).toEqual({foo: 1});
+      // First value is expected to be undefined.
+      if (!flow) {
+        return;
+      }
+
+      expect(flow.name).toEqual('KeepAlive');
+      expect(flow.defaultArgs).toEqual({foo: 1});
       done();
     });
   });
@@ -717,8 +722,13 @@ describe('ClientPageFacade', () => {
         newFlowDescriptorMap({name: 'KeepAlive', defaultArgs: {foo: 1}}));
     clientPageFacade.startFlowConfiguration('KeepAlive', {foo: 42});
     clientPageFacade.selectedFlowDescriptor$.subscribe(flow => {
-      expect(flow!.name).toEqual('KeepAlive');
-      expect(flow!.defaultArgs).toEqual({foo: 42});
+      // First value is expected to be undefined.
+      if (!flow) {
+        return;
+      }
+
+      expect(flow.name).toEqual('KeepAlive');
+      expect(flow.defaultArgs).toEqual({foo: 42});
       done();
     });
   });

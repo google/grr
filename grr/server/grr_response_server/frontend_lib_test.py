@@ -9,11 +9,11 @@ import array
 import logging
 import pdb
 import time
+from unittest import mock
 import zlib
 
 from absl import app
 from absl import flags
-import mock
 import requests
 
 from grr_response_client import comms

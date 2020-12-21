@@ -6,8 +6,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 from typing import Text
-
-import mock
+from unittest import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -1713,6 +1712,28 @@ class DatabaseTestClientsMixin(object):
     snapshot.knowledge_base.os = "🚀" * 12
     with self.assertRaises(db.StringTooLongError):
       self.db.WriteClientSnapshot(snapshot)
+
+  def testWriteClientSnapshotSequence(self):
+    count = 64
+
+    client_id = db_test_utils.InitializeClient(self.db)
+    snapshot = rdf_objects.ClientSnapshot(client_id=client_id)
+
+    # Updates of the client snapshots next to each other should not fail
+    # and each of them should have distinct timestamp.
+    for idx in range(count):
+      snapshot.startup_info.client_info.revision = idx
+      snapshot.kernel = f"3.14.{idx}"
+      self.db.WriteClientSnapshot(snapshot)
+
+    snapshots = self.db.ReadClientSnapshotHistory(client_id)
+    self.assertLen(snapshots, count)
+
+    # Returned snapshots will be ordered from the newest to oldest, so we invert
+    # the order for cleaner assertions.
+    for idx, snapshot in enumerate(reversed(snapshots)):
+      self.assertEqual(snapshot.startup_info.client_info.revision, idx)
+      self.assertEqual(snapshot.kernel, f"3.14.{idx}")
 
   def _AddClientKeyedData(self, client_id):
     # Client labels.

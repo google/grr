@@ -11,9 +11,9 @@ import os
 import platform
 import stat
 import unittest
+from unittest import mock
 
 from absl import app
-import mock
 import psutil
 
 from grr_response_client import actions

@@ -10,8 +10,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import ctypes
+from unittest import mock
+
 from absl import app
-import mock
 
 from grr_response_client.osx import objc
 from grr.test_lib import test_lib

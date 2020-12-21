@@ -6,9 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import threading
+from unittest import mock
 
 from absl import app
-import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats

@@ -8,9 +8,9 @@ from __future__ import unicode_literals
 import glob
 import os
 import sys
+from unittest import mock
 
 from absl import app
-import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils

@@ -27,7 +27,7 @@ class UnsupportedHandlerError(Error):
 
 class VFSHandler(metaclass=abc.ABCMeta):
   """Base class for handling objects in the VFS."""
-  supported_pathtype = -1
+  supported_pathtype = rdf_paths.PathSpec.PathType.UNSET
 
   # Should this handler be auto-registered?
   auto_register = False
@@ -184,7 +184,7 @@ class VFSHandler(metaclass=abc.ABCMeta):
     return new_pathspec
 
   def ListFiles(self, ext_attrs=False):
-    """An iterator over all VFS files contained in this directory.
+    """Returns an iterator over all VFS files contained in this directory.
 
     Generates a StatEntry for each file or directory.
 
@@ -195,6 +195,7 @@ class VFSHandler(metaclass=abc.ABCMeta):
       IOError: if this fails.
     """
     del ext_attrs  # Unused.
+    return []
 
   def ListNames(self):
     """A generator for all names in this directory."""

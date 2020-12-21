@@ -30,10 +30,10 @@ export class ConfigService {
   get config(): Config {
     if (window.__IS_GRR_TEST) {
       return {
-        approvalPollingIntervalMs: 100,
-        flowListPollingIntervalMs: 100,
-        flowResultsPollingIntervalMs: 100,
-        selectedClientPollingIntervalMs: 100,
+        approvalPollingIntervalMs: 1000,
+        flowListPollingIntervalMs: 1000,
+        flowResultsPollingIntervalMs: 1000,
+        selectedClientPollingIntervalMs: 1000,
       };
     } else {
       return {

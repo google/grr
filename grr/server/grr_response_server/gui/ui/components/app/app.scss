@@ -35,6 +35,19 @@
       font-family: c.$google-sans-display-family;
       margin-top: 2px;
     }
+
+    .badge {
+      border-radius: 5px;
+      border: 1px solid c.mat-color(c.$foreground, divider-light);
+      color: c.mat-color(c.$foreground, logo);
+      display: inline-block;
+      font-size: 10px;
+      font-weight: bold;
+      line-height: 1;
+      margin-left: 1em;
+      padding: 4px;
+      vertical-align: middle;
+    }
   }
 
   .spacer {

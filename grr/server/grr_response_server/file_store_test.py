@@ -6,10 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import itertools
+from unittest import mock
 
 from absl import app
-
-import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server import data_store

@@ -16,9 +16,9 @@ import shutil
 import threading
 import time
 import unittest
+from unittest import mock
 
 from absl.testing import absltest
-import mock
 import pkg_resources
 
 from grr_response_core import config

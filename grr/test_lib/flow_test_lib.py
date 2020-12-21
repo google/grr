@@ -8,8 +8,7 @@ from __future__ import unicode_literals
 import logging
 import sys
 from typing import ContextManager, Iterable, Optional, Text, Type
-
-import mock
+from unittest import mock
 
 from grr_response_client.client_actions import standard
 

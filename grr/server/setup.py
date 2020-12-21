@@ -181,7 +181,6 @@ setup_args = dict(
     install_requires=[
         "google-api-python-client==1.9.3",
         "google-auth==1.18.0",
-        "google-cloud-bigquery==1.25.0",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client-builder==%s" %
         VERSION.get("Version", "packagedepends"),

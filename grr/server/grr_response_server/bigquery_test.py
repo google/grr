@@ -8,10 +8,10 @@ from __future__ import unicode_literals
 import io
 import os
 import time
+from unittest import mock
 
 from absl import app
 from googleapiclient import errors
-import mock
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue

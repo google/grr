@@ -1,0 +1,12 @@
+.icons {
+  display: flex;
+  align-items: center;
+
+  mat-chip {
+    margin-left: 0.5em;
+  }
+
+  mat-icon {
+    margin-right: 0.25em;
+  }
+}

@@ -1,5 +1,3 @@
-import {Dictionary} from '@ngrx/entity';
-
 /** Descriptor containing information about a flow class. */
 export declare interface FlowDescriptor {
   readonly name: string;

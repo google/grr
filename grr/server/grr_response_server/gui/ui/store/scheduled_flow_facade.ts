@@ -49,7 +49,6 @@ export class ScheduledFlowStore extends ComponentStore<State> {
   readonly selectSource = this.updater<{creator?: string, clientId?: string}>(
       (state, {creator, clientId}) => {
         return {
-          ...state,
           creator,
           clientId,
         };

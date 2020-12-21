@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import io
+import math
 import os
 import random
 import stat as stat_mode
@@ -20,13 +21,17 @@ from grr_response_core.lib.util import temp
 class TimelineEntryTest(absltest.TestCase):
 
   def testFromStat(self):
-    with temp.AutoTempFilePath() as filepath:
-      time_before = round(time.time())
+    with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
+      filepath = os.path.join(dirpath, "foobar")
+
+      # TODO(hanuszczak): Use `time.time_ns` once we are Python 3.7-only.
+      time_before_ns = math.floor(time.time()) * 1e9
 
       with io.open(filepath, mode="wb") as filedesc:
         filedesc.write(b"1234567")
 
-      time_after = round(time.time())
+      # TODO(hanuszczak): Use `time.time_ns` once we are Python 3.7-only.
+      time_after_ns = math.ceil(time.time()) * 1e9
 
       # TODO(hanuszczak): `AutoTempFilePath` should return a `Path` object.
       filepath_bytes = filepath.encode("utf-8")
@@ -37,11 +42,9 @@ class TimelineEntryTest(absltest.TestCase):
       self.assertEqual(entry.size, 7)
       self.assertTrue(stat_mode.S_ISREG(entry.mode))
 
-      # TODO(hanuszczak): Switch this test to use nanosecond precision once we
-      # are Python 3.7-only.
-      self.assertBetween(round(entry.atime_ns / 1e9), time_before, time_after)
-      self.assertBetween(round(entry.mtime_ns / 1e9), time_before, time_after)
-      self.assertBetween(round(entry.ctime_ns / 1e9), time_before, time_after)
+      self.assertBetween(entry.atime_ns, time_before_ns, time_after_ns)
+      self.assertBetween(entry.mtime_ns, time_before_ns, time_after_ns)
+      self.assertBetween(entry.ctime_ns, time_before_ns, time_after_ns)
 
       self.assertEqual(entry.dev, filepath_stat.st_dev)
       self.assertEqual(entry.ino, filepath_stat.st_ino)

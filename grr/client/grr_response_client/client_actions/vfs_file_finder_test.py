@@ -9,9 +9,10 @@ from __future__ import unicode_literals
 import hashlib
 import platform
 import unittest
+from unittest import mock
 import zlib
+
 from absl.testing import absltest
-import mock
 
 from grr_response_client.client_actions import vfs_file_finder
 from grr_response_client.client_actions.file_finder_utils import globbing

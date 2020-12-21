@@ -9,11 +9,11 @@ from __future__ import unicode_literals
 import hashlib
 import os
 import tarfile
+from unittest import mock
 import zipfile
 
 from absl import app
 
-import mock
 import yaml
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs

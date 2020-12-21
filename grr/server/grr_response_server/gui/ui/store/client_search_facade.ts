@@ -1,6 +1,5 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {Store} from '@ngrx/store';
 import {ApiSearchClientResult} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateClient} from '@app/lib/api_translation/client';

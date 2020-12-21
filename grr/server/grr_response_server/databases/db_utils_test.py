@@ -5,10 +5,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import logging
+from unittest import mock
 
 from absl import app
 from absl.testing import absltest
-import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import compatibility

@@ -13,10 +13,10 @@ import io
 import os
 import shutil
 import stat
+from unittest import mock
 import zlib
 
 from absl import app
-import mock
 
 from grr_response_client.client_actions import file_finder as client_file_finder
 from grr_response_client.client_actions.file_finder_utils import globbing

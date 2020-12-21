@@ -1,0 +1,10 @@
+@use '~material-theme' as c;
+
+.conditions {
+  .title {
+    margin-top: 1.5em;
+    margin-bottom: 0.75em;
+    font-family: c.$google-sans-display-family;
+    color: c.mat-color(c.$foreground, text);
+  }
+}

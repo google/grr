@@ -2,9 +2,9 @@
 # python3
 import os
 import subprocess
+from unittest import mock
 
 from absl.testing import absltest
-import mock
 import requests
 
 from grr.travis import upload_build_results_to_gcs

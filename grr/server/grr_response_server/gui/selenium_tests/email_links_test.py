@@ -40,7 +40,9 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.addCleanup(email_stubber.Stop)
 
   def _ExtractLinkFromMessage(self, message):
-    m = re.search(r"href='(.+?)'", message, re.MULTILINE)
+    m = re.search(r"""href=['"](.+?)['"]""", message, re.MULTILINE)
+    self.assertIsNotNone(m, f"No link found in {message}")
+
     link = urlparse.urlparse(m.group(1))
     return link.path + "/" + "#" + link.fragment
 
@@ -169,7 +171,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.assertIn("OSBreakDownCronJob", message)
 
     # Extract link from the message text and open it.
-    m = re.search(r"href='(.+?)'", message, re.MULTILINE)
+    m = re.search(r"""href=['"](.+?)['"]""", message, re.MULTILINE)
     link = urlparse.urlparse(m.group(1))
     self.Open(link.path + "?" + link.query + "#" + link.fragment)
 

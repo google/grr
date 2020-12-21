@@ -11,10 +11,10 @@ import logging
 import os
 import shutil
 import stat
+from unittest import mock
 
 from absl import app
 from absl.testing import absltest
-import mock
 import psutil
 
 # pylint: disable=unused-import,g-bad-import-order

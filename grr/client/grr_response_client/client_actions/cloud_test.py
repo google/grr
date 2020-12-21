@@ -10,9 +10,9 @@ import os
 import platform
 import subprocess
 import unittest
+from unittest import mock
 
 from absl import app
-import mock
 import requests
 
 from grr_response_client.client_actions import cloud

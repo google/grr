@@ -2,10 +2,10 @@
 # Lint as: python3
 """Unittest for GRRafana HTTP server."""
 import copy
+from unittest import mock
 
 from absl import app
 from absl.testing import absltest
-import mock
 from werkzeug import test as werkzeug_test
 
 from google.protobuf import timestamp_pb2

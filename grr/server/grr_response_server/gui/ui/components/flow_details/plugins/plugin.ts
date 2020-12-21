@@ -1,6 +1,6 @@
-import {EventEmitter, Input, Output} from '@angular/core';
+import {EventEmitter, Input, OnDestroy, Output} from '@angular/core';
 import {FlowListEntry, FlowResultsQuery} from '@app/lib/models/flow';
-import {ReplaySubject} from 'rxjs';
+import {ReplaySubject, Subject} from 'rxjs';
 import {map} from 'rxjs/operators';
 import {makeLegacyLink} from '../../../lib/routing';
 
@@ -16,7 +16,7 @@ export type FlowResultsQueryWithoutFlowId = Omit<FlowResultsQuery, 'flowId'>;
 /**
  * Base class for all flow details plugins.
  */
-export abstract class Plugin {
+export abstract class Plugin implements OnDestroy {
   private flowListEntryValue?: FlowListEntry;
 
   /**
@@ -37,6 +37,8 @@ export abstract class Plugin {
     return makeLegacyLink(`#/clients/${clientId}/flows/${flowId}`);
   }));
 
+  readonly unsubscribe$ = new Subject<void>();
+
   /**
    * Flow input binding containing flow data information to display.
    */
@@ -56,5 +58,12 @@ export abstract class Plugin {
    */
   queryFlowResults(query: FlowResultsQueryWithoutFlowId) {
     this.flowResultsQuery.emit(query);
+  }
+
+  ngOnDestroy() {
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
+
+    this.flowListEntry$.complete();
   }
 }

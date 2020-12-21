@@ -9,8 +9,7 @@ from __future__ import unicode_literals
 import abc
 import threading
 import time
-
-import mock
+from unittest import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server import blob_store

@@ -7,9 +7,9 @@ from __future__ import unicode_literals
 import io
 import multiprocessing
 import os
+from unittest import mock
 
 from absl.testing import absltest
-import mock
 
 from grr_response_client_builder import client_build
 from grr_response_core.lib.util import temp

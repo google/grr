@@ -42,20 +42,20 @@ class VfsFileFinder(actions.ActionPlugin):
       with vfs.VFSOpen(pathspec) as vfs_file:
         stat_entry = vfs_file.Stat()
 
-      # Conversion from StatEntry to os.stat_result is lossy. Some checks do
-      # not work (e.g. extended attributes).
-      stat_obj = client_utils.StatResultFromStatEntry(stat_entry)
-      fs_stat = filesystem.Stat(path=path, stat_obj=stat_obj)
-      if not all(cond.Check(fs_stat) for cond in metadata_conditions):
-        continue
+        # Conversion from StatEntry to os.stat_result is lossy. Some checks do
+        # not work (e.g. extended attributes).
+        stat_obj = client_utils.StatResultFromStatEntry(stat_entry)
+        fs_stat = filesystem.Stat(path=path, stat_obj=stat_obj)
+        if not all(cond.Check(fs_stat) for cond in metadata_conditions):
+          continue
 
-      matches = _CheckConditionsShortCircuit(content_conditions, pathspec)
-      if content_conditions and not matches:
-        continue  # Skip if any condition yielded no matches.
+        matches = _CheckConditionsShortCircuit(content_conditions, pathspec)
+        if content_conditions and not matches:
+          continue  # Skip if any condition yielded no matches.
 
-      result = action(stat_entry=stat_entry, fd=vfs_file)
-      result.matches = matches
-      self.SendReply(result)
+        result = action(stat_entry=stat_entry, fd=vfs_file)
+        result.matches = matches
+        self.SendReply(result)
 
   def _ParseAction(
       self, args: rdf_file_finder.FileFinderArgs) -> vfs_subactions.Action:

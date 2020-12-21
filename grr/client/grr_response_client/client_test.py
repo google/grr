@@ -5,9 +5,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from absl import app
+from unittest import mock
 
-import mock
+from absl import app
 
 # Need to import client to add the flags.
 from grr_response_client import actions

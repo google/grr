@@ -7,10 +7,10 @@ from __future__ import unicode_literals
 
 import io
 import os
+from unittest import mock
 
 from absl import app
 from absl.testing import absltest
-import mock
 import psutil
 import requests
 

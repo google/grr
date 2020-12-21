@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import platform
 import unittest
+from unittest import mock
 
 from absl.testing import absltest
 
@@ -15,8 +16,6 @@ try:
 except ImportError:
   # The import is expected to fail on non-Windows platforms.
   winreg = None
-
-import mock
 
 try:
   from grr_response_client.windows import installers

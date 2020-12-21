@@ -9,9 +9,9 @@ import io
 import json
 import os
 import time
+from unittest import mock
 
 from absl import app
-import mock
 
 from grr_response_client.client_actions import osquery as osquery_action
 from grr_response_core import config

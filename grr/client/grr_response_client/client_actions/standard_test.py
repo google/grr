@@ -12,9 +12,9 @@ import os
 import platform
 import stat
 import unittest
+from unittest import mock
 
 from absl import app
-import mock
 
 from grr_response_client.client_actions import standard
 from grr_response_client.vfs_handlers import files

@@ -5,9 +5,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-from absl import app
+from unittest import mock
 
-import mock
+from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -442,6 +442,30 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
 
     with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
       self.handler.Handle(args, context=self.context)
+
+  def testSendsEmailWithLinkToNewUi(self):
+    email_messages = []
+
+    def SendEmailStub(to_addresses, from_address, subject, message, **kwargs):
+      del to_addresses, from_address, subject, kwargs  # Unused.
+      email_messages.append(message)
+
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
+      approval_id = self.RequestClientApproval(
+          self.client_id,
+          requestor=self.context.username,
+          reason="blah",
+          approver=u"approver",
+          email_cc_address="test@example.com")
+
+    self.assertLen(email_messages, 1)
+    self.assertIn((f"http://localhost:8000/v2/clients/{self.client_id}/users/"
+                   f"{self.context.username}/approvals/{approval_id}"),
+                  email_messages[0])
+    # Check for correct link to legacy UI. Remove once new UI is stable.
+    self.assertIn(
+        (f"http://localhost:8000/#/users/{self.context.username}/approvals/"
+         f"client/{self.client_id}/{approval_id}"), email_messages[0])
 
 
 class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,

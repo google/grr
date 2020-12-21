@@ -10,9 +10,9 @@ import ctypes
 import os
 import socket
 import struct
+from unittest import mock
 
 from absl import app
-import mock
 
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr.test_lib import client_test_lib

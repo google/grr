@@ -5,9 +5,9 @@ from __future__ import unicode_literals
 
 from typing import IO
 from typing import Iterator
+from unittest import mock
 
 from absl.testing import absltest
-import mock
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue

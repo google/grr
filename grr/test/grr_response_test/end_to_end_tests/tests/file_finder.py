@@ -107,7 +107,7 @@ class AbstractWindowsFileTransferTest(test_base.AbstractFileTransferTest):
 
   def _testLargeFileCollection(self, flow_name):
     args = self.grr_api.types.CreateFlowArgs(flow_name)
-    args.paths.append("%%environ_systemdrive%%\\$MFT")
+    args.paths.append("%%environ_systemroot%%\\System32\\MRT.exe")
     args.pathtype = self.pathtype
     args.action.action_type = args.action.STAT
 
@@ -119,7 +119,7 @@ class AbstractWindowsFileTransferTest(test_base.AbstractFileTransferTest):
     path = self._pathspecToVFSPath(ff_result.stat_entry.pathspec)
 
     args = self.grr_api.types.CreateFlowArgs(flow_name)
-    args.paths.append("%%environ_systemdrive%%\\$MFT")
+    args.paths.append("%%environ_systemroot%%\\System32\\MRT.exe")
     args.pathtype = self.pathtype
     args.action.action_type = args.action.DOWNLOAD
     args.action.download.oversized_file_policy = (
@@ -131,22 +131,16 @@ class AbstractWindowsFileTransferTest(test_base.AbstractFileTransferTest):
     fd = self.client.File(path)
     last_collected_size = fd.Get().data.last_collected_size
 
-    # Check that the last_collected_size is non-zero and that the
-    # difference between reported and collected size is less than 10%
-    # (this is due to the fact that $MFT may be changing while being read).
-    # Note that we have to take into account the fact that $MFT may be
-    # larger than the FileFinderDownloadActionOptions.max_size setting.
     self.assertGreater(last_collected_size, 0)
-    self.assertLess(
-        abs(last_collected_size -
-            min(ff_result.stat_entry.st_size, args.action.download.max_size)),
-        int(last_collected_size * 0.1))
+    self.assertEqual(
+        last_collected_size,
+        min(ff_result.stat_entry.st_size, args.action.download.max_size))
 
     # Make sure first chunk of the file is not empty.
     first_chunk = self.ReadFromFile(path, 1024)
     self.assertNotEqual(first_chunk, b"0" * 1024)
 
-    # Check that fetched MFT can be read in its entirety.
+    # Check that fetched file can be read in its entirety.
     total_size = functools.reduce(operator.add,
                                   [len(blob) for blob in fd.GetBlob()], 0)
     self.assertEqual(total_size, last_collected_size)

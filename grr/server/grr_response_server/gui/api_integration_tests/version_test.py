@@ -2,9 +2,9 @@
 # Lint as: python3
 from typing import Callable
 from typing import Optional
+from unittest import mock
 
 from absl.testing import absltest
-import mock
 import pkg_resources
 
 from grr_api_client import api as grr_api

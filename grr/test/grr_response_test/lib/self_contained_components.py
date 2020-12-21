@@ -66,13 +66,18 @@ def _GetServerComponentArgs(config_path: str) -> List[str]:
       "grr-response-core", "install_data/etc/grr-server.yaml")
   secondary_config_path = package.ResourcePath(
       "grr-response-test", "grr_response_test/test_data/grr_test.yaml")
+
+  monitoring_port = portpicker.pick_unused_port()
+
   return [
       "--config",
       primary_config_path,
       "--secondary_configs",
       ",".join([secondary_config_path, config_path]),
       "-p",
-      "Monitoring.http_port=%d" % portpicker.pick_unused_port(),
+      f"Monitoring.http_port={monitoring_port}",
+      "-p",
+      f"Monitoring.http_port_max={monitoring_port+10}",
       "-p",
       "AdminUI.webauth_manager=NullWebAuthManager",
   ]

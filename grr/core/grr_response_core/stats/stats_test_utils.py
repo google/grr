@@ -8,10 +8,9 @@ from __future__ import unicode_literals
 
 import abc
 import time
+from unittest import mock
 
 from absl.testing import absltest
-
-import mock
 
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.stats import metrics

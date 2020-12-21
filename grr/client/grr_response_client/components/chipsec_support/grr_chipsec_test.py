@@ -7,10 +7,10 @@ from __future__ import unicode_literals
 
 import collections
 import sys
+from unittest import mock
 
 from absl import app
 from chipsec.helper import oshelper
-import mock
 
 from grr_response_client import vfs
 # If grr_response_client.components.chipsec_support.actions.grr_chipsec is

@@ -9,9 +9,9 @@ from __future__ import unicode_literals
 import os
 import subprocess
 import sys
+from unittest import mock
 
 from absl import app
-import mock
 import psutil
 
 from grr_response_client.client_actions import admin

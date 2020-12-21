@@ -10,11 +10,10 @@ import io
 import os
 import threading
 import time
+from unittest import mock
 import zipfile
 
 from absl import app
-
-import mock
 
 from grr_api_client import errors
 from grr_response_core.lib import rdfvalue

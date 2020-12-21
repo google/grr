@@ -1924,11 +1924,6 @@ message FileFinderResult {
   }];
 }
 
-message CollectedFile {
-  optional StatEntry stat = 1;
-  optional Hash hash = 2;
-}
-
 message CollectSingleFileArgs {
   optional string path = 1;
   optional uint64 max_size_bytes = 2 [(sem_type) = { type: "ByteSize" }];
@@ -1957,10 +1952,37 @@ message CollectMultipleFilesArgs {
     type: "GlobExpression",
     description: "Files matching any of these expressions will be collected",
   }];
+
+  optional FileFinderModificationTimeCondition modification_time = 2;
+  optional FileFinderAccessTimeCondition access_time = 3;
+  optional FileFinderInodeChangeTimeCondition inode_change_time = 4;
+  optional FileFinderSizeCondition size = 5;
+  optional FileFinderExtFlagsCondition ext_flags = 6;
+  optional FileFinderContentsRegexMatchCondition contents_regex_match = 7;
+  optional FileFinderContentsLiteralMatchCondition contents_literal_match = 8;
 }
 
 message CollectMultipleFilesResult {
-  repeated CollectedFile files = 1;
+  reserved 1;
+
+  enum Status {
+    UNDEFINED = 0;
+    COLLECTED = 1;
+    FAILED = 2;
+  }
+
+  optional StatEntry stat = 2;
+  optional Hash hash = 3;
+  optional Status status = 4;
+  optional string error = 5;
+}
+
+message CollectMultipleFilesProgress {
+  optional uint64 num_found = 1;
+  optional uint64 num_in_progress = 2;
+  optional uint64 num_raw_fs_access_retries = 3;
+  optional uint64 num_collected = 4;
+  optional uint64 num_failed = 5;
 }
 
 // Next field ID: 4

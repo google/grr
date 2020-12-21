@@ -7,10 +7,10 @@ from __future__ import unicode_literals
 import collections
 import hashlib
 import io
+from unittest import mock
 import zlib
 
 from absl.testing import absltest
-import mock
 
 from grr_response_client.client_actions.file_finder_utils import uploading
 from grr_response_core.lib.util import temp
