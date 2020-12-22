@@ -626,7 +626,7 @@ export declare interface OsqueryArgs {
   readonly query?: string;
   readonly timeoutMillis?: DecimalString;
   readonly ignoreStderrErrors?: boolean;
-  readonly fileCollectColumns?: ReadonlyArray<string>;
+  readonly fileCollectionColumns?: ReadonlyArray<string>;
 }
 
 /** OsqueryProgress proto mapping */

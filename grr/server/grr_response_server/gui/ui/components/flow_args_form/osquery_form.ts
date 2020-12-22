@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
-import {FormControl, FormGroup, Validators} from '@angular/forms';
+import {FormControl, FormGroup, Validators, AbstractControl} from '@angular/forms';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 import {shareReplay} from 'rxjs/operators';
 import {MatDialog} from '@angular/material/dialog';
@@ -8,7 +8,7 @@ import {COMMA, ENTER} from '@angular/cdk/keycodes';
 
 import {OsqueryArgs} from '../../lib/api/api_interfaces';
 import {OsqueryQueryHelper} from './osquery_query_helper/osquery_query_helper';
-import {isNonNull} from '@app/lib/preconditions';
+import {isNonNull, assertNonNull} from '@app/lib/preconditions';
 
 
 /** Form that configures an Osquery flow. */
@@ -26,7 +26,7 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
     query: new FormControl(this.defaultQueryDisplayed, Validators.required),
     timeoutMillis: new FormControl(null, Validators.required),
     ignoreStderrErrors: new FormControl(null),
-    fileCollectColumns: new FormControl([]),
+    fileCollectionColumns: new FormControl([]),
   });
 
   fileCollectionSettingsShown = false;
@@ -34,16 +34,15 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
 
   readonly separatorKeysCodes: number[] = [ENTER, COMMA];
 
-  get fileCollectColumnsControl() {
-    const control = this.form.get('fileCollectColumns');
-    if (!control) {
-      throw Error('fileCollectColumns form control is null');
-    }
+  get fileCollectionColumnsControl(): AbstractControl {
+    const control = this.form.get('fileCollectionColumns');
+    assertNonNull(control,
+        'the form control listing columns for file collection');
 
     return control;
   }
-  get fileCollectColumns() {
-    return this.fileCollectColumnsControl?.value as Array<string>;
+  get fileCollectionColumns(): Array<string> {
+    return this.fileCollectionColumnsControl?.value as Array<string>;
   }
 
   @Output() readonly formValues$ = this.form.valueChanges.pipe(shareReplay(1));
@@ -64,8 +63,8 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
   }
 
   ngOnInit(): void {
-    if (this.defaultFlowArgs.fileCollectColumns &&
-        this.defaultFlowArgs.fileCollectColumns.length > 0) {
+    if (this.defaultFlowArgs.fileCollectionColumns &&
+        this.defaultFlowArgs.fileCollectionColumns.length > 0) {
         this.fileCollectionSettingsShown = true;
     }
 
@@ -80,13 +79,13 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
     this.lowLevelSettingsShown = true;
   }
 
-  addFileCollectedColumn(event: MatChipInputEvent): void {
+  addFileCollectionColumn(event: MatChipInputEvent): void {
     const inputElement = event.input;
     const value = event.value ?? '';
 
     if (value.trim()) {
-      this.fileCollectColumns.push(value.trim());
-      this.fileCollectColumnsControl.markAsDirty();
+      this.fileCollectionColumns.push(value.trim());
+      this.fileCollectionColumnsControl.markAsDirty();
     }
 
     if (inputElement) {
@@ -94,12 +93,12 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
     }
   }
 
-  removeFileCollectedColumn(column: string): void {
-    const index = this.fileCollectColumns.indexOf(column);
+  removeFileCollectionColumn(column: string): void {
+    const index = this.fileCollectionColumns.indexOf(column);
 
     if (index >= 0) {
-      this.fileCollectColumns.splice(index, 1);
-      this.fileCollectColumnsControl.markAsDirty();
+      this.fileCollectionColumns.splice(index, 1);
+      this.fileCollectionColumnsControl.markAsDirty();
     }
   }
 

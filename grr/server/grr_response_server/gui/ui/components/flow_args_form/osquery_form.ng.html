@@ -28,12 +28,12 @@
       <mat-chip-list
         #chipList
         aria-label="Columns for file collection"
-        formControlName="fileCollectColumns">
+        formControlName="fileCollectionColumns">
         <mat-chip
-          *ngFor="let columnName of fileCollectColumns"
+          *ngFor="let columnName of fileCollectionColumns"
           [selectable]="false"
           [removable]="true"
-          (removed)="removeFileCollectedColumn(columnName)">
+          (removed)="removeFileCollectionColumn(columnName)">
           {{columnName}}
           <mat-icon matChipRemove>cancel</mat-icon>
         </mat-chip>
@@ -42,7 +42,7 @@
           [matChipInputFor]="chipList"
           [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
           [matChipInputAddOnBlur]="true"
-          (matChipInputTokenEnd)="addFileCollectedColumn($event)">
+          (matChipInputTokenEnd)="addFileCollectionColumn($event)">
       </mat-chip-list>
     </mat-form-field>
   </div>

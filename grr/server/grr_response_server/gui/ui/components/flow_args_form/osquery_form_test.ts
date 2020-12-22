@@ -11,10 +11,11 @@ import {MatInputModule} from '@angular/material/input';
 import {By} from '@angular/platform-browser';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {MatButtonHarness} from '@angular/material/button/testing';
+import {MatChipListHarness} from '@angular/material/chips/testing';
 
 import {initTestEnvironment} from '@app/testing';
 import {OsqueryForm} from './osquery_form';
-import {OsqueryFlowArgs} from '@app/lib/api/api_interfaces';
+import {OsqueryArgs} from '@app/lib/api/api_interfaces';
 import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
 import {CodeEditorModule} from '../code_editor/module';
 
@@ -42,7 +43,7 @@ describe('OsqueryForm', () => {
         .compileComponents();
   }));
 
-  function constructFixture(defaultFlowArgs: OsqueryFlowArgs = {}) {
+  function constructFixture(defaultFlowArgs: OsqueryArgs = {}) {
     const fixture = TestBed.createComponent(OsqueryForm);
     fixture.componentInstance.defaultFlowArgs = defaultFlowArgs;
     fixture.detectChanges();
@@ -98,14 +99,53 @@ describe('OsqueryForm', () => {
         expect(lowLevelSettingsContainer).toBeTruthy();
       });
 
+  it('should have low-level and collection settings collapsed initially',
+      () => {
+        const fixture = constructFixture();
+
+        const lowLevelSettingsContainer =
+            fixture.debugElement.query(By.css('.settings-container'));
+        const collectionContainer =
+            fixture.debugElement.query(By.css('.collection-container'));
+
+        expect(lowLevelSettingsContainer).toBeFalsy();
+        expect(collectionContainer).toBeFalsy();
+      });
   it('should have collection settings expanded when default flow args contain collection columns,',
       () => {
         const fixture = constructFixture({
-          fileCollectColumns: ['some collumn to collect files from'],
+          fileCollectionColumns: ['some collumn to collect files from'],
         });
 
-        const lowLevelSettingsContainer =
+        const collectionContainer =
             fixture.debugElement.query(By.css('.collection-container'));
-        expect(lowLevelSettingsContainer).toBeTruthy();
+        expect(collectionContainer).toBeTruthy();
+      });
+
+  it('should update the file collection form control appropriately',
+      async () => {
+        const fixture = constructFixture();
+        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+
+        // Here we expand the file collection settings just like the user would
+        // do. At the moment of writing this, it is not strictly needed, since
+        // the harnesses would find the elements even if it is collapsed.
+        const expandButtonHarness = await harnessLoader.getHarness(
+            MatButtonHarness.with({text: /Show file collection settings.*/}),
+        );
+        await expandButtonHarness.click();
+
+        const collectionListHarness = await harnessLoader.getHarness(
+            MatChipListHarness);
+
+        const inputHarness = await collectionListHarness.getInput();
+        await inputHarness.setValue('column1');
+        await inputHarness.blur(); // The value is submitted on blur
+
+        const chips = await collectionListHarness.getChips();
+        const valuesInForm = fixture.componentInstance.fileCollectionColumns;
+
+        expect(chips.length).toBe(1);
+        expect(valuesInForm).toEqual(['column1'])
       });
 });
