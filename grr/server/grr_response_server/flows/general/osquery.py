@@ -213,7 +213,6 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
     self._UpdateProgress(responses)
 
-    # Make Osquery results available before files are collected
     for response in responses:
       self.SendReply(response)
 
