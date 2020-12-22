@@ -1,5 +1,5 @@
 <div *ngIf="flowError$ | async" class="error">
-  An error was encountered.
+  An error was encountered with query: {{ (args$ | async).query }}
   <div *ngIf="progressErrorMessage$ | async as progressErrorMessage">
     {{progressErrorMessage}}
   </div>

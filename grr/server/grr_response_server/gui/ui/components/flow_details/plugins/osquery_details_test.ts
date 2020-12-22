@@ -101,6 +101,9 @@ describe('osquery-details component', () => {
           progress: {
             errorMessage: 'Some syntax error',
           },
+          args: {
+            query: 'Query that produces syntax errors',
+          },
         });
 
         const fixture = createFixtureFrom(testFlowListEntry);
@@ -264,6 +267,9 @@ describe('osquery-details component', () => {
     () => {
       const testFlowListEntry = newFlowListEntry({
         state: FlowState.ERROR,
+        args: {
+          query: 'Some query',
+        },
       });
 
       const fixture = createFixtureFrom(testFlowListEntry);
