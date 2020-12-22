@@ -21,8 +21,8 @@ class OsqueryDetailsDOM {
   readonly inProgressText? = this.inProgressDiv?.nativeElement.innerText;
 
   readonly errorDiv? = this.rootElement.query(By.css('.error'));
-  readonly stdErrDiv? = this.errorDiv?.query(By.css('div'));
-  readonly stdErrText? = this.stdErrDiv?.nativeElement.innerText;
+  readonly errorMessageDiv? = this.errorDiv?.query(By.css('div'));
+  readonly errorMessageText? = this.errorMessageDiv?.nativeElement.innerText;
 
   readonly displayedTableRoot? =
       this.rootElement.query(By.css('osquery-results-table'));
@@ -94,33 +94,26 @@ describe('osquery-details component', () => {
        expect(parsedElements.inProgressText).toEqual(expectedQueryText);
      });
 
-  it('should display only the stderr error if the flow encounters an error',
-     () => {
-       const testStderr = 'just a standard err';
-       const exptectedText = `stderr is: ${testStderr}`;
+  it('should display only the progress error message if the flow encounters an error',
+      () => {
+        const testFlowListEntry = newFlowListEntry({
+          state: FlowState.ERROR,
+          progress: {
+            errorMessage: 'Some syntax error',
+          },
+        });
 
-       const testFlowListEntry = {
-         flow: newFlow({
-           state: FlowState.ERROR,
-         }),
-         resultSets: [
-           newFlowResultSet({
-             stderr: testStderr,
-           }),
-         ],
-       };
+        const fixture = createFixtureFrom(testFlowListEntry);
+        const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
-       const fixture = createFixtureFrom(testFlowListEntry);
-       const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+        expect(parsedElements.inProgressDiv).toBeFalsy();
+        expect(parsedElements.displayedTable).toBeFalsy();
+        expect(parsedElements.showAdditionalDiv).toBeFalsy();
 
-       expect(parsedElements.inProgressDiv).toBeFalsy();
-       expect(parsedElements.displayedTable).toBeFalsy();
-       expect(parsedElements.showAdditionalDiv).toBeFalsy();
-
-       expect(parsedElements.errorDiv).toBeTruthy();
-       expect(parsedElements.stdErrDiv).toBeTruthy();
-       expect(parsedElements.stdErrText).toEqual(exptectedText);
-     });
+        expect(parsedElements.errorDiv).toBeTruthy();
+        expect(parsedElements.errorMessageDiv).toBeTruthy();
+        expect(parsedElements.errorMessageText).toEqual('Some syntax error');
+      });
 
   it('should display progress table with no "show additional" section if results are not truncated',
      () => {
