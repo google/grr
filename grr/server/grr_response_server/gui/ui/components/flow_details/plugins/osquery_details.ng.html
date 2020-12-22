@@ -29,9 +29,13 @@
     [table]="displayTable">
   </osquery-results-table>
 
-  <div
+  <!-- <div
     *ngIf="additionalRowsAvailable$ | async as additionalCount"
     class="show-additional">
     <button (click)="loadCompleteResults()">View all rows ({{additionalCount}} more)</button>
-  </div>
+  </div> -->
 </ng-container>
+
+<div class="show-additional">
+  <button (click)="loadCompleteResults()">Request results beyond progress</button>
+</div>

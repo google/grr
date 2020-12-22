@@ -64,8 +64,14 @@ class OsqueryFlow(flow_base.FlowBase):
       self,
       responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
   ) -> None:
-    self.state.progress.partial_table = _GetTruncatedTable(responses)
-    self.state.progress.total_row_count = _GetTotalRowCount(responses)
+    if not responses.success:
+      self.state.progress.error_message = responses.status.error_message
+      self.state.progress.partial_table = None
+      self.state.progress.total_row_count = None
+    else:
+      self.state.progress.error_message = None
+      self.state.progress.partial_table = _GetTruncatedTable(responses)
+      self.state.progress.total_row_count = _GetTotalRowCount(responses)
 
   def Start(self):
     super(OsqueryFlow, self).Start()
@@ -80,10 +86,10 @@ class OsqueryFlow(flow_base.FlowBase):
       self,
       responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
   ) -> None:
+    self._UpdateProgress(responses)
+
     if not responses.success:
       raise flow_base.FlowError(responses.status)
-
-    self._UpdateProgress(responses)
 
     for response in responses:
       self.SendReply(response)

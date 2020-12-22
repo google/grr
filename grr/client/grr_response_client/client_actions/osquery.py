@@ -267,9 +267,9 @@ def Query(args: rdf_osquery.OsqueryArgs) -> ProcOutput:
   except subprocess.TimeoutExpired as error:
     raise TimeoutError(cause=error)
   except subprocess.CalledProcessError as error:
-    # import pdb; pdb.set_trace(header='CalledProcessError except clause')
-    raise Error("osquery invocation error", cause=error)
-    # return ProcOutput(stdout=error.stdout.decode("utf-8"), stderr=error.stderr.decode("utf-8"))
+    stderr = error.stderr.decode("utf-8")
+    raise Error(message="The client encountered an error when running osquery "
+        f"with the specified parameters. stderr: {stderr}")
   # pytype: enable=module-attr
 
   stdout = proc.stdout.decode("utf-8")
