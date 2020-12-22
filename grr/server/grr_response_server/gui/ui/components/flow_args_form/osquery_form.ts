@@ -34,16 +34,12 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
 
   readonly separatorKeysCodes: number[] = [ENTER, COMMA];
 
-  get fileCollectionColumnsControl(): AbstractControl {
-    const control = this.form.get('fileCollectionColumns');
-    assertNonNull(control,
-        'the form control listing columns for file collection');
-
-    return control;
-  }
-  get fileCollectionColumns(): string[] {
-    return this.fileCollectionColumnsControl?.value as Array<string>;
-  }
+  /**
+   * Contains the list of columns in the osquery result for file collection.
+   * On every mutation of the array, {@link syncFormWithCollectionColumns}
+   * should be called to reflect the updated values in the Angular form.
+   */
+  readonly fileCollectionColumns: string[] = [];
 
   @Output() readonly formValues$ = this.form.valueChanges.pipe(shareReplay(1));
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
@@ -85,7 +81,7 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
 
     if (value.trim()) {
       this.fileCollectionColumns.push(value.trim());
-      this.fileCollectionColumnsControl.markAsDirty();
+      this.syncFormWithCollectionColumns();
     }
 
     if (inputElement) {
@@ -98,13 +94,19 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
 
     if (index >= 0) {
       this.fileCollectionColumns.splice(index, 1);
-      this.fileCollectionColumnsControl.markAsDirty();
+      this.syncFormWithCollectionColumns();
     }
   }
 
   private overwriteQuery(newValue: string): void {
     this.form.patchValue({
       query: newValue,
+    });
+  }
+
+  private syncFormWithCollectionColumns() {
+    this.form.patchValue({
+      fileCollectionColumns: [...this.fileCollectionColumns],
     });
   }
 }
