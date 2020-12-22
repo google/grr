@@ -109,6 +109,7 @@ describe('OsqueryForm', () => {
             fixture.debugElement.query(By.css('.collection-container'));
 
         expect(lowLevelSettingsContainer).toBeFalsy();
+
         expect(collectionContainer).toBeFalsy();
       });
   it('should have collection settings expanded when default flow args contain collection columns,',

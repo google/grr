@@ -41,7 +41,7 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
 
     return control;
   }
-  get fileCollectionColumns(): Array<string> {
+  get fileCollectionColumns(): string[] {
     return this.fileCollectionColumnsControl?.value as Array<string>;
   }
 
