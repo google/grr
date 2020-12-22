@@ -123,7 +123,7 @@ describe('OsqueryForm', () => {
         expect(collectionContainer).toBeTruthy();
       });
 
-  it('should update the file collection form control appropriately',
+  it('updates the file collection form when a value is added',
       async () => {
         const fixture = constructFixture();
         const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
@@ -144,9 +144,42 @@ describe('OsqueryForm', () => {
         await inputHarness.blur(); // The value is submitted on blur
 
         const chips = await collectionListHarness.getChips();
-        const valuesInForm = fixture.componentInstance.fileCollectionColumns;
+        const valuesInForm =
+            fixture.componentInstance.form.get('fileCollectionColumns')?.value;
 
         expect(chips.length).toBe(1);
         expect(valuesInForm).toEqual(['column1'])
+      });
+
+  it('updates the file collection form when a value is removed',
+      async () => {
+        const fixture = constructFixture();
+        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+
+        // Here we expand the file collection settings just like the user would
+        // do. At the moment of writing this, it is not strictly needed, since
+        // the harnesses would find the elements even if it is collapsed.
+        const expandButtonHarness = await harnessLoader.getHarness(
+            MatButtonHarness.with({text: /Show file collection settings.*/}),
+        );
+        await expandButtonHarness.click();
+
+        const collectionListHarness = await harnessLoader.getHarness(
+            MatChipListHarness);
+
+        const inputHarness = await collectionListHarness.getInput();
+        await inputHarness.setValue('column1');
+        await inputHarness.blur(); // The value is submitted on blur
+
+        const chips = await collectionListHarness.getChips();
+        expect(chips.length).toBe(1);
+
+        await chips[0].remove();
+        const chipsAfterRemoval = await collectionListHarness.getChips();
+        const valuesInFormAfterRemoval =
+            fixture.componentInstance.form.get('fileCollectionColumns')?.value;
+
+        expect(chipsAfterRemoval.length).toBe(0);
+        expect(valuesInFormAfterRemoval.length).toBe(0);
       });
 });

@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
-import {FormControl, FormGroup, Validators, AbstractControl} from '@angular/forms';
+import {FormControl, FormGroup, Validators} from '@angular/forms';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 import {shareReplay} from 'rxjs/operators';
 import {MatDialog} from '@angular/material/dialog';
@@ -8,7 +8,7 @@ import {COMMA, ENTER} from '@angular/cdk/keycodes';
 
 import {OsqueryArgs} from '../../lib/api/api_interfaces';
 import {OsqueryQueryHelper} from './osquery_query_helper/osquery_query_helper';
-import {isNonNull, assertNonNull} from '@app/lib/preconditions';
+import {isNonNull} from '@app/lib/preconditions';
 
 
 /** Form that configures an Osquery flow. */
@@ -106,6 +106,8 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryArgs> implements
 
   private syncFormWithCollectionColumns() {
     this.form.patchValue({
+      // Spreading an array with primitive type produces a deep copy, which
+      // might be needed for Angular's reactive forms.
       fileCollectionColumns: [...this.fileCollectionColumns],
     });
   }
