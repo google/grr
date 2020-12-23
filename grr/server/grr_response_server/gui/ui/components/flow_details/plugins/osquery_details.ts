@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {OsqueryArgs, OsqueryProgress, OsqueryResult} from '@app/lib/api/api_interfaces';
+import {OsqueryFlowArgs, OsqueryProgress, OsqueryResult} from '@app/lib/api/api_interfaces';
 import {FlowState} from '@app/lib/models/flow';
 import {isNonNull} from '@app/lib/preconditions';
 import {combineLatest, concat, Observable} from 'rxjs';
@@ -72,8 +72,8 @@ export class OsqueryDetails extends Plugin {
               }),
           );
 
-  readonly args$: Observable<OsqueryArgs> = this.flowListEntry$.pipe(
-      map(flowListEntry => flowListEntry.flow.args as OsqueryArgs),
+  readonly args$: Observable<OsqueryFlowArgs> = this.flowListEntry$.pipe(
+      map(flowListEntry => flowListEntry.flow.args as OsqueryFlowArgs),
   );
 
   readonly resultsStderr$ = this.osqueryResults$.pipe(

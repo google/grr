@@ -621,8 +621,8 @@ export declare interface ApproverSuggestion {
   readonly username?: string;
 }
 
-/** OsqueryArgs proto mapping. */
-export declare interface OsqueryArgs {
+/** OsqueryFlowArgs proto mapping. */
+export declare interface OsqueryFlowArgs {
   readonly query?: string;
   readonly timeoutMillis?: DecimalString;
   readonly ignoreStderrErrors?: boolean;
