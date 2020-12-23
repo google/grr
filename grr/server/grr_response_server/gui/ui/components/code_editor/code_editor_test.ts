@@ -1,4 +1,4 @@
-import {TestBed, fakeAsync, tick, discardPeriodicTasks, ComponentFixture, flush} from '@angular/core/testing';
+import {TestBed, fakeAsync, tick, discardPeriodicTasks, ComponentFixture, flush, waitForAsync} from '@angular/core/testing';
 import {initTestEnvironment} from '@app/testing';
 
 import {CodeEditorModule} from './module';
@@ -30,7 +30,7 @@ class TestHostComponent {
 }
 
 describe('CodeEditor Component', () => {
-  beforeEach(() => {
+  beforeEach(waitForAsync(() => {
     return TestBed
         .configureTestingModule({
           imports: [
@@ -44,7 +44,7 @@ describe('CodeEditor Component', () => {
           ],
         })
         .compileComponents();
-  });
+  }));
 
   function constructFixture(initialValue: string | undefined) {
     const fixture = TestBed.createComponent(TestHostComponent);

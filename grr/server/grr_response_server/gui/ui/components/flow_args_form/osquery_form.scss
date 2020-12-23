@@ -1,6 +1,10 @@
-.main-container {
+.main-container, .settings-container, collection-container {
   display: flex;
   flex-direction: column;
+}
+
+.hide-content {
+  display: none;
 }
 
 .query-section {
@@ -15,6 +19,10 @@
 .editor-form-field {
   display: block;
   cursor: text;
+}
+
+.collection-container mat-form-field {
+  width: 20em;
 }
 
 .timeout-form-field {
