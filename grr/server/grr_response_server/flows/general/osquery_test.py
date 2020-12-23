@@ -161,18 +161,18 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     super(FakeOsqueryFlowTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
-  def _InitializeFlow(self, query: str, file_collect_columns: List[str]):
+  def _InitializeFlow(self, query: str, file_collection_columns: List[str]):
     session_id = flow_test_lib.TestFlowHelper(
         osquery_flow.OsqueryFlow.__name__,
         action_mocks.OsqueryClientMock(),
         client_id=self.client_id,
         token=self.token,
         query=query,
-        file_collect_columns=file_collect_columns)
+        file_collection_columns=file_collection_columns)
     return session_id
 
-  def _RunFlow(self, query: str, file_collect_columns: List[str]):
-    session_id = self._InitializeFlow(query, file_collect_columns)
+  def _RunFlow(self, query: str, file_collection_columns: List[str]):
+    session_id = self._InitializeFlow(query, file_collection_columns)
     return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
   def testSuccess(self):

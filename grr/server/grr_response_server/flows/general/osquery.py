@@ -87,6 +87,31 @@ class FileCollectionLimitsExceeded(flow_base.FlowError):
   pass
 
 
+class _UniquePathGenerator:
+
+  def __init__(self):
+    self.path_to_count = {}
+
+  def GeneratePath(self, pathspec: rdf_paths.PathSpec) -> str:
+    target_path = "osquery_collected_files/"
+    target_path += self._GetClientPath(pathspec)
+    return target_path + self._GetUniqueSuffix(target_path)
+
+  def _GetUniqueSuffix(self, path: str) -> str:
+    times_used_before = self.path_to_count.get(path, 0)
+    self.path_to_count[path] = times_used_before + 1
+
+    if times_used_before > 0:
+      return f"-{times_used_before}"
+    else:
+      return ""
+
+  @staticmethod
+  def _GetClientPath(pathspec: rdf_paths.PathSpec) -> str:
+    path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
+    return "/".join(path_info.components)
+
+
 class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
   """A flow mixin wrapping the osquery client action."""
 
@@ -108,7 +133,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
       self,
       responses: Iterable[rdf_osquery.OsqueryResult],
   ) -> List[rdf_paths.PathSpec]:
-    if not self.args.file_collect_columns:
+    if not self.args.file_collection_columns:
       return []
 
     total_row_count = _GetTotalRowCount(responses)
@@ -119,7 +144,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
     file_names = []
     for osquery_result in responses:
-      for column in self.args.file_collect_columns:
+      for column in self.args.file_collection_columns:
         file_names.extend(osquery_result.table.Column(column))
 
     return [rdf_paths.PathSpec.OS(path=file_name) for file_name in file_names]
@@ -171,24 +196,11 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
     self.StartFileFetch(stat_entry.pathspec)
 
-  def _GenerateTargetArchivePath(self, pathspec: rdf_paths.PathSpec) -> str:
-    path_info = rdf_objects.PathInfo.FromPathSpec(pathspec)
-    client_string_path = "/".join(path_info.components)
-
-    target_path = f"osquery_collected_files/{client_string_path}"
-
-    times_used_before = self.state.path_to_count.get(target_path, 0)
-    self.state.path_to_count[target_path] = times_used_before + 1
-    if times_used_before > 0:
-      target_path = f"{target_path}-{times_used_before}"
-
-    return target_path
-
   def Start(self):
     super(OsqueryFlow, self).Start(
         file_size=FILE_COLLECTION_MAX_SINGLE_FILE_BYTES)
 
-    if len(self.args.file_collect_columns) > FILE_COLLECTION_MAX_COLUMNS:
+    if len(self.args.file_collection_columns) > FILE_COLLECTION_MAX_COLUMNS:
       message = (f"Requested file collection for "
           f"{len(self.args.file_collect_columns)} columns, but the limit is"
           f"{FILE_COLLECTION_MAX_COLUMNS} columns")
@@ -238,6 +250,8 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
       self,
       flow_results: Iterator[rdf_flow_objects.FlowResult],
   ) -> Iterator[flow_base.ClientPathArchiveMapping]:
+    target_path_generator = _UniquePathGenerator()
+
     for result in flow_results:
       try:
         osquery_file = _ExtractFileInfo(result)
@@ -246,7 +260,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
       client_path = db.ClientPath.FromPathSpec(
           self.client_id, osquery_file.stat_entry.pathspec)
-      target_path = self._GenerateTargetArchivePath(
+      target_path = target_path_generator.GeneratePath(
           osquery_file.stat_entry.pathspec)
 
       yield flow_base.ClientPathArchiveMapping(
