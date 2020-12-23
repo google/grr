@@ -14,9 +14,9 @@ enum OsqueryType {
 }
 
 message OsqueryArgs {
+  reserved 3;
   optional string query = 1;
   optional uint64 timeout_millis = 2;
-  optional bool ignore_stderr_errors = 3;
 }
 
 message OsqueryColumn {
@@ -39,8 +39,8 @@ message OsqueryTable {
 }
 
 message OsqueryResult {
+  reserved 2;
   optional OsqueryTable table = 1;
-  optional string stderr = 2;
 }
 
 message OsqueryProgress {

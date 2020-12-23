@@ -84,18 +84,13 @@ class Osquery(actions.ActionPlugin):
 
     output = Query(args)
 
-    # For syntax errors, osquery does not fail (exits with 0) but prints stuff
-    # to the standard error.
-    if output.stderr and not args.ignore_stderr_errors:
-      raise QueryError(output.stderr)
-
     json_decoder = json.Decoder(object_pairs_hook=collections.OrderedDict)
 
     table = ParseTable(json_decoder.decode(output.stdout))
     table.query = args.query
 
     for chunk in ChunkTable(table, config.CONFIG["Osquery.max_chunk_size"]):
-      yield rdf_osquery.OsqueryResult(table=chunk, stderr=output.stderr)
+      yield rdf_osquery.OsqueryResult(table=chunk)
 
 
 def ChunkTable(table: rdf_osquery.OsqueryTable,
@@ -218,11 +213,7 @@ def ParseRow(header: rdf_osquery.OsqueryHeader,
   return result
 
 
-# TODO(hanuszczak): https://github.com/python/typeshed/issues/2761
-ProcOutput = NamedTuple("ProcOutput", [("stdout", Text), ("stderr", Text)])  # pytype: disable=wrong-arg-types
-
-
-def Query(args: rdf_osquery.OsqueryArgs) -> ProcOutput:
+def Query(args: rdf_osquery.OsqueryArgs) -> str:
   """Calls osquery with given query and returns its output.
 
   Args:
@@ -271,6 +262,11 @@ def Query(args: rdf_osquery.OsqueryArgs) -> ProcOutput:
     raise Error(message=f"Osquery error on the client: {stderr}")
   # pytype: enable=module-attr
 
-  stdout = proc.stdout.decode("utf-8")
   stderr = proc.stderr.decode("utf-8").strip()
-  return ProcOutput(stdout=stdout, stderr=stderr)
+  if stderr:
+    # Depending on the version, in case of a syntax error osquery might or might
+    # not terminate with a non-zero exit code, but it will always print the
+    # error to stderr.
+    raise Error(message=f"Osquery error on the client: {stderr}")
+
+  return proc.stdout.decode("utf-8")
