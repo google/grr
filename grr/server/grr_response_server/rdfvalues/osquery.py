@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # Lint as: python3
 """A module with RDF values wrapping server osquery protobufs."""
 from grr_response_proto import osquery_pb2

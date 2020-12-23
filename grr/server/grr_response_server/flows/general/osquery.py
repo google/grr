@@ -5,8 +5,10 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from typing import Iterator
+from typing import Iterable
 from typing import List
 from typing import Dict
+from typing import Any
 
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -16,6 +18,7 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.rdfvalues import osquery as rdf_server_osquery
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_server.flows.general import transfer
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
@@ -103,7 +106,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
   def _GetPathSpecsToCollect(
       self,
-      responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
+      responses: Iterable[rdf_osquery.OsqueryResult],
   ) -> List[rdf_paths.PathSpec]:
     if not self.args.file_collect_columns:
       return []
@@ -123,7 +126,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
   def _FileCollectionFromColumns(
       self,
-      responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
+      responses: Iterable[rdf_osquery.OsqueryResult],
   ) -> None:
     pathspecs = self._GetPathSpecsToCollect(responses)
 
@@ -221,11 +224,14 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
   def GetProgress(self) -> rdf_osquery.OsqueryProgress:
     return self.state.progress
 
-  def ReceiveFetchedFile(self,
-                         stat_entry,
-                         file_hash,
-                         request_data=None,
-                         is_duplicate=False) -> None:
+  def ReceiveFetchedFile(
+      self,
+      stat_entry: rdf_client_fs.StatEntry,
+      file_hash: rdf_crypto.Hash,
+      request_data: Any = None,
+      is_duplicate=False
+  ) -> None:
+    del file_hash, request_data, is_duplicate # Unused
     self.SendReply(stat_entry)
 
   def GetFilesArchiveMappings(
