@@ -19,12 +19,6 @@ class OsqueryArgs(rdf_structs.RDFProtoStruct):
   protobuf = osquery_pb2.OsqueryArgs
   rdf_deps = []
 
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-
-    if not self.HasField("timeout_millis"):
-      self.timeout_millis = 5 * 60 * 1000  # 5 minutes.
-
 
 class OsqueryColumn(rdf_structs.RDFProtoStruct):
   """An RDF wrapper class for the `OsqueryColumn` proto."""
@@ -57,7 +51,7 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
     """Iterates over values of a given column.
 
     Args:
-      column_name: A nome of the column to retrieve the values for.
+      column_name: A name of the column to retrieve the values for.
 
     Yields:
       Values of the specified column.
@@ -115,3 +109,4 @@ class OsqueryProgress(rdf_structs.RDFProtoStruct):
 
   protobuf = osquery_pb2.OsqueryProgress
   rdf_deps = [OsqueryTable]
+

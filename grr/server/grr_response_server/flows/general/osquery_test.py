@@ -9,6 +9,7 @@ import io
 import json
 import os
 import time
+from typing import List
 
 from absl import app
 import mock
@@ -17,7 +18,12 @@ from grr_response_client.client_actions import osquery as osquery_action
 from grr_response_core import config
 from grr_response_core.lib.util import temp
 from grr_response_core.lib.util import text
+from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_server.flows.general import osquery as osquery_flow
+from grr_response_server.databases import db
+from grr_response_server import file_store
+from grr_response_server import flow_base
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import osquery_test_lib
@@ -155,17 +161,18 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     super(FakeOsqueryFlowTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
-  def _InitializeFlow(self, query):
+  def _InitializeFlow(self, query: str, file_collection_columns: List[str]):
     session_id = flow_test_lib.TestFlowHelper(
         osquery_flow.OsqueryFlow.__name__,
-        action_mocks.ActionMock(osquery_action.Osquery),
+        action_mocks.OsqueryClientMock(),
         client_id=self.client_id,
         token=self.token,
-        query=query)
+        query=query,
+        file_collection_columns=file_collection_columns)
     return session_id
 
-  def _RunFlow(self, query):
-    session_id = self._InitializeFlow(query)
+  def _RunFlow(self, query: str, file_collection_columns: List[str]):
+    session_id = self._InitializeFlow(query, file_collection_columns)
     return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
   def testSuccess(self):
@@ -176,7 +183,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     ]
     """
     with osquery_test_lib.FakeOsqueryiOutput(stdout=stdout, stderr=""):
-      results = self._RunFlow("SELECT foo, bar, baz FROM foobarbaz;")
+      results = self._RunFlow("SELECT foo, bar, baz FROM foobarbaz;", [])
 
     self.assertLen(results, 1)
 
@@ -193,7 +200,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     stderr = "Error: near '*': syntax error"
     with osquery_test_lib.FakeOsqueryiOutput(stdout="", stderr=stderr):
       with self.assertRaises(RuntimeError):
-        self._RunFlow("SELECT * FROM *;")
+        self._RunFlow("SELECT * FROM *;", [])
 
   def testSmallerTruncationLimit(self):
     two_row_table = """
@@ -206,7 +213,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     with osquery_test_lib.FakeOsqueryiOutput(stdout=two_row_table, stderr=""):
       with mock.patch.object(osquery_flow, "TRUNCATED_ROW_COUNT", max_rows):
-        flow_id = self._InitializeFlow("query doesn't matter")
+        flow_id = self._InitializeFlow("query doesn't matter", [])
         progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
     self.assertEqual(len(progress.partial_table.rows), max_rows)
@@ -223,7 +230,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     with osquery_test_lib.FakeOsqueryiOutput(stdout=three_row_table, stderr=""):
       with mock.patch.object(osquery_flow, "TRUNCATED_ROW_COUNT", max_rows):
-        flow_id = self._InitializeFlow("query doesn't matter")
+        flow_id = self._InitializeFlow("query doesn't matter", [])
         progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
     self.assertEqual(len(progress.partial_table.rows), 3)
@@ -243,7 +250,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     with test_lib.ConfigOverrider({"Osquery.max_chunk_size": chunk_bytes}):
       with osquery_test_lib.FakeOsqueryiOutput(stdout=table_json, stderr=""):
         with mock.patch.object(osquery_flow, "TRUNCATED_ROW_COUNT", max_rows):
-          flow_id = self._InitializeFlow("doesn't matter")
+          flow_id = self._InitializeFlow("doesn't matter", [])
           progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
     self.assertEqual(len(progress.partial_table.rows), max_rows)
@@ -261,10 +268,183 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     with test_lib.ConfigOverrider({"Osquery.max_chunk_size": chunk_bytes}):
       with osquery_test_lib.FakeOsqueryiOutput(stdout=table_json, stderr=""):
-        flow_id = self._InitializeFlow("doesn't matter")
+        flow_id = self._InitializeFlow("doesn't matter", [])
         progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
     self.assertEqual(progress.total_row_count, row_count)
+
+  def testFlowTruncatesFileAboveSingleLimit(self):
+    with temp.AutoTempFilePath() as temp_file_path:
+      target_bytes = 2**20  # 1 MiB
+      less_than_necessary_bytes = target_bytes // 2
+
+      with io.open(temp_file_path, "wb") as fd:
+        fd.write(b"1" * target_bytes)
+
+      table = f"""
+      [
+        {{ "collect_collumn": "{temp_file_path}" }}
+      ]
+      """
+
+      with mock.patch.object(
+          osquery_flow,
+          "FILE_COLLECTION_MAX_SINGLE_FILE_BYTES",
+          less_than_necessary_bytes):
+        with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+          with self.assertRaises(RuntimeError):
+            self._RunFlow("Doesn't matter", ["collect_collumn"])
+
+  def testFlowDoesntCollectSingleFileAboveTotalLimit(self):
+    with temp.AutoTempFilePath() as temp_file_path:
+      target_bytes = 2**20  # 1 MiB
+      less_than_necessary_bytes = target_bytes // 2
+
+      with io.open(temp_file_path, "wb") as fd:
+        fd.write(b"1" * target_bytes)
+
+      table = f"""
+      [
+        {{ "collect_collumn": "{temp_file_path}" }}
+      ]
+      """
+
+      with mock.patch.object(
+          osquery_flow,
+          "FILE_COLLECTION_MAX_TOTAL_BYTES",
+          less_than_necessary_bytes):
+        with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+          with self.assertRaises(RuntimeError):
+            self._RunFlow("Doesn't matter", ["collect_collumn"])
+
+  def testFlowCollectFile(self):
+    with temp.AutoTempFilePath() as temp_file_path:
+      with io.open(temp_file_path, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file.")
+
+      table = f"""
+      [
+        {{ "collect_column": "{temp_file_path}" }}
+      ]
+      """
+
+      with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+        results = self._RunFlow("Doesn't matter", ["collect_column"])
+      
+    self.assertLen(results, 2)
+    self.assertEqual(type(results[0]), rdf_osquery.OsqueryResult)
+    self.assertEqual(type(results[1]), rdf_client_fs.StatEntry)
+
+    pathspec = results[1].pathspec
+    client_path = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+    fd_rel_db = file_store.OpenFile(client_path)
+    file_text = fd_rel_db.read().decode("utf-8")
+    self.assertEqual(file_text, "Just sample text to put in the file.")
+
+  def testFlowDoesntCollectWhenColumnsAboveLimit(self):
+    with temp.AutoTempFilePath() as temp_file_path:
+      with io.open(temp_file_path, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file.")
+
+      with mock.patch.object(osquery_flow, "FILE_COLLECTION_MAX_COLUMNS", 1):
+        # Should raise immediately, no need to fake Osquery output
+        with self.assertRaises(RuntimeError):
+          self._RunFlow("Doesn't matter", ["collect1", "collect2"])
+
+  def testFlowDoesntCollectWhenRowsAboveLimit(self):
+    with temp.AutoTempFilePath() as temp_file_path:
+      with io.open(temp_file_path, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file.")
+
+      table = f"""
+      [
+        {{ "collect_column": "{temp_file_path}"}},
+        {{ "collect_column": "{temp_file_path}"}}
+      ]
+      """
+
+      with mock.patch.object(osquery_flow, "FILE_COLLECTION_MAX_ROWS", 1):
+        with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+          with self.assertRaises(RuntimeError):
+            self._RunFlow("Doesn't matter", ["collect_collumn"])
+
+  def testArchiveMappingsForMultipleFiles(self):
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dir_path:
+      temp_file_path1 = os.path.join(temp_dir_path, "foo")
+      temp_file_path2 = os.path.join(temp_dir_path, "bar")
+
+      with io.open(temp_file_path1, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file 1.")
+      with io.open(temp_file_path2, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file 2.")
+
+      table = f"""
+      [
+        {{ "collect_column": "{temp_file_path1}" }},
+        {{ "collect_column": "{temp_file_path2}" }}
+      ]
+      """
+
+      with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+        flow_id = self._InitializeFlow("Doesn't matter", ["collect_column"])
+
+    flow = flow_base.FlowBase.CreateFlowInstance(
+        flow_test_lib.GetFlowObj(self.client_id, flow_id))
+    results = flow_test_lib.GetRawFlowResults(self.client_id, flow_id)
+
+    mappings = list(flow.GetFilesArchiveMappings(results))
+    self.assertCountEqual(mappings, [
+        flow_base.ClientPathArchiveMapping(
+            db.ClientPath.OS(self.client_id,
+                             temp_file_path1.split("/")[1:]),
+            f"osquery_collected_files{temp_file_path1}",
+        ),
+        flow_base.ClientPathArchiveMapping(
+            db.ClientPath.OS(self.client_id,
+                             temp_file_path2.split("/")[1:]),
+            f"osquery_collected_files{temp_file_path2}",
+        ),
+    ])
+
+  def testArchiveMappingsForDuplicateFilesInResult(self):
+    with temp.AutoTempFilePath() as temp_file_path:
+      with io.open(temp_file_path, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file.")
+
+      table = f"""
+      [
+        {{ "collect_column": "{temp_file_path}" }}
+      ]
+      """
+
+      with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+        flow_id = self._InitializeFlow("Doesn't matter", ["collect_column"])
+
+    flow = flow_base.FlowBase.CreateFlowInstance(
+        flow_test_lib.GetFlowObj(self.client_id, flow_id))
+    results = flow_test_lib.GetRawFlowResults(self.client_id, flow_id)
+
+    # This is how we emulate duplicate filenames in the results
+    duplicated_results = results + results + results
+
+    mappings = list(flow.GetFilesArchiveMappings(duplicated_results))
+    self.assertCountEqual(mappings, [
+        flow_base.ClientPathArchiveMapping(
+            db.ClientPath.OS(self.client_id,
+                             temp_file_path.split("/")[1:]),
+            f"osquery_collected_files{temp_file_path}",
+        ),
+        flow_base.ClientPathArchiveMapping(
+            db.ClientPath.OS(self.client_id,
+                             temp_file_path.split("/")[1:]),
+            f"osquery_collected_files{temp_file_path}-1",
+        ),
+        flow_base.ClientPathArchiveMapping(
+            db.ClientPath.OS(self.client_id,
+                             temp_file_path.split("/")[1:]),
+            f"osquery_collected_files{temp_file_path}-2",
+        ),
+    ])
 
 
 if __name__ == "__main__":

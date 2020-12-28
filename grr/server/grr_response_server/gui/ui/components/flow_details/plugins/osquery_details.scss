@@ -25,3 +25,7 @@ $header-left-padding: 24px;
 .export-button-holder {
   align-items: center;
 }
+
+.export-button-holder > * {
+  margin-left: 1em;
+}

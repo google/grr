@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {OsqueryArgs, OsqueryProgress, OsqueryResult} from '@app/lib/api/api_interfaces';
+import {OsqueryFlowArgs, OsqueryProgress, OsqueryResult} from '@app/lib/api/api_interfaces';
 import {FlowState} from '@app/lib/models/flow';
 import {isNonNull} from '@app/lib/preconditions';
 import {combineLatest, concat, Observable} from 'rxjs';
@@ -77,22 +77,37 @@ export class OsqueryDetails extends Plugin {
               }),
           );
 
-  readonly args$: Observable<OsqueryArgs> = this.flowListEntry$.pipe(
-      map(flowListEntry => flowListEntry.flow.args as OsqueryArgs),
+  readonly args$: Observable<OsqueryFlowArgs> = this.flowListEntry$.pipe(
+      map(flowListEntry => flowListEntry.flow.args as OsqueryFlowArgs),
   );
 
-  readonly exportCsvLink$ = this.flowListEntry$.pipe(
+  readonly clientAndFlowId$ = this.flowListEntry$.pipe(
       map(fle => {
         const clientId = fle.flow.clientId;
         const flowId = fle.flow.flowId;
 
         if (clientId && flowId) {
-          return `/api/clients/${clientId}/flows/${flowId}/osquery-results/CSV`;
+          return {
+            clientId,
+            flowId,
+          };
         } else {
           return null;
         }
       }),
       filter(isNonNull),
+  );
+
+  readonly exportCsvLink$ = this.clientAndFlowId$.pipe(
+      map(ids => {
+        return `/api/clients/${ids.clientId}/flows/${ids.flowId}/osquery-results/CSV`;
+      }),
+  );
+
+  readonly collectedFilesLink$ = this.clientAndFlowId$.pipe(
+      map(ids => {
+        return `/api/clients/${ids.clientId}/flows/${ids.flowId}/results/files-archive`;
+      }),
   );
 
   readonly numberOfRowsAvailable$ = this.displayTable$.pipe(
