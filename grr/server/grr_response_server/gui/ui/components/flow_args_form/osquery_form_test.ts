@@ -15,7 +15,7 @@ import {MatChipListHarness} from '@angular/material/chips/testing';
 
 import {initTestEnvironment} from '@app/testing';
 import {OsqueryForm} from './osquery_form';
-import {OsqueryArgs} from '@app/lib/api/api_interfaces';
+import {OsqueryFlowArgs} from '@app/lib/api/api_interfaces';
 import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
 import {CodeEditorModule} from '../code_editor/module';
 
@@ -43,7 +43,7 @@ describe('OsqueryForm', () => {
         .compileComponents();
   }));
 
-  function constructFixture(defaultFlowArgs: OsqueryArgs = {}) {
+  function constructFixture(defaultFlowArgs: OsqueryFlowArgs = {}) {
     const fixture = TestBed.createComponent(OsqueryForm);
     fixture.componentInstance.defaultFlowArgs = defaultFlowArgs;
     fixture.detectChanges();

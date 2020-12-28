@@ -218,8 +218,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
     action_args = rdf_osquery.OsqueryArgs(
         query=self.args.query,
-        timeout_millis=self.args.timeout_millis,
-        ignore_stderr_errors=self.args.ignore_stderr_errors)
+        timeout_millis=self.args.timeout_millis)
     self.CallClient(
         server_stubs.Osquery,
         request=action_args,
