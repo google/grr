@@ -132,7 +132,7 @@ class OsqueryTest(absltest.TestCase):
       self.assertEqual(list(table.Column("size")), [str(size)])
 
   def testIncorrectQuery(self):
-    with self.assertRaises(osquery.QueryError):
+    with self.assertRaises(osquery.Error):
       _Query("FROM foo SELECT bar;")
 
   def testEmptyQuery(self):
@@ -228,36 +228,13 @@ class FakeOsqueryTest(absltest.TestCase):
   def testError(self):
     stderr = "Error: near 'FROM': syntax error"
     with osquery_test_lib.FakeOsqueryiOutput(stdout="", stderr=stderr):
-      with self.assertRaises(osquery.QueryError):
+      with self.assertRaises(osquery.Error):
         _Query("FROM bar SELECT foo;")
 
   def testTimeout(self):
     with osquery_test_lib.FakeOsqueryiSleep(1.0):
       with self.assertRaises(osquery.TimeoutError):
         _Query("SELECT * FROM processes;", timeout_millis=0)
-
-  def testIgnoreStderrErrors(self):
-    query = "SELECT foo, bar, baz FROM blargh;"
-    stdout = """
-    [
-      { "foo": "quux", "bar": "norf", "baz": "thud" }
-    ]
-    """
-    stderr = "Warning: near 'FROM': table 'blargh' might be very large"
-    with osquery_test_lib.FakeOsqueryiOutput(stdout=stdout, stderr=stderr):
-      results = _Query(query, ignore_stderr_errors=True)
-
-    self.assertLen(results, 1)
-    self.assertEqual(results[0].stderr, stderr)
-
-    table = results[0].table
-    self.assertLen(table.header.columns, 3)
-    self.assertEqual(table.header.columns[0].name, "foo")
-    self.assertEqual(table.header.columns[1].name, "bar")
-    self.assertEqual(table.header.columns[2].name, "baz")
-    self.assertEqual(list(table.Column("foo")), ["quux"])
-    self.assertEqual(list(table.Column("bar")), ["norf"])
-    self.assertEqual(list(table.Column("baz")), ["thud"])
 
 
 class ChunkTableTest(absltest.TestCase):

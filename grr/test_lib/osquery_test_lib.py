@@ -45,7 +45,7 @@ sleep {time}
 
 @contextlib.contextmanager
 def _FakeOsqueryiScript(script: Text) -> Iterator[None]:
-  """A context manager with fake script pretending to be osqueri executable."""
+  """A context manager with fake script pretending to be osqueryi executable."""
   if platform.system() != "Linux":
     raise unittest.SkipTest("Fake osquery scripts are available only on Linux.")
 

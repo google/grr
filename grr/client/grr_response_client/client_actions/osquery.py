@@ -42,14 +42,6 @@ class Error(Exception):
     self.cause = cause
 
 
-class QueryError(Error):
-  """A class of exceptions indicating invalid queries (e.g. syntax errors)."""
-
-  def __init__(self, output: Text, cause: Exception = None):
-    message = "invalid query: {}".format(output)
-    super().__init__(message, cause=cause)
-
-
 # TODO(hanuszczak): Fix the linter error properly.
 class TimeoutError(Error):  # pylint: disable=redefined-builtin
   """A class of exceptions raised when a call to osquery timeouts."""
@@ -86,7 +78,7 @@ class Osquery(actions.ActionPlugin):
 
     json_decoder = json.Decoder(object_pairs_hook=collections.OrderedDict)
 
-    table = ParseTable(json_decoder.decode(output.stdout))
+    table = ParseTable(json_decoder.decode(output))
     table.query = args.query
 
     for chunk in ChunkTable(table, config.CONFIG["Osquery.max_chunk_size"]):
@@ -223,9 +215,9 @@ def Query(args: rdf_osquery.OsqueryArgs) -> str:
     A "parsed JSON" representation of the osquery output.
 
   Raises:
-    QueryError: If the query is incorrect.
     TimeoutError: If a call to the osquery executable times out.
-    Error: If anything else goes wrong with the subprocess call.
+    Error: If anything goes wrong with the subprocess call, including if the
+    query is incorrect.
   """
   timeout = args.timeout_millis / 1000  # `subprocess.run` uses seconds.
   # TODO: pytype is not aware of the backport.
