@@ -324,7 +324,9 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
               "Doesn't matter", ["collect_collumn"], check_flow_errors=False)
           progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
 
-      self.assertEqual(f"File with path {temp_file_path} is too big: {target_bytes} bytes when the limit is {less_than_necessary_bytes} bytes.", progress.error_message)
+      self.assertEqual(f"File with path {temp_file_path} is too big: "
+          f"{target_bytes} bytes when the limit is "
+          f"{less_than_necessary_bytes} bytes.", progress.error_message)
 
   def testFlowDoesntCollectSingleFileAboveTotalLimit(self):
     with temp.AutoTempFilePath() as temp_file_path:
