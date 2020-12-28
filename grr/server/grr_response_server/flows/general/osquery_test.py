@@ -161,17 +161,23 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     super(FakeOsqueryFlowTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
-  def _InitializeFlow(self, query: str, file_collection_columns: List[str]):
+  def _InitializeFlow(
+      self,
+      query: str,
+      file_collection_columns: List[str],
+      **kwargs,
+  ) -> None:
     session_id = flow_test_lib.TestFlowHelper(
         osquery_flow.OsqueryFlow.__name__,
         action_mocks.OsqueryClientMock(),
         client_id=self.client_id,
         token=self.token,
         query=query,
-        file_collection_columns=file_collection_columns)
+        file_collection_columns=file_collection_columns,
+        **kwargs)
     return session_id
 
-  def _RunFlow(self, query: str, file_collection_columns: List[str]):
+  def _RunFlow(self, query: str, file_collection_columns: List[str]) -> None:
     session_id = self._InitializeFlow(query, file_collection_columns)
     return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
@@ -273,7 +279,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     self.assertEqual(progress.total_row_count, row_count)
 
-  def testFlowTruncatesFileAboveSingleLimit(self):
+  def testFlowFailsWhenCollectingFileAboveSingleLimit(self):
     with temp.AutoTempFilePath() as temp_file_path:
       target_bytes = 2**20  # 1 MiB
       less_than_necessary_bytes = target_bytes // 2
@@ -294,6 +300,31 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
           with self.assertRaises(RuntimeError):
             self._RunFlow("Doesn't matter", ["collect_collumn"])
+
+  def testFlowReportsErrorWhenCollectingFileAboveSingleLimit(self):
+    with temp.AutoTempFilePath() as temp_file_path:
+      target_bytes = 2**20  # 1 MiB
+      less_than_necessary_bytes = target_bytes // 2
+
+      with io.open(temp_file_path, "wb") as fd:
+        fd.write(b"1" * target_bytes)
+
+      table = f"""
+      [
+        {{ "collect_collumn": "{temp_file_path}" }}
+      ]
+      """
+
+      with mock.patch.object(
+          osquery_flow,
+          "FILE_COLLECTION_MAX_SINGLE_FILE_BYTES",
+          less_than_necessary_bytes):
+        with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+          flow_id = self._InitializeFlow(
+              "Doesn't matter", ["collect_collumn"], check_flow_errors=False)
+          progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+
+      self.assertEqual(f"File with path {temp_file_path} is too big: {target_bytes} bytes when the limit is {less_than_necessary_bytes} bytes.", progress.error_message)
 
   def testFlowDoesntCollectSingleFileAboveTotalLimit(self):
     with temp.AutoTempFilePath() as temp_file_path:
@@ -316,6 +347,33 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
           with self.assertRaises(RuntimeError):
             self._RunFlow("Doesn't matter", ["collect_collumn"])
+
+  def testFlowReportsErrorWhenCollectingSingleFileAboveTotalLimit(self):
+    with temp.AutoTempFilePath() as temp_file_path:
+      target_bytes = 2**20  # 1 MiB
+      less_than_necessary_bytes = target_bytes // 2
+
+      with io.open(temp_file_path, "wb") as fd:
+        fd.write(b"1" * target_bytes)
+
+      table = f"""
+      [
+        {{ "collect_collumn": "{temp_file_path}" }}
+      ]
+      """
+
+      with mock.patch.object(
+          osquery_flow,
+          "FILE_COLLECTION_MAX_TOTAL_BYTES",
+          less_than_necessary_bytes):
+        with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+          flow_id = self._InitializeFlow(
+              "Doesn't matter", ["collect_collumn"], check_flow_errors=False)
+          progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+
+    self.assertEqual(
+        "Files for collection exceed the total size limit of "
+        f"{less_than_necessary_bytes} bytes.", progress.error_message)
 
   def testFlowCollectFile(self):
     with temp.AutoTempFilePath() as temp_file_path:
@@ -351,6 +409,20 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         with self.assertRaises(RuntimeError):
           self._RunFlow("Doesn't matter", ["collect1", "collect2"])
 
+  def testFlowReportsErrorWhenCollectingColumnsAboveLimit(self):
+    with temp.AutoTempFilePath() as temp_file_path:
+      with io.open(temp_file_path, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file.")
+
+      with mock.patch.object(osquery_flow, "FILE_COLLECTION_MAX_COLUMNS", 1):
+        flow_id = self._InitializeFlow(
+            "Doesn't matter", ["collect1", "collect2"], check_flow_errors=False)
+        progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+
+    self.assertEqual(
+      "Requested file collection for 2 columns, but the limit is 1 columns.",
+      progress.error_message)
+
   def testFlowDoesntCollectWhenRowsAboveLimit(self):
     with temp.AutoTempFilePath() as temp_file_path:
       with io.open(temp_file_path, mode="w", encoding="utf-8") as fd:
@@ -367,6 +439,28 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
           with self.assertRaises(RuntimeError):
             self._RunFlow("Doesn't matter", ["collect_collumn"])
+
+  def testFlowReportsErrorWhenCollectingRowsAboveLimit(self):
+    with temp.AutoTempFilePath() as temp_file_path:
+      with io.open(temp_file_path, mode="w", encoding="utf-8") as fd:
+        fd.write("Just sample text to put in the file.")
+
+      table = f"""
+      [
+        {{ "collect_column": "{temp_file_path}"}},
+        {{ "collect_column": "{temp_file_path}"}}
+      ]
+      """
+
+      with mock.patch.object(osquery_flow, "FILE_COLLECTION_MAX_ROWS", 1):
+        with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+          flow_id = self._InitializeFlow(
+              "Doesn't matter", ["collect_collumn"], check_flow_errors=False)
+          progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+
+    self.assertEqual(
+        "Requested file collection on a table with 2 rows, "
+        "but the limit is 1 rows.", progress.error_message)
 
   def testArchiveMappingsForMultipleFiles(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dir_path:
