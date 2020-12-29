@@ -633,6 +633,7 @@ export declare interface OsqueryFlowArgs {
 export declare interface OsqueryProgress {
   readonly partialTable?: OsqueryTable;
   readonly totalRowCount?: DecimalString;
+  readonly errorMessage?: string;
 }
 
 /** OsqueryResult proto mapping. */

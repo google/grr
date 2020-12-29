@@ -51,6 +51,11 @@ export class OsqueryDetails extends Plugin {
       this.resultsTable$,
   );
 
+  readonly progressErrorMessage$ = this.osqueryProgress$.pipe(
+      map(progress => progress.errorMessage),
+      filter(isNonNull),
+  );
+
   readonly additionalRowsAvailable$ =
       combineLatest([
         this.osqueryProgress$.pipe(
@@ -74,10 +79,6 @@ export class OsqueryDetails extends Plugin {
 
   readonly args$: Observable<OsqueryFlowArgs> = this.flowListEntry$.pipe(
       map(flowListEntry => flowListEntry.flow.args as OsqueryFlowArgs),
-  );
-
-  readonly resultsStderr$ = this.osqueryResults$.pipe(
-      map(result => result.stderr),
   );
 
   readonly clientAndFlowId$ = this.flowListEntry$.pipe(
