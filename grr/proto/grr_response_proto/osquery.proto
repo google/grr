@@ -24,9 +24,9 @@ message OsqueryFlowArgs {
 }
 
 message OsqueryArgs {
-  reserved 3;
   optional string query = 1;
   optional uint64 timeout_millis = 2;
+  reserved 3;
 }
 
 message OsqueryColumn {
@@ -49,8 +49,8 @@ message OsqueryTable {
 }
 
 message OsqueryResult {
-  reserved 2;
   optional OsqueryTable table = 1;
+  reserved 2;
 }
 
 message OsqueryProgress {
