@@ -218,8 +218,7 @@ def ParseRow(header: rdf_osquery.OsqueryHeader,
   return result
 
 
-# TODO(hanuszczak): https://github.com/python/typeshed/issues/2761
-ProcOutput = NamedTuple("ProcOutput", [("stdout", Text), ("stderr", Text)])  # pytype: disable=wrong-arg-types
+ProcOutput = NamedTuple("ProcOutput", [("stdout", Text), ("stderr", Text)])
 
 
 def Query(args: rdf_osquery.OsqueryArgs) -> ProcOutput:

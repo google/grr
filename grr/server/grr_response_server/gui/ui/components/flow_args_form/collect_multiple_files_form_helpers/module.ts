@@ -8,15 +8,14 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
+import {DateTimeInputModule} from '@app/components/form/date_time_input/module';
 
-import {AccessTimeCondition} from './access_time_condition';
 import {ConditionPanel} from './condition_panel';
 import {ExtFlagsCondition} from './ext_flags_condition';
-import {InodeChangeTimeCondition} from './inode_change_time_condition';
 import {LiteralMatchCondition} from './literal_match_condition';
-import {ModificationTimeCondition} from './modification_time_condition';
 import {RegexMatchCondition} from './regex_match_condition';
 import {SizeCondition} from './size_condition';
+import {TimeRangeCondition} from './time_range_condition';
 
 /**
  * Module for the flow_picker details component.
@@ -28,6 +27,8 @@ import {SizeCondition} from './size_condition';
     FormsModule,
     ReactiveFormsModule,
     CommonModule,
+    // Our custom modules.
+    DateTimeInputModule,
     // Angular Material modules.
     MatCardModule,
     MatButtonModule,
@@ -37,21 +38,17 @@ import {SizeCondition} from './size_condition';
   ],
   declarations: [
     ConditionPanel,
-    AccessTimeCondition,
     ExtFlagsCondition,
-    InodeChangeTimeCondition,
     LiteralMatchCondition,
-    ModificationTimeCondition,
+    TimeRangeCondition,
     RegexMatchCondition,
     SizeCondition,
   ],
   exports: [
     ConditionPanel,
-    AccessTimeCondition,
     ExtFlagsCondition,
-    InodeChangeTimeCondition,
     LiteralMatchCondition,
-    ModificationTimeCondition,
+    TimeRangeCondition,
     RegexMatchCondition,
     SizeCondition,
   ],

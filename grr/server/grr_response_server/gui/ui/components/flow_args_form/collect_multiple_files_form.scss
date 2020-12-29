@@ -8,3 +8,20 @@
     color: c.mat-color(c.$foreground, text);
   }
 }
+
+.mat-error {
+  font-size: 85%;
+}
+
+mat-error {
+  margin-top: 0.5em;
+}
+
+.add-path-row {
+  display: flex;
+  flex-direction: row;
+
+  .error {
+    flex-grow: 1;
+  }
+}

@@ -1,17 +1,29 @@
 import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
-import {FormArray, FormControl, FormGroup} from '@angular/forms';
-import {AccessTimeCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/access_time_condition';
+import {AbstractControl, FormArray, FormControl, FormGroup, ValidationErrors} from '@angular/forms';
 import {ExtFlagsCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/ext_flags_condition';
-import {InodeChangeTimeCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/inode_change_time_condition';
 import {LiteralMatchCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
-import {ModificationTimeCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/modification_time_condition';
 import {RegexMatchCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
 import {SizeCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/size_condition';
+import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
-import {map, shareReplay} from 'rxjs/operators';
+import {isNonNull} from '@app/lib/preconditions';
+import {filter, map, shareReplay} from 'rxjs/operators';
 
 import {CollectMultipleFilesArgs} from '../../lib/api/api_interfaces';
 import {ClientPageFacade} from '../../store/client_page_facade';
+
+
+function atLeastOnePathExpression(control: AbstractControl): ValidationErrors {
+  for (const c of (control as FormArray).controls) {
+    if (isNonNull(c.value) && c.value.trim() !== '') {
+      return {};
+    }
+  }
+
+  return {
+    'atLeastOnePathExpressionExpected': true,
+  };
+}
 
 /** Form that configures a CollectMultipleFiles flow. */
 @Component({
@@ -23,11 +35,42 @@ import {ClientPageFacade} from '../../store/client_page_facade';
 export class CollectMultipleFilesForm extends
     FlowArgumentForm<CollectMultipleFilesArgs> implements OnInit {
   readonly form = new FormGroup({
-    pathExpressions: new FormArray([]),
+    pathExpressions: new FormArray([], atLeastOnePathExpression),
   });
 
   @Output()
   readonly formValues$ = this.form.valueChanges.pipe(
+      filter(isNonNull),
+      map(v => {
+        let result: CollectMultipleFilesArgs = {
+          pathExpressions: v.pathExpressions,
+        };
+
+        if (v.modificationTime) {
+          result = {
+            ...result,
+            modificationTime: formValuesToFileFinderModificationTimeCondition(
+                v.modificationTime)
+          };
+        }
+
+        if (v.accessTime) {
+          result = {
+            ...result,
+            accessTime: formValuesToFileFinderAccessTimeCondition(v.accessTime),
+          };
+        }
+
+        if (v.inodeChangeTime) {
+          result = {
+            ...result,
+            inodeChangeTime: formValuesToFileFinderInodeChangeTimeCondition(
+                v.inodeChangeTime)
+          };
+        }
+
+        return result;
+      }),
       shareReplay(1),
   );
 
@@ -89,8 +132,7 @@ export class CollectMultipleFilesForm extends
 
   // Modification time condition.
   addModificationTimeCondition() {
-    this.form.addControl(
-        'modificationTime', ModificationTimeCondition.createFormGroup());
+    this.form.addControl('modificationTime', createTimeRangeFormGroup());
   }
 
   removeModificationTimeCondition() {
@@ -99,7 +141,7 @@ export class CollectMultipleFilesForm extends
 
   // Access time condition.
   addAccessTimeCondition() {
-    this.form.addControl('accessTime', AccessTimeCondition.createFormGroup());
+    this.form.addControl('accessTime', createTimeRangeFormGroup());
   }
 
   removeAccessTimeCondition() {
@@ -108,8 +150,7 @@ export class CollectMultipleFilesForm extends
 
   // Inode change time condition.
   addInodeChangeTimeCondition() {
-    this.form.addControl(
-        'inodeChangeTime', InodeChangeTimeCondition.createFormGroup());
+    this.form.addControl('inodeChangeTime', createTimeRangeFormGroup());
   }
 
   removeInodeChangeTimeCondition() {

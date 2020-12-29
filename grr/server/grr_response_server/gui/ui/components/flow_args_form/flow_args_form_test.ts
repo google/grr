@@ -378,8 +378,11 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
         });
   });
 
-  it('allows adding modification time expression', (done) => {
+  it('allows adding modification time expression', () => {
     const fixture = prepareFixture();
+
+    expect(fixture.debugElement.queryAll(By.css('time-range-condition')))
+        .toHaveSize(0);
 
     const conditionButton =
         fixture.debugElement.query(By.css('button[name=modificationTime]'));
@@ -390,34 +393,11 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
     expect(
         fixture.debugElement.queryAll(By.css('button[name=modificationTime]')))
         .toHaveSize(0);
-
-    const minTimeInput = fixture.debugElement.query(
-        By.css('input[formControlName=minLastModifiedTime'));
-    minTimeInput.nativeElement.value = 42;
-    minTimeInput.nativeElement.dispatchEvent(new Event('input'));
-
-    const maxTimeInput = fixture.debugElement.query(
-        By.css('input[formControlName=maxLastModifiedTime'));
-    maxTimeInput.nativeElement.value = 43;
-    maxTimeInput.nativeElement.dispatchEvent(new Event('input'));
-
-    fixture.detectChanges();
-
-    // Check that the form got updated accordingly.
-    fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe(
-        (values) => {
-          expect(values).toEqual({
-            pathExpressions: [''],
-            modificationTime: {
-              minLastModifiedTime: '42',
-              maxLastModifiedTime: '43',
-            }
-          });
-          done();
-        });
+    expect(fixture.debugElement.queryAll(By.css('time-range-condition')))
+        .toHaveSize(1);
   });
 
-  it('allows removing modification time expression', (done) => {
+  it('allows removing modification time expression', () => {
     const fixture = prepareFixture();
 
     const conditionButton =
@@ -425,17 +405,8 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
     conditionButton.nativeElement.click();
     fixture.detectChanges();
 
-    // The button should disappear after the click.
-    expect(
-        fixture.debugElement.queryAll(By.css('button[name=modificationTime]')))
-        .toHaveSize(0);
-
     // The form should now appear.
-    expect(fixture.debugElement.queryAll(
-               By.css('input[formControlName=minLastModifiedTime')))
-        .toHaveSize(1);
-    expect(fixture.debugElement.queryAll(
-               By.css('input[formControlName=maxLastModifiedTime')))
+    expect(fixture.debugElement.queryAll(By.css('time-range-condition')))
         .toHaveSize(1);
 
     const removeButton =
@@ -443,26 +414,8 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
     removeButton.nativeElement.click();
     fixture.detectChanges();
 
-    // The button should now appear.
-    expect(
-        fixture.debugElement.queryAll(By.css('button[name=modificationTime]')))
-        .toHaveSize(1);
-
     // The form should now disappear.
-    expect(fixture.debugElement.queryAll(
-               By.css('input[formControlName=minLastModifiedTime')))
+    expect(fixture.debugElement.queryAll(By.css('time-range-condition')))
         .toHaveSize(0);
-    expect(fixture.debugElement.queryAll(
-               By.css('input[formControlName=maxLastModifiedTime')))
-        .toHaveSize(0);
-
-    // The form value should have no traces of the form.
-    fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe(
-        (values) => {
-          expect(values).toEqual({
-            pathExpressions: [''],
-          });
-          done();
-        });
   });
 });

@@ -13,6 +13,7 @@ import {CollectMultipleFilesForm} from '@app/components/flow_args_form/collect_m
 import {HelpersModule} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/module';
 import {CollectSingleFileForm} from '@app/components/flow_args_form/collect_single_file_form';
 import {ByteComponentsModule} from '@app/components/form/byte_input/module';
+import {DateTimeInputModule} from '@app/components/form/date_time_input/module';
 import {GlobExpressionExplanationModule} from '@app/components/form/glob_expression_form_field/module';
 
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
@@ -34,6 +35,7 @@ import {OsqueryForm} from './osquery_form';
     ByteComponentsModule,
     GlobExpressionExplanationModule,
     HelpersModule,
+    DateTimeInputModule,
   ],
   declarations: [
     FlowArgsForm,

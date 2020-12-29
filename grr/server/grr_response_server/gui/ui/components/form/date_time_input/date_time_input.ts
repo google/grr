@@ -1,12 +1,11 @@
-
 import {FocusMonitor} from '@angular/cdk/a11y';
 import {coerceBooleanProperty} from '@angular/cdk/coercion';
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, forwardRef, HostBinding, Input, OnDestroy, Optional, Self, ViewChild} from '@angular/core';
 import {ControlValueAccessor, NgControl} from '@angular/forms';
 import {MatFormFieldControl} from '@angular/material/form-field';
 import {MatMenu, MatMenuTrigger} from '@angular/material/menu';
+import {DateTime} from '@app/lib/date_time';
 import {isNonNull} from '@app/lib/preconditions';
-import {DateTime} from 'luxon';
 import {Subject} from 'rxjs';
 
 
@@ -34,7 +33,8 @@ function generateMenuTimes(): ReadonlyArray<string> {
   return result;
 }
 
-const DATE_TIME_FORMAT = 'yyyy-MM-dd hh:mm:ss';
+/** DateTime format used in date-time-input controls. */
+export const DATE_TIME_FORMAT = 'yyyy-MM-dd hh:mm:ss';
 
 /** mat-form-field for GlobExpression inputs. */
 @Component({
