@@ -69,11 +69,19 @@ export class OsqueryDetails extends Plugin {
       ])
           .pipe(
               map(([totalRowCount, displayedRowCount]) => {
+                if (isNonNull(totalRowCount) && Number(totalRowCount) === 0) {
+                  // Without this check the button for requesting full results
+                  // will be displayed if the resulting table is empty. This is
+                  // because the table property of OsqueryTable is undefined if
+                  // the result contains no rows.
+                  return 0;
+                }
+
                 if (isNonNull(totalRowCount) && isNonNull(displayedRowCount)) {
                   return Number(totalRowCount) - displayedRowCount;
-                } else {
-                  return '?';
                 }
+
+                return '?';
               }),
           );
 
@@ -120,7 +128,8 @@ export class OsqueryDetails extends Plugin {
   }
 
   loadCompleteResults() {
+    // TODO(simstoykov): Fetch more chunks if present
     this.queryFlowResults(
-        {offset: 0, count: 1});  // TODO: Fetch more chunks if present
+        {offset: 0, count: 1, withType: 'OsqueryResult'});
   }
 }

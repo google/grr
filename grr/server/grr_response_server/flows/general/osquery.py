@@ -143,6 +143,8 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
       return []
 
     total_row_count = _GetTotalRowCount(responses)
+    if total_row_count == 0:
+      return []
     if total_row_count > FILE_COLLECTION_MAX_ROWS:
       message = (f"Requested file collection on a table with {total_row_count} "
           f"rows, but the limit is {FILE_COLLECTION_MAX_ROWS} rows.")
@@ -152,7 +154,12 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
     file_names = []
     for osquery_result in responses:
       for column in self.args.file_collection_columns:
-        file_names.extend(osquery_result.table.Column(column))
+        try:
+          file_names.extend(osquery_result.table.Column(column))
+        except KeyError:
+          self._UpdateProgressWithError(
+              f"No such column '{column}' to collect files from.")
+          raise
 
     return [rdf_paths.PathSpec.OS(path=file_name) for file_name in file_names]
 

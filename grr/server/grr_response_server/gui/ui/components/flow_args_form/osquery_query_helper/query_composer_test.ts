@@ -31,7 +31,7 @@ describe('QueryComposer', () => {
     });
 
     const query = constructSelectAllFromTable(tableSpec);
-    expect(query).toContain('WHERE\n\trequired_column LIKE ""');
+    expect(query).toContain('WHERE\n\trequired_column = \'\'');
   });
 
   it('should add an indented SELECT clause with all the column names', () => {

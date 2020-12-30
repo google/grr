@@ -19,9 +19,9 @@ function constructWhereClause(table: OsqueryTableSpec): string {
     return '';
   }
 
-  const comment = 'TODO: Set required field as appropriate.'
+  const comment = 'TODO: Set required field or delete as appropriate. LIKE can also be used for pattern matching.';
   const columnConstraints = requiredColumnNames.map(
-      colName => `${colName} LIKE "" -- ${comment}`);
+      colName => `${colName} = '' -- ${comment}`);
   const whereClauseArgs = columnConstraints.join('\nAND\n\t');
 
   return `WHERE\n\t${whereClauseArgs}`;

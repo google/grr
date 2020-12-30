@@ -1,29 +1,27 @@
-<ng-container *ngIf="table; else noTable">
-  <div class="results-query">
-    <span class="results-query-label">Query:</span>
-    <span class="results-query-text">{{table.query}}</span>
-  </div>
+<div class="results-query" *ngIf="table?.query as query">
+  <span class="results-query-label">Query:</span>
+  <span class="results-query-text">{{query}}</span>
+</div>
 
-  <div class="table-container">
-    <table>
-      <thead>
-        <th *ngFor="let column of table.header.columns; trackBy: trackByIndex">
-          {{column.name}}
-        </th>
-      </thead>
-      <tbody>
-        <tr *ngFor="let row of table.rows; trackBy: trackByIndex">
-          <td *ngFor="let cellValue of row.values">
-            {{cellValue}}
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
-</ng-container>
+<div class="table-container">
+  <table *ngIf="atLeastOneRowPresent; else noTable">
+    <thead>
+      <th *ngFor="let column of table.header.columns; trackBy: trackByIndex">
+        {{column.name}}
+      </th>
+    </thead>
+    <tbody>
+      <tr *ngFor="let row of table.rows; trackBy: trackByIndex">
+        <td *ngFor="let cellValue of row.values">
+          {{cellValue}}
+        </td>
+      </tr>
+    </tbody>
+  </table>
 
-<ng-template #noTable>
-  <div class="error">
-    No table to display.
-  </div>
-</ng-template>
+  <ng-template #noTable>
+    <div class="error">
+      No rows to display.
+    </div>
+  </ng-template>
+</div>
