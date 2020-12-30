@@ -66,6 +66,8 @@ function download_packages() {
   # if the version of idna needed by requests is not present.
   # See https://ci.appveyor.com/project/grr/grr/builds/20793753.
   pip download --find-links=local_pypi --dest=local_pypi idna==2.7
+
+  pip download --find-links=local_pypi --dest=local_pypi wheel setuptools
 }
 
 function verify_packages() {
