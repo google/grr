@@ -1,7 +1,7 @@
 import {newOsqueryTableSpec, newOsqueryColumnSpec} from './osquery_table_specs';
 import {constructSelectAllFromTable} from './query_composer';
 
-describe('QueryComposer', () => {
+fdescribe('QueryComposer', () => {
   it('shouldn\'t add a WHERE clause if there are no required fields', () => {
     const tableSpec = newOsqueryTableSpec({
       columns: [
@@ -31,7 +31,7 @@ describe('QueryComposer', () => {
     });
 
     const query = constructSelectAllFromTable(tableSpec);
-    expect(query).toContain('WHERE\n\trequired_column LIKE ""');
+    expect(query).toContain('WHERE\n\trequired_column = \'\'');
   });
 
   it('should add an indented SELECT clause with all the column names', () => {
