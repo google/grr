@@ -36,6 +36,9 @@
   <div
     *ngIf="additionalRowsAvailable$ | async as additionalCount"
     class="show-additional">
-    <button (click)="loadCompleteResults()">View all rows ({{additionalCount}} more)</button>
+    <button
+      (click)="loadCompleteResults()"
+      mat-button
+      color="primary">View all rows ({{additionalCount}} more)</button>
   </div>
 </ng-container>
