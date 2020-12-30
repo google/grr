@@ -8,7 +8,6 @@ import {initTestEnvironment} from '@app/testing';
 import {PluginsModule} from './module';
 
 import {OsqueryDetails} from './osquery_details';
-import { OsqueryFlowArgs, OsqueryResult } from '@app/lib/api/api_interfaces';
 
 
 initTestEnvironment();
