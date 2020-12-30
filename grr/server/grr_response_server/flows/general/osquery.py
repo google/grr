@@ -155,8 +155,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
     for osquery_result in responses:
       for column in self.args.file_collection_columns:
         try:
-          values_in_column = osquery_result.table.Column(column)
-          file_names.extend(values_in_column)
+          file_names.extend(osquery_result.table.Column(column))
         except KeyError:
           self._UpdateProgressWithError(
               f"No such column '{column}' to collect files from.")
