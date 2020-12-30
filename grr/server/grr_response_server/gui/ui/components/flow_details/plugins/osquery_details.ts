@@ -128,7 +128,8 @@ export class OsqueryDetails extends Plugin {
   }
 
   loadCompleteResults() {
+    // TODO(simstoykov): Fetch more chunks if present
     this.queryFlowResults(
-        {offset: 0, count: 1});  // TODO: Fetch more chunks if present
+        {offset: 0, count: 1, withType: 'OsqueryResult'});
   }
 }
