@@ -8,6 +8,7 @@ import {initTestEnvironment} from '@app/testing';
 import {PluginsModule} from './module';
 
 import {OsqueryDetails} from './osquery_details';
+import { OsqueryFlowArgs, OsqueryResult } from '@app/lib/api/api_interfaces';
 
 
 initTestEnvironment();
@@ -370,7 +371,7 @@ describe('osquery-details component', () => {
             flowId: 'someFlow321',
             args: {
               // Columns for file collection are present
-              fileCollectColumns: ['column'],
+              fileCollectionColumns: ['column'],
             },
           }),
           resultSets: [

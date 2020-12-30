@@ -13,7 +13,7 @@
   <div
     *ngIf="numberOfRowsAvailable$ | async"
     class="flow-details-summary-actions export-button-holder">
-    <ng-container *ngIf="(args$ | async)?.fileCollectColumns as fileCollectColumns">
+    <ng-container *ngIf="(args$ | async)?.fileCollectionColumns as fileCollectionColumns">
       <a
         *ngIf="collectedFilesLink$ | async as collectedFilesLink"
         [href]="collectedFilesLink"

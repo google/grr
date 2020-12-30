@@ -1,7 +1,7 @@
 import {newOsqueryTableSpec, newOsqueryColumnSpec} from './osquery_table_specs';
 import {constructSelectAllFromTable} from './query_composer';
 
-fdescribe('QueryComposer', () => {
+describe('QueryComposer', () => {
   it('shouldn\'t add a WHERE clause if there are no required fields', () => {
     const tableSpec = newOsqueryTableSpec({
       columns: [
