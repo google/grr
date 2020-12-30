@@ -25,7 +25,6 @@ describe('OsqueryResultsTable Component', () => {
         .compileComponents();
   }));
 
-
   /**
    * Function that creates a component fixture which is supplied with the
    * OsqueryTable values provided
@@ -47,12 +46,12 @@ describe('OsqueryResultsTable Component', () => {
 
        const columns = Array.from<number>({length: columnNumber})
                            .fill(0)
-                           .map((value, index) => `Column ${index}`);
+                           .map((_, index) => `Column ${index}`);
        const values =
            Array.from<number>({length: rowNumber}).fill(0).map((value, row) => {
              return Array.from<number>({length: columnNumber})
                  .fill(0)
-                 .map((value, col) => `row-${row}, col-${col}`);
+                 .map((_, col) => `row-${row}, col-${col}`);
            });
 
        const table = newOsqueryTable(query, columns, values);
@@ -78,9 +77,24 @@ describe('OsqueryResultsTable Component', () => {
 
     expect(parsedTable?.columnElements?.length).toBe(0);
     expect(parsedTable?.cellDivs?.length).toBe(0);
+
     expect(parsedTable.queryDiv).toBeFalsy();
 
     expect(parsedTable.errorDiv).toBeTruthy();
-    expect(parsedTable.errorText).toBe('No table to display.');
+    expect(parsedTable.errorText).toBe('No rows to display.');
+  });
+
+  it('should display message and query if no rows are pressent', () => {
+    const emptyTable = newOsqueryTable('query', [], [])
+    const osqueryResultsTable = createElementFrom(emptyTable);
+    const parsedTable = new OsqueryResultsTableDOM(osqueryResultsTable);
+
+    expect(parsedTable?.columnElements?.length).toBe(0);
+    expect(parsedTable?.cellDivs?.length).toBe(0);
+
+    expect(parsedTable.queryDiv).toBeTruthy();
+
+    expect(parsedTable.errorDiv).toBeTruthy();
+    expect(parsedTable.errorText).toBe('No rows to display.');
   });
 });

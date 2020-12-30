@@ -144,7 +144,7 @@ describe('osquery-details component', () => {
          progress: {
            partialTable:
                newOsqueryTable(testQuery, [testColName], [[testCellValue]]),
-           totalRowCount: 1,  // Not more than the number of rows in the
+           totalRowCount: '1',  // Not more than the number of rows in the
                               // progress table (1),
          },
          args: {
@@ -175,7 +175,7 @@ describe('osquery-details component', () => {
            partialTable:
                newOsqueryTable(testQuery, [testColName], [[testCellValue]]),
            totalRowCount:
-               2,  // More than the number of rows in the progress table (1),
+               '2',  // More than the number of rows in the progress table (1),
          },
          args: {
            query: testQuery,
@@ -211,7 +211,7 @@ describe('osquery-details component', () => {
            progress: {
              partialTable: newOsqueryTable(
                  'doesnt matter', progressColumns, progressCells),
-             totalRowCount: 2,
+             totalRowCount: '2',
            },
          }),
          resultSets: [
@@ -262,6 +262,23 @@ describe('osquery-details component', () => {
        expect(parsedElements.showAdditionalButtonText)
            .toBe('View all rows (? more)');
      });
+
+  it('doesn\'t display the show-additional section if totalRowCount in the progress is 0', () => {
+    const testFlowListEntry = newFlowListEntry({
+      state: FlowState.FINISHED,
+      args: {
+        query: 'Some query',
+      },
+      progress: {
+        totalRowCount: '0',
+      }
+    });
+
+    const fixture = createFixtureFrom(testFlowListEntry);
+    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+    expect(parsedElements.showAdditionalDiv).toBeFalsy();
+  });
 
   it('shouldn\'t display the export button if flow is still running',
     () => {

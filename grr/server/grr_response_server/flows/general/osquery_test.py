@@ -304,13 +304,13 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(file_text, "Just sample text to put in the file.")
 
   def testFlowDoesntFailWhenCollectingFilesFromEmptyResult(self):
-    table = f"""
+    empty_table = f"""
     [
 
     ]
     """
 
-    with osquery_test_lib.FakeOsqueryiOutput(stdout=table, stderr=""):
+    with osquery_test_lib.FakeOsqueryiOutput(stdout=empty_table, stderr=""):
       results = self._RunFlow("Doesn't matter", ["collect_column"])
 
     self.assertLen(results, 1)
