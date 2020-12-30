@@ -294,8 +294,8 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         results = self._RunFlow("Doesn't matter", ["collect_column"])
       
     self.assertLen(results, 2)
-    self.assertEqual(type(results[0]), rdf_osquery.OsqueryResult)
-    self.assertEqual(type(results[1]), rdf_client_fs.StatEntry)
+    self.assertIsInstance(results[0], rdf_osquery.OsqueryResult)
+    self.assertIsInstance(results[1], rdf_client_fs.StatEntry)
 
     pathspec = results[1].pathspec
     client_path = db.ClientPath.FromPathSpec(self.client_id, pathspec)
@@ -314,7 +314,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
       results = self._RunFlow("Doesn't matter", ["collect_column"])
 
     self.assertLen(results, 1)
-    self.assertEqual(type(results[0]), rdf_osquery.OsqueryResult)
+    self.assertIsInstance(results[0], rdf_osquery.OsqueryResult)
 
   def testFlowFailsWhenCollectingFileAboveSingleLimit(self):
     with temp.AutoTempFilePath() as temp_file_path:
