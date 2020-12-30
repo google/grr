@@ -5,9 +5,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import time
 from unittest import mock
 
 from absl import app
+import grpc
 
 from google.protobuf import timestamp_pb2
 
@@ -108,6 +110,58 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     fs_message.data.Unpack(unpacked_message)
     self.assertEqual(fs_message.annotations, expected_annotations)
     self.assertEqual(grr_message.AsPrimitiveProto(), unpacked_message)
+
+  @mock.patch.object(fleetspeak_connector, "CONN")
+  def testSendGrrMessage_allRetriesFailed(self, mock_conn):
+    client_id = "C.0123456789abcdef"
+    grr_message = rdf_flows.GrrMessage()
+    mock_conn.outgoing.InsertMessage.side_effect = grpc.RpcError("Foo")
+    with test_lib.ConfigOverrider({
+        "Server.fleetspeak_send_retry_attempts": 5,
+        "Server.fleetspeak_send_retry_sleep_time_secs": 0,
+    }):
+      with self.assertRaisesRegex(grpc.RpcError, "Foo"):
+        fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, grr_message)
+    self.assertEqual(mock_conn.outgoing.InsertMessage.call_count, 5)
+
+  @mock.patch.object(time, "sleep")
+  @mock.patch.object(fleetspeak_connector, "CONN")
+  def testSendGrrMessage_retrySuccess(self, mock_conn, mock_sleep):
+    client_id = "C.0123456789abcdef"
+    grr_message = rdf_flows.GrrMessage()
+
+    def MockInsertMessage(*args):
+      nonlocal mock_conn
+      mock_conn.outgoing.InsertMessage.side_effect = None
+      raise grpc.RpcError("Foo")
+
+    mock_conn.outgoing.InsertMessage.side_effect = MockInsertMessage
+    with test_lib.ConfigOverrider({
+        "Server.fleetspeak_send_retry_attempts": 2,
+        "Server.fleetspeak_send_retry_sleep_time_secs": 3,
+    }):
+      fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, grr_message)
+    self.assertEqual(mock_conn.outgoing.InsertMessage.call_count, 2)
+    self.assertEqual(mock_sleep.call_count, 1)
+    mock_sleep.assert_called_with(3)
+
+  def testSendGrrMessage_zeroAttempts(self):
+    client_id = "C.0123456789abcdef"
+    grr_message = rdf_flows.GrrMessage()
+    with test_lib.ConfigOverrider({
+        "Server.fleetspeak_send_retry_attempts": 0,
+    }):
+      with self.assertRaises(ValueError):
+        fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, grr_message)
+
+  def testSendGrrMessage_negativeAttempts(self):
+    client_id = "C.0123456789abcdef"
+    grr_message = rdf_flows.GrrMessage()
+    with test_lib.ConfigOverrider({
+        "Server.fleetspeak_send_retry_attempts": -1,
+    }):
+      with self.assertRaises(ValueError):
+        fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, grr_message)
 
   @mock.patch.object(fleetspeak_connector, "CONN")
   def testKillFleetspeak(self, mock_conn):

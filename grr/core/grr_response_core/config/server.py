@@ -334,3 +334,13 @@ config_lib.DEFINE_semantic_enum(
     "Server.raw_filesystem_access_pathtype",
     default=rdf_paths.PathSpec.PathType.NTFS,
     help="PathType to use for raw filesystem access on Windows.")
+
+config_lib.DEFINE_integer(
+    "Server.fleetspeak_send_retry_attempts", 1,
+    "The number of times a fleetspeak message to a client will be attempted "
+    "to be sent.")
+
+config_lib.DEFINE_integer(
+    "Server.fleetspeak_send_retry_sleep_time_secs", 0,
+    "Time in seconds to sleep between retries to send a fleetspeak message "
+    "to a client.")

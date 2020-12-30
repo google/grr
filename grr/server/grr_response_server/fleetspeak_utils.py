@@ -6,12 +6,15 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import binascii
+import time
 from typing import Text, List
+import grpc
 
 from google.protobuf import timestamp_pb2
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import text
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
@@ -32,7 +35,8 @@ def IsFleetspeakEnabledClient(grr_id):
   return md.fleetspeak_enabled
 
 
-def SendGrrMessageThroughFleetspeak(grr_id, grr_msg):
+def _SendGrrMessageThroughFleetspeak(grr_id: str,
+                                     grr_msg: rdf_flows.GrrMessage) -> None:
   """Sends the given GrrMessage through FS."""
   fs_msg = fs_common_pb2.Message(
       message_type="GrrMessage",
@@ -46,6 +50,41 @@ def SendGrrMessageThroughFleetspeak(grr_id, grr_msg):
     annotation = fs_msg.annotations.entries.add()
     annotation.key, annotation.value = "request_id", str(grr_msg.request_id)
   fleetspeak_connector.CONN.outgoing.InsertMessage(fs_msg)
+
+
+def SendGrrMessageThroughFleetspeak(grr_id: str,
+                                    grr_msg: rdf_flows.GrrMessage) -> None:
+  """Sends the given GrrMessage through FS with retrying.
+
+  The send operation is retried if a `grpc.RpcError` occures.
+
+  The maximum number of retries corresponds to the config value
+  `Server.fleetspeak_send_retry_attempts`.
+
+  A retry is delayed by the number of seconds specified in the config value
+  `Server.fleetspeak_send_retry_sleep_time_secs`.
+
+  Args:
+    grr_id: ID of grr client to send message to.
+    grr_msg: GRR message to send.
+  """
+  num_attempts = config.CONFIG["Server.fleetspeak_send_retry_attempts"]
+  sleep_time_secs = (
+      config.CONFIG["Server.fleetspeak_send_retry_sleep_time_secs"])
+
+  if num_attempts <= 0:
+    raise ValueError("Server.fleetspeak_send_retry_attempts must be > 0")
+
+  while True:
+    num_attempts -= 1
+    try:
+      _SendGrrMessageThroughFleetspeak(grr_id, grr_msg)
+      return
+    except grpc.RpcError:
+      if num_attempts == 0:
+        raise
+      else:
+        time.sleep(sleep_time_secs)
 
 
 def KillFleetspeak(grr_id: Text, force: bool) -> None:
