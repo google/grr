@@ -12,7 +12,6 @@ from dateutil import parser
 from werkzeug import routing as werkzeug_routing
 from werkzeug import serving as werkzeug_serving
 from werkzeug import wrappers as werkzeug_wrappers
-from werkzeug import wsgi as werkzeug_wsgi
 from werkzeug.wrappers import json as werkzeug_wrappers_json  # type: ignore
 
 from google.protobuf import timestamp_pb2
@@ -69,20 +68,7 @@ class JSONRequest(werkzeug_wrappers_json.JSONMixin, werkzeug_wrappers.Request):
 
 class JSONResponse(werkzeug_wrappers_json.JSONMixin,
                    werkzeug_wrappers.Response):
-  """JSON-enabled response class."""
-
-  # Python allows passing positional arguments as keyword arguments
-  # and vice-versa. Here response is defined as a keyword argument,
-  # just as it's done in werkzeug_wrappers.Response. However, it's
-  # always passed as a positional argument. Hence, we define it
-  # as a keyword argument that has to be passed as a positional one.
-  # This is very dirty and a cleaner solution should be found.
-  def __init__(self, response=None, *args, **kwargs) -> None:  # pylint: disable=keyword-arg-before-vararg
-    kwargs["mimetype"] = JSON_MIME_TYPE
-    if response is not None and not isinstance(response,
-                                               werkzeug_wsgi.ClosingIterator):
-      response = json.dumps(response)
-    super().__init__(response, *args, **kwargs)
+  pass
 
 
 class Metric(abc.ABC):
@@ -236,7 +222,7 @@ class Grrafana(object):
 
   def _OnRoot(self, unused_request: JSONRequest) -> JSONResponse:
     """Serves OK message to database connection check."""
-    return JSONResponse()
+    return JSONResponse(content_type=JSON_MIME_TYPE)
 
   def _OnSearch(self, unused_request: JSONRequest) -> JSONResponse:
     """Fetches available resource usage metrics.
@@ -252,7 +238,8 @@ class Grrafana(object):
       JSON response.
     """
     response = list(AVAILABLE_METRICS_BY_NAME.keys())
-    return JSONResponse(response=response)
+    return JSONResponse(
+        response=json.dumps(response), content_type=JSON_MIME_TYPE)
 
   def _OnQuery(self, request: JSONRequest) -> JSONResponse:
     """Retrieves datapoints for Grafana.
@@ -273,10 +260,11 @@ class Grrafana(object):
         for target in requested_targets
     ]
     response = [t._asdict() for t in targets_with_datapoints]
-    return JSONResponse(response=response)
+    return JSONResponse(
+        response=json.dumps(response), content_type=JSON_MIME_TYPE)
 
   def _OnAnnotations(self, unused_request: JSONRequest) -> JSONResponse:
-    return JSONResponse()
+    return JSONResponse(content_type=JSON_MIME_TYPE)
 
 
 def TimeToProtoTimestamp(grafana_time: str) -> timestamp_pb2.Timestamp:
@@ -297,8 +285,8 @@ def main(argv: Any) -> None:
                            "Context applied when running GRRafana server.")
   server_startup.Init()
   fleetspeak_connector.Init()
-  werkzeug_serving.run_simple(
-      "127.0.0.1", 5000, Grrafana(), use_debugger=True, use_reloader=True)
+  werkzeug_serving.run_simple(config.CONFIG["GRRafana.bind"],
+                              config.CONFIG["GRRafana.port"], Grrafana())
 
 
 if __name__ == "__main__":

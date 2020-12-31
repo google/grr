@@ -1,6 +1,6 @@
 from grafanalib.core import Alert, AlertCondition, Dashboard, Graph, Heatmap, LowerThan, OP_AND, Row, RTYPE_SUM, Target, TimeRange, YAxes, YAxis, SECONDS_FORMAT, BYTES_FORMAT
 from grr_grafanalib_dashboards.util import add_data_source
-from grr_grafanalib_dashboards.config import ACTIVE_PROCESSES_ALERTING_CONDITION
+from grr_grafanalib_dashboards.config import ACTIVE_PROCESSES_ALERTING_CONDITION, GRAFANA_DATA_SOURCE
 
 dashboard = Dashboard(
   title="Fleetspeak Servers Dashboard",
@@ -260,4 +260,4 @@ dashboard = Dashboard(
   ]
 ).auto_panel_ids()
 
-dashboard = add_data_source(dashboard, "fleetspeak")
+dashboard = add_data_source(dashboard, GRAFANA_DATA_SOURCE)

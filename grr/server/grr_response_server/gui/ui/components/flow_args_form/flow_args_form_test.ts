@@ -270,17 +270,23 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
         .compileComponents();
   });
 
+  function prepareFixture() {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    clientPageFacade.selectedClientSubject.next(newClient({
+      clientId: 'C.1234',
+    }));
+
+    fixture.componentInstance.flowDescriptor =
+        TEST_FLOW_DESCRIPTORS.CollectMultipleFiles;
+    fixture.detectChanges();
+
+    return fixture;
+  }
+
   it('calls the Facade to explain GlobExpressions', fakeAsync(() => {
-       const fixture = TestBed.createComponent(TestHostComponent);
-       fixture.detectChanges();
-
-       clientPageFacade.selectedClientSubject.next(newClient({
-         clientId: 'C.1234',
-       }));
-
-       fixture.componentInstance.flowDescriptor =
-           TEST_FLOW_DESCRIPTORS.CollectMultipleFiles;
-       fixture.detectChanges();
+       const fixture = prepareFixture();
 
        const input = fixture.debugElement.query(By.css('input')).nativeElement;
        input.value = '/home/{foo,bar}';
@@ -294,12 +300,7 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
      }));
 
   it('shows the loaded GlobExpressionExplanation', () => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.detectChanges();
-
-    fixture.componentInstance.flowDescriptor =
-        TEST_FLOW_DESCRIPTORS.CollectMultipleFiles;
-    fixture.detectChanges();
+    const fixture = prepareFixture();
 
     explanation$.next([
       {globExpression: '/home/'},
@@ -312,17 +313,7 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
   });
 
   it('allows adding path expressions', (done) => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.detectChanges();
-
-    clientPageFacade.selectedClientSubject.next(newClient({
-      clientId: 'C.1234',
-    }));
-
-    fixture.componentInstance.flowDescriptor =
-        TEST_FLOW_DESCRIPTORS.CollectMultipleFiles;
-    fixture.detectChanges();
-
+    const fixture = prepareFixture();
 
     let inputs = fixture.debugElement.queryAll(By.css('input'));
     expect(inputs.length).toEqual(1);
@@ -350,17 +341,7 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
   });
 
   it('allows removing path expressions', (done) => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.detectChanges();
-
-    clientPageFacade.selectedClientSubject.next(newClient({
-      clientId: 'C.1234',
-    }));
-
-    fixture.componentInstance.flowDescriptor =
-        TEST_FLOW_DESCRIPTORS.CollectMultipleFiles;
-    fixture.detectChanges();
-
+    const fixture = prepareFixture();
 
     let inputs = fixture.debugElement.queryAll(By.css('input'));
     expect(inputs.length).toEqual(1);
@@ -395,5 +376,46 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
           expect(values).toEqual({pathExpressions: ['/0']});
           done();
         });
+  });
+
+  it('allows adding modification time expression', () => {
+    const fixture = prepareFixture();
+
+    expect(fixture.debugElement.queryAll(By.css('time-range-condition')))
+        .toHaveSize(0);
+
+    const conditionButton =
+        fixture.debugElement.query(By.css('button[name=modificationTime]'));
+    conditionButton.nativeElement.click();
+    fixture.detectChanges();
+
+    // The button should disappear after the click.
+    expect(
+        fixture.debugElement.queryAll(By.css('button[name=modificationTime]')))
+        .toHaveSize(0);
+    expect(fixture.debugElement.queryAll(By.css('time-range-condition')))
+        .toHaveSize(1);
+  });
+
+  it('allows removing modification time expression', () => {
+    const fixture = prepareFixture();
+
+    const conditionButton =
+        fixture.debugElement.query(By.css('button[name=modificationTime]'));
+    conditionButton.nativeElement.click();
+    fixture.detectChanges();
+
+    // The form should now appear.
+    expect(fixture.debugElement.queryAll(By.css('time-range-condition')))
+        .toHaveSize(1);
+
+    const removeButton =
+        fixture.debugElement.query(By.css('.header .remove button'));
+    removeButton.nativeElement.click();
+    fixture.detectChanges();
+
+    // The form should now disappear.
+    expect(fixture.debugElement.queryAll(By.css('time-range-condition')))
+        .toHaveSize(0);
   });
 });

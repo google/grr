@@ -17,6 +17,7 @@ import {ApiModule} from '@app/lib/api/module';
 import {HelpersModule} from '../helpers/module';
 
 import {CollectBrowserHistoryDetails} from './collect_browser_history_details';
+import {CollectMultipleFilesDetails} from './collect_multiple_files_details';
 import {CollectSingleFileDetails} from './collect_single_file_details';
 import {DefaultDetails} from './default_details';
 import {MultiGetFileDetails} from './multi_get_file_details';
@@ -50,6 +51,7 @@ import {OsqueryDetails} from './osquery_details';
     DefaultDetails,
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,
+    CollectMultipleFilesDetails,
     CollectSingleFileDetails,
     OsqueryDetails,
   ],
@@ -57,6 +59,7 @@ import {OsqueryDetails} from './osquery_details';
     DefaultDetails,
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,
+    CollectMultipleFilesDetails,
     CollectSingleFileDetails,
     OsqueryDetails,
   ],
@@ -64,6 +67,7 @@ import {OsqueryDetails} from './osquery_details';
     DefaultDetails,
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,
+    CollectMultipleFilesDetails,
     CollectSingleFileDetails,
     OsqueryDetails,
   ]

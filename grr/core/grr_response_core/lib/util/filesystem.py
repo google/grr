@@ -201,11 +201,7 @@ class StatCache(object):
   smart enough to cache symlink results when a file is not a symlink.
   """
 
-  # TODO(hanuszczak): https://github.com/python/typeshed/issues/2761
-  # pytype: disable=wrong-arg-types
   _Key = NamedTuple("_Key", (("path", Text), ("follow_symlink", bool)))  # pylint: disable=invalid-name
-
-  # pytype: enable=wrong-arg-types
 
   def __init__(self):
     self._cache = {}  # type: Dict[StatCache._Key, Stat]

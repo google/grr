@@ -9,9 +9,9 @@ import platform
 import socket
 import threading
 import time
+from unittest import mock
 
 from absl.testing import absltest
-import mock
 
 import grr_colab
 from grr_colab import errors

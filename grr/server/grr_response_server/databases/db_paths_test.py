@@ -72,7 +72,7 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(result_path_info.directory, True)
 
   def testWritePathInfosMetadataTimestampUpdate(self):
-    now = rdfvalue.RDFDatetime.Now
+    now = self.db.Now
 
     client_id = db_test_utils.InitializeClient(self.db)
 
@@ -306,20 +306,20 @@ class DatabaseTestPathsMixin(object):
     stat_entry_path_info = rdf_objects.PathInfo.OS(
         components=["foo"], stat_entry=stat_entry)
 
-    stat_entry_timestamp = rdfvalue.RDFDatetime.Now()
+    stat_entry_timestamp = self.db.Now()
     self.db.WritePathInfos(client_id, [stat_entry_path_info])
 
     hash_entry = rdf_crypto.Hash(sha256=hashlib.sha256(b"foo").digest())
     hash_entry_path_info = rdf_objects.PathInfo.OS(
         components=["foo"], hash_entry=hash_entry)
 
-    hash_entry_timestamp = rdfvalue.RDFDatetime.Now()
+    hash_entry_timestamp = self.db.Now()
     self.db.WritePathInfos(client_id, [hash_entry_path_info])
 
     result = self.db.ReadPathInfo(
         client_id, rdf_objects.PathInfo.PathType.OS, components=("foo",))
 
-    now = rdfvalue.RDFDatetime.Now()
+    now = self.db.Now()
 
     self.assertEqual(result.components, ["foo"])
     self.assertTrue(result.HasField("stat_entry"))
@@ -441,13 +441,13 @@ class DatabaseTestPathsMixin(object):
     path_info.hash_entry.sha256 = b"foo"
     self.db.WritePathInfos(client_id, [path_info])
 
-    timestamp_1 = rdfvalue.RDFDatetime.Now()
+    timestamp_1 = self.db.Now()
 
     path_info.stat_entry.st_size = 42
     path_info.hash_entry.sha256 = b"bar"
     self.db.WritePathInfos(client_id, [path_info])
 
-    timestamp_2 = rdfvalue.RDFDatetime.Now()
+    timestamp_2 = self.db.Now()
 
     result_1 = self.db.ReadPathInfo(
         client_id,
@@ -563,17 +563,17 @@ class DatabaseTestPathsMixin(object):
     stat_entry = rdf_client_fs.StatEntry(pathspec=pathspec, st_size=42)
     self.db.WritePathInfos(client_id,
                            [rdf_objects.PathInfo.FromStatEntry(stat_entry)])
-    timestamp_1 = rdfvalue.RDFDatetime.Now()
+    timestamp_1 = self.db.Now()
 
     stat_entry = rdf_client_fs.StatEntry(pathspec=pathspec, st_size=101)
     self.db.WritePathInfos(client_id,
                            [rdf_objects.PathInfo.FromStatEntry(stat_entry)])
-    timestamp_2 = rdfvalue.RDFDatetime.Now()
+    timestamp_2 = self.db.Now()
 
     stat_entry = rdf_client_fs.StatEntry(pathspec=pathspec, st_size=1337)
     self.db.WritePathInfos(client_id,
                            [rdf_objects.PathInfo.FromStatEntry(stat_entry)])
-    timestamp_3 = rdfvalue.RDFDatetime.Now()
+    timestamp_3 = self.db.Now()
 
     path_info_last = self.db.ReadPathInfo(
         client_id,
@@ -613,15 +613,15 @@ class DatabaseTestPathsMixin(object):
 
     path_info.hash_entry = rdf_crypto.Hash(sha256=b"bar")
     self.db.WritePathInfos(client_id, [path_info])
-    bar_timestamp = rdfvalue.RDFDatetime.Now()
+    bar_timestamp = self.db.Now()
 
     path_info.hash_entry = rdf_crypto.Hash(sha256=b"baz")
     self.db.WritePathInfos(client_id, [path_info])
-    baz_timestamp = rdfvalue.RDFDatetime.Now()
+    baz_timestamp = self.db.Now()
 
     path_info.hash_entry = rdf_crypto.Hash(sha256=b"quux")
     self.db.WritePathInfos(client_id, [path_info])
-    quux_timestamp = rdfvalue.RDFDatetime.Now()
+    quux_timestamp = self.db.Now()
 
     bar_path_info = self.db.ReadPathInfo(
         client_id,
@@ -689,22 +689,22 @@ class DatabaseTestPathsMixin(object):
     path_info.stat_entry = rdf_client_fs.StatEntry(st_mode=42)
     path_info.hash_entry = None
     self.db.WritePathInfos(client_id, [path_info])
-    timestamp_1 = rdfvalue.RDFDatetime.Now()
+    timestamp_1 = self.db.Now()
 
     path_info.stat_entry = None
     path_info.hash_entry = rdf_crypto.Hash(sha256=b"quux")
     self.db.WritePathInfos(client_id, [path_info])
-    timestamp_2 = rdfvalue.RDFDatetime.Now()
+    timestamp_2 = self.db.Now()
 
     path_info.stat_entry = rdf_client_fs.StatEntry(st_mode=1337)
     path_info.hash_entry = None
     self.db.WritePathInfos(client_id, [path_info])
-    timestamp_3 = rdfvalue.RDFDatetime.Now()
+    timestamp_3 = self.db.Now()
 
     path_info.stat_entry = rdf_client_fs.StatEntry(st_mode=4815162342)
     path_info.hash_entry = rdf_crypto.Hash(sha256=b"norf")
     self.db.WritePathInfos(client_id, [path_info])
-    timestamp_4 = rdfvalue.RDFDatetime.Now()
+    timestamp_4 = self.db.Now()
 
     path_info_1 = self.db.ReadPathInfo(
         client_id,
@@ -949,7 +949,7 @@ class DatabaseTestPathsMixin(object):
         client_id=client_id,
         path_type=rdf_objects.PathInfo.PathType.OS,
         components=(),
-        timestamp=rdfvalue.RDFDatetime.Now())
+        timestamp=self.db.Now())
 
     self.assertLen(results, 3)
     self.assertEqual(results[0].components, ("foo",))
@@ -960,22 +960,22 @@ class DatabaseTestPathsMixin(object):
   def testListDescendantPathInfosTimestampMultiple(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    timestamp_0 = rdfvalue.RDFDatetime.Now()
+    timestamp_0 = self.db.Now()
 
     path_info_1 = rdf_objects.PathInfo.OS(components=["foo", "bar", "baz"])
     path_info_1.stat_entry.st_size = 1
     self.db.WritePathInfos(client_id, [path_info_1])
-    timestamp_1 = rdfvalue.RDFDatetime.Now()
+    timestamp_1 = self.db.Now()
 
     path_info_2 = rdf_objects.PathInfo.OS(components=["foo", "quux", "norf"])
     path_info_2.stat_entry.st_size = 2
     self.db.WritePathInfos(client_id, [path_info_2])
-    timestamp_2 = rdfvalue.RDFDatetime.Now()
+    timestamp_2 = self.db.Now()
 
     path_info_3 = rdf_objects.PathInfo.OS(components=["foo", "quux", "thud"])
     path_info_3.stat_entry.st_size = 3
     self.db.WritePathInfos(client_id, [path_info_3])
-    timestamp_3 = rdfvalue.RDFDatetime.Now()
+    timestamp_3 = self.db.Now()
 
     results_0 = self.db.ListDescendantPathInfos(
         client_id=client_id,
@@ -1022,17 +1022,17 @@ class DatabaseTestPathsMixin(object):
   def testListDescendantPathInfosTimestampStatValue(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    timestamp_0 = rdfvalue.RDFDatetime.Now()
+    timestamp_0 = self.db.Now()
 
     path_info = rdf_objects.PathInfo.OS(components=("foo", "bar"))
 
     path_info.stat_entry.st_size = 1337
     self.db.WritePathInfos(client_id, [path_info])
-    timestamp_1 = rdfvalue.RDFDatetime.Now()
+    timestamp_1 = self.db.Now()
 
     path_info.stat_entry.st_size = 42
     self.db.WritePathInfos(client_id, [path_info])
-    timestamp_2 = rdfvalue.RDFDatetime.Now()
+    timestamp_2 = self.db.Now()
 
     results_0 = self.db.ListDescendantPathInfos(
         client_id=client_id,
@@ -1062,19 +1062,21 @@ class DatabaseTestPathsMixin(object):
   def testListDescendantPathInfosTimestampHashValue(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    timestamp_0 = rdfvalue.RDFDatetime.Now()
+    timestamp_0 = self.db.Now()
 
     path_info = rdf_objects.PathInfo.OS(components=("foo",))
 
     path_info.hash_entry.md5 = b"quux"
     path_info.hash_entry.sha256 = b"thud"
     self.db.WritePathInfos(client_id, [path_info])
-    timestamp_1 = rdfvalue.RDFDatetime.Now()
+
+    timestamp_1 = self.db.Now()
 
     path_info.hash_entry.md5 = b"norf"
     path_info.hash_entry.sha256 = b"blargh"
     self.db.WritePathInfos(client_id, [path_info])
-    timestamp_2 = rdfvalue.RDFDatetime.Now()
+
+    timestamp_2 = self.db.Now()
 
     results_0 = self.db.ListDescendantPathInfos(
         client_id=client_id,
@@ -1291,17 +1293,17 @@ class DatabaseTestPathsMixin(object):
   def testListChildPathInfosTimestamp(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    timestamp_0 = rdfvalue.RDFDatetime.Now()
+    timestamp_0 = self.db.Now()
 
     path_info_1 = rdf_objects.PathInfo.OS(components=("foo", "bar"))
     path_info_1.stat_entry.st_size = 1
     self.db.WritePathInfos(client_id, [path_info_1])
-    timestamp_1 = rdfvalue.RDFDatetime.Now()
+    timestamp_1 = self.db.Now()
 
     path_info_2 = rdf_objects.PathInfo.OS(components=("foo", "baz"))
     path_info_2.stat_entry.st_size = 2
     self.db.WritePathInfos(client_id, [path_info_2])
-    timestamp_2 = rdfvalue.RDFDatetime.Now()
+    timestamp_2 = self.db.Now()
 
     results_0 = self.db.ListChildPathInfos(
         client_id=client_id,
@@ -1337,19 +1339,19 @@ class DatabaseTestPathsMixin(object):
     path_info.stat_entry.st_size = 42
     path_info.hash_entry.sha256 = b"quux"
     self.db.WritePathInfos(client_id, [path_info])
-    timestamp_1 = rdfvalue.RDFDatetime.Now()
+    timestamp_1 = self.db.Now()
 
     path_info = rdf_objects.PathInfo.OS(components=("foo", "bar", "baz"))
     path_info.stat_entry.st_size = 108
     path_info.hash_entry.sha256 = b"norf"
     self.db.WritePathInfos(client_id, [path_info])
-    timestamp_2 = rdfvalue.RDFDatetime.Now()
+    timestamp_2 = self.db.Now()
 
     path_info = rdf_objects.PathInfo.OS(components=("foo", "bar", "baz"))
     path_info.stat_entry.st_size = 1337
     path_info.hash_entry.sha256 = b"thud"
     self.db.WritePathInfos(client_id, [path_info])
-    timestamp_3 = rdfvalue.RDFDatetime.Now()
+    timestamp_3 = self.db.Now()
 
     results_1 = self.db.ListChildPathInfos(
         client_id=client_id,
@@ -1458,9 +1460,9 @@ class DatabaseTestPathsMixin(object):
     path_info.stat_entry.st_size = 42
     path_info.hash_entry.sha256 = b"quux"
 
-    then = rdfvalue.RDFDatetime.Now()
+    then = self.db.Now()
     self.db.WritePathInfos(client_id, [path_info])
-    now = rdfvalue.RDFDatetime.Now()
+    now = self.db.Now()
 
     path_infos = self.db.ReadPathInfosHistories(
         client_id, rdf_objects.PathInfo.PathType.OS, [("foo",)])
@@ -1481,9 +1483,9 @@ class DatabaseTestPathsMixin(object):
     path_info_2 = rdf_objects.PathInfo.OS(components=["bar"])
     path_info_2.hash_entry.sha256 = b"quux"
 
-    then = rdfvalue.RDFDatetime.Now()
+    then = self.db.Now()
     self.db.WritePathInfos(client_id, [path_info_1, path_info_2])
-    now = rdfvalue.RDFDatetime.Now()
+    now = self.db.Now()
 
     path_infos = self.db.ReadPathInfosHistories(
         client_id, rdf_objects.PathInfo.PathType.OS, [("foo",), ("bar",)])
@@ -1509,27 +1511,27 @@ class DatabaseTestPathsMixin(object):
     path_info_1 = rdf_objects.PathInfo.OS(components=["foo"])
     path_info_2 = rdf_objects.PathInfo.OS(components=["bar"])
 
-    timestamp_1 = rdfvalue.RDFDatetime.Now()
+    timestamp_1 = self.db.Now()
 
     path_info_1.stat_entry.st_mode = 1337
     self.db.WritePathInfos(client_id, [path_info_1])
 
-    timestamp_2 = rdfvalue.RDFDatetime.Now()
+    timestamp_2 = self.db.Now()
 
     path_info_1.stat_entry.st_mode = 1338
     self.db.WritePathInfos(client_id, [path_info_1])
 
-    timestamp_3 = rdfvalue.RDFDatetime.Now()
+    timestamp_3 = self.db.Now()
 
     path_info_2.stat_entry.st_mode = 109
     self.db.WritePathInfos(client_id, [path_info_2])
 
-    timestamp_4 = rdfvalue.RDFDatetime.Now()
+    timestamp_4 = self.db.Now()
 
     path_info_2.stat_entry.st_mode = 110
     self.db.WritePathInfos(client_id, [path_info_2])
 
-    timestamp_5 = rdfvalue.RDFDatetime.Now()
+    timestamp_5 = self.db.Now()
 
     path_infos = self.db.ReadPathInfosHistories(
         client_id, rdf_objects.PathInfo.PathType.OS, [("foo",), ("bar",)])
@@ -1571,7 +1573,7 @@ class DatabaseTestPathsMixin(object):
     path_info.stat_entry.st_size = 2
     self.db.WritePathInfos(client_id, [path_info])
 
-    cutoff = rdfvalue.RDFDatetime.Now()
+    cutoff = self.db.Now()
 
     path_info.stat_entry.st_size = 1337
     self.db.WritePathInfos(client_id, [path_info])
@@ -1699,7 +1701,7 @@ class DatabaseTestPathsMixin(object):
     path_info_1.hash_entry.sha256 = hash_id_1.AsBytes()
     self.db.WritePathInfos(client_id, [path_info_1])
 
-    time_checkpoint = rdfvalue.RDFDatetime.Now()
+    time_checkpoint = self.db.Now()
 
     path_info_2 = rdf_objects.PathInfo.OS(components=("foo", "bar"))
     path_info_2.hash_entry.sha256 = hash_id_2.AsBytes()

@@ -561,6 +561,10 @@ class Database(metaclass=abc.ABCMeta):
   unchanged = "__unchanged__"
 
   @abc.abstractmethod
+  def Now(self) -> rdfvalue.RDFDatetime:
+    """Retrieves current time as reported by the database."""
+
+  @abc.abstractmethod
   def WriteArtifact(self, artifact):
     """Writes new artifact to the database.
 
@@ -2915,6 +2919,9 @@ class DatabaseValidationWrapper(Database):
   def __init__(self, delegate: Database):
     super().__init__()
     self.delegate = delegate
+
+  def Now(self) -> rdfvalue.RDFDatetime:
+    return self.delegate.Now()
 
   def WriteArtifact(self, artifact):
     precondition.AssertType(artifact, rdf_artifacts.Artifact)

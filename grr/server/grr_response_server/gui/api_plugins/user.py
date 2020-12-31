@@ -415,10 +415,13 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
 
   @property
   def review_url_path(self):
-    return "/".join([
-        "users", self.requestor, "approvals", "client",
-        str(self.subject.client_id), self.id
-    ])
+    return (f"/v2/clients/{self.subject.client_id}/users/{self.requestor}"
+            f"/approvals/{self.id}")
+
+  @property
+  def review_url_path_legacy(self):
+    return (f"/#/users/{self.requestor}/approvals/client/"
+            f"{self.subject.client_id}/{self.id}")
 
   @property
   def subject_url_path(self):
@@ -481,10 +484,12 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
   @property
   def review_url_path(self):
-    return "/".join([
-        "users", self.requestor, "approvals", "hunt",
-        str(self.subject.hunt_id), self.id
-    ])
+    return self.review_url_path_legacy
+
+  @property
+  def review_url_path_legacy(self):
+    return (f"/#/users/{self.requestor}/approvals/hunt/{self.subject.hunt_id}/"
+            f"{self.id}")
 
   @property
   def subject_url_path(self):
@@ -526,10 +531,12 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
 
   @property
   def review_url_path(self):
-    return "/".join([
-        "users", self.requestor, "approvals", "cron-job",
-        str(self.subject.cron_job_id), self.id
-    ])
+    return self.review_url_path_legacy
+
+  @property
+  def review_url_path_legacy(self):
+    return (f"/#/users/{self.requestor}/approvals/cron-job/"
+            f"{self.subject.cron_job_id}/{self.id}")
 
   @property
   def subject_url_path(self):
@@ -546,6 +553,57 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
             requestor_username=self.requestor))
 
 
+_APPROVAL_TEMPLATE = """
+  <!doctype html>
+  <html>
+    <head>
+      <meta name="viewport" content="width=device-width" />
+      <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+      <style type="test/css">
+        .button {
+          border: 1px solid;
+          border-radius: 4px;
+          display: inline-block;
+          margin-right: 1em;
+          padding: .7em 1.2em;
+          text-decoration: none;
+        }
+      </style>
+    </head>
+    <body>
+      <p>
+        You have been asked to review and grant the following client approval in
+        GRR Rapid Response:
+      </p>
+
+      <table>
+        <tr>
+          <td><strong>Requested by:</strong></td>
+          <td>{{ requestor }}</td>
+        </tr>
+        <tr>
+          <td><strong>GRR client:</strong></td>
+          <td><a href="{{ approval_url}}">{{ subject_title }}</a></td>
+        </tr>
+        <tr>
+          <td><strong>Reason:</strong></td>
+          <td>{{ reason }}</td>
+        </tr>
+      </table>
+
+      <p>
+        <a href="{{ approval_url }}" class="button">Review approval request</a>
+        (or <a href="{{ legacy_approval_url }}">review in legacy UI</a>)
+      </p>
+
+      <p>Thanks,</p>
+      <p>{{ signature }}</p>
+      <p>{{ image|safe }}</p>
+    </body>
+  </html>
+"""
+
+
 class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
   """Base class for all Create*Approval handlers."""
 
@@ -559,38 +617,22 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
     subject_template = jinja2.Template(
         "Approval for {{ user }} to access {{ subject }}.", autoescape=True)
     subject = subject_template.render(
-        user=utils.SmartUnicode(approval.requestor),
-        subject=utils.SmartUnicode(approval.subject_title))
+        user=approval.requestor, subject=approval.subject_title)
 
-    template = jinja2.Template(
-        """
-<html><body><h1>Approval to access
-<a href='{{ admin_ui }}/#/{{ approval_url }}'>{{ subject_title }}</a>
-requested.</h1>
+    template = jinja2.Template(_APPROVAL_TEMPLATE, autoescape=True)
 
-The user "{{ username }}" has requested access to
-<a href='{{ admin_ui }}/#/{{ approval_url }}'>{{ subject_title }}</a>
-for the purpose of <em>{{ reason }}</em>.
-
-Please click <a href='{{ admin_ui }}/#/{{ approval_url }}'>
-here
-</a> to review this request and then grant access.
-
-<p>Thanks,</p>
-<p>{{ signature }}</p>
-<p>{{ image|safe }}</p>
-</body></html>""",
-        autoescape=True)
+    base_url = config.CONFIG["AdminUI.url"].rstrip("/") + "/"
 
     body = template.render(
-        username=utils.SmartUnicode(approval.requestor),
-        reason=utils.SmartUnicode(approval.reason),
-        admin_ui=utils.SmartUnicode(config.CONFIG["AdminUI.url"]),
-        subject_title=utils.SmartUnicode(approval.subject_title),
-        approval_url=utils.SmartUnicode(approval.review_url_path),
-        # If you feel like it, add a funny cat picture here :)
-        image=utils.SmartUnicode(config.CONFIG["Email.approval_signature"]),
-        signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
+        requestor=approval.requestor,
+        reason=approval.reason,
+        legacy_approval_url=base_url +
+        approval.review_url_path_legacy.lstrip("/"),
+        approval_url=base_url + approval.review_url_path.lstrip("/"),
+        subject_title=approval.subject_title,
+        # If you feel like it, add a cute dog picture here :)
+        image=config.CONFIG["Email.approval_signature"],
+        signature=config.CONFIG["Email.signature"])
 
     requestor_email = data_store.REL_DB.ReadGRRUser(
         approval.requestor).GetEmail()

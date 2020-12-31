@@ -11,9 +11,9 @@ import os
 import platform
 import struct
 import unittest
+from unittest import mock
 
 from absl import app
-import mock
 
 from grr_response_core.lib import constants
 from grr_response_core.lib import utils

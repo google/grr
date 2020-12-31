@@ -1,5 +1,15 @@
 import {TestBed} from '@angular/core/testing';
 import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
+import {DateTime} from '@app/lib/date_time';
+
+
+/** Implements an equality tester for luxon's DateTime objects. */
+export function dateTimeEqualityTester(
+    first: unknown, second: unknown): boolean|void {
+  if (first instanceof DateTime && second instanceof DateTime) {
+    return first.valueOf() === second.valueOf();
+  }
+}
 
 /**
  * Initializes Angular test environment.

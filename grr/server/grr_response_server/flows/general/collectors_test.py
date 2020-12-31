@@ -12,9 +12,9 @@ from __future__ import unicode_literals
 import os
 import shutil
 from typing import IO
+from unittest import mock
 
 from absl import app
-import mock
 import psutil
 
 from grr_response_client.client_actions import artifact_collector

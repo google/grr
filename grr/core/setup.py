@@ -154,8 +154,6 @@ setup_args = dict(
         "pytz==2020.1",
         "PyYAML==5.3.1",
         "requests==2.23.0",
-        "virtualenv==20.0.23",
-        "wheel==0.34.2",
         "yara-python==4.0.1",
     ],
 

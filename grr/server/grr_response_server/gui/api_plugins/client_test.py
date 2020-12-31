@@ -7,9 +7,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import ipaddress
+from unittest import mock
 
 from absl import app
-import mock
 
 from google.protobuf import timestamp_pb2
 from grr_response_core.lib import rdfvalue

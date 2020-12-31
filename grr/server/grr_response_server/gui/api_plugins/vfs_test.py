@@ -9,10 +9,10 @@ from __future__ import unicode_literals
 import binascii
 import io
 import os
+from unittest import mock
 import zipfile
 
 from absl import app
-import mock
 
 from grr_response_core.lib import factory
 from grr_response_core.lib import rdfvalue

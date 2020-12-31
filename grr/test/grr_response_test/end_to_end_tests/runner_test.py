@@ -6,9 +6,9 @@ from __future__ import unicode_literals
 import os
 import sys
 import unittest
+from unittest import mock
 
 from absl import app
-import mock
 import requests
 
 from grr_api_client import api

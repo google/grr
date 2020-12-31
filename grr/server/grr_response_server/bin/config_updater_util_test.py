@@ -8,10 +8,10 @@ import argparse
 import builtins
 import getpass
 import os
+from unittest import mock
 
 from absl import app
 
-import mock
 import MySQLdb
 from MySQLdb import connections
 from MySQLdb.constants import CR as mysql_conn_errors

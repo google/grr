@@ -6,9 +6,9 @@ from __future__ import unicode_literals
 
 import io
 import os
+from unittest import mock
 
 from absl.testing import absltest
-import mock
 
 from grr_response_core.lib.util import random
 

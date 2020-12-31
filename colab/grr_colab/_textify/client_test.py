@@ -6,9 +6,9 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import time
+from unittest import mock
 
 from absl.testing import absltest
-import mock
 
 from grr_colab._textify import client
 

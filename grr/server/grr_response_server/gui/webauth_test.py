@@ -7,9 +7,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import base64
+from unittest import mock
 
 from absl import app
-import mock
 import requests
 
 from werkzeug import test as werkzeug_test

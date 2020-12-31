@@ -3,7 +3,7 @@
 // Angular Material theme definition.
 $primary: mat-palette($mat-blue, 900, 600, 400);
 $accent: mat-palette($mat-green, A700, A400, A200);
-$warn: mat-palette($mat-amber);
+$warn: mat-palette($mat-amber, 900, 600, 400);
 $success: mat-palette($mat-green);
 $danger: mat-palette($mat-red);
 

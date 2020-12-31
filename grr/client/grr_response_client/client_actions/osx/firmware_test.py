@@ -6,9 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import os
+from unittest import mock
 
 from absl import app
-import mock
 
 from grr_response_client.client_actions import tempfiles
 from grr_response_client.client_actions.osx import firmware

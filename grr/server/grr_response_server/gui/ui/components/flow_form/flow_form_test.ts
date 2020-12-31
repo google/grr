@@ -62,7 +62,7 @@ describe('FlowForm Component', () => {
 
     expect(getSubmit(fixture)).toBeNull();
 
-    clientPageFacade.selectedFlowDescriptorSubject.next();
+    clientPageFacade.selectedFlowDescriptorSubject.next(undefined);
     expect(getSubmit(fixture)).toBeNull();
   });
 

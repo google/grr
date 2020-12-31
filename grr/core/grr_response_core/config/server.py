@@ -282,6 +282,13 @@ config_lib.DEFINE_integer(
     "If the average network usage per client becomes "
     "greater than this limit, the hunt gets stopped.")
 
+# GRRafana HTTP Server settings.
+config_lib.DEFINE_string(
+    "GRRafana.bind", default="localhost", help="The GRRafana server address.")
+
+config_lib.DEFINE_integer(
+    "GRRafana.port", default=5000, help="The GRRafana server port.")
+
 # Fleetspeak server-side integration flags.
 config_lib.DEFINE_string(
     "Server.fleetspeak_message_listen_address", "",
@@ -327,3 +334,13 @@ config_lib.DEFINE_semantic_enum(
     "Server.raw_filesystem_access_pathtype",
     default=rdf_paths.PathSpec.PathType.NTFS,
     help="PathType to use for raw filesystem access on Windows.")
+
+config_lib.DEFINE_integer(
+    "Server.fleetspeak_send_retry_attempts", 1,
+    "The number of times a fleetspeak message to a client will be attempted "
+    "to be sent.")
+
+config_lib.DEFINE_integer(
+    "Server.fleetspeak_send_retry_sleep_time_secs", 0,
+    "Time in seconds to sleep between retries to send a fleetspeak message "
+    "to a client.")

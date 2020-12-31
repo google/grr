@@ -6,9 +6,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import io
+from unittest import mock
 
 from absl import app
-import mock
 import portpicker
 import prometheus_client
 import prometheus_client.parser as prometheus_parser

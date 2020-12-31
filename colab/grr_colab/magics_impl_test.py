@@ -8,10 +8,10 @@ from __future__ import unicode_literals
 import collections
 import io
 import time
+from unittest import mock
 
 from absl.testing import absltest
 import ipaddress
-import mock
 import pandas as pd
 
 import grr_colab

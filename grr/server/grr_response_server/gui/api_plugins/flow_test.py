@@ -10,11 +10,11 @@ import os
 import random
 import tarfile
 from typing import Iterable
+from unittest import mock
 import zipfile
 
 from absl import app
 from absl.testing import absltest
-import mock
 import yaml
 
 from grr_response_core.lib import rdfvalue

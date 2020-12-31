@@ -62,7 +62,7 @@ def Stream(
         str(entry.atime_ns // 10**9),  # atime
         str(entry.mtime_ns // 10**9),  # mtime
         str(entry.ctime_ns // 10**9),  # ctime
-        "0",  # crtime
+        str(entry.btime_ns // 10**9),  # btime
     ]).encode("utf-8", "surrogateescape")
 
     # Account for the newline.

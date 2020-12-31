@@ -10,9 +10,9 @@ import platform
 import socket
 from typing import Iterable
 from typing import Iterator
+from unittest import mock
 
 from absl import app
-import mock
 
 from grr_response_client.client_actions import admin
 from grr_response_core import config

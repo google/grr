@@ -1,5 +1,6 @@
 import {Type} from '@angular/core';
 import {CollectBrowserHistoryDetails} from '@app/components/flow_details/plugins/collect_browser_history_details';
+import {CollectMultipleFilesDetails} from '@app/components/flow_details/plugins/collect_multiple_files_details';
 import {CollectSingleFileDetails} from '@app/components/flow_details/plugins/collect_single_file_details';
 
 import {DefaultDetails} from './plugins/default_details';
@@ -18,6 +19,7 @@ export const FLOW_DETAILS_DEFAULT_PLUGIN = DefaultDetails;
 export const FLOW_DETAILS_PLUGIN_REGISTRY: {[key: string]: Type<Plugin>} = {
   'MultiGetFile': MultiGetFileDetails,
   'CollectBrowserHistory': CollectBrowserHistoryDetails,
+  'CollectMultipleFiles': CollectMultipleFilesDetails,
   'CollectSingleFile': CollectSingleFileDetails,
   'OsqueryFlow': OsqueryDetails,
 };

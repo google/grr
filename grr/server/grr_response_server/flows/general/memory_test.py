@@ -10,9 +10,9 @@ import os
 import string
 from typing import Iterable
 from typing import Optional
+from unittest import mock
 
 from absl import app
-import mock
 import psutil
 import yara
 

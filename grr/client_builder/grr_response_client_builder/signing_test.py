@@ -9,9 +9,9 @@ import io
 import platform
 import tempfile
 import unittest
+from unittest import mock
 
 from absl import app
-import mock
 import pexpect
 
 from grr_response_client_builder import signing

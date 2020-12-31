@@ -7,7 +7,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
-import mock
+from unittest import mock
 
 from grr_response_server import data_store
 from grr_response_server.databases import db

@@ -7,9 +7,9 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import queue
+from unittest import mock
 
 from absl import app
-import mock
 
 from grr_response_server import blob_store
 from grr_response_server import blob_store_test_mixin

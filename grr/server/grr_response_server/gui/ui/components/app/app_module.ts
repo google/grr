@@ -4,7 +4,6 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatToolbarModule} from '@angular/material/toolbar';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import {StoreDevtoolsModule} from '@ngrx/store-devtools';
 import {ClientPageModule} from '@app/components/client_page/module';
 import {ClientSearchModule} from '@app/components/client_search/module';
 import {HomeModule} from '@app/components/home/module';
@@ -61,7 +60,6 @@ export class AppModule {
 @NgModule({
   imports: [
     AppModule,
-    StoreDevtoolsModule.instrument({maxAge: 50}),
   ],
   providers: [],
   bootstrap: [App]

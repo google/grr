@@ -6,11 +6,10 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import random
+from unittest import mock
 
 from absl import app
 from absl.testing import absltest
-
-import mock
 
 from grr_response_client import actions
 from grr_response_core.lib import rdfvalue

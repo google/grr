@@ -5,7 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import contextlib
-import mock
+from unittest import mock
 
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics

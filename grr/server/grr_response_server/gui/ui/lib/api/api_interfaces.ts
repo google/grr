@@ -562,9 +562,62 @@ export declare interface Hash {
   readonly sourceOffset?: DecimalString;
 }
 
+/** FileFinderModificationTimeCondition proto mapping. */
+export declare interface FileFinderModificationTimeCondition {
+  readonly minLastModifiedTime?: DecimalString;
+  readonly maxLastModifiedTime?: DecimalString;
+}
+
+/** FileFinderAccessTimeCondition proto mapping. */
+export declare interface FileFinderAccessTimeCondition {
+  readonly minLastAccessTime?: DecimalString;
+  readonly maxLastAccessTime?: DecimalString;
+}
+
+/** FileFinderInodeChangeTimeCondition proto mapping. */
+export declare interface FileFinderInodeChangeTimeCondition {
+  readonly minLastInodeChangeTime?: DecimalString;
+  readonly maxLastInodeChangeTIme?: DecimalString;
+}
+
+/** FileFinderSizeCondition proto mapping. */
+export declare interface FileFinderSizeCondition {
+  readonly minFileSize?: DecimalString;
+  readonly maxFileSize?: DecimalString;
+}
+
 /** CollectMultipleFilesArgs proto mapping. */
 export declare interface CollectMultipleFilesArgs {
-  pathExpressions?: ReadonlyArray<string>;
+  readonly pathExpressions?: ReadonlyArray<string>;
+
+  readonly modificationTime?: FileFinderModificationTimeCondition;
+  readonly accessTime?: FileFinderAccessTimeCondition;
+  readonly inodeChangeTime?: FileFinderInodeChangeTimeCondition;
+  readonly size?: FileFinderSizeCondition;
+}
+
+/** CollectMultipleFilesResultStatus proto mapping. */
+export enum CollectMultipleFilesResultStatus {
+  UNDEFINED = 0,
+  COLLECTED = 1,
+  FAILED = 2
+}
+
+/** CollectMultipleFilesResult proto mapping. */
+export declare interface CollectMultipleFilesResult {
+  readonly stat?: StatEntry;
+  readonly hash?: Hash;
+  readonly status?: CollectMultipleFilesResultStatus;
+  readonly error?: string;
+}
+
+/** CollectMultipleFilesProgress proto mapping. */
+export declare interface CollectMultipleFilesProgress {
+  readonly numFound?: DecimalString;
+  readonly numInProgress?: DecimalString;
+  readonly numRawFsAccessRetries?: DecimalString;
+  readonly numCollected?: DecimalString;
+  readonly numFailed?: DecimalString;
 }
 
 /** GlobComponentExplanation proto mapping. */

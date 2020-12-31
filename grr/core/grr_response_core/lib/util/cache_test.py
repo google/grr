@@ -6,9 +6,9 @@ from __future__ import unicode_literals
 
 import random
 import threading
+from unittest import mock
 
 from absl.testing import absltest
-import mock
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import cache

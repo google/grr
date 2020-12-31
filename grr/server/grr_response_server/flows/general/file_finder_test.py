@@ -12,9 +12,9 @@ import io
 import os
 import stat
 import struct
+from unittest import mock
 
 from absl import app
-import mock
 
 from grr_response_client import vfs
 from grr_response_core.lib import rdfvalue

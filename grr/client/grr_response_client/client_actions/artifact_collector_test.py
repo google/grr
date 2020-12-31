@@ -12,9 +12,9 @@ import os
 from typing import IO
 from typing import Iterable
 from typing import Iterator
+from unittest import mock
 
 from absl import app
-import mock
 import psutil
 
 from grr_response_client.client_actions import artifact_collector

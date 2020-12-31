@@ -1,5 +1,21 @@
 import {AnyObject} from '@app/lib/api/api_interfaces';
+import {DateTime} from '@app/lib/date_time';
+import {isNonNull} from '@app/lib/preconditions';
 import {assertTruthy} from '../preconditions';
+
+
+/**
+ * Constructs an API timestamp from a given DateTime object.
+ *
+ * @param apiTimestamp
+ */
+export function createOptionalApiTimestamp(dateTime?: DateTime|null): string|
+    undefined {
+  if (isNonNull(dateTime)) {
+    return (dateTime.toMillis() * 1e3).toString();
+  }
+  return undefined;
+}
 
 /**
  * Constructs a Date from a unixtime string with microsecond-precision.

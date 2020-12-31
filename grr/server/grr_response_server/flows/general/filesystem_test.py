@@ -9,9 +9,9 @@ from __future__ import unicode_literals
 import io
 import os
 import platform
+from unittest import mock
 
 from absl import app
-import mock
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import windows_registry_parser as winreg_parser

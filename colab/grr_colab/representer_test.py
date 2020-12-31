@@ -7,12 +7,12 @@ from __future__ import unicode_literals
 
 import sys
 import time
+from unittest import mock
 
 from absl.testing import absltest
 import humanize
 import ipaddress
 from IPython.lib import pretty
-import mock
 
 import grr_colab
 from grr_colab import representer

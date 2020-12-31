@@ -11,10 +11,10 @@ import io
 import os
 import platform
 import unittest
+from unittest import mock
 
 from absl import app
 from absl.testing import absltest
-import mock
 
 from grr_response_client import client_utils
 from grr_response_client import client_utils_common

@@ -10,12 +10,11 @@ import contextlib
 import io
 import os
 import threading
+from unittest import mock
 import zipfile
 
 from absl import app
 from absl.testing import absltest
-
-import mock
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import compatibility

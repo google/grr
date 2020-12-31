@@ -1,7 +1,7 @@
 import {ActivatedRouteSnapshot} from '@angular/router';
 
 /** A Route with a template string ('#/clients/:id') to link to the old UI. */
-export interface RouteWithLegacyLink {
+export declare interface RouteWithLegacyLink {
   data: {legacyLink: string;};
 }
 

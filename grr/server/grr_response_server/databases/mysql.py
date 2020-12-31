@@ -24,6 +24,7 @@ from MySQLdb.constants import CR as mysql_conn_errors
 from MySQLdb.constants import ER as mysql_errors
 
 from grr_response_core import config
+from grr_response_core.lib import rdfvalue
 from grr_response_server import threadpool
 from grr_response_server.databases import db as db_module
 from grr_response_server.databases import mysql_artifacts
@@ -50,12 +51,14 @@ MAX_PACKET_SIZE = 20 << 21
 _MAX_RETRY_COUNT = 5
 
 # MySQL error codes:
-_RETRYABLE_ERRORS = {
+_RETRYABLE_ERRORS = frozenset([
     mysql_conn_errors.SERVER_GONE_ERROR,
     mysql_errors.LOCK_WAIT_TIMEOUT,
     mysql_errors.LOCK_DEADLOCK,
     1637,  # TOO_MANY_CONCURRENT_TRXS, unavailable in MySQLdb 1.3.7
-}
+    mysql_conn_errors.CONN_HOST_ERROR,
+    mysql_conn_errors.SERVER_LOST,
+])
 
 # Enforce sensible defaults for MySQL connection and database:
 # Use utf8mb4_unicode_ci collation and utf8mb4 character set.
@@ -588,3 +591,10 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
               txn_execution_attempts += 1
             else:
               raise
+
+  @mysql_utils.WithTransaction()
+  def Now(self, cursor: MySQLdb.cursors.Cursor) -> rdfvalue.RDFDatetime:
+    cursor.execute("SELECT UNIX_TIMESTAMP(NOW(6))")
+    [(timestamp,)] = cursor.fetchall()
+
+    return mysql_utils.TimestampToRDFDatetime(timestamp)

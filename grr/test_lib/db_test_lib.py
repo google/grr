@@ -6,8 +6,7 @@ from __future__ import unicode_literals
 
 import functools
 import sys
-
-import mock
+from unittest import mock
 
 from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store

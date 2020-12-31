@@ -6,9 +6,9 @@ from __future__ import unicode_literals
 
 import os
 import time
+from unittest import mock
 
 from absl.testing import absltest
-import mock
 
 from typing import Iterable, Tuple
 

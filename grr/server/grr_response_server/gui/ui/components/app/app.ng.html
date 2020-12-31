@@ -5,10 +5,12 @@
         <img src="/static/images/grr_logo_notification.png" alt="GRR logo">
       </div>
       <div class="title">GRR</div>
+      <div class="badge">ALPHA</div>
     </a>
     <span class="spacer"></span>
-    <a id="fallback-link" mat-icon-button href="{{fallbackLink$ | async}}" matTooltip="Open this page in the old UI" aria-label="Open this page in the old UI">
-      <mat-icon>history</mat-icon>
+    <a id="fallback-link" mat-button color="primary" href="{{fallbackLink$ | async}}">
+      <mat-icon>launch</mat-icon>
+      Use the old UI
     </a>
     <user-menu></user-menu>
   </mat-toolbar-row>

@@ -111,11 +111,17 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
-  /** Reducer updating the clientId in the store's state. */
+  /** Reducer resetting the store and setting the clientId. */
   readonly selectClient = this.updater<string>((state, clientId) => {
+    // Clear complete state when new client is selected to prevent stale
+    // information.
     return {
-      ...state,
       clientId,
+      approvals: {},
+      approvalSequence: [],
+      flowListEntries: {},
+      flowListEntrySequence: [],
+      startFlowState: {state: 'request_not_sent'},
     };
   });
 

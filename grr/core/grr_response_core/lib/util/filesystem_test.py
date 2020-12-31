@@ -12,10 +12,9 @@ import shutil
 import socket
 import subprocess
 import unittest
+from unittest import mock
 
 from absl.testing import absltest
-
-import mock
 
 from grr_response_core.lib.util import filesystem
 from grr_response_core.lib.util import temp

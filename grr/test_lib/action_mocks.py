@@ -262,6 +262,16 @@ class ClientFileFinderClientMock(ActionMock):
                                                      *args, **kwargs)
 
 
+class CollectMultipleFilesClientMock(ActionMock):
+
+  def __init__(self, *args, **kwargs):
+    super(CollectMultipleFilesClientMock,
+          self).__init__(file_finder.FileFinderOS, standard.HashFile,
+                         standard.GetFileStat, standard.HashBuffer,
+                         standard.TransferBuffer,
+                         file_fingerprint.FingerprintFile, *args, **kwargs)
+
+
 class MultiGetFileClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):

@@ -6,9 +6,7 @@ from __future__ import unicode_literals
 
 import io
 import os
-
-
-import mock
+from unittest import mock
 
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs

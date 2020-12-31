@@ -10,13 +10,13 @@ import logging
 import os
 import threading
 import unittest
+from unittest import mock
 import uuid
 import warnings
 
 from absl import app
 from absl import flags
 from absl.testing import absltest
-import mock
 import MySQLdb  # TODO(hanuszczak): This should be imported conditionally.
 from MySQLdb.constants import CR as mysql_conn_errors
 

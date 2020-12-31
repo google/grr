@@ -144,26 +144,23 @@ class MySQLDBClientMixin(object):
   @mysql_utils.WithTransaction()
   def WriteClientSnapshot(self, snapshot, cursor=None):
     """Write new client snapshot."""
+    cursor.execute("SET @now = NOW(6)")
+
     insert_history_query = (
         "INSERT INTO client_snapshot_history(client_id, timestamp, "
-        "client_snapshot) VALUES (%s, FROM_UNIXTIME(%s), %s)")
+        "client_snapshot) VALUES (%s, @now, %s)")
     insert_startup_query = (
         "INSERT INTO client_startup_history(client_id, timestamp, "
-        "startup_info) VALUES(%s, FROM_UNIXTIME(%s), %s)")
+        "startup_info) VALUES(%s, @now, %s)")
 
-    now = rdfvalue.RDFDatetime.Now()
-
-    current_timestamp = mysql_utils.RDFDatetimeToTimestamp(now)
     client_info = {
-        "last_snapshot_timestamp": current_timestamp,
-        "last_startup_timestamp": current_timestamp,
         "last_version_string": snapshot.GetGRRVersionString(),
         "last_platform": snapshot.knowledge_base.os,
         "last_platform_release": snapshot.Uname(),
     }
     update_clauses = [
-        "last_snapshot_timestamp = FROM_UNIXTIME(%(last_snapshot_timestamp)s)",
-        "last_startup_timestamp = FROM_UNIXTIME(%(last_startup_timestamp)s)",
+        "last_snapshot_timestamp = @now",
+        "last_startup_timestamp = @now",
         "last_version_string = %(last_version_string)s",
         "last_platform = %(last_platform)s",
         "last_platform_release = %(last_platform_release)s",
@@ -179,18 +176,14 @@ class MySQLDBClientMixin(object):
     startup_info = snapshot.startup_info
     snapshot.startup_info = None
     try:
-      cursor.execute(
-          insert_history_query,
-          (int_client_id, current_timestamp, snapshot.SerializeToBytes()))
-      cursor.execute(
-          insert_startup_query,
-          (int_client_id, current_timestamp, startup_info.SerializeToBytes()))
+      cursor.execute(insert_history_query,
+                     (int_client_id, snapshot.SerializeToBytes()))
+      cursor.execute(insert_startup_query,
+                     (int_client_id, startup_info.SerializeToBytes()))
       cursor.execute(update_query, client_info)
     except MySQLdb.IntegrityError as e:
       if e.args and e.args[0] == mysql_error_constants.NO_REFERENCED_ROW_2:
         raise db.UnknownClientError(snapshot.client_id, cause=e)
-      elif e.args and e.args[0] == mysql_error_constants.DUP_ENTRY:
-        raise mysql_utils.RetryableError(cause=e)
       else:
         raise
     finally:

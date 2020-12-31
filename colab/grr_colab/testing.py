@@ -6,8 +6,8 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import functools
+from unittest import mock
 
-import mock
 import portpicker
 
 from grr_api_client import api
