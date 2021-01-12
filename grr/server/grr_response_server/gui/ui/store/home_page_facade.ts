@@ -39,15 +39,16 @@ export class HomePageStore extends ComponentStore<HomePageState> {
 
   private readonly fetchRecentClientApprovals = this.effect<void>(
       obs$ => obs$.pipe(
-          switchMap(() => this.httpApiService.listRecentClientApprovals()),
+          switchMap(
+              () => this.httpApiService.listRecentClientApprovals({count: 20})),
           map(approvals => approvals.map(translateApproval)),
           tap(approvals => {
-            this.updateRecenteApprovals(approvals);
+            this.updateRecentApprovals(approvals);
           }),
           ));
 
 
-  private readonly updateRecenteApprovals =
+  private readonly updateRecentApprovals =
       this.updater<ReadonlyArray<ClientApproval>>(
           (state, recentClientApprovals) => {
             return {...state, recentClientApprovals};

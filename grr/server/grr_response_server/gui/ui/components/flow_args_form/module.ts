@@ -23,6 +23,7 @@ import {FlowArgsForm} from './flow_args_form';
 import {OsqueryForm} from './osquery_form';
 import {CodeEditorModule} from '../code_editor/module';
 import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
+import {TimelineForm} from './timeline_form';
 
 /** Module for the FlowArgsForm component. */
 @NgModule({
@@ -51,6 +52,7 @@ import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
     CollectSingleFileForm,
     CollectMultipleFilesForm,
     OsqueryForm,
+    TimelineForm,
     FallbackFlowArgsForm,
   ],
   entryComponents: [
@@ -58,6 +60,7 @@ import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
     CollectSingleFileForm,
     CollectMultipleFilesForm,
     OsqueryForm,
+    TimelineForm,
     FallbackFlowArgsForm,
   ],
   exports: [

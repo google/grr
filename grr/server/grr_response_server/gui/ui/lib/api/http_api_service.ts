@@ -3,6 +3,7 @@ import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {Observable, throwError} from 'rxjs';
 import {catchError, map, mapTo, shareReplay, switchMap, take} from 'rxjs/operators';
+import {isNonNull} from '../preconditions';
 
 import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, GlobComponentExplanation} from './api_interfaces';
 
@@ -364,14 +365,30 @@ export class HttpApiService {
         );
   }
 
-  listRecentClientApprovals(): Observable<ReadonlyArray<ApiClientApproval>> {
+  listRecentClientApprovals(parameters: {count?: number}):
+      Observable<ReadonlyArray<ApiClientApproval>> {
     return this.http
         .get<ApiListClientApprovalsResult>(
-            `${URL_PREFIX}/users/me/approvals/client`)
+            `${URL_PREFIX}/users/me/approvals/client`,
+            {params: objectToHttpParams(parameters)})
         .pipe(
             map(result => result.items ?? []),
         );
   }
+}
+
+interface HttpParamObject {
+  [key: string]: string|number|undefined|null;
+}
+
+function objectToHttpParams(obj: HttpParamObject): HttpParams {
+  let httpParams = new HttpParams();
+  for (const [key, value] of Object.entries(obj)) {
+    if (isNonNull(value)) {
+      httpParams = httpParams.set(key, value.toString());
+    }
+  }
+  return httpParams;
 }
 
 function findFlowDescriptor(flowName: string):

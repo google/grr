@@ -7,7 +7,10 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputModule} from '@angular/material/input';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
+
+import {FlowArgsDialogModule} from '../flow_args_dialog/module';
 import {FlowDetailsModule} from '../flow_details/module';
+
 import {FlowList} from './flow_list';
 
 
@@ -30,6 +33,7 @@ import {FlowList} from './flow_list';
     MatCardModule,
 
     // GRR modules.
+    FlowArgsDialogModule,
     FlowDetailsModule,
   ],
   declarations: [

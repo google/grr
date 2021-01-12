@@ -572,8 +572,8 @@ _APPROVAL_TEMPLATE = """
     </head>
     <body>
       <p>
-        You have been asked to review and grant the following client approval in
-        GRR Rapid Response:
+        You have been asked to review and grant the following approval in GRR
+        Rapid Response:
       </p>
 
       <table>
@@ -582,7 +582,7 @@ _APPROVAL_TEMPLATE = """
           <td>{{ requestor }}</td>
         </tr>
         <tr>
-          <td><strong>GRR client:</strong></td>
+          <td><strong>Subject:</strong></td>
           <td><a href="{{ approval_url}}">{{ subject_title }}</a></td>
         </tr>
         <tr>

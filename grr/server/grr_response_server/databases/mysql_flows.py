@@ -1278,7 +1278,7 @@ class MySQLDBFlowMixin(object):
 
       except Exception as e:  # pylint: disable=broad-except
         logging.exception("_FlowProcessingRequestHandlerLoop raised %s.", e)
-        break
+        time.sleep(self._FLOW_REQUEST_POLL_TIME_SECS)
 
   def RegisterFlowProcessingHandler(self, handler):
     """Registers a handler to receive flow processing messages."""

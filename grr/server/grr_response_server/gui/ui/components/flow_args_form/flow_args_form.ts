@@ -1,4 +1,4 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, ComponentFactoryResolver, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
+import {AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentFactoryResolver, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
 import {DEFAULT_FORM, FORMS} from '@app/components/flow_args_form/sub_forms';
 import {Observable, ReplaySubject, Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
@@ -28,6 +28,7 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
 
   constructor(
       private readonly resolver: ComponentFactoryResolver,
+      private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngAfterViewInit() {
@@ -64,6 +65,8 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
         .subscribe(status => {
           this.validSubject.next(status === 'VALID');
         });
+
+    this.cdr.detectChanges();
   }
 
   ngOnDestroy() {

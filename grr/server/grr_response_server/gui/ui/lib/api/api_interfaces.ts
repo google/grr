@@ -730,3 +730,14 @@ export enum OsqueryType {
 export declare interface OsqueryRow {
   readonly values?: ReadonlyArray<string>;
 }
+
+/**
+ * Interface for the `TimelineArgs` proto message.
+ */
+export declare interface TimelineArgs {
+  /*
+   * TODO: The timeline flow works with arbitrary byte paths. How
+   * to support this in the user interface is yet to be designed.
+   */
+  readonly root?: string;
+}
