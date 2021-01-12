@@ -45,6 +45,14 @@ const TEST_FLOW_DESCRIPTORS = Object.freeze({
       pathExpressions: [],
     },
   },
+  TimelineFlow: {
+    name: 'TimelineFlow',
+    friendlyName: 'Collect path timeline',
+    category: 'Filesystem',
+    defaultArgs: {
+      root: '/',
+    },
+  }
 });
 
 

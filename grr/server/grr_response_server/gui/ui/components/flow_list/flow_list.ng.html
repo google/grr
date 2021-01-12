@@ -7,7 +7,7 @@
       [flowListEntry]="entry"
       [flowDescriptor]="entry.descriptor"
       (flowResultsQuery)="queryFlowResults(entry.flow.flowId, $event)"
-      (menuActionTriggered)="triggerFlowAction(entry.flow, $event)">
+      (menuActionTriggered)="triggerFlowAction(entry, $event)">
     </flow-details>
   </div>
 </div>

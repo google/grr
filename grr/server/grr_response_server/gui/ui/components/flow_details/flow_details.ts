@@ -15,7 +15,8 @@ export enum FlowMenuAction {
   DUPLICATE,
   CREATE_HUNT,
   START_VIA_API,
-  DEBUG
+  DEBUG,
+  VIEW_ARGS,
 }
 
 /**

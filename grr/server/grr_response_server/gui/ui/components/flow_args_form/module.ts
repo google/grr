@@ -19,6 +19,7 @@ import {GlobExpressionExplanationModule} from '@app/components/form/glob_express
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
 import {FlowArgsForm} from './flow_args_form';
 import {OsqueryForm} from './osquery_form';
+import {TimelineForm} from './timeline_form';
 
 /** Module for the FlowArgsForm component. */
 @NgModule({
@@ -43,6 +44,7 @@ import {OsqueryForm} from './osquery_form';
     CollectSingleFileForm,
     CollectMultipleFilesForm,
     OsqueryForm,
+    TimelineForm,
     FallbackFlowArgsForm,
   ],
   entryComponents: [
@@ -50,6 +52,7 @@ import {OsqueryForm} from './osquery_form';
     CollectSingleFileForm,
     CollectMultipleFilesForm,
     OsqueryForm,
+    TimelineForm,
     FallbackFlowArgsForm,
   ],
   exports: [

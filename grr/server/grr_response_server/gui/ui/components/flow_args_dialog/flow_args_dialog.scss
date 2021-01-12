@@ -1,0 +1,26 @@
+@use '~material-theme' as c;
+
+.title {
+  font-family: c.$google-sans-family;
+}
+
+.content {
+  p {
+    font-family: c.$roboto-family;
+    color: c.mat-color(c.$foreground, text-light);
+  }
+
+  .label-field {
+    width: 100%;
+  }
+}
+
+.actions {
+  justify-content: flex-end;
+}
+
+fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
