@@ -1,4 +1,6 @@
-.main-container, .settings-container, collection-container {
+.main-container,
+.settings-container,
+collection-container {
   display: flex;
   flex-direction: column;
 }

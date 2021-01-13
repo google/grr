@@ -88,7 +88,7 @@ def _FetchOsqueryResults(
 
     for datum in data_fetched:
       if not isinstance(datum.payload, rdf_osquery.OsqueryResult):
-        # TODO(simstoykov): Cover the cases when the flow yields other result
+        # TODO(user): Cover the cases when the flow yields other result
         # types (at the moment of writing this, file collection results need to
         # be considered too).
         raise ValueError(f"Incorrect payload type: {type(datum.payload)}")

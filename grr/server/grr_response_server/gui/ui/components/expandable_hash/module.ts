@@ -1,10 +1,11 @@
-import {NgModule} from '@angular/core';
-import {CommonModule} from '@angular/common';
-import {ExpandableHash} from './expandable_hash'
 import {ClipboardModule} from '@angular/cdk/clipboard';
+import {CommonModule} from '@angular/common';
+import {NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
-import {MatMenuModule} from '@angular/material/menu';
 import {MatIconModule} from '@angular/material/icon';
+import {MatMenuModule} from '@angular/material/menu';
+
+import {ExpandableHash} from './expandable_hash';
 
 
 @NgModule({
@@ -22,4 +23,5 @@ import {MatIconModule} from '@angular/material/icon';
     ExpandableHash,
   ]
 })
-export class ExpandableHashModule { }
+export class ExpandableHashModule {
+}

@@ -1,33 +1,30 @@
-import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {By} from '@angular/platform-browser';
-import {Hash} from '@app/lib/api/api_interfaces';
-import {MatButtonModule} from '@angular/material/button';
-import {MatMenuModule} from '@angular/material/menu';
-import {ClipboardModule} from '@angular/cdk/clipboard';
-import {MatIconModule} from '@angular/material/icon';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {MatMenuHarness} from '@angular/material/menu/testing';
+import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {MatButtonHarness} from '@angular/material/button/testing';
+import {MatMenuHarness} from '@angular/material/menu/testing';
+import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {ExpandableHashModule} from '@app/components/expandable_hash/module';
 
+import {Hash} from '@app/lib/api/api_interfaces';
 import {initTestEnvironment} from '@app/testing';
 import {ExpandableHash} from './expandable_hash';
+
 
 initTestEnvironment();
 
 describe('ExpandableHash component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed.configureTestingModule({
-      declarations: [ ExpandableHash ],
-      imports: [
-        ClipboardModule,
-        MatMenuModule,
-        MatButtonModule,
-        MatIconModule,
-        NoopAnimationsModule,
-      ],
-    })
-    .compileComponents();
+    TestBed
+        .configureTestingModule({
+          declarations: [ExpandableHash],
+          imports: [
+            ExpandableHashModule,
+            NoopAnimationsModule,
+          ],
+
+        })
+        .compileComponents();
   }));
 
   class ExpandableHashDOM {
@@ -45,9 +42,9 @@ describe('ExpandableHash component', () => {
     noHashesSpanText = this.noHashesSpan?.nativeElement.innerText;
 
     menuHarness = this.harnessLoader.getHarness<MatMenuHarness>(
-      MatMenuHarness.with({triggerText: 'Copy value'}));
+        MatMenuHarness.with({triggerText: 'Copy value'}));
 
-    constructor(readonly rootFixture: ComponentFixture<ExpandableHash>) { }
+    constructor(readonly rootFixture: ComponentFixture<ExpandableHash>) {}
   }
 
   function initComponentWithHashes(hashes: Hash): ExpandableHashDOM {
@@ -59,7 +56,7 @@ describe('ExpandableHash component', () => {
   }
 
   it('should only display an en dash (–) if no hashes are available', () => {
-    const noHashes = { };
+    const noHashes = {};
     const emDash = '–';
 
     const dom = initComponentWithHashes(noHashes);
@@ -84,34 +81,34 @@ describe('ExpandableHash component', () => {
   });
 
   it('should display all hashes and copy-all item if all are available',
-      async () => {
-        const all3Hashes = {
-          sha256: 'sha256value',
-          sha1: 'sha1value',
-          md5: 'md5value',
-        };
-        const dom = initComponentWithHashes(all3Hashes);
+     async () => {
+       const all3Hashes = {
+         sha256: 'sha256value',
+         sha1: 'sha1value',
+         md5: 'md5value',
+       };
+       const dom = initComponentWithHashes(all3Hashes);
 
-        const expandButton  = await dom.expandButtonHarness;
-        const expandedMenu = await dom.menuHarness;
-        await expandButton.click();
-        const menuItems = await expandedMenu.getItems();
+       const expandButton = await dom.expandButtonHarness;
+       const expandedMenu = await dom.menuHarness;
+       await expandButton.click();
+       const menuItems = await expandedMenu.getItems();
 
-        expect(menuItems.length).toBe(4);
+       expect(menuItems.length).toBe(4);
 
-        const textOfSha256 = await menuItems[0].getText();
-        expect(textOfSha256).toContain('SHA-256');
-        expect(textOfSha256).toContain('sha256value');
+       const textOfSha256 = await menuItems[0].getText();
+       expect(textOfSha256).toContain('SHA-256');
+       expect(textOfSha256).toContain('sha256value');
 
-        const textOfSha1 = await menuItems[1].getText();
-        expect(textOfSha1).toContain('SHA-1');
-        expect(textOfSha1).toContain('sha1value');
+       const textOfSha1 = await menuItems[1].getText();
+       expect(textOfSha1).toContain('SHA-1');
+       expect(textOfSha1).toContain('sha1value');
 
-        const textOfMd5 = await menuItems[2].getText();
-        expect(textOfMd5).toContain('MD5');
-        expect(textOfMd5).toContain('md5value');
+       const textOfMd5 = await menuItems[2].getText();
+       expect(textOfMd5).toContain('MD5');
+       expect(textOfMd5).toContain('md5value');
 
-        const textOfCopyAll = await menuItems[3].getText();
-        expect(textOfCopyAll).toContain('All hash information');
-      });
+       const textOfCopyAll = await menuItems[3].getText();
+       expect(textOfCopyAll).toContain('All hash information');
+     });
 });

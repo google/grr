@@ -8,9 +8,10 @@
 }
 
 .ts_component_tooltip {
-  // matTooltip overwrites the margin if !important is not used
-  margin-top: 3px !important;
-  margin-bottom: 3px !important;
+  // matTooltip overwrites the margin if !important is not used.
+  // Using !important, however is not allowed.
+  margin-top: 3px;
+  margin-bottom: 3px;
 }
 
 .ts_component_inline_relative {

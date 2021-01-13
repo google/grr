@@ -2,7 +2,8 @@
   font-weight: 900;
 }
 
-.item-header, .item-content {
+.item-header,
+.item-content {
   white-space: normal;
 }
 
@@ -30,18 +31,18 @@
   letter-spacing: 0.3px;
 
   /* Grey/500 */
-  color: #9AA0A6;
+  color: #9aa0a6;
 }
 
 .table-name::after {
-  content: " – ";
+  content: ' – ';
 }
 
 .columns-content::before {
-  content: "Columns:";
+  content: 'Columns:';
   font-weight: bold;
 }
 
 .space-before::before {
-  content: " ";
+  content: ' ';
 }

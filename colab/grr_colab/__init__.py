@@ -379,7 +379,7 @@ class Client(object):
       An osquery table corresponding to the result of running the query.
     """
 
-    args = osquery_pb2.OsqueryArgs()
+    args = osquery_pb2.OsqueryFlowArgs()
     args.query = query
     args.timeout_millis = timeout
     args.ignore_stderr_errors = ignore_stderr_errors

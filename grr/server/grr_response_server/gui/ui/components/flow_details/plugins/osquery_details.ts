@@ -108,13 +108,15 @@ export class OsqueryDetails extends Plugin {
 
   readonly exportCsvLink$ = this.clientAndFlowId$.pipe(
       map(ids => {
-        return `/api/clients/${ids.clientId}/flows/${ids.flowId}/osquery-results/CSV`;
+        return `/api/clients/${ids.clientId}/flows/${
+            ids.flowId}/osquery-results/CSV`;
       }),
   );
 
   readonly collectedFilesLink$ = this.clientAndFlowId$.pipe(
       map(ids => {
-        return `/api/clients/${ids.clientId}/flows/${ids.flowId}/results/files-archive`;
+        return `/api/clients/${ids.clientId}/flows/${
+            ids.flowId}/results/files-archive`;
       }),
   );
 
@@ -128,8 +130,7 @@ export class OsqueryDetails extends Plugin {
   }
 
   loadCompleteResults() {
-    // TODO(simstoykov): Fetch more chunks if present
-    this.queryFlowResults(
-        {offset: 0, count: 1, withType: 'OsqueryResult'});
+    // TODO(user): Fetch more chunks if present
+    this.queryFlowResults({offset: 0, count: 1, withType: 'OsqueryResult'});
   }
 }

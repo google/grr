@@ -1,4 +1,4 @@
-import {newOsqueryTableSpec, newOsqueryColumnSpec} from './osquery_table_specs';
+import {newOsqueryColumnSpec, newOsqueryTableSpec} from './osquery_table_specs';
 import {constructSelectAllFromTable} from './query_composer';
 
 describe('QueryComposer', () => {
@@ -16,23 +16,24 @@ describe('QueryComposer', () => {
     expect(query).not.toContain('WHERE');
   });
 
-  it('should add an an indented WHERE clause if there is a required filed', () => {
-    const tableSpec = newOsqueryTableSpec({
-      columns: [
-        newOsqueryColumnSpec({
-          name: 'not_required',
-          required: false,
-        }),
-        newOsqueryColumnSpec({
-          name: 'required_column',
-          required: true,
-        }),
-      ],
-    });
+  it('should add an an indented WHERE clause if there is a required filed',
+     () => {
+       const tableSpec = newOsqueryTableSpec({
+         columns: [
+           newOsqueryColumnSpec({
+             name: 'not_required',
+             required: false,
+           }),
+           newOsqueryColumnSpec({
+             name: 'required_column',
+             required: true,
+           }),
+         ],
+       });
 
-    const query = constructSelectAllFromTable(tableSpec);
-    expect(query).toContain('WHERE\n\trequired_column = \'\'');
-  });
+       const query = constructSelectAllFromTable(tableSpec);
+       expect(query).toContain('WHERE\n\trequired_column = \'\'');
+     });
 
   it('should add an indented SELECT clause with all the column names', () => {
     const tableSpec = newOsqueryTableSpec({
@@ -57,5 +58,5 @@ describe('QueryComposer', () => {
     const query = constructSelectAllFromTable(tableSpec);
 
     expect(query.slice(-1)).toBe(';');
-  })
+  });
 });

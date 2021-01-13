@@ -46,12 +46,12 @@ describe('OsqueryResultsTable Component', () => {
 
        const columns = Array.from<number>({length: columnNumber})
                            .fill(0)
-                           .map((_, index) => `Column ${index}`);
+                           .map((i, index) => `Column ${index}`);
        const values =
            Array.from<number>({length: rowNumber}).fill(0).map((value, row) => {
              return Array.from<number>({length: columnNumber})
                  .fill(0)
-                 .map((_, col) => `row-${row}, col-${col}`);
+                 .map((i, col) => `row-${row}, col-${col}`);
            });
 
        const table = newOsqueryTable(query, columns, values);
@@ -85,7 +85,7 @@ describe('OsqueryResultsTable Component', () => {
   });
 
   it('should display message and query if no rows are pressent', () => {
-    const emptyTable = newOsqueryTable('query', [], [])
+    const emptyTable = newOsqueryTable('query', [], []);
     const osqueryResultsTable = createElementFrom(emptyTable);
     const parsedTable = new OsqueryResultsTableDOM(osqueryResultsTable);
 

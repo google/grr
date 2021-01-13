@@ -8,11 +8,7 @@ from __future__ import unicode_literals
 import collections
 import os
 
-from typing import Any
-from typing import Iterator
-from typing import List
-from typing import NamedTuple
-from typing import Text
+from typing import Any, Iterator, List, Text
 
 from grr_response_client import actions
 from grr_response_core import config

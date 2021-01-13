@@ -1,14 +1,15 @@
+import {COMMA, ENTER} from '@angular/cdk/keycodes';
 import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
 import {FormControl, FormGroup, Validators} from '@angular/forms';
-import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
-import {shareReplay} from 'rxjs/operators';
-import {MatDialog} from '@angular/material/dialog';
 import {MatChipInputEvent} from '@angular/material/chips';
-import {COMMA, ENTER} from '@angular/cdk/keycodes';
+import {MatDialog} from '@angular/material/dialog';
+import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
+import {isNonNull} from '@app/lib/preconditions';
+import {shareReplay} from 'rxjs/operators';
 
 import {OsqueryFlowArgs} from '../../lib/api/api_interfaces';
+
 import {OsqueryQueryHelper} from './osquery_query_helper/osquery_query_helper';
-import {isNonNull} from '@app/lib/preconditions';
 
 
 /** Form that configures an Osquery flow. */
@@ -55,13 +56,13 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs> implements
       if (isNonNull(newQueryReceived)) {
         this.overwriteQuery(newQueryReceived);
       }
-    }); // No need to unsubscribe as it completes when the dialog is closed.
+    });  // No need to unsubscribe as it completes when the dialog is closed.
   }
 
   ngOnInit(): void {
     if (this.defaultFlowArgs.fileCollectionColumns &&
         this.defaultFlowArgs.fileCollectionColumns.length > 0) {
-        this.fileCollectionSettingsShown = true;
+      this.fileCollectionSettingsShown = true;
     }
 
     this.form.patchValue(this.defaultFlowArgs);

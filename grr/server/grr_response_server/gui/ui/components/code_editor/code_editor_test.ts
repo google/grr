@@ -1,13 +1,13 @@
-import {TestBed, fakeAsync, tick, discardPeriodicTasks, ComponentFixture, flush, waitForAsync} from '@angular/core/testing';
-import {initTestEnvironment} from '@app/testing';
-
-import {CodeEditorModule} from './module';
-import {CodeEditor} from './code_editor';
-import {By} from '@angular/platform-browser';
-import {FormControl, ReactiveFormsModule} from '@angular/forms';
 import {Component} from '@angular/core';
+import {TestBed, waitForAsync} from '@angular/core/testing';
+import {FormControl, ReactiveFormsModule} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
+import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {initTestEnvironment} from '@app/testing';
+import {CodeEditor} from './code_editor';
+import {CodeEditorModule} from './module';
+
 
 initTestEnvironment();
 
@@ -20,8 +20,7 @@ initTestEnvironment();
  * I couldn't figure out why.
  */
 @Component({
-  template:
-      `<mat-form-field>
+  template: `<mat-form-field>
         <code-editor [formControl]=query></code-editor>
       </mat-form-field>`,
 })
@@ -42,17 +41,18 @@ describe('CodeEditor Component', () => {
           declarations: [
             TestHostComponent,
           ],
+
         })
         .compileComponents();
   }));
 
-  function constructFixture(initialValue: string | undefined) {
+  function constructFixture(initialValue: string|undefined) {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.componentInstance.query.setValue(initialValue);
 
     fixture.detectChanges();
     return fixture;
-  };
+  }
 
   it('initializes', () => {
     const fixture = constructFixture('');
@@ -64,14 +64,16 @@ describe('CodeEditor Component', () => {
   it('has a code mirror component', () => {
     const fixture = constructFixture('');
 
-    const codeMirrorElement = fixture.debugElement.query(By.css('.CodeMirror'));
+    const codeMirrorElement =
+        fixture.nativeElement.querySelector('.CodeMirror');
     expect(codeMirrorElement).toBeTruthy();
   });
 
   it('doesn\'t fail with undefined query value', () => {
     const fixture = constructFixture(undefined);
 
-    const codeMirrorElement = fixture.debugElement.query(By.css('.CodeMirror'));
+    const codeMirrorElement =
+        fixture.nativeElement.querySelector('.CodeMirror');
     expect(codeMirrorElement).toBeTruthy();
   });
 
@@ -95,5 +97,5 @@ describe('CodeEditor Component', () => {
 
     const hostQueryFormControl = fixture.componentInstance.query;
     expect(hostQueryFormControl.value).toBe('Hello yes this is code editor.');
-  })
+  });
 });

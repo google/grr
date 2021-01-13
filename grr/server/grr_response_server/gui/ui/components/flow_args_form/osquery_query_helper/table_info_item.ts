@@ -1,9 +1,6 @@
 import {Component, Input} from '@angular/core';
-import {
-  StringWithHighlightsPart,
-  stringWithHighlightsFromMatch,
-  Match,
-} from '@app/lib/fuzzy_matcher';
+import {Match, stringWithHighlightsFromMatch, StringWithHighlightsPart,} from '@app/lib/fuzzy_matcher';
+
 import {OsqueryTableSpec} from './osquery_table_specs';
 
 
@@ -14,11 +11,9 @@ import {OsqueryTableSpec} from './osquery_table_specs';
   styleUrls: ['./table_info_item.scss'],
 })
 export class TableInfoItem {
-  @Input()
-  tableSpec?: OsqueryTableSpec;
+  @Input() tableSpec!: OsqueryTableSpec;
 
-  @Input()
-  matchMap?: Map<string, Match>;
+  @Input() matchMap!: Map<string, Match>;
 
   get docsLinkToTable(): string {
     const tableName = this.tableSpec?.name;
@@ -27,23 +22,21 @@ export class TableInfoItem {
 
   convertToHighlightedParts(
       subject: string,
-  ): ReadonlyArray<StringWithHighlightsPart> {
+      ): ReadonlyArray<StringWithHighlightsPart> {
     const matchResult = this.matchMap?.get(subject);
 
     if (matchResult) {
       const stringWithHighlights = stringWithHighlightsFromMatch(matchResult);
       return stringWithHighlights.parts;
     } else {
-      return [
-        {
-          value: subject,
-          highlight: false,
-        }
-      ];
+      return [{
+        value: subject,
+        highlight: false,
+      }];
     }
   }
 
-  trackByIndex(index: number, _element: unknown): number {
+  trackByIndex(index: number, unusedElement: unknown): number {
     return index;
   }
 }

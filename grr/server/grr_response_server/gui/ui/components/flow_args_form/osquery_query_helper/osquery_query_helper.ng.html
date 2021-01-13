@@ -33,7 +33,7 @@
 
   <button
     [mat-dialog-close]="queryToReturn$ | async"
-    [disabled]="!(queryToReturn$ | async)"
+    [disabled]="(queryToReturn$ | async) === false"
     mat-flat-button
     color="primary">
     Overwrite query with template from this table

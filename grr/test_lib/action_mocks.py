@@ -312,10 +312,14 @@ class OsqueryClientMock(ActionMock):
     super(OsqueryClientMock, self).__init__(
         #  Osquery action mocks below
         osquery.Osquery,
-        #  MultiGetFile action mocks below 
-        standard.HashFile, standard.GetFileStat, standard.HashBuffer,
-        standard.TransferBuffer, file_fingerprint.FingerprintFile,
-        *args, **kwargs)
+        #  MultiGetFile action mocks below
+        standard.HashFile,
+        standard.GetFileStat,
+        standard.HashBuffer,
+        standard.TransferBuffer,
+        file_fingerprint.FingerprintFile,
+        *args,
+        **kwargs)
 
 
 class UpdateAgentClientMock(ActionMock):

@@ -1,5 +1,7 @@
+
+
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
-import {StatEntry, Hash} from '@app/lib/api/api_interfaces';
+import {Hash, StatEntry} from '@app/lib/api/api_interfaces';
 import {createOptionalDateSeconds} from '@app/lib/api_translation/primitive';
 import {combineLatest, Observable, ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
@@ -20,7 +22,7 @@ export declare interface FlowFileResult {
  */
 export function flowFileResultFromStatEntry(statEntry: StatEntry):
     FlowFileResult {
-  // TODO(simstoykov): use actual data
+  // TODO(user): use actual data
   const allHex = '0123456789abcdef';
   const temporaryLongDummyHashes: Hash = {
     sha256: `${allHex.repeat(2)}sha256`,

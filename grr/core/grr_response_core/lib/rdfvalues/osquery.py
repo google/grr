@@ -115,4 +115,3 @@ class OsqueryProgress(rdf_structs.RDFProtoStruct):
 
   protobuf = osquery_pb2.OsqueryProgress
   rdf_deps = [OsqueryTable]
-

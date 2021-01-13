@@ -1,6 +1,7 @@
-import {OsqueryTableSpec, nameToTable, OsqueryColumnSpec} from './osquery_table_specs';
-import {isNonNull} from '@app/lib/preconditions';
 import {Match} from '@app/lib/fuzzy_matcher';
+import {isNonNull} from '@app/lib/preconditions';
+
+import {nameToTable, OsqueryColumnSpec, OsqueryTableSpec} from './osquery_table_specs';
 
 /**
  * Holds a table category name, all the Osquery table
@@ -23,13 +24,13 @@ export interface TableCategoryWithMatchMap extends TableCategory {
 
 function columnSpecsToSubjects(
     columnSpecs: ReadonlyArray<OsqueryColumnSpec>,
-): ReadonlyArray<string> {
+    ): ReadonlyArray<string> {
   return columnSpecs.map(column => column.name);
 }
 
 function tableSpecsToSubjects(
     tableSpecs: ReadonlyArray<OsqueryTableSpec>,
-): ReadonlyArray<string> {
+    ): ReadonlyArray<string> {
   const names = tableSpecs.map(spec => spec.name);
   const descriptions = tableSpecs.map(spec => spec.description);
   const columns = tableSpecs.map(spec => columnSpecsToSubjects(spec.columns));
@@ -47,11 +48,11 @@ function tableSpecsToSubjects(
  */
 export function tableCategoryToSubjects(
     category: TableCategory,
-): ReadonlyArray<string> {
+    ): ReadonlyArray<string> {
   return [
     category.categoryName,
     ...tableSpecsToSubjects(category.tableSpecs),
-  ]
+  ];
 }
 
 /**
@@ -62,7 +63,7 @@ export function tableCategoryToSubjects(
 export function tableCategoryFromSpecs(
     categoryName: string,
     tableSpecs: ReadonlyArray<OsqueryTableSpec>,
-): TableCategory {
+    ): TableCategory {
   const subjects = [
     categoryName,
     ...tableSpecsToSubjects(tableSpecs),
@@ -83,11 +84,12 @@ export function tableCategoryFromSpecs(
 export function tableCategoryFromNames(
     categoryName: string,
     tableNames: ReadonlyArray<string>,
-): TableCategory {
+    ): TableCategory {
   const tableSpecs = tableNames.map(tableName => {
     const tableSpec = nameToTable(tableName);
     if (!isNonNull(tableSpec)) {
-      throw Error(`Table not found: ${tableName} (category ${categoryName})`);
+      throw new Error(
+          `Table not found: ${tableName} (category ${categoryName})`);
     }
     return tableSpec;
   });

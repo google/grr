@@ -6,11 +6,10 @@ import {MatCardModule} from '@angular/material/card';
 import {MatIconModule} from '@angular/material/icon';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
+import {ExpandableHashModule} from '@app/components/expandable_hash/module';
 import {FileModePipe} from '@app/components/flow_details/helpers/file_mode_pipe';
-
-import {HumanReadableSizeModule} from '../../human_readable_size/module';
-import {TimestampModule} from '../../timestamp/module';
-import {ExpandableHashModule} from '../../expandable_hash/module';
+import {HumanReadableSizeModule} from '@app/components/human_readable_size/module';
+import {TimestampModule} from '@app/components/timestamp/module';
 
 import {FileResultsTable} from './file_results_table';
 import {OsqueryResultsTable} from './osquery_results_table';

@@ -27,19 +27,21 @@ class OsqueryDetailsDOM {
   readonly displayedTableRoot? =
       this.rootElement.query(By.css('osquery-results-table'));
   readonly displayedTable? = this.displayedTableRoot ?
-      new OsqueryResultsTableDOM(this.displayedTableRoot) :
-      null;
+                           new OsqueryResultsTableDOM(this.displayedTableRoot) :
+                           null;
 
   readonly exportCsvButton? = this.findElementsWithSelectorAndText(
-    '.export-button-holder a', 'Download results as CSV')[0];
+      '.export-button-holder a', 'Download results as CSV')[0];
   readonly exportCsvButtonText? = this.exportCsvButton?.nativeElement.innerText;
-  readonly exportCsvButtonLink? = this.exportCsvButton?.attributes.href;
+  readonly exportCsvButtonLink? =
+      this.exportCsvButton?.nativeElement.attributes.href?.value;
 
   readonly downloadFilesButton? = this.findElementsWithSelectorAndText(
       '.export-button-holder a', 'Download collected files')[0];
   readonly downloadFilesButtonText? =
       this.downloadFilesButton?.nativeElement.innerText;
-  readonly downloadFilesButtonLink? = this.downloadFilesButton?.attributes.href;
+  readonly downloadFilesButtonLink? =
+      this.downloadFilesButton?.nativeElement.attributes.href?.value;
 
   readonly showAdditionalDiv? =
       this.rootElement.query(By.css('.show-additional'));
@@ -50,12 +52,10 @@ class OsqueryDetailsDOM {
 
   constructor(private readonly rootElement: DebugElement) {}
 
-  private findElementsWithSelectorAndText(
-      selector: string,
-      text: string
-  ): DebugElement[] {
-    return this.rootElement.queryAll(By.css(selector)).filter(
-        element => element.nativeElement.textContent === text);
+  private findElementsWithSelectorAndText(selector: string, text: string):
+      DebugElement[] {
+    return this.rootElement.queryAll(By.css(selector))
+        .filter(element => element.nativeElement.textContent === text);
   }
 }
 
@@ -109,28 +109,28 @@ describe('osquery-details component', () => {
      });
 
   it('should display only the progress error message if the flow encounters an error',
-      () => {
-        const testFlowListEntry = newFlowListEntry({
-          state: FlowState.ERROR,
-          progress: {
-            errorMessage: 'Some syntax error',
-          },
-          args: {
-            query: 'Query that produces syntax errors',
-          },
-        });
+     () => {
+       const testFlowListEntry = newFlowListEntry({
+         state: FlowState.ERROR,
+         progress: {
+           errorMessage: 'Some syntax error',
+         },
+         args: {
+           query: 'Query that produces syntax errors',
+         },
+       });
 
-        const fixture = createFixtureFrom(testFlowListEntry);
-        const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+       const fixture = createFixtureFrom(testFlowListEntry);
+       const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
-        expect(parsedElements.inProgressDiv).toBeFalsy();
-        expect(parsedElements.displayedTable).toBeFalsy();
-        expect(parsedElements.showAdditionalDiv).toBeFalsy();
+       expect(parsedElements.inProgressDiv).toBeFalsy();
+       expect(parsedElements.displayedTable).toBeFalsy();
+       expect(parsedElements.showAdditionalDiv).toBeFalsy();
 
-        expect(parsedElements.errorDiv).toBeTruthy();
-        expect(parsedElements.errorMessageDiv).toBeTruthy();
-        expect(parsedElements.errorMessageText).toEqual('Some syntax error');
-      });
+       expect(parsedElements.errorDiv).toBeTruthy();
+       expect(parsedElements.errorMessageDiv).toBeTruthy();
+       expect(parsedElements.errorMessageText).toEqual('Some syntax error');
+     });
 
   it('should display progress table with no "show additional" section if results are not truncated',
      () => {
@@ -144,7 +144,7 @@ describe('osquery-details component', () => {
            partialTable:
                newOsqueryTable(testQuery, [testColName], [[testCellValue]]),
            totalRowCount: '1',  // Not more than the number of rows in the
-                              // progress table (1),
+                                // progress table (1),
          },
          args: {
            query: testQuery,
@@ -262,52 +262,52 @@ describe('osquery-details component', () => {
            .toBe('View all rows (? more)');
      });
 
-  it('doesn\'t display the show-additional section if totalRowCount in the progress is 0', () => {
+  it('doesn\'t display the show-additional section if totalRowCount in the progress is 0',
+     () => {
+       const testFlowListEntry = newFlowListEntry({
+         state: FlowState.FINISHED,
+         args: {
+           query: 'Some query',
+         },
+         progress: {
+           totalRowCount: '0',
+         }
+       });
+
+       const fixture = createFixtureFrom(testFlowListEntry);
+       const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+
+       expect(parsedElements.showAdditionalDiv).toBeFalsy();
+     });
+
+  it('shouldn\'t display the export button if flow is still running', () => {
     const testFlowListEntry = newFlowListEntry({
-      state: FlowState.FINISHED,
+      state: FlowState.RUNNING,
       args: {
-        query: 'Some query',
+        query: 'random',
       },
-      progress: {
-        totalRowCount: '0',
-      }
     });
 
     const fixture = createFixtureFrom(testFlowListEntry);
     const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
-    expect(parsedElements.showAdditionalDiv).toBeFalsy();
+    expect(parsedElements.exportCsvButton).toBeFalsy();
   });
 
-  it('shouldn\'t display the export button if flow is still running',
-    () => {
-      const testFlowListEntry = newFlowListEntry({
-        state: FlowState.RUNNING,
-        args: {
-          query: 'random',
-        },
-      });
-
-      const fixture = createFixtureFrom(testFlowListEntry);
-      const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
-
-      expect(parsedElements.exportCsvButton).toBeFalsy();
-    });
-
   it('shouldn\'t display the export button if the flow encountered an error',
-    () => {
-      const testFlowListEntry = newFlowListEntry({
-        state: FlowState.ERROR,
-        args: {
-          query: 'Some query',
-        },
-      });
+     () => {
+       const testFlowListEntry = newFlowListEntry({
+         state: FlowState.ERROR,
+         args: {
+           query: 'Some query',
+         },
+       });
 
-      const fixture = createFixtureFrom(testFlowListEntry);
-      const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+       const fixture = createFixtureFrom(testFlowListEntry);
+       const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
-      expect(parsedElements.exportCsvButton).toBeFalsy();
-    });
+       expect(parsedElements.exportCsvButton).toBeFalsy();
+     });
 
   it('shouldn\'t display the export button if the table is empty', () => {
     const testFlowListEntry = {
@@ -318,8 +318,7 @@ describe('osquery-details component', () => {
       }),
       resultSets: [
         newFlowResultSet({
-          table:
-              newOsqueryTable('doesnt matter', ['c1', 'c2'], []),
+          table: newOsqueryTable('doesnt matter', ['c1', 'c2'], []),
         }),
       ],
     };
@@ -331,81 +330,79 @@ describe('osquery-details component', () => {
   });
 
   it('should display the export button with correct href if the table is not empty',
-      () => {
-        const testFlowListEntry = {
-          flow: newFlow({
-            state: FlowState.FINISHED,
-            clientId: 'someClient123',
-            flowId: 'someFlow321',
-          }),
-          resultSets: [
-            newFlowResultSet({
-              table:
-                  newOsqueryTable('doesnt matter', ['column'], [['cell']]),
-            }),
-          ],
-        };
+     () => {
+       const testFlowListEntry = {
+         flow: newFlow({
+           state: FlowState.FINISHED,
+           clientId: 'someClient123',
+           flowId: 'someFlow321',
+         }),
+         resultSets: [
+           newFlowResultSet({
+             table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
+           }),
+         ],
+       };
 
-        const fixture = createFixtureFrom(testFlowListEntry);
-        const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+       const fixture = createFixtureFrom(testFlowListEntry);
+       const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
-        expect(parsedElements.exportCsvButton).toBeTruthy();
-        expect(parsedElements.exportCsvButtonText).toBe(
-              'Download results as CSV');
-        expect(parsedElements.exportCsvButtonLink).toBe(
-            '/api/clients/someClient123/flows/someFlow321/osquery-results/CSV');
-      });
+       expect(parsedElements.exportCsvButton).toBeTruthy();
+       expect(parsedElements.exportCsvButtonText)
+           .toBe('Download results as CSV');
+       expect(parsedElements.exportCsvButtonLink)
+           .toBe(
+               '/api/clients/someClient123/flows/someFlow321/osquery-results/CSV');
+     });
 
   it('shouldn\'t display the download collected file button if no columns for collection are present',
-      () => {
-        const testFlowListEntry = {
-          flow: newFlow({
-            state: FlowState.FINISHED,
-            clientId: 'someClient123',
-            flowId: 'someFlow321',
-          }),
-          resultSets: [
-            newFlowResultSet({
-              table:
-                  newOsqueryTable('doesnt matter', ['column'], [['cell']]),
-            }),
-          ],
-        };
+     () => {
+       const testFlowListEntry = {
+         flow: newFlow({
+           state: FlowState.FINISHED,
+           clientId: 'someClient123',
+           flowId: 'someFlow321',
+         }),
+         resultSets: [
+           newFlowResultSet({
+             table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
+           }),
+         ],
+       };
 
-        const fixture = createFixtureFrom(testFlowListEntry);
-        const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+       const fixture = createFixtureFrom(testFlowListEntry);
+       const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
-        expect(parsedElements.downloadFilesButton).toBeFalsy();
-      });
+       expect(parsedElements.downloadFilesButton).toBeFalsy();
+     });
 
   it('should display the download collected file button if columns for collection are present',
-      () => {
-        const testFlowListEntry = {
-          flow: newFlow({
-            state: FlowState.FINISHED,
-            clientId: 'someClient123',
-            flowId: 'someFlow321',
-            args: {
-              // Columns for file collection are present
-              fileCollectionColumns: ['column'],
-            },
-          }),
-          resultSets: [
-            newFlowResultSet({
-              table:
-                  newOsqueryTable('doesnt matter', ['column'], [['cell']]),
-            }),
-          ],
-        };
+     () => {
+       const testFlowListEntry = {
+         flow: newFlow({
+           state: FlowState.FINISHED,
+           clientId: 'someClient123',
+           flowId: 'someFlow321',
+           args: {
+             // Columns for file collection are present
+             fileCollectionColumns: ['column'],
+           },
+         }),
+         resultSets: [
+           newFlowResultSet({
+             table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
+           }),
+         ],
+       };
 
-        const fixture = createFixtureFrom(testFlowListEntry);
-        const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
+       const fixture = createFixtureFrom(testFlowListEntry);
+       const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
-        expect(parsedElements.downloadFilesButton).toBeTruthy();
-        expect(parsedElements.downloadFilesButtonText).toBe(
-            'Download collected files');
-        expect(parsedElements.downloadFilesButtonLink).toBe(
-            '/api/clients/someClient123/flows/someFlow321/results/files-archive'
-        );
-      });
+       expect(parsedElements.downloadFilesButton).toBeTruthy();
+       expect(parsedElements.downloadFilesButtonText)
+           .toBe('Download collected files');
+       expect(parsedElements.downloadFilesButtonLink)
+           .toBe(
+               '/api/clients/someClient123/flows/someFlow321/results/files-archive');
+     });
 });
