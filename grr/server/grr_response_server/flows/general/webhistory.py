@@ -60,7 +60,7 @@ class ChromeHistory(flow_base.FlowBase):
 
   category = "/Browser/"
   args_type = ChromeHistoryArgs
-  behaviours = flow_base.BEHAVIOUR_BASIC
+  behaviours = flow_base.BEHAVIOUR_DEBUG  # Deprecated.
 
   def Start(self):
     """Determine the Chrome directory."""
@@ -177,7 +177,7 @@ class FirefoxHistory(flow_base.FlowBase):
 
   category = "/Browser/"
   args_type = FirefoxHistoryArgs
-  behaviours = flow_base.BEHAVIOUR_BASIC
+  behaviours = flow_base.BEHAVIOUR_DEBUG  # Deprecated.
 
   def Start(self):
     """Determine the Firefox history directory."""
@@ -294,7 +294,7 @@ class CacheGrep(flow_base.FlowBase):
 
   category = "/Browser/"
   args_type = CacheGrepArgs
-  behaviours = flow_base.BEHAVIOUR_BASIC
+  behaviours = flow_base.BEHAVIOUR_DEBUG  # Deprecated.
 
   def Start(self):
     """Redirect to start on the workers and not in the UI."""
@@ -405,8 +405,7 @@ class CollectBrowserHistory(flow_base.FlowBase):
   category = "/Browser/"
   args_type = CollectBrowserHistoryArgs
   progress_type = CollectBrowserHistoryProgress
-  # This is a flow intended for the GRR UI v2.
-  behaviours = flow_base.BEHAVIOUR_DEBUG
+  behaviours = flow_base.BEHAVIOUR_BASIC
 
   BROWSER_TO_ARTIFACTS_MAP = {
       Browser.CHROME: ["ChromeHistory"],

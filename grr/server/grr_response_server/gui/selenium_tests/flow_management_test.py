@@ -96,7 +96,8 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=#_Browser a")
 
     # Wait until the tree has expanded.
-    self.WaitUntil(self.IsTextPresent, flows_webhistory.FirefoxHistory.__name__)
+    self.WaitUntil(self.IsTextPresent,
+                   flows_webhistory.CollectBrowserHistory.friendly_name)
 
     # Check that we can get a file in chinese
     self.Click("css=#_Filesystem a")
