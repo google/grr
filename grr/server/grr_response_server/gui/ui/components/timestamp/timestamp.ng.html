@@ -1,15 +1,15 @@
 <div *ngIf="date !== undefined; else dateUndefined"
-  class="timestamp"
+  class="ts_component_timestamp"
   [matTooltip]="date | relativeTimestamp"
   matTooltipPosition="below"
-  matTooltipClass="tooltip"
+  matTooltipClass="ts_component_tooltip"
   [matTooltipDisabled]="completeFormat || !tooltipEnabled"
   [style.border-bottom]="(completeFormat || !tooltipEnabled || forceDisableUnderlining) ? 'none' : '1px dotted rgb(126, 126, 126)'">
   {{date | date:'yyyy-MM-dd HH:mm:ss':timezone}} {{timezone}}
 
-  <div class="inline_relative" *ngIf="completeFormat">
+  <div class="ts_component_inline_relative" *ngIf="completeFormat">
     {{date | relativeTimestamp}}
-    <button mat-icon-button class="copy_button"
+    <button mat-icon-button class="ts_component_copy_button"
       [cdkCopyToClipboard]="(date | date:'yyyy-MM-dd HH:mm:ss':timezone) + ' ' + timezone"
       aria-label="Copy">
       <mat-icon aria-label="Copy">content_copy</mat-icon>

@@ -7,6 +7,8 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
+import {MatDialogModule} from '@angular/material/dialog';
+import {MatChipsModule} from '@angular/material/chips';
 import {RouterModule} from '@angular/router';
 import {CollectBrowserHistoryForm} from '@app/components/flow_args_form/collect_browser_history_form';
 import {CollectMultipleFilesForm} from '@app/components/flow_args_form/collect_multiple_files_form';
@@ -19,6 +21,8 @@ import {GlobExpressionExplanationModule} from '@app/components/form/glob_express
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
 import {FlowArgsForm} from './flow_args_form';
 import {OsqueryForm} from './osquery_form';
+import {CodeEditorModule} from '../code_editor/module';
+import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
 import {TimelineForm} from './timeline_form';
 
 /** Module for the FlowArgsForm component. */
@@ -28,13 +32,17 @@ import {TimelineForm} from './timeline_form';
     RouterModule,
     CommonModule,
     MatCheckboxModule,
+    MatChipsModule,
     ReactiveFormsModule,
     MatFormFieldModule,
     MatInputModule,
     MatIconModule,
     MatButtonModule,
+    MatDialogModule,
     ByteComponentsModule,
     GlobExpressionExplanationModule,
+    CodeEditorModule,
+    OsqueryQueryHelperModule,
     HelpersModule,
     DateTimeInputModule,
   ],

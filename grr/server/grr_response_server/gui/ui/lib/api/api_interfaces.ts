@@ -674,17 +674,19 @@ export declare interface ApproverSuggestion {
   readonly username?: string;
 }
 
-/** OsqueryArgs proto mapping. */
-export declare interface OsqueryArgs {
+/** OsqueryFlowArgs proto mapping. */
+export declare interface OsqueryFlowArgs {
   readonly query?: string;
   readonly timeoutMillis?: DecimalString;
   readonly ignoreStderrErrors?: boolean;
+  readonly fileCollectionColumns?: ReadonlyArray<string>;
 }
 
 /** OsqueryProgress proto mapping */
 export declare interface OsqueryProgress {
   readonly partialTable?: OsqueryTable;
   readonly totalRowCount?: DecimalString;
+  readonly errorMessage?: string;
 }
 
 /** OsqueryResult proto mapping. */

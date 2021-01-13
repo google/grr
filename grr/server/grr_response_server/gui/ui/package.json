@@ -22,6 +22,8 @@
     "@angular/platform-browser-dynamic": "^11.0.2",
     "@angular/router": "^11.0.2",
     "@ngrx/component-store": "^10.1.0",
+    "@types/codemirror": "0.0.103",
+    "codemirror": "^5.58.3",
     "deep-diff": "^1.0.2",
     "luxon": "^1.25.0",
     "rxjs": "^6.6.3",

@@ -1,7 +1,7 @@
 <div *ngIf="flowError$ | async" class="error">
-  An error was encountered.
-  <div *ngIf="resultsStderr$ | async as resultsStderr">
-    stderr is: {{resultsStderr}}
+  An error was encountered with query: {{ (args$ | async).query }}
+  <div *ngIf="progressErrorMessage$ | async as progressErrorMessage">
+    {{progressErrorMessage}}
   </div>
 </div>
 
@@ -10,6 +10,24 @@
 </div>
 
 <ng-container *ngIf="flowCompleted$ | async">
+  <div
+    *ngIf="numberOfRowsAvailable$ | async"
+    class="flow-details-summary-actions export-button-holder">
+    <ng-container *ngIf="(args$ | async)?.fileCollectionColumns as fileCollectionColumns">
+      <a
+        *ngIf="collectedFilesLink$ | async as collectedFilesLink"
+        [href]="collectedFilesLink"
+        download
+        mat-stroked-button color="primary">Download collected files</a>
+    </ng-container>
+
+    <a
+      *ngIf="exportCsvLink$ | async as exportCsvLink"
+      [href]="exportCsvLink"
+      download
+      mat-stroked-button color="primary">Download results as CSV</a>
+  </div>
+
   <osquery-results-table
     *ngIf="displayTable$ | async as displayTable"
     [table]="displayTable">
@@ -18,6 +36,9 @@
   <div
     *ngIf="additionalRowsAvailable$ | async as additionalCount"
     class="show-additional">
-    <button (click)="loadCompleteResults()">View all rows ({{additionalCount}} more)</button>
+    <button
+      (click)="loadCompleteResults()"
+      mat-button
+      color="primary">View all rows ({{additionalCount}} more)</button>
   </div>
 </ng-container>

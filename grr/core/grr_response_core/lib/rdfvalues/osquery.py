@@ -57,7 +57,7 @@ class OsqueryTable(rdf_structs.RDFProtoStruct):
     """Iterates over values of a given column.
 
     Args:
-      column_name: A nome of the column to retrieve the values for.
+      column_name: A name of the column to retrieve the values for.
 
     Yields:
       Values of the specified column.
@@ -115,3 +115,4 @@ class OsqueryProgress(rdf_structs.RDFProtoStruct):
 
   protobuf = osquery_pb2.OsqueryProgress
   rdf_deps = [OsqueryTable]
+

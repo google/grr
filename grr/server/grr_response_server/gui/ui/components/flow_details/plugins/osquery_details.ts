@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {OsqueryArgs, OsqueryProgress, OsqueryResult} from '@app/lib/api/api_interfaces';
+import {OsqueryFlowArgs, OsqueryProgress, OsqueryResult} from '@app/lib/api/api_interfaces';
 import {FlowState} from '@app/lib/models/flow';
 import {isNonNull} from '@app/lib/preconditions';
 import {combineLatest, concat, Observable} from 'rxjs';
@@ -51,6 +51,11 @@ export class OsqueryDetails extends Plugin {
       this.resultsTable$,
   );
 
+  readonly progressErrorMessage$ = this.osqueryProgress$.pipe(
+      map(progress => progress.errorMessage),
+      filter(isNonNull),
+  );
+
   readonly additionalRowsAvailable$ =
       combineLatest([
         this.osqueryProgress$.pipe(
@@ -64,20 +69,57 @@ export class OsqueryDetails extends Plugin {
       ])
           .pipe(
               map(([totalRowCount, displayedRowCount]) => {
+                if (isNonNull(totalRowCount) && Number(totalRowCount) === 0) {
+                  // Without this check the button for requesting full results
+                  // will be displayed if the resulting table is empty. This is
+                  // because the table property of OsqueryTable is undefined if
+                  // the result contains no rows.
+                  return 0;
+                }
+
                 if (isNonNull(totalRowCount) && isNonNull(displayedRowCount)) {
                   return Number(totalRowCount) - displayedRowCount;
-                } else {
-                  return '?';
                 }
+
+                return '?';
               }),
           );
 
-  readonly args$: Observable<OsqueryArgs> = this.flowListEntry$.pipe(
-      map(flowListEntry => flowListEntry.flow.args as OsqueryArgs),
+  readonly args$: Observable<OsqueryFlowArgs> = this.flowListEntry$.pipe(
+      map(flowListEntry => flowListEntry.flow.args as OsqueryFlowArgs),
   );
 
-  readonly resultsStderr$ = this.osqueryResults$.pipe(
-      map(result => result.stderr),
+  readonly clientAndFlowId$ = this.flowListEntry$.pipe(
+      map(fle => {
+        const clientId = fle.flow.clientId;
+        const flowId = fle.flow.flowId;
+
+        if (clientId && flowId) {
+          return {
+            clientId,
+            flowId,
+          };
+        } else {
+          return null;
+        }
+      }),
+      filter(isNonNull),
+  );
+
+  readonly exportCsvLink$ = this.clientAndFlowId$.pipe(
+      map(ids => {
+        return `/api/clients/${ids.clientId}/flows/${ids.flowId}/osquery-results/CSV`;
+      }),
+  );
+
+  readonly collectedFilesLink$ = this.clientAndFlowId$.pipe(
+      map(ids => {
+        return `/api/clients/${ids.clientId}/flows/${ids.flowId}/results/files-archive`;
+      }),
+  );
+
+  readonly numberOfRowsAvailable$ = this.displayTable$.pipe(
+      map(table => table.rows?.length),
   );
 
   private flagByState(targetState: FlowState): Observable<boolean> {
@@ -86,7 +128,8 @@ export class OsqueryDetails extends Plugin {
   }
 
   loadCompleteResults() {
+    // TODO(simstoykov): Fetch more chunks if present
     this.queryFlowResults(
-        {offset: 0, count: 1});  // TODO: Fetch more chunks if present
+        {offset: 0, count: 1, withType: 'OsqueryResult'});
   }
 }

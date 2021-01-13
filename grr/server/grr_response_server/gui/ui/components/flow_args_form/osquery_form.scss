@@ -1,8 +1,30 @@
-.container {
+.main-container, .settings-container, collection-container {
   display: flex;
   flex-direction: column;
 }
 
-.timeout {
+.hide-content {
+  display: none;
+}
+
+.query-section {
+  height: auto;
+}
+
+.browse-tables-button {
+  margin-left: 2em;
+  margin-top: 2em;
+}
+
+.editor-form-field {
+  display: block;
+  cursor: text;
+}
+
+.collection-container mat-form-field {
+  width: 20em;
+}
+
+.timeout-form-field {
   width: 10em;
 }
