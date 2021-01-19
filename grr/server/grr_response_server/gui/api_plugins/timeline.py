@@ -20,6 +20,14 @@ from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.rdfvalues import objects as rdf_objects
+
+
+class ApiTimelineBodyOpts(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper class for the body exporter options."""
+
+  protobuf = timeline_pb2.ApiTimelineBodyOpts
+  rdf_deps = []
 
 
 class ApiGetCollectedTimelineArgs(rdf_structs.RDFProtoStruct):
@@ -29,6 +37,7 @@ class ApiGetCollectedTimelineArgs(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       api_client.ApiClientId,
       api_flow.ApiFlowId,
+      ApiTimelineBodyOpts,
   ]
 
 
@@ -36,7 +45,9 @@ class ApiGetCollectedHuntTimelinesArgs(rdf_structs.RDFProtoStruct):
   """An RDF wrapper class for the arguments of time hunt timeline exporter."""
 
   protobuf = timeline_pb2.ApiGetCollectedHuntTimelinesArgs
-  rdf_deps = []
+  rdf_deps = [
+      ApiTimelineBodyOpts,
+  ]
 
 
 class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
@@ -58,9 +69,9 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
       message = "Flow '{}' is not a timeline flow".format(flow_id)
       raise ValueError(message)
 
-    if args.format == ApiGetCollectedTimelineArgs.Format.BODY:  # pytype: disable=attribute-error
-      return self._StreamBody(client_id=client_id, flow_id=flow_id)
-    if args.format == ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED:  # pytype: disable=attribute-error
+    if args.format == timeline_pb2.ApiGetCollectedTimelineArgs.BODY:
+      return self._StreamBody(args)
+    if args.format == timeline_pb2.ApiGetCollectedTimelineArgs.RAW_GZCHUNKED:
       return self._StreamRawGzchunked(client_id=client_id, flow_id=flow_id)
 
     message = "Incorrect timeline export format: {}".format(args.format)
@@ -68,11 +79,16 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
 
   def _StreamBody(
       self,
-      client_id: Text,
-      flow_id: Text,
+      args: ApiGetCollectedTimelineArgs,
   ) -> api_call_handler_base.ApiBinaryStream:
+    client_id = str(args.client_id)
+    flow_id = str(args.flow_id)
+    opts = args.body_opts
+
     entries = timeline.ProtoEntries(client_id=client_id, flow_id=flow_id)
-    content = body.Stream(entries)
+    content = body.Stream(
+        entries,
+        timestamp_subsecond_precision=opts.timestamp_subsecond_precision)
 
     filename = "timeline_{}.body".format(flow_id)
     return api_call_handler_base.ApiBinaryStream(filename, content)
@@ -111,34 +127,31 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
       message = f"Hunt '{hunt_id}' is not a timeline hunt"
       raise ValueError(message)
 
-    # TODO(hanuszczak): Enum-related attribute errors can by bypassed by using
-    # raw protobuf enums.
-    # pytype: disable=attribute-error
-    if (args.format != ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED and
-        args.format != ApiGetCollectedTimelineArgs.Format.BODY):
-      message = f"Incorrect timeline export format: {args.format}"
+    fmt = args.format
+    if (fmt != timeline_pb2.ApiGetCollectedTimelineArgs.RAW_GZCHUNKED and
+        fmt != timeline_pb2.ApiGetCollectedTimelineArgs.BODY):
+      message = f"Incorrect timeline export format: {fmt}"
       raise ValueError(message)
-    # pytype: enable=attribute-error
 
     filename = f"timelines_{hunt_id}.zip"
-    content = self._Generate(hunt_id, args.format)
+    content = self._GenerateArchive(args)
     return api_call_handler_base.ApiBinaryStream(filename, content)
 
-  def _Generate(
+  def _GenerateArchive(
       self,
-      hunt_id: Text,
-      fmt: rdf_structs.EnumNamedValue,
+      args: ApiGetCollectedHuntTimelinesArgs,
   ) -> Iterator[bytes]:
     zipgen = utils.StreamingZipGenerator()
-    yield from self._GenerateTimelines(hunt_id, fmt, zipgen)
+    yield from self._GenerateHuntTimelines(args, zipgen)
     yield zipgen.Close()
 
-  def _GenerateTimelines(
+  def _GenerateHuntTimelines(
       self,
-      hunt_id: Text,
-      fmt: rdf_structs.EnumNamedValue,
+      args: ApiGetCollectedHuntTimelinesArgs,
       zipgen: utils.StreamingZipGenerator,
   ) -> Iterator[bytes]:
+    hunt_id = str(args.hunt_id)
+
     offset = 0
     while True:
       flows = data_store.REL_DB.ReadHuntFlows(hunt_id, offset, _FLOW_BATCH_SIZE)
@@ -146,47 +159,44 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
       client_ids = [flow.client_id for flow in flows]
       client_snapshots = data_store.REL_DB.MultiReadClientSnapshot(client_ids)
 
-      client_fqdns = {
-          client_id: snapshot.knowledge_base.fqdn
-          for client_id, snapshot in client_snapshots.items()
-      }
-
       for flow in flows:
-        client_id = flow.client_id
-        flow_id = flow.flow_id
-        fqdn = client_fqdns[client_id]
+        snapshot = client_snapshots[flow.client_id]
+        filename = _GetHuntTimelineFilename(snapshot, args.format)
 
-        yield from self._GenerateTimeline(client_id, flow_id, fqdn, fmt, zipgen)
+        subargs = ApiGetCollectedTimelineArgs()
+        subargs.client_id = flow.client_id
+        subargs.flow_id = flow.flow_id
+        subargs.format = args.format
+        subargs.body_opts = args.body_opts
+
+        yield zipgen.WriteFileHeader(filename)
+        yield from map(zipgen.WriteFileChunk, self._GenerateTimeline(subargs))
+        yield zipgen.WriteFileFooter()
 
       if len(flows) < _FLOW_BATCH_SIZE:
         break
 
   def _GenerateTimeline(
       self,
-      client_id: Text,
-      flow_id: Text,
-      fqdn: Text,
-      fmt: rdf_structs.EnumNamedValue,
-      zipgen: utils.StreamingZipGenerator,
+      args: ApiGetCollectedTimelineArgs,
   ) -> Iterator[bytes]:
-    args = ApiGetCollectedTimelineArgs()
-    args.client_id = client_id
-    args.flow_id = flow_id
-    args.format = fmt
+    return self._handler.Handle(args).GenerateContent()
 
-    if fmt == ApiGetCollectedTimelineArgs.Format.RAW_GZCHUNKED:  # pytype: disable=attribute-error
-      filename = f"{client_id}_{fqdn}.gzchunked"
-    elif fmt == ApiGetCollectedTimelineArgs.Format.BODY:  # pytype: disable=attribute-error
-      filename = f"{client_id}_{fqdn}.body"
-    else:
-      raise AssertionError()
 
-    yield zipgen.WriteFileHeader(filename)
+def _GetHuntTimelineFilename(
+    snapshot: rdf_objects.ClientSnapshot,
+    fmt: timeline_pb2.ApiGetCollectedTimelineArgs.Format,
+) -> str:
+  """Computes a timeline filename for the given client snapshot."""
+  client_id = snapshot.client_id
+  fqdn = snapshot.knowledge_base.fqdn
 
-    for chunk in self._handler.Handle(args).GenerateContent():
-      yield zipgen.WriteFileChunk(chunk)
+  if fmt == timeline_pb2.ApiGetCollectedTimelineArgs.RAW_GZCHUNKED:
+    return f"{client_id}_{fqdn}.gzchunked"
+  if fmt == timeline_pb2.ApiGetCollectedTimelineArgs.BODY:
+    return f"{client_id}_{fqdn}.body"
 
-    yield zipgen.WriteFileFooter()
+  raise ValueError(f"Unsupported file format: '{fmt}'")
 
 
 _FLOW_BATCH_SIZE = 32_768  # A number of flows to fetch in a database call.

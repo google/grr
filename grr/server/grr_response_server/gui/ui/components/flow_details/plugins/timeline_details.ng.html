@@ -1,0 +1,15 @@
+<div *ngIf="(state$ | async) === FlowState.FINISHED">
+  <div class="download flow-details-summary-actions">
+    <a mat-stroked-button color="primary" [href]="bodyFileUrl$ | async" [download]="bodyFileName$ | async">Download body</a>
+  </div>
+</div>
+
+<div *ngIf="(state$ | async) === FlowState.RUNNING">
+  <span>Timelining '{{ (args$ | async).root }}'...</span>
+  <!-- TODO(hanuszczak): Display first 10 rows of the timeline once available. -->
+</div>
+
+<div *ngIf="(state$ | async) == FlowState.ERROR">
+  <span>Failed to collect the timeline.</span>
+  <!-- TODO(hanuszczak): Add details about timeline collection errors. -->
+</div>

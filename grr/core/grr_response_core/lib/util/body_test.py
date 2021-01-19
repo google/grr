@@ -88,6 +88,17 @@ class StreamTest(absltest.TestCase):
     content = b"".join(body.Stream(iter([entry])))
     self.assertIn(b"/\xff\x00\x00/\xfb\xfa\xf5", content)
 
+  def testSubsecondPrecision(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = "/foo/bar".encode("utf-8")
+    entry.atime_ns = 123_456_789_000
+
+    stream = body.Stream(iter([entry]), timestamp_subsecond_precision=True)
+    content = b"".join(stream).decode("utf-8")
+
+    self.assertIn("/foo/bar", content)
+    self.assertIn("123.456789", content)
+
   def testHandlesDelimiterQuotesAndLineTerminatorsInPath(self):
 
     def _Test(c):

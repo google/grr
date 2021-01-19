@@ -7,6 +7,7 @@ import {DefaultDetails} from './plugins/default_details';
 import {MultiGetFileDetails} from './plugins/multi_get_file_details';
 import {OsqueryDetails} from './plugins/osquery_details';
 import {Plugin} from './plugins/plugin';
+import {TimelineDetails} from './plugins/timeline_details';
 
 /**
  * Default details plugin to be used when no appropriate plugin is found.
@@ -22,4 +23,5 @@ export const FLOW_DETAILS_PLUGIN_REGISTRY: {[key: string]: Type<Plugin>} = {
   'CollectMultipleFiles': CollectMultipleFilesDetails,
   'CollectSingleFile': CollectSingleFileDetails,
   'OsqueryFlow': OsqueryDetails,
+  'TimelineFlow': TimelineDetails,
 };

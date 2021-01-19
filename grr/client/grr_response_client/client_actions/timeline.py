@@ -60,11 +60,17 @@ def Walk(root: bytes) -> Iterator[rdf_timeline.TimelineEntry]:
 
   Returns:
     An iterator over timeline entries with stat information about each file.
+
+  Raises:
+    OSError: If it is not possible to collect information about the root folder.
   """
-  try:
-    dev = os.lstat(root).st_dev
-  except OSError:
-    return iter([])
+  # This might raise if there is a problem when accessing the path (e.g. it does
+  # not exist). While for recursive walking we generally want to ignore such
+  # errors (because given the multitude of files we are going to traverse there
+  # are likely going to be permission errors for some of them), if we fail to
+  # collect information about the root then likely something is wrong and the
+  # flow should fail, giving the user a meaningful error message.
+  dev = os.lstat(root).st_dev
 
   def Recurse(path: bytes) -> Iterator[rdf_timeline.TimelineEntry]:
     """Performs the recursive walk over the file hierarchy."""

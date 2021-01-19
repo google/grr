@@ -22,6 +22,7 @@ import {CollectSingleFileDetails} from './collect_single_file_details';
 import {DefaultDetails} from './default_details';
 import {MultiGetFileDetails} from './multi_get_file_details';
 import {OsqueryDetails} from './osquery_details';
+import {TimelineDetails} from './timeline_details';
 
 
 /**
@@ -54,6 +55,7 @@ import {OsqueryDetails} from './osquery_details';
     CollectMultipleFilesDetails,
     CollectSingleFileDetails,
     OsqueryDetails,
+    TimelineDetails,
   ],
   exports: [
     DefaultDetails,
@@ -62,6 +64,7 @@ import {OsqueryDetails} from './osquery_details';
     CollectMultipleFilesDetails,
     CollectSingleFileDetails,
     OsqueryDetails,
+    TimelineDetails,
   ],
   entryComponents: [
     DefaultDetails,
@@ -70,6 +73,7 @@ import {OsqueryDetails} from './osquery_details';
     CollectMultipleFilesDetails,
     CollectSingleFileDetails,
     OsqueryDetails,
+    TimelineDetails,
   ]
 })
 export class PluginsModule {

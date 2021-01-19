@@ -44,6 +44,9 @@ message ApiGetCollectedTimelineArgs {
 
   // A format in which to retrieve timeline entries.
   optional Format format = 3;
+
+  // Options for timelines exported in the body file format.
+  optional ApiTimelineBodyOpts body_opts = 4;
 }
 
 // A message representing arguments for the API method that exports results of
@@ -54,4 +57,14 @@ message ApiGetCollectedHuntTimelinesArgs {
 
   // A format in which to retrieve timeline entries.
   optional ApiGetCollectedTimelineArgs.Format format = 2;
+
+  // Options for timelines exported in the body file format.
+  optional ApiTimelineBodyOpts body_opts = 4;
+}
+
+// A message with various options that configure shape of exported timelines in
+// the body file format.
+message ApiTimelineBodyOpts {
+  // Whether to use floating point subsecond precision for timestamps.
+  optional bool timestamp_subsecond_precision = 1;
 }

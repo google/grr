@@ -138,6 +138,28 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
       self.assertEqual(row[1].encode("utf-8"), entries[idx].path)
       self.assertEqual(int(row[6]), entries[idx].size)
 
+  def testBodySubsecondPrecision(self):
+    entry = rdf_timeline.TimelineEntry()
+    entry.path = "/foo/bar/baz".encode("utf-8")
+    entry.atime_ns = int(3.14 * 10**9)
+
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = _WriteTimeline(client_id, [entry])
+
+    args = api_timeline.ApiGetCollectedTimelineArgs()
+    args.client_id = client_id
+    args.flow_id = flow_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.BODY
+    args.body_opts.timestamp_subsecond_precision = True
+
+    result = self.handler.Handle(args)
+    content = b"".join(result.GenerateContent()).decode("utf-8")
+
+    rows = list(csv.reader(io.StringIO(content), delimiter="|"))
+    self.assertLen(rows, 1)
+    self.assertEqual(rows[0][1], "/foo/bar/baz")
+    self.assertEqual(rows[0][7], "3.14")
+
   def testRawGzchunkedEmpty(self):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
     flow_id = _WriteTimeline(client_id, [])
@@ -372,6 +394,45 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
         chunks = chunked.ReadAll(file)
         entries = list(rdf_timeline.TimelineEntry.DeserializeStream(chunks))
         self.assertEqual(entries, [entry_2])
+
+  def testBodySubsecondPrecision(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    hunt_id = "ABCDEABCDE"
+
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.fqdn = "foo.bar.baz"
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj.hunt_id = hunt_id
+    hunt_obj.args.standard.client_ids = [client_id]
+    hunt_obj.args.standard.flow_name = timeline.TimelineFlow.__name__
+    hunt_obj.hunt_state = rdf_hunt_objects.Hunt.HuntState.PAUSED
+    data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+    entry = rdf_timeline.TimelineEntry()
+    entry.path = "/foo/bar/baz".encode("utf-8")
+    entry.btime_ns = int(1337.42 * 10**9)
+
+    _WriteTimeline(client_id, [entry], hunt_id=hunt_id)
+
+    args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
+    args.hunt_id = hunt_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.BODY
+    args.body_opts.timestamp_subsecond_precision = True
+
+    content = b"".join(self.handler.Handle(args).GenerateContent())
+    buffer = io.BytesIO(content)
+
+    with zipfile.ZipFile(buffer, mode="r") as archive:
+      with archive.open(f"{client_id}_foo.bar.baz.body", mode="r") as file:
+        content_file = file.read().decode("utf-8")
+        rows = list(csv.reader(io.StringIO(content_file), delimiter="|"))
+
+    self.assertLen(rows, 1)
+    self.assertEqual(rows[0][1], "/foo/bar/baz")
+    self.assertEqual(rows[0][10], "1337.42")
 
 
 def _WriteTimeline(

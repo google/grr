@@ -193,10 +193,11 @@ class WalkTest(absltest.TestCase):
       self.assertBetween(entries[1].btime_ns, 0, now_ns)
 
   def testIncorrectPath(self):
-    not_existing_path = os.path.join("some", "not", "existing", "path")
+    with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
+      not_existing_path = os.path.join(dirpath, "not", "existing", "path")
 
-    entries = list(timeline.Walk(not_existing_path.encode("utf-8")))
-    self.assertEmpty(entries)
+      with self.assertRaises(OSError):
+        timeline.Walk(not_existing_path.encode("utf-8"))
 
 
 def _Touch(filepath: Text, content: bytes = b"") -> None:

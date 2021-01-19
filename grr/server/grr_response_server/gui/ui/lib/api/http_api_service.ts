@@ -311,6 +311,11 @@ export class HttpApiService {
         flowId}/results/files-archive`;
   }
 
+  getTimelineBodyFileUrl(clientId: string, flowId: string): string {
+    const BODY = 1;
+    return `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/timeline/${BODY}`;
+  }
+
   fetchUiConfig(): Observable<ApiUiConfig> {
     return this.http.get<ApiUiConfig>(`${URL_PREFIX}/config/ui`);
   }

@@ -38,8 +38,8 @@ FILE_HANDLE_CACHE = utils.TimeBasedCache(max_age=30)
 # method can be removed but for now, we have to empty the cache manually.
 def FlushHandleCache() -> None:
   """Flushes the handle cache closing all cached files and releasing locks."""
-  for _, [_, filedesc] in FILE_HANDLE_CACHE:
-    filedesc.Close()
+  for _, entry in FILE_HANDLE_CACHE:
+    entry.value.Close()
   FILE_HANDLE_CACHE.Flush()
 
 

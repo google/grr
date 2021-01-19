@@ -21,9 +21,11 @@ def _CsvEscape(s: str) -> str:
   return f'"{s.translate(_CSV_TRANS)}"'
 
 
+# TODO(hanuszczak): Create a separate class for options.
 def Stream(
     entries: Iterator[timeline_pb2.TimelineEntry],
     chunk_size: int = DEFAULT_CHUNK_SIZE,
+    timestamp_subsecond_precision: bool = False,
 ) -> Iterator[bytes]:
   """Streams chunks of a Sleuthkit's body file (from a stream of entries).
 
@@ -32,12 +34,19 @@ def Stream(
     chunk_size: An (optional) size of the output chunk. Note that chunks are
       going to be slightly bigger than this value, but the difference should be
       negligible.
+    timestamp_subsecond_precision: An (optional) flag that controls whether the
+      output should use floating-point subsecond-precision timestamps.
 
   Yields:
     Chunks of the body file.
   """
   rows = []
   total_size = 0
+
+  if timestamp_subsecond_precision:
+    timestamp_fmt = lambda ns: str(ns / 10**9)
+  else:
+    timestamp_fmt = lambda ns: str(ns // 10**9)
 
   # Concatenating columns and rows via join seems to be ~15% faster than
   # using the csv.writer.
@@ -59,10 +68,10 @@ def Stream(
         str(entry.uid),  # uid
         str(entry.gid),  # gid
         str(entry.size),  # size
-        str(entry.atime_ns // 10**9),  # atime
-        str(entry.mtime_ns // 10**9),  # mtime
-        str(entry.ctime_ns // 10**9),  # ctime
-        str(entry.btime_ns // 10**9),  # btime
+        timestamp_fmt(entry.atime_ns),  # atime
+        timestamp_fmt(entry.mtime_ns),  # mtime
+        timestamp_fmt(entry.ctime_ns),  # ctime
+        timestamp_fmt(entry.btime_ns),  # btime
     ]).encode("utf-8", "surrogateescape")
 
     # Account for the newline.

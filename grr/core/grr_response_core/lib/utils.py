@@ -23,7 +23,7 @@ import tarfile
 import tempfile
 import threading
 import time
-from typing import Iterable, Optional, Text
+from typing import Iterable, Optional, Text, Any
 import weakref
 import zipfile
 import zlib
@@ -358,6 +358,13 @@ class FastStore(object):
     return len(self._hash)
 
 
+class TimeBasedCacheEntry:
+
+  def __init__(self, timestamp: float, value: Any):
+    self.timestamp = timestamp
+    self.value = value
+
+
 class TimeBasedCache(FastStore):
   """A Cache which expires based on time."""
 
@@ -393,11 +400,9 @@ class TimeBasedCache(FastStore):
           # We need to take a copy of the value list because we are changing
           # this dict during the iteration.
           for node in list(cache._hash.values()):
-            timestamp, obj = node.data
-
             # Expire the object if it is too old.
-            if timestamp + cache.max_age < now:
-              cache.KillObject(obj)
+            if node.data.timestamp + cache.max_age < now:
+              cache.KillObject(node.data)
 
               cache._age.Unlink(node)
               cache._hash.pop(node.key, None)
@@ -415,16 +420,16 @@ class TimeBasedCache(FastStore):
   def Get(self, key):
     now = time.time()
     stored = super(TimeBasedCache, self).Get(key)
-    if stored[0] + self.max_age < now:
+    if stored.timestamp + self.max_age < now:
       raise KeyError("Expired")
 
     # This updates the timestamp in place to keep the object alive
-    stored[0] = now
+    stored.timestamp = now
 
-    return stored[1]
+    return stored.value
 
   def Put(self, key, obj):
-    super(TimeBasedCache, self).Put(key, [time.time(), obj])
+    super(TimeBasedCache, self).Put(key, TimeBasedCacheEntry(time.time(), obj))
 
 
 class AgeBasedCache(TimeBasedCache):
@@ -438,10 +443,10 @@ class AgeBasedCache(TimeBasedCache):
   def Get(self, key):
     now = time.time()
     stored = FastStore.Get(self, key)
-    if stored[0] + self.max_age < now:
+    if stored.timestamp + self.max_age < now:
       raise KeyError("Expired")
 
-    return stored[1]
+    return stored.value
 
 
 class Struct(object):
