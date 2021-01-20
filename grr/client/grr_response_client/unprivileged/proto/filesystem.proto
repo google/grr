@@ -1,0 +1,233 @@
+syntax = "proto2";
+
+package grr.client.unprivileged;
+
+import "google/protobuf/timestamp.proto";
+
+// Request to read a block of data from the device underlying a filesystem.
+// This is sent in an RPC response.
+message DeviceDataRequest {
+  optional uint64 offset = 1;
+  optional uint64 size = 2;
+}
+
+// A block of data from the device underlying a filesystem, sent in response to
+// a DeviceDataRequest. This is sent in an RPC request.
+message DeviceData {
+  optional bytes data = 1;
+}
+
+enum ImplementationType {
+  UNDEFINED = 0;
+  // Use the TSK library for filesystem parsing.
+  // http://www.sleuthkit.org/sleuthkit/
+  TSK = 1;
+  // Use the libfsntfs library for filesystem parsing.
+  // https://github.com/libyal/libfsntfs
+  NTFS = 2;
+}
+
+message InitRequest {
+  optional ImplementationType implementation_type = 1;
+}
+
+message InitResponse {}
+
+// The filesystem RPC interface consists of one giant streaming RPC (Invoke).
+// The main reason is that this enables us to keep state (open files, cached
+// data) in the context of a single long running RPC. If multiple clients
+// invoke the RPC, each client sees his own, isolated state.
+//
+// The second reason is simplification of the threading model: all
+// requests/responses are serialized and there is no concurrent access to a
+// filesystem instance.
+//
+// The giant RPC can be used to invoke multiple operations, one at a time.
+//
+// An operation RPC (Foo) is invoked by running
+// `Invoke(Request(foo_request=...))` and it will return a
+// `Response(foo_response=...)`.
+//
+// Filesystem parsing libraries use a callback to read blocks from an
+// underlying block device.
+//
+// Since the block device lives in the client and filesystem parsing is
+// performed in the server, this would mean that the client would have to
+// expose an RPC interface to the server for callbacks.
+//
+// We wanted to avoid this, so as an alternate, we're interleaving this
+// exchange with the request/response streams.
+//
+// The client always initiates an operation, but an operation response may
+// contain a DeviceDataRequest. In this case the client has to fulfill the
+// request and return a DeviceData message to the server. This can be repeated.
+//
+// The following example shows the Open operation, other operations work in a
+// similar manner.
+//
+// Client                                      Server
+//   |                                           |
+//   | ------------[ OpenRequest ]-------------> |
+//   | <--------[ DeviceDataRequest ]----------- |
+//   | ------------ [ DeviceData ] ------------> |
+//   | <---------[ DeviceDataRequest ]---------- |
+//   | ------------ [ DeviceData ] ------------> |
+//   | <-----------[ OpenResponse ] ------------ |
+//   |                                           |
+
+message OpenRequest {
+  optional string path = 1;
+  // If set, the file is opened by inode number.
+  // A valid path has to be provided as well in this case.
+  optional uint64 inode = 2;
+  // If set, the alternate data stream name to open.
+  optional string stream_name = 3;
+}
+
+message OpenResponse {
+  enum Status {
+    NO_ERROR = 0;
+    STALE_INODE = 1;
+  }
+  optional Status status = 1;
+  optional uint64 file_id = 2;
+  optional uint64 inode = 3;
+}
+
+message ReadRequest {
+  optional uint64 file_id = 1;
+  optional uint64 offset = 2;
+  optional uint64 size = 3;
+}
+
+message ReadResponse {
+  optional bytes data = 1;
+}
+
+message CloseRequest {
+  optional uint64 file_id = 1;
+}
+
+message CloseResponse {}
+
+message StatRequest {
+  optional int64 file_id = 1;
+}
+
+message StatEntry {
+  // File name.
+  optional string name = 1;
+  // If set, name of an alternate data stream.
+  optional string stream_name = 2;
+
+  // See https://docs.python.org/3/library/stat.html
+  // for details on these fields.
+
+  optional uint64 st_mode = 3;
+  optional uint64 st_ino = 4;
+  optional uint64 st_dev = 5;
+  optional uint64 st_nlink = 6;
+  optional uint32 st_uid = 7;
+  optional uint32 st_gid = 8;
+  optional uint64 st_size = 9;
+
+  optional google.protobuf.Timestamp st_atime = 10;
+  optional google.protobuf.Timestamp st_mtime = 11;
+  optional google.protobuf.Timestamp st_ctime = 12;
+  optional google.protobuf.Timestamp st_btime = 13;
+
+  message Ntfs {
+    optional bool is_directory = 1;
+    optional int64 flags = 2;
+  }
+
+  optional Ntfs ntfs = 14;
+}
+
+message StatResponse {
+  optional StatEntry entry = 1;
+}
+
+message ListFilesRequest {
+  optional int64 file_id = 1;
+}
+
+message ListFilesResponse {
+  repeated StatEntry entries = 1;
+}
+
+message LookupCaseInsensitiveRequest {
+  optional int64 file_id = 1;
+  // Case-insensitive name to lookup.
+  optional string name = 2;
+}
+
+message LookupCaseInsensitiveResponse {
+  // If set, case-literal version of the name provided.
+  // If not set, then the case-insensitive name could not be found.
+  optional string name = 1;
+}
+
+message Request {
+  oneof payload {
+    // More device data as requested in ReadResponse.device_data_request.
+    DeviceData device_data = 1;
+
+    // Initializes the RPC.
+    // Init is required before any other operation.
+    InitRequest init_request = 2;
+
+    // Opens a file.
+    OpenRequest open_request = 3;
+
+    // Reads data from an open file.
+    ReadRequest read_request = 4;
+
+    // Closes a file.
+    CloseRequest close_request = 5;
+
+    // Returns information about a file.
+    StatRequest stat_request = 6;
+
+    // Lists files in a directory.
+    // If the file is a regular file, lists alternate data streams.
+    ListFilesRequest list_files_request = 7;
+
+    // Looks up a name in case insensitive mode.
+    // Returns the case-literal name.
+    // If the file is a directory, matches directory entry names.
+    // If the file is a regular file, matches altenate data stream names.
+    LookupCaseInsensitiveRequest lookup_case_insensitive_request = 8;
+  }
+}
+
+message Exception {
+  optional string message = 1;
+  optional string formatted_exception = 2;
+}
+
+message Response {
+  oneof payload {
+    // If this field is present, then more device data is needed to serve the
+    // operation. The client has to send another ReadRequest with device_data
+    // set.
+    DeviceDataRequest device_data_request = 1;
+
+    // If this field is present, then the RPC failed with an exception.
+    Exception exception = 2;
+
+    InitResponse init_response = 3;
+
+    OpenResponse open_response = 4;
+
+    ReadResponse read_response = 5;
+
+    CloseResponse close_response = 6;
+
+    StatResponse stat_response = 7;
+
+    ListFilesResponse list_files_response = 8;
+
+    LookupCaseInsensitiveResponse lookup_case_insensitive_response = 9;
+  }
+}

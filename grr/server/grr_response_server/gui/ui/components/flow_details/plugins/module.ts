@@ -16,6 +16,7 @@ import {ApiModule} from '@app/lib/api/module';
 
 import {HelpersModule} from '../helpers/module';
 
+import {ArtifactCollectorFlowDetails} from './artifact_collector_flow_details';
 import {CollectBrowserHistoryDetails} from './collect_browser_history_details';
 import {CollectMultipleFilesDetails} from './collect_multiple_files_details';
 import {CollectSingleFileDetails} from './collect_single_file_details';
@@ -49,6 +50,7 @@ import {TimelineDetails} from './timeline_details';
     HelpersModule,
   ],
   declarations: [
+    ArtifactCollectorFlowDetails,
     DefaultDetails,
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,
@@ -58,6 +60,7 @@ import {TimelineDetails} from './timeline_details';
     TimelineDetails,
   ],
   exports: [
+    ArtifactCollectorFlowDetails,
     DefaultDetails,
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,
@@ -67,6 +70,7 @@ import {TimelineDetails} from './timeline_details';
     TimelineDetails,
   ],
   entryComponents: [
+    ArtifactCollectorFlowDetails,
     DefaultDetails,
     MultiGetFileDetails,
     CollectBrowserHistoryDetails,

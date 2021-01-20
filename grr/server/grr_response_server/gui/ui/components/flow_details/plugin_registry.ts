@@ -2,6 +2,7 @@ import {Type} from '@angular/core';
 import {CollectBrowserHistoryDetails} from '@app/components/flow_details/plugins/collect_browser_history_details';
 import {CollectMultipleFilesDetails} from '@app/components/flow_details/plugins/collect_multiple_files_details';
 import {CollectSingleFileDetails} from '@app/components/flow_details/plugins/collect_single_file_details';
+import {ArtifactCollectorFlowDetails} from './plugins/artifact_collector_flow_details';
 
 import {DefaultDetails} from './plugins/default_details';
 import {MultiGetFileDetails} from './plugins/multi_get_file_details';
@@ -18,6 +19,7 @@ export const FLOW_DETAILS_DEFAULT_PLUGIN = DefaultDetails;
  * Registry of details plugins: plugin class by flow name.
  */
 export const FLOW_DETAILS_PLUGIN_REGISTRY: {[key: string]: Type<Plugin>} = {
+  'ArtifactCollectorFlow': ArtifactCollectorFlowDetails,
   'MultiGetFile': MultiGetFileDetails,
   'CollectBrowserHistory': CollectBrowserHistoryDetails,
   'CollectMultipleFiles': CollectMultipleFilesDetails,

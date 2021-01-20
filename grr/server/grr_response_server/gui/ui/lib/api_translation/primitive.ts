@@ -117,6 +117,11 @@ export function leastSignificantByteToHex(number: number): string {
   return number.toString(16).toUpperCase().padStart(2, '0');
 }
 
+/** Returns the uppercase hex representation of a byte array. */
+export function bytesToHex(bytes: Uint8Array): string {
+  return [...bytes].map(leastSignificantByteToHex).join('');
+}
+
 /** Creates IPv4 address string from a 4 bytes array */
 export function createIpv4Address(bytes: Uint8Array): string {
   if (bytes.length !== 4) {

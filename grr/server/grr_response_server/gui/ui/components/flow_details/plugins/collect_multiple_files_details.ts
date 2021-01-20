@@ -5,6 +5,7 @@ import {HttpApiService} from '@app/lib/api/http_api_service';
 import {FlowState} from '@app/lib/models/flow';
 import {combineLatest, Observable, ReplaySubject} from 'rxjs';
 import {distinctUntilChanged, map, scan, startWith, takeUntil} from 'rxjs/operators';
+import {translateHashToHex} from '../../../lib/api_translation/flow';
 
 
 import {Plugin} from './plugin';
@@ -60,11 +61,12 @@ export class CollectMultipleFilesDetails extends Plugin {
             flowListEntry.flow.flowId + '.zip';
       }));
 
-  readonly fileResults$ = this.flowListEntry$.pipe(
-      map(flowListEntry => flowListEntry.resultSets.flatMap(
-              rs => rs.items.map(
-                  item => flowFileResultFromStatEntry(
-                      (item.payload as CollectMultipleFilesResult).stat!)))));
+  readonly fileResults$ = this.flowListEntry$.pipe(map(
+      flowListEntry => flowListEntry.resultSets.flatMap(
+          rs => rs.items.map(item => item.payload as CollectMultipleFilesResult)
+                    .map(
+                        res => flowFileResultFromStatEntry(
+                            res.stat!, translateHashToHex(res.hash ?? {}))))));
 
   constructor(private readonly httpApiService: HttpApiService) {
     super();

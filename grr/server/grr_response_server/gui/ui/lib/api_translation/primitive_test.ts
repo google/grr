@@ -1,6 +1,6 @@
 import {initTestEnvironment} from '../../testing';
 
-import {createDate, createIpv4Address, createIpv6Address, createMacAddress, createOptionalDate, createOptionalDateSeconds, decodeBase64, leastSignificantByteToHex} from './primitive';
+import {bytesToHex, createDate, createIpv4Address, createIpv6Address, createMacAddress, createOptionalDate, createOptionalDateSeconds, decodeBase64, leastSignificantByteToHex} from './primitive';
 
 
 initTestEnvironment();
@@ -98,6 +98,20 @@ describe('leastSignificantByteToHex', () => {
   it('adds 0 padding on front', () => {
     expect(leastSignificantByteToHex(0x1)).toEqual('01');
     expect(leastSignificantByteToHex(0xA)).toEqual('0A');
+  });
+});
+
+describe('bytesToHex', () => {
+  it('correctly translates high numbers', () => {
+    expect(bytesToHex(new Uint8Array([0xFE, 0x98]))).toEqual('FE98');
+  });
+
+  it('adds 0 padding for low numbers', () => {
+    expect(bytesToHex(new Uint8Array([0xA, 0x1]))).toEqual('0A01');
+  });
+
+  it('returns the empty string for empty bytes', () => {
+    expect(bytesToHex(new Uint8Array([]))).toEqual('');
   });
 });
 

@@ -1,5 +1,5 @@
 import {Component, Input, ViewEncapsulation} from '@angular/core';
-import {Hash} from '@app/lib/api/api_interfaces';
+import {HexHash} from '../../lib/models/flow';
 
 
 /**
@@ -18,7 +18,7 @@ import {Hash} from '@app/lib/api/api_interfaces';
   encapsulation: ViewEncapsulation.None,
 })
 export class ExpandableHash {
-  @Input() hashes?: Hash;
+  @Input() hashes?: HexHash;
 
   get hashesAvailable(): number {
     if (this.hashes === undefined) {

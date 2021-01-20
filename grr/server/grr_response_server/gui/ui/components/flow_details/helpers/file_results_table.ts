@@ -1,10 +1,11 @@
 
 
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
-import {Hash, StatEntry} from '@app/lib/api/api_interfaces';
+import {StatEntry} from '@app/lib/api/api_interfaces';
 import {createOptionalDateSeconds} from '@app/lib/api_translation/primitive';
 import {combineLatest, Observable, ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
+import {HexHash} from '../../../lib/models/flow';
 
 /**
  * FlowFileResult represents a single result to be displayed in the file
@@ -12,7 +13,7 @@ import {map} from 'rxjs/operators';
  */
 export declare interface FlowFileResult {
   readonly statEntry: StatEntry;
-  readonly hashes: Hash;
+  readonly hashes: HexHash;
 }
 
 /**
@@ -20,24 +21,17 @@ export declare interface FlowFileResult {
  * it accepts entries of type FlowFileResult, defined above. For convenience,
  * a StatEntry->FlowFileResult conversion function is provided.
  */
-export function flowFileResultFromStatEntry(statEntry: StatEntry):
-    FlowFileResult {
-  // TODO(user): use actual data
-  const allHex = '0123456789abcdef';
-  const temporaryLongDummyHashes: Hash = {
-    sha256: `${allHex.repeat(2)}sha256`,
-    md5: `${allHex.repeat(2)}md5`,
-    sha1: `${allHex.repeat(2)}sha1`,
-  };
+export function flowFileResultFromStatEntry(
+    statEntry: StatEntry, hashes: HexHash = {}): FlowFileResult {
   return {
     statEntry,
-    hashes: temporaryLongDummyHashes,
+    hashes,
   };
 }
 
 declare interface TableRow {
   readonly path: string;
-  readonly hashes: Hash;
+  readonly hashes: HexHash;
   readonly mode?: string;
   readonly uid: string;
   readonly gid: string;

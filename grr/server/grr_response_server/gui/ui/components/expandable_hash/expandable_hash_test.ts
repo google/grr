@@ -6,8 +6,8 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ExpandableHashModule} from '@app/components/expandable_hash/module';
 
-import {Hash} from '@app/lib/api/api_interfaces';
 import {initTestEnvironment} from '@app/testing';
+import {HexHash} from '../../lib/models/flow';
 import {ExpandableHash} from './expandable_hash';
 
 
@@ -47,7 +47,7 @@ describe('ExpandableHash component', () => {
     constructor(readonly rootFixture: ComponentFixture<ExpandableHash>) {}
   }
 
-  function initComponentWithHashes(hashes: Hash): ExpandableHashDOM {
+  function initComponentWithHashes(hashes: HexHash): ExpandableHashDOM {
     const fixture = TestBed.createComponent(ExpandableHash);
     fixture.componentInstance.hashes = hashes;
     fixture.detectChanges();

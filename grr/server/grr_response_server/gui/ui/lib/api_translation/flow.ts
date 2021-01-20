@@ -1,6 +1,6 @@
-import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiScheduledFlow} from '@app/lib/api/api_interfaces';
-import {createDate, createUnknownObject} from '@app/lib/api_translation/primitive';
-import {Flow, FlowDescriptor, FlowResult, FlowState, ScheduledFlow} from '@app/lib/models/flow';
+import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiScheduledFlow, ByteString, Hash} from '@app/lib/api/api_interfaces';
+import {bytesToHex, createDate, createUnknownObject, decodeBase64} from '@app/lib/api_translation/primitive';
+import {Flow, FlowDescriptor, FlowResult, FlowState, HexHash, ScheduledFlow} from '@app/lib/models/flow';
 import {assertKeyNonNull} from '../preconditions';
 
 /** Constructs a FlowDescriptor from the corresponding API data structure */
@@ -82,5 +82,21 @@ export function translateScheduledFlow(apiSF: ApiScheduledFlow): ScheduledFlow {
     flowArgs: createUnknownObject(apiSF.flowArgs),
     createTime: createDate(apiSF.createTime),
     error: apiSF.error,
+  };
+}
+
+function byteStringToHex(byteString?: ByteString): string|undefined {
+  if (byteString === undefined) {
+    return undefined;
+  }
+  return bytesToHex(decodeBase64(byteString)).toLowerCase();
+}
+
+/** Translates base64-encoded hashes to hex-encoding. */
+export function translateHashToHex(hash: Hash): HexHash {
+  return {
+    sha256: byteStringToHex(hash.sha256),
+    sha1: byteStringToHex(hash.sha1),
+    md5: byteStringToHex(hash.md5),
   };
 }

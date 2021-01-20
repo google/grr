@@ -134,3 +134,10 @@ export declare interface ScheduledFlow {
   readonly createTime: Date;
   readonly error?: string;
 }
+
+/** Hex-encoded hashes. */
+export declare interface HexHash {
+  readonly sha256?: string;
+  readonly sha1?: string;
+  readonly md5?: string;
+}
