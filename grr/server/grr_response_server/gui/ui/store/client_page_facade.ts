@@ -386,11 +386,11 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   queryFlowResults(query: FlowResultsQuery) {
     this.queryFlowResultsSubject$.next(query);
 
-    const fleSelector =
-        this.select((state) => state.flowListEntries[query.flowId]);
+    const fleStateSelector = this.select(
+        (state) => state.flowListEntries[query.flowId]?.flow?.state);
     return combineLatest([
              timer(0, this.configService.config.flowResultsPollingIntervalMs),
-             fleSelector,
+             fleStateSelector,
            ])
         .pipe(
             takeUntil(this.selectedClientIdChanged$),
@@ -403,11 +403,11 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
                     (incomingQuery) => incomingQuery.flowId === query.flowId &&
                         incomingQuery.withTag === query.withTag &&
                         incomingQuery.withType === query.withType))),
-            takeWhile(([, fle]) => fle !== undefined),
+            takeWhile(([, fleState]) => fleState !== undefined),
             // Inclusive: the line below will trigger one more time, once
             // the flow state becomes FINISHED. This guarantees that results
             // will be updated correctly.
-            takeWhile(([, fle]) => fle.flow.state !== FlowState.FINISHED, true),
+            takeWhile(([, fleState]) => fleState !== FlowState.FINISHED, true),
             map(([i]) => i),
             distinctUntilChanged(),
             tap(() => {

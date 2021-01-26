@@ -1,20 +1,21 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
+import {translateArtifactDescriptor, translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
 
 import {ApiUiConfig} from '../lib/api/api_interfaces';
 import {getApiClientLabelName} from '../lib/api_translation/client';
+import {cacheLatest} from '../lib/cache';
 import {ApprovalConfig} from '../lib/models/client';
-import {FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
+import {ArtifactDescriptor, ArtifactDescriptorMap, FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
 import {isNonNull} from '../lib/preconditions';
-
 
 /** The state of the Config. */
 export interface ConfigState {
   flowDescriptors?: FlowDescriptorMap;
+  artifactDescriptors?: ArtifactDescriptorMap;
   approvalConfig?: ApprovalConfig;
   uiConfig?: ApiUiConfig;
   clientsLabels?: ReadonlyArray<string>;
@@ -37,6 +38,15 @@ export class ConfigStore extends ComponentStore<ConfigState> {
         };
       });
 
+  private readonly updateArtifactDescriptors =
+      this.updater<ReadonlyArray<ArtifactDescriptor>>((state, descriptors) => {
+        return {
+          ...state,
+          artifactDescriptors: new Map(descriptors.map(ad => [ad.name, ad])),
+        };
+      });
+
+
   private readonly updateApprovalConfig =
       this.updater<ApprovalConfig>((state, approvalConfig) => {
         return {...state, approvalConfig};
@@ -47,12 +57,24 @@ export class ConfigStore extends ComponentStore<ConfigState> {
         return {...state, clientsLabels};
       });
 
+
   private readonly listFlowDescriptors = this.effect<void>(
       obs$ => obs$.pipe(
           switchMap(() => this.httpApiService.listFlowDescriptors()),
           map(apiDescriptors => apiDescriptors.map(translateFlowDescriptor)),
           tap(descriptors => {
             this.updateFlowDescriptors(descriptors);
+          }),
+          ));
+
+  private readonly listArtifactDescriptors = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMap(() => this.httpApiService.listArtifactDescriptors()),
+          cacheLatest('listArtifactDescriptors'),
+          map(apiDescriptors =>
+                  apiDescriptors.map(translateArtifactDescriptor)),
+          tap(descriptors => {
+            this.updateArtifactDescriptors(descriptors);
           }),
           ));
 
@@ -133,6 +155,17 @@ export class ConfigStore extends ComponentStore<ConfigState> {
           (clientsLabels): clientsLabels is string[] =>
               clientsLabels !== undefined),
   );
+
+  /** An observable emitting available flow descriptors. */
+  readonly artifactDescriptors$ = of(undefined).pipe(
+      // Ensure that the query is done on subscription.
+      tap(() => {
+        this.listArtifactDescriptors();
+      }),
+      switchMap(() => this.select(state => state.artifactDescriptors)),
+      filter(isNonNull),
+      shareReplay(1),  // Ensure that the query is done just once.
+  );
 }
 
 
@@ -156,4 +189,7 @@ export class ConfigFacade {
 
   /** An observable emitting a list of all clients labels. */
   readonly clientsLabels$: Observable<string[]> = this.store.clientsLabels$;
+
+  readonly artifactDescriptors$: Observable<ArtifactDescriptorMap> =
+      this.store.artifactDescriptors$;
 }

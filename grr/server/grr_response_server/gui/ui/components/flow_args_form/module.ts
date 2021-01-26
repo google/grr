@@ -10,6 +10,7 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
+import {ArtifactCollectorFlowForm} from '@app/components/flow_args_form/artifact_collector_flow_form';
 import {CollectBrowserHistoryForm} from '@app/components/flow_args_form/collect_browser_history_form';
 import {CollectMultipleFilesForm} from '@app/components/flow_args_form/collect_multiple_files_form';
 import {HelpersModule} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/module';
@@ -49,6 +50,7 @@ import {TimelineForm} from './timeline_form';
   ],
   declarations: [
     FlowArgsForm,
+    ArtifactCollectorFlowForm,
     CollectBrowserHistoryForm,
     CollectSingleFileForm,
     CollectMultipleFilesForm,
@@ -57,6 +59,7 @@ import {TimelineForm} from './timeline_form';
     FallbackFlowArgsForm,
   ],
   entryComponents: [
+    ArtifactCollectorFlowForm,
     CollectBrowserHistoryForm,
     CollectSingleFileForm,
     CollectMultipleFilesForm,

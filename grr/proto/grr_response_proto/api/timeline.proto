@@ -67,4 +67,24 @@ message ApiGetCollectedHuntTimelinesArgs {
 message ApiTimelineBodyOpts {
   // Whether to use floating point subsecond precision for timestamps.
   optional bool timestamp_subsecond_precision = 1;
+
+  // Whether to use the NTFS file reference format for inode values.
+  //
+  // The NTFS file reference is a pair of the file record number in the MFT and
+  // its sequence number [1]. A textual representation of it is a dash-delimited
+  // string of these two values (e.g. `1337-42`).
+  //
+  // [1]: https://flatcap.org/linux-ntfs/ntfs/concepts/file_reference.html
+  optional bool inode_ntfs_file_reference_format = 2;
+
+  // Whether backslashes (e.g. in Windows paths) should be escaped.
+  //
+  // By default, backslashes are not escaped and are passed as is. This makes it
+  // more natural to read things like Windows paths. However, some tools treat
+  // backslashes in special way and it makes processing Windows paths actually
+  // harder or even impossible.
+  //
+  // This flag will cause each backslash in the original path to be prepended
+  // with one extra backslash.
+  optional bool backslash_escape = 3;
 }

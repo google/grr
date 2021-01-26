@@ -1,8 +1,11 @@
+import * as api from '@app/lib/api/api_interfaces';
 import {ApiFlow, ApiFlowResult, ApiFlowState} from '@app/lib/api/api_interfaces';
 import {newPathSpec} from '@app/lib/api/api_test_util';
-import {Flow, FlowResult, FlowState} from '@app/lib/models/flow';
+import {ArtifactDescriptor, Flow, FlowResult, FlowState, OperatingSystem, SourceType} from '@app/lib/models/flow';
+
 import {initTestEnvironment} from '../../testing';
-import {translateFlow, translateFlowResult, translateHashToHex} from './flow';
+
+import {translateArtifactDescriptor, translateFlow, translateFlowResult, translateHashToHex} from './flow';
 
 
 
@@ -86,5 +89,95 @@ describe('translateHashToHex', () => {
       sha1: '34',
       sha256: '56',
     });
+  });
+});
+
+describe('translateArtifactDescriptor', () => {
+  it('correctly translates API data', () => {
+    const apiResponse: api.ArtifactDescriptor = {
+      'artifact': {
+        'name': 'ChromeHistory',
+        'doc': 'Chrome browser history.',
+        'labels': ['Browser'],
+        'supportedOs': ['Windows', 'Linux'],
+        'urls': ['artifactUrl'],
+        'sources': [
+          {
+            'type': 'FILE' as SourceType,
+            'attributes': {
+              'dat': [
+                {
+                  'k': {'string': 'paths'},
+                  'v': {
+                    'list': {
+                      'content': [
+                        {'string': 'windowsPath1'},
+                        {'string': 'windowsPath2'},
+                      ]
+                    }
+                  }
+                },
+                {'k': {'string': 'separator'}, 'v': {'string': '\\'}}
+              ]
+            },
+            'supportedOs': ['Windows']
+          },
+          {
+            'type': 'FILE' as SourceType,
+            'attributes': {
+              'dat': [{
+                'k': {'string': 'paths'},
+                'v': {
+                  'list': {
+                    'content': [
+                      {'string': 'linuxPath1'},
+                      {'string': 'linuxPath2'},
+                    ]
+                  }
+                }
+              }]
+            },
+            'supportedOs': ['Linux']
+          }
+        ]
+      },
+      'pathDependencies': ['users.homedir', 'users.localappdata'],
+      'isCustom': false,
+    };
+
+    const descriptor: ArtifactDescriptor = {
+      name: 'ChromeHistory',
+      doc: 'Chrome browser history.',
+      labels: ['Browser'],
+      supportedOs: new Set([OperatingSystem.WINDOWS, OperatingSystem.LINUX]),
+      urls: ['artifactUrl'],
+      provides: [],
+      dependencies: [],
+      sources: [
+        {
+          type: SourceType.FILE,
+          attributes: new Map(Object.entries({
+            paths: ['windowsPath1', 'windowsPath2'],
+            separator: '\\',
+          })),
+          supportedOs: new Set([OperatingSystem.WINDOWS]),
+          conditions: [],
+          returnedTypes: [],
+        },
+        {
+          type: SourceType.FILE,
+          attributes: new Map(Object.entries({
+            paths: ['linuxPath1', 'linuxPath2'],
+          })),
+          supportedOs: new Set([OperatingSystem.LINUX]),
+          conditions: [],
+          returnedTypes: [],
+        }
+      ],
+      pathDependencies: ['users.homedir', 'users.localappdata'],
+      isCustom: false,
+    };
+
+    expect(translateArtifactDescriptor(apiResponse)).toEqual(descriptor);
   });
 });

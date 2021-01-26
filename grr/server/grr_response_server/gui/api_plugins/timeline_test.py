@@ -160,6 +160,46 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(rows[0][1], "/foo/bar/baz")
     self.assertEqual(rows[0][7], "3.14")
 
+  def testNtfsFileReferenceFormat(self):
+    entry = rdf_timeline.TimelineEntry()
+    entry.path = "/foo/bar/baz".encode("utf-8")
+    entry.ino = 1688849860339456
+
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = _WriteTimeline(client_id, [entry])
+
+    args = api_timeline.ApiGetCollectedTimelineArgs()
+    args.client_id = client_id
+    args.flow_id = flow_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.BODY
+    args.body_opts.inode_ntfs_file_reference_format = True
+
+    result = self.handler.Handle(args)
+    content = b"".join(result.GenerateContent()).decode("utf-8")
+
+    rows = list(csv.reader(io.StringIO(content), delimiter="|"))
+    self.assertLen(rows, 1)
+    self.assertEqual(rows[0][1], "/foo/bar/baz")
+    self.assertEqual(rows[0][2], "75520-6")
+
+  def testBackslashEscape(self):
+    entry = rdf_timeline.TimelineEntry()
+    entry.path = "C:\\Windows\\system32\\notepad.exe".encode("utf-8")
+
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = _WriteTimeline(client_id, [entry])
+
+    args = api_timeline.ApiGetCollectedTimelineArgs()
+    args.client_id = client_id
+    args.flow_id = flow_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.BODY
+    args.body_opts.backslash_escape = True
+
+    result = self.handler.Handle(args)
+    content = b"".join(result.GenerateContent()).decode("utf-8")
+
+    self.assertIn("|C:\\\\Windows\\\\system32\\\\notepad.exe|", content)
+
   def testRawGzchunkedEmpty(self):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
     flow_id = _WriteTimeline(client_id, [])

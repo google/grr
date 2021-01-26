@@ -10,6 +10,7 @@ import platform
 
 from typing import Any, Optional, Callable, Dict, Type
 
+from grr_response_client.unprivileged.filesystem import vfs as unprivileged_vfs
 from grr_response_client.vfs_handlers import base as vfs_base
 from grr_response_client.vfs_handlers import files  # pylint: disable=unused-import
 from grr_response_client.vfs_handlers import ntfs
@@ -46,7 +47,13 @@ def Init():
   VFS_HANDLERS[files.File.supported_pathtype] = files.File
   VFS_HANDLERS[files.TempFile.supported_pathtype] = files.TempFile
   VFS_HANDLERS[sleuthkit.TSKFile.supported_pathtype] = sleuthkit.TSKFile
-  VFS_HANDLERS[ntfs.NTFSFile.supported_pathtype] = ntfs.NTFSFile
+  # Filesystem sandboxing is not yet implemented on Windows.
+  if (config.CONFIG["Client.use_filesystem_sandboxing"] and
+      platform.system() != "Windows"):
+    VFS_HANDLERS[unprivileged_vfs.UnprivilegedNtfsFile
+                 .supported_pathtype] = unprivileged_vfs.UnprivilegedNtfsFile
+  else:
+    VFS_HANDLERS[ntfs.NTFSFile.supported_pathtype] = ntfs.NTFSFile
   if vfs_registry is not None:
     VFS_HANDLERS[vfs_registry.RegistryFile
                  .supported_pathtype] = vfs_registry.RegistryFile

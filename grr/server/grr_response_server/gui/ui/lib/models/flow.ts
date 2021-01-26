@@ -141,3 +141,59 @@ export declare interface HexHash {
   readonly sha1?: string;
   readonly md5?: string;
 }
+
+
+/** Map from Artifact name to ArtifactDescriptor. */
+export type ArtifactDescriptorMap = ReadonlyMap<string, ArtifactDescriptor>;
+
+/** Combine both Artifact and ArtifactDescriptor from the backend */
+export interface ArtifactDescriptor {
+  readonly name: string;
+  readonly doc?: string;
+  readonly labels: ReadonlyArray<string>;
+  readonly supportedOs: ReadonlySet<OperatingSystem>;
+  readonly urls: ReadonlyArray<string>;
+  readonly provides: ReadonlyArray<string>;
+  readonly sources: ReadonlyArray<ArtifactSource>;
+  readonly dependencies: ReadonlyArray<string>;
+  readonly pathDependencies: ReadonlyArray<string>;
+  readonly isCustom?: boolean;
+}
+
+/** SourceType proto mapping. */
+export enum SourceType {
+  COLLECTOR_TYPE_UNKNOWN = 'COLLECTOR_TYPE_UNKNOWN',
+  FILE = 'FILE',
+  REGISTRY_KEY = 'REGISTRY_KEY',
+  REGISTRY_VALUE = 'REGISTRY_VALUE',
+  WMI = 'WMI',
+  ARTIFACT = 'ARTIFACT',
+  PATH = 'PATH',
+  DIRECTORY = 'DIRECTORY',
+  ARTIFACT_GROUP = 'ARTIFACT_GROUP',
+  GRR_CLIENT_ACTION = 'GRR_CLIENT_ACTION',
+  LIST_FILES = 'LIST_FILES',
+  ARTIFACT_FILES = 'ARTIFACT_FILES',
+  GREP = 'GREP',
+  COMMAND = 'COMMAND',
+  REKALL_PLUGIN = 'REKALL_PLUGIN',
+}
+
+/** Operating systems. */
+export enum OperatingSystem {
+  LINUX = 'Linux',
+  WINDOWS = 'Windows',
+  DARWIN = 'Darwin',
+}
+
+/** Artifact source. */
+export interface ArtifactSource {
+  readonly type: SourceType;
+  readonly attributes: ReadonlyMap<string, unknown>;
+  readonly conditions: ReadonlyArray<string>;
+  readonly returnedTypes: ReadonlyArray<string>;
+  readonly supportedOs: ReadonlySet<OperatingSystem>;
+}
+
+/** Generic Map with unknown, mixed, key and value types. */
+export type AnyMap = ReadonlyMap<unknown, unknown>;

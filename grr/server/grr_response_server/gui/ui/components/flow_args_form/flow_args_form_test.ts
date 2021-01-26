@@ -20,6 +20,14 @@ import {FlowArgsForm} from './flow_args_form';
 initTestEnvironment();
 
 const TEST_FLOW_DESCRIPTORS = Object.freeze({
+  ArtifactCollectorFlow: {
+    name: 'ArtifactCollectorFlow',
+    friendlyName: 'Collect artifact',
+    category: 'Collector',
+    defaultArgs: {
+      artifactList: ['Foo'],
+    },
+  },
   CollectBrowserHistory: {
     name: 'CollectBrowserHistory',
     friendlyName: 'Browser History',

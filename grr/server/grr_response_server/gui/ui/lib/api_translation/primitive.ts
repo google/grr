@@ -1,4 +1,4 @@
-import {AnyObject} from '@app/lib/api/api_interfaces';
+import {AnyObject, DataBlob, Dict, KeyValue} from '@app/lib/api/api_interfaces';
 import {DateTime} from '@app/lib/date_time';
 import {isNonNull} from '@app/lib/preconditions';
 import {assertTruthy} from '../preconditions';
@@ -161,4 +161,38 @@ export function createMacAddress(bytes: Uint8Array): string {
   }
 
   return macString;
+}
+
+/** Converts a DataBlob into a native JavaScript value. */
+export function translateDataBlob(blob: DataBlob): unknown {
+  if (blob.integer !== undefined) {
+    return BigInt(blob.integer);
+  } else if (blob.string !== undefined) {
+    return blob.string;
+  } else if (blob.boolean !== undefined) {
+    return blob.boolean;
+  } else if (blob.float !== undefined) {
+    return blob.float;
+  } else if (blob.list !== undefined) {
+    return [...blob.list.content ?? []].map(translateDataBlob);
+  } else if (blob.set !== undefined) {
+    return new Set([...blob.set.content ?? []].map(translateDataBlob));
+  } else if (blob.dict !== undefined) {
+    return translateDict(blob.dict);
+  } else {
+    return undefined;
+  }
+}
+
+function translateKeyValue({k, v}: KeyValue): [unknown, unknown] {
+  return [
+    translateDataBlob(k ?? {}),
+    translateDataBlob(v ?? {}),
+  ];
+}
+
+/** Translates a RDF Dict into a JavaScript Map with native values. */
+export function translateDict(dict: Dict): ReadonlyMap<unknown, unknown> {
+  const keyvalues = [...dict.dat ?? []].map(translateKeyValue);
+  return new Map(keyvalues);
 }

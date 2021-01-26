@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # Lint as: python3
 """A module with utilities for working with the Sleuthkit's body format."""
-
+import io
 import stat
 
 from typing import Iterator
@@ -10,22 +10,14 @@ from grr_response_proto import timeline_pb2
 
 DEFAULT_CHUNK_SIZE = 1024 * 1024  # 1 MiB.
 
-_CSV_TRANS = str.maketrans({'"': '""'})
-
-
-def _CsvEscape(s: str) -> str:
-  """Escapes a csv string per https://tools.ietf.org/html/rfc4180#page-2."""
-  if "|" not in s and "\"" not in s and "\n" not in s and "\r" not in s:
-    return s
-
-  return f'"{s.translate(_CSV_TRANS)}"'
-
 
 # TODO(hanuszczak): Create a separate class for options.
 def Stream(
     entries: Iterator[timeline_pb2.TimelineEntry],
     chunk_size: int = DEFAULT_CHUNK_SIZE,
     timestamp_subsecond_precision: bool = False,
+    inode_ntfs_file_reference_format: bool = False,
+    backslash_escape: bool = False,
 ) -> Iterator[bytes]:
   """Streams chunks of a Sleuthkit's body file (from a stream of entries).
 
@@ -36,57 +28,92 @@ def Stream(
       negligible.
     timestamp_subsecond_precision: An (optional) flag that controls whether the
       output should use floating-point subsecond-precision timestamps.
+    inode_ntfs_file_reference_format: An (optional) flag that controls whether
+      the output should use NTFS file reference format for inode values.
+    backslash_escape: An (optional) flag that controls whether the output should
+      have backslashes escaped.
 
   Yields:
     Chunks of the body file.
   """
-  rows = []
-  total_size = 0
-
   if timestamp_subsecond_precision:
     timestamp_fmt = lambda ns: str(ns / 10**9)
   else:
     timestamp_fmt = lambda ns: str(ns // 10**9)
 
-  # Concatenating columns and rows via join seems to be ~15% faster than
-  # using the csv.writer.
+  if inode_ntfs_file_reference_format:
+    inode_fmt = _NtfsFileReference
+  else:
+    inode_fmt = str
+
+  if backslash_escape:
+    path_trans = str.maketrans({**_BODY_PATH_ESCAPE, "\\": "\\\\"})
+  else:
+    path_trans = str.maketrans(_BODY_PATH_ESCAPE)
+
+  buf = io.StringIO()
+
   for entry in entries:
-    row = "|".join([
-        "0",  # md5
-        # Note that Sleuthkit's original FLS/mactime tools do not seem
-        # to do any escaping/quoting:
-        # https://github.com/sleuthkit/sleuthkit/blob/97a1e53f486bf05fd8e935298f72632706f26fa2/tsk/fs/fs_name.c#L635
-        # https://github.com/sleuthkit/sleuthkit/blob/6dc7a922cbad958d1b2847c24f8d7e59fba97a84/tools/timeline/mactime.base#L941
-        #
-        # Using a custom CSV escaping function here, since it's much faster than
-        # csv.writer: we know that we only have to escape a single column,
-        # namely - the path column. All other columns are safe to write
-        # as is.
-        _CsvEscape(entry.path.decode("utf-8", "surrogateescape")),  # path
-        str(entry.ino),  # ino
-        stat.filemode(entry.mode),  # mode
-        str(entry.uid),  # uid
-        str(entry.gid),  # gid
-        str(entry.size),  # size
-        timestamp_fmt(entry.atime_ns),  # atime
-        timestamp_fmt(entry.mtime_ns),  # mtime
-        timestamp_fmt(entry.ctime_ns),  # ctime
-        timestamp_fmt(entry.btime_ns),  # btime
-    ]).encode("utf-8", "surrogateescape")
+    path = entry.path.decode("utf-8", "surrogateescape")
 
-    # Account for the newline.
-    total_size += len(row) + 1
-    rows.append(row)
+    # We don't generally want to use the built-in Python's CSV module for body
+    # files because it very weirdly handles certain cases. For example, in non-
+    # quote mode it will escape `\n` as `\\\n` (that is: a backslash followed by
+    # a newline rather than a backslash followed by a normal `n` character).
+    buf.write(str(0))
+    buf.write("|")
+    buf.write(path.translate(path_trans))
+    buf.write("|")
+    buf.write(inode_fmt(entry.ino))
+    buf.write("|")
+    buf.write(stat.filemode(entry.mode))
+    buf.write("|")
+    buf.write(str(entry.uid))
+    buf.write("|")
+    buf.write(str(entry.gid))
+    buf.write("|")
+    buf.write(str(entry.size))
+    buf.write("|")
+    buf.write(timestamp_fmt(entry.atime_ns))
+    buf.write("|")
+    buf.write(timestamp_fmt(entry.mtime_ns))
+    buf.write("|")
+    buf.write(timestamp_fmt(entry.ctime_ns))
+    buf.write("|")
+    buf.write(timestamp_fmt(entry.btime_ns))
+    buf.write("\n")
 
-    if total_size > chunk_size:
-      # Ensure the newline after the last row in this batch.
-      rows.append(b"")
-      yield b"\n".join(rows)
+    if buf.tell() > chunk_size:
+      yield buf.getvalue().encode("utf-8", "surrogateescape")
+      buf.truncate(0)
+      buf.seek(0, io.SEEK_SET)
 
-      total_size = 0
-      rows = []
+  leftover = buf.getvalue()
+  if leftover:
+    yield leftover.encode("utf-8", "surrogateescape")
 
-  if rows:
-    # Ensure the newline after the last row.
-    rows.append(b"")
-    yield b"\n".join(rows)
+
+# A path can have arbitrary bytes inside, so we do not attempt to escape every
+# non-standard character. Rather, we only consider two that need to be handled:
+# the newline character (since they denote rows) and pipes (since they denote
+# columns). Everything else is passed as is and we do not give any special
+# meaning to any other character (e.g. quotes).
+#
+# Note that this means the escaping is "lossy": two paths, e.g. one that has
+# a backslash followed by an `n` character and a one that has a literal newline
+# character inside are going to be represented the same way. This is not a big
+# problem because the format is extremely underspecified anyway and is supposed
+# to let the analyst quickly navigate the timeline. For precise and detailed
+# data other timeline export formats should be used.
+_BODY_PATH_ESCAPE = {
+    "\n": "\\n",
+    "|": "\\|",
+}
+
+
+def _NtfsFileReference(ino: int) -> str:
+  """Returns an NTFS file reference representation of the inode value."""
+  # https://flatcap.org/linux-ntfs/ntfs/concepts/file_reference.html
+  record = ino & ((1 << 48) - 1)
+  sequence = ino >> 48
+  return f"{record}-{sequence}"

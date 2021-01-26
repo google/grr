@@ -5,7 +5,7 @@ import {Observable, throwError} from 'rxjs';
 import {catchError, map, mapTo, shareReplay, switchMap, take} from 'rxjs/operators';
 import {isNonNull} from '../preconditions';
 
-import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, GlobComponentExplanation} from './api_interfaces';
+import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, ArtifactDescriptor, GlobComponentExplanation} from './api_interfaces';
 
 
 /**
@@ -146,6 +146,13 @@ export class HttpApiService {
 
   listFlowDescriptors(): Observable<ReadonlyArray<ApiFlowDescriptor>> {
     return this.flowDescriptors$;
+  }
+
+  listArtifactDescriptors(): Observable<ReadonlyArray<ArtifactDescriptor>> {
+    return this.http.get<ApiListArtifactsResult>(`${URL_PREFIX}/artifacts`)
+        .pipe(
+            map(res => res.items ?? []),
+        );
   }
 
   /** Lists the latest Flows for the given Client. */

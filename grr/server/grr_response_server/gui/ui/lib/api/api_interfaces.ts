@@ -741,3 +741,104 @@ export declare interface TimelineArgs {
    */
   readonly root?: string;
 }
+
+/** Artifact proto mapping. */
+export declare interface Artifact {
+  readonly name?: string;
+  readonly doc?: string;
+  readonly labels?: ReadonlyArray<string>;
+  readonly supportedOs?: ReadonlyArray<string>;
+  readonly urls?: ReadonlyArray<string>;
+  readonly provides?: ReadonlyArray<string>;
+  readonly sources?: ReadonlyArray<ArtifactSource>;
+}
+
+/** ArtifactDescriptor proto mapping. */
+export declare interface ArtifactDescriptor {
+  readonly artifact?: Artifact;
+  readonly dependencies?: ReadonlyArray<string>;
+  readonly pathDependencies?: ReadonlyArray<string>;
+  readonly isCustom?: boolean;
+}
+
+/** SourceType proto mapping. */
+export enum SourceType {
+  COLLECTOR_TYPE_UNKNOWN = 'COLLECTOR_TYPE_UNKNOWN',
+  FILE = 'FILE',
+  REGISTRY_KEY = 'REGISTRY_KEY',
+  REGISTRY_VALUE = 'REGISTRY_VALUE',
+  WMI = 'WMI',
+  ARTIFACT = 'ARTIFACT',
+  PATH = 'PATH',
+  DIRECTORY = 'DIRECTORY',
+  ARTIFACT_GROUP = 'ARTIFACT_GROUP',
+  GRR_CLIENT_ACTION = 'GRR_CLIENT_ACTION',
+  LIST_FILES = 'LIST_FILES',
+  ARTIFACT_FILES = 'ARTIFACT_FILES',
+  GREP = 'GREP',
+  COMMAND = 'COMMAND',
+  REKALL_PLUGIN = 'REKALL_PLUGIN',
+}
+
+/** ArtifactSource proto mapping. */
+export declare interface ArtifactSource {
+  readonly type?: SourceType;
+  readonly attributes?: Dict;
+  readonly conditions?: ReadonlyArray<string>;
+  readonly returnedTypes?: ReadonlyArray<string>;
+  readonly supportedOs?: ReadonlyArray<string>;
+}
+
+/** ApiListArtifactsResult proto mapping. */
+export declare interface ApiListArtifactsResult {
+  readonly items?: ReadonlyArray<ArtifactDescriptor>;
+}
+
+/** Dict proto mapping. */
+export declare interface Dict {
+  readonly dat?: ReadonlyArray<KeyValue>;
+}
+
+/** KeyValue proto mapping. */
+export declare interface KeyValue {
+  k?: DataBlob;
+  v?: DataBlob;
+}
+
+/** BlobArray proto mapping. */
+export declare interface BlobArray {
+  readonly content?: ReadonlyArray<DataBlob>;
+}
+
+/** DataBlob proto mapping. */
+export declare interface DataBlob {
+  integer?: DecimalString;
+  string?: string;
+  none?: string;
+  boolean?: boolean;
+  list?: BlobArray;
+  dict?: Dict;
+  float?: number;
+  set?: BlobArray;
+}
+
+/** ArtifactCollectorFlowArgs.Dependency proto mapping. */
+export enum ArtifactCollectorFlowArgsDependency {
+  USE_CACHED = 'USE_CACHED',
+  IGNORE_DEPS = 'IGNORE_DEPS',
+  FETCH_NOW = 'FETCH_NOW',
+}
+
+/** ArtifactCollectorFlowArgs proto mapping. */
+export declare interface ArtifactCollectorFlowArgs {
+  artifactList?: string[];
+  useRawFilesystemAccess?: boolean;
+  splitOutputByArtifact?: boolean;
+  errorOnNoResults?: boolean;
+  applyParsers?: boolean;
+  maxFileSize?: DecimalString;
+  dependencies?: ArtifactCollectorFlowArgsDependency;
+  ignoreInterpolationErrors?: boolean;
+  oldClientSnapshotFallback?: boolean;
+  recollectKnowledgeBase?: boolean;
+}

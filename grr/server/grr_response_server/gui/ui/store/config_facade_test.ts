@@ -1,4 +1,5 @@
 import {TestBed} from '@angular/core/testing';
+import * as api from '@app/lib/api/api_interfaces';
 import {ApiClientLabel, ApiFlowDescriptor, ApiUiConfig} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {ConfigFacade} from '@app/store/config_facade';
@@ -11,12 +12,15 @@ describe('ConfigFacade', () => {
   let httpApiService: Partial<HttpApiService>;
   let configFacade: ConfigFacade;
   let apiListFlowDescriptors$: Subject<ReadonlyArray<ApiFlowDescriptor>>;
+  let apiListArtifactDescriptors$:
+      Subject<ReadonlyArray<api.ArtifactDescriptor>>;
   let apiFetchApprovalConfig$: Subject<ReadonlyArray<ApiFlowDescriptor>>;
   let apiFetchUiConfig$: Subject<ApiUiConfig>;
   let apiFetchAllClientsLabels$: Subject<ReadonlyArray<ApiClientLabel>>;
 
   beforeEach(() => {
     apiListFlowDescriptors$ = new ReplaySubject(1);
+    apiListArtifactDescriptors$ = new Subject();
     apiFetchApprovalConfig$ = new Subject();
     apiFetchUiConfig$ = new Subject();
     apiFetchAllClientsLabels$ = new ReplaySubject(1);
@@ -24,6 +28,9 @@ describe('ConfigFacade', () => {
     httpApiService = {
       listFlowDescriptors: jasmine.createSpy('listFlowDescriptors')
                                .and.returnValue(apiListFlowDescriptors$),
+      listArtifactDescriptors:
+          jasmine.createSpy('listArtifactDescriptors')
+              .and.returnValue(apiListArtifactDescriptors$),
       fetchApprovalConfig: jasmine.createSpy('fetchApprovalConfig')
                                .and.returnValue(apiFetchApprovalConfig$),
       fetchUiConfig:
@@ -84,6 +91,28 @@ describe('ConfigFacade', () => {
         name: 'KeepAlive',
         category: 'Misc',
         defaultArgs: {'@type': 'test-type'}
+      },
+    ]);
+  });
+
+  it('calls the API on subscription to artifactDescriptors$', () => {
+    configFacade.artifactDescriptors$.subscribe();
+    expect(httpApiService.listArtifactDescriptors).toHaveBeenCalled();
+  });
+
+  it('correctly emits the API results in artifactDescriptors$', (done) => {
+    configFacade.artifactDescriptors$.subscribe((results) => {
+      expect(results.get('TestArtifact')).toEqual(jasmine.objectContaining({
+        name: 'TestArtifact'
+      }));
+      done();
+    });
+
+    apiListArtifactDescriptors$.next([
+      {
+        artifact: {
+          name: 'TestArtifact',
+        },
       },
     ]);
   });

@@ -1,7 +1,8 @@
 import {OverlayContainer} from '@angular/cdk/overlay';
-import {DebugElement} from '@angular/core';
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ComponentFixture, inject, TestBed, waitForAsync} from '@angular/core/testing';
 import {MatAutocomplete, MatAutocompleteSelectedEvent} from '@angular/material/autocomplete';
+import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowChips} from '@app/components/flow_picker/flow_chips';
@@ -19,9 +20,9 @@ import {FlowPickerModule} from './module';
 
 initTestEnvironment();
 
-function getAutocompleteInput(fixture: ComponentFixture<FlowPicker>):
-    DebugElement {
-  return fixture.debugElement.query(By.css('.autocomplete-field input'));
+function getAutocompleteHarness(fixture: ComponentFixture<FlowPicker>) {
+  return TestbedHarnessEnvironment.loader(fixture).getHarness(
+      MatAutocompleteHarness);
 }
 
 
@@ -111,9 +112,8 @@ describe('FlowPicker Component', () => {
     expect(overlayContainerElement.querySelectorAll('flows-overview').length)
         .toBe(0);
 
-    const input = getAutocompleteInput(fixture);
-    input.nativeElement.click();
-    fixture.detectChanges();
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
 
     expect(overlayContainerElement.querySelectorAll('flows-overview').length)
         .toBe(1);
@@ -124,16 +124,13 @@ describe('FlowPicker Component', () => {
     fixture.detectChanges();
     await fixture.whenRenderingDone();
 
-    const input = getAutocompleteInput(fixture);
-    input.nativeElement.click();
-    fixture.detectChanges();
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
 
     expect(overlayContainerElement.querySelectorAll('flows-overview').length)
         .toBe(1);
 
-    fixture.componentInstance.textInput.setValue('arti');
-    input.nativeElement.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    await autocompleteHarness.enterText('arti');
 
     expect(overlayContainerElement.querySelectorAll('flows-overview').length)
         .toBe(0);
@@ -144,9 +141,8 @@ describe('FlowPicker Component', () => {
     fixture.detectChanges();
     await fixture.whenRenderingDone();
 
-    const input = getAutocompleteInput(fixture);
-    input.nativeElement.click();
-    fixture.detectChanges();
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
 
     const links = overlayContainerElement.querySelectorAll('flows-overview a');
     const link = Array.from(links).find(
@@ -164,15 +160,13 @@ describe('FlowPicker Component', () => {
         .toHaveBeenCalledWith('ArtifactCollectorFlow');
   });
 
-  it('filters Flows that match text input', () => {
+  it('filters Flows that match text input', async () => {
     const fixture = TestBed.createComponent(FlowPicker);
     fixture.detectChanges();
 
-    const input = getAutocompleteInput(fixture);
-    input.nativeElement.dispatchEvent(new Event('focusin'));
-    fixture.componentInstance.textInput.setValue('arti');
-    input.nativeElement.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
+    await autocompleteHarness.enterText('arti');
 
     const matOptions = overlayContainerElement.querySelectorAll('mat-option');
     expect(matOptions.length).toBe(1);
@@ -184,15 +178,13 @@ describe('FlowPicker Component', () => {
     expect(matOptGroups[0].textContent).toContain('Collectors');
   });
 
-  it('highlights the matching Flow part', () => {
+  it('highlights the matching Flow part', async () => {
     const fixture = TestBed.createComponent(FlowPicker);
     fixture.detectChanges();
 
-    const input = getAutocompleteInput(fixture);
-    input.nativeElement.dispatchEvent(new Event('focusin'));
-    fixture.componentInstance.textInput.setValue('arti');
-    input.nativeElement.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
+    await autocompleteHarness.enterText('arti');
 
     const nameElements =
         overlayContainerElement.querySelectorAll('mat-option .flow-title span');
@@ -208,15 +200,13 @@ describe('FlowPicker Component', () => {
     expect(nameElements[2].classList.contains('highlight')).toBeFalse();
   });
 
-  it('filters Categories that match the input', () => {
+  it('filters Categories that match the input', async () => {
     const fixture = TestBed.createComponent(FlowPicker);
     fixture.detectChanges();
 
-    const input = getAutocompleteInput(fixture);
-    input.nativeElement.dispatchEvent(new Event('focusin'));
-    fixture.componentInstance.textInput.setValue('collector');
-    input.nativeElement.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
+    await autocompleteHarness.enterText('collector');
 
     const matOptions = overlayContainerElement.querySelectorAll('mat-option');
     expect(matOptions.length).toBe(2);
@@ -229,15 +219,13 @@ describe('FlowPicker Component', () => {
     expect(matOptGroups[0].textContent).toContain('Collectors');
   });
 
-  it('highlights the matching Category part', () => {
+  it('highlights the matching Category part', async () => {
     const fixture = TestBed.createComponent(FlowPicker);
     fixture.detectChanges();
 
-    const input = getAutocompleteInput(fixture);
-    input.nativeElement.dispatchEvent(new Event('focusin'));
-    fixture.componentInstance.textInput.setValue('collector');
-    input.nativeElement.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
+    await autocompleteHarness.enterText('collector');
 
     const nameElements = overlayContainerElement.querySelectorAll(
         'mat-optgroup span.category-title');
@@ -255,11 +243,9 @@ describe('FlowPicker Component', () => {
     fixture.detectChanges();
     await fixture.whenRenderingDone();
 
-    const input = getAutocompleteInput(fixture);
-    input.nativeElement.dispatchEvent(new Event('focusin'));
-    fixture.componentInstance.textInput.setValue('brows');
-    input.nativeElement.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
+    await autocompleteHarness.enterText('brows');
 
     const flowListItem: FlowListItem = {
       name: 'CollectBrowserHistory',
@@ -283,11 +269,9 @@ describe('FlowPicker Component', () => {
     fixture.detectChanges();
     await fixture.whenRenderingDone();
 
-    const input = getAutocompleteInput(fixture);
-    input.nativeElement.click();
-    fixture.componentInstance.textInput.setValue('browser');
-    input.nativeElement.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
+    await autocompleteHarness.enterText('browser');
 
     const flowListItem: FlowListItem = {
       name: 'CollectBrowserHistory',

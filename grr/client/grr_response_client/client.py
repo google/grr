@@ -20,6 +20,8 @@ from grr_response_client import client_startup
 from grr_response_client import comms
 from grr_response_client import fleetspeak_client
 from grr_response_client import installer
+from grr_response_client.unprivileged import communication
+from grr_response_client.unprivileged.filesystem import server_lib
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
@@ -40,6 +42,12 @@ flags.DEFINE_integer(
     "remote_debugging_port", 0,
     "If set to a non-zero port, pydevd is started to allow remote debugging "
     "(e.g. using PyCharm).")
+
+flags.DEFINE_integer(
+    "filesystem_server_socket", -1,
+    "If set, run the unprivileged filesystem server. "
+    "The value of the flag is the file descriptor of the socket used for "
+    "communication.")
 
 
 def _start_remote_debugging(port):
@@ -65,6 +73,11 @@ def main(unused_args):
     _start_remote_debugging(flags.FLAGS.remote_debugging_port)
   elif flags.FLAGS.break_on_start:
     pdb.set_trace()
+
+  if flags.FLAGS.filesystem_server_socket != -1:
+    communication.Main(flags.FLAGS.filesystem_server_socket,
+                       server_lib.Dispatch)
+    return
 
   # Allow per platform configuration.
   config.CONFIG.AddContext(contexts.CLIENT_CONTEXT,

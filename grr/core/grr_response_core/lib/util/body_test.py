@@ -99,24 +99,70 @@ class StreamTest(absltest.TestCase):
     self.assertIn("/foo/bar", content)
     self.assertIn("123.456789", content)
 
-  def testHandlesDelimiterQuotesAndLineTerminatorsInPath(self):
+  def testNtfsFileReference(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = "/foo/bar".encode("utf-8")
+    entry.ino = 1688849860339456
 
-    def _Test(c):
-      entry = timeline_pb2.TimelineEntry()
-      entry.path = f"/foo{c}bar".encode("utf-8")
+    stream = body.Stream(iter([entry]), inode_ntfs_file_reference_format=True)
+    content = b"".join(stream).decode("utf-8")
 
-      content = b"".join(body.Stream(iter([entry]))).decode("utf-8")
-      reader = csv.reader(io.StringIO(content), delimiter="|")
+    self.assertIn("/foo/bar", content)
+    self.assertIn("75520-6", content)
 
-      rows = list(reader)
-      self.assertLen(rows, 1)
-      self.assertEqual(rows[0][1].encode("utf-8"), entry.path)
+  def testBackslashEscape(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = "C:\\Windows\\system32\\notepad.exe".encode("utf-8")
 
-    _Test("|")
-    _Test("\"")
-    _Test("\n")
-    _Test("\r")
-    _Test("|\"\n\r")
+    stream = body.Stream(iter([entry]), backslash_escape=True)
+    content = b"".join(stream).decode("utf-8")
+
+    self.assertIn("|C:\\\\Windows\\\\system32\\\\notepad.exe|", content)
+
+  def testPathWithPipe(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = "/foo|bar/baz".encode("utf-8")
+
+    stream = body.Stream(iter([entry]))
+    content = b"".join(stream).decode("utf-8")
+
+    self.assertIn("|/foo\\|bar/baz|", content)
+
+  def testPathWithWhitespace(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = "/foo bar\tbaz\rquux   norf/thud".encode("utf-8")
+
+    stream = body.Stream(iter([entry]))
+    content = b"".join(stream).decode("utf-8")
+
+    self.assertIn("|/foo bar\tbaz\rquux   norf/thud|", content)
+
+  def testPathWithNewline(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = "/foo bar\nbaz\n\nquux/thud".encode("utf-8")
+
+    stream = body.Stream(iter([entry]))
+    content = b"".join(stream).decode("utf-8")
+
+    self.assertIn("|/foo bar\\nbaz\\n\\nquux/thud|", content)
+
+  def testPathWithQuote(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = "/foo\"bar".encode("utf-8")
+
+    stream = body.Stream(iter([entry]))
+    content = b"".join(stream).decode("utf-8")
+
+    self.assertIn("|/foo\"bar|", content)
+
+  def testPathWithBackslash(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = "C:\\Windows\\system32".encode("utf-8")
+
+    stream = body.Stream(iter([entry]))
+    content = b"".join(stream).decode("utf-8")
+
+    self.assertIn("|C:\\Windows\\system32|", content)
 
 
 if __name__ == "__main__":

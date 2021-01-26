@@ -33,16 +33,19 @@ describe('ExpandableHash component', () => {
     expandButton = this.rootFixture.debugElement.query(
         By.css('.button-expand-expandable-hash-class'));
     expandButtonText = this.expandButton?.nativeElement.innerText;
-    expandButtonHarness = this.harnessLoader.getHarness<MatButtonHarness>(
-        MatButtonHarness,
-    );
 
     noHashesSpan = this.rootFixture.debugElement.query(
         By.css('.no-hashes-expandable-hash-class'));
     noHashesSpanText = this.noHashesSpan?.nativeElement.innerText;
 
-    menuHarness = this.harnessLoader.getHarness<MatMenuHarness>(
-        MatMenuHarness.with({triggerText: 'Copy value'}));
+    // Load harnesses lazily to prevent errors due to not-yet existing elements.
+    get menuHarness() {
+      return this.harnessLoader.getHarness(MatMenuHarness);
+    }
+
+    get expandButtonHarness() {
+      return this.harnessLoader.getHarness<MatButtonHarness>(MatButtonHarness);
+    }
 
     constructor(readonly rootFixture: ComponentFixture<ExpandableHash>) {}
   }

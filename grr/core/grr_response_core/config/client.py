@@ -136,6 +136,11 @@ config_lib.DEFINE_list(
           " relative to the given root. Format is os:/mount/disk."),
     default=[])
 
+config_lib.DEFINE_bool(
+    name="Client.use_filesystem_sandboxing",
+    help="Whether to use the sandboxed implementation for filesystem parsing.",
+    default=False)
+
 # Windows client specific options.
 config_lib.DEFINE_string(
     "Client.config_hive",
