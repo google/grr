@@ -11,7 +11,6 @@ from typing import Text
 
 from absl.testing import absltest
 
-
 from grr_response_core.lib.util.compat import yaml  # pylint: disable=g-import-not-at-top
 
 

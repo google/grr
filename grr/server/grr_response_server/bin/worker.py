@@ -9,7 +9,6 @@ from __future__ import unicode_literals
 from absl import app
 from absl import flags
 
-
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_server import server_plugins
 # pylint: enable=unused-import,g-bad-import-order
@@ -20,7 +19,6 @@ from grr_response_core.config import server as config_server
 from grr_response_server import fleetspeak_connector
 from grr_response_server import server_startup
 from grr_response_server import worker_lib
-
 
 
 flags.DEFINE_bool(
@@ -45,7 +43,6 @@ def main(argv):
   server_startup.Init()
 
   fleetspeak_connector.Init()
-
 
   worker_obj = worker_lib.GRRWorker()
   worker_obj.Run()

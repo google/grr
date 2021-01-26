@@ -62,8 +62,6 @@ def ResourcePath(package_name, filepath):
   return None
 
 
-
-
 def ModulePath(module_name) -> Text:
   """Computes a path to the specified module.
 

@@ -272,7 +272,6 @@ class Resource(ConfigFilter):
     if resource_path is not None:
       return resource_path
 
-
     # pylint: disable=unreachable
     raise FilterError(
         "Unable to find resource %s while interpolating: " % filename_spec)

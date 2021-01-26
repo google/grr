@@ -2,7 +2,6 @@ syntax = "proto2";
 
 import "grr_response_proto/semantic.proto";
 
-
 package grr;
 
 // Next field: 4

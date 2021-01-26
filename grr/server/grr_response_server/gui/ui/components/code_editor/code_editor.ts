@@ -1,4 +1,3 @@
-
 // Importing sql-hint is needed for SQL syntax highlighting.
 import 'codemirror/addon/hint/sql-hint.js';
 // Importing show-hint is needed for the autocomplete pop-up.

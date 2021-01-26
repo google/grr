@@ -1039,7 +1039,7 @@ class ApiCallRouterStub(ApiCallRouter):
   # Stats metrics methods.
   # =====================
   #
-  # TODO(user,user): Change the naming convention from stats to reports
+  # TODO(user): Change the naming convention from stats to reports
   # throughout the codebase.
   @Category("Other")
   @Http("GET", "/api/stats/reports")

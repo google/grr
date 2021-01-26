@@ -5,7 +5,6 @@ import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/semantic.proto";
 
-
 package grr;
 
 // Proto representation of an ArtifactSource.

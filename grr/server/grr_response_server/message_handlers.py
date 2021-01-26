@@ -28,7 +28,6 @@ session_id_map = {
 }
 
 
-
 class MessageHandler(object):
   """The base class for all message handlers."""
 

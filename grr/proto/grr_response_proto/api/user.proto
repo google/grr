@@ -8,7 +8,6 @@ import "grr_response_proto/objects.proto";
 import "grr_response_proto/semantic.proto";
 import "grr_response_proto/user.proto";
 
-
 package grr;
 
 //

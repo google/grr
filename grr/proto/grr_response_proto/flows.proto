@@ -10,7 +10,6 @@ import "grr_response_proto/output_plugin.proto";
 import "grr_response_proto/semantic.proto";
 import "grr_response_proto/sysinfo.proto";
 
-
 package grr;
 
 message CloudMetadataRequest {
@@ -123,7 +122,6 @@ message ACLToken {
   // What kind of access is required? r - read, w - write, x - execute (for
   // flows)
   optional string requested_access = 3;
-
 
   optional uint64 expiry = 5 [(sem_type) = {
     type: "RDFDatetime",

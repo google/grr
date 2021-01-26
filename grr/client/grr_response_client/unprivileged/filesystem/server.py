@@ -16,7 +16,6 @@ def _MakeServerArgs(socket_fd: int) -> List[str]:
   if getattr(sys, "frozen", False):
     return [sys.executable] + sys.argv[1:] + named_socket_flag
 
-
   # Running from a unit test
 
   return [

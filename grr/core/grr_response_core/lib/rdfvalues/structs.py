@@ -26,7 +26,7 @@ from grr_response_proto import semantic_pb2
 
 # pylint: disable=g-import-not-at-top
 try:
-  from grr.core.accelerated import _semantic
+  from grr_response_core import _semantic
 except ImportError:
   _semantic = None
 

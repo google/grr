@@ -2,7 +2,6 @@ syntax = "proto2";
 
 package grr;
 
-
 // A message type representing results of the API method for querying version of
 // the GRR server.
 message ApiGetGrrVersionResult {

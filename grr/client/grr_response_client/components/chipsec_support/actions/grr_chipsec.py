@@ -19,7 +19,6 @@ from chipsec import file as chipsec_file
 
 chipsec_file.main_is_frozen = lambda: False
 
-
 # Initialize the Chipsec plugins
 from chipsec import chipset
 from chipsec import logger

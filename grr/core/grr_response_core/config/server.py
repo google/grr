@@ -328,7 +328,6 @@ config_lib.DEFINE_integer(
     help="Maximum number of client ids to place in a single Fleetspeak "
     "ListClients() API request.")
 
-
 config_lib.DEFINE_semantic_enum(
     rdf_paths.PathSpec.PathType,
     "Server.raw_filesystem_access_pathtype",

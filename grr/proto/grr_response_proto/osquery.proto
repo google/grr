@@ -2,7 +2,6 @@ syntax = "proto2";
 
 import "grr_response_proto/jobs.proto";
 
-
 package grr;
 
 // https://github.com/facebook/osquery/blob/5188ce5288abe0e323b8e8bd364f452134a62d00/include/osquery/tables.h#L134

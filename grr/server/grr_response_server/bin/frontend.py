@@ -33,7 +33,6 @@ from grr_response_server import frontend_lib
 from grr_response_server import server_logging
 from grr_response_server import server_startup
 
-
 flags.DEFINE_bool(
     "version",
     default=False,

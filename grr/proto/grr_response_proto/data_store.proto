@@ -1,5 +1,4 @@
 
-
 // These are protobufs used in various analysis jobs.
 
 syntax = "proto2";
@@ -7,7 +6,6 @@ syntax = "proto2";
 import "grr_response_proto/flows.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
-
 
 package grr;
 

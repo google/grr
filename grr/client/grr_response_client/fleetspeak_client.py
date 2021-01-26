@@ -33,7 +33,7 @@ from fleetspeak.client_connector import connector as fs_client
 
 START_STRING = "Starting client."
 
-# //depot/grr_response_client/comms.py)
+# /grr_response_client/comms.py)
 # pyformat: enable
 
 # Limit on the total size of GrrMessages to batch into a single

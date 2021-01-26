@@ -215,7 +215,6 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     if flags.FLAGS.disable_chrome_sandboxing:
       options.add_argument("--no-sandbox")
 
-
     # pylint: disable=unreachable
     os.environ.pop("http_proxy", None)
 

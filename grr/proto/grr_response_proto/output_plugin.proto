@@ -1,5 +1,4 @@
 
-
 // The following messages are used to start flows in GRR.
 
 syntax = "proto2";
@@ -7,7 +6,6 @@ syntax = "proto2";
 import "grr_response_proto/export.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
-
 
 package grr;
 

@@ -6,7 +6,6 @@ import "grr_response_proto/semantic.proto";
 import "grr_response_proto/sysinfo.proto";
 import "grr_response_proto/user.proto";
 
-
 package grr;
 
 message ClientLabel {

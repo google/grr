@@ -4,7 +4,6 @@ import "grr_response_proto/api_utils.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
-
 package grr;
 
 message ApiAuthorization {

@@ -7,7 +7,6 @@ from __future__ import unicode_literals
 
 from grr_api_client import api
 
-
 from grr_colab import flags
 
 FLAGS = flags.FLAGS

@@ -11,7 +11,6 @@ from absl import flags
 
 FLAGS = flags.FLAGS
 
-
 flags.DEFINE_string(
     name='grr_http_api_endpoint',
     default=None,

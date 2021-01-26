@@ -12,7 +12,6 @@ import "grr_response_proto/jobs.proto";
 import "grr_response_proto/output_plugin.proto";
 import "grr_response_proto/semantic.proto";
 
-
 package grr;
 
 message CollectArtifactDependenciesArgs {
