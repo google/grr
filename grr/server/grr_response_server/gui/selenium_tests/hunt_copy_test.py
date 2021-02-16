@@ -255,9 +255,9 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
 
     last_hunt = hunts_list[-1]
 
-    self.assertEqual(last_hunt.args.standard.flow_args.pathspec.path,
-                     "/tmp/very-evil.txt")
-    self.assertEqual(last_hunt.args.standard.flow_args.pathspec.pathtype, "OS")
+    args = last_hunt.args.standard.flow_args.Unpack(transfer.GetFileArgs)
+    self.assertEqual(args.pathspec.path, "/tmp/very-evil.txt")
+    self.assertEqual(args.pathspec.pathtype, "OS")
     self.assertEqual(last_hunt.args.standard.flow_name,
                      transfer.GetFile.__name__)
 
@@ -348,9 +348,11 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
     # Check that the hunt was created with a correct literal value.
     self.assertEqual(last_hunt.args.standard.flow_name,
                      file_finder.FileFinder.__name__)
-    self.assertEqual(
-        last_hunt.args.standard.flow_args.conditions[0].contents_literal_match
-        .literal, b"foo\x0d\xc8bar")
+
+    args = last_hunt.args.standard.flow_args.Unpack(
+        rdf_file_finder.FileFinderArgs)
+    self.assertEqual(args.conditions[0].contents_literal_match.literal,
+                     b"foo\x0d\xc8bar")
 
   def testCopyHuntPreservesRuleType(self):
     self.StartHunt(

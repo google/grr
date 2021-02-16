@@ -1,9 +1,144 @@
 import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
-import {map, shareReplay} from 'rxjs/operators';
+import {combineLatest} from 'rxjs';
+import {map, shareReplay, startWith} from 'rxjs/operators';
 
 import {ArtifactCollectorFlowArgs} from '../../lib/api/api_interfaces';
+import {safeTranslateOperatingSystem} from '../../lib/api_translation/flow';
+import {ArtifactDescriptor, ArtifactSource, OperatingSystem, SourceType} from '../../lib/models/flow';
+import {ClientPageFacade} from '../../store/client_page_facade';
+import {ConfigFacade} from '../../store/config_facade';
+
+
+const ARTIFACT_NAME = 'artifactName';
+
+const MAX_AUTOCOMPLETE_RESULTS = 50;
+
+const READABLE_SOURCE_NAME: {[key in SourceType]?: string} = {
+  ARTIFACT_FILES: 'Collects artifact',
+  ARTIFACT_GROUP: 'Collects artifact',
+  ARTIFACT: 'Collects artifact',
+  COMMAND: 'Executes command',
+  DIRECTORY: 'Collects directory',
+  FILE: 'Collects file',
+  GREP: 'Greps',
+  GRR_CLIENT_ACTION: 'Executes client action',
+  LIST_FILES: 'Lists files in',
+  PATH: 'Collects path',
+  REGISTRY_KEY: 'Collects Windows Registry key',
+  REGISTRY_VALUE: 'Collects Windows Registry value',
+  WMI: 'Queries WMI',
+};
+
+interface SampleSource {
+  name: string;
+  value: string;
+}
+
+interface ArtifactListEntry extends ArtifactDescriptor {
+  readableSources: ReadonlyMap<SourceType, ReadonlyArray<string>>;
+  totalSources: number;
+  sampleSource?: SampleSource;
+  availableOnClient: boolean;
+  searchStrings: string[];
+}
+
+type KeyValuePair = Map<'key'|'value', string>;
+
+function getOrSet<K, V>(map: Map<K, V>, key: K, factory: () => V): V {
+  let value = map.get(key);
+  if (value === undefined) {
+    value = factory();
+    map.set(key, value);
+  }
+  return value;
+}
+
+function getReadableSources(source: ArtifactSource): string[] {
+  switch (source.type) {
+    case SourceType.ARTIFACT_GROUP:
+      return source.attributes.get('names') as string[] ?? [];
+
+    case SourceType.ARTIFACT_FILES:
+      return source.attributes.get('artifact_list') as string[] ?? [];
+
+    case SourceType.GRR_CLIENT_ACTION:
+      return [source.attributes.get('client_action') as string];
+
+    case SourceType.COMMAND:
+      const cmd = source.attributes.get('cmd') as string;
+      const args = source.attributes.get('args') as string[] ?? [];
+      return [[cmd, ...args].join(' ')];
+
+    case SourceType.DIRECTORY:
+    case SourceType.FILE:
+    case SourceType.GREP:
+    case SourceType.PATH:
+      return source.attributes.get('paths') as string[] ?? [];
+
+    case SourceType.REGISTRY_KEY:
+      return source.attributes.get('keys') as string[] ?? [];
+
+    case SourceType.REGISTRY_VALUE:
+      return (source.attributes.get('key_value_pairs') as KeyValuePair[] ?? [])
+          .map((map) => `${map.get('key')}\\${map.get('value')}`);
+
+    case SourceType.WMI:
+      return [source.attributes.get('query') as string];
+
+    default:
+      return [];
+  }
+}
+
+function createListEntry(
+    ad: ArtifactDescriptor, clientOs?: OperatingSystem): ArtifactListEntry {
+  const readableSources = new Map<SourceType, string[]>();
+
+  for (const source of ad.sources) {
+    const sourceList = getOrSet(readableSources, source.type, Array);
+    getReadableSources(source).forEach(val => {
+      sourceList.push(val);
+    });
+  }
+
+  let sampleSource: SampleSource|undefined;
+  for (const [type, values] of readableSources.entries()) {
+    const name = READABLE_SOURCE_NAME[type];
+    if (name !== undefined && values.length > 0) {
+      sampleSource = {name, value: values[0]};
+      break;
+    }
+  }
+
+  const totalSources = Array.from(readableSources.values())
+                           .reduce((acc, cur) => acc + cur.length, 0);
+
+  const availableOnClient =
+      clientOs === undefined || ad.supportedOs.has(clientOs);
+
+  const searchStrings =
+      [
+        ad.name,
+        ad.doc ?? '',
+        ...ad.supportedOs,
+      ].concat(...readableSources.values())
+          .map(str => str.toLowerCase());
+
+  return {
+    ...ad,
+    readableSources,
+    totalSources,
+    sampleSource,
+    availableOnClient,
+    searchStrings,
+  };
+}
+
+function matches(entry: ArtifactListEntry, searchString: string): boolean {
+  return entry.searchStrings.some(str => str.includes(searchString));
+}
 
 /** Form that configures a ArtifactCollectorFlow. */
 @Component({
@@ -15,23 +150,74 @@ import {ArtifactCollectorFlowArgs} from '../../lib/api/api_interfaces';
 export class ArtifactCollectorFlowForm extends
     FlowArgumentForm<ArtifactCollectorFlowArgs> implements OnInit {
   readonly form = new FormGroup({
-    artifactName: new FormControl(),
+    [ARTIFACT_NAME]: new FormControl(),
   });
 
   @Output()
   readonly formValues$ = this.form.valueChanges.pipe(
       map(values => ({
             ...this.defaultFlowArgs,
-            artifactList: [values.artifactName],
+            artifactList: [values[ARTIFACT_NAME]],
             applyParsers: false,
           })),
       shareReplay(1),
   );
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
 
+  private readonly clientOs$ = this.clientPageFacade.selectedClient$.pipe(
+      map(client => safeTranslateOperatingSystem(client.knowledgeBase.os)),
+      startWith(undefined),
+  );
+
+  readonly artifactListEntries$ =
+      combineLatest([
+        this.configFacade.artifactDescriptors$,
+        this.clientOs$,
+      ])
+          .pipe(
+              map(([descriptors, clientOs]) => {
+                return Array.from(descriptors.values())
+                    .map(ad => createListEntry(ad, clientOs));
+              }),
+          );
+
+
+  readonly filteredArtifactDescriptors$ =
+      combineLatest([
+        this.artifactListEntries$,
+        this.form.controls[ARTIFACT_NAME].valueChanges.pipe(startWith('')),
+      ])
+          .pipe(
+              map(([entries, searchString]) => {
+                searchString = searchString.toLowerCase();
+                return entries.filter(ad => matches(ad, searchString))
+                    .slice(0, MAX_AUTOCOMPLETE_RESULTS);
+              }),
+          );
+
+  constructor(
+      private readonly configFacade: ConfigFacade,
+      private readonly clientPageFacade: ClientPageFacade) {
+    super();
+  }
+
   ngOnInit() {
     this.form.patchValue({
-      artifactName: this.defaultFlowArgs.artifactList?.[0] ?? '',
+      [ARTIFACT_NAME]: this.defaultFlowArgs.artifactList?.[0] ?? '',
     });
+  }
+
+  trackArtifactDescriptor(ad: ArtifactDescriptor) {
+    return ad.name;
+  }
+
+  selectArtifact(artifactName: string) {
+    this.form.patchValue({
+      [ARTIFACT_NAME]: artifactName,
+    });
+  }
+
+  printOs(artifact: ArtifactListEntry): string {
+    return Array.from(artifact.supportedOs.values()).join(', ');
   }
 }

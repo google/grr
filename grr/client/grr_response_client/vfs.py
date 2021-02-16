@@ -47,9 +47,7 @@ def Init():
   VFS_HANDLERS[files.File.supported_pathtype] = files.File
   VFS_HANDLERS[files.TempFile.supported_pathtype] = files.TempFile
   VFS_HANDLERS[sleuthkit.TSKFile.supported_pathtype] = sleuthkit.TSKFile
-  # Filesystem sandboxing is not yet implemented on Windows.
-  if (config.CONFIG["Client.use_filesystem_sandboxing"] and
-      platform.system() != "Windows"):
+  if config.CONFIG["Client.use_filesystem_sandboxing"]:
     VFS_HANDLERS[unprivileged_vfs.UnprivilegedNtfsFile
                  .supported_pathtype] = unprivileged_vfs.UnprivilegedNtfsFile
   else:

@@ -2,7 +2,6 @@
 import contextlib
 import datetime
 import os
-import platform
 import time
 from absl.testing import absltest
 import dateutil
@@ -54,8 +53,6 @@ def _ParseTimestamp(s: str) -> timestamp_pb2.Timestamp:
   return result
 
 
-@absltest.skipIf(platform.system() == "Windows",
-                 "Currently not running on Windows.")
 class NtfsTest(absltest.TestCase):
 
   _server = None

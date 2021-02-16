@@ -318,9 +318,31 @@ export class HttpApiService {
         flowId}/results/files-archive`;
   }
 
-  getTimelineBodyFileUrl(clientId: string, flowId: string): string {
+  getTimelineBodyFileUrl(clientId: string, flowId: string, opts: {
+    timestampSubsecondPrecision: boolean,
+    inodeNtfsFileReferenceFormat: boolean,
+    backslashEscape: boolean,
+  }): URL {
     const BODY = 1;
-    return `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/timeline/${BODY}`;
+
+    const url = new URL(
+        `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/timeline/${BODY}`,
+        document.location.origin,
+    );
+    url.searchParams.set(
+        'body_opts.timestamp_subsecond_precision',
+        Number(opts.timestampSubsecondPrecision).toString(),
+    );
+    url.searchParams.set(
+        'body_opts.inode_ntfs_file_reference_format',
+        Number(opts.inodeNtfsFileReferenceFormat).toString(),
+    );
+    url.searchParams.set(
+        'body_opts.backslash_escape',
+        Number(opts.backslashEscape).toString(),
+    );
+
+    return url;
   }
 
   fetchUiConfig(): Observable<ApiUiConfig> {

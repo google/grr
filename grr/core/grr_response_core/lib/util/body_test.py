@@ -58,7 +58,10 @@ class StreamTest(absltest.TestCase):
 
       entries.append(entry)
 
-    chunks = list(body.Stream(iter(entries), chunk_size=6))
+    opts = body.Opts()
+    opts.chunk_size = 6
+
+    chunks = list(body.Stream(iter(entries), opts=opts))
     self.assertLen(chunks, len(entries))
 
     content = b"".join(chunks).decode("utf-8")
@@ -93,7 +96,10 @@ class StreamTest(absltest.TestCase):
     entry.path = "/foo/bar".encode("utf-8")
     entry.atime_ns = 123_456_789_000
 
-    stream = body.Stream(iter([entry]), timestamp_subsecond_precision=True)
+    opts = body.Opts()
+    opts.timestamp_subsecond_precision = True
+
+    stream = body.Stream(iter([entry]), opts=opts)
     content = b"".join(stream).decode("utf-8")
 
     self.assertIn("/foo/bar", content)
@@ -104,7 +110,10 @@ class StreamTest(absltest.TestCase):
     entry.path = "/foo/bar".encode("utf-8")
     entry.ino = 1688849860339456
 
-    stream = body.Stream(iter([entry]), inode_ntfs_file_reference_format=True)
+    opts = body.Opts()
+    opts.inode_ntfs_file_reference_format = True
+
+    stream = body.Stream(iter([entry]), opts=opts)
     content = b"".join(stream).decode("utf-8")
 
     self.assertIn("/foo/bar", content)
@@ -114,7 +123,10 @@ class StreamTest(absltest.TestCase):
     entry = timeline_pb2.TimelineEntry()
     entry.path = "C:\\Windows\\system32\\notepad.exe".encode("utf-8")
 
-    stream = body.Stream(iter([entry]), backslash_escape=True)
+    opts = body.Opts()
+    opts.backslash_escape = True
+
+    stream = body.Stream(iter([entry]), opts=opts)
     content = b"".join(stream).decode("utf-8")
 
     self.assertIn("|C:\\\\Windows\\\\system32\\\\notepad.exe|", content)

@@ -842,3 +842,33 @@ export declare interface ArtifactCollectorFlowArgs {
   oldClientSnapshotFallback?: boolean;
   recollectKnowledgeBase?: boolean;
 }
+
+/** Process proto mapping. */
+export declare interface Process {
+  readonly pid?: number;
+  readonly ppid?: number;
+  readonly name?: string;
+  readonly exe?: string;
+  readonly cmdline?: ReadonlyArray<string>;
+  readonly ctime?: DecimalString;
+  readonly realUid?: number;
+  readonly effectiveUid?: number;
+  readonly savedUid?: number;
+  readonly realGid?: number;
+  readonly effectiveGid?: number;
+  readonly savedGid?: number;
+  readonly username?: string;
+  readonly terminal?: string;
+  readonly status?: string;
+  readonly nice?: number;
+  readonly cwd?: string;
+  readonly numThreads?: number;
+  readonly userCpuTime?: number;
+  readonly systemCpuTime?: number;
+  readonly cpuPercent?: number;
+  readonly rssSize?: DecimalString;
+  readonly vmsSize?: DecimalString;
+  readonly memoryPercent?: number;
+  readonly openFiles?: ReadonlyArray<string>;
+  readonly connections?: ReadonlyArray<unknown>;
+}

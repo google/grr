@@ -42,6 +42,7 @@ class TimelineFlow(flow_base.FlowBase):
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   args_type = rdf_timeline.TimelineArgs
+  progress_type = rdf_timeline.TimelineProgress
 
   def Start(self) -> None:
     super(TimelineFlow, self).Start()
@@ -51,6 +52,8 @@ class TimelineFlow(flow_base.FlowBase):
 
     if not self.client_info.timeline_btime_support:
       self.Log("Collecting file birth time is not supported on this client.")
+
+    self.state.progress = rdf_timeline.TimelineProgress()
 
     self.CallClient(
         action_cls=server_stubs.Timeline,
@@ -73,6 +76,10 @@ class TimelineFlow(flow_base.FlowBase):
 
     for response in responses:
       self.SendReply(response)
+      self.state.progress.total_entry_count += response.entry_count
+
+  def GetProgress(self) -> rdf_timeline.TimelineProgress:
+    return self.state.progress
 
 
 def ProtoEntries(

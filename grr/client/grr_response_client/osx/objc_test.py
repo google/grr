@@ -54,6 +54,28 @@ class ObjcTest(test_lib.GRRBaseTest):
 
   @mock.patch("ctypes.util.find_library")
   @mock.patch("ctypes.cdll.LoadLibrary")
+  def testLoadLibraryTriesLoadingSharedLoadedLibrary(self, load_library_mock,
+                                                     find_library_mock):
+    mock_cdll = mock.Mock()
+
+    def _LoadLibrary(libpath):
+      if libpath is None:
+        return mock_cdll
+      else:
+        raise OSError("not found")
+
+    find_library_mock.return_value = None
+    load_library_mock.side_effect = _LoadLibrary
+
+    loaded_lib_name = next(iter(objc._LOADED_SHARED_LIBRARIES))
+    result = objc.LoadLibrary(loaded_lib_name)
+
+    self.assertGreaterEqual(load_library_mock.call_count, 1)
+    load_library_mock.assert_called_with(None)
+    self.assertIs(result, mock_cdll)
+
+  @mock.patch("ctypes.util.find_library")
+  @mock.patch("ctypes.cdll.LoadLibrary")
   def testSetCTypesForLibrary(self, load_library_mock, find_library_mock):
 
     mock_dll = mock.MagicMock()

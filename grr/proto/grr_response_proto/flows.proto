@@ -375,8 +375,9 @@ message HuntRunnerArgs {
       description: "The maximum number of clients to engage per minute. "
                    "A rate of 0 means to schedule clients as fast as possible."
     },
-    // The protobuf library has a small inconsistency and reports a 20.0 as long
-    // (instead of float). We force it to be float here by making it 20.5.
+    // NOTE: this value is kept here for backwards-compatibility. The actual
+    // default client_rate value is now configured by the
+    // Hunt.default_client_rate configuration option.
     default = 20.5
   ];
 

@@ -9,7 +9,9 @@ from __future__ import unicode_literals
 from unittest import mock
 
 from absl import app
+from absl.testing import absltest
 
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util.compat import json
@@ -466,6 +468,59 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
 
     u = data_store.REL_DB.ReadGRRUser(request.user)
     self.assertEqual(u.email, "foo@bar.org")
+
+
+class FlatDictToRDFValue(absltest.TestCase):
+
+  def testSimple(self):
+    dct = {
+        "username": "foo",
+        "uid": "42",
+    }
+
+    user = http_api.FlatDictToRDFValue(dct, rdf_client.User)
+    self.assertEqual(user.username, "foo")
+    self.assertEqual(user.uid, 42)
+
+  def testNested(self):
+    dct = {
+        "pw_entry.age": "1337",
+    }
+
+    user = http_api.FlatDictToRDFValue(dct, rdf_client.User)
+    self.assertEqual(user.pw_entry.age, 1337)
+
+  def testEnum(self):
+    dct = {
+        "hash_type": "MD5",
+    }
+
+    pw_entry = http_api.FlatDictToRDFValue(dct, rdf_client.PwEntry)
+    self.assertEqual(pw_entry.hash_type, rdf_client.PwEntry.PwHash.MD5)
+
+  def testNonExistingField(self):
+    dct = {
+        "some_non_existing_field": "foobar",
+    }
+
+    with self.assertRaisesRegex(AttributeError, "some_non_existing_field"):
+      http_api.FlatDictToRDFValue(dct, rdf_client.PwEntry)
+
+  def testWrongType(self):
+    dct = {
+        "uid": "foobar",
+    }
+
+    with self.assertRaisesRegex(ValueError, "foobar"):
+      http_api.FlatDictToRDFValue(dct, rdf_client.User)
+
+  def testPythonSpecific(self):
+    dct = {
+        "__class__": "foobar",
+    }
+
+    with self.assertRaisesRegex(AttributeError, "__class__"):
+      http_api.FlatDictToRDFValue(dct, rdf_client.PwEntry)
 
 
 def main(argv):

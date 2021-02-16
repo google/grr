@@ -12,11 +12,13 @@ import platform
 import random
 import stat as stat_mode
 import time
+from typing import List
 from typing import Text
 
 from absl.testing import absltest
 
 from grr_response_client.client_actions import timeline
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import temp
 from grr.test_lib import client_test_lib
@@ -33,22 +35,46 @@ class TimelineTest(client_test_lib.EmptyActionTest):
     testing_startup.TestInit()
 
   def testRun(self):
+    file_count = 64
+
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
-      for idx in range(64):
+      for idx in range(file_count):
         temp_filepath = os.path.join(temp_dirpath, "foo{}".format(idx))
         _Touch(temp_filepath, content=os.urandom(random.randint(0, 1024)))
 
       args = rdf_timeline.TimelineArgs()
       args.root = temp_dirpath.encode("utf-8")
 
-      results = self.RunAction(timeline.Timeline, args)
+      responses = self.RunAction(timeline.Timeline, args)
+
+      results: List[rdf_timeline.TimelineResult] = []
+      blobs: List[rdf_protodict.DataBlob] = []
+
+      # The test action runner is not able to distinguish between flow replies
+      # and responses sent to well-known flow handlers, so we have to do the
+      # filtering ourselves.
+      for response in responses:
+        if isinstance(response, rdf_timeline.TimelineResult):
+          results.append(response)
+        elif isinstance(response, rdf_protodict.DataBlob):
+          blobs.append(response)
+        else:
+          raise AssertionError(f"Unexpected response: f{response}")
 
       self.assertNotEmpty(results)
-      self.assertNotEmpty(results[-1].entry_batch_blob_ids)
+      self.assertNotEmpty(blobs)
 
-      blob_ids = results[-1].entry_batch_blob_ids
-      for blob in results[:-1]:
+      blob_ids = []
+      for result in results:
+        blob_ids.extend(result.entry_batch_blob_ids)
+
+      for blob in blobs:
         self.assertIn(hashlib.sha256(blob.data).digest(), blob_ids)
+
+      # Total number of entries should be one more than the file count because
+      # of the entry for the root folder.
+      total_entry_count = sum(result.entry_count for result in results)
+      self.assertEqual(total_entry_count, file_count + 1)
 
 
 class WalkTest(absltest.TestCase):

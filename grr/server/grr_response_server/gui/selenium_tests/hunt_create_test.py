@@ -9,6 +9,7 @@ from absl import app
 from selenium.webdriver.common import keys
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import data_store
 from grr_response_server import foreman
@@ -263,9 +264,10 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     self.assertEqual(hunt.args.standard.flow_name,
                      file_finder.FileFinder.__name__)
-    self.assertEqual(hunt.args.standard.flow_args.paths[0], "/tmp")
-    self.assertEqual(hunt.args.standard.flow_args.pathtype,
-                     rdf_paths.PathSpec.PathType.NTFS)
+
+    args = hunt.args.standard.flow_args.Unpack(rdf_file_finder.FileFinderArgs)
+    self.assertEqual(args.paths[0], "/tmp")
+    self.assertEqual(args.pathtype, rdf_paths.PathSpec.PathType.NTFS)
     # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
     self.assertEqual(hunt.output_plugins[0].plugin_name, "DummyOutputPlugin")
 
@@ -395,9 +397,10 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     hunt = hunts_list[0]
     self.assertEqual(hunt.args.standard.flow_name,
                      file_finder.FileFinder.__name__)
-    self.assertEqual(
-        hunt.args.standard.flow_args.conditions[0].contents_literal_match
-        .literal, b"foo\x0d\xc8bar")
+
+    args = hunt.args.standard.flow_args.Unpack(rdf_file_finder.FileFinderArgs)
+    self.assertEqual(args.conditions[0].contents_literal_match.literal,
+                     b"foo\x0d\xc8bar")
 
   def testOutputPluginsListEmptyWhenNoDefaultOutputPluginSet(self):
     self.Open("/#main=ManageHunts")

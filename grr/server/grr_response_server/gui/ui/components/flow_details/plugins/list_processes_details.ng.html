@@ -1,0 +1,8 @@
+<ul *ngIf="showResults; else showButton">
+  <li *ngFor="let process of processes$ | async">
+    {{process.pid}}: {{(process.cmdline || []).join(' ').slice(0, 100)}}
+  </li>
+</ul>
+<ng-template #showButton>
+  <button mat-button (click)="onShowClicked()">Show process tree</button>
+</ng-template>

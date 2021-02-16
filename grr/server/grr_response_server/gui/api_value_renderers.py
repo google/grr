@@ -9,6 +9,8 @@ import base64
 import inspect
 import logging
 import numbers
+from typing import Any
+from typing import Dict
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
@@ -408,6 +410,27 @@ class ApiOutputPluginDescriptorRenderer(ApiValueRenderer):
 
   def RenderValue(self, value):
     return StripTypeInfo(ApiRDFProtoStructRenderer().RenderValue(value))
+
+
+class ApiAnyValueRenderer(ApiValueRenderer):
+  """An renderer class for Protcol Buffers `Any` values."""
+
+  value_class = rdf_structs.AnyValue
+
+  def RenderValue(self, value: rdfvalue.RDFValue) -> Dict[str, Any]:
+    """Renders a Protocol Buffers `Any` value into a JSON-like dictionary."""
+    if not isinstance(value, rdf_structs.AnyValue):
+      raise TypeError(f"Unexpected '{value}' of type '{type(value)}'")
+
+    # We use a heuristic that the last element of type URL is a name of the RDF
+    # class. If this does not hold, we just render the value as it is.
+    cls_name = value.type_url.split("/")[-1].split(".")[-1]
+    try:
+      cls = rdfvalue.RDFValue.classes[cls_name]
+    except KeyError:
+      return ApiRDFProtoStructRenderer(self.limit_lists).RenderValue(value)
+
+    return self._PassThrough(value.Unpack(cls))
 
 
 class ApiRDFValueDescriptorRenderer(ApiValueRenderer):

@@ -8,7 +8,9 @@ from grr_response_client.unprivileged.filesystem import server_lib
 
 
 def main(argv):
-  communication.Main(int(argv[1]), server_lib.Dispatch)
+  communication.Main(
+      communication.Channel(pipe_input=int(argv[1]), pipe_output=int(argv[2])),
+      server_lib.Dispatch)
 
 
 if __name__ == "__main__":

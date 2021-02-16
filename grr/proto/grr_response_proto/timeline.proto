@@ -12,14 +12,25 @@ message TimelineArgs {
   // TODO(hanuszczak): Add support for limits (e.g. max depth).
 }
 
-// A message describing the result of the timeline action.
+// A message describing a single result of the timeline action.
 message TimelineResult {
   // A list of blob ids that refer to batches of serialized and gzipped timeline
   // entries. Because the entire timeline can have millions of entries, it could
   // easily exceed the maximum allowed size for a message. This is why entries
   // are batched, gzipped and then send as blobs to the blobstore and relevant
   // ids are returned here for reference.
+  //
+  // Note that newer agents will only send a single blob references in multiple
+  // responses rather than sending a single responses with multiple references.
+  // This allows for more granular updates of the flow.
   repeated bytes entry_batch_blob_ids = 1;
+
+  // The total number of entries in the uploaded batches.
+  //
+  // This number includes only entries uploaded in batches referenced by this
+  // result, not the total number of entries the action execution accumulated so
+  // far.
+  optional uint64 entry_count = 2;
 }
 
 // A message describing single entry of the timeline for particular file. It
@@ -64,4 +75,10 @@ message TimelineEntry {
 
   // Extra file attributes.
   optional uint64 attributes = 12;
+}
+
+// A message describing progress of the timeline flow.
+message TimelineProgress {
+  // Total number of entries that the timeline action processed so far.
+  optional uint64 total_entry_count = 1;
 }

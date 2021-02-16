@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import cache
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
@@ -206,10 +207,8 @@ def CreateAndStartHunt(flow_name, flow_args, creator, **kwargs):
   if "duration" in kwargs:
     precondition.AssertType(kwargs["duration"], rdfvalue.Duration)
 
-  hunt_args = rdf_hunt_objects.HuntArguments(
-      hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
-      standard=rdf_hunt_objects.HuntArgumentsStandard(
-          flow_name=flow_name, flow_args=flow_args))
+  hunt_args = rdf_hunt_objects.HuntArguments.Standard(
+      flow_name=flow_name, flow_args=rdf_structs.AnyValue.Pack(flow_args))
 
   hunt_obj = rdf_hunt_objects.Hunt(
       creator=creator,
@@ -256,8 +255,11 @@ def _ScheduleVariableHunt(hunt_obj):
   now = rdfvalue.RDFDatetime.Now()
   for flow_group in hunt_obj.args.variable.flow_groups:
     flow_cls = registry.FlowRegistry.FlowClassByName(flow_group.flow_name)
-    flow_args = flow_group.flow_args if flow_group.HasField(
-        "flow_args") else None
+
+    if flow_group.HasField("flow_args"):
+      flow_args = flow_group.flow_args.Unpack(flow_cls.args_type)
+    else:
+      flow_args = None
 
     for client_id in flow_group.client_ids:
       flow.StartFlow(
@@ -399,7 +401,11 @@ def StartHuntFlowOnClient(client_id, hunt_id):
     # In REL_DB always work as if client rate is 0.
 
     flow_cls = registry.FlowRegistry.FlowClassByName(hunt_args.flow_name)
-    flow_args = hunt_args.flow_args if hunt_args.HasField("flow_args") else None
+    if hunt_args.HasField("flow_args"):
+      flow_args = hunt_args.flow_args.Unpack(flow_cls.args_type)
+    else:
+      flow_args = None
+
     flow.StartFlow(
         client_id=client_id,
         creator=hunt_obj.creator,

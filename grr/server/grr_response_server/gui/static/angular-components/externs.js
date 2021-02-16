@@ -1,3 +1,5 @@
+/** @externs */
+
 /**
  * @param {string} module
  * @return {Function}

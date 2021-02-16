@@ -275,7 +275,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       ])
           .pipe(
               map(([, approval]) => approval),
-              distinctUntilChanged(),
               shareReplay({bufferSize: 1, refCount: true}),
           );
 
@@ -295,7 +294,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       ])
           .pipe(
               map(([, entries]) => entries),
-              distinctUntilChanged(),
               shareReplay({bufferSize: 1, refCount: true}),
           );
 
@@ -488,13 +486,9 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   readonly suggestApprovers = this.effect<string>(
       obs$ => obs$.pipe(
-          concatMap((usernameQuery) => {
-            if (usernameQuery) {
-              return this.httpApiService.suggestApprovers(usernameQuery);
-            } else {
-              return of([]);
-            }
-          }),
+          concatMap(
+              (usernameQuery) =>
+                  this.httpApiService.suggestApprovers(usernameQuery)),
           map(translateApproverSuggestions),
           tap((suggestions) => {
             this.updateApproverSuggestions(suggestions);

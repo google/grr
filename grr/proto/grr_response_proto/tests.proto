@@ -2,6 +2,7 @@
 
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
 import "grr_response_proto/export.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
@@ -125,6 +126,12 @@ message SamplePatchHandlerArgs {
 message SamplePatchHandlerResult {
   optional string method = 1;
   optional string resource = 2;
+}
+
+// For `NoDynamicTypeLookupTest`.
+message NoDynamicTypeLookupMessage {
+  optional google.protobuf.Any any = 1
+      [(sem_type) = { no_dynamic_type_lookup: true }];
 }
 
 // For api_auth_manager_test.py

@@ -171,11 +171,13 @@
           "args": {
             "actionType": "HUNT_CRON_ACTION",
             "huntCronAction": {
-              "flowName": "",
+              "flowArgs": "",
+              "flowName": "Interrogate",
               "huntRunnerArgs": {
                 "avgCpuSecondsPerClientLimit": "60",
                 "avgNetworkBytesPerClientLimit": "10485760",
                 "avgResultsPerClientLimit": "1000",
+                "clientRate": 20.0,
                 "crashLimit": "100"
               }
             }
@@ -1098,11 +1100,13 @@
           "args": {
             "actionType": "HUNT_CRON_ACTION",
             "huntCronAction": {
-              "flowName": "",
+              "flowArgs": "",
+              "flowName": "Interrogate",
               "huntRunnerArgs": {
                 "avgCpuSecondsPerClientLimit": "60",
                 "avgNetworkBytesPerClientLimit": "10485760",
                 "avgResultsPerClientLimit": "1000",
+                "clientRate": 20.0,
                 "crashLimit": "100"
               }
             }
@@ -1138,11 +1142,13 @@
           "args": {
             "actionType": "HUNT_CRON_ACTION",
             "huntCronAction": {
-              "flowName": "",
+              "flowArgs": "",
+              "flowName": "Interrogate",
               "huntRunnerArgs": {
                 "avgCpuSecondsPerClientLimit": "60",
                 "avgNetworkBytesPerClientLimit": "10485760",
                 "avgResultsPerClientLimit": "1000",
+                "clientRate": 20.0,
                 "crashLimit": "100"
               }
             }
@@ -3148,11 +3154,13 @@
           "args": {
             "actionType": "HUNT_CRON_ACTION",
             "huntCronAction": {
-              "flowName": "",
+              "flowArgs": "",
+              "flowName": "Interrogate",
               "huntRunnerArgs": {
                 "avgCpuSecondsPerClientLimit": "60",
                 "avgNetworkBytesPerClientLimit": "10485760",
                 "avgResultsPerClientLimit": "1000",
+                "clientRate": 20.0,
                 "crashLimit": "100"
               }
             }
@@ -3868,6 +3876,7 @@
                   "avgCpuSecondsPerClientLimit": "60",
                   "avgNetworkBytesPerClientLimit": "10485760",
                   "avgResultsPerClientLimit": "1000",
+                  "clientRate": 20.0,
                   "crashLimit": "100"
                 }
               }
@@ -3890,6 +3899,7 @@
                   "avgCpuSecondsPerClientLimit": "60",
                   "avgNetworkBytesPerClientLimit": "10485760",
                   "avgResultsPerClientLimit": "1000",
+                  "clientRate": 20.0,
                   "crashLimit": "100"
                 }
               }
@@ -3912,6 +3922,7 @@
                   "avgCpuSecondsPerClientLimit": "60",
                   "avgNetworkBytesPerClientLimit": "10485760",
                   "avgResultsPerClientLimit": "1000",
+                  "clientRate": 20.0,
                   "crashLimit": "100"
                 }
               }
@@ -5112,6 +5123,7 @@
               "avgCpuSecondsPerClientLimit": "60",
               "avgNetworkBytesPerClientLimit": "10485760",
               "avgResultsPerClientLimit": "1000",
+              "clientRate": 20.0,
               "crashLimit": "100"
             }
           }
@@ -5143,6 +5155,7 @@
               "avgCpuSecondsPerClientLimit": "60",
               "avgNetworkBytesPerClientLimit": "10485760",
               "avgResultsPerClientLimit": "1000",
+              "clientRate": 20.0,
               "crashLimit": "100"
             }
           }

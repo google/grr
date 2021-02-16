@@ -25,8 +25,7 @@ from grr_response_client import actions
 from grr_response_client import client_utils_common
 from grr_response_client import client_utils_osx
 from grr_response_client.client_actions import standard
-from grr_response_client.osx.objc import ServiceManagement
-
+from grr_response_client.osx import objc
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.parsers import osx_launchd
@@ -267,7 +266,7 @@ def EnumerateInterfacesFromClient(args):
   """Enumerate all MAC addresses."""
   del args  # Unused
 
-  libc = ctypes.cdll.LoadLibrary(ctypes.util.find_library("c"))
+  libc = objc.LoadLibrary("c")
   ifa = Ifaddrs()
   p_ifa = ctypes.pointer(ifa)
   libc.getifaddrs(ctypes.pointer(p_ifa))
@@ -386,7 +385,7 @@ def CreateServiceProto(job):
 def GetRunningLaunchDaemons():
   """Get running launchd jobs from objc ServiceManagement framework."""
 
-  sm = ServiceManagement()
+  sm = objc.ServiceManagement()
   return sm.SMGetJobDictionaries("kSMDomainSystemLaunchd")
 
 

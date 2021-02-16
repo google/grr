@@ -699,7 +699,9 @@ class ApiCreateCronJobApprovalHandlerTest(
 
     cron_manager = cronjobs.CronManager()
     cron_args = rdf_cronjobs.CreateCronJobArgs(
-        frequency="1d", allow_overruns=False)
+        frequency="1d",
+        allow_overruns=False,
+        flow_name=file.CollectSingleFile.__name__)
     cron_id = cron_manager.CreateJob(cron_args=cron_args)
 
     self.handler = user_plugin.ApiCreateCronJobApprovalHandler()
@@ -721,7 +723,9 @@ class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
   def testRendersRequestedCronJobApproval(self):
     cron_manager = cronjobs.CronManager()
     cron_args = rdf_cronjobs.CreateCronJobArgs(
-        frequency="1d", allow_overruns=False)
+        frequency="1d",
+        allow_overruns=False,
+        flow_name=file.CollectSingleFile.__name__)
     cron_job_id = cron_manager.CreateJob(cron_args=cron_args)
 
     self.RequestCronJobApproval(
@@ -922,6 +926,27 @@ class ApiListApproverSuggestionsHandlerTest(acl_test_lib.AclTestMixin,
     result = self._query("api")
     self.assertLen(result.suggestions, 1)
     self.assertEqual(result.suggestions[0].username, "api_user_2")
+
+  def testSuggestsMostRequestedUsers(self):
+    client_id = self.SetupClient(0)
+    self.RequestClientApproval(client_id, approver="sanchezmorty")
+    self.RequestClientApproval(client_id, approver="sanchezsummer")
+    self.RequestClientApproval(client_id, approver="sanchezsummer")
+
+    result = self._query("")
+
+    self.assertLen(result.suggestions, 2)
+    self.assertEqual(result.suggestions[0].username, "sanchezsummer")
+    self.assertEqual(result.suggestions[1].username, "sanchezmorty")
+
+  def testSuggestsAllOtherUsersAsFallback(self):
+    result = self._query("")
+
+    self.assertLen(result.suggestions, 4)
+    self.assertEqual(result.suggestions[0].username, "api_user_2")
+    self.assertEqual(result.suggestions[1].username, "sanchezmorty")
+    self.assertEqual(result.suggestions[2].username, "sanchezrick")
+    self.assertEqual(result.suggestions[3].username, "sanchezsummer")
 
 
 def main(argv):

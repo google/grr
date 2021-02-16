@@ -198,9 +198,12 @@ def DefineFromWireFormat(cls, protobuf):
                           options.dynamic_type)
 
     elif (field.type == TYPE_MESSAGE and field.message_type.name == "Any"):
-      dynamic_cb = getattr(cls, options.dynamic_type, None)
-      type_descriptor = classes_dict["ProtoDynamicAnyValueEmbedded"](
-          dynamic_cb=dynamic_cb, **kwargs)
+      if options.no_dynamic_type_lookup:
+        type_descriptor = classes_dict["ProtoAnyValue"](**kwargs)
+      else:
+        dynamic_cb = getattr(cls, options.dynamic_type, None)
+        type_descriptor = classes_dict["ProtoDynamicAnyValueEmbedded"](
+            dynamic_cb=dynamic_cb, **kwargs)
 
     elif field.type == TYPE_INT64 or field.type == TYPE_INT32:
       type_descriptor = classes_dict["ProtoSignedInteger"](**kwargs)

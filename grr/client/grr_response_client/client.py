@@ -44,9 +44,15 @@ flags.DEFINE_integer(
     "(e.g. using PyCharm).")
 
 flags.DEFINE_integer(
-    "filesystem_server_socket", -1,
+    "filesystem_server_pipe_input", -1,
     "If set, run the unprivileged filesystem server. "
-    "The value of the flag is the file descriptor of the socket used for "
+    "The value of the flag is the file descriptor of the input pipe used for "
+    "communication.")
+
+flags.DEFINE_integer(
+    "filesystem_server_pipe_output", -1,
+    "If set, run the unprivileged filesystem server. "
+    "The value of the flag is the file descriptor of the output pipe used for "
     "communication.")
 
 
@@ -74,9 +80,13 @@ def main(unused_args):
   elif flags.FLAGS.break_on_start:
     pdb.set_trace()
 
-  if flags.FLAGS.filesystem_server_socket != -1:
-    communication.Main(flags.FLAGS.filesystem_server_socket,
-                       server_lib.Dispatch)
+  if (flags.FLAGS.filesystem_server_pipe_input != -1 and
+      flags.FLAGS.filesystem_server_pipe_output != -1):
+    communication.Main(
+        communication.Channel(
+            pipe_input=flags.FLAGS.filesystem_server_pipe_input,
+            pipe_output=flags.FLAGS.filesystem_server_pipe_output),
+        server_lib.Dispatch)
     return
 
   # Allow per platform configuration.

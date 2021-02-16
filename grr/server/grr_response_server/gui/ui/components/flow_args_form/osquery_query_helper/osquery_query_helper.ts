@@ -34,7 +34,7 @@ export class OsqueryQueryHelper implements OnDestroy {
   readonly searchValues$ = this.searchControl.valueChanges.pipe(
       filter(isNonNull),
       debounceTime(OsqueryQueryHelper.INPUT_DEBOUNCE_TIME_MS),
-      map(searchValue => {
+      map((searchValue: string) => {
         if (searchValue.length < this.minCharactersToSearch) {
           return '';
         } else {

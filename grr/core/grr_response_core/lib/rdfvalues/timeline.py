@@ -99,3 +99,10 @@ class TimelineEntry(rdf_structs.RDFProtoStruct):
       entries: Iterator[bytes],
   ) -> Iterator["TimelineEntry"]:
     return map(cls.FromSerializedBytes, gzchunked.Deserialize(entries))
+
+
+class TimelineProgress(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper class for the timeline progress message."""
+
+  protobuf = timeline_pb2.TimelineProgress
+  rdf_deps = []

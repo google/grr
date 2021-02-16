@@ -1,15 +1,10 @@
 #!/usr/bin/env python
 # Lint as: python3
 """API handlers for accessing hunts."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import collections
 import functools
 import os
 import re
-
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -195,7 +190,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
     self.init_start_time = hunt_obj.init_start_time
     self.last_start_time = hunt_obj.last_start_time
     self.description = hunt_obj.description
-    self.is_robot = hunt_obj.creator in ["GRRWorker", "Cron"]
+    self.is_robot = hunt_obj.creator in access_control.SYSTEM_USERS
     if hunt_counters is not None:
       self.results_count = hunt_counters.num_results
       self.clients_with_results_count = hunt_counters.num_clients_with_results
@@ -263,8 +258,14 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
 
       if (hunt_obj.args.hunt_type ==
           rdf_hunt_objects.HuntArguments.HuntType.STANDARD):
-        self.flow_name = hunt_obj.args.standard.flow_name
-        self.flow_args = hunt_obj.args.standard.flow_args
+        # TODO(hanuszczak): API hunt objects should not use dynamic type lookup
+        # as well.
+        flow_name = hunt_obj.args.standard.flow_name
+        flow_cls = registry.FlowRegistry.FlowClassByName(flow_name)
+        flow_args = hunt_obj.args.standard.flow_args.Unpack(flow_cls.args_type)
+
+        self.flow_name = flow_name
+        self.flow_args = flow_args
       elif (hunt_obj.args.hunt_type ==
             rdf_hunt_objects.HuntArguments.HuntType.VARIABLE):
         self.flow_args = hunt_obj.args.variable
@@ -291,7 +292,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
     self.duration = hunt_metadata.duration
     self.creator = hunt_metadata.creator
     self.description = hunt_metadata.description
-    self.is_robot = hunt_metadata.creator in ["GRRWorker", "Cron"]
+    self.is_robot = hunt_metadata.creator in access_control.SYSTEM_USERS
 
     return self
 
@@ -1268,10 +1269,9 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
     hra = args.hunt_runner_args
 
     hunt_obj = rdf_hunt_objects.Hunt(
-        args=rdf_hunt_objects.HuntArguments(
-            hunt_type=rdf_hunt_objects.HuntArguments.HuntType.STANDARD,
-            standard=rdf_hunt_objects.HuntArgumentsStandard(
-                flow_name=args.flow_name, flow_args=args.flow_args)),
+        args=rdf_hunt_objects.HuntArguments.Standard(
+            flow_name=args.flow_name,
+            flow_args=rdf_structs.AnyValue.Pack(args.flow_args)),
         description=hra.description,
         client_rule_set=hra.client_rule_set,
         client_limit=hra.client_limit,
@@ -1501,10 +1501,13 @@ class ApiCreatePerClientFileCollectionHuntHandler(
         pathspecs.append(
             rdf_paths.PathSpec(path=p, pathtype=client_arg.path_type))
 
+      flow_name = transfer.MultiGetFile.__name__
+      flow_args = transfer.MultiGetFileArgs(pathspecs=pathspecs)
+
       flow_group = rdf_hunt_objects.VariableHuntFlowGroup(
           client_ids=[client_arg.client_id],
-          flow_name=transfer.MultiGetFile.__name__,
-          flow_args=transfer.MultiGetFileArgs(pathspecs=pathspecs))
+          flow_name=flow_name,
+          flow_args=rdf_structs.AnyValue.Pack(flow_args))
       flow_groups.append(flow_group)
 
     return rdf_hunt_objects.HuntArguments(

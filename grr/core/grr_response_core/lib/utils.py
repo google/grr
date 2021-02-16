@@ -23,7 +23,7 @@ import tarfile
 import tempfile
 import threading
 import time
-from typing import Iterable, Optional, Text, Any
+from typing import Generic, Iterable, Optional, Text, TypeVar
 import weakref
 import zipfile
 import zlib
@@ -358,11 +358,14 @@ class FastStore(object):
     return len(self._hash)
 
 
-class TimeBasedCacheEntry:
+_T = TypeVar("_T")
 
-  def __init__(self, timestamp: float, value: Any):
+
+class TimeBasedCacheEntry(Generic[_T]):
+
+  def __init__(self, timestamp: float, value: _T):
     self.timestamp = timestamp
-    self.value = value
+    self.value: _T = value
 
 
 class TimeBasedCache(FastStore):

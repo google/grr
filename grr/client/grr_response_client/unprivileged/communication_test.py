@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-import platform
 from typing import List
 import sys
 from absl.testing import absltest
@@ -7,17 +6,16 @@ from absl.testing import absltest
 from grr_response_client.unprivileged import communication
 
 
-@absltest.skipIf(platform.system() == "Windows",
-                 "Currently not running on Windows.")
 class CommunicationTest(absltest.TestCase):
 
   def testCommunication(self):
 
-    def MakeArgs(socket_fd: int) -> List[str]:
+    def MakeArgs(channel: communication.Channel) -> List[str]:
       return [
           sys.executable, "-m",
           "grr_response_client.unprivileged.echo_server",
-          str(socket_fd)
+          str(channel.pipe_input),
+          str(channel.pipe_output),
       ]
 
     server = communication.SubprocessServer(MakeArgs)

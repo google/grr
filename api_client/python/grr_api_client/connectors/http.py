@@ -5,7 +5,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import collections
 import contextlib
 import json
 import logging
@@ -325,12 +324,9 @@ class HttpConnector(abstract.Connector):
     if args is None:
       return {}
 
-    # Using OrderedDict guarantess stable order of query parameters in the
-    # generated URLs.
-    result = collections.OrderedDict()
-    for field, value in sorted(args.ListFields(), key=lambda f: f[0].name):
-      if field.name not in exclude_names:
-        result[field.name] = self._CoerceValueToQueryStringType(field, value)
+    result = utils.MessageToFlatDict(args, self._CoerceValueToQueryStringType)
+    for name in exclude_names:
+      del result[name]
 
     return result
 

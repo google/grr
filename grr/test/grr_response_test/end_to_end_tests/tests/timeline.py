@@ -75,6 +75,24 @@ class TestTimelineWindows(test_base.EndToEndTest):
     for entry in entries:
       assertBodyEntrySanity(self, entry)
 
+  def testWindowsBackslashEscape(self):
+    args = self.grr_api.types.CreateFlowArgs("TimelineFlow")
+    args.root = "C:\\Windows".encode("utf-8")
+
+    flow = self.RunFlowAndWait("TimelineFlow", args=args)
+
+    with temp.AutoTempFilePath(suffix=".body") as temp_filepath:
+      body = flow.GetCollectedTimelineBody(backslash_escape=True)
+      body.WriteToFile(temp_filepath)
+
+      with io.open(temp_filepath, mode="r", encoding="utf-8") as temp_filedesc:
+        content = temp_filedesc.read().lower()
+
+    self.assertIn("|C:\\\\Windows\\\\explorer.exe|".lower(), content)
+    self.assertIn("|C:\\\\Windows\\\\notepad.exe|".lower(), content)
+    self.assertIn("|C:\\\\Windows\\\\regedit.exe|".lower(), content)
+    self.assertIn("|C:\\\\Windows\\\\System32\\\\dwm.exe|".lower(), content)
+
 
 def assertBodyEntrySanity(  # pylint: disable=invalid-name
     test: absltest.TestCase,

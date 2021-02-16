@@ -1,6 +1,7 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {ReactiveFormsModule} from '@angular/forms';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatChipsModule} from '@angular/material/chips';
@@ -47,6 +48,7 @@ import {TimelineForm} from './timeline_form';
     OsqueryQueryHelperModule,
     HelpersModule,
     DateTimeInputModule,
+    MatAutocompleteModule,
   ],
   declarations: [
     FlowArgsForm,

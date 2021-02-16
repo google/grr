@@ -18,6 +18,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
@@ -46,13 +47,13 @@ class HuntTest(stats_test_lib.StatsTestMixin,
   """Tests for the relational hunts implementation."""
 
   def GetFileHuntArgs(self):
+    args = transfer.GetFileArgs()
+    args.pathspec.path = "/tmp/evil.txt"
+    args.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+
     return rdf_hunt_objects.HuntArguments.Standard(
         flow_name=compatibility.GetName(transfer.GetFile),
-        flow_args=transfer.GetFileArgs(
-            pathspec=rdf_paths.PathSpec(
-                path="/tmp/evil.txt",
-                pathtype=rdf_paths.PathSpec.PathType.OS,
-            )))
+        flow_args=rdf_structs.AnyValue.Pack(args))
 
   def _CreateHunt(self, **kwargs):
     hunt_obj = rdf_hunt_objects.Hunt(creator=self.token.username, **kwargs)
@@ -294,12 +295,14 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     num_files = len(glob.glob(path))
     self.assertGreater(num_files, 1)
 
+    flow_args = rdf_file_finder.FileFinderArgs()
+    flow_args.paths = [path]
+    flow_args.action.action_type = rdf_file_finder.FileFinderAction.Action.STAT
+
     hunt_args = rdf_hunt_objects.HuntArguments.Standard(
         flow_name=compatibility.GetName(file_finder.FileFinder),
-        flow_args=rdf_file_finder.FileFinderArgs(
-            paths=[path],
-            action=rdf_file_finder.FileFinderAction(action_type="STAT"),
-        ))
+        flow_args=rdf_structs.AnyValue.Pack(flow_args))
+
     hunt_id, _ = self._CreateAndRunHunt(
         num_clients=5,
         client_mock=action_mocks.FileFinderClientMock(),
@@ -942,15 +945,15 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     hunt_obj = rdf_hunt_objects.Hunt(client_rate=0)
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.VARIABLE
     for index in range(2):
+      flow_args = transfer.GetFileArgs()
+      flow_args.pathspec.path = f"/tmp/evil_{index}.txt"
+      flow_args.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+
       hunt_obj.args.variable.flow_groups.append(
           rdf_hunt_objects.VariableHuntFlowGroup(
               client_ids=[client_id],
               flow_name=compatibility.GetName(transfer.GetFile),
-              flow_args=transfer.GetFileArgs(
-                  pathspec=rdf_paths.PathSpec(
-                      path="/tmp/evil_%d.txt" % index,
-                      pathtype=rdf_paths.PathSpec.PathType.OS,
-                  ))))
+              flow_args=rdf_structs.AnyValue.Pack(flow_args)))
 
     data_store.REL_DB.WriteHuntObject(hunt_obj)
 
@@ -982,15 +985,15 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     hunt_obj.args.hunt_type = hunt_obj.args.HuntType.VARIABLE
 
     for index, pair in enumerate(collection.Batch(client_ids, 2)):
+      flow_args = transfer.GetFileArgs()
+      flow_args.pathspec.path = f"/tmp/evil_{index}.txt"
+      flow_args.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+
       hunt_obj.args.variable.flow_groups.append(
           rdf_hunt_objects.VariableHuntFlowGroup(
               client_ids=pair,
               flow_name=compatibility.GetName(transfer.GetFile),
-              flow_args=transfer.GetFileArgs(
-                  pathspec=rdf_paths.PathSpec(
-                      path="/tmp/evil_%d.txt" % index,
-                      pathtype=rdf_paths.PathSpec.PathType.OS,
-                  ))))
+              flow_args=rdf_structs.AnyValue.Pack(flow_args)))
 
     data_store.REL_DB.WriteHuntObject(hunt_obj)
     hunt.StartHunt(hunt_obj.hunt_id)

@@ -228,6 +228,9 @@ class CronManager(object):
                   CreateAndRunGenericHuntFlow flow. If the args specify
                   something else, ValueError is raised.
     """
+    if not cron_args.flow_name:
+      raise ValueError("Unspecified flow name")
+
     if not job_id:
       # TODO: UInt16 is too small for randomly generated IDs.
       uid = random.UInt16()

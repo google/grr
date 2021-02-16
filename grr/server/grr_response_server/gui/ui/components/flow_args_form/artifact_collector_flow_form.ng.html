@@ -1,6 +1,21 @@
 <div [formGroup]="form">
   <mat-form-field appearance="outline" class="w100">
     <mat-label>Artifact</mat-label>
-    <input matInput placeholder="" formControlName="artifactName">
+    <input #input name="artifactName" matInput formControlName="artifactName" [matAutocomplete]="auto"
+      placeholder="Search for artifacts by name, filename, registry key, …">
+    <mat-autocomplete #auto="matAutocomplete" (optionSelected)="selectArtifact($event.option.value)">
+      <mat-option *ngFor="let artifact of filteredArtifactDescriptors$ | async; trackBy: trackArtifactDescriptor"
+        [value]="artifact.name" class="artifact-option" [class.unavailable]="!artifact.availableOnClient">
+        <div class="option-title">{{ artifact.name }}</div>
+        <div *ngIf="artifact.doc" class="option-description">{{artifact.doc}}</div>
+        <div class="option-small" *ngIf="artifact.sampleSource !== undefined  || !artifact.availableOnClient">
+          <span *ngIf="!artifact.availableOnClient">Only available on {{printOs(artifact)}}.</span>
+          <span *ngIf="artifact.sampleSource !== undefined">
+            {{artifact.sampleSource.name}} <span class="monospace">{{artifact.sampleSource.value}}</span>
+            <span *ngIf="artifact.totalSources > 1"> and {{artifact.totalSources - 1}} more</span>
+          </span>
+        </div>
+      </mat-option>
+    </mat-autocomplete>
   </mat-form-field>
 </div>

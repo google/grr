@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 import contextlib
-import platform
 from unittest import mock
 
 from absl import flags
@@ -13,8 +12,6 @@ from grr_response_core.lib import config_lib
 from grr_response_core.lib import package
 
 
-@absltest.skipIf(platform.system() == "Windows",
-                 "Currently not running on Windows.")
 class VfsNtfsTest(ntfs_test_lib.NTFSTest):
 
   def setUp(self):

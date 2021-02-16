@@ -1012,7 +1012,7 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(b"".join(payloads).decode("utf-8"), signature)
 
   def testYaraSignatureReferenceIncorrect(self):
-    data = "This is very confidential and should not leak to the client."
+    data = "This is very c0nfidential and should not leak to the client."
     blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(data.encode("utf-8"))
 
     args = rdf_memory.YaraProcessScanRequest()

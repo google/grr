@@ -84,15 +84,16 @@ export class CollectMultipleFilesDetails extends Plugin {
       this.flowListEntry$.pipe(
           map(fle => fle.resultSets.flatMap(rs => rs.items).length),
           startWith(0),
+          distinctUntilChanged(),
           ),
 
       // Total number of files present on the server-side.
-      this.totalFiles$.pipe(startWith(0)),
+      this.totalFiles$.pipe(
+          startWith(0),
+          distinctUntilChanged(),
+          ),
     ])
-        .pipe(
-            takeUntil(this.unsubscribe$),
-            distinctUntilChanged(),
-            )
+        .pipe(takeUntil(this.unsubscribe$))
         .subscribe(([resultsRequested, resultsLoaded, totalFiles]) => {
           if (resultsRequested > resultsLoaded && resultsLoaded < totalFiles) {
             this.queryFlowResults({

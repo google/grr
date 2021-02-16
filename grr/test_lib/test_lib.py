@@ -61,6 +61,16 @@ class GRRBaseTest(absltest.TestCase):
     super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
     self.base_path = config.CONFIG["Test.data_dir"]
 
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    logging.disable(logging.CRITICAL)
+
+  @classmethod
+  def tearDownClass(cls):
+    logging.disable(logging.NOTSET)
+    super().tearDownClass()
+
   def setUp(self):
     super(GRRBaseTest, self).setUp()
 

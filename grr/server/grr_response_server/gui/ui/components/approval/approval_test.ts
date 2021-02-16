@@ -182,14 +182,35 @@ describe('Approval Component', () => {
     expect(copyToClipboard.text).toMatch(expected);
   });
 
-  it('displays autocomplete suggestions when typing', () => {
+  it('displays initial autocomplete suggestions', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
     clientPageFacade.selectedClientSubject.next(makeClient());
     configFacade.approvalConfigSubject.next({});
 
-    expect(clientPageFacade.suggestApprovers).not.toHaveBeenCalled();
+    expect(clientPageFacade.suggestApprovers).toHaveBeenCalledWith('');
+
+    const approversInput =
+        fixture.debugElement.query(By.css('mat-chip-list input'));
+    approversInput.triggerEventHandler('focusin', null);
+    fixture.detectChanges();
+
+    clientPageFacade.approverSuggestionsSubject.next(['bar', 'baz']);
+    fixture.detectChanges();
+
+    const matOptions = document.querySelectorAll('mat-option');
+    expect(matOptions.length).toBe(2);
+    expect(matOptions[0].textContent).toContain('bar');
+    expect(matOptions[1].textContent).toContain('baz');
+  });
+
+  it('displays autocomplete suggestions when typing', () => {
+    const fixture = TestBed.createComponent(Approval);
+    fixture.detectChanges();
+
+    clientPageFacade.selectedClientSubject.next(makeClient());
+    configFacade.approvalConfigSubject.next({});
 
     const approversInput =
         fixture.debugElement.query(By.css('mat-chip-list input'));

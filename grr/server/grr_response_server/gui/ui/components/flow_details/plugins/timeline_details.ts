@@ -1,12 +1,22 @@
 import {Component} from '@angular/core';
-import {Observable} from 'rxjs';
-import {map} from 'rxjs/operators';
+import {FormControl, FormGroup} from '@angular/forms';
+import {combineLatest, Observable} from 'rxjs';
+import {map, shareReplay, startWith} from 'rxjs/operators';
 
 import {TimelineArgs} from '../../../lib/api/api_interfaces';
 import {HttpApiService} from '../../../lib/api/http_api_service';
 import {FlowState} from '../../../lib/models/flow';
 
 import {Plugin} from './plugin';
+
+/**
+ * Options for customizing the output of exporting timeline in the body format.
+ */
+declare interface BodyOpts {
+  timestampSubsecondPrecision: boolean;
+  inodeNtfsFileReferenceFormat: boolean;
+  backslashEscape: boolean;
+}
 
 /**
  * A component with the details about the timeline flow.
@@ -22,9 +32,27 @@ import {Plugin} from './plugin';
 export class TimelineDetails extends Plugin {
   readonly FlowState: typeof FlowState = FlowState;
 
+  readonly bodyOptsForm = new FormGroup({
+    timestampSubsecondPrecision: new FormControl(true),
+    inodeNtfsFileReferenceFormat: new FormControl(false),
+    backslashEscape: new FormControl(false),
+  });
+
   constructor(private readonly httpApiService: HttpApiService) {
     super();
   }
+
+  /**
+   * Observable with form inputs of the body export options.
+   */
+  readonly bodyOpts$: Observable<BodyOpts> =
+      this.bodyOptsForm.valueChanges.pipe(
+          // TODO(user):
+          // Unfortunately, `valueChanges` does not emit the initial value. We
+          // work around this with `startWith`.
+          startWith(this.bodyOptsForm.value),
+          shareReplay(1),
+      );
 
   /** Observable of the state that the flow currently is in. */
   readonly state$: Observable<FlowState> =
@@ -37,11 +65,14 @@ export class TimelineDetails extends Plugin {
   /**
    * Observable with URL to download the collected timeline in the body format.
    */
-  readonly bodyFileUrl$: Observable<string> =
-      this.flowListEntry$.pipe(map(flowListEntry => {
+  readonly bodyFileUrl$: Observable<URL> =
+      combineLatest([
+        this.flowListEntry$, this.bodyOpts$
+      ]).pipe(map(([flowListEntry, bodyOpts]) => {
         const clientId = flowListEntry.flow.clientId;
         const flowId = flowListEntry.flow.flowId;
-        return this.httpApiService.getTimelineBodyFileUrl(clientId, flowId);
+        return this.httpApiService.getTimelineBodyFileUrl(
+            clientId, flowId, bodyOpts);
       }));
 
   /**

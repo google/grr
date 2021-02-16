@@ -25,6 +25,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_core.lib.util import compatibility
+from grr_response_proto import tests_pb2
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import test_lib
 
@@ -1029,6 +1030,65 @@ class EnumContainerTest(absltest.TestCase):
   def testFromString_invalidValue(self):
     with self.assertRaises(ValueError):
       self.enum_container.FromString("bax")
+
+
+class NoDynamicTypeLookupTest(absltest.TestCase):
+
+  class NoDynamicTypeLookupMessage(rdf_structs.RDFProtoStruct):
+
+    protobuf = tests_pb2.NoDynamicTypeLookupMessage
+
+  def testFieldAccessors(self):
+    message = self.NoDynamicTypeLookupMessage()
+    self.assertIsInstance(message.any, rdf_structs.AnyValue)
+
+    message.any.type_url = "foo.bar.baz"
+    message.any.value = b"quux"
+
+    self.assertEqual(message.any.type_url, "foo.bar.baz")
+    self.assertEqual(message.any.value, b"quux")
+
+  def testSerializeAndDeserialize(self):
+    message = self.NoDynamicTypeLookupMessage()
+    message.any.type_url = "foo.bar.baz"
+    message.any.value = b"quux"
+
+    blob = message.SerializeToBytes()
+    message = self.NoDynamicTypeLookupMessage.FromSerializedBytes(blob)
+
+    self.assertEqual(message.any.type_url, "foo.bar.baz")
+    self.assertEqual(message.any.value, b"quux")
+
+  def testAsPrimitiveProto(self):
+    message = self.NoDynamicTypeLookupMessage()
+    message.any.type_url = "foo.bar.baz"
+    message.any.value = b"quux"
+
+    proto = message.AsPrimitiveProto()
+    self.assertEqual(proto.any.type_url, "foo.bar.baz")
+    self.assertEqual(proto.any.value, b"quux")
+
+
+class AnyValueTest(absltest.TestCase):
+
+  def testPack(self):
+    user = rdf_client.User()
+    user.username = "foo"
+
+    proto = rdf_structs.AnyValue.Pack(user)
+    self.assertIn("User", proto.type_url)
+
+    deserialized = rdf_client.User.FromSerializedBytes(proto.value)
+    self.assertEqual(deserialized.username, "foo")
+
+  def testUnpack(self):
+    user = rdf_client.User()
+    user.username = "foo"
+
+    proto = rdf_structs.AnyValue.Pack(user)
+
+    unpacked = proto.Unpack(rdf_client.User)
+    self.assertEqual(unpacked.username, "foo")
 
 
 def main(argv):

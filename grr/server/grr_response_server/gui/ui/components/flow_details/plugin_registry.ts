@@ -5,6 +5,7 @@ import {CollectSingleFileDetails} from '@app/components/flow_details/plugins/col
 import {ArtifactCollectorFlowDetails} from './plugins/artifact_collector_flow_details';
 
 import {DefaultDetails} from './plugins/default_details';
+import {ListProcessesDetails} from './plugins/list_processes_details';
 import {MultiGetFileDetails} from './plugins/multi_get_file_details';
 import {OsqueryDetails} from './plugins/osquery_details';
 import {Plugin} from './plugins/plugin';
@@ -20,10 +21,11 @@ export const FLOW_DETAILS_DEFAULT_PLUGIN = DefaultDetails;
  */
 export const FLOW_DETAILS_PLUGIN_REGISTRY: {[key: string]: Type<Plugin>} = {
   'ArtifactCollectorFlow': ArtifactCollectorFlowDetails,
-  'MultiGetFile': MultiGetFileDetails,
   'CollectBrowserHistory': CollectBrowserHistoryDetails,
   'CollectMultipleFiles': CollectMultipleFilesDetails,
   'CollectSingleFile': CollectSingleFileDetails,
+  'ListProcesses': ListProcessesDetails,
+  'MultiGetFile': MultiGetFileDetails,
   'OsqueryFlow': OsqueryDetails,
   'TimelineFlow': TimelineDetails,
 };

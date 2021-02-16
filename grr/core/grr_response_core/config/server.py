@@ -254,6 +254,12 @@ config_lib.DEFINE_string(
     help="Inactive clients marked with "
     "this label will be retained forever.")
 
+config_lib.DEFINE_float(
+    "Hunt.default_client_rate",
+    default=20.0,
+    help="Default value for HuntRunnerArgs.client_rate. Client rate "
+    "determines how many clients per minute get to process a hunt")
+
 config_lib.DEFINE_integer(
     "Hunt.default_crash_limit",
     default=100,

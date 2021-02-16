@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 from absl import app
 
+from grr_response_core import config
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server.flows.general import file_finder
 from grr_response_server.gui import gui_test_lib
@@ -202,11 +203,10 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         "css=grr-wizard-form:contains('is not eligible for rapid hunting')")
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-wizard-form td:contains('ListProcesses')")
-    # Client rate shouldn't have been touched (neither by user nor by rapid
-    # hunting logic). Therefore it should simply have its default value and
-    # not be present in the review page.
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=td:contains('Client rate') + td")
+    # Client rate should be set to its effective default value.
+    self.assertEqual(
+        self.GetText("css=td:contains('Client rate') + td"),
+        str(int(config.CONFIG["Hunt.default_client_rate"])))
 
   def testRapidHuntEligibilityNoteDynamicallyChanges(self):
     self.Open("/#/hunts")

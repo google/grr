@@ -5,10 +5,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import collections
 import time
+from typing import Any
 from typing import Callable
+from typing import Dict
 from typing import IO
 from typing import Iterator
+from typing import Tuple
 from typing import TypeVar
 from typing import Union
 
@@ -225,6 +229,50 @@ def UnpackAny(
 
   proto_any.Unpack(proto)
   return proto
+
+
+def MessageToFlatDict(
+    msg: message.Message,
+    transform: Callable[[descriptor.FieldDescriptor, Any], Any],
+) -> Dict[str, Any]:
+  """Converts the given Protocol Buffers message to a flat dictionary.
+
+  Fields of nested messages will be represented through keys of a path with
+  dots. Consider the following Protocol Buffers message:
+
+      foo {
+          bar: 42
+          baz {
+              quux: "thud"
+          }
+      }
+
+  Its representation as a flat Python dictionary is the following:
+
+      { "foo.bar": 42, "foo.baz.quux": "thud" }
+
+  Args:
+    msg: A message to convert.
+    transform: A transformation to apply to primitive values.
+
+  Returns:
+    A flat dictionary corresponding to the given message.
+  """
+  # Using ordered dictionary guarantees stable order of fields in the result.
+  result = collections.OrderedDict()
+
+  def Recurse(msg: message.Message, prev: Tuple[str, ...]) -> None:
+    fields = sorted(msg.ListFields(), key=lambda field: field[0].name)
+    for field, value in fields:
+      curr = prev + (field.name,)
+      if field.type == descriptor.FieldDescriptor.TYPE_MESSAGE:
+        Recurse(value, curr)
+      else:
+        result[".".join(curr)] = transform(field, value)
+
+  Recurse(msg, ())
+
+  return result
 
 
 def RegisterProtoDescriptors(

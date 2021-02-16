@@ -229,6 +229,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=gui_test_lib.RecursiveTestFlow.__name__),
+        flow_args=gui_test_lib.RecursiveTestFlowArgs(),
         client_rate=0,
         creator=self.token.username)
 

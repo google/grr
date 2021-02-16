@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 # Lint as: python3
 """API handlers for user-related data and actions."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
+import collections
 import email
 import functools
 import itertools
@@ -20,9 +17,9 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.lib.util import collection
 from grr_response_proto import user_pb2
 from grr_response_proto.api import user_pb2 as api_user_pb2
-
 from grr_response_server import access_control
 from grr_response_server import cronjobs
 from grr_response_server import data_store
@@ -1402,6 +1399,16 @@ def _GetAllUsernames():
   return sorted(user.username for user in data_store.REL_DB.ReadGRRUsers())
 
 
+def _GetMostRequestedUsernames(context):
+  requests = data_store.REL_DB.ReadApprovalRequests(
+      context.username,
+      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+      include_expired=True)
+  users = collection.Flatten(req.notified_users for req in requests)
+  user_counts = collections.Counter(users)
+  return [username for (username, _) in user_counts.most_common()]
+
+
 class ApiListApproverSuggestionsHandler(api_call_handler_base.ApiCallHandler):
   """"List suggestions for approver usernames."""
 
@@ -1409,11 +1416,31 @@ class ApiListApproverSuggestionsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListApproverSuggestionsResult
 
   def Handle(self, args, context=None):
-    suggestions = []
+    all_usernames = _GetAllUsernames()
+    usernames = []
 
-    for username in _GetAllUsernames():
-      if (username.startswith(args.username_query) and
-          username != context.username):
-        suggestions.append(ApproverSuggestion(username=username))
+    if not args.username_query:
+      # When the user has not started typing a username yet, try to suggest
+      # previously requested approvers. Do not suggest usernames that are not
+      # actually registered users.
+      all_usernames_set = set(all_usernames)
+      usernames = [
+          u for u in _GetMostRequestedUsernames(context)
+          if u in all_usernames_set
+      ]
 
+    if not usernames:
+      # If no previously requested approvers can be suggested, or the user
+      # started typing a username, suggest names from all registered users.
+      usernames = [
+          u for u in all_usernames if u.startswith(args.username_query)
+      ]
+
+    try:
+      # If present, remove the requestor from suggested approvers.
+      usernames.remove(context.username)
+    except ValueError:
+      pass
+
+    suggestions = [ApproverSuggestion(username=u) for u in usernames]
     return ApiListApproverSuggestionsResult(suggestions=suggestions)

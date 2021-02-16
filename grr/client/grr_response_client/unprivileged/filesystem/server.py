@@ -7,21 +7,27 @@ from typing import List
 from grr_response_client.unprivileged import communication
 
 
-def _MakeServerArgs(socket_fd: int) -> List[str]:
+def _MakeServerArgs(channel: communication.Channel) -> List[str]:
   """Returns the args to run the filesystem server command."""
 
-  named_socket_flag = ["--filesystem_server_socket", str(socket_fd)]
+  named_flags = [
+      "--filesystem_server_pipe_input",
+      str(channel.pipe_input),
+      "--filesystem_server_pipe_output",
+      str(channel.pipe_output),
+  ]
 
   # PyInstaller executable
   if getattr(sys, "frozen", False):
-    return [sys.executable] + sys.argv[1:] + named_socket_flag
+    return [sys.executable] + sys.argv[1:] + named_flags
 
   # Running from a unit test
 
   return [
     sys.executable, "-m",
     "grr_response_client.unprivileged.filesystem.server_main",
-    str(socket_fd),
+    str(channel.pipe_input),
+    str(channel.pipe_output),
   ]
 
 

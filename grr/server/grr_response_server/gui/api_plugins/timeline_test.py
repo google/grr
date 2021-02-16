@@ -4,9 +4,6 @@ import csv
 import io
 import random
 import stat
-from typing import Optional
-from typing import Sequence
-from typing import Text
 import zipfile
 
 from absl.testing import absltest
@@ -23,6 +20,7 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import testing_startup
+from grr.test_lib import timeline_test_lib
 
 
 class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -57,7 +55,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def testRaisesOnIncorrectFormat(self):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    flow_id = _WriteTimeline(client_id, [])
+    flow_id = timeline_test_lib.WriteTimeline(client_id, [])
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -69,7 +67,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def testBodyNoEntries(self):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    flow_id = _WriteTimeline(client_id, [])
+    flow_id = timeline_test_lib.WriteTimeline(client_id, [])
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -92,7 +90,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     entry.ctime_ns = 789 * 10**9
 
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    flow_id = _WriteTimeline(client_id, [entry])
+    flow_id = timeline_test_lib.WriteTimeline(client_id, [entry])
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -121,7 +119,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
       entries.append(entry)
 
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    flow_id = _WriteTimeline(client_id, entries)
+    flow_id = timeline_test_lib.WriteTimeline(client_id, entries)
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -144,7 +142,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     entry.atime_ns = int(3.14 * 10**9)
 
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    flow_id = _WriteTimeline(client_id, [entry])
+    flow_id = timeline_test_lib.WriteTimeline(client_id, [entry])
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -166,7 +164,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     entry.ino = 1688849860339456
 
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    flow_id = _WriteTimeline(client_id, [entry])
+    flow_id = timeline_test_lib.WriteTimeline(client_id, [entry])
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -187,7 +185,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     entry.path = "C:\\Windows\\system32\\notepad.exe".encode("utf-8")
 
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    flow_id = _WriteTimeline(client_id, [entry])
+    flow_id = timeline_test_lib.WriteTimeline(client_id, [entry])
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -200,9 +198,61 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.assertIn("|C:\\\\Windows\\\\system32\\\\notepad.exe|", content)
 
+  def testBodyMultipleResults(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = "ABCDEF42"
+
+    flow_obj = rdf_flow_objects.Flow()
+    flow_obj.client_id = client_id
+    flow_obj.flow_id = flow_id
+    flow_obj.flow_class_name = timeline.TimelineFlow.__name__
+    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
+    data_store.REL_DB.WriteFlowObject(flow_obj)
+
+    entry_1 = rdf_timeline.TimelineEntry()
+    entry_1.path = "/foo".encode("utf-8")
+
+    blobs_1 = list(rdf_timeline.TimelineEntry.SerializeStream(iter([entry_1])))
+    (blob_id_1,) = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs_1)
+
+    result_1 = rdf_timeline.TimelineResult()
+    result_1.entry_batch_blob_ids = [blob_id_1.AsBytes()]
+
+    entry_2 = rdf_timeline.TimelineEntry()
+    entry_2.path = "/bar".encode("utf-8")
+
+    blobs_2 = list(rdf_timeline.TimelineEntry.SerializeStream(iter([entry_2])))
+    (blob_id_2,) = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs_2)
+
+    result_2 = rdf_timeline.TimelineResult()
+    result_2.entry_batch_blob_ids = [blob_id_2.AsBytes()]
+
+    flow_result_1 = rdf_flow_objects.FlowResult()
+    flow_result_1.client_id = client_id
+    flow_result_1.flow_id = flow_id
+    flow_result_1.payload = result_1
+
+    flow_result_2 = rdf_flow_objects.FlowResult()
+    flow_result_2.client_id = client_id
+    flow_result_2.flow_id = flow_id
+    flow_result_2.payload = result_2
+
+    data_store.REL_DB.WriteFlowResults([flow_result_1, flow_result_2])
+
+    args = api_timeline.ApiGetCollectedTimelineArgs()
+    args.client_id = client_id
+    args.flow_id = flow_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.BODY
+
+    result = self.handler.Handle(args)
+    content = b"".join(result.GenerateContent()).decode("utf-8")
+
+    self.assertIn("|/foo|", content)
+    self.assertIn("|/bar|", content)
+
   def testRawGzchunkedEmpty(self):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    flow_id = _WriteTimeline(client_id, [])
+    flow_id = timeline_test_lib.WriteTimeline(client_id, [])
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -224,7 +274,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
       entries.append(entry)
 
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    flow_id = _WriteTimeline(client_id, entries)
+    flow_id = timeline_test_lib.WriteTimeline(client_id, entries)
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -331,8 +381,8 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     entry_2.ctime_ns = 999 * 10**9
     entry_2.mode = 0o777
 
-    _WriteTimeline(client_id_1, [entry_1], hunt_id=hunt_id)
-    _WriteTimeline(client_id_2, [entry_2], hunt_id=hunt_id)
+    timeline_test_lib.WriteTimeline(client_id_1, [entry_1], hunt_id=hunt_id)
+    timeline_test_lib.WriteTimeline(client_id_2, [entry_2], hunt_id=hunt_id)
 
     args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
     args.hunt_id = hunt_id
@@ -412,8 +462,8 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     entry_1.ctime_ns = 900 * 10**9
     entry_1.mode = 0o763
 
-    _WriteTimeline(client_id_1, [entry_1], hunt_id=hunt_id)
-    _WriteTimeline(client_id_2, [entry_2], hunt_id=hunt_id)
+    timeline_test_lib.WriteTimeline(client_id_1, [entry_1], hunt_id=hunt_id)
+    timeline_test_lib.WriteTimeline(client_id_2, [entry_2], hunt_id=hunt_id)
 
     args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
     args.hunt_id = hunt_id
@@ -455,7 +505,7 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     entry.path = "/foo/bar/baz".encode("utf-8")
     entry.btime_ns = int(1337.42 * 10**9)
 
-    _WriteTimeline(client_id, [entry], hunt_id=hunt_id)
+    timeline_test_lib.WriteTimeline(client_id, [entry], hunt_id=hunt_id)
 
     args = api_timeline.ApiGetCollectedHuntTimelinesArgs()
     args.hunt_id = hunt_id
@@ -473,47 +523,6 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertLen(rows, 1)
     self.assertEqual(rows[0][1], "/foo/bar/baz")
     self.assertEqual(rows[0][10], "1337.42")
-
-
-def _WriteTimeline(
-    client_id: Text,
-    entries: Sequence[rdf_timeline.TimelineEntry],
-    hunt_id: Optional[Text] = None,
-) -> Text:
-  """Writes a timeline to the database (as fake flow result).
-
-  Args:
-    client_id: An identifier of the client for which the flow ran.
-    entries: A sequence of timeline entries produced by the flow run.
-    hunt_id: An (optional) identifier of a hunt the flows belong to.
-
-  Returns:
-    An identifier of the flow.
-  """
-  flow_id = "".join(random.choice("ABCDEF") for _ in range(8))
-
-  flow_obj = rdf_flow_objects.Flow()
-  flow_obj.flow_id = flow_id
-  flow_obj.client_id = client_id
-  flow_obj.flow_class_name = timeline.TimelineFlow.__name__
-  flow_obj.create_time = rdfvalue.RDFDatetime.Now()
-  flow_obj.parent_hunt_id = hunt_id
-  data_store.REL_DB.WriteFlowObject(flow_obj)
-
-  blobs = list(rdf_timeline.TimelineEntry.SerializeStream(iter(entries)))
-  blob_ids = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
-
-  result = rdf_timeline.TimelineResult()
-  result.entry_batch_blob_ids = [blob_id.AsBytes() for blob_id in blob_ids]
-
-  flow_result = rdf_flow_objects.FlowResult()
-  flow_result.client_id = client_id
-  flow_result.flow_id = flow_id
-  flow_result.payload = result
-
-  data_store.REL_DB.WriteFlowResults([flow_result])
-
-  return flow_id
 
 
 if __name__ == "__main__":

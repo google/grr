@@ -63,7 +63,7 @@ export class SearchBox implements AfterViewInit, OnDestroy {
             takeUntil(this.unsubscribe$),
             debounceTime(300),
             distinctUntilChanged(),
-            switchMap(query => this.searchClients(query)),
+            switchMap((query: string) => this.searchClients(query)),
             )
         .subscribe(this.clients$);
   }

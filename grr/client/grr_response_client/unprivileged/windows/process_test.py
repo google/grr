@@ -1,11 +1,12 @@
 #!/usr/bin/env python
+import os
 import sys
 import unittest
 
 from absl.testing import absltest
 try:
   # pylint: disable=g-import-not-at-top
-  import win32file
+  import msvcrt
   from grr_response_client.unprivileged.windows import process
   # pylint: enable=g-import-not-at-top
 except ImportError:
@@ -15,27 +16,29 @@ except ImportError:
 class ProcessTest(absltest.TestCase):
 
   def testProcess(self):
-    extra_pipe_r, extra_pipe_w = process.CreatePipeWrapper()
+    input_r_fd, input_w_fd = os.pipe()
+    output_r_fd, output_w_fd = os.pipe()
 
-    def MakeCommandLine(pipe_input: int, pipe_output: int) -> str:
-      return " ".join([
-          sys.executable,
-          "-m",
-          "grr_response_client.unprivileged.windows.echo",
-          "--pipe_input",
-          str(pipe_input),
-          "--pipe_output",
-          str(pipe_output),
-          "--extra_pipe_input",
-          str(extra_pipe_r.value),
-      ])
+    input_r_handle = msvcrt.get_osfhandle(input_r_fd)
+    output_w_handle = msvcrt.get_osfhandle(output_w_fd)
 
-    p = process.Process(MakeCommandLine, [extra_pipe_r.value])
-    win32file.WriteFile(p.input, b"foo")
-    win32file.WriteFile(extra_pipe_w.value, b"bar")
-    result = win32file.ReadFile(p.output, 9)[1]
-    self.assertEqual(result, b"foobar123")
-    p.Stop()
+    with os.fdopen(input_w_fd, "wb", buffering=0) as input_w:
+      with os.fdopen(output_r_fd, "rb", buffering=0) as output_r:
+        args = [
+            sys.executable,
+            "-m",
+            "grr_response_client.unprivileged.windows.echo",
+            "--pipe_input",
+            str(input_r_handle),
+            "--pipe_output",
+            str(output_w_handle),
+        ]
+
+        p = process.Process(args, [input_r_fd, output_w_fd])
+        input_w.write(b"foo")
+        result = output_r.read(6)
+        self.assertEqual(result, b"foo123")
+        p.Stop()
 
 
 if __name__ == "__main__":

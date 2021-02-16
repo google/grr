@@ -30,7 +30,8 @@
   * use_tsk is kept for compatibilty until 2021-04-01
     * please migrate away from use_tsk to use_raw_filesystem_access until then
   * ValueError is raised if both fields are set
-* WinUserActivityInvestigationargs:
+* WinUserActivityInvestigationArgs:
   * This message is obsolete, removing it.
 * ClientArtifactCollectorArgs
   * Removing use_tsk, since it hasn't been used on the client side
+* Introduced Hunt.default_client_rate configuration option.

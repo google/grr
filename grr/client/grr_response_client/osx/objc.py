@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """Interface to Objective C libraries on OS X."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import ctypes
 import ctypes.util
 from typing import Text
@@ -49,21 +45,45 @@ def FilterFnTable(fn_table, symbol):
   return new_table
 
 
+_LOADED_SHARED_LIBRARIES = frozenset({'c'})
+
+
 def LoadLibrary(libname: str) -> ctypes.CDLL:
   """Loads a CDLL by searching for the library name in well-known locations."""
-  # First, attempt to load the library from the path returned by find_library.
-  # This works up to macOS 11 (see https://bugs.python.org/issue41179). As
-  # fallback, try to load the library directly from well-known locations to
-  # work around the macOS 11 bug.
+  # macOS 11 introduced a bug when trying to locate and load shared libraries,
+  # see https://bugs.python.org/issue41179. This function contains workarounds
+  # to work properly on affected and unaffected macOS and Python versions.
+
+  # As fallback, try to load the library directly from well-known locations.
+  # This fixes loading "Foundation" on unfixed Python on macOS 11.
   paths = [
-      ctypes.util.find_library(libname) or libname,
-      '/System/Library/Frameworks/{0}.framework/{0}',
-      '/usr/lib/{0}.dylib',
+      '/System/Library/Frameworks/{0}.framework/{0}'.format(libname),
+      '/usr/lib/{0}.dylib'.format(libname),
   ]
+
+  found_path = ctypes.util.find_library(libname)
+
+  if found_path is not None:
+    # This allows locating arbitrary libraries on macOS < 11 and future Python
+    # versions that fix find_library on macOS 11.
+    paths.insert(0, found_path)
+  elif libname in _LOADED_SHARED_LIBRARIES:
+    # If we try loading a library that has not been found by find_library due to
+    # the Big Sur bug, but likely has been loaded by the current program, try
+    # `ctypes.cdll.LoadLibrary(None)` as fallback. This returns shared objects
+    # loaded at program startup per DLOPEN(3). Ultimately, this fixes loading
+    # libc on Big Sur. See: https://stackoverflow.com/questions/49878901/.
+    paths.append(None)
+  else:
+    # If the library is not found by find_library and likely not loaded already,
+    # try to load the raw library name by letting ctypes.cdll.LoadLibrary
+    # resolve the library location. This could allow loading some libraries in a
+    # future, fixed Python version again.
+    paths.insert(0, libname)
 
   for libpath in paths:
     try:
-      return ctypes.cdll.LoadLibrary(libpath.format(libname))
+      return ctypes.cdll.LoadLibrary(libpath)
     except OSError:
       pass
 

@@ -5,12 +5,16 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import functools
 import http.client
 import itertools
 import logging
 import time
 import traceback
+from typing import Dict
 from typing import Text
+from typing import Type
+from typing import TypeVar
 
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
@@ -136,14 +140,19 @@ class RouterMatcher(object):
         if hasattr(unprocessed_request, "dict"):
           unprocessed_request = unprocessed_request.dict()
 
-        args = method_metadata.args_type()
+        args_type = method_metadata.args_type
+        try:
+          args = FlatDictToRDFValue(unprocessed_request, args_type)
+        except AttributeError:
+          # We ignore excessive or unrecognized arguments.
+          pass
+        except ValueError as error:
+          raise InvalidRequestArgumentsInRouteError(error)
+
         for type_info in args.type_infos:
           try:
             if type_info.name in route_args:
               self._SetField(args, type_info, route_args[type_info.name])
-            elif type_info.name in unprocessed_request:
-              self._SetField(args, type_info,
-                             unprocessed_request[type_info.name])
           except Exception as e:  # pylint: disable=broad-except
             raise InvalidRequestArgumentsInRouteError(e)
 
@@ -616,6 +625,63 @@ def RenderHttpResponse(request):
     API_METHOD_LATENCY.RecordEvent(total_time, fields=fields)
 
   return response
+
+
+_V = TypeVar("_V", bound=rdfvalue.RDFValue)
+
+
+def FlatDictToRDFValue(dct: Dict[str, str], cls: Type[_V]) -> _V:
+  """Converts a flat dictionary to an RDF value instance.
+
+  In the flat dictionary, dots are used to denote a path of nested attributes in
+  the resulting message. Consider the following dictionary:
+
+      { "foo.bar": "42", "foo.baz.quux": "thud" }
+
+  It can correspond (depending on the schema) to the following Protocol Buffers
+  message (or some RDF value):
+
+      foo {
+          bar: 42
+          baz: {
+              quux: "thud"
+          }
+      }
+
+  Args:
+    dct: A flat dictionary to convert.
+    cls: An RDF value type to interpret the dictionary as.
+
+  Returns:
+    An instance of the specified RDF value type.
+
+  Raises:
+    AttributeError: If the message type does not support dictionary keys.
+  """
+  result = cls()
+
+  for key, value in dct.items():
+    path = key.split(".")
+
+    # First, we need to lookup the type that the field ought to have: for this
+    # we simply go down the type descriptors.
+    try:
+      attr_cls_getter = lambda cls, name: cls.type_infos[name].type
+      attr_cls = functools.reduce(attr_cls_getter, path, cls)
+    except KeyError:
+      raise AttributeError(f"'{cls}' does not support nested attribute '{key}'")
+
+    # We do from-string conversion only for non-enum values. Enums will do an
+    # automatic conversion upon assignment.
+    if not issubclass(attr_cls, rdf_structs.EnumNamedValue):
+      value = serialization.FromHumanReadable(attr_cls, value)
+
+    # Then, we can go down the path to the second-to-last attribute and finally
+    # set the value on the last one.
+    child_attr = functools.reduce(rdf_structs.RDFStruct.Get, path[:-1], result)
+    child_attr.Set(path[-1], value)
+
+  return result
 
 
 HTTP_REQUEST_HANDLER = None

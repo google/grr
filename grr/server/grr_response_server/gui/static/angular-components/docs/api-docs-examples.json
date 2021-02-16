@@ -505,9 +505,13 @@
                   "hunt_cron_action": {
                     "type": "HuntCronAction",
                     "value": {
+                      "flow_args": {
+                        "type": "InterrogateArgs",
+                        "value": {}
+                      },
                       "flow_name": {
                         "type": "unicode",
-                        "value": ""
+                        "value": "Interrogate"
                       },
                       "hunt_runner_args": {
                         "type": "HuntRunnerArgs",
@@ -523,6 +527,10 @@
                           "avg_results_per_client_limit": {
                             "type": "long",
                             "value": 1000
+                          },
+                          "client_rate": {
+                            "type": "float",
+                            "value": 20.0
                           },
                           "crash_limit": {
                             "type": "long",
@@ -581,11 +589,13 @@
           "args": {
             "action_type": "HUNT_CRON_ACTION",
             "hunt_cron_action": {
-              "flow_name": "",
+              "flow_args": {},
+              "flow_name": "Interrogate",
               "hunt_runner_args": {
                 "avg_cpu_seconds_per_client_limit": 60,
                 "avg_network_bytes_per_client_limit": 10485760,
                 "avg_results_per_client_limit": 1000,
+                "client_rate": 20.0,
                 "crash_limit": 100
               }
             }
@@ -616,6 +626,7 @@
           "avg_cpu_seconds_per_client_limit": 60,
           "avg_network_bytes_per_client_limit": 10485760,
           "avg_results_per_client_limit": 1000,
+          "client_rate": 20.0,
           "client_rule_set": {
             "rules": [
               {
@@ -677,6 +688,10 @@
                       "avg_results_per_client_limit": {
                         "type": "long",
                         "value": 1000
+                      },
+                      "client_rate": {
+                        "type": "float",
+                        "value": 20.0
                       },
                       "client_rule_set": {
                         "type": "ForemanClientRuleSet",
@@ -755,6 +770,7 @@
               "avg_cpu_seconds_per_client_limit": 60,
               "avg_network_bytes_per_client_limit": 10485760,
               "avg_results_per_client_limit": 1000,
+              "client_rate": 20.0,
               "client_rule_set": {
                 "rules": [
                   {
@@ -3811,9 +3827,13 @@
                   "hunt_cron_action": {
                     "type": "HuntCronAction",
                     "value": {
+                      "flow_args": {
+                        "type": "InterrogateArgs",
+                        "value": {}
+                      },
                       "flow_name": {
                         "type": "unicode",
-                        "value": ""
+                        "value": "Interrogate"
                       },
                       "hunt_runner_args": {
                         "type": "HuntRunnerArgs",
@@ -3829,6 +3849,10 @@
                           "avg_results_per_client_limit": {
                             "type": "long",
                             "value": 1000
+                          },
+                          "client_rate": {
+                            "type": "float",
+                            "value": 20.0
                           },
                           "crash_limit": {
                             "type": "long",
@@ -3884,11 +3908,13 @@
           "args": {
             "action_type": "HUNT_CRON_ACTION",
             "hunt_cron_action": {
-              "flow_name": "",
+              "flow_args": {},
+              "flow_name": "Interrogate",
               "hunt_runner_args": {
                 "avg_cpu_seconds_per_client_limit": 60,
                 "avg_network_bytes_per_client_limit": 10485760,
                 "avg_results_per_client_limit": 1000,
+                "client_rate": 20.0,
                 "crash_limit": 100
               }
             }
@@ -3962,9 +3988,13 @@
                   "hunt_cron_action": {
                     "type": "HuntCronAction",
                     "value": {
+                      "flow_args": {
+                        "type": "InterrogateArgs",
+                        "value": {}
+                      },
                       "flow_name": {
                         "type": "unicode",
-                        "value": ""
+                        "value": "Interrogate"
                       },
                       "hunt_runner_args": {
                         "type": "HuntRunnerArgs",
@@ -3980,6 +4010,10 @@
                           "avg_results_per_client_limit": {
                             "type": "long",
                             "value": 1000
+                          },
+                          "client_rate": {
+                            "type": "float",
+                            "value": 20.0
                           },
                           "crash_limit": {
                             "type": "long",
@@ -4035,11 +4069,13 @@
           "args": {
             "action_type": "HUNT_CRON_ACTION",
             "hunt_cron_action": {
-              "flow_name": "",
+              "flow_args": {},
+              "flow_name": "Interrogate",
               "hunt_runner_args": {
                 "avg_cpu_seconds_per_client_limit": 60,
                 "avg_network_bytes_per_client_limit": 10485760,
                 "avg_results_per_client_limit": 1000,
+                "client_rate": 20.0,
                 "crash_limit": 100
               }
             }
@@ -9923,9 +9959,13 @@
                   "hunt_cron_action": {
                     "type": "HuntCronAction",
                     "value": {
+                      "flow_args": {
+                        "type": "InterrogateArgs",
+                        "value": {}
+                      },
                       "flow_name": {
                         "type": "unicode",
-                        "value": ""
+                        "value": "Interrogate"
                       },
                       "hunt_runner_args": {
                         "type": "HuntRunnerArgs",
@@ -9941,6 +9981,10 @@
                           "avg_results_per_client_limit": {
                             "type": "long",
                             "value": 1000
+                          },
+                          "client_rate": {
+                            "type": "float",
+                            "value": 20.0
                           },
                           "crash_limit": {
                             "type": "long",
@@ -9996,11 +10040,13 @@
           "args": {
             "action_type": "HUNT_CRON_ACTION",
             "hunt_cron_action": {
-              "flow_name": "",
+              "flow_args": {},
+              "flow_name": "Interrogate",
               "hunt_runner_args": {
                 "avg_cpu_seconds_per_client_limit": 60,
                 "avg_network_bytes_per_client_limit": 10485760,
                 "avg_results_per_client_limit": 1000,
+                "client_rate": 20.0,
                 "crash_limit": 100
               }
             }
@@ -12337,6 +12383,10 @@
                             "type": "long",
                             "value": 1000
                           },
+                          "client_rate": {
+                            "type": "float",
+                            "value": 20.0
+                          },
                           "crash_limit": {
                             "type": "long",
                             "value": 100
@@ -12412,6 +12462,10 @@
                           "avg_results_per_client_limit": {
                             "type": "long",
                             "value": 1000
+                          },
+                          "client_rate": {
+                            "type": "float",
+                            "value": 20.0
                           },
                           "crash_limit": {
                             "type": "long",
@@ -12489,6 +12543,10 @@
                             "type": "long",
                             "value": 1000
                           },
+                          "client_rate": {
+                            "type": "float",
+                            "value": 20.0
+                          },
                           "crash_limit": {
                             "type": "long",
                             "value": 100
@@ -12550,6 +12608,7 @@
                   "avg_cpu_seconds_per_client_limit": 60,
                   "avg_network_bytes_per_client_limit": 10485760,
                   "avg_results_per_client_limit": 1000,
+                  "client_rate": 20.0,
                   "crash_limit": 100
                 }
               }
@@ -12572,6 +12631,7 @@
                   "avg_cpu_seconds_per_client_limit": 60,
                   "avg_network_bytes_per_client_limit": 10485760,
                   "avg_results_per_client_limit": 1000,
+                  "client_rate": 20.0,
                   "crash_limit": 100
                 }
               }
@@ -12594,6 +12654,7 @@
                   "avg_cpu_seconds_per_client_limit": 60,
                   "avg_network_bytes_per_client_limit": 10485760,
                   "avg_results_per_client_limit": 1000,
+                  "client_rate": 20.0,
                   "crash_limit": 100
                 }
               }
@@ -16701,6 +16762,10 @@
                         "type": "long",
                         "value": 1000
                       },
+                      "client_rate": {
+                        "type": "float",
+                        "value": 20.0
+                      },
                       "crash_limit": {
                         "type": "long",
                         "value": 100
@@ -16749,6 +16814,7 @@
               "avg_cpu_seconds_per_client_limit": 60,
               "avg_network_bytes_per_client_limit": 10485760,
               "avg_results_per_client_limit": 1000,
+              "client_rate": 20.0,
               "crash_limit": 100
             }
           }
@@ -16808,6 +16874,10 @@
                         "type": "long",
                         "value": 1000
                       },
+                      "client_rate": {
+                        "type": "float",
+                        "value": 20.0
+                      },
                       "crash_limit": {
                         "type": "long",
                         "value": 100
@@ -16856,6 +16926,7 @@
               "avg_cpu_seconds_per_client_limit": 60,
               "avg_network_bytes_per_client_limit": 10485760,
               "avg_results_per_client_limit": 1000,
+              "client_rate": 20.0,
               "crash_limit": 100
             }
           }

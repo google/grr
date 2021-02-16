@@ -17,6 +17,7 @@ import yaml
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_server import data_store
 from grr_response_server import hunt
@@ -645,6 +646,7 @@ class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
     self.hunt_id = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
             flow_name=flow_test_lib.DummyFlowWithSingleReply.__name__),
+        flow_args=rdf_flows.EmptyFlowArgs(),
         client_rate=0)
 
     self.client_ids = self.SetupClients(5)

@@ -137,6 +137,20 @@ function translateOperatingSystem(str: string): OperatingSystem {
   return str as OperatingSystem;
 }
 
+/** Translates a String to OperatingSystem, returning undefined on error. */
+export function safeTranslateOperatingSystem(str: string|undefined):
+    OperatingSystem|undefined {
+  if (str === undefined) {
+    return undefined;
+  }
+
+  try {
+    return translateOperatingSystem(str);
+  } catch (e: unknown) {
+    return undefined;
+  }
+}
+
 function translateArtifactSource(source: api.ArtifactSource): ArtifactSource {
   assertKeyNonNull(source, 'type');
 

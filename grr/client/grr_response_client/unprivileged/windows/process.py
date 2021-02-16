@@ -37,10 +37,12 @@ from ctypes.wintypes import LPBYTE
 from ctypes.wintypes import LPCWSTR
 from ctypes.wintypes import LPVOID
 from ctypes.wintypes import LPWSTR
-from ctypes.wintypes import PHANDLE
 from ctypes.wintypes import WORD
 # pylint: enable=g-importing-member
-from typing import Callable, List, Optional, Tuple
+import os
+import subprocess
+from typing import List, Optional
+import msvcrt
 
 import win32api
 import win32event
@@ -156,29 +158,9 @@ UpdateProcThreadAttribute.restype = BOOL
 DeleteProcThreadAttributeList = kernel32.DeleteProcThreadAttributeList
 DeleteProcThreadAttributeList.argtypes = [LPPROC_THREAD_ATTRIBUTE_LIST]
 
-CreatePipe = kernel32.CreatePipe
-CreatePipe.argtypes = [
-    PHANDLE,
-    PHANDLE,
-    LPSECURITY_ATTRIBUTES,
-    DWORD_PTR,
-]
-CreatePipe.restype = BOOL
-
 
 class Error(Exception):
   pass
-
-
-def CreatePipeWrapper() -> Tuple[HANDLE, HANDLE]:
-  r = HANDLE()
-  w = HANDLE()
-  attr = SECURITY_ATTRIBUTES()
-  attr.bInheritHandle = True
-  res = CreatePipe(ctypes.byref(r), ctypes.byref(w), ctypes.byref(attr), 0)
-  if not res:
-    raise Error("CreatePipe failed.")
-  return r, w
 
 
 EXTENDED_STARTUPINFO_PRESENT = 0x00080000
@@ -192,25 +174,17 @@ class Process:
   A pair of pipes is crated and shared with the subprocess.
   """
 
-  def __init__(self,
-               make_command_line: Callable[[int, int], str],
-               extra_handles: Optional[List[int]] = None):
+  def __init__(self, args: List[str], extra_fds: Optional[List[int]] = None):
     """Constructor.
 
     Args:
-      make_command_line: Receives a handle to the input and output pipe
-        respectively, returns the command line for running the subprocess.
-      extra_handles: Optional list of extra handles to share with the
+      args: Command line to run, in argv format.
+      extra_fds: Optional list of extra file descriptors to share with the
         subprocess.
 
     Raises:
       Error: if a win32 call fails.
     """
-    remote_input, local_input = CreatePipeWrapper()
-    local_output, remote_output = CreatePipeWrapper()
-
-    self.input = local_input.value
-    self.output = local_output.value
 
     size = SIZE_T()
     InitializeProcThreadAttributeList(None, 1, 0, ctypes.byref(size))
@@ -219,12 +193,13 @@ class Process:
     if not res:
       raise Error("InitializeProcThreadAttributeList failed.")
 
-    if extra_handles is None:
-      extra_handles = []
+    extra_handles = [msvcrt.get_osfhandle(fd) for fd in extra_fds]
 
-    handle_list_size = 2 + len(extra_handles)
+    for extra_handle in extra_handles:
+      os.set_handle_inheritable(extra_handle, True)
+
+    handle_list_size = len(extra_handles)
     handle_list = (HANDLE * handle_list_size)(
-        remote_input, remote_output,
         *[HANDLE(handle) for handle in extra_handles])
     res = UpdateProcThreadAttribute(attr_list, 0,
                                     PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
@@ -243,9 +218,11 @@ class Process:
 
     pi = PROCESS_INFORMATION()
 
+    command_line = subprocess.list2cmdline(args)
+
     res = CreateProcessW(
         None,
-        make_command_line(remote_input.value, remote_output.value),
+        command_line,
         None,
         None,
         True,
@@ -259,16 +236,11 @@ class Process:
     if not res:
       raise Error("CreateProcessW failed.")
 
-    win32api.CloseHandle(remote_input.value)
-    win32api.CloseHandle(remote_output.value)
-
     self._handle = pi.hProcess
 
     win32api.CloseHandle(pi.hThread)
 
   def Stop(self) -> None:
-    win32api.CloseHandle(self.input)
-    win32api.CloseHandle(self.output)
     win32process.TerminateProcess(self._handle, -1)
     res = win32event.WaitForSingleObject(self._handle, win32event.INFINITE)
     if res == win32event.WAIT_FAILED:

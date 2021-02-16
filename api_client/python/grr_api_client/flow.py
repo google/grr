@@ -106,6 +106,25 @@ class FlowBase(object):
         client_id=self.client_id, flow_id=self.flow_id, format=fmt)
     return self._context.SendStreamingRequest("GetCollectedTimeline", args)
 
+  def GetCollectedTimelineBody(
+      self,
+      timestamp_subsecond_precision: bool = False,
+      inode_ntfs_file_reference_format: bool = False,
+      backslash_escape: bool = False,
+  ) -> utils.BinaryChunkIterator:
+    """Fetches timeline content in the body format."""
+    args = timeline_pb2.ApiGetCollectedTimelineArgs()
+    args.client_id = self.client_id
+    args.flow_id = self.flow_id
+    args.format = timeline_pb2.ApiGetCollectedTimelineArgs.BODY
+
+    opts = args.body_opts
+    opts.timestamp_subsecond_precision = timestamp_subsecond_precision
+    opts.inode_ntfs_file_reference_format = inode_ntfs_file_reference_format
+    opts.backslash_escape = backslash_escape
+
+    return self._context.SendStreamingRequest("GetCollectedTimeline", args)
+
   def GetOsqueryResults(
       self,
       fmt: osquery_pb2.ApiGetOsqueryResultsArgs.Format,

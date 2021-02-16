@@ -5,24 +5,18 @@ import io
 import stat
 
 from typing import Iterator
+from typing import Optional
 
 from grr_response_proto import timeline_pb2
 
 DEFAULT_CHUNK_SIZE = 1024 * 1024  # 1 MiB.
 
 
-# TODO(hanuszczak): Create a separate class for options.
-def Stream(
-    entries: Iterator[timeline_pb2.TimelineEntry],
-    chunk_size: int = DEFAULT_CHUNK_SIZE,
-    timestamp_subsecond_precision: bool = False,
-    inode_ntfs_file_reference_format: bool = False,
-    backslash_escape: bool = False,
-) -> Iterator[bytes]:
-  """Streams chunks of a Sleuthkit's body file (from a stream of entries).
+# TODO(hanuszczak): Migrate this to dataclasses once we are Python 3.7+ only.
+class Opts:
+  """Options for generating files in the body format.
 
-  Args:
-    entries: A stream of timeline entries protoes.
+  Attributes:
     chunk_size: An (optional) size of the output chunk. Note that chunks are
       going to be slightly bigger than this value, but the difference should be
       negligible.
@@ -32,21 +26,40 @@ def Stream(
       the output should use NTFS file reference format for inode values.
     backslash_escape: An (optional) flag that controls whether the output should
       have backslashes escaped.
+  """
+  chunk_size: int = DEFAULT_CHUNK_SIZE
+  timestamp_subsecond_precision: bool = False
+  inode_ntfs_file_reference_format: bool = False
+  backslash_escape: bool = False
+
+
+def Stream(
+    entries: Iterator[timeline_pb2.TimelineEntry],
+    opts: Optional[Opts] = None,
+) -> Iterator[bytes]:
+  """Streams chunks of a Sleuthkit's body file (from a stream of entries).
+
+  Args:
+    entries: A stream of timeline entries protoes.
+    opts: Options for the format of the generated file.
 
   Yields:
     Chunks of the body file.
   """
-  if timestamp_subsecond_precision:
+  if opts is None:
+    opts = Opts()
+
+  if opts.timestamp_subsecond_precision:
     timestamp_fmt = lambda ns: str(ns / 10**9)
   else:
     timestamp_fmt = lambda ns: str(ns // 10**9)
 
-  if inode_ntfs_file_reference_format:
+  if opts.inode_ntfs_file_reference_format:
     inode_fmt = _NtfsFileReference
   else:
     inode_fmt = str
 
-  if backslash_escape:
+  if opts.backslash_escape:
     path_trans = str.maketrans({**_BODY_PATH_ESCAPE, "\\": "\\\\"})
   else:
     path_trans = str.maketrans(_BODY_PATH_ESCAPE)
@@ -83,7 +96,7 @@ def Stream(
     buf.write(timestamp_fmt(entry.btime_ns))
     buf.write("\n")
 
-    if buf.tell() > chunk_size:
+    if buf.tell() > opts.chunk_size:
       yield buf.getvalue().encode("utf-8", "surrogateescape")
       buf.truncate(0)
       buf.seek(0, io.SEEK_SET)

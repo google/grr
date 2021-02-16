@@ -2,7 +2,7 @@
 // tslint:disable:enforce-comments-on-exported-symbols
 
 import {Client, ClientApproval} from '@app/lib/models/client';
-import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowState, ScheduledFlow} from './flow';
+import {ArtifactDescriptor, ArtifactDescriptorMap, Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowState, OperatingSystem, ScheduledFlow} from './flow';
 
 
 
@@ -111,4 +111,27 @@ export function newFlowResultSet(payload = {}): FlowResultSet {
     },
     state: FlowResultSetState.FETCHED,
   };
+}
+
+export function newArtifactDescriptor(args: Partial<ArtifactDescriptor>):
+    ArtifactDescriptor {
+  return {
+    dependencies: [],
+    doc: 'Description of test artifact',
+    isCustom: false,
+    labels: ['Browsers'],
+    name: 'TestAritfact',
+    pathDependencies: [],
+    provides: [],
+    sources: [],
+    supportedOs: new Set([OperatingSystem.LINUX]),
+    urls: [],
+    ...args,
+  };
+}
+
+export function newArtifactDescriptorMap(
+    descriptors: Array<Partial<ArtifactDescriptor>>): ArtifactDescriptorMap {
+  return new Map(
+      descriptors.map(newArtifactDescriptor).map(ad => ([ad.name, ad])));
 }

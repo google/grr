@@ -83,14 +83,14 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
   ) -> api_call_handler_base.ApiBinaryStream:
     client_id = str(args.client_id)
     flow_id = str(args.flow_id)
-    opts = args.body_opts
+
+    opts = body.Opts()
+    opts.timestamp_subsecond_precision = args.body_opts.timestamp_subsecond_precision
+    opts.inode_ntfs_file_reference_format = args.body_opts.inode_ntfs_file_reference_format
+    opts.backslash_escape = args.body_opts.backslash_escape
 
     entries = timeline.ProtoEntries(client_id=client_id, flow_id=flow_id)
-    content = body.Stream(
-        entries,
-        timestamp_subsecond_precision=opts.timestamp_subsecond_precision,
-        inode_ntfs_file_reference_format=opts.inode_ntfs_file_reference_format,
-        backslash_escape=opts.backslash_escape)
+    content = body.Stream(entries, opts=opts)
 
     filename = "timeline_{}.body".format(flow_id)
     return api_call_handler_base.ApiBinaryStream(filename, content)

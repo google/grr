@@ -5,7 +5,7 @@ import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateScheduledFlow} from '@app/lib/api_translation/flow';
 import {ScheduledFlow} from '@app/lib/models/flow';
 import {combineLatest, Observable, timer} from 'rxjs';
-import {concatMap, distinctUntilChanged, exhaustMap, filter, map, mapTo, shareReplay, tap, withLatestFrom} from 'rxjs/operators';
+import {concatMap, exhaustMap, filter, map, mapTo, shareReplay, tap, withLatestFrom} from 'rxjs/operators';
 
 import {isNonNull} from '../lib/preconditions';
 
@@ -67,7 +67,6 @@ export class ScheduledFlowStore extends ComponentStore<State> {
           .pipe(
               map(([, entries]) => entries),
               filter(isNonNull),
-              distinctUntilChanged(),
               shareReplay({bufferSize: 1, refCount: true}),
           );
 

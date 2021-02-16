@@ -105,6 +105,33 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
       self.assertEqual(entries_by_path[thud_filepath].size, 4)
       self.assertEqual(entries_by_path[blargh_filepath].size, 6)
 
+  def testProgress(self):
+    client_id = self.client_id
+
+    with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
+      filesystem_test_lib.CreateFile(os.path.join(tempdir, "foo"))
+      filesystem_test_lib.CreateFile(os.path.join(tempdir, "bar"))
+      filesystem_test_lib.CreateFile(os.path.join(tempdir, "baz"))
+
+      args = rdf_timeline.TimelineArgs()
+      args.root = tempdir.encode("utf-8")
+
+      flow_id = flow_test_lib.StartFlow(
+          timeline_flow.TimelineFlow, client_id=client_id, flow_args=args)
+
+      progress = flow_test_lib.GetFlowProgress(
+          client_id=client_id, flow_id=flow_id)
+      self.assertEqual(progress.total_entry_count, 0)
+
+      flow_test_lib.RunFlow(
+          client_id=client_id,
+          flow_id=flow_id,
+          client_mock=action_mocks.ActionMock(timeline_action.Timeline))
+
+      progress = flow_test_lib.GetFlowProgress(
+          client_id=client_id, flow_id=flow_id)
+      self.assertEqual(progress.total_entry_count, 4)
+
   @db_test_lib.WithDatabase
   def testLogsWarningIfBtimeNotSupported(self, db: abstract_db.Database):
     client_id = self.client_id

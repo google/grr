@@ -1248,11 +1248,12 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def ReadApprovalRequests(self,
-                           requestor_username,
-                           approval_type,
-                           subject_id=None,
-                           include_expired=False):
+  def ReadApprovalRequests(
+      self,
+      requestor_username,
+      approval_type,
+      subject_id=None,
+      include_expired=False) -> Sequence[rdf_objects.ApprovalRequest]:
     """Reads approval requests of a given type for a given user.
 
     Args:
@@ -1263,8 +1264,8 @@ class Database(metaclass=abc.ABCMeta):
         returned.
       include_expired: If True, will also yield already expired approvals.
 
-    Yields:
-      rdfvalues.objects.ApprovalRequest objects.
+    Returns:
+      A list of rdfvalues.objects.ApprovalRequest objects.
     """
 
   @abc.abstractmethod
@@ -3315,11 +3316,12 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.ReadApprovalRequest(requestor_username, approval_id)
 
-  def ReadApprovalRequests(self,
-                           requestor_username,
-                           approval_type,
-                           subject_id=None,
-                           include_expired=False):
+  def ReadApprovalRequests(
+      self,
+      requestor_username,
+      approval_type,
+      subject_id=None,
+      include_expired=False) -> Sequence[rdf_objects.ApprovalRequest]:
     _ValidateUsername(requestor_username)
     _ValidateApprovalType(approval_type)
 

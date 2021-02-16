@@ -1,6 +1,14 @@
 <div *ngIf="(state$ | async) === FlowState.FINISHED">
   <div class="download flow-details-summary-actions">
-    <a mat-stroked-button color="primary" [href]="bodyFileUrl$ | async" [download]="bodyFileName$ | async">Download body</a>
+    <a mat-stroked-button color="primary" [href]="(bodyFileUrl$ | async).toString()" [download]="bodyFileName$ | async">Download body</a>
+    <button mat-button [matMenuTriggerFor]="menu">
+      <mat-icon>keyboard_arrow_down</mat-icon>
+    </button>
+    <mat-menu #menu="matMenu" [formGroup]="bodyOptsForm">
+      <mat-checkbox class="mat-menu-item" formControlName="timestampSubsecondPrecision">Timestamp subsecond precision</mat-checkbox>
+      <mat-checkbox class="mat-menu-item" formControlName="inodeNtfsFileReferenceFormat">NTFS file reference format</mat-checkbox>
+      <mat-checkbox class="mat-menu-item" formControlName="backslashEscape">Backslash escape</mat-checkbox>
+    </mat-menu>
   </div>
 </div>
 

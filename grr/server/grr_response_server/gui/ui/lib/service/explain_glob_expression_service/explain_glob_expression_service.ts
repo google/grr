@@ -1,7 +1,7 @@
 import {Injectable} from '@angular/core';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {Observable, ReplaySubject} from 'rxjs';
-import {concatMap, debounceTime, distinctUntilChanged} from 'rxjs/operators';
+import {concatMap, debounceTime} from 'rxjs/operators';
 
 import {GlobComponentExplanation} from '../../api/api_interfaces';
 
@@ -20,7 +20,6 @@ export class ExplainGlobExpressionService {
 
   readonly explanation$: Observable<ReadonlyArray<GlobComponentExplanation>> =
       this.input$.pipe(
-          distinctUntilChanged(),
           debounceTime(500),
           concatMap(
               ({clientId, globExpression}) =>

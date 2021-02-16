@@ -103,6 +103,9 @@ export class Approval implements OnDestroy {
     this.approversInputControl.valueChanges.subscribe(value => {
       this.clientPageFacade.suggestApprovers(value);
     });
+
+    // Trigger the suggestion of previously requested approvers.
+    this.clientPageFacade.suggestApprovers('');
   }
 
   @HostListener('click')

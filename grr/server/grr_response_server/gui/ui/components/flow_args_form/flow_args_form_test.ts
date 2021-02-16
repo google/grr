@@ -1,18 +1,22 @@
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, Input, ViewChild} from '@angular/core';
 import {fakeAsync, TestBed, tick} from '@angular/core/testing';
+import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowArgsFormModule} from '@app/components/flow_args_form/module';
 import {ApiModule} from '@app/lib/api/module';
 import {initTestEnvironment} from '@app/testing';
-import {ReplaySubject, Subject} from 'rxjs';
+import {firstValueFrom, ReplaySubject, Subject} from 'rxjs';
 
-import {CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, GlobComponentExplanation} from '../../lib/api/api_interfaces';
-import {FlowDescriptor} from '../../lib/models/flow';
-import {newClient} from '../../lib/models/model_test_util';
+import {ArtifactCollectorFlowArgs, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, GlobComponentExplanation} from '../../lib/api/api_interfaces';
+import {FlowDescriptor, OperatingSystem, SourceType} from '../../lib/models/flow';
+import {newArtifactDescriptorMap, newClient} from '../../lib/models/model_test_util';
 import {ExplainGlobExpressionService} from '../../lib/service/explain_glob_expression_service/explain_glob_expression_service';
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
+import {ConfigFacade} from '../../store/config_facade';
+import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
 
 import {FlowArgsForm} from './flow_args_form';
 
@@ -25,7 +29,7 @@ const TEST_FLOW_DESCRIPTORS = Object.freeze({
     friendlyName: 'Collect artifact',
     category: 'Collector',
     defaultArgs: {
-      artifactList: ['Foo'],
+      artifactList: [],
     },
   },
   CollectBrowserHistory: {
@@ -85,6 +89,10 @@ function setUp() {
           TestHostComponent,
         ],
 
+        providers: [
+          {provide: ConfigFacade, useFactory: mockConfigFacade},
+          {provide: ClientPageFacade, useFactory: mockClientPageFacade},
+        ],
       })
       .compileComponents();
 }
@@ -434,4 +442,182 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
     expect(fixture.debugElement.queryAll(By.css('time-range-condition')))
         .toHaveSize(0);
   });
+});
+
+
+describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
+  let configFacade: ConfigFacadeMock;
+  let clientPageFacade: ClientPageFacadeMock;
+
+  beforeEach(() => {
+    configFacade = mockConfigFacade();
+    clientPageFacade = mockClientPageFacade();
+    TestBed
+        .configureTestingModule({
+          imports: [
+            NoopAnimationsModule,
+            ApiModule,
+            FlowArgsFormModule,
+          ],
+          declarations: [
+            TestHostComponent,
+          ],
+
+          providers: [
+            {provide: ConfigFacade, useFactory: () => configFacade},
+            {provide: ClientPageFacade, useFactory: () => clientPageFacade},
+          ],
+        })
+        .compileComponents();
+  });
+
+  function prepareFixture() {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.flowDescriptor =
+        TEST_FLOW_DESCRIPTORS.ArtifactCollectorFlow;
+    fixture.detectChanges();
+
+    return {fixture};
+  }
+
+  it('shows initial artifact suggestions', fakeAsync(async () => {
+       const {fixture} = prepareFixture();
+
+       configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
+         {
+           name: 'foo',
+           sources: [
+             {
+               type: SourceType.FILE,
+               attributes: new Map(Object.entries({paths: ['/sample/path']})),
+               conditions: [],
+               returnedTypes: [],
+               supportedOs: new Set()
+             },
+           ]
+         },
+         {name: 'bar', doc: 'description123'},
+         {name: 'baz'},
+       ]));
+
+       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+       const autocompleteHarness =
+           await harnessLoader.getHarness(MatAutocompleteHarness);
+       await autocompleteHarness.focus();
+       const options = await autocompleteHarness.getOptions();
+       expect(options.length).toEqual(3);
+
+       const texts = await Promise.all(options.map(o => o.getText()));
+       expect(texts[0]).toContain('foo');
+       expect(texts[0]).toContain('/sample/path');
+       expect(texts[1]).toContain('bar');
+       expect(texts[1]).toContain('description123');
+       expect(texts[2]).toContain('baz');
+     }));
+
+
+  it('filters artifact suggestions based on user input', async () => {
+    const {fixture} = prepareFixture();
+
+    configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
+      {name: 'foo'},
+      {name: 'baar'},
+      {name: 'baaz'},
+    ]));
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const autocompleteHarness =
+        await harnessLoader.getHarness(MatAutocompleteHarness);
+    await autocompleteHarness.enterText('aa');
+    const options = await autocompleteHarness.getOptions();
+    expect(options.length).toEqual(2);
+
+    const texts = await Promise.all(options.map(o => o.getText()));
+    expect(texts[0]).toContain('baar');
+    expect(texts[1]).toContain('baaz');
+  });
+
+  it('searches artifact fields based on user input', async () => {
+    const {fixture} = prepareFixture();
+
+    configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
+      {
+        name: 'foo',
+        sources: [
+          {
+            type: SourceType.FILE,
+            attributes: new Map(Object.entries({paths: ['/sample/path']})),
+            conditions: [],
+            returnedTypes: [],
+            supportedOs: new Set()
+          },
+        ]
+      },
+      {name: 'bar'},
+      {name: 'baz'},
+    ]));
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const autocompleteHarness =
+        await harnessLoader.getHarness(MatAutocompleteHarness);
+    await autocompleteHarness.enterText('SaMpLe');
+    const options = await autocompleteHarness.getOptions();
+    expect(options.length).toEqual(1);
+    expect(await options[0].getText()).toContain('foo');
+  });
+
+  it('configures flow args with selected artifact suggestion', async () => {
+    const {fixture} = prepareFixture();
+
+    configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
+      {name: 'foo'},
+      {name: 'bar'},
+      {name: 'baz'},
+    ]));
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const autocompleteHarness =
+        await harnessLoader.getHarness(MatAutocompleteHarness);
+    await autocompleteHarness.selectOption({text: /bar/});
+
+    const flowArgValues =
+        await firstValueFrom(
+            fixture.componentInstance.flowArgsForm.flowArgValues$) as
+        ArtifactCollectorFlowArgs;
+    expect(flowArgValues.artifactList).toEqual(['bar']);
+  });
+
+  it('marks artifacts for different operating system as unavailable',
+     async () => {
+       const {fixture} = prepareFixture();
+
+       configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
+         {name: 'foo', supportedOs: new Set([OperatingSystem.DARWIN])},
+         {name: 'bar', supportedOs: new Set([OperatingSystem.WINDOWS])},
+         {
+           name: 'baz',
+           supportedOs: new Set([OperatingSystem.DARWIN, OperatingSystem.LINUX])
+         },
+       ]));
+       clientPageFacade.selectedClientSubject.next(
+           newClient({knowledgeBase: {os: 'Darwin'}}));
+       fixture.detectChanges();
+
+       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+       const autocompleteHarness =
+           await harnessLoader.getHarness(MatAutocompleteHarness);
+       await autocompleteHarness.focus();
+       const options = await autocompleteHarness.getOptions();
+       // Unavailable artifacts should still be shown for discoverability.
+       expect(options.length).toEqual(3);
+
+       const elements = await Promise.all(options.map(o => o.host()));
+       expect(await elements[0].hasClass('unavailable')).toBeFalse();
+       expect(await elements[1].hasClass('unavailable')).toBeTrue();
+       expect(await elements[2].hasClass('unavailable')).toBeFalse();
+
+       expect(await options[1].getText()).toContain('Windows');
+     });
 });

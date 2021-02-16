@@ -4,6 +4,7 @@ import "google/protobuf/descriptor.proto"; // for FieldOptions
 
 package grr;
 
+// Next field id: 7.
 message SemanticDescriptor {
   // The semantic name of the SemanticValue contained in this field.
   optional string type = 1;
@@ -12,6 +13,19 @@ message SemanticDescriptor {
   // the attribute to use to retrieve the SemanticValue class to be used for
   // parsing this field.
   optional string dynamic_type = 5;
+
+  // By default, all `google.protobuf.Any` fields have dynamic type lookup
+  // enabled even if they don't specify `dynamic_type` (they use the `type_url`
+  // field for resolution in such cases). However, this mechanism turns out to
+  // be very fragile and leads to bugs (e.g. messages cannot be renamed). Thus,
+  // all this magic should be removed eventually.
+  //
+  // It is hard to do in one swipe. Instead, the code should be incrementally
+  // migrated away from relying on this mechanism. By enabling this annotation,
+  // the magic is turned off. Once all `google.protobuf.Any` fields are switched
+  // to use it, it can be made the default and removed.
+  optional bool no_dynamic_type_lookup = 6;
+
   optional string description = 2;
 
   enum Labels {

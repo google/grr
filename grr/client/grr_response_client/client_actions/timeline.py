@@ -15,6 +15,7 @@ from grr_response_client import actions
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
+from grr_response_core.lib.util import iterator
 from grr_response_core.lib.util import statx
 
 
@@ -32,19 +33,22 @@ class Timeline(actions.ActionPlugin):
 
   def Run(self, args: rdf_timeline.TimelineArgs) -> None:
     """Executes the client action."""
-    result = rdf_timeline.TimelineResult()
-
-    entries = Walk(args.root)
+    entries = iterator.Counted(Walk(args.root))
     for entry_batch in rdf_timeline.TimelineEntry.SerializeStream(entries):
       entry_batch_blob = rdf_protodict.DataBlob(data=entry_batch)
       self.SendReply(entry_batch_blob, session_id=self._TRANSFER_STORE_ID)
 
       entry_batch_blob_id = hashlib.sha256(entry_batch).digest()
+
+      result = rdf_timeline.TimelineResult()
       result.entry_batch_blob_ids.append(entry_batch_blob_id)
+      result.entry_count = entries.count
+      self.SendReply(result)
 
-      self.Progress()
-
-    self.SendReply(result)
+      # Each result should contain information only about the number of entries
+      # in the current batch, so after the results are sent we simply reset the
+      # counter.
+      entries.Reset()
 
 
 def Walk(root: bytes) -> Iterator[rdf_timeline.TimelineEntry]:

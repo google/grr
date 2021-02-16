@@ -1217,6 +1217,35 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
     return (self.encoded_tag, VarintEncode(len(output)), output)
 
 
+class ProtoAnyValue(ProtoType):
+  """A raw Protocol Buffers `Any` type without dynamic typing magic."""
+
+  wire_type = WIRETYPE_LENGTH_DELIMITED
+  proto_type_name = "google.protobuf.Any"
+  set_default_on_access = True
+
+  def GetDefault(self, container=None):
+    del container  # Unused.
+    return AnyValue()
+
+  def Validate(self, value, container=None):
+    del container  # Unused.
+    precondition.AssertType(value, AnyValue)
+
+    return value
+
+  def ConvertFromWireFormat(self, value, container=None):
+    del container  # Unused.
+
+    return AnyValue.FromSerializedBytes(value[2])
+
+  def ConvertToWireFormat(self, value):
+    precondition.AssertType(value, AnyValue)
+
+    data = value.SerializeToBytes()
+    return (self.encoded_tag, VarintEncode(len(data)), data)
+
+
 class RepeatedFieldHelper(collections.Sequence, object):
   """A helper for the RDFProto to handle repeated fields.
 
@@ -2303,7 +2332,40 @@ class SemanticDescriptor(RDFProtoStruct):
   protobuf = semantic_pb2.SemanticDescriptor
 
 
+_V = TypeVar("_V", bound=rdfvalue.RDFValue)
+
+
 class AnyValue(RDFProtoStruct):
   """Protobuf with arbitrary serialized proto and its type."""
   protobuf = any_pb2.Any
   allow_custom_class_name = True
+
+  _TYPE_URL_PREFIX = "type.googleapis.com/"
+
+  @classmethod
+  def Pack(cls, value: RDFProtoStruct) -> "AnyValue":
+    """Packs given RDF value into the `Any` RDF wrapper.
+
+    Args:
+      value: An RDF value to pack.
+
+    Returns:
+      An instance of RDF wrapper for `Any` with packed message.
+    """
+    full_name = value.protobuf.DESCRIPTOR.full_name
+
+    result = cls()
+    result.type_url = f"{cls._TYPE_URL_PREFIX}{full_name}"
+    result.value = value.SerializeToBytes()
+    return result
+
+  def Unpack(self, cls: Type[_V]) -> _V:
+    """Unpacks `Any` into an instance of the specified RDF class.
+
+    Args:
+      cls: A class into instance of which the value should be unpacked into.
+
+    Returns:
+      An instance of the specified class.
+    """
+    return cls.FromSerializedBytes(self.value)
