@@ -54,7 +54,7 @@ def GetClientTestTargets(grr_api=None,
   clients = []
   if hostnames:
     hostnames = set(hostnames)
-    logging.info("Seaching for clients corresponding to %d hostnames: %s.",
+    logging.info("Searching for clients corresponding to %d hostnames: %s.",
                  len(hostnames), ",".join(hostnames))
 
     for hostname in hostnames:

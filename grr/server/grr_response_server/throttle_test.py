@@ -42,7 +42,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
           daily_req_limit=2,
           dup_interval=rdfvalue.Duration.From(0, rdfvalue.SECONDS))
 
-      # Should succeeed, only one flow present in the 1 day window.
+      # Should succeed, only one flow present in the 1 day window.
       throttler.EnforceLimits(self.client_id, self.token.username,
                               flow_test_lib.DummyLogFlow.__name__, None)
 

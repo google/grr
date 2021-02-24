@@ -34,7 +34,7 @@ class Error(Exception):
 
 
 class BigQueryJobUploadError(Error):
-  """Failed to create BigQuery uplod job."""
+  """Failed to create BigQuery upload job."""
 
 
 def GetBigQueryClient(service_account_json=None,

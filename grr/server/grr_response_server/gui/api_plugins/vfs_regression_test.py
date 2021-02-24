@@ -181,7 +181,7 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
     non_refresh_flow_id = flow_test_lib.StartFlow(
         discovery.Interrogate, client_id, creator=self.token.username)
 
-    # Unkonwn flow ids should also cause 404s.
+    # Unknown flow ids should also cause 404s.
     unknown_flow_id = "12345678"
 
     # Check both operations.
@@ -258,7 +258,7 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
     non_update_flow_id = flow.StartFlow(
         client_id=client_id, flow_cls=discovery.Interrogate)
 
-    # Unkonwn flow ids should also cause 404s.
+    # Unknown flow ids should also cause 404s.
     unknown_flow_id = "F:12345678"
 
     # Check both operations.

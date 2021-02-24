@@ -389,7 +389,7 @@ def GetClientConfig(filename):
   config_lib.ParseConfigCommandLine()
   context = list(grr_config.CONFIG.context)
   context.append("Client Context")
-  # Disable timestamping so we can get a reproducible and cachable config file.
+  # Disable timestamping so we can get a reproducible and cacheable config file.
   config_data = build_helpers.GetClientConfig(
       context, validate=True, deploy_timestamp=False)
   with open(filename, "w") as fd:

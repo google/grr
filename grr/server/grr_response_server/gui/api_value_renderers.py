@@ -413,7 +413,7 @@ class ApiOutputPluginDescriptorRenderer(ApiValueRenderer):
 
 
 class ApiAnyValueRenderer(ApiValueRenderer):
-  """An renderer class for Protcol Buffers `Any` values."""
+  """An renderer class for Protocol Buffers `Any` values."""
 
   value_class = rdf_structs.AnyValue
 

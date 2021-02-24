@@ -170,7 +170,7 @@ def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
 def CompleteHuntIfExpirationTimeReached(hunt_obj):
   """Marks the hunt as complete if it's past its expiry time."""
   # TODO(hanuszczak): This should not set the hunt state to `COMPLETED` but we
-  # should have a sparate `EXPIRED` state instead and set that.
+  # should have a separate `EXPIRED` state instead and set that.
   if (hunt_obj.hunt_state not in [
       rdf_hunt_objects.Hunt.HuntState.STOPPED,
       rdf_hunt_objects.Hunt.HuntState.COMPLETED

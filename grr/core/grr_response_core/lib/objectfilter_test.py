@@ -272,7 +272,7 @@ class ObjectFilterTest(absltest.TestCase):
     self.assertListEqual([list(value) for value in values], expected)
 
     # Non-existing first path
-    values = self.value_expander().Expand(self.file, "nonexistant")
+    values = self.value_expander().Expand(self.file, "nonexistent")
     self.assertListEqual(list(values), [])
 
     # Non-existing in the middle

@@ -87,7 +87,7 @@ class StoreTests(test_lib.GRRBaseTest):
     tested_cache = utils.TimeBasedCache(max_age=50)
     with test_lib.FakeTime(100):
 
-      # Stop the housekeeper thread - we test it explicitely here
+      # Stop the housekeeper thread - we test it explicitly here
       tested_cache.exit = True
       tested_cache.Put(key, "hello")
 

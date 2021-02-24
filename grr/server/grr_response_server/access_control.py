@@ -36,7 +36,7 @@ class Error(Exception):
 
 
 class NotSupportedError(Error):
-  """Used when a function isn't supported by a given Access Control Mananger."""
+  """Used when a function isn't supported by a given Access Control Manager."""
 
 
 class InvalidUserError(Error):

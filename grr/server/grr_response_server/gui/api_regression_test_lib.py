@@ -217,7 +217,7 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
 
   @abc.abstractmethod
   def Run(self):
-    """Sets up test envionment and does Check() calls."""
+    """Sets up test environment and does Check() calls."""
     pass
 
   def _testForRegression(self):  # pylint: disable=invalid-name

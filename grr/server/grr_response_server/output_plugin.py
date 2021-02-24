@@ -97,7 +97,7 @@ class OutputPlugin(metaclass=OutputPluginRegistry):
 
     When responses are processed, multiple ProcessResponses() calls can
     be done in a row. ProcessResponse() calls may be parallelized within the
-    same worker to improve output performace, therefore ProcessResponses()
+    same worker to improve output performance, therefore ProcessResponses()
     implementation should be thread-safe. ProcessResponse() calls are
     *always* followed by a single Flush() call on the same worker.
 

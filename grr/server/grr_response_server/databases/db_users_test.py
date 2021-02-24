@@ -186,7 +186,7 @@ class DatabaseTestUsersMixin(object):
     approval_request.grants = []
 
     # Approval id and timestamp are generated in WriteApprovalRequest so we're
-    # filling them into our model object ot make sure that equality check works.
+    # filling them into our model object to make sure that equality check works.
     approval_request.approval_id = read_request.approval_id
     approval_request.timestamp = read_request.timestamp
     self.assertEqual(approval_request, read_request)
@@ -321,7 +321,7 @@ class DatabaseTestUsersMixin(object):
     approval_request.grants = []
 
     # Approval id and timestamp are generated in WriteApprovalRequest so we're
-    # filling them into our model object ot make sure that equality check works.
+    # filling them into our model object to make sure that equality check works.
     approval_request.approval_id = approvals[0].approval_id
     approval_request.timestamp = approvals[0].timestamp
     self.assertEqual(approval_request, approvals[0])
@@ -540,7 +540,7 @@ class DatabaseTestUsersMixin(object):
     approval_request.grants = []
 
     # Approval id and timestamp are generated in WriteApprovalRequest so we're
-    # filling them into our model object ot make sure that equality check works.
+    # filling them into our model object to make sure that equality check works.
     approval_request.approval_id = approvals[0].approval_id
     approval_request.timestamp = approvals[0].timestamp
     self.assertEqual(approval_request, approvals[0])

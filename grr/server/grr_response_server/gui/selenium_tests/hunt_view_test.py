@@ -558,7 +558,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilEqual("1", self.GetText, "css=button[id=notification_button]")
     self.Click("css=button[id=notification_button]")
 
-    # Click on the "hunt [id] reached the crashes limit" notificaiton.
+    # Click on the "hunt [id] reached the crashes limit" notification.
     self.Click("css=td:contains(Hunt %s reached the crashes limit)" % hunt_id)
 
     # Clicking on notification should shown the hunt's overview page.

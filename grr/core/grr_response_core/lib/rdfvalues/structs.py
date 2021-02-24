@@ -377,7 +377,7 @@ class ProtoType(type_info.TypeInfoObject):
     # In python Varint encoding is expensive so we want to move as much of the
     # hard work from the Write() methods which are called frequently to the type
     # descriptor constructor which is only called once (during protobuf
-    # decleration time). Pre-calculating the tag makes for faster serialization.
+    # declaration time). Pre-calculating the tag makes for faster serialization.
     self.tag = self.field_number << 3 | self.wire_type
     self.encoded_tag = VarintEncode(self.tag)
 
@@ -1796,7 +1796,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
         raise AttributeError("Proto %s has no field %s" %
                              (self.__class__.__name__, arg))
 
-      # Call setattr to allow the class to define @property psuedo fields which
+      # Call setattr to allow the class to define @property pseudo fields which
       # can also be initialized.
       setattr(self, arg, value)
 

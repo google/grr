@@ -377,7 +377,7 @@ class ArtifactRegistry(object):
     Returns:
       artifact object.
     Raises:
-      ArtifactNotRegisteredError: if artifact doesn't exist in the registy.
+      ArtifactNotRegisteredError: if artifact doesn't exist in the registry.
     """
     self._CheckDirty()
     result = self._artifacts.get(name)

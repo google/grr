@@ -139,7 +139,7 @@ class ApiAff4ObjectType(rdf_structs.RDFProtoStruct):
   """A representation of parts of an Aff4Object.
 
   ApiAff4ObjectType represents a subset of all attributes of an Aff4Object
-  definied by a certain class of the inheritance hierarchy of the Aff4Object.
+  defined by a certain class of the inheritance hierarchy of the Aff4Object.
   """
   protobuf = vfs_pb2.ApiAff4ObjectType
   rdf_deps = [

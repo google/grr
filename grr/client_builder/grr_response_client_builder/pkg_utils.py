@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Efficient compression of pkg installers.
 
-Use case: store multiple large .pkg with similar and overlaping content in
+Use case: store multiple large .pkg with similar and overlapping content in
 one zip archive.
 
 Solution: a .pkg file is a XAR archive. A XAR archive contains:

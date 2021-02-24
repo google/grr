@@ -59,7 +59,7 @@ class DumpFlashImage(actions.ActionPlugin):
       syslog = logging.getLogger("chipsec_grr")
       syslog.setLevel(logging.INFO)
       syslog.addHandler(handlers.SysLogHandler(address="/dev/log"))
-      syslog.info("%s: Runnning DumpFlashImage", config.CONFIG["Client.name"])
+      syslog.info("%s: Running DumpFlashImage", config.CONFIG["Client.name"])
 
     self.logs = []
     self.chipsec_log = io.StringIO()

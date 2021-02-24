@@ -190,11 +190,11 @@ message ApiListHuntsArgs {
   optional int64 count = 2
       [(sem_type) = { description: "Max number of items to fetch." }];
 
-  // Filtering criterias.
+  // Filtering criteria.
   optional string created_by = 3 [(sem_type) = {
     description: "Only return hunts created by a given user. "
                  "If approved_by or/and description_contains are also supplied, "
-                 "then logical AND is applied to all the criterias. NOTE: this filter "
+                 "then logical AND is applied to all the criteria. NOTE: this filter "
                  "can only be used in conjunction with 'active_within' filter (to "
                  "prevent queries of death)."
   }];
@@ -202,7 +202,7 @@ message ApiListHuntsArgs {
     description: "Only return hunts where description contains given "
                  "substring (matching is case-insensitive)."
                  "If created_by or/and approved_by are also supplied, "
-                 "then logical AND is applied to all the criterias. NOTE: this filter "
+                 "then logical AND is applied to all the criteria. NOTE: this filter "
                  "can only be used in conjunction with 'active_within' filter (to "
                  "prevent queries of death)."
   }];

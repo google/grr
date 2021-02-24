@@ -51,7 +51,7 @@ message GrrMessage {
   // This field contains an encoded rdfvalue.
   optional bytes args = 5;
 
-  // Due to superceed the args field (not yet implemented). Contains the
+  // Due to supersede the args field (not yet implemented). Contains the
   // argument to the client action, or the response from the client action.
   optional EmbeddedRDFValue arg = 20;
 

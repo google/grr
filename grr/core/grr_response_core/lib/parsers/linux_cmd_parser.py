@@ -280,7 +280,7 @@ class PsCmdParser(parser.CommandParser):
     Note that cmdline consumes every field up to the end of line
     and as it is string, we can't perfectly see what the arguments
     on the command line really were. We just assume a space is the arg
-    seperator. It's imperfect, but it's better than nothing.
+    separator. It's imperfect, but it's better than nothing.
     Obviously, if cmd/cmdline is specified, it must be the last
     column of output.
 

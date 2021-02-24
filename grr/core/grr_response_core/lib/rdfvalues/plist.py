@@ -19,7 +19,7 @@ from grr_response_proto import sysinfo_pb2
 class FilterString(rdfvalue.RDFString):
   """An argument that is a valid filter string parsed by query_parser_cls.
 
-  The class member query_parser_cls should be overriden by derived classes.
+  The class member query_parser_cls should be overridden by derived classes.
   """
   # A subclass of lexer.Searchparser able to parse textual queries.
   query_parser_cls = lexer.SearchParser

@@ -14,9 +14,9 @@ def NetshStaticIp(interface,
                   ip=u'127.0.0.9',
                   subnet=u'255.255.255.255',
                   gw=u'127.0.0.1'):
-  """Changes interface to a staticly set IP.
+  """Changes interface to a statically set IP.
 
-  Sets IP configs to local if no paramaters passed.
+  Sets IP configs to local if no parameters passed.
 
   Args:
     interface: Name of the interface.

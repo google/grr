@@ -145,7 +145,7 @@ class SubprocessServer(Server):
     """
     self._args_factory = args_factory
     self._process = None  # type: Optional[subprocess.Popen]
-    # Omiting type, since the type is conditionally imported on Windows.
+    # Omitting type, since the type is conditionally imported on Windows.
     self._process_win = None
     self._output_r = None  # type: Optional[BinaryIO]
     self._input_w = None  # type: Optional[BinaryIO]

@@ -382,7 +382,7 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     self.assertEmpty(result.uris)
 
   def testRFC822StyleSourceDataParser(self):
-    """Test source list formated as per rfc822 style."""
+    """Test source list formatted as per rfc822 style."""
 
     test_data = br"""
     # comment comment comment

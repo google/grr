@@ -71,7 +71,7 @@ def WithDatabaseBlobstore(func):
   """A decorator for blobstore-dependent test methods.
 
   This decorator is intended for tests that need to access blobstore in their
-  code. It wil also augment the test function signature so that the blobstore
+  code. It will also augment the test function signature so that the blobstore
   object is provided and can be manipulated.
 
   The created test blobstore will use currently active relational database as a

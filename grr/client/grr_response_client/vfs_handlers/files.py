@@ -74,7 +74,7 @@ def FlushHandleCache() -> None:
 
 
 class FileHandleManager(object):
-  """An exclusive accesssor for a filehandle."""
+  """An exclusive accessor for a filehandle."""
 
   def __init__(self, filename):
     self.filename = filename

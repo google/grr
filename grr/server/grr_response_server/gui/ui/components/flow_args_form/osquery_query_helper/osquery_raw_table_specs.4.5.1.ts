@@ -17861,7 +17861,7 @@ export const tableSpecs451 =
           }
         ],
         'description':
-            'Displays shared resources on a computer system running Windows. This may be a disk drive, printer, interprocess communication, or other sharable device.'
+            'Displays shared resources on a computer system running Windows. This may be a disk drive, printer, interprocess communication, or other shareable device.'
       },
       {
         'cacheable': false,
@@ -20518,7 +20518,7 @@ export const tableSpecs451 =
           }
         ],
         'description':
-            'Lists named Windows objects in the default object directories, across all terminal services sessions.  Example Windows ojbect types include Mutexes, Events, Jobs and Semaphors.'
+            'Lists named Windows objects in the default object directories, across all terminal services sessions.  Example Windows object types include Mutexes, Events, Jobs and Semaphores.'
       },
       {
         'cacheable': false,

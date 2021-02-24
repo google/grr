@@ -125,7 +125,7 @@ class DetectorTest(test_lib.GRRBaseTest):
         set(["b_0_bar", "b_1_bar", "b_0_bar_bar", "b_1_bar_bar"]))
 
   def testAppliesMultiplePostProcessorsToExtractedPaths(self):
-    """Test it applies mutliple post processors to extracted paths."""
+    """Test it applies multiple post processors to extracted paths."""
     detector = core.Detector(
         extractors=[TestExtractor(multiplier=2)],
         post_processors=[TestPostProcessor("_foo"),

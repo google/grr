@@ -101,7 +101,7 @@ describe('OsqueryForm', () => {
   it('should have collection settings expanded when default flow args contain collection columns,',
      () => {
        const fixture = constructFixture({
-         fileCollectionColumns: ['some collumn to collect files from'],
+         fileCollectionColumns: ['some column to collect files from'],
        });
 
        const collectionContainer =

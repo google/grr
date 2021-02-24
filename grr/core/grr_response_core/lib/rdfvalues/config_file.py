@@ -11,12 +11,12 @@ from grr_response_proto import config_file_pb2
 
 
 class LogTarget(rdf_structs.RDFProtoStruct):
-  """An RDFValue represenation of a logging target."""
+  """An RDFValue representation of a logging target."""
   protobuf = config_file_pb2.LogTarget
 
 
 class LogConfig(rdf_structs.RDFProtoStruct):
-  """An RDFValue represenation of a logging configuration."""
+  """An RDFValue representation of a logging configuration."""
   protobuf = config_file_pb2.LogConfig
   rdf_deps = [
       LogTarget,

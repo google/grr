@@ -33,7 +33,7 @@ exports.RoutingService = class {
   }
 
   /**
-   * Performes a state transition to a target state.
+   * Performs a state transition to a target state.
    *
    * Remarks: This method uses the notify option to control whether state change
    * events should be fired. If notify is set to false, no events will be fired
@@ -114,7 +114,7 @@ exports.RoutingService = class {
   }
 
   /**
-   * Adds a watcher, which is called whenever a state change occured.
+   * Adds a watcher, which is called whenever a state change occurred.
    *
    * @param {!angular.Scope} scope The scope on which to register the watcher.
    * @param {function(string, Object=)} callback The callback.
@@ -122,7 +122,7 @@ exports.RoutingService = class {
    * @export
    */
   onStateChange(scope, callback) {
-    // Call immediately for intialization.
+    // Call immediately for initialization.
     callback(this.state_.current.name, this.state_.params);
 
     return scope.$on('$stateChangeSuccess', function(event, state, params) {

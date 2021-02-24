@@ -98,7 +98,7 @@ const SearchBoxController = class {
    * forwards the user to the hunt details. If not successful, performs a
    * regular client search.
    *
-   * @param {string} huntId The id of the hunt to check for existance.
+   * @param {string} huntId The id of the hunt to check for existence.
    * @private
    */
   checkHunt_(huntId) {

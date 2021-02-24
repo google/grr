@@ -348,7 +348,7 @@ static PyMethodDef _semantic_methods[] = {
     {"varint_decode",
      (PyCFunction)py_varint_decode,
      METH_VARARGS,
-     "Decode a varing from a buffer."},
+     "Decode a varying from a buffer."},
 
     {"split_buffer",
      (PyCFunction)py_split_buffer,

@@ -1,9 +1,9 @@
 /**
  * @fileoverview The module provides mappings for GRR API protos (in JSON
- * format) into TypeScript interfaces. They are not indended to be
+ * format) into TypeScript interfaces. They are not intended to be
  * complete: only actually used fields are mapped.
  *
- * TODO(user): Using Protobuf-code generation insted of manually writing
+ * TODO(user): Using Protobuf-code generation instead of manually writing
  * interface definitions is preferable, but it's a non-trivial task, since code
  * generation should be supported by OpenSource build pipeline.
  */

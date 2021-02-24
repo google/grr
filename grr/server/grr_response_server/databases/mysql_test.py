@@ -243,7 +243,7 @@ class TestMysqlDB(stats_test_lib.StatsTestMixin,
 
     # MaxAllowedPacketSettingTooLowError will be raised since
     # _SetGlobalVariable call will fail (via the mock). This way
-    # we mimick the situation when _SetGlobalVariable fails due to
+    # we mimic the situation when _SetGlobalVariable fails due to
     # the lack of permissions.
     with mock.patch.object(
         mysql,

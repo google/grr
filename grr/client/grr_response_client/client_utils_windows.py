@@ -393,7 +393,7 @@ def RtlGetVersion(os_version_info_struct):
                             ctypes.sizeof(self).
 
   Raises:
-    OSError: if the underlaying routine fails.
+    OSError: if the underlying routine fails.
 
   See: https://msdn.microsoft.com/en-us/library/
   windows/hardware/ff561910(v=vs.85).aspx .

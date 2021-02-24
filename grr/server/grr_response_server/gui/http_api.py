@@ -97,7 +97,7 @@ class RouterMatcher(object):
         routing_map.add(
             routing.Rule(path, methods=[http_method], endpoint=metadata))
         # This adds support for the next version of the API that uses
-        # standartized JSON protobuf serialization.
+        # standardized JSON protobuf serialization.
         routing_map.add(
             routing.Rule(
                 path.replace("/api/", "/api/v2/"),
@@ -345,7 +345,7 @@ class HttpRequestHandler(object):
     # To avoid IE content sniffing problems, escape the tags. Otherwise somebody
     # may send a link with malicious payload that will be opened in IE (which
     # does content sniffing and doesn't respect Content-Disposition header) and
-    # IE will treat the document as html and executre arbitrary JS that was
+    # IE will treat the document as html and execute arbitrary JS that was
     # passed with the payload.
     str_data = json.Dump(
         rendered_data, encoder=JSONEncoderWithRDFPrimitivesSupport)
@@ -384,7 +384,7 @@ class HttpRequestHandler(object):
     """Builds HttpResponse object for streaming."""
     precondition.AssertType(method_name, Text)
 
-    # For the challenges of implemeting correct streaming response logic:
+    # For the challenges of implementing correct streaming response logic:
     # https://rhodesmill.org/brandon/2013/chunked-wsgi/
 
     # We get a first chunk of the output stream. This way the likelihood

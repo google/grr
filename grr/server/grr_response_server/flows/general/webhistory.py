@@ -399,7 +399,7 @@ class CollectBrowserHistoryProgress(rdf_structs.RDFProtoStruct):
 
 
 class CollectBrowserHistory(flow_base.FlowBase):
-  """Convenience Flow to collect brower history artifacts."""
+  """Convenience Flow to collect browser history artifacts."""
 
   friendly_name = "Browser History"
   category = "/Browser/"

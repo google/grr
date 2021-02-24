@@ -1233,7 +1233,7 @@ class RDFURN(RDFPrimitive):
 
 
 class Subject(RDFURN):
-  """A psuedo attribute representing the subject of an AFF4 object."""
+  """A pseudo attribute representing the subject of an AFF4 object."""
 
 
 DEFAULT_FLOW_QUEUE = RDFURN("F")

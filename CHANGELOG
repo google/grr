@@ -27,7 +27,7 @@
 * The `st_crtime` field of `StatEntry` has been renamed to `st_btime`.
 * ArtifactCollectorFlowArgs, ArtifactFilesDownloaderFlowArgs:
   * use_tsk is replaced with use_raw_filesystem_access
-  * use_tsk is kept for compatibilty until 2021-04-01
+  * use_tsk is kept for compatibility until 2021-04-01
     * please migrate away from use_tsk to use_raw_filesystem_access until then
   * ValueError is raised if both fields are set
 * WinUserActivityInvestigationArgs:
