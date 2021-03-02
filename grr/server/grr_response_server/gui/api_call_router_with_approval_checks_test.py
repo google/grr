@@ -10,7 +10,7 @@ from unittest import mock
 from absl import app
 
 from grr_response_server import access_control
-
+from grr_response_server import flow
 from grr_response_server.flows.general import osquery
 from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_call_context
@@ -199,7 +199,9 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     client_id = self.SetupClient(0)
     hunt_id = self.CreateHunt()
     flow_id = flow_test_lib.StartFlow(
-        timeline.TimelineFlow, client_id=client_id, parent_hunt_id=hunt_id)
+        timeline.TimelineFlow,
+        client_id=client_id,
+        parent=flow.FlowParent.FromHuntID(hunt_id))
 
     args = api_timeline.ApiGetCollectedTimelineArgs(
         client_id=client_id, flow_id=flow_id)
@@ -210,7 +212,9 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     client_id = self.SetupClient(0)
     hunt_id = self.CreateHunt()
     flow_id = flow_test_lib.StartFlow(
-        flow_test_lib.DummyFlow, client_id=client_id, parent_hunt_id=hunt_id)
+        flow_test_lib.DummyFlow,
+        client_id=client_id,
+        parent=flow.FlowParent.FromHuntID(hunt_id))
 
     args = api_timeline.ApiGetCollectedTimelineArgs(
         client_id=client_id, flow_id=flow_id)
@@ -251,7 +255,9 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     client_id = self.SetupClient(0)
     hunt_id = self.CreateHunt()
     flow_id = flow_test_lib.StartFlow(
-        osquery.OsqueryFlow, client_id=client_id, parent_hunt_id=hunt_id)
+        osquery.OsqueryFlow,
+        client_id=client_id,
+        parent=flow.FlowParent.FromHuntID(hunt_id))
 
     args = api_osquery.ApiGetOsqueryResultsArgs(
         client_id=client_id, flow_id=flow_id)
@@ -261,7 +267,9 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     client_id = self.SetupClient(0)
     hunt_id = self.CreateHunt()
     flow_id = flow_test_lib.StartFlow(
-        flow_test_lib.DummyFlow, client_id=client_id, parent_hunt_id=hunt_id)
+        flow_test_lib.DummyFlow,
+        client_id=client_id,
+        parent=flow.FlowParent.FromHuntID(hunt_id))
 
     args = api_osquery.ApiGetOsqueryResultsArgs(
         client_id=client_id, flow_id=flow_id)

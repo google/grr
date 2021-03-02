@@ -206,6 +206,17 @@ class GetFileClientMock(ActionMock):
                          standard.TransferBuffer, *args, **kwargs)
 
 
+class GetFileWithFailingStatClientMock(ActionMock):
+
+  def __init__(self, *args, **kwargs):
+    super(GetFileWithFailingStatClientMock,
+          self).__init__(standard.HashBuffer, standard.TransferBuffer, *args,
+                         **kwargs)
+
+  def GetFileStat(self, unused_message):
+    raise RuntimeError("stat is intentionally failing")
+
+
 class FileFinderClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):

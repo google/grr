@@ -1,4 +1,4 @@
-import {AnyObject, DataBlob, Dict, KeyValue} from '@app/lib/api/api_interfaces';
+import {AnyObject, DataBlob, DecimalString, Dict, KeyValue} from '@app/lib/api/api_interfaces';
 import {DateTime} from '@app/lib/date_time';
 import {isNonNull} from '@app/lib/preconditions';
 import {assertTruthy} from '../preconditions';
@@ -22,7 +22,7 @@ export function createOptionalApiTimestamp(dateTime?: DateTime|null): string|
  *
  * Because `Date` uses millisecond-precision, microseconds are truncated.
  */
-export function createDate(apiTimestamp: string): Date {
+export function createDate(apiTimestamp: DecimalString): Date {
   assertTruthy(apiTimestamp, 'Date');
 
   const date = new Date(Number(apiTimestamp) / 1000);
@@ -40,10 +40,12 @@ export function createDate(apiTimestamp: string): Date {
  */
 export function createOptionalDate(apiTimestamp: undefined): undefined;
 export function createOptionalDate(apiTimestamp: ''): undefined;
-export function createOptionalDate(apiTimestamp: string): Date;
-export function createOptionalDate(apiTimestamp?: string): Date|undefined;
+export function createOptionalDate(apiTimestamp: DecimalString): Date;
+export function createOptionalDate(apiTimestamp?: DecimalString): Date|
+    undefined;
 
-export function createOptionalDate(apiTimestamp?: string): Date|undefined {
+export function createOptionalDate(apiTimestamp?: DecimalString): Date|
+    undefined {
   if (!apiTimestamp) {
     return undefined;  // Return undefined for undefined and empty string.
   }

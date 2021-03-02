@@ -15,6 +15,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_server import access_control
 from grr_response_server import data_store
+from grr_response_server import flow
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
 from grr_response_server import hunt
@@ -329,7 +330,9 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       data_store.REL_DB.ReadFlowObject(client_id, hunt_id)
     except db.UnknownFlowError:
       flow_test_lib.StartFlow(
-          transfer.GetFile, client_id=client_id, parent_hunt_id=hunt_id)
+          transfer.GetFile,
+          client_id=client_id,
+          parent=flow.FlowParent.FromHuntID(hunt_id))
 
     return hunt_id
 

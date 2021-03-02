@@ -28,7 +28,7 @@ import subprocess
 import sys
 import time
 from typing import Callable, Iterable
-
+from absl import flags
 import pywintypes
 import win32process
 import win32service
@@ -42,6 +42,12 @@ from grr_response_core import config
 
 SERVICE_RESTART_DELAY_MSEC = 120 * 1000
 SERVICE_RESET_FAIL_COUNT_DELAY_SEC = 86400
+
+
+flags.DEFINE_string(
+    "interpolate_fleetspeak_service_config", "",
+    "If set, only interpolate a fleetspeak service config. "
+    "The value is a path to a file to interpolate (rewrite).")
 
 
 def _StartService(service_name):
@@ -415,10 +421,18 @@ def _MaybeInterpolateFleetspeakServiceConfig():
   template_path = f"{fleetspeak_unsigned_config_path}.in"
   if not os.path.exists(template_path):
     return
-  with open(template_path, "r") as source:
-    with open(fleetspeak_unsigned_config_path, "w") as dest:
-      interpolated = config.CONFIG.InterpolateValue(source.read())
-      dest.write(interpolated.replace("\\", "\\\\"))
+  _InterpolateFleetspeakServiceConfig(template_path,
+                                      fleetspeak_unsigned_config_path)
+
+
+def _InterpolateFleetspeakServiceConfig(src_path: str, dst_path: str) -> None:
+  with open(src_path, "r") as src:
+    src_data = src.read()
+  with open(dst_path, "w") as dst:
+    interpolated = config.CONFIG.InterpolateValue(src_data)
+    interpolated = interpolated.replace("\\", "\\\\")
+    interpolated = interpolated.rstrip("\n")
+    dst.write(interpolated)
 
 
 def _WriteGrrFleetspeakService():
@@ -435,6 +449,16 @@ def _WriteGrrFleetspeakService():
 
 def _Run():
   """Installs the windows client binary."""
+
+  if flags.FLAGS.interpolate_fleetspeak_service_config:
+    _InterpolateFleetspeakServiceConfig(
+        flags.FLAGS.interpolate_fleetspeak_service_config,
+        flags.FLAGS.interpolate_fleetspeak_service_config)
+    fs_service = config.CONFIG["Client.fleetspeak_service_name"]
+    _StopService(service_name=fs_service)
+    _StartService(service_name=fs_service)
+    return
+
   _CheckForWow64()
   is_reinstall = _IsReinstall()
   was_bundled_fleetspeak = _IsFleetspeakBundled() if is_reinstall else False

@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import hashlib
 import io
+import itertools
 import os
 import platform
 import struct
@@ -29,6 +30,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
+
 
 # pylint:mode=test
 
@@ -131,12 +133,6 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     super(GetFileFlowTest, self).setUp()
     self.client_id = self.SetupClient(0)
 
-    # Set suitable defaults for testing
-    self.old_window_size = transfer.GetFile.WINDOW_SIZE
-    self.old_chunk_size = transfer.GetFile.CHUNK_SIZE
-    transfer.GetFile.WINDOW_SIZE = 10
-    transfer.GetFile.CHUNK_SIZE = 600 * 1024
-
   def testGetFile(self):
     """Test that the GetFile flow works."""
 
@@ -154,11 +150,10 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
-    fd2 = open(pathspec.path, "rb")
-
-    cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
-    fd_rel_db = file_store.OpenFile(cp)
-    self.CompareFDs(fd2, fd_rel_db)
+    with open(pathspec.path, "rb") as fd2:
+      cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+      fd_rel_db = file_store.OpenFile(cp)
+      self.CompareFDs(fd2, fd_rel_db)
 
     # Only the sha256 hash of the contents should have been calculated:
     # in order to put file contents into the file store.
@@ -190,13 +185,13 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
-    fd2 = open(res_pathspec.path, "rb")
-    fd2.seek(0, 2)
+    with open(res_pathspec.path, "rb") as fd2:
+      fd2.seek(0, 2)
 
-    cp = db.ClientPath.FromPathSpec(self.client_id, res_pathspec)
+      cp = db.ClientPath.FromPathSpec(self.client_id, res_pathspec)
 
-    fd_rel_db = file_store.OpenFile(cp)
-    self.CompareFDs(fd2, fd_rel_db)
+      fd_rel_db = file_store.OpenFile(cp)
+      self.CompareFDs(fd2, fd_rel_db)
 
     # Only the sha256 hash of the contents should have been calculated:
     # in order to put file contents into the file store.
@@ -221,6 +216,355 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
             token=self.token,
             client_id=self.client_id,
             pathspec=pathspec)
+
+  def testFailsIfStatFailsAndIgnoreStatFailureFlagNotSet(self):
+    with temp.AutoTempFilePath() as test_path:
+      with open(test_path, "wb") as fd:
+        fd.write(b"foo")
+
+      pathspec = rdf_paths.PathSpec(
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          path=test_path,
+      )
+      args = transfer.GetFileArgs(
+          pathspec=pathspec,
+          read_length=1,
+      )
+      client_mock = action_mocks.GetFileWithFailingStatClientMock()
+      with self.assertRaises(RuntimeError):
+        flow_test_lib.TestFlowHelper(
+            transfer.GetFile.__name__,
+            client_mock,
+            token=self.token,
+            client_id=self.client_id,
+            args=args)
+
+  def testWorksIfStatFailsAndIgnoreStatFailureFlagIsSet(self):
+    with temp.AutoTempFilePath() as test_path:
+      with open(test_path, "wb") as fd:
+        fd.write(b"foo")
+
+      pathspec = rdf_paths.PathSpec(
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          path=test_path,
+      )
+      args = transfer.GetFileArgs(
+          pathspec=pathspec,
+          read_length=1,
+          ignore_stat_failure=True,
+      )
+      client_mock = action_mocks.GetFileWithFailingStatClientMock()
+      flow_test_lib.TestFlowHelper(
+          transfer.GetFile.__name__,
+          client_mock,
+          token=self.token,
+          client_id=self.client_id,
+          args=args)
+
+  def _ReadBytesWithGetFile(self,
+                            path,
+                            stat_available=False,
+                            offset=None,
+                            file_size_override=None,
+                            read_length=None):
+    if stat_available:
+      client_mock = action_mocks.GetFileClientMock()
+    else:
+      client_mock = action_mocks.GetFileWithFailingStatClientMock()
+
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path=path,
+    )
+    if offset is not None:
+      pathspec.offset = offset
+    if file_size_override is not None:
+      pathspec.file_size_override = file_size_override
+
+    args = transfer.GetFileArgs(
+        pathspec=pathspec,
+        ignore_stat_failure=not stat_available,
+    )
+    if read_length is not None:
+      args.read_length = read_length
+
+    flow_id = flow_test_lib.TestFlowHelper(
+        transfer.GetFile.__name__,
+        client_mock,
+        token=self.token,
+        client_id=self.client_id,
+        args=args)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(
+        results, 1, f"Expected 1 result for offset={offset}, "
+        f"file_size_override={file_size_override}, "
+        f"read_length={read_length}, ")
+    res_pathspec = results[0].pathspec
+    cp = db.ClientPath.FromPathSpec(self.client_id, res_pathspec)
+
+    return file_store.OpenFile(cp).Read()
+
+  TEST_DATA_LENGTH = transfer.GetFile.CHUNK_SIZE * 10 + 1
+
+  TEST_DATA = b"".join(
+      itertools.islice(
+          itertools.cycle(
+              [b"0", b"1", b"2", b"3", b"4", b"5", b"6", b"7", b"8", b"9"]),
+          TEST_DATA_LENGTH))
+
+  def testReadsTheWholeStatableFileWhenNoSizesPassed(self):
+    with temp.AutoTempFilePath() as test_path:
+      with open(test_path, "wb") as fd:
+        fd.write(self.TEST_DATA)
+
+      actual_bytes = self._ReadBytesWithGetFile(test_path, stat_available=True)
+      self.assertEqual(self.TEST_DATA, actual_bytes)
+
+  def testRaisesOnNonStatableFileWhenNoSizesPassed(self):
+    with temp.AutoTempFilePath() as test_path:
+      with self.assertRaises(RuntimeError):
+        self._ReadBytesWithGetFile(test_path, stat_available=False)
+
+  READ_LENGTH_INTERVALS = (
+      # Check for intervals within the file size.
+      (0, 10),
+      (10, 20),
+      (0, transfer.GetFile.CHUNK_SIZE),
+      (1, transfer.GetFile.CHUNK_SIZE),
+      (1, transfer.GetFile.CHUNK_SIZE - 1),
+      (0, transfer.GetFile.CHUNK_SIZE * 2),
+      (1, transfer.GetFile.CHUNK_SIZE * 2),
+      (1, transfer.GetFile.CHUNK_SIZE * 2 - 1),
+      (TEST_DATA_LENGTH - transfer.GetFile.CHUNK_SIZE,
+       transfer.GetFile.CHUNK_SIZE),
+      (TEST_DATA_LENGTH - transfer.GetFile.CHUNK_SIZE - 1,
+       transfer.GetFile.CHUNK_SIZE),
+      (TEST_DATA_LENGTH - transfer.GetFile.CHUNK_SIZE + 1,
+       transfer.GetFile.CHUNK_SIZE - 1),
+      # Check for intervals outside of the file size (an EOF might
+      # happen also on a device file, like when a disk file is read).
+      (TEST_DATA_LENGTH - 10, 20),
+      (TEST_DATA_LENGTH - transfer.GetFile.CHUNK_SIZE - 1,
+       transfer.GetFile.CHUNK_SIZE + 2),
+  )
+
+  def testWorksWithReadLengthOnSeekableFile(self):
+    with temp.AutoTempFilePath() as test_path:
+      with open(test_path, "wb") as fd:
+        fd.write(self.TEST_DATA)
+
+      for offset, read_length in self.READ_LENGTH_INTERVALS:
+        with self.subTest(
+            offset=offset, read_length=read_length, stat_available=True):
+          actual_bytes = self._ReadBytesWithGetFile(
+              test_path,
+              stat_available=True,
+              offset=offset,
+              read_length=read_length)
+          self.assertEqual(self.TEST_DATA[offset:offset + read_length],
+                           actual_bytes)
+
+        with self.subTest(
+            offset=offset, read_length=read_length, stat_available=False):
+          actual_bytes = self._ReadBytesWithGetFile(
+              test_path,
+              stat_available=False,
+              offset=offset,
+              read_length=read_length)
+          self.assertEqual(self.TEST_DATA[offset:offset + read_length],
+                           actual_bytes)
+
+  def testWorksWithReadLengthOnNonSeekableFile(self):
+    for offset, read_length in self.READ_LENGTH_INTERVALS:
+      # Check non-seekable file that still can be stat-ed.
+      with self.subTest(
+          offset=offset, read_length=read_length, stat_available=True):
+        actual_bytes = self._ReadBytesWithGetFile(
+            "/dev/random",
+            stat_available=True,
+            offset=offset,
+            read_length=read_length)
+        # Using assertEqual instead of assertLen for easier-to-process
+        # failure messages (as long byte sequences get dumped to stdout
+        # in case of a failure).
+        self.assertEqual(len(actual_bytes), read_length)
+
+      # Check non-seekable file that can't be stat-ed.
+      with self.subTest(
+          offset=offset, read_length=read_length, stat_available=False):
+        actual_bytes = self._ReadBytesWithGetFile(
+            "/dev/random",
+            stat_available=False,
+            offset=offset,
+            read_length=read_length)
+        # Using assertEqual instead of assertLen for easier-to-process
+        # failure messages (as long byte sequences get dumped to stdout
+        # in case of a failure).
+        self.assertEqual(len(actual_bytes), read_length)
+
+  FILE_SIZE_OVERRIDE_INTERVALS = (
+      # Check intervals within the file boundaries.
+      (0, 10),
+      (10, 30),
+      (0, transfer.GetFile.CHUNK_SIZE),
+      (1, 1 + transfer.GetFile.CHUNK_SIZE),
+      (1, transfer.GetFile.CHUNK_SIZE),
+      (0, transfer.GetFile.CHUNK_SIZE * 2),
+      (1, 1 + transfer.GetFile.CHUNK_SIZE * 2),
+      (1, transfer.GetFile.CHUNK_SIZE * 2),
+      (TEST_DATA_LENGTH - transfer.GetFile.CHUNK_SIZE, TEST_DATA_LENGTH),
+      (TEST_DATA_LENGTH - transfer.GetFile.CHUNK_SIZE - 1,
+       TEST_DATA_LENGTH - 1),
+      (TEST_DATA_LENGTH - transfer.GetFile.CHUNK_SIZE + 1, TEST_DATA_LENGTH),
+      # Checks intervals outside of the file size.
+      (TEST_DATA_LENGTH - 10, TEST_DATA_LENGTH + 10),
+      (TEST_DATA_LENGTH - transfer.GetFile.CHUNK_SIZE - 1,
+       TEST_DATA_LENGTH + 1),
+  )
+
+  def testWorksWithFileSizeOverrideOnSeekableFile(self):
+    with temp.AutoTempFilePath() as test_path:
+      with open(test_path, "wb") as fd:
+        fd.write(self.TEST_DATA)
+
+      for offset, file_size_override in self.FILE_SIZE_OVERRIDE_INTERVALS:
+        with self.subTest(
+            offset=offset,
+            file_size_override=file_size_override,
+            stat_available=True):
+          actual_bytes = self._ReadBytesWithGetFile(
+              test_path,
+              stat_available=True,
+              offset=offset,
+              file_size_override=file_size_override)
+          self.assertEqual(self.TEST_DATA[offset:file_size_override],
+                           actual_bytes)
+
+        with self.subTest(
+            offset=offset,
+            file_size_override=file_size_override,
+            stat_available=False):
+          actual_bytes = self._ReadBytesWithGetFile(
+              test_path,
+              stat_available=False,
+              offset=offset,
+              file_size_override=file_size_override)
+          self.assertEqual(self.TEST_DATA[offset:file_size_override],
+                           actual_bytes)
+
+  def testWorksWithFileSizeOverrideOnNonSeekableFile(self):
+    for offset, file_size_override in self.FILE_SIZE_OVERRIDE_INTERVALS:
+      with self.subTest(
+          offset=offset,
+          file_size_override=file_size_override,
+          stat_available=True):
+        actual_bytes = self._ReadBytesWithGetFile(
+            "/dev/random",
+            stat_available=True,
+            offset=offset,
+            file_size_override=file_size_override)
+        self.assertEqual(len(actual_bytes), file_size_override - offset)
+
+      with self.subTest(
+          offset=offset,
+          file_size_override=file_size_override,
+          stat_available=False):
+        actual_bytes = self._ReadBytesWithGetFile(
+            "/dev/random",
+            stat_available=False,
+            offset=offset,
+            file_size_override=file_size_override)
+        self.assertEqual(len(actual_bytes), file_size_override - offset)
+
+  READ_LENGTH_FILE_SIZE_OVERRIDE_INTERVALS = (
+      # offset, read_length, file_size_override
+      (0, 10, 5),
+      (0, 10, 15),
+      (0, 5, 10),
+      (0, 15, 10),
+      (0, transfer.GetFile.CHUNK_SIZE * 2, transfer.GetFile.CHUNK_SIZE * 2 - 1),
+      (0, transfer.GetFile.CHUNK_SIZE * 2, transfer.GetFile.CHUNK_SIZE * 2 + 1),
+      (1, transfer.GetFile.CHUNK_SIZE * 2, transfer.GetFile.CHUNK_SIZE * 2),
+      (1, transfer.GetFile.CHUNK_SIZE * 2, transfer.GetFile.CHUNK_SIZE * 2 + 2),
+      (TEST_DATA_LENGTH - transfer.GetFile.CHUNK_SIZE,
+       transfer.GetFile.CHUNK_SIZE, TEST_DATA_LENGTH - 1),
+      (TEST_DATA_LENGTH - transfer.GetFile.CHUNK_SIZE,
+       transfer.GetFile.CHUNK_SIZE, TEST_DATA_LENGTH + 1),
+  )
+
+  def testWorksWithReadLengthAndFileSizeOverrideOnSeekableFiles(self):
+    with temp.AutoTempFilePath() as test_path:
+      with open(test_path, "wb") as fd:
+        fd.write(self.TEST_DATA)
+
+      for (offset, read_length,
+           file_size_override) in self.READ_LENGTH_FILE_SIZE_OVERRIDE_INTERVALS:
+        upper_limit = min(offset + read_length, file_size_override)
+
+        with self.subTest(
+            offset=offset,
+            read_length=read_length,
+            file_size_override=file_size_override,
+            stat_available=True):
+          actual_bytes = self._ReadBytesWithGetFile(
+              test_path,
+              stat_available=True,
+              offset=offset,
+              read_length=read_length,
+              file_size_override=file_size_override)
+          self.assertEqual(self.TEST_DATA[offset:upper_limit], actual_bytes)
+
+        with self.subTest(
+            offset=offset,
+            read_length=read_length,
+            file_size_override=file_size_override,
+            stat_available=False):
+          actual_bytes = self._ReadBytesWithGetFile(
+              test_path,
+              stat_available=False,
+              offset=offset,
+              read_length=read_length,
+              file_size_override=file_size_override)
+          self.assertEqual(self.TEST_DATA[offset:upper_limit], actual_bytes)
+
+  def testWorksWithReadLengthAndFileSizeOverrideOnNonSeekableFiles(self):
+    for (offset, read_length,
+         file_size_override) in self.READ_LENGTH_FILE_SIZE_OVERRIDE_INTERVALS:
+
+      with self.subTest(
+          offset=offset,
+          read_length=read_length,
+          file_size_override=file_size_override,
+          stat_available=True):
+        actual_bytes = self._ReadBytesWithGetFile(
+            "/dev/random",
+            stat_available=True,
+            offset=offset,
+            read_length=read_length,
+            file_size_override=file_size_override)
+        # Using assertEqual instead of assertLen for easier-to-process
+        # failure messages (as long byte sequences get dumped to stdout
+        # in case of a failure).
+        self.assertEqual(
+            len(actual_bytes), min(read_length, file_size_override - offset))
+
+      with self.subTest(
+          offset=offset,
+          read_length=read_length,
+          file_size_override=file_size_override,
+          stat_available=False):
+        actual_bytes = self._ReadBytesWithGetFile(
+            "/dev/random",
+            stat_available=False,
+            offset=offset,
+            read_length=read_length,
+            file_size_override=file_size_override)
+        # Using assertEqual instead of assertLen for easier-to-process
+        # failure messages (as long byte sequences get dumped to stdout
+        # in case of a failure).
+        self.assertEqual(
+            len(actual_bytes), min(read_length, file_size_override - offset))
 
 
 class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
@@ -283,7 +627,8 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         pathspecs=[pathspec])
 
-    data = open(pathspec.last.path, "rb").read()
+    with open(pathspec.last.path, "rb") as fd:
+      data = fd.read()
 
     cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
     fd_rel_db = file_store.OpenFile(cp)
@@ -324,12 +669,12 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
-    fd2 = open(pathspec.path, "rb")
 
-    # Test the file that was created.
-    cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
-    fd_rel_db = file_store.OpenFile(cp)
-    self.CompareFDs(fd2, fd_rel_db)
+    with open(pathspec.path, "rb") as fd2:
+      # Test the file that was created.
+      cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+      fd_rel_db = file_store.OpenFile(cp)
+      self.CompareFDs(fd2, fd_rel_db)
 
     # Check that SHA256 hash of the file matches the contents
     # hash and that MD5 and SHA1 are set.
@@ -564,7 +909,8 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         args=args)
 
-    expected_data = open(image_path, "rb").read(expected_size)
+    with open(image_path, "rb") as fd:
+      expected_data = fd.read(expected_size)
 
     cp = db.ClientPath.FromPathSpec(self.client_id, pathspec)
     fd_rel_db = file_store.OpenFile(cp)

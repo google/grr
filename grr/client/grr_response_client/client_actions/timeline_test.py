@@ -225,6 +225,32 @@ class WalkTest(absltest.TestCase):
       with self.assertRaises(OSError):
         timeline.Walk(not_existing_path.encode("utf-8"))
 
+  def testRelativePath(self):
+    relpath = os.path.join("foo", "bar", "baz")
+
+    with self.assertRaises(ValueError):
+      timeline.Walk(relpath.encode("utf-8"))
+
+  def testPathWithTrailingSeparator(self):
+    with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
+      seppath = dirpath + os.path.sep
+
+      entries = list(timeline.Walk(seppath.encode("utf-8")))
+      self.assertLen(entries, 1)
+      self.assertEqual(entries[0].path, dirpath.encode("utf-8"))
+
+  def testPathWithRedundantComponents(self):
+    with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
+      os.makedirs(os.path.join(dirpath, "foo", "bar"))
+      redpath = os.path.join(dirpath, "foo", ".", "bar", "..", ".", "bar", "..")
+
+      entries = list(timeline.Walk(redpath.encode("utf-8")))
+      paths = [entry.path.decode("utf-8") for entry in entries]
+
+      self.assertLen(paths, 2)
+      self.assertEqual(paths[0], os.path.join(dirpath, "foo"))
+      self.assertEqual(paths[1], os.path.join(dirpath, "foo", "bar"))
+
 
 def _Touch(filepath: Text, content: bytes = b"") -> None:
   with io.open(filepath, mode="wb") as filedesc:

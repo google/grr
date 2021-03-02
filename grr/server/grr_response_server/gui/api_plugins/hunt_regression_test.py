@@ -9,6 +9,7 @@ from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server import data_store
+from grr_response_server import flow
 from grr_response_server import hunt
 from grr_response_server.databases import db
 from grr_response_server.flows.general import processes as flows_processes
@@ -69,7 +70,7 @@ class ApiListHuntResultsRegressionTest(hunt_test_lib.StandardHuntTestMixin,
     flow_id = flow_test_lib.StartFlow(
         flows_processes.ListProcesses,
         client_id=client_id,
-        parent_hunt_id=hunt_id)
+        parent=flow.FlowParent.FromHuntID(hunt_id))
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2)):
       data_store.REL_DB.WriteFlowResults([
@@ -196,7 +197,7 @@ class ApiListHuntLogsHandlerRegressionTest(
     flow_id = flow_test_lib.StartFlow(
         flows_processes.ListProcesses,
         client_id=client_id,
-        parent_hunt_id=hunt_id)
+        parent=flow.FlowParent.FromHuntID(hunt_id))
 
     with test_lib.FakeTime(52):
       data_store.REL_DB.WriteFlowLogEntries([
@@ -250,7 +251,7 @@ class ApiListHuntErrorsHandlerRegressionTest(
       flow_id = flow_test_lib.StartFlow(
           flows_processes.ListProcesses,
           client_id=client_id_1,
-          parent_hunt_id=hunt_id)
+          parent=flow.FlowParent.FromHuntID(hunt_id))
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id_1, flow_id)
       flow_obj.flow_state = flow_obj.FlowState.ERROR
       flow_obj.error_message = "Error foo."
@@ -260,7 +261,7 @@ class ApiListHuntErrorsHandlerRegressionTest(
       flow_id = flow_test_lib.StartFlow(
           flows_processes.ListProcesses,
           client_id=client_id_2,
-          parent_hunt_id=hunt_id)
+          parent=flow.FlowParent.FromHuntID(hunt_id))
       flow_obj = data_store.REL_DB.ReadFlowObject(client_id_2, flow_id)
       flow_obj.flow_state = flow_obj.FlowState.ERROR
       flow_obj.error_message = "Error bar."

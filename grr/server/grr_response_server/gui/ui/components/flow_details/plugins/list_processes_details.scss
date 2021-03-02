@@ -1,4 +1,55 @@
 :host {
-  padding: 0 0 24px 24px;
+  padding: 0 24px 24px;
   display: block;
+}
+
+.process-tree {
+  ul,
+  li {
+    margin-top: 0;
+    margin-bottom: 0;
+    list-style-type: none;
+  }
+
+  .mat-tree-node {
+    min-height: 0;
+    line-height: 1.1;
+    white-space: nowrap;
+    overflow: hidden;
+  }
+
+  li span {
+    padding-right: 0.2em;
+  }
+
+  .mat-icon-button {
+    height: 30px;
+    width: 30px;
+    line-height: 30px;
+    color: #868484;
+  }
+}
+
+.invisible {
+  display: none;
+}
+
+.text-pid {
+  color: #58ab18;
+}
+
+.text-cmdline {
+  color: #4c6990;
+  /** When the process row is too wide, truncate the process' cmdline. */
+  text-overflow: ellipsis;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.text-user {
+  color: #9335e5;
+}
+
+.text-ctime {
+  color: #13a6bf;
 }

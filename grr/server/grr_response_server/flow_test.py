@@ -183,7 +183,7 @@ class FlowCreationTest(BasicFlowTest):
     with self.assertRaises(flow.CanNotStartFlowWithExistingIdError):
       flow.StartFlow(
           flow_cls=CallClientParentFlow,
-          parent_hunt_id=flow_id,
+          parent=flow.FlowParent.FromHuntID(flow_id),
           client_id=self.client_id)
 
   def testPendingFlowTermination(self):
@@ -705,6 +705,18 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
     flow.StartScheduledFlows(client_id, username)
 
     self.assertLen(data_store.REL_DB.ReadAllFlowObjects(client_id), 1)
+
+  def testStartedFlowUsesScheduledFlowId(self):
+    client_id = self.SetupClient(0)
+    username = self.SetupUser("u0")
+
+    sf = self.ScheduleFlow(client_id=client_id, creator=username)
+
+    flow.StartScheduledFlows(client_id, username)
+    flows = data_store.REL_DB.ReadAllFlowObjects(client_id)
+
+    self.assertGreater(len(sf.scheduled_flow_id), 0)
+    self.assertEqual(flows[0].flow_id, sf.scheduled_flow_id)
 
 
 class RandomFlowIdTest(absltest.TestCase):

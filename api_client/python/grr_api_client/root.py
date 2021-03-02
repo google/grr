@@ -185,6 +185,12 @@ class ClientRef(object):
     args.client_id = self.client_id
     self._context.SendRequest("RestartFleetspeakGrrService", args)
 
+  def DeleteFleetspeakPendingMessages(self) -> None:
+    """Deletes fleetspeak messages pending for the given client."""
+    args = client_management_pb2.ApiDeleteFleetspeakPendingMessagesArgs()
+    args.client_id = self.client_id
+    self._context.SendRequest("DeleteFleetspeakPendingMessages", args)
+
   def __repr__(self) -> str:
     return "<{} client_id={}>".format(self.__class__.__name__, self.client_id)
 

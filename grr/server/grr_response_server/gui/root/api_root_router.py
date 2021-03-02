@@ -96,6 +96,18 @@ class ApiRootRouter(api_call_router.ApiCallRouter):
   def RestartFleetspeakGrrService(self, args, context=None):
     return api_client_management.ApiRestartFleetspeakGrrServiceHandler()
 
+  @api_call_router.Category("Client management")
+  @api_call_router.ArgsType(
+      api_client_management.ApiDeleteFleetspeakPendingMessagesArgs)
+  @api_call_router.Http(
+      "DELETE", "/api/root/client/<client_id>/fleetspeak/messages/pending")
+  def DeleteFleetspeakPendingMessages(
+      self,
+      args: api_client_management.ApiDeleteFleetspeakPendingMessagesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client_management.ApiDeleteFleetspeakPendingMessagesHandler:
+    return api_client_management.ApiDeleteFleetspeakPendingMessagesHandler()
+
   # Reflection methiods (needed for client libraries to work).
   # ===========================================================
   #

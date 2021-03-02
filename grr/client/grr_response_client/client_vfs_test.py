@@ -158,6 +158,19 @@ class VFSTest(vfs_test_lib.VfsTestCase, test_lib.GRRBaseTest):
     fd = vfs.VFSOpen(p1)
     self.TestFileHandling(fd)
 
+  def testTSKBTime(self):
+    pathspec = rdf_paths.PathSpec(
+        path=os.path.join(self.base_path, "ntfs_img.dd"),
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        offset=63 * 512,
+        nested_path=rdf_paths.PathSpec(
+            path="/Test Directory/notes.txt",
+            pathtype=rdf_paths.PathSpec.PathType.TSK))
+
+    fd = vfs.VFSOpen(pathspec)
+    st = fd.Stat()
+    self.assertEqual(str(st.st_btime), "2011-12-17 00:14:37")
+
   def testTSKFileInode(self):
     """Test opening a file through an indirect pathspec."""
     pathspec = rdf_paths.PathSpec(

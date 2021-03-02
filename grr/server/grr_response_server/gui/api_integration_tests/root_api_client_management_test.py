@@ -31,6 +31,13 @@ class RootApiClientManagementTest(
     kill_fs_mock.assert_called_with("C.2000000000000000")
     self.assertIsInstance(kill_fs_mock.call_args[0][0], str)
 
+  @mock.patch.object(fleetspeak_connector, "CONN")
+  @mock.patch.object(fleetspeak_utils, "DeleteFleetspeakPendingMessages")
+  def testDeleteFleetspeakPendingMessages(self, delete_msgs_mock, fs_conn):
+    self.api.root.Client("C.2000000000000000").DeleteFleetspeakPendingMessages()
+    delete_msgs_mock.assert_called_with("C.2000000000000000")
+    self.assertIsInstance(delete_msgs_mock.call_args[0][0], str)
+
   def testClientRefRepr(self):
     self.assertEqual(
         repr(self.api.root.Client("C.1000000000000000")),

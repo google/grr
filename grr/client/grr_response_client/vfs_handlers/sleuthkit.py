@@ -256,7 +256,6 @@ class TSKFile(vfs_base.VFSHandler):
       response.st_ino = meta.addr
       for attribute in [
           "mode", "nlink", "uid", "gid", "size", "atime", "mtime", "ctime",
-          "crtime"
       ]:
         try:
           value = int(getattr(meta, attribute))
@@ -266,6 +265,12 @@ class TSKFile(vfs_base.VFSHandler):
           setattr(response, "st_%s" % attribute, value)
         except AttributeError:
           pass
+
+      if hasattr(meta, "crtime"):
+        value = meta.crtime
+        if value < 0:
+          value &= 0xFFFFFFFF
+        response.st_btime = value
 
     name = info.name
     child_pathspec = self.pathspec.Copy()

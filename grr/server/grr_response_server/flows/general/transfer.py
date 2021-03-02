@@ -78,25 +78,33 @@ class GetFile(flow_base.FlowBase):
     self.state.file_size = 0
     self.state.blobs = []
     self.state.stat_entry = None
+    self.state.num_bytes_collected = 0
+    self.state.target_pathspec = self.args.pathspec.Copy()
 
     # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
     # This conditional should be removed after that date.
     if not self.client_version or self.client_version >= 3221:
       stub = server_stubs.GetFileStat
       request = rdf_client_action.GetFileStatRequest(
-          pathspec=self.args.pathspec, follow_symlink=True)
+          pathspec=self.state.target_pathspec, follow_symlink=True)
     else:
       stub = server_stubs.StatFile
-      request = rdf_client_action.ListDirRequest(pathspec=self.args.pathspec)
+      request = rdf_client_action.ListDirRequest(
+          pathspec=self.state.target_pathspec)
 
     self.CallClient(stub, request, next_state=compatibility.GetName(self.Stat))
 
   def Stat(self, responses):
     """Fix up the pathspec of the file."""
     response = responses.First()
+
+    file_size_known = True
     if responses.success and response:
       if stat.S_ISDIR(int(response.st_mode)):
         raise ValueError("`GetFile` called on a directory")
+
+      if not stat.S_ISREG(int(response.st_mode)) and response.st_size == 0:
+        file_size_known = False
 
       self.state.stat_entry = response
     else:
@@ -105,13 +113,36 @@ class GetFile(flow_base.FlowBase):
 
       # Just fill up a bogus stat entry.
       self.state.stat_entry = rdf_client_fs.StatEntry(
-          pathspec=self.args.pathspec)
+          pathspec=self.state.target_pathspec)
+      file_size_known = False
+
+    # File size is not known, so we have to use user-provided read_length
+    # or pathspec.file_size_override to limit the amount of bytes we're
+    # going to try to read.
+    if not file_size_known:
+      if not self.state.target_pathspec.HasField(
+          "file_size_override") and not self.args.read_length:
+        raise ValueError("The file couldn't be stat-ed. Either read_length or "
+                         "pathspec.file_size_override has to be provided.")
+
+      # This is not a regular file and the size is 0. Let's use read_length or
+      # file_size_override as a best guess for the file size.
+      if self.args.read_length == 0:
+        self.state.stat_entry.st_size = self.state.target_pathspec.file_size_override
+      else:
+        self.state.stat_entry.st_size = (
+            self.state.target_pathspec.offset + self.args.read_length)
 
     # Adjust the size from st_size if read length is not specified.
     if self.args.read_length == 0:
-      self.state.file_size = self.state.stat_entry.st_size
+      self.state.file_size = max(
+          0,
+          self.state.stat_entry.st_size - self.state.stat_entry.pathspec.offset)
     else:
       self.state.file_size = self.args.read_length
+      if not self.state.target_pathspec.HasField("file_size_override"):
+        self.state.target_pathspec.file_size_override = (
+            self.state.target_pathspec.offset + self.args.read_length)
 
     self.state.max_chunk_number = (self.state.file_size // self.CHUNK_SIZE) + 1
 
@@ -129,14 +160,39 @@ class GetFile(flow_base.FlowBase):
         return
 
       request = rdf_client.BufferReference(
-          pathspec=self.args.pathspec,
+          pathspec=self.state.target_pathspec,
           offset=next_offset,
-          length=self.CHUNK_SIZE)
+          length=min(self.state.file_size - next_offset, self.CHUNK_SIZE))
       self.CallClient(
           server_stubs.TransferBuffer,
           request,
           next_state=compatibility.GetName(self.ReadBuffer))
       self.state.current_chunk_number += 1
+
+  def _AddFileToFileStore(self):
+    stat_entry = self.state.stat_entry
+    path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
+
+    blob_refs = []
+    offset = 0
+    for data, size in self.state.blobs:
+      blob_refs.append(
+          rdf_objects.BlobReference(
+              offset=offset,
+              size=size,
+              blob_id=rdf_objects.BlobID.FromSerializedBytes(data)))
+      offset += size
+
+    client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
+    hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
+
+    path_info.hash_entry.sha256 = hash_id.AsBytes()
+    path_info.hash_entry.num_bytes = offset
+
+    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+
+    # Save some space.
+    del self.state["blobs"]
 
   def ReadBuffer(self, responses):
     """Read the buffer and write to the file."""
@@ -148,6 +204,8 @@ class GetFile(flow_base.FlowBase):
     if not response:
       raise IOError("Missing hash for offset %s missing" % response.offset)
 
+    self.state.num_bytes_collected += response.length
+
     if response.offset <= self.state.max_chunk_number * self.CHUNK_SIZE:
       # Response.data is the hash of the block (32 bytes) and
       # response.length is the length of the block.
@@ -158,40 +216,12 @@ class GetFile(flow_base.FlowBase):
       # Add one more chunk to the window.
       self.FetchWindow(1)
 
-    if response.offset + response.length >= self.state.file_size:
-      # File is complete.
-      stat_entry = self.state.stat_entry
-
-      path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
-
-      blob_refs = []
-      offset = 0
-      for data, size in self.state.blobs:
-        blob_refs.append(
-            rdf_objects.BlobReference(
-                offset=offset,
-                size=size,
-                blob_id=rdf_objects.BlobID.FromSerializedBytes(data)))
-        offset += size
-
-      client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
-      hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
-
-      path_info.hash_entry.sha256 = hash_id.AsBytes()
-      path_info.hash_entry.num_bytes = offset
-
-      data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
-
-      # Save some space.
-      del self.state["blobs"]
-      self.state.success = True
-
   def NotifyAboutEnd(self):
     super(GetFile, self).NotifyAboutEnd()
 
     stat_entry = self.state.stat_entry
     if not stat_entry:
-      stat_entry = rdf_client_fs.StatEntry(pathspec=self.args.pathspec)
+      stat_entry = rdf_client_fs.StatEntry(pathspec=self.state.target_pathspec)
 
     urn = stat_entry.AFF4Path(self.client_urn)
     components = urn.Split()
@@ -202,15 +232,7 @@ class GetFile(flow_base.FlowBase):
           path_type=components[2].upper(),
           path_components=components[3:])
 
-    if not self.state.get("success"):
-      notification.Notify(
-          self.token.username,
-          rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTION_FAILED,
-          "File transfer failed.",
-          rdf_objects.ObjectReference(
-              reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
-              vfs_file=file_ref))
-    else:
+    if self.state.num_bytes_collected >= self.state.file_size:
       notification.Notify(
           self.token.username,
           rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
@@ -218,18 +240,42 @@ class GetFile(flow_base.FlowBase):
           rdf_objects.ObjectReference(
               reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
               vfs_file=file_ref))
+    elif self.state.num_bytes_collected > 0:
+      notification.Notify(
+          self.token.username,
+          rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
+          "File transferred partially (%d bytes out of %d)." %
+          (self.state.num_bytes_collected, self.state.file_size),
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+              vfs_file=file_ref))
+    else:
+      notification.Notify(
+          self.token.username,
+          rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTION_FAILED,
+          "File transfer failed.",
+          rdf_objects.ObjectReference(
+              reference_type=rdf_objects.ObjectReference.Type.VFS_FILE,
+              vfs_file=file_ref))
 
   def End(self, responses):
     """Finalize reading the file."""
-    if not self.state.get("success"):
-      self.Log("File transfer failed.")
-    else:
+    if self.state.num_bytes_collected >= 0:
+      self._AddFileToFileStore()
+
       stat_entry = self.state.stat_entry
-      self.Log("File %s transferred successfully.",
-               stat_entry.AFF4Path(self.client_urn))
+      if self.state.num_bytes_collected >= self.state.file_size:
+        self.Log("File %s transferred successfully.",
+                 stat_entry.AFF4Path(self.client_urn))
+      else:
+        self.Log("File %s transferred partially (%d bytes out of %d).",
+                 stat_entry.AFF4Path(self.client_urn),
+                 self.state.num_bytes_collected, self.state.file_size)
 
       # Notify any parent flows the file is ready to be used now.
       self.SendReply(stat_entry)
+    else:
+      self.Log("File transfer failed.")
 
     super(GetFile, self).End(responses)
 
@@ -654,7 +700,7 @@ class MultiGetFileLogic(object):
     self.state.blob_hashes_pending = 0
 
     # If we encounter hashes that we already have, we will update
-    # self.state.pending_files right away so we can't use an iterator here.
+    # self.state.pending_files right away.
     for index, file_tracker in list(self.state.pending_files.items()):
       for i, hash_response in enumerate(file_tracker.get("hash_list", [])):
         # Make sure we read the correct pathspec on the client.

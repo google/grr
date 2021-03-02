@@ -19,15 +19,11 @@ attribute. Note that this means that any parameters assigned to the
 flow object itself are not preserved across state executions - only
 parameters specifically stored in the state are preserved.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
+import enum
 import logging
 import traceback
 
-from typing import Sequence
+from typing import Optional, Sequence
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
@@ -115,6 +111,67 @@ def RandomFlowId() -> str:
   return "{:016X}".format(random.Id64())
 
 
+class _ParentType(enum.Enum):
+  """Enum describing what data type led to a flow's creation."""
+  ROOT = 0
+  FLOW = 1
+  HUNT = 2
+  SCHEDULED_FLOW = 3
+
+
+class FlowParent(object):
+  """Class describing what data type led to a flow's creation."""
+
+  def __init__(self,
+               parent_type: _ParentType,
+               parent_id: Optional[str] = None,
+               parent_flow_obj=None):
+    """Instantiates a FlowParent. Use the class methods instead."""
+    self.type = parent_type
+    self.id = parent_id
+    self.flow_obj = parent_flow_obj
+
+  @property
+  def is_flow(self) -> bool:
+    """True, if the flow is started as child-flow."""
+    return self.type == _ParentType.FLOW
+
+  @property
+  def is_hunt(self) -> bool:
+    """True, if the flow is started as part of a hunt."""
+    return self.type == _ParentType.HUNT
+
+  @property
+  def is_root(self) -> bool:
+    """True, if the flow is started as top-level flow."""
+    return self.type == _ParentType.ROOT
+
+  @property
+  def is_scheduled_flow(self) -> bool:
+    """True, if the flow is started from a ScheduledFlow."""
+    return self.type == _ParentType.SCHEDULED_FLOW
+
+  @classmethod
+  def FromFlow(cls, flow_obj) -> "FlowParent":
+    """References another flow (flow_base.FlowBase) as parent."""
+    return cls(_ParentType.FLOW, flow_obj.rdf_flow.flow_id, flow_obj)
+
+  @classmethod
+  def FromHuntID(cls, hunt_id: str) -> "FlowParent":
+    """References another hunt as parent by its ID."""
+    return cls(_ParentType.HUNT, hunt_id)
+
+  @classmethod
+  def FromRoot(cls) -> "FlowParent":
+    """References no parent to mark a flow as top-level flow."""
+    return cls(_ParentType.ROOT)
+
+  @classmethod
+  def FromScheduledFlowID(cls, scheduled_flow_id: str) -> "FlowParent":
+    """References a ScheduledFlow as parent by its ID."""
+    return cls(_ParentType.SCHEDULED_FLOW, scheduled_flow_id)
+
+
 def StartFlow(client_id=None,
               cpu_limit=None,
               creator=None,
@@ -124,8 +181,7 @@ def StartFlow(client_id=None,
               original_flow=None,
               output_plugins=None,
               start_at=None,
-              parent_flow_obj=None,
-              parent_hunt_id=None,
+              parent=None,
               runtime_limit=None,
               **kwargs):
   """The main factory function for creating and executing a new flow.
@@ -144,24 +200,16 @@ def StartFlow(client_id=None,
       plugins should be used for this flow.
     start_at: If specified, flow will be started not immediately, but at a given
       time.
-    parent_flow_obj: A parent flow object. None if this is a top level flow.
-    parent_hunt_id: String identifying parent hunt. Can't be passed together
-      with parent_flow_obj.
+    parent: A FlowParent referencing the parent, or None for top-level flows.
     runtime_limit: Runtime limit as Duration for all ClientActions.
     **kwargs: If args or runner_args are not specified, we construct these
       protobufs from these keywords.
-
   Returns:
     the flow id of the new flow.
 
   Raises:
     ValueError: Unknown or invalid parameters were provided.
   """
-
-  if parent_flow_obj is not None and parent_hunt_id is not None:
-    raise ValueError(
-        "parent_flow_obj and parent_hunt_id are mutually exclusive.")
-
   # Is the required flow a known flow?
   try:
     registry.FlowRegistry.FlowClassByName(flow_cls.__name__)
@@ -195,33 +243,42 @@ def StartFlow(client_id=None,
       original_flow=original_flow,
       flow_state="RUNNING")
 
-  if parent_hunt_id is not None and parent_flow_obj is None:
-    rdf_flow.flow_id = parent_hunt_id
-  else:
+  if parent is None:
+    parent = FlowParent.FromRoot()
+
+  if parent.is_hunt or parent.is_scheduled_flow:
+    # When starting a flow from a hunt or ScheduledFlow, re-use the parent's id
+    # to make it easy to find flows. For hunts, every client has a top-level
+    # flow with the hunt's id.
+    rdf_flow.flow_id = parent.id
+  else:  # For new top-level and child flows, assign a random ID.
     rdf_flow.flow_id = RandomFlowId()
 
   # For better performance, only do conflicting IDs check for top-level flows.
-  if not parent_flow_obj:
+  if not parent.is_flow:
     try:
       data_store.REL_DB.ReadFlowObject(client_id, rdf_flow.flow_id)
       raise CanNotStartFlowWithExistingIdError(client_id, rdf_flow.flow_id)
     except db.UnknownFlowError:
       pass
 
-  if parent_flow_obj:  # A flow is a nested flow.
-    parent_rdf_flow = parent_flow_obj.rdf_flow
+  if parent.is_flow:  # A flow is a nested flow.
+    parent_rdf_flow = parent.flow_obj.rdf_flow
     rdf_flow.long_flow_id = "%s/%s" % (parent_rdf_flow.long_flow_id,
                                        rdf_flow.flow_id)
     rdf_flow.parent_flow_id = parent_rdf_flow.flow_id
     rdf_flow.parent_hunt_id = parent_rdf_flow.parent_hunt_id
-    rdf_flow.parent_request_id = parent_flow_obj.GetCurrentOutboundId()
+    rdf_flow.parent_request_id = parent.flow_obj.GetCurrentOutboundId()
     if parent_rdf_flow.creator:
       rdf_flow.creator = parent_rdf_flow.creator
-  elif parent_hunt_id:  # A flow is a root-level hunt-induced flow.
+  elif parent.is_hunt:  # Root-level hunt-induced flow.
     rdf_flow.long_flow_id = "%s/%s" % (client_id, rdf_flow.flow_id)
-    rdf_flow.parent_hunt_id = parent_hunt_id
-  else:  # A flow is a root-level non-hunt flow.
+    rdf_flow.parent_hunt_id = parent.id
+  elif parent.is_root or parent.is_scheduled_flow:
+    # A flow is a root-level non-hunt flow.
     rdf_flow.long_flow_id = "%s/%s" % (client_id, rdf_flow.flow_id)
+  else:
+    raise ValueError(f"Unknown flow parent type {parent}")
 
   if output_plugins:
     rdf_flow.output_plugins_states = GetOutputPluginStates(
@@ -236,7 +293,7 @@ def StartFlow(client_id=None,
   if runtime_limit is not None:
     rdf_flow.runtime_limit_us = runtime_limit
 
-  logging.info(u"Scheduling %s(%s) on %s (%s)", rdf_flow.long_flow_id,
+  logging.info(u"Starting %s(%s) on %s (%s)", rdf_flow.long_flow_id,
                rdf_flow.flow_class_name, client_id, start_at or "now")
 
   rdf_flow.current_state = "Start"
@@ -248,7 +305,6 @@ def StartFlow(client_id=None,
   allow_update = False
 
   if start_at is None:
-
     # Store an initial version of the flow straight away. This is needed so the
     # database doesn't raise consistency errors due to missing parent keys when
     # writing logs / errors / results which might happen in Start().
@@ -292,10 +348,10 @@ def StartFlow(client_id=None,
   except db.FlowExistsError:
     raise CanNotStartFlowWithExistingIdError(client_id, rdf_flow.flow_id)
 
-  if parent_flow_obj is not None:
+  if parent.is_flow:
     # We can optimize here and not write requests/responses to the database
     # since we have to do this for the parent flow at some point anyways.
-    parent_flow_obj.MergeQueuedMessages(flow_obj)
+    parent.flow_obj.MergeQueuedMessages(flow_obj)
   else:
     flow_obj.FlushQueuedMessages()
 
@@ -380,6 +436,7 @@ def _StartScheduledFlow(scheduled_flow: rdf_flow_objects.ScheduledFlow) -> str:
         flow_cls=registry.FlowRegistry.FlowClassByName(sf.flow_name),
         output_plugins=ra.output_plugins,
         start_at=rdfvalue.RDFDatetime.Now(),
+        parent=FlowParent.FromScheduledFlowID(sf.scheduled_flow_id),
         cpu_limit=ra.cpu_limit,
         network_bytes_limit=ra.network_bytes_limit,
         # TODO(user): runtime_limit is missing in FlowRunnerArgs.

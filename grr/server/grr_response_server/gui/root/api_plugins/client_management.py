@@ -58,3 +58,23 @@ class ApiRestartFleetspeakGrrServiceHandler(api_call_handler_base.ApiCallHandler
              context: Optional[api_call_context.ApiCallContext] = None) -> None:
     _CheckFleetspeakConnection()
     fleetspeak_utils.RestartFleetspeakGrrService(args.client_id.Basename())
+
+
+class ApiDeleteFleetspeakPendingMessagesArgs(rdf_structs.RDFProtoStruct):
+  protobuf = client_management_pb2.ApiDeleteFleetspeakPendingMessagesArgs
+  rdf_deps = [
+      rdf_client.ClientURN,
+  ]
+
+
+class ApiDeleteFleetspeakPendingMessagesHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Deletes pending fleetspeak messages for the given client."""
+
+  args_type = ApiDeleteFleetspeakPendingMessagesArgs
+
+  def Handle(self,
+             args: ApiDeleteFleetspeakPendingMessagesArgs,
+             context: Optional[api_call_context.ApiCallContext] = None) -> None:
+    _CheckFleetspeakConnection()
+    fleetspeak_utils.DeleteFleetspeakPendingMessages(args.client_id.Basename())

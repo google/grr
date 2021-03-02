@@ -9,12 +9,12 @@ from __future__ import unicode_literals
 import datetime
 import io
 import os
+import plistlib
 import stat
 from typing import IO
 from typing import Iterable
 from typing import Iterator
 
-import biplist
 
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
@@ -62,8 +62,8 @@ class OSXSPHardwareDataTypeParser(parser.CommandParser):
     self.CheckReturn(cmd, return_val)
 
     try:
-      plist = biplist.readPlist(io.BytesIO(stdout))
-    except biplist.InvalidPlistException as error:
+      plist = plistlib.load(io.BytesIO(stdout))
+    except plistlib.InvalidFileException as error:
       raise parsers.ParseError("Failed to parse a plist file", cause=error)
 
     if len(plist) > 1:
@@ -123,8 +123,8 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
     plist = {}
 
     try:
-      plist = biplist.readPlist(filedesc)
-    except (biplist.InvalidPlistException, ValueError, IOError) as e:
+      plist = plistlib.load(filedesc)
+    except (plistlib.InvalidFileException, ValueError, IOError) as e:
       plist["Label"] = "Could not parse plist: %s" % e
 
     # These are items that can be directly copied
@@ -225,8 +225,8 @@ class OSXInstallHistoryPlistParser(
     del pathspec  # Unused.
 
     try:
-      plist = biplist.readPlist(filedesc)
-    except biplist.InvalidPlistException as error:
+      plist = plistlib.load(filedesc)
+    except plistlib.InvalidFileException as error:
       raise parsers.ParseError("Failed to parse a plist file", cause=error)
 
     if not isinstance(plist, list):

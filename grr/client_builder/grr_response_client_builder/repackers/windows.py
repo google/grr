@@ -18,6 +18,7 @@ from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 
 from grr_response_client_builder import build
 from grr_response_client_builder import build_helpers
+from grr_response_client_builder.repackers import windows_msi
 
 from grr_response_core import config
 from grr_response_core.lib import utils
@@ -223,7 +224,7 @@ class WindowsClientRepacker(build.ClientRepacker):
 
     return output_path
 
-  def MakeDeployableBinary(self, template_path, output_path):
+  def _MakeDeployableBinary(self, template_path, output_path):
     """Repackage the template zip with the installer."""
     context = self.context + ["Client Context"]
 
@@ -287,3 +288,16 @@ class WindowsClientRepacker(build.ClientRepacker):
     output_zip.close()
 
     return self._MakeSelfExtractingZip(zip_data.getvalue(), output_path)
+
+  def MakeDeployableBinary(self, template_path, output_path):
+    with zipfile.ZipFile(template_path, "r") as zf:
+      try:
+        zf.getinfo("installer.msi")
+        is_msi = True
+      except KeyError:
+        is_msi = False
+    if is_msi:
+      repacker = windows_msi.WindowsMsiClientRepacker(context=self.context)
+      return repacker.MakeDeployableBinary(template_path, output_path)
+    else:
+      return self._MakeDeployableBinary(template_path, output_path)

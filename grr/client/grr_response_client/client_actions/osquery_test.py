@@ -246,8 +246,7 @@ class ChunkTableTest(absltest.TestCase):
     table.query = "SELECT * FROM quux;"
 
     chunks = list(osquery.ChunkTable(table, max_chunk_size=1024 * 1024 * 1024))
-    self.assertLen(chunks, 1)
-    self.assertEqual(chunks[0], table)
+    self.assertEmpty(chunks)
 
   def testSingleRowChunks(self):
     table = rdf_osquery.OsqueryTable()

@@ -1,8 +1,38 @@
-<ul *ngIf="showResults; else showButton">
-  <li *ngFor="let process of processes$ | async">
-    {{process.pid}}: {{(process.cmdline || []).join(' ').slice(0, 100)}}
-  </li>
-</ul>
+<mat-tree *ngIf="showResults; else showButton" [dataSource]="dataSource" [treeControl]="treeControl" class="process-tree">
+  <!-- This is the tree node template for leaf nodes. -->
+  <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle>
+    <li class="mat-tree-node">
+      <!-- Use a disabled button to provide padding for tree leaf. -->
+      <button mat-icon-button disabled></button>
+      <ng-template *ngTemplateOutlet="process; context: {$implicit: node}"></ng-template>
+    </li>
+  </mat-tree-node>
+  <!-- This is the tree node template for expandable nodes. -->
+  <mat-nested-tree-node *matTreeNodeDef="let node; when: hasChild">
+    <li>
+      <div class="mat-tree-node">
+        <button mat-icon-button matTreeNodeToggle
+                [attr.aria-label]="'Toggle ' + node.name">
+          <mat-icon class="mat-icon-rtl-mirror chevron">
+            {{treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right'}}
+          </mat-icon>
+        </button>
+        <ng-template *ngTemplateOutlet="process; context: {$implicit: node}"></ng-template>
+      </div>
+      <ul [class.invisible]="!treeControl.isExpanded(node)">
+        <ng-container matTreeNodeOutlet></ng-container>
+      </ul>
+    </li>
+  </mat-nested-tree-node>
+</mat-tree>
+
 <ng-template #showButton>
   <button mat-button (click)="onShowClicked()">Show process tree</button>
+</ng-template>
+
+<ng-template #process let-node>
+  <span class="text-pid">{{node.pid}}</span>
+  <span class="text-cmdline monospace">{{(node.cmdline || []).join(' ')}}</span>
+  <span class="text-user">{{node.username}}</span>
+  <span class="text-ctime"><timestamp [date]="node.date" [forceDisableUnderlining]="true"></timestamp></span>
 </ng-template>

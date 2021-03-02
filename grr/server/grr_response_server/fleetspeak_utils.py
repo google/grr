@@ -111,6 +111,13 @@ def RestartFleetspeakGrrService(grr_id: Text) -> None:
   fleetspeak_connector.CONN.outgoing.InsertMessage(fs_msg)
 
 
+def DeleteFleetspeakPendingMessages(grr_id: str) -> None:
+  """Deletes fleetspeak messages pending for the given client."""
+  delete_req = admin_pb2.DeletePendingMessagesRequest()
+  delete_req.client_ids.append(GRRIDToFleetspeakID(grr_id))
+  fleetspeak_connector.CONN.outgoing.DeletePendingMessages(delete_req)
+
+
 def FleetspeakIDToGRRID(fs_id: bytes) -> str:
   return "C." + text.Hexify(fs_id)
 

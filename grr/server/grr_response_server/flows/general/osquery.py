@@ -53,6 +53,11 @@ def _GetTruncatedTable(
   Returns:
     A truncated OsqueryTable.
   """
+  # TODO(hanuszczak): This whole function looks very suspicious and looks like
+  # a good candidate for refactoring.
+  if not responses:
+    return rdf_osquery.OsqueryTable()
+
   tables = [response.table for response in responses]
 
   result = tables[0].Truncated(TRUNCATED_ROW_COUNT)
@@ -246,6 +251,11 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
     self._UpdateProgress(responses)
 
     for response in responses:
+      # Older agent versions might still send empty tables, so we simply ignore
+      # such.
+      if not response.table.rows:
+        continue
+
       self.SendReply(response)
 
     self._FileCollectionFromColumns(responses)

@@ -55,11 +55,10 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
     ]
     """
 
-    results_iterator = self._RunOsqueryExportResults(stdout)
-    output_bytes = next(results_iterator)
+    output_bytes = b"".join(self._RunOsqueryExportResults(stdout))
     output_text = output_bytes.decode("utf-8")
 
-    self.assertEqual("\r\n", output_text)
+    self.assertEmpty(output_text)
 
   def testExportUnicodeCharacters(self):
     stdout = """

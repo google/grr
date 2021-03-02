@@ -20,6 +20,7 @@ from grr_response_proto import jobs_pb2
 from grr_response_proto.api import hunt_pb2
 from grr_response_proto.api import timeline_pb2
 from grr_response_server import data_store
+from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import processes as flows_processes
@@ -159,7 +160,7 @@ class ApiClientLibHuntTest(
       flow_id = flow_test_lib.StartFlow(
           flows_processes.ListProcesses,
           client_id=client_ids[0],
-          parent_hunt_id=hunt_id)
+          parent=flow.FlowParent.FromHuntID(hunt_id))
       flow_obj = data_store.REL_DB.ReadFlowObject(client_ids[0], flow_id)
       flow_obj.flow_state = flow_obj.FlowState.ERROR
       flow_obj.error_message = "Error foo."
@@ -169,7 +170,7 @@ class ApiClientLibHuntTest(
       flow_id = flow_test_lib.StartFlow(
           flows_processes.ListProcesses,
           client_id=client_ids[1],
-          parent_hunt_id=hunt_id)
+          parent=flow.FlowParent.FromHuntID(hunt_id))
       flow_obj = data_store.REL_DB.ReadFlowObject(client_ids[1], flow_id)
       flow_obj.flow_state = flow_obj.FlowState.ERROR
       flow_obj.error_message = "Error bar."

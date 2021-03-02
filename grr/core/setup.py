@@ -138,7 +138,6 @@ setup_args = dict(
         "sdist": Sdist,
     },
     install_requires=[
-        "biplist==1.0.3",
         "cryptography==2.9.2",
         "distro==1.5.0",
         "fleetspeak==0.1.8",

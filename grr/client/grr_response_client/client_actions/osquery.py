@@ -93,6 +93,8 @@ def ChunkTable(table: rdf_osquery.OsqueryTable,
   the specified limit. For regular values the additional payload should be
   negligible.
 
+  Note that chunking a table that is empty results in no chunks at all.
+
   Args:
     table: A table to split into multiple smaller ones.
     max_chunk_size: A maximum size of the returned table in bytes.
@@ -126,12 +128,9 @@ def ChunkTable(table: rdf_osquery.OsqueryTable,
     chunk.rows.append(row)
     chunk_size += row_size
 
-  # We want to yield extra chunk in two cases:
-  # * there are some rows that did not cause the chunk to overflow so it has not
-  #   been yielded as part of the loop.
-  # * the initial table has no rows but we still need to yield some table even
-  #   if it is empty.
-  if chunk.rows or not table.rows:
+  # There might be some rows that did not cause the chunk to overflow so it has
+  # not been yielded as part of the loop.
+  if chunk.rows:
     yield chunk
 
 

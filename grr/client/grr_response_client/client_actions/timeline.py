@@ -67,7 +67,15 @@ def Walk(root: bytes) -> Iterator[rdf_timeline.TimelineEntry]:
 
   Raises:
     OSError: If it is not possible to collect information about the root folder.
+    ValueError: If the specified root path is not absolute.
   """
+  if not os.path.isabs(root):
+    raise ValueError("Requested to traverse a non-root path")
+
+  # We fully expand the root path in order for the timeline entries to have
+  # the real path associated with them.
+  root = os.path.realpath(root)
+
   # This might raise if there is a problem when accessing the path (e.g. it does
   # not exist). While for recursive walking we generally want to ignore such
   # errors (because given the multitude of files we are going to traverse there

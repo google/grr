@@ -12,12 +12,16 @@ import re
 import shutil
 import subprocess
 import sys
+from typing import List
+import zipfile
 
 import win32process
 
 from grr_response_client_builder import build
 from grr_response_client_builder import build_helpers
 from grr_response_core import config
+from grr_response_core.lib import package
+from grr_response_core.lib import utils
 
 
 MODULE_PATTERNS = [
@@ -105,73 +109,181 @@ def _MakeZip(input_dir, output_path):
   # pytype: enable=wrong-arg-types
 
 
+def _MakeMsi(input_dir: str, output_path: str) -> None:
+  """Packages the PyInstaller files as MSI."""
+  wxs_file = package.ResourcePath("grr-response-core",
+                                  "install_data/windows/grr.wxs")
+
+  fleetspeak_wxs_lib = os.path.join(
+      config.CONFIG["ClientBuilder.fleetspeak_install_dir"],
+      "fleetspeak_lib.wxs")
+
+  # Don't automatically harvest these files using heat.exe, since they
+  # are treated specially in grr.wxs.
+
+  exclude_files = [
+      "grr-client.exe",
+      "dbg_grr-client.exe",
+      "GRRservice.exe",
+      "dbg_GRRservice.exe",
+      "fleetspeak-client.exe",
+      "grr-client.exe.manifest",
+  ]
+
+  def Run(args: List[str]):
+    logging.info("Running: %s.", args)
+    subprocess.check_call(args)
+
+  with utils.TempDirectory() as temp_dir:
+    for exclude_file in exclude_files:
+      shutil.move(
+          os.path.join(input_dir, exclude_file),
+          os.path.join(temp_dir, exclude_file))
+    Run([
+        os.path.join(config.CONFIG["ClientBuilder.wix_tools_path"], "bin",
+                     "heat.exe"),
+        "dir",
+        input_dir,
+        "-sfrag",
+        "-srd",
+        "-cg",
+        "CompGrrAutoFiles",
+        "-ag",
+        "-var",
+        "var.InputDir",
+        "-dr",
+        "INSTALLDIR",
+        "-out",
+        os.path.join(temp_dir, "heat.wxs"),
+    ])
+    for exclude_file in exclude_files:
+      shutil.move(
+          os.path.join(temp_dir, exclude_file),
+          os.path.join(input_dir, exclude_file))
+
+    # Generate padded placeholder files for these config files.
+    # The reason for the padding is that at repacking time, we have to replace
+    # the config files with files of the same size. So we make them large
+    # enough to fit any expected config file.
+
+    for placeholder_file in [
+        "grr-config.yaml", "fleetspeak-client.config",
+        "fleetspeak-service-config.txt"
+    ]:
+      with open(
+          os.path.join(input_dir, placeholder_file), "w", newline="\n") as f:
+        f.write("__BEGIN__\n")
+        f.write("\n" * (100 * 1024))
+        f.write("__END__")
+
+    object_files = []
+    for source_file in (wxs_file, fleetspeak_wxs_lib,
+                        os.path.join(temp_dir, "heat.wxs")):
+      object_file = os.path.join(temp_dir,
+                                 os.path.basename(source_file) + ".wxobj")
+      Run([
+          os.path.join(config.CONFIG["ClientBuilder.wix_tools_path"], "bin",
+                       "candle.exe"),
+          source_file,
+          "-arch",
+          "x64",
+          "-ext",
+          "WixUtilExtension",
+          "-dFLEETSPEAK_EXECUTABLE=" +
+          os.path.join(input_dir, "fleetspeak-client.exe"),
+          "-dVERSION=" + config.CONFIG["Source.version_string"],
+          "-sw1150",
+          f"-dInputDir={input_dir}",
+          "-out",
+          object_file,
+      ])
+      object_files.append(object_file)
+    Run([
+        os.path.join(config.CONFIG["ClientBuilder.wix_tools_path"], "bin",
+                     "light.exe"),
+    ] + object_files + [
+        "-ext",
+        "WixUtilExtension",
+        "-sw1076",
+        "-out",
+        os.path.join(temp_dir, "installer.msi"),
+    ])
+    with zipfile.ZipFile(output_path, "w") as zip_output:
+      zip_output.write(os.path.join(temp_dir, "installer.msi"), "installer.msi")
+      zip_output.write(os.path.join(input_dir, "build.yaml"), "build.yaml")
+
+
 class WindowsClientBuilder(build.ClientBuilder):
   """Builder class for the Windows client."""
 
   BUILDER_CONTEXT = "Target:Windows"
 
-  def BuildNanny(self, build_dir):
+  def BuildNanny(self, dest_dir: str):
     """Use VS2010 to build the windows Nanny service."""
     # When running under cygwin, the following environment variables are not set
     # (since they contain invalid chars). Visual Studio requires these or it
     # will fail.
     os.environ["ProgramFiles(x86)"] = r"C:\Program Files (x86)"
-    nanny_dir = os.path.join(build_dir, "grr", "client", "grr_response_client",
-                             "nanny")
-    nanny_src_dir = config.CONFIG.Get(
-        "ClientBuilder.nanny_source_dir", context=self.context)
-    logging.info("Copying Nanny build files from %s to %s", nanny_src_dir,
-                 nanny_dir)
+    with utils.TempDirectory() as temp_dir:
+      nanny_dir = os.path.join(temp_dir, "grr", "client", "grr_response_client",
+                               "nanny")
+      nanny_src_dir = config.CONFIG.Get(
+          "ClientBuilder.nanny_source_dir", context=self.context)
+      logging.info("Copying Nanny build files from %s to %s", nanny_src_dir,
+                   nanny_dir)
 
-    shutil.copytree(
-        config.CONFIG.Get(
-            "ClientBuilder.nanny_source_dir", context=self.context), nanny_dir)
+      shutil.copytree(
+          config.CONFIG.Get(
+              "ClientBuilder.nanny_source_dir", context=self.context),
+          nanny_dir)
 
-    build_type = config.CONFIG.Get(
-        "ClientBuilder.build_type", context=self.context)
+      build_type = config.CONFIG.Get(
+          "ClientBuilder.build_type", context=self.context)
 
-    vs_arch = config.CONFIG.Get(
-        "ClientBuilder.vs_arch", default=None, context=self.context)
+      vs_arch = config.CONFIG.Get(
+          "ClientBuilder.vs_arch", default=None, context=self.context)
 
-    # We have to set up the Visual Studio environment first and then call
-    # msbuild.
-    env_script = config.CONFIG.Get(
-        "ClientBuilder.vs_env_script", default=None, context=self.context)
+      # We have to set up the Visual Studio environment first and then call
+      # msbuild.
+      env_script = config.CONFIG.Get(
+          "ClientBuilder.vs_env_script", default=None, context=self.context)
 
-    if vs_arch is None or env_script is None or not os.path.exists(env_script):
-      # Visual Studio is not installed. We just use pre-built binaries in that
-      # case.
-      logging.warning(
-          "Visual Studio does not appear to be installed, "
-          "Falling back to prebuilt GRRNanny binaries."
-          "If you want to build it you must have VS 2012 installed.")
+      if vs_arch is None or env_script is None or not os.path.exists(
+          env_script) or config.CONFIG.Get(
+              "ClientBuilder.use_prebuilt_nanny", context=self.context):
+        # Visual Studio is not installed. We just use pre-built binaries in that
+        # case.
+        logging.warning(
+            "Visual Studio does not appear to be installed, "
+            "Falling back to prebuilt GRRNanny binaries."
+            "If you want to build it you must have VS 2012 installed.")
 
-      binaries_dir = config.CONFIG.Get(
-          "ClientBuilder.nanny_prebuilt_binaries", context=self.context)
+        binaries_dir = config.CONFIG.Get(
+            "ClientBuilder.nanny_prebuilt_binaries", context=self.context)
 
-      shutil.copy(
-          os.path.join(binaries_dir, "GRRNanny_%s.exe" % vs_arch),
-          os.path.join(build_dir, "GRRservice.exe"))
+        shutil.copy(
+            os.path.join(binaries_dir, "GRRNanny_%s.exe" % vs_arch),
+            os.path.join(dest_dir, "GRRservice.exe"))
 
-    else:
-      # Lets build the nanny with the VS env script.
-      subprocess.check_call(
-          "cmd /c \"\"%s\" && msbuild /p:Configuration=%s;Platform=%s\"" %
-          (env_script, build_type, vs_arch),
-          cwd=nanny_dir)
+      else:
+        # Lets build the nanny with the VS env script.
+        subprocess.check_call(
+            "cmd /c \"\"%s\" && msbuild /p:Configuration=%s;Platform=%s\"" %
+            (env_script, build_type, vs_arch),
+            cwd=nanny_dir)
 
-      # The templates always contain the same filenames - the repack step might
-      # rename them later.
-      shutil.copy(
-          os.path.join(nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
-          os.path.join(build_dir, "GRRservice.exe"))
+        # The templates always contain the same filenames - the repack step
+        # might rename them later.
+        shutil.copy(
+            os.path.join(nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
+            os.path.join(dest_dir, "GRRservice.exe"))
 
   def CopyBundledFleetspeak(self, output_dir):
     src_dir = config.CONFIG.Get(
         "ClientBuilder.fleetspeak_install_dir", context=self.context)
     shutil.copy(os.path.join(src_dir, "fleetspeak-client.exe"), output_dir)
 
-  def MakeExecutableTemplate(self, output_path):
+  def _CreateOutputDir(self):
     """Windows templates also include the nanny."""
     build_helpers.MakeBuildDirectory(context=self.context)
     output_dir = build_helpers.BuildWithPyInstaller(context=self.context)
@@ -203,4 +315,11 @@ class WindowsClientBuilder(build.ClientBuilder):
 
     self.CopyBundledFleetspeak(output_dir)
 
-    _MakeZip(output_dir, output_path)
+    return output_dir
+
+  def MakeExecutableTemplate(self, output_path):
+    output_dir = self._CreateOutputDir()
+    if config.CONFIG["ClientBuilder.build_msi"]:
+      _MakeMsi(output_dir, output_path)
+    else:
+      _MakeZip(output_dir, output_path)

@@ -533,6 +533,21 @@ config_lib.DEFINE_string(
     "or into \"Requires:\" in the RPM spec file.")
 
 config_lib.DEFINE_string(
+    "ClientBuilder.wix_tools_path",
+    default="",
+    help="Path to install location of wix toolset.")
+
+config_lib.DEFINE_bool(
+    "ClientBuilder.build_msi",
+    default=False,
+    help="If true, an MSI template is built on Windows.")
+
+config_lib.DEFINE_bool(
+    "ClientBuilder.use_prebuilt_nanny",
+    default=False,
+    help="If true, the prebuilt Nanny binary is used.")
+
+config_lib.DEFINE_string(
     name="ClientRepacker.output_basename",
     default=("%(Client.prefix)%(Client.name)_"
              "%(Template.version_string)_%(Template.arch)"),

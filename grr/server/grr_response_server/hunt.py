@@ -273,7 +273,7 @@ def _ScheduleVariableHunt(hunt_obj):
           # process flow's Start state right away. Only the flow request
           # will be scheduled.
           start_at=now,
-          parent_hunt_id=hunt_obj.hunt_id)
+          parent=flow.FlowParent.FromHuntID(hunt_obj.hunt_id))
 
 
 def StartHunt(hunt_id):
@@ -414,7 +414,7 @@ def StartHuntFlowOnClient(client_id, hunt_id):
         flow_cls=flow_cls,
         flow_args=flow_args,
         start_at=start_at,
-        parent_hunt_id=hunt_id)
+        parent=flow.FlowParent.FromHuntID(hunt_id))
 
     if hunt_obj.client_limit:
       if _GetNumClients(hunt_obj.hunt_id) >= hunt_obj.client_limit:

@@ -414,7 +414,7 @@ class FlowBase(metaclass=FlowRegistry):
     return flow.StartFlow(
         client_id=self.rdf_flow.client_id,
         flow_cls=flow_cls,
-        parent_flow_obj=self,
+        parent=flow.FlowParent.FromFlow(self),
         **kwargs)
 
   def SendReply(self, response, tag=None):
@@ -726,7 +726,11 @@ class FlowBase(metaclass=FlowRegistry):
       return 0
 
     processed = 0
-    while self.rdf_flow.next_request_to_process in request_dict:
+    # If the flow gets a bunch of requests to process and processing one of
+    # them leads to flow termination, other requests should be ignored.
+    # Hence: self.IsRunning check in the loop's condition.
+    while (self.IsRunning() and
+           self.rdf_flow.next_request_to_process in request_dict):
       request, responses = request_dict[self.rdf_flow.next_request_to_process]
       self.RunStateMethod(request.next_state, request, responses)
       self.rdf_flow.next_request_to_process += 1

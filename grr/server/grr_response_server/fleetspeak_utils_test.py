@@ -191,6 +191,17 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     fs_message.data.Unpack(restart_req)
     self.assertEqual(restart_req.name, "GRR")
 
+  @mock.patch.object(fleetspeak_connector, "CONN")
+  def testDeleteFleetspeakPendingMessages(self, mock_conn):
+    fleetspeak_utils.DeleteFleetspeakPendingMessages("C.1000000000000000")
+
+    mock_conn.outgoing.DeletePendingMessages.assert_called_once()
+    delete_args, _ = mock_conn.outgoing.DeletePendingMessages.call_args
+
+    delete_req = delete_args[0]
+    self.assertSameElements(delete_req.client_ids,
+                            [b"\x10\x00\x00\x00\x00\x00\x00\x00"])
+
   def testFetchClientResourceUsageRecords(self):
     conn = mock.MagicMock()
     conn.outgoing.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(

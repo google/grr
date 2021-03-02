@@ -1,3 +1,4 @@
+import {CdkTreeModule} from '@angular/cdk/tree';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
@@ -11,9 +12,11 @@ import {MatInputModule} from '@angular/material/input';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatTreeModule} from '@angular/material/tree';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 import {ApiModule} from '@app/lib/api/module';
+import {TimestampModule} from '../../timestamp/module';
 
 import {HelpersModule} from '../helpers/module';
 
@@ -47,22 +50,25 @@ const COMPONENTS = [
   imports: [
     ApiModule,
     BrowserAnimationsModule,
-    RouterModule,
+    CdkTreeModule,
     CommonModule,
+    FormsModule,
+    HelpersModule,
     MatButtonModule,
+    MatCardModule,
     MatCardModule,
     MatCheckboxModule,
     MatExpansionModule,
     MatFormFieldModule,
-    MatMenuModule,
     MatIconModule,
+    MatInputModule,
+    MatMenuModule,
     MatProgressBarModule,
     MatProgressSpinnerModule,
+    MatTreeModule,
     ReactiveFormsModule,
-    FormsModule,
-    MatInputModule,
-    MatCardModule,
-    HelpersModule,
+    RouterModule,
+    TimestampModule,
   ],
   declarations: COMPONENTS,
   exports: COMPONENTS,

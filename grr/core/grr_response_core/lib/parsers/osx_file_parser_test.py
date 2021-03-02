@@ -9,8 +9,8 @@ from __future__ import unicode_literals
 import io
 import os
 
+import plistlib
 from absl import app
-import biplist
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import osx_file_parser
@@ -62,7 +62,7 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
       list(parser.ParseResponse(None, response))
 
     exception = context.exception
-    self.assertIsInstance(exception.cause, biplist.InvalidPlistException)
+    self.assertIsInstance(exception.cause, plistlib.InvalidFileException)
 
   def testOSXSPHardwareDataTypeParser(self):
     parser = osx_file_parser.OSXSPHardwareDataTypeParser()
@@ -102,7 +102,7 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
       list(parser.ParseFile(None, pathspec, contents))
 
     exception = context.exception
-    self.assertIsInstance(exception.cause, biplist.InvalidPlistException)
+    self.assertIsInstance(exception.cause, plistlib.InvalidFileException)
 
   def testOSXInstallHistoryPlistParser(self):
     parser = osx_file_parser.OSXInstallHistoryPlistParser()
