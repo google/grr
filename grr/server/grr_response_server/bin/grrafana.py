@@ -90,7 +90,7 @@ class Metric(abc.ABC):
 
 
 class ClientResourceUsageMetric(Metric):
-  """A metric that reprsents resource usage data for a single client."""
+  """A metric that represents resource usage data for a single client."""
 
   def __init__(
       self, name: str, record_values_extract_fn: Callable[

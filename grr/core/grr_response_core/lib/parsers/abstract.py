@@ -164,7 +164,7 @@ class MultiFileParser(Parser[_O]):
     Args:
       knowledge_base: A knowledgebase for the client to whome the files belong.
       pathspecs: A list of pathspecs corresponding to the parsed files.
-      filedescs: A list fo file-like objects to parse.
+      filedescs: A list of file-like objects to parse.
 
     Yields:
       RDF values with parsed data.

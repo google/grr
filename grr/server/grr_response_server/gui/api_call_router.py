@@ -292,7 +292,7 @@ class ApiCallRouterStub(ApiCallRouter):
   @ResultType(api_client.ApiInterrogateClientResult)
   @Http("POST", "/api/clients/<client_id>/actions/interrogate")
   def InterrogateClient(self, args, context=None):
-    """Inititate client interrogation."""
+    """Initiate client interrogation."""
 
     raise NotImplementedError()
 

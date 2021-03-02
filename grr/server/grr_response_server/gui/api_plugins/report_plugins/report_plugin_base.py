@@ -32,13 +32,13 @@ class ReportPluginBase(object):
   def GetReportDescriptor(cls):
     """Returns plugins' metadata in ApiReportDescriptor."""
     if cls.TYPE is None:
-      raise ValueError("%s.TYPE is unintialized." % cls)
+      raise ValueError("%s.TYPE is uninitialized." % cls)
 
     if cls.TITLE is None:
-      raise ValueError("%s.TITLE is unintialized." % cls)
+      raise ValueError("%s.TITLE is uninitialized." % cls)
 
     if cls.SUMMARY is None:
-      raise ValueError("%s.SUMMARY is unintialized." % cls)
+      raise ValueError("%s.SUMMARY is uninitialized." % cls)
 
     return rdf_report_plugins.ApiReportDescriptor(
         type=cls.TYPE,
@@ -56,7 +56,7 @@ class ReportPluginBase(object):
       token: The authorization token, also passed from ApiListReportsHandler.
 
     Raises:
-      NotImplementedError: If not overriden.
+      NotImplementedError: If not overridden.
 
     Returns:
       ApiReportData

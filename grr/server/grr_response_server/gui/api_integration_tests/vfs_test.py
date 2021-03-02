@@ -288,7 +288,7 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
 
   def testFileFinderIndicatesCollectedSizeAfterCollection(self):
     client_ref = self.api.Client(client_id=self.client_id)
-    # TODO(user): for symlink-related test scenarions, this should require
+    # TODO(user): for symlink-related test scenarios, this should require
     # follow_links to be True. However, unlike the ClientFileFinder test
     # below, this one doesn't care about this setting. Fix the
     # FileFinder/ClientFileFinder behavior to match each other.

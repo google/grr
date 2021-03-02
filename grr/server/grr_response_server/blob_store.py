@@ -90,7 +90,7 @@ class BlobStore(metaclass=abc.ABCMeta):
 
     Args:
       blob_id_data_map: An dict of blob_id -> blob_datas. Each blob_id should be
-        a blob hash (i.e. uniquely idenitify the blob) expressed as
+        a blob hash (i.e. uniquely identify the blob) expressed as
         rdf_objects.BlobID. blob_data should be expressed as bytes.
     """
 

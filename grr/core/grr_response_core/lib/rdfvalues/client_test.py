@@ -209,7 +209,7 @@ class UnameTests(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdf_client.Uname
 
   def GenerateSample(self, number=0):
-    # Make the hostname slighly different for comparison tests.
+    # Make the hostname slightly different for comparison tests.
     result = self.rdfvalue_class.FromCurrentSystem()
     parts = result.fqdn.split(".")
     parts[0] += str(number)

@@ -24,7 +24,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
 
   def _CreateClients(self):
     # To test all search keywords, we can rely on SetupClients
-    # creating clients with attributes containing a numberic
+    # creating clients with attributes containing a numeric
     # value, e.g. hostname will be Host-0, Host-1, etc.
     self.client_ids = self.SetupClients(15)
 

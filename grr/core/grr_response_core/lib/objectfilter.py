@@ -476,7 +476,7 @@ class ValueExpander(object):
     return path[0]
 
   def _GetValue(self, obj, attr_name):
-    """Returns the value of tha attribute attr_name."""
+    """Returns the value of that attribute attr_name."""
     raise NotImplementedError()
 
   def _AtLeaf(self, attr_value):
@@ -804,7 +804,7 @@ class Parser(lexer.SearchParser):
 
     length = len(self.stack)
     while length > 1:
-      # Precendence order
+      # Precedence order
       self._CombineParenthesis()
       self._CombineBinaryExpressions("and")
       self._CombineBinaryExpressions("or")

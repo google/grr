@@ -56,7 +56,7 @@ class Error(Exception):
 
 
 class ParseError(Error):
-  """A parse error occured."""
+  """A parse error occurred."""
 
 
 class Lexer(object):
@@ -456,7 +456,7 @@ class SearchParser(Lexer):
 
     length = len(self.stack)
     while length > 1:
-      # Precendence order
+      # Precedence order
       self._CombineParenthesis()
       self._CombineBinaryExpressions("and")
       self._CombineBinaryExpressions("or")

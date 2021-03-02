@@ -13,7 +13,7 @@
 #include <time.h>
 
 /* On Windows 8 or later a separate include is required
- * earlier versions implicitely include winbase.h from windows.h
+ * earlier versions implicitly include winbase.h from windows.h
  */
 #if WINVER >= 0x602
 #include <Processthreadsapi.h>
@@ -622,7 +622,7 @@ BOOL windows_nanny_IsWow64Process(HANDLE hProcess, BOOL *Wow64Process) {
 // ---------------------------------------------------------
 // InstallService()
 //
-//     Installs the service. This fuction typically runs in the context of the
+//     Installs the service. This function typically runs in the context of the
 // command shell hence printf() works.
 // Returns -1 if service failed to be installed, and 0 on success.
 // ---------------------------------------------------------

@@ -19,7 +19,7 @@ from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 class GetCloudVMMetadata(actions.ActionPlugin):
   """Get metadata for cloud VMs.
 
-  To avoid waiting on dns timeouts, causing unncessary network traffic, and
+  To avoid waiting on dns timeouts, causing unnecessary network traffic, and
   getting unreliable data back we first attempt to determine if we are running
   on a cloud VM. There isn't a reliable way to do so, but we make do by
   inspecting BIOS strings on linux and looking at running services on windows.

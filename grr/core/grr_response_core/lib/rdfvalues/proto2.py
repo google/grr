@@ -194,7 +194,7 @@ def DefineFromWireFormat(cls, protobuf):
           type_descriptor = classes_dict["ProtoDynamicEmbedded"](
               dynamic_cb=dynamic_cb, **kwargs)
         else:
-          logging.warning("Dynamic type specifies a non existant callback %s",
+          logging.warning("Dynamic type specifies a non existent callback %s",
                           options.dynamic_type)
 
     elif (field.type == TYPE_MESSAGE and field.message_type.name == "Any"):

@@ -322,7 +322,7 @@ def ConfigureMySQLDatastore(config):
 
 
 class FleetspeakConfig:
-  """Wraps the bundled fleetspeak configuratiom."""
+  """Wraps the bundled fleetspeak configuration."""
 
   def __init__(self):
 

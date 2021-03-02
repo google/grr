@@ -131,7 +131,7 @@ const SemanticProtoFormController = class {
      * If this onValueChange_ call has nothing to do with a change made
      * in onEditedValueChange_, it means that the scope['value']
      * binding was changed from the outside and therefore we
-     * should rerender the UI to get everythign updated.
+     * should rerender the UI to get everything updated.
      *
      * NOTE: current implementation assumes that such external changes
      * are not done too often since every onDescriptorsFetched_ call

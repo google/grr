@@ -185,7 +185,7 @@ class FlowBase(metaclass=FlowRegistry):
   behaviours = BEHAVIOUR_ADVANCED
 
   # Tuple, containing the union of all possible types this flow might
-  # return. By default, any RDFValue migth be returned.
+  # return. By default, any RDFValue might be returned.
   result_types = (rdfvalue.RDFValue,)
 
   def __init__(self, rdf_flow):

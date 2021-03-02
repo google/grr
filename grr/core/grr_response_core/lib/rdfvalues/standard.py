@@ -102,7 +102,7 @@ class PersistenceFile(rdf_structs.RDFProtoStruct):
 
 
 class URI(rdf_structs.RDFProtoStruct):
-  """Represets a URI with its individual components seperated."""
+  """Represets a URI with its individual components separated."""
   protobuf = sysinfo_pb2.URI
 
   def __init__(self, initializer=None, **kwargs):

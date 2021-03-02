@@ -66,7 +66,7 @@ const ApiQuerySpecController = class {
 
 
 /**
- * Directive for displaying API query specificiation.
+ * Directive for displaying API query specification.
  *
  * @return {!angular.Directive} Directive definition object.
  * @ngInject

@@ -448,7 +448,7 @@ message DynamicTypeTest {{
   def testRDFStruct(self):
     tested = TestStruct()
 
-    # cant set integers for string attributes.
+    # can't set integers for string attributes.
     self.assertRaises(type_info.TypeValueError, setattr, tested, "foobar", 1)
 
     # This is a string so a string assignment is good:
@@ -662,12 +662,12 @@ message DynamicTypeTest {{
     # An empty protobuf.
     tested_non_union = TestStruct()
 
-    # Raises if union-casting is attemted on non-union proto.
+    # Raises if union-casting is attempted on non-union proto.
     self.assertRaises(AttributeError, tested_non_union.UnionCast)
 
     # A proto with a semantic union_field. In this particular proto the chosen
     # union variant is called struct_flavor, but it's arbitrary, we also use
-    # eg rule_type reffering to the chosen union variant elsewhere. This is
+    # eg rule_type referring to the chosen union variant elsewhere. This is
     # determined by the value of union_field.
     tested_union = UnionTest()
 

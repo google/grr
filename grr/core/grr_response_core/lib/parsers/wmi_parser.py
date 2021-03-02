@@ -278,7 +278,7 @@ class WMILogicalDisksParser(parser.WMIQueryParser):
 
 
 class WMIComputerSystemProductParser(parser.WMIQueryParser):
-  """Parser for WMI Output. Yeilds Identifying Number."""
+  """Parser for WMI Output. Yields Identifying Number."""
 
   output_types = [rdf_client.HardwareInfo]
   supported_artifacts = ["WMIComputerSystemProduct"]

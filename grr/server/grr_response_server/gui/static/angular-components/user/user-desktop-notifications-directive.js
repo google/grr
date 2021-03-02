@@ -75,8 +75,8 @@ const UserDesktopNotificationsController = class {
    *
    * @private
    *
-   * @param {string} title The dislayed notification's title.
-   * @param {string} body The dislayed notification's body text.
+   * @param {string} title The displayed notification's title.
+   * @param {string} body The displayed notification's body text.
    * @param {string} tag A string that uniquely identifies the notification
    across browser windows.
    * @param {function()=} opt_onclick Optional on notification click callback.

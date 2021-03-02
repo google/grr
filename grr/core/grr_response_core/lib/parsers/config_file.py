@@ -776,7 +776,7 @@ class PackageSourceParser(parsers.SingleFileParser[rdf_protodict.AttributedDict]
     yield rdf_protodict.AttributedDict(**cfg)
 
   def FindPotentialURIs(self, file_obj):
-    """Stub Method to be overriden by APT and Yum source parsers."""
+    """Stub Method to be overridden by APT and Yum source parsers."""
     raise NotImplementedError("Please implement FindPotentialURIs.")
 
   # TODO: Make sure all special cases are caught by this function.
@@ -798,7 +798,7 @@ class PackageSourceParser(parsers.SingleFileParser[rdf_protodict.AttributedDict]
 
     Args:
       data: unprocessed lines from a file
-      separator: how the key/value pairs are seperated
+      separator: how the key/value pairs are separated
       uri_key: starting name of the key containing URI.
 
     Returns:
@@ -833,7 +833,7 @@ class APTPackageSourceParser(PackageSourceParser):
   supported_artifacts = ["APTSources"]
 
   def FindPotentialURIs(self, file_obj):
-    """Given a file, this will return all potenial APT source URIs."""
+    """Given a file, this will return all potential APT source URIs."""
     rfc822_format = ""  # will contain all lines not in legacy format
     uris_to_parse = []
 
@@ -854,7 +854,7 @@ class YumPackageSourceParser(PackageSourceParser):
   supported_artifacts = ["YumSources"]
 
   def FindPotentialURIs(self, file_obj):
-    """Given a file, this will return all potenial Yum source URIs."""
+    """Given a file, this will return all potential Yum source URIs."""
     return self.ParseURIFromKeyValues(
         utils.ReadFileBytesAsUnicode(file_obj), "=", "baseurl")
 

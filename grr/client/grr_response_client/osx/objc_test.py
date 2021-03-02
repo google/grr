@@ -34,7 +34,7 @@ class ObjcTest(test_lib.GRRBaseTest):
     with self.assertRaises(objc.ErrorLibNotFound):
       objc._SetCTypesForLibrary("mock", self.cftable)
 
-      # Check that hte first argument of the first find_library call is "mock".
+      # Check that the first argument of the first find_library call is "mock".
       find_library_mock.assert_called_with("mock")
 
   @mock.patch("ctypes.util.find_library")

@@ -159,7 +159,7 @@ class Timeseries(object):
     using this assumption converts the sequence to estimate the total number of
     counts which occurred.
 
-    NOTE: Could give inacurate numbers in either of the following cases: 1)
+    NOTE: Could give inaccurate numbers in either of the following cases: 1)
     Multiple resets occur between samples. 2) A reset is followed by a spike
     larger than the previous level.
 
@@ -219,7 +219,7 @@ class Timeseries(object):
         p[0] *= multiplier
 
   def Mean(self):
-    """Return the arithmatic mean of all values."""
+    """Return the arithmetic mean of all values."""
     values = [v for v, _ in self.data if v is not None]
     if not values:
       return None

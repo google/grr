@@ -68,7 +68,7 @@ class TypeInfoObject(metaclass=MetaclassRegistry):
     # It is generally impossible to check the default value here
     # because this happens before any configuration is loaded (i.e. at
     # import time). Hence default values which depend on the config
-    # system cant be tested. We just assume that the default value is
+    # system can't be tested. We just assume that the default value is
     # sensible since its hard coded in the code.
 
   def GetType(self):
@@ -284,7 +284,7 @@ class TypeDescriptorSet(object):
       self.descriptor_names.append(desc.name)
 
   def HasDescriptor(self, descriptor_name):
-    """Checks wheter this set has an element with the given name."""
+    """Checks whether this set has an element with the given name."""
     return descriptor_name in self.descriptor_map
 
   def Remove(self, *descriptor_names):

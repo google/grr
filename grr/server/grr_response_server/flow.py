@@ -46,7 +46,7 @@ class Error(Exception):
 
 
 class CanNotStartFlowWithExistingIdError(Error):
-  """Raises by StartFlow when trying to start a flow with an exising id."""
+  """Raises by StartFlow when trying to start a flow with an existing id."""
 
   def __init__(self, client_id, flow_id):
     message = ("Flow %s already exists on the client %s." %

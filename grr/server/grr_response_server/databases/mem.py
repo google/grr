@@ -70,7 +70,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.metadatas = {}
     self.notifications_by_username = {}
     self.startup_history = {}
-    # TODO(hanuszczak): Consider chaning this to nested dicts for improved
+    # TODO(hanuszczak): Consider changing this to nested dicts for improved
     # debugging experience.
     # Maps (client_id, path_type, components) to a path record.
     self.path_records = {}

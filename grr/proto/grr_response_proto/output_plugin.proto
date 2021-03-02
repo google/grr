@@ -28,7 +28,7 @@ message OutputPluginState {
 // Next id: 7
 message OutputPluginBatchProcessingStatus {
   enum Status {
-    SUCCESS = 0;  // Batch was succesfully processed.
+    SUCCESS = 0;  // Batch was successfully processed.
     ERROR = 1;    // Batch wasn't processed due to an error.
   }
 

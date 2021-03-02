@@ -586,7 +586,7 @@ def NormalizePath(path: Text, sep: Text = "/") -> Text:
           path_list.pop(i)
         break
 
-    # If we didnt alter the path so far we can quit
+    # If we didn't alter the path so far we can quit
     if len(path_list) == list_len:
       return sep + sep.join(path_list)
 

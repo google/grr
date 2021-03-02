@@ -1519,11 +1519,11 @@ class ApiCreatePerClientFileCollectionHuntHandler(
              context: api_call_context.ApiCallContext):
     if len(args.per_client_args) > self.MAX_CLIENTS:
       raise ValueError(f"At most {self.MAX_CLIENTS} clients can be specified "
-                       "in a per-client file colletion hunt.")
+                       "in a per-client file collection hunt.")
 
     if sum(len(pca.paths) for pca in args.per_client_args) > self.MAX_FILES:
       raise ValueError(f"At most {self.MAX_FILES} file paths can be specified "
-                       "in a per-client file colletion hunt.")
+                       "in a per-client file collection hunt.")
 
     hunt_obj = rdf_hunt_objects.Hunt(
         args=self._ArgsToHuntArgs(args),

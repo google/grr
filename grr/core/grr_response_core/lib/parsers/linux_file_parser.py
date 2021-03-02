@@ -576,7 +576,7 @@ class LinuxSystemGroupParser(LinuxBaseShadowParser):
     self.ReconcileShadow(self.shadow_store)
     # Identify any anomalous group/shadow entries.
     # This needs to be done before memberships are merged: merged memberships
-    # are the *effective* membership regardless of wierd configurations.
+    # are the *effective* membership regardless of weird configurations.
     for anom in self.FindAnomalies():
       yield anom
     # Then add shadow group members to the group membership.
@@ -617,7 +617,7 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
       pw_entry = self.shadow.setdefault(rslt["login"], rdf_client.PwEntry())
       pw_entry.store = self.shadow_store
       pw_entry.hash_type = self.GetHashType(rslt["passwd"])
-      # Tread carefully here in case these values aren't set.
+      # Treat carefully here in case these values aren't set.
       last_change = rslt.get("last_change")
       if last_change:
         pw_entry.age = int(last_change)

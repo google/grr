@@ -57,7 +57,7 @@ const NavigatorController = class {
    */
   onClientSelectionChange_(clientId) {
     if (!clientId) {
-      return;  // Stil display the last client for convenience.
+      return;  // Still display the last client for convenience.
     }
     if (clientId.indexOf('aff4:/') === 0) {
       clientId = clientId.split('/')[1];

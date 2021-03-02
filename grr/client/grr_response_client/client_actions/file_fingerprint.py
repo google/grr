@@ -71,7 +71,7 @@ class FingerprintFile(standard.ReadBuffer):
 
       # Structure of the results is a list of dicts, each containing the
       # name of the hashing method, hashes for enabled hash algorithms,
-      # and auxilliary data where present (e.g. signature blobs).
+      # and auxiliary data where present (e.g. signature blobs).
       # Also see Fingerprint:HashIt()
       response.results = fingerprinter.HashIt()
 

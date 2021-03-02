@@ -17,7 +17,7 @@ customize the dashboards.
   method was made), where the status of the call is not SUCCESS.
   This is due to the way Prometheus' function [rate()](https://prometheus.io/docs/prometheus/latest/querying/functions/#rate) works.
 
-First, make sure to activate the virtual environment of your GRR installtion (if you use one), and have Grafana and [Prometheus](https://prometheus.io/docs/prometheus/latest/getting_started/#starting-prometheus)
+First, make sure to activate the virtual environment of your GRR installation (if you use one), and have Grafana and [Prometheus](https://prometheus.io/docs/prometheus/latest/getting_started/#starting-prometheus)
 running on your GRR deployment. To run Prometheus and Grafana with GRR, check out the [monitoring section](https://grr-doc.readthedocs.io/en/latest/maintaining-and-tuning/monitoring.html)
 of the documentation.
 Then, go to the grafana directory using `cd grr/moniroing/grafana`.

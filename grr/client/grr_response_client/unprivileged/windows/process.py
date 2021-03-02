@@ -171,7 +171,7 @@ PROC_THREAD_ATTRIBUTE_HANDLE_LIST = 0x20002
 class Process:
   """A subprocess.
 
-  A pair of pipes is crated and shared with the subprocess.
+  A pair of pipes is created and shared with the subprocess.
   """
 
   def __init__(self, args: List[str], extra_fds: Optional[List[int]] = None):

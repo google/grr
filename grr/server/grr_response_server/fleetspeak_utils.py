@@ -56,7 +56,7 @@ def SendGrrMessageThroughFleetspeak(grr_id: str,
                                     grr_msg: rdf_flows.GrrMessage) -> None:
   """Sends the given GrrMessage through FS with retrying.
 
-  The send operation is retried if a `grpc.RpcError` occures.
+  The send operation is retried if a `grpc.RpcError` occurs.
 
   The maximum number of retries corresponds to the config value
   `Server.fleetspeak_send_retry_attempts`.

@@ -5,7 +5,7 @@ from __future__ import division
 from __future__ import print_function
 from __future__ import unicode_literals
 
-# This script must have no special requirements because it wont be able to
+# This script must have no special requirements because it won't be able to
 # import any GRR stuff until the protos are built.
 
 import argparse

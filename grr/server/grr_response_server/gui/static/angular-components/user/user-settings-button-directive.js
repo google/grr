@@ -71,7 +71,7 @@ const UserSettingsButtonController = class {
 
   /**
    * Sends current settings value to the server and reloads the page after as
-   * soon as server acknowledges the request afer a small delay. The delay is
+   * soon as server acknowledges the request after a small delay. The delay is
    * needed so that the user can see the success message.
    *
    * @export

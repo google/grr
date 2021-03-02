@@ -63,7 +63,7 @@ const ArtifactsListFormController = class {
   }
 
   /**
-   * Filters artifacts by search string (case-insenstive).
+   * Filters artifacts by search string (case-insensitive).
    *
    * @param {!Object} descriptor Artifact descriptor to check.
    * @return {boolean} True if artifacts's name matches current search

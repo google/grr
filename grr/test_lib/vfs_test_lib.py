@@ -171,7 +171,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
   def _NormalizeCaseForPath(self, path, vfs_name):
     """Handle casing differences for different filesystems."""
     # Special handling for case sensitivity of registry keys.
-    # This mimicks the behavior of the operating system.
+    # This mimics the behavior of the operating system.
     if self.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
       self.path = self.path.replace("\\", "/")
       parts = path.split("/")

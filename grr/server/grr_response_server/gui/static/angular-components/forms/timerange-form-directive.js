@@ -26,14 +26,14 @@ const TimerangeFormController = class {
     /** @type {number} */
     this.startTimeSecs;
 
-    // The underlaying proto expects microseconds.
+    // The underlying proto expects microseconds.
     /** @type {Object} */
     this.formStartTime;
 
     /** @type {number} */
     this.durationSecs;
 
-    // The underlaying proto expects seconds.
+    // The underlying proto expects seconds.
     /** @type {Object} */
     this.formDuration;
 

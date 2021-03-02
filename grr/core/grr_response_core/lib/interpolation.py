@@ -53,7 +53,7 @@ class Substitution(object):
     """Formats given pattern with this substitution environment.
 
     A pattern can contain placeholders for variables (`%%foo%%`) and scopes
-    (`%%bar.baz%%`) that are replaced with concrete values in this substiution
+    (`%%bar.baz%%`) that are replaced with concrete values in this substitution
     environment (specified in the constructor).
 
     Args:
