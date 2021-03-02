@@ -1,3 +1,4 @@
+
 /**
  * @fileoverview The module provides mappings for GRR API protos (in JSON
  * format) into TypeScript interfaces. They are not intended to be

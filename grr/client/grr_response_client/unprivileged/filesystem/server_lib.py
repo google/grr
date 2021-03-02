@@ -2,6 +2,7 @@
 """Unprivileged filesystem RPC server."""
 
 import abc
+import os
 import sys
 import traceback
 from typing import TypeVar, Generic, Optional, Tuple
@@ -30,6 +31,7 @@ class State:
   def __init__(self):
     self.filesystem = None  # type: Optional[filesystem.Filesystem]
     self.files = filesystem.Files()
+    self.device = None  # type: Optional[filesystem.Device]
 
 
 class ConnectionWrapper:
@@ -62,6 +64,17 @@ class RpcDevice(filesystem.Device):
         filesystem_pb2.Response(device_data_request=device_data_request), b'')
     _, attachment = self._connection.Recv()
     return attachment
+
+
+class FileDevice(filesystem.Device):
+  """A device implementation backed by a file identified by file descriptor."""
+
+  def __init__(self, file_descriptor: int):
+    self._file = os.fdopen(file_descriptor, 'rb')
+
+  def Read(self, offset: int, size: int) -> bytes:
+    self._file.seek(offset)
+    return self._file.read(size)
 
 
 RequestType = TypeVar('RequestType')
@@ -119,7 +132,12 @@ class InitHandler(OperationHandler[filesystem_pb2.InitRequest,
       request: filesystem_pb2.InitRequest) -> filesystem_pb2.InitResponse:
     if request.implementation_type == filesystem_pb2.NTFS:
       state.filesystem = ntfs.NtfsFilesystem()
-      state.filesystem.device = self.CreateDevice()
+      if request.HasField('serialized_device_file_descriptor'):
+        state.filesystem.device = FileDevice(
+            communication.DeserializeFileDescriptorReadOnly(
+                request.serialized_device_file_descriptor))
+      else:
+        state.filesystem.device = self.CreateDevice()
     return filesystem_pb2.InitResponse()
 
   def PackResponse(

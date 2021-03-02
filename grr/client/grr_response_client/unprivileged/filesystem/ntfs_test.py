@@ -3,9 +3,12 @@ import contextlib
 import datetime
 import os
 import time
+from typing import Optional, BinaryIO
+from unittest import mock
 from absl.testing import absltest
 import dateutil
 from google.protobuf import timestamp_pb2
+from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged.filesystem import client
 from grr_response_client.unprivileged.filesystem import server
 from grr_response_client.unprivileged.proto import filesystem_pb2
@@ -53,32 +56,10 @@ def _ParseTimestamp(s: str) -> timestamp_pb2.Timestamp:
   return result
 
 
-class NtfsTest(absltest.TestCase):
+class NtfsTestBase(absltest.TestCase):
 
-  _server = None
-
-  @classmethod
-  def setUpClass(cls):
-    super(NtfsTest, cls).setUpClass()
-    cls._server = server.CreateFilesystemServer()
-    cls._server.Start()
-
-  @classmethod
-  def tearDownClass(cls):
-    cls._server.Stop()
-    super(NtfsTest, cls).tearDownClass()
-
-  def setUp(self):
-    super(NtfsTest, self).setUp()
-    stack = contextlib.ExitStack()
-    self.addCleanup(stack.close)
-
-    ntfs_image = stack.enter_context(
-        open(os.path.join(config.CONFIG["Test.data_dir"], "ntfs.img"), "rb"))
-    self._client = stack.enter_context(
-        client.CreateFilesystemClient(self._server.Connect(),
-                                      filesystem_pb2.NTFS,
-                                      client.FileDevice(ntfs_image)))
+  _server: Optional[communication.Server] = None
+  _client: Optional[client.Client] = None
 
   def testRead(self):
     with self._client.Open(path="\\numbers.txt") as file_obj:
@@ -301,6 +282,73 @@ class NtfsTest(absltest.TestCase):
       expected = "Chinese news\n中国新闻\n".encode("utf-8")
       self.assertEqual(file_obj.Read(0, 100), expected)
 
+
+class NtfsWithRemoteDeviceTest(NtfsTestBase):
+  """Test variant sharing the device via RPC calls with the server."""
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    cls._server = server.CreateFilesystemServer()
+    cls._server.Start()
+
+  @classmethod
+  def tearDownClass(cls):
+    cls._server.Stop()
+    super().tearDownClass()
+
+  def setUp(self):
+    super().setUp()
+    stack = contextlib.ExitStack()
+    self.addCleanup(stack.close)
+
+    ntfs_image = stack.enter_context(
+        open(os.path.join(config.CONFIG["Test.data_dir"], "ntfs.img"), "rb"))
+
+    # The FileDevice won't return a file descriptor.
+    stack.enter_context(
+        mock.patch.object(client.FileDevice, "file_descriptor", None))
+
+    self._client = stack.enter_context(
+        client.CreateFilesystemClient(self._server.Connect(),
+                                      filesystem_pb2.NTFS,
+                                      client.FileDevice(ntfs_image)))
+
+
+class NtfsWithFileDescriptorSharingTest(NtfsTestBase):
+  """Test variant sharing a file descriptor of the device with the server."""
+
+  _ntfs_image: BinaryIO = None
+
+  @classmethod
+  def setUpClass(cls):
+    super().setUpClass()
+    cls._ntfs_image = open(
+        os.path.join(config.CONFIG["Test.data_dir"], "ntfs.img"), "rb")
+    cls._server = server.CreateFilesystemServer(cls._ntfs_image.fileno())
+    cls._server.Start()
+
+  @classmethod
+  def tearDownClass(cls):
+    cls._server.Stop()
+    cls._ntfs_image.close()
+    super().tearDownClass()
+
+  def setUp(self):
+    super().setUp()
+    stack = contextlib.ExitStack()
+    self.addCleanup(stack.close)
+
+    self._client = stack.enter_context(
+        client.CreateFilesystemClient(self._server.Connect(),
+                                      filesystem_pb2.NTFS,
+                                      client.FileDevice(self._ntfs_image)))
+
+
+# Don't run tests from the base class.
+# TODO(user): Remove this once there
+# is support for abstract test cases.
+del NtfsTestBase
 
 if __name__ == "__main__":
   absltest.main()

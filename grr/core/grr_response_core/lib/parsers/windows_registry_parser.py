@@ -301,9 +301,9 @@ class WinServicesParser(
         "Parameters/ServiceDLL": "service_dll"
     }
 
-    # Field map key should be converted to lowercase because key acquired through
-    # self._GetKeyName could have some  characters in different case than the
-    # field map, e.g. ServiceDLL and ServiceDll.
+    # Field map key should be converted to lowercase because key acquired
+    # through self._GetKeyName could have some  characters in different
+    # case than the field map, e.g. ServiceDLL and ServiceDll.
     field_map = {k.lower(): v for k, v in field_map.items()}
     for stat in responses:
 

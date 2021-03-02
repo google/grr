@@ -136,12 +136,15 @@ class SubprocessServer(Server):
   channel.
   """
 
-  def __init__(self, args_factory: ArgsFactory):
+  def __init__(self,
+               args_factory: ArgsFactory,
+               extra_file_descriptors: Optional[List[int]] = None):
     """Constructor.
 
     Args:
       args_factory: Function which takes a channel and returns
         the args to run the server subprocess (as required by subprocess.Popen).
+      extra_file_descriptors: Extra file desctiptors to map to the subprocess.
     """
     self._args_factory = args_factory
     self._process = None  # type: Optional[subprocess.Popen]
@@ -149,6 +152,9 @@ class SubprocessServer(Server):
     self._process_win = None
     self._output_r = None  # type: Optional[BinaryIO]
     self._input_w = None  # type: Optional[BinaryIO]
+    if extra_file_descriptors is None:
+      extra_file_descriptors = []
+    self._extra_file_descriptors = extra_file_descriptors
 
   def Start(self) -> None:
     with contextlib.ExitStack() as stack:
@@ -172,14 +178,15 @@ class SubprocessServer(Server):
         # pytype: enable=module-attr
         args = self._args_factory(
             Channel(pipe_input=input_r_handle, pipe_output=output_w_handle))
-        self._process_win = process.Process(args, [input_r_fd, output_w_fd])
+        self._process_win = process.Process(args, [input_r_fd, output_w_fd] +
+                                            self._extra_file_descriptors)
       else:
         args = self._args_factory(
             Channel(pipe_input=input_r_fd, pipe_output=output_w_fd))
         self._process = subprocess.Popen(
             args,
             close_fds=True,
-            pass_fds=[input_r_fd, output_w_fd],
+            pass_fds=[input_r_fd, output_w_fd] + self._extra_file_descriptors,
         )
 
   def Stop(self) -> None:
@@ -196,6 +203,48 @@ class SubprocessServer(Server):
   def Connect(self) -> Connection:
     transport = PipeTransport(self._output_r, self._input_w)
     return Connection(transport)
+
+
+def SerializeFileDescriptor(file_descriptor: int) -> int:
+  """Serializes a file descriptor for passing to a different process.
+
+  On Windows, transforms `file_descriptor` to a handle.
+
+  On other platforms, `file_descriptor` is returned verbatim.
+
+  Args:
+    file_descriptor: The file descriptor.
+
+  Returns:
+    The serialized value.
+  """
+  if platform.system() == "Windows":
+    import msvcrt  # pylint: disable=g-import-not-at-top
+    # pytype doesn't see the functions in msvcrt
+    return msvcrt.get_osfhandle(file_descriptor)  # pytype: disable=module-attr
+  else:
+    return file_descriptor
+
+
+def DeserializeFileDescriptorReadOnly(value: int) -> int:
+  """Deserializes a file descriptor received from a different process.
+
+  On Windows, `value` is transformed from a handle to a file descriptor.
+
+  On other platforms, `value` is interpreted as a file descriptor.
+
+  Args:
+    value: The serialized value.
+
+  Returns:
+    A file descriptor.
+  """
+  if platform.system() == "Windows":
+    import msvcrt  # pylint: disable=g-import-not-at-top
+    # pytype doesn't see the functions in msvcrt
+    return msvcrt.open_osfhandle(value, os.O_RDONLY)  # pytype: disable=module-attr
+  else:
+    return value
 
 
 def Main(channel: Channel, connection_handler: ConnectionHandler) -> None:

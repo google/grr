@@ -83,13 +83,20 @@ def _ConvertStatEntry(entry: filesystem_pb2.StatEntry,
 class VFSHandlerDevice(client.Device):
   """A device implementation backed by a VFSHandler."""
 
-  def __init__(self, vfs_handler: vfs_base.VFSHandler):
+  def __init__(self,
+               vfs_handler: vfs_base.VFSHandler,
+               device_file_descriptor: Optional[int] = None):
     super(VFSHandlerDevice, self).__init__()
     self._vfs_handler = vfs_handler
+    self._device_file_descriptor = device_file_descriptor
 
   def Read(self, offset: int, size: int) -> bytes:
     self._vfs_handler.seek(offset)
     return self._vfs_handler.read(size)
+
+  @property
+  def file_descriptor(self) -> Optional[int]:
+    return self._device_file_descriptor
 
 
 class UnprivilegedFileBase(vfs_base.VFSHandler):
@@ -124,11 +131,20 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
       try:
         self.client = MOUNT_CACHE.Get(cache_key).client
       except KeyError:
-        server_obj = server.CreateFilesystemServer()
-        server_obj.Start()
-        self.client = client.CreateFilesystemClient(server_obj.Connect(),
-                                                    self.implementation_type,
-                                                    VFSHandlerDevice(base_fd))
+        device_path = base_fd.native_path
+        if device_path is None:
+          server_obj = server.CreateFilesystemServer()
+          server_obj.Start()
+          self.client = client.CreateFilesystemClient(server_obj.Connect(),
+                                                      self.implementation_type,
+                                                      VFSHandlerDevice(base_fd))
+        else:
+          with open(device_path, "rb") as device_file:
+            server_obj = server.CreateFilesystemServer(device_file.fileno())
+            server_obj.Start()
+            self.client = client.CreateFilesystemClient(
+                server_obj.Connect(), self.implementation_type,
+                VFSHandlerDevice(base_fd, device_file.fileno()))
         MOUNT_CACHE.Put(cache_key,
                         MountCacheItem(server=server_obj, client=self.client))
       self.pathspec.Append(pathspec)

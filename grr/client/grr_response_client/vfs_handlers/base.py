@@ -7,6 +7,7 @@ from __future__ import unicode_literals
 
 import abc
 import os
+from typing import Optional
 
 from grr_response_client import client_utils
 from grr_response_core.lib import utils
@@ -294,3 +295,11 @@ class VFSHandler(metaclass=abc.ABCMeta):
 
   def GetMetadata(self):
     return self.metadata
+
+  @property
+  def native_path(self) -> Optional[str]:
+    """Returns the path to a native file this handler corresponds to.
+
+    Returns None if this handler doesn't correspond to a native file.
+    """
+    return None

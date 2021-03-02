@@ -1232,7 +1232,8 @@ class GrrConfigManager(object):
     if context is None:
       context = self.context
 
-    # Getting a raw value is pretty cheap so we won't bother with the cache here.
+    # Getting a raw value is pretty cheap so we won't bother with the cache
+    # here.
     _, value = self._GetValue(name, context, default=default)
     return value
 

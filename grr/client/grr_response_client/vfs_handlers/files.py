@@ -12,7 +12,7 @@ import re
 import sys
 import threading
 
-from typing import Text
+from typing import Text, Optional
 
 from grr_response_client import client_utils
 from grr_response_client.vfs_handlers import base as vfs_base
@@ -367,6 +367,10 @@ class File(vfs_base.VFSHandler):
       path = os.path.dirname(path)
 
     return path
+
+  @property
+  def native_path(self) -> Optional[str]:
+    return self.filename
 
 
 class TempFile(File):

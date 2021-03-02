@@ -2,7 +2,7 @@
 """Functionality to create a filesystem server."""
 
 import sys
-from typing import List
+from typing import List, Optional
 
 from grr_response_client.unprivileged import communication
 
@@ -31,6 +31,11 @@ def _MakeServerArgs(channel: communication.Channel) -> List[str]:
   ]
 
 
-def CreateFilesystemServer() -> communication.Server:
-  server = communication.SubprocessServer(_MakeServerArgs)
+def CreateFilesystemServer(
+    device_file_descriptor: Optional[int] = None) -> communication.Server:
+  extra_file_descriptors = []
+  if device_file_descriptor is not None:
+    extra_file_descriptors.append(device_file_descriptor)
+  server = communication.SubprocessServer(_MakeServerArgs,
+                                          extra_file_descriptors)
   return server

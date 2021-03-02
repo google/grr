@@ -29,6 +29,11 @@ enum ImplementationType {
 
 message InitRequest {
   optional ImplementationType implementation_type = 1;
+
+  // File descriptor (or handle on Windows) for the device underlying the
+  // filesystem. The file descriptor (or handle) must be valid within the
+  // filesystem server process.
+  optional uint64 serialized_device_file_descriptor = 2;
 }
 
 message InitResponse {}

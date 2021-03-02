@@ -56,6 +56,15 @@ class Device(abc.ABC):
     """Reads from the device."""
     pass
 
+  @property
+  @abc.abstractmethod
+  def file_descriptor(self) -> Optional[int]:
+    """Returns the file descriptor for the device.
+
+    Returns None, if this device is not backed by a regular file.
+    """
+    pass
+
 
 class FileDevice(Device):
   """A device implementation backed by a python file."""
@@ -67,6 +76,10 @@ class FileDevice(Device):
   def Read(self, offset: int, size: int) -> bytes:
     self._file.seek(offset)
     return self._file.read(size)
+
+  @property
+  def file_descriptor(self) -> Optional[int]:
+    return self._file.fileno()
 
 
 class OperationHandler(abc.ABC, Generic[RequestType, ResponseType]):
@@ -278,8 +291,15 @@ class Client:
                device: Device):
     self._connection = ConnectionWrapper(connection)
     self._device = device
+    device_file_descriptor = device.file_descriptor
+    if device_file_descriptor is None:
+      serialized_device_file_descriptor = None
+    else:
+      serialized_device_file_descriptor = communication.SerializeFileDescriptor(
+          device_file_descriptor)
     request = filesystem_pb2.InitRequest(
-        implementation_type=implementation_type)
+        implementation_type=implementation_type,
+        serialized_device_file_descriptor=serialized_device_file_descriptor)
     InitHandler(self._connection, self._device).Run(request)
 
   def __enter__(self) -> 'Client':
