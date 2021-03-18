@@ -99,7 +99,10 @@ class TestListVolumeShadowCopies(flow_test_lib.FlowTestsBaseclass):
 
     # Run the flow in the simulated way
     flow_test_lib.TestFlowHelper(
-        flow_name, TestClient(), token=self.token, client_id=client_id)
+        flow_name,
+        TestClient(),
+        creator=self.test_username,
+        client_id=client_id)
 
     children = data_store.REL_DB.ListChildPathInfos(
         client_id, config.CONFIG["Server.raw_filesystem_access_pathtype"],

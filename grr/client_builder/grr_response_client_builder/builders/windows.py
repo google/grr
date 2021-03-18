@@ -161,20 +161,22 @@ def _MakeMsi(input_dir: str, output_path: str) -> None:
           os.path.join(temp_dir, exclude_file),
           os.path.join(input_dir, exclude_file))
 
-    # Generate padded placeholder files for these config files.
-    # The reason for the padding is that at repacking time, we have to replace
-    # the config files with files of the same size. So we make them large
-    # enough to fit any expected config file.
-
     for placeholder_file in [
         "grr-config.yaml", "fleetspeak-client.config",
         "fleetspeak-service-config.txt"
     ]:
-      with open(
-          os.path.join(input_dir, placeholder_file), "w", newline="\n") as f:
-        f.write("__BEGIN__\n")
-        f.write("\n" * (100 * 1024))
-        f.write("__END__")
+      with open(os.path.join(input_dir, placeholder_file), "w", newline="\n"):
+        pass
+
+    # Due to a limitation in the olefile library, at repacking time, the CAB
+    # in the MSI file needs to be repacked to a CAB file of same size.
+    # To do so, we add 3 MB of random (uncompressable) data into a padding
+    # file.
+    # At repacking time, the padding file will get truncated to make space for
+    # other files (config files, signed EXE and DLL files) to grow.
+    with open(os.path.join(input_dir, "padding-file.bin"), "wb") as f:
+      for _ in range(3):
+        f.write(os.urandom(1024 * 1024))
 
     object_files = []
     for source_file in (wxs_file, fleetspeak_wxs_lib,

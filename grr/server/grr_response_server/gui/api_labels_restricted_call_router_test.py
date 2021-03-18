@@ -24,7 +24,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
   """Tests for CheckClientLabels function."""
 
   def setUp(self):
-    super(CheckClientLabelsTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
     self.allow_labels = ["foo"]
@@ -138,7 +138,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     return result
 
   def setUp(self):
-    super(ApiLabelsRestrictedCallRouterTest, self).setUp()
+    super().setUp()
 
     self.client_id = self.SetupClient(0)
     data_store.REL_DB.AddClientLabels(self.client_id, "GRR", ["foo"])

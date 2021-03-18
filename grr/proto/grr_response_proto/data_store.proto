@@ -3,7 +3,6 @@
 
 syntax = "proto2";
 
-import "grr_response_proto/flows.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
 
@@ -56,7 +55,7 @@ message DataStoreRequest {
 
   repeated DataStoreValue values = 2;
   optional TimestampSpec timestamp = 5;
-  optional ACLToken token = 6;
+  reserved 6;
 
   optional bool sync = 7;
 

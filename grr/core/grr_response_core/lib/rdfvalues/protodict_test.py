@@ -43,7 +43,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
     return rdf_protodict.Dict(foo=number, bar="hello")
 
   def CheckRDFValue(self, value, sample):
-    super(DictTest, self).CheckRDFValue(value, sample)
+    super().CheckRDFValue(value, sample)
 
     self.assertEqual(value.ToDict(), sample.ToDict())
 

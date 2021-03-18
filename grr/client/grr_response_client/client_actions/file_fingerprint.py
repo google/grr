@@ -22,7 +22,7 @@ class Fingerprinter(fingerprint.Fingerprinter):
 
   def _GetNextInterval(self):
     self.progress_cb()
-    return super(Fingerprinter, self)._GetNextInterval()
+    return super()._GetNextInterval()
 
 
 class FingerprintFile(standard.ReadBuffer):

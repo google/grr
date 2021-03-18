@@ -38,7 +38,7 @@ class FileOperation(metaclass=abc.ABCMeta):
       target_file: "FileBase",
       context: api_context.GrrApiContext,
   ):
-    super(FileOperation, self).__init__()
+    super().__init__()
 
     if not client_id:
       raise ValueError("client_id can't be empty")
@@ -145,7 +145,7 @@ class FileBase(object):
       path: str,
       context: api_context.GrrApiContext,
   ):
-    super(FileBase, self).__init__()
+    super().__init__()
 
     if not client_id:
       raise ValueError("client_id can't be empty")
@@ -290,8 +290,7 @@ class File(FileBase):
       data: vfs_pb2.ApiFile,
       context: api_context.GrrApiContext,
   ):
-    super(File, self).__init__(
-        client_id=client_id, path=data.path, context=context)
+    super().__init__(client_id=client_id, path=data.path, context=context)
 
     self.data = data  # type: vfs_pb2.ApiFile
 

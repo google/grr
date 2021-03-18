@@ -22,7 +22,7 @@ class FlowResult(object):
       self,
       data: flow_pb2.ApiFlowResult,
   ):
-    super(FlowResult, self).__init__()
+    super().__init__()
     self.data = data  # type: flow_pb2.ApiFlowResult
     self.timestamp = data.timestamp  # type: int
 
@@ -41,7 +41,7 @@ class FlowLog(object):
       self,
       data: flow_pb2.ApiFlowLog,
   ):
-    super(FlowLog, self).__init__()
+    super().__init__()
 
     self.data = data  # type: flow_pb2.ApiFlowLog
     self.log_message = self.data.log_message  # type: str
@@ -56,7 +56,7 @@ class FlowBase(object):
       flow_id: str,
       context: api_context.GrrApiContext,
   ):
-    super(FlowBase, self).__init__()
+    super().__init__()
 
     if not client_id:
       raise ValueError("client_id can't be empty.")
@@ -192,8 +192,7 @@ class Flow(FlowBase):
     client_id = utils.UrnStringToClientId(data.urn)
     flow_id = data.flow_id
 
-    super(Flow, self).__init__(
-        client_id=client_id, flow_id=flow_id, context=context)
+    super().__init__(client_id=client_id, flow_id=flow_id, context=context)
 
     self.data = data  # type: flow_pb2.ApiFlow
 

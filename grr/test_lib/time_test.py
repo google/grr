@@ -16,5 +16,17 @@ class StepTest(absltest.TestCase):
     self.assertLess(then, now)
 
 
+class HumanReadabelToMicrosecondsSinceEpochTest(absltest.TestCase):
+
+  def testWorksCorrectly(self):
+    self.assertEqual(
+        time.HumanReadableToMicrosecondsSinceEpoch("2017-07-20T18:40:22Z"),
+        1500576022000000)
+
+    self.assertEqual(
+        time.HumanReadableToMicrosecondsSinceEpoch("2021-02-09T22:34:52Z"),
+        1612910092000000)
+
+
 if __name__ == "__main__":
   absltest.main()

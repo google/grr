@@ -240,7 +240,23 @@ describe('Approval Component', () => {
     expect(fixture.componentInstance.hideContent).toBeFalse();
   });
 
-  it('toggles contents on click on header', () => {
+  it('toggles contents on click on toggle button', () => {
+    const fixture = TestBed.createComponent(Approval);
+    const button = fixture.debugElement.query(By.css('h1 button'));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.hideContent).toBeTrue();
+
+    button.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.hideContent).toBeFalse();
+
+    button.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+    expect(fixture.componentInstance.hideContent).toBeTrue();
+  });
+
+  it('opens contents on click on header', () => {
     const fixture = TestBed.createComponent(Approval);
     const header = fixture.debugElement.query(By.css('h1'));
     fixture.detectChanges();
@@ -251,8 +267,9 @@ describe('Approval Component', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance.hideContent).toBeFalse();
 
+    // Do not toggle when clicking on header again, but stay open.
     header.triggerEventHandler('click', new MouseEvent('click'));
     fixture.detectChanges();
-    expect(fixture.componentInstance.hideContent).toBeTrue();
+    expect(fixture.componentInstance.hideContent).toBeFalse();
   });
 });

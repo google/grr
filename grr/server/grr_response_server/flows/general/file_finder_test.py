@@ -187,7 +187,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
         pathtype=rdf_paths.PathSpec.PathType.OS,
         action=action,
         conditions=conditions,
-        token=self.token)
+        creator=self.test_username)
     return flow_test_lib.GetFlowResults(self.client_id, self.last_session_id)
 
   def RunFlowAndCheckResults(
@@ -226,7 +226,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
     return results
 
   def setUp(self):
-    super(TestFileFinderFlow, self).setUp()
+    super().setUp()
     self.client_mock = action_mocks.FileFinderClientMockWithTimestamps()
     self.fixture_path = os.path.join(self.base_path, "searching")
     self.path = os.path.join(self.fixture_path, "*.log")
@@ -742,7 +742,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
             paths=paths,
             pathtype=rdf_paths.PathSpec.PathType.TSK,
             action=rdf_file_finder.FileFinderAction(action_type=action),
-            token=self.token)
+            creator=self.test_username)
 
   def _ListTestChildPathInfos(self,
                               path_components,
@@ -815,7 +815,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
         client_id=self.client_id,
         paths=[],
         pathtype=rdf_paths.PathSpec.PathType.OS,
-        token=self.token)
+        creator=self.test_username)
 
   def testUseExternalStores(self):
     with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
@@ -838,7 +838,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
             pathtype=rdf_paths.PathSpec.PathType.OS,
             action=action,
             process_non_regular_files=True,
-            token=self.token)
+            creator=self.test_username)
 
       results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
 
@@ -862,7 +862,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
             pathtype=rdf_paths.PathSpec.PathType.OS,
             action=action,
             process_non_regular_files=True,
-            token=self.token)
+            creator=self.test_username)
 
       results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
       self.assertLen(results, 1)
@@ -916,7 +916,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the ClientFileFinder flow."""
 
   def setUp(self):
-    super(TestClientFileFinderFlow, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   def _RunCFF(self, paths, action):
@@ -928,7 +928,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         action=rdf_file_finder.FileFinderAction(action_type=action),
         process_non_regular_files=True,
-        token=self.token)
+        creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     return results, flow_id
@@ -965,7 +965,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
           pathtype=rdf_paths.PathSpec.PathType.OS,
           action=action,
           process_non_regular_files=True,
-          token=self.token)
+          creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 1)
@@ -983,7 +983,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
           pathtype=rdf_paths.PathSpec.PathType.OS,
           action=action,
           process_non_regular_files=True,
-          token=self.token)
+          creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 1)
@@ -1015,7 +1015,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         action=action,
         process_non_regular_files=True,
-        token=self.token)
+        creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
 
@@ -1036,7 +1036,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         action=action,
         process_non_regular_files=True,
-        token=self.token)
+        creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
 

@@ -28,7 +28,7 @@ class Types(object):
       self,
       context: api_context.GrrApiContext,
   ):
-    super(Types, self).__init__()
+    super().__init__()
 
     self._context = context  # type: api_context.GrrApiContext
     self._flow_descriptors = None

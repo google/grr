@@ -216,7 +216,7 @@ class RDFURNTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
 
   def testSerialization(self, sample=None):
     sample = self.GenerateSample("aff4:/")
-    super(RDFURNTest, self).testSerialization(sample=sample)
+    super().testSerialization(sample=sample)
 
 
 class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):

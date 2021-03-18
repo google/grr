@@ -50,19 +50,18 @@ class OutputPlugin(metaclass=OutputPluginRegistry):
   args_type = None
 
   @classmethod
-  def CreatePluginAndDefaultState(cls, source_urn=None, args=None, token=None):
+  def CreatePluginAndDefaultState(cls, source_urn=None, args=None):
     """Creates a plugin and returns its initial state."""
     state = rdf_protodict.AttributedDict()
     state["source_urn"] = source_urn
     if args is not None:
       args.Validate()
     state["args"] = args
-    state["token"] = token
-    plugin = cls(source_urn=source_urn, args=args, token=token)
+    plugin = cls(source_urn=source_urn, args=args)
     plugin.InitializeState(state)
     return plugin, state
 
-  def __init__(self, source_urn=None, args=None, token=None):
+  def __init__(self, source_urn=None, args=None):
     """OutputPlugin constructor.
 
     Constructor should be overridden to maintain instance-local state - i.e.
@@ -72,11 +71,9 @@ class OutputPlugin(metaclass=OutputPluginRegistry):
     Args:
       source_urn: URN of the data source to process the results from.
       args: This plugin's arguments.
-      token: Security token.
     """
     self.source_urn = source_urn
     self.args = args
-    self.token = token
     self.lock = threading.RLock()
 
   def InitializeState(self, state):

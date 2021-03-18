@@ -92,7 +92,7 @@ class Error(Exception):
     self.message = None
 
   def __str__(self):
-    message = self.message or super(Error, self).__str__()
+    message = self.message or super().__str__()
 
     if self.cause is not None:
       return "%s: %s" % (message, self.cause)
@@ -2020,6 +2020,21 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
+  def UpdateIncrementalFlowRequests(self, client_id: str, flow_id: str,
+                                    next_response_id_updates: Dict[int, int]):
+    """Updates next response ids of given requests.
+
+    Used to update incremental requests (requests with a callback_state
+    specified) after each new batch of responses is processed.
+
+    Args:
+      client_id: The client id on which the flow is running.
+      flow_id: The flow id of the flow with requests to update.
+      next_response_id_updates: A map from request ids to new "next_response_id"
+        values.
+    """
+
+  @abc.abstractmethod
   def DeleteFlowRequests(self, requests):
     """Deletes a list of flow requests from the database.
 
@@ -2073,6 +2088,19 @@ class Database(metaclass=abc.ABCMeta):
                                          flow_id,
                                          next_needed_request=None):
     """Reads all requests for a flow that can be processed by the worker.
+
+    There are 2 kinds of requests that are going to be returned by this call:
+    1. Completed requests. These are requests that received all the
+       responses, including the status message, and their
+       "needs_processing" attribute is set to True.
+    2. Incremental requests. These are requests that have the callback state
+       specified (via the "callback_state" attribute) and are not yet
+       completed.
+
+    Completed requests are going to be returned with all the corresponding
+    responses. Incremental requests are going to be returned with new
+    responses only (that is, with responses having ids greater or equal to
+    request's 'next_response_id' attribute).
 
     Args:
       client_id: The client id on which this flow is running.
@@ -3781,6 +3809,14 @@ class DatabaseValidationWrapper(Database):
   def WriteFlowRequests(self, requests):
     precondition.AssertIterableType(requests, rdf_flow_objects.FlowRequest)
     return self.delegate.WriteFlowRequests(requests)
+
+  def UpdateIncrementalFlowRequests(self, client_id: str, flow_id: str,
+                                    next_response_id_updates: Dict[int, int]):
+    precondition.ValidateClientId(client_id)
+    precondition.ValidateFlowId(flow_id)
+    precondition.AssertDictType(next_response_id_updates, int, int)
+    return self.delegate.UpdateIncrementalFlowRequests(
+        client_id, flow_id, next_response_id_updates)
 
   def DeleteFlowRequests(self, requests):
     precondition.AssertIterableType(requests, rdf_flow_objects.FlowRequest)

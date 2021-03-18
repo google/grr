@@ -14,7 +14,7 @@ from grr_response_core.lib import utils
 class PkgSplitJoinTest(absltest.TestCase):
 
   def setUp(self):
-    super(PkgSplitJoinTest, self).setUp()
+    super().setUp()
     stack = contextlib.ExitStack()
     self.tmp_dir = stack.enter_context(utils.TempDirectory())
     self.addCleanup(stack.close)

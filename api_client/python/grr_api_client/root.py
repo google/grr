@@ -33,7 +33,7 @@ class GrrUserBase(object):
       username: str,
       context: api_context.GrrApiContext,
   ):
-    super(GrrUserBase, self).__init__()
+    super().__init__()
 
     self.username = username  # type: str
     self._context = context  # type: api_context.GrrApiContext
@@ -97,7 +97,7 @@ class GrrUser(GrrUserBase):
       data: user_pb2.ApiGrrUser,
       context: api_context.GrrApiContext,
   ):
-    super(GrrUser, self).__init__(username=data.username, context=context)
+    super().__init__(username=data.username, context=context)
 
     self.data = data  # type: user_pb2.ApiGrrUser
 
@@ -113,7 +113,7 @@ class GrrBinaryRef(object):
       path: str,
       context: api_context.GrrApiContext,
   ):
-    super(GrrBinaryRef, self).__init__()
+    super().__init__()
 
     self.binary_type = binary_type  # type: config_pb2.ApiGrrBinary.Type
     self.path = path  # type: str
@@ -202,7 +202,7 @@ class RootGrrApi(object):
       self,
       context: api_context.GrrApiContext,
   ):
-    super(RootGrrApi, self).__init__()
+    super().__init__()
     self._context = context  # type: api_context.GrrApiContext
 
   # TODO(hanuszczak): Python's protobuf enums don't currently work with

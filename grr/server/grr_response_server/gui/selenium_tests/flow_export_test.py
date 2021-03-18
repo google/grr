@@ -16,7 +16,7 @@ from grr.test_lib import test_lib
 class TestFlowExport(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
-    super(TestFlowExport, self).setUp()
+    super().setUp()
 
     self.client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(self.client_id)
@@ -27,7 +27,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.FlowWithOneStatEntryResult.__name__,
         client_mock=self.action_mock,
         client_id=self.client_id,
-        token=self.token)
+        creator=self.test_username)
 
     self.Open("/#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
@@ -51,7 +51,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.RecursiveTestFlow.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token)
+        creator=self.test_username)
 
     self.Open("/#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('RecursiveTestFlow')")
@@ -65,7 +65,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.FlowWithOneNetworkConnectionResult.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token)
+        creator=self.test_username)
 
     self.Open("/#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")

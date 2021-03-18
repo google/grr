@@ -46,7 +46,7 @@ class ApiGetFlowHandlerRegressionTest(api_regression_test_lib.ApiRegressionTest
       flow_id = flow_test_lib.StartFlow(
           discovery.Interrogate,
           client_id=client_id,
-          creator=self.token.username)
+          creator=self.test_username)
 
       replace = api_regression_test_lib.GetFlowTestReplaceDict(
           client_id, flow_id, "F:ABCDEF12")
@@ -78,17 +78,17 @@ class ApiListFlowsHandlerRegressionTest(
   handler = flow_plugin.ApiListFlowsHandler
 
   def Run(self):
-    acl_test_lib.CreateUser(self.token.username)
+    acl_test_lib.CreateUser(self.test_username)
     with test_lib.FakeTime(42):
       client_id = self.SetupClient(0)
 
     with test_lib.FakeTime(43):
       flow_id_1 = flow_test_lib.StartFlow(
-          discovery.Interrogate, client_id, creator=self.token.username)
+          discovery.Interrogate, client_id, creator=self.test_username)
 
     with test_lib.FakeTime(44):
       flow_id_2 = flow_test_lib.StartFlow(
-          processes.ListProcesses, client_id, creator=self.token.username)
+          processes.ListProcesses, client_id, creator=self.test_username)
 
     replace = api_regression_test_lib.GetFlowTestReplaceDict(
         client_id, flow_id_1, "F:ABCDEF10")
@@ -139,12 +139,10 @@ class ApiListFlowRequestsHandlerRegressionTest(
     client_id = self.SetupClient(0)
     with test_lib.FakeTime(42):
       flow_id = flow_test_lib.StartFlow(
-          processes.ListProcesses, client_id, creator=self.token.username)
+          processes.ListProcesses, client_id, creator=self.test_username)
       test_process = rdf_client.Process(name="test_process")
       mock = flow_test_lib.MockClient(
-          client_id,
-          action_mocks.ListProcessesMock([test_process]),
-          token=self.token)
+          client_id, action_mocks.ListProcessesMock([test_process]))
       mock.Next()
 
     replace = api_regression_test_lib.GetFlowTestReplaceDict(client_id, flow_id)
@@ -177,7 +175,7 @@ class ApiListFlowResultsHandlerRegressionTest(
           flow_args=flow_args)
 
   def Run(self):
-    acl_test_lib.CreateUser(self.token.username)
+    acl_test_lib.CreateUser(self.test_username)
     client_id = self.SetupClient(0)
 
     flow_id = self._RunFlow(client_id)
@@ -209,7 +207,7 @@ class ApiListFlowLogsHandlerRegressionTest(
     client_id = self.SetupClient(0)
 
     flow_id = flow_test_lib.StartFlow(
-        processes.ListProcesses, client_id, creator=self.token.username)
+        processes.ListProcesses, client_id, creator=self.test_username)
 
     with test_lib.FakeTime(52):
       self._AddLogToFlow(client_id, flow_id, "Sample message: foo.")

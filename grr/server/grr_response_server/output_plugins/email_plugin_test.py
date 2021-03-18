@@ -21,7 +21,7 @@ class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   """Tests email output plugin."""
 
   def setUp(self):
-    super(EmailOutputPluginTest, self).setUp()
+    super().setUp()
 
     self.hostname = "somehostname"
     self.client_id = self.SetupClient(0, fqdn=self.hostname)
@@ -35,7 +35,7 @@ class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
                        process_responses_separately=False):
     plugin_cls = email_plugin.EmailOutputPlugin
     plugin, plugin_state = plugin_cls.CreatePluginAndDefaultState(
-        source_urn=self.results_urn, args=plugin_args, token=self.token)
+        source_urn=self.results_urn, args=plugin_args)
 
     messages = []
     for response in responses:

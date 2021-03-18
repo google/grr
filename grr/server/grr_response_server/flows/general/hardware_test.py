@@ -53,7 +53,7 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
   """Test the Flash dump flow."""
 
   def setUp(self):
-    super(TestHardwareDumpFlashImage, self).setUp()
+    super().setUp()
 
     # Setup a specific client so the knowledge base is correctly
     # initialised for the artifact collection.
@@ -67,7 +67,7 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
         hardware.DumpFlashImage.__name__,
         client_mock,
         client_id=self.client_id,
-        token=self.token)
+        creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 1)
@@ -80,7 +80,7 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
         hardware.DumpFlashImage.__name__,
         client_mock,
         client_id=self.client_id,
-        token=self.token)
+        creator=self.test_username)
 
     log_items = data_store.REL_DB.ReadFlowLogEntries(self.client_id, flow_id, 0,
                                                      100)
@@ -97,7 +97,7 @@ class TestHardwareDumpFlashImage(flow_test_lib.FlowTestsBaseclass):
           hardware.DumpFlashImage.__name__,
           client_mock,
           client_id=self.client_id,
-          token=self.token,
+          creator=self.test_username,
           check_flow_errors=False)
 
 
@@ -159,7 +159,7 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         table_signature_list=table_signature_list,
         client_id=client_id,
-        token=self.token)
+        creator=self.test_username)
 
     results = [
         r.payload
@@ -193,7 +193,7 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         table_signature_list=table_signature_list,
         client_id=client_id,
-        token=self.token)
+        creator=self.test_username)
 
     log_items = data_store.REL_DB.ReadFlowLogEntries(client_id, flow_id, 0, 100)
     logs = [l.message for l in log_items]
@@ -212,7 +212,7 @@ class DumpACPITableTest(flow_test_lib.FlowTestsBaseclass):
           client_mock,
           table_signature_list=table_signature_list,
           client_id=client_id,
-          token=self.token)
+          creator=self.test_username)
 
     self.assertEqual(str(err.exception), "No ACPI table to dump.")
 

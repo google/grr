@@ -73,15 +73,20 @@ class GRRFSServer:
       validation_info:
     """
     grr_client_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_client_id)
-    for grr_message in grr_messages:
-      grr_message.source = grr_client_id
-      grr_message.auth_state = (
-          rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
-    client_is_new = self.frontend.EnrolFleetspeakClient(client_id=grr_client_id)
-    if not client_is_new:
-      data_store.REL_DB.WriteClientMetadata(
-          grr_client_id,
-          last_ping=rdfvalue.RDFDatetime.Now(),
-          fleetspeak_validation_info=validation_info)
-    self.frontend.ReceiveMessages(
-        client_id=grr_client_id, messages=grr_messages)
+    try:
+      for grr_message in grr_messages:
+        grr_message.source = grr_client_id
+        grr_message.auth_state = (
+            rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
+      client_is_new = self.frontend.EnrolFleetspeakClient(
+          client_id=grr_client_id)
+      if not client_is_new:
+        data_store.REL_DB.WriteClientMetadata(
+            grr_client_id,
+            last_ping=rdfvalue.RDFDatetime.Now(),
+            fleetspeak_validation_info=validation_info)
+      self.frontend.ReceiveMessages(
+          client_id=grr_client_id, messages=grr_messages)
+    except Exception:
+      logging.exception("Exception receiving messages from: %s", grr_client_id)
+      raise

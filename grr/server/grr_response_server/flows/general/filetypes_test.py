@@ -31,7 +31,7 @@ class TestPlistFlows(flow_test_lib.FlowTestsBaseclass):
         flow_name,
         client_mock,
         client_id=client_id,
-        token=self.token,
+        creator=self.test_username,
         request=request)
 
     return session_id

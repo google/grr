@@ -1431,11 +1431,8 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
 
     iop_cls = instant_output_plugin.InstantOutputPlugin
     plugin_cls = iop_cls.GetPluginClassByPluginName(args.plugin_name)
-    # TODO(user): Instant output plugins shouldn't depend on contexts
-    # and URNs.
-    plugin = plugin_cls(
-        source_urn=source_urn,
-        token=access_control.ACLToken(username=context.username))
+    # TODO(user): Instant output plugins shouldn't depend on URNs.
+    plugin = plugin_cls(source_urn=source_urn)
 
     types = data_store.REL_DB.CountHuntResultsByType(hunt_id)
 

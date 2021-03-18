@@ -49,7 +49,7 @@ class ApiListApiMethodsHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiListApiMethodsHandler."""
 
   def setUp(self):
-    super(ApiListApiMethodsHandlerTest, self).setUp()
+    super().setUp()
     self.router = DummyApiCallRouter()
     self.handler = reflection_plugin.ApiListApiMethodsHandler(self.router)
 

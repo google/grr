@@ -29,7 +29,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
                    hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
-    super(TestFlowCopy, self).setUp()
+    super().setUp()
 
     # Prepare our fixture.
     self.client_id = "C.0000000000000001"

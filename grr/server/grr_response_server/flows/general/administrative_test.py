@@ -69,7 +69,7 @@ class KeepAliveFlowTest(flow_test_lib.FlowTestsBaseclass):
         duration=rdfvalue.Duration.From(1, rdfvalue.SECONDS),
         client_id=client_id,
         client_mock=client_mock,
-        token=self.token)
+        creator=self.test_username)
 
 
 class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
@@ -77,7 +77,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
   """Tests the administrative flows."""
 
   def setUp(self):
-    super(TestAdministrativeFlows, self).setUp()
+    super().setUp()
 
     config_overrider = test_lib.ConfigOverrider({
         # Make sure that Client.tempdir_roots are unique. Otherwise parallel
@@ -114,14 +114,14 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
           administrative.UpdateConfiguration.__name__,
           client_mock,
           client_id=client_id,
-          token=self.token,
+          creator=self.test_username,
           config=new_config)
 
     # Now retrieve it again to see if it got written.
     flow_test_lib.TestFlowHelper(
         discovery.Interrogate.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=client_id)
 
     client = data_store.REL_DB.ReadClientSnapshot(client_id)
@@ -157,12 +157,12 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
           dict(address=address, sender=sender, title=title, message=message))
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-      client = flow_test_lib.CrashClientMock(client_id, self.token)
+      client = flow_test_lib.CrashClientMock(client_id)
       flow_id = flow_test_lib.TestFlowHelper(
           flow_test_lib.FlowWithOneClientRequest.__name__,
           client,
           client_id=client_id,
-          token=self.token,
+          creator=self.test_username,
           check_flow_errors=False)
 
     self.assertLen(self.email_messages, 1)
@@ -220,7 +220,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
         client_mock,
         client_id=client_id,
         action="SendStartupInfo",
-        token=self.token)
+        creator=self.test_username)
 
   def testExecutePythonHack(self):
     client_mock = action_mocks.ActionMock(standard.ExecutePython)
@@ -242,7 +242,7 @@ sys.test_code_ran_here = True
         client_mock,
         client_id=client_id,
         hack_name="test",
-        token=self.token)
+        creator=self.test_username)
 
     self.assertTrue(sys.test_code_ran_here)
 
@@ -262,7 +262,7 @@ sys.test_code_ran_here = True
         client_id=client_id,
         hack_name="test",
         py_args=dict(value=5678),
-        token=self.token)
+        creator=self.test_username)
 
     self.assertEqual(sys.test_code_ran_here, 5678)
 
@@ -283,7 +283,7 @@ magic_return_str = str(py_args["foobar"])
         client_id=client_id,
         hack_name="quux",
         py_args={"foobar": 42},
-        token=self.token)
+        creator=self.test_username)
 
     flow_test_lib.FinishAllFlowsOnClient(client_id=client_id)
 
@@ -309,7 +309,7 @@ magic_return_str = str(py_args["foobar"])
     self.assertLen(list(blob_iterator), 1)
 
     # This flow has an acl, the user needs to be admin.
-    acl_test_lib.CreateAdminUser(self.token.username)
+    acl_test_lib.CreateAdminUser(self.test_username)
 
     with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
       flow_test_lib.TestFlowHelper(
@@ -318,7 +318,7 @@ magic_return_str = str(py_args["foobar"])
           client_id=self.SetupClient(0),
           binary=upload_path,
           command_line="--value 356",
-          token=self.token)
+          creator=self.test_username)
 
       # Check that the executable file contains the code string.
       self.assertEqual(client_test_lib.Popen.binary, code)
@@ -357,7 +357,7 @@ magic_return_str = str(py_args["foobar"])
     self.assertLen(list(blob_iterator), 24)
 
     # This flow has an acl, the user needs to be admin.
-    acl_test_lib.CreateAdminUser(self.token.username)
+    acl_test_lib.CreateAdminUser(self.test_username)
 
     with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
       flow_test_lib.TestFlowHelper(
@@ -366,7 +366,7 @@ magic_return_str = str(py_args["foobar"])
           client_id=self.SetupClient(0),
           binary=upload_path,
           command_line="--value 356",
-          token=self.token)
+          creator=self.test_username)
 
       # Check that the executable file contains the code string.
       self.assertEqual(client_test_lib.Popen.binary, code)
@@ -408,7 +408,7 @@ magic_return_str = str(py_args["foobar"])
           binary=binary_path,
           client_id=client_id,
           command_line="--bar --baz",
-          token=self.token)
+          creator=self.test_username)
 
   def testUpdateClient(self):
     client_mock = action_mocks.UpdateAgentClientMock()
@@ -422,14 +422,14 @@ magic_return_str = str(py_args["foobar"])
         upload_path)
     self.assertLen(list(blob_list), 4)
 
-    acl_test_lib.CreateAdminUser(self.token.username)
+    acl_test_lib.CreateAdminUser(self.test_username)
 
     flow_test_lib.TestFlowHelper(
         administrative.UpdateClient.__name__,
         client_mock,
         client_id=self.SetupClient(0, system=""),
         binary_path=os.path.join(config.CONFIG["Client.platform"], "test.deb"),
-        token=self.token)
+        creator=self.test_username)
     self.assertEqual(client_mock.GetDownloadedFileContents(), fake_installer)
 
   def testUpdateClientSingleBlob(self):
@@ -444,14 +444,14 @@ magic_return_str = str(py_args["foobar"])
         upload_path)
     self.assertLen(list(blob_list), 1)
 
-    acl_test_lib.CreateAdminUser(self.token.username)
+    acl_test_lib.CreateAdminUser(self.test_username)
 
     flow_test_lib.TestFlowHelper(
         compatibility.GetName(administrative.UpdateClient),
         client_mock,
         client_id=self.SetupClient(0, system=""),
         binary_path=os.path.join(config.CONFIG["Client.platform"], "test.deb"),
-        token=self.token)
+        creator=self.test_username)
     self.assertEqual(client_mock.GetDownloadedFileContents(), fake_installer)
 
   def testGetClientStats(self):
@@ -481,7 +481,7 @@ magic_return_str = str(py_args["foobar"])
     flow_test_lib.TestFlowHelper(
         administrative.GetClientStats.__name__,
         ClientMock(),
-        token=self.token,
+        creator=self.test_username,
         client_id=client_id)
 
     samples = data_store.REL_DB.ReadClientStats(
@@ -526,7 +526,7 @@ magic_return_str = str(py_args["foobar"])
           administrative.OnlineNotification.__name__,
           client_mock,
           args=administrative.OnlineNotificationArgs(email="test@localhost"),
-          token=self.token,
+          creator=self.test_username,
           client_id=client_id)
 
     self.assertLen(self.email_messages, 1)
@@ -536,7 +536,7 @@ magic_return_str = str(py_args["foobar"])
     self.assertEqual(email_message.get("address", ""), "test@localhost")
     self.assertEqual(email_message["title"],
                      "GRR Client on Host-0.example.com became available.")
-    self.assertIn("This notification was created by %s" % self.token.username,
+    self.assertIn("This notification was created by %s" % self.test_username,
                   email_message.get("message", ""))
 
   def testStartupHandler(self):

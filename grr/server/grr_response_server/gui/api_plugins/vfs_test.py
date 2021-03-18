@@ -84,7 +84,7 @@ class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
   """Test for ApiGetFileDetailsHandler."""
 
   def setUp(self):
-    super(ApiGetFileDetailsHandlerTest, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiGetFileDetailsHandler()
     self.client_id = self.SetupClient(0)
     self.file_path = "fs/os/c/Downloads/a.txt"
@@ -186,7 +186,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiListFilesHandler."""
 
   def setUp(self):
-    super(ApiListFilesHandlerTest, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiListFilesHandler()
     self.client_id = self.SetupClient(0)
     self.file_path = "fs/os/etc"
@@ -278,7 +278,7 @@ class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiGetFileTextHandler."""
 
   def setUp(self):
-    super(ApiGetFileTextHandlerTest, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiGetFileTextHandler()
     self.client_id = self.SetupClient(0)
     self.file_path = "fs/os/c/Downloads/a.txt"
@@ -336,7 +336,7 @@ class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
 class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
 
   def setUp(self):
-    super(ApiGetFileBlobHandlerTest, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiGetFileBlobHandler()
     self.client_id = self.SetupClient(0)
     self.file_path = "fs/os/c/Downloads/a.txt"
@@ -437,7 +437,7 @@ class ApiGetFileVersionTimesHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         VfsTestMixin):
 
   def setUp(self):
-    super(ApiGetFileVersionTimesHandlerTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.handler = vfs_plugin.ApiGetFileVersionTimesHandler()
 
@@ -464,7 +464,7 @@ class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
                                            VfsTestMixin):
 
   def setUp(self):
-    super(ApiGetFileDownloadCommandHandlerTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.handler = vfs_plugin.ApiGetFileDownloadCommandHandler()
 
@@ -493,7 +493,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(
   """Test for ApiCreateVfsRefreshOperationHandler."""
 
   def setUp(self):
-    super(ApiCreateVfsRefreshOperationHandlerTest, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiCreateVfsRefreshOperationHandler()
     self.client_id = self.SetupClient(0)
     # Choose some directory with pathspec in the ClientFixture.
@@ -619,7 +619,7 @@ class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
   """Test for GetVfsRefreshOperationStateHandler."""
 
   def setUp(self):
-    super(ApiGetVfsRefreshOperationStateHandlerTest, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiGetVfsRefreshOperationStateHandler()
     self.client_id = self.SetupClient(0)
 
@@ -667,7 +667,7 @@ class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiUpdateVfsFileContentHandler."""
 
   def setUp(self):
-    super(ApiUpdateVfsFileContentHandlerTest, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiUpdateVfsFileContentHandler()
     self.client_id = self.SetupClient(0)
     self.file_path = "fs/os/c/bin/bash"
@@ -708,7 +708,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(
   """Test for ApiGetVfsFileContentUpdateStateHandler."""
 
   def setUp(self):
-    super(ApiGetVfsFileContentUpdateStateHandlerTest, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiGetVfsFileContentUpdateStateHandler()
     self.client_id = self.SetupClient(0)
 
@@ -797,7 +797,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         VfsTimelineTestMixin):
 
   def setUp(self):
-    super(ApiGetVfsTimelineAsCsvHandlerTest, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiGetVfsTimelineAsCsvHandler()
     self.client_id = self.SetupTestTimeline()
 
@@ -905,7 +905,7 @@ class ApiGetVfsTimelineHandlerTest(api_test_lib.ApiCallHandlerTest,
                                    VfsTimelineTestMixin):
 
   def setUp(self):
-    super(ApiGetVfsTimelineHandlerTest, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiGetVfsTimelineHandler()
     self.client_id = self.SetupTestTimeline()
 
@@ -933,7 +933,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
   """Tests for ApiGetVfsFileArchiveHandler."""
 
   def setUp(self):
-    super(ApiGetVfsFilesArchiveHandlerTest, self).setUp()
+    super().setUp()
 
     self.handler = vfs_plugin.ApiGetVfsFilesArchiveHandler()
     self.client_id = self.SetupClient(0)
@@ -1032,7 +1032,7 @@ class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
 class DecodersTestMixin(object):
 
   def setUp(self):
-    super(DecodersTestMixin, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
     decoders_patcher = mock.patch.object(
@@ -1051,7 +1051,7 @@ class ApiGetFileDecodersHandler(DecodersTestMixin,
                                 api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
-    super(ApiGetFileDecodersHandler, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiGetFileDecodersHandler()
 
   def testSimple(self):
@@ -1119,7 +1119,7 @@ class ApiGetDecodedFileHandlerTest(DecodersTestMixin,
                                    api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
-    super(ApiGetDecodedFileHandlerTest, self).setUp()
+    super().setUp()
     self.handler = vfs_plugin.ApiGetDecodedFileHandler()
 
   def _Result(self, args):

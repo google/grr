@@ -22,7 +22,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def setUp(self):
-    super(TestArtifactManagementRender, self).setUp()
+    super().setUp()
 
     self.json_file = os.path.realpath(
         os.path.join(config.CONFIG["Test.data_dir"], "artifacts",

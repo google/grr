@@ -118,6 +118,13 @@ export class Approval implements OnDestroy {
     event.stopPropagation();
   }
 
+  showContent(event: Event) {
+    if (this.hideContent) {
+      this.hideContent = false;
+      event.stopPropagation();
+    }
+  }
+
   addRequestedApprover(username: string) {
     this.formRequestedApprovers.add(username);
     this.approversInputControl.setValue('');

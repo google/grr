@@ -37,7 +37,7 @@ class ApiClientLibVfsTest(api_integration_test_lib.ApiIntegrationTest):
   """Tests VFS operations part of GRR Python API client library."""
 
   def setUp(self):
-    super(ApiClientLibVfsTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     fixture_test_lib.ClientFixture(self.client_id)
 

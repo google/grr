@@ -20,7 +20,7 @@ class StatsServerTestMixin(metaclass=abc.ABCMeta):
     self.server = None
 
   def setUp(self):
-    super(StatsServerTestMixin, self).setUp()
+    super().setUp()
     self.server = self.setUpStatsServer(portpicker.pick_unused_port())
     self.server.Start()
     self.addCleanup(self.server.Stop)

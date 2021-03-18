@@ -33,7 +33,6 @@ from grr_api_client import root as api_root
 from grr_response_client_builder import repacking
 from grr_response_core import config as grr_config
 from grr_response_core.lib.util import compatibility
-from grr_response_server import access_control
 from grr_response_server import maintenance_utils
 from grr_response_server import server_startup
 from grr_response_server.bin import config_updater_keys_util
@@ -922,13 +921,6 @@ def InitializeNoPrompt(
       redownload_templates=redownload_templates,
       repack_templates=repack_templates,
       prompt=False)
-
-
-def GetToken():
-  # Extend for user authorization
-  # SetUID is required to create and write to various aff4 paths when updating
-  # config.
-  return access_control.ACLToken(username="GRRConsole").SetUID()
 
 
 def UploadSignedBinary(source_path,

@@ -9,6 +9,7 @@ from typing import TypeVar, Generic, Optional, Tuple
 from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged.filesystem import filesystem
 from grr_response_client.unprivileged.filesystem import ntfs
+from grr_response_client.unprivileged.filesystem import tsk
 from grr_response_client.unprivileged.proto import filesystem_pb2
 
 
@@ -31,7 +32,6 @@ class State:
   def __init__(self):
     self.filesystem = None  # type: Optional[filesystem.Filesystem]
     self.files = filesystem.Files()
-    self.device = None  # type: Optional[filesystem.Device]
 
 
 class ConnectionWrapper:
@@ -130,14 +130,22 @@ class InitHandler(OperationHandler[filesystem_pb2.InitRequest,
   def HandleOperation(
       self, state: State,
       request: filesystem_pb2.InitRequest) -> filesystem_pb2.InitResponse:
+    if request.HasField('serialized_device_file_descriptor'):
+      device = FileDevice(
+          communication.FileDescriptor.FromSerialized(
+              request.serialized_device_file_descriptor,
+              communication.Mode.READ).ToFileDescriptor())
+    else:
+      device = self.CreateDevice()
+
     if request.implementation_type == filesystem_pb2.NTFS:
-      state.filesystem = ntfs.NtfsFilesystem()
-      if request.HasField('serialized_device_file_descriptor'):
-        state.filesystem.device = FileDevice(
-            communication.DeserializeFileDescriptorReadOnly(
-                request.serialized_device_file_descriptor))
-      else:
-        state.filesystem.device = self.CreateDevice()
+      state.filesystem = ntfs.NtfsFilesystem(device)
+    elif request.implementation_type == filesystem_pb2.TSK:
+      state.filesystem = tsk.TskFilesystem(device)
+    else:
+      raise DispatchError(
+          f'Bad implementation type: {request.implementation_type}')
+
     return filesystem_pb2.InitResponse()
 
   def PackResponse(
@@ -301,6 +309,9 @@ def DispatchWrapped(connection: ConnectionWrapper) -> None:
 
       if state.filesystem is None and not request.HasField('init_request'):
         raise DispatchError('The first request must be Init')
+
+      if state.filesystem is not None and request.HasField('init_request'):
+        raise DispatchError('Init can be called only once on a connection')
 
       if request.HasField('init_request'):
         handler_class = InitHandler

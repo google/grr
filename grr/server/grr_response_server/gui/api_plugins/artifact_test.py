@@ -27,7 +27,7 @@ class ApiListArtifactsHandlerTest(flow_test_lib.FlowTestsBaseclass):
   """Test for ApiListArtifactsHandler."""
 
   def setUp(self):
-    super(ApiListArtifactsHandlerTest, self).setUp()
+    super().setUp()
     self.handler = artifact_plugin.ApiListArtifactsHandler()
     self.context = api_call_context.ApiCallContext("test")
 
@@ -69,7 +69,7 @@ class ApiListArtifactsHandlerTest(flow_test_lib.FlowTestsBaseclass):
 class ApiUploadArtifactHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
-    super(ApiUploadArtifactHandlerTest, self).setUp()
+    super().setUp()
     self.handler = artifact_plugin.ApiUploadArtifactHandler()
 
   @artifact_test_lib.PatchCleanArtifactRegistry
@@ -92,7 +92,7 @@ class ApiUploadArtifactHandlerTest(api_test_lib.ApiCallHandlerTest):
 class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
-    super(ApiDeleteArtifactsHandlerTest, self).setUp()
+    super().setUp()
     self.handler = artifact_plugin.ApiDeleteArtifactsHandler()
 
   def UploadTestArtifacts(self):

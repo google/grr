@@ -144,7 +144,7 @@ class TestForms(gui_test_lib.GRRSeleniumTest):
     handler = user_plugin.ApiListClientApprovalsHandler()
     args = user_plugin.ApiListClientApprovalsArgs(client_id=client_id)
     res = handler.Handle(
-        args=args, context=api_call_context.ApiCallContext(self.token.username))
+        args=args, context=api_call_context.ApiCallContext(self.test_username))
     self.assertLen(res.items, 1)
     self.assertLen(res.items[0].notified_users, 1)
     self.assertEqual(res.items[0].notified_users[0], "sanchezrick")
@@ -163,7 +163,7 @@ class TestFormsValidation(gui_test_lib.GRRSeleniumTest):
   """Tests forms validation in different workflows ."""
 
   def setUp(self):
-    super(TestFormsValidation, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(self.client_id)
 

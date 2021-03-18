@@ -4,10 +4,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import collections
 import io
 import itertools
+from typing import Mapping
+from typing import Type
 
-
+from grr_response_client import actions
+from grr_response_client import client_actions
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
@@ -42,7 +46,7 @@ class ActionMock(object):
 
   class MixedActionMock(ActionMock):
     def __init__(self):
-      super(MixedActionMock, self).__init__(client_actions.RealAction)
+      super().__init__(client_actions.RealAction)
 
     def MockedAction(self, args):
       return []
@@ -54,12 +58,34 @@ class ActionMock(object):
   def __init__(self, *action_classes, **kwargs):
     self.client_id = kwargs.get("client_id")
     self.action_classes = {cls.__name__: cls for cls in action_classes}
-    self.action_counts = dict((cls_name, 0) for cls_name in self.action_classes)
+    self.action_counts = collections.defaultdict(lambda: 0)
     self.recorded_args = {}
     self._recorded_messages = []
 
     self.client_worker = (
         kwargs.get("client_worker", None) or worker_mocks.FakeClientWorker())
+
+  # TODO(hanuszczak): Ideally, the constructor of this class should be adjusted
+  # so that it supports supplying registry instead of taking arbitrary class
+  # types and registering them by the class name.
+  #
+  # However, the current usage is so prevalent across the codebase that fixing
+  # this behaviour is not possible with a single change. Thus, we introduce this
+  # method to allow for gradual migration.
+  @classmethod
+  def With(
+      cls,
+      registry: Mapping[str, Type[actions.ActionPlugin]],
+  ) -> "ActionMock":
+    """Constructs an action mock that uses the provided action registry."""
+    instance = cls()
+    instance.action_classes = registry
+    return instance
+
+  @classmethod
+  def WithRegistry(cls) -> "ActionMock":
+    """Constructs an action mock with the real action registry."""
+    return cls.With(client_actions.REGISTRY)
 
   def _RecordCall(self, message):
     self._recorded_messages.append(message)
@@ -143,7 +169,7 @@ class CPULimitClientMock(ActionMock):
                system_cpu_usage=None,
                network_usage=None,
                runtime_us=None):
-    super(CPULimitClientMock, self).__init__()
+    super().__init__()
     if storage is not None:
       self.storage = storage
     else:
@@ -259,7 +285,7 @@ class ListProcessesMock(FileFinderClientMock):
   """Client with real file actions and mocked-out ListProcesses."""
 
   def __init__(self, processes_list):
-    super(ListProcessesMock, self).__init__()
+    super().__init__()
     self.processes_list = processes_list
 
   def ListProcesses(self, _):
@@ -269,8 +295,7 @@ class ListProcessesMock(FileFinderClientMock):
 class ClientFileFinderClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(ClientFileFinderClientMock, self).__init__(file_finder.FileFinderOS,
-                                                     *args, **kwargs)
+    super().__init__(file_finder.FileFinderOS, *args, **kwargs)
 
 
 class CollectMultipleFilesClientMock(ActionMock):
@@ -303,8 +328,7 @@ class ListDirectoryClientMock(ActionMock):
 class GlobClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(GlobClientMock, self).__init__(searching.Find, standard.GetFileStat,
-                                         *args, **kwargs)
+    super().__init__(searching.Find, standard.GetFileStat, *args, **kwargs)
 
 
 class GrepClientMock(ActionMock):
@@ -320,7 +344,7 @@ class GrepClientMock(ActionMock):
 class OsqueryClientMock(ActionMock):
 
   def __init__(self, *args, **kwargs):
-    super(OsqueryClientMock, self).__init__(
+    super().__init__(
         #  Osquery action mocks below
         osquery.Osquery,
         #  MultiGetFile action mocks below
@@ -337,7 +361,7 @@ class UpdateAgentClientMock(ActionMock):
   """Client with a mocked-out UpdateAgent client-action."""
 
   def __init__(self):
-    super(UpdateAgentClientMock, self).__init__()
+    super().__init__()
 
     self._requests = []
 

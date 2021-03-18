@@ -16,7 +16,7 @@ from grr.test_lib import test_lib
 class RemoteUserWebAuthManagerTest(api_integration_test_lib.ApiIntegrationTest):
 
   def setUp(self):
-    super(RemoteUserWebAuthManagerTest, self).setUp()
+    super().setUp()
     config_overrider = test_lib.ConfigOverrider({
         "AdminUI.webauth_manager": "RemoteUserWebAuthManager",
         "AdminUI.remote_user_trusted_ips": ["127.0.0.1", "::1"]

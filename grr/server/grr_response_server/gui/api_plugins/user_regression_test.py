@@ -41,21 +41,21 @@ class ApiGetClientApprovalHandlerRegressionTest(
           clients[0],
           reason="foo",
           approver=u"approver",
-          requestor=self.token.username)
+          requestor=self.test_username)
 
     with test_lib.FakeTime(45):
       approval2_id = self.RequestClientApproval(
           clients[1],
           reason="bar",
           approver=u"approver",
-          requestor=self.token.username)
+          requestor=self.test_username)
 
     with test_lib.FakeTime(84):
       self.GrantClientApproval(
           clients[1],
           approval_id=approval2_id,
           approver=u"approver",
-          requestor=self.token.username)
+          requestor=self.test_username)
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -63,14 +63,14 @@ class ApiGetClientApprovalHandlerRegressionTest(
           args=user_plugin.ApiGetClientApprovalArgs(
               client_id=clients[0],
               approval_id=approval1_id,
-              username=self.token.username),
+              username=self.test_username),
           replace={approval1_id: "approval:111111"})
       self.Check(
           "GetClientApproval",
           args=user_plugin.ApiGetClientApprovalArgs(
               client_id=clients[1],
               approval_id=approval2_id,
-              username=self.token.username),
+              username=self.test_username),
           replace={approval2_id: "approval:222222"})
 
 
@@ -91,7 +91,7 @@ class ApiGrantClientApprovalHandlerRegressionTest(
       approval_id = self.RequestClientApproval(
           client_id,
           reason="foo",
-          approver=self.token.username,
+          approver=self.test_username,
           requestor=u"requestor")
 
     with test_lib.FakeTime(126):
@@ -149,21 +149,21 @@ class ApiListClientApprovalsHandlerRegressionTest(
     with test_lib.FakeTime(44):
       approval1_id = self.RequestClientApproval(
           clients[0],
-          reason=self.token.reason,
+          reason="Running tests",
           approver=u"approver",
-          requestor=self.token.username)
+          requestor=self.test_username)
 
     with test_lib.FakeTime(45):
       approval2_id = self.RequestClientApproval(
           clients[1],
-          reason=self.token.reason,
+          reason="Running tests",
           approver=u"approver",
-          requestor=self.token.username)
+          requestor=self.test_username)
 
     with test_lib.FakeTime(84):
       self.GrantClientApproval(
           clients[1],
-          requestor=self.token.username,
+          requestor=self.test_username,
           approval_id=approval2_id,
           approver=u"approver")
 
@@ -197,9 +197,9 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       self.CreateAdminUser(u"approver")
 
       hunt1_id = self.StartHunt(
-          description="hunt1", paused=True, creator=self.token.username)
+          description="hunt1", paused=True, creator=self.test_username)
       hunt2_id = self.StartHunt(
-          description="hunt2", paused=True, creator=self.token.username)
+          description="hunt2", paused=True, creator=self.test_username)
 
     with test_lib.FakeTime(44):
       approval1_id = self.RequestHuntApproval(
@@ -217,7 +217,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       self.Check(
           "GetHuntApproval",
           args=user_plugin.ApiGetHuntApprovalArgs(
-              username=self.token.username,
+              username=self.test_username,
               hunt_id=hunt1_id,
               approval_id=approval1_id),
           replace={
@@ -227,7 +227,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       self.Check(
           "GetHuntApproval",
           args=user_plugin.ApiGetHuntApprovalArgs(
-              username=self.token.username,
+              username=self.test_username,
               hunt_id=hunt2_id,
               approval_id=approval2_id),
           replace={
@@ -240,14 +240,14 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       self.CreateAdminUser(u"approver")
 
       hunt1_id = self.StartHunt(
-          description="original hunt", paused=True, creator=self.token.username)
+          description="original hunt", paused=True, creator=self.test_username)
 
       ref = rdf_hunts.FlowLikeObjectReference.FromHuntId(hunt1_id)
       hunt2_id = self.StartHunt(
           description="copied hunt",
           original_object=ref,
           paused=True,
-          creator=self.token.username)
+          creator=self.test_username)
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
@@ -257,7 +257,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       self.Check(
           "GetHuntApproval",
           args=user_plugin.ApiGetHuntApprovalArgs(
-              username=self.token.username,
+              username=self.test_username,
               hunt_id=hunt2_id,
               approval_id=approval_id),
           replace={
@@ -274,7 +274,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       flow_id = flow_test_lib.StartFlow(
           discovery.Interrogate,
           client_id=client_id,
-          creator=self.token.username,
+          creator=self.test_username,
           notify_to_user=True)
 
       ref = rdf_hunts.FlowLikeObjectReference.FromFlowIdAndClientId(
@@ -283,7 +283,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
           description="hunt started from flow",
           original_object=ref,
           paused=True,
-          creator=self.token.username)
+          creator=self.test_username)
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
@@ -293,7 +293,7 @@ class ApiGetHuntApprovalHandlerRegressionTest(
       self.Check(
           "GetHuntApproval",
           args=user_plugin.ApiGetHuntApprovalArgs(
-              username=self.token.username,
+              username=self.test_username,
               hunt_id=hunt_id,
               approval_id=approval_id),
           replace={
@@ -327,14 +327,14 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser(u"requestor")
       hunt_id = self.StartHunt(
-          description="a hunt", paused=True, creator=self.token.username)
+          description="a hunt", paused=True, creator=self.test_username)
 
     with test_lib.FakeTime(44):
       approval_id = self.RequestHuntApproval(
           hunt_id,
           requestor=u"requestor",
           reason="foo",
-          approver=self.token.username)
+          approver=self.test_username)
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -360,7 +360,7 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
       self.CreateUser(u"approver1")
       self.CreateUser(u"approver2")
       hunt_id = self.StartHunt(
-          description="foo", paused=True, creator=self.token.username)
+          description="foo", paused=True, creator=self.test_username)
 
     def ReplaceHuntAndApprovalIds():
       approvals = self.ListHuntApprovals()
@@ -390,14 +390,14 @@ class ApiListHuntApprovalsHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser(u"approver")
       hunt_id = self.StartHunt(
-          description="foo", paused=True, creator=self.token.username)
+          description="foo", paused=True, creator=self.test_username)
 
     with test_lib.FakeTime(43):
       approval_id = self.RequestHuntApproval(
           hunt_id,
-          reason=self.token.reason,
+          reason="Running tests",
           approver=u"approver",
-          requestor=self.token.username)
+          requestor=self.test_username)
 
     with test_lib.FakeTime(126):
       self.Check(
@@ -444,7 +444,7 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
       self.Check(
           "GetCronJobApproval",
           args=user_plugin.ApiGetCronJobApprovalArgs(
-              username=self.token.username,
+              username=self.test_username,
               cron_job_id=cron1_id,
               approval_id=approval1_id),
           replace={
@@ -454,7 +454,7 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
       self.Check(
           "GetCronJobApproval",
           args=user_plugin.ApiGetCronJobApprovalArgs(
-              username=self.token.username,
+              username=self.test_username,
               cron_job_id=cron2_id,
               approval_id=approval2_id),
           replace={
@@ -484,7 +484,7 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(44):
       approval_id = self.RequestCronJobApproval(
           cron_id,
-          approver=self.token.username,
+          approver=self.test_username,
           requestor=u"requestor",
           reason="foo")
 
@@ -545,13 +545,13 @@ class ApiGetOwnGrrUserHandlerRegressionTest(
 
   def Run(self):
     data_store.REL_DB.WriteGRRUser(
-        username=self.token.username, ui_mode="ADVANCED", canary_mode=True)
+        username=self.test_username, ui_mode="ADVANCED", canary_mode=True)
 
     self.Check("GetGrrUser")
 
     # Make user an admin and do yet another request.
     data_store.REL_DB.WriteGRRUser(
-        username=self.token.username,
+        username=self.test_username,
         user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
 
     self.Check("GetGrrUser")
@@ -588,8 +588,8 @@ class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
 
   def Run(self):
     client_id = self.SetupClient(0)
-    self.CreateUser(self.token.username)
-    _SendNotifications(self.token.username, client_id)
+    self.CreateUser(self.test_username)
+    _SendNotifications(self.test_username, client_id)
 
     self.Check("GetPendingUserNotificationsCount")
 
@@ -603,9 +603,9 @@ class ApiListPendingUserNotificationsHandlerRegressionTest(
 
   def Run(self):
     client_id = self.SetupClient(0)
-    self.CreateUser(self.token.username)
+    self.CreateUser(self.test_username)
 
-    _SendNotifications(self.token.username, client_id)
+    _SendNotifications(self.test_username, client_id)
 
     self.Check(
         "ListPendingUserNotifications",
@@ -629,8 +629,8 @@ class ApiListAndResetUserNotificationsHandlerRegressionTest(
 
   def Run(self):
     client_id = self.SetupClient(0)
-    self.CreateUser(self.token.username)
-    _SendNotifications(self.token.username, client_id)
+    self.CreateUser(self.test_username)
+    _SendNotifications(self.test_username, client_id)
 
     # _SendNotifications schedule notifications at timestamp 42 and 44.
     # REL_DB-based ListAndResetUserNotifications implementation only

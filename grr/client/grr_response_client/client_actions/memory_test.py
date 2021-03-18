@@ -22,7 +22,7 @@ from grr.test_lib import test_lib
 class YaraProcessScanTest(client_test_lib.EmptyActionTest):
 
   def setUp(self):
-    super(YaraProcessScanTest, self).setUp()
+    super().setUp()
 
     config_overrider = test_lib.ConfigOverrider({
         "Client.tempdir_roots": [self.temp_dir],
@@ -201,7 +201,7 @@ def GetProcessIteratorPids(pids=(),
 class ProcessFilteringTest(client_test_lib.EmptyActionTest):
 
   def setUp(self):
-    super(ProcessFilteringTest, self).setUp()
+    super().setUp()
     patcher = mock.patch.object(
         psutil,
         "process_iter",

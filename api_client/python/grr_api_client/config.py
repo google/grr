@@ -18,7 +18,7 @@ class GrrBinaryBase(object):
       path: str,
       context: api_context.GrrApiContext,
   ):
-    super(GrrBinaryBase, self).__init__()
+    super().__init__()
 
     self.binary_type = binary_type
     self.path = path
@@ -51,8 +51,7 @@ class GrrBinary(GrrBinaryBase):
       data: config_pb2.ApiGrrBinary,
       context: api_context.GrrApiContext,
   ):
-    super(GrrBinary, self).__init__(
-        binary_type=data.type, path=data.path, context=context)
+    super().__init__(binary_type=data.type, path=data.path, context=context)
 
     self.data = data  # type: config_pb2.ApiGrrBinary
 

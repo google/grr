@@ -10,6 +10,7 @@ from __future__ import unicode_literals
 from absl import app
 
 from grr_response_core.lib.parsers import windows_registry_parser
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -129,6 +130,43 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
     stat = self._MakeRegStat(sysroot, r"C:\Windows", None)
     parser = windows_registry_parser.WinSystemDriveParser()
     self.assertEqual(r"C:", next(parser.Parse(stat, None)))
+
+  def testWindowsRegistryInstalledSoftware(self):
+    reg_str = rdf_client_fs.StatEntry.RegistryType.REG_SZ
+    hklm = "HKEY_LOCAL_MACHINE"
+    k = hklm + r"\Software\Microsoft\Windows\CurrentVersion\Uninstall"
+    service_keys = [
+        # Valid.
+        (k + r"\Google Chrome\DisplayName", "Google Chrome", reg_str),
+        (k + r"\Google Chrome\DisplayVersion", "89.0.4389.82", reg_str),
+        (k + r"\Google Chrome\Publisher", "Google LLC", reg_str),
+        # Invalid - Contains no data.
+        (k + r"\AddressBook\Default", "", reg_str),
+        # Invalid - Missing DisplayName.
+        (k + r"\Foo\DisplayVersion", "1.2.3.4", reg_str),
+        (k + r"\Foo\Publisher", "Bar Inc", reg_str),
+        # Valid.
+        (k + r"\Baz\DisplayName", "Baz", reg_str),
+        (k + r"\Baz\DisplayVersion", "2.3.4.5", reg_str),
+        (k + r"\Baz\Publisher", "Baz LLC", reg_str),
+    ]
+
+    stats = [self._MakeRegStat(*x) for x in service_keys]
+    parser = windows_registry_parser.WindowsRegistryInstalledSoftwareParser()
+    results = parser.ParseMultiple(stats, None)
+
+    want = [
+        rdf_client.SoftwarePackages(packages=[
+            rdf_client.SoftwarePackage.Installed(
+                name="Google Chrome",
+                description="Google LLC",
+                version="89.0.4389.82"),
+            rdf_client.SoftwarePackage.Installed(
+                name="Baz", description="Baz LLC", version="2.3.4.5"),
+        ])
+    ]
+    got = list(results)
+    self.assertEqual(want, got)
 
 
 def main(argv):

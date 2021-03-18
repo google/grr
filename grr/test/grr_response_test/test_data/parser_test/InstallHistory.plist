@@ -66,5 +66,15 @@
     <key>processName</key>
     <string>softwareupdated</string>
   </dict>
+  <dict>
+    <key>date</key>
+    <date>2021-02-09T22:34:52Z</date>
+    <key>displayName</key>
+    <string>macOS 11.2</string>
+    <key>displayVersion</key>
+    <string>11.2</string>
+    <key>processName</key>
+    <string>softwareupdated</string>
+  </dict>
 </array>
 </plist>

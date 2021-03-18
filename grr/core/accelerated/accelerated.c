@@ -108,7 +108,7 @@ int varint_decode(unsigned PY_LONG_LONG *result,
     }
 
     shift += 7;
-  } while (shift < 64);
+  }
 
   // Error decoding varint - buffer too short.
   return 0;
@@ -133,7 +133,7 @@ PyObject *py_varint_decode(PyObject *self, PyObject *args) {
     return Py_BuildValue("Kn", result, pos + length);
   }
 
-  PyErr_SetString(PyExc_RuntimeError, "Too many bytes when decoding varint.");
+  PyErr_SetString(PyExc_ValueError, "Too many bytes when decoding varint.");
   return NULL;
 }
 
@@ -176,7 +176,17 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
     int tag_type;
 
     // Read the tag off the buffer.
-    varint_decode(&tag, buffer, length, &decoded_length);
+    if (!varint_decode(&tag, buffer, length, &decoded_length)) {
+      PyErr_SetString(
+          PyExc_ValueError, "Broken tag encountered.");
+      return NULL;
+    }
+
+    if (decoded_length == 0) {
+      PyErr_SetString(
+          PyExc_ValueError, "Zero-length tag encountered.");
+      return NULL;
+    }
 
     // Prepare to pass the encoded tag into the result tuple.
     encoded_tag = PyBytes_FromStringAndSize(buffer, decoded_length);
@@ -191,7 +201,11 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
         Py_ssize_t tag_length = 0;
         PyObject *entry = NULL;
 
-        varint_decode(&tag, buffer, length, &tag_length);
+        if (!varint_decode(&tag, buffer, length, &tag_length)) {
+          PyErr_SetString(
+              PyExc_ValueError, "Broken varint tag encountered.");
+          goto error;
+        }
 
         // Create an entry to add to the result set. Note: We use
         // PyTuple_SetItem which steals the references here instead of
@@ -277,7 +291,11 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
         unsigned PY_LONG_LONG data_size;
         PyObject *entry = NULL;
 
-        varint_decode(&data_size, buffer, length, &decoded_length);
+        if (!varint_decode(&data_size, buffer, length, &decoded_length)) {
+          PyErr_SetString(
+              PyExc_ValueError, "Broken length_delimited tag encountered.");
+          goto error;
+        }
 
         // Check that we do not exceed the available buffer here.
         if (data_size + decoded_length > (unsigned int)length) {

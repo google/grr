@@ -26,7 +26,7 @@ class BlobStreamTest(test_lib.GRRBaseTest):
   """BlobStream tests."""
 
   def setUp(self):
-    super(BlobStreamTest, self).setUp()
+    super().setUp()
 
     self.blob_size = 10
     self.blob_data, self.blob_refs = vfs_test_lib.GenerateBlobRefs(
@@ -93,7 +93,7 @@ class AddFileWithUnknownHashTest(test_lib.GRRBaseTest):
   """Tests for AddFileWithUnknownHash."""
 
   def setUp(self):
-    super(AddFileWithUnknownHashTest, self).setUp()
+    super().setUp()
 
     self.blob_size = 10
     self.blob_data, self.blob_refs = vfs_test_lib.GenerateBlobRefs(
@@ -327,7 +327,7 @@ class OpenFileTest(test_lib.GRRBaseTest):
   """Tests for OpenFile."""
 
   def setUp(self):
-    super(OpenFileTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.client_path = db.ClientPath.OS(self.client_id, ("foo", "bar"))
 
@@ -436,7 +436,7 @@ class StreamFilesChunksTest(test_lib.GRRBaseTest):
     return blob_data, blob_refs
 
   def setUp(self):
-    super(StreamFilesChunksTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.client_id_other = self.SetupClient(1)
 

@@ -20,7 +20,7 @@ class ApiUploadYaraSignatureHandlerTest(api_test_lib.ApiCallHandlerTest):
     testing_startup.TestInit()
 
   def setUp(self):
-    super(ApiUploadYaraSignatureHandlerTest, self).setUp()
+    super().setUp()
     self.handler = api_yara.ApiUploadYaraSignatureHandler()
 
   def testSignatureIsUploadedToBlobStore(self):

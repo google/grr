@@ -31,7 +31,6 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
-from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -82,14 +81,14 @@ def FilterArgsFromSemanticProtobuf(protobuf, kwargs):
       setattr(protobuf, descriptor.name, value)
 
 
-def GetOutputPluginStates(output_plugins, source=None, token=None):
+def GetOutputPluginStates(output_plugins, source=None):
   """Initializes state for a list of output plugins."""
   output_plugins_states = []
   for plugin_descriptor in output_plugins:
     plugin_class = plugin_descriptor.GetPluginClass()
     try:
       _, plugin_state = plugin_class.CreatePluginAndDefaultState(
-          source_urn=source, args=plugin_descriptor.plugin_args, token=token)
+          source_urn=source, args=plugin_descriptor.plugin_args)
     except Exception as e:  # pylint: disable=broad-except
       raise ValueError("Plugin %s failed to initialize (%s)" %
                        (plugin_class, e))
@@ -282,9 +281,7 @@ def StartFlow(client_id=None,
 
   if output_plugins:
     rdf_flow.output_plugins_states = GetOutputPluginStates(
-        output_plugins,
-        rdf_flow.long_flow_id,
-        token=access_control.ACLToken(username=rdf_flow.creator))
+        output_plugins, rdf_flow.long_flow_id)
 
   if network_bytes_limit is not None:
     rdf_flow.network_bytes_limit = network_bytes_limit

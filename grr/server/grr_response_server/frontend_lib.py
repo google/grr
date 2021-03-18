@@ -14,7 +14,6 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
-from grr_response_server import access_control
 from grr_response_server import communicator
 from grr_response_server import data_store
 from grr_response_server import events
@@ -47,6 +46,8 @@ GRR_FRONTENDSERVER_HANDLE_TIME = metrics.Event("grr_frontendserver_handle_time")
 GRR_FRONTENDSERVER_HANDLE_NUM = metrics.Counter("grr_frontendserver_handle_num")
 GRR_MESSAGES_SENT = metrics.Counter("grr_messages_sent")
 GRR_UNIQUE_CLIENTS = metrics.Counter("grr_unique_clients")
+
+FRONTEND_USERNAME = "GRRFrontEnd"
 
 
 class ServerCommunicator(communicator.Communicator):
@@ -179,11 +180,6 @@ class FrontEndServer(object):
                max_queue_size=50,
                message_expiry_time=120,
                max_retransmission_time=10):
-    # Identify ourselves as the server.
-    self.token = access_control.ACLToken(
-        username="GRRFrontEnd", reason="Implied.")
-    self.token.supervisor = True
-
     self._communicator = ServerCommunicator(
         certificate=certificate, private_key=private_key)
 
@@ -308,7 +304,8 @@ class FrontEndServer(object):
         client_id, first_seen=now, fleetspeak_enabled=True, last_ping=now)
 
     # Publish the client enrollment message.
-    events.Events.PublishEvent("ClientEnrollment", client_urn, token=self.token)
+    events.Events.PublishEvent(
+        "ClientEnrollment", client_urn, username=FRONTEND_USERNAME)
     return True
 
   legacy_well_known_session_ids = set([
@@ -343,29 +340,35 @@ class FrontEndServer(object):
 
     msgs_by_session_id = collection.Group(messages, lambda m: m.session_id)
     for session_id, msgs in msgs_by_session_id.items():
+      try:
+        for msg in msgs:
+          if (msg.auth_state != msg.AuthorizationState.AUTHENTICATED and
+              msg.session_id != self.unauth_allowed_session_id):
+            dropped_count += 1
+            continue
 
-      for msg in msgs:
-        if (msg.auth_state != msg.AuthorizationState.AUTHENTICATED and
-            msg.session_id != self.unauth_allowed_session_id):
-          dropped_count += 1
-          continue
-
-        session_id_str = str(session_id)
-        if session_id_str in message_handlers.session_id_map:
-          request = rdf_objects.MessageHandlerRequest(
-              client_id=msg.source.Basename(),
-              handler_name=message_handlers.session_id_map[session_id],
-              request_id=msg.response_id or random.UInt32(),
-              request=msg.payload)
-          if request.handler_name in self._SHORTCUT_HANDLERS:
-            frontend_message_handler_requests.append(request)
+          session_id_str = str(session_id)
+          if session_id_str in message_handlers.session_id_map:
+            request = rdf_objects.MessageHandlerRequest(
+                client_id=msg.source.Basename(),
+                handler_name=message_handlers.session_id_map[session_id],
+                request_id=msg.response_id or random.UInt32(),
+                request=msg.payload)
+            if request.handler_name in self._SHORTCUT_HANDLERS:
+              frontend_message_handler_requests.append(request)
+            else:
+              worker_message_handler_requests.append(request)
+          elif session_id_str in self.legacy_well_known_session_ids:
+            logging.debug(
+                "Dropping message for legacy well known session id %s",
+                session_id)
           else:
-            worker_message_handler_requests.append(request)
-        elif session_id_str in self.legacy_well_known_session_ids:
-          logging.debug("Dropping message for legacy well known session id %s",
-                        session_id)
-        else:
-          unprocessed_msgs.append(msg)
+            unprocessed_msgs.append(msg)
+      except ValueError:
+        logging.exception(
+            "Unpacking error in at least one of %d messages for session id %s",
+            len(msgs), session_id)
+        raise
 
     if dropped_count:
       logging.info("Dropped %d unauthenticated messages for %s", dropped_count,
@@ -396,7 +399,7 @@ class FrontEndServer(object):
                 nanny_status=stat.nanny_status,
                 timestamp=rdfvalue.RDFDatetime.Now())
             events.Events.PublishEvent(
-                "ClientCrash", crash_details, token=self.token)
+                "ClientCrash", crash_details, username=FRONTEND_USERNAME)
 
     if worker_message_handler_requests:
       data_store.REL_DB.WriteMessageHandlerRequests(

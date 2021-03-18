@@ -28,11 +28,18 @@ class PendingFlowTermination(rdf_structs.RDFProtoStruct):
 
 
 class FlowRequest(rdf_structs.RDFProtoStruct):
+  """Flow request object."""
+
   protobuf = flows_pb2.FlowRequest
   rdf_deps = [
       rdf_protodict.Dict,
       rdfvalue.RDFDatetime,
   ]
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    if not self.HasField("next_response_id"):
+      self.next_response_id = 1
 
 
 class FlowMessage(object):

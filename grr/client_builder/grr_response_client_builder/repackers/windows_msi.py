@@ -6,12 +6,13 @@ import os
 import shutil
 import struct
 import subprocess
-from typing import Tuple, Dict, Any, Callable
+from typing import Tuple, Dict, Any
 
 import olefile
 
 from grr_response_client_builder import build
 from grr_response_client_builder import build_helpers
+from grr_response_client_builder.repackers import cab_utils
 from grr_response_core import config
 from grr_response_core.lib import utils
 
@@ -20,17 +21,10 @@ from grr_response_core.lib import utils
 MAGIC_VALUE_FOR_PADDING = b"MagicPropertyValueForPadding"
 
 # Encoded names of OLE streams in the MSI file.
-FLEETSPEAK_CAB_STREAM_NAME = "䏩䈨䖷䈳䎤䆾䅤"
-FLEETSPEAK_CONFIG_CAB_STREAM_NAME = "䏩䈨䖷䈳䎤䆿䑲䌩䞪䄦䠥"
-FLEETSPEAK_SERVICE_CONFIG_CAB_STREAM_NAME = "䏩䈨䖷䈳䎤䖿䕨䌹䈦䆿䑲䌩䞪䄦䠥"
-GRR_CONFIG_CAB_STREAM_NAME = "䕪䟵䒦䉱䊬䆾䅤"
+GRR_CAB_STREAM_NAME = "䕪䞵䄦䠥"
 FEATURE_STREAM_NAME = "䡀䈏䗤䕸䠨"
 STRING_POOL_STREAM_NAME = "䡀㼿䕷䑬㹪䒲䠯"
 STRING_DATA_STREAM_NAME = "䡀㼿䕷䑬㭪䗤䠤"
-
-# Magic values in placeholder config files.
-CAB_BEGIN = b"__BEGIN__"
-CAB_END = b"__END__"
 
 
 class Error(Exception):
@@ -138,7 +132,7 @@ class FeatureTable:
 
   def __init__(self, data: bytes, string_pool: StringPool):
     self._data = data
-    self._level_offset = {}  # type: Dict[bytes, int]
+    self._level_offset: Dict[bytes, int] = {}
 
     row_count = len(data) // 16
 
@@ -168,54 +162,18 @@ class FeatureTable:
     return self._data
 
 
-class ConfigFileCab:
-  """CAB archive containing a config file to be patched."""
-
-  def __init__(self, data: str):
-    self._data = data
-
-  def SetConfigFile(self, value: bytes) -> None:  # pylint: disable=unused-argument
-    """Sets the value of the config file within this archive."""
-    self._ClearChecksums()
-
-    def WriteBlock(start: int, end: int) -> None:
-      nonlocal value
-      block_size = end - start
-      value_size = min(len(value), block_size)
-      padding = b"\n" * (block_size - value_size)
-      self._SetData(start, end, value[:value_size] + padding)
-      value = value[value_size:]
-
-    self._IterateFile(WriteBlock)
-
-  def _IterateFile(self, callback: Callable[[int, int], None]) -> None:
-    """Iterates through the CFDATA blocks of the CAB file."""
-    pos = self._data.find(CAB_BEGIN)
-    while True:
-      data_length, = struct.unpack("<H", self._data[pos - 2:pos])
-      is_last = self._data[pos:pos + data_length].endswith(CAB_END)
-      callback(pos, pos + data_length)
-      if is_last:
-        break
-      pos += data_length + 8
-
-  def _ClearChecksums(self) -> None:
-    """Clears the checksums of the CFDATA blocks."""
-
-    def ClearChecksum(start: int, end: int) -> None:
-      del end
-      self._SetData(start - 8, start - 4, b"\x00\x00\x00\x00")
-
-    self._IterateFile(ClearChecksum)
-
-  def _SetData(self, start: int, end: int, data: bytes) -> None:
-    """Sets a range of data in the CAB file."""
-    if len(data) != end - start:
-      raise ValueError("Wrong length of data.")
-    self._data = self._data[:start] + data + self._data[end:]
-
-  def Serialize(self) -> bytes:
-    return self._data
+def _SignCabFiles(directory_path: str, signer):
+  """Signs EXE and DLL files in `directory_path`."""
+  file_paths = []
+  for file_name in os.listdir(directory_path):
+    if file_name in (".", ".."):
+      continue
+    file_path = os.path.join(directory_path, file_name)
+    with open(file_path, "rb") as f:
+      header = f.read(2)
+      if header == b"MZ":
+        file_paths.append(file_path)
+  signer.SignFiles(file_paths)
 
 
 class MsiFile:
@@ -223,6 +181,8 @@ class MsiFile:
 
   def __init__(self, path: str):
     self._olefile = olefile.OleFileIO(path, write_mode=True)
+    self._stack = contextlib.ExitStack()
+    self._tmp_dir = self._stack.enter_context(utils.TempDirectory())
 
     def ReadStream(name):
       with self._olefile.openstream(name) as stream:
@@ -233,14 +193,14 @@ class MsiFile:
     self._string_pool = StringPool(string_pool_raw, string_data_raw)
     feature_raw = ReadStream(FEATURE_STREAM_NAME)
     self._feature_table = FeatureTable(feature_raw, self._string_pool)
-    fleetspeak_config_raw = ReadStream(FLEETSPEAK_CONFIG_CAB_STREAM_NAME)
-    self._fleetspeak_config = ConfigFileCab(fleetspeak_config_raw)
-    grr_config_raw = ReadStream(GRR_CONFIG_CAB_STREAM_NAME)
-    self._grr_config = ConfigFileCab(grr_config_raw)
-    fleetspeak_service_config_raw = ReadStream(
-        FLEETSPEAK_SERVICE_CONFIG_CAB_STREAM_NAME)
-    self._fleetspeak_service_config = ConfigFileCab(
-        fleetspeak_service_config_raw)
+
+    cab_path = os.path.join(self._tmp_dir, "input.cab")
+    cab_tmp_path = os.path.join(self._tmp_dir, "cab_tmp_dir")
+    with open(cab_path, "wb") as f:
+      f.write(ReadStream(GRR_CAB_STREAM_NAME))
+    self._cab = cab_utils.Cab(cab_path, cab_tmp_path)
+    self._cab.ExtractFiles()
+    self._cab.WriteFile("PaddingFile", b"")
 
   def ReplaceString(self, old_value: bytes, new_value: bytes) -> None:
     self._string_pool.Replace(old_value, new_value)
@@ -248,14 +208,11 @@ class MsiFile:
   def RenameFile(self, old_name: bytes, new_name: bytes) -> None:
     self._string_pool.RenameFile(old_name, new_name)
 
-  def SetFleetspeakConfig(self, value: bytes) -> None:
-    self._fleetspeak_config.SetConfigFile(value)
+  def WriteCabFile(self, key: str, data: bytes) -> None:
+    self._cab.WriteFile(key, data)
 
-  def SetGrrConfig(self, value: bytes) -> None:
-    self._grr_config.SetConfigFile(value)
-
-  def SetFleetspeakServiceConfig(self, value: bytes) -> None:
-    self._fleetspeak_service_config.SetConfigFile(value)
+  def CabFilesDirectory(self) -> str:
+    return self._cab.file_path_base
 
   def EnableFeature(self, feature_name: bytes) -> None:
     self._feature_table.SetLevel(feature_name, 1)
@@ -267,15 +224,17 @@ class MsiFile:
     self._olefile.write_stream(STRING_DATA_STREAM_NAME, string_data_raw)
     self._olefile.write_stream(FEATURE_STREAM_NAME,
                                self._feature_table.Serialize())
-    self._olefile.write_stream(FLEETSPEAK_CONFIG_CAB_STREAM_NAME,
-                               self._fleetspeak_config.Serialize())
-    self._olefile.write_stream(GRR_CONFIG_CAB_STREAM_NAME,
-                               self._grr_config.Serialize())
-    self._olefile.write_stream(FLEETSPEAK_SERVICE_CONFIG_CAB_STREAM_NAME,
-                               self._fleetspeak_service_config.Serialize())
+    cab_path = os.path.join(self._tmp_dir, "output.cab")
+    cab_padded_path = os.path.join(self._tmp_dir, "output_padded.cab")
+    self._cab.Pack(cab_path)
+    cab_utils.PadCabFile(cab_path, cab_padded_path,
+                         self._olefile.get_size(GRR_CAB_STREAM_NAME))
+    with open(cab_padded_path, "rb") as f:
+      self._olefile.write_stream(GRR_CAB_STREAM_NAME, f.read())
 
   def Close(self) -> None:
     self._olefile.close()
+    self._stack.close()
 
 
 class WindowsMsiClientRepacker(build.ClientRepacker):
@@ -356,10 +315,11 @@ class WindowsMsiClientRepacker(build.ClientRepacker):
       if fleetspeak_bundled:
         with open(GetConfig("ClientBuilder.fleetspeak_client_config"),
                   "rb") as f:
-          msi_file.SetFleetspeakConfig(f.read())
+          msi_file.WriteCabFile("FileFleetspeakConfig", f.read())
 
       RenameFileConfig("grr-config.yaml", "ClientBuilder.config_filename")
-      msi_file.SetGrrConfig(
+      msi_file.WriteCabFile(
+          "FileGrrConfig",
           build_helpers.GetClientConfig(context).encode("utf-8"))
 
       # Write Fleetspeak service registry data
@@ -387,7 +347,7 @@ class WindowsMsiClientRepacker(build.ClientRepacker):
       if fleetspeak_enabled or fleetspeak_bundled:
         path = GetConfig("ClientBuilder.fleetspeak_config_path")
         with open(path, "rb") as f:
-          msi_file.SetFleetspeakServiceConfig(f.read())
+          msi_file.WriteCabFile("FileFleetspeakServiceConfig", f.read())
         RenameFileConfig("fleetspeak-service-config.txt",
                          "Client.fleetspeak_unsigned_config_fname")
         if path.endswith(".in"):
@@ -430,8 +390,14 @@ class WindowsMsiClientRepacker(build.ClientRepacker):
         ReplaceString("__NannyChildCommandLine",
                       subprocess.list2cmdline(child_args))
 
+      if self.signer:
+        _SignCabFiles(msi_file.CabFilesDirectory(), self.signer)
+
       msi_file.Write()
       msi_file.Close()
+
+      if self.signer:
+        self.signer.SignFile(os.path.join(tmp_dir, "installer.msi"))
 
       if os.path.exists(output_path):
         os.remove(output_path)

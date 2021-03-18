@@ -16,5 +16,5 @@ class HttpResponse(werkzeug_wrappers.Response):
                *args,
                context: Optional[api_call_context.ApiCallContext] = None,
                **kwargs):
-    super(HttpResponse, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.context = context

@@ -30,7 +30,6 @@ from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
-from grr_response_server import access_control
 from grr_response_server import server_logging
 from grr_response_server.gui import http_api
 from grr_response_server.gui import http_response
@@ -144,7 +143,6 @@ class HttpRequest(werkzeug_wrappers.Request):
     super().__init__(*args, **kwargs)
 
     self._user = None
-    self.token = None
     self.email = None
 
     self.timestamp = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch()
@@ -230,20 +228,6 @@ class AdminUIApp(object):
 
   def _BuildRequest(self, environ):
     return HttpRequest(environ)
-
-  def _BuildToken(self, request, execution_time):
-    """Build an ACLToken from the request."""
-    token = access_control.ACLToken(
-        username=request.user,
-        reason=request.args.get("reason", ""),
-        process="GRRAdminUI",
-        expiry=rdfvalue.RDFDatetime.Now() + execution_time)
-
-    for field in ["Remote_Addr", "X-Forwarded-For"]:
-      remote_addr = request.headers.get(field, "")
-      if remote_addr:
-        token.source_ips.append(remote_addr)
-    return token
 
   def _HandleHomepage(self, request):
     """Renders GRR home page by rendering base.html Jinja template."""

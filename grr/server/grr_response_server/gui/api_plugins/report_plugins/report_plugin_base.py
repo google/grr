@@ -47,14 +47,12 @@ class ReportPluginBase(object):
         summary=cls.SUMMARY,
         requires_time_range=cls.REQUIRES_TIME_RANGE)
 
-  def GetReportData(self, get_report_args, token):
+  def GetReportData(self, get_report_args):
     """Generates the data to be displayed in the report.
 
     Args:
       get_report_args: ApiGetReportArgs passed from
                        ApiListReportsHandler.
-      token: The authorization token, also passed from ApiListReportsHandler.
-
     Raises:
       NotImplementedError: If not overridden.
 

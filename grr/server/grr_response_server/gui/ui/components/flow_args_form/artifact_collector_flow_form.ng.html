@@ -18,4 +18,46 @@
       </mat-option>
     </mat-autocomplete>
   </mat-form-field>
+
+  <div *ngIf="selectedArtifact$ | async as selectedArtifact" class="mat-body-1">
+    <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="sources-tree">
+      <!-- This is the tree node template for leaf nodes. -->
+      <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle>
+        <li>
+          <div class="mat-tree-node">
+            <!-- Use a disabled button to provide padding for tree leaf. -->
+            <button mat-icon-button disabled></button> {{node.name}}
+          </div>
+          <ul>
+            <li *ngFor="let source of node.values">
+              <ng-container *ngIf="node.type === SourceType.FILE; else fallback">
+                <glob-expression-explanation [globExpression]="source" [clientId]="clientId$ | async"></glob-expression-explanation>
+              </ng-container>
+              <ng-template #fallback>{{source}}</ng-template>
+            </li>
+          </ul>
+        </li>
+      </mat-tree-node>
+      <!-- This is the tree node template for expandable nodes. -->
+      <mat-nested-tree-node *matTreeNodeDef="let node; when: hasChild">
+        <li>
+          <div class="mat-tree-node">
+            <button mat-icon-button matTreeNodeToggle disabled
+                    [attr.aria-label]="'Toggle ' + node.name">
+              <mat-icon class="mat-icon-rtl-mirror chevron">arrow_drop_down</mat-icon>
+            </button>
+            {{node.name}}: {{node.values.join(" ")}}
+          </div>
+          <ul>
+            <ng-container matTreeNodeOutlet></ng-container>
+          </ul>
+        </li>
+      </mat-nested-tree-node>
+    </mat-tree>
+
+    <p *ngIf="selectedArtifact.urls.length > 0" class="links">
+      See:
+      <a *ngFor="let url of selectedArtifact.urls" [href]="url" target="_blank">{{url}}</a>
+    </p>
+  </div>
 </div>

@@ -240,7 +240,7 @@ class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
           include_errors_in_results=include_errors_in_results,
           include_misses_in_results=include_misses_in_results,
           max_results_per_process=max_results_per_process,
-          token=self.token,
+          creator=self.test_username,
           **kw)
 
     res = flow_test_lib.GetFlowResults(self.client_id, session_id)
@@ -250,7 +250,7 @@ class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
     return matches, errors, misses
 
   def setUp(self):
-    super(BaseYaraFlowsTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.procs = [
         client_test_lib.MockWindowsProcess(pid=101, name="proc101.exe"),
@@ -616,7 +616,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           chunk_size=chunk_size,
           client_id=self.client_id,
           ignore_grr_process=True,
-          token=self.token)
+          creator=self.test_username)
     return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
   def _ReadFromPathspec(self, pathspec, num_bytes):
@@ -708,7 +708,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
         client_id=self.client_id,
         ignore_grr_process=True,
         check_flow_errors=False,
-        token=self.token)
+        creator=self.test_username)
     flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
     self.assertEqual(flow_obj.error_message, "No processes to dump specified.")
 
@@ -771,7 +771,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
             client_mock,
             yara_signature=_TEST_YARA_SIGNATURE,
             client_id=self.client_id,
-            token=self.token,
+            creator=self.test_username,
             include_errors_in_results="ALL_ERRORS",
             include_misses_in_results=True,
             dump_process_on_match=True)
@@ -820,7 +820,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           client_mock,
           yara_signature=_TEST_YARA_SIGNATURE,
           client_id=self.client_id,
-          token=self.token,
+          creator=self.test_username,
           include_errors_in_results="ALL_ERRORS",
           include_misses_in_results=True,
           dump_process_on_match=True)
@@ -865,7 +865,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
           client_mock,
           yara_signature=_TEST_YARA_SIGNATURE,
           client_id=self.client_id,
-          token=self.token,
+          creator=self.test_username,
           include_errors_in_results="ALL_ERRORS",
           include_misses_in_results=True,
           dump_process_on_match=True,
@@ -980,7 +980,7 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
     testing_startup.TestInit()
 
   def setUp(self):
-    super(YaraProcessScanTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   def testYaraSignatureReferenceDeliversFullSignatureToClient(self):
@@ -1056,7 +1056,7 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
         memory.YaraProcessScan.__name__,
         action_mock,
         client_id=self.client_id,
-        token=self.token,
+        creator=self.test_username,
         args=args)
 
     flow_test_lib.FinishAllFlowsOnClient(self.client_id)

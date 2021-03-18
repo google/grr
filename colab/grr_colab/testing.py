@@ -80,7 +80,7 @@ class ColabE2ETest(client_action_test_lib.WithAllClientActionsMixin,
     super(ColabE2ETest, cls).setUpClass()
 
   def setUp(self) -> None:
-    super(ColabE2ETest, self).setUp()
+    super().setUp()
 
     # We override original `WaitUntilDone` with a one that executes all flows
     # on all clients. An alternative approach would be to use a background task,

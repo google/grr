@@ -35,7 +35,7 @@ class GRRVersion1ReportPlugin(report_plugin_base.ReportPluginBase):
                                                           sample.y_value))
         break
 
-  def GetReportData(self, get_report_args, token):
+  def GetReportData(self, get_report_args):
     """Show how the last active breakdown evolved over time."""
     report = rdf_report_plugins.ApiReportData(
         representation_type=rdf_report_plugins.ApiReportData.RepresentationType
@@ -103,7 +103,7 @@ class LastActiveReportPlugin(report_plugin_base.ReportPluginBase):
         categories.setdefault(label, []).append((timestamp_millis,
                                                  sample.y_value))
 
-  def GetReportData(self, get_report_args, token):
+  def GetReportData(self, get_report_args):
     """Show how the last active breakdown evolved over time."""
     report = rdf_report_plugins.ApiReportData(
         representation_type=rdf_report_plugins.ApiReportData.RepresentationType
@@ -142,7 +142,7 @@ class OSBreakdown1ReportPlugin(report_plugin_base.ReportPluginBase):
 
   ACTIVE_DAYS = 1
 
-  def GetReportData(self, get_report_args, token):
+  def GetReportData(self, get_report_args):
     """Extract only the operating system type from the active histogram."""
     report = rdf_report_plugins.ApiReportData(
         representation_type=rdf_report_plugins.ApiReportData.RepresentationType
@@ -201,7 +201,7 @@ class OSReleaseBreakdown1ReportPlugin(report_plugin_base.ReportPluginBase):
 
   ACTIVE_DAYS = 1
 
-  def GetReportData(self, get_report_args, token):
+  def GetReportData(self, get_report_args):
     """Extract only the operating system type from the active histogram."""
     report = rdf_report_plugins.ApiReportData(
         representation_type=rdf_report_plugins.ApiReportData.RepresentationType

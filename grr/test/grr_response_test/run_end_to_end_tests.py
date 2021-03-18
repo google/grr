@@ -4,7 +4,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
-import getpass
 import logging
 import sys
 
@@ -18,8 +17,6 @@ from grr_response_server import server_plugins
 
 from grr_response_core import config
 from grr_response_core.config import contexts
-from grr_response_server import access_control
-from grr_response_server import data_store
 from grr_response_server import server_startup
 from grr_response_test.end_to_end_tests import runner
 
@@ -77,8 +74,6 @@ def main(argv):
     handler.addFilter(E2ELogFilter())
     handler.setLevel(logging.INFO)
 
-  data_store.default_token = access_control.ACLToken(
-      username=getpass.getuser(), reason="End-to-end tests")
   test_runner = runner.E2ETestRunner(
       api_endpoint=flags.FLAGS.api_endpoint,
       api_user=flags.FLAGS.api_user,

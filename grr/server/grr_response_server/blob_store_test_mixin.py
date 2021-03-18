@@ -35,7 +35,7 @@ class BlobStoreTestMixin(stats_test_lib.StatsTestMixin, metaclass=abc.ABCMeta):
     """
 
   def setUp(self):
-    super(BlobStoreTestMixin, self).setUp()
+    super().setUp()
     bs, cleanup = self.CreateBlobStore()
     if cleanup is not None:
       self.addCleanup(cleanup)

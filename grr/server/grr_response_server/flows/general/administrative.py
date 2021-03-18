@@ -84,7 +84,7 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
 </body></html>""",
       autoescape=True)
 
-  def ProcessMessages(self, msgs=None, token=None):
+  def ProcessEvents(self, msgs=None, publisher_username=None):
     """Processes this event."""
     nanny_msg = ""
 
@@ -543,7 +543,7 @@ class OnlineNotification(flow_base.FlowBase):
   def Start(self):
     """Starts processing."""
     if self.args.email is None:
-      self.args.email = self.token.username
+      self.args.email = self.creator
     self.CallClient(
         server_stubs.Echo,
         data="Ping",
@@ -563,7 +563,7 @@ class OnlineNotification(flow_base.FlowBase):
         admin_ui=config.CONFIG["AdminUI.url"],
         hostname=hostname,
         url="/clients/%s" % self.client_id,
-        creator=self.token.username,
+        creator=self.creator,
         signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
 
     email_alerts.EMAIL_ALERTER.SendEmail(

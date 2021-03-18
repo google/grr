@@ -239,7 +239,7 @@ class OSXInstallHistoryPlistParser(
           rdf_client.SoftwarePackage.Installed(
               name=sw.get("displayName"),
               version=sw.get("displayVersion"),
-              description=",".join(sw.get("packageIdentifiers")),
+              description=",".join(sw.get("packageIdentifiers", [])),
               # TODO(hanuszczak): make installed_on an RDFDatetime
               installed_on=_DateToEpoch(sw.get("date"))))
 

@@ -33,7 +33,7 @@ class VfsFile(io.BufferedIOBase):
   _buffer_pos = None  # type: int
 
   def __init__(self, fetch: Callable[[int], Iterator[bytes]]) -> None:
-    super(VfsFile, self).__init__()
+    super().__init__()
     self._data = fetch(0)
     self._buffer = b''
     self._buffer_pos = 0

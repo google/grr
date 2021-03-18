@@ -53,7 +53,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
   """Test the artifact collection on the client."""
 
   def setUp(self):
-    super(ArtifactCollectorTest, self).setUp()
+    super().setUp()
     self.source_type = rdf_artifact.ArtifactSource.SourceType
     self.test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                             "artifacts", "test_artifacts.json")
@@ -403,7 +403,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
 class OSXArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
 
   def setUp(self):
-    super(OSXArtifactCollectorTests, self).setUp()
+    super().setUp()
     # pylint: disable=g-import-not-at-top
     from grr_response_client.client_actions import operating_system
     from grr_response_client.client_actions.osx import osx
@@ -477,7 +477,7 @@ class OSXArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
 class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
 
   def setUp(self):
-    super(WindowsArtifactCollectorTests, self).setUp()
+    super().setUp()
     self.test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                             "artifacts", "test_artifacts.json")
 

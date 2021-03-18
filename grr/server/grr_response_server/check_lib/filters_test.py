@@ -405,7 +405,7 @@ class HandlerTests(test_lib.GRRBaseTest):
   """Test handler operations."""
 
   def setUp(self):
-    super(HandlerTests, self).setUp()
+    super().setUp()
     fx0 = checks.Filter({"type": "ObjectFilter", "expression": "x == 0"})
     fy0 = checks.Filter({"type": "ObjectFilter", "expression": "y == 0"})
     bad = checks.Filter({"type": "ObjectFilter", "expression": "y =="})

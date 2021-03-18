@@ -189,7 +189,7 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     """Make sure things are initialized."""
-    super(ArtifactTest, self).setUp()
+    super().setUp()
     # Common group of mocks used by lots of tests.
     self.client_mock = action_mocks.ActionMock(
         searching.Find,
@@ -230,7 +230,7 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
         client_mock=client_mock,
         client_id=client_id,
         artifact_list=artifact_list,
-        token=self.token,
+        creator=self.test_username,
         **kw)
 
     return flow_test_lib.GetFlowResults(client_id, session_id)
@@ -395,7 +395,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
 
   def setUp(self):
     """Make sure things are initialized."""
-    super(ArtifactFlowLinuxTest, self).setUp()
+    super().setUp()
     users = [
         rdf_client.User(username="gogol"),
         rdf_client.User(username="gevulot"),
@@ -419,7 +419,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
           client_id=client_id,
           use_raw_filesystem_access=False,
           artifact_list=["TestCmdArtifact"],
-          token=self.token)
+          creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(results, 2)
@@ -524,7 +524,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
           artifact_list=["RaisingArtifact"],
           apply_parsers=True,
           check_flow_errors=True,
-          token=self.token)
+          creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
     self.assertEmpty(results)
@@ -543,7 +543,7 @@ class ArtifactFlowWindowsTest(ArtifactTest):
 
   def setUp(self):
     """Make sure things are initialized."""
-    super(ArtifactFlowWindowsTest, self).setUp()
+    super().setUp()
     self.SetupClient(0, system="Windows", os_version="6.2", arch="AMD64")
     self.LoadTestArtifacts()
 
@@ -570,7 +570,7 @@ class GrrKbTest(ArtifactTest):
         artifact.KnowledgeBaseInitializationFlow.__name__,
         self.client_mock,
         client_id=test_lib.TEST_CLIENT_ID,
-        token=self.token,
+        creator=self.test_username,
         **kw)
 
     results = flow_test_lib.GetFlowResults(test_lib.TEST_CLIENT_ID, session_id)
@@ -581,7 +581,7 @@ class GrrKbTest(ArtifactTest):
 class GrrKbWindowsTest(GrrKbTest):
 
   def setUp(self):
-    super(GrrKbWindowsTest, self).setUp()
+    super().setUp()
     self.SetupClient(0, system="Windows", os_version="6.2", arch="AMD64")
 
     os_overrider = vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
@@ -644,7 +644,7 @@ class GrrKbWindowsTest(GrrKbTest):
         paths=paths,
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
         client_id=client_id,
-        token=self.token)
+        creator=self.test_username)
     path = paths[0].replace("\\", "/")
 
     path_info = data_store.REL_DB.ReadPathInfo(
@@ -700,7 +700,7 @@ class GrrKbWindowsTest(GrrKbTest):
             artifact.KnowledgeBaseInitializationFlow.__name__,
             self.client_mock,
             client_id=test_lib.TEST_CLIENT_ID,
-            token=self.token)
+            creator=self.test_username)
       finally:
         logging.disable(logging.NOTSET)
     return session_id
@@ -722,7 +722,7 @@ class GrrKbWindowsTest(GrrKbTest):
 class GrrKbLinuxTest(GrrKbTest):
 
   def setUp(self):
-    super(GrrKbLinuxTest, self).setUp()
+    super().setUp()
     self.SetupClient(0, system="Linux", os_version="12.04")
 
   @parser_test_lib.WithAllParsers
@@ -818,7 +818,7 @@ class GrrKbLinuxTest(GrrKbTest):
             artifact.KnowledgeBaseInitializationFlow.__name__,
             client_mock=action_mocks.ActionMock(FooAction),
             client_id=test_lib.TEST_CLIENT_ID,
-            token=self.token)
+            creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(test_lib.TEST_CLIENT_ID, session_id)
     self.assertLen(results, 1)
@@ -828,7 +828,7 @@ class GrrKbLinuxTest(GrrKbTest):
 class GrrKbDarwinTest(GrrKbTest):
 
   def setUp(self):
-    super(GrrKbDarwinTest, self).setUp()
+    super().setUp()
     self.SetupClient(0, system="Darwin", os_version="10.9")
 
   @parser_test_lib.WithAllParsers

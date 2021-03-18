@@ -94,7 +94,7 @@ class PathTypeInfo(type_info.String):
     super().__init__(**kwargs)
 
   def Validate(self, value):
-    value = super(PathTypeInfo, self).Validate(value)
+    value = super().Validate(value)
     if self.must_exist and not os.access(value, os.R_OK):
       raise type_info.TypeValueError(
           "Path %s does not exist for %s" % (value, self.name))

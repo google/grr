@@ -49,7 +49,7 @@ class CheckClientApprovalRequestTest(acl_test_lib.AclTestMixin,
         grants=grants)
 
   def setUp(self):
-    super(CheckClientApprovalRequestTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   def testRaisesWhenNoGrants(self):
@@ -161,7 +161,7 @@ class CheckHuntAndCronJobApprovalRequestTestMixin(acl_test_lib.AclTestMixin):
         grants=grants)
 
   def setUp(self):
-    super(CheckHuntAndCronJobApprovalRequestTestMixin, self).setUp()
+    super().setUp()
     self.CreateUser(u"grantor1")
     self.CreateUser(u"grantor2")
 

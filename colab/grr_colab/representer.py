@@ -78,8 +78,8 @@ class _RepresenterList(list):
 
   def __getitem__(self, key: Union[int, slice]) -> Union[Any, List[Any]]:
     if isinstance(key, slice):
-      return type(self)(super(_RepresenterList, self).__getitem__(key))
-    return super(_RepresenterList, self).__getitem__(key)
+      return type(self)(super().__getitem__(key))
+    return super().__getitem__(key)
 
   # TODO: Remove this method when Python 2 support is dropped. It
   #  is called in some versions of CPython while getting slice of a list.
@@ -91,7 +91,7 @@ class StatEntryList(_RepresenterList):
   """Representer for a list of stat entries."""
 
   def __init__(self, *args, **kwargs) -> None:
-    super(StatEntryList, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self._hierarchy = None  # type: Optional[Dict[Text, List]]
     self._build_hierarchy()
 

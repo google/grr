@@ -217,7 +217,7 @@ class GetFile(flow_base.FlowBase):
       self.FetchWindow(1)
 
   def NotifyAboutEnd(self):
-    super(GetFile, self).NotifyAboutEnd()
+    super().NotifyAboutEnd()
 
     stat_entry = self.state.stat_entry
     if not stat_entry:
@@ -234,7 +234,7 @@ class GetFile(flow_base.FlowBase):
 
     if self.state.num_bytes_collected >= self.state.file_size:
       notification.Notify(
-          self.token.username,
+          self.creator,
           rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
           "File transferred successfully.",
           rdf_objects.ObjectReference(
@@ -242,7 +242,7 @@ class GetFile(flow_base.FlowBase):
               vfs_file=file_ref))
     elif self.state.num_bytes_collected > 0:
       notification.Notify(
-          self.token.username,
+          self.creator,
           rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTED,
           "File transferred partially (%d bytes out of %d)." %
           (self.state.num_bytes_collected, self.state.file_size),
@@ -251,7 +251,7 @@ class GetFile(flow_base.FlowBase):
               vfs_file=file_ref))
     else:
       notification.Notify(
-          self.token.username,
+          self.creator,
           rdf_objects.UserNotification.Type.TYPE_VFS_FILE_COLLECTION_FAILED,
           "File transfer failed.",
           rdf_objects.ObjectReference(
@@ -277,7 +277,7 @@ class GetFile(flow_base.FlowBase):
     else:
       self.Log("File transfer failed.")
 
-    super(GetFile, self).End(responses)
+    super().End(responses)
 
 
 class MultiGetFileLogic(object):
@@ -843,7 +843,7 @@ class MultiGetFile(MultiGetFileLogic, flow_base.FlowBase):
 
   def Start(self):
     """Start state of the flow."""
-    super(MultiGetFile, self).Start(
+    super().Start(
         file_size=self.args.file_size,
         maximum_pending_files=self.args.maximum_pending_files,
         use_external_stores=self.args.use_external_stores)

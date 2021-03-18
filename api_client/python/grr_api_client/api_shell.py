@@ -18,7 +18,7 @@ class GrrApiShellArgParser(argparse.ArgumentParser):
   """API shell args parser."""
 
   def __init__(self):
-    super(GrrApiShellArgParser, self).__init__()
+    super().__init__()
 
     self.add_argument(
         "api_endpoint", type=str, help="API endpoint specified as host[:port]")

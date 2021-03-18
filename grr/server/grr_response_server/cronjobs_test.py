@@ -69,7 +69,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
   def tearDown(self):
     # Make sure all pending cronjobs have been processed before we wipe the db.
     cronjobs.CronManager()._GetThreadPool().Stop()
-    super(RelationalCronTest, self).tearDown()
+    super().tearDown()
 
   def testCronJobPreservesFlowNameAndArguments(self):
     pathspec = rdf_paths.PathSpec(

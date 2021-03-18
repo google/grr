@@ -620,4 +620,46 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 
        expect(await options[1].getText()).toContain('Windows');
      });
+
+  it('previews sources for the selected artifact', async () => {
+    const {fixture} = prepareFixture();
+
+    configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
+      {
+        name: 'foo',
+        sources: [
+          {
+            type: SourceType.ARTIFACT_GROUP,
+            attributes: new Map(Object.entries({names: ['bar']})),
+            conditions: [],
+            returnedTypes: [],
+            supportedOs: new Set()
+          },
+        ]
+      },
+      {
+        name: 'bar',
+        sources: [
+          {
+            type: SourceType.REGISTRY_KEY,
+            attributes: new Map(Object.entries({keys: ['HKLM']})),
+            conditions: [],
+            returnedTypes: [],
+            supportedOs: new Set()
+          },
+        ]
+      },
+    ]));
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const autocompleteHarness =
+        await harnessLoader.getHarness(MatAutocompleteHarness);
+    await autocompleteHarness.selectOption({text: /foo/});
+
+    const text = fixture.nativeElement.innerText;
+    // Validate that foo's child artifact and all its sources are shown.
+    expect(text).toContain('bar');
+    expect(text).toContain('Collects Windows Registry key');
+    expect(text).toContain('HKLM');
+  });
 });

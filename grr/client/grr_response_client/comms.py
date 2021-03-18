@@ -1394,8 +1394,7 @@ class ClientCommunicator(communicator.Communicator):
   def EncodeMessages(self, message_list, result, **kwargs):
     # Force the right API to be used
     kwargs["api_version"] = config.CONFIG["Network.api"]
-    return super(ClientCommunicator, self).EncodeMessages(
-        message_list, result, **kwargs)
+    return super().EncodeMessages(message_list, result, **kwargs)
 
   def _GetRemotePublicKey(self, common_name):
 

@@ -298,6 +298,38 @@ describe('FlowPicker Component', () => {
     expect(clientPageFacade.stopFlowConfiguration).toHaveBeenCalled();
   });
 
+  it('deselects flow when selectedFlowDescriptor$ emits undefined',
+     async () => {
+       const fixture = TestBed.createComponent(FlowPicker);
+       fixture.detectChanges();
+       await fixture.whenRenderingDone();
+
+       const autocompleteHarness = await getAutocompleteHarness(fixture);
+       await autocompleteHarness.focus();
+       await autocompleteHarness.enterText('browser');
+
+       const flowListItem: FlowListItem = {
+         name: 'CollectBrowserHistory',
+         friendlyName: 'Collect browser history',
+         description: '',
+       };
+       const matAutocomplete: MatAutocomplete =
+           fixture.debugElement.query(By.directive(MatAutocomplete))
+               .componentInstance;
+       matAutocomplete.optionSelected.emit({
+         option: {value: flowListItem},
+       } as MatAutocompleteSelectedEvent);
+       fixture.detectChanges();
+
+       expect(clientPageFacade.startFlowConfiguration)
+           .toHaveBeenCalledWith('CollectBrowserHistory');
+
+       clientPageFacade.selectedFlowDescriptorSubject.next(undefined);
+       fixture.detectChanges();
+
+       expect(fixture.componentInstance.textInput.value).toBe('');
+     });
+
   it('selects a Flow when FlowChips emits flowSelected event', async () => {
     const fixture = TestBed.createComponent(FlowPicker);
     fixture.detectChanges();

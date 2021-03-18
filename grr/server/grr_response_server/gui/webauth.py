@@ -242,8 +242,6 @@ class NullWebAuthManager(BaseWebAuthManager):
   def SecurityCheck(self, func, request, *args, **kwargs):
     """A decorator applied to protected web handlers."""
     request.user = self.username
-    request.token = access_control.ACLToken(
-        username="Testing", reason="Just a test")
     return func(request, *args, **kwargs)
 
 

@@ -24,7 +24,7 @@ class OSXClientTests(client_test_lib.OSSpecificClientTests):
   """OSX client action tests."""
 
   def setUp(self):
-    super(OSXClientTests, self).setUp()
+    super().setUp()
     # TODO(user): move this import to the top of the file.
     # At the moment, importing this at the top of the file causes
     # "Duplicate names for registered classes" metaclass registry

@@ -163,7 +163,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
     return request
 
   def setUp(self):
-    super(RouterMatcherTest, self).setUp()
+    super().setUp()
     config_overrider = test_lib.ConfigOverrider({
         "API.DefaultRouter": compatibility.GetName(TestHttpApiRouter),
     })
@@ -231,7 +231,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     return json.Parse(content)
 
   def setUp(self):
-    super(HttpRequestHandlerTest, self).setUp()
+    super().setUp()
 
     config_overrider = test_lib.ConfigOverrider({
         "API.DefaultRouter": compatibility.GetName(TestHttpApiRouter),
@@ -503,8 +503,8 @@ class FlatDictToRDFValue(absltest.TestCase):
         "some_non_existing_field": "foobar",
     }
 
-    with self.assertRaisesRegex(AttributeError, "some_non_existing_field"):
-      http_api.FlatDictToRDFValue(dct, rdf_client.PwEntry)
+    pw_entry = http_api.FlatDictToRDFValue(dct, rdf_client.PwEntry)
+    self.assertFalse(hasattr(pw_entry, "some_non_existing_field"))
 
   def testWrongType(self):
     dct = {
@@ -519,8 +519,8 @@ class FlatDictToRDFValue(absltest.TestCase):
         "__class__": "foobar",
     }
 
-    with self.assertRaisesRegex(AttributeError, "__class__"):
-      http_api.FlatDictToRDFValue(dct, rdf_client.PwEntry)
+    pw_entry = http_api.FlatDictToRDFValue(dct, rdf_client.PwEntry)
+    self.assertEqual(pw_entry.__class__, rdf_client.PwEntry)
 
 
 def main(argv):

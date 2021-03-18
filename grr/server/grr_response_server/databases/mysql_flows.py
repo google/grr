@@ -8,9 +8,10 @@ from __future__ import unicode_literals
 import logging
 import threading
 import time
-from typing import List, Optional, Sequence, Text
+from typing import Dict, List, Optional, Sequence, Text
 
 import MySQLdb
+from MySQLdb import cursors
 from MySQLdb.constants import ER as mysql_errors
 
 from grr_response_core.lib import rdfvalue
@@ -669,10 +670,11 @@ class MySQLDBFlowMixin(object):
         needs_processing.setdefault((r.client_id, r.flow_id), []).append(r)
 
       flow_keys.append((r.client_id, r.flow_id))
-      templates.append("(%s, %s, %s, %s, %s)")
+      templates.append("(%s, %s, %s, %s, %s, %s, %s)")
       args.extend([
           db_utils.ClientIDToInt(r.client_id),
           db_utils.FlowIDToInt(r.flow_id), r.request_id, r.needs_processing,
+          r.callback_state, r.next_response_id,
           r.SerializeToBytes()
       ])
 
@@ -708,7 +710,8 @@ class MySQLDBFlowMixin(object):
         self._WriteFlowProcessingRequests(flow_processing_requests, cursor)
 
     query = ("INSERT INTO flow_requests "
-             "(client_id, flow_id, request_id, needs_processing, request) "
+             "(client_id, flow_id, request_id, needs_processing, "
+             "callback_state, next_response_id, request) "
              "VALUES ")
     query += ", ".join(templates)
     try:
@@ -811,7 +814,8 @@ class MySQLDBFlowMixin(object):
     query = """
       SELECT
         flow_requests.client_id, flow_requests.flow_id,
-        flow_requests.request_id, COUNT(*)
+        flow_requests.request_id,
+        COUNT(*)
       FROM flow_responses, flow_requests
       WHERE ({conditions}) AND
         flow_requests.client_id = flow_responses.client_id AND
@@ -838,7 +842,7 @@ class MySQLDBFlowMixin(object):
     query = query.format(conditions=" OR ".join(conditions))
     cursor.execute(query, args)
     response_counts = {}
-    for (client_id_int, flow_id_int, request_id, count) in cursor.fetchall():
+    for client_id_int, flow_id_int, request_id, count in cursor.fetchall():
       request_key = (db_utils.IntToClientID(client_id_int),
                      db_utils.IntToFlowID(flow_id_int), request_id)
       response_counts[request_key] = count
@@ -869,11 +873,16 @@ class MySQLDBFlowMixin(object):
       next_requests[flow_key] = next_request
     return next_requests
 
-  def _ReadLockAndUpdateCompletedRequests(self, request_keys, response_counts,
-                                          cursor):
+  def _ReadLockAndUpdateAffectedRequests(self, request_keys, response_counts,
+                                         cursor):
     """Reads, locks, and updates completed requests."""
 
     condition_template = """
+      (flow_requests.client_id = %s AND
+       flow_requests.flow_id = %s AND
+       flow_requests.request_id = %s AND
+       (responses_expected = %s OR callback_state != ''))"""
+    callback_agnostic_condition_template = """
       (flow_requests.client_id = %s AND
        flow_requests.flow_id = %s AND
        flow_requests.request_id = %s AND
@@ -881,19 +890,22 @@ class MySQLDBFlowMixin(object):
 
     args = []
     conditions = []
-    completed_requests = {}
+    callback_agnostic_conditions = []
+    affected_requests = {}
 
     for request_key in request_keys:
       client_id, flow_id, request_id = request_key
       if request_key in response_counts:
         conditions.append(condition_template)
+        callback_agnostic_conditions.append(
+            callback_agnostic_condition_template)
         args.append(db_utils.ClientIDToInt(client_id))
         args.append(db_utils.FlowIDToInt(flow_id))
         args.append(request_id)
         args.append(response_counts[request_key])
 
     if not args:
-      return completed_requests
+      return affected_requests
 
     query = """
       SELECT client_id, flow_id, request_id, request
@@ -908,17 +920,17 @@ class MySQLDBFlowMixin(object):
       request_key = (db_utils.IntToClientID(client_id_int),
                      db_utils.IntToFlowID(flow_id_int), request_id)
       r = rdf_flow_objects.FlowRequest.FromSerializedBytes(request)
-      completed_requests[request_key] = r
+      affected_requests[request_key] = r
 
     query = """
     UPDATE flow_requests
     SET needs_processing = TRUE
     WHERE ({conditions}) AND NOT needs_processing
     """
-    query = query.format(conditions=" OR ".join(conditions))
+    query = query.format(conditions=" OR ".join(callback_agnostic_conditions))
     cursor.execute(query, args)
 
-    return completed_requests
+    return affected_requests
 
   @mysql_utils.WithTransaction()
   def _UpdateRequestsAndScheduleFPRs(self, responses, cursor=None):
@@ -932,14 +944,14 @@ class MySQLDBFlowMixin(object):
 
     next_requests = self._ReadAndLockNextRequestsToProcess(flow_keys, cursor)
 
-    completed_requests = self._ReadLockAndUpdateCompletedRequests(
+    affected_requests = self._ReadLockAndUpdateAffectedRequests(
         request_keys, response_counts, cursor)
 
-    if not completed_requests:
-      return completed_requests
+    if not affected_requests:
+      return []
 
     fprs_to_write = []
-    for request_key, r in completed_requests.items():
+    for request_key, r in affected_requests.items():
       client_id, flow_id, request_id = request_key
       if next_requests[(client_id, flow_id)] == request_id:
         fprs_to_write.append(
@@ -951,7 +963,7 @@ class MySQLDBFlowMixin(object):
     if fprs_to_write:
       self._WriteFlowProcessingRequests(fprs_to_write, cursor)
 
-    return completed_requests
+    return affected_requests
 
   @db_utils.CallLoggedAndAccounted
   def WriteFlowResponses(self, responses):
@@ -968,6 +980,27 @@ class MySQLDBFlowMixin(object):
 
       if completed_requests:
         self._DeleteClientActionRequest(completed_requests)
+
+  @mysql_utils.WithTransaction()
+  def UpdateIncrementalFlowRequests(
+      self,
+      client_id: str,
+      flow_id: str,
+      next_response_id_updates: Dict[int, int],
+      cursor: Optional[cursors.Cursor] = None) -> None:
+    """Updates next response ids of given requests."""
+    if not next_response_id_updates:
+      return
+
+    for request_id, next_response_id in next_response_id_updates.items():
+      query = ("UPDATE flow_requests SET next_response_id=%s WHERE "
+               "client_id=%s AND flow_id=%s AND request_id=%s")
+      args = [
+          next_response_id,
+          db_utils.ClientIDToInt(client_id),
+          db_utils.FlowIDToInt(flow_id), request_id
+      ]
+      cursor.execute(query, args)
 
   @mysql_utils.WithTransaction()
   def DeleteFlowRequests(self, requests, cursor=None):
@@ -998,17 +1031,20 @@ class MySQLDBFlowMixin(object):
   def ReadAllFlowRequestsAndResponses(self, client_id, flow_id, cursor=None):
     """Reads all requests and responses for a given flow from the database."""
     query = ("SELECT request, needs_processing, responses_expected, "
-             "UNIX_TIMESTAMP(timestamp) "
+             "callback_state, next_response_id, UNIX_TIMESTAMP(timestamp) "
              "FROM flow_requests WHERE client_id=%s AND flow_id=%s")
 
     args = [db_utils.ClientIDToInt(client_id), db_utils.FlowIDToInt(flow_id)]
     cursor.execute(query, args)
 
     requests = []
-    for req, needs_processing, resp_expected, ts in cursor.fetchall():
+    for (req, needs_processing, resp_expected, callback_state, next_response_id,
+         ts) in cursor.fetchall():
       request = rdf_flow_objects.FlowRequest.FromSerializedBytes(req)
       request.needs_processing = needs_processing
       request.nr_responses_expected = resp_expected
+      request.callback_state = callback_state
+      request.next_response_id = next_response_id
       request.timestamp = mysql_utils.TimestampToRDFDatetime(ts)
       requests.append(request)
 
@@ -1050,6 +1086,7 @@ class MySQLDBFlowMixin(object):
                                          cursor=None):
     """Reads all requests for a flow that can be processed by the worker."""
     query = ("SELECT request, needs_processing, responses_expected, "
+             "callback_state, next_response_id, "
              "UNIX_TIMESTAMP(timestamp) "
              "FROM flow_requests "
              "WHERE client_id=%s AND flow_id=%s")
@@ -1057,13 +1094,13 @@ class MySQLDBFlowMixin(object):
     cursor.execute(query, args)
 
     requests = {}
-    for req, needs_processing, responses_expected, ts in cursor.fetchall():
-      if not needs_processing:
-        continue
-
+    for (req, needs_processing, responses_expected, callback_state,
+         next_response_id, ts) in cursor.fetchall():
       request = rdf_flow_objects.FlowRequest.FromSerializedBytes(req)
       request.needs_processing = needs_processing
       request.nr_responses_expected = responses_expected
+      request.callback_state = callback_state
+      request.next_response_id = next_response_id
       request.timestamp = mysql_utils.TimestampToRDFDatetime(ts)
       requests[request.request_id] = request
 
@@ -1084,12 +1121,33 @@ class MySQLDBFlowMixin(object):
       responses.setdefault(response.request_id, []).append(response)
 
     res = {}
+
+    # Do a pass for completed requests.
     while next_needed_request in requests:
       req = requests[next_needed_request]
+
+      if not req.needs_processing:
+        break
+
       sorted_responses = sorted(
           responses.get(next_needed_request, []), key=lambda r: r.response_id)
       res[req.request_id] = (req, sorted_responses)
       next_needed_request += 1
+
+    # Do a pass for incremental requests.
+    for request_id in requests:
+      if request_id < next_needed_request:
+        continue
+
+      request = requests[request_id]
+      if not request.callback_state:
+        continue
+
+      rs = responses.get(request_id, [])
+      rs = [r for r in rs if r.response_id >= request.next_response_id]
+      rs = sorted(rs, key=lambda r: r.response_id)
+
+      res[request_id] = (request, rs)
 
     return res
 

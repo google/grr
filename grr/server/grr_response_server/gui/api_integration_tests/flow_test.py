@@ -147,7 +147,7 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
         compatibility.GetName(processes.ListProcesses),
         client_id=client_id,
         client_mock=action_mocks.ListProcessesMock([process]),
-        token=self.token)
+        creator=self.test_username)
 
     result_flow = self.api.Client(client_id=client_id).Flow(flow_id)
     results = list(result_flow.ListResults())

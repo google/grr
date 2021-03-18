@@ -172,7 +172,7 @@ class ApiGetOpenApiDescriptionHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for `ApiGetOpenApiDescriptionHandler`."""
 
   def setUp(self):
-    super(ApiGetOpenApiDescriptionHandlerTest, self).setUp()
+    super().setUp()
     self.router = MetadataDummyApiCallRouter()
     self.router_methods = self.router.__class__.GetAnnotatedMethods()
 

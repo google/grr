@@ -1103,14 +1103,17 @@ class DatabaseTestFlowMixin(object):
       if request.request_id == request_id:
         return request
 
-  def _ResponsesAndStatus(self, client_id, flow_id, request_id, num_responses):
+  def _Responses(self, client_id, flow_id, request_id, num_responses):
     return [
         rdf_flow_objects.FlowResponse(
             client_id=client_id,
             flow_id=flow_id,
             request_id=request_id,
             response_id=i) for i in range(1, num_responses + 1)
-    ] + [
+    ]
+
+  def _ResponsesAndStatus(self, client_id, flow_id, request_id, num_responses):
+    return self._Responses(client_id, flow_id, request_id, num_responses) + [
         rdf_flow_objects.FlowStatus(
             client_id=client_id,
             flow_id=flow_id,
@@ -1163,6 +1166,24 @@ class DatabaseTestFlowMixin(object):
     # for #2).
     self.assertEqual(requests_triggered, 0)
 
+  def testResponsesForEarlierIncrementalRequestDontTriggerFlowProcessing(self):
+    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+    request_id = 1
+
+    request = rdf_flow_objects.FlowRequest(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        next_state="Next",
+        callback_state="Callback")
+    self.db.WriteFlowRequests([request])
+
+    responses = self._Responses(client_id, flow_id, request_id, 1)
+    self.db.WriteFlowResponses(responses)
+
+    requests_to_process = self.db.ReadFlowProcessingRequests()
+    self.assertLen(requests_to_process, 0)
+
   def testResponsesForLaterRequestDontTriggerFlowProcessing(self):
     # Write a flow that is waiting for request #2.
     client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
@@ -1173,6 +1194,25 @@ class DatabaseTestFlowMixin(object):
     # for #2).
     self.assertEqual(requests_triggered, 0)
 
+  def testResponsesForLaterIncrementalRequestDoNotTriggerIncrementalProcessing(
+      self):
+    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+    request_id = 3
+
+    request = rdf_flow_objects.FlowRequest(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        next_state="Next",
+        callback_state="Callback")
+    self.db.WriteFlowRequests([request])
+
+    responses = self._Responses(client_id, flow_id, request_id, 1)
+    self.db.WriteFlowResponses(responses)
+
+    requests_to_process = self.db.ReadFlowProcessingRequests()
+    self.assertLen(requests_to_process, 0)
+
   def testResponsesForExpectedRequestTriggerFlowProcessing(self):
     # Write a flow that is waiting for request #2.
     client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
@@ -1181,6 +1221,29 @@ class DatabaseTestFlowMixin(object):
 
     # This one generates a request.
     self.assertEqual(requests_triggered, 1)
+
+  def testResponsesForExpectedIncrementalRequestTriggerIncrementalProcessing(
+      self):
+    request_id = 2
+    client_id, flow_id = self._SetupClientAndFlow(
+        next_request_to_process=request_id)
+
+    request = rdf_flow_objects.FlowRequest(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        next_state="Next",
+        callback_state="Callback")
+    self.db.WriteFlowRequests([request])
+
+    requests_to_process = self.db.ReadFlowProcessingRequests()
+    self.assertLen(requests_to_process, 0)
+
+    responses = self._Responses(client_id, flow_id, request_id, 1)
+    self.db.WriteFlowResponses(responses)
+
+    requests_to_process = self.db.ReadFlowProcessingRequests()
+    self.assertLen(requests_to_process, 1)
 
   def testRewritingResponsesForRequestDoesNotTriggerAdditionalProcessing(self):
     # Write a flow that is waiting for request #2.
@@ -1254,6 +1317,34 @@ class DatabaseTestFlowMixin(object):
       if rdfvalue.RDFDatetime.Now() - cur_time > rdfvalue.Duration.From(
           10, rdfvalue.SECONDS):
         self.fail("Flow request was not processed in time.")
+
+  def testRewritingResponsesForIncrementalRequestsTriggersMoreProcessing(self):
+    request_id = 2
+    client_id, flow_id = self._SetupClientAndFlow(
+        next_request_to_process=request_id)
+
+    request = rdf_flow_objects.FlowRequest(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=request_id,
+        next_state="Next",
+        callback_state="Callback")
+    self.db.WriteFlowRequests([request])
+
+    responses = self._Responses(client_id, flow_id, request_id, 1)
+
+    self.db.WriteFlowResponses(responses)
+    requests_to_process = self.db.ReadFlowProcessingRequests()
+    self.assertLen(requests_to_process, 1)
+
+    self.db.DeleteAllFlowProcessingRequests()
+    requests_to_process = self.db.ReadFlowProcessingRequests()
+    self.assertLen(requests_to_process, 0)
+
+    # Writing same responses second time triggers a processing requests.
+    self.db.WriteFlowResponses(responses)
+    requests_to_process = self.db.ReadFlowProcessingRequests()
+    self.assertLen(requests_to_process, 1)
 
   def testResponsesAnyRequestTriggerClientActionRequestDeletion(self):
     # Write a flow that is waiting for request #2.
@@ -1718,6 +1809,101 @@ class DatabaseTestFlowMixin(object):
 
     self.assertEqual(requests_for_processing[4][1], responses)
 
+  def testReadFlowRequestsReadyForProcessingHandlesIncrementalResponses(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    for request_id in [1, 3, 4, 5, 7]:
+      request = rdf_flow_objects.FlowRequest(
+          client_id=client_id,
+          flow_id=flow_id,
+          request_id=request_id,
+          callback_state="Callback" if request_id != 5 else None,
+          next_state="Next")
+      self.db.WriteFlowRequests([request])
+
+    # Request 4 has some responses.
+    responses = []
+    for i in range(3):
+      responses.append(
+          rdf_flow_objects.FlowResponse(
+              client_id=client_id,
+              flow_id=flow_id,
+              request_id=4,
+              response_id=i + 1))
+
+    self.db.WriteFlowResponses(responses)
+
+    # An incremental request is always returned as ready for processing.
+    requests_for_processing = self.db.ReadFlowRequestsReadyForProcessing(
+        client_id, flow_id, next_needed_request=3)
+
+    # We expect three requests here. Req #1 is old and should not be there, req
+    # #5 can't be processed since it's not incremental and is not done. That
+    # leaves requests #3, #4 and #7.
+    self.assertLen(requests_for_processing, 3)
+    self.assertEqual(list(requests_for_processing), [3, 4, 7])
+
+    # Requests for processing contains pairs of (request, responses) as values.
+    self.assertEqual(requests_for_processing[3][1], [])
+    self.assertEqual(requests_for_processing[4][1], responses)
+    self.assertEqual(requests_for_processing[7][1], [])
+
+  def testReadFlowRequestsReadyForProcessingWithUnorderedIncrementalResponses(
+      self):
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    request = rdf_flow_objects.FlowRequest(
+        client_id=client_id,
+        flow_id=flow_id,
+        request_id=3,
+        next_response_id=4,
+        callback_state="Callback",
+        next_state="Next")
+    self.db.WriteFlowRequests([request])
+
+    # Request 4 has some responses.
+    responses = [
+        rdf_flow_objects.FlowResponse(
+            client_id=client_id, flow_id=flow_id, request_id=3, response_id=i)
+        for i in [1, 2, 5, 7]
+    ]
+    self.db.WriteFlowResponses(responses)
+
+    # An incremental request is always returned as ready for processing.
+    requests_for_processing = self.db.ReadFlowRequestsReadyForProcessing(
+        client_id, flow_id, next_needed_request=3)
+
+    # requests_for_processing is a dict that's expected to have a single element
+    # with key 3.
+    self.assertLen(requests_for_processing, 1)
+
+    # Requests for processing contains pairs of (request, responses) as values.
+    _, fetched_responses = requests_for_processing[3]
+    # Only responses with response_id >= than request.next_response_id should
+    # be returned.
+    self.assertListEqual(fetched_responses, [responses[2], responses[3]])
+
+  def testUpdateIncrementalFlowRequests(self):
+    client_id, flow_id = self._SetupClientAndFlow()
+
+    requests = []
+    for request_id in range(10):
+      requests.append(
+          rdf_flow_objects.FlowRequest(
+              client_id=client_id,
+              flow_id=flow_id,
+              request_id=request_id,
+              next_state="Next",
+              callback_state="Callback"))
+    self.db.WriteFlowRequests(requests)
+
+    update_map = dict((i, i * 2) for i in range(10))
+    self.db.UpdateIncrementalFlowRequests(client_id, flow_id, update_map)
+
+    for request_id in range(10):
+      r = self._ReadRequest(client_id, flow_id, request_id)
+      self.assertEqual(r.next_response_id, request_id * 2)
+
   def testFlowProcessingRequestsQueue(self):
     flow_ids = []
     for _ in range(5):
@@ -1792,6 +1978,9 @@ class DatabaseTestFlowMixin(object):
 
     leftover = self.db.ReadFlowProcessingRequests()
     self.assertEqual(leftover, [])
+
+  def testIncrementalFlowProcessingRequests(self):
+    pass
 
   def testAcknowledgingFlowProcessingRequestsWorks(self):
     flow_ids = []

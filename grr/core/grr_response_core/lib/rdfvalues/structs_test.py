@@ -250,7 +250,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     sample_copy = sample.Copy()
     sample_copy.float = None
 
-    super(RDFStructsTest, self).CheckRDFValue(value_copy, sample_copy)
+    super().CheckRDFValue(value_copy, sample_copy)
 
   def GenerateSample(self, number=1):
     return self.rdfvalue_class(
@@ -1016,7 +1016,7 @@ class EnumNamedValueTest(absltest.TestCase):
 class EnumContainerTest(absltest.TestCase):
 
   def setUp(self):
-    super(EnumContainerTest, self).setUp()
+    super().setUp()
     self.enum_container = rdf_structs.EnumContainer(
         name="foo", values={
             "bar": 1,
@@ -1089,6 +1089,19 @@ class AnyValueTest(absltest.TestCase):
 
     unpacked = proto.Unpack(rdf_client.User)
     self.assertEqual(unpacked.username, "foo")
+
+
+class VarintReaderTest(absltest.TestCase):
+  """Test the VarintReader implementation."""
+
+  def testZero(self):
+    with self.assertRaisesRegex(ValueError,
+                                "Too many bytes when decoding varint"):
+      rdf_structs.VarintReader(b"", 0)
+
+  def testStructInfiniteLoop(self):
+    with self.assertRaisesRegex(ValueError, "Broken varint tag encountered"):
+      rdf_structs.SplitBuffer(b"\x00", 0, 1)
 
 
 def main(argv):

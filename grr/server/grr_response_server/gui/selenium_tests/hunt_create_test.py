@@ -27,7 +27,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   """Test the "new hunt wizard" GUI."""
 
   @staticmethod
-  def FindForemanRules(hunt_urn, token):
+  def FindForemanRules(hunt_urn):
     rules = data_store.REL_DB.ReadAllForemanRules()
     return [rule for rule in rules if rule.hunt_id == hunt_urn.Basename()]
 
@@ -277,7 +277,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     lib_hunt.StartHunt(hunt.hunt_id)
 
     hunt_rules = self.FindForemanRules(
-        rdfvalue.RDFURN("hunts").Add(hunt.hunt_id), token=self.token)
+        rdfvalue.RDFURN("hunts").Add(hunt.hunt_id))
 
     # Check that the hunt was created with correct rules
     self.assertLen(hunt_rules, 1)
@@ -545,7 +545,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
       else:
         self.assertFalse(tasks_assigned)
 
-  def CreateSampleHunt(self, description, token=None):
+  def CreateSampleHunt(self, description, creator=None):
     self.StartHunt(
         description=description,
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
@@ -564,7 +564,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
         ],
         client_rate=60,
         paused=True,
-        token=token)
+        creator=creator or self.test_username)
 
   def testPathAutocomplete(self):
     # Open Hunts

@@ -297,7 +297,8 @@ class WindowsClientRepacker(build.ClientRepacker):
       except KeyError:
         is_msi = False
     if is_msi:
-      repacker = windows_msi.WindowsMsiClientRepacker(context=self.context)
+      repacker = windows_msi.WindowsMsiClientRepacker(
+          context=self.context, signer=self.signer)
       return repacker.MakeDeployableBinary(template_path, output_path)
     else:
       return self._MakeDeployableBinary(template_path, output_path)

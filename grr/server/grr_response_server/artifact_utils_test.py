@@ -27,7 +27,7 @@ from grr.test_lib import test_lib
 class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(ArtifactHandlingTest, self).setUp()
+    super().setUp()
     self.test_artifacts_dir = os.path.join(self.base_path, "artifacts")
     self.test_artifacts_file = os.path.join(self.test_artifacts_dir,
                                             "test_artifacts.json")

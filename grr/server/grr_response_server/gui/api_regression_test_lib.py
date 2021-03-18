@@ -111,12 +111,9 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
   # The api_regression label can be used to exclude/include API regression
   # tests from/into test runs.
 
-  # TODO(user): gpylint claims "Use of super on an old style class", but
-  # this class is obviously not an old-style class.
-  # pylint: disable=super-on-old-class
   def setUp(self):  # pylint: disable=invalid-name
     """Set up test method."""
-    super(ApiRegressionTest, self).setUp()
+    super().setUp()
 
     if not self.__class__.api_method:
       raise ValueError("%s.api_method has to be set." % self.__class__.__name__)
@@ -133,8 +130,8 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
     syscalls_stubber.Start()
     self.addCleanup(syscalls_stubber.Stop)
 
-    self.token.username = "api_test_user"
-    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
+    self.test_username = "api_test_user"
+    webauth.WEBAUTH_MANAGER.SetUserName(self.test_username)
 
     # Force creation of new APIAuthorizationManager.
     api_auth_manager.InitializeApiAuthManager()
@@ -201,7 +198,7 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
         the results of parsing the API response, allowing modification of the
         results before they are compared with golden datasets.
     """
-    router = api_auth_manager.API_AUTH_MGR.GetRouterForUser(self.token.username)
+    router = api_auth_manager.API_AUTH_MGR.GetRouterForUser(self.test_username)
     mdata = router.GetAnnotatedMethods()[method]
 
     check = self.HandleCheck(

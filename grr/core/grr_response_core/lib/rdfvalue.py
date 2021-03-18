@@ -157,9 +157,9 @@ class RDFValue(metaclass=RDFValueMetaclass):  # pylint: disable=invalid-metaclas
   # TODO: Remove after support for Python 2 is dropped.
   __nonzero__ = __bool__
 
-  def __str__(self):  # pylint: disable=super-on-old-class
+  def __str__(self):
     """Ignores the __repr__ override below to avoid indefinite recursion."""
-    return super(RDFValue, self).__repr__()
+    return super().__repr__()
 
   def __repr__(self):
     content = str(self)
@@ -974,7 +974,7 @@ class DurationSeconds(Duration):
   def __str__(self) -> Text:
     if self.microseconds == 0:
       return "0 s"
-    return super(DurationSeconds, self).__str__()
+    return super().__str__()
 
   @classmethod
   def From(cls, value: Union[int, float], timeunit: int):

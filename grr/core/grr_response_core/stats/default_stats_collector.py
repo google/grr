@@ -143,7 +143,7 @@ class _GaugeMetric(_Metric):
 
   def Get(self, fields=None):
     """Returns current metric's value (executing a callback if needed)."""
-    result = super(_GaugeMetric, self).Get(fields=fields)
+    result = super().Get(fields=fields)
     if callable(result):
       return result()
     else:

@@ -23,7 +23,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
   """Test parsing of linux distribution collection."""
 
   def setUp(self):
-    super(LinuxReleaseParserTest, self).setUp()
+    super().setUp()
     self.parser_test_dir = os.path.join(self.base_path, "parser_test")
 
   def testMalformedLsbReleaseFile(self):

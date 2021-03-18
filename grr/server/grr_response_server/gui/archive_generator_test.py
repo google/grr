@@ -34,7 +34,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
   """Test for CollectionArchiveGenerator."""
 
   def setUp(self):
-    super(CollectionArchiveGeneratorTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   def _CreateFile(self, client_id, vfs_path, content):
@@ -268,7 +268,7 @@ class FlowArchiveGeneratorTest(test_lib.GRRBaseTest):
     return fd_path
 
   def setUp(self):
-    super(FlowArchiveGeneratorTest, self).setUp()
+    super().setUp()
 
     self.client_id = self.SetupClient(0)
     self.flow_id = flow_test_lib.StartFlow(

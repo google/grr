@@ -31,7 +31,7 @@ class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
   checks_loaded = False
 
   def setUp(self):
-    super(TestCheckFlows, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     # Only load the checks once.
     if self.checks_loaded is False:
@@ -53,7 +53,7 @@ class TestCheckFlows(flow_test_lib.FlowTestsBaseclass,
           flow_checks.CheckRunner.__name__,
           client_mock=self.client_mock,
           client_id=client_id,
-          token=self.token)
+          creator=self.test_username)
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     return session_id, {r.check_id: r for r in results}
 

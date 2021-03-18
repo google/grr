@@ -57,7 +57,7 @@ class GetMBRFlowTest(flow_test_lib.FlowTestsBaseclass):
   mbr = (b"123456789" * 1000)[:4096]
 
   def setUp(self):
-    super(GetMBRFlowTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   def testGetMBR(self):
@@ -66,7 +66,7 @@ class GetMBRFlowTest(flow_test_lib.FlowTestsBaseclass):
     flow_id = flow_test_lib.TestFlowHelper(
         transfer.GetMBR.__name__,
         ClientMock(self.mbr),
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id)
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
@@ -79,7 +79,7 @@ class GetMBRFlowTest(flow_test_lib.FlowTestsBaseclass):
       flow_id = flow_test_lib.TestFlowHelper(
           transfer.GetMBR.__name__,
           ClientMock(self.mbr),
-          token=self.token,
+          creator=self.test_username,
           client_id=self.client_id,
           length=download_length)
 
@@ -130,7 +130,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
 
   def setUp(self):
-    super(GetFileFlowTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   def testGetFile(self):
@@ -144,7 +144,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         pathspec=pathspec)
 
@@ -175,7 +175,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     session_id = flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         pathspec=pathspec)
 
@@ -213,7 +213,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         flow_test_lib.TestFlowHelper(
             transfer.GetFile.__name__,
             client_mock,
-            token=self.token,
+            creator=self.test_username,
             client_id=self.client_id,
             pathspec=pathspec)
 
@@ -235,7 +235,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         flow_test_lib.TestFlowHelper(
             transfer.GetFile.__name__,
             client_mock,
-            token=self.token,
+            creator=self.test_username,
             client_id=self.client_id,
             args=args)
 
@@ -257,7 +257,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       flow_test_lib.TestFlowHelper(
           transfer.GetFile.__name__,
           client_mock,
-          token=self.token,
+          creator=self.test_username,
           client_id=self.client_id,
           args=args)
 
@@ -291,7 +291,7 @@ class GetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_id = flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         args=args)
 
@@ -571,7 +571,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
 
   def setUp(self):
-    super(MultiGetFileFlowTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   @unittest.skipUnless(platform.system() == "Linux",
@@ -609,7 +609,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         file_size="1MiB",
         client_id=self.client_id,
         pathspecs=[pathspec])
@@ -622,7 +622,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         file_size=1024 * 1024,
         client_id=self.client_id,
         pathspecs=[pathspec])
@@ -659,7 +659,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       flow_test_lib.TestFlowHelper(
           transfer.MultiGetFile.__name__,
           client_mock,
-          token=self.token,
+          creator=self.test_username,
           client_id=self.client_id,
           args=args)
 
@@ -709,7 +709,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       flow_test_lib.TestFlowHelper(
           transfer.MultiGetFile.__name__,
           client_mock,
-          token=self.token,
+          creator=self.test_username,
           client_id=self.client_id,
           args=args)
 
@@ -748,7 +748,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         args=args)
 
@@ -791,7 +791,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         args=args)
 
@@ -837,7 +837,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
       flow_test_lib.TestFlowHelper(
           transfer.MultiGetFile.__name__,
           client_mock,
-          token=self.token,
+          creator=self.test_username,
           client_id=self.client_id,
           args=args)
 
@@ -871,7 +871,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         args=args)
 
@@ -905,7 +905,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         args=args)
 
@@ -948,7 +948,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_id = flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         args=args)
 
@@ -983,7 +983,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         args=args)
 
@@ -991,7 +991,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_id = flow_test_lib.TestFlowHelper(
         transfer.MultiGetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         args=args)
 
@@ -1020,7 +1020,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.TestFlowHelper(
         compatibility.GetName(transfer.GetFile),
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         pathspec=pathspec)
 

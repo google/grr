@@ -190,9 +190,7 @@ def CreateHunt(hunt_obj):
 
   if hunt_obj.HasField("output_plugins"):
     output_plugins_states = flow.GetOutputPluginStates(
-        hunt_obj.output_plugins,
-        source="hunts/%s" % hunt_obj.hunt_id,
-        token=access_control.ACLToken(username=hunt_obj.creator))
+        hunt_obj.output_plugins, source="hunts/%s" % hunt_obj.hunt_id)
     data_store.REL_DB.WriteHuntOutputPluginsStates(hunt_obj.hunt_id,
                                                    output_plugins_states)
 

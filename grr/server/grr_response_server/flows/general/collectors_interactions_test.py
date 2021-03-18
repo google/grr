@@ -39,7 +39,7 @@ class TestArtifactCollectorsInteractions(flow_test_lib.FlowTestsBaseclass):
   """
 
   def setUp(self):
-    super(TestArtifactCollectorsInteractions, self).setUp()
+    super().setUp()
 
     patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
     patcher.start()
@@ -139,7 +139,7 @@ supported_os: [ "Linux" ]
             client_mock,
             artifact_list=artifact_list,
             knowledge_base=self._GetKB(),
-            token=self.token,
+            creator=self.test_username,
             client_id=self.client_id,
             split_output_by_artifact=True)
 
@@ -164,7 +164,7 @@ supported_os: [ "Linux" ]
           client_mock,
           artifact_list=artifact_list,
           knowledge_base=self._GetKB(),
-          token=self.token,
+          creator=self.test_username,
           client_id=self.client_id,
           split_output_by_artifact=True)
 

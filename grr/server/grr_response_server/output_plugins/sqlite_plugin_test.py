@@ -87,7 +87,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
   ]
 
   def setUp(self):
-    super(SqliteInstantOutputPluginTest, self).setUp()
+    super().setUp()
     # We use an in-memory db for testing generated SQL scripts.
     self.db_connection = sqlite3.connect(":memory:")
     self.db_cursor = self.db_connection.cursor()

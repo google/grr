@@ -45,7 +45,7 @@ class TimelineFlow(flow_base.FlowBase):
   progress_type = rdf_timeline.TimelineProgress
 
   def Start(self) -> None:
-    super(TimelineFlow, self).Start()
+    super().Start()
 
     if not self.args.root:
       raise ValueError("The timeline root directory not specified")

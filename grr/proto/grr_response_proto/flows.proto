@@ -111,33 +111,6 @@ message HuntContext {
   reserved 16;
 }
 
-// This is the user's access token.
-// Next field: 9
-message ACLToken {
-  optional string username = 1;
-
-  // A reason for access (e.g. case name, investigation id).
-  optional string reason = 2;
-
-  // What kind of access is required? r - read, w - write, x - execute (for
-  // flows)
-  optional string requested_access = 3;
-
-  optional uint64 expiry = 5 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "When does this token expire?",
-  }];
-
-  // The IP this request originated from as well as proxies on the way.
-  repeated string source_ips = 6;
-
-  // The issuing process.
-  optional string process = 7;
-
-  // Is this action an emergency action?
-  optional bool is_emergency = 8;
-}
-
 message FlowLikeObjectReference {
   option (semantic) = {
     union_field: "object_type"
@@ -2572,12 +2545,21 @@ message FlowRequest {
   optional string flow_id = 2;
   optional uint64 request_id = 3;
   optional string next_state = 4;
+  // If specified, the request is treated as 'incremental', that is:
+  // * callback_state is invoked every time new batch of responses arrives
+  // * next_state will be invoked anyway, as usual, when all the responses
+  //   are received.
+  // * callback_state calls are guaranteed to get responses in the correct
+  //   order.
+  optional string callback_state = 9;
   optional Dict request_data = 5;
   optional uint64 start_time = 6 [(sem_type) = {
     type: "RDFDatetime",
   }];
   optional bool needs_processing = 7;
   optional uint64 nr_responses_expected = 8;
+  // Id of the response that should be the next for incremental processing.
+  optional uint64 next_response_id = 10;
 }
 
 // Next id: 8

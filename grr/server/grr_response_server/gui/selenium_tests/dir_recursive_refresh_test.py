@@ -30,7 +30,7 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     flow_test_lib.FinishAllFlowsOnClient(client_id)
 
   def setUp(self):
-    super(DirRecursiveRefreshTest, self).setUp()
+    super().setUp()
     # Prepare our fixture.
     self.client_id = "C.0000000000000001"
     fixture_test_lib.ClientFixture(self.client_id)

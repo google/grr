@@ -199,7 +199,7 @@ class ListProcessesFleetspeakTest(flow_test_lib.FlowTestsBaseclass):
         flow_processes.ListProcesses.__name__,
         client_mock,
         client_id=client_id,
-        token=self.token)
+        creator=self.test_username)
 
     processes = flow_test_lib.GetFlowResults(client_id, flow_id)
     self.assertLen(processes, 1)

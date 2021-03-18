@@ -286,7 +286,7 @@ class RollingMemoryStreamTest(test_lib.GRRBaseTest):
   """Tests for RollingMemoryStream."""
 
   def setUp(self):
-    super(RollingMemoryStreamTest, self).setUp()
+    super().setUp()
     self.stream = utils.RollingMemoryStream()
 
   def testGetValueAndResetReturnsSingleWrittenValue(self):

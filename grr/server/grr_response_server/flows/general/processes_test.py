@@ -39,7 +39,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         compatibility.GetName(flow_processes.ListProcesses),
         client_mock,
         client_id=client_id,
-        token=self.token)
+        creator=self.test_username)
 
     processes = flow_test_lib.GetFlowResults(client_id, session_id)
 
@@ -74,7 +74,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         compatibility.GetName(flow_processes.ListProcesses),
         client_mock,
         client_id=client_id,
-        token=self.token,
+        creator=self.test_username,
         filename_regex=r".*cmd2.exe")
 
     # Expect one result that matches regex
@@ -126,7 +126,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         compatibility.GetName(flow_processes.ListProcesses),
         client_mock,
         client_id=client_id,
-        token=self.token,
+        creator=self.test_username,
         connection_states=["ESTABLISHED", "LISTEN"])
 
     processes = flow_test_lib.GetFlowResults(client_id, session_id)
@@ -160,7 +160,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         fetch_binaries=True,
         client_id=client_id,
         connection_states=["LISTEN"],
-        token=self.token)
+        creator=self.test_username)
 
     # No output matched.
     processes = flow_test_lib.GetFlowResults(client_id, session_id)
@@ -183,7 +183,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         client_id=client_id,
         fetch_binaries=True,
-        token=self.token)
+        creator=self.test_username)
 
     binaries = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(binaries, 1)
@@ -213,7 +213,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         client_id=client_id,
         fetch_binaries=True,
-        token=self.token)
+        creator=self.test_username)
 
     processes = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(processes, 1)
@@ -241,7 +241,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
         client_mock,
         client_id=client_id,
         fetch_binaries=True,
-        token=self.token,
+        creator=self.test_username,
         check_flow_errors=False)
 
     binaries = flow_test_lib.GetFlowResults(client_id, session_id)

@@ -81,7 +81,7 @@ class ApiGetConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetConfigHandlerTest."""
 
   def setUp(self):
-    super(ApiGetConfigHandlerTest, self).setUp()
+    super().setUp()
     self.handler = config_plugin.ApiGetConfigHandler()
 
   def _ConfigStub(self, sections=None):
@@ -141,7 +141,7 @@ class ApiGetConfigOptionHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetConfigOptionHandler."""
 
   def setUp(self):
-    super(ApiGetConfigOptionHandlerTest, self).setUp()
+    super().setUp()
     self.handler = config_plugin.ApiGetConfigOptionHandler()
 
   def _ConfigStub(self, sections=None):

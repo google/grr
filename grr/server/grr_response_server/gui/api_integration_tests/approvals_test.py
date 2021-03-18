@@ -22,7 +22,7 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
                                 hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
-    super(ApiClientLibApprovalsTest, self).setUp()
+    super().setUp()
 
     cls = api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks
     cls.ClearCache()
@@ -59,7 +59,7 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
       time.sleep(1)
       self.GrantClientApproval(
           client_id,
-          requestor=self.token.username,
+          requestor=self.test_username,
           approval_id=approval.approval_id,
           approver=u"foo")
 
@@ -94,7 +94,7 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
       time.sleep(1)
       self.GrantHuntApproval(
           h_id,
-          requestor=self.token.username,
+          requestor=self.test_username,
           approval_id=approval.approval_id,
           approver=u"approver")
 

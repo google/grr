@@ -27,7 +27,7 @@ class OperationError(Exception):
       formatted_exception: the remote exception formatted using
         traceback.format_exc()
     """
-    super(OperationError, self).__init__(message)
+    super().__init__(message)
     self.formatted_exception = formatted_exception
 
 
@@ -70,7 +70,7 @@ class FileDevice(Device):
   """A device implementation backed by a python file."""
 
   def __init__(self, file_obj: BinaryIO):
-    super(FileDevice, self).__init__()
+    super().__init__()
     self._file = file_obj
 
   def Read(self, offset: int, size: int) -> bytes:
@@ -295,8 +295,8 @@ class Client:
     if device_file_descriptor is None:
       serialized_device_file_descriptor = None
     else:
-      serialized_device_file_descriptor = communication.SerializeFileDescriptor(
-          device_file_descriptor)
+      serialized_device_file_descriptor = communication.FileDescriptor.FromFileDescriptor(
+          device_file_descriptor).Serialize()
     request = filesystem_pb2.InitRequest(
         implementation_type=implementation_type,
         serialized_device_file_descriptor=serialized_device_file_descriptor)

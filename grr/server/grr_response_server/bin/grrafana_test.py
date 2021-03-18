@@ -271,7 +271,7 @@ class GrrafanaTest(absltest.TestCase):
   """Test the GRRafana HTTP server."""
 
   def setUp(self):
-    super(GrrafanaTest, self).setUp()
+    super().setUp()
     self.client = werkzeug_test.Client(
         application=grrafana.Grrafana(), response_wrapper=grrafana.JSONResponse)
 

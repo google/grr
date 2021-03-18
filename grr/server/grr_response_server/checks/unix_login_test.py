@@ -24,7 +24,7 @@ class LoginPolicyConfigurationTests(checks_test_lib.HostCheckTest):
     cls.LoadCheck("unix_login.yaml")
 
   def setUp(self, *args, **kwargs):
-    super(LoginPolicyConfigurationTests, self).setUp(*args, **kwargs)
+    super().setUp(*args, **kwargs)
     if not LoginPolicyConfigurationTests.results:
       LoginPolicyConfigurationTests.results = self._GenResults()
 

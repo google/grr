@@ -249,7 +249,7 @@ class ClientCommsTest(stats_test_lib.StatsTestMixin,
 
   def setUp(self):
     """Set up communicator tests."""
-    super(ClientCommsTest, self).setUp()
+    super().setUp()
 
     # These tests change the config so we preserve state.
     config_stubber = test_lib.PreserveConfig()
@@ -521,7 +521,7 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
 
   def setUp(self):
     """Set up communicator tests."""
-    super(HTTPClientTests, self).setUp()
+    super().setUp()
 
     # These tests change the config so we preserve state.
     config_stubber = test_lib.PreserveConfig()

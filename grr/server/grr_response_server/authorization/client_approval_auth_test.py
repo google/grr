@@ -44,7 +44,7 @@ class ClientApprovalAuthorizationTest(rdf_test_base.RDFValueTestMixin,
 class ClientApprovalAuthorizationManager(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(ClientApprovalAuthorizationManager, self).setUp()
+    super().setUp()
     self.mgr = client_approval_auth.ClientApprovalAuthorizationManager()
     self.client_id = "C.0000000000000000"
 

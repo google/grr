@@ -21,7 +21,7 @@ class CSRFProtectionTest(api_integration_test_lib.ApiIntegrationTest):
   """Tests GRR's CSRF protection logic for the HTTP API."""
 
   def setUp(self):
-    super(CSRFProtectionTest, self).setUp()
+    super().setUp()
 
     self.base_url = self.endpoint
 

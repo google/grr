@@ -31,7 +31,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     testing_startup.TestInit()
 
   def setUp(self):
-    super(ApiGetCollectedTimelineHandlerTest, self).setUp()
+    super().setUp()
     self.handler = api_timeline.ApiGetCollectedTimelineHandler()
 
   def testRaisesOnIncorrectFlowType(self):

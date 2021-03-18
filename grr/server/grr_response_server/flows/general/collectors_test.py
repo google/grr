@@ -58,7 +58,7 @@ class ArtifactCollectorsTestMixin(object):
 
   def setUp(self):
     """Make sure things are initialized."""
-    super(ArtifactCollectorsTestMixin, self).setUp()
+    super().setUp()
 
     patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
     patcher.start()
@@ -233,7 +233,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         client_mock,
         artifact_list=artifact_list,
         use_raw_filesystem_access=False,
-        token=self.token,
+        creator=self.test_username,
         client_id=client_id)
 
     fd2 = open(file_path, "rb")
@@ -261,7 +261,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         client_mock,
         artifact_list=artifact_list,
         use_raw_filesystem_access=False,
-        token=self.token,
+        creator=self.test_username,
         client_id=client_id)
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -286,7 +286,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
-          token=self.token,
+          creator=self.test_username,
           client_id=client_id)
 
       results = flow_test_lib.GetFlowResults(client_id, flow_id)
@@ -348,7 +348,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
             collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
-            token=self.token,
+            creator=self.test_username,
             client_id=client_id)
 
     # Test the statentry got stored.
@@ -378,7 +378,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
             collectors.ArtifactCollectorFlow.__name__,
             client_mock,
             artifact_list=artifact_list,
-            token=self.token,
+            creator=self.test_username,
             client_id=client_id)
 
     results = flow_test_lib.GetFlowResults(client_id, flow_id)
@@ -424,7 +424,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         collectors.ArtifactCollectorFlow.__name__,
         client_mock,
         artifact_list=artifact_list,
-        token=self.token,
+        creator=self.test_username,
         client_id=client_id)
 
     return flow_test_lib.GetFlowResults(client_id, flow_id)
@@ -473,7 +473,7 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=artifact_list,
-          token=self.token,
+          creator=self.test_username,
           client_id=client_id,
           split_output_by_artifact=True)
       results_by_tag = flow_test_lib.GetFlowResultsByTag(client_id, flow_id)
@@ -534,7 +534,7 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
           client_id=client_id,
           artifact_list=["Quux"],
           old_client_snapshot_fallback=True,
-          token=self.token)
+          creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
     self.assertNotEmpty(results)
@@ -589,7 +589,7 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
           client_id=client_id,
           artifact_list=["Quux"],
           old_client_snapshot_fallback=True,
-          token=self.token)
+          creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
     self.assertNotEmpty(results)
@@ -636,7 +636,7 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     return collectors.GetArtifactCollectorArgs(flow_args, self.knowledge_base)
 
   def setUp(self):
-    super(GetArtifactCollectorArgsTest, self).setUp()
+    super().setUp()
 
     test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
@@ -648,7 +648,7 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     self.knowledge_base = rdf_client.KnowledgeBase()
 
   def tearDown(self):
-    super(GetArtifactCollectorArgsTest, self).tearDown()
+    super().tearDown()
 
     artifact_registry.REGISTRY.ClearSources()
     artifact_registry.REGISTRY.ClearRegistry()
@@ -922,7 +922,7 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
   """Test the client side artifact collection test artifacts."""
 
   def setUp(self):
-    super(ClientArtifactCollectorFlowTest, self).setUp()
+    super().setUp()
     InitGRRWithTestArtifacts(self)
 
     self.client_id = self.SetupClient(0)
@@ -932,7 +932,7 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
         flow_cls.__name__,
         action_mocks.ActionMock(action),
         artifact_list=artifact_list,
-        token=self.token,
+        creator=self.test_username,
         apply_parsers=apply_parsers,
         client_id=self.client_id)
     return flow_test_lib.GetFlowResults(self.client_id, flow_id)
@@ -1059,7 +1059,7 @@ sources:
             collectors.ArtifactCollectorFlow.__name__,
             action_mocks.FileFinderClientMock(),
             artifact_list=artifact_list,
-            token=self.token,
+            creator=self.test_username,
             client_id=self.client_id,
             apply_parsers=False)
         results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
@@ -1104,7 +1104,7 @@ sources:
             collectors.ArtifactCollectorFlow.__name__,
             action_mocks.FileFinderClientMock(),
             artifact_list=artifact_list,
-            token=self.token,
+            creator=self.test_username,
             client_id=self.client_id,
             apply_parsers=False)
         results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
@@ -1148,7 +1148,7 @@ sources:
             collectors.ArtifactCollectorFlow.__name__,
             action_mocks.FileFinderClientMock(),
             artifact_list=artifact_list,
-            token=self.token,
+            creator=self.test_username,
             client_id=self.client_id,
             apply_parsers=False)
         expected = flow_test_lib.GetFlowResults(self.client_id, flow_id)[0]
@@ -1213,7 +1213,7 @@ sources:
         collectors.ArtifactCollectorFlow.__name__,
         action_mocks.FileFinderClientMock(),
         artifact_list=artifact_list,
-        token=self.token,
+        creator=self.test_username,
         apply_parsers=True,
         client_id=self.client_id)
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
@@ -1285,7 +1285,7 @@ sources:
         collectors.ArtifactCollectorFlow.__name__,
         action_mocks.FileFinderClientMock(),
         artifact_list=artifact_list,
-        token=self.token,
+        creator=self.test_username,
         apply_parsers=False,
         client_id=self.client_id)
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
@@ -1315,7 +1315,7 @@ sources:
         collectors.ArtifactCollectorFlow.__name__,
         action_mocks.FileFinderClientMock(),
         artifact_list=artifact_list,
-        token=self.token,
+        creator=self.test_username,
         apply_parsers=False,
         client_id=self.client_id)
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)

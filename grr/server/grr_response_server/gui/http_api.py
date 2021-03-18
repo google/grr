@@ -143,9 +143,6 @@ class RouterMatcher(object):
         args_type = method_metadata.args_type
         try:
           args = FlatDictToRDFValue(unprocessed_request, args_type)
-        except AttributeError:
-          # We ignore excessive or unrecognized arguments.
-          pass
         except ValueError as error:
           raise InvalidRequestArgumentsInRouteError(error)
 
@@ -240,7 +237,7 @@ class JSONEncoderWithRDFPrimitivesSupport(json.Encoder):
       # once support for Python 2 is dropped.
       return Text(obj)
 
-    return super(JSONEncoderWithRDFPrimitivesSupport, self).default(obj)
+    return super().default(obj)
 
 
 class JsonMode(object):
@@ -648,15 +645,15 @@ def FlatDictToRDFValue(dct: Dict[str, str], cls: Type[_V]) -> _V:
           }
       }
 
+  Note that excessive or unrecognized keys are going to be ignored and no value
+  is going to be set for them without issuing any errors.
+
   Args:
     dct: A flat dictionary to convert.
     cls: An RDF value type to interpret the dictionary as.
 
   Returns:
     An instance of the specified RDF value type.
-
-  Raises:
-    AttributeError: If the message type does not support dictionary keys.
   """
   result = cls()
 
@@ -669,7 +666,7 @@ def FlatDictToRDFValue(dct: Dict[str, str], cls: Type[_V]) -> _V:
       attr_cls_getter = lambda cls, name: cls.type_infos[name].type
       attr_cls = functools.reduce(attr_cls_getter, path, cls)
     except KeyError:
-      raise AttributeError(f"'{cls}' does not support nested attribute '{key}'")
+      continue
 
     # We do from-string conversion only for non-enum values. Enums will do an
     # automatic conversion upon assignment.

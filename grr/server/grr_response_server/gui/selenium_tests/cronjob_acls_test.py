@@ -49,7 +49,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
     # This asks the our user to approve the request.
     self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
-              self.token.username)
+              self.test_username)
     self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
               self.reason)
     self.Click(
@@ -69,7 +69,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilContains("Grant access", self.GetText,
                            "css=h2:contains('Grant')")
     self.WaitUntil(self.IsTextPresent,
-                   "The user %s has requested" % self.token.username)
+                   "The user %s has requested" % self.test_username)
 
     # Cron job overview should be visible
     self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDownCronJob.__name__)
@@ -103,12 +103,12 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
                            self.GetText, "css=grr-request-approval-dialog")
 
     # Lets add another approver.
-    approval_id = self.ListCronJobApprovals(requestor=self.token.username)[0].id
+    approval_id = self.ListCronJobApprovals(requestor=self.test_username)[0].id
     self.GrantCronJobApproval(
         cron_job_id,
         approval_id=approval_id,
         approver=u"approver",
-        requestor=self.token.username,
+        requestor=self.test_username,
         admin=False)
 
     # Now test starts up

@@ -17,7 +17,7 @@ class FilterListTest(test_lib.GRRBaseTest):
   """Test for FilterList."""
 
   def setUp(self):
-    super(FilterListTest, self).setUp()
+    super().setUp()
 
     self.l = []
     for i in range(10):

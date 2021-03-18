@@ -23,7 +23,7 @@ from grr.test_lib import test_lib
 class ListMigrationsToProcessTest(absltest.TestCase):
 
   def setUp(self):
-    super(ListMigrationsToProcessTest, self).setUp()
+    super().setUp()
     self.temp_dir = temp.TempDirPath()
     self.addCleanup(lambda: shutil.rmtree(self.temp_dir, ignore_errors=True))
 

@@ -20,7 +20,7 @@ from grr.test_lib import test_lib
 class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
-    super(VFSViewTest, self).setUp()
+    super().setUp()
     # Prepare our fixture.
     self.client_id = "C.0000000000000001"
 

@@ -19,7 +19,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
   BASE_TIME = 1439501002
 
   def setUp(self):
-    super(ThrottleTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   def testCheckFlowRequestLimit(self):
@@ -28,14 +28,14 @@ class ThrottleTest(test_lib.GRRBaseTest):
       flow_test_lib.StartFlow(
           flow_test_lib.DummyLogFlow,
           client_id=self.client_id,
-          creator=self.token.username)
+          creator=self.test_username)
 
     # One day + 1s later
     with test_lib.FakeTime(self.BASE_TIME + 86400 + 1):
       flow_test_lib.StartFlow(
           flow_cls=flow_test_lib.DummyLogFlow,
           client_id=self.client_id,
-          creator=self.token.username)
+          creator=self.test_username)
 
       # Disable the dup interval checking by setting it to 0.
       throttler = throttle.FlowThrottler(
@@ -43,7 +43,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
           dup_interval=rdfvalue.Duration.From(0, rdfvalue.SECONDS))
 
       # Should succeed, only one flow present in the 1 day window.
-      throttler.EnforceLimits(self.client_id, self.token.username,
+      throttler.EnforceLimits(self.client_id, self.test_username,
                               flow_test_lib.DummyLogFlow.__name__, None)
 
       # Start some more flows with a different user
@@ -55,17 +55,17 @@ class ThrottleTest(test_lib.GRRBaseTest):
           flow_test_lib.DummyLogFlow, client_id=self.client_id, creator="test2")
 
       # Should still succeed, since we count per-user
-      throttler.EnforceLimits(self.client_id, self.token.username,
+      throttler.EnforceLimits(self.client_id, self.test_username,
                               flow_test_lib.DummyLogFlow.__name__, None)
 
       # Add another flow at current time
       flow_test_lib.StartFlow(
           flow_test_lib.DummyLogFlow,
           client_id=self.client_id,
-          creator=self.token.username)
+          creator=self.test_username)
 
       with self.assertRaises(throttle.DailyFlowRequestLimitExceededError):
-        throttler.EnforceLimits(self.client_id, self.token.username,
+        throttler.EnforceLimits(self.client_id, self.test_username,
                                 flow_test_lib.DummyLogFlow.__name__, None)
 
   def testFlowDuplicateLimit(self):
@@ -76,30 +76,30 @@ class ThrottleTest(test_lib.GRRBaseTest):
 
     # Running the same flow immediately should fail
     with test_lib.FakeTime(self.BASE_TIME):
-      throttler.EnforceLimits(self.client_id, self.token.username,
+      throttler.EnforceLimits(self.client_id, self.test_username,
                               flow_test_lib.DummyLogFlow.__name__, None)
 
       flow_test_lib.StartFlow(
           flow_cls=flow_test_lib.DummyLogFlow,
           client_id=self.client_id,
-          creator=self.token.username)
+          creator=self.test_username)
 
       with self.assertRaises(throttle.DuplicateFlowError):
-        throttler.EnforceLimits(self.client_id, self.token.username,
+        throttler.EnforceLimits(self.client_id, self.test_username,
                                 flow_test_lib.DummyLogFlow.__name__, None)
 
     # Doing the same outside the window should work
     with test_lib.FakeTime(self.BASE_TIME + 1200 + 1):
-      throttler.EnforceLimits(self.client_id, self.token.username,
+      throttler.EnforceLimits(self.client_id, self.test_username,
                               flow_test_lib.DummyLogFlow.__name__, None)
 
       flow_test_lib.StartFlow(
           flow_test_lib.DummyLogFlow,
           client_id=self.client_id,
-          creator=self.token.username)
+          creator=self.test_username)
 
       with self.assertRaises(throttle.DuplicateFlowError):
-        throttler.EnforceLimits(self.client_id, self.token.username,
+        throttler.EnforceLimits(self.client_id, self.test_username,
                                 flow_test_lib.DummyLogFlow.__name__, None)
 
     # Now try a flow with more complicated args
@@ -108,7 +108,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
         action=rdf_file_finder.FileFinderAction(action_type="STAT"))
 
     with test_lib.FakeTime(self.BASE_TIME):
-      throttler.EnforceLimits(self.client_id, self.token.username,
+      throttler.EnforceLimits(self.client_id, self.test_username,
                               file_finder.FileFinder.__name__, args)
 
       new_args = rdf_file_finder.FileFinderArgs(
@@ -118,11 +118,11 @@ class ThrottleTest(test_lib.GRRBaseTest):
       flow_test_lib.StartFlow(
           flow_cls=file_finder.FileFinder,
           client_id=self.client_id,
-          creator=self.token.username,
+          creator=self.test_username,
           flow_args=new_args)
 
       with self.assertRaises(throttle.DuplicateFlowError):
-        throttler.EnforceLimits(self.client_id, self.token.username,
+        throttler.EnforceLimits(self.client_id, self.test_username,
                                 file_finder.FileFinder.__name__, args)
 
       # Different args should succeed.
@@ -130,7 +130,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
           paths=["/tmp/1", "/tmp/3"],
           action=rdf_file_finder.FileFinderAction(action_type="STAT"))
 
-      throttler.EnforceLimits(self.client_id, self.token.username,
+      throttler.EnforceLimits(self.client_id, self.test_username,
                               file_finder.FileFinder.__name__, args)
 
 

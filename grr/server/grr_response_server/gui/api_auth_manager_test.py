@@ -70,7 +70,7 @@ class DummyGroupAccessManager(groups.GroupAccessManager):
 class APIAuthorizationManagerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(APIAuthorizationManagerTest, self).setUp()
+    super().setUp()
 
     # API ACLs are off by default, we need to set this to something so the tests
     # exercise the functionality. Each test will supply its own ACL data. We

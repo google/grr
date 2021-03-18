@@ -92,7 +92,7 @@ class TestCollectSingleFile(flow_test_lib.FlowTestsBaseclass):
         self.client_mock,
         client_id=self.client_id,
         path=self.files["bar"].path,
-        token=self.token)
+        creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 1)
@@ -108,7 +108,7 @@ class TestCollectSingleFile(flow_test_lib.FlowTestsBaseclass):
           self.client_mock,
           client_id=self.client_id,
           path="/nonexistent",
-          token=self.token)
+          creator=self.test_username)
 
   def testFetchIsRetriedWithRawOnWindows(self):
     with mock.patch.object(flow_base.FlowBase, "client_os", "Windows"):
@@ -118,7 +118,7 @@ class TestCollectSingleFile(flow_test_lib.FlowTestsBaseclass):
             self.client_mock,
             client_id=self.client_id,
             path=self.files["bar"].path,
-            token=self.token)
+            creator=self.test_username)
 
         results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
 
@@ -137,7 +137,7 @@ class TestCollectSingleFile(flow_test_lib.FlowTestsBaseclass):
               self.client_mock,
               client_id=self.client_id,
               path=self.files["bar"].path,
-              token=self.token)
+              creator=self.test_username)
         self.assertIn(
             str(config.CONFIG["Server.raw_filesystem_access_pathtype"]),
             str(e.exception))
@@ -217,7 +217,7 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
         self.client_mock,
         client_id=self.client_id,
         path_expressions=[path],
-        token=self.token)
+        creator=self.test_username)
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(results, 2)
@@ -244,7 +244,7 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
         self.client_mock,
         client_id=self.client_id,
         path_expressions=[path],
-        token=self.token)
+        creator=self.test_username)
 
     progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
     self.assertEqual(

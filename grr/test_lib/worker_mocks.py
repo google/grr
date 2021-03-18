@@ -16,7 +16,7 @@ class FakeMixin(object):
   """Worker methods that just collect SendReplys."""
 
   def __init__(self, *args, **kw):
-    super(FakeMixin, self).__init__(*args, **kw)
+    super().__init__(*args, **kw)
     self.responses = []
     self.sent_bytes_per_flow = {}
     self.lock = threading.RLock()
@@ -40,7 +40,7 @@ class DisabledNannyClientWorker(comms.GRRClientWorker):
   """A GRR client worker with disabled Nanny thread."""
 
   def __init__(self, *args, **kwargs):
-    super(DisabledNannyClientWorker, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.stats_collector = client_stats.ClientStatsCollector(self)
 
   def StartNanny(self):

@@ -24,7 +24,7 @@ from grr.test_lib import test_lib
 class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
-    super(ArtifactFilesDownloaderFlowTest, self).setUp()
+    super().setUp()
 
     self.collector_replies = []
 
@@ -72,7 +72,7 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
         client_id=client_id,
         artifact_list=artifact_list,
         use_raw_filesystem_access=use_raw_filesystem_access,
-        token=self.token)
+        creator=self.test_username)
 
     return flow_test_lib.GetFlowResults(client_id, session_id)
 

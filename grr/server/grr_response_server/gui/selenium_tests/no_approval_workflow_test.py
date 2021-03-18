@@ -18,7 +18,7 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
   """Tests acl policies when approvals system is not used."""
 
   def setUp(self):
-    super(TestWorkflowWithoutApprovals, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   def InstallACLChecks(self):

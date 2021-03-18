@@ -25,7 +25,7 @@ class ForemanClientRuleSetTest(rdf_test_base.RDFValueTestMixin,
     # prevent failure due to [] != None. Side effects... (ノಠ益ಠ)ノ彡┻━┻
     value.rules  # pylint: disable=pointless-statement
     sample.rules  # pylint: disable=pointless-statement
-    super(ForemanClientRuleSetTest, self).CheckRDFValue(value, sample)
+    super().CheckRDFValue(value, sample)
 
   def GenerateSample(self, number=0):
     ret = foreman_rules.ForemanClientRuleSet()

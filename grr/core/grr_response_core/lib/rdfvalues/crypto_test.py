@@ -27,7 +27,7 @@ class SignedBlobTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdf_crypto.SignedBlob
 
   def setUp(self):
-    super(SignedBlobTest, self).setUp()
+    super().setUp()
     self.private_key = config.CONFIG[
         "PrivateKeys.executable_signing_private_key"]
     self.public_key = config.CONFIG["Client.executable_signing_public_key"]
@@ -93,7 +93,7 @@ class TestCryptoTypeInfos(CryptoTestBase):
   """
 
   def setUp(self):
-    super(TestCryptoTypeInfos, self).setUp()
+    super().setUp()
     config_stubber = test_lib.PreserveConfig()
     config_stubber.Start()
     self.addCleanup(config_stubber.Stop)

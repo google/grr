@@ -114,6 +114,9 @@ def Register():
   # Registry multi-parsers.
   parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(
       "WinUserSpecialDirs", windows_registry_parser.WinUserSpecialDirs)
+  parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(
+      "WindowsRegistryInstalledSoftware",
+      windows_registry_parser.WindowsRegistryInstalledSoftwareParser)
 
   # Artifact file multi-parsers.
   parsers.MULTI_RESPONSE_PARSER_FACTORY.Register(
@@ -159,6 +162,7 @@ def Register():
     from debian import deb822  # pylint: disable=g-import-not-at-top
     parsers.SINGLE_FILE_PARSER_FACTORY.Register(
         "DpkgStatusParser",
+        linux_software_parser.DebianPackagesStatusParser,
         lambda: linux_software_parser.DebianPackagesStatusParser(deb822))
   except ImportError:
     pass

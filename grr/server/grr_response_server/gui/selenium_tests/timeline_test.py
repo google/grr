@@ -27,18 +27,18 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
   TIMELINE_ITEMS_PER_FILE = 3
 
   def setUp(self):
-    super(TestTimeline, self).setUp()
+    super().setUp()
     # Prepare our fixture.
     self.client_id = "C.0000000000000001"
     fixture_test_lib.ClientFixture(self.client_id)
     self.CreateFileWithTimeline(self.client_id, "c/proc/changed.txt",
-                                rdf_paths.PathSpec.PathType.OS, self.token)
+                                rdf_paths.PathSpec.PathType.OS)
     self.CreateFileWithTimeline(self.client_id, "c/proc/other.txt",
-                                rdf_paths.PathSpec.PathType.OS, self.token)
+                                rdf_paths.PathSpec.PathType.OS)
     self.RequestAndGrantClientApproval(self.client_id)
 
   @staticmethod
-  def CreateFileWithTimeline(client_id, path, path_type, token):
+  def CreateFileWithTimeline(client_id, path, path_type):
     """Add a file with timeline."""
 
     # Add a version of the file at gui_test_lib.TIME_0. Since we write all MAC
@@ -197,7 +197,7 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
     # Add a new file with several versions.
     self.CreateFileWithTimeline(self.client_id, "c/proc/newly_added.txt",
-                                rdf_paths.PathSpec.PathType.OS, self.token)
+                                rdf_paths.PathSpec.PathType.OS)
 
     # Click on tree again.
     self.Click("link=proc")

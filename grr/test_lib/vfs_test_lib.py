@@ -64,7 +64,7 @@ class FakeTestDataVFSOverrider(VFSOverrider):
           self).__init__(rdf_paths.PathSpec.PathType.OS, FakeTestDataVFSHandler)
 
   def __enter__(self):
-    super(FakeTestDataVFSOverrider, self).__enter__()
+    super().__enter__()
 
     def Open(path, *args, **kwagrs):
       path = FakeTestDataVFSHandler.FakeRootPath(path)
@@ -74,7 +74,7 @@ class FakeTestDataVFSOverrider(VFSOverrider):
     os.open = Open
 
   def __exit__(self, exc_type, exc_value, trace):
-    super(FakeTestDataVFSOverrider, self).__exit__(exc_type, exc_value, trace)
+    super().__exit__(exc_type, exc_value, trace)
     os.open = self._os_open
 
 
@@ -121,7 +121,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
                handlers=None,
                pathspec=None,
                progress_callback=None):
-    super(ClientVFSHandlerFixture, self).__init__(
+    super().__init__(
         base_fd,
         handlers=handlers,
         pathspec=pathspec,
@@ -278,7 +278,7 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
                prefix=None,
                pathspec=None,
                progress_callback=None):
-    super(FakeTestDataVFSHandler, self).__init__(
+    super().__init__(
         base_fd,
         handlers=handlers,
         pathspec=pathspec,
@@ -604,6 +604,6 @@ class VfsTestCase(absltest.TestCase):
   """Mixin that resets VFS caches after tests."""
 
   def tearDown(self):
-    super(VfsTestCase, self).tearDown()
+    super().tearDown()
     vfs.files.FlushHandleCache()
     vfs.sleuthkit.DEVICE_CACHE.Flush()

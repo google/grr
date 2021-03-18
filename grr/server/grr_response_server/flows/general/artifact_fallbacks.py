@@ -89,7 +89,7 @@ class SystemRootSystemDriveFallbackFlow(flow_base.FlowBase):
       raise flow_base.FlowError(
           "Couldn't guess the system root and drive location")
 
-    super(SystemRootSystemDriveFallbackFlow, self).End(responses)
+    super().End(responses)
 
 
 class WindowsAllUsersProfileFallbackFlow(flow_base.FlowBase):

@@ -529,7 +529,7 @@ class CategorizedPathTest(absltest.TestCase):
 class VfsFileReferenceTest(absltest.TestCase):
 
   def setUp(self):
-    super(VfsFileReferenceTest, self).setUp()
+    super().setUp()
     self.client_id = "C.0000000000000000"
 
   def testOsPathIsConvertedVfsPathStringCorrectly(self):

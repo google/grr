@@ -21,7 +21,7 @@ from grr.test_lib import test_lib
 class WindowsOsslsigncodeCodeSignerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(WindowsOsslsigncodeCodeSignerTest, self).setUp()
+    super().setUp()
     self.winsign = signing.WindowsOsslsigncodeCodeSigner("", "", "", "")
 
   @unittest.skipUnless(platform.system() == "Linux",

@@ -108,7 +108,7 @@ FAKE_E2E_TESTS = [
 class E2ETestRunnerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(E2ETestRunnerTest, self).setUp()
+    super().setUp()
     api_init_http_patcher = mock.patch.object(api, "InitHttp")
     requests_post_patcher = mock.patch.object(requests, "post")
     unittest_runner_patcher = mock.patch.object(unittest, "TextTestRunner")

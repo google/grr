@@ -422,7 +422,7 @@ class TimeBasedCache(FastStore):
   @Synchronized
   def Get(self, key):
     now = time.time()
-    stored = super(TimeBasedCache, self).Get(key)
+    stored = super().Get(key)
     if stored.timestamp + self.max_age < now:
       raise KeyError("Expired")
 
@@ -432,7 +432,7 @@ class TimeBasedCache(FastStore):
     return stored.value
 
   def Put(self, key, obj):
-    super(TimeBasedCache, self).Put(key, TimeBasedCacheEntry(time.time(), obj))
+    super().Put(key, TimeBasedCacheEntry(time.time(), obj))
 
 
 class AgeBasedCache(TimeBasedCache):

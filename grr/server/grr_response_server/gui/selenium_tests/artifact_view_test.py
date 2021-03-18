@@ -44,7 +44,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
   def setUp(self):
-    super(TestArtifactRender, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0, system="linux")
     self.RequestAndGrantClientApproval(self.client_id)
 

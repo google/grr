@@ -14,8 +14,8 @@ class CommunicationTest(absltest.TestCase):
       return [
           sys.executable, "-m",
           "grr_response_client.unprivileged.echo_server",
-          str(channel.pipe_input),
-          str(channel.pipe_output),
+          str(channel.pipe_input.Serialize()),
+          str(channel.pipe_output.Serialize()),
       ]
 
     server = communication.SubprocessServer(MakeArgs)

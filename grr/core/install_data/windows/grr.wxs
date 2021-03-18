@@ -36,9 +36,6 @@
     <Property Id="Dummy" Value="MagicPropertyValueForPadding$(var.FILLER5)$(var.FILLER5)$(var.FILLER5)$(var.FILLER5)$(var.FILLER5)" />
 
     <Media Id="1" Cabinet="grr.cab" EmbedCab="yes" />
-    <Media Id="2" Cabinet="grr_config.cab" EmbedCab="yes" CompressionLevel="none"/>
-    <Media Id="3" Cabinet="fleetspeak_config.cab" EmbedCab="yes" CompressionLevel="none" />
-    <Media Id="4" Cabinet="fleetspeak_service_config.cab" EmbedCab="yes" CompressionLevel="none" />
 
     <!-- Installation directories. -->
     <Directory Id="TARGETDIR" Name="SourceDir" DiskId="1">
@@ -132,19 +129,22 @@
               </RegistryKey>
             </Component>
             <Component Id="CompGrrConfig">
-              <File Id="FileGrrConfig" Source="$(var.InputDir)\grr-config.yaml" Name="grr-config.yaml" DiskId="2" />
+              <File Id="FileGrrConfig" Source="$(var.InputDir)\grr-config.yaml" Name="grr-config.yaml" />
             </Component>
             <Component Id="CompFleetspeakServiceConfig">
-              <File Id="FileFleetspeakServiceConfig" Source="$(var.InputDir)\fleetspeak-service-config.txt" Name="fleetspeak-service-config.txt" DiskId="4" />
+              <File Id="FileFleetspeakServiceConfig" Source="$(var.InputDir)\fleetspeak-service-config.txt" Name="fleetspeak-service-config.txt" />
             </Component>
             <Component Id="CompFleetspeakServiceReg" Guid="*">
               <RegistryKey Root="HKLM" Key="__FleetspeakServiceRegistryKey">
                 <RegistryValue Type="string" Name="__FleetspeakServiceRegistryName" KeyPath="yes" Value="__FleetspeakServiceRegistryValue" />
               </RegistryKey>
             </Component>
+            <Component Id="CompPaddingFile" Guid="*">
+              <File Id="PaddingFile" Source="$(var.InputDir)\padding-file.bin" Name="padding-file.bin" />
+            </Component>
             <Directory Id="FleetspeakInstallDir" Name="Fleetspeak">
               <Component Id="CompFleetspeakConfig">
-                <File Id="FileFleetspeakConfig" Source="$(var.InputDir)\fleetspeak-client.config" Name="fleetspeak-client.config" DiskId="3" />
+                <File Id="FileFleetspeakConfig" Source="$(var.InputDir)\fleetspeak-client.config" Name="fleetspeak-client.config" />
               </Component>
             </Directory>
           </Directory>
@@ -176,6 +176,10 @@
     <Feature Id="FleetspeakServiceRegistryEntry" Level="0">
       <ComponentRef Id="CompFleetspeakServiceReg"/>
       <ComponentRef Id="CompFleetspeakServiceConfig"/>
+    </Feature>
+
+    <Feature Id="PaddingFile" Level="0">
+      <ComponentRef Id="CompPaddingFile"/>
     </Feature>
 
     <InstallExecuteSequence>

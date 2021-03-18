@@ -350,11 +350,11 @@ class ClientTest(testing.ColabE2ETest):
     client.request_approval(reason='test', approvers=['foo'])
 
     approvals = data_store.REL_DB.ReadApprovalRequests(
-        self.token.username, objects_pb2.ApprovalRequest.APPROVAL_TYPE_CLIENT,
+        self.test_username, objects_pb2.ApprovalRequest.APPROVAL_TYPE_CLIENT,
         ClientTest.FAKE_CLIENT_ID)
 
     self.assertLen(approvals, 1)
-    self.assertEqual(approvals[0].requestor_username, self.token.username)
+    self.assertEqual(approvals[0].requestor_username, self.test_username)
     self.assertEqual(approvals[0].notified_users, ['foo'])
     self.assertEqual(approvals[0].reason, 'test')
 
@@ -368,7 +368,7 @@ class ClientTest(testing.ColabE2ETest):
     def ProcessApproval():
       while True:
         approvals = data_store.REL_DB.ReadApprovalRequests(
-            self.token.username,
+            self.test_username,
             objects_pb2.ApprovalRequest.APPROVAL_TYPE_CLIENT,
             ClientTest.FAKE_CLIENT_ID)
         if not approvals:
@@ -376,7 +376,7 @@ class ClientTest(testing.ColabE2ETest):
           continue
 
         approval_id = approvals[0].approval_id
-        data_store.REL_DB.GrantApproval(self.token.username, approval_id, 'foo')
+        data_store.REL_DB.GrantApproval(self.test_username, approval_id, 'foo')
         break
 
     thread = threading.Thread(name='ProcessApprover', target=ProcessApproval)
@@ -385,11 +385,11 @@ class ClientTest(testing.ColabE2ETest):
     try:
       client.request_approval_and_wait(reason='test', approvers=['foo'])
       approvals = data_store.REL_DB.ReadApprovalRequests(
-          self.token.username, objects_pb2.ApprovalRequest.APPROVAL_TYPE_CLIENT,
+          self.test_username, objects_pb2.ApprovalRequest.APPROVAL_TYPE_CLIENT,
           ClientTest.FAKE_CLIENT_ID)
       self.assertLen(approvals, 1)
 
-      approval = client._client.Approval(self.token.username,
+      approval = client._client.Approval(self.test_username,
                                          approvals[0].approval_id).Get()
       self.assertTrue(approval.data.is_valid)
     finally:

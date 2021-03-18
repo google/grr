@@ -4,21 +4,19 @@
 
 An index of client machines, associating likely identifiers to client IDs.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import functools
 import operator
-from typing import Text
-
+from typing import Mapping, Iterable, Sequence, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
 from grr_response_server import data_store
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-def GetClientIDsForHostnames(hostnames):
+def GetClientIDsForHostnames(
+    hostnames: Iterable[str]) -> Mapping[str, Sequence[str]]:
   """Gets all client_ids for a given list of hostnames or FQDNS.
 
   Args:
@@ -74,7 +72,7 @@ class ClientIndex(object):
 
     return start_time, filtered_keywords
 
-  def LookupClients(self, keywords):
+  def LookupClients(self, keywords: Iterable[str]) -> Sequence[str]:
     """Returns a list of client URNs associated with keywords.
 
     Args:
@@ -100,7 +98,8 @@ class ClientIndex(object):
                                                        keyword_map.values()))
     return sorted(relevant_set)
 
-  def ReadClientPostingLists(self, keywords):
+  def ReadClientPostingLists(
+      self, keywords: Iterable[str]) -> Mapping[str, Sequence[str]]:
     """Looks up all clients associated with any of the given keywords.
 
     Args:
@@ -115,14 +114,14 @@ class ClientIndex(object):
     return data_store.REL_DB.ListClientsForKeywords(
         filtered_keywords, start_time=start_time)
 
-  def AnalyzeClient(self, client):
+  def AnalyzeClient(self, client: rdf_objects.ClientSnapshot) -> Sequence[str]:
     """Finds the client_id and keywords for a client.
 
     Args:
-      client: A Client object record to find keywords for.
+      client: A ClientSnapshot object record to find keywords for.
 
     Returns:
-      A list of keywords related to client.
+      A Sequence of keywords related to client.
     """
 
     # Start with a universal keyword, used to find all clients.
@@ -174,6 +173,8 @@ class ClientIndex(object):
     TryAppend("", client.os_version)
     TryAppend("", client.kernel)
     TryAppend("", client.arch)
+    TryAppend("serial_number", client.hardware_info.serial_number)
+    TryAppend("system_uuid", client.hardware_info.system_uuid)
 
     kb = client.knowledge_base
     if kb:
@@ -202,18 +203,18 @@ class ClientIndex(object):
 
     return keywords
 
-  def AddClient(self, client):
+  def AddClient(self, client: rdf_objects.ClientSnapshot):
     """Adds a client to the index.
 
     Args:
-      client: A Client object record.
+      client: A ClientSnapshot object record.
     """
     keywords = self.AnalyzeClient(client)
     keywords.add(self._NormalizeKeyword(client.client_id))
 
     data_store.REL_DB.AddClientKeywords(client.client_id, keywords)
 
-  def AddClientLabels(self, client_id, labels):
+  def AddClientLabels(self, client_id: str, labels: Iterable[str]):
     precondition.AssertIterableType(labels, Text)
     keywords = set()
     for label in labels:
@@ -223,7 +224,7 @@ class ClientIndex(object):
 
     data_store.REL_DB.AddClientKeywords(client_id, keywords)
 
-  def RemoveAllClientLabels(self, client_id):
+  def RemoveAllClientLabels(self, client_id: str):
     """Removes all labels for a given client.
 
     Args:
@@ -233,7 +234,7 @@ class ClientIndex(object):
         [l.name for l in data_store.REL_DB.ReadClientLabels(client_id)])
     self.RemoveClientLabels(client_id, labels_to_remove)
 
-  def RemoveClientLabels(self, client_id, labels):
+  def RemoveClientLabels(self, client_id: str, labels: Iterable[str]):
     """Removes all labels for a given client.
 
     Args:

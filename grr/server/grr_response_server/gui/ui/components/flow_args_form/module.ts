@@ -1,3 +1,4 @@
+import {CdkTreeModule} from '@angular/cdk/tree';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {ReactiveFormsModule} from '@angular/forms';
@@ -9,6 +10,7 @@ import {MatDialogModule} from '@angular/material/dialog';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
+import {MatTreeModule} from '@angular/material/tree';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 import {ArtifactCollectorFlowForm} from '@app/components/flow_args_form/artifact_collector_flow_form';
@@ -32,23 +34,25 @@ import {TimelineForm} from './timeline_form';
 @NgModule({
   imports: [
     BrowserAnimationsModule,
-    RouterModule,
+    ByteComponentsModule,
+    CdkTreeModule,
+    CodeEditorModule,
     CommonModule,
+    DateTimeInputModule,
+    GlobExpressionExplanationModule,
+    HelpersModule,
+    MatAutocompleteModule,
+    MatButtonModule,
     MatCheckboxModule,
     MatChipsModule,
-    ReactiveFormsModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatIconModule,
-    MatButtonModule,
     MatDialogModule,
-    ByteComponentsModule,
-    GlobExpressionExplanationModule,
-    CodeEditorModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatTreeModule,
     OsqueryQueryHelperModule,
-    HelpersModule,
-    DateTimeInputModule,
-    MatAutocompleteModule,
+    ReactiveFormsModule,
+    RouterModule,
   ],
   declarations: [
     FlowArgsForm,

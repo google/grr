@@ -32,7 +32,7 @@ class ConfigActionTest(client_test_lib.EmptyActionTest):
   """Tests the client actions UpdateConfiguration and GetConfiguration."""
 
   def setUp(self):
-    super(ConfigActionTest, self).setUp()
+    super().setUp()
     # These tests change the config so we preserve state.
     config_stubber = test_lib.PreserveConfig()
     config_stubber.Start()
@@ -180,7 +180,7 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
   """Test GetClientStats client action."""
 
   def setUp(self):
-    super(GetClientStatsActionTest, self).setUp()
+    super().setUp()
     stubber = mock.patch.object(psutil, "boot_time", return_value=100)
     stubber.start()
     self.addCleanup(stubber.stop)

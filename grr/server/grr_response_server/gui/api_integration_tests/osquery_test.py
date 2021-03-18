@@ -26,7 +26,7 @@ class OsqueryResultsExportTest(api_integration_test_lib.ApiIntegrationTest):
           osquery_flow.OsqueryFlow.__name__,
           action_mocks.OsqueryClientMock(),
           client_id=client_id,
-          token=self.token,
+          creator=self.test_username,
           query="doesn't matter")
       result_flow = self.api.Client(client_id=client_id).Flow(flow_id)
       result_flow.WaitUntilDone()

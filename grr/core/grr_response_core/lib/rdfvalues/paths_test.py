@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
-# -*- encoding: utf-8 -*-
-
-# Copyright 2012 Google Inc. All Rights Reserved.
 """These are tests for the PathSpec implementation."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from absl import app
 
@@ -25,7 +18,7 @@ class PathSpecTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 
   def CheckRDFValue(self, rdfproto, sample):
     """Check that the rdfproto is the same as the sample."""
-    super(PathSpecTest, self).CheckRDFValue(rdfproto, sample)
+    super().CheckRDFValue(rdfproto, sample)
 
     self.assertEqual(rdfproto.path, sample.path)
     self.assertEqual(rdfproto.pathtype, sample.pathtype)
@@ -299,6 +292,13 @@ class GlobExpressionTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual([c.glob_expression for c in components],
                      ["%%users.homedir%%", "/foo"])
     self.assertEqual(components[0].examples, ["/home/foo", "/home/bar"])
+
+  def testExplainComponentsReturnsEmptyExamplesOnKbError(self):
+    kb = rdf_client.KnowledgeBase(users=[rdf_client.User()])
+    ge = rdf_paths.GlobExpression("%%users.appdir%%/foo")
+
+    components = ge.ExplainComponents(2, kb)
+    self.assertEqual(components[0].examples, [])
 
   def _testAFF4Path_mountPointResolution(
       self, pathtype: rdf_paths.PathSpec.PathType) -> None:

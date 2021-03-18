@@ -212,7 +212,7 @@ class DumpTest(absltest.TestCase):
         if isinstance(obj, Foo):
           return obj.foo
         else:
-          return super(FooEncoder, self).default(obj)
+          return super().default(obj)
 
     data = [Foo("quux"), Foo("norf"), Foo("thud")]
     dumped = json.Dump(data, encoder=FooEncoder)

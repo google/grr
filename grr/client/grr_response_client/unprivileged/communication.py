@@ -3,6 +3,7 @@
 
 import abc
 import contextlib
+import enum
 import os
 import platform
 import struct
@@ -96,25 +97,6 @@ class Server(abc.ABC):
 ConnectionHandler = Callable[[Connection], None]
 
 
-class Channel(NamedTuple):
-  """File descriptors / handle sused for communication."""
-
-  pipe_input: Optional[int] = None
-  """Pipe used for input (client to server).
-
-  This is a file descriptor on UNIX, a handle on Windows.
-  """
-
-  pipe_output: Optional[int] = None
-  """Pipe used for output (server to client).
-
-  This is a file descriptor on UNIX, a handle on Windows.
-  """
-
-
-ArgsFactory = Callable[[Channel], List[str]]
-
-
 class PipeTransport(Transport):
   """A low-level transport protocol based on a pair of pipes."""
 
@@ -129,6 +111,117 @@ class PipeTransport(Transport):
     return self._read_pipe.read(size)
 
 
+class Mode(enum.Enum):
+  READ = 1
+  WRITE = 2
+
+
+class FileDescriptor:
+  """Wraps a file descriptor or handle which can be passed to a process."""
+
+  # For some reason the typechecker doesn't see the attributes being set
+  # in __init__.
+  _file_descriptor: Optional[int] = None
+  _handle: Optional[int] = None
+  _mode: Optional[Mode] = None
+
+  def __init__(self,
+               file_descriptor: Optional[int] = None,
+               handle: Optional[int] = None,
+               mode: Optional[Mode] = None):
+    self._file_descriptor = file_descriptor
+    self._handle = handle
+    self._mode = mode
+
+  def Serialize(self) -> int:
+    """Serializes the file descriptor for passing to adifferent process."""
+    if platform.system() == "Windows":
+      return self.ToHandle()
+    else:
+      return self.ToFileDescriptor()
+
+  def ToFileDescriptor(self) -> int:
+    """Converts the value to a file descriptor."""
+    if self._file_descriptor is not None:
+      return self._file_descriptor
+
+    if platform.system() == "Windows":
+      import msvcrt  # pylint: disable=g-import-not-at-top
+      if self._mode == Mode.READ:
+        mode = os.O_RDONLY
+      elif self._mode == Mode.WRITE:
+        mode = os.O_APPEND
+      else:
+        raise ValueError(f"Invalid mode {self._mode}")
+      if self._handle is None:
+        raise ValueError("Handle is required.")
+      # pytype doesn't see the functions in msvcrt
+      self._file_descriptor = msvcrt.open_osfhandle(self._handle, mode)  # pytype: disable=module-attr
+      # The file descriptor takes ownership of the handle.
+      self._handle = None
+      return self._file_descriptor
+    else:
+      raise ValueError("File descriptor is required.")
+
+  def ToHandle(self) -> int:
+    """Converts the value to a handle."""
+    if self._handle is not None:
+      return self._handle
+
+    if platform.system() == "Windows":
+      if self._file_descriptor is None:
+        raise ValueError("File descriptor is required.")
+      import msvcrt  # pylint: disable=g-import-not-at-top
+      # pytype doesn't see the functions in msvcrt
+      return msvcrt.get_osfhandle(self._file_descriptor)  # pytype: disable=module-attr
+    else:
+      raise ValueError("Handle is required.")
+
+  @classmethod
+  def FromFileDescriptor(cls, file_descriptor: int) -> "FileDescriptor":
+    """Creates a value from a file descritor."""
+    return FileDescriptor(file_descriptor=file_descriptor)
+
+  @classmethod
+  def FromHandle(cls, handle: int, mode: Mode) -> "FileDescriptor":
+    """Creates a value from a handle."""
+    return FileDescriptor(handle=handle, mode=mode)
+
+  @classmethod
+  def FromSerialized(cls, serialized: int, mode: Mode) -> "FileDescriptor":
+    """Creates a value from a serialized value."""
+    if platform.system() == "Windows":
+      return cls.FromHandle(serialized, mode)
+    else:
+      return cls.FromFileDescriptor(serialized)
+
+
+class Channel(NamedTuple):
+  """File descriptors / handles used for communication."""
+
+  pipe_input: Optional[FileDescriptor] = None
+  """Pipe used for input (client to server).
+
+  This is a file descriptor on UNIX, a handle on Windows.
+  """
+
+  pipe_output: Optional[FileDescriptor] = None
+  """Pipe used for output (server to client).
+
+  This is a file descriptor on UNIX, a handle on Windows.
+  """
+
+  @classmethod
+  def FromSerialized(cls, pipe_input: int, pipe_output: int) -> "Channel":
+    """Creates a channel from serialized pipe file descriptors."""
+    return Channel(
+        FileDescriptor.FromSerialized(pipe_input, Mode.READ),
+        FileDescriptor.FromSerialized(pipe_output, Mode.WRITE))
+
+
+ArgsFactory = Callable[[Channel], List[str]]
+
+
 class SubprocessServer(Server):
   """A server running as a subprocess.
 
@@ -138,12 +231,12 @@ class SubprocessServer(Server):
 
   def __init__(self,
                args_factory: ArgsFactory,
-               extra_file_descriptors: Optional[List[int]] = None):
+               extra_file_descriptors: Optional[List[FileDescriptor]] = None):
     """Constructor.
 
     Args:
-      args_factory: Function which takes a channel and returns
-        the args to run the server subprocess (as required by subprocess.Popen).
+      args_factory: Function which takes a channel and returns the args to run
+        the server subprocess (as required by subprocess.Popen).
       extra_file_descriptors: Extra file desctiptors to map to the subprocess.
     """
     self._args_factory = args_factory
@@ -166,27 +259,29 @@ class SubprocessServer(Server):
       stack.callback(os.close, output_w_fd)
       self._output_r = os.fdopen(output_r_fd, "rb", buffering=0)
 
+      input_r_fd_obj = FileDescriptor.FromFileDescriptor(input_r_fd)
+      output_w_fd_obj = FileDescriptor.FromFileDescriptor(output_w_fd)
+
       if platform.system() == "Windows":
         # pylint: disable=g-import-not-at-top
-        import msvcrt
         from grr_response_client.unprivileged.windows import process  # pytype: disable=import-error
         # pylint: enable=g-import-not-at-top
-        # pytype doesn't see the functions in msvcrt
-        # pytype: disable=module-attr
-        input_r_handle = msvcrt.get_osfhandle(input_r_fd)
-        output_w_handle = msvcrt.get_osfhandle(output_w_fd)
-        # pytype: enable=module-attr
         args = self._args_factory(
-            Channel(pipe_input=input_r_handle, pipe_output=output_w_handle))
-        self._process_win = process.Process(args, [input_r_fd, output_w_fd] +
-                                            self._extra_file_descriptors)
+            Channel(pipe_input=input_r_fd_obj, pipe_output=output_w_fd_obj))
+        extra_handles = [fd.ToHandle() for fd in self._extra_file_descriptors]
+        self._process_win = process.Process(
+            args, [input_r_fd_obj.ToHandle(),
+                   output_w_fd_obj.ToHandle()] + extra_handles)
       else:
         args = self._args_factory(
-            Channel(pipe_input=input_r_fd, pipe_output=output_w_fd))
+            Channel(pipe_input=input_r_fd_obj, pipe_output=output_w_fd_obj))
+        extra_fds = [
+            fd.ToFileDescriptor() for fd in self._extra_file_descriptors
+        ]
         self._process = subprocess.Popen(
             args,
             close_fds=True,
-            pass_fds=[input_r_fd, output_w_fd] + self._extra_file_descriptors,
+            pass_fds=[input_r_fd, output_w_fd] + extra_fds,
         )
 
   def Stop(self) -> None:
@@ -205,48 +300,6 @@ class SubprocessServer(Server):
     return Connection(transport)
 
 
-def SerializeFileDescriptor(file_descriptor: int) -> int:
-  """Serializes a file descriptor for passing to a different process.
-
-  On Windows, transforms `file_descriptor` to a handle.
-
-  On other platforms, `file_descriptor` is returned verbatim.
-
-  Args:
-    file_descriptor: The file descriptor.
-
-  Returns:
-    The serialized value.
-  """
-  if platform.system() == "Windows":
-    import msvcrt  # pylint: disable=g-import-not-at-top
-    # pytype doesn't see the functions in msvcrt
-    return msvcrt.get_osfhandle(file_descriptor)  # pytype: disable=module-attr
-  else:
-    return file_descriptor
-
-
-def DeserializeFileDescriptorReadOnly(value: int) -> int:
-  """Deserializes a file descriptor received from a different process.
-
-  On Windows, `value` is transformed from a handle to a file descriptor.
-
-  On other platforms, `value` is interpreted as a file descriptor.
-
-  Args:
-    value: The serialized value.
-
-  Returns:
-    A file descriptor.
-  """
-  if platform.system() == "Windows":
-    import msvcrt  # pylint: disable=g-import-not-at-top
-    # pytype doesn't see the functions in msvcrt
-    return msvcrt.open_osfhandle(value, os.O_RDONLY)  # pytype: disable=module-attr
-  else:
-    return value
-
-
 def Main(channel: Channel, connection_handler: ConnectionHandler) -> None:
   """The entry point of the server process.
 
@@ -254,16 +307,12 @@ def Main(channel: Channel, connection_handler: ConnectionHandler) -> None:
     channel: Channel connected to the client.
     connection_handler: Connection handler for processing the connection.
   """
-  if platform.system() == "Windows":
-    import msvcrt  # pylint: disable=g-import-not-at-top
-    # pytype doesn't see the functions in mscvcrt
-    # pytype: disable=module-attr
-    channel = Channel(
-        pipe_input=msvcrt.open_osfhandle(channel.pipe_input, os.O_RDONLY),
-        pipe_output=msvcrt.open_osfhandle(channel.pipe_output, os.O_APPEND))
-    # pytype: enable=module-attr
-  with os.fdopen(channel.pipe_input, "rb", buffering=False) as pipe_input:
-    with os.fdopen(channel.pipe_output, "wb", buffering=False) as pipe_output:
+  with os.fdopen(
+      channel.pipe_input.ToFileDescriptor(), "rb",
+      buffering=False) as pipe_input:
+    with os.fdopen(
+        channel.pipe_output.ToFileDescriptor(), "wb",
+        buffering=False) as pipe_output:
       transport = PipeTransport(pipe_input, pipe_output)
       connection = Connection(transport)
       connection_handler(connection)

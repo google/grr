@@ -16,11 +16,6 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
-# See
-# https://github.com/libyal/libfsntfs/blob/master/documentation/New%20Technologies%20File%20System%20(NTFS).asciidoc#file_attribute_flags
-FILE_ATTRIBUTE_READONLY = 0x00000001
-FILE_ATTRIBUTE_HIDDEN = 0x00000002
-
 
 class MountCacheItem(NamedTuple):
   client: client.Client
@@ -66,17 +61,19 @@ def _ConvertStatEntry(entry: filesystem_pb2.StatEntry,
   st.st_btime = rdfvalue.RDFDatetimeSeconds(entry.st_btime.seconds)
   st.st_ctime = rdfvalue.RDFDatetimeSeconds(entry.st_ctime.seconds)
 
-  if entry.ntfs.is_directory:
-    st.st_mode |= stat.S_IFDIR
-  else:
-    st.st_mode |= stat.S_IFREG
+  if entry.HasField("ntfs"):
+    if entry.ntfs.is_directory:
+      st.st_mode |= stat.S_IFDIR
+    else:
+      st.st_mode |= stat.S_IFREG
 
-  flags = entry.ntfs.flags
-  st.st_mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-  if (flags & FILE_ATTRIBUTE_READONLY) == 0:
-    st.st_mode |= stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
-  if (flags & FILE_ATTRIBUTE_HIDDEN) == 0:
-    st.st_mode |= stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+    flags = entry.ntfs.flags
+    st.st_mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
+    if (flags & stat.FILE_ATTRIBUTE_READONLY) == 0:
+      st.st_mode |= stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
+    if (flags & stat.FILE_ATTRIBUTE_HIDDEN) == 0:
+      st.st_mode |= stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
+
   return st
 
 
@@ -86,7 +83,7 @@ class VFSHandlerDevice(client.Device):
   def __init__(self,
                vfs_handler: vfs_base.VFSHandler,
                device_file_descriptor: Optional[int] = None):
-    super(VFSHandlerDevice, self).__init__()
+    super().__init__()
     self._vfs_handler = vfs_handler
     self._device_file_descriptor = device_file_descriptor
 
@@ -109,7 +106,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
                handlers: Dict[Any, Type[vfs_base.VFSHandler]],
                pathspec: Optional[rdf_paths.PathSpec] = None,
                progress_callback: Optional[Callable[[], None]] = None):
-    super(UnprivilegedFileBase, self).__init__(
+    super().__init__(
         base_fd,
         handlers=handlers,
         pathspec=pathspec,
@@ -362,3 +359,8 @@ class UnprivilegedNtfsFile(UnprivilegedFileBase):
 
   def _ToClientPath(self, path: str) -> str:
     return path.replace("/", "\\")
+
+
+class UnprivilegedTskFile(UnprivilegedFileBase):
+  supported_pathtype = rdf_paths.PathSpec.PathType.TSK
+  implementation_type = filesystem_pb2.TSK

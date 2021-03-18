@@ -96,12 +96,12 @@ class ApiSslServerTestBase(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     ApiSslServerTestBase._api_set_up_done = True
 
   def setUp(self):
-    super(ApiSslServerTestBase, self).setUp()
+    super().setUp()
 
     api_auth_manager.InitializeApiAuthManager(
         api_call_router_without_checks.ApiCallRouterWithoutChecks)
-    self.token.username = "api_test_robot_user"
-    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
+    self.test_username = "api_test_robot_user"
+    webauth.WEBAUTH_MANAGER.SetUserName(self.test_username)
 
 
 class ApiSslE2ETestMixin(object):
@@ -168,7 +168,7 @@ class ApiSslWithConfigurationInEnvVarsE2ETest(ApiSslServerTestBase,
                                               ApiSslE2ETestMixin):
 
   def setUp(self):
-    super(ApiSslWithConfigurationInEnvVarsE2ETest, self).setUp()
+    super().setUp()
 
     prev_environ = dict(os.environ)
 
@@ -186,7 +186,7 @@ class ApiSslWithWithVerifyFalseE2ETest(ApiSslServerTestBase,
                                        ApiSslE2ETestMixin):
 
   def setUp(self):
-    super(ApiSslWithWithVerifyFalseE2ETest, self).setUp()
+    super().setUp()
 
     self.api = grr_api.InitHttp(
         api_endpoint=self.__class__.ssl_endpoint, verify=False)
@@ -196,7 +196,7 @@ class ApiSslWithWithVerifyPointingToCABundleTest(ApiSslServerTestBase,
                                                  ApiSslE2ETestMixin):
 
   def setUp(self):
-    super(ApiSslWithWithVerifyPointingToCABundleTest, self).setUp()
+    super().setUp()
 
     self.api = grr_api.InitHttp(
         api_endpoint=self.__class__.ssl_endpoint,
@@ -218,7 +218,7 @@ class TCPServerV6(socketserver.TCPServer):
 class ApiSslProxyTest(ApiSslServerTestBase):
 
   def setUp(self):
-    super(ApiSslProxyTest, self).setUp()
+    super().setUp()
     attempts_count = 0
     self.proxy_server = None
     while self.proxy_server is None:

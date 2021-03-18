@@ -29,7 +29,6 @@ from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import temp
-from grr_response_server import access_control
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -118,7 +117,7 @@ class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateFlowHandler."""
 
   def setUp(self):
-    super(ApiCreateFlowHandlerTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.handler = flow_plugin.ApiCreateFlowHandler()
 
@@ -140,7 +139,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Tests for ApiGetFlowFilesArchiveHandler."""
 
   def setUp(self):
-    super(ApiGetFlowFilesArchiveHandlerTest, self).setUp()
+    super().setUp()
 
     self.handler = flow_plugin.ApiGetFlowFilesArchiveHandler()
 
@@ -151,7 +150,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
         file_finder.FileFinder.__name__,
         action_mock,
         client_id=self.client_id,
-        token=self.token,
+        creator=self.test_username,
         paths=[os.path.join(self.base_path, "test.plist")],
         action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"))
 
@@ -323,7 +322,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
   """Tests for ApiGetExportedFlowResultsHandler."""
 
   def setUp(self):
-    super(ApiGetExportedFlowResultsHandlerTest, self).setUp()
+    super().setUp()
 
     self.handler = flow_plugin.ApiGetExportedFlowResultsHandler()
     self.client_id = self.SetupClient(0)
@@ -334,7 +333,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
       sid = flow_test_lib.TestFlowHelper(
           compatibility.GetName(flow_test_lib.DummyFlowWithSingleReply),
           client_id=self.client_id,
-          token=self.token)
+          creator=self.test_username)
 
     result = self.handler.Handle(
         flow_plugin.ApiGetExportedFlowResultsArgs(
@@ -435,7 +434,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
       return [rdf_client_action.ExecuteResponse(stdout=stdout)]
 
   def setUp(self):
-    super(ApiListParsedFlowResultsHandlerTest, self).setUp()
+    super().setUp()
     self.handler = flow_plugin.ApiListParsedFlowResultsHandler()
 
   @db_test_lib.WithDatabase
@@ -452,9 +451,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
 
     client_id = db_test_utils.InitializeClient(db)
     flow_id = flow_test_lib.TestFlowHelper(
-        FakeFlow.__name__,
-        client_id=client_id,
-        token=access_control.ACLToken(username=context.username))
+        FakeFlow.__name__, client_id=client_id, creator=context.username)
 
     flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -484,7 +481,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
           self.FakeExecuteCommand(),
           client_id=client_id,
           args=flow_args,
-          token=access_control.ACLToken(username=context.username))
+          creator=context.username)
 
     flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -513,7 +510,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
           self.FakeExecuteCommand(),
           client_id=client_id,
           args=flow_args,
-          token=access_control.ACLToken(username=context.username))
+          creator=context.username)
 
       flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -567,7 +564,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
           self.FakeExecuteCommand(),
           client_id=client_id,
           args=flow_args,
-          token=access_control.ACLToken(username=context.username))
+          creator=context.username)
 
       flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -620,7 +617,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
           self.FakeExecuteCommand(),
           client_id=client_id,
           args=flow_args,
-          token=access_control.ACLToken(username=context.username))
+          creator=context.username)
 
     class FakeParser(
         abstract_parser.SingleResponseParser[rdf_client_action.ExecuteResponse],
@@ -701,7 +698,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
             action_mocks.FileFinderClientMock(),
             client_id=client_id,
             args=flow_args,
-            token=access_control.ACLToken(username=context.username))
+            creator=context.username)
 
         flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -720,7 +717,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
             action_mocks.FileFinderClientMock(),
             client_id=client_id,
             args=flow_args,
-            token=access_control.ACLToken(username=context.username))
+            creator=context.username)
 
         flow_test_lib.FinishAllFlowsOnClient(client_id)
 
@@ -770,7 +767,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
           self.FakeExecuteCommand(),
           client_id=client_id,
           args=flow_args,
-          token=access_control.ACLToken(username=context.username))
+          creator=context.username)
 
       flow_test_lib.FinishAllFlowsOnClient(client_id)
 

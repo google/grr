@@ -925,14 +925,14 @@ class ProtoBoolean(ProtoEnum):
 
   def GetDefault(self, container=None):
     """Return boolean value."""
-    return bool(int(super(ProtoBoolean, self).GetDefault(container=container)))
+    return bool(int(super().GetDefault(container=container)))
 
   def Validate(self, value, **_):
     """Check that value is a valid enum."""
     if value is None:
       return
 
-    return bool(int(super(ProtoBoolean, self).Validate(value)))
+    return bool(int(super().Validate(value)))
 
   def ConvertFromWireFormat(self, value, container=None):
     return bool(
@@ -941,7 +941,7 @@ class ProtoBoolean(ProtoEnum):
                   self).ConvertFromWireFormat(value, container=container)))
 
   def ConvertToWireFormat(self, value):
-    return super(ProtoBoolean, self).ConvertToWireFormat(bool(value))
+    return super().ConvertToWireFormat(bool(value))
 
 
 class ProtoEmbedded(ProtoType):
@@ -1770,7 +1770,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
   protobuf = None
 
   # This is where the type infos are constructed.
-  type_infos = None
+  type_infos = None  # type: type_info.TypeDescriptorSet
 
   # Mark as dirty each time we modify this object.
   dirty = False
@@ -1962,7 +1962,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
 
   def __dir__(self):
     """Add the virtualized fields to the console's tab completion."""
-    return (dir(super(RDFStruct, self)) + [x.name for x in self.type_infos])
+    return (dir(super()) + [x.name for x in self.type_infos])  # pylint: disable=not-an-iterable
 
   def _Set(self, value, type_descriptor):
     """Validate the value and set the attribute with it."""

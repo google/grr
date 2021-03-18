@@ -34,7 +34,7 @@ class ProcessTest(absltest.TestCase):
             str(output_w_handle),
         ]
 
-        p = process.Process(args, [input_r_fd, output_w_fd])
+        p = process.Process(args, [input_r_handle, output_w_handle])
         input_w.write(b"foo")
         result = output_r.read(6)
         self.assertEqual(result, b"foo123")

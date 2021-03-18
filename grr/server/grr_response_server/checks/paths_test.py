@@ -20,7 +20,7 @@ class PathsCheckTests(checks_test_lib.HostCheckTest):
   parser = None
 
   def setUp(self, *args, **kwargs):
-    super(PathsCheckTests, self).setUp(*args, **kwargs)
+    super().setUp(*args, **kwargs)
     if not self.check_loaded:
       self.check_loaded = self.LoadCheck("paths.yaml")
     if not self.parser:

@@ -45,7 +45,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     ])
     flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -81,7 +81,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME])
     flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -111,7 +111,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME])
     flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -142,7 +142,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME])
     flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -174,7 +174,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME])
     flow_id = flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -215,7 +215,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME])
     flow_id = flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -273,7 +273,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME])
     flow_id = flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -314,7 +314,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     ])
     flow_id = flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -370,7 +370,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         browsers=[webhistory.CollectBrowserHistoryArgs.Browser.CHROME])
     flow_id = flow_test_lib.StartFlow(
         webhistory.CollectBrowserHistory,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 

@@ -63,7 +63,7 @@ class HttpApiRegressionTestMixinBase(object):
       return connectors.HttpConnector(api_endpoint=_HTTP_ENDPOINTS[api_version])
 
   def setUp(self):
-    super(HttpApiRegressionTestMixinBase, self).setUp()
+    super().setUp()
     self.connector = self.GetConnector(self.__class__.api_version)
 
   def _ParseJSON(self, json_str):

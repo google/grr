@@ -23,7 +23,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
                          hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
-    super(TestFlowCreateHunt, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(self.client_id)
     self.action_mock = action_mocks.FileFinderClientMock()
@@ -130,13 +130,13 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
     h = hunts[0]
     approval_id = self.RequestHuntApproval(
         h.hunt_id,
-        requestor=self.token.username,
+        requestor=self.test_username,
         reason="reason",
-        approver=self.token.username)
+        approver=self.test_username)
 
     # Open the approval page.
     self.Open("/#/users/%s/approvals/hunt/%s/%s" %
-              (self.token.username, h.hunt_id, approval_id))
+              (self.test_username, h.hunt_id, approval_id))
     self.WaitUntil(self.IsElementPresent,
                    "css=div.panel-body:contains('This hunt was created from')")
 

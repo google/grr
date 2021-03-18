@@ -903,7 +903,7 @@ class ClientArtifactCollector(flow_base.FlowBase):
 
   def Start(self):
     """Issue the artifact collection request."""
-    super(ClientArtifactCollector, self).Start()
+    super().Start()
 
     self.state.knowledge_base = self.args.knowledge_base
     self.state.response_count = 0
@@ -986,7 +986,7 @@ class ClientArtifactCollector(flow_base.FlowBase):
       self.state.response_count += 1
 
   def End(self, responses):
-    super(ClientArtifactCollector, self).End(responses)
+    super().End(responses)
 
     # If we got no responses, and user asked for it, we error out.
     if self.args.error_on_no_results and self.state.response_count == 0:

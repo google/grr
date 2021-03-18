@@ -38,7 +38,7 @@ class ApiListHuntsHandlerRegressionTest(
     for i in range(0, 2):
       with test_lib.FakeTime((1 + i) * 1000):
         hunt_id = self.CreateHunt(
-            description="hunt_%d" % i, creator=self.token.username)
+            description="hunt_%d" % i, creator=self.test_username)
         if i % 2:
           hunt.StopHunt(hunt_id)
 
@@ -66,7 +66,7 @@ class ApiListHuntResultsRegressionTest(hunt_test_lib.StandardHuntTestMixin,
   def Run(self):
     client_id = self.SetupClient(0)
 
-    hunt_id = self.CreateHunt(creator=self.token.username)
+    hunt_id = self.CreateHunt(creator=self.test_username)
     flow_id = flow_test_lib.StartFlow(
         flows_processes.ListProcesses,
         client_id=client_id,
@@ -121,7 +121,7 @@ class ApiGetHuntHandlerRegressionTest(api_regression_test_lib.ApiRegressionTest,
       # TODO(user): make hunt stats non-zero when AFF4 is gone to
       # improve test coverage.
       hunt_id = self.CreateHunt(
-          description="the hunt", creator=self.token.username)
+          description="the hunt", creator=self.test_username)
 
     self.Check(
         "GetHunt",
@@ -147,7 +147,7 @@ class ApiGetHuntHandlerHuntCopyRegressionTest(
       hunt_id = self.CreateHunt(
           description="the hunt",
           original_object=ref,
-          creator=self.token.username)
+          creator=self.test_username)
 
     self.Check(
         "GetHunt",
@@ -174,7 +174,7 @@ class ApiGetHuntHandlerFlowCopyRegressionTest(
       hunt_id = self.CreateHunt(
           description="the hunt",
           original_object=ref,
-          creator=self.token.username)
+          creator=self.test_username)
 
     self.Check(
         "GetHunt",
@@ -191,7 +191,7 @@ class ApiListHuntLogsHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      hunt_id = self.CreateHunt(creator=self.token.username)
+      hunt_id = self.CreateHunt(creator=self.test_username)
 
     client_id = self.SetupClient(0)
     flow_id = flow_test_lib.StartFlow(
@@ -245,7 +245,7 @@ class ApiListHuntErrorsHandlerRegressionTest(
 
     with test_lib.FakeTime(42):
       hunt_id = self.CreateHunt(
-          description="the hunt", creator=self.token.username)
+          description="the hunt", creator=self.test_username)
 
     with test_lib.FakeTime(52):
       flow_id = flow_test_lib.StartFlow(
@@ -293,17 +293,15 @@ class ApiListHuntCrashesHandlerRegressionTest(
   def Run(self):
     client_id = self.SetupClient(0)
 
-    client_mocks = {
-        client_id: flow_test_lib.CrashClientMock(client_id, self.token)
-    }
+    client_mocks = {client_id: flow_test_lib.CrashClientMock(client_id)}
 
     hunt_id = self.CreateHunt(
-        description="the hunt", creator=self.token.username)
+        description="the hunt", creator=self.test_username)
     hunt.StartHunt(hunt_id)
 
     with test_lib.FakeTime(45):
       self.AssignTasksToClients([client_id])
-      hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks, self.token)
+      hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks)
 
     crash = data_store.REL_DB.ReadHuntFlows(
         hunt_id,
@@ -347,14 +345,14 @@ class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
     client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
 
     hunt_id = self.CreateHunt(
-        description="the hunt", creator=self.token.username)
+        description="the hunt", creator=self.test_username)
     hunt.StartHunt(hunt_id)
 
     time_offset = 0
     for client_id in client_ids:
       with test_lib.FakeTime(45 + time_offset):
         self.AssignTasksToClients([client_id])
-        hunt_test_lib.TestHuntHelper(client_mock, [client_id], self.token)
+        hunt_test_lib.TestHuntHelper(client_mock, [client_id])
         time_offset += 10
 
     replace = {hunt_id: "H:123456"}
@@ -384,7 +382,7 @@ class ApiGetHuntResultsExportCommandHandlerRegressionTest(
   def Run(self):
     with test_lib.FakeTime(42):
       hunt_id = self.CreateHunt(
-          description="the hunt", creator=self.token.username)
+          description="the hunt", creator=self.test_username)
       # TODO(user): replacement done for backwards compatibility with
       # the AFF4 implementation. Simply change to {hunt_id: "123456"} when
       # AFF4 is gone.
@@ -421,7 +419,7 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
       hunt_id = self.CreateHunt(
           description="the hunt",
           output_plugins=output_plugins,
-          creator=self.token.username)
+          creator=self.test_username)
       hunt.StartHunt(hunt_id)
 
     self.Check(
@@ -454,7 +452,7 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
       hunt_id = self.CreateHunt(
           description="the hunt",
           output_plugins=output_plugins,
-          creator=self.token.username)
+          creator=self.test_username)
       hunt.StartHunt(hunt_id)
 
       self.client_ids = self.SetupClients(2)
@@ -489,7 +487,7 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
       hunt_id = self.CreateHunt(
           description="the hunt",
           output_plugins=[failing_descriptor],
-          creator=self.token.username)
+          creator=self.test_username)
       hunt.StartHunt(hunt_id)
 
       self.client_ids = self.SetupClients(2)
@@ -513,7 +511,7 @@ class ApiGetHuntStatsHandlerRegressionTest(
   def Run(self):
     with test_lib.FakeTime(42):
       hunt_id = self.CreateHunt(
-          description="the hunt", creator=self.token.username)
+          description="the hunt", creator=self.test_username)
       hunt.StartHunt(hunt_id)
 
       client_id = self.SetupClient(0)
@@ -542,7 +540,7 @@ class ApiListHuntClientsHandlerRegressionTest(
   def Run(self):
     with test_lib.FakeTime(42):
       hunt_id = self.CreateHunt(
-          description="the hunt", creator=self.token.username)
+          description="the hunt", creator=self.test_username)
       hunt.StartHunt(hunt_id)
 
       client_ids = self.SetupClients(5)
@@ -584,7 +582,7 @@ class ApiModifyHuntHandlerRegressionTest(
     # Check client_limit update.
     with test_lib.FakeTime(42):
       hunt_id = self.CreateHunt(
-          description="the hunt", creator=self.token.username)
+          description="the hunt", creator=self.test_username)
 
     # Create replace dictionary.
     replace = {hunt_id: "H:123456"}
@@ -610,7 +608,7 @@ class ApiDeleteHuntHandlerRegressionTest(
   def Run(self):
     with test_lib.FakeTime(42):
       hunt_id = self.CreateHunt(
-          description="the hunt", creator=self.token.username)
+          description="the hunt", creator=self.test_username)
 
     self.Check(
         "DeleteHunt",

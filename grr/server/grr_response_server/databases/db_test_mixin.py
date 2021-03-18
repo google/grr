@@ -43,7 +43,7 @@ class DatabaseSetupMixin(DatabaseProvider):
     # In case a test registers a message handler, unregister it.
     self.addCleanup(self.db.UnregisterMessageHandler)
 
-    super(DatabaseSetupMixin, self).setUp()
+    super().setUp()
 
 
 class DatabaseTestMixin(DatabaseSetupMixin, metaclass=abc.ABCMeta):
@@ -91,4 +91,4 @@ class GlobalDatabaseTestMixin(DatabaseProvider):
     # In case a test registers a message handler, unregister it.
     self.addCleanup(data_store.REL_DB.UnregisterMessageHandler)
 
-    super(GlobalDatabaseTestMixin, self).setUp()
+    super().setUp()

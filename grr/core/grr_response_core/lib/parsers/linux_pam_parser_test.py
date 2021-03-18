@@ -134,7 +134,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
   """Test parsing of PAM config files."""
 
   def setUp(self):
-    super(LinuxPAMParserTest, self).setUp()
+    super().setUp()
     self.kb = rdf_client.KnowledgeBase(fqdn='test.example.com', os='Linux')
 
   def _EntryToTuple(self, entry):

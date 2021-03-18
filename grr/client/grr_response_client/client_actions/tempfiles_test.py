@@ -25,7 +25,7 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
 
   def setUp(self):
     """Create fake filesystem."""
-    super(GRRTempFileTestFilename, self).setUp()
+    super().setUp()
     # This is where temp files go if a directory is not provided.
     # For this test it has to be different from the temp directory
     # so we create a new one.
@@ -91,7 +91,7 @@ class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
   """Test DeleteGRRTempFiles client action."""
 
   def setUp(self):
-    super(DeleteGRRTempFiles, self).setUp()
+    super().setUp()
     filename = "%s_blah" % config.CONFIG["Client.tempfile_prefix"]
     self.tempfile = utils.JoinPath(self.temp_dir, "delete_test", filename)
     self.dirname = os.path.dirname(self.tempfile)

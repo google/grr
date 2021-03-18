@@ -18,7 +18,7 @@ from grr_response_core.lib.util import temp
 class MultiRepackTest(absltest.TestCase):
 
   def setUp(self):
-    super(MultiRepackTest, self).setUp()
+    super().setUp()
     self.pool_obj = mock.MagicMock()
     pool_patcher = mock.patch.object(
         multiprocessing, "Pool", return_value=self.pool_obj)

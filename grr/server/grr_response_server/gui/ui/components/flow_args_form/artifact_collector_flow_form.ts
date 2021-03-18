@@ -1,8 +1,10 @@
-import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
+import {NestedTreeControl} from '@angular/cdk/tree';
+import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, Output} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
+import {MatTreeNestedDataSource} from '@angular/material/tree';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
-import {combineLatest} from 'rxjs';
-import {map, shareReplay, startWith} from 'rxjs/operators';
+import {combineLatest, Subject} from 'rxjs';
+import {distinctUntilChanged, map, shareReplay, startWith, takeUntil} from 'rxjs/operators';
 
 import {ArtifactCollectorFlowArgs} from '../../lib/api/api_interfaces';
 import {safeTranslateOperatingSystem} from '../../lib/api_translation/flow';
@@ -31,12 +33,19 @@ const READABLE_SOURCE_NAME: {[key in SourceType]?: string} = {
   WMI: 'Queries WMI',
 };
 
-interface SampleSource {
+declare interface SampleSource {
   name: string;
   value: string;
 }
 
-interface ArtifactListEntry extends ArtifactDescriptor {
+declare interface SourceNode {
+  type: SourceType;
+  name: string;
+  values: ReadonlyArray<string>;
+  children: SourceNode[];
+}
+
+declare interface ArtifactListEntry extends ArtifactDescriptor {
   readableSources: ReadonlyMap<SourceType, ReadonlyArray<string>>;
   totalSources: number;
   sampleSource?: SampleSource;
@@ -97,6 +106,12 @@ function createListEntry(
   const readableSources = new Map<SourceType, string[]>();
 
   for (const source of ad.sources) {
+    if (clientOs !== undefined && source.supportedOs.size > 0 &&
+        !source.supportedOs.has(clientOs)) {
+      // Skip sources that explicitly state they don't support the current OS.
+      continue;
+    }
+
     const sourceList = getOrSet(readableSources, source.type, Array);
     getReadableSources(source).forEach(val => {
       sourceList.push(val);
@@ -140,6 +155,42 @@ function matches(entry: ArtifactListEntry, searchString: string): boolean {
   return entry.searchStrings.some(str => str.includes(searchString));
 }
 
+function readableSourceToNodes(
+    entries: Map<string, ArtifactListEntry>, type: SourceType,
+    readableSources: ReadonlyArray<string>): SourceNode[] {
+  if (type === SourceType.ARTIFACT || type === SourceType.ARTIFACT_FILES ||
+      type === SourceType.ARTIFACT_GROUP) {
+    return readableSources.map(source => ({
+                                 type,
+                                 // Show readable name ("Collect file") or raw
+                                 // source type ("FILE") as fallback.
+                                 name: READABLE_SOURCE_NAME[type] ?? type,
+                                 values: [source],
+                                 children: artifactToNodes(entries, source),
+                               }));
+  } else {
+    return [{
+      type,
+      name: READABLE_SOURCE_NAME[type] ?? type,
+      values: readableSources,
+      children: [],
+    }];
+  }
+}
+
+function artifactToNodes(
+    entries: Map<string, ArtifactListEntry>,
+    artifactName: string): SourceNode[] {
+  const artifact = entries.get(artifactName);
+  if (artifact === undefined) {
+    return [];
+  } else {
+    return Array.from(artifact.readableSources.entries())
+        .flatMap(
+            ([type, sources]) => readableSourceToNodes(entries, type, sources));
+  }
+}
+
 /** Form that configures a ArtifactCollectorFlow. */
 @Component({
   selector: 'artifact-collector-flow-form',
@@ -148,7 +199,10 @@ function matches(entry: ArtifactListEntry, searchString: string): boolean {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArtifactCollectorFlowForm extends
-    FlowArgumentForm<ArtifactCollectorFlowArgs> implements OnInit {
+    FlowArgumentForm<ArtifactCollectorFlowArgs> implements OnInit, OnDestroy {
+  readonly SourceType = SourceType;
+  readonly readableSourceName = READABLE_SOURCE_NAME;
+
   readonly form = new FormGroup({
     [ARTIFACT_NAME]: new FormControl(),
   });
@@ -167,6 +221,7 @@ export class ArtifactCollectorFlowForm extends
   private readonly clientOs$ = this.clientPageFacade.selectedClient$.pipe(
       map(client => safeTranslateOperatingSystem(client.knowledgeBase.os)),
       startWith(undefined),
+      distinctUntilChanged(),
   );
 
   readonly artifactListEntries$ =
@@ -195,6 +250,29 @@ export class ArtifactCollectorFlowForm extends
               }),
           );
 
+  readonly selectedArtifact$ =
+      combineLatest([
+        this.artifactListEntries$,
+        this.form.controls[ARTIFACT_NAME].valueChanges,
+      ])
+          .pipe(
+              map(([entries, searchString]) =>
+                      entries.find(ad => ad.name === searchString)),
+              startWith(undefined),
+          );
+
+
+  readonly clientId$ = this.clientPageFacade.selectedClient$.pipe(
+      map(client => client?.clientId),
+  );
+
+  readonly treeControl =
+      new NestedTreeControl<SourceNode>(node => node.children);
+
+  readonly dataSource = new MatTreeNestedDataSource<SourceNode>();
+
+  readonly unsubscribe$ = new Subject<void>();
+
   constructor(
       private readonly configFacade: ConfigFacade,
       private readonly clientPageFacade: ClientPageFacade) {
@@ -202,6 +280,20 @@ export class ArtifactCollectorFlowForm extends
   }
 
   ngOnInit() {
+    combineLatest([
+      this.selectedArtifact$,
+      this.artifactListEntries$.pipe(
+          map((entries) => new Map(entries.map(e => [e.name, e])))),
+    ])
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe(([artifact, entries]) => {
+          if (artifact === undefined) {
+            this.dataSource.data = [];
+          } else {
+            this.dataSource.data = artifactToNodes(entries, artifact.name);
+          }
+        });
+
     this.form.patchValue({
       [ARTIFACT_NAME]: this.defaultFlowArgs.artifactList?.[0] ?? '',
     });
@@ -219,5 +311,14 @@ export class ArtifactCollectorFlowForm extends
 
   printOs(artifact: ArtifactListEntry): string {
     return Array.from(artifact.supportedOs.values()).join(', ');
+  }
+
+  ngOnDestroy() {
+    this.unsubscribe$.next();
+    this.unsubscribe$.complete();
+  }
+
+  hasChild(index: number, node: SourceNode): boolean {
+    return node.children.length > 0;
   }
 }

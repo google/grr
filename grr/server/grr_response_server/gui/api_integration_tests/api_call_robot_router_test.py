@@ -63,12 +63,12 @@ users:
     api_auth_manager.InitializeApiAuthManager()
 
   def setUp(self):
-    super(ApiCallRobotRouterE2ETest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   def testCreatingArbitraryFlowDoesNotWork(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.token.username)
+                          self.test_username)
 
     client_ref = self.api.Client(client_id=self.client_id)
     with self.assertRaises(errors.AccessForbiddenError):
@@ -76,7 +76,7 @@ users:
 
   def testFileFinderWorkflowWorks(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.token.username)
+                          self.test_username)
 
     client_ref = self.api.Client(client_id=self.client_id)
 
@@ -137,7 +137,7 @@ users:
 
   def testCheckingArbitraryFlowStateDoesNotWork(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.token.username)
+                          self.test_username)
     flow_id = flow_test_lib.StartFlow(
         flow_cls=file_finder.FileFinder, client_id=self.client_id)
 
@@ -147,7 +147,7 @@ users:
 
   def testNoThrottlingDoneByDefault(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
-                          self.token.username)
+                          self.test_username)
 
     args = rdf_file_finder.FileFinderArgs(
         action=rdf_file_finder.FileFinderAction(action_type="STAT"),
@@ -174,7 +174,7 @@ users:
 
   def testFileFinderThrottlingByFlowCountWorks(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG %
-                          self.token.username)
+                          self.test_username)
 
     args = []
     for p in ["tests.plist", "numbers.txt", "numbers.txt.ver2"]:
@@ -199,7 +199,7 @@ users:
 
   def testFileFinderThrottlingByDuplicateIntervalWorks(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG %
-                          self.token.username)
+                          self.test_username)
 
     args = rdf_file_finder.FileFinderArgs(
         action=rdf_file_finder.FileFinderAction(action_type="STAT"),
@@ -227,7 +227,7 @@ users:
 
   def testFileFinderMaxFileSizeOverrideWorks(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_MAX_SIZE_OVERRIDE_CONFIG %
-                          self.token.username)
+                          self.test_username)
 
     args = rdf_file_finder.FileFinderArgs(
         action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),

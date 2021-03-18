@@ -1,10 +1,15 @@
 :host {
   display: block;
-  padding-top: 2em;
+  padding-top: 20px;
 }
 
 :host.closed {
   cursor: pointer;
+  transition: background-color 200ms cubic-bezier(0.35, 0, 0.25, 1);
+
+  &:hover {
+    background-color: rgba(0, 0, 0, 0.04);
+  }
 }
 
 :host.closed .content {
@@ -56,9 +61,23 @@ form {
 }
 
 h1 {
+  & > mat-icon {
+    display: inline;
+    font-size: inherit;
+    vertical-align: -2px;
+    margin-right: 0.5em;
+  }
+
   mat-chip {
     margin-left: 0.75em;
     min-height: 26px;
     font-size: 12px;
+    pointer-events: none;
+  }
+
+  .corner-button {
+    position: absolute;
+    right: 20px;
+    top: 12px;
   }
 }

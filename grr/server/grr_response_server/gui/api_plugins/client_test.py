@@ -62,7 +62,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiAddClientsLabelsHandler."""
 
   def setUp(self):
-    super(ApiAddClientsLabelsHandlerTest, self).setUp()
+    super().setUp()
     self.client_ids = self.SetupClients(3)
     self.handler = client_plugin.ApiAddClientsLabelsHandler()
 
@@ -102,7 +102,7 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiRemoveClientsLabelsHandler."""
 
   def setUp(self):
-    super(ApiRemoveClientsLabelsHandlerTest, self).setUp()
+    super().setUp()
     self.client_ids = self.SetupClients(3)
     self.handler = client_plugin.ApiRemoveClientsLabelsHandler()
 
@@ -166,7 +166,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
   """Tests ApiLabelsRestrictedSearchClientsHandler."""
 
   def setUp(self):
-    super(ApiLabelsRestrictedSearchClientsHandlerTestRelational, self).setUp()
+    super().setUp()
 
     self.client_ids = self.SetupClients(4)
 
@@ -270,7 +270,7 @@ class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiInterrogateClientHandler."""
 
   def setUp(self):
-    super(ApiInterrogateClientHandlerTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.handler = client_plugin.ApiInterrogateClientHandler()
 
@@ -290,7 +290,7 @@ class ApiGetClientVersionTimesTestMixin(object):
   """Test mixin for ApiGetClientVersionTimes."""
 
   def setUp(self):
-    super(ApiGetClientVersionTimesTestMixin, self).setUp()
+    super().setUp()
     self.handler = client_plugin.ApiGetClientVersionTimesHandler()
 
   def testHandler(self):
@@ -419,7 +419,7 @@ class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
 class ApiSearchClientsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
-    super(ApiSearchClientsHandlerTest, self).setUp()
+    super().setUp()
     self.search_handler = client_plugin.ApiSearchClientsHandler()
     self.add_labels_handler = client_plugin.ApiAddClientsLabelsHandler()
 

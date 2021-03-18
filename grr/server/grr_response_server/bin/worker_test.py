@@ -71,7 +71,7 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.TestFlowHelper(
         flow_test_lib.CPULimitFlow.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=client_id,
         cpu_limit=1000,
         network_bytes_limit=10000)

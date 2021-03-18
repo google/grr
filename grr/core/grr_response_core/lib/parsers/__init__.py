@@ -1,13 +1,10 @@
 #!/usr/bin/env python
 # Lint as: python3
 """Generic parsers (for GRR server and client code)."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
-from typing import Any
 from typing import Iterator
 from typing import Text
+from typing import Type
+from typing import TypeVar
 
 from grr_response_core.lib import factory
 from grr_response_core.lib import rdfvalue
@@ -39,6 +36,9 @@ MULTI_FILE_PARSER_FACTORY: _Factory[MultiFileParser[_RDFValue]] = (
     _Factory(MultiFileParser[_RDFValue]))
 
 
+_P = TypeVar("_P", bound=Parser)
+
+
 class ArtifactParserFactory(object):
   """A factory wrapper class that yields parsers for specific artifact."""
 
@@ -57,54 +57,61 @@ class ArtifactParserFactory(object):
             self.HasSingleFileParsers() or self.HasMultiFileParsers())
 
   def HasSingleResponseParsers(self) -> bool:
-    return any(self.SingleResponseParsers())
+    return any(self.SingleResponseParserTypes())
 
   def SingleResponseParsers(self) -> Iterator[SingleResponseParser[_RDFValue]]:
-    # TODO: Apparently, pytype does not understand that we use
-    # `filter` from the `future` package (which returns an iterator), instead of
-    # builtin one which in Python 2 returns lists.
-    return filter(self._IsSupported, SINGLE_RESPONSE_PARSER_FACTORY.CreateAll())  # pytype: disable=bad-return-type
+    return self._CreateSupportedParsers(SINGLE_RESPONSE_PARSER_FACTORY)
+
+  def SingleResponseParserTypes(
+      self) -> Iterator[Type[SingleResponseParser[_RDFValue]]]:
+    return self._SupportedTypes(SINGLE_RESPONSE_PARSER_FACTORY)
 
   def HasMultiResponseParsers(self) -> bool:
-    return any(self.MultiResponseParsers())
+    return any(self.MultiResponseParserTypes())
 
   def MultiResponseParsers(self) -> Iterator[MultiResponseParser[_RDFValue]]:
-    # TODO: See above.
-    return filter(self._IsSupported, MULTI_RESPONSE_PARSER_FACTORY.CreateAll())  # pytype: disable=bad-return-type
+    return self._CreateSupportedParsers(MULTI_RESPONSE_PARSER_FACTORY)
+
+  def MultiResponseParserTypes(
+      self) -> Iterator[Type[MultiResponseParser[_RDFValue]]]:
+    return self._SupportedTypes(MULTI_RESPONSE_PARSER_FACTORY)
 
   def HasSingleFileParsers(self) -> bool:
-    return any(self.SingleFileParsers())
+    return any(self.SingleFileParserTypes())
 
   def SingleFileParsers(self) -> Iterator[SingleFileParser[_RDFValue]]:
-    # TODO: See above.
-    return filter(self._IsSupported, SINGLE_FILE_PARSER_FACTORY.CreateAll())  # pytype: disable=bad-return-type
+    return self._CreateSupportedParsers(SINGLE_FILE_PARSER_FACTORY)
+
+  def SingleFileParserTypes(
+      self) -> Iterator[Type[SingleFileParser[_RDFValue]]]:
+    return self._SupportedTypes(SINGLE_FILE_PARSER_FACTORY)
 
   def HasMultiFileParsers(self) -> bool:
-    return any(self.MultiFileParsers())
+    return any(self.MultiFileParserTypes())
 
   def MultiFileParsers(self) -> Iterator[MultiFileParser[_RDFValue]]:
-    # TODO: See above.
-    return filter(self._IsSupported, MULTI_FILE_PARSER_FACTORY.CreateAll())  # pytype: disable=bad-return-type
+    return self._CreateSupportedParsers(MULTI_FILE_PARSER_FACTORY)
 
-  # TODO(hanuszczak): It is unclear whether this method has a right to exist. It
-  # is not possible to properly type it, since parser in general do not have any
-  # common interface. It should be considered to be a temporary hack to get rid
-  # of metaclass registries and is only used to generate descriptors for all
-  # parsers, but some better approach needs to be devised in the future.
-  def AllParsers(self) -> Iterator[Parser[_RDFValue]]:
-    """Retrieves all known parser applicable for the artifact.
+  def MultiFileParserTypes(self) -> Iterator[Type[MultiFileParser[_RDFValue]]]:
+    return self._SupportedTypes(MULTI_FILE_PARSER_FACTORY)
 
-    Returns:
-      An iterator over parser instances.
-    """
+  def AllParserTypes(self) -> Iterator[Type[Parser[_RDFValue]]]:
+    """Returns all known parser types applicable for the artifact."""
     return collection.Flatten([
-        self.SingleResponseParsers(),
-        self.MultiResponseParsers(),
-        self.SingleFileParsers(),
-        self.MultiFileParsers(),
+        self.SingleResponseParserTypes(),
+        self.MultiResponseParserTypes(),
+        self.SingleFileParserTypes(),
+        self.MultiFileParserTypes(),
     ])
 
-  # TODO(hanuszczak): Figure out why pytype complains if a type variable is used
-  # here.
-  def _IsSupported(self, parser_obj: Parser[Any]) -> bool:
-    return self._artifact_name in parser_obj.supported_artifacts
+  def _CreateSupportedParsers(self, fac: _Factory[_P]) -> Iterator[_P]:
+    for name in fac.Names():
+      cls = fac.GetType(name)
+      if self._artifact_name in cls.supported_artifacts:
+        yield fac.Create(name)
+
+  def _SupportedTypes(self, fac: _Factory[_P]) -> Iterator[Type[_P]]:
+    for name in fac.Names():
+      cls = fac.GetType(name)
+      if self._artifact_name in cls.supported_artifacts:
+        yield cls

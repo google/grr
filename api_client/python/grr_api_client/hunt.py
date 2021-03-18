@@ -29,7 +29,7 @@ class HuntApprovalBase(object):
       username: str,
       context: context_lib.GrrApiContext,
   ):
-    super(HuntApprovalBase, self).__init__()
+    super().__init__()
 
     if not hunt_id:
       raise ValueError("hunt_id can't be empty.")
@@ -108,7 +108,7 @@ class HuntApproval(HuntApprovalBase):
       username: str,
       context: context_lib.GrrApiContext,
   ):
-    super(HuntApproval, self).__init__(
+    super().__init__(
         hunt_id=utils.UrnStringToHuntId(data.subject.urn),
         approval_id=data.id,
         username=username,
@@ -125,7 +125,7 @@ class HuntResult(object):
       data: hunt_pb2.ApiHuntResult,
       context: context_lib.GrrApiContext,
   ):
-    super(HuntResult, self).__init__()
+    super().__init__()
     self.data = data  # type: hunt_pb2.ApiHuntResult
 
     self.client = client.ClientRef(
@@ -146,7 +146,7 @@ class HuntError(object):
       data: hunt_pb2.ApiHuntError,
       context: context_lib.GrrApiContext,
   ):
-    super(HuntError, self).__init__()
+    super().__init__()
 
     self.data = data  # type: hunt_pb2.ApiHuntError
     self.log_message = self.data.log_message  # type: str
@@ -165,7 +165,7 @@ class HuntLog(object):
       data: hunt_pb2.ApiHuntLog,
       context: context_lib.GrrApiContext,
   ):
-    super(HuntLog, self).__init__()
+    super().__init__()
 
     self.data = data  # type: hunt_pb2.ApiHuntLog
     self.log_message = self.data.log_message  # str
@@ -184,7 +184,7 @@ class HuntClient(client.ClientRef):
       data: hunt_pb2.ApiHuntClient,
       context: context_lib.GrrApiContext,
   ):
-    super(HuntClient, self).__init__(client_id=data.client_id, context=context)
+    super().__init__(client_id=data.client_id, context=context)
 
     self.data = data  # type: hunt_pb2.ApiHuntClient
 
@@ -197,7 +197,7 @@ class HuntBase(object):
       hunt_id: str,
       context: context_lib.GrrApiContext,
   ):
-    super(HuntBase, self).__init__()
+    super().__init__()
 
     if not hunt_id:
       raise ValueError("hunt_id can't be empty.")
@@ -400,7 +400,7 @@ class Hunt(HuntBase):
   ):
     hunt_id = utils.UrnStringToHuntId(data.urn)
 
-    super(Hunt, self).__init__(hunt_id=hunt_id, context=context)
+    super().__init__(hunt_id=hunt_id, context=context)
 
     self.data = data  # type: hunt_pb2.ApiHunt
 

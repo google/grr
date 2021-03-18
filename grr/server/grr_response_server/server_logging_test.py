@@ -30,7 +30,7 @@ class ApplicationLoggerTests(test_lib.GRRBaseTest):
       self.log += msg
 
   def setUp(self):
-    super(ApplicationLoggerTests, self).setUp()
+    super().setUp()
 
     self.l = server_logging.GrrApplicationLogger()
 

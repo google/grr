@@ -121,7 +121,7 @@ class RpmCmdParser(parser.CommandParser):
     rpm_re = re.compile(r"^(\w[-\w\+]+?)-(\d.*)$")
     self.CheckReturn(cmd, return_val)
     packages = []
-    for line in stdout.splitlines():
+    for line in stdout.decode("utf-8").splitlines():
       pkg_match = rpm_re.match(line.strip())
       if pkg_match:
         name, version = pkg_match.groups()
@@ -130,7 +130,7 @@ class RpmCmdParser(parser.CommandParser):
     if packages:
       yield rdf_client.SoftwarePackages(packages=packages)
 
-    for line in stderr.splitlines():
+    for line in stderr.decode("utf-8").splitlines():
       if "error: rpmdbNextIterator: skipping h#" in line:
         yield rdf_anomaly.Anomaly(
             type="PARSER_ANOMALY", symptom="Broken rpm database.")

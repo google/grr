@@ -1,15 +1,11 @@
 #!/usr/bin/env python
 # Lint as: python3
 """Central registry for artifacts."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import io
 import logging
 import os
 import threading
-
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
@@ -699,6 +695,6 @@ def GetArtifactParserDependencies(rdf_artifact):
   factory = parsers.ArtifactParserFactory(str(rdf_artifact.name))
 
   deps = set()
-  for p in factory.AllParsers():
+  for p in factory.AllParserTypes():
     deps.update(p.knowledgebase_dependencies)
   return deps

@@ -37,7 +37,7 @@ class NtfsFile(filesystem.File):
 
   def __init__(self, filesystem_obj: filesystem.Filesystem,
                fd: pyfsntfs.file_entry, data_stream: pyfsntfs.data_stream):
-    super(NtfsFile, self).__init__(filesystem_obj)
+    super().__init__(filesystem_obj)
     self.fd = fd
     self.data_stream = data_stream
 
@@ -115,13 +115,13 @@ def _get_data_stream(entry: pyfsntfs.file_entry,
 class NtfsFilesystem(filesystem.Filesystem):
   """pyfstnfs implementation of a Filesystem."""
 
-  def __init__(self):
-    super(NtfsFilesystem, self).__init__()
-    self.volume = None
+  def __init__(self, device: filesystem.Device):
+    super().__init__(device)
+
+    self.volume = pyfsntfs.volume()
+    self.volume.open_file_object(DeviceWrapper(self))
 
   def Open(self, path: str, stream_name: Optional[str]) -> NtfsFile:
-    self._InitVolume()
-
     entry = self.volume.get_file_entry_by_path(path)
 
     if entry is None:
@@ -132,8 +132,6 @@ class NtfsFilesystem(filesystem.Filesystem):
     return NtfsFile(self, entry, data_stream)
 
   def OpenByInode(self, inode: int, stream_name: Optional[str]) -> NtfsFile:
-    self._InitVolume()
-
     # The lower 48 bits of the file_reference are the MFT index.
     mft_index = inode & ((1 << 48) - 1)
     entry = self.volume.get_file_entry(mft_index)
@@ -149,10 +147,3 @@ class NtfsFilesystem(filesystem.Filesystem):
     data_stream = _get_data_stream(entry, stream_name)
 
     return NtfsFile(self, entry, data_stream)
-
-  def _InitVolume(self) -> None:
-    if self.volume is not None:
-      return
-
-    self.volume = pyfsntfs.volume()
-    self.volume.open_file_object(DeviceWrapper(self))

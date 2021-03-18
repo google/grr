@@ -21,7 +21,7 @@ from grr.test_lib import test_lib
 class ObjcTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(ObjcTest, self).setUp()
+    super().setUp()
 
     self.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
     self.restype = ctypes.c_void_p

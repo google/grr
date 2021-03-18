@@ -29,7 +29,7 @@ from grr.test_lib import test_lib
 class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
-    super(TestFlowArchive, self).setUp()
+    super().setUp()
 
     self.client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(self.client_id)
@@ -40,7 +40,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.FlowWithOneNetworkConnectionResult.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token)
+        creator=self.test_username)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -56,7 +56,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.RecursiveTestFlow.__name__,
         self.action_mock,
         client_id=self.client_id,
-        token=self.token)
+        creator=self.test_username)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -76,7 +76,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
-        token=self.token)
+        creator=self.test_username)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -95,7 +95,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         self.action_mock,
         client_id=self.client_id,
         pathspec=pathspec,
-        token=self.token)
+        creator=self.test_username)
 
     self.Open("/#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
@@ -116,7 +116,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         check_flow_errors=False,
         pathspec=pathspec,
-        token=self.token)
+        creator=self.test_username)
 
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
@@ -172,7 +172,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         client_mock=self.action_mock,
         client_id=self.client_id,
-        token=self.token)
+        creator=self.test_username)
 
     self.Open("/#/clients/%s/flows/%s" % (self.client_id, session_id))
     self.Click("link=Results")
@@ -201,7 +201,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         gui_test_lib.RecursiveTestFlow.__name__,
         client_mock=self.action_mock,
         client_id=self.client_id,
-        token=self.token)
+        creator=self.test_username)
 
     self.Open("/#/clients/%s/flows/%s" % (self.client_id, session_id))
     self.Click("link=Results")

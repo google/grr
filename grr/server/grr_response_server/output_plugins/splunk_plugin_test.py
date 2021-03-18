@@ -30,7 +30,7 @@ class SplunkOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   """Tests Splunk hunt output plugin."""
 
   def setUp(self):
-    super(SplunkOutputPluginTest, self).setUp()
+    super().setUp()
 
     self.client_id = self.SetupClient(0)
     self.flow_id = '12345678'
@@ -56,7 +56,7 @@ class SplunkOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
     plugin_cls = splunk_plugin.SplunkOutputPlugin
     plugin, plugin_state = plugin_cls.CreatePluginAndDefaultState(
-        source_urn=source_id, args=plugin_args, token=self.token)
+        source_urn=source_id, args=plugin_args)
 
     if patcher is None:
       patcher = mock.patch.object(requests, 'post')

@@ -21,7 +21,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
   reason = "Felt like it!"
 
   def setUp(self):
-    super(TestACLWorkflow, self).setUp()
+    super().setUp()
     self.client_id_1 = self.SetupClient(0)
     self.client_id_2 = self.SetupClient(1)
 
@@ -73,13 +73,13 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
     # This asks the user "test" (which is us) to approve the request.
     self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
-              self.token.username)
+              self.test_username)
     self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
               self.reason)
     self.Click(
         "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
-    self.WaitForNotification(self.token.username)
+    self.WaitForNotification(self.test_username)
     # User test logs in as an approver.
     self.Open("/")
 
@@ -92,13 +92,13 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilContains("Grant access", self.GetText,
                            "css=h2:contains('Grant')")
     self.WaitUntil(self.IsTextPresent,
-                   "The user %s has requested" % self.token.username)
+                   "The user %s has requested" % self.test_username)
 
     self.Click("css=button:contains('Approve')")
 
     self.WaitUntil(self.IsTextPresent, "Approval granted.")
 
-    self.WaitForNotification(self.token.username)
+    self.WaitForNotification(self.test_username)
     self.Open("/")
 
     # We should be notified that we have an approval
@@ -113,11 +113,11 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
                    "You do not have an approval for this client.")
 
     # Lets add another approver.
-    approval_id = self.ListClientApprovals(requestor=self.token.username)[0].id
+    approval_id = self.ListClientApprovals(requestor=self.test_username)[0].id
     self.GrantClientApproval(
         self.client_id_1,
         approval_id=approval_id,
-        requestor=self.token.username,
+        requestor=self.test_username,
         approver=u"approver")
 
     # Check if we see that the approval has already been granted.
@@ -212,7 +212,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
     # Ok now submit this.
     self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
-              self.token.username)
+              self.test_username)
     self.Click(
         "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
@@ -221,7 +221,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
     # And make sure the approval was created...
     def GetApprovals():
-      approvals = self.ListClientApprovals(requestor=self.token.username)
+      approvals = self.ListClientApprovals(requestor=self.test_username)
       return list(
           a for a in approvals if a.subject.client_id == self.client_id_1)
 

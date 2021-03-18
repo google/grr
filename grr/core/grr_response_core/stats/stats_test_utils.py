@@ -36,7 +36,7 @@ class StatsCollectorTest(
   """
 
   def setUp(self):
-    super(StatsCollectorTest, self).setUp()
+    super().setUp()
 
     self._mock_time = 100.0
     time_patcher = mock.patch.object(time, "time", lambda: self._mock_time)

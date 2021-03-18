@@ -50,7 +50,7 @@ class CollectSingleFileTest(gui_test_lib.GRRSeleniumTest):
     flow_args = rdf_file_finder.CollectSingleFileArgs(path="/etc/hosts")
     flow_test_lib.StartFlow(
         file.CollectSingleFile,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -73,7 +73,7 @@ class CollectSingleFileTest(gui_test_lib.GRRSeleniumTest):
     flow_args = rdf_file_finder.CollectSingleFileArgs(path="/etc/hosts")
     flow_test_lib.StartFlow(
         file.CollectSingleFile,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -99,7 +99,7 @@ class CollectSingleFileTest(gui_test_lib.GRRSeleniumTest):
     flow_args = rdf_file_finder.CollectSingleFileArgs(path="/etc/hosts")
     flow_test_lib.StartFlow(
         file.CollectSingleFile,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -123,7 +123,7 @@ class CollectSingleFileTest(gui_test_lib.GRRSeleniumTest):
     flow_args = rdf_file_finder.CollectSingleFileArgs(path="/etc/hosts")
     flow_test_lib.StartFlow(
         file.CollectSingleFile,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
 
@@ -147,7 +147,7 @@ class CollectSingleFileTest(gui_test_lib.GRRSeleniumTest):
     flow_args = rdf_file_finder.CollectSingleFileArgs(path="/etc/hosts")
     flow_id = flow_test_lib.StartFlow(
         file.CollectSingleFile,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
     flow_test_lib.MarkFlowAsFailed(self.client_id, flow_id)
@@ -166,7 +166,7 @@ class CollectSingleFileTest(gui_test_lib.GRRSeleniumTest):
     flow_args = rdf_file_finder.CollectSingleFileArgs(path="/etc/hosts")
     flow_id = flow_test_lib.StartFlow(
         file.CollectSingleFile,
-        creator=self.token.username,
+        creator=self.test_username,
         client_id=self.client_id,
         flow_args=flow_args)
     flow_test_lib.MarkFlowAsFailed(self.client_id, flow_id)

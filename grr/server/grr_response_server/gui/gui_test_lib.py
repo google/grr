@@ -636,17 +636,17 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
               (data, target))
 
   def setUp(self):
-    super(GRRSeleniumTest, self).setUp()
+    super().setUp()
 
     # Used by CheckHttpErrors
     self.ignore_http_errors = False
 
-    self.token.username = u"gui_user"
-    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
+    self.test_username = u"gui_user"
+    webauth.WEBAUTH_MANAGER.SetUserName(self.test_username)
 
     # Make the user use the advanced gui so we can test it.
     data_store.REL_DB.WriteGRRUser(
-        self.token.username, ui_mode=api_user.GUISettings.UIMode.ADVANCED)
+        self.test_username, ui_mode=api_user.GUISettings.UIMode.ADVANCED)
 
     artifact_patcher = ar_test_lib.PatchDatastoreOnlyArtifactRegistry()
     artifact_patcher.start()
@@ -668,7 +668,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   def tearDown(self):
     self.CheckBrowserErrors()
-    super(GRRSeleniumTest, self).tearDown()
+    super().tearDown()
 
   def WaitForNotification(self, username):
     sleep_time = 0.2
@@ -730,7 +730,7 @@ class GRRSeleniumHuntTest(hunt_test_lib.StandardHuntTestMixin, GRRSeleniumTest):
         output_plugins=output_plugins or [],
         client_rate=0,
         client_limit=client_limit,
-        creator=creator or self.token.username,
+        creator=creator or self.test_username,
         paused=stopped)
 
     return self.hunt_urn
@@ -750,7 +750,7 @@ class GRRSeleniumHuntTest(hunt_test_lib.StandardHuntTestMixin, GRRSeleniumTest):
     hunt_urn = self.StartHunt(
         client_rule_set=self._CreateForemanClientRuleSet(),
         output_plugins=[],
-        creator=self.token.username)
+        creator=self.test_username)
 
     self.AddResultsToHunt(hunt_urn, self.client_ids[0], values)
 

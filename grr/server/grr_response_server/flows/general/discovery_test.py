@@ -47,7 +47,7 @@ class DiscoveryTestEventListener(events.EventListener):
   # For this test we just write the event as a class attribute.
   event = None
 
-  def ProcessMessages(self, msgs=None, token=None):
+  def ProcessEvents(self, msgs=None, publisher_username=None):
     DiscoveryTestEventListener.event = msgs[0]
 
 
@@ -187,10 +187,10 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
                      "zone/project_id/instance_id")
 
   def setUp(self):
-    super(TestClientInterrogate, self).setUp()
+    super().setUp()
     # This test checks for notifications so we can't use a system user.
-    self.token.username = "discovery_test_user"
-    self.CreateUser(self.token.username)
+    self.test_username = "discovery_test_user"
+    self.CreateUser(self.test_username)
 
   def _SetupMinimalClient(self):
     client_id = "C.0000000000000000"
@@ -217,7 +217,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
           flow_test_lib.TestFlowHelper(
               discovery.Interrogate.__name__,
               client_mock,
-              token=self.token,
+              creator=self.test_username,
               client_id=client_id)
 
     client = self._OpenClient(client_id)
@@ -238,7 +238,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
           flow_test_lib.TestFlowHelper(
               discovery.Interrogate.__name__,
               client_mock,
-              token=self.token,
+              creator=self.test_username,
               client_id=client_id)
 
     client = self._OpenClient(client_id)
@@ -262,14 +262,14 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
           flow_test_lib.TestFlowHelper(
               discovery.Interrogate.__name__,
               client_mock,
-              token=self.token,
+              creator=self.test_username,
               client_id=client_id)
 
     client = self._OpenClient(client_id)
     self._CheckBasicInfo(client, "test_node.test", "Linux", 100 * 1000000)
     self._CheckClientInfo(client)
     self._CheckGRRConfig(client)
-    self._CheckNotificationsCreated(self.token.username, client_id)
+    self._CheckNotificationsCreated(self.test_username, client_id)
     self._CheckClientSummary(
         client_id,
         client.GetSummary(),
@@ -310,14 +310,14 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
           flow_test_lib.TestFlowHelper(
               discovery.Interrogate.__name__,
               client_mock,
-              token=self.token,
+              creator=self.test_username,
               client_id=client_id)
 
     client = self._OpenClient(client_id)
     self._CheckBasicInfo(client, "test_node.test", "Windows", 100 * 1000000)
     self._CheckClientInfo(client)
     self._CheckGRRConfig(client)
-    self._CheckNotificationsCreated(self.token.username, client_id)
+    self._CheckNotificationsCreated(self.test_username, client_id)
     self._CheckClientSummary(
         client_id,
         client.GetSummary(),
@@ -358,7 +358,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
       flow_test_lib.TestFlowHelper(
           discovery.Interrogate.__name__,
           client_mock,
-          token=self.token,
+          creator=self.test_username,
           client_id=client_id)
 
     snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
@@ -366,7 +366,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertEqual(snapshot.knowledge_base.os, "Linux")
     self._CheckClientInfo(snapshot)
     self._CheckGRRConfig(snapshot)
-    self._CheckNotificationsCreated(self.token.username, client_id)
+    self._CheckNotificationsCreated(self.test_username, client_id)
     self._CheckRelease(snapshot, "Ubuntu", "14.4")
     self._CheckNetworkInfo(snapshot)
     labels = data_store.REL_DB.ReadClientLabels(client_id)
@@ -395,7 +395,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
         flow_test_lib.TestFlowHelper(
             discovery.Interrogate.__name__,
             client_mock,
-            token=self.token,
+            creator=self.test_username,
             client_id=client_id)
 
     rdf_labels = data_store.REL_DB.ReadClientLabels(client_id)
@@ -454,7 +454,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
               discovery.Interrogate.__name__,
               client_mock=EchoActionMock(),
               client_id=client_id,
-              token=self.token)
+              creator=self.test_username)
 
           flow_test_lib.FinishAllFlowsOnClient(client_id)
 

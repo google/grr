@@ -22,8 +22,8 @@ def Handler(connection: communication.Connection):
 
 def main(argv):
   communication.Main(
-      communication.Channel(pipe_input=int(argv[1]), pipe_output=int(argv[2])),
-      Handler)
+      communication.Channel.FromSerialized(
+          pipe_input=int(argv[1]), pipe_output=int(argv[2])), Handler)
 
 
 if __name__ == "__main__":

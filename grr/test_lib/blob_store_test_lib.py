@@ -14,7 +14,7 @@ class TestBlobStore(blob_store.BlobStore):
   """Test blob store ensuring both REL_DB and legacy blob stores are tested."""
 
   def __init__(self):
-    super(TestBlobStore, self).__init__()
+    super().__init__()
     self.new = db_blob_store.DbBlobStore()
 
   def WriteBlobs(self, blob_id_data_map):

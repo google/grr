@@ -24,7 +24,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
   """Test the interrogate flow."""
 
   def setUp(self):
-    super(TestFindFlow, self).setUp()
+    super().setUp()
     vfs_overrider = vfs_test_lib.VFSOverrider(
         rdf_paths.PathSpec.PathType.OS, vfs_test_lib.ClientVFSHandlerFixture)
     vfs_overrider.Start()
@@ -51,7 +51,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
-        token=self.token,
+        creator=self.test_username,
         findspec=findspec)
 
     # Check the results.
@@ -80,7 +80,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
-        token=self.token,
+        creator=self.test_username,
         findspec=findspec)
 
     # Check the results.
@@ -110,7 +110,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
-        token=self.token,
+        creator=self.test_username,
         findspec=findspec)
 
     # Check the results.
@@ -137,7 +137,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
-        token=self.token,
+        creator=self.test_username,
         findspec=findspec)
 
     # Check the results.
@@ -151,7 +151,7 @@ class TestFindFlow(flow_test_lib.FlowTestsBaseclass):
         find.FindFiles.__name__,
         client_mock,
         client_id=self.client_id,
-        token=self.token,
+        creator=self.test_username,
         findspec=findspec)
 
     # Check the results.

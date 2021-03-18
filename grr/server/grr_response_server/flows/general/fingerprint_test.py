@@ -37,7 +37,7 @@ class TestFingerprintFlow(flow_test_lib.FlowTestsBaseclass):
     session_id = flow_test_lib.TestFlowHelper(
         flows_fingerprint.FingerprintFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=client_id,
         pathspec=pathspec)
 

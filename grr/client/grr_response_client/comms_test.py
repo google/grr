@@ -79,7 +79,7 @@ class URLFilter(RequestsInstrumentor):
   def request(self, url=None, **kwargs):
     # If request is from server2 - return a valid response. Assume, server2 is
     # reachable from all proxies.
-    response = super(URLFilter, self).request(url=url, **kwargs)
+    response = super().request(url=url, **kwargs)
     if "server2" in url:
       return _make_200("Good")
     return response
@@ -352,7 +352,7 @@ class GRRClientWorkerTest(test_lib.GRRBaseTest):
   """Tests the GRRClientWorker class."""
 
   def setUp(self):
-    super(GRRClientWorkerTest, self).setUp()
+    super().setUp()
     # GRRClientWorker starts a stats collector thread that will send replies
     # shortly after starting up. Those replies interfere with the test below so
     # we disable the ClientStatsCollector thread here.

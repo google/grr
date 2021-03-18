@@ -770,7 +770,7 @@ class ClientSummaryToExportedNetworkInterfaceConverter(
 
   def Convert(self, metadata, client_summary):
     """Converts ClientSummary to ExportedNetworkInterfaces."""
-    sup = super(ClientSummaryToExportedNetworkInterfaceConverter, self)
+    sup = super()
 
     for interface in client_summary.interfaces:
       yield next(sup.Convert(metadata, interface))
@@ -820,7 +820,14 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
       else:
         file_pairs.append((metadata, result))
 
-      match_pairs.extend([(metadata, match) for match in result.matches])
+      for match in result.matches:
+        if match.HasField("pathspec"):
+          match_to_add = match
+        else:
+          match_to_add = match.Copy()
+          match_to_add.pathspec = result.stat_entry.pathspec
+
+        match_pairs.append((metadata, match_to_add))
 
     return registry_pairs, file_pairs, match_pairs
 

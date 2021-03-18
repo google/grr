@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 # Lint as: python3
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 from typing import Text
 
 from absl.testing import absltest
@@ -46,13 +42,18 @@ class FactoryTest(absltest.TestCase):
 
   def testCreateString(self):
     str_factory = factory.Factory(Text)
-    str_factory.Register("foo", lambda: "FOO")
-    str_factory.Register("bar", lambda: "BAR")
-    str_factory.Register("baz", lambda: "BAZ")
+    str_factory.Register("foo", Text, lambda: "FOO")
+    str_factory.Register("bar", Text, lambda: "BAR")
+    str_factory.Register("baz", Text, lambda: "BAZ")
 
     self.assertEqual(str_factory.Create("foo"), "FOO")
     self.assertEqual(str_factory.Create("bar"), "BAR")
     self.assertEqual(str_factory.Create("baz"), "BAZ")
+
+  def testUsesClassConstructor(self):
+    str_factory = factory.Factory(str)
+    str_factory.Register("foo", str)
+    self.assertEqual(str_factory.Create("foo"), "")
 
   def testCreateClass(self):
 
@@ -75,18 +76,24 @@ class FactoryTest(absltest.TestCase):
     with self.assertRaisesRegex(ValueError, "foo"):
       int_factory.Create("foo")
 
-  def testCreateAllEmpty(self):
+  def testGetAllTypesWithoutResults(self):
     obj_factory = factory.Factory(object)
 
-    self.assertCountEqual(list(obj_factory.CreateAll()), [])
+    self.assertCountEqual(list(obj_factory.GetTypes()), [])
 
-  def testCreateAllSome(self):
-    int_factory = factory.Factory(int)
-    int_factory.Register("foo", lambda: 1337)
-    int_factory.Register("bar", lambda: 101)
-    int_factory.Register("baz", lambda: 108)
+  def testGetTypesReturnsAllTypes(self):
 
-    self.assertCountEqual(list(int_factory.CreateAll()), [1337, 101, 108])
+    class Foo(object):
+      pass
+
+    class Bar(object):
+      pass
+
+    int_factory = factory.Factory(object)
+    int_factory.Register("foo", Foo)
+    int_factory.Register("bar", Bar)
+
+    self.assertCountEqual(list(int_factory.GetTypes()), [Foo, Bar])
 
 
 if __name__ == "__main__":

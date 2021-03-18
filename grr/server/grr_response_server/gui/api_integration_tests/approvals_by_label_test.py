@@ -28,7 +28,7 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
     gui_test_lib.CreateFileVersion(client_id=client_id, path=path)
 
   def setUp(self):
-    super(ApprovalByLabelE2ETest, self).setUp()
+    super().setUp()
 
     self.client_nolabel_id = self.SetupClient(0)
     self.client_legal_id = self.SetupClient(1, labels=[u"legal_approval"])

@@ -300,7 +300,7 @@ class Artifact(rdf_structs.RDFProtoStruct):
 
   def ToPrimitiveDict(self):
     """Handle dict generation specifically for Artifacts."""
-    artifact_dict = super(Artifact, self).ToPrimitiveDict()
+    artifact_dict = super().ToPrimitiveDict()
 
     # ArtifactName is not JSON-serializable, so convert name to string.
     artifact_dict["name"] = str(self.name)

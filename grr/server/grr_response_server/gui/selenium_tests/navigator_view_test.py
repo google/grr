@@ -18,23 +18,23 @@ from grr.test_lib import test_lib
 class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   """Tests for NavigatorView (left side bar)."""
 
-  def CreateClient(self, last_ping=None):
+  def CreateClient(self, last_ping=None, reason="Running tests"):
     if last_ping is None:
       last_ping = rdfvalue.RDFDatetime.Now()
 
     client_id = self.SetupClient(0, ping=last_ping)
-    self.RequestAndGrantClientApproval(client_id)
+    self.RequestAndGrantClientApproval(client_id, reason=reason)
 
     return client_id
 
   def RecordCrash(self, client_id, timestamp):
     with test_lib.FakeTime(timestamp):
-      client = flow_test_lib.CrashClientMock(client_id, self.token)
+      client = flow_test_lib.CrashClientMock(client_id)
       flow_test_lib.TestFlowHelper(
           flow_test_lib.FlowWithOneClientRequest.__name__,
           client,
           client_id=client_id,
-          token=self.token,
+          creator=self.test_username,
           check_flow_errors=False)
 
   def CreateClientWithVolumes(self, available=50):
@@ -52,9 +52,9 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
     return client_id
 
   def testReasonIsShown(self):
-    client_id = self.CreateClient()
+    client_id = self.CreateClient(reason="foobazzle")
     self.Open("/#c=" + str(client_id))
-    self.WaitUntil(self.IsTextPresent, "Access reason: " + self.token.reason)
+    self.WaitUntil(self.IsTextPresent, "Access reason: foobazzle")
 
   def testOnlineClientStatus(self):
     client_id = self.CreateClient()

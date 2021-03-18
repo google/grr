@@ -36,7 +36,7 @@ from grr.test_lib import worker_mocks
 class FileFinderTest(client_test_lib.EmptyActionTest):
 
   def setUp(self):
-    super(FileFinderTest, self).setUp()
+    super().setUp()
     self.stat_action = rdf_file_finder.FileFinderAction.Stat()
 
   def _GetRelativeResults(self, raw_results, base_path=None):

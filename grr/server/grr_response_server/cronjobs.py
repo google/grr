@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """Cron Job objects that get stored in the relational db."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import abc
 import collections
@@ -19,12 +16,10 @@ from grr_response_core.lib.registry import CronJobRegistry
 from grr_response_core.lib.registry import SystemCronJobRegistry
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
-from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import hunt
 from grr_response_server import threadpool
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
-
 
 # The maximum number of log-messages to store in the DB for a given cron-job
 # run.
@@ -70,7 +65,7 @@ class CronJobBase(metaclass=CronJobRegistry):
   def __init__(self, run_state, job):
     self.run_state = run_state
     self.job = job
-    self.token = access_control.ACLToken(username=CRON_JOB_USERNAME)
+    self.username = CRON_JOB_USERNAME
 
   @abc.abstractmethod
   def Run(self):

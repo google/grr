@@ -30,7 +30,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   """Tests BigQuery hunt output plugin."""
 
   def setUp(self):
-    super(BigQueryOutputPluginTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.source_id = rdf_client.ClientURN(
         self.client_id).Add("Results").RelativeName("aff4:/")
@@ -41,7 +41,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
                        process_responses_separately=False):
     plugin_cls = bigquery_plugin.BigQueryOutputPlugin
     plugin, plugin_state = plugin_cls.CreatePluginAndDefaultState(
-        source_urn=self.source_id, args=plugin_args, token=self.token)
+        source_urn=self.source_id, args=plugin_args)
 
     messages = []
     for response in responses:

@@ -192,11 +192,10 @@ class ApiClientLibHuntTest(
     hunt_id = self.StartHunt()
 
     client_ids = self.SetupClients(2)
-    client_mocks = dict([(client_id,
-                          flow_test_lib.CrashClientMock(client_id, self.token))
+    client_mocks = dict([(client_id, flow_test_lib.CrashClientMock(client_id))
                          for client_id in client_ids])
     self.AssignTasksToClients(client_ids)
-    hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks, self.token)
+    hunt_test_lib.TestHuntHelperWithMultipleMocks(client_mocks)
 
     crashes = list(self.api.Hunt(hunt_id).ListCrashes())
     self.assertLen(crashes, 2)

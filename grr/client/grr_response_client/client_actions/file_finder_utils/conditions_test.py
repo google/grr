@@ -115,7 +115,7 @@ class LiteralMatcherTest(absltest.TestCase):
 class ConditionTestMixin(object):
 
   def setUp(self):
-    super(ConditionTestMixin, self).setUp()
+    super().setUp()
     self.temp_filepath = temp.TempFilePath()
     self.addCleanup(lambda: os.remove(self.temp_filepath))
 

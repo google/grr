@@ -103,7 +103,7 @@ class SysVInitStateTests(checks_test_lib.HostCheckTest):
     cls.parser = linux_service_parser.LinuxSysVInitParser().ParseFiles
 
   def setUp(self, *args, **kwargs):
-    super(SysVInitStateTests, self).setUp(*args, **kwargs)
+    super().setUp(*args, **kwargs)
     self.RunSysVChecks()
 
   def RunSysVChecks(self):

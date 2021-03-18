@@ -20,7 +20,7 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
   """Test the flow results UI."""
 
   def setUp(self):
-    super(TestFlowResults, self).setUp()
+    super().setUp()
 
     self.client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(self.client_id)

@@ -28,6 +28,8 @@ class ClientIndexTest(test_lib.GRRBaseTest):
 
     client = rdf_objects.ClientSnapshot(client_id="C.0000000000000000")
     client.knowledge_base.os = "Windows"
+    client.hardware_info.serial_number = "123abc"
+    client.hardware_info.system_uuid = "a-b-c-1-2-3"
     client.startup_info.client_info.client_name = "grr monitor"
     client.startup_info.client_info.labels = ["client-label-23"]
     kb = client.knowledge_base
@@ -60,6 +62,8 @@ class ClientIndexTest(test_lib.GRRBaseTest):
     # Client information.
     self.assertIn("grr monitor", keywords)
     self.assertIn("client-label-23", keywords)
+    self.assertIn("serial_number:123abc", keywords)
+    self.assertIn("system_uuid:a-b-c-1-2-3", keywords)
 
   def _SetupClients(self, n):
     res = {}

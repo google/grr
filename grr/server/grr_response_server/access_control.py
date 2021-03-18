@@ -10,16 +10,13 @@ A UserManager class has the following responsibilities :
   - Manage add/update/set password for users (optional)
   - Validate a user authentication event (optional)
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import logging
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.registry import MetaclassRegistry
-from grr_response_proto import flows_pb2
+from grr_response_proto import deprecated_pb2
 
 SYSTEM_USERS = frozenset([
     "GRRWorker", "GRRCron", "GRRSystem", "GRRFrontEnd", "GRRConsole",
@@ -43,7 +40,7 @@ class InvalidUserError(Error):
   """Used when an action is attempted on an invalid user."""
 
 
-class UnauthorizedAccess(Error):
+class UnauthorizedAccess(Error):  # pylint: disable=g-bad-exception-name
   """Raised when a request arrived from an unauthorized source."""
   counter = "grr_unauthorised_requests"
 
@@ -130,41 +127,11 @@ class AccessControlManager(metaclass=MetaclassRegistry):
 
 
 class ACLToken(rdf_structs.RDFProtoStruct):
-  """The access control token."""
-  protobuf = flows_pb2.ACLToken
+  """Deprecated. Use ApiCallContext."""
+  protobuf = deprecated_pb2.ACLToken
   rdf_deps = [
       rdfvalue.RDFDatetime,
   ]
-
-  # The supervisor flag enables us to bypass ACL checks. It can not be
-  # serialized or controlled externally.
-  supervisor = False
-
-  def Copy(self):
-    result = super(ACLToken, self).Copy()
-    result.supervisor = False
-    return result
-
-  def __str__(self):
-    result = ""
-    if self.supervisor:
-      result = "******* SUID *******\n"
-
-    return result + super(ACLToken, self).__str__()
-
-  def SetUID(self):
-    """Elevates this token to a supervisor token."""
-    result = self.Copy()
-    result.supervisor = True
-
-    return result
-
-  def RealUID(self):
-    """Returns the real token (without SUID) suitable for testing ACLs."""
-    result = self.Copy()
-    result.supervisor = False
-
-    return result
 
 
 def IsValidUsername(username):

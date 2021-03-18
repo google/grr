@@ -22,7 +22,7 @@ class ClientApprovalBase(object):
                approval_id=None,
                username=None,
                context=None):
-    super(ClientApprovalBase, self).__init__()
+    super().__init__()
 
     if not client_id:
       raise ValueError("client_id can't be empty.")
@@ -89,7 +89,7 @@ class ClientApproval(ClientApprovalBase):
     if data is None:
       raise ValueError("data can't be None")
 
-    super(ClientApproval, self).__init__(
+    super().__init__(
         client_id=utils.UrnStringToClientId(data.subject.urn),
         approval_id=data.id,
         username=username,
@@ -102,7 +102,7 @@ class ClientCrash(object):
   """Wrapper class for client crashes."""
 
   def __init__(self, data=None, context=None):
-    super(ClientCrash, self).__init__()
+    super().__init__()
 
     self.data = data
 
@@ -118,7 +118,7 @@ class ClientBase(object):
   """Base class for Client and ClientRef."""
 
   def __init__(self, client_id=None, context=None):
-    super(ClientBase, self).__init__()
+    super().__init__()
 
     if not client_id:
       raise ValueError("client_id can't be empty.")
@@ -291,7 +291,7 @@ class Client(ClientBase):
     if data is None:
       raise ValueError("data can't be None")
 
-    super(Client, self).__init__(
+    super().__init__(
         client_id=utils.UrnStringToClientId(data.urn), context=context)
 
     self.data = data

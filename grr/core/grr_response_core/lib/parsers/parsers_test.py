@@ -207,8 +207,8 @@ class ArtifactParserFactoryTest(absltest.TestCase):
     parsers.MULTI_RESPONSE_PARSER_FACTORY.Register("Bar", BarParser)
 
     quux_factory = parsers.ArtifactParserFactory("Quux")
-    quux_parsers = quux_factory.AllParsers()
-    self.assertCountEqual(map(type, quux_parsers), [FooParser, BarParser])
+    quux_parsers = quux_factory.AllParserTypes()
+    self.assertCountEqual(quux_parsers, [FooParser, BarParser])
 
 
 if __name__ == "__main__":

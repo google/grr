@@ -232,7 +232,7 @@ class InterrogationHuntMixin(object):
     hunt_id = hunt.CreateAndStartHunt(
         flow_name,
         flow_args,
-        self.token.username,
+        self.username,
         client_limit=0,
         client_rate=config.CONFIG["Cron.interrogate_client_rate"],
         crash_limit=config.CONFIG["Cron.interrogate_crash_limit"],

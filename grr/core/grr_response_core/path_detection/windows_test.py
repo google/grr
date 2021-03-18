@@ -16,7 +16,7 @@ class RunDllExtractorTest(test_lib.GRRBaseTest):
   """Tests for RunDllExtractor."""
 
   def setUp(self):
-    super(RunDllExtractorTest, self).setUp()
+    super().setUp()
     self.extractor = windows.RunDllExtractor()
 
   def testDoesNothingIfFirstComponentIsNotRunDll(self):
@@ -51,7 +51,7 @@ class ExecutableExtractorTest(test_lib.GRRBaseTest):
   """Tests for ExecutableExtractor."""
 
   def setUp(self):
-    super(ExecutableExtractorTest, self).setUp()
+    super().setUp()
     self.extractor = windows.ExecutableExtractor()
 
   def testIgnoresPathWithoutExecutableExtensions(self):

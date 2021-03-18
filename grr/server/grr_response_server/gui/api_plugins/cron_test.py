@@ -79,7 +79,7 @@ class ApiCreateCronJobHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateCronJobHandler."""
 
   def setUp(self):
-    super(ApiCreateCronJobHandlerTest, self).setUp()
+    super().setUp()
     self.handler = cron_plugin.ApiCreateCronJobHandler()
 
   def testAddForemanRulesHuntRunnerArgumentIsNotRespected(self):
@@ -98,7 +98,7 @@ class ApiDeleteCronJobHandlerTest(api_test_lib.ApiCallHandlerTest,
   """Test delete cron job handler."""
 
   def setUp(self):
-    super(ApiDeleteCronJobHandlerTest, self).setUp()
+    super().setUp()
     self.handler = cron_plugin.ApiDeleteCronJobHandler()
 
     self.cron_job_id = self.CreateCronJob(
@@ -120,7 +120,7 @@ class ApiGetCronJobHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Tests the ApiGetCronJobHandler."""
 
   def setUp(self):
-    super(ApiGetCronJobHandlerTest, self).setUp()
+    super().setUp()
     self.handler = cron_plugin.ApiGetCronJobHandler()
 
   def testHandler(self):

@@ -69,5 +69,4 @@ class ApiGetReportHandler(api_call_handler_base.ApiCallHandler):
       args.client_label = "All"
 
     return rdf_report_plugins.ApiReport(
-        desc=report.GetReportDescriptor(),
-        data=report.GetReportData(args, context))
+        desc=report.GetReportDescriptor(), data=report.GetReportData(args))

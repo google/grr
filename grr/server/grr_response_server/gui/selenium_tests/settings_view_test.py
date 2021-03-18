@@ -37,7 +37,7 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
   """Test the Binaries GUI."""
 
   def setUp(self):
-    super(TestManageBinariesView, self).setUp()
+    super().setUp()
     self.SetUpBinaries()
 
   def testNotAccessibleForNonAdmins(self):

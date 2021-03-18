@@ -32,7 +32,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     testing_startup.TestInit()
 
   def setUp(self) -> None:
-    super(TimelineTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   def testRaisesOnEmptyRoot(self) -> None:
@@ -150,7 +150,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
           timeline_flow.TimelineFlow.__name__,
           action_mocks.ActionMock(timeline_action.Timeline),
           client_id=client_id,
-          token=self.token,
+          creator=self.test_username,
           args=args)
 
       flow_test_lib.FinishAllFlowsOnClient(client_id)
@@ -177,7 +177,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
           timeline_flow.TimelineFlow.__name__,
           action_mocks.ActionMock(timeline_action.Timeline),
           client_id=client_id,
-          token=self.token,
+          creator=self.test_username,
           args=args)
 
       flow_test_lib.FinishAllFlowsOnClient(client_id)
@@ -195,7 +195,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
         timeline_flow.TimelineFlow.__name__,
         action_mocks.ActionMock(timeline_action.Timeline),
         client_id=self.client_id,
-        token=self.token,
+        creator=self.test_username,
         args=args)
 
     flow_test_lib.FinishAllFlowsOnClient(self.client_id)

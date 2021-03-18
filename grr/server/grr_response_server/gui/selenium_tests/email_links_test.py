@@ -26,7 +26,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
   GRANTOR_USERNAME = u"igrantapproval"
 
   def setUp(self):
-    super(TestEmailLinks, self).setUp()
+    super().setUp()
 
     self.messages_sent = []
 
@@ -53,19 +53,19 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         client_id,
         reason="Please please let me",
         approver=self.GRANTOR_USERNAME,
-        requestor=self.token.username)
+        requestor=self.test_username)
 
     self.assertLen(self.messages_sent, 1)
     message = self.messages_sent[0]
 
     self.assertIn(self.APPROVAL_REASON, message)
-    self.assertIn(self.token.username, message)
+    self.assertIn(self.test_username, message)
     self.assertIn(client_id, message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 
     # Check that requestor's username and  reason are correctly displayed.
-    self.WaitUntil(self.IsTextPresent, self.token.username)
+    self.WaitUntil(self.IsTextPresent, self.test_username)
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
     self.WaitUntil(self.IsTextPresent, client_id)
@@ -78,7 +78,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         client_id,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
-        requestor=self.token.username)
+        requestor=self.test_username)
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.
@@ -107,19 +107,19 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         hunt_id,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
-        requestor=self.token.username)
+        requestor=self.test_username)
 
     self.assertLen(self.messages_sent, 1)
     message = self.messages_sent[0]
 
     self.assertIn(self.APPROVAL_REASON, message)
-    self.assertIn(self.token.username, message)
+    self.assertIn(self.test_username, message)
     self.assertIn(hunt_id, message)
 
     self.Open(self._ExtractLinkFromMessage(message))
 
     # Check that requestor's username and reason are correctly displayed.
-    self.WaitUntil(self.IsTextPresent, self.token.username)
+    self.WaitUntil(self.IsTextPresent, self.test_username)
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
     self.WaitUntil(self.IsTextPresent, hunt_id)
@@ -132,7 +132,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         hunt_id,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
-        requestor=self.token.username)
+        requestor=self.test_username)
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.
@@ -161,13 +161,13 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         job_name,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
-        requestor=self.token.username)
+        requestor=self.test_username)
 
     self.assertLen(self.messages_sent, 1)
     message = self.messages_sent[0]
 
     self.assertIn(self.APPROVAL_REASON, message)
-    self.assertIn(self.token.username, message)
+    self.assertIn(self.test_username, message)
     self.assertIn("OSBreakDownCronJob", message)
 
     # Extract link from the message text and open it.
@@ -176,7 +176,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.Open(link.path + "?" + link.query + "#" + link.fragment)
 
     # Check that requestor's username and reason are correctly displayed.
-    self.WaitUntil(self.IsTextPresent, self.token.username)
+    self.WaitUntil(self.IsTextPresent, self.test_username)
     self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
     # Check that host information is displayed.
     self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDownCronJob.__name__)
@@ -188,7 +188,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
         job_name,
         reason=self.APPROVAL_REASON,
         approver=self.GRANTOR_USERNAME,
-        requestor=self.token.username)
+        requestor=self.test_username)
 
     # There should be 1 message for approval request and 1 message
     # for approval grant notification.

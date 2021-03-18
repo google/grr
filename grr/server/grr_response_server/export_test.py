@@ -110,7 +110,7 @@ class ExportTestBase(test_lib.GRRBaseTest):
   """Base class for the export tests."""
 
   def setUp(self):
-    super(ExportTestBase, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.metadata = export.ExportedMetadata(client_urn=self.client_id)
 
@@ -198,7 +198,7 @@ class ExportTest(ExportTestBase):
     flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         pathspec=pathspec)
 
@@ -243,7 +243,7 @@ class ExportTest(ExportTestBase):
     flow_test_lib.TestFlowHelper(
         transfer.GetFile.__name__,
         client_mock,
-        token=self.token,
+        creator=self.test_username,
         client_id=self.client_id,
         pathspec=pathspec)
 
@@ -650,6 +650,47 @@ class ExportTest(ExportTestBase):
         result.urn,
         "aff4:/%s/registry/HKEY_USERS/S-1-1-1-1/Software" % self.client_id)
 
+  def testFileFinderResultExportConverterConvertsBufferRefsWithoutPathspecs(
+      self):
+    pathspec = rdf_paths.PathSpec(
+        path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS)
+
+    match1 = rdf_client.BufferReference(offset=42, length=43, data=b"somedata1")
+    match2 = rdf_client.BufferReference(offset=44, length=45, data=b"somedata2")
+    stat_entry = rdf_client_fs.StatEntry(
+        pathspec=pathspec,
+        st_mode=33184,
+        st_ino=1063090,
+        st_atime=1336469177,
+        st_mtime=1336129892,
+        st_ctime=1336129892,
+        st_btime=1313131313)
+
+    file_finder_result = rdf_file_finder.FileFinderResult(
+        stat_entry=stat_entry, matches=[match1, match2])
+
+    converter = export.FileFinderResultConverter()
+    results = list(converter.Convert(self.metadata, file_finder_result))
+
+    # We expect 2 ExportedMatch instances in the results
+    exported_matches = [
+        result for result in results if isinstance(result, export.ExportedMatch)
+    ]
+    exported_matches = sorted(exported_matches, key=lambda x: x.offset)
+    self.assertLen(exported_matches, 2)
+
+    self.assertEqual(exported_matches[0].offset, 42)
+    self.assertEqual(exported_matches[0].length, 43)
+    self.assertEqual(exported_matches[0].data, b"somedata1")
+    self.assertEqual(exported_matches[0].urn,
+                     "aff4:/%s/fs/os/some/path" % self.client_id)
+
+    self.assertEqual(exported_matches[1].offset, 44)
+    self.assertEqual(exported_matches[1].length, 45)
+    self.assertEqual(exported_matches[1].data, b"somedata2")
+    self.assertEqual(exported_matches[1].urn,
+                     "aff4:/%s/fs/os/some/path" % self.client_id)
+
   def testFileFinderResultExportConverterConvertsHashes(self):
     pathspec = rdf_paths.PathSpec(
         path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -760,7 +801,7 @@ class ExportTest(ExportTestBase):
         paths=[path],
         pathtype=rdf_paths.PathSpec.PathType.OS,
         action=action,
-        token=self.token)
+        creator=self.test_username)
 
     flow_results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     self.assertLen(flow_results, 1)
@@ -911,7 +952,7 @@ class DictToExportedDictItemsConverterTest(ExportTestBase):
   """Tests for DictToExportedDictItemsConverter."""
 
   def setUp(self):
-    super(DictToExportedDictItemsConverterTest, self).setUp()
+    super().setUp()
     self.converter = export.DictToExportedDictItemsConverter()
 
   def testConvertsDictWithPrimitiveValues(self):
@@ -1021,7 +1062,7 @@ class ArtifactFilesDownloaderResultConverterTest(ExportTestBase):
   """Tests for ArtifactFilesDownloaderResultConverter."""
 
   def setUp(self):
-    super(ArtifactFilesDownloaderResultConverterTest, self).setUp()
+    super().setUp()
 
     self.registry_stat = rdf_client_fs.StatEntry(
         registry_type=rdf_client_fs.StatEntry.RegistryType.REG_SZ,
@@ -1433,7 +1474,7 @@ class DataAgnosticExportConverterTest(ExportTestBase):
 class OsqueryExportConverterTest(absltest.TestCase):
 
   def setUp(self):
-    super(OsqueryExportConverterTest, self).setUp()
+    super().setUp()
     self.converter = export.OsqueryExportConverter()
     self.metadata = export.ExportedMetadata(client_urn="C.48515162342ABCDE")
 
@@ -1508,12 +1549,12 @@ class OsqueryExportConverterTest(absltest.TestCase):
 class GetMetadataTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(GetMetadataTest, self).setUp()
+    super().setUp()
     self.client_id = "C.4815162342108107"
 
   def testGetMetadataWithSingleUserLabel(self):
     fixture_test_lib.ClientFixture(self.client_id)
-    self.AddClientLabel(self.client_id, self.token.username, "client-label-24")
+    self.AddClientLabel(self.client_id, self.test_username, "client-label-24")
 
     metadata = export.GetMetadata(
         self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
@@ -1525,8 +1566,8 @@ class GetMetadataTest(test_lib.GRRBaseTest):
 
   def testGetMetadataWithTwoUserLabels(self):
     fixture_test_lib.ClientFixture(self.client_id)
-    self.AddClientLabel(self.client_id, self.token.username, "a")
-    self.AddClientLabel(self.client_id, self.token.username, "b")
+    self.AddClientLabel(self.client_id, self.test_username, "a")
+    self.AddClientLabel(self.client_id, self.test_username, "b")
 
     metadata = export.GetMetadata(
         self.client_id, data_store.REL_DB.ReadClientFullInfo(self.client_id))
@@ -1537,8 +1578,8 @@ class GetMetadataTest(test_lib.GRRBaseTest):
 
   def testGetMetadataWithSystemLabels(self):
     fixture_test_lib.ClientFixture(self.client_id)
-    self.AddClientLabel(self.client_id, self.token.username, "a")
-    self.AddClientLabel(self.client_id, self.token.username, "b")
+    self.AddClientLabel(self.client_id, self.test_username, "a")
+    self.AddClientLabel(self.client_id, self.test_username, "b")
     self.AddClientLabel(self.client_id, "GRR", "c")
 
     metadata = export.GetMetadata(

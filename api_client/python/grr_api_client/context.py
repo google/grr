@@ -19,7 +19,7 @@ class GrrApiContext(object):
   """API context object. Used to make every API request."""
 
   def __init__(self, connector: connectors.Connector):
-    super(GrrApiContext, self).__init__()
+    super().__init__()
 
     self.connector = connector  # type: connectors.Connector
     self.user = None  # type: Optional[user_pb2.ApiGrrUser]

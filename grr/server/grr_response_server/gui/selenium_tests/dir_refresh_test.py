@@ -24,7 +24,7 @@ from grr.test_lib import test_lib
 class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
 
   def setUp(self):
-    super(DirRefreshTest, self).setUp()
+    super().setUp()
     # Prepare our fixture.
     self.client_id = "C.0000000000000001"
     fixture_test_lib.ClientFixture(self.client_id)

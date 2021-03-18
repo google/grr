@@ -49,16 +49,13 @@ class AclTestMixin(object):
 
   def RequestClientApproval(self,
                             client_id,
-                            reason=None,
+                            reason="Running tests",
                             requestor=None,
                             email_cc_address=None,
                             approver=u"approver"):
     """Create an approval request to be sent to approver."""
     if not requestor:
-      requestor = self.token.username
-
-    if not reason:
-      reason = self.token.reason
+      requestor = self.test_username
 
     self.CreateUser(requestor)
     self.CreateUser(approver)
@@ -98,7 +95,7 @@ class AclTestMixin(object):
       raise ValueError("approval_id can't be empty.")
 
     if not requestor:
-      requestor = self.token.username
+      requestor = self.test_username
 
     self.CreateUser(requestor)
     if admin:
@@ -107,7 +104,7 @@ class AclTestMixin(object):
       self.CreateUser(approver)
 
     if not requestor:
-      requestor = self.token.username
+      requestor = self.test_username
 
     args = api_user.ApiGrantClientApprovalArgs(
         client_id=client_id, username=requestor, approval_id=approval_id)
@@ -118,7 +115,7 @@ class AclTestMixin(object):
   def RequestAndGrantClientApproval(self,
                                     client_id,
                                     requestor=None,
-                                    reason=None,
+                                    reason="Running tests",
                                     approver=u"approver",
                                     admin=True):
     """Request and grant client approval for a given client."""
@@ -134,7 +131,7 @@ class AclTestMixin(object):
     return approval_id
 
   def ListClientApprovals(self, requestor=None):
-    requestor = requestor or self.token.username
+    requestor = requestor or self.test_username
     handler = api_user.ApiListClientApprovalsHandler()
     return handler.Handle(
         api_user.ApiListClientApprovalsArgs(),
@@ -143,16 +140,13 @@ class AclTestMixin(object):
   def RequestHuntApproval(self,
                           hunt_id,
                           requestor=None,
-                          reason=None,
+                          reason="Running tests",
                           email_cc_address=None,
                           approver=u"approver"):
     """Request hunt approval for a given hunt."""
 
     if not requestor:
-      requestor = self.token.username
-
-    if not reason:
-      reason = self.token.reason
+      requestor = self.test_username
 
     self.CreateUser(requestor)
     self.CreateUser(approver)
@@ -182,7 +176,7 @@ class AclTestMixin(object):
       raise ValueError("approval_id can't be empty.")
 
     if not requestor:
-      requestor = self.token.username
+      requestor = self.test_username
 
     self.CreateUser(requestor)
     if admin:
@@ -199,7 +193,7 @@ class AclTestMixin(object):
   def RequestAndGrantHuntApproval(self,
                                   hunt_id,
                                   requestor=None,
-                                  reason=None,
+                                  reason="test",
                                   email_cc_address=None,
                                   approver=u"approver",
                                   admin=True):
@@ -220,7 +214,7 @@ class AclTestMixin(object):
     return approval_id
 
   def ListHuntApprovals(self, requestor=None):
-    requestor = requestor or self.token.username
+    requestor = requestor or self.test_username
     handler = api_user.ApiListHuntApprovalsHandler()
     return handler.Handle(
         api_user.ApiListHuntApprovalsArgs(),
@@ -229,16 +223,13 @@ class AclTestMixin(object):
   def RequestCronJobApproval(self,
                              cron_job_id,
                              requestor=None,
-                             reason=None,
+                             reason="Running tests",
                              email_cc_address=None,
                              approver=u"approver"):
     """Request cron job approval for a given cron job."""
 
     if not requestor:
-      requestor = self.token.username
-
-    if not reason:
-      reason = self.token.reason
+      requestor = self.test_username
 
     self.CreateUser(requestor)
     self.CreateUser(approver)
@@ -264,7 +255,7 @@ class AclTestMixin(object):
                            admin=True):
     """Grants an approval for a given cron job."""
     if not requestor:
-      requestor = self.token.username
+      requestor = self.test_username
 
     if not approval_id:
       raise ValueError("approval_id can't be empty.")
@@ -284,7 +275,7 @@ class AclTestMixin(object):
   def RequestAndGrantCronJobApproval(self,
                                      cron_job_id,
                                      requestor=None,
-                                     reason=None,
+                                     reason="test",
                                      email_cc_address=None,
                                      approver=u"approver",
                                      admin=True):
@@ -304,7 +295,7 @@ class AclTestMixin(object):
     return approval_id
 
   def ListCronJobApprovals(self, requestor=None):
-    requestor = requestor or self.token.username
+    requestor = requestor or self.test_username
     handler = api_user.ApiListCronJobApprovalsHandler()
     return handler.Handle(
         api_user.ApiListCronJobApprovalsArgs(),

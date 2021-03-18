@@ -21,7 +21,7 @@ from grr_response_client import comms
 from grr_response_client import fleetspeak_client
 from grr_response_client import installer
 from grr_response_client.unprivileged import communication
-from grr_response_client.unprivileged.filesystem import server_lib
+from grr_response_client.unprivileged import interface_registry
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
@@ -44,16 +44,20 @@ flags.DEFINE_integer(
     "(e.g. using PyCharm).")
 
 flags.DEFINE_integer(
-    "filesystem_server_pipe_input", -1,
-    "If set, run the unprivileged filesystem server. "
+    "unprivileged_server_pipe_input", -1,
+    "If set, run the unprivileged server. "
     "The value of the flag is the file descriptor of the input pipe used for "
     "communication.")
 
 flags.DEFINE_integer(
-    "filesystem_server_pipe_output", -1,
-    "If set, run the unprivileged filesystem server. "
+    "unprivileged_server_pipe_output", -1,
+    "If set, run the unprivileged server. "
     "The value of the flag is the file descriptor of the output pipe used for "
     "communication.")
+
+flags.DEFINE_string(
+    "unprivileged_server_interface", "", "If set, run the unprivileged server. "
+    "The value of the flag is the name of the RPC interface used.")
 
 
 def _start_remote_debugging(port):
@@ -80,13 +84,15 @@ def main(unused_args):
   elif flags.FLAGS.break_on_start:
     pdb.set_trace()
 
-  if (flags.FLAGS.filesystem_server_pipe_input != -1 and
-      flags.FLAGS.filesystem_server_pipe_output != -1):
+  if (flags.FLAGS.unprivileged_server_pipe_input != -1 and
+      flags.FLAGS.unprivileged_server_pipe_output != -1 and
+      flags.FLAGS.unprivileged_server_interface):
     communication.Main(
-        communication.Channel(
-            pipe_input=flags.FLAGS.filesystem_server_pipe_input,
-            pipe_output=flags.FLAGS.filesystem_server_pipe_output),
-        server_lib.Dispatch)
+        communication.Channel.FromSerialized(
+            pipe_input=flags.FLAGS.unprivileged_server_pipe_input,
+            pipe_output=flags.FLAGS.unprivileged_server_pipe_output),
+        interface_registry.GetConnectionHandlerForInterfaceString(
+            flags.FLAGS.unprivileged_server_interface))
     return
 
   # Allow per platform configuration.

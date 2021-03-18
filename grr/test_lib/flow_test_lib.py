@@ -209,7 +209,7 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
   """The base class for all flow tests."""
 
   def setUp(self):
-    super(FlowTestsBaseclass, self).setUp()
+    super().setUp()
 
     # Set up emulation for an in-memory Fleetspeak service.
     conn_patcher = mock.patch.object(fleetspeak_connector, "CONN")
@@ -222,9 +222,8 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
 class CrashClientMock(action_mocks.ActionMock):
   """Client mock that simulates a client crash."""
 
-  def __init__(self, client_id=None, token=None):
+  def __init__(self, client_id=None):
     self.client_id = client_id
-    self.token = token
 
   def HandleMessage(self, message):
     """Handle client messages."""
@@ -238,7 +237,8 @@ class CrashClientMock(action_mocks.ActionMock):
     self.flow_id = message.session_id
     # This is normally done by the FrontEnd when a CLIENT_KILLED message is
     # received.
-    events.Events.PublishEvent("ClientCrash", crash_details, token=self.token)
+    events.Events.PublishEvent(
+        "ClientCrash", crash_details, username="GRRFrontEnd")
     return []
 
 
@@ -250,7 +250,7 @@ class MockClient(object):
   library.
   """
 
-  def __init__(self, client_id, client_mock, token=None):
+  def __init__(self, client_id, client_mock):
     if client_mock is None:
       client_mock = action_mocks.InvalidActionMock()
     else:
@@ -258,7 +258,6 @@ class MockClient(object):
 
     self.client_id = client_id
     self.client_mock = client_mock
-    self.token = token
     self._is_fleetspeak_client = fleetspeak_utils.IsFleetspeakEnabledClient(
         client_id)
 
@@ -350,7 +349,7 @@ def TestFlowHelper(flow_urn_or_cls_name,
                    client_mock=None,
                    client_id=None,
                    check_flow_errors=True,
-                   token=None,
+                   creator=None,
                    **kwargs):
   """Build a full test harness: client - worker + start flow.
 
@@ -362,7 +361,7 @@ def TestFlowHelper(flow_urn_or_cls_name,
     client_id: Client id of an emulated client.
     check_flow_errors: If True, TestFlowHelper will raise on errors during flow
       execution.
-    token: Security token.
+    creator: Username of the flow creator.
     **kwargs: Arbitrary args that will be passed to flow.StartFlow().
 
   Returns:
@@ -372,7 +371,7 @@ def TestFlowHelper(flow_urn_or_cls_name,
 
   return StartAndRunFlow(
       flow_cls,
-      creator=token.username,
+      creator=creator,
       client_mock=client_mock,
       client_id=client_id,
       check_flow_errors=check_flow_errors,
@@ -440,13 +439,13 @@ class TestWorker(worker_lib.GRRWorker):
   """The same class as the real worker but logs all processed flows."""
 
   def __init__(self, *args, **kw):
-    super(TestWorker, self).__init__(*args, **kw)
+    super().__init__(*args, **kw)
     self.processed_flows = []
 
   def ProcessFlow(self, flow_processing_request):
     key = (flow_processing_request.client_id, flow_processing_request.flow_id)
     self.processed_flows.append(key)
-    super(TestWorker, self).ProcessFlow(flow_processing_request)
+    super().ProcessFlow(flow_processing_request)
 
   def ResetProcessedFlows(self):
     processed_flows = self.processed_flows

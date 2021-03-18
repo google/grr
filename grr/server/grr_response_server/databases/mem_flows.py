@@ -11,7 +11,7 @@ import sys
 import threading
 import time
 
-from typing import List, Optional, Sequence, Text
+from typing import Dict, List, Optional, Sequence, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -391,6 +391,19 @@ class InMemoryDBFlowMixin(object):
       self.WriteFlowProcessingRequests(flow_processing_requests)
 
   @utils.Synchronized
+  def UpdateIncrementalFlowRequests(
+      self, client_id: str, flow_id: str,
+      next_response_id_updates: Dict[int, int]) -> None:
+    """Updates incremental flow requests."""
+    if (client_id, flow_id) not in self.flows:
+      raise db.UnknownFlowError(client_id, flow_id)
+
+    request_dict = self.flow_requests[(client_id, flow_id)]
+    for request_id, next_response_id in next_response_id_updates.items():
+      request_dict[request_id].next_response_id = next_response_id
+      request_dict[request_id].timestamp = rdfvalue.RDFDatetime.Now()
+
+  @utils.Synchronized
   def DeleteFlowRequests(self, requests):
     """Deletes a list of flow requests from the database."""
     for request in requests:
@@ -460,8 +473,11 @@ class InMemoryDBFlowMixin(object):
     needs_processing = []
     for client_id, flow_id, request_id in requests_updated:
       flow_key = (client_id, flow_id)
+      flow = self.flows[flow_key]
       request_dict = self.flow_requests[flow_key]
       request = request_dict[request_id]
+
+      added_for_processing = False
       if request.nr_responses_expected and not request.needs_processing:
         response_dict = self.flow_responses.setdefault(flow_key, {})
         responses = response_dict.get(request_id, {})
@@ -470,14 +486,23 @@ class InMemoryDBFlowMixin(object):
           request.needs_processing = True
           self._DeleteClientActionRequest(client_id, flow_id, request_id)
 
-          flow = self.flows[flow_key]
           if flow.next_request_to_process == request_id:
+            added_for_processing = True
             needs_processing.append(
                 rdf_flows.FlowProcessingRequest(
                     client_id=client_id, flow_id=flow_id))
 
+      if (request.callback_state and
+          flow.next_request_to_process == request_id and
+          not added_for_processing):
+        needs_processing.append(
+            rdf_flows.FlowProcessingRequest(
+                client_id=client_id, flow_id=flow_id))
+
     if needs_processing:
       self.WriteFlowProcessingRequests(needs_processing)
+
+    return needs_processing
 
   @utils.Synchronized
   def ReadAllFlowRequestsAndResponses(self, client_id, flow_id):
@@ -525,6 +550,7 @@ class InMemoryDBFlowMixin(object):
     request_dict = self.flow_requests.get((client_id, flow_id), {})
     response_dict = self.flow_responses.get((client_id, flow_id), {})
 
+    # Do a pass for completed requests.
     res = {}
     for request_id in sorted(request_dict):
       # Ignore outdated requests.
@@ -534,6 +560,7 @@ class InMemoryDBFlowMixin(object):
       if request_id != next_needed_request:
         break
       request = request_dict[request_id]
+
       if not request.needs_processing:
         break
 
@@ -551,6 +578,33 @@ class InMemoryDBFlowMixin(object):
       ]
       res[request_id] = (request, responses)
       next_needed_request += 1
+
+    # Do a pass for incremental requests.
+    for request_id in request_dict:
+      # Ignore outdated and processed requests.
+      if request_id < next_needed_request:
+        continue
+
+      request = request_dict[request_id]
+      if not request.callback_state:
+        continue
+
+      responses = response_dict.get(request_id, {}).values()
+      responses = [
+          r for r in responses if r.response_id >= request.next_response_id
+      ]
+      responses = sorted(responses, key=lambda response: response.response_id)
+
+      # Serialize/deserialize responses to better simulate the
+      # real DB behavior (where serialization/deserialization is almost
+      # guaranteed to be done).
+      # TODO(user): change mem-db implementation to do
+      # serialization/deserialization everywhere in a generic way.
+      responses = [
+          r.__class__.FromSerializedBytes(r.SerializeToBytes())
+          for r in responses
+      ]
+      res[request_id] = (request, responses)
 
     return res
 

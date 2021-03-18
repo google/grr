@@ -195,7 +195,7 @@ class StatTest(absltest.TestCase):
 class StatCacheTest(absltest.TestCase):
 
   def setUp(self):
-    super(StatCacheTest, self).setUp()
+    super().setUp()
     self.temp_dir = temp.TempDirPath()
     self.addCleanup(shutil.rmtree, self.temp_dir)
 

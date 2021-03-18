@@ -1228,9 +1228,7 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
     # and URNs.
     flow_urn = rdfvalue.RDFURN("{}/flows/{}".format(args.client_id,
                                                     args.flow_id))
-    plugin = plugin_cls(
-        source_urn=flow_urn,
-        token=access_control.ACLToken(username=context.username))
+    plugin = plugin_cls(source_urn=flow_urn)
 
     client_id = str(args.client_id)
     flow_id = str(args.flow_id)

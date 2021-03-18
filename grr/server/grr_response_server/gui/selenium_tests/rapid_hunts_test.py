@@ -19,7 +19,7 @@ class HuntsWithRapidHuntingDisabledTest(gui_test_lib.GRRSeleniumHuntTest):
   """Test that rapid hunts logic does nothing when the config flag is off."""
 
   def setUp(self):
-    super(HuntsWithRapidHuntingDisabledTest, self).setUp()
+    super().setUp()
     config_overrider = test_lib.ConfigOverrider(
         {"AdminUI.rapid_hunts_enabled": False})
     config_overrider.Start()
@@ -93,7 +93,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
   """Test rapid hunts logic works correctly when the config flag is on."""
 
   def setUp(self):
-    super(HuntsWithRapidHuntingEnabledTest, self).setUp()
+    super().setUp()
     config_overrider = test_lib.ConfigOverrider(
         {"AdminUI.rapid_hunts_enabled": True})
     config_overrider.Start()

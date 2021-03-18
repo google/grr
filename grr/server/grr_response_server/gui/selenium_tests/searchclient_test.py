@@ -19,7 +19,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
                        hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
-    super(TestClientSearch, self).setUp()
+    super().setUp()
     self._CreateClients()
 
   def _CreateClients(self):
@@ -28,18 +28,18 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     # value, e.g. hostname will be Host-0, Host-1, etc.
     self.client_ids = self.SetupClients(15)
 
-    self.AddClientLabel(self.client_ids[0], self.token.username,
+    self.AddClientLabel(self.client_ids[0], self.test_username,
                         u"common_test_label")
-    self.AddClientLabel(self.client_ids[0], self.token.username,
+    self.AddClientLabel(self.client_ids[0], self.test_username,
                         u"unique_test_label")
-    self.AddClientLabel(self.client_ids[1], self.token.username,
+    self.AddClientLabel(self.client_ids[1], self.test_username,
                         u"common_test_label")
 
     snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_ids[0])
     snapshot.knowledge_base.users.Append(
         rdf_client.User(username="sample_user"))
     snapshot.knowledge_base.users.Append(
-        rdf_client.User(username=self.token.username))
+        rdf_client.User(username=self.test_username))
     data_store.REL_DB.WriteClientSnapshot(snapshot)
     client_index.ClientIndex().AddClient(
         data_store.REL_DB.ReadClientSnapshot(self.client_ids[0]))
@@ -166,7 +166,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self.Open("/")
 
     self.Type(
-        "client_query", text="user:" + self.token.username, end_with_enter=True)
+        "client_query", text="user:" + self.test_username, end_with_enter=True)
 
     self._WaitForSearchResults(target_count=1)
 
@@ -259,7 +259,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
 class TestDefaultGUISettings(gui_test_lib.GRRSeleniumTest):
 
   def testDefaultGUISettingsWork(self):
-    data_store.REL_DB.DeleteGRRUser(self.token.username)
+    data_store.REL_DB.DeleteGRRUser(self.test_username)
 
     self.Open("/")  # The ui displays an error here if the settings are invalid.
 

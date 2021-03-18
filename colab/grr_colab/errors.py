@@ -20,7 +20,7 @@ class UnknownClientError(Exception):
     self.client_id = client_id
     self.cause = cause
     msg = 'Client with id {} does not exist: {}'.format(client_id, cause)
-    super(UnknownClientError, self).__init__(msg)
+    super().__init__(msg)
 
 
 class AmbiguousHostnameError(Exception):
@@ -30,7 +30,7 @@ class AmbiguousHostnameError(Exception):
     self.clients = clients
     msg = 'Too many clients ({}) found for hostname: {}'.format(
         clients, hostname)
-    super(AmbiguousHostnameError, self).__init__(msg)
+    super().__init__(msg)
 
 
 class UnknownHostnameError(Exception):
@@ -38,7 +38,7 @@ class UnknownHostnameError(Exception):
   def __init__(self, hostname: Text) -> None:
     self.hostname = hostname
     msg = 'No clients found for hostname: {}'.format(hostname)
-    super(UnknownHostnameError, self).__init__(msg)
+    super().__init__(msg)
 
 
 class ApprovalMissingError(Exception):
@@ -47,7 +47,7 @@ class ApprovalMissingError(Exception):
     self.client_id = client_id
     self.cause = cause
     msg = 'No approval to the client {} found: {}'.format(client_id, cause)
-    super(ApprovalMissingError, self).__init__(msg)
+    super().__init__(msg)
 
 
 class FlowTimeoutError(Exception):
@@ -72,7 +72,7 @@ class FlowTimeoutError(Exception):
     if url is not None:
       msg = '{}. Results will be available at {} when the flow finishes'.format(
           msg, url)
-    super(FlowTimeoutError, self).__init__(msg)
+    super().__init__(msg)
 
   def _build_path_to_ui(self) -> Optional[Text]:
     if not FLAGS.grr_admin_ui_url:
@@ -87,7 +87,7 @@ class NotDirectoryError(Exception):
     self.client_id = client_id
     self.path = path
     msg = 'Path `{}` for client {} is not a directory'.format(client_id, path)
-    super(NotDirectoryError, self).__init__(msg)
+    super().__init__(msg)
 
 
 class UnsupportedPathTypeError(Exception):
@@ -95,4 +95,4 @@ class UnsupportedPathTypeError(Exception):
   def __init__(self, path_type: jobs_pb2.PathSpec.PathType) -> None:
     self.path_type = path_type
     msg = 'Unsupported path type {}'.format(path_type)
-    super(UnsupportedPathTypeError, self).__init__(msg)
+    super().__init__(msg)

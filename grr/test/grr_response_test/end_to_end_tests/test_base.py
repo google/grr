@@ -145,7 +145,7 @@ class RunFlowAndWaitError(Error):
   """Error thrown by RunFlowAndWait."""
 
   def __init__(self, message, flow):
-    super(RunFlowAndWaitError, self).__init__(message)
+    super().__init__(message)
     self.flow = flow
 
 
@@ -176,7 +176,7 @@ class EndToEndTest(absltest.TestCase, metaclass=EndToEndTestMetaclass):
   MANUAL = False
 
   def __init__(self, *args, **kwargs):
-    super(EndToEndTest, self).__init__(*args, **kwargs)
+    super().__init__(*args, **kwargs)
     self.grr_api, self.client = init_fn()
     if not self.grr_api:
       raise Exception("GRR API not set.")

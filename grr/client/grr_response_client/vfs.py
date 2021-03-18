@@ -46,11 +46,13 @@ def Init():
 
   VFS_HANDLERS[files.File.supported_pathtype] = files.File
   VFS_HANDLERS[files.TempFile.supported_pathtype] = files.TempFile
-  VFS_HANDLERS[sleuthkit.TSKFile.supported_pathtype] = sleuthkit.TSKFile
   if config.CONFIG["Client.use_filesystem_sandboxing"]:
     VFS_HANDLERS[unprivileged_vfs.UnprivilegedNtfsFile
                  .supported_pathtype] = unprivileged_vfs.UnprivilegedNtfsFile
+    VFS_HANDLERS[unprivileged_vfs.UnprivilegedTskFile
+                 .supported_pathtype] = unprivileged_vfs.UnprivilegedTskFile
   else:
+    VFS_HANDLERS[sleuthkit.TSKFile.supported_pathtype] = sleuthkit.TSKFile
     VFS_HANDLERS[ntfs.NTFSFile.supported_pathtype] = ntfs.NTFSFile
   if vfs_registry is not None:
     VFS_HANDLERS[vfs_registry.RegistryFile

@@ -197,9 +197,6 @@ class FlowBase(metaclass=FlowRegistry):
     self.replies_to_process = []
     self.replies_to_write = []
 
-    # TODO(amoser): Remove when AFF4 is gone.
-    self.token = access_control.ACLToken(username=self.creator)
-
     self._state = None
 
     self._client_version = None
@@ -265,6 +262,7 @@ class FlowBase(metaclass=FlowRegistry):
                  action_cls,
                  request=None,
                  next_state=None,
+                 callback_state=None,
                  request_data=None,
                  **kwargs):
     """Calls the client asynchronously.
@@ -280,6 +278,8 @@ class FlowBase(metaclass=FlowRegistry):
          new RDFValue using the kwargs.
        next_state: The state in this flow, that responses to this message should
          go to.
+       callback_state: (optional) The state to call whenever a new response
+         is arriving.
        request_data: A dict which will be available in the RequestState
          protobuf. The Responses object maintains a reference to this protobuf
          for use in the execution of the state method. (so you can access this
@@ -316,7 +316,8 @@ class FlowBase(metaclass=FlowRegistry):
         client_id=self.rdf_flow.client_id,
         flow_id=self.rdf_flow.flow_id,
         request_id=outbound_id,
-        next_state=next_state)
+        next_state=next_state,
+        callback_state=callback_state)
 
     if request_data is not None:
       flow_request.request_data = rdf_protodict.Dict().FromDict(request_data)
@@ -716,7 +717,8 @@ class FlowBase(metaclass=FlowRegistry):
     """Processes all requests that are due to run.
 
     Returns:
-      The number of processed requests.
+      (processed, incrementally_processed) The number of completed processed
+      requests and the number of incrementally processed ones.
     """
     request_dict = data_store.REL_DB.ReadFlowRequestsReadyForProcessing(
         self.rdf_flow.client_id,
@@ -726,16 +728,68 @@ class FlowBase(metaclass=FlowRegistry):
       return 0
 
     processed = 0
+    incrementally_processed = 0
+    next_response_id_map = {}
+    # Process incremental requests' updates first. Incremental requests have
+    # the 'callback_state' attribute set and the callback state is called
+    # every time new responses arrive. Note that the id of the next expected
+    # response is kept in request's 'next_response_id' attribute to guarantee
+    # that responses are going to be processed in the right order.
+    for request_id, (request, responses) in list(request_dict.items()):
+      if not self.IsRunning():
+        break
+
+      if not request.callback_state:
+        continue
+
+      # Responses have to be processed in the correct order, no response
+      # can be skipped.
+      next_response_id = request.next_response_id
+      to_process = []
+      for r in responses:
+        if r.response_id == next_response_id:
+          to_process.append(r)
+        else:
+          break
+        next_response_id += 1
+
+      if to_process:
+        self.RunStateMethod(request.callback_state, request, to_process)
+
+      # When dealing with a callback flow, increment the
+      # 'incrementally_processed' counter even if to_process is empty, as it's
+      # expected that messages might arrive in the wrong order and therefore
+      # not always be suitable for processing.
+      incrementally_processed += 1
+
+      # The request is incremental, but not complete yet.
+      if not request.needs_processing:
+        del request_dict[request_id]
+
+        # If the request was processed, update the next_response_id.
+        if to_process:
+          next_response_id_map[
+              request.request_id] = to_process[-1].response_id + 1
+
+    if next_response_id_map:
+      data_store.REL_DB.UpdateIncrementalFlowRequests(self.rdf_flow.client_id,
+                                                      self.rdf_flow.flow_id,
+                                                      next_response_id_map)
+
+    # Process completed requests.
+    #
     # If the flow gets a bunch of requests to process and processing one of
     # them leads to flow termination, other requests should be ignored.
     # Hence: self.IsRunning check in the loop's condition.
     while (self.IsRunning() and
            self.rdf_flow.next_request_to_process in request_dict):
+
       request, responses = request_dict[self.rdf_flow.next_request_to_process]
-      self.RunStateMethod(request.next_state, request, responses)
-      self.rdf_flow.next_request_to_process += 1
-      processed += 1
-      self.completed_requests.append(request)
+      if request.needs_processing:
+        self.RunStateMethod(request.next_state, request, responses)
+        self.rdf_flow.next_request_to_process += 1
+        processed += 1
+        self.completed_requests.append(request)
 
     if processed and self.IsRunning() and not self.outstanding_requests:
       self.RunStateMethod("End")
@@ -749,7 +803,7 @@ class FlowBase(metaclass=FlowRegistry):
       # All requests and responses can now be deleted.
       self._ClearAllRequestsAndResponses()
 
-    return processed
+    return processed, incrementally_processed
 
   @property
   def outstanding_requests(self):
@@ -857,8 +911,7 @@ class FlowBase(metaclass=FlowRegistry):
       output_plugin_cls = plugin_descriptor.GetPluginClass()
       output_plugin = output_plugin_cls(
           source_urn=self.rdf_flow.long_flow_id,
-          args=plugin_descriptor.plugin_args,
-          token=access_control.ACLToken(username=self.rdf_flow.creator))
+          args=plugin_descriptor.plugin_args)
 
       try:
         # TODO(user): refactor output plugins to use FlowResponse

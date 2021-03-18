@@ -51,7 +51,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
   to_test_context = TestedContext
 
   def setUp(self):
-    super(BasicContextTests, self).setUp()
+    super().setUp()
     self.context = self.to_test_context()
     self.context.LoadCertificates()
     self.session_id = rdfvalue.RDFURN("W:1234")

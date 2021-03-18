@@ -74,7 +74,7 @@ class MatchMethodTests(test_lib.GRRBaseTest):
   """Test match method selection and comparisons."""
 
   def setUp(self):
-    super(MatchMethodTests, self).setUp()
+    super().setUp()
     self.none = []
     self.one = [1]
     self.some = [1, 2, 3]
@@ -196,7 +196,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     return checks.Check(**cfg)
 
   def setUp(self):
-    super(CheckRegistryTests, self).setUp()
+    super().setUp()
     if self.sw_chk is None:
       self.sw_chk = self._LoadCheck("sw.yaml", "SW-CHECK")
       checks.CheckRegistry.RegisterCheck(
@@ -291,7 +291,7 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
 class ProcessHostDataTests(checks_test_lib.HostCheckTest):
 
   def setUp(self):
-    super(ProcessHostDataTests, self).setUp()
+    super().setUp()
     registered = set(checks.CheckRegistry.checks.keys())
     if "SW-CHECK" not in registered:
       checks.LoadChecksFromFiles([os.path.join(CHECKS_DIR, "sw.yaml")])
@@ -368,12 +368,12 @@ class FilterTests(ChecksTestBase):
   """Test 'Filter' setup and operations."""
 
   def setUp(self, *args, **kwargs):
-    super(FilterTests, self).setUp(*args, **kwargs)
+    super().setUp(*args, **kwargs)
     filters.Filter.filters = {}
 
   def tearDown(self, *args, **kwargs):
     filters.Filter.filters = {}
-    super(FilterTests, self).tearDown(*args, **kwargs)
+    super().tearDown(*args, **kwargs)
 
   def testNonexistentFilterIsError(self):
     self.assertRaises(filters.DefinitionError, checks.Filter, type="NoFilter")
@@ -394,7 +394,7 @@ class ProbeTest(ChecksTestBase):
   configs = {}
 
   def setUp(self, **kwargs):
-    super(ProbeTest, self).setUp(**kwargs)
+    super().setUp(**kwargs)
     if not self.configs:
       config_file = os.path.join(CHECKS_DIR, "probes.yaml")
       for cfg in yaml.ReadManyFromPath(config_file):
@@ -437,7 +437,7 @@ class MethodTest(ChecksTestBase):
   configs = {}
 
   def setUp(self, **kwargs):
-    super(MethodTest, self).setUp(**kwargs)
+    super().setUp(**kwargs)
     if not self.configs:
       config_file = os.path.join(CHECKS_DIR, "sw.yaml")
       check_def = yaml.ReadFromPath(config_file)
@@ -468,7 +468,7 @@ class CheckTest(ChecksTestBase):
   cfg = {}
 
   def setUp(self, **kwargs):
-    super(CheckTest, self).setUp(**kwargs)
+    super().setUp(**kwargs)
     if not self.cfg:
       config_file = os.path.join(CHECKS_DIR, "sw.yaml")
       self.cfg = yaml.ReadFromPath(config_file)
@@ -545,7 +545,7 @@ class HintDefinitionTests(ChecksTestBase):
   configs = {}
 
   def setUp(self, **kwargs):
-    super(HintDefinitionTests, self).setUp(**kwargs)
+    super().setUp(**kwargs)
     if not self.configs:
       config_file = os.path.join(CHECKS_DIR, "sw.yaml")
       cfg = yaml.ReadFromPath(config_file)

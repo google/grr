@@ -539,12 +539,12 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
         "css=table > tbody td.proto_key:contains(\"Session id\") "
         "~ td.proto_value")
     self.WaitUntilContains(
-        self.token.username, self.GetText,
+        self.test_username, self.GetText,
         "css=table > tbody td.proto_key:contains(\"Creator\") "
         "~ td.proto_value")
 
   def testHuntCreatorIsNotifiedWhenHuntIsStoppedDueToCrashes(self):
-    hunt_id = self.StartHunt(crash_limit=3, creator=self.token.username)
+    hunt_id = self.StartHunt(crash_limit=3, creator=self.test_username)
 
     # Run the hunt on 3 clients, one by one. Crash detection check happens
     # when client is scheduled, so it's important to schedule the clients

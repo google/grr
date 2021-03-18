@@ -58,7 +58,7 @@ class GRRBaseTest(absltest.TestCase):
     Args:
       methodName: The test method to run.
     """
-    super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
+    super().__init__(methodName=methodName or "__init__")
     self.base_path = config.CONFIG["Test.data_dir"]
 
   @classmethod
@@ -72,18 +72,16 @@ class GRRBaseTest(absltest.TestCase):
     super().tearDownClass()
 
   def setUp(self):
-    super(GRRBaseTest, self).setUp()
+    super().setUp()
 
-    test_user = u"test"
+    self.test_username = "test"
 
     system_users_patcher = mock.patch.object(
         access_control, "SYSTEM_USERS",
-        frozenset(itertools.chain(access_control.SYSTEM_USERS, [test_user])))
+        frozenset(
+            itertools.chain(access_control.SYSTEM_USERS, [self.test_username])))
     system_users_patcher.start()
     self.addCleanup(system_users_patcher.stop)
-
-    self.token = access_control.ACLToken(
-        username=test_user, reason="Running tests")
 
     self.temp_dir = temp.TempDirPath()
     config.CONFIG.SetWriteBack(os.path.join(self.temp_dir, "writeback.yaml"))
@@ -306,9 +304,6 @@ class GRRBaseTest(absltest.TestCase):
     csr = rdf_crypto.CertificateSigningRequest(
         common_name=common_name, private_key=private_key)
     return rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
-
-  def GenerateToken(self, username, reason):
-    return access_control.ACLToken(username=username, reason=reason)
 
 
 class ConfigOverrider(object):

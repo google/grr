@@ -93,7 +93,7 @@ class BinaryChunkIterator(object):
   """Iterator object for binary streams."""
 
   def __init__(self, chunks: Iterator[bytes]) -> None:
-    super(BinaryChunkIterator, self).__init__()
+    super().__init__()
 
     self.chunks = chunks  # type: Iterator[bytes]
 
@@ -214,7 +214,7 @@ class UnknownProtobuf(object):
       proto_type: str,
       proto_any: any_pb2.Any,
   ) -> None:
-    super(UnknownProtobuf, self).__init__()
+    super().__init__()
 
     self.type = proto_type  # type: str
     self.original_value = proto_any  # type: any_pb2.Any

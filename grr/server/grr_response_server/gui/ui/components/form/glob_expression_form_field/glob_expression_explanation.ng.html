@@ -1,3 +1,8 @@
-<span *ngFor="let component of explanation$ | async" class="monospace">{{
-  component.examples ? component.examples[0] : component.globExpression
-}}</span>
+<ng-container *ngIf="explanation$ | async as explanation; else fallback">
+  <span *ngFor="let component of explanation" class="monospace">{{
+    component.examples ? component.examples[0] : component.globExpression
+  }}</span>
+</ng-container>
+<ng-template #fallback>
+  <span class="monospace">{{this.globExpression}}</span>
+</ng-template>

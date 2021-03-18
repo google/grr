@@ -438,7 +438,7 @@ class CollectBrowserHistory(flow_base.FlowBase):
       yield flow_base.ClientPathArchiveMapping(client_path, target_path)
 
   def Start(self):
-    super(CollectBrowserHistory, self).Start()
+    super().Start()
 
     if not self.args.browsers:
       raise flow_base.FlowError("Need to collect at least one type of history.")

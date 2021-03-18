@@ -37,7 +37,7 @@ class NoClientSelectedError(Exception):
 
   def __init__(self) -> None:
     msg = 'A client must be selected'
-    super(NoClientSelectedError, self).__init__(msg)
+    super().__init__(msg)
 
 
 _state = _State()

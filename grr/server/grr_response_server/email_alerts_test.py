@@ -17,7 +17,7 @@ from grr.test_lib import test_lib
 class SendEmailTests(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(SendEmailTests, self).setUp()
+    super().setUp()
     # We have to stop mail_stubber, otherwise email_alerts.EMAIL_ALERTER will
     # be just a stub and there will be nothing to test.
     self.mail_stubber.Stop()

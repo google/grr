@@ -29,7 +29,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
       data_store.REL_DB.WriteClientSnapshot(snapshot)
 
   def setUp(self):
-    super(TestHostInformation, self).setUp()
+    super().setUp()
     self.client_id = u"C.0000000000000001"
 
     with test_lib.FakeTime(test_lib.FIXED_TIME):
@@ -143,7 +143,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
                         "css=div.danger em:contains('a big warning message')")
 
   def testSidebarWarningIsNotShownIfClientHasNonMatchingLabels(self):
-    self.AddClientLabel(self.client_id, self.token.username, u"another")
+    self.AddClientLabel(self.client_id, self.test_username, u"another")
 
     with test_lib.ConfigOverrider(
         {"AdminUI.client_warnings": self.WARNINGS_OPTION}):
@@ -155,7 +155,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
                         "css=div.danger em:contains('a big warning message')")
 
   def testSidebarWarningIsShownIfClientMatchesLabels(self):
-    self.AddClientLabel(self.client_id, self.token.username, u"blah")
+    self.AddClientLabel(self.client_id, self.test_username, u"blah")
 
     with test_lib.ConfigOverrider(
         {"AdminUI.client_warnings": self.WARNINGS_OPTION}):

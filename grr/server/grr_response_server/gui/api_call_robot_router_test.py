@@ -34,7 +34,7 @@ class ApiRobotCreateFlowHandlerTest(test_lib.GRRBaseTest):
   """Tests for ApiRobotCreateFlowHandler."""
 
   def setUp(self):
-    super(ApiRobotCreateFlowHandlerTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.context = api_call_context.ApiCallContext("test")
 
@@ -79,7 +79,7 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
     return rr.ApiCallRobotRouter(params=params, delegate=delegate)
 
   def setUp(self):
-    super(ApiCallRobotRouterTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.context = api_call_context.ApiCallContext("test")
     self.another_username = "someotherguy"

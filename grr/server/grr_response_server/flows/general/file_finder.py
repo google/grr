@@ -76,7 +76,7 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
     else:
       use_external_stores = False
 
-    super(FileFinder, self).Start(use_external_stores=use_external_stores)
+    super().Start(use_external_stores=use_external_stores)
 
     self.state.files_found = 0
 
@@ -123,7 +123,7 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
 
   def GlobReportMatch(self, response):
     """This method is called by the glob mixin when there is a match."""
-    super(FileFinder, self).GlobReportMatch(response)
+    super().GlobReportMatch(response)
 
     self.ApplyCondition(
         rdf_file_finder.FileFinderResult(stat_entry=response),
@@ -384,7 +384,7 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
     self.SendReply(result)
 
   def End(self, responses):
-    super(FileFinder, self).End(responses)
+    super().End(responses)
 
     self.Log("Found and processed %d files.", self.state.files_found)
 
@@ -399,7 +399,7 @@ class ClientFileFinder(flow_base.FlowBase):
 
   def Start(self):
     """Issue the find request."""
-    super(ClientFileFinder, self).Start()
+    super().Start()
 
     if self.args.pathtype == rdf_paths.PathSpec.PathType.OS:
       stub = server_stubs.FileFinderOS
@@ -488,6 +488,6 @@ class ClientFileFinder(flow_base.FlowBase):
     filesystem.WriteStatEntries(stat_entries, client_id=self.client_id)
 
   def End(self, responses):
-    super(ClientFileFinder, self).End(responses)
+    super().End(responses)
 
     self.Log("Found and processed %d files.", self.state.files_found)

@@ -19,7 +19,7 @@ from grr.test_lib import test_lib
 class ArtifactRegistrySourcesTest(absltest.TestCase):
 
   def setUp(self):
-    super(ArtifactRegistrySourcesTest, self).setUp()
+    super().setUp()
     self.sources = ar.ArtifactRegistrySources()
 
   def testDuplicatedAddFile(self):

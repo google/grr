@@ -26,7 +26,7 @@ class NfsExportsTests(checks_test_lib.HostCheckTest):
     cls.LoadCheck("nfs.yaml")
 
   def setUp(self, *args, **kwargs):
-    super(NfsExportsTests, self).setUp(*args, **kwargs)
+    super().setUp(*args, **kwargs)
     if not NfsExportsTests.results:
       parser = config_file.NfsExportsParser()
       host_data = self.SetKnowledgeBase()

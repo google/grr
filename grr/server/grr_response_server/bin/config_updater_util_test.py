@@ -30,7 +30,7 @@ from grr.test_lib import test_lib
 class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(ConfigUpdaterLibTest, self).setUp()
+    super().setUp()
     input_patcher = mock.patch.object(builtins, "input")
     self.input_mock = input_patcher.start()
     self.addCleanup(input_patcher.stop)

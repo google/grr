@@ -234,7 +234,10 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
             )
         .subscribe(([fd, flowsByName]) => {
           const flowListItem = flowsByName.get(fd?.name ?? '');
-          if (flowListItem !== undefined) {
+          if (flowListItem === undefined) {
+            this.selectedFlow$.next(undefined);
+            this.clearInput();
+          } else {
             this.selectFlow(flowListItem);
           }
         });

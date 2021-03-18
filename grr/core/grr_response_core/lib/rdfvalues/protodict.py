@@ -317,21 +317,21 @@ class Dict(rdf_structs.RDFProtoStruct):
 
   def GetRawData(self):
     self.dat = self._values.values()
-    return super(Dict, self).GetRawData()
+    return super().GetRawData()
 
   def _CopyRawData(self):
     self.dat = self._values.values()
-    return super(Dict, self)._CopyRawData()
+    return super()._CopyRawData()
 
   def SetRawData(self, raw_data):
-    super(Dict, self).SetRawData(raw_data)
+    super().SetRawData(raw_data)
     self._values = {}
     for d in self.dat:
       self._values[d.k.GetValue()] = d
 
   def SerializeToBytes(self):
     self.dat = self._values.values()
-    return super(Dict, self).SerializeToBytes()
+    return super().SerializeToBytes()
 
   def __str__(self) -> Text:
     return str(self.ToDict())
@@ -350,7 +350,7 @@ class AttributedDict(Dict):
     self._StringifyKeys()
 
   def SetRawData(self, raw_data):
-    super(AttributedDict, self).SetRawData(raw_data)
+    super().SetRawData(raw_data)
     self._StringifyKeys()
 
   def __getattr__(self, item):
@@ -374,7 +374,7 @@ class AttributedDict(Dict):
       key = key.decode("utf-8")
 
     if isinstance(key, Text):
-      return super(AttributedDict, self).__setitem__(key, value)
+      return super().__setitem__(key, value)
 
     raise TypeError("Non-string key: {!r}".format(key))
 
@@ -384,7 +384,7 @@ class AttributedDict(Dict):
       key = key.decode("utf-8")
 
     if isinstance(key, Text):
-      return super(AttributedDict, self).__getitem__(key)
+      return super().__getitem__(key)
 
     raise TypeError("Non-string key: {!r}".format(key))
 

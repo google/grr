@@ -26,7 +26,7 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
   sleep_time = 0.1
 
   def setUp(self):
-    super(ThreadPoolTest, self).setUp()
+    super().setUp()
     self.base_thread_count = threading.active_count()
 
     prefix = "pool-%s" % self._testMethodName

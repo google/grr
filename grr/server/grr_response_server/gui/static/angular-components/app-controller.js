@@ -129,10 +129,10 @@ exports.appControllerModule.run(function(
   grrFirebaseService.setupIfNeeded();
 
   // Call reflection service as soon as possible in the app lifetime to cache
-  // the values. "ACLToken" is picked up here as an arbitrary name.
+  // the values. "ClientSnapshot" is picked up here as an arbitrary name.
   // grrReflectionService loads all RDFValues definitions on first request
   // and then caches them.
-  grrReflectionService.getRDFValueDescriptor('ACLToken');
+  grrReflectionService.getRDFValueDescriptor('ClientSnapshot');
 });
 
 

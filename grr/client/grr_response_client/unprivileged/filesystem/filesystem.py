@@ -76,8 +76,8 @@ class File(abc.ABC):
 class Filesystem(abc.ABC):
   """A filesystem implementation."""
 
-  def __init__(self):
-    self.device = None  # type: Optional[Device]
+  def __init__(self, device: Device):
+    self.device = device
 
   @abc.abstractmethod
   def Open(self, path: str, stream_name: Optional[str]) -> File:

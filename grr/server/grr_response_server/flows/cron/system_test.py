@@ -23,7 +23,7 @@ class SystemCronJobTest(test_lib.GRRBaseTest):
   """Test system cron jobs."""
 
   def setUp(self):
-    super(SystemCronJobTest, self).setUp()
+    super().setUp()
 
     one_hour_ping = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
         1, rdfvalue.HOURS)

@@ -61,7 +61,7 @@ class GRRChipsecTest(client_test_lib.EmptyActionTest):
   """Generic test class for GRR-Chipsec actions."""
 
   def setUp(self):
-    super(GRRChipsecTest, self).setUp()
+    super().setUp()
     # Mock the interface for Chipsec
     self.chipsec_mock = mock.MagicMock()
     self.chipsec_mock.chipset = mock.MagicMock()
@@ -93,7 +93,7 @@ class TestChipsecDumpFlashImage(vfs_test_lib.VfsTestCase, GRRChipsecTest):
   """Test the client dump flash image action."""
 
   def setUp(self):
-    super(TestChipsecDumpFlashImage, self).setUp()
+    super().setUp()
     self.chipsec_mock.hal.spi = mock.MagicMock()
     self.chipsec_mock.hal.spi.SPI = MockSPI
     self.grr_chipsec_module.spi = self.chipsec_mock.hal.spi
@@ -183,7 +183,7 @@ class MockACPIReadingRestrictedArea(object):
 class TestDumpACPITable(GRRChipsecTest):
 
   def setUp(self):
-    super(TestDumpACPITable, self).setUp()
+    super().setUp()
     self.chipsec_mock.hal.acpi = mock.MagicMock()
     self.chipsec_mock.hal.acpi.ACPI = MockACPI
 

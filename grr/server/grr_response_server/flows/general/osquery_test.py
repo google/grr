@@ -48,7 +48,7 @@ class OsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         osquery_flow.OsqueryFlow.__name__,
         action_mocks.ActionMock(osquery_action.Osquery),
         client_id=self.client_id,
-        token=self.token,
+        creator=self.test_username,
         query=query)
     return flow_test_lib.GetFlowResults(self.client_id, session_id)
 
@@ -166,7 +166,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         osquery_flow.OsqueryFlow.__name__,
         action_mocks.OsqueryClientMock(),
         client_id=self.client_id,
-        token=self.token,
+        creator=self.test_username,
         query="<<<FAKE OSQUERY FLOW QUERY PLACEHOLDER>>>",
         **kwargs)
 

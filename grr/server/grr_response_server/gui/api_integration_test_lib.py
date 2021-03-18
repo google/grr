@@ -33,11 +33,11 @@ class ApiIntegrationTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   """Base class for all API E2E tests."""
 
   def setUp(self):
-    super(ApiIntegrationTest, self).setUp()
+    super().setUp()
 
     api_auth_manager.InitializeApiAuthManager()
     self.context = api_call_context.ApiCallContext("api_test_robot_user")
-    self.token.username = self.context.username
+    self.test_username = self.context.username
     try:
       webauth.WEBAUTH_MANAGER.SetUserName(self.context.username)
     except AttributeError:
@@ -92,7 +92,7 @@ class RootApiIntegrationTest(ApiIntegrationTest):
   """Base class for tests dealing with root API calls."""
 
   def setUp(self):
-    super(RootApiIntegrationTest, self).setUp()
+    super().setUp()
 
     default_router = RootApiBinaryManagementTestRouter
     root_api_config_overrider = test_lib.ConfigOverrider(

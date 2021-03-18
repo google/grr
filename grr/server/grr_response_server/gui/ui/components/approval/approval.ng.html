@@ -1,12 +1,16 @@
 <div class="wrapper">
-  <h1 class="mat-h1" (click)="toggleContent($event)">
-    Access approval
+  <h1 class="mat-h1" (click)="showContent($event)">
+    <mat-icon>approval</mat-icon> Access approval
 
     <span class="mat-body-1">
-      <mat-chip *ngIf="(latestApprovalState$ | async) === 'pending'" style="background: #f9ab01;">pending</mat-chip>
-      <mat-chip *ngIf="(latestApprovalState$ | async) === 'valid'" style="background: #8afab1;">granted</mat-chip>
-      <mat-chip *ngIf="(latestApprovalState$ | async) === 'missing'" style="background: #ea4335;">missing</mat-chip>
+      <mat-chip *ngIf="(latestApprovalState$ | async) === 'pending'" style="background: #f9ab01;">Pending</mat-chip>
+      <mat-chip *ngIf="(latestApprovalState$ | async) === 'valid'" style="background: #8afab1;">Granted</mat-chip>
+      <mat-chip *ngIf="(latestApprovalState$ | async) === 'missing'" style="background: #ea4335; color: white;">Missing</mat-chip>
     </span>
+
+    <button mat-icon-button class="corner-button" (click)="toggleContent($event)">
+      <mat-icon>{{hideContent ? 'expand_less' : 'expand_more'}}</mat-icon>
+    </button>
   </h1>
 
   <div class="content mat-body-1">

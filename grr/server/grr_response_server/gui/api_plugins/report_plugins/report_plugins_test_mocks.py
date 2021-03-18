@@ -25,7 +25,7 @@ class BarReportPlugin(report_plugin_base.ReportPluginBase):
   SUMMARY = "Reports bars' activity in the given time range."
   REQUIRES_TIME_RANGE = True
 
-  def GetReportData(self, get_report_args, token):
+  def GetReportData(self, get_report_args):
     ret = rdf_report_plugins.ApiReportData(
         representation_type=rdf_report_plugins.ApiReportData.RepresentationType.
         STACK_CHART)

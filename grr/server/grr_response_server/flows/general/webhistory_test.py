@@ -52,7 +52,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
   """Test the browser history flows."""
 
   def setUp(self):
-    super(TestWebHistory, self).setUp()
+    super().setUp()
     # Set up client info
     users = [
         rdf_client.User(
@@ -75,7 +75,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
           check_flow_errors=False,
           client_id=self.client_id,
           username="test",
-          token=self.token,
+          creator=self.test_username,
           pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     # Now check that the right files were downloaded.
@@ -105,7 +105,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
           check_flow_errors=False,
           client_id=self.client_id,
           username="test",
-          token=self.token,
+          creator=self.test_username,
           # This has to be TSK, since test_img.dd is an EXT3 file system.
           pathtype=rdf_paths.PathSpec.PathType.TSK)
 
@@ -140,7 +140,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
           grep_users=["test"],
           data_regex=b"ENIAC",
           pathtype=rdf_paths.PathSpec.PathType.TSK,
-          token=self.token)
+          creator=self.test_username)
 
     # Check if the collection file was created.
     hits = flow_test_lib.GetFlowResults(self.client_id, session_id)
@@ -157,7 +157,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
   """Test the browser history flows."""
 
   def setUp(self):
-    super(TestWebHistoryWithArtifacts, self).setUp()
+    super().setUp()
     users = [
         rdf_client.User(
             username="test",
@@ -183,7 +183,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
           client_mock=client_mock,
           client_id=self.client_id,
           artifact_list=artifact_list,
-          token=self.token,
+          creator=self.test_username,
           **kw)
 
       return flow_test_lib.GetFlowResults(self.client_id, session_id)
@@ -258,7 +258,7 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
     flow_args = webhistory.CollectBrowserHistoryArgs(**kwargs)
     flow_id = flow_test_lib.StartAndRunFlow(
         webhistory.CollectBrowserHistory,
-        creator=self.token.username,
+        creator=self.test_username,
         client_mock=action_mocks.ActionMock(),
         client_id=self.client_id,
         flow_args=flow_args)

@@ -19,7 +19,7 @@ from grr.test_lib import test_lib
 class OSXLaunchdJobDictTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(OSXLaunchdJobDictTest, self).setUp()
+    super().setUp()
     self.jobdict = osx_launchd_testdata.JOBS
     self.parser = osx_launchd.OSXLaunchdJobDict(self.jobdict)
 

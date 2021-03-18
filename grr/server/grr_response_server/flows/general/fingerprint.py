@@ -107,7 +107,7 @@ class FingerprintFile(FingerprintFileLogic, flow_base.FlowBase):
 
   def Start(self):
     """Issue the fingerprinting request."""
-    super(FingerprintFile, self).Start()
+    super().Start()
 
     self.FingerprintFile(self.args.pathspec)
 
@@ -117,6 +117,6 @@ class FingerprintFile(FingerprintFileLogic, flow_base.FlowBase):
 
   def End(self, responses):
     """Finalize the flow."""
-    super(FingerprintFile, self).End(responses)
+    super().End(responses)
 
     self.Log("Finished fingerprinting %s", self.args.pathspec.path)

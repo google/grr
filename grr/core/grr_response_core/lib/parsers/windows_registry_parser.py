@@ -553,3 +553,31 @@ ZONE_LIST = {
     "Central Standard Time": "CST6CDT",
     "Pacific Standard Time": "PST8PDT",
 }
+
+
+class WindowsRegistryInstalledSoftwareParser(parser.RegistryValueParser):
+  """Parser registry uninstall keys yields rdf_client.SoftwarePackages."""
+  output_types = [rdf_client.SoftwarePackages]
+  supported_artifacts = ["WindowsUninstallKeys"]
+
+  def ParseMultiple(self, stats, _):
+    apps = {}
+    for stat in stats:
+      matches = re.search(r"\\CurrentVersion\\Uninstall\\([^\\]+)\\([^$]+)",
+                          stat.pathspec.path)
+      if not matches:
+        continue
+      app_name, key = matches.groups()
+      apps.setdefault(app_name, {})[key] = stat.registry_data.GetValue()
+
+    packages = []
+    for key, app in apps.items():
+      if "DisplayName" not in app:
+        continue
+      packages.append(
+          rdf_client.SoftwarePackage.Installed(
+              name=app.get("DisplayName"),
+              description=app.get("Publisher", ""),
+              version=app.get("DisplayVersion", "")))
+    if packages:
+      yield rdf_client.SoftwarePackages(packages=packages)

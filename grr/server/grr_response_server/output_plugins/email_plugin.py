@@ -45,7 +45,6 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
   <br />
   Click <a href='{{ admin_ui_url }}/#{{ client_fragment_id }}'> here </a> to
   access this machine. <br />
-  This notification was created by {{ creator }}.
 </p>
 {{ additional_message }}
 <p>Thanks,</p>
@@ -93,8 +92,7 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
         source_urn=self.source_urn,
         additional_message=additional_message,
         signature=config.CONFIG["Email.signature"],
-        hostname=hostname,
-        creator=self.token.username)
+        hostname=hostname)
 
     email_alerts.EMAIL_ALERTER.SendEmail(
         self.args.email_address, "grr-noreply", subject, body, is_html=True)

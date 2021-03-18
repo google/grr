@@ -27,7 +27,7 @@ from grr.test_lib import test_lib
 class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(RemoteUserWebAuthManagerTest, self).setUp()
+    super().setUp()
 
     self.manager = webauth.RemoteUserWebAuthManager()
     self.success_response = http_response.HttpResponse("foobar")
@@ -112,7 +112,7 @@ class RemoteUserWebAuthManagerTest(test_lib.GRRBaseTest):
 class FirebaseWebAuthManagerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(FirebaseWebAuthManagerTest, self).setUp()
+    super().setUp()
 
     config_overrider = test_lib.ConfigOverrider({
         "AdminUI.firebase_auth_domain": "foo-bar.firebaseapp.com",

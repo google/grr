@@ -24,7 +24,7 @@ class DummyAuthorization(object):
 class AuthorizationReaderTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(AuthorizationReaderTest, self).setUp()
+    super().setUp()
     self.auth_reader = auth_manager.AuthorizationReader()
 
   def testCreateAuthorizationsInitializesAuthorizationsFromYaml(self):
@@ -77,7 +77,7 @@ router: "ApiCallRobotRouter"
 class AuthorizationManagerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(AuthorizationManagerTest, self).setUp()
+    super().setUp()
 
     self.group_access_manager = groups.NoGroupAccess()
     self.auth_manager = auth_manager.AuthorizationManager(

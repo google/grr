@@ -131,7 +131,7 @@ class HttpConnector(abstract.Connector):
       page_size: Optional[int] = None,
       validate_version: Optional[bool] = None,
   ):
-    super(HttpConnector, self).__init__()
+    super().__init__()
 
     if verify is None:
       verify = True

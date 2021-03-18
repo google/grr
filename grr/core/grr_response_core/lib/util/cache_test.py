@@ -19,7 +19,7 @@ from grr.test_lib import test_lib
 class WithLimitedCallFrequencyTest(absltest.TestCase):
 
   def setUp(self):
-    super(WithLimitedCallFrequencyTest, self).setUp()
+    super().setUp()
     self.mock_fn = mock.Mock(wraps=lambda *_: random.random())
     compatibility.SetName(self.mock_fn, "foo")  # Expected by functools.wraps.
 

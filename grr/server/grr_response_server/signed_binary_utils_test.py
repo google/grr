@@ -44,7 +44,7 @@ class SignedBinaryIDFromURNTest(absltest.TestCase):
 class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(SignedBinaryUtilsTest, self).setUp()
+    super().setUp()
 
     self._private_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=2048)
     self._public_key = self._private_key.GetPublicKey()

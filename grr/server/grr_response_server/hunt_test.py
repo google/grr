@@ -56,7 +56,7 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         flow_args=rdf_structs.AnyValue.Pack(args))
 
   def _CreateHunt(self, **kwargs):
-    hunt_obj = rdf_hunt_objects.Hunt(creator=self.token.username, **kwargs)
+    hunt_obj = rdf_hunt_objects.Hunt(creator=self.test_username, **kwargs)
     hunt.CreateHunt(hunt_obj)
     hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
 
@@ -86,11 +86,11 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     return hunt_id, client_ids
 
   def setUp(self):
-    super(HuntTest, self).setUp()
+    super().setUp()
 
     # Making sure we don't use a system username here.
-    self.token.username = "hunt_test"
-    acl_test_lib.CreateUser(self.token.username)
+    self.test_username = "hunt_test"
+    acl_test_lib.CreateUser(self.test_username)
 
   def testForemanRulesAreCorrectlyPropagatedWhenHuntStarts(self):
     client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
@@ -545,7 +545,7 @@ class HuntTest(stats_test_lib.StatsTestMixin,
             output_plugins=[plugin_descriptor])
 
   def _CheckHuntStoppedNotification(self, str_match):
-    pending = self.GetUserNotifications(self.token.username)
+    pending = self.GetUserNotifications(self.test_username)
     self.assertLen(pending, 1)
     self.assertIn(str_match, pending[0].message)
 
@@ -916,7 +916,7 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         args=self.GetFileHuntArgs())
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(hunt_obj.creator, self.token.username)
+    self.assertEqual(hunt_obj.creator, self.test_username)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_ids[0])
     self.assertLen(flows, 1)
@@ -932,7 +932,7 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         args=self.GetFileHuntArgs())
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(hunt_obj.creator, self.token.username)
+    self.assertEqual(hunt_obj.creator, self.test_username)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(client_id=client_ids[0])
     self.assertLen(flows, 1)

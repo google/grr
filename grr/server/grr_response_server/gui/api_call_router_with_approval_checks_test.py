@@ -41,7 +41,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   ACCESS_CHECKED_METHODS = []
 
   def setUp(self):
-    super(ApiCallRouterWithApprovalChecksTest, self).setUp()
+    super().setUp()
 
     self.client_id = test_lib.TEST_CLIENT_ID
     self.context = api_call_context.ApiCallContext("test")

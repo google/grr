@@ -165,7 +165,7 @@ class ListDirectory(flow_base.FlowBase):
   def NotifyAboutEnd(self):
     """Sends a notification that this flow is done."""
     if not self.state.urn:
-      super(ListDirectory, self).NotifyAboutEnd()
+      super().NotifyAboutEnd()
       return
 
     st = self.state.stat
@@ -182,7 +182,7 @@ class ListDirectory(flow_base.FlowBase):
         path_components=path_components)
 
     notification.Notify(
-        self.token.username,
+        self.creator,
         rdf_objects.UserNotification.Type.TYPE_VFS_LIST_DIRECTORY_COMPLETED,
         "Listed {0}".format(full_path),
         rdf_objects.ObjectReference(
@@ -286,7 +286,7 @@ class RecursiveListDirectory(flow_base.FlowBase):
             path_components=components[3:])
 
     notification.Notify(
-        self.token.username, rdf_objects.UserNotification.Type
+        self.creator, rdf_objects.UserNotification.Type
         .TYPE_VFS_RECURSIVE_LIST_DIRECTORY_COMPLETED,
         status_text % (self.state.file_count, self.state.dir_count),
         rdf_objects.ObjectReference(
@@ -460,7 +460,7 @@ class GlobLogic(object):
     return components
 
   def Start(self, **_):
-    super(GlobLogic, self).Start()
+    super().Start()
     self.state.component_tree = {}
 
   def _FindNode(self, component_path):
@@ -689,7 +689,7 @@ class Glob(GlobLogic, flow_base.FlowBase):
     interpolate each component. Finally, we generate a cartesian product of all
     combinations.
     """
-    super(Glob, self).Start()
+    super().Start()
     self.GlobForPaths(
         self.args.paths,
         pathtype=self.args.pathtype,
@@ -698,7 +698,7 @@ class Glob(GlobLogic, flow_base.FlowBase):
 
   def GlobReportMatch(self, stat_response):
     """Called when we've found a matching StatEntry."""
-    super(Glob, self).GlobReportMatch(stat_response)
+    super().GlobReportMatch(stat_response)
 
     self.SendReply(stat_response)
 

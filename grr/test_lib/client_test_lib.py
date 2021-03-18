@@ -103,7 +103,7 @@ class OSSpecificClientTests(EmptyActionTest):
   """
 
   def setUp(self):
-    super(OSSpecificClientTests, self).setUp()
+    super().setUp()
     action_reg_stubber = utils.Stubber(actions.ActionPlugin, "classes", {})
     action_reg_stubber.Start()
     self.addCleanup(action_reg_stubber.Stop)

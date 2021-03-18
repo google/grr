@@ -19,6 +19,7 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr.test_lib import test_lib
+from grr.test_lib import time
 
 
 class TestOSXFileParsing(test_lib.GRRBaseTest):
@@ -127,8 +128,9 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
         "com.eset.esetNod32Antivirus.com.eset.esets_daemon.pkg,"
         "com.eset.esetNod32Antivirus.esetsbkp.pkg,"
         "com.eset.esetNod32Antivirus.esets_kac_64_106.pkg")
-    # echo $(( $(date --date="2017-07-20T18:40:22Z" +"%s") * 1000000))
-    self.assertEqual(packages[0].installed_on, 1500576022000000)
+    self.assertEqual(
+        packages[0].installed_on,
+        time.HumanReadableToMicrosecondsSinceEpoch("2017-07-20T18:40:22Z"))
     self.assertEqual(packages[0].install_state,
                      rdf_client.SoftwarePackage.InstallState.INSTALLED)
 
@@ -136,8 +138,9 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     self.assertEqual(packages[1].name, "grr")
     self.assertEqual(packages[1].version, "")
     self.assertEqual(packages[1].description, "com.google.code.grr.grr_3.2.1.0")
-    # echo $(( $(date --date="2018-03-13T05:39:17Z" +"%s") * 1000000))
-    self.assertEqual(packages[1].installed_on, 1520919557000000)
+    self.assertEqual(
+        packages[1].installed_on,
+        time.HumanReadableToMicrosecondsSinceEpoch("2018-03-13T05:39:17Z"))
     self.assertEqual(packages[1].install_state,
                      rdf_client.SoftwarePackage.InstallState.INSTALLED)
 
@@ -145,8 +148,9 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     self.assertEqual(packages[2].name, "grr")
     self.assertEqual(packages[2].version, "")
     self.assertEqual(packages[2].description, "com.google.code.grr.grr_3.2.3.2")
-    # echo $(( $(date --date="2018-08-07T16:07:10Z" +"%s") * 1000000))
-    self.assertEqual(packages[2].installed_on, 1533658030000000)
+    self.assertEqual(
+        packages[2].installed_on,
+        time.HumanReadableToMicrosecondsSinceEpoch("2018-08-07T16:07:10Z"))
     self.assertEqual(packages[2].install_state,
                      rdf_client.SoftwarePackage.InstallState.INSTALLED)
 
@@ -159,8 +163,20 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
         "com.apple.update.fullbundleupdate.16G29,"
         "com.apple.pkg.EmbeddedOSFirmware")
     # echo $(( $(date --date="2017-07-25T04:26:10Z" +"%s") * 1000000))
-    self.assertEqual(packages[3].installed_on, 1500956770000000)
+    self.assertEqual(
+        packages[3].installed_on,
+        time.HumanReadableToMicrosecondsSinceEpoch("2017-07-25T04:26:10Z"))
     self.assertEqual(packages[3].install_state,
+                     rdf_client.SoftwarePackage.InstallState.INSTALLED)
+
+    # MacOS 11.2
+    self.assertEqual(packages[4].name, "macOS 11.2")
+    self.assertEqual(packages[4].version, "11.2")
+    self.assertEqual(packages[4].description, "")
+    self.assertEqual(
+        packages[4].installed_on,
+        time.HumanReadableToMicrosecondsSinceEpoch("2021-02-09T22:34:52Z"))
+    self.assertEqual(packages[4].install_state,
                      rdf_client.SoftwarePackage.InstallState.INSTALLED)
 
 

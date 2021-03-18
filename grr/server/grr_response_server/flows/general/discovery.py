@@ -361,7 +361,7 @@ class Interrogate(flow_base.FlowBase):
     summary.timestamp = rdfvalue.RDFDatetime.Now()
     summary.last_ping = summary.timestamp
 
-    events.Events.PublishEvent("Discovery", summary, token=self.token)
+    events.Events.PublishEvent("Discovery", summary, username=self.creator)
 
     self.SendReply(summary)
 
@@ -377,9 +377,9 @@ class EnrolmentInterrogateEvent(events.EventListener):
   """An event handler which will schedule interrogation on client enrollment."""
   EVENTS = ["ClientEnrollment"]
 
-  def ProcessMessages(self, msgs=None, token=None):
+  def ProcessEvents(self, msgs=None, publisher_username=None):
     for msg in msgs:
       flow.StartFlow(
           client_id=msg.Basename(),
           flow_cls=Interrogate,
-          creator=token.username if token else None)
+          creator=publisher_username)

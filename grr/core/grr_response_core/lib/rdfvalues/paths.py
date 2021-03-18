@@ -392,8 +392,13 @@ class GlobExpression(rdfvalue.RDFString):
         # if a GlobExpression uses %%users.a%% and %%users.b%%, the underlying
         # user might be different for a and b. For the sake of explaining
         # possible values, this should still be enough.
-        examples = artifact_utils.InterpolateKbAttributes(
-            glob_part, knowledge_base)
+        try:
+          examples = artifact_utils.InterpolateKbAttributes(
+              glob_part, knowledge_base)
+        except artifact_utils.Error:
+          # Interpolation can fail for many non-critical reasons, e.g. when the
+          # client is missing a KB attribute.
+          examples = []
       else:
         examples = []
 

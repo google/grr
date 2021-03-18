@@ -42,7 +42,6 @@ from ctypes.wintypes import WORD
 import os
 import subprocess
 from typing import List, Optional
-import msvcrt
 
 import win32api
 import win32event
@@ -174,12 +173,14 @@ class Process:
   A pair of pipes is created and shared with the subprocess.
   """
 
-  def __init__(self, args: List[str], extra_fds: Optional[List[int]] = None):
+  def __init__(self,
+               args: List[str],
+               extra_handles: Optional[List[int]] = None):
     """Constructor.
 
     Args:
       args: Command line to run, in argv format.
-      extra_fds: Optional list of extra file descriptors to share with the
+      extra_handles: Optional list of extra handles to share with the
         subprocess.
 
     Raises:
@@ -193,7 +194,8 @@ class Process:
     if not res:
       raise Error("InitializeProcThreadAttributeList failed.")
 
-    extra_handles = [msvcrt.get_osfhandle(fd) for fd in extra_fds]
+    if extra_handles is None:
+      extra_handles = []
 
     for extra_handle in extra_handles:
       os.set_handle_inheritable(extra_handle, True)

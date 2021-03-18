@@ -106,7 +106,7 @@ class FieldParser(lexer.Lexer):
     self._GenStates()
 
   def Reset(self):
-    super(FieldParser, self).Reset()
+    super().Reset()
     self.entries = []
     self.fields = []
     self.field = ""

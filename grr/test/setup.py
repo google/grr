@@ -64,7 +64,7 @@ setup_args = dict(
     install_requires=[
         "absl-py==0.9.0",
         "flaky==3.6.1",
-        "pytest==5.4.3",
+        "pytest==6.2.2",
         "selenium==3.141.0",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),

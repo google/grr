@@ -72,7 +72,7 @@ class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
   """Test for ApiCreateHuntHandler."""
 
   def setUp(self):
-    super(ApiCreateHuntHandlerTest, self).setUp()
+    super().setUp()
     self.handler = hunt_plugin.ApiCreateHuntHandler()
 
   def testQueueHuntRunnerArgumentIsNotRespected(self):
@@ -88,7 +88,7 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
   """Test for ApiListHuntsHandler."""
 
   def setUp(self):
-    super(ApiListHuntsHandlerTest, self).setUp()
+    super().setUp()
     self.handler = hunt_plugin.ApiListHuntsHandler()
 
   def testHandlesListOfHuntObjects(self):
@@ -230,7 +230,7 @@ class ApiGetHuntHandlerTest(hunt_test_lib.StandardHuntTestMixin,
                             api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
-    super(ApiGetHuntHandlerTest, self).setUp()
+    super().setUp()
     self.handler = hunt_plugin.ApiGetHuntHandler()
 
   def testHuntDuration(self):
@@ -252,7 +252,7 @@ class ApiGetHuntFilesArchiveHandlerTest(hunt_test_lib.StandardHuntTestMixin,
                                         api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
-    super(ApiGetHuntFilesArchiveHandlerTest, self).setUp()
+    super().setUp()
 
     self.handler = hunt_plugin.ApiGetHuntFilesArchiveHandler()
 
@@ -333,7 +333,7 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
                                 hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
-    super(ApiGetHuntFileHandlerTest, self).setUp()
+    super().setUp()
 
     self.handler = hunt_plugin.ApiGetHuntFileHandler()
 
@@ -448,7 +448,7 @@ class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
   """Test for ApiListHuntOutputPluginLogsHandler."""
 
   def setUp(self):
-    super(ApiListHuntOutputPluginLogsHandlerTest, self).setUp()
+    super().setUp()
 
     self.client_ids = self.SetupClients(5)
     self.handler = hunt_plugin.ApiListHuntOutputPluginLogsHandler()
@@ -526,7 +526,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
   """Test for ApiModifyHuntHandler."""
 
   def setUp(self):
-    super(ApiModifyHuntHandlerTest, self).setUp()
+    super().setUp()
 
     self.handler = hunt_plugin.ApiModifyHuntHandler()
 
@@ -607,7 +607,7 @@ class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
   """Test for ApiDeleteHuntHandler."""
 
   def setUp(self):
-    super(ApiDeleteHuntHandlerTest, self).setUp()
+    super().setUp()
 
     self.handler = hunt_plugin.ApiDeleteHuntHandler()
 
@@ -638,7 +638,7 @@ class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
                                            hunt_test_lib.StandardHuntTestMixin):
 
   def setUp(self):
-    super(ApiGetExportedHuntResultsHandlerTest, self).setUp()
+    super().setUp()
 
     self.handler = hunt_plugin.ApiGetExportedHuntResultsHandler()
     self.context = api_call_context.ApiCallContext("test")

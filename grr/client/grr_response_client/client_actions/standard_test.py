@@ -37,7 +37,7 @@ class TestExecutePython(client_test_lib.EmptyActionTest):
   """Test the client execute actions."""
 
   def setUp(self):
-    super(TestExecutePython, self).setUp()
+    super().setUp()
     self.signing_key = config.CONFIG[
         "PrivateKeys.executable_signing_private_key"]
 
@@ -322,7 +322,7 @@ class TestNetworkByteLimits(client_test_lib.EmptyActionTest):
   """Test TransferBuffer network byte limits."""
 
   def setUp(self):
-    super(TestNetworkByteLimits, self).setUp()
+    super().setUp()
     pathspec = rdf_paths.PathSpec(
         path="/nothing", pathtype=rdf_paths.PathSpec.PathType.OS)
     self.buffer_ref = rdf_client.BufferReference(pathspec=pathspec, length=5000)

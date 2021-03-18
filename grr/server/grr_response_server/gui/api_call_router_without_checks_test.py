@@ -18,7 +18,7 @@ class ApiCallRouterWithoutChecksTest(test_lib.GRRBaseTest):
   """Tests for ApiCallRouterWithoutChecks."""
 
   def setUp(self):
-    super(ApiCallRouterWithoutChecksTest, self).setUp()
+    super().setUp()
     self.router = api_call_router_without_checks.ApiCallRouterWithoutChecks()
 
   def testAllAnnotatedMethodsReturnHandler(self):

@@ -28,7 +28,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 
   def setUp(self):
-    super(TestFileView, self).setUp()
+    super().setUp()
     # Prepare our fixture.
     self.client_id, self.unapproved_client_id = self.SetupClients(2)
 

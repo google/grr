@@ -20,10 +20,10 @@ from grr.test_lib import test_lib
 class ApiCallHandlerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(ApiCallHandlerTest, self).setUp()
+    super().setUp()
     # The user we use for API tests.
     self.context = api_call_context.ApiCallContext("api_test_user")
-    self.token.username = self.context.username
+    self.test_username = self.context.username
     acl_test_lib.CreateUser(self.context.username)
 
 

@@ -149,7 +149,7 @@ class StreamerTestMixin(metaclass=abc.ABCMeta):
 class StreamFilePathTest(StreamerTestMixin, absltest.TestCase):
 
   def setUp(self):
-    super(StreamFilePathTest, self).setUp()
+    super().setUp()
     self.temp_filepath = temp.TempFilePath()
     self.addCleanup(lambda: os.remove(self.temp_filepath))
 
@@ -215,7 +215,7 @@ class ReaderTestMixin(metaclass=abc.ABCMeta):
 class FileReaderTest(ReaderTestMixin, absltest.TestCase):
 
   def setUp(self):
-    super(FileReaderTest, self).setUp()
+    super().setUp()
     self.temp_filepath = temp.TempFilePath()
     self.addCleanup(lambda: os.remove(self.temp_filepath))
 

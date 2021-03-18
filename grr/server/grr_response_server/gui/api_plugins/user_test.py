@@ -42,7 +42,7 @@ class ApiNotificationTest(acl_test_lib.AclTestMixin,
   """Tests for ApiNotification class."""
 
   def setUp(self):
-    super(ApiNotificationTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
   def InitFromObj_(self, notification_type, reference, message=None):
@@ -258,7 +258,7 @@ class ApiCreateApprovalHandlerTestMixin(
     approval_id = self.handler.Handle(self.args, context=self.context).id
     approval_obj = self.ReadApproval(approval_id)
 
-    self.assertEqual(approval_obj.reason, self.token.reason)
+    self.assertEqual(approval_obj.reason, "Running tests")
     self.assertEqual(approval_obj.approvers, [self.context.username])
     self.assertEqual(approval_obj.email_cc_addresses, ["test@example.com"])
 
@@ -387,7 +387,7 @@ class ApiGetClientApprovalHandlerTest(acl_test_lib.AclTestMixin,
   """Test for ApiGetClientApprovalHandler."""
 
   def setUp(self):
-    super(ApiGetClientApprovalHandlerTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
     self.handler = user_plugin.ApiGetClientApprovalHandler()
 
@@ -479,7 +479,7 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     return approvals[0]
 
   def setUp(self):
-    super(ApiCreateClientApprovalHandlerTest, self).setUp()
+    super().setUp()
 
     self.SetUpApprovalTest()
 
@@ -489,7 +489,7 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     self.args = user_plugin.ApiCreateClientApprovalArgs(
         client_id=self.client_id)
-    self.args.approval.reason = self.token.reason
+    self.args.approval.reason = "Running tests"
     self.args.approval.notified_users = [u"approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
@@ -511,7 +511,7 @@ class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest,
   CLIENT_COUNT = 5
 
   def setUp(self):
-    super(ApiListClientApprovalsHandlerTest, self).setUp()
+    super().setUp()
     self.handler = user_plugin.ApiListClientApprovalsHandler()
     self.client_ids = self.SetupClients(self.CLIENT_COUNT)
 
@@ -643,7 +643,7 @@ class ApiCreateHuntApprovalHandlerTest(ApiCreateApprovalHandlerTestMixin,
     return approvals[0]
 
   def setUp(self):
-    super(ApiCreateHuntApprovalHandlerTest, self).setUp()
+    super().setUp()
 
     self.SetUpApprovalTest()
 
@@ -652,7 +652,7 @@ class ApiCreateHuntApprovalHandlerTest(ApiCreateApprovalHandlerTestMixin,
     self.handler = user_plugin.ApiCreateHuntApprovalHandler()
 
     self.args = user_plugin.ApiCreateHuntApprovalArgs(hunt_id=hunt_id)
-    self.args.approval.reason = self.token.reason
+    self.args.approval.reason = "Running tests"
     self.args.approval.notified_users = ["approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
@@ -662,7 +662,7 @@ class ApiListHuntApprovalsHandlerTest(hunt_test_lib.StandardHuntTestMixin,
   """Test for ApiListHuntApprovalsHandler."""
 
   def setUp(self):
-    super(ApiListHuntApprovalsHandlerTest, self).setUp()
+    super().setUp()
     self.handler = user_plugin.ApiListHuntApprovalsHandler()
 
   def testRendersRequestedHuntAppoval(self):
@@ -670,7 +670,7 @@ class ApiListHuntApprovalsHandlerTest(hunt_test_lib.StandardHuntTestMixin,
 
     self.RequestHuntApproval(
         hunt_id,
-        reason=self.token.reason,
+        reason="Running tests",
         approver=u"approver",
         requestor=self.context.username)
 
@@ -693,7 +693,7 @@ class ApiCreateCronJobApprovalHandlerTest(
     return approvals[0]
 
   def setUp(self):
-    super(ApiCreateCronJobApprovalHandlerTest, self).setUp()
+    super().setUp()
 
     self.SetUpApprovalTest()
 
@@ -707,7 +707,7 @@ class ApiCreateCronJobApprovalHandlerTest(
     self.handler = user_plugin.ApiCreateCronJobApprovalHandler()
 
     self.args = user_plugin.ApiCreateCronJobApprovalArgs(cron_job_id=cron_id)
-    self.args.approval.reason = self.token.reason
+    self.args.approval.reason = "Running tests"
     self.args.approval.notified_users = [u"approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
@@ -717,7 +717,7 @@ class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
   """Test for ApiListCronJobApprovalsHandler."""
 
   def setUp(self):
-    super(ApiListCronJobApprovalsHandlerTest, self).setUp()
+    super().setUp()
     self.handler = user_plugin.ApiListCronJobApprovalsHandler()
 
   def testRendersRequestedCronJobApproval(self):
@@ -730,7 +730,7 @@ class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
 
     self.RequestCronJobApproval(
         cron_job_id,
-        reason=self.token.reason,
+        reason="Running tests",
         approver=u"approver",
         requestor=self.context.username)
 
@@ -744,7 +744,7 @@ class ApiGetOwnGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetUserSettingsHandler."""
 
   def setUp(self):
-    super(ApiGetOwnGrrUserHandlerTest, self).setUp()
+    super().setUp()
     data_store.REL_DB.WriteGRRUser("foo")
     self.handler = user_plugin.ApiGetOwnGrrUserHandler()
 
@@ -773,7 +773,7 @@ class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Tests for ApiUpdateUserSettingsHandler."""
 
   def setUp(self):
-    super(ApiUpdateGrrUserHandlerTest, self).setUp()
+    super().setUp()
     self.handler = user_plugin.ApiUpdateGrrUserHandler()
 
   def testRaisesIfUsernameSetInRequest(self):
@@ -815,7 +815,7 @@ class ApiDeletePendingUserNotificationHandlerTest(
   TIME_2 = TIME_1 + rdfvalue.Duration.From(1, rdfvalue.DAYS)
 
   def setUp(self):
-    super(ApiDeletePendingUserNotificationHandlerTest, self).setUp()
+    super().setUp()
     self.handler = user_plugin.ApiDeletePendingUserNotificationHandler()
     self.client_id = self.SetupClient(0)
 
@@ -895,7 +895,7 @@ class ApiListApproverSuggestionsHandlerTest(acl_test_lib.AclTestMixin,
   """Test for ApiListApproverSuggestionsHandler."""
 
   def setUp(self):
-    super(ApiListApproverSuggestionsHandlerTest, self).setUp()
+    super().setUp()
     self.handler = user_plugin.ApiListApproverSuggestionsHandler()
     self.CreateUser("sanchezmorty")
     self.CreateUser("sanchezrick")

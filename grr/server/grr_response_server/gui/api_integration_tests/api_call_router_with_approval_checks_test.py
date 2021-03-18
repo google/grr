@@ -25,7 +25,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
     api_integration_test_lib.ApiIntegrationTest):
 
   def setUp(self):
-    super(ApiCallRouterWithApprovalChecksE2ETest, self).setUp()
+    super().setUp()
 
     default_router = api_router.ApiCallRouterWithApprovalChecks
     config_overrider = test_lib.ConfigOverrider(
@@ -39,18 +39,18 @@ class ApiCallRouterWithApprovalChecksE2ETest(
     api_router.ApiCallRouterWithApprovalChecks.ClearCache()
     api_auth_manager.InitializeApiAuthManager()
 
-  def CreateHuntApproval(self, hunt_id, token, admin=False):
-    approval_id = self.RequestHuntApproval(hunt_id, requestor=token.username)
+  def CreateHuntApproval(self, hunt_id, requestor, admin=False):
+    approval_id = self.RequestHuntApproval(hunt_id, requestor=requestor)
     self.GrantHuntApproval(
         hunt_id,
         approval_id=approval_id,
-        requestor=token.username,
+        requestor=requestor,
         approver=u"Approver1",
         admin=admin)
     self.GrantHuntApproval(
         hunt_id,
         approval_id=approval_id,
-        requestor=token.username,
+        requestor=requestor,
         approver=u"Approver2",
         admin=False)
 
@@ -72,7 +72,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
     with test_lib.FakeTime(100.0, increment=1e-3):
       self.RequestAndGrantClientApproval(
-          client_id, requestor=self.token.username)
+          client_id, requestor=self.test_username)
 
       # This should work now.
       self.api.Client(client_id).File("fs/os/foo").Get()
@@ -102,7 +102,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
       self.api.Client(client_id).File("fs/os/foo").Get()
 
-    self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
+    self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
     self.api.Client(client_id).File("fs/os/foo").Get()
 
     # Move the clocks forward to make sure the approval expires.
@@ -118,13 +118,13 @@ class ApiCallRouterWithApprovalChecksE2ETest(
     self.assertRaises(grr_api_errors.AccessForbiddenError,
                       self.api.Hunt(hunt_id).Start)
 
-    self.CreateHuntApproval(hunt_id, self.token, admin=False)
+    self.CreateHuntApproval(hunt_id, self.test_username, admin=False)
 
     self.assertRaisesRegex(grr_api_errors.AccessForbiddenError,
                            "Need at least 1 admin approver for access",
                            self.api.Hunt(hunt_id).Start)
 
-    self.CreateHuntApproval(hunt_id, self.token, admin=True)
+    self.CreateHuntApproval(hunt_id, self.test_username, admin=True)
     self.api.Hunt(hunt_id).Start()
 
   def testFlowAccess(self):
@@ -136,7 +136,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
         self.api.Client(client_id).CreateFlow,
         name=flow_test_lib.SendingFlow.__name__)
 
-    self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
+    self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
     f = self.api.Client(client_id).CreateFlow(
         name=flow_test_lib.SendingFlow.__name__)
 
@@ -148,7 +148,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
         self.api.Client(client_id).Flow(f.flow_id).Get()
 
       self.RequestAndGrantClientApproval(
-          client_id, requestor=self.token.username)
+          client_id, requestor=self.test_username)
       self.api.Client(client_id).Flow(f.flow_id).Get()
 
   def testCaches(self):
@@ -157,7 +157,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
     with test_lib.ConfigOverrider({"ACL.token_expiry": 30}):
       self.RequestAndGrantClientApproval(
-          client_id, requestor=self.token.username)
+          client_id, requestor=self.test_username)
 
       f = self.api.Client(client_id).CreateFlow(
           name=flow_test_lib.SendingFlow.__name__)
@@ -177,7 +177,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
   def testClientFlowWithoutCategoryCanNotBeStartedWithClient(self):
     client_id = self.SetupClient(0)
-    self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
+    self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
 
     with self.assertRaises(grr_api_errors.AccessForbiddenError):
       self.api.Client(client_id).CreateFlow(
@@ -185,7 +185,7 @@ class ApiCallRouterWithApprovalChecksE2ETest(
 
   def testClientFlowWithCategoryCanBeStartedWithClient(self):
     client_id = self.SetupClient(0)
-    self.RequestAndGrantClientApproval(client_id, requestor=self.token.username)
+    self.RequestAndGrantClientApproval(client_id, requestor=self.test_username)
 
     self.api.Client(client_id).CreateFlow(
         name=flow_test_lib.ClientFlowWithCategory.__name__)

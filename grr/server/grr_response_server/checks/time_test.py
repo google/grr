@@ -18,7 +18,7 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
   checks_loaded = False
 
   def setUp(self, *args, **kwargs):
-    super(TimeSyncTests, self).setUp(*args, **kwargs)
+    super().setUp(*args, **kwargs)
     if not self.checks_loaded:
       self.LoadCheck("time.yaml")
       self.checks_loaded = True

@@ -36,12 +36,11 @@ class InstantOutputPlugin(metaclass=MetaclassRegistry):
 
     raise KeyError("No plugin with name attribute '%s'." % name)
 
-  def __init__(self, source_urn=None, token=None):
+  def __init__(self, source_urn=None):
     """OutputPlugin constructor.
 
     Args:
       source_urn: URN identifying source of the data (hunt or flow).
-      token: Security token.
 
     Raises:
       ValueError: If one of the keyword arguments is empty.
@@ -51,11 +50,7 @@ class InstantOutputPlugin(metaclass=MetaclassRegistry):
     if not source_urn:
       raise ValueError("source_urn can't be empty.")
 
-    if not token:
-      raise ValueError("token can't be empty.")
-
     self.source_urn = source_urn
-    self.token = token
 
   @property
   def output_file_name(self):

@@ -149,7 +149,7 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
   handler = vfs_plugin.ApiGetVfsRefreshOperationStateHandler
 
   def Run(self):
-    acl_test_lib.CreateUser(self.token.username)
+    acl_test_lib.CreateUser(self.test_username)
     client_id = self.SetupClient(0)
 
     # Create a running mock refresh operation.
@@ -159,14 +159,14 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
         filesystem.RecursiveListDirectory,
         client_id,
         flow_args=flow_args,
-        creator=self.token.username)
+        creator=self.test_username)
 
     # Create a mock refresh operation and complete it.
     finished_flow_id = flow_test_lib.StartFlow(
         filesystem.RecursiveListDirectory,
         client_id,
         flow_args=flow_args,
-        creator=self.token.username)
+        creator=self.test_username)
 
     # Kill flow.
     rdf_flow = data_store.REL_DB.LeaseFlowForProcessing(
@@ -179,7 +179,7 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
 
     # Create an arbitrary flow to check on 404s.
     non_refresh_flow_id = flow_test_lib.StartFlow(
-        discovery.Interrogate, client_id, creator=self.token.username)
+        discovery.Interrogate, client_id, creator=self.test_username)
 
     # Unknown flow ids should also cause 404s.
     unknown_flow_id = "12345678"
@@ -242,7 +242,7 @@ class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
   def Run(self):
     client_id = self.SetupClient(0)
 
-    acl_test_lib.CreateUser(self.token.username)
+    acl_test_lib.CreateUser(self.test_username)
 
     # Create a running mock refresh operation.
     running_flow_id = self.CreateMultiGetFileFlow(

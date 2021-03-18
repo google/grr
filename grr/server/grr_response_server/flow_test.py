@@ -15,6 +15,7 @@ from grr_response_client import actions
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import action_registry
 from grr_response_server import data_store
@@ -73,7 +74,7 @@ class CallStateFlow(flow_base.FlowBase):
 class BasicFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def setUp(self):
-    super(BasicFlowTest, self).setUp()
+    super().setUp()
     self.client_id = self.SetupClient(0)
 
 
@@ -426,7 +427,7 @@ class NoRequestParentFlow(flow_base.FlowBase):
 class FlowOutputPluginsTest(BasicFlowTest):
 
   def setUp(self):
-    super(FlowOutputPluginsTest, self).setUp()
+    super().setUp()
     test_output_plugins.DummyFlowOutputPlugin.num_calls = 0
     test_output_plugins.DummyFlowOutputPlugin.num_responses = 0
 
@@ -737,6 +738,157 @@ class RandomFlowIdTest(absltest.TestCase):
     with mock.patch.object(
         flow.random, "Id64", return_value=0x0000000100000000):
       self.assertEqual(flow.RandomFlowId(), "0000000100000000")
+
+
+class NotSendingStatusClientMock(action_mocks.ActionMock):
+  """A mock for testing resource limits."""
+
+  NUM_INCREMENTAL_RESPONSES = 10
+
+  def __init__(self, shuffle=False):
+    super().__init__()
+    self._shuffle = shuffle
+
+  def HandleMessage(self, message):
+    responses = [
+        rdfvalue.RDFString(f"Hello World {i}")
+        for i in range(self.NUM_INCREMENTAL_RESPONSES)
+    ]
+
+    messages = []
+    for i, r in enumerate(responses):
+      messages.append(
+          rdf_flows.GrrMessage(
+              session_id=message.session_id,
+              request_id=message.request_id,
+              task_id=message.Get("task_id"),
+              name=message.name,
+              response_id=i + 1,
+              payload=r,
+              type=rdf_flows.GrrMessage.Type.MESSAGE))
+
+    if self._shuffle:
+      random.shuffle(messages)
+
+    return messages
+
+
+class StatusOnlyClientMock(action_mocks.ActionMock):
+
+  def HandleMessage(self, message):
+    return [self.GenerateStatusMessage(message, response_id=42)]
+
+
+class FlowWithIncrementalCallback(flow_base.FlowBase):
+  """This flow will be called by our parent."""
+
+  def Start(self):
+    self.CallClient(
+        ReturnHello,
+        callback_state=self.ReceiveHelloCallback.__name__,
+        next_state=self.ReceiveHello.__name__)
+
+  def ReceiveHelloCallback(self, responses):
+    # Relay each message when it comes.
+    for r in responses:
+      self.SendReply(r)
+
+  def ReceiveHello(self, responses):
+    # Relay all incoming messages once more (but prefix the strings).
+    for response in responses:
+      self.SendReply(rdfvalue.RDFString("Final: " + str(response)))
+
+
+class IncrementalResponseHandlingTest(BasicFlowTest):
+
+  @mock.patch.object(FlowWithIncrementalCallback, "ReceiveHelloCallback")
+  def testIncrementalCallbackReturnsResultsBeforeStatus(self, m):
+    # Mocks don't have names by default.
+    m.__name__ = "ReceiveHelloCallback"
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        FlowWithIncrementalCallback,
+        client_mock=NotSendingStatusClientMock(),
+        client_id=self.client_id,
+        # Set check_flow_errors to False, otherwise test runner will complain
+        # that the flow has finished in the RUNNING state.
+        check_flow_errors=False)
+    flow_obj = flow_test_lib.GetFlowObj(self.client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flow_obj.FlowState.RUNNING)
+
+    self.assertEqual(m.call_count,
+                     NotSendingStatusClientMock.NUM_INCREMENTAL_RESPONSES)
+    for i in range(NotSendingStatusClientMock.NUM_INCREMENTAL_RESPONSES):
+      # Get the positional arguments of each call.
+      args = m.mock_calls[i][1]
+      # Compare the first positional argument ('responses') to the responses
+      # list that we expect to have been passed to the callback.
+      self.assertEqual(list(args[0]), [rdfvalue.RDFString(f"Hello World {i}")])
+
+  @mock.patch.object(FlowWithIncrementalCallback, "ReceiveHelloCallback")
+  def testIncrementalCallbackIsNotCalledWhenStatusMessageArrivesEarly(self, m):
+    # Mocks don't have names by default.
+    m.__name__ = "ReceiveHelloCallback"
+
+    flow_id = flow_test_lib.StartAndRunFlow(
+        FlowWithIncrementalCallback,
+        client_mock=StatusOnlyClientMock(),
+        client_id=self.client_id,
+        # Set check_flow_errors to False, otherwise test runner will complain
+        # that the flow has finished in the RUNNING state.
+        check_flow_errors=False)
+
+    flow_obj = flow_test_lib.GetFlowObj(self.client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flow_obj.FlowState.RUNNING)
+
+    self.assertEqual(m.call_count, 0)
+
+  def testSendReplyWorksCorrectlyInIncrementalCallback(self):
+    flow_id = flow_test_lib.StartAndRunFlow(
+        FlowWithIncrementalCallback,
+        client_mock=NotSendingStatusClientMock(),
+        client_id=self.client_id,
+        # Set check_flow_errors to False, otherwise test runner will complain
+        # that the flow has finished in the RUNNING state.
+        check_flow_errors=False)
+    flow_obj = flow_test_lib.GetFlowObj(self.client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flow_obj.FlowState.RUNNING)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertListEqual(results, [
+        rdfvalue.RDFString(f"Hello World {i}")
+        for i in range(NotSendingStatusClientMock.NUM_INCREMENTAL_RESPONSES)
+    ])
+
+  def testIncrementalCallbackIsCalledWithResponsesInRightOrder(self):
+    flow_id = flow_test_lib.StartAndRunFlow(
+        FlowWithIncrementalCallback,
+        client_mock=NotSendingStatusClientMock(shuffle=True),
+        client_id=self.client_id,
+        # Set check_flow_errors to False, otherwise test runner will complain
+        # that the flow has finished in the RUNNING state.
+        check_flow_errors=False)
+
+    flow_obj = flow_test_lib.GetFlowObj(self.client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flow_obj.FlowState.RUNNING)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertListEqual(results, [
+        rdfvalue.RDFString(f"Hello World {i}")
+        for i in range(NotSendingStatusClientMock.NUM_INCREMENTAL_RESPONSES)
+    ])
+
+  def testIncrementalCallbackIsCalledWhenAllResponsesArriveAtOnce(self):
+    flow_id = flow_test_lib.StartAndRunFlow(
+        FlowWithIncrementalCallback,
+        client_mock=ClientMock(),
+        client_id=self.client_id)
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertListEqual(results, [
+        rdfvalue.RDFString("Hello World"),
+        rdfvalue.RDFString("Final: Hello World")
+    ])
 
 
 def main(argv):

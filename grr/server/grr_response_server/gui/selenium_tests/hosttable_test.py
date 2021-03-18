@@ -15,11 +15,11 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
   """Tests the main content view."""
 
   def setUp(self):
-    super(TestHostTable, self).setUp()
+    super().setUp()
     self.client_ids = self.SetupClients(10)
 
   def testUserLabelIsShownAsBootstrapSuccessLabel(self):
-    self.AddClientLabel(self.client_ids[0], self.token.username, u"foo")
+    self.AddClientLabel(self.client_ids[0], self.test_username, u"foo")
 
     self.Open("/#/search?q=.")
 

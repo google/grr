@@ -14,7 +14,7 @@ class WithAllClientActionsMixin(object):
   def setUp(self):
     """Sets up the client actions registry."""
 
-    super(WithAllClientActionsMixin, self).setUp()
+    super().setUp()
 
     registry_copy = client_actions.REGISTRY.copy()
     registry_init.RegisterClientActions()

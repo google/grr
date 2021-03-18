@@ -32,7 +32,7 @@ class GrrApi(object):
   """Root GRR API object."""
 
   def __init__(self, connector: connectors.Connector):
-    super(GrrApi, self).__init__()
+    super().__init__()
 
     self._context = context.GrrApiContext(connector=connector)
     self.types = types.Types(context=self._context)  # type: types.Types
