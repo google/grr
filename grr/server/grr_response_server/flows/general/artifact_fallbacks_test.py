@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for grr.server.flows.general.artifact_fallbacks."""
 from __future__ import absolute_import
 from __future__ import division

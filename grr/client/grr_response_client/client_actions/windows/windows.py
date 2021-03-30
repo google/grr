@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Windows specific actions.
 
 Most of these actions share an interface (in/out rdfvalues) with linux actions

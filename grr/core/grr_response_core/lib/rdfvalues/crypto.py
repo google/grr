@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Implementation of various cryptographic types."""
 from __future__ import absolute_import
 from __future__ import division

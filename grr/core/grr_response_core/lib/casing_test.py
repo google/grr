@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for casing functions."""
 
 from absl.testing import absltest

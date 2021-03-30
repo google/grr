@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Unittest for GRRafana HTTP server."""
 import copy
 from unittest import mock

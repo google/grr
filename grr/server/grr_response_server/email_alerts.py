@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A simple wrapper to send email alerts."""
 from __future__ import absolute_import
 from __future__ import division

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """RDFValue implementations related to flow scheduling."""
 
 from __future__ import absolute_import

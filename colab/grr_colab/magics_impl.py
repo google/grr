@@ -1,19 +1,12 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """GRR Colab magics implementation as usual functions."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import binascii
-import os
-
 import ipaddress
+import os
+from typing import Text, Optional, List
+
 import numpy as np
 import pandas as pd
-from typing import Text, Optional, List
 
 import grr_colab
 from grr_colab import convert

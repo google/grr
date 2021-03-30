@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """These are windows specific installers.
 
 NOTE: Subprocess module is broken on windows in that pipes are not handled

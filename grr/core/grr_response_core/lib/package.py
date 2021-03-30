@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module with functions for working with GRR packages."""
 from __future__ import absolute_import
 from __future__ import division

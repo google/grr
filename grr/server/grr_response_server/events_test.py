@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for the event publishing system."""
 from __future__ import absolute_import
 from __future__ import division

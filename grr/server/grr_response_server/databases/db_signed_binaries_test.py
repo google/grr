@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for signed-binary DB functionality."""
 from __future__ import absolute_import

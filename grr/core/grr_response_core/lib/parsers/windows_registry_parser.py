@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Simple parsers for registry keys and values."""
 
 from __future__ import absolute_import

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """The in memory database methods for GRR users and approval handling."""
 import os
 

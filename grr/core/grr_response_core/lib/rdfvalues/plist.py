@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Plist related rdfvalues."""
 
 from __future__ import absolute_import

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for grr.parsers.wmi_parser."""
 
 from __future__ import absolute_import

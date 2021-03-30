@@ -333,8 +333,6 @@ class WindowsMsiClientRepacker(build.ClientRepacker):
             "__FleetspeakServiceRegistryValue",
             f"[INSTALLDIR]{GetConfig('Client.fleetspeak_unsigned_config_fname')}"
         )
-
-      if fleetspeak_bundled:
         ReplaceStringConfig("FleetspeakClientService",
                             "Client.fleetspeak_service_name")
 

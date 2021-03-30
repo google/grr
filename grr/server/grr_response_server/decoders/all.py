@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module for registering all known decoders."""
 from __future__ import absolute_import
 from __future__ import division

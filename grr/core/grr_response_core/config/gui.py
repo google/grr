@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Configuration parameters for the admin UI."""
 
 from __future__ import absolute_import

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """MySQL implementation of the GRR relational database abstraction.
 
 See grr/server/db.py for interface.

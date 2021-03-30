@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Pathspecs are methods of specifying the path on the client.
 
 The GRR client has a number of drivers to virtualize access to different objects

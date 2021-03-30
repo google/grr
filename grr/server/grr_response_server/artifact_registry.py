@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Central registry for artifacts."""
 
 import io

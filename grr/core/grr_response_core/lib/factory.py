@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module with definition of factory."""
 
 from typing import Callable

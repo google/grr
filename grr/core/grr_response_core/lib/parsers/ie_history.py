@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # pylint: disable=line-too-long
 """Parser for IE index.dat files.
 

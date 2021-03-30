@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """These are flows designed to discover information about the host."""
 from __future__ import absolute_import
 from __future__ import division

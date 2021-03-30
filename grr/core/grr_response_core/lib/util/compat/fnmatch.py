@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module with a backport of Python 2 fnmatch logic."""
 
 from __future__ import absolute_import

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This module contains linux specific client code."""
 
 from __future__ import absolute_import

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """OSX specific utils."""
 from __future__ import absolute_import
 from __future__ import division
@@ -26,6 +25,8 @@ LocalPathToCanonicalPath = client_utils_osx_linux.LocalPathToCanonicalPath
 NannyController = client_utils_osx_linux.NannyController
 VerifyFileOwner = client_utils_osx_linux.VerifyFileOwner
 TransactionLog = client_utils_osx_linux.TransactionLog
+
+CreateProcessFromSerializedFileDescriptor = process.Process.CreateFromSerializedFileDescriptor
 
 # pylint: enable=invalid-name
 

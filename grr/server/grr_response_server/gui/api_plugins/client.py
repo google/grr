@@ -1,10 +1,5 @@
 #!/usr/bin/env python
-# Lint as: python3
 """API handlers for accessing and searching clients and managing labels."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import ipaddress
 import re
 
@@ -615,17 +610,6 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   """Remove labels from a given client."""
 
   args_type = ApiRemoveClientsLabelsArgs
-
-  def RemoveClientLabels(self, client, labels_names):
-    """Removes labels with given names from a given client object."""
-
-    affected_owners = set()
-    for label in client.GetLabels():
-      if label.name in labels_names and label.owner != "GRR":
-        affected_owners.add(label.owner)
-
-    for owner in affected_owners:
-      client.RemoveLabels(labels_names, owner=owner)
 
   def Handle(self, args, context=None):
     for client_id in args.client_ids:

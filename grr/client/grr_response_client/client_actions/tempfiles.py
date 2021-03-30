@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Create and delete GRR temporary files.
 
 Utilities for working with GRR temp files.

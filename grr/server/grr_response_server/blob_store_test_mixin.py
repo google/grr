@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Mixin class to be used in tests for BlobStore implementations."""
 
 from __future__ import absolute_import

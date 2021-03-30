@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module with utilities for a very simple serialization format."""
 from __future__ import absolute_import
 from __future__ import division

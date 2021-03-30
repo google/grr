@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Locally defined rdfvalues."""
 
 from __future__ import absolute_import

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Fleetspeak-facing client related functionality.
 
 This module contains glue code necessary for Fleetspeak and the GRR client

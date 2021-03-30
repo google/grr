@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Get Information about network states."""
 from __future__ import absolute_import
 from __future__ import division

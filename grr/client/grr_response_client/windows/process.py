@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A class to read process memory on Windows.
 
 This code is based on the memorpy project:
@@ -105,12 +104,16 @@ VirtualQueryEx.restype = ctypes.c_size_t
 class Process(object):
   """A class to read process memory on Windows."""
 
-  def __init__(self, pid=None):
+  def __init__(self, pid=None, handle=None):
     """Creates a process for reading memory."""
     super().__init__()
-    if pid is None:
-      raise process_error.ProcessError("No pid given.")
-    self.pid = int(pid)
+    if pid is None and handle is None:
+      raise process_error.ProcessError("No pid or handle given.")
+    if pid is not None:
+      self.pid = int(pid)
+    else:
+      self.pid = None
+    self._existing_handle = handle
 
   def __enter__(self):
     self.Open()
@@ -134,8 +137,11 @@ class Process(object):
   def Open(self):
     """Opens the process for reading."""
 
-    self.h_process = kernel32.OpenProcess(
-        PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, 0, self.pid)
+    if self._existing_handle:
+      self.h_process = self._existing_handle
+    else:
+      self.h_process = kernel32.OpenProcess(
+          PROCESS_VM_READ | PROCESS_QUERY_INFORMATION, 0, self.pid)
     if not self.h_process:
       raise process_error.ProcessError(
           "Failed to open process (pid %d)." % self.pid)
@@ -150,8 +156,13 @@ class Process(object):
     self.min_addr = si.lpMinimumApplicationAddress
 
   def Close(self):
+    """Relases all resources this instance is using."""
     if self.h_process is not None:
-      ret = CloseHandle(self.h_process)
+      if self.h_process == self._existing_handle:
+        # Not owned by this instance.
+        ret = 1
+      else:
+        ret = CloseHandle(self.h_process)
       if ret == 1:
         self.h_process = None
         self.pid = None
@@ -229,3 +240,12 @@ class Process(object):
       raise process_error.ProcessError("Error in ReadProcessMemory: %d" % err)
 
     return buf.raw[:bytesread.value]
+
+  @property
+  def serialized_file_descriptor(self) -> int:
+    return self.h_process
+
+  @classmethod
+  def CreateFromSerializedFileDescriptor(
+      cls, serialized_file_descriptor: int) -> "Process":
+    return Process(handle=serialized_file_descriptor)

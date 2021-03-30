@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """The GRR relational database abstraction.
 
 This defines the Database abstraction, which defines the methods used by GRR on

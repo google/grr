@@ -112,9 +112,52 @@ describe('ClientSearch Component', () => {
     expect(htmlCollectionToList(rows[1].getElementsByTagName('td'))
                .map((e: Element) => (e as HTMLElement).innerText))
         .toEqual(['C.1234', 'foo.unknown', '2019-10-23 00:19:56 UTC']);
+    expect(rows[1].hasAttribute('ng-reflect-query-params')).toBeFalse();
     // Check the second data row.
     expect(htmlCollectionToList(rows[2].getElementsByTagName('td'))
                .map((e: Element) => (e as HTMLElement).innerText))
         .toEqual(['C.5678', 'bar.unknown', 'Unknown']);
+    expect(rows[2].hasAttribute('ng-reflect-query-params')).toBeFalse();
+  });
+
+  it('includes the reason url param in client urls', () => {
+    const subject = new Subject<Client[]>();
+    Object.defineProperty(facade, 'clients$', {
+      get() {
+        return subject.asObservable();
+      }
+    });
+
+    const fixture = TestBed.createComponent(ClientSearch);
+    // Ensure ngOnInit hook completes.
+    fixture.detectChanges();
+
+    subject.next([
+      newClient({
+        clientId: 'C.1234',
+        knowledgeBase: {
+          fqdn: 'foo.unknown',
+        },
+        lastSeenAt: new Date(1571789996678),
+      }),
+    ]);
+    fixture.detectChanges();
+    paramsSubject.next(new Map([
+      ['reason', 'vimes/t/123'],
+    ]));
+    fixture.detectChanges();
+
+    // Using nativeElement here instead of queryAll, since queryAll does
+    // not go into child components DOM (in this case we're interested in
+    // what's inside MatTable).
+    const de: HTMLElement = fixture.debugElement.nativeElement;
+    const rows = de.getElementsByTagName('tr');
+    // First row is the header, other is data.
+    expect(rows.length).toBe(2);
+    // Check the data row.
+    expect(rows[1].hasAttribute('ng-reflect-query-params')).toBeTrue();
+    fixture.componentInstance.reason$.subscribe((params) => {
+      expect(params['reason']).toEqual('vimes/t/123');
+    });
   });
 });

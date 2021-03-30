@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """These are tests for the PathSpec implementation."""
 
 from absl import app

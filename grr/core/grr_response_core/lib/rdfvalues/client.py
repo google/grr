@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """AFF4 RDFValue implementations for client information.
 
 This module contains the RDFValue implementations used to communicate with the

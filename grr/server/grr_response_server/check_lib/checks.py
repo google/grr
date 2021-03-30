@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Registry for filters and abstract classes for basic filter functionality."""
 from __future__ import absolute_import
 from __future__ import division

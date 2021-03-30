@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Helper library for config testing."""
 
 from __future__ import absolute_import

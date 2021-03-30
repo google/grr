@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # -*- encoding: utf-8 -*-
 """The MySQL database methods for client handling."""
 from __future__ import absolute_import

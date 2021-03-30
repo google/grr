@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A keyword index of client machines.
 
 An index of client machines, associating likely identifiers to client IDs.

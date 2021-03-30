@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Client actions related to plist files."""
 from __future__ import absolute_import

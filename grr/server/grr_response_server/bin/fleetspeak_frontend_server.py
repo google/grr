@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This is the GRR frontend FS Server."""
 import logging
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Utilities used by the MySQL database."""
 from __future__ import absolute_import
 from __future__ import division

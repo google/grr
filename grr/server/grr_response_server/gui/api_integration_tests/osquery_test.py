@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Integration tests for the Osquery flow, its API client and API endpoints."""
 import json
 

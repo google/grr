@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Simple parsers for the output of WMI queries."""
 
 from __future__ import absolute_import

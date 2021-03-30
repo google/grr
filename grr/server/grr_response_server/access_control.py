@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """The access control classes and user management classes for the data_store.
 
 An AccessControlManager has the following responsibilities:

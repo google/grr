@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Simple parsers for the output of linux commands."""
 from __future__ import absolute_import
 from __future__ import division

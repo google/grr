@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Library for processing of artifacts.
 
 This file contains non-GRR specific pieces of artifact processing and is

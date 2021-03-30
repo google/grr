@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module with utilities for maintaining compatibility with Python 2 and 3."""
 from __future__ import absolute_import
 from __future__ import division

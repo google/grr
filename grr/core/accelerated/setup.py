@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 #
 # Copyright 2015 Google Inc. All Rights Reserved.
 #

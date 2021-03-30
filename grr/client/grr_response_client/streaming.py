@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Utility classes for streaming files and memory."""
 from __future__ import absolute_import
 from __future__ import division
@@ -7,6 +6,8 @@ from __future__ import unicode_literals
 
 import abc
 import os
+from typing import Iterator  # pylint: disable=unused-import
+from typing import Optional
 
 
 class Streamer(object):
@@ -109,6 +110,41 @@ class Streamer(object):
       offset = reader.offset - len(data)
       yield Chunk(offset=offset, data=data, overlap=len(overlap))
 
+  def StreamRanges(self, offset: int, amount: int) -> "Iterator[Chunk]":
+    """Breaks the interval `[offset, offset+amount)` into chunks.
+
+    The chunks have no `data` set, only `offset` and `amount`.
+
+    Args:
+      offset: Offset to start at.
+      amount: Size of the interval.
+
+    Yields:
+      `Chunk` instances.
+    """
+    if amount == 0:
+      return
+
+    yield Chunk(offset=offset, amount=min(self.chunk_size, amount))
+
+    end = offset + amount
+    pos = offset + self.chunk_size
+    pos = min(pos, end)
+
+    while pos < end:
+      chunk_start = pos - self.overlap_size
+      chunk_start = max(chunk_start, offset)
+
+      chunk_end = chunk_start + self.chunk_size
+      chunk_end = min(chunk_end, end)
+
+      yield Chunk(
+          offset=chunk_start,
+          amount=(chunk_end - chunk_start),
+          overlap=(pos - chunk_start),
+          data=None)
+      pos = chunk_end
+
 
 class Chunk(object):
   """A class representing part of a file.
@@ -119,15 +155,27 @@ class Chunk(object):
     overlap: A number of bytes this chunk shares with the previous one.
   """
 
-  def __init__(self, offset=None, data=None, overlap=0):
+  def __init__(self,
+               offset: Optional[int] = None,
+               data: Optional[bytes] = None,
+               overlap: int = 0,
+               amount: Optional[int] = None):
     if offset is None:
       raise ValueError("chunk offset must be specified")
-    if data is None:
-      raise ValueError("chunk data must be specified")
+    if data is None and amount is None:
+      raise ValueError("chunk data or amount must be specified")
 
     self.offset = offset
     self.data = data
     self.overlap = overlap
+    if amount is None:
+      self.amount = len(data)
+    else:
+      self.amount = amount
+
+  def __repr__(self):
+    return (f"Chunk<offset={self.offset}, amount={self.amount}, "
+            f"overlap={self.overlap}>")
 
   # TODO(hanuszczak): This function is beyond the scope of this module. It is
   # used in only one place [1] and should probably be moved there as well as

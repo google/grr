@@ -1,25 +1,35 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Client actions dealing with memory."""
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import abc
 import collections
+import contextlib
 import io
 import os
 import re
 import shutil
+from typing import Dict
 from typing import Iterable
+from typing import Iterator
 from typing import List
+from typing import Optional
 
 import psutil
 import yara
 
 from grr_response_client import actions
 from grr_response_client import client_utils
+from grr_response_client import process_error
 from grr_response_client import streaming
 from grr_response_client.client_actions import tempfiles
+from grr_response_client.unprivileged import communication
+from grr_response_client.unprivileged.memory import client as memory_client
+from grr_response_client.unprivileged.memory import server as memory_server
+from grr_response_client.unprivileged.proto import memory_pb2
+from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
@@ -85,26 +95,73 @@ def ProcessIterator(pids, process_regex_string, cmdline_regex_string,
     yield p
 
 
-class YaraProcessScan(actions.ActionPlugin):
-  """Scans the memory of a number of processes using Yara."""
-  in_rdfvalue = rdf_memory.YaraProcessScanRequest
-  out_rdfvalues = [rdf_memory.YaraProcessScanResponse]
+class YaraWrapperError(Exception):
+  pass
 
-  def __init__(self, grr_worker=None):
-    super().__init__(grr_worker=grr_worker)
-    self._rules = None
 
-  def _ScanRegion(self, rules, chunks, deadline):
-    for chunk in chunks:
-      if not chunk.data:
-        break
+class TooManyMatchesError(YaraWrapperError):
+  pass
 
-      self.Progress()
 
-      time_left = (deadline - rdfvalue.RDFDatetime.Now()).ToInt(
-          rdfvalue.SECONDS)
+class YaraTimeoutError(YaraWrapperError):
+  pass
 
-      for m in rules.match(data=chunk.data, timeout=time_left):
+
+class YaraWrapper(abc.ABC):
+  """Wraps the Yara library."""
+
+  @abc.abstractmethod
+  def Match(self, process, chunk: streaming.Chunk,
+            timeout_secs: int) -> Iterator[rdf_memory.YaraMatch]:
+    """Matches the rules in this instance against a chunk of process memory.
+
+    Args:
+      process: A process opened by `client_utils.OpenProcessForMemoryAccess`.
+      chunk: The chunk to match. The chunk doesn't have `data` set.
+      timeout_secs: Timeout in seconds.
+
+    Yields:
+      Matches matching the rules.
+
+    Raises:
+      YaraTimeoutError: if the operation timed out.
+      TooManyMatchesError: if the scan produced too many matches.
+      YaraWrapperError: in case of a general error.
+    """
+
+  def Close(self) -> None:
+    """Releases all resources."""
+
+  def Open(self) -> None:
+    """Acquires necessary resources."""
+
+  def __enter__(self) -> "YaraWrapper":
+    self.Open()
+    return self
+
+  def __exit__(self, exc_type, exc_value, traceback) -> None:
+    self.Close()
+
+
+class DirectYaraWrapper(YaraWrapper):
+  """Wrapper for the YARA library."""
+
+  def __init__(self, rules_str: str):
+    """Constructor.
+
+    Args:
+      rules_str: The YARA rules represented as string.
+    """
+    self._rules_str = rules_str
+    self._rules: Optional[yara.Rules] = None
+
+  def Match(self, process, chunk: streaming.Chunk,
+            timeout_secs: int) -> Iterator[rdf_memory.YaraMatch]:
+    if self._rules is None:
+      self._rules = yara.compile(source=self._rules_str)
+    data = process.ReadBytes(chunk.offset, chunk.amount)
+    try:
+      for m in self._rules.match(data=data, timeout=timeout_secs):
         # Note that for regexps in general it might be possible to
         # specify characters at the end of the string that are not
         # part of the returned match. In that case, this algorithm
@@ -119,6 +176,132 @@ class YaraProcessScan(actions.ActionPlugin):
               string_match.offset += chunk.offset
             yield rdf_match
             break
+    except yara.TimeoutError as e:
+      raise YaraTimeoutError() from e
+    except yara.Error as e:
+      # Yara internal error 30 is too many hits.
+      if "internal error: 30" in str(e):
+        raise TooManyMatchesError() from e
+      else:
+        raise YaraWrapperError() from e
+
+
+class UnprivilegedYaraWrapper(YaraWrapper):
+  """Wrapper for the sandobxed YARA library."""
+
+  def __init__(self, rules_str: str, psutil_processes: List[psutil.Process]):
+    """Constructor.
+
+    Args:
+      rules_str: The YARA rules represented as string.
+      psutil_processes: List of processes that can be scanned using `Match`.
+    """
+    self._pid_to_serializable_file_descriptor: Dict[int, int] = {}
+    self._pid_to_exception: Dict[int, Exception] = {}
+    self._server: Optional[communication.Server] = None
+    self._client: Optional[memory_client.Client] = None
+    self._rules_str = rules_str
+    self._rules_uploaded = False
+    self._psutil_processes = psutil_processes
+
+  def Open(self) -> None:
+    with contextlib.ExitStack() as stack:
+      file_descriptors = []
+      for psutil_process in self._psutil_processes:
+        try:
+          process = stack.enter_context(
+              client_utils.OpenProcessForMemoryAccess(psutil_process.pid))
+        except Exception as e:  # pylint: disable=broad-except
+          # OpenProcessForMemoryAccess can raise any exception upon error.
+          self._pid_to_exception[psutil_process.pid] = e
+          continue
+        self._pid_to_serializable_file_descriptor[
+            psutil_process.pid] = process.serialized_file_descriptor
+        file_descriptors.append(
+            communication.FileDescriptor.FromSerialized(
+                process.serialized_file_descriptor, communication.Mode.READ))
+      self._server = memory_server.CreateMemoryServer(file_descriptors)
+      self._server.Start()
+      self._client = memory_client.Client(self._server.Connect())
+
+  def Close(self) -> None:
+    if self._server is not None:
+      self._server.Stop()
+
+  def Match(self, process, chunk: streaming.Chunk,
+            timeout_secs: int) -> Iterator[rdf_memory.YaraMatch]:
+    if not self._rules_uploaded:
+      self._client.UploadSignature(self._rules_str)
+      self._rules_uploaded = True
+    if process.pid not in self._pid_to_serializable_file_descriptor:
+      raise (
+          process_error.ProcessError(f"Failed to open process {process.pid}.")
+      ) from self._pid_to_exception.get(process.pid)
+    response = self._client.ProcessScan(
+        self._pid_to_serializable_file_descriptor[process.pid], chunk.offset,
+        chunk.amount, timeout_secs)
+    if response.status == memory_pb2.ProcessScanResponse.Status.NO_ERROR:
+      return self._ScanResultToYaraMatches(response.scan_result,
+                                           chunk.offset + chunk.overlap)
+    elif (response.status ==
+          memory_pb2.ProcessScanResponse.Status.TOO_MANY_MATCHES):
+      raise TooManyMatchesError()
+    elif (
+        response.status == memory_pb2.ProcessScanResponse.Status.TIMEOUT_ERROR):
+      raise YaraTimeoutError()
+    else:
+      raise YaraWrapperError()
+
+  def _ScanResultToYaraMatches(
+      self, scan_result: memory_pb2.ScanResult,
+      overlap_end: int) -> Iterator[rdf_memory.YaraMatch]:
+    for rule_match in scan_result.scan_match:
+      rdf_match = self._RuleMatchToYaraMatch(rule_match)
+      for rdf_string_match in rdf_match.string_matches:
+        if rdf_string_match.offset + len(rdf_string_match.data) > overlap_end:
+          yield rdf_match
+          break
+
+  def _RuleMatchToYaraMatch(
+      self, rule_match: memory_pb2.RuleMatch) -> rdf_memory.YaraMatch:
+    result = rdf_memory.YaraMatch()
+    if rule_match.HasField("rule_name"):
+      result.rule_name = rule_match.rule_name
+    for string_match in rule_match.string_matches:
+      result.string_matches.append(
+          self._StringMatchToYaraStringMatch(string_match))
+    return result
+
+  def _StringMatchToYaraStringMatch(
+      self, string_match: memory_pb2.StringMatch) -> rdf_memory.YaraStringMatch:
+    result = rdf_memory.YaraStringMatch()
+    if string_match.HasField("string_id"):
+      result.string_id = string_match.string_id
+    if string_match.HasField("offset"):
+      result.offset = string_match.offset
+    if string_match.HasField("data"):
+      result.data = string_match.data
+    return result
+
+
+class YaraProcessScan(actions.ActionPlugin):
+  """Scans the memory of a number of processes using Yara."""
+  in_rdfvalue = rdf_memory.YaraProcessScanRequest
+  out_rdfvalues = [rdf_memory.YaraProcessScanResponse]
+
+  def __init__(self, grr_worker=None):
+    super().__init__(grr_worker=grr_worker)
+    self._yara_wrapper = None
+
+  def _ScanRegion(self, process, chunks, deadline):
+    for chunk in chunks:
+      self.Progress()
+
+      time_left = (deadline - rdfvalue.RDFDatetime.Now()).ToInt(
+          rdfvalue.SECONDS)
+
+      for m in self._yara_wrapper.Match(process, chunk, time_left):
+        yield m
 
   def _GetMatches(self, psutil_process, scan_request):
     if scan_request.per_process_timeout:
@@ -126,9 +309,6 @@ class YaraProcessScan(actions.ActionPlugin):
     else:
       deadline = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(
           1, rdfvalue.WEEKS)
-
-    if self._rules is None:
-      self._rules = scan_request.yara_signature.GetRules()
 
     process = client_utils.OpenProcessForMemoryAccess(pid=psutil_process.pid)
     with process:
@@ -139,18 +319,15 @@ class YaraProcessScan(actions.ActionPlugin):
 
       try:
         for region in client_utils.MemoryRegions(process, scan_request):
-          chunks = streamer.StreamMemory(
-              process, offset=region.start, amount=region.size)
-          for m in self._ScanRegion(self._rules, chunks, deadline):
+          chunks = streamer.StreamRanges(
+              offset=region.start, amount=region.size)
+          for m in self._ScanRegion(process, chunks, deadline):
             matches.append(m)
             if 0 < scan_request.max_results_per_process <= len(matches):
               return matches
-      except yara.Error as e:
-        # Yara internal error 30 is too many hits (obviously...). We
-        # need to report this as a hit, not an error.
-        if "internal error: 30" in str(e):
-          return matches
-        raise
+      except TooManyMatchesError:
+        # We need to report this as a hit, not an error.
+        return matches
 
     return matches
 
@@ -166,7 +343,7 @@ class YaraProcessScan(actions.ActionPlugin):
       matches = self._GetMatches(process, scan_request)
       scan_time = rdfvalue.RDFDatetime.Now() - start_time
       scan_time_us = scan_time.ToInt(rdfvalue.MICROSECONDS)
-    except yara.TimeoutError:
+    except YaraTimeoutError:
       scan_response.errors.Append(
           rdf_memory.ProcessMemoryError(
               process=rdf_process,
@@ -246,22 +423,30 @@ class YaraProcessScan(actions.ActionPlugin):
     scan_request = args.Copy()
     scan_request.yara_signature = yara_signature
     scan_response = rdf_memory.YaraProcessScanResponse()
-    processes = ProcessIterator(scan_request.pids, scan_request.process_regex,
-                                scan_request.cmdline_regex,
-                                scan_request.ignore_grr_process,
-                                scan_response.errors)
+    processes = list(
+        ProcessIterator(scan_request.pids, scan_request.process_regex,
+                        scan_request.cmdline_regex,
+                        scan_request.ignore_grr_process, scan_response.errors))
 
-    for process in processes:
-      self.Progress()
-      num_results = (
-          len(scan_response.errors) + len(scan_response.matches) +
-          len(scan_response.misses))
-      if num_results >= self._RESULTS_PER_RESPONSE:
-        self.SendReply(scan_response)
-        scan_response = rdf_memory.YaraProcessScanResponse()
-      self._ScanProcess(process, scan_request, scan_response)
+    if config.CONFIG["Client.use_memory_sandboxing"]:
+      self._yara_wrapper: YaraWrapper = UnprivilegedYaraWrapper(
+          str(scan_request.yara_signature), processes)
+    else:
+      self._yara_wrapper: YaraWrapper = DirectYaraWrapper(
+          str(scan_request.yara_signature))
 
-    self.SendReply(scan_response)
+    with self._yara_wrapper:
+      for process in processes:
+        self.Progress()
+        num_results = (
+            len(scan_response.errors) + len(scan_response.matches) +
+            len(scan_response.misses))
+        if num_results >= self._RESULTS_PER_RESPONSE:
+          self.SendReply(scan_response)
+          scan_response = rdf_memory.YaraProcessScanResponse()
+        self._ScanProcess(process, scan_request, scan_response)
+
+      self.SendReply(scan_response)
 
 
 def _PrioritizeRegions(
@@ -302,11 +487,13 @@ def _PrioritizeRegions(
   # between the end of region[n+1] and region[n].
 
   while region is not None and offset is not None:
-    if offset < region.start:
+    # pytype sees region as nullable
+    if offset < region.start:  # pytype: disable=attribute-error
       # Offset is before the first region, thus cannot be contained in any
       # region. This could happen when some memory regions are unreadable.
       offset = all_offsets.popleft()
-    elif offset >= region.start + region.size:
+    # pytype sees region as nullable
+    elif offset >= region.start + region.size:  # pytype: disable=attribute-error
       # Offset comes after the first region. The first region can not contain
       # any following offsets, because offsets increase monotonically.
       nonprio_regions.append(region)
@@ -324,7 +511,8 @@ def _PrioritizeRegions(
 
   # When there are fewer offsets than regions, remaining regions can be present
   # in `all_regions`.
-  return prio_regions + nonprio_regions + list(all_regions)
+  # pytype sees all_regions as possibly containing None
+  return prio_regions + nonprio_regions + list(all_regions)  # pytype: disable=bad-return-type
 
 
 def _ApplySizeLimit(regions: Iterable[rdf_memory.ProcessMemoryRegion],

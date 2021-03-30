@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Setup configuration for the python grr modules."""
 from __future__ import absolute_import
 from __future__ import division
@@ -138,7 +137,7 @@ setup_args = dict(
         "sdist": Sdist,
     },
     install_requires=[
-        "cryptography==2.9.2",
+        "cryptography==3.3.2",
         "distro==1.5.0",
         "fleetspeak==0.1.8",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
@@ -152,7 +151,7 @@ setup_args = dict(
         "pytsk3==20200117",
         "pytz==2020.1",
         "PyYAML==5.3.1",
-        "requests==2.23.0",
+        "requests==2.25.1",
         "yara-python==4.0.1",
     ],
 

@@ -147,6 +147,12 @@ export declare interface ApiAddClientsLabelsArgs {
   readonly labels: ReadonlyArray<string>;
 }
 
+/** ApiRemoveClientsLabelsArgs proto mapping. */
+export declare interface ApiRemoveClientsLabelsArgs {
+  readonly clientIds?: ReadonlyArray<string>;
+  readonly labels?: ReadonlyArray<string>;
+}
+
 /**
  * ApiClient proto mapping.
  */

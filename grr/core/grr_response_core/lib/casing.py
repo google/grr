@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Functions to convert strings between different case styles."""
 import re
 

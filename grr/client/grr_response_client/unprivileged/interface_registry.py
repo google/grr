@@ -6,6 +6,7 @@ from typing import Dict
 
 from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged.filesystem import server_lib as filesystem_server_lib
+from grr_response_client.unprivileged.memory import server_lib as memory_server_lib
 
 
 class Interface(enum.Enum):
@@ -15,10 +16,12 @@ class Interface(enum.Enum):
   """
 
   FILESYSTEM = "filesystem"
+  MEMORY = "memory"
 
 
 _REGISTRY: Dict[Interface, communication.ConnectionHandler] = {
     Interface.FILESYSTEM: filesystem_server_lib.Dispatch,
+    Interface.MEMORY: memory_server_lib.Dispatch,
 }
 
 

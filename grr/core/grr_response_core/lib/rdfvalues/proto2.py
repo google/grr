@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Semantic protocol buffers can be created from proto2 .proto files.
 
 For maintaining inter-operatibility with primitive protocol buffer

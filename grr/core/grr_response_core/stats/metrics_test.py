@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for the metrics interface for stats collection."""
 
 from __future__ import absolute_import

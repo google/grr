@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Windows specific utils."""
 from __future__ import absolute_import
 from __future__ import division
@@ -29,6 +28,9 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 
 DACL_PRESENT = 1
 DACL_DEFAULT = 0
+
+
+CreateProcessFromSerializedFileDescriptor = process.Process.CreateFromSerializedFileDescriptor
 
 
 def CanonicalPathToLocalPath(path):

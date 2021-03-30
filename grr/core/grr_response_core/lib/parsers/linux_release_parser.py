@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Simple parsers for Linux Release files."""
 from __future__ import absolute_import

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for the memory-based blob store."""
 
 from __future__ import absolute_import

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This is the GRR client."""
 from __future__ import absolute_import
 from __future__ import division

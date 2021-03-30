@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Client actions related to administrating the client and its configuration."""
 from __future__ import absolute_import
 from __future__ import division

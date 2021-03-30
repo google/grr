@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """The MySQL database methods for foreman rule handling."""
 from __future__ import absolute_import
 from __future__ import division

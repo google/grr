@@ -1,19 +1,14 @@
 #!/usr/bin/env python
 """Module containing functions for converting messages to dataframe."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import collections
 import datetime
-import pandas as pd
+import stat
 from typing import Text, Sequence, List, Any, Dict, Optional
+
+import pandas as pd
 
 from google.protobuf import descriptor
 from google.protobuf import message
-from grr_colab._textify import stat
 from grr_response_proto import osquery_pb2
 from grr_response_proto import semantic_pb2
 
@@ -124,7 +119,7 @@ def _get_pretty_value(value: Any, desc: descriptor.FieldDescriptor,
 
   elif desc.GetOptions().Extensions[sem_type].type == 'StatMode':
     data[column_name] = [value]
-    data[column_name + '.pretty'] = [stat.mode_from_bitmask(value)]
+    data[column_name + '.pretty'] = [stat.filemode(value)]
 
   else:
     data[column_name] = [value]

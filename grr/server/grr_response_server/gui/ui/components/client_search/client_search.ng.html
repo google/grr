@@ -21,5 +21,6 @@
 
   <tr mat-header-row *matHeaderRowDef="columns"></tr>
   <tr mat-row *matRowDef="let row; columns: columns"
-      [routerLink]="['/clients/', row.clientId]"></tr>
+      [routerLink]="['/clients/', row.clientId]"
+      [queryParams]="reason$ | async"></tr>
 </table>

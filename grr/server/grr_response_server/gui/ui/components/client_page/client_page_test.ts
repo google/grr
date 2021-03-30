@@ -32,6 +32,7 @@ initTestEnvironment();
 
 describe('ClientPage Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
+  let queryParamsSubject: Subject<Map<string, string>>;
   let clientPageFacade: ClientPageFacadeMock;
   let clientDetailsFacade: ClientDetailsFacadeMock;
   let configFacade: ConfigFacadeMock;
@@ -41,6 +42,7 @@ describe('ClientPage Component', () => {
 
   beforeEach(waitForAsync(() => {
     paramsSubject = new Subject();
+    queryParamsSubject = new Subject();
     configFacade = mockConfigFacade();
     userFacade = mockUserFacade();
     clientPageFacade = mockClientPageFacade();
@@ -60,6 +62,7 @@ describe('ClientPage Component', () => {
               provide: ActivatedRoute,
               useFactory: () => ({
                 paramMap: paramsSubject,
+                queryParamMap: queryParamsSubject,
                 snapshot: {},
               }),
             },

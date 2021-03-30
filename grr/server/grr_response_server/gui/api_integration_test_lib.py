@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """End-to-end tests for the API.
 
 API plugins are tested with their own dedicated unit-tests that are

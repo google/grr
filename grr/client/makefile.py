@@ -25,6 +25,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 
 PROTOS = [
     ("grr_response_client/unprivileged/proto", "filesystem"),
+    ("grr_response_client/unprivileged/proto", "memory"),
 ]
 
 

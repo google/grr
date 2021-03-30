@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This file contains utility functions used in ApiCallHandler classes."""
 from __future__ import absolute_import
 from __future__ import division

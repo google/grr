@@ -627,11 +627,19 @@ class FlowBase(metaclass=FlowRegistry):
       format_str: Format string
       *args: arguments to the format string
     """
+    # If there are no formatting arguments given, we do not format the message.
+    # This behaviour is in-line with `logging.*` functions and allows one to log
+    # messages with `%` without weird workarounds.
+    if not args:
+      message = format_str
+    else:
+      message = format_str % args
+
     log_entry = rdf_flow_objects.FlowLogEntry(
         client_id=self.rdf_flow.client_id,
         flow_id=self.rdf_flow.flow_id,
         hunt_id=self.rdf_flow.parent_hunt_id,
-        message=format_str % args)
+        message=message)
     data_store.REL_DB.WriteFlowLogEntries([log_entry])
 
   def RunStateMethod(self, method_name, request=None, responses=None):

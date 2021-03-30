@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 r"""This is the GRR client for Fleetspeak enabled installations.
 """
 

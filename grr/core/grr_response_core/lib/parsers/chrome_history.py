@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Parser for Google chrome/chromium History files."""
 from __future__ import absolute_import
 from __future__ import division

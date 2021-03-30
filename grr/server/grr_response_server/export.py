@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Classes for exporting data from AFF4 to the rest of the world.
 
 Exporters defined here convert various complex RDFValues to simple RDFValues

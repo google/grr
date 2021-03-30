@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests core paths detection logic."""
 
 from __future__ import absolute_import

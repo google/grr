@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """GRR Rapid Response Framework."""
 
 from __future__ import absolute_import

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Parser for Mozilla Firefox3 3 History files."""
 from __future__ import absolute_import
 from __future__ import division

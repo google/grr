@@ -3,8 +3,10 @@ import {OverlayModule} from '@angular/cdk/overlay';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {ActivatedRoute} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 import {initTestEnvironment} from '@app/testing';
+import {of} from 'rxjs';
 
 import {Client} from '../../lib/models/client';
 import {newClient} from '../../lib/models/model_test_util';
@@ -46,6 +48,14 @@ describe('Approval Component', () => {
             {provide: ClientPageFacade, useFactory: () => clientPageFacade},
             {provide: ConfigFacade, useFactory: () => configFacade},
             OverlayModule,
+            {
+              provide: ActivatedRoute,
+              useFactory: () => {
+                const route = new ActivatedRoute();
+                route.queryParams = of({reason: 'vimes/t/abcd'});
+                return route;
+              }
+            },
           ]
         })
         .compileComponents();
@@ -86,6 +96,13 @@ describe('Approval Component', () => {
 
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('foo@example.org');
+  });
+
+  it('sets reason for approval value in form based on url param', () => {
+    const fixture = TestBed.createComponent(Approval);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.form.value.reason).toEqual('vimes/t/abcd');
   });
 
   it('uses optional cc address for approval by default', () => {

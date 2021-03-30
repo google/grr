@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Standard actions that happen on the client."""
 from __future__ import absolute_import
 from __future__ import division

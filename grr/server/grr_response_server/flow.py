@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This file defines the base classes for Flows.
 
 A Flow is a state machine which executes actions on the

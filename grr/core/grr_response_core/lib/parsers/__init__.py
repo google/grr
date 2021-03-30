@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Generic parsers (for GRR server and client code)."""
 from typing import Iterator
 from typing import Text

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # -*- encoding: utf-8 -*-
 """The base classes for RDFValue tests."""
 from __future__ import absolute_import

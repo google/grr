@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for REL_DB-based file store."""
 from __future__ import absolute_import
 from __future__ import division

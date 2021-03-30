@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Standard RDFValues."""
 
 from __future__ import absolute_import

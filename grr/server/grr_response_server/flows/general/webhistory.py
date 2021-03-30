@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
-# python3
 """Flow to recover history files."""
 from __future__ import absolute_import
 from __future__ import division

@@ -442,7 +442,7 @@ class ExecutePythonHack(flow_base.FlowBase):
       str_result = result[0:200]
       if len(result) >= 200:
         str_result += "...[truncated]"
-      self.Log("Result: %s" % str_result)
+      self.Log("Result: %s", str_result)
 
       result = ExecutePythonHackResult()
       result.result_string = response.return_val

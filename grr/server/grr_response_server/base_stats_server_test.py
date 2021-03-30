@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Abstract base test for serving statistics."""
 from __future__ import absolute_import
 from __future__ import division

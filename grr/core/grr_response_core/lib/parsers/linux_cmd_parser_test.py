@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Unit test for the linux cmd parser."""
 from __future__ import absolute_import
 from __future__ import division

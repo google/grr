@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """The base class for config validators.
 
 This has to be in a separate file to avoid import loops.

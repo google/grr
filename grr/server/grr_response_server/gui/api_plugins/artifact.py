@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """API handlers for accessing artifacts."""
 from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts

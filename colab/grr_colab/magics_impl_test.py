@@ -1,17 +1,11 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import collections
 import io
+import ipaddress
 import time
 from unittest import mock
 
 from absl.testing import absltest
-import ipaddress
 import pandas as pd
 
 import grr_colab

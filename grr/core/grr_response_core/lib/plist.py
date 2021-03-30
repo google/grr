@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Shared classes between the client and the server for plist parsing."""
 
 from __future__ import absolute_import

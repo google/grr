@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """In this file we define constants that can be used by client and server."""
 
 # Special folders we want to report back for each user. The format here is:

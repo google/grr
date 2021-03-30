@@ -1,13 +1,6 @@
 #!/usr/bin/env python
 """Module that contains API to perform filesystem operations on a GRR client."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import io
-
 from typing import Text, Sequence
 
 from google.protobuf import message

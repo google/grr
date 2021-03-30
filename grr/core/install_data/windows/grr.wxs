@@ -133,6 +133,12 @@
             </Component>
             <Component Id="CompFleetspeakServiceConfig">
               <File Id="FileFleetspeakServiceConfig" Source="$(var.InputDir)\fleetspeak-service-config.txt" Name="fleetspeak-service-config.txt" />
+              <ServiceControl
+                  Id="ServiceControlFleetspeakServiceConfig"
+                  Name="FleetspeakClientService"
+                  Start="both"
+                  Stop="both"
+                  Wait="no" />
             </Component>
             <Component Id="CompFleetspeakServiceReg" Guid="*">
               <RegistryKey Root="HKLM" Key="__FleetspeakServiceRegistryKey">

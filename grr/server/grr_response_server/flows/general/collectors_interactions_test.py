@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for grr.server.grr_response_server.flows.general.collectors.
 
 These tests cover the interaction of artifacts. They test that collection of

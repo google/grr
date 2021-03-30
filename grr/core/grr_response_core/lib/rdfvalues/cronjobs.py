@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """RDFValues for GRR client-side cron jobs parsing."""
 
 from __future__ import absolute_import

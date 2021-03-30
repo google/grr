@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Registry for parsers and abstract classes for basic parser functionality."""
 from __future__ import absolute_import
 from __future__ import division

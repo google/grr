@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Common tests for stats-collector implementations."""
 
 from __future__ import absolute_import

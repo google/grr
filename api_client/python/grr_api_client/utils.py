@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Utility functions and classes for GRR API client library."""
 from __future__ import absolute_import
 from __future__ import division

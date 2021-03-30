@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Benchmark to compare different BlobStore implementations."""
 from __future__ import absolute_import
 from __future__ import division

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """The main data store abstraction.
 
 The data store is responsible for storing AFF4 objects permanently. This file

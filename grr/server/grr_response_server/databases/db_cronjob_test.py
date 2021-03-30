@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Mixin tests for storing cronjob objects in the relational db."""
 from __future__ import absolute_import
 from __future__ import division

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Contains tests for api_call_handler_utils."""
 from __future__ import absolute_import

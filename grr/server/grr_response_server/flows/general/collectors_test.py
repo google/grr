@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Test the collector flows.
 
 To reduce the size of this module, additional collector flow tests are split out

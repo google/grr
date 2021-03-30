@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module with assertion functions for checking preconditions."""
 import collections
 import re

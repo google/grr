@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # -*- encoding: utf-8 -*-
 
 # Copyright 2010 Google Inc. All Rights Reserved.

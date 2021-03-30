@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Configuration parameters for the client."""
 
 from __future__ import absolute_import
@@ -139,6 +138,11 @@ config_lib.DEFINE_list(
 config_lib.DEFINE_bool(
     name="Client.use_filesystem_sandboxing",
     help="Whether to use the sandboxed implementation for filesystem parsing.",
+    default=False)
+
+config_lib.DEFINE_bool(
+    name="Client.use_memory_sandboxing",
+    help="Whether to use the sandboxed implementation for memory scanning.",
     default=False)
 
 # Windows client specific options.

@@ -6,11 +6,16 @@ import os
 import platform
 import subprocess
 import sys
+import tempfile
 import time
+from absl import flags
 from absl.testing import absltest
 import psutil
 
+from grr_response_core import config
+from grr_response_core.lib import config_lib
 from grr_response_core.lib import utils
+from grr_response_core.lib.util import temp
 
 FLEETSPEAK_CONFIG = """
 trusted_certs: "-----BEGIN CERTIFICATE-----\\n"
@@ -121,6 +126,12 @@ class WindowsMsiTest(absltest.TestCase):
     self.addCleanup(stack.close)
 
     self._tmp_dir = stack.enter_context(utils.TempDirectory())
+    # This file can't be located in self._tmp_dir, since self._tmp_dir is
+    # created with secure permissions and unaccessible to the fake fleetspeak
+    # service.
+    self._fake_fleetspeak_service_log_file = os.path.join(
+        tempfile.gettempdir(), "fake_fleetspeak_service_log_file.txt")
+    stack.callback(os.unlink, self._fake_fleetspeak_service_log_file)
 
   def _TmpPath(self, *args) -> str:
     return os.path.join(self._tmp_dir, *args)
@@ -156,6 +167,17 @@ class WindowsMsiTest(absltest.TestCase):
     processes = sorted([p.name() for p in psutil.process_iter()])
     self.assertNotIn(name, processes)
 
+  def _RunFakeFleestpeakServiceCommand(self, command: str) -> None:
+    service_name = config.CONFIG["Client.fleetspeak_service_name"]
+    subprocess.check_call([
+        sys.executable,
+        "-m",
+        "grr_response_client_builder.fake_fleetspeak_windows_service",
+        f"--command={command}",
+        f"--service_name={service_name}",
+        f"--logfile={self._fake_fleetspeak_service_log_file}",
+    ])
+
   def testInstaller(self):
     self._BuildTemplate()
 
@@ -169,6 +191,8 @@ class WindowsMsiTest(absltest.TestCase):
     self._AssertProcessNotRunning("foo.exe")
     self._AssertProcessNotRunning("bar.exe")
 
+    self._RunFakeFleestpeakServiceCommand("install")
+    self._RunFakeFleestpeakServiceCommand("start")
     installer_path = self._RepackTemplate("fs_enabled", True, False)
     self._Install(installer_path)
     time.sleep(5)
@@ -176,6 +200,16 @@ class WindowsMsiTest(absltest.TestCase):
     self._AssertProcessNotRunning("bar.exe")
 
     self._Uninstall(installer_path)
+    self._RunFakeFleestpeakServiceCommand("stop")
+    self._RunFakeFleestpeakServiceCommand("remove")
+    with open(self._fake_fleetspeak_service_log_file, "r") as f:
+      # There should be 4 stare/stop events logged by the fake service:
+      # - 1x from this script.
+      # - 1x from the CustomAction in grr.wxs
+      # - 2x from ServiceControl in grr.wxs (on install, on uninstall).
+      lines = [line.strip("\r\n") for line in f.readlines()]
+      self.assertEqual(lines.count("start"), 4)
+      self.assertEqual(lines.count("stop"), 4)
 
     installer_path = self._RepackTemplate("fs_bundled", True, True)
     self._Install(installer_path)
@@ -279,6 +313,12 @@ class WindowsMsiTest(absltest.TestCase):
       with open(log_file, "rb") as f:
         print(f.read().decode("utf-16"))
       raise
+
+
+def setUpModule() -> None:
+  with temp.AutoTempFilePath(suffix="yaml") as dummy_config_path:
+    flags.FLAGS.config = dummy_config_path
+    config_lib.ParseConfigCommandLine()
 
 
 if __name__ == "__main__":

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module with utilities for optimized pseudo-random number generation."""
 import os
 import struct

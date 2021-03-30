@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Library for interacting with Google BigQuery service."""
 from __future__ import absolute_import
 from __future__ import division

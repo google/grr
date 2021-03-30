@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A class to read process memory on macOS.
 
 This code is based on the memorpy project:
@@ -203,3 +202,13 @@ class Process(object):
     buf = ctypes.string_at(pdata.value, data_cnt.value)
     libc.vm_deallocate(self.mytask, pdata, data_cnt)
     return buf
+
+  @property
+  def serialized_file_descriptor(self) -> int:
+    return NotImplementedError()
+
+  @classmethod
+  def CreateFromSerializedFileDescriptor(
+      cls, serialized_file_descriptor: int) -> "Process":
+    del serialized_file_descriptor  # Unused
+    return NotImplementedError()

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """(De-)serialization to bytes, wire format, and human readable strings."""
 from __future__ import absolute_import
 from __future__ import division

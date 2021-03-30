@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # -*- encoding: utf-8 -*-
 """This modules contains tests for VFS API handlers."""
 from __future__ import absolute_import

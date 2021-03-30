@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """The GRR frontend server."""
 import logging
 import time

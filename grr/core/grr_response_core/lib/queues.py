@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Queue definitions.
 
 This module defines the queues where a worker may look for work.

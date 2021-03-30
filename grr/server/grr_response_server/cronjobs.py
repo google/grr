@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Cron Job objects that get stored in the relational db."""
 
 import abc

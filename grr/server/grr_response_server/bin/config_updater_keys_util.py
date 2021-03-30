@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Utilities for generating GRR keys as part of config_updater run."""
 from __future__ import absolute_import
 from __future__ import division

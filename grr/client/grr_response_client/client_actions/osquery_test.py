@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # -*- encoding: utf-8 -*-
 """A module with client action for talking with osquery."""
 from __future__ import absolute_import

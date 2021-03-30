@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This is the GRR config management code.
 
 This handles opening and parsing of config files.
@@ -20,9 +19,7 @@ import platform
 import re
 import sys
 import traceback
-from typing import cast
-from typing import Optional
-from typing import Text
+from typing import Any, cast, Dict, Optional, Text
 
 from absl import flags
 
@@ -322,7 +319,7 @@ class GRRConfigParser(metaclass=MetaclassRegistry):
   def SaveDataToFD(self, raw_data, fd):
     raise NotImplementedError()
 
-  def RawData(self):
+  def RawData(self) -> Dict[Any, Any]:
     """Convert the file to a more suitable data structure.
 
     Returns:
@@ -352,6 +349,7 @@ class GRRConfigParser(metaclass=MetaclassRegistry):
     Note that support for contexts is optional and depends on the config file
     format. If contexts are not supported, a flat OrderedDict() is returned.
     """
+    raise NotImplementedError()
 
 
 class ConfigFileParser(configparser.RawConfigParser, GRRConfigParser):
@@ -1041,7 +1039,7 @@ class GrrConfigManager(object):
   def PrintHelp(self):
     print(self.FormatHelp())
 
-  def MergeData(self, merge_data, raw_data=None):
+  def MergeData(self, merge_data: Dict[Any, Any], raw_data=None):
     """Merges data read from a config file into the current config."""
     self.FlushCache()
     if raw_data is None:

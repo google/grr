@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module with utilities for working with the Sleuthkit's body format."""
 import io
 import stat

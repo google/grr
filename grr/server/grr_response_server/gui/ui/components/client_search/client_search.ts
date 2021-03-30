@@ -1,7 +1,10 @@
 import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, Params} from '@angular/router';
 import {ClientSearchFacade} from '@app/store/client_search_facade';
-import {map} from 'rxjs/operators';
+import {Observable} from 'rxjs';
+import {filter, map} from 'rxjs/operators';
+
+import {isNonNull} from '../../lib/preconditions';
 
 /**
  * Component displaying the client search results.
@@ -14,6 +17,12 @@ import {map} from 'rxjs/operators';
 export class ClientSearch implements OnInit {
   private readonly query$ = this.route.queryParamMap.pipe(
       map(params => params.get('q') ?? ''),
+  );
+
+  readonly reason$: Observable<Params> = this.route.queryParamMap.pipe(
+      map(params => params.get('reason')),
+      filter(isNonNull),
+      map((reason) => ({'reason': reason})),
   );
 
   /**

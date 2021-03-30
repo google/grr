@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Fallback flows for artifacts that couldn't be collected normally.
 
 These flows subclass lib.artifact.ArtifactFallbackCollector.

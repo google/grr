@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Default implementation for a stats-collector."""
 
 from __future__ import absolute_import

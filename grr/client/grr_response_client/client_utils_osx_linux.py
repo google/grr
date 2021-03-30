@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Utils common to macOS and Linux."""
 from __future__ import absolute_import
 from __future__ import division

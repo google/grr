@@ -346,9 +346,9 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       self.CheckBrowserErrors()
       time.sleep(self.sleep_time)
 
-    self.fail(
-        "condition %s %s not met, body is: %s" %
-        (condition_cb, args, self.driver.find_element_by_tag_name("body").text))
+    self.fail("condition %s%s not met, body is: %s" %
+              (condition_cb.__name__, args,
+               self.driver.find_element_by_tag_name("body").text))
 
   def _FindElements(self, selector):
     selector_type, effective_selector = selector.split("=", 1)
@@ -429,7 +429,12 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self.driver.forward()
 
   def WaitUntilNot(self, condition_cb, *args):
-    self.WaitUntil(lambda: not condition_cb(*args))
+
+    def _Func(*args):
+      return not condition_cb(*args)
+
+    _Func.__name__ = f"<Not {condition_cb.__name__}>"
+    return self.WaitUntil(_Func, *args)
 
   def GetPageTitle(self):
     return self.driver.title

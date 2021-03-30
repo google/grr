@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Virtual filesystem module based on an unprivileged filesystem client."""
 
 import stat

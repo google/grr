@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Tests for grr_response_cleint.osx.objc.
 

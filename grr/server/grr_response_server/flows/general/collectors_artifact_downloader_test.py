@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for grr_response_server.flows.general.collectors.
 
 These test cover the artifact downloader functionality which downloads files

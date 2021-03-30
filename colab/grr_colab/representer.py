@@ -1,20 +1,12 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Module that contains representers for values returned by Python API."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
+import ipaddress
 import os
-import sys
+from typing import Dict, Text, List, Optional, Any, Union
 
 import humanize
-import ipaddress
 import IPython
 from IPython.lib import pretty
-from typing import Dict, Text, List, Optional, Any, Union
 
 from grr_colab import convert
 from grr_colab._textify import client
@@ -80,11 +72,6 @@ class _RepresenterList(list):
     if isinstance(key, slice):
       return type(self)(super().__getitem__(key))
     return super().__getitem__(key)
-
-  # TODO: Remove this method when Python 2 support is dropped. It
-  #  is called in some versions of CPython while getting slice of a list.
-  def __getslice__(self, start: int, stop: int) -> List[Any]:
-    return self.__getitem__(slice(start, stop))
 
 
 class StatEntryList(_RepresenterList):
@@ -310,11 +297,6 @@ class _BufferReferenceData(object):
 
   def __str__(self) -> Text:
     data_repr = repr(self.data)
-
-    # TODO: Remove this once support for Python 2 is dropped.
-    if sys.version_info < (3, 0):
-      data_repr = 'b{}'.format(data_repr)
-
     return '{path}:{start}-{end}: {data}'.format(
         path=self.path, start=self.start, end=self.end, data=data_repr)
 

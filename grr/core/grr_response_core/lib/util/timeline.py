@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module defining timeline-related utility functions."""
 from typing import Iterator
 

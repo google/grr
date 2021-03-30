@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Load all flows so that they are visible in the registry."""
 from __future__ import absolute_import
 from __future__ import division

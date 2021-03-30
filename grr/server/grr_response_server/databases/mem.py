@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """An in memory database implementation used for testing."""
 from __future__ import absolute_import
 from __future__ import division

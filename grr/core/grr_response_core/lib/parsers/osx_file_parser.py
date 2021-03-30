@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Simple parsers for OS X files."""
 
 from __future__ import absolute_import

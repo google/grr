@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Common logic for objects used to track monitoring-related metrics.
 
 GRR has a notion of statistic metrics. These metrics reflect GRR's state at

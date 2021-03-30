@@ -292,6 +292,31 @@ magic_return_str = str(py_args["foobar"])
     self.assertIsInstance(results[0], administrative.ExecutePythonHackResult)
     self.assertEqual(results[0].result_string, "42")
 
+  def testExecutePythonHackWithFormatString(self):
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    code = """
+magic_return_str = "foo(%s)"
+    """
+
+    maintenance_utils.UploadSignedConfigBlob(
+        content=code.encode("utf-8"),
+        aff4_path="aff4:/config/python_hacks/quux")
+
+    flow_id = flow_test_lib.TestFlowHelper(
+        administrative.ExecutePythonHack.__name__,
+        client_mock=action_mocks.ActionMock(standard.ExecutePython),
+        client_id=client_id,
+        hack_name="quux",
+        creator=self.test_username)
+
+    flow_test_lib.FinishAllFlowsOnClient(client_id=client_id)
+
+    results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
+    self.assertLen(results, 1)
+    self.assertIsInstance(results[0], administrative.ExecutePythonHackResult)
+    self.assertEqual(results[0].result_string, "foo(%s)")
+
   def testExecuteBinariesWithArgs(self):
     client_mock = action_mocks.ActionMock(standard.ExecuteBinaryCommand)
 

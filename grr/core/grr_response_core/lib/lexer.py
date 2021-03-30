@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """An LL(1) lexer. This lexer is very tolerant of errors and can resync."""
 from __future__ import absolute_import
 from __future__ import division

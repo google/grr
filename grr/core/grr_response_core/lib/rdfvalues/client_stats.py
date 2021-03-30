@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Stats-related client rdfvalues."""
 
 from __future__ import absolute_import

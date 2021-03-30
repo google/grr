@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Interface to Objective C libraries on OS X."""
 import ctypes
 import ctypes.util

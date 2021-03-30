@@ -1,17 +1,11 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
-import sys
+import io
+import ipaddress
 import time
 from unittest import mock
 
 from absl.testing import absltest
 import humanize
-import ipaddress
 from IPython.lib import pretty
 
 import grr_colab
@@ -19,16 +13,6 @@ from grr_colab import representer
 from grr_response_proto import jobs_pb2
 from grr_response_proto import sysinfo_pb2
 from grr_response_proto.api import client_pb2
-
-# TODO: PrettyPrinter uses '\n' as newline separator and ' ' as
-#  space separator which causes TypeError while trying to write them to
-#  io.StringIO since it expects unicode and not bytes.
-# pylint: disable=g-importing-member, g-import-not-at-top
-if sys.version_info < (3, 0):
-  from StringIO import StringIO
-else:
-  from io import StringIO
-# pylint: enable=g-importing-member, g-import-not-at-top
 
 
 class StatEntryPrettyTest(absltest.TestCase):
@@ -39,7 +23,7 @@ class StatEntryPrettyTest(absltest.TestCase):
     entry.st_size = 42
     entry.st_mode = 33188
 
-    out = StringIO()
+    out = io.StringIO()
     pp = pretty.PrettyPrinter(out)
     representer.stat_entry_pretty(entry, pp, cycle=False)
 
@@ -54,7 +38,7 @@ class StatEntryPrettyTest(absltest.TestCase):
     entry.st_size = 42
     entry.st_mode = 16877
 
-    out = StringIO()
+    out = io.StringIO()
     pp = pretty.PrettyPrinter(out)
     representer.stat_entry_pretty(entry, pp, cycle=False)
 
@@ -73,7 +57,7 @@ class BufferReferencePrettyTest(absltest.TestCase):
     ref.length = 6
     ref.data = b'foobar'
 
-    out = StringIO()
+    out = io.StringIO()
     pp = pretty.PrettyPrinter(out)
     representer.buffer_reference_pretty(ref, pp, cycle=False)
 
@@ -87,7 +71,7 @@ class BufferReferencePrettyTest(absltest.TestCase):
     ref.length = 3
     ref.data = b'\xff\xaa\xff'
 
-    out = StringIO()
+    out = io.StringIO()
     pp = pretty.PrettyPrinter(out)
     representer.buffer_reference_pretty(ref, pp, cycle=False)
 
@@ -103,7 +87,7 @@ class NetworkAddressPrettyTest(absltest.TestCase):
     address.address_type = jobs_pb2.NetworkAddress.INET
     address.packed_bytes = ipv4.packed
 
-    out = StringIO()
+    out = io.StringIO()
     pp = pretty.PrettyPrinter(out)
     representer.network_address_pretty(address, pp, cycle=False)
 
@@ -116,7 +100,7 @@ class NetworkAddressPrettyTest(absltest.TestCase):
     address.address_type = jobs_pb2.NetworkAddress.INET6
     address.packed_bytes = ipv6.packed
 
-    out = StringIO()
+    out = io.StringIO()
     pp = pretty.PrettyPrinter(out)
     representer.network_address_pretty(address, pp, cycle=False)
 
@@ -131,7 +115,7 @@ class InterfacePrettyTest(absltest.TestCase):
     iface.mac_address = b'\xaa\x12\x42\xff\xa5\xd0'
     iface.ifname = 'foo'
 
-    out = StringIO()
+    out = io.StringIO()
     pp = pretty.PrettyPrinter(out)
     representer.interface_pretty(iface, pp, cycle=False)
 
@@ -151,7 +135,7 @@ foo (MAC: aa:12:42:ff:a5:d0):
     iface.ifname = 'foo'
     iface.addresses.extend([address])
 
-    out = StringIO()
+    out = io.StringIO()
     pp = pretty.PrettyPrinter(out)
     representer.interface_pretty(iface, pp, cycle=False)
 
@@ -177,7 +161,7 @@ foo (MAC: aa:12:42:ff:a5:d0):
     iface.ifname = 'foo'
     iface.addresses.extend([address1, address2])
 
-    out = StringIO()
+    out = io.StringIO()
     pp = pretty.PrettyPrinter(out)
     representer.interface_pretty(iface, pp, cycle=False)
 
@@ -203,7 +187,7 @@ class ProcessPrettyTest(absltest.TestCase):
     process.memory_percent = 2.5
     process.exe = '/foo/bar'
 
-    out = StringIO()
+    out = io.StringIO()
     pp = pretty.PrettyPrinter(out, max_width=55)
     representer.process_pretty(process, pp, cycle=False)
 
@@ -223,7 +207,7 @@ class ProcessPrettyTest(absltest.TestCase):
     process.memory_percent = 2.5
     process.exe = '/foo/bar/baz'
 
-    out = StringIO()
+    out = io.StringIO()
     pp = pretty.PrettyPrinter(out, max_width=55)
     representer.process_pretty(process, pp, cycle=False)
 
@@ -237,14 +221,14 @@ class StatEntryListTest(absltest.TestCase):
   def testEmptyResults(self):
     sts = representer.StatEntryList([])
 
-    out = StringIO()
+    out = io.StringIO()
     sts._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
     self.assertEqual(out.getvalue(), 'No results.')
 
   def testCycle(self):
     sts = representer.StatEntryList([])
 
-    out = StringIO()
+    out = io.StringIO()
     with self.assertRaises(AssertionError):
       sts._repr_pretty_(pretty.PrettyPrinter(out), cycle=True)
 
@@ -256,7 +240,7 @@ class StatEntryListTest(absltest.TestCase):
 
     sts = representer.StatEntryList([entry])
 
-    out = StringIO()
+    out = io.StringIO()
     sts._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
 
     expected = """
@@ -275,7 +259,7 @@ class StatEntryListTest(absltest.TestCase):
 
     sts = representer.StatEntryList([entry])
 
-    out = StringIO()
+    out = io.StringIO()
     sts._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
 
     expected = """
@@ -299,7 +283,7 @@ class StatEntryListTest(absltest.TestCase):
 
     sts = representer.StatEntryList([entry1, entry2])
 
-    out = StringIO()
+    out = io.StringIO()
     sts._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
 
     expected = """
@@ -325,7 +309,7 @@ class StatEntryListTest(absltest.TestCase):
 
     sts = representer.StatEntryList([entry1, entry2])
 
-    out = StringIO()
+    out = io.StringIO()
     sts._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
 
     expected = """
@@ -357,7 +341,7 @@ class StatEntryListTest(absltest.TestCase):
 
     sts = representer.StatEntryList([entry1, entry2, entry3])
 
-    out = StringIO()
+    out = io.StringIO()
     sts._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
 
     expected = """
@@ -388,7 +372,7 @@ class StatEntryListTest(absltest.TestCase):
 
     sts = representer.StatEntryList([entry1, entry2, entry3])
 
-    out = StringIO()
+    out = io.StringIO()
     sts._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
 
     expected = """
@@ -417,14 +401,14 @@ class BufferReferenceListTest(absltest.TestCase):
   def testEmptyResults(self):
     brs = representer.BufferReferenceList([])
 
-    out = StringIO()
+    out = io.StringIO()
     brs._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
     self.assertEqual(out.getvalue(), 'No results.')
 
   def testCycle(self):
     brs = representer.BufferReferenceList([])
 
-    out = StringIO()
+    out = io.StringIO()
     with self.assertRaises(AssertionError):
       brs._repr_pretty_(pretty.PrettyPrinter(out), cycle=True)
 
@@ -443,7 +427,7 @@ class BufferReferenceListTest(absltest.TestCase):
 
     brs = representer.BufferReferenceList([ref1, ref2])
 
-    out = StringIO()
+    out = io.StringIO()
     brs._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
 
     expected = """
@@ -465,14 +449,14 @@ class InterfaceListTest(absltest.TestCase):
   def testEmptyResults(self):
     ifaces = representer.InterfaceList([])
 
-    out = StringIO()
+    out = io.StringIO()
     ifaces._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
     self.assertEqual(out.getvalue(), 'No results.')
 
   def testCycle(self):
     ifaces = representer.InterfaceList([])
 
-    out = StringIO()
+    out = io.StringIO()
     with self.assertRaises(AssertionError):
       ifaces._repr_pretty_(pretty.PrettyPrinter(out), cycle=True)
 
@@ -499,7 +483,7 @@ class InterfaceListTest(absltest.TestCase):
 
     ifaces = representer.InterfaceList([iface1, iface2])
 
-    out = StringIO()
+    out = io.StringIO()
     ifaces._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
 
     expected = """
@@ -539,14 +523,14 @@ class ClientListTest(absltest.TestCase):
   def testEmptyResults(self):
     cs = representer.ClientList([])
 
-    out = StringIO()
+    out = io.StringIO()
     cs._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
     self.assertEqual(out.getvalue(), 'No results.')
 
   def testCycle(self):
     cs = representer.ClientList([])
 
-    out = StringIO()
+    out = io.StringIO()
     with self.assertRaises(AssertionError):
       cs._repr_pretty_(pretty.PrettyPrinter(out), cycle=True)
 
@@ -559,7 +543,7 @@ class ClientListTest(absltest.TestCase):
     client2 = ClientListTest._MockClient('bar', 'host2', last_seen2)
 
     clients = representer.ClientList([client1, client2])
-    out = StringIO()
+    out = io.StringIO()
 
     with mock.patch.object(time, 'time', return_value=current_time_secs):
       clients._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
@@ -583,14 +567,14 @@ class ProcessListTest(absltest.TestCase):
   def testEmptyResults(self):
     ps = representer.ProcessList([])
 
-    out = StringIO()
+    out = io.StringIO()
     ps._repr_pretty_(pretty.PrettyPrinter(out), cycle=False)
     self.assertEqual(out.getvalue(), 'No results.')
 
   def testCycle(self):
     ps = representer.ProcessList([])
 
-    out = StringIO()
+    out = io.StringIO()
     with self.assertRaises(AssertionError):
       ps._repr_pretty_(pretty.PrettyPrinter(out), cycle=True)
 
@@ -616,7 +600,7 @@ class ProcessListTest(absltest.TestCase):
 
     ps = representer.ProcessList([process1, process2])
 
-    out = StringIO()
+    out = io.StringIO()
     ps._repr_pretty_(pretty.PrettyPrinter(out, max_width=55), cycle=False)
 
     expected = """

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Centralized import point for client plugins.
 
 This acts as a centralized point for modules that need to be loaded for

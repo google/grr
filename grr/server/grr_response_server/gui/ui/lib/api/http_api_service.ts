@@ -5,7 +5,7 @@ import {Observable, throwError} from 'rxjs';
 import {catchError, map, mapTo, shareReplay, switchMap, take} from 'rxjs/operators';
 import {isNonNull} from '../preconditions';
 
-import {AnyObject, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, ArtifactDescriptor, GlobComponentExplanation} from './api_interfaces';
+import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, ArtifactDescriptor, GlobComponentExplanation} from './api_interfaces';
 
 
 /**
@@ -352,18 +352,21 @@ export class HttpApiService {
 
   addClientLabel(clientId: string, label: string): Observable<{}> {
     const url = `${URL_PREFIX}/clients/labels/add`;
-    return this.http.post<{}>(url, {client_ids: [clientId], labels: [label]});
+    const body:
+        ApiAddClientsLabelsArgs = {clientIds: [clientId], labels: [label]};
+    return this.http.post<{}>(url, body);
   }
 
   removeClientLabel(clientId: string, label: string): Observable<string> {
     const url = `${URL_PREFIX}/clients/labels/remove`;
-    return this.http.post<{}>(url, {client_ids: [clientId], labels: [label]})
-        .pipe(
-            mapTo(label),
-            catchError(
-                (e: HttpErrorResponse) =>
-                    throwError(new Error(e.error.message ?? e.message))),
-        );
+    const body:
+        ApiRemoveClientsLabelsArgs = {clientIds: [clientId], labels: [label]};
+    return this.http.post<{}>(url, body).pipe(
+        mapTo(label),
+        catchError(
+            (e: HttpErrorResponse) =>
+                throwError(new Error(e.error.message ?? e.message))),
+    );
   }
 
   fetchAllClientsLabels(): Observable<ReadonlyArray<ApiClientLabel>> {

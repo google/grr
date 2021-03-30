@@ -1,11 +1,5 @@
 #!/usr/bin/env python
 """Module containing functions for managing flow timeout."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 from typing import Optional
 
 from grr_api_client import errors as api_errors

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A generic serializer for python dictionaries."""
 from __future__ import absolute_import
 from __future__ import division

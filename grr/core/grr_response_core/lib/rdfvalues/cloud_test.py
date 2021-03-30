@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for grr.lib.rdfvalues.cloud."""
 
 from __future__ import absolute_import

@@ -1,17 +1,10 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Module that contains converters into human readable format of stat data."""
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import os
 import stat
+from typing import Text
 
 import humanize
-from typing import Text
 
 from grr_response_proto import jobs_pb2
 
@@ -36,53 +29,7 @@ def name(stat_entry: jobs_pb2.StatEntry) -> Text:
 
 
 def mode(stat_entry: jobs_pb2.StatEntry) -> Text:
-  return mode_from_bitmask(stat_entry.st_mode)
-
-
-def mode_from_bitmask(st_mode: int) -> Text:
-  """Represents stat mode of a file in UNIX-like format.
-
-  Args:
-    st_mode: Stat mode of a file.
-
-  Returns:
-    Stat mode of a file in UNIX-like format.
-  """
-  file_types = {
-      stat.S_IFDIR: 'd',
-      stat.S_IFCHR: 'c',
-      stat.S_IFBLK: 'b',
-      stat.S_IFREG: '-',
-      stat.S_IFIFO: 'p',
-      stat.S_IFLNK: 'l',
-      stat.S_IFSOCK: 's',
-  }
-  file_type = file_types[stat.S_IFMT(st_mode)]
-
-  permissions = ''
-
-  permissions += 'r' if st_mode & stat.S_IRUSR else '-'
-  permissions += 'w' if st_mode & stat.S_IWUSR else '-'
-  if st_mode & stat.S_ISUID:
-    permissions += 's' if st_mode & stat.S_IXUSR else 'S'
-  else:
-    permissions += 'x' if st_mode & stat.S_IXUSR else '-'
-
-  permissions += 'r' if st_mode & stat.S_IRGRP else '-'
-  permissions += 'w' if st_mode & stat.S_IWGRP else '-'
-  if st_mode & stat.S_ISGID:
-    permissions += 's' if st_mode & stat.S_IXGRP else 'S'
-  else:
-    permissions += 'x' if st_mode & stat.S_IXGRP else '-'
-
-  permissions += 'r' if st_mode & stat.S_IROTH else '-'
-  permissions += 'w' if st_mode & stat.S_IWOTH else '-'
-  if st_mode & stat.S_ISVTX:
-    permissions += 't' if st_mode & stat.S_IXOTH else 'T'
-  else:
-    permissions += 'x' if st_mode & stat.S_IXOTH else '-'
-
-  return file_type + permissions
+  return stat.filemode(stat_entry.st_mode)
 
 
 def _is_symlink(stat_entry: jobs_pb2.StatEntry) -> bool:

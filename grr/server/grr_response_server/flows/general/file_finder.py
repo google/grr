@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Search for certain files, filter them by given criteria and do something."""
 from __future__ import absolute_import
 from __future__ import division

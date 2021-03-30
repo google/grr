@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """FS GRR server side integration utility functions."""
 from __future__ import absolute_import
 from __future__ import division

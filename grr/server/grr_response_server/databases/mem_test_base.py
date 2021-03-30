@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Base class for all memory database tests."""
 from __future__ import absolute_import
 from __future__ import division

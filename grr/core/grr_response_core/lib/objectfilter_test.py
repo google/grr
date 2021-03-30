@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Tests for grr.lib.objectfilter."""
 from __future__ import absolute_import

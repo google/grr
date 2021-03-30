@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A registry based configuration parser."""
 
 # NOTE: Running a 32 bit compiled client and 64 bit compiled client on a 64 bit

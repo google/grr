@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """setup.py file for a GRR Colab library."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import configparser
 import os

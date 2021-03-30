@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module with MySQL implementation of YARA-related database methods."""
 from __future__ import absolute_import
 from __future__ import division

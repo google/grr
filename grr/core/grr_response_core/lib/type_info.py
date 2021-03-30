@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Typing information for flow arguments.
 
 This contains objects that are used to provide type annotations for flow

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # Copyright 2012 Google Inc. All Rights Reserved.
 """Classes to perform filtering of objects based on their data members.
 

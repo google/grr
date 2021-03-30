@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """The MySQL database methods for GRR users and approval handling."""
 from typing import Sequence
 

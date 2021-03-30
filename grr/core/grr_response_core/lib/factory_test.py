@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 from typing import Text
 
 from absl.testing import absltest

@@ -93,6 +93,13 @@ class Server(abc.ABC):
     """Returns a connection to the server."""
     pass
 
+  def __enter__(self) -> "Server":
+    self.Start()
+    return self
+
+  def __exit__(self, exc_type, exc_value, traceback) -> None:
+    self.Stop()
+
 
 ConnectionHandler = Callable[[Connection], None]
 

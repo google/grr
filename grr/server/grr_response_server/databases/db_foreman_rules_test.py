@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Mixin tests for storing Foreman rules in the relational db."""
 from __future__ import absolute_import
 from __future__ import division

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A mapping of client action id strings to action stub classes."""
 from __future__ import absolute_import
 from __future__ import division

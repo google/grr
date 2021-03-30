@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A facade for the GRR-FS server-side connection."""
 import logging
 from typing import Optional

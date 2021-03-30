@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """These flows are designed for high performance transfers."""
 from __future__ import absolute_import
 from __future__ import division

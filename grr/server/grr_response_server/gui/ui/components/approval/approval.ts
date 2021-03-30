@@ -1,8 +1,8 @@
 import {COMMA, ENTER, SPACE} from '@angular/cdk/keycodes';
 import {Location} from '@angular/common';
-import {ChangeDetectionStrategy, Component, ElementRef, HostBinding, HostListener, OnDestroy, ViewChild} from '@angular/core';
+import {ChangeDetectionStrategy, Component, ElementRef, HostBinding, HostListener, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
-import {Router} from '@angular/router';
+import {ActivatedRoute, Router} from '@angular/router';
 import {Subject} from 'rxjs';
 import {filter, map, withLatestFrom} from 'rxjs/operators';
 
@@ -19,8 +19,11 @@ import {ConfigFacade} from '../../store/config_facade';
   styleUrls: ['./approval.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class Approval implements OnDestroy {
+export class Approval implements OnInit, OnDestroy {
   readonly separatorKeysCodes: number[] = [ENTER, COMMA, SPACE];
+
+  private readonly reason$ = this.route.queryParamMap.pipe(
+      map(params => params.get('reason')), filter(isNonNull));
 
   readonly form = new FormGroup({
     reason: new FormControl(''),
@@ -82,6 +85,7 @@ export class Approval implements OnDestroy {
   private readonly submit$ = new Subject<void>();
 
   constructor(
+      private readonly route: ActivatedRoute,
       private readonly clientPageFacade: ClientPageFacade,
       private readonly configFacade: ConfigFacade,
       private readonly router: Router,
@@ -106,6 +110,12 @@ export class Approval implements OnDestroy {
 
     // Trigger the suggestion of previously requested approvers.
     this.clientPageFacade.suggestApprovers('');
+  }
+
+  ngOnInit() {
+    this.reason$.subscribe(reason => {
+      this.form.controls['reason'].patchValue(reason);
+    });
   }
 
   @HostListener('click')

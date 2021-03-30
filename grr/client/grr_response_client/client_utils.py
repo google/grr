@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Client utilities."""
 from __future__ import absolute_import
 from __future__ import division
@@ -36,6 +35,7 @@ NannyController = _client_utils.NannyController
 OpenProcessForMemoryAccess = _client_utils.OpenProcessForMemoryAccess
 TransactionLog = _client_utils.TransactionLog
 VerifyFileOwner = _client_utils.VerifyFileOwner
+CreateProcessFromSerializedFileDescriptor = _client_utils.CreateProcessFromSerializedFileDescriptor
 
 # pylint: enable=g-bad-name
 

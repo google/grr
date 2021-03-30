@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This class handles the GRR Client Communication.
 
 The GRR client uses HTTP to communicate with the server.

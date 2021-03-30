@@ -1,7 +1,7 @@
 import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} from '@angular/core';
 import {DateTime, Duration} from '@app/lib/date_time';
 import {interval, merge, Subject} from 'rxjs';
-import {map} from 'rxjs/operators';
+import {map, startWith} from 'rxjs/operators';
 
 /**
  * Component displaying the status of a Client in a material chip.
@@ -21,8 +21,14 @@ export class OnlineChip implements OnChanges {
   private readonly lastSeenChange$ = new Subject<void>();
 
   // status observable that updates every second and when lastSeen changes
-  status$ = merge(interval(1000), this.lastSeenChange$)
-                .pipe(map(() => this.getStatus()));
+  status$ = merge(
+                interval(1000),
+                this.lastSeenChange$,
+                )
+                .pipe(
+                    startWith(undefined),
+                    map(() => this.getStatus()),
+                );
 
   ngOnChanges(changes: SimpleChanges): void {
     this.lastSeenChange$.next();

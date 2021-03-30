@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A console script to create new server keys.
 
 Use this script to make a new server key and certificate. You can just run the

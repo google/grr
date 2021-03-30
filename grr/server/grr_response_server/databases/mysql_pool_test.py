@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for mysql_pool.py."""
 from __future__ import absolute_import
 from __future__ import division
