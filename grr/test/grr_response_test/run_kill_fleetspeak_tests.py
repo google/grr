@@ -99,10 +99,7 @@ def main(argv):
   print("Interrogate flow 1 finished with result {}.".format(result))
 
   print("Running RestartFleetspeakGrrService().")
-  self_contained_components.RunApiShellRawAccess(
-      grr_configs.server_config,
-      "grrapi.root.Client(\"{}\").RestartFleetspeakGrrService()".format(
-          client_id))
+  grr_api.Client(client_id).RestartFleetspeakGrrService()
   print("Finished RestartFleetspeakGrrService().")
 
   # We have to wait for the restart to finish.
@@ -132,10 +129,7 @@ def main(argv):
 
   # With force=False the fleetspeak client performs a graceful shutdown.
   print("Running KillFleetspeak(force=False).")
-  self_contained_components.RunApiShellRawAccess(
-      grr_configs.server_config,
-      "grrapi.root.Client(\"{}\").KillFleetspeak(force=False)".format(
-          client_id))
+  grr_api.Client(client_id).KillFleetspeak(force=False)
   print("Finished KillFleetspeak(force=False).")
 
   print("Waiting for fleetspeak client to terminate.")
@@ -156,9 +150,7 @@ def main(argv):
 
   # With force=True the fleetspeak clients just exits.
   print("Running KillFleetspeak(force=True).")
-  self_contained_components.RunApiShellRawAccess(
-      grr_configs.server_config,
-      "grrapi.root.Client(\"{}\").KillFleetspeak(force=True)".format(client_id))
+  grr_api.Client(client_id).KillFleetspeak(force=True)
   print("Finished KillFleetspeak(force=True).")
 
   print("Waiting for fleetspeak client to terminate.")

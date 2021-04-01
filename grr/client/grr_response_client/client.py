@@ -58,6 +58,12 @@ flags.DEFINE_string(
     "unprivileged_server_interface", "", "If set, run the unprivileged server. "
     "The value of the flag is the name of the RPC interface used.")
 
+flags.DEFINE_string("unprivileged_user", "",
+                    "Name of user to run unprivileged server as.")
+
+flags.DEFINE_string("unprivileged_group", "",
+                    "Name of group to run unprivileged server as.")
+
 
 def _start_remote_debugging(port):
   """Sets up remote debugging using pydevd, connecting to localhost:`port`."""
@@ -91,7 +97,8 @@ def main(unused_args):
             pipe_input=flags.FLAGS.unprivileged_server_pipe_input,
             pipe_output=flags.FLAGS.unprivileged_server_pipe_output),
         interface_registry.GetConnectionHandlerForInterfaceString(
-            flags.FLAGS.unprivileged_server_interface))
+            flags.FLAGS.unprivileged_server_interface),
+        flags.FLAGS.unprivileged_user, flags.FLAGS.unprivileged_group)
     return
 
   # Allow per platform configuration.

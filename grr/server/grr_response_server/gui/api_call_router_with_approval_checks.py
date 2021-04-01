@@ -21,6 +21,7 @@ from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui import approval_checks
+from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.gui.api_plugins import metadata as api_metadata
@@ -100,7 +101,8 @@ class AccessChecker(object):
 
     flow_cls = registry.FlowRegistry.FLOW_REGISTRY.get(flow_name)
 
-    if not flow_cls.category:
+    if flow_cls is None or not hasattr(flow_cls,
+                                       "category") or not flow_cls.category:
       raise access_control.UnauthorizedAccess(
           "Flow %s can't be started via the API." % flow_name)
 
@@ -218,6 +220,30 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     self.access_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.GetClientLoadStats(args, context=context)
+
+  def KillFleetspeak(
+      self,
+      args: api_client.ApiKillFleetspeakArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiKillFleetspeakHandler:
+    self.access_checker.CheckClientAccess(context, args.client_id)
+    return self.delegate.KillFleetspeak(args, context=context)
+
+  def RestartFleetspeakGrrService(
+      self,
+      args: api_client.ApiRestartFleetspeakGrrServiceArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiRestartFleetspeakGrrServiceHandler:
+    self.access_checker.CheckClientAccess(context, args.client_id)
+    return self.delegate.RestartFleetspeakGrrService(args, context=context)
+
+  def DeleteFleetspeakPendingMessages(
+      self,
+      args: api_client.ApiDeleteFleetspeakPendingMessagesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
+    self.access_checker.CheckClientAccess(context, args.client_id)
+    return self.delegate.DeleteFleetspeakPendingMessages(args, context=context)
 
   # Virtual file system methods.
   # ============================

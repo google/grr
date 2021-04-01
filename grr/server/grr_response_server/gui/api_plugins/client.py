@@ -2,6 +2,7 @@
 """API handlers for accessing and searching clients and managing labels."""
 import ipaddress
 import re
+from typing import Optional
 
 from urllib import parse as urlparse
 
@@ -26,6 +27,7 @@ from grr_response_server import ip_resolver
 from grr_response_server import timeseries
 from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui.api_plugins import stats as api_stats
@@ -828,3 +830,67 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
       result.data_points.append(dp)
 
     return result
+
+
+def _CheckFleetspeakConnection() -> None:
+  if fleetspeak_connector.CONN is None:
+    raise Exception("Fleetspeak connection is not available.")
+
+
+class ApiKillFleetspeakArgs(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiKillFleetspeakArgs
+  rdf_deps = [
+      rdf_client.ClientURN,
+  ]
+
+
+class ApiKillFleetspeakHandler(api_call_handler_base.ApiCallHandler):
+  """Kills fleetspeak on the given client."""
+
+  args_type = ApiKillFleetspeakArgs
+
+  def Handle(self,
+             args: ApiKillFleetspeakArgs,
+             context: Optional[api_call_context.ApiCallContext] = None) -> None:
+    _CheckFleetspeakConnection()
+    fleetspeak_utils.KillFleetspeak(args.client_id.Basename(), args.force)
+
+
+class ApiRestartFleetspeakGrrServiceArgs(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiRestartFleetspeakGrrServiceArgs
+  rdf_deps = [
+      rdf_client.ClientURN,
+  ]
+
+
+class ApiRestartFleetspeakGrrServiceHandler(api_call_handler_base.ApiCallHandler
+                                           ):
+  """Restarts the GRR fleetspeak service on the given client."""
+
+  args_type = ApiRestartFleetspeakGrrServiceArgs
+
+  def Handle(self,
+             args: ApiRestartFleetspeakGrrServiceArgs,
+             context: Optional[api_call_context.ApiCallContext] = None) -> None:
+    _CheckFleetspeakConnection()
+    fleetspeak_utils.RestartFleetspeakGrrService(args.client_id.Basename())
+
+
+class ApiDeleteFleetspeakPendingMessagesArgs(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiDeleteFleetspeakPendingMessagesArgs
+  rdf_deps = [
+      rdf_client.ClientURN,
+  ]
+
+
+class ApiDeleteFleetspeakPendingMessagesHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Deletes pending fleetspeak messages for the given client."""
+
+  args_type = ApiDeleteFleetspeakPendingMessagesArgs
+
+  def Handle(self,
+             args: ApiDeleteFleetspeakPendingMessagesArgs,
+             context: Optional[api_call_context.ApiCallContext] = None) -> None:
+    _CheckFleetspeakConnection()
+    fleetspeak_utils.DeleteFleetspeakPendingMessages(args.client_id.Basename())

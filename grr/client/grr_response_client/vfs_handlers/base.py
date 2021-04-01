@@ -5,7 +5,11 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import abc
+import io
 import os
+from typing import IO
+from typing import Iterable
+from typing import List
 from typing import Optional
 
 from grr_response_client import client_utils
@@ -25,7 +29,7 @@ class UnsupportedHandlerError(Error):
     super().__init__("VFSHandler {} is not supported.".format(pathtype))
 
 
-class VFSHandler(metaclass=abc.ABCMeta):
+class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
   """Base class for handling objects in the VFS."""
   supported_pathtype = rdf_paths.PathSpec.PathType.UNSET
 
@@ -208,6 +212,54 @@ class VFSHandler(metaclass=abc.ABCMeta):
   stat = utils.Proxy("Stat")
   tell = utils.Proxy("Tell")
   close = utils.Proxy("Close")
+
+  def seekable(self) -> bool:
+    return True
+
+  def readable(self) -> bool:
+    return True
+
+  def writable(self) -> bool:
+    return False
+
+  def closed(self) -> bool:
+    # TODO(hanuszczak): `Close` is actually implemented only for the Windows
+    # registry handler. Otherwise it just uses default implementation that does
+    # nothing. It might make sense to implement this `closed` logic in the base
+    # class or simply always return `False`.
+    raise NotImplementedError()
+
+  def isatty(self) -> bool:
+    return False
+
+  def fileno(self) -> int:
+    raise io.UnsupportedOperation()
+
+  @property
+  def name(self) -> str:
+    raise io.UnsupportedOperation()
+
+  @property
+  def mode(self) -> str:
+    return "rb"
+
+  def readline(self, limit: int = 0) -> bytes:
+    raise io.UnsupportedOperation()
+
+  def readlines(self, hint: int = 0) -> List[bytes]:
+    raise io.UnsupportedOperation()
+
+  def write(self, s: bytes) -> int:
+    raise io.UnsupportedOperation()
+
+  def writelines(self, lines: Iterable[bytes]) -> None:
+    raise io.UnsupportedOperation()
+
+  def truncate(self, size: Optional[int] = None) -> int:
+    raise io.UnsupportedOperation()
+
+  def flush(self) -> None:
+    raise io.UnsupportedOperation()
 
   @classmethod
   def Open(cls, fd, component, handlers, pathspec=None, progress_callback=None):

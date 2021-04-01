@@ -1,5 +1,9 @@
 #!/usr/bin/env python
+import os
+import platform
 from typing import List
+import unittest
+from unittest import mock
 import sys
 from absl.testing import absltest
 
@@ -38,6 +42,22 @@ class CommunicationTest(absltest.TestCase):
     self.assertEqual(result.attachment, b"x")
 
     server.Stop()
+
+  @unittest.skipIf(platform.system() != "Linux" and
+                   platform.system() != "Darwin", "Unix only test.")
+  def testMain_entersSandbox(self):
+    # pylint: disable=g-import-not-at-top
+    from grr_response_client.unprivileged.unix import sandbox
+    # pylint: enable=g-import-not-at-top
+    with mock.patch.object(sandbox, "EnterSandbox") as mock_enter_sandbox:
+      input_fd = os.open("/dev/null", os.O_RDONLY)
+      output_file = os.open("/dev/null", os.O_WRONLY)
+      channel = communication.Channel(
+          communication.FileDescriptor.FromFileDescriptor(input_fd),
+          communication.FileDescriptor.FromFileDescriptor(output_file))
+      communication.Main(channel, lambda connection: None, "fooUser",
+                         "barGroup")
+      mock_enter_sandbox.assert_called_with("fooUser", "barGroup")
 
 
 if __name__ == "__main__":

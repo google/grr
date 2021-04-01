@@ -137,6 +137,9 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       "UpdateVfsFileContent",
       "GetFileDecoders",
       "GetDecodedFileBlob",
+      "KillFleetspeak",
+      "RestartFleetspeakGrrService",
+      "DeleteFleetspeakPendingMessages",
   ])
 
   def testVfsMethodsAreAccessChecked(self):

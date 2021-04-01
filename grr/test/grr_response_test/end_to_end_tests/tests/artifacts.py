@@ -170,6 +170,26 @@ class TestWindowsRegistryCollector(test_base.EndToEndTest):
       self.assertIn("namespace", statentry.pathspec.path.lower())
 
 
+class TestWindowsUninstallKeysCollection(test_base.EndToEndTest):
+  """Tests the WindowsUninstallKeys artifact collection."""
+
+  platforms = [
+      test_base.EndToEndTest.Platform.WINDOWS,
+  ]
+
+  def runTest(self):
+    args = self.grr_api.types.CreateFlowArgs("ArtifactCollectorFlow")
+    args.artifact_list.append("WindowsUninstallKeys")
+    f = self.RunFlowAndWait("ArtifactCollectorFlow", args=args)
+
+    # The result should contain a single SoftwarePackages proto with
+    # multiple entries in its 'packages' attribute.
+    results = list(f.ListResults())
+    self.assertLen(results, 1)
+    self.assertTrue(hasattr(results[0].payload, "packages"))
+    self.assertNotEmpty(results[0].payload.packages)
+
+
 class TestKnowledgeBaseInitializationFlow(test_base.EndToEndTest):
   """Test knowledge base initialization flow."""
 

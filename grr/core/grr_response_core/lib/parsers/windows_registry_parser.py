@@ -554,15 +554,17 @@ ZONE_LIST = {
 }
 
 
-class WindowsRegistryInstalledSoftwareParser(parser.RegistryValueParser):
+class WindowsRegistryInstalledSoftwareParser(parser.RegistryMultiParser):
   """Parser registry uninstall keys yields rdf_client.SoftwarePackages."""
   output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["WindowsUninstallKeys"]
 
-  def ParseMultiple(self, stats, _):
+  def ParseMultiple(self, stats, kb):
+    del kb  # unused
+
     apps = {}
     for stat in stats:
-      matches = re.search(r"\\CurrentVersion\\Uninstall\\([^\\]+)\\([^$]+)",
+      matches = re.search(r"/CurrentVersion/Uninstall/([^/]+)/([^$]+)",
                           stat.pathspec.path)
       if not matches:
         continue
@@ -578,5 +580,8 @@ class WindowsRegistryInstalledSoftwareParser(parser.RegistryValueParser):
               name=app.get("DisplayName"),
               description=app.get("Publisher", ""),
               version=app.get("DisplayVersion", "")))
+
     if packages:
-      yield rdf_client.SoftwarePackages(packages=packages)
+      return [rdf_client.SoftwarePackages(packages=packages)]
+
+    return []

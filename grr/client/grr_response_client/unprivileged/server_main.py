@@ -18,6 +18,12 @@ flags.DEFINE_integer(
 flags.DEFINE_string("unprivileged_server_interface", "",
                     "The name of the RPC interface used.")
 
+flags.DEFINE_string("unprivileged_user", "",
+                    "Name of user to run unprivileged server as.")
+
+flags.DEFINE_string("unprivileged_group", "",
+                    "Name of group to run unprivileged server as.")
+
 
 def main(argv):
   del argv
@@ -26,7 +32,8 @@ def main(argv):
           pipe_input=flags.FLAGS.unprivileged_server_pipe_input,
           pipe_output=flags.FLAGS.unprivileged_server_pipe_output),
       interface_registry.GetConnectionHandlerForInterfaceString(
-          flags.FLAGS.unprivileged_server_interface))
+          flags.FLAGS.unprivileged_server_interface),
+      flags.FLAGS.unprivileged_user, flags.FLAGS.unprivileged_group)
 
 
 if __name__ == "__main__":

@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 
 import logging
 import traceback
-from typing import Iterator, NamedTuple, Optional
+from typing import Any, Iterator, Mapping, NamedTuple, Optional, Sequence, Tuple, Type
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -26,8 +26,11 @@ from grr_response_server import flow
 from grr_response_server import flow_responses
 from grr_response_server import hunt
 from grr_response_server import notification as notification_lib
+from grr_response_server import output_plugin as output_plugin_lib
+from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 FLOW_STARTS = metrics.Counter("flow_starts", fields=[("flow", str)])
@@ -100,61 +103,6 @@ BEHAVIOUR_BASIC = FlowBehaviour("ADVANCED", "BASIC")
 BEHAVIOUR_DEBUG = FlowBehaviour("DEBUG")
 
 
-def _TerminateFlow(rdf_flow,
-                   reason=None,
-                   flow_state=rdf_flow_objects.Flow.FlowState.ERROR):
-  """Does the actual termination."""
-  flow_cls = FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
-  flow_obj = flow_cls(rdf_flow)
-
-  if not flow_obj.IsRunning():
-    # Nothing to do.
-    return
-
-  logging.info("Terminating flow %s on %s, reason: %s", rdf_flow.flow_id,
-               rdf_flow.client_id, reason)
-
-  rdf_flow.flow_state = flow_state
-  rdf_flow.error_message = reason
-  flow_obj.NotifyCreatorOfError()
-
-  data_store.REL_DB.UpdateFlow(
-      rdf_flow.client_id,
-      rdf_flow.flow_id,
-      flow_obj=rdf_flow,
-      processing_on=None,
-      processing_since=None,
-      processing_deadline=None)
-  data_store.REL_DB.DeleteAllFlowRequestsAndResponses(rdf_flow.client_id,
-                                                      rdf_flow.flow_id)
-
-
-def TerminateFlow(client_id,
-                  flow_id,
-                  reason=None,
-                  flow_state=rdf_flow_objects.Flow.FlowState.ERROR):
-  """Terminates a flow and all of its children.
-
-  Args:
-    client_id: Client ID of a flow to terminate.
-    flow_id: Flow ID of a flow to terminate.
-    reason: String with a termination reason.
-    flow_state: Flow state to be assigned to a flow after termination. Defaults
-      to FlowState.ERROR.
-  """
-
-  to_terminate = [data_store.REL_DB.ReadFlowObject(client_id, flow_id)]
-
-  while to_terminate:
-    next_to_terminate = []
-    for rdf_flow in to_terminate:
-      _TerminateFlow(rdf_flow, reason=reason, flow_state=flow_state)
-      next_to_terminate.extend(
-          data_store.REL_DB.ReadChildFlowObjects(rdf_flow.client_id,
-                                                 rdf_flow.flow_id))
-    to_terminate = next_to_terminate
-
-
 # This is a mypy-friendly way of defining named tuples:
 # https://mypy.readthedocs.io/en/stable/kinds_of_types.html#named-tuples
 class ClientPathArchiveMapping(NamedTuple):
@@ -188,7 +136,7 @@ class FlowBase(metaclass=FlowRegistry):
   # return. By default, any RDFValue might be returned.
   result_types = (rdfvalue.RDFValue,)
 
-  def __init__(self, rdf_flow):
+  def __init__(self, rdf_flow: rdf_flow_objects.Flow):
     self.rdf_flow = rdf_flow
     self.flow_requests = []
     self.flow_responses = []
@@ -204,10 +152,10 @@ class FlowBase(metaclass=FlowRegistry):
     self._client_knowledge_base = None
     self._client_info: Optional[rdf_client.ClientInformation] = None
 
-  def Start(self):
+  def Start(self) -> None:
     """The first state of the flow."""
 
-  def End(self, responses):
+  def End(self, responses: flow_responses.Responses) -> None:
     """Final state.
 
     This method is called prior to destruction of the flow.
@@ -216,11 +164,13 @@ class FlowBase(metaclass=FlowRegistry):
       responses: The responses for this state.
     """
 
-  def HeartBeat(self):
+  def HeartBeat(self) -> None:
     """New-style flows don't need heart-beat, keeping for compatibility."""
     pass
 
-  def CallState(self, next_state="", start_time=None):
+  def CallState(self,
+                next_state: str = "",
+                start_time: Optional[rdfvalue.RDFDatetime] = None) -> None:
     """This method is used to schedule a new state on a different worker.
 
     This is basically the same as CallFlow() except we are calling
@@ -250,21 +200,21 @@ class FlowBase(metaclass=FlowRegistry):
 
   def CallStateInline(self,
                       messages=None,
-                      next_state="",
-                      request_data=None,
-                      responses=None):
+                      next_state: str = "",
+                      request_data: Optional[Mapping[str, Any]] = None,
+                      responses: Optional[flow_responses.Responses] = None):
     if responses is None:
       responses = flow_responses.FakeResponses(messages, request_data)
 
     getattr(self, next_state)(responses)
 
   def CallClient(self,
-                 action_cls,
-                 request=None,
-                 next_state=None,
-                 callback_state=None,
-                 request_data=None,
-                 **kwargs):
+                 action_cls: Type[server_stubs.ClientActionStub],
+                 request: Optional[rdfvalue.RDFValue] = None,
+                 next_state: Optional[str] = None,
+                 callback_state: Optional[str] = None,
+                 request_data: Optional[Mapping[str, Any]] = None,
+                 **kwargs: Any):
     """Calls the client asynchronously.
 
     This sends a message to the client to invoke an Action. The run action may
@@ -278,8 +228,8 @@ class FlowBase(metaclass=FlowRegistry):
          new RDFValue using the kwargs.
        next_state: The state in this flow, that responses to this message should
          go to.
-       callback_state: (optional) The state to call whenever a new response
-         is arriving.
+       callback_state: (optional) The state to call whenever a new response is
+         arriving.
        request_data: A dict which will be available in the RequestState
          protobuf. The Responses object maintains a reference to this protobuf
          for use in the execution of the state method. (so you can access this
@@ -369,10 +319,10 @@ class FlowBase(metaclass=FlowRegistry):
     self.client_action_requests.append(client_action_request)
 
   def CallFlow(self,
-               flow_name=None,
-               next_state=None,
-               request_data=None,
-               **kwargs):
+               flow_name: Optional[str] = None,
+               next_state: Optional[str] = None,
+               request_data: Optional[Mapping[str, Any]] = None,
+               **kwargs: Any) -> str:
     """Creates a new flow and send its responses to a state.
 
     This creates a new flow. The flow may send back many responses which will be
@@ -418,7 +368,9 @@ class FlowBase(metaclass=FlowRegistry):
         parent=flow.FlowParent.FromFlow(self),
         **kwargs)
 
-  def SendReply(self, response, tag=None):
+  def SendReply(self,
+                response: rdfvalue.RDFValue,
+                tag: Optional[str] = None) -> None:
     """Allows this flow to send a message to its parent flow.
 
     If this flow does not have a parent, the message is saved to the database
@@ -464,7 +416,7 @@ class FlowBase(metaclass=FlowRegistry):
 
     self.rdf_flow.num_replies_sent += 1
 
-  def SaveResourceUsage(self, status):
+  def SaveResourceUsage(self, status: rdf_flows.GrrStatus) -> None:
     """Method to tally resources."""
     user_cpu = status.cpu_time_used.user_cpu_time
     system_cpu = status.cpu_time_used.system_cpu_time
@@ -501,7 +453,10 @@ class FlowBase(metaclass=FlowRegistry):
           "Runtime limit exceeded {} {}.".format(self.rdf_flow.flow_class_name,
                                                  self.rdf_flow.flow_id))
 
-  def Error(self, error_message=None, backtrace=None, status=None):
+  def Error(self,
+            error_message: Optional[str] = None,
+            backtrace: Optional[str] = None,
+            status: Optional[rdf_structs.EnumNamedValue] = None) -> None:
     """Terminates this flow with an error."""
     FLOW_ERRORS.Increment(fields=[compatibility.GetName(self.__class__)])
 
@@ -549,7 +504,7 @@ class FlowBase(metaclass=FlowRegistry):
 
     self.NotifyCreatorOfError()
 
-  def NotifyCreatorOfError(self):
+  def NotifyCreatorOfError(self) -> None:
     if self.ShouldSendNotifications():
       client_id = self.rdf_flow.client_id
       flow_id = self.rdf_flow.flow_id
@@ -562,7 +517,7 @@ class FlowBase(metaclass=FlowRegistry):
               reference_type=rdf_objects.ObjectReference.Type.FLOW,
               flow=flow_ref))
 
-  def _ClearAllRequestsAndResponses(self):
+  def _ClearAllRequestsAndResponses(self) -> None:
     """Clears all requests and responses."""
     client_id = self.rdf_flow.client_id
     flow_id = self.rdf_flow.flow_id
@@ -575,7 +530,7 @@ class FlowBase(metaclass=FlowRegistry):
 
     data_store.REL_DB.DeleteAllFlowRequestsAndResponses(client_id, flow_id)
 
-  def NotifyAboutEnd(self):
+  def NotifyAboutEnd(self) -> None:
     # Sum up number of replies to write with the number of already
     # written results.
     num_results = (
@@ -642,7 +597,12 @@ class FlowBase(metaclass=FlowRegistry):
         message=message)
     data_store.REL_DB.WriteFlowLogEntries([log_entry])
 
-  def RunStateMethod(self, method_name, request=None, responses=None):
+  def RunStateMethod(
+      self,
+      method_name: str,
+      request: Optional[rdf_flow_runner.RequestState] = None,
+      responses: Optional[Sequence[rdf_flow_objects.FlowMessage]] = None
+  ) -> None:
     """Completes the request by calling the state method.
 
     Args:
@@ -714,14 +674,11 @@ class FlowBase(metaclass=FlowRegistry):
       # with all eventualities. Replace this code with a simple str(e) once
       # Python 2 support has been dropped.
       msg = compatibility.NativeStr(e)
-      if compatibility.PY2:
-        msg = msg.decode("utf-8", "replace")
-
       FLOW_ERRORS.Increment(fields=[self.rdf_flow.flow_class_name])
 
       self.Error(error_message=msg, backtrace=traceback.format_exc())
 
-  def ProcessAllReadyRequests(self):
+  def ProcessAllReadyRequests(self) -> Tuple[int, int]:
     """Processes all requests that are due to run.
 
     Returns:
@@ -733,7 +690,7 @@ class FlowBase(metaclass=FlowRegistry):
         self.rdf_flow.flow_id,
         next_needed_request=self.rdf_flow.next_request_to_process)
     if not request_dict:
-      return 0
+      return (0, 0)
 
     processed = 0
     incrementally_processed = 0
@@ -814,7 +771,7 @@ class FlowBase(metaclass=FlowRegistry):
     return processed, incrementally_processed
 
   @property
-  def outstanding_requests(self):
+  def outstanding_requests(self) -> int:
     """Returns the number of all outstanding requests.
 
     This is used to determine if the flow needs to be destroyed yet.
@@ -825,19 +782,19 @@ class FlowBase(metaclass=FlowRegistry):
     return (self.rdf_flow.next_outbound_id -
             self.rdf_flow.next_request_to_process)
 
-  def GetNextOutboundId(self):
+  def GetNextOutboundId(self) -> int:
     my_id = self.rdf_flow.next_outbound_id
     self.rdf_flow.next_outbound_id += 1
     return my_id
 
-  def GetCurrentOutboundId(self):
+  def GetCurrentOutboundId(self) -> int:
     return self.rdf_flow.next_outbound_id - 1
 
-  def GetNextResponseId(self):
+  def GetNextResponseId(self) -> int:
     self.rdf_flow.response_count += 1
     return self.rdf_flow.response_count
 
-  def FlushQueuedMessages(self):
+  def FlushQueuedMessages(self) -> None:
     """Flushes queued messages."""
     # TODO(amoser): This could be done in a single db call, might be worth
     # optimizing.
@@ -875,7 +832,8 @@ class FlowBase(metaclass=FlowRegistry):
         data_store.REL_DB.WriteFlowResults(self.replies_to_write)
       self.replies_to_write = []
 
-  def _ProcessRepliesWithHuntOutputPlugins(self, replies):
+  def _ProcessRepliesWithHuntOutputPlugins(
+      self, replies: Sequence[rdf_flow_objects.FlowResponse]) -> None:
     """Applies output plugins to hunt results."""
     hunt_obj = data_store.REL_DB.ReadHuntObject(self.rdf_flow.parent_hunt_id)
     self.rdf_flow.output_plugins = hunt_obj.output_plugins
@@ -910,7 +868,9 @@ class FlowBase(metaclass=FlowRegistry):
       else:
         HUNT_OUTPUT_PLUGIN_ERRORS.Increment(fields=[plugin_def.plugin_name])
 
-  def _ProcessRepliesWithFlowOutputPlugins(self, replies):
+  def _ProcessRepliesWithFlowOutputPlugins(
+      self, replies: Sequence[rdf_flow_objects.FlowResponse]
+  ) -> Sequence[Optional[output_plugin_lib.OutputPlugin]]:
     """Processes replies with output plugins."""
     created_output_plugins = []
     for index, output_plugin_state in enumerate(
@@ -967,7 +927,7 @@ class FlowBase(metaclass=FlowRegistry):
 
     return created_output_plugins
 
-  def MergeQueuedMessages(self, flow_obj):
+  def MergeQueuedMessages(self, flow_obj: "FlowBase") -> None:
     """Merges queued messages."""
     self.flow_requests.extend(flow_obj.flow_requests)
     flow_obj.flow_requests = []
@@ -980,19 +940,20 @@ class FlowBase(metaclass=FlowRegistry):
     self.replies_to_write.extend(flow_obj.replies_to_write)
     flow_obj.replies_to_write = []
 
-  def ShouldSendNotifications(self):
+  def ShouldSendNotifications(self) -> bool:
     return bool(not self.rdf_flow.parent_flow_id and
                 not self.rdf_flow.parent_hunt_id and self.creator and
                 self.creator not in access_control.SYSTEM_USERS)
 
-  def IsRunning(self):
+  def IsRunning(self) -> bool:
     return self.rdf_flow.flow_state == self.rdf_flow.FlowState.RUNNING
 
-  def GetProgress(self) -> rdf_structs.RDFProtoStruct:
+  def GetProgress(self) -> Optional[rdf_structs.RDFProtoStruct]:
     if self.__class__.progress_type is not None:
       raise NotImplementedError(
           "GetProgress() methods has to be implemented "
           "on a flow with defined 'progress_type' attribute.")
+    return None
 
   def GetFilesArchiveMappings(
       self, flow_results: Iterator[rdf_flow_objects.FlowResult]
@@ -1015,43 +976,43 @@ class FlowBase(metaclass=FlowRegistry):
     raise NotImplementedError("GetFilesArchiveMappings() not implemented")
 
   @property
-  def client_id(self):
+  def client_id(self) -> str:
     return self.rdf_flow.client_id
 
   @property
-  def client_urn(self):
+  def client_urn(self) -> rdfvalue.RDFURN:
     return rdfvalue.RDFURN(self.client_id)
 
   @property
-  def state(self):
+  def state(self) -> Any:
     if self._state is None:
       self._state = flow.AttributedDict(self.rdf_flow.persistent_data.ToDict())
     return self._state
 
-  def PersistState(self):
+  def PersistState(self) -> None:
     if self._state is not None:
       self.rdf_flow.persistent_data = self._state
 
   @property
-  def args(self):
+  def args(self) -> Any:
     return self.rdf_flow.args
 
   @property
-  def client_version(self):
+  def client_version(self) -> int:
     if self._client_version is None:
       self._client_version = data_store_utils.GetClientVersion(self.client_id)
 
     return self._client_version
 
   @property
-  def client_os(self):
+  def client_os(self) -> str:
     if self._client_os is None:
       self._client_os = data_store_utils.GetClientOs(self.client_id)
 
     return self._client_os
 
   @property
-  def client_knowledge_base(self):
+  def client_knowledge_base(self) -> rdf_client.KnowledgeBase:
     if self._client_knowledge_base is None:
       self._client_knowledge_base = data_store_utils.GetClientKnowledgeBase(
           self.client_id)
@@ -1069,11 +1030,11 @@ class FlowBase(metaclass=FlowRegistry):
     return client_info
 
   @property
-  def creator(self):
+  def creator(self) -> str:
     return self.rdf_flow.creator
 
   @classmethod
-  def GetDefaultArgs(cls, username=None):
+  def GetDefaultArgs(cls, username: Optional[str] = None) -> Any:
     del username  # Unused.
     return cls.args_type()
 
@@ -1081,3 +1042,64 @@ class FlowBase(metaclass=FlowRegistry):
   def CreateFlowInstance(cls, flow_object: rdf_flow_objects.Flow) -> "FlowBase":
     flow_cls = FlowRegistry.FlowClassByName(flow_object.flow_class_name)
     return flow_cls(flow_object)
+
+
+def _TerminateFlow(
+    rdf_flow: rdf_flow_objects.Flow,
+    reason: Optional[str] = None,
+    flow_state: rdf_structs.EnumNamedValue = rdf_flow_objects.Flow.FlowState
+    .ERROR
+) -> None:
+  """Does the actual termination."""
+  flow_cls = FlowRegistry.FlowClassByName(rdf_flow.flow_class_name)
+  flow_obj = flow_cls(rdf_flow)
+
+  if not flow_obj.IsRunning():
+    # Nothing to do.
+    return
+
+  logging.info("Terminating flow %s on %s, reason: %s", rdf_flow.flow_id,
+               rdf_flow.client_id, reason)
+
+  rdf_flow.flow_state = flow_state
+  rdf_flow.error_message = reason
+  flow_obj.NotifyCreatorOfError()
+
+  data_store.REL_DB.UpdateFlow(
+      rdf_flow.client_id,
+      rdf_flow.flow_id,
+      flow_obj=rdf_flow,
+      processing_on=None,
+      processing_since=None,
+      processing_deadline=None)
+  data_store.REL_DB.DeleteAllFlowRequestsAndResponses(rdf_flow.client_id,
+                                                      rdf_flow.flow_id)
+
+
+def TerminateFlow(
+    client_id: str,
+    flow_id: str,
+    reason: Optional[str] = None,
+    flow_state: rdf_structs.EnumNamedValue = rdf_flow_objects.Flow.FlowState
+    .ERROR
+) -> None:
+  """Terminates a flow and all of its children.
+
+  Args:
+    client_id: Client ID of a flow to terminate.
+    flow_id: Flow ID of a flow to terminate.
+    reason: String with a termination reason.
+    flow_state: Flow state to be assigned to a flow after termination. Defaults
+      to FlowState.ERROR.
+  """
+
+  to_terminate = [data_store.REL_DB.ReadFlowObject(client_id, flow_id)]
+
+  while to_terminate:
+    next_to_terminate = []
+    for rdf_flow in to_terminate:
+      _TerminateFlow(rdf_flow, reason=reason, flow_state=flow_state)
+      next_to_terminate.extend(
+          data_store.REL_DB.ReadChildFlowObjects(rdf_flow.client_id,
+                                                 rdf_flow.flow_id))
+    to_terminate = next_to_terminate

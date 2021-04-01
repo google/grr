@@ -133,27 +133,27 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
   def testWindowsRegistryInstalledSoftware(self):
     reg_str = rdf_client_fs.StatEntry.RegistryType.REG_SZ
     hklm = "HKEY_LOCAL_MACHINE"
-    k = hklm + r"\Software\Microsoft\Windows\CurrentVersion\Uninstall"
+    k = hklm + "/Software/Microsoft/Windows/CurrentVersion/Uninstall"
     service_keys = [
         # Valid.
-        (k + r"\Google Chrome\DisplayName", "Google Chrome", reg_str),
-        (k + r"\Google Chrome\DisplayVersion", "89.0.4389.82", reg_str),
-        (k + r"\Google Chrome\Publisher", "Google LLC", reg_str),
+        (k + "/Google Chrome/DisplayName", "Google Chrome", reg_str),
+        (k + "/Google Chrome/DisplayVersion", "89.0.4389.82", reg_str),
+        (k + "/Google Chrome/Publisher", "Google LLC", reg_str),
         # Invalid - Contains no data.
-        (k + r"\AddressBook\Default", "", reg_str),
+        (k + "/AddressBook/Default", "", reg_str),
         # Invalid - Missing DisplayName.
-        (k + r"\Foo\DisplayVersion", "1.2.3.4", reg_str),
-        (k + r"\Foo\Publisher", "Bar Inc", reg_str),
+        (k + "/Foo/DisplayVersion", "1.2.3.4", reg_str),
+        (k + "/Foo/Publisher", "Bar Inc", reg_str),
         # Valid.
-        (k + r"\Baz\DisplayName", "Baz", reg_str),
-        (k + r"\Baz\DisplayVersion", "2.3.4.5", reg_str),
-        (k + r"\Baz\Publisher", "Baz LLC", reg_str),
+        (k + "/Baz/DisplayName", "Baz", reg_str),
+        (k + "/Baz/DisplayVersion", "2.3.4.5", reg_str),
+        (k + "/Baz/Publisher", "Baz LLC", reg_str),
     ]
 
     stats = [self._MakeRegStat(*x) for x in service_keys]
     parser = windows_registry_parser.WindowsRegistryInstalledSoftwareParser()
-    results = parser.ParseMultiple(stats, None)
 
+    got = parser.ParseMultiple(stats, None)  # KnowledgeBase is not used.
     want = [
         rdf_client.SoftwarePackages(packages=[
             rdf_client.SoftwarePackage.Installed(
@@ -164,7 +164,7 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
                 name="Baz", description="Baz LLC", version="2.3.4.5"),
         ])
     ]
-    got = list(results)
+
     self.assertEqual(want, got)
 
 

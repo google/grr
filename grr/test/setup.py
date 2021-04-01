@@ -65,6 +65,7 @@ setup_args = dict(
         "absl-py==0.9.0",
         "flaky==3.6.1",
         "pytest==6.2.2",
+        "responses==0.12.1",
         "selenium==3.141.0",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),

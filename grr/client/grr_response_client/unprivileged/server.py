@@ -6,6 +6,7 @@ from typing import List
 
 from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged import interface_registry
+from grr_response_core import config
 
 
 def _MakeServerArgs(channel: communication.Channel,
@@ -19,6 +20,10 @@ def _MakeServerArgs(channel: communication.Channel,
       str(channel.pipe_output.Serialize()),
       "--unprivileged_server_interface",
       interface.value,
+      "--unprivileged_user",
+      config.CONFIG["Client.unprivileged_user"],
+      "--unprivileged_group",
+      config.CONFIG["Client.unprivileged_group"],
   ]
 
   # PyInstaller executable

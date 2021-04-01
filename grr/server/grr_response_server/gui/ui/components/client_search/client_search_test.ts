@@ -1,6 +1,6 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, RouterLink} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 import {ApiModule} from '@app/lib/api/module';
 import {Client} from '@app/lib/models/client';
@@ -147,17 +147,13 @@ describe('ClientSearch Component', () => {
     ]));
     fixture.detectChanges();
 
-    // Using nativeElement here instead of queryAll, since queryAll does
-    // not go into child components DOM (in this case we're interested in
-    // what's inside MatTable).
-    const de: HTMLElement = fixture.debugElement.nativeElement;
-    const rows = de.getElementsByTagName('tr');
-    // First row is the header, other is data.
-    expect(rows.length).toBe(2);
-    // Check the data row.
-    expect(rows[1].hasAttribute('ng-reflect-query-params')).toBeTrue();
-    fixture.componentInstance.reason$.subscribe((params) => {
-      expect(params['reason']).toEqual('vimes/t/123');
+    // Traverse the levels in the DOM tree manually since we can't use
+    // queryAll to query the childComponent here.
+    const matTable = fixture.debugElement.children[0];
+    const matTableBody = matTable.children[1];
+    const dataRow = matTableBody.children[0];
+    expect(dataRow.injector.get(RouterLink).queryParams).toEqual({
+      reason: 'vimes/t/123'
     });
   });
 });

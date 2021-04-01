@@ -342,6 +342,36 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
+  @Category("Clients")
+  @ArgsType(api_client.ApiKillFleetspeakArgs)
+  @Http("PATCH", "/api/clients/<client_id>/fleetspeak/kill")
+  def KillFleetspeak(
+      self,
+      args: api_client.ApiKillFleetspeakArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiKillFleetspeakHandler:
+    raise NotImplementedError()
+
+  @Category("Clients")
+  @ArgsType(api_client.ApiRestartFleetspeakGrrServiceArgs)
+  @Http("PATCH", "/api/clients/<client_id>/fleetspeak/grr/restart")
+  def RestartFleetspeakGrrService(
+      self,
+      args: api_client.ApiRestartFleetspeakGrrServiceArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiRestartFleetspeakGrrServiceHandler:
+    raise NotImplementedError()
+
+  @Category("Clients")
+  @ArgsType(api_client.ApiDeleteFleetspeakPendingMessagesArgs)
+  @Http("DELETE", "/api/clients/<client_id>/fleetspeak/messages/pending")
+  def DeleteFleetspeakPendingMessages(
+      self,
+      args: api_client.ApiDeleteFleetspeakPendingMessagesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
+    raise NotImplementedError()
+
   # Virtual file system methods.
   # ===========================
   #

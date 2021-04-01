@@ -7,6 +7,7 @@ from absl.testing import absltest
 from grr_response_client import client_utils
 from grr_response_client import streaming
 from grr_response_client.unprivileged import communication
+from grr_response_client.unprivileged import test_lib
 from grr_response_client.unprivileged.memory import client
 from grr_response_client.unprivileged.memory import server
 from grr_response_client.unprivileged.proto import memory_pb2
@@ -83,6 +84,10 @@ class MemoryTest(absltest.TestCase):
           found_in_actual_memory_count += 1
 
     self.assertTrue(found_in_actual_memory_count)
+
+
+def setUpModule() -> None:
+  test_lib.SetUpDummyConfig()
 
 
 if __name__ == "__main__":

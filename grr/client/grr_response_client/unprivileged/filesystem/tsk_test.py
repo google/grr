@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from absl.testing import absltest
 
+from grr_response_client.unprivileged import test_lib
 from grr_response_client.unprivileged.filesystem import ntfs_image_test_lib
 from grr_response_client.unprivileged.proto import filesystem_pb2
 
@@ -35,6 +36,10 @@ class TskTest(ntfs_image_test_lib.NtfsImageTest):
 
   def testOpenByInode_stale(self):
     pass
+
+
+def setUpModule() -> None:
+  test_lib.SetUpDummyConfig()
 
 
 if __name__ == "__main__":

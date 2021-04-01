@@ -21,6 +21,7 @@ from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
+from grr_response_server import worker_lib
 from grr_response_server.databases import db
 from grr_response_server.flows import file
 from grr_response_server.flows.general import transfer
@@ -888,6 +889,18 @@ class IncrementalResponseHandlingTest(BasicFlowTest):
         rdfvalue.RDFString("Hello World"),
         rdfvalue.RDFString("Final: Hello World")
     ])
+
+
+class WorkerTest(BasicFlowTest):
+
+  def testRaisesIfFlowProcessingRequestDoesNotTriggerAnyProcessing(self):
+    with flow_test_lib.TestWorker() as worker:
+      flow_id = flow.StartFlow(
+          flow_cls=CallClientParentFlow, client_id=self.client_id)
+      fpr = rdf_flows.FlowProcessingRequest(
+          client_id=self.client_id, flow_id=flow_id)
+      with self.assertRaises(worker_lib.FlowHasNothingToProcessError):
+        worker.ProcessFlow(fpr)
 
 
 def main(argv):

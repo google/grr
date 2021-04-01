@@ -275,6 +275,25 @@ class ClientBase(object):
     result = self._context.SendRequest("GetClient", args)
     return Client(data=result, context=self._context)
 
+  def KillFleetspeak(self, force: bool) -> None:
+    """Kills fleetspeak on the given client."""
+    args = client_pb2.ApiKillFleetspeakArgs()
+    args.client_id = self.client_id
+    args.force = force
+    self._context.SendRequest("KillFleetspeak", args)
+
+  def RestartFleetspeakGrrService(self) -> None:
+    """Restarts the GRR fleetspeak service on the given client."""
+    args = client_pb2.ApiRestartFleetspeakGrrServiceArgs()
+    args.client_id = self.client_id
+    self._context.SendRequest("RestartFleetspeakGrrService", args)
+
+  def DeleteFleetspeakPendingMessages(self) -> None:
+    """Deletes fleetspeak messages pending for the given client."""
+    args = client_pb2.ApiDeleteFleetspeakPendingMessagesArgs()
+    args.client_id = self.client_id
+    self._context.SendRequest("DeleteFleetspeakPendingMessages", args)
+
 
 class ClientRef(ClientBase):
   """Ref to the client."""

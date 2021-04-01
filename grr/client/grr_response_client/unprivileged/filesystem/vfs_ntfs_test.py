@@ -2,15 +2,13 @@
 import contextlib
 from unittest import mock
 
-from absl import flags
 from absl.testing import absltest
 
 from grr_response_client import vfs as client_vfs
+from grr_response_client.unprivileged import test_lib
 from grr_response_client.unprivileged.filesystem import vfs
 from grr_response_client.vfs_handlers import files as vfs_files
 from grr_response_client.vfs_handlers import ntfs_test_lib
-from grr_response_core.lib import config_lib
-from grr_response_core.lib import package
 
 
 class VfsNtfsTestBase(ntfs_test_lib.NTFSTest):
@@ -53,11 +51,7 @@ del VfsNtfsTestBase
 
 
 def setUpModule():
-  # client_vfs needs a config to be loaded to work.
-  flags.FLAGS.config = package.ResourcePath(
-      "grr-response-test", "grr_response_test/test_data/dummyconfig.yaml")
-  config_lib.ParseConfigCommandLine()
-
+  test_lib.SetUpDummyConfig()
   client_vfs.Init()
 
 

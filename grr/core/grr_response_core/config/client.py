@@ -145,6 +145,16 @@ config_lib.DEFINE_bool(
     help="Whether to use the sandboxed implementation for memory scanning.",
     default=False)
 
+config_lib.DEFINE_string(
+    name="Client.unprivileged_user",
+    help="Name of (UNIX) user to run sandboxed code as.",
+    default="")
+
+config_lib.DEFINE_string(
+    name="Client.unprivileged_group",
+    help="Name of (UNIX) group to run sandboxed code as.",
+    default="")
+
 # Windows client specific options.
 config_lib.DEFINE_string(
     "Client.config_hive",

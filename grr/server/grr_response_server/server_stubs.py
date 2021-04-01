@@ -22,6 +22,7 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import large_file as rdf_large_file
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -402,6 +403,13 @@ class YaraProcessDump(ClientActionStub):
 
   in_rdfvalue = rdf_memory.YaraProcessDumpArgs
   out_rdfvalues = [rdf_memory.YaraProcessDumpResponse]
+
+
+class CollectLargeFile(ClientActionStub):
+  """A stub class for the large file collection action."""
+
+  in_rdfvalue = rdf_large_file.CollectLargeFileArgs
+  out_rdfvalues = [rdf_large_file.CollectLargeFileResult]
 
 
 class Osquery(ClientActionStub):

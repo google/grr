@@ -9,6 +9,7 @@ from grr_response_server import server_stubs
 
 ACTION_STUB_BY_ID = {
     "ArtifactCollector": server_stubs.ArtifactCollector,
+    "CollectLargeFile": server_stubs.CollectLargeFile,
     "CheckFreeGRRTempSpace": server_stubs.CheckFreeGRRTempSpace,
     "DeleteGRRTempFiles": server_stubs.DeleteGRRTempFiles,
     "DumpACPITable": server_stubs.DumpACPITable,
