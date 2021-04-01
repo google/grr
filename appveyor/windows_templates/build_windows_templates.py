@@ -165,6 +165,9 @@ class WindowsTemplateBuilder(object):
       subprocess.check_call([self.virtualenv_python32] + cmd +
                             ["--upgrade", "pip>=8.1.1"])
 
+    subprocess.check_call([self.pip32, "debug", "--verbose"])
+    subprocess.check_call([self.pip64, "debug", "--verbose"])
+
   def GitCheckoutGRR(self):
     os.chdir(args.build_dir)
     subprocess.check_call(
