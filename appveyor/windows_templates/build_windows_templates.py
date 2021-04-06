@@ -152,7 +152,7 @@ class WindowsTemplateBuilder(object):
 
     # Currently this should do nothing as we will already have a modern pip
     # installed, but we leave this here so if we get broken by pip again it's
-    # just a simple case of searching for pip>=8.1.1 and adding an upper limit
+    # just a simple case of searching for pip>=21.0.1 and adding an upper limit
     # cap in all those places.
 
     cmd = ["-m", "pip", "install"]
@@ -160,12 +160,12 @@ class WindowsTemplateBuilder(object):
       cmd += ["--no-index", r"--find-links=file:///%s" % args.wheel_dir]
 
     subprocess.check_call([self.virtualenv_python64] + cmd +
-                          ["--upgrade", "pip>=8.1.1"])
+                          ["--upgrade", "pip>=21.0.1"])
     subprocess.check_call([self.pip64, "debug", "--verbose"])
 
     if args.build_32:
       subprocess.check_call([self.virtualenv_python32] + cmd +
-                            ["--upgrade", "pip>=8.1.1"])
+                            ["--upgrade", "pip>=21.0.1"])
       subprocess.check_call([self.pip32, "debug", "--verbose"])
 
   def GitCheckoutGRR(self):
