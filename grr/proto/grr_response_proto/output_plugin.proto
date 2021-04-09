@@ -83,3 +83,14 @@ message SplunkOutputPluginArgs {
   optional string index = 2
       [(sem_type) = { description: "The Splunk Index to assign to events." }];
 }
+
+message ElasticsearchOutputPluginArgs {
+  repeated string tags = 1 [(sem_type) = {
+    description: "Tags to add to exported data. This field can be "
+                 "used to differentiate sets of exported data inside a "
+                 "particular exported type. e.g. data collected by users "
+                 "vs. data collected by cronjob."
+  }];
+  optional string index = 2
+      [(sem_type) = { description: "The Elasticsearch index to place the events in" }];
+}

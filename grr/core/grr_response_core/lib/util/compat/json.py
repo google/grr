@@ -67,7 +67,8 @@ else:
 
 def Dump(obj: Any,
          sort_keys: bool = False,
-         encoder: Optional[Type[Encoder]] = None) -> Text:
+         encoder: Optional[Type[Encoder]] = None,
+         indent: int = 2) -> Text:
   """Stringifies a Python object into its JSON representation.
 
   Args:
@@ -84,7 +85,7 @@ def Dump(obj: Any,
   # _SEPARATORS and complains when running in Python 3 mode.
   text = json.dumps(
       obj,
-      indent=2,
+      indent=indent,
       sort_keys=sort_keys,
       ensure_ascii=False,
       cls=encoder,
