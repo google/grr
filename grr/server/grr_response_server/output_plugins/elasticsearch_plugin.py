@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-# Lint as: python3
 """OutputPlugin that sends Flow results to an Elasticsearch cluster.
 
 Configuration values for this plugin can be found in
@@ -8,9 +6,6 @@ core/grr_response_core/config/output_plugins.py
 The specification for the indexing of documents is
 https://www.elastic.co/guide/en/elasticsearch/reference/7.1/docs-index_.html
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import Any
 from typing import Dict
@@ -34,6 +29,7 @@ from grr_response_server.gui.api_plugins import flow as api_flow
 
 BULK_OPERATIONS_PATH = "_bulk"
 
+# TODO: Use the JSON type https://github.com/python/typing/issues/182
 JsonDict = Dict[Text, Any]
 
 
@@ -60,20 +56,20 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
   args_type = ElasticsearchOutputPluginArgs
 
   def __init__(self, *args, **kwargs):
-    """See base class."""
+    """Initialize the Elasticsearch output plugin"""
     super().__init__(*args, **kwargs)
 
     url = config.CONFIG["Elasticsearch.url"]
-    self._verify_https = config.CONFIG["Elasticsearch.verify_https"]
-    self._token = config.CONFIG["Elasticsearch.token"]
-    # Allow the Flow creator to override the index, fall back to configuration.
-    self._index = self.args.index or config.CONFIG["Elasticsearch.index"]
-
     if not url:
       raise ElasticsearchConfigurationError(
           "Cannot start ElasticsearchOutputPlugin, because Elasticsearch.url"
           "is not configured. Set it to the base URL of your Elasticsearch"
           "installation, e.g. 'https://myelasticsearch.example.com:9200'.")
+
+    self._verify_https = config.CONFIG["Elasticsearch.verify_https"]
+    self._token = config.CONFIG["Elasticsearch.token"]
+    # Allow the Flow creator to override the index, fall back to configuration.
+    self._index = self.args.index or config.CONFIG["Elasticsearch.index"]
 
     self._url = urlparse.urljoin(url, BULK_OPERATIONS_PATH)
 
@@ -146,9 +142,9 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
 
     # Each index operation is two lines, the first defining the index settings,
     # the second is the actual document to be indexed
-    data = "\n".join(
-      index_command + "\n" + json.Dump(event, indent=None)
-      for event in events)
+    data = "\n".join([
+      "{}\n{}".format(index_command, json.Dump(event, indent=None))
+      for event in events])
 
     response = requests.post(
         url=self._url, verify=self._verify_https, data=data, headers=headers)

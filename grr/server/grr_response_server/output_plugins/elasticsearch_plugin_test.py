@@ -1,10 +1,4 @@
-#!/usr/bin/env python
-# Lint as: python3
-# -*- encoding: utf-8 -*-
 """Tests for Elasticsearch output plugin."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from unittest import mock
 
@@ -23,6 +17,7 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
+# For a mocked object's `call_args` property, the index of the kwargs dict
 KWARGS = 1
 
 
@@ -73,13 +68,11 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
     # Elasticsearch bulk requests are line-deliminated pairs, where the first
     # line is the index command and the second is the actual document to index
-    split_request = request.split('\n')
-    print(split_request)
-    update_pairs = [(split_request[i], split_request[i + 1])
-                    for i in range(0, len(split_request), 2)]
-    parsed_pairs = [(json.Parse(i[0]), json.Parse(i[1])) for i in update_pairs]
+    split_requests = [json.Parse(line) for line in request.split('\n')]
+    update_pairs = [(split_requests[i], split_requests[i + 1])
+                    for i in range(0, len(split_requests), 2)]
 
-    return parsed_pairs
+    return update_pairs
 
   def testPopulatesEventCorrectly(self):
     with test_lib.ConfigOverrider({
@@ -205,9 +198,5 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
             patcher=mock.patch.object(requests, 'post', post))
 
 
-def main(argv):
-  test_lib.main(argv)
-
-
 if __name__ == '__main__':
-  app.run(main)
+  app.run(test_lib.main)

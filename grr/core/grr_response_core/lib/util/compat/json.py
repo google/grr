@@ -75,6 +75,7 @@ def Dump(obj: Any,
     obj: A Python object to convert to JSON.
     sort_keys: If True, output dictionaries keys in sorted (ascending) order.
     encoder: An (optional) encoder class to use.
+    indent: (Optional) integer number of indents to use for "pretty-print"
 
   Returns:
     A JSON representation of the given object.
