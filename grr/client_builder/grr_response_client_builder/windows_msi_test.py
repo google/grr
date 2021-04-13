@@ -315,11 +315,5 @@ class WindowsMsiTest(absltest.TestCase):
       raise
 
 
-def setUpModule() -> None:
-  with temp.AutoTempFilePath(suffix="yaml") as dummy_config_path:
-    flags.FLAGS.config = dummy_config_path
-    config_lib.ParseConfigCommandLine()
-
-
 if __name__ == "__main__":
   absltest.main()
