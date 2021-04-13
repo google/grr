@@ -240,6 +240,14 @@ class WindowsTemplateBuilder(object):
       ]
     else:
       build_args = ["--verbose", "build", "--output", args.output_dir]
+
+    # TODO: New `cryptography` wheels bundle an OpenSSL DLL that does not want
+    # to work on AppVeyor for some reason. Until a proper fix is devised, we
+    # hack around this by downgrading to the latest version that worked for us.
+    subprocess.check_call([
+        self.pip64, "install", "--upgrade", "cryptography==2.9.2"
+    ])
+
     subprocess.check_call([self.grr_client_build64] + build_args)
     if args.build_32:
       subprocess.check_call([self.grr_client_build32] + build_args)
