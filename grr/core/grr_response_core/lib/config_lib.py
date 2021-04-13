@@ -1124,7 +1124,9 @@ class GrrConfigManager(object):
 
       parser_cls = self.GetParserFromFilename(filename)
       parser = parser_cls(filename=filename)
-      logging.debug("Loading configuration from %s", filename)
+      logging.info("Loading configuration from %s", filename)
+      if self == _CONFIG:
+        self.CopyConfig()
       self.secondary_config_parsers.append(parser)
     elif parser is None:
       raise ValueError("Must provide either a filename or a parser.")
