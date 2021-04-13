@@ -766,8 +766,9 @@ class GrrConfigManager(object):
     newconf = self.MakeNewConfig()
     newconf.raw_data = copy.deepcopy(self.raw_data)
     newconf.files = copy.deepcopy(self.files)
-    newconf.secondary_config_parsers = copy.deepcopy(
-        self.secondary_config_parsers)
+    # secondary_config_parsers are complex objects that should be shared by reference
+    # rather than pickled/unpickled (waht deepcopy does)
+    newconf.secondary_config_parsers = self.secondary_config_parsers
     newconf.writeback = copy.deepcopy(self.writeback)
     newconf.writeback_data = copy.deepcopy(self.writeback_data)
     newconf.global_override = copy.deepcopy(self.global_override)
@@ -1124,9 +1125,7 @@ class GrrConfigManager(object):
 
       parser_cls = self.GetParserFromFilename(filename)
       parser = parser_cls(filename=filename)
-      logging.info("Loading configuration from %s", filename)
-      if self == _CONFIG:
-        self.CopyConfig()
+      logging.debug("Loading configuration from %s", filename)
       self.secondary_config_parsers.append(parser)
     elif parser is None:
       raise ValueError("Must provide either a filename or a parser.")
