@@ -1,5 +1,6 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
-import {ControlContainer, FormGroup} from '@angular/forms';
+import {ControlContainer, FormControl, FormGroup, Validators} from '@angular/forms';
+import {FileFinderContentsMatchConditionMode} from '@app/lib/api/api_interfaces';
 
 /** Form that configures a literal match condition. */
 @Component({
@@ -8,11 +9,22 @@ import {ControlContainer, FormGroup} from '@angular/forms';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LiteralMatchCondition {
+  readonly FileFinderContentsMatchConditionMode =
+      FileFinderContentsMatchConditionMode;
+
   constructor(readonly controlContainer: ControlContainer) {}
 
   @Output() conditionRemoved = new EventEmitter<void>();
 
-  static createFormGroup(): FormGroup {
-    return new FormGroup({});
+  get formGroup(): FormGroup {
+    return this.controlContainer.control as FormGroup;
   }
+}
+
+/** Initializes a form group corresponding to the literal match condition. */
+export function createLiteralMatchFormGroup(): FormGroup {
+  return new FormGroup({
+    literal: new FormControl(null, Validators.required),
+    mode: new FormControl(FileFinderContentsMatchConditionMode.FIRST_HIT),
+  });
 }

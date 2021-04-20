@@ -13,7 +13,7 @@ from absl import app
 
 from grr_response_client_builder import build_helpers
 from grr_response_core import config
-from grr_response_core.lib import config_lib
+from grr_response_core.lib import config_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util.compat import yaml
 from grr.test_lib import test_lib
@@ -62,8 +62,8 @@ class BuildTests(test_lib.GRRBaseTest):
 
       data = build_helpers.GetClientConfig(["Client Context"], validate=True)
 
-      parser = config_lib.YamlParser(data=data)
-      raw_data = parser.RawData()
+      parser = config_parser.YamlConfigFileParser("")
+      raw_data = parser.RawDataFromBytes(data.encode("utf-8"))
 
       self.assertIn("Client.deploy_time", raw_data)
 
@@ -77,7 +77,8 @@ class BuildTests(test_lib.GRRBaseTest):
           ClientBuilder Context:
             Client.labels: [build-label0, build-label1]
       """
-      override = config_lib.YamlParser(data=str_override).RawData()
+      parser = config_parser.YamlConfigFileParser("")
+      override = parser.RawDataFromBytes(str_override.encode("utf-8"))
       config.CONFIG.MergeData(override)
       # Sanity-check that the secondary config was merged into the global
       # config.
@@ -85,7 +86,7 @@ class BuildTests(test_lib.GRRBaseTest):
 
       context = ["Test Context", "ClientBuilder Context", "Client Context"]
       str_client_config = build_helpers.GetClientConfig(context)
-      client_config = config_lib.YamlParser(data=str_client_config).RawData()
+      client_config = parser.RawDataFromBytes(str_client_config.encode("utf-8"))
       # Settings particular to the ClientBuilder context should not carry over
       # into the generated client config.
       self.assertEqual(client_config["Client.labels"], ["label0", "label1"])

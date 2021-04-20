@@ -162,21 +162,21 @@ export interface ArtifactDescriptor {
 
 /** SourceType proto mapping. */
 export enum SourceType {
-  COLLECTOR_TYPE_UNKNOWN = 'COLLECTOR_TYPE_UNKNOWN',
-  FILE = 'FILE',
-  REGISTRY_KEY = 'REGISTRY_KEY',
-  REGISTRY_VALUE = 'REGISTRY_VALUE',
-  WMI = 'WMI',
-  ARTIFACT = 'ARTIFACT',
-  PATH = 'PATH',
-  DIRECTORY = 'DIRECTORY',
-  ARTIFACT_GROUP = 'ARTIFACT_GROUP',
-  GRR_CLIENT_ACTION = 'GRR_CLIENT_ACTION',
-  LIST_FILES = 'LIST_FILES',
-  ARTIFACT_FILES = 'ARTIFACT_FILES',
-  GREP = 'GREP',
-  COMMAND = 'COMMAND',
-  REKALL_PLUGIN = 'REKALL_PLUGIN',
+  COLLECTOR_TYPE_UNKNOWN,
+  FILE,
+  REGISTRY_KEY,
+  REGISTRY_VALUE,
+  WMI,
+  ARTIFACT,
+  PATH,
+  DIRECTORY,
+  ARTIFACT_GROUP,
+  GRR_CLIENT_ACTION,
+  LIST_FILES,
+  ARTIFACT_FILES,
+  GREP,
+  COMMAND,
+  REKALL_PLUGIN,
 }
 
 /** Operating systems. */
@@ -187,9 +187,8 @@ export enum OperatingSystem {
 }
 
 /** Artifact source. */
-export interface ArtifactSource {
+interface BaseArtifactSource {
   readonly type: SourceType;
-  readonly attributes: ReadonlyMap<string, unknown>;
   readonly conditions: ReadonlyArray<string>;
   readonly returnedTypes: ReadonlyArray<string>;
   readonly supportedOs: ReadonlySet<OperatingSystem>;
@@ -197,3 +196,56 @@ export interface ArtifactSource {
 
 /** Generic Map with unknown, mixed, key and value types. */
 export type AnyMap = ReadonlyMap<unknown, unknown>;
+
+/** Artifact source that delegates to other artifacts. */
+export interface ChildArtifactSource extends BaseArtifactSource {
+  readonly type: SourceType.ARTIFACT_GROUP|SourceType.ARTIFACT_FILES;
+  readonly names: ReadonlyArray<string>;
+}
+
+/** Artifact source that delegates to a ClientAction. */
+export interface ClientActionSource extends BaseArtifactSource {
+  readonly type: SourceType.GRR_CLIENT_ACTION;
+  readonly clientAction: string;
+}
+
+/** Artifact source that delegates to a shell command. */
+export interface CommandSource extends BaseArtifactSource {
+  readonly type: SourceType.COMMAND;
+  readonly cmdline: string;
+}
+
+/** Artifact source that reads files. */
+export interface FileSource extends BaseArtifactSource {
+  readonly type: SourceType.DIRECTORY|SourceType.FILE|SourceType.GREP|
+      SourceType.PATH;
+  readonly paths: ReadonlyArray<string>;
+}
+
+/** Artifact source that reads Windows Registry keys. */
+export interface RegistryKeySource extends BaseArtifactSource {
+  readonly type: SourceType.REGISTRY_KEY;
+  readonly keys: ReadonlyArray<string>;
+}
+
+/** Artifact source that reads Windows Registry values. */
+export interface RegistryValueSource extends BaseArtifactSource {
+  readonly type: SourceType.REGISTRY_VALUE;
+  readonly values: ReadonlyArray<string>;
+}
+
+/** Artifact source that queries WMI. */
+export interface WmiSource extends BaseArtifactSource {
+  readonly type: SourceType.WMI;
+  readonly query: string;
+}
+
+/** Unknown artifact source. */
+export interface UnknownSource extends BaseArtifactSource {
+  readonly type: SourceType.COLLECTOR_TYPE_UNKNOWN;
+}
+
+/** Artifact source. */
+export type ArtifactSource =
+    ChildArtifactSource|ClientActionSource|CommandSource|FileSource|
+    RegistryKeySource|RegistryValueSource|WmiSource|UnknownSource;

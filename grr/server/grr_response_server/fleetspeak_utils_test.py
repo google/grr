@@ -201,6 +201,36 @@ class FleetspeakUtilsTest(test_lib.GRRBaseTest):
     self.assertSameElements(delete_req.client_ids,
                             [b"\x10\x00\x00\x00\x00\x00\x00\x00"])
 
+  def testGetFleetspeakPendingMessageCount(self):
+    conn = mock.MagicMock()
+    conn.outgoing.GetPendingMessageCount.return_value = admin_pb2.GetPendingMessageCountResponse(
+        count=42)
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      count = fleetspeak_utils.GetFleetspeakPendingMessageCount(
+          "C.1000000000000000")
+      self.assertEqual(count, 42)
+      get_args, _ = conn.outgoing.GetPendingMessageCount.call_args
+      get_req = get_args[0]
+      self.assertSameElements(get_req.client_ids,
+                              [b"\x10\x00\x00\x00\x00\x00\x00\x00"])
+
+  def testGetFleetspeakPendingMessages(self):
+    conn = mock.MagicMock()
+    proto_response = admin_pb2.GetPendingMessagesResponse(
+        messages=[common_pb2.Message(message_id=b"foo")])
+    conn.outgoing.GetPendingMessages.return_value = proto_response
+    with mock.patch.object(fleetspeak_connector, "CONN", conn):
+      result = fleetspeak_utils.GetFleetspeakPendingMessages(
+          "C.1000000000000000", 1, 2, True)
+      self.assertEqual(result, proto_response)
+      get_args, _ = conn.outgoing.GetPendingMessages.call_args
+      get_req = get_args[0]
+      self.assertSameElements(get_req.client_ids,
+                              [b"\x10\x00\x00\x00\x00\x00\x00\x00"])
+      self.assertEqual(get_req.offset, 1)
+      self.assertEqual(get_req.limit, 2)
+      self.assertEqual(get_req.want_data, True)
+
   def testFetchClientResourceUsageRecords(self):
     conn = mock.MagicMock()
     conn.outgoing.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(

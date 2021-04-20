@@ -32,6 +32,7 @@ from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
 from grr_response_server.gui.api_plugins import stats as api_stats
 from grr_response_server.rdfvalues import objects as rdf_objects
+from fleetspeak.src.common.proto.fleetspeak import common_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 
@@ -894,3 +895,221 @@ class ApiDeleteFleetspeakPendingMessagesHandler(
              context: Optional[api_call_context.ApiCallContext] = None) -> None:
     _CheckFleetspeakConnection()
     fleetspeak_utils.DeleteFleetspeakPendingMessages(args.client_id.Basename())
+
+
+class ApiGetFleetspeakPendingMessageCountArgs(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiGetFleetspeakPendingMessageCountArgs
+  rdf_deps = [
+      rdf_client.ClientURN,
+  ]
+
+
+class ApiGetFleetspeakPendingMessageCountResult(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiGetFleetspeakPendingMessageCountResult
+
+
+class ApiGetFleetspeakPendingMessageCountHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Returns the number of fleetspeak messages pending for the given client."""
+  args_type = ApiGetFleetspeakPendingMessageCountArgs
+  result_type = ApiGetFleetspeakPendingMessageCountResult
+
+  def Handle(
+      self,
+      args: ApiGetFleetspeakPendingMessageCountArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> ApiGetFleetspeakPendingMessageCountResult:
+    _CheckFleetspeakConnection()
+    return ApiGetFleetspeakPendingMessageCountResult(
+        count=fleetspeak_utils.GetFleetspeakPendingMessageCount(
+            args.client_id.Basename()))
+
+
+class ApiFleetspeakAddress(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiFleetspeakAddress
+  rdf_deps = [
+      rdf_client.ClientURN,
+  ]
+
+  @classmethod
+  def FromFleetspeakProto(cls,
+                          proto: common_pb2.Address) -> "ApiFleetspeakAddress":
+    return ApiFleetspeakAddress(
+        client_id=fleetspeak_utils.FleetspeakIDToGRRID(proto.client_id),
+        service_name=proto.service_name,
+    )
+
+
+class ApiFleetspeakAnnotations(rdf_structs.RDFProtoStruct):
+  """Mirrors the proto `fleetspeak.Annotations`."""
+
+  class Entry(rdf_structs.RDFProtoStruct):
+    protobuf = client_pb2.ApiFleetspeakAnnotations.Entry
+
+    @classmethod
+    def FromFleetspeakProto(
+        cls, proto: common_pb2.Annotations.Entry
+    ) -> "ApiFleetspeakAnnotations.Entry":
+      return ApiFleetspeakAnnotations.Entry(
+          key=proto.key,
+          value=proto.value,
+      )
+
+  protobuf = client_pb2.ApiFleetspeakAnnotations
+  rdf_deps = [
+      Entry,
+  ]
+
+  @classmethod
+  def FromFleetspeakProto(
+      cls, proto: common_pb2.Annotations) -> "ApiFleetspeakAnnotations":
+    result = ApiFleetspeakAnnotations()
+    for entry in proto.entries:
+      result.entries.append(cls.Entry.FromFleetspeakProto(entry))
+    return result
+
+
+class ApiFleetspeakValidationInfo(rdf_structs.RDFProtoStruct):
+  """Mirrors the proto `fleetspeak.ValidationInfo`."""
+
+  class Tag(rdf_structs.RDFProtoStruct):
+    protobuf = client_pb2.ApiFleetspeakValidationInfo.Tag
+
+  protobuf = client_pb2.ApiFleetspeakValidationInfo
+  rdf_deps = [
+      Tag,
+  ]
+
+  @classmethod
+  def FromFleetspeakProto(
+      cls, proto: common_pb2.ValidationInfo) -> "ApiFleetspeakValidationInfo":
+    result = ApiFleetspeakValidationInfo()
+    for key, value in proto.tags.items():
+      result.tags.append(cls.Tag(key=key, value=value))
+    return result
+
+
+class ApiFleetspeakMessageResult(rdf_structs.RDFProtoStruct):
+  """Mirrors the proto `fleetspeak.MessageResult`."""
+  protobuf = client_pb2.ApiFleetspeakMessageResult
+  rdf_deps = [
+      rdfvalue.RDFDatetime,
+  ]
+
+  @classmethod
+  def FromFleetspeakProto(
+      cls, proto: common_pb2.MessageResult) -> "ApiFleetspeakMessageResult":
+    result = ApiFleetspeakMessageResult(
+        failed=proto.failed,
+        failed_reason=proto.failed_reason,
+    )
+    if proto.HasField("processed_time"):
+      result.processed_time = rdfvalue.RDFDatetime.FromDatetime(
+          proto.processed_time.ToDatetime())
+    return result
+
+
+class ApiFleetspeakMessage(rdf_structs.RDFProtoStruct):
+  """Mirrors the proto `fleetspeak.Message`."""
+  protobuf = client_pb2.ApiFleetspeakMessage
+  rdf_deps = [
+      ApiFleetspeakAddress,
+      rdfvalue.RDFDatetime,
+      ApiFleetspeakValidationInfo,
+      ApiFleetspeakMessageResult,
+      ApiFleetspeakAnnotations,
+  ]
+
+  @classmethod
+  def FromFleetspeakProto(cls,
+                          proto: common_pb2.Message) -> "ApiFleetspeakMessage":
+    result = ApiFleetspeakMessage(
+        message_id=proto.message_id,
+        source_message_id=proto.source_message_id,
+        message_type=proto.message_type,
+        priority=cls._PriorityFromFleetspeakProto(proto.priority),
+        background=proto.background,
+    )
+    if proto.HasField("source"):
+      result.source = ApiFleetspeakAddress.FromFleetspeakProto(proto.source)
+    if proto.HasField("destination"):
+      result.destination = ApiFleetspeakAddress.FromFleetspeakProto(
+          proto.destination)
+    if proto.HasField("creation_time"):
+      result.creation_time = rdfvalue.RDFDatetime.FromDatetime(
+          proto.creation_time.ToDatetime())
+    if proto.HasField("data"):
+      result.data = cls._AnyFromFleetspeakProto(proto.data)
+    if proto.HasField("validation_info"):
+      result.validation_info = ApiFleetspeakValidationInfo.FromFleetspeakProto(
+          proto.validation_info)
+    if proto.HasField("result"):
+      result.result = ApiFleetspeakMessageResult.FromFleetspeakProto(
+          proto.result)
+    if proto.HasField("annotations"):
+      result.annotations = ApiFleetspeakAnnotations.FromFleetspeakProto(
+          proto.annotations)
+    return result
+
+  _PRIORITY_MAP = {
+      common_pb2.Message.Priority.MEDIUM:
+          client_pb2.ApiFleetspeakMessage.Priority.MEDIUM,
+      common_pb2.Message.Priority.LOW:
+          client_pb2.ApiFleetspeakMessage.Priority.LOW,
+      common_pb2.Message.Priority.HIGH:
+          client_pb2.ApiFleetspeakMessage.Priority.HIGH,
+  }
+
+  @classmethod
+  def _PriorityFromFleetspeakProto(
+      cls, proto: common_pb2.Message.Priority) -> Optional[int]:
+    return cls._PRIORITY_MAP.get(proto, None)
+
+  @classmethod
+  def _AnyFromFleetspeakProto(cls, proto) -> rdf_structs.AnyValue:
+    return rdf_structs.AnyValue(type_url=proto.type_url, value=proto.value)
+
+
+class ApiGetFleetspeakPendingMessagesArgs(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiGetFleetspeakPendingMessagesArgs
+  rdf_deps = [
+      rdf_client.ClientURN,
+  ]
+
+
+class ApiGetFleetspeakPendingMessagesResult(rdf_structs.RDFProtoStruct):
+  """Result for ApiGetFleetspeakPendingMessagesHandler."""
+  protobuf = client_pb2.ApiGetFleetspeakPendingMessagesResult
+  rdf_deps = [
+      ApiFleetspeakMessage,
+  ]
+
+  @classmethod
+  def FromFleetspeakProto(
+      cls, proto: admin_pb2.GetPendingMessagesResponse
+  ) -> "ApiGetFleetspeakPendingMessagesResult":
+    result = ApiGetFleetspeakPendingMessagesResult()
+    for message in proto.messages:
+      result.messages.append(ApiFleetspeakMessage.FromFleetspeakProto(message))
+    return result
+
+
+class ApiGetFleetspeakPendingMessagesHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Returns the fleetspeak pending messages for the given client."""
+
+  args_type = ApiGetFleetspeakPendingMessagesArgs
+  result_type = ApiGetFleetspeakPendingMessagesResult
+
+  def Handle(
+      self,
+      args: ApiGetFleetspeakPendingMessagesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> ApiGetFleetspeakPendingMessagesResult:
+    _CheckFleetspeakConnection()
+    return ApiGetFleetspeakPendingMessagesResult.FromFleetspeakProto(
+        fleetspeak_utils.GetFleetspeakPendingMessages(
+            args.client_id.Basename(),
+            offset=args.offset,
+            limit=args.limit,
+            want_data=args.want_data))

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 from absl import app
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder

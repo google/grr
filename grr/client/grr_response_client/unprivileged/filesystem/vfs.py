@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Virtual filesystem module based on an unprivileged filesystem client."""
 
+import contextlib
 import stat
 from typing import Any, Callable, Dict, Iterator, Optional, Text, Type, Tuple, NamedTuple
 
@@ -128,21 +129,26 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
         self.client = MOUNT_CACHE.Get(cache_key).client
       except KeyError:
         device_path = base_fd.native_path
-        if device_path is None:
-          server_obj = server.CreateFilesystemServer()
-          server_obj.Start()
-          self.client = client.CreateFilesystemClient(server_obj.Connect(),
-                                                      self.implementation_type,
-                                                      VFSHandlerDevice(base_fd))
-        else:
-          with open(device_path, "rb") as device_file:
-            server_obj = server.CreateFilesystemServer(device_file.fileno())
-            server_obj.Start()
-            self.client = client.CreateFilesystemClient(
-                server_obj.Connect(), self.implementation_type,
-                VFSHandlerDevice(base_fd, device_file.fileno()))
-        MOUNT_CACHE.Put(cache_key,
-                        MountCacheItem(server=server_obj, client=self.client))
+        with contextlib.ExitStack() as stack:
+          if device_path is None:
+            server_obj = server.CreateFilesystemServer()
+            stack.enter_context(server_obj)
+            self.client = stack.enter_context(
+                client.CreateFilesystemClient(server_obj.Connect(),
+                                              self.implementation_type,
+                                              VFSHandlerDevice(base_fd)))
+          else:
+            with open(device_path, "rb") as device_file:
+              server_obj = server.CreateFilesystemServer(device_file.fileno())
+              stack.enter_context(server_obj)
+              self.client = stack.enter_context(
+                  client.CreateFilesystemClient(
+                      server_obj.Connect(), self.implementation_type,
+                      VFSHandlerDevice(base_fd, device_file.fileno())))
+          MOUNT_CACHE.Put(cache_key,
+                          MountCacheItem(server=server_obj, client=self.client))
+          # Transfer ownership of resources to MOUNT_CACHE.
+          stack.pop_all()
       self.pathspec.Append(pathspec)
     elif base_fd.IsDirectory():
       raise IOError("Base must be a file.")

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """API handler for rendering descriptors of GRR data structures."""
 from __future__ import absolute_import
 from __future__ import division

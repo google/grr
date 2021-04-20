@@ -1,7 +1,8 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateArtifactDescriptor, translateFlowDescriptor} from '@app/lib/api_translation/flow';
+import {translateArtifactDescriptor} from '@app/lib/api_translation/artifact';
+import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
 

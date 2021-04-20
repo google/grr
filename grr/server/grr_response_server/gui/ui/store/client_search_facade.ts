@@ -10,7 +10,6 @@ import {map, switchMap, tap} from 'rxjs/operators';
 interface ClientSearchState {
   readonly clients: {readonly [key: string]: Client};
   readonly clientSequence: ReadonlyArray<string>;
-  readonly query: string;
 }
 
 /**
@@ -24,14 +23,12 @@ export class ClientSearchStore extends ComponentStore<ClientSearchState> {
     super({
       clients: {},
       clientSequence: [],
-
-      query: '',
     });
   }
 
   private readonly updateClients =
       this.updater<ReadonlyArray<Client>>((state, clients) => {
-        const newClientsMap = {...state.clients};
+        const newClientsMap: {[key: string]: Client} = {};
         for (const c of clients) {
           newClientsMap[c.clientId] = c;
         }
@@ -57,13 +54,6 @@ export class ClientSearchStore extends ComponentStore<ClientSearchState> {
       this.select((state) => {
         return state.clientSequence.map(id => state.clients[id]);
       });
-
-  /**
-   * An observable emitting the current query string every time it gets updated.
-   */
-  readonly query$: Observable<string> = this.select((state) => {
-    return state.query;
-  });
 
   /**
    * Searches for clients using the current search query.
@@ -97,11 +87,6 @@ export class ClientSearchFacade {
    * An observable emitting the list of fetched Clients on every search.
    */
   readonly clients$: Observable<ReadonlyArray<Client>> = this.store.clients$;
-
-  /**
-   * An observable emitting the current query string every time it gets updated.
-   */
-  readonly query$: Observable<string> = this.store.query$;
 
   /**
    * Searches for clients using the current search query.

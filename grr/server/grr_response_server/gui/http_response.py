@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Api call context used during the request/response handling."""
 
 from typing import Optional

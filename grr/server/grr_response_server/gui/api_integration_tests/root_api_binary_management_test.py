@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for root API user management calls."""
 from __future__ import absolute_import
 from __future__ import division

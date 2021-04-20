@@ -35,7 +35,7 @@ export class TimelineDetails extends Plugin {
   readonly bodyOptsForm = new FormGroup({
     timestampSubsecondPrecision: new FormControl(true),
     inodeNtfsFileReferenceFormat: new FormControl(false),
-    backslashEscape: new FormControl(false),
+    backslashEscape: new FormControl(true),
   });
 
   constructor(private readonly httpApiService: HttpApiService) {

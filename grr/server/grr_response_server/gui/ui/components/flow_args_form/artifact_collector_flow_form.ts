@@ -18,19 +18,19 @@ const ARTIFACT_NAME = 'artifactName';
 const MAX_AUTOCOMPLETE_RESULTS = 50;
 
 const READABLE_SOURCE_NAME: {[key in SourceType]?: string} = {
-  ARTIFACT_FILES: 'Collects artifact',
-  ARTIFACT_GROUP: 'Collects artifact',
-  ARTIFACT: 'Collects artifact',
-  COMMAND: 'Executes command',
-  DIRECTORY: 'Collects directory',
-  FILE: 'Collects file',
-  GREP: 'Greps',
-  GRR_CLIENT_ACTION: 'Executes client action',
-  LIST_FILES: 'Lists files in',
-  PATH: 'Collects path',
-  REGISTRY_KEY: 'Collects Windows Registry key',
-  REGISTRY_VALUE: 'Collects Windows Registry value',
-  WMI: 'Queries WMI',
+  [SourceType.ARTIFACT_FILES]: 'Collects artifact',
+  [SourceType.ARTIFACT_GROUP]: 'Collects artifact',
+  [SourceType.ARTIFACT]: 'Collects artifact',
+  [SourceType.COMMAND]: 'Executes command',
+  [SourceType.DIRECTORY]: 'Collects directory',
+  [SourceType.FILE]: 'Collects file',
+  [SourceType.GREP]: 'Greps',
+  [SourceType.GRR_CLIENT_ACTION]: 'Executes client action',
+  [SourceType.LIST_FILES]: 'Lists files in',
+  [SourceType.PATH]: 'Collects path',
+  [SourceType.REGISTRY_KEY]: 'Collects Windows Registry key',
+  [SourceType.REGISTRY_VALUE]: 'Collects Windows Registry value',
+  [SourceType.WMI]: 'Queries WMI',
 };
 
 declare interface SampleSource {
@@ -53,8 +53,6 @@ declare interface ArtifactListEntry extends ArtifactDescriptor {
   searchStrings: string[];
 }
 
-type KeyValuePair = Map<'key'|'value', string>;
-
 function getOrSet<K, V>(map: Map<K, V>, key: K, factory: () => V): V {
   let value = map.get(key);
   if (value === undefined) {
@@ -64,37 +62,32 @@ function getOrSet<K, V>(map: Map<K, V>, key: K, factory: () => V): V {
   return value;
 }
 
-function getReadableSources(source: ArtifactSource): string[] {
+function getReadableSources(source: ArtifactSource): ReadonlyArray<string> {
   switch (source.type) {
     case SourceType.ARTIFACT_GROUP:
-      return source.attributes.get('names') as string[] ?? [];
-
     case SourceType.ARTIFACT_FILES:
-      return source.attributes.get('artifact_list') as string[] ?? [];
+      return source.names;
 
     case SourceType.GRR_CLIENT_ACTION:
-      return [source.attributes.get('client_action') as string];
+      return [source.clientAction];
 
     case SourceType.COMMAND:
-      const cmd = source.attributes.get('cmd') as string;
-      const args = source.attributes.get('args') as string[] ?? [];
-      return [[cmd, ...args].join(' ')];
+      return [source.cmdline];
 
     case SourceType.DIRECTORY:
     case SourceType.FILE:
     case SourceType.GREP:
     case SourceType.PATH:
-      return source.attributes.get('paths') as string[] ?? [];
+      return source.paths;
 
     case SourceType.REGISTRY_KEY:
-      return source.attributes.get('keys') as string[] ?? [];
+      return source.keys;
 
     case SourceType.REGISTRY_VALUE:
-      return (source.attributes.get('key_value_pairs') as KeyValuePair[] ?? [])
-          .map((map) => `${map.get('key')}\\${map.get('value')}`);
+      return source.values;
 
     case SourceType.WMI:
-      return [source.attributes.get('query') as string];
+      return [source.query];
 
     default:
       return [];
@@ -162,16 +155,14 @@ function readableSourceToNodes(
       type === SourceType.ARTIFACT_GROUP) {
     return readableSources.map(source => ({
                                  type,
-                                 // Show readable name ("Collect file") or raw
-                                 // source type ("FILE") as fallback.
-                                 name: READABLE_SOURCE_NAME[type] ?? type,
+                                 name: READABLE_SOURCE_NAME[type] ?? 'Unknown',
                                  values: [source],
                                  children: artifactToNodes(entries, source),
                                }));
   } else {
     return [{
       type,
-      name: READABLE_SOURCE_NAME[type] ?? type,
+      name: READABLE_SOURCE_NAME[type] ?? 'Unknown',
       values: readableSources,
       children: [],
     }];

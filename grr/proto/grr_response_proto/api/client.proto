@@ -1,5 +1,6 @@
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
 import "grr_response_proto/api/stats.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
@@ -309,4 +310,98 @@ message ApiRestartFleetspeakGrrServiceArgs {
 
 message ApiDeleteFleetspeakPendingMessagesArgs {
   optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+}
+
+message ApiGetFleetspeakPendingMessageCountArgs {
+  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+}
+
+message ApiGetFleetspeakPendingMessageCountResult {
+  optional uint64 count = 1;
+}
+
+message ApiGetFleetspeakPendingMessagesArgs {
+  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+  // Offset for pagination.
+  optional uint64 offset = 2;
+  // Limit for pagination.
+  optional uint64 limit = 3;
+  // If true, the raw data of the fleetspeak message will be returned as well.
+  optional bool want_data = 4;
+}
+
+// Mirrors the proto `fleetspeak.Address`.
+message ApiFleetspeakAddress {
+  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+
+  optional string service_name = 2;
+}
+
+// Mirrors the proto `fleetspeak.Annotations`.
+message ApiFleetspeakAnnotations {
+  message Entry {
+    optional string key = 1;
+    optional string value = 2;
+  }
+  repeated Entry entries = 1;
+}
+
+// Mirrors the proto `fleetspeak.ValidationInfo`.
+message ApiFleetspeakValidationInfo {
+  message Tag {
+    optional string key = 1;
+    optional string value = 2;
+  }
+  repeated Tag tags = 1;
+}
+
+// Mirrors the proto `fleetspeak.MessageResult`.
+message ApiFleetspeakMessageResult {
+  optional uint64 processed_time = 2 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+
+  optional bool failed = 3;
+
+  optional string failed_reason = 4;
+}
+
+// Mirrors the proto `fleetspeak.Message`.
+message ApiFleetspeakMessage {
+  optional bytes message_id = 1;
+
+  optional ApiFleetspeakAddress source = 2;
+
+  optional bytes source_message_id = 3;
+
+  optional ApiFleetspeakAddress destination = 4;
+
+  optional string message_type = 5;
+
+  optional uint64 creation_time = 6 [(sem_type) = {
+    type: "RDFDatetime",
+  }];
+
+  optional google.protobuf.Any data = 7 [(sem_type) = {
+    no_dynamic_type_lookup: true,
+  }];
+
+  optional ApiFleetspeakValidationInfo validation_info = 8;
+
+  optional ApiFleetspeakMessageResult result = 9;
+
+  enum Priority {
+    MEDIUM = 0;
+    LOW = 1;
+    HIGH = 2;
+  }
+  optional Priority priority = 10;
+
+  optional bool background = 11;
+
+  optional ApiFleetspeakAnnotations annotations = 12;
+}
+
+message ApiGetFleetspeakPendingMessagesResult {
+  repeated ApiFleetspeakMessage messages = 1;
 }

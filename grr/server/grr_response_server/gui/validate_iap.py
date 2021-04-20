@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Sample showing how to validate the Identity-Aware Proxy (IAP) JWT.
 
 This code should be used by applications in Google Compute Engine-based

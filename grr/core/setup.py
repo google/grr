@@ -137,9 +137,11 @@ setup_args = dict(
         "sdist": Sdist,
     },
     install_requires=[
-        "cryptography==3.3.2",
+        # TODO: This should be 3.3.2, but AppVeyor has issues with
+        # that version.
+        "cryptography==2.9.2",
         "distro==1.5.0",
-        "fleetspeak==0.1.8",
+        "fleetspeak==0.1.9",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipaddr==2.2.0",
         "ipython==7.15.0",

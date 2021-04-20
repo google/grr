@@ -2,7 +2,7 @@ import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
 import {ActivatedRoute, Params} from '@angular/router';
 import {ClientSearchFacade} from '@app/store/client_search_facade';
 import {Observable} from 'rxjs';
-import {filter, map} from 'rxjs/operators';
+import {filter, map, skip} from 'rxjs/operators';
 
 import {isNonNull} from '../../lib/preconditions';
 
@@ -29,6 +29,7 @@ export class ClientSearch implements OnInit {
    * Table rows for the MatTable component.
    */
   readonly rows$ = this.clientSearchFacade.clients$.pipe(
+      skip(1),
       map(clients => clients.map((c) => ({
                                    clientId: c.clientId,
                                    fqdn: c.knowledgeBase.fqdn,

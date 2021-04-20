@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """API handlers for dealing with files in a client's virtual file system."""
 from __future__ import absolute_import
 from __future__ import division

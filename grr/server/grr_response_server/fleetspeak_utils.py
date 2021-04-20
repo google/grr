@@ -117,6 +117,24 @@ def DeleteFleetspeakPendingMessages(grr_id: str) -> None:
   fleetspeak_connector.CONN.outgoing.DeletePendingMessages(delete_req)
 
 
+def GetFleetspeakPendingMessageCount(grr_id: str) -> int:
+  get_req = admin_pb2.GetPendingMessageCountRequest()
+  get_req.client_ids.append(GRRIDToFleetspeakID(grr_id))
+  get_resp = fleetspeak_connector.CONN.outgoing.GetPendingMessageCount(get_req)
+  return get_resp.count
+
+
+def GetFleetspeakPendingMessages(
+    grr_id: str, offset: int, limit: int,
+    want_data: bool) -> admin_pb2.GetPendingMessagesResponse:
+  get_req = admin_pb2.GetPendingMessagesRequest()
+  get_req.client_ids.append(GRRIDToFleetspeakID(grr_id))
+  get_req.offset = offset
+  get_req.limit = limit
+  get_req.want_data = want_data
+  return fleetspeak_connector.CONN.outgoing.GetPendingMessages(get_req)
+
+
 def FleetspeakIDToGRRID(fs_id: bytes) -> str:
   return "C." + text.Hexify(fs_id)
 

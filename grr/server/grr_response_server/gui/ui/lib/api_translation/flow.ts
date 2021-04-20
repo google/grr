@@ -1,7 +1,6 @@
-import * as api from '@app/lib/api/api_interfaces';
 import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiScheduledFlow, ByteString, Hash} from '@app/lib/api/api_interfaces';
-import {bytesToHex, createDate, createUnknownObject, decodeBase64, translateDict} from '@app/lib/api_translation/primitive';
-import {ArtifactDescriptor, ArtifactSource, Flow, FlowDescriptor, FlowResult, FlowState, HexHash, OperatingSystem, ScheduledFlow} from '@app/lib/models/flow';
+import {bytesToHex, createDate, createUnknownObject, decodeBase64} from '@app/lib/api_translation/primitive';
+import {Flow, FlowDescriptor, FlowResult, FlowState, HexHash, OperatingSystem, ScheduledFlow} from '@app/lib/models/flow';
 
 import {assertKeyNonNull, PreconditionError} from '../preconditions';
 
@@ -103,32 +102,6 @@ export function translateHashToHex(hash: Hash): HexHash {
   };
 }
 
-/**
- * Flattens an API ArtifactDescriptor and its contained Artifact into one
- * object.
- */
-export function translateArtifactDescriptor(ad: api.ArtifactDescriptor):
-    ArtifactDescriptor {
-  assertKeyNonNull(ad, 'artifact');
-  const artifact = ad.artifact ?? {};
-
-  assertKeyNonNull(artifact, 'name');
-
-  return {
-    name: artifact.name,
-    doc: artifact.doc,
-    labels: [...artifact.labels ?? []],
-    supportedOs:
-        new Set([...artifact.supportedOs ?? []].map(translateOperatingSystem)),
-    urls: [...artifact.urls ?? []],
-    provides: [...artifact.provides ?? []],
-    dependencies: [...ad.dependencies ?? []],
-    pathDependencies: [...ad.pathDependencies ?? []],
-    isCustom: ad.isCustom ?? false,
-    sources: [...artifact.sources ?? []].map(translateArtifactSource),
-  };
-}
-
 function translateOperatingSystem(str: string): OperatingSystem {
   if (!Object.values(OperatingSystem).includes(str as OperatingSystem)) {
     throw new PreconditionError(
@@ -149,19 +122,4 @@ export function safeTranslateOperatingSystem(str: string|undefined):
   } catch (e: unknown) {
     return undefined;
   }
-}
-
-function translateArtifactSource(source: api.ArtifactSource): ArtifactSource {
-  assertKeyNonNull(source, 'type');
-
-  const attributes =
-      translateDict(source.attributes ?? {}) as ReadonlyMap<string, unknown>;
-  return {
-    type: source.type,
-    attributes,
-    conditions: [...source.conditions ?? []],
-    returnedTypes: [...source.returnedTypes ?? []],
-    supportedOs:
-        new Set([...source.supportedOs ?? []].map(translateOperatingSystem)),
-  };
 }

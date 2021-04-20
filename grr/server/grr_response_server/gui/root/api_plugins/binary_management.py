@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Root-access-level API handlers for binary management."""
 from __future__ import absolute_import
 from __future__ import division

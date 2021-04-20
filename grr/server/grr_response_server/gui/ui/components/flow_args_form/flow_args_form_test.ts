@@ -491,7 +491,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
            sources: [
              {
                type: SourceType.FILE,
-               attributes: new Map(Object.entries({paths: ['/sample/path']})),
+               paths: ['/sample/path'],
                conditions: [],
                returnedTypes: [],
                supportedOs: new Set()
@@ -548,7 +548,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
         sources: [
           {
             type: SourceType.FILE,
-            attributes: new Map(Object.entries({paths: ['/sample/path']})),
+            paths: ['/sample/path'],
             conditions: [],
             returnedTypes: [],
             supportedOs: new Set()
@@ -630,7 +630,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
         sources: [
           {
             type: SourceType.ARTIFACT_GROUP,
-            attributes: new Map(Object.entries({names: ['bar']})),
+            names: ['bar'],
             conditions: [],
             returnedTypes: [],
             supportedOs: new Set()
@@ -642,7 +642,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
         sources: [
           {
             type: SourceType.REGISTRY_KEY,
-            attributes: new Map(Object.entries({keys: ['HKLM']})),
+            keys: ['HKLM'],
             conditions: [],
             returnedTypes: [],
             supportedOs: new Set()

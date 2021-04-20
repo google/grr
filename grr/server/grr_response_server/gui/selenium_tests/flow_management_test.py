@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Test the flow_management interface."""
 from __future__ import absolute_import
 from __future__ import division

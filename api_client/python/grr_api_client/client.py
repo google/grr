@@ -5,6 +5,7 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import collections
+from typing import Sequence
 
 from grr_api_client import flow
 from grr_api_client import utils
@@ -293,6 +294,27 @@ class ClientBase(object):
     args = client_pb2.ApiDeleteFleetspeakPendingMessagesArgs()
     args.client_id = self.client_id
     self._context.SendRequest("DeleteFleetspeakPendingMessages", args)
+
+  def GetFleetspeakPendingMessageCount(self) -> int:
+    """Returns the number of fleetspeak messages pending for the given client."""
+    args = client_pb2.ApiGetFleetspeakPendingMessageCountArgs()
+    args.client_id = self.client_id
+    result = self._context.SendRequest("GetFleetspeakPendingMessageCount", args)
+    return result.count
+
+  def GetFleetspeakPendingMessages(
+      self,
+      offset: int = 0,
+      limit: int = 0,
+      want_data: bool = False) -> Sequence[client_pb2.ApiFleetspeakMessage]:
+    """Returns messages pending for the given client."""
+    args = client_pb2.ApiGetFleetspeakPendingMessagesArgs()
+    args.client_id = self.client_id
+    args.offset = offset
+    args.limit = limit
+    args.want_data = want_data
+    result = self._context.SendRequest("GetFleetspeakPendingMessages", args)
+    return result.messages
 
 
 class ClientRef(ClientBase):

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """HTTP API logic that ties API call handlers with HTTP routes."""
 from __future__ import absolute_import
 from __future__ import division

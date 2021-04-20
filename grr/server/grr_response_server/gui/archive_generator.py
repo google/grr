@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This file contains code to generate ZIP/TAR archives."""
 from __future__ import absolute_import
 from __future__ import division

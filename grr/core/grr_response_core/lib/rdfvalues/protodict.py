@@ -216,7 +216,7 @@ class Dict(rdf_structs.RDFProtoStruct):
       self._values[key] = KeyValue(
           k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
           v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
-    self.dat = self._values.values()
+    self.dat = self._values.values()  # pytype: disable=annotation-type-mismatch
     return self
 
   def __getitem__(self, key):
@@ -315,11 +315,11 @@ class Dict(rdf_structs.RDFProtoStruct):
       return False
 
   def GetRawData(self):
-    self.dat = self._values.values()
+    self.dat = self._values.values()  # pytype: disable=annotation-type-mismatch
     return super().GetRawData()
 
   def _CopyRawData(self):
-    self.dat = self._values.values()
+    self.dat = self._values.values()  # pytype: disable=annotation-type-mismatch
     return super()._CopyRawData()
 
   def SetRawData(self, raw_data):
@@ -329,7 +329,7 @@ class Dict(rdf_structs.RDFProtoStruct):
       self._values[d.k.GetValue()] = d
 
   def SerializeToBytes(self):
-    self.dat = self._values.values()
+    self.dat = self._values.values()  # pytype: disable=annotation-type-mismatch
     return super().SerializeToBytes()
 
   def __str__(self) -> Text:

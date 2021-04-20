@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """API handlers for dealing with output_plugins."""
 from __future__ import absolute_import
 from __future__ import division

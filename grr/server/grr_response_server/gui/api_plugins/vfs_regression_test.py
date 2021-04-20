@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This modules contains regression tests for VFS API handlers."""
 from __future__ import absolute_import
 from __future__ import division

@@ -1,15 +1,15 @@
 import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
 import {AbstractControl, FormArray, FormControl, FormGroup, ValidationErrors} from '@angular/forms';
 import {ExtFlagsCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/ext_flags_condition';
-import {LiteralMatchCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
-import {RegexMatchCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
+import {createLiteralMatchFormGroup} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
+import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
 import {SizeCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/size_condition';
 import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 import {isNonNull} from '@app/lib/preconditions';
 import {filter, map, shareReplay} from 'rxjs/operators';
 
-import {CollectMultipleFilesArgs} from '../../lib/api/api_interfaces';
+import {CollectMultipleFilesArgs, FileFinderContentsLiteralMatchCondition} from '../../lib/api/api_interfaces';
 import {ClientPageFacade} from '../../store/client_page_facade';
 
 
@@ -42,34 +42,29 @@ export class CollectMultipleFilesForm extends
   readonly formValues$ = this.form.valueChanges.pipe(
       filter(isNonNull),
       map(v => {
-        let result: CollectMultipleFilesArgs = {
+        const allResults: CollectMultipleFilesArgs = {
           pathExpressions: v.pathExpressions,
+          modificationTime: v.modificationTime &&
+              formValuesToFileFinderModificationTimeCondition(
+                                v.modificationTime),
+          accessTime: v.accessTime &&
+              formValuesToFileFinderAccessTimeCondition(v.accessTime),
+          inodeChangeTime: v.inodeChangeTime &&
+              formValuesToFileFinderInodeChangeTimeCondition(v.inodeChangeTime),
+          contentsLiteralMatch: v.contentsLiteralMatch as
+              FileFinderContentsLiteralMatchCondition,
+          contentsRegexMatch: v.contentsRegexMatch &&
+              formValuesToFileFinderContentsRegexMatchCondition(
+                                  v.contentsRegexMatch),
         };
 
-        if (v.modificationTime) {
-          result = {
-            ...result,
-            modificationTime: formValuesToFileFinderModificationTimeCondition(
-                v.modificationTime)
-          };
+        let trimmedResults: CollectMultipleFilesArgs = {};
+        for (const [argKey, argValue] of Object.entries(allResults)) {
+          if (argValue != null) {
+            trimmedResults = {...trimmedResults, [argKey]: argValue};
+          }
         }
-
-        if (v.accessTime) {
-          result = {
-            ...result,
-            accessTime: formValuesToFileFinderAccessTimeCondition(v.accessTime),
-          };
-        }
-
-        if (v.inodeChangeTime) {
-          result = {
-            ...result,
-            inodeChangeTime: formValuesToFileFinderInodeChangeTimeCondition(
-                v.inodeChangeTime)
-          };
-        }
-
-        return result;
+        return trimmedResults;
       }),
       shareReplay(1),
   );
@@ -112,8 +107,7 @@ export class CollectMultipleFilesForm extends
 
   // Literal match condition.
   addLiteralMatchCondition() {
-    this.form.addControl(
-        'contentsLiteralMatch', LiteralMatchCondition.createFormGroup());
+    this.form.addControl('contentsLiteralMatch', createLiteralMatchFormGroup());
   }
 
   removeLiteralMatchCondition() {
@@ -122,8 +116,7 @@ export class CollectMultipleFilesForm extends
 
   // Regex match condition.
   addRegexMatchCondition() {
-    this.form.addControl(
-        'contentsRegexMatch', RegexMatchCondition.createFormGroup());
+    this.form.addControl('contentsRegexMatch', createRegexMatchFormGroup());
   }
 
   removeRegexMatchCondition() {

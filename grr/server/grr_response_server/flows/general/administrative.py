@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Administrative flows for managing the clients state."""
 from __future__ import absolute_import
 from __future__ import division

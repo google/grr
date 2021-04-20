@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Test the GUI host information."""
 from __future__ import absolute_import

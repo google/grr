@@ -28,7 +28,7 @@ class InMemoryDBYaraMixin(object):
     if username not in self.users:
       raise db.UnknownGRRUserError(username=username)
 
-    self.yara[blob_id] = username
+    self.yara[blob_id] = username  # pytype: disable=container-type-mismatch
 
   def VerifyYaraSignatureReference(
       self,

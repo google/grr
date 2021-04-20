@@ -569,6 +569,25 @@ export declare interface Hash {
   readonly sourceOffset?: DecimalString;
 }
 
+/** FileFinderContentsLiteralMatchCondition proto mapping. */
+export declare interface FileFinderContentsLiteralMatchCondition {
+  readonly literal?: ByteString;
+  readonly mode?: FileFinderContentsMatchConditionMode;
+}
+
+/** FileFinderContentsRegexMatchCondition proto mapping. */
+export declare interface FileFinderContentsRegexMatchCondition {
+  readonly regex?: ByteString;
+  readonly mode?: FileFinderContentsMatchConditionMode;
+  readonly length?: DecimalString;
+}
+
+/** FileFinderContentsMatchConditionMode proto mapping. */
+export enum FileFinderContentsMatchConditionMode {
+  ALL_HITS = 0,
+  FIRST_HIT = 1
+}
+
 /** FileFinderModificationTimeCondition proto mapping. */
 export declare interface FileFinderModificationTimeCondition {
   readonly minLastModifiedTime?: DecimalString;
@@ -596,6 +615,9 @@ export declare interface FileFinderSizeCondition {
 /** CollectMultipleFilesArgs proto mapping. */
 export declare interface CollectMultipleFilesArgs {
   readonly pathExpressions?: ReadonlyArray<string>;
+
+  readonly contentsLiteralMatch?: FileFinderContentsLiteralMatchCondition;
+  readonly contentsRegexMatch?: FileFinderContentsRegexMatchCondition;
 
   readonly modificationTime?: FileFinderModificationTimeCondition;
   readonly accessTime?: FileFinderAccessTimeCondition;

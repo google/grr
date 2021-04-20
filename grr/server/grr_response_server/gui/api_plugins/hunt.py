@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """API handlers for accessing hunts."""
 import collections
 import functools

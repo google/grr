@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 from typing import Callable
 from typing import Optional
 from unittest import mock

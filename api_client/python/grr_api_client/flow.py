@@ -108,9 +108,9 @@ class FlowBase(object):
 
   def GetCollectedTimelineBody(
       self,
-      timestamp_subsecond_precision: bool = False,
+      timestamp_subsecond_precision: bool = True,
       inode_ntfs_file_reference_format: bool = False,
-      backslash_escape: bool = False,
+      backslash_escape: bool = True,
   ) -> utils.BinaryChunkIterator:
     """Fetches timeline content in the body format."""
     args = timeline_pb2.ApiGetCollectedTimelineArgs()

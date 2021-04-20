@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Renderers that render RDFValues into JSON compatible data structures."""
 from __future__ import absolute_import
 from __future__ import division

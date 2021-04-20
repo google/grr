@@ -67,7 +67,9 @@ setup_args = dict(
     },
     install_requires=[
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
-        "cryptography==3.3.2",
+        # TODO: This should be 3.3.2, but AppVeyor has issues with
+        # that version.
+        "cryptography==2.9.2",
         "requests==2.25.1",
         "Werkzeug>=0.16.0,<=1.0.1",
     ],

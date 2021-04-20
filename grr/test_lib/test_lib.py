@@ -342,7 +342,7 @@ class PreserveConfig(object):
     self.old_config = config.CONFIG
     config.CONFIG = self.old_config.MakeNewConfig()
     config.CONFIG.initialized = self.old_config.initialized
-    config.CONFIG.SetWriteBack(self.old_config.writeback.filename)
+    config.CONFIG.SetWriteBack(self.old_config.writeback.config_path)
     config.CONFIG.raw_data = self.old_config.raw_data.copy()
     config.CONFIG.writeback_data = self.old_config.writeback_data.copy()
 

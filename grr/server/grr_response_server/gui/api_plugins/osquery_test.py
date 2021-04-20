@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 from absl.testing import absltest
 
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # -*- encoding: utf-8 -*-
 """Tests for the web auth managers."""
 from __future__ import absolute_import

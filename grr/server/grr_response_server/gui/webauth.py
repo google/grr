@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Web authentication classes for the GUI."""
 from __future__ import absolute_import
 from __future__ import division

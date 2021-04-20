@@ -66,5 +66,44 @@ class CountedTest(absltest.TestCase):
     self.assertEqual(items.count, 0)
 
 
+class LookaheadTest(absltest.TestCase):
+
+  def testEmptyNext(self):
+    items = iterator.Lookahead(iter([]))
+    with self.assertRaises(StopIteration):
+      next(items)
+
+  def testEmptyItem(self):
+    items = iterator.Lookahead(iter([]))
+    with self.assertRaises(ValueError):
+      items.item  # pylint: disable=pointless-statement
+
+  def testEmptyDone(self):
+    items = iterator.Lookahead(iter([]))
+    self.assertTrue(items.done)
+
+  def testIterate(self):
+    items = iterator.Lookahead(iter(["foo", "bar", "baz"]))
+    self.assertEqual(list(items), ["foo", "bar", "baz"])
+
+  def testItem(self):
+    items = iterator.Lookahead(iter(["foo", "bar", "baz"]))
+    self.assertEqual(items.item, "foo")
+    next(items)
+    self.assertEqual(items.item, "bar")
+    next(items)
+    self.assertEqual(items.item, "baz")
+
+  def testDone(self):
+    items = iterator.Lookahead(iter(["foo", "bar", "baz"]))
+    self.assertFalse(items.done)
+    next(items)
+    self.assertFalse(items.done)
+    next(items)
+    self.assertFalse(items.done)
+    next(items)
+    self.assertTrue(items.done)
+
+
 if __name__ == "__main__":
   absltest.main()

@@ -12,9 +12,7 @@ import sys
 from absl import app
 from absl import flags
 
-# pylint: disable=unused-import
 from grr_response_client import client_plugins
-# pylint: enable=unused-import
 from grr_response_client import client_startup
 from grr_response_client import comms
 from grr_response_client import fleetspeak_client
@@ -84,6 +82,8 @@ def _start_remote_debugging(port):
 
 
 def main(unused_args):
+  client_plugins.RegisterPlugins()
+
   if flags.FLAGS.remote_debugging_port:
     _start_remote_debugging(flags.FLAGS.remote_debugging_port)
   elif flags.FLAGS.break_on_start:

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A module with API methods related to the GRR metadata."""
 
 import collections

@@ -1,8 +1,31 @@
 <condition-panel
   title="Regex match"
-  [formGroup]="controlContainer.control"
+  [formGroup]="formGroup"
   (conditionRemoved)="conditionRemoved.emit()">
 
-  <span>To be implemented...</span>
+  <mat-form-field appearance="outline">
+    <mat-label>Regex</mat-label>
+    <input matInput formControlName="regex" class="monospace">
+    <mat-error *ngIf="formGroup.controls.regex.hasError('required')">Regex expression is required</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Mode</mat-label>
+    <mat-select formControlName="mode">
+       <mat-option [value]="FileFinderContentsMatchConditionMode.ALL_HITS">
+         All Hits
+       </mat-option>
+      <mat-option [value]="FileFinderContentsMatchConditionMode.FIRST_HIT">
+         First Hit
+       </mat-option>
+     </mat-select>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Length</mat-label>
+    <input matInput formControlName="length" class="monospace" type="number">
+    <mat-error *ngIf="formGroup.controls.length.hasError('required')">Length is required</mat-error>
+    <mat-error *ngIf="formGroup.controls.length.hasError('min')">Length must be a positive integer</mat-error>
+  </mat-form-field>
 
 </condition-panel>

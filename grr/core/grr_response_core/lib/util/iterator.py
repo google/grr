@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A module with utilities for working with iterators."""
 from typing import Iterator
+from typing import Optional
 from typing import TypeVar
 
 _T = TypeVar("_T")
@@ -37,3 +38,59 @@ class Counted(Iterator[_T]):
   def Reset(self) -> None:
     """Resets the counter."""
     self._count = 0
+
+
+class Lookahead(Iterator[_T]):
+  """An iterator wrapper that allows to peek at items without consuming them."""
+
+  def __init__(self, inner: Iterator[_T]) -> None:
+    """Initializes the wrapper.
+
+    Args:
+      inner: An iterator to wrap.
+    """
+    super().__init__()
+
+    self._inner: Iterator[_T] = inner
+
+    self._item: Optional[_T] = None
+    self._done: bool = False
+
+    self._Pull()
+
+  def __iter__(self) -> Iterator[_T]:
+    return self
+
+  def __next__(self) -> _T:
+    if self.done:
+      raise StopIteration()
+
+    # Because of the `self.done` check, `result` is guaranteed to be set to some
+    # value pulled from the iterator. Ideally, we would like to assert that it
+    # is not `None` but this is not possible as some iterators might yield it as
+    # a completely legitimate value.
+    result = self.item
+
+    self._Pull()
+
+    return result
+
+  @property
+  def item(self) -> _T:
+    """Retrieves the current item from the iterator."""
+    if self.done:
+      raise ValueError("No more items available")
+
+    return self._item
+
+  @property
+  def done(self) -> bool:
+    """Checks whether the iterator has already yielded all items."""
+    return self._done
+
+  def _Pull(self) -> None:
+    """Pulls the next item from the iterator."""
+    try:
+      self._item = next(self._inner)
+    except StopIteration:
+      self._done = True

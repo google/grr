@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 # -*- encoding: utf-8 -*-
 """This modules contains tests for clients API handlers."""
 from __future__ import absolute_import
@@ -12,6 +11,7 @@ from unittest import mock
 from absl import app
 
 from google.protobuf import timestamp_pb2
+from google.protobuf import text_format
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_server import client_index
@@ -286,8 +286,8 @@ class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(results[0].creator, "api_test_user")
 
 
-class ApiGetClientVersionTimesTestMixin(object):
-  """Test mixin for ApiGetClientVersionTimes."""
+class ApiGetClientVersionTimesTest(api_test_lib.ApiCallHandlerTest):
+  """Test for ApiGetClientVersionTimes using the relational db."""
 
   def setUp(self):
     super().setUp()
@@ -302,11 +302,6 @@ class ApiGetClientVersionTimesTestMixin(object):
     self.assertEqual(result.times[0].AsSecondsSinceEpoch(), 100)
     self.assertEqual(result.times[1].AsSecondsSinceEpoch(), 45)
     self.assertEqual(result.times[2].AsSecondsSinceEpoch(), 42)
-
-
-class ApiGetClientVersionTimesTest(ApiGetClientVersionTimesTestMixin,
-                                   api_test_lib.ApiCallHandlerTest):
-  """Test for ApiGetClientVersionTimes using the relational db."""
 
   def _SetUpClient(self):
     for time in [42, 45, 100]:
@@ -503,6 +498,131 @@ class ApiSearchClientsHandlerTest(api_test_lib.ApiCallHandlerTest):
     result = self.search_handler.Handle(args, context=self.context)
     self.assertLen(result.items, 1)
     self.assertEqual(result.items[0].client_id, client_id)
+
+
+class ApiGetFleetspeakPendingMessageCountHandlerTest(
+    api_test_lib.ApiCallHandlerTest):
+
+  @mock.patch.object(fleetspeak_connector, "CONN")
+  def testHandle(self, _):
+    handler = client_plugin.ApiGetFleetspeakPendingMessageCountHandler()
+    args = client_plugin.ApiGetFleetspeakPendingMessageCountArgs(
+        client_id="C.1111111111111111")
+    with mock.patch.object(
+        fleetspeak_utils, "GetFleetspeakPendingMessageCount",
+        return_value=42) as mock_get:
+      result = handler.Handle(args)
+      self.assertEqual(mock_get.call_args[0][0], "C.1111111111111111")
+      self.assertEqual(result.count, 42)
+
+
+class ApiGetFleetspeakPendingMessagesHandlerTest(api_test_lib.ApiCallHandlerTest
+                                                ):
+
+  @mock.patch.object(fleetspeak_connector, "CONN")
+  def testHandle(self, _):
+    handler = client_plugin.ApiGetFleetspeakPendingMessagesHandler()
+    args = client_plugin.ApiGetFleetspeakPendingMessagesArgs(
+        client_id="C.1111111111111111", offset=1, limit=2, want_data=True)
+    fleetspeak_proto = admin_pb2.GetPendingMessagesResponse()
+    text_format.Parse(
+        """
+        messages: {
+          message_id: "m1"
+          source: {
+            client_id: "\x00\x00\x00\x00\x00\x00\x00\x01"
+            service_name: "s1"
+          }
+          source_message_id: "m2"
+          destination : {
+            client_id: "\x00\x00\x00\x00\x00\x00\x00\x02"
+            service_name: "s2"
+          }
+          message_type: "mt"
+          creation_time: {
+            seconds: 1617187637
+            nanos: 101000
+          }
+          data: {
+            [type.googleapis.com/google.protobuf.Timestamp] {
+              seconds: 1234
+            }
+          }
+          validation_info: {
+            tags: {
+              key: "k1"
+              value: "v1"
+            }
+          }
+          result: {
+            processed_time: {
+              seconds: 1617187637
+              nanos: 101000
+            }
+            failed: True
+            failed_reason: "fr"
+          }
+          priority: LOW
+          background: true
+          annotations: {
+            entries: {
+              key: "ak1"
+              value: "av1"
+            }
+          }
+        }
+        """, fleetspeak_proto)
+    expected_result = client_plugin.ApiGetFleetspeakPendingMessagesResult.FromTextFormat(
+        """
+        messages: {
+          message_id: "m1"
+          source: {
+            client_id: "aff4:/C.0000000000000001"
+            service_name: "s1"
+          }
+          source_message_id: "m2"
+          destination : {
+            client_id: "aff4:/C.0000000000000002"
+            service_name: "s2"
+          }
+          message_type: "mt"
+          creation_time: 1617187637000101
+          data: {
+            [type.googleapis.com/google.protobuf.Timestamp] {
+              seconds: 1234
+            }
+          }
+          validation_info: {
+            tags: {
+              key: "k1"
+              value: "v1"
+            }
+          }
+          result: {
+            processed_time: 1617187637000101
+            failed: True
+            failed_reason: "fr"
+          }
+          priority: LOW
+          background: true
+          annotations: {
+            entries: {
+              key: "ak1"
+              value: "av1"
+            }
+          }
+        }
+        """)
+    with mock.patch.object(
+        fleetspeak_utils,
+        "GetFleetspeakPendingMessages",
+        return_value=fleetspeak_proto) as mock_get:
+      result = handler.Handle(args)
+      self.assertEqual(mock_get.call_args[0][0], "C.1111111111111111")
+      self.assertEqual(mock_get.call_args[1]["offset"], 1)
+      self.assertEqual(mock_get.call_args[1]["limit"], 2)
+      self.assertEqual(mock_get.call_args[1]["want_data"], True)
+      self.assertEqual(result, expected_result)
 
 
 def main(argv):

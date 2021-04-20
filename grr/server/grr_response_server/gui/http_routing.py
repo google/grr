@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This file just contains the werkzeug http routing map."""
 from __future__ import absolute_import
 from __future__ import division

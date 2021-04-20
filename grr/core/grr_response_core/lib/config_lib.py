@@ -3,15 +3,8 @@
 
 This handles opening and parsing of config files.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
-
 import collections
-import configparser
 import copy
-import errno
 import io
 import logging
 import os
@@ -19,10 +12,11 @@ import platform
 import re
 import sys
 import traceback
-from typing import Any, cast, Dict, Optional, Text
+from typing import Any, BinaryIO, cast, Dict, Optional, Text, Type
 
 from absl import flags
 
+from grr_response_core.lib import config_parser
 from grr_response_core.lib import lexer
 from grr_response_core.lib import package
 from grr_response_core.lib import type_info
@@ -31,7 +25,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
-from grr_response_core.lib.util.compat import yaml
+
 
 # Default is set in distro_entry.py to be taken from package resource.
 flags.DEFINE_string(
@@ -302,235 +296,6 @@ class ModulePath(ConfigFilter):
       raise FilterError(message)
 
 
-class GRRConfigParser(metaclass=MetaclassRegistry):
-  """The base class for all GRR configuration parsers."""
-
-  # Configuration parsers are named. This name is used to select the correct
-  # parser from the --config parameter which is interpreted as a filename,
-  # except for files of the form reg://XXXX where XXXX is the key name.
-  name = None
-
-  # Set to True by the parsers if the file exists.
-  parsed = None
-
-  def SaveData(self, raw_data):
-    raise NotImplementedError()
-
-  def SaveDataToFD(self, raw_data, fd):
-    raise NotImplementedError()
-
-  def RawData(self) -> Dict[Any, Any]:
-    """Convert the file to a more suitable data structure.
-
-    Returns:
-    The standard data format from this method is for example:
-
-    {
-     name: default_value;
-     name2: default_value2;
-
-     "Context1": {
-         name: value,
-         name2: value,
-
-         "Nested Context" : {
-           name: value;
-         };
-      },
-     "Context2": {
-         name: value,
-      }
-    }
-
-    i.e. raw_data is an OrderedDict() with keys representing parameter names
-    and values representing values. Contexts are represented by nested
-    OrderedDict() structures with similar format.
-
-    Note that support for contexts is optional and depends on the config file
-    format. If contexts are not supported, a flat OrderedDict() is returned.
-    """
-    raise NotImplementedError()
-
-
-class ConfigFileParser(configparser.RawConfigParser, GRRConfigParser):
-  """A parser for ini style config files."""
-
-  def __init__(self, filename=None, data=None, fd=None):
-    super().__init__()
-    self.optionxform = str
-
-    if fd:
-      self.parsed = self.read_file(fd)
-      self.filename = filename or fd.name
-
-    elif filename:
-      self.parsed = self.read(filename)
-      self.filename = filename
-
-    elif data is not None:
-      fd = io.StringIO(data)
-      # TODO(hanuszczak): Incorrect typings (`StringIO` is `IO`).
-      self.parsed = self.read_file(fd)  # pytype: disable=wrong-arg-types
-      self.filename = filename
-    else:
-      raise Error("Filename not specified.")
-
-  def __str__(self):
-    return "<%s filename=\"%s\">" % (self.__class__.__name__, self.filename)
-
-  def SaveData(self, raw_data):
-    """Store the raw data as our configuration."""
-    if self.filename is None:
-      raise IOError("Unknown filename")
-
-    logging.info("Writing back configuration to file %s", self.filename)
-    # Ensure intermediate directories exist
-    try:
-      os.makedirs(os.path.dirname(self.filename))
-    except (IOError, OSError):
-      pass
-
-    try:
-      # We can not use the standard open() call because we need to
-      # enforce restrictive file permissions on the created file.
-      mode = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-      fd = os.open(self.filename, mode, 0o600)
-      with os.fdopen(fd, "w") as config_file:
-        self.SaveDataToFD(raw_data, config_file)
-
-    except OSError as e:
-      logging.warning("Unable to write config file %s: %s.", self.filename, e)
-
-  def SaveDataToFD(self, raw_data, fd):
-    """Merge the raw data with the config file and store it."""
-    for key, value in raw_data.items():
-      # TODO(hanuszczak): Incorrect type specification for `set`.
-      # pytype: disable=wrong-arg-types
-      self.set("", key, value=value)
-      # pytype: enable=wrong-arg-types
-
-    self.write(fd)
-
-  def RawData(self):
-    raw_data = collections.OrderedDict()
-    for section in self.sections():
-      for key, value in self.items(section):
-        raw_data[".".join([section, key])] = value
-
-    return raw_data
-
-
-class YamlParser(GRRConfigParser):
-  """A parser for yaml style config files."""
-
-  name = "yaml"
-
-  # TODO(hanuszczak): This constructor has unnecessary complicated logic and too
-  # much branching. It should be simplified.
-  def __init__(self, filename=None, data=None, fd=None):
-    super().__init__()
-
-    if fd:
-      self.fd = fd
-      try:
-        self.filename = fd.name
-      except AttributeError:
-        self.filename = None
-      self.parsed = _ParseYamlFromFile(fd)
-
-    elif filename:
-      self.filename = filename
-
-      try:
-        self.parsed = _ParseYamlFromFilepath(filename)
-      except IOError as e:
-        if e.errno == errno.EACCES:
-          # Specifically catch access denied errors, this usually indicates the
-          # user wanted to read the file, and it existed, but they lacked the
-          # permissions.
-          raise IOError(e)
-        else:
-          self.parsed = collections.OrderedDict()
-
-    elif data is not None:
-      self.filename = filename
-      fd = io.StringIO(data)
-      self.parsed = _ParseYamlFromFile(fd)
-    else:
-      raise Error("Filename not specified.")
-
-  def __str__(self):
-    return "<%s filename=\"%s\">" % (self.__class__.__name__, self.filename)
-
-  def SaveData(self, raw_data):
-    """Store the raw data as our configuration."""
-    if self.filename is None:
-      raise IOError("Unknown filename")
-
-    logging.info("Writing back configuration to file %s", self.filename)
-    # Ensure intermediate directories exist
-    try:
-      os.makedirs(os.path.dirname(self.filename))
-    except (IOError, OSError):
-      pass
-
-    try:
-      # We can not use the standard open() call because we need to
-      # enforce restrictive file permissions on the created file.
-      mode = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
-      fd = os.open(self.filename, mode, 0o600)
-      with os.fdopen(fd, "wb") as config_file:
-        self.SaveDataToFD(raw_data, config_file)
-
-    except OSError as e:
-      logging.warning("Unable to write config file %s: %s.", self.filename, e)
-
-  def SaveDataToFD(self, raw_data, fd):
-    """Merge the raw data with the config file and store it."""
-    fd.write(yaml.Dump(raw_data).encode("utf-8"))
-
-  def _RawData(self, data):
-    """Convert data to common format.
-
-    Configuration options are normally grouped by the functional component which
-    define it (e.g. Logging.path is the path parameter for the logging
-    subsystem). However, sometimes it is more intuitive to write the config as a
-    flat string (e.g. Logging.path). In this case we group all the flat strings
-    in their respective sections and create the sections automatically.
-
-    Args:
-      data: A dict of raw data.
-
-    Returns:
-      a dict in common format. Any keys in the raw data which have a "." in them
-      are separated into their own sections. This allows the config to be
-      written explicitly in dot notation instead of using a section.
-    """
-    if not isinstance(data, dict):
-      return data
-
-    result = collections.OrderedDict()
-    for k, v in data.items():
-      result[k] = self._RawData(v)
-
-    return result
-
-  def RawData(self):
-    return self._RawData(self.parsed)
-
-
-def _ParseYamlFromFilepath(filepath):
-  """Parses a YAML file at specified path."""
-  with io.open(filepath, "r") as filedesc:
-    return _ParseYamlFromFile(filedesc)
-
-
-def _ParseYamlFromFile(filedesc):
-  """Parses given YAML file."""
-  content = filedesc.read()
-  return yaml.Parse(content) or collections.OrderedDict()
-
-
 class StringInterpolator(lexer.Lexer):
   r"""Implements a lexer for the string interpolation language.
 
@@ -766,8 +531,9 @@ class GrrConfigManager(object):
     newconf = self.MakeNewConfig()
     newconf.raw_data = copy.deepcopy(self.raw_data)
     newconf.files = copy.deepcopy(self.files)
-    newconf.secondary_config_parsers = copy.deepcopy(
-        self.secondary_config_parsers)
+    newconf.secondary_config_parsers = [
+        p.Copy() for p in self.secondary_config_parsers
+    ]
     newconf.writeback = copy.deepcopy(self.writeback)
     newconf.writeback_data = copy.deepcopy(self.writeback_data)
     newconf.global_override = copy.deepcopy(self.global_override)
@@ -791,8 +557,8 @@ class GrrConfigManager(object):
     """
     try:
       self.writeback = self.LoadSecondaryConfig(filename)
-      self.MergeData(self.writeback.RawData(), self.writeback_data)
-    except IOError as e:
+      self.MergeData(self.writeback.ReadData(), self.writeback_data)
+    except config_parser.ReadDataError as e:
       # This means that we probably aren't installed correctly.
       logging.error("Unable to read writeback file: %s", e)
       return
@@ -954,28 +720,20 @@ class GrrConfigManager(object):
       raise RuntimeError("Attempting to write a configuration without a "
                          "writeback location.")
 
-  def WriteToFD(self, fd):
-    """Write out the updated configuration to the fd."""
-    if self.writeback:
-      self.writeback.SaveDataToFD(self.writeback_data, fd)
-    else:
-      raise RuntimeError("Attempting to write a configuration without a "
-                         "writeback location.")
-
   def Persist(self, config_option):
     """Stores <config_option> in the writeback."""
     if not self.writeback:
       raise RuntimeError("Attempting to write a configuration without a "
                          "writeback location.")
 
-    writeback_raw_value = dict(self.writeback.RawData()).get(config_option)
+    writeback_raw_value = dict(self.writeback.ReadData()).get(config_option)
     raw_value = None
 
     for parser in [self.parser] + self.secondary_config_parsers:
       if parser == self.writeback:
         continue
 
-      config_raw_data = dict(parser.RawData())
+      config_raw_data = dict(parser.ReadData())
       raw_value = config_raw_data.get(config_option)
       if raw_value is None:
         continue
@@ -1073,25 +831,11 @@ class GrrConfigManager(object):
 
         raw_data[k] = v
 
-  def GetParserFromFilename(self, path):
-    """Returns the appropriate parser class from the filename."""
-    # Find the configuration parser.
-    handler_name = path.split("://")[0]
-    for parser_cls in GRRConfigParser.classes.values():
-      if parser_cls.name == handler_name:
-        return parser_cls
-
-    # Handle the filename.
-    extension = os.path.splitext(path)[1]
-    if extension in [".yaml", ".yml"]:
-      return YamlParser
-
-    return ConfigFileParser
-
-  def LoadSecondaryConfig(self,
-                          filename=None,
-                          parser=None,
-                          process_includes=True) -> GRRConfigParser:
+  def LoadSecondaryConfig(
+      self,
+      filename=None,
+      parser=None,
+      process_includes=True) -> config_parser.GRRConfigParser:
     """Loads an additional configuration file.
 
     The configuration system has the concept of a single Primary configuration
@@ -1122,15 +866,14 @@ class GrrConfigManager(object):
       # Maintain a stack of config file locations in loaded order.
       self.files.append(filename)
 
-      parser_cls = self.GetParserFromFilename(filename)
-      parser = parser_cls(filename=filename)
+      parser = config_parser.GetParserFromPath(filename)
       logging.debug("Loading configuration from %s", filename)
       self.secondary_config_parsers.append(parser)
     elif parser is None:
       raise ValueError("Must provide either a filename or a parser.")
 
     clone = self.MakeNewConfig()
-    clone.MergeData(parser.RawData())
+    clone.MergeData(parser.ReadData())
     clone.initialized = True
 
     if process_includes:
@@ -1149,9 +892,11 @@ class GrrConfigManager(object):
 
         clone_parser = clone.LoadSecondaryConfig(file_to_load)
         # If an include file is specified but it was not found, raise an error.
-        if not clone_parser.parsed:
+        try:
+          clone_parser.ReadData()
+        except config_parser.ReadDataError as e:
           raise ConfigFileNotFound("Unable to load include file %s" %
-                                   file_to_load)
+                                   file_to_load) from e
 
     self.MergeData(clone.raw_data)
     self.files.extend(clone.files)
@@ -1160,14 +905,16 @@ class GrrConfigManager(object):
 
   # TODO(hanuszczak): Magic method with a lot of mutually exclusive switches. It
   # should be split into multiple methods instead.
-  def Initialize(self,
-                 filename=None,
-                 data=None,
-                 fd=None,
-                 reset=True,
-                 must_exist=False,
-                 process_includes=True,
-                 parser=ConfigFileParser):
+  def Initialize(
+      self,
+      filename: Optional[str] = None,
+      data: Optional[str] = None,
+      fd: Optional[BinaryIO] = None,
+      reset: bool = True,
+      must_exist: bool = False,
+      process_includes: bool = True,
+      parser: Type[
+          config_parser.GRRConfigParser] = config_parser.IniConfigFileParser):
     """Initializes the config manager.
 
     This method is used to add more config options to the manager. The config
@@ -1200,18 +947,31 @@ class GrrConfigManager(object):
       self.initialized = False
 
     if fd is not None:
-      self.parser = self.LoadSecondaryConfig(
-          parser=parser(fd=fd), process_includes=process_includes)
+      if issubclass(parser, config_parser.GRRConfigFileParser):
+        self.parser = self.LoadSecondaryConfig(
+            parser=config_parser.FileParserDataWrapper(fd.read(), parser("")),
+            process_includes=process_includes)
+      else:
+        raise TypeError("Trying to read from FD with a non-file parser.")
 
     elif filename is not None:
       self.parser = self.LoadSecondaryConfig(
           filename, process_includes=process_includes)
-      if must_exist and not self.parser.parsed:
-        raise ConfigFormatError("Unable to parse config file %s" % filename)
+      try:
+        self.parser.ReadData()
+      except config_parser.ReadDataError as e:
+        if must_exist:
+          raise ConfigFormatError("Unable to parse config file %s" %
+                                  filename) from e
 
     elif data is not None:
-      self.parser = self.LoadSecondaryConfig(
-          parser=parser(data=data), process_includes=process_includes)
+      if issubclass(parser, config_parser.GRRConfigFileParser):
+        self.parser = self.LoadSecondaryConfig(
+            parser=config_parser.FileParserDataWrapper(
+                data.encode("utf-8"), parser("")),
+            process_includes=process_includes)
+      else:
+        raise TypeError("Trying to parse bytes with a non-file parser.")
 
     elif must_exist:
       raise RuntimeError("Registry path not provided.")
@@ -1687,7 +1447,7 @@ def LoadConfig(config_obj,
                secondary_configs=None,
                contexts=None,
                reset=False,
-               parser=ConfigFileParser):
+               parser=config_parser.IniConfigFileParser):
   """Initialize a ConfigManager with the specified options.
 
   Args:

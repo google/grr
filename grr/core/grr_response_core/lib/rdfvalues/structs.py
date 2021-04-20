@@ -8,6 +8,7 @@ import base64
 import collections
 import copy
 import functools
+import logging
 import struct
 from typing import ByteString, Iterator, Optional, Sequence, Text, Type, TypeVar, cast
 
@@ -2339,8 +2340,6 @@ class AnyValue(RDFProtoStruct):
   protobuf = any_pb2.Any
   allow_custom_class_name = True
 
-  _TYPE_URL_PREFIX = "type.googleapis.com/"
-
   @classmethod
   def Pack(cls, value: RDFProtoStruct) -> "AnyValue":
     """Packs given RDF value into the `Any` RDF wrapper.
@@ -2351,10 +2350,8 @@ class AnyValue(RDFProtoStruct):
     Returns:
       An instance of RDF wrapper for `Any` with packed message.
     """
-    full_name = value.protobuf.DESCRIPTOR.full_name
-
     result = cls()
-    result.type_url = f"{cls._TYPE_URL_PREFIX}{full_name}"
+    result.type_url = TypeURL(type(value))
     result.value = value.SerializeToBytes()
     return result
 
@@ -2367,4 +2364,16 @@ class AnyValue(RDFProtoStruct):
     Returns:
       An instance of the specified class.
     """
+    # Because messages can get renamed, unpacking into an unexpected type is not
+    # necessarily an error, but it still worth to log it as it might be helpful
+    # in identifying issues.
+    cls_type_url = TypeURL(cls)
+    if cls_type_url != self.type_url:
+      message = "Unpacking value of type '%s' to message of type '%s'."
+      logging.warning(message, self.type_url, cls_type_url)
+
     return cls.FromSerializedBytes(self.value)
+
+
+def TypeURL(cls: Type[_V]) -> str:
+  return f"type.googleapis.com/{cls.protobuf.DESCRIPTOR.full_name}"

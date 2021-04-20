@@ -84,6 +84,9 @@ describe('ClientSearch Component', () => {
     // Ensure ngOnInit hook completes.
     fixture.detectChanges();
 
+    // Simulate initial emission on subscription.
+    subject.next([]);
+
     subject.next([
       newClient({
         clientId: 'C.1234',
@@ -131,6 +134,9 @@ describe('ClientSearch Component', () => {
     const fixture = TestBed.createComponent(ClientSearch);
     // Ensure ngOnInit hook completes.
     fixture.detectChanges();
+
+    // Simulate initial emission on subscription.
+    subject.next([]);
 
     subject.next([
       newClient({

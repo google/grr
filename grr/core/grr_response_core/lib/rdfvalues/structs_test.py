@@ -1089,6 +1089,16 @@ class AnyValueTest(absltest.TestCase):
     unpacked = proto.Unpack(rdf_client.User)
     self.assertEqual(unpacked.username, "foo")
 
+  def testUnpackIncompatibleTypeURL(self):
+    user = rdf_client.User()
+    user.username = "foo"
+
+    proto = rdf_structs.AnyValue.Pack(user)
+    proto.type_url = "type.googleapis.com/com.example.Foo"
+
+    unpacked = proto.Unpack(rdf_client.User)
+    self.assertEqual(unpacked.username, "foo")
+
 
 class VarintReaderTest(absltest.TestCase):
   """Test the VarintReader implementation."""

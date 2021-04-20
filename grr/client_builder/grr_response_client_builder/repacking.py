@@ -6,7 +6,6 @@ from __future__ import print_function
 from __future__ import unicode_literals
 
 import getpass
-import io
 import logging
 import os
 import platform
@@ -21,7 +20,7 @@ from grr_response_client_builder.repackers import linux as linux_repackers
 from grr_response_client_builder.repackers import osx as osx_repackers
 from grr_response_client_builder.repackers import windows as windows_repackers
 from grr_response_core import config
-from grr_response_core.lib import config_lib
+from grr_response_core.lib import config_parser
 from grr_response_core.lib import rdfvalue
 
 
@@ -46,9 +45,8 @@ class RepackConfig(object):
         raise RuntimeError("Couldn't find build.yaml in %s" % template_path)
       with template_zip.open(build_yaml) as buildfile:
         repack_config = config.CONFIG.CopyConfig()
-        utf8_buildfile = io.TextIOWrapper(buildfile, encoding="utf-8")
-        parser = config_lib.YamlParser(fd=utf8_buildfile)
-        config_data = parser.RawData()
+        parser = config_parser.YamlConfigFileParser("")
+        config_data = parser.ReadDataFromFD(buildfile)
         self.Validate(config_data, template_path)
         repack_config.MergeData(config_data)
     return repack_config

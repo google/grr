@@ -1,8 +1,24 @@
 <condition-panel
   title="Literal match"
-  [formGroup]="controlContainer.control"
+  [formGroup]="formGroup"
   (conditionRemoved)="conditionRemoved.emit()">
 
-  <span>To be implemented...</span>
+  <mat-form-field appearance="outline">
+    <mat-label>Literal</mat-label>
+    <input matInput formControlName="literal" class="monospace">
+    <mat-error *ngIf="formGroup.controls.literal.hasError('required')">Literal expression is required</mat-error>
+  </mat-form-field>
+
+  <mat-form-field appearance="outline">
+    <mat-label>Mode</mat-label>
+    <mat-select formControlName="mode">
+       <mat-option [value]="FileFinderContentsMatchConditionMode.ALL_HITS">
+         All Hits
+       </mat-option>
+      <mat-option [value]="FileFinderContentsMatchConditionMode.FIRST_HIT">
+         First Hit
+       </mat-option>
+     </mat-select>
+  </mat-form-field>
 
 </condition-panel>
