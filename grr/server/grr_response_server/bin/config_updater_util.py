@@ -757,7 +757,7 @@ def Initialize(config=None,
   """Initialize or update a GRR configuration."""
 
   print("Checking write access on config %s" % config["Config.writeback"])
-  if not os.access(config.parser.filename, os.W_OK):
+  if not os.access(config.parser.config_path, os.W_OK):
     raise IOError("Config not writeable (need sudo?)")
 
   print("\nStep 0: Importing Configuration from previous installation.")
@@ -861,7 +861,7 @@ def InitializeNoPrompt(
     raise ValueError("--noprompt set, but --mysql_password was not provided.")
 
   print("Checking write access on config %s" % config.parser)
-  if not os.access(config.parser.filename, os.W_OK):
+  if not os.access(config.parser.config_path, os.W_OK):
     raise IOError("Config not writeable (need sudo?)")
 
   config_dict = {}
