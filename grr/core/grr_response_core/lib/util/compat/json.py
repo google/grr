@@ -67,13 +67,15 @@ else:
 
 def Dump(obj: Any,
          sort_keys: bool = False,
-         encoder: Optional[Type[Encoder]] = None) -> Text:
+         encoder: Optional[Type[Encoder]] = None,
+         indent: int = 2) -> Text:
   """Stringifies a Python object into its JSON representation.
 
   Args:
     obj: A Python object to convert to JSON.
     sort_keys: If True, output dictionaries keys in sorted (ascending) order.
     encoder: An (optional) encoder class to use.
+    indent: (Optional) integer number of indents to use for "pretty-print"
 
   Returns:
     A JSON representation of the given object.
@@ -84,7 +86,7 @@ def Dump(obj: Any,
   # _SEPARATORS and complains when running in Python 3 mode.
   text = json.dumps(
       obj,
-      indent=2,
+      indent=indent,
       sort_keys=sort_keys,
       ensure_ascii=False,
       cls=encoder,
