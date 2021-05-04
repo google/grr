@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import io
 import os
 
 from absl.testing import absltest
@@ -6,6 +7,7 @@ import responses
 
 from grr_response_client.client_actions import large_file as large_file_action
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.util import aead
 from grr_response_core.lib.util import temp
 from grr_response_server.flows.general import large_file
 from grr.test_lib import action_mocks
@@ -43,9 +45,14 @@ class CollectLargeFileFlowTest(flow_test_lib.FlowTestsBaseclass):
       with open(temp_path, mode="wb") as temp_file:
         temp_file.write(content)
 
-      self._Collect(path=temp_path, signed_url="https://foo.bar/quux")
+      flow_id = self._Collect(path=temp_path, signed_url="https://foo.bar/quux")
 
-    self.assertEqual(handler.content, content)
+    state = flow_test_lib.GetFlowState(self.client_id, flow_id)
+    self.assertNotEmpty(state.encryption_key)
+
+    encrypted_buf = io.BytesIO(handler.content)
+    decrypted_buf = aead.Decrypt(encrypted_buf, state.encryption_key)
+    self.assertEqual(decrypted_buf.read(), content)
 
   def _Collect(self, path: str, signed_url: str) -> str:
     """Runs the large file collection flow.

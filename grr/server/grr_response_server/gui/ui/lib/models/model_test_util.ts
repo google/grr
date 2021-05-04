@@ -97,9 +97,11 @@ export function newClientApproval(args: Partial<ClientApproval> = {}):
   };
 }
 
-export function newFlowResultSet(payload = {}): FlowResultSet {
+export function newFlowResultSet(
+    payload = {}, payloadType: string = 'Unknown'): FlowResultSet {
   return {
     items: [{
+      payloadType,
       payload,
       tag: '',
       timestamp: new Date(),

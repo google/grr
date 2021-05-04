@@ -204,7 +204,8 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
                      method,
                      path,
                      username=u"test",
-                     query_parameters=None):
+                     query_parameters=None,
+                     headers=None):
     request = mock.MagicMock()
     request.method = method
     request.path = path
@@ -214,7 +215,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     request.email = None
     request.args = query_parameters or {}
     request.content_type = "application/json; charset=utf-8"
-    request.headers = {}
+    request.headers = headers or {}
     request.get_data = lambda as_text=False: ""
 
     return request
@@ -349,25 +350,25 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     # pylint: disable=g-backslash-continuation
     with self.assertStatsCounterDelta(
         1, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "SUCCESS"]), \
+        fields=["SampleGet", "http", "SUCCESS", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "RESOURCE_EXHAUSTED"]), \
+        fields=["SampleGet", "http", "RESOURCE_EXHAUSTED", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "FORBIDDEN"]), \
+        fields=["SampleGet", "http", "FORBIDDEN", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "NOT_FOUND"]), \
+        fields=["SampleGet", "http", "NOT_FOUND", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "NOT_IMPLEMENTED"]), \
+        fields=["SampleGet", "http", "NOT_IMPLEMENTED", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "INVALID_ARGUMENT"]), \
+        fields=["SampleGet", "http", "INVALID_ARGUMENT", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_ACCESS_PROBE_LATENCY,
-        fields=["SampleGet", "http", "SERVER_ERROR"]):
+        fields=["SampleGet", "http", "SERVER_ERROR", "unknown"]):
       # pylint: enable=g-backslash-continuation
 
       self._RenderResponse(
@@ -377,28 +378,75 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     # pylint: disable=g-backslash-continuation
     with self.assertStatsCounterDelta(
         1, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "SUCCESS"]), \
+        fields=["SampleGet", "http", "SUCCESS", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "FORBIDDEN"]), \
+        fields=["SampleGet", "http", "FORBIDDEN", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "RESOURCE_EXHAUSTED"]), \
+        fields=["SampleGet", "http", "RESOURCE_EXHAUSTED", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "NOT_FOUND"]), \
+        fields=["SampleGet", "http", "NOT_FOUND", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "NOT_IMPLEMENTED"]), \
+        fields=["SampleGet", "http", "NOT_IMPLEMENTED", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "INVALID_ARGUMENT"]), \
+        fields=["SampleGet", "http", "INVALID_ARGUMENT", "unknown"]), \
     self.assertStatsCounterDelta(
         0, http_api.API_METHOD_LATENCY,
-        fields=["SampleGet", "http", "SERVER_ERROR"]):
+        fields=["SampleGet", "http", "SERVER_ERROR", "unknown"]):
       # pylint: enable=g-backslash-continuation
 
       self._RenderResponse(self._CreateRequest("GET", "/test_sample/some/path"))
+
+  def testOriginIsExtractedFromRequest(self):
+    with self.assertStatsCounterDelta(
+        1,
+        http_api.API_METHOD_LATENCY,
+        fields=["SampleGet", "http", "SUCCESS", "GRR-UI/1.0"]):
+      self._RenderResponse(
+          self._CreateRequest(
+              "GET",
+              "/test_sample/some/path",
+              headers={"X-User-Agent": "GRR-UI/1.0"}))
+
+    with self.assertStatsCounterDelta(
+        1,
+        http_api.API_METHOD_LATENCY,
+        fields=["SampleGet", "http", "SUCCESS", "GRR-UI/2.0"]):
+      self._RenderResponse(
+          self._CreateRequest(
+              "GET",
+              "/test_sample/some/path",
+              headers={"X-User-Agent": "GRR-UI/2.0"}))
+
+  def testUnknownOriginsAreLabelledUnknown(self):
+    with self.assertStatsCounterDelta(
+        1,
+        http_api.API_METHOD_LATENCY,
+        fields=["SampleGet", "http", "SUCCESS", "unknown"]):
+      self._RenderResponse(
+          self._CreateRequest(
+              "GET",
+              "/test_sample/some/path",
+              headers={"X-User-Agent": "GRR-UI/invalid"}))
+
+    with self.assertStatsCounterDelta(
+        1,
+        http_api.API_METHOD_LATENCY,
+        fields=["SampleGet", "http", "SUCCESS", "unknown"]):
+      self._RenderResponse(
+          self._CreateRequest(
+              "GET", "/test_sample/some/path", headers={"X-User-Agent": ""}))
+
+    with self.assertStatsCounterDelta(
+        1,
+        http_api.API_METHOD_LATENCY,
+        fields=["SampleGet", "http", "SUCCESS", "unknown"]):
+      self._RenderResponse(
+          self._CreateRequest("GET", "/test_sample/some/path", headers={}))
 
   def testStatsAreCorrectlyUpdatedOnVariousStatusCodes(self):
 
@@ -407,31 +455,31 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
       with self.assertStatsCounterDelta(
           1 if status == "SUCCESS" else 0,
           http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "SUCCESS"]), \
+          fields=[method_name, "http", "SUCCESS", "unknown"]), \
       self.assertStatsCounterDelta(
           1 if status == "FORBIDDEN" else 0,
           http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "FORBIDDEN"]), \
+          fields=[method_name, "http", "FORBIDDEN", "unknown"]), \
       self.assertStatsCounterDelta(
           1 if status == "RESOURCE_EXHAUSTED" else 0,
           http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "RESOURCE_EXHAUSTED"]), \
+          fields=[method_name, "http", "RESOURCE_EXHAUSTED", "unknown"]), \
       self.assertStatsCounterDelta(
           1 if status == "NOT_FOUND" else 0,
           http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "NOT_FOUND"]), \
+          fields=[method_name, "http", "NOT_FOUND", "unknown"]), \
       self.assertStatsCounterDelta(
           1 if status == "NOT_IMPLEMENTED" else 0,
           http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "NOT_IMPLEMENTED"]), \
+          fields=[method_name, "http", "NOT_IMPLEMENTED", "unknown"]), \
       self.assertStatsCounterDelta(
           1 if status == "INVALID_ARGUMENT" else 0,
           http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "INVALID_ARGUMENT"]), \
+          fields=[method_name, "http", "INVALID_ARGUMENT", "unknown"]), \
       self.assertStatsCounterDelta(
           1 if status == "SERVER_ERROR" else 0,
           http_api.API_METHOD_LATENCY,
-          fields=[method_name, "http", "SERVER_ERROR"]):
+          fields=[method_name, "http", "SERVER_ERROR", "unknown"]):
         # pylint: enable=g-backslash-continuation
 
         self._RenderResponse(self._CreateRequest("GET", url))

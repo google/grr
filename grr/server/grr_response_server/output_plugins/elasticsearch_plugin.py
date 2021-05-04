@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """OutputPlugin that sends Flow results to an Elasticsearch cluster.
 
 Configuration values for this plugin can be found in
@@ -29,7 +30,7 @@ from grr_response_server.gui.api_plugins import flow as api_flow
 
 BULK_OPERATIONS_PATH = "_bulk"
 
-# TODO: Use the JSON type https://github.com/python/typing/issues/182
+# TODO(user): Use the JSON type.
 JsonDict = Dict[Text, Any]
 
 
@@ -56,7 +57,7 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
   args_type = ElasticsearchOutputPluginArgs
 
   def __init__(self, *args, **kwargs):
-    """Initialize the Elasticsearch output plugin"""
+    """Initializes the Elasticsearch output plugin."""
     super().__init__(*args, **kwargs)
 
     url = config.CONFIG["Elasticsearch.url"]
@@ -117,10 +118,10 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
                  flow: api_flow.ApiFlow) -> JsonDict:
 
     event = {
-      "client": _ToDict(client),
-      "flow": _ToDict(flow),
-      "resultType": message.args_rdf_name,
-      "result": _ToDict(message.payload),
+        "client": _ToDict(client),
+        "flow": _ToDict(flow),
+        "resultType": message.args_rdf_name,
+        "result": _ToDict(message.payload),
     }
 
     if self.args.tags:
@@ -129,10 +130,9 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
     return event
 
   def _SendEvents(self, events: List[JsonDict]) -> None:
-    """Uses the Elasticsearch bulk API to index all the events in a single
-    request.
-    https://www.elastic.co/guide/en/elasticsearch/reference/7.1/docs-bulk.html
-    """
+    """Uses the Elasticsearch bulk API to index all events in a single request."""
+    # https://www.elastic.co/guide/en/elasticsearch/reference/7.1/docs-bulk.html
+
     if self._token:
       headers = {"Authorization": "Basic {}".format(self._token)}
     else:
@@ -143,8 +143,9 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
     # Each index operation is two lines, the first defining the index settings,
     # the second is the actual document to be indexed
     data = "\n".join([
-      "{}\n{}".format(index_command, json.Dump(event, indent=None))
-      for event in events])
+        "{}\n{}".format(index_command, json.Dump(event, indent=None))
+        for event in events
+    ])
 
     response = requests.post(
         url=self._url, verify=self._verify_https, data=data, headers=headers)

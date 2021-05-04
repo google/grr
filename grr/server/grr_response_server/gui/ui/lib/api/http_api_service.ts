@@ -51,7 +51,8 @@ export class MissingApprovalError extends Error {
 export class WithCredentialsInterceptor implements HttpInterceptor {
   intercept<T>(req: HttpRequest<T>, next: HttpHandler):
       Observable<HttpEvent<T>> {
-    return next.handle(req.clone({withCredentials: true}));
+    return next.handle(req.clone(
+        {withCredentials: true, setHeaders: {'X-User-Agent': 'GRR-UI/2.0'}}));
   }
 }
 

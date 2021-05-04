@@ -245,6 +245,22 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     self.access_checker.CheckClientAccess(context, args.client_id)
     return self.delegate.DeleteFleetspeakPendingMessages(args, context=context)
 
+  def GetFleetspeakPendingMessages(
+      self,
+      args: api_client.ApiGetFleetspeakPendingMessagesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiGetFleetspeakPendingMessagesHandler:
+    self.access_checker.CheckClientAccess(context, args.client_id)
+    return self.delegate.GetFleetspeakPendingMessages(args, context=context)
+
+  def GetFleetspeakPendingMessageCount(
+      self,
+      args: api_client.ApiGetFleetspeakPendingMessageCountArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiGetFleetspeakPendingMessageCountHandler:
+    self.access_checker.CheckClientAccess(context, args.client_id)
+    return self.delegate.GetFleetspeakPendingMessageCount(args, context=context)
+
   # Virtual file system methods.
   # ============================
   #

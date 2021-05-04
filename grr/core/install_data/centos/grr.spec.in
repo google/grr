@@ -48,6 +48,23 @@ if [ "$1" -ne 1 ]; then
   fi
 fi
 
+if [ -n "%(Client.unprivileged_group)" ]; then
+  # creating unprivileged group if it isn't already there
+  if ! getent group "%(Client.unprivileged_group)" >/dev/null; then
+    groupadd --system "%(Client.unprivileged_group)"
+  fi
+  if [ -n "%(Client.unprivileged_user)" ]; then
+    # creating unprivileged user if it isn't already there
+    if ! getent passwd "%(Client.unprivileged_user)" >/dev/null; then
+      useradd --system \
+        --gid "%(Client.unprivileged_group)" \
+        --home-dir /nonexistent --no-create-home \
+        --shell /usr/sbin/nologin \
+        "%(Client.unprivileged_user)"
+    fi
+  fi
+fi
+
 %post
 
 %(ClientBuilder.target_dir)/%(Client.binary_name) --config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filename) --install

@@ -298,22 +298,22 @@ message ApiListClientActionRequestsResult {
 }
 
 message ApiKillFleetspeakArgs {
-  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+  optional string client_id = 1 [(sem_type) = { type: "ApiClientId" }];
   // If true, the fleetspeak process is terminated without performing
   // a graceful shutdown.
   optional bool force = 2;
 }
 
 message ApiRestartFleetspeakGrrServiceArgs {
-  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+  optional string client_id = 1 [(sem_type) = { type: "ApiClientId" }];
 }
 
 message ApiDeleteFleetspeakPendingMessagesArgs {
-  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+  optional string client_id = 1 [(sem_type) = { type: "ApiClientId" }];
 }
 
 message ApiGetFleetspeakPendingMessageCountArgs {
-  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+  optional string client_id = 1 [(sem_type) = { type: "ApiClientId" }];
 }
 
 message ApiGetFleetspeakPendingMessageCountResult {
@@ -321,7 +321,7 @@ message ApiGetFleetspeakPendingMessageCountResult {
 }
 
 message ApiGetFleetspeakPendingMessagesArgs {
-  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+  optional string client_id = 1 [(sem_type) = { type: "ApiClientId" }];
   // Offset for pagination.
   optional uint64 offset = 2;
   // Limit for pagination.
@@ -332,7 +332,7 @@ message ApiGetFleetspeakPendingMessagesArgs {
 
 // Mirrors the proto `fleetspeak.Address`.
 message ApiFleetspeakAddress {
-  optional string client_id = 1 [(sem_type) = { type: "ClientURN" }];
+  optional string client_id = 1 [(sem_type) = { type: "ApiClientId" }];
 
   optional string service_name = 2;
 }

@@ -25,7 +25,6 @@ def Parse(text: Text) -> Any:
 
   Args:
     text: A JSON source to parse.
-
   Returns:
     A Python data structure corresponding to the JSON source.
   """
@@ -38,7 +37,6 @@ def ReadFromFile(filedesc: IO[Text]) -> Any:
 
   Args:
     filedesc: A descriptor of the file to read the JSON contents from.
-
   Returns:
     A Python data structure corresponding to the JSON in the given file.
   """
@@ -51,7 +49,6 @@ def ReadFromPath(filepath: Text) -> Any:
 
   Args:
     filepath: A filepath to the JSON file.
-
   Returns:
     A Python data structure corresponding to the JSON in the given file.
   """
@@ -68,7 +65,7 @@ else:
 def Dump(obj: Any,
          sort_keys: bool = False,
          encoder: Optional[Type[Encoder]] = None,
-         indent: int = 2) -> Text:
+         indent: Optional[int] = 2) -> Text:
   """Stringifies a Python object into its JSON representation.
 
   Args:
@@ -76,7 +73,6 @@ def Dump(obj: Any,
     sort_keys: If True, output dictionaries keys in sorted (ascending) order.
     encoder: An (optional) encoder class to use.
     indent: (Optional) integer number of indents to use for "pretty-print"
-
   Returns:
     A JSON representation of the given object.
   """

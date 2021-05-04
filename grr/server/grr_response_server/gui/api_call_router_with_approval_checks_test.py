@@ -140,6 +140,8 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       "KillFleetspeak",
       "RestartFleetspeakGrrService",
       "DeleteFleetspeakPendingMessages",
+      "GetFleetspeakPendingMessages",
+      "GetFleetspeakPendingMessageCount",
   ])
 
   def testVfsMethodsAreAccessChecked(self):

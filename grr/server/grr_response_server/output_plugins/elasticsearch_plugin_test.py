@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Tests for Elasticsearch output plugin."""
 
 from unittest import mock
@@ -122,7 +123,7 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(bulk_pairs, 2)
     for event_pair in bulk_pairs:
       self.assertEqual(event_pair[1]['client']['clientUrn'],
-                      'aff4:/C.1000000000000000')
+                       'aff4:/C.1000000000000000')
 
     self.assertEqual(bulk_pairs[0][1]['resultType'], 'StatEntry')
     self.assertEqual(bulk_pairs[0][1]['result'], {
@@ -148,8 +149,7 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
           plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(),
           responses=[rdf_client.Process(pid=42)])
 
-    self.assertEqual(mock_post.call_args[KWARGS]['url'],
-                     'http://a/_bulk')
+    self.assertEqual(mock_post.call_args[KWARGS]['url'], 'http://a/_bulk')
     self.assertFalse(mock_post.call_args[KWARGS]['verify'])
     self.assertEqual(mock_post.call_args[KWARGS]['headers']['Authorization'],
                      'Basic b')
@@ -160,9 +160,8 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   def testFailsWhenUrlIsNotConfigured(self):
     with test_lib.ConfigOverrider({'Elasticsearch.token': 'b'}):
       with self.assertRaisesRegex(
-        elasticsearch_plugin.ElasticsearchConfigurationError,
-        'Elasticsearch.url'
-      ):
+          elasticsearch_plugin.ElasticsearchConfigurationError,
+          'Elasticsearch.url'):
         self._CallPlugin(
             plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(),
             responses=[rdf_client.Process(pid=42)])
@@ -175,8 +174,7 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     }):
       mock_post = self._CallPlugin(
           plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(
-            index='f'
-          ),
+              index='f'),
           responses=[rdf_client.Process(pid=42)])
 
     bulk_pairs = self._ParseEvents(mock_post)

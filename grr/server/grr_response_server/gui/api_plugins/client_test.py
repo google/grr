@@ -577,12 +577,12 @@ class ApiGetFleetspeakPendingMessagesHandlerTest(api_test_lib.ApiCallHandlerTest
         messages: {
           message_id: "m1"
           source: {
-            client_id: "aff4:/C.0000000000000001"
+            client_id: "C.0000000000000001"
             service_name: "s1"
           }
           source_message_id: "m2"
           destination : {
-            client_id: "aff4:/C.0000000000000002"
+            client_id: "C.0000000000000002"
             service_name: "s2"
           }
           message_type: "mt"

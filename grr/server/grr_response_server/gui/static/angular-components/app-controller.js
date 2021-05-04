@@ -120,6 +120,11 @@ exports.appControllerModule.config(function(
 
 exports.appControllerModule.run(function(
     $injector, $http, $cookies, grrFirebaseService, grrReflectionService) {
+  if (!$http.defaults.headers.common) {
+    $http.defaults.headers.common = {};
+  }
+  $http.defaults.headers.common['X-User-Agent'] = 'GRR-UI/1.0';
+
   // Ensure CSRF token is in place for Angular-initiated HTTP requests.
   $http.defaults.headers.post['X-CSRFToken'] = $cookies.get('csrftoken');
   $http.defaults.headers.delete = $http.defaults.headers.patch = {

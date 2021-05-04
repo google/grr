@@ -587,7 +587,7 @@ message ExecuteResponse {
 }
 
 // A message to encode a filesystem path (maybe for raw access)
-// Next field: 15
+// Next field: 16
 message PathSpec {
   enum PathType {
     UNSET = -1;
@@ -680,6 +680,27 @@ message PathSpec {
   optional bool is_virtualroot = 14 [(sem_type) = {
     description: "Indicates that this pathspec already contains a "
                  "virtual root."
+  }];
+
+  // ImplementationType has been introduced for rolling-out sandboxing.
+  // The purpose is to make it possible to switch the implementation at
+  // run-time via the UI in case there are problems.
+  // TODO: Once sandboxing becomes the default implementation,
+  // this should be removed.
+
+  enum ImplementationType {
+    // When DEFAULT is set then the implementation set in the client
+    // configuration is used.
+    DEFAULT = 0;
+    DIRECT = 1;
+    SANDBOX = 2;
+  }
+
+  optional ImplementationType implementation_type = 15 [(sem_type) = {
+    label: ADVANCED,
+    description: "Force use of an implementation. "
+                 "For nested pathspecs, this field can be set only on the"
+                 "top-level pathspec."
   }];
 }
 

@@ -98,6 +98,20 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
     return api_client.ApiDeleteFleetspeakPendingMessagesHandler()
 
+  def GetFleetspeakPendingMessages(
+      self,
+      args: api_client.ApiGetFleetspeakPendingMessagesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiGetFleetspeakPendingMessagesHandler:
+    return api_client.ApiGetFleetspeakPendingMessagesHandler()
+
+  def GetFleetspeakPendingMessageCount(
+      self,
+      args: api_client.ApiGetFleetspeakPendingMessageCountArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiGetFleetspeakPendingMessageCountHandler:
+    return api_client.ApiGetFleetspeakPendingMessageCountHandler()
+
   # Virtual file system methods.
   # ============================
   #

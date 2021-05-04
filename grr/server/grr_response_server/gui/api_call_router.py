@@ -372,6 +372,26 @@ class ApiCallRouterStub(ApiCallRouter):
   ) -> api_client.ApiDeleteFleetspeakPendingMessagesHandler:
     raise NotImplementedError()
 
+  @Category("Clients")
+  @ArgsType(api_client.ApiGetFleetspeakPendingMessagesArgs)
+  @Http("GET", "/api/clients/<client_id>/fleetspeak/messages/pending")
+  def GetFleetspeakPendingMessages(
+      self,
+      args: api_client.ApiGetFleetspeakPendingMessagesArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiGetFleetspeakPendingMessagesHandler:
+    raise NotImplementedError()
+
+  @Category("Clients")
+  @ArgsType(api_client.ApiGetFleetspeakPendingMessageCountArgs)
+  @Http("GET", "/api/clients/<client_id>/fleetspeak/messages/pending/count")
+  def GetFleetspeakPendingMessageCount(
+      self,
+      args: api_client.ApiGetFleetspeakPendingMessageCountArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_client.ApiGetFleetspeakPendingMessageCountHandler:
+    raise NotImplementedError()
+
   # Virtual file system methods.
   # ===========================
   #

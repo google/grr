@@ -29,6 +29,7 @@ from grr_response_proto import checks_pb2
 from grr_response_proto import deprecated_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import large_file_pb2
 from grr_response_proto import osquery_pb2
 from grr_response_proto import timeline_pb2
 
@@ -298,6 +299,7 @@ def RegisterProtoDescriptors(
   db.RegisterFileDescriptor(deprecated_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(flows_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(jobs_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(large_file_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(osquery_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(timeline_pb2.DESCRIPTOR)
 

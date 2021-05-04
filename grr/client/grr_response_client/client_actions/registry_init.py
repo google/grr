@@ -13,6 +13,7 @@ from grr_response_client.client_actions import artifact_collector
 from grr_response_client.client_actions import cloud
 from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
+from grr_response_client.client_actions import large_file
 from grr_response_client.client_actions import memory
 from grr_response_client.client_actions import network
 from grr_response_client.client_actions import osquery
@@ -31,6 +32,7 @@ def RegisterClientActions():
                           artifact_collector.ArtifactCollector)
   client_actions.Register("CheckFreeGRRTempSpace",
                           tempfiles.CheckFreeGRRTempSpace)
+  client_actions.Register("CollectLargeFile", large_file.CollectLargeFileAction)
   client_actions.Register("DeleteGRRTempFiles", tempfiles.DeleteGRRTempFiles)
   client_actions.Register("Echo", admin.Echo)
   client_actions.Register("ExecuteBinaryCommand", standard.ExecuteBinaryCommand)

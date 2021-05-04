@@ -57,10 +57,12 @@ export function translateFlow(apiFlow: ApiFlow): Flow {
 /** Construct a FlowResult model object, corresponding to ApiFlowResult.  */
 export function translateFlowResult(apiFlowResult: ApiFlowResult): FlowResult {
   assertKeyNonNull(apiFlowResult, 'payload');
+  assertKeyNonNull(apiFlowResult, 'payloadType');
   assertKeyNonNull(apiFlowResult, 'timestamp');
 
   return {
     payload: createUnknownObject(apiFlowResult.payload),
+    payloadType: apiFlowResult.payloadType,
     tag: apiFlowResult.tag ?? '',
     timestamp: createDate(apiFlowResult.timestamp),
   };

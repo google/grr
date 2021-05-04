@@ -42,7 +42,7 @@ describe('ApiFlowResult translation', () => {
   it('converts ApiFlowResult to FlowResult correctly', () => {
     const apiFlowResult: ApiFlowResult = {
       payload: {
-        '@type': 'StatEntry',
+        '@type': 'example.com/grr.StatEntry',
         path: newPathSpec('/foo/bar'),
       },
       payloadType: 'StatEntry',
@@ -54,6 +54,7 @@ describe('ApiFlowResult translation', () => {
       payload: {
         path: newPathSpec('/foo/bar'),
       },
+      payloadType: 'StatEntry',
       tag: 'someTag',
       timestamp: new Date(1571789996681),
     };

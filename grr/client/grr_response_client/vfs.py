@@ -32,6 +32,8 @@ UnsupportedHandlerError = vfs_base.UnsupportedHandlerError
 # TODO: Dictionary keys are of type rdf_paths.PathSpec.PathType,
 # but this is currently not representable as type information in Python.
 VFS_HANDLERS = {}  # type: Dict[Any, Type[vfs_base.VFSHandler]]
+_VFS_HANDLERS_DIRECT = {}  # type: Dict[Any, Type[vfs_base.VFSHandler]]
+_VFS_HANDLERS_SANDBOX = {}  # type: Dict[Any, Type[vfs_base.VFSHandler]]
 
 # The paths we should use as virtual root for VFS operations.
 _VFS_VIRTUALROOTS = {}
@@ -40,6 +42,8 @@ _VFS_VIRTUALROOTS = {}
 def Init():
   """Register all known vfs handlers to open a pathspec types."""
   VFS_HANDLERS.clear()
+  _VFS_HANDLERS_DIRECT.clear()
+  _VFS_HANDLERS_SANDBOX.clear()
   _VFS_VIRTUALROOTS.clear()
   vfs_virtualroots = config.CONFIG["Client.vfs_virtualroots"]
 
@@ -56,6 +60,18 @@ def Init():
   if vfs_registry is not None:
     VFS_HANDLERS[vfs_registry.RegistryFile
                  .supported_pathtype] = vfs_registry.RegistryFile
+
+  _VFS_HANDLERS_DIRECT.update(VFS_HANDLERS)
+  _VFS_HANDLERS_DIRECT[sleuthkit.TSKFile.supported_pathtype] = sleuthkit.TSKFile
+  _VFS_HANDLERS_DIRECT[ntfs.NTFSFile.supported_pathtype] = ntfs.NTFSFile
+
+  _VFS_HANDLERS_SANDBOX.update(VFS_HANDLERS)
+  _VFS_HANDLERS_SANDBOX[
+      unprivileged_vfs.UnprivilegedNtfsFile
+      .supported_pathtype] = unprivileged_vfs.UnprivilegedNtfsFile
+  _VFS_HANDLERS_SANDBOX[
+      unprivileged_vfs.UnprivilegedTskFile
+      .supported_pathtype] = unprivileged_vfs.UnprivilegedTskFile
 
   for vfs_virtualroot in vfs_virtualroots:
     try:
@@ -82,6 +98,24 @@ def Init():
       base_type = handler
     _VFS_VIRTUALROOTS[handler] = rdf_paths.PathSpec(
         path=root, pathtype=base_type, is_virtualroot=True)
+
+
+def _GetVfsHandlers(
+    pathspec: rdf_paths.PathSpec) -> Dict[Any, Type[vfs_base.VFSHandler]]:
+  """Returns the table of VFS handlers for the given pathspec."""
+  for i, element in enumerate(pathspec):
+    if element.HasField("implementation_type") and i != 0:
+      raise ValueError(
+          "implementation_type must be set on the top-level component of "
+          "a pathspec.")
+  if (pathspec.implementation_type ==
+      rdf_paths.PathSpec.ImplementationType.DIRECT):
+    return _VFS_HANDLERS_DIRECT
+  elif (pathspec.implementation_type ==
+        rdf_paths.PathSpec.ImplementationType.SANDBOX):
+    return _VFS_HANDLERS_SANDBOX
+  else:
+    return VFS_HANDLERS
 
 
 def VFSOpen(pathspec: rdf_paths.PathSpec,
@@ -171,6 +205,8 @@ def VFSOpen(pathspec: rdf_paths.PathSpec,
   if not VFS_HANDLERS:
     Init()
 
+  handlers = _GetVfsHandlers(pathspec)
+
   fd = None
 
   # Adjust the pathspec in case we are using a vfs_virtualroot.
@@ -196,7 +232,7 @@ def VFSOpen(pathspec: rdf_paths.PathSpec,
   while working_pathspec:
     component = working_pathspec.Pop()
     try:
-      handler = VFS_HANDLERS[component.pathtype]
+      handler = handlers[component.pathtype]
     except KeyError:
       raise UnsupportedHandlerError(component.pathtype)
 
@@ -204,7 +240,7 @@ def VFSOpen(pathspec: rdf_paths.PathSpec,
     fd = handler.Open(
         fd=fd,
         component=component,
-        handlers=dict(VFS_HANDLERS),
+        handlers=dict(handlers),
         pathspec=working_pathspec,
         progress_callback=progress_callback)
 

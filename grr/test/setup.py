@@ -67,6 +67,7 @@ setup_args = dict(
         "pytest==6.2.2",
         "responses==0.12.1",
         "selenium==3.141.0",
+        "google-api-python-client==1.9.3",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-server==%s" % VERSION.get("Version", "packagedepends"),

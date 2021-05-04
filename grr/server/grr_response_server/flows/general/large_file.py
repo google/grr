@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """A module with the implementation of the large file collection flow."""
+import os
+
 from grr_response_core.lib.rdfvalues import large_file as rdf_large_file
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -27,12 +29,19 @@ class CollectLargeFileFlow(flow_base.FlowBase):
   category = "/Filesystem/"
   behaviours = flow_base.BEHAVIOUR_BASIC
 
+  args_type = CollectLargeFileFlowArgs
+
   def Start(self) -> None:
     super().Start()
+
+    # The encryption key is generated and stored within flow state to let the
+    # analyst decrypt the file later.
+    self.state.encryption_key = os.urandom(16)
 
     args = rdf_large_file.CollectLargeFileArgs()
     args.path_spec = self.args.path_spec
     args.signed_url = self.args.signed_url
+    args.encryption_key = self.state.encryption_key
 
     self.CallClient(
         server_stubs.CollectLargeFile,

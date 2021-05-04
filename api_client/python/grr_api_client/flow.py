@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 from typing import Union
 
+from google.protobuf import wrappers_pb2
 from google.protobuf import message
 from grr_api_client import context as api_context
 from grr_api_client import errors
@@ -206,3 +207,15 @@ class Flow(FlowBase):
                 type(self.data).__name__, self.data.client_id,
                 self.data.flow_id, self.data.name,
                 flow_pb2.ApiFlow.State.Name(self.data.state))
+
+  def GetLargeFileEncryptionKey(self) -> bytes:
+    """Retrieves the encryption key of the large file collection flow."""
+    if self.data.name != "CollectLargeFileFlow":
+      raise ValueError(f"Incorrect flow type: '{self.data.name}'")
+
+    encryption_key_wrapper = wrappers_pb2.BytesValue()
+
+    state = {item.key: item.value for item in self.data.state_data.items}
+    state["encryption_key"].Unpack(encryption_key_wrapper)
+
+    return encryption_key_wrapper.value

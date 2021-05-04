@@ -32,6 +32,7 @@ export declare interface Flow {
 
 /** FlowResult represents a single flow result. */
 export declare interface FlowResult {
+  readonly payloadType: string;
   readonly payload: unknown;
   readonly tag: string;
   readonly timestamp: Date;

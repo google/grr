@@ -167,6 +167,8 @@ class CfData(StructBase):
     compress_obj = zlib.compressobj(-1, zlib.DEFLATED, -zlib.MAX_WBITS)
     compressed = b"\x43\x4b" + compress_obj.compress(
         data) + compress_obj.flush()
+    if len(compressed) > 0x8000:
+      raise Error(f"Compressed data is too large: {len(compressed)}.")
     result.cb_data = len(compressed)
     result.data += compressed
     result.csum = result.ComputeChecksum()
@@ -277,7 +279,11 @@ class Cab:
     cf_file.uoff_folder_start = folder_offset
     with open(self._FilePath(cf_file), "rb") as in_file:
       while True:
-        data = in_file.read(0x8000)
+        # The maximum for both compressed and uncompressed data is 0x8000.
+        # The compressed data can be larger than the uncompressed data (if it
+        # is not well compressible), so add room of 0x100 for the compressed
+        # data to grow.
+        data = in_file.read(0x8000 - 0x100)
         if not data:
           break
         cf_data = CfData.FromUncompressedData(data)

@@ -37,13 +37,15 @@ from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_value_renderers
 from grr_response_server.gui import http_response
 
-
-API_METHOD_LATENCY = metrics.Event(
-    "api_method_latency",
-    fields=[("method_name", str), ("protocol", str), ("status", str)])
+_FIELDS = (
+    ("method_name", str),
+    ("protocol", str),
+    ("status", str),
+    ("origin", str),
+)
+API_METHOD_LATENCY = metrics.Event("api_method_latency", fields=_FIELDS)
 API_ACCESS_PROBE_LATENCY = metrics.Event(
-    "api_access_probe_latency",
-    fields=[("method_name", str), ("protocol", str), ("status", str)])
+    "api_access_probe_latency", fields=_FIELDS)
 
 
 class Error(Exception):
@@ -614,13 +616,27 @@ def RenderHttpResponse(request):
   else:
     status = "SERVER_ERROR"
 
-  fields = (method_name, "http", status)
+  fields = (method_name, "http", status, _GetRequestOrigin(request))
   if request.method == "HEAD":
     API_ACCESS_PROBE_LATENCY.RecordEvent(total_time, fields=fields)
   else:
     API_METHOD_LATENCY.RecordEvent(total_time, fields=fields)
 
   return response
+
+
+def _GetRequestOrigin(request):
+  """Returns the self-reported origin (e.g. "GRR-UI/2.0") of the request."""
+  ua = request.headers.get("X-User-Agent", "")
+
+  # Do not loop-through arbitrary header values into the metric data. Instead,
+  # allow-list known good values.
+  if ua in ("GRR-UI/1.0", "GRR-UI/2.0"):
+    return ua
+  else:
+    # "unknown" can be returned for UIv1's file downloads, because these are
+    # triggered through an iframe.
+    return "unknown"
 
 
 _V = TypeVar("_V", bound=rdfvalue.RDFValue)

@@ -428,7 +428,7 @@ class YaraProcessScan(actions.ActionPlugin):
                         scan_request.cmdline_regex,
                         scan_request.ignore_grr_process, scan_response.errors))
 
-    if config.CONFIG["Client.use_memory_sandboxing"]:
+    if self._UseSandboxing(args):
       self._yara_wrapper: YaraWrapper = UnprivilegedYaraWrapper(
           str(scan_request.yara_signature), processes)
     else:
@@ -447,6 +447,16 @@ class YaraProcessScan(actions.ActionPlugin):
         self._ScanProcess(process, scan_request, scan_response)
 
       self.SendReply(scan_response)
+
+  def _UseSandboxing(self, args: rdf_memory.YaraProcessScanRequest) -> bool:
+    if (args.implementation_type ==
+        rdf_memory.YaraProcessScanRequest.ImplementationType.DIRECT):
+      return False
+    elif (args.implementation_type ==
+          rdf_memory.YaraProcessScanRequest.ImplementationType.SANDBOX):
+      return True
+    else:
+      return config.CONFIG["Client.use_memory_sandboxing"]
 
 
 def _PrioritizeRegions(

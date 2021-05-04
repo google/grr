@@ -102,9 +102,6 @@ class LinuxClientRepacker(build.ClientRepacker):
             os.path.join(template_path, "dist", "debian", package_name,
                          "etc/fleetspeak-client/client.config"))
 
-        for filename in (package_name + ".postinst", package_name + ".postrm"):
-          os.remove(os.path.join(template_path, "dist", "debian", filename))
-
       else:
         fleetspeak_service_dir = config.CONFIG.Get(
             "ClientBuilder.fleetspeak_service_dir", context=self.context)

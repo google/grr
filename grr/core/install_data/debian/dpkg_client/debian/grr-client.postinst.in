@@ -26,6 +26,24 @@ case "$1" in
       update-rc.d %(ClientBuilder.package_name) defaults >/dev/null
       invoke-rc.d %(ClientBuilder.package_name) start || exit $?
     fi
+
+    if [ -n "%(Client.unprivileged_group)" ]; then
+      # creating unprivileged group if it isn't already there
+      if ! getent group "%(Client.unprivileged_group)" >/dev/null; then
+        addgroup --system --force-badname --quiet "%(Client.unprivileged_group)"
+      fi
+      if [ -n "%(Client.unprivileged_user)" ]; then
+        # creating unprivileged user if it isn't already there
+        if ! getent passwd "%(Client.unprivileged_user)" >/dev/null; then
+          adduser --system --force-badname --quiet \
+            --ingroup "%(Client.unprivileged_group)" \
+            --home /nonexistent --no-create-home \
+            --shell /usr/sbin/nologin \
+            "%(Client.unprivileged_user)"
+        fi
+      fi
+    fi
+
   ;;
 
   abort-upgrade|abort-remove|abort-deconfigure\)

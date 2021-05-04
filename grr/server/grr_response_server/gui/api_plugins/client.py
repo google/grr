@@ -841,7 +841,7 @@ def _CheckFleetspeakConnection() -> None:
 class ApiKillFleetspeakArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiKillFleetspeakArgs
   rdf_deps = [
-      rdf_client.ClientURN,
+      ApiClientId,
   ]
 
 
@@ -854,13 +854,13 @@ class ApiKillFleetspeakHandler(api_call_handler_base.ApiCallHandler):
              args: ApiKillFleetspeakArgs,
              context: Optional[api_call_context.ApiCallContext] = None) -> None:
     _CheckFleetspeakConnection()
-    fleetspeak_utils.KillFleetspeak(args.client_id.Basename(), args.force)
+    fleetspeak_utils.KillFleetspeak(str(args.client_id), args.force)
 
 
 class ApiRestartFleetspeakGrrServiceArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiRestartFleetspeakGrrServiceArgs
   rdf_deps = [
-      rdf_client.ClientURN,
+      ApiClientId,
   ]
 
 
@@ -874,13 +874,13 @@ class ApiRestartFleetspeakGrrServiceHandler(api_call_handler_base.ApiCallHandler
              args: ApiRestartFleetspeakGrrServiceArgs,
              context: Optional[api_call_context.ApiCallContext] = None) -> None:
     _CheckFleetspeakConnection()
-    fleetspeak_utils.RestartFleetspeakGrrService(args.client_id.Basename())
+    fleetspeak_utils.RestartFleetspeakGrrService(str(args.client_id))
 
 
 class ApiDeleteFleetspeakPendingMessagesArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiDeleteFleetspeakPendingMessagesArgs
   rdf_deps = [
-      rdf_client.ClientURN,
+      ApiClientId,
   ]
 
 
@@ -894,13 +894,13 @@ class ApiDeleteFleetspeakPendingMessagesHandler(
              args: ApiDeleteFleetspeakPendingMessagesArgs,
              context: Optional[api_call_context.ApiCallContext] = None) -> None:
     _CheckFleetspeakConnection()
-    fleetspeak_utils.DeleteFleetspeakPendingMessages(args.client_id.Basename())
+    fleetspeak_utils.DeleteFleetspeakPendingMessages(str(args.client_id))
 
 
 class ApiGetFleetspeakPendingMessageCountArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetFleetspeakPendingMessageCountArgs
   rdf_deps = [
-      rdf_client.ClientURN,
+      ApiClientId,
   ]
 
 
@@ -922,13 +922,13 @@ class ApiGetFleetspeakPendingMessageCountHandler(
     _CheckFleetspeakConnection()
     return ApiGetFleetspeakPendingMessageCountResult(
         count=fleetspeak_utils.GetFleetspeakPendingMessageCount(
-            args.client_id.Basename()))
+            str(args.client_id)))
 
 
 class ApiFleetspeakAddress(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiFleetspeakAddress
   rdf_deps = [
-      rdf_client.ClientURN,
+      ApiClientId,
   ]
 
   @classmethod
@@ -1073,7 +1073,7 @@ class ApiFleetspeakMessage(rdf_structs.RDFProtoStruct):
 class ApiGetFleetspeakPendingMessagesArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiGetFleetspeakPendingMessagesArgs
   rdf_deps = [
-      rdf_client.ClientURN,
+      ApiClientId,
   ]
 
 
@@ -1109,7 +1109,7 @@ class ApiGetFleetspeakPendingMessagesHandler(
     _CheckFleetspeakConnection()
     return ApiGetFleetspeakPendingMessagesResult.FromFleetspeakProto(
         fleetspeak_utils.GetFleetspeakPendingMessages(
-            args.client_id.Basename(),
+            str(args.client_id),
             offset=args.offset,
             limit=args.limit,
             want_data=args.want_data))

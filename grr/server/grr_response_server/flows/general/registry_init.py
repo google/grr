@@ -21,6 +21,7 @@ from grr_response_server.flows.general import filetypes
 from grr_response_server.flows.general import find
 from grr_response_server.flows.general import fingerprint
 from grr_response_server.flows.general import hardware
+from grr_response_server.flows.general import large_file
 from grr_response_server.flows.general import memory
 from grr_response_server.flows.general import network
 from grr_response_server.flows.general import osquery

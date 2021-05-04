@@ -2138,7 +2138,7 @@ message YaraSignatureShard {
   optional bytes payload = 2;
 }
 
-// Next field ID: 23
+// Next field ID: 24
 message YaraProcessScanRequest {
   optional string yara_signature = 1 [(sem_type) = {
     type: "YaraSignature",
@@ -2292,6 +2292,25 @@ message YaraProcessScanRequest {
                  "in microseconds. This limit is for the scan only and is not "
                  "applied to the dumping."
     type: "Duration",
+  }];
+
+  // ImplementationType has been introduced for rolling-out sandboxing.
+  // The purpose is to make it possible to switch the implementation at
+  // run-time via the UI in case there are problems.
+  // TODO: Once sandboxing becomes the default implementation,
+  // this should be removed.
+
+  enum ImplementationType {
+    // When DEFAULT is set then the implementation set in the client
+    // configuration is used.
+    DEFAULT = 0;
+    DIRECT = 1;
+    SANDBOX = 2;
+  }
+
+  optional ImplementationType implementation_type = 23 [(sem_type) = {
+    description: "Force use of an implementation.",
+    label: ADVANCED,
   }];
 }
 

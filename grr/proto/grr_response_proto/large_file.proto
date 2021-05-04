@@ -19,6 +19,17 @@ message CollectLargeFileArgs {
   //
   // [1]: https://cloud.google.com/storage/docs/access-control/signed-urls
   optional string signed_url = 2;
+
+  // A key used to encrypt the uploaded file.
+  //
+  // The upload procedure utilizes authenticated encryption [1] using the AES
+  // algorithm [2] and the GCM mode [3]. The exact details of the format of the
+  // encrypted file can be found in the documentation for the AEAD module.
+  //
+  // [1]: https://en.wikipedia.org/wiki/Authenticated_encryption
+  // [2]: https://en.wikipedia.org/wiki/Advanced_Encryption_Standard
+  // [3]: https://en.wikipedia.org/wiki/Galois/Counter_Mode
+  optional bytes encryption_key = 3;
 }
 
 // Output that the large file collection action returns upon initialization.
