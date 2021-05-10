@@ -1,17 +1,29 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
 import {flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
-import {AnyObject, StatEntry} from '@app/lib/api/api_interfaces';
+import {ExecuteResponse, StatEntry} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {FlowState} from '@app/lib/models/flow';
-import {Observable} from 'rxjs';
-import {map} from 'rxjs/operators';
+import {FlowListEntry, FlowState} from '@app/lib/models/flow';
+import {combineLatest, Observable, ReplaySubject} from 'rxjs';
+import {distinctUntilChanged, map, scan, startWith, takeUntil} from 'rxjs/operators';
+
+import {translateExecuteResponse} from '../../../lib/api_translation/flow';
 
 import {Plugin} from './plugin';
 
 
-function isStatEntry(payload: unknown): payload is StatEntry {
-  return (payload as AnyObject)['stSize'] !== undefined;
+const LOAD_RESULT_COUNT = 100;
+
+
+function getResults(
+    fle: FlowListEntry, typeName: 'StatEntry'): ReadonlyArray<StatEntry>;
+function getResults(fle: FlowListEntry, typeName: 'ExecuteResponse'):
+    ReadonlyArray<ExecuteResponse>;
+function getResults(fle: FlowListEntry, typeName: string): ReadonlyArray<{}> {
+  return fle.resultSets.flatMap(rs => rs.items)
+      .filter(item => item.payloadType === typeName)
+      .map(item => item.payload as {});
 }
+
 
 /** Component that displays flow results. */
 @Component({
@@ -20,8 +32,7 @@ function isStatEntry(payload: unknown): payload is StatEntry {
   styleUrls: ['./artifact_collector_flow_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ArtifactCollectorFlowDetails extends Plugin implements
-    AfterViewInit {
+export class ArtifactCollectorFlowDetails extends Plugin implements OnInit {
   readonly FINISHED = FlowState.FINISHED;
 
   readonly flowState$: Observable<FlowState> = this.flowListEntry$.pipe(
@@ -46,22 +57,62 @@ export class ArtifactCollectorFlowDetails extends Plugin implements
 
   readonly totalResults$ = this.results$.pipe(map(results => results.length));
 
-  readonly fileResults$ = this.results$.pipe(
-      map((results) => results.filter(isStatEntry)
-                           .map(stat => flowFileResultFromStatEntry(stat))),
+  readonly fileResults$ = this.flowListEntry$.pipe(
+      map((fle) => getResults(fle, 'StatEntry')
+                       .map(stat => flowFileResultFromStatEntry(stat))),
   );
 
   readonly totalFileResults$ =
       this.fileResults$.pipe(map(results => results.length));
 
+  readonly executeResponseResults$ = this.flowListEntry$.pipe(
+      map((fle) =>
+              getResults(fle, 'ExecuteResponse').map(translateExecuteResponse)),
+  );
+
+  readonly totalExecuteResponseResults$ =
+      this.executeResponseResults$.pipe(map(results => results.length));
+
+  private readonly resultsRequested$ = new ReplaySubject<number>(1);
+
+  readonly totalResultsRequested$ = this.resultsRequested$.pipe(
+      startWith(0),
+      scan((acc, cur) => acc + cur),
+  );
+
+  readonly hasMoreResults$ =
+      combineLatest([
+        this.totalResultsRequested$, this.totalResults$
+      ]).pipe(map(([requested, loaded]) => requested <= loaded));
+
+  readonly totalUnknownResults$ =
+      combineLatest([
+        this.totalResults$,
+        this.totalFileResults$,
+        this.totalExecuteResponseResults$,
+      ]).pipe(map(([total, file, execute]) => total - file - execute));
+
   constructor(private readonly httpApiService: HttpApiService) {
     super();
   }
 
-  ngAfterViewInit() {
-    this.queryFlowResults({
-      offset: 0,
-      count: 10,
-    });
+  ngOnInit() {
+    combineLatest([
+      this.totalResultsRequested$,
+      this.totalResults$.pipe(distinctUntilChanged()),
+    ])
+        .pipe(takeUntil(this.unsubscribe$))
+        .subscribe(([resultsRequested, resultsLoaded]) => {
+          if (resultsRequested > resultsLoaded) {
+            this.queryFlowResults({
+              offset: 0,
+              count: resultsRequested,
+            });
+          }
+        });
+  }
+
+  loadMoreResults() {
+    this.resultsRequested$.next(LOAD_RESULT_COUNT);
   }
 }

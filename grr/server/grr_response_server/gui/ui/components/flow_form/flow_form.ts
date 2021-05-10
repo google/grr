@@ -1,7 +1,6 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
 import {fromEvent, Subject} from 'rxjs';
-import {startWith} from 'rxjs/operators';
-import {map, takeUntil, withLatestFrom} from 'rxjs/operators';
+import {map, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
 import {ClientPageFacade} from '../../store/client_page_facade';
 import {FlowArgsForm} from '../flow_args_form/flow_args_form';
@@ -29,10 +28,7 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
   readonly error$ = this.clientPageFacade.startFlowState$.pipe(
       map(state => state.state === 'error' ? state.error : undefined));
 
-  readonly hasApproval$ = this.clientPageFacade.latestApproval$.pipe(
-      map(approval => approval?.status.type === 'valid'),
-      startWith(false),
-  );
+  readonly hasAccess$ = this.clientPageFacade.hasAccess$.pipe(startWith(false));
 
   constructor(
       private readonly clientPageFacade: ClientPageFacade,
@@ -44,7 +40,7 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
     fromEvent(this.form.nativeElement, 'submit')
         .pipe(
             takeUntil(this.unsubscribe$),
-            withLatestFrom(this.flowArgsForm.flowArgValues$, this.hasApproval$),
+            withLatestFrom(this.flowArgsForm.flowArgValues$, this.hasAccess$),
             )
         .subscribe(([e, flowArgs, hasApproval]) => {
           e.preventDefault();

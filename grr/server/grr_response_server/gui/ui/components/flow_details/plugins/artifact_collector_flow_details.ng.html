@@ -1,5 +1,6 @@
 <div class="download flow-details-summary-actions" *ngIf="(flowState$ | async) === FINISHED">
-  <span class="num-files">
+  <!-- TODO(user): Precompute result count on backend. -->
+  <span class="num-files" *ngIf="totalResultsRequested$ | async">
     {{ totalResults$ | async | i18nPlural: {'=1': '1 result', 'other': '# results'} }}
   </span>
   <a mat-stroked-button color="primary" *ngIf="(totalResults$ | async) > 0" [download]="archiveFileName$ | async"
@@ -8,7 +9,26 @@
   </a>
 </div>
 
-<div class="results" *ngIf="(totalFileResults$ | async) > 0">
-  <file-results-table [results]="fileResults$ | async">
+<div class="results">
+  <file-results-table *ngIf="(totalFileResults$ | async) > 0" [results]="fileResults$ | async">
   </file-results-table>
+
+  <div *ngFor="let response of executeResponseResults$ | async" class="result">
+    <p><strong>cmd:</strong> <span class="monospace">{{response.request.cmd}} {{response.request.args.join(" ")}}</span></p>
+    <p><strong>exit code:</strong> <span class="monospace">{{response.exitStatus}}</span></p>
+    <strong>stdout:</strong>
+    <pre>{{response.stdout}}</pre>
+    <div *ngIf="response.stderr">
+      <strong>stderr:</strong>
+      <pre>{{response.stderr}}</pre>
+    </div>
+  </div>
+
+  <a mat-button *ngIf="totalUnknownResults$ | async as totalUnknownResults" href="{{fallbackUrl$ | async}}/results" class="result">
+    View {{ totalUnknownResults | i18nPlural: {'=1': '1 parsed result', 'other': '# parsed results'} }} in old UI
+  </a>
+
+  <button class="expand-results" mat-button aria-label="Load more results" (click)="loadMoreResults()" *ngIf="hasMoreResults$ | async">
+    <mat-icon>expand_more</mat-icon>
+  </button>
 </div>

@@ -8,7 +8,8 @@ import os
 import platform
 import struct
 import subprocess
-from typing import NamedTuple, Callable, Optional, List, BinaryIO
+from typing import NamedTuple, Callable, Optional, List, BinaryIO, Set
+import psutil
 
 
 class Transport(abc.ABC):
@@ -236,6 +237,11 @@ class SubprocessServer(Server):
   channel.
   """
 
+  _past_instances_total_cpu_time = 0.0
+  _past_instances_total_sys_time = 0.0
+
+  _started_instances: Set["SubprocessServer"] = set()
+
   def __init__(self,
                args_factory: ArgsFactory,
                extra_file_descriptors: Optional[List[FileDescriptor]] = None):
@@ -291,7 +297,15 @@ class SubprocessServer(Server):
             pass_fds=[input_r_fd, output_w_fd] + extra_fds,
         )
 
+    SubprocessServer._started_instances.add(self)
+
   def Stop(self) -> None:
+
+    if self in self._started_instances:
+      SubprocessServer._started_instances.remove(self)
+      SubprocessServer._past_instances_total_cpu_time += self.cpu_time
+      SubprocessServer._past_instances_total_sys_time += self.sys_time
+
     if self._process is not None:
       self._process.kill()
       self._process.wait()
@@ -305,6 +319,33 @@ class SubprocessServer(Server):
   def Connect(self) -> Connection:
     transport = PipeTransport(self._output_r, self._input_w)
     return Connection(transport)
+
+  @classmethod
+  def TotalCpuTime(cls) -> float:
+    return SubprocessServer._past_instances_total_cpu_time + sum(
+        [instance.cpu_time for instance in cls._started_instances])
+
+  @classmethod
+  def TotalSysTime(cls) -> float:
+    return SubprocessServer._past_instances_total_sys_time + sum(
+        [instance.sys_time for instance in cls._started_instances])
+
+  @property
+  def cpu_time(self) -> float:
+    return self._psutil_process.cpu_times().user
+
+  @property
+  def sys_time(self) -> float:
+    return self._psutil_process.cpu_times().system
+
+  @property
+  def _psutil_process(self) -> psutil.Process:
+    if self._process_win is not None:
+      return psutil.Process(pid=self._process_win.pid)
+    elif self._process is not None:
+      return psutil.Process(pid=self._process.pid)
+    else:
+      raise ValueError("Can't determine process.")
 
 
 def _EnterSandbox(user: str, group: str) -> None:
@@ -335,3 +376,11 @@ def Main(channel: Channel, connection_handler: ConnectionHandler, user: str,
       transport = PipeTransport(pipe_input, pipe_output)
       connection = Connection(transport)
       connection_handler(connection)
+
+
+def TotalServerCpuTime() -> float:
+  return SubprocessServer.TotalCpuTime()
+
+
+def TotalServerSysTime() -> float:
+  return SubprocessServer.TotalSysTime()

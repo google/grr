@@ -6,6 +6,7 @@ from __future__ import unicode_literals
 
 import contextlib
 import functools
+import inspect
 import os
 import platform
 import string
@@ -234,6 +235,11 @@ class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
   MATCH_BIG_REGIONS = 110
 
   def process(self, processes, pid=None):
+    for stack_frame in inspect.stack():
+      # grr_response_client/unprivileged/communication.py needs a real process.
+      if ("unprivileged" in stack_frame.filename and
+          "communication.py" in stack_frame.filename):
+        return psutil.Process.old_target(pid=pid)
     if not pid:
       return psutil.Process.old_target()
     for p in processes:

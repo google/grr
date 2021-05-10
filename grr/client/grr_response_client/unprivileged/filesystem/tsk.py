@@ -112,11 +112,31 @@ class TskFile(filesystem.File):
     self._fd = fd
     self._data_stream = data_stream
 
-  def Read(self, offset: int, size: int) -> bytes:
+  @property
+  def _file_size(self) -> int:
+    if self._IsDirectory():
+      raise IOError("Attempting to get size of directory.")
+
     if self._data_stream is None:
-      return self._fd.read_random(offset, size)
+      return _FixInt(self._fd.info.meta.size)
     else:
-      return self._fd.read_random(offset, size, self._data_stream.info.type,
+      return self._data_stream.info.size
+
+  def Read(self, offset: int, size: int) -> bytes:
+    if self._IsDirectory():
+      raise IOError("Attempting to read from a directory.")
+
+    available = min(self._file_size - offset, size)
+
+    # TSK fails with an error when reading past the end.
+    if available <= 0:
+      return b""
+
+    if self._data_stream is None:
+      return self._fd.read_random(offset, available)
+    else:
+      return self._fd.read_random(offset, available,
+                                  self._data_stream.info.type,
                                   self._data_stream.info.id)
 
   def Close(self) -> None:

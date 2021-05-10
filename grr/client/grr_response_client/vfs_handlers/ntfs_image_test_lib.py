@@ -103,6 +103,12 @@ class NTFSImageTest(absltest.TestCase, abc.ABC):
     fd3 = vfs.VFSOpen(pathspec)
     self.assertEqual(fd3.Read(100), b"foo\n")
 
+  def testNTFSRead_PastTheEnd(self):
+    pathspec = self._GetNTFSPathSpec("/a/b1/c1/d")
+    fd = vfs.VFSOpen(pathspec)
+    self.assertEqual(fd.Read(100), b"foo\n")
+    self.assertEqual(fd.Read(100), b"")
+
   def testNTFSStat(self):
     pathspec = self._GetNTFSPathSpec("numbers.txt")
 

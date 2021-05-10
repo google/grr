@@ -193,6 +193,13 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def ListFlowResults(self, args, context=None):
     return api_flow.ApiListFlowResultsHandler()
 
+  def ListParsedFlowResults(
+      self,
+      args: api_flow.ApiListParsedFlowResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_flow.ApiListParsedFlowResultsHandler:
+    return api_flow.ApiListParsedFlowResultsHandler()
+
   def GetExportedFlowResults(self, args, context=None):
     return api_flow.ApiGetExportedFlowResultsHandler()
 

@@ -127,6 +127,12 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
       result = file_obj.Stat()
       self.assertEqual(result.st_ino, self._FileRefToInode(A_B1_C1_D_FILE_REF))
 
+  def testRead_PastTheEnd(self):
+    with self._client.Open(path=self._Path("\\a\\b1\\c1\\d")) as file_obj:
+      data = file_obj.Read(0, 100)
+      self.assertEqual(data, b"foo\n")
+      self.assertEqual(file_obj.Read(len(data), 100), b"")
+
   def testOpenByInode(self):
     with self._client.OpenByInode(
         inode=self._FileRefToInode(A_B1_C1_D_FILE_REF)) as file_obj:

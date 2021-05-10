@@ -8,12 +8,14 @@ import gc
 import logging
 import pdb
 import traceback
+from typing import NamedTuple
 
 from absl import flags
 
 import psutil
 
 from grr_response_client import client_utils
+from grr_response_client.unprivileged import communication
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -38,6 +40,35 @@ class NetworkBytesExceededError(Error):
 
 class RuntimeExceededError(Error):
   """Exceeded the maximum allowed runtime."""
+
+
+class _CpuUsed(NamedTuple):
+  cpu_time: float
+  sys_time: float
+
+
+class _CpuTimes:
+  """Accounting of used CPU time."""
+
+  def __init__(self):
+    self.proc = psutil.Process()
+    self.cpu_start = self.proc.cpu_times()
+    self.unprivileged_cpu_start = communication.TotalServerCpuTime()
+    self.unprivileged_sys_start = communication.TotalServerSysTime()
+
+  @property
+  def cpu_used(self) -> _CpuUsed:
+    end = self.proc.cpu_times()
+    unprivileged_cpu_end = communication.TotalServerCpuTime()
+    unprivileged_sys_end = communication.TotalServerSysTime()
+    return _CpuUsed((end.user - self.cpu_start.user + unprivileged_cpu_end -
+                     self.unprivileged_cpu_start),
+                    (end.system - self.cpu_start.system + unprivileged_sys_end -
+                     self.unprivileged_sys_start))
+
+  @property
+  def total_cpu_used(self) -> float:
+    return sum(self.cpu_used)
 
 
 class ActionPlugin(object):
@@ -93,8 +124,7 @@ class ActionPlugin(object):
     self._last_gc_run = rdfvalue.RDFDatetime.Now()
     self._gc_frequency = rdfvalue.Duration.From(
         config.CONFIG["Client.gc_frequency"], rdfvalue.SECONDS)
-    self.proc = psutil.Process()
-    self.cpu_start = self.proc.cpu_times()
+    self.cpu_times = _CpuTimes()
     self.cpu_limit = rdf_flows.GrrMessage().cpu_limit
     self.start_time = None
     self.runtime_limit = None
@@ -139,7 +169,7 @@ class ActionPlugin(object):
         raise RuntimeError("Message for %s was not Authenticated." %
                            self.message.name)
 
-      self.cpu_start = self.proc.cpu_times()
+      self.cpu_times = _CpuTimes()
       self.cpu_limit = self.message.cpu_limit
 
       if getattr(flags.FLAGS, "debug_client_actions", False):
@@ -153,9 +183,7 @@ class ActionPlugin(object):
 
       # Ensure we always add CPU usage even if an exception occurred.
       finally:
-        used = self.proc.cpu_times()
-        self.cpu_used = (used.user - self.cpu_start.user,
-                         used.system - self.cpu_start.system)
+        self.cpu_used = self.cpu_times.cpu_used
         self.status.runtime_us = rdfvalue.RDFDatetime.Now() - self.start_time
 
     except NetworkBytesExceededError as e:
@@ -306,13 +334,7 @@ class ActionPlugin(object):
 
     self.grr_worker.Heartbeat()
 
-    user_start = self.cpu_start.user
-    system_start = self.cpu_start.system
-    cpu_times = self.proc.cpu_times()
-    user_end = cpu_times.user
-    system_end = cpu_times.system
-
-    used_cpu = user_end - user_start + system_end - system_start
+    used_cpu = self.cpu_times.total_cpu_used
 
     if used_cpu > self.cpu_limit:
       raise CPUExceededError("Action exceeded cpu limit.")

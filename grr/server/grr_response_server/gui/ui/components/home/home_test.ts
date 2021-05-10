@@ -6,6 +6,8 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {initTestEnvironment} from '@app/testing';
 
 import {newClientApproval} from '../../lib/models/model_test_util';
+import {ConfigFacade} from '../../store/config_facade';
+import {mockConfigFacade} from '../../store/config_facade_test_util';
 import {HomePageFacade} from '../../store/home_page_facade';
 import {HomePageFacadeMock, mockHomePageFacade} from '../../store/home_page_facade_test_util';
 
@@ -39,6 +41,7 @@ describe('Home Component', () => {
           ],
           providers: [
             {provide: HomePageFacade, useFactory: () => homePageFacade},
+            {provide: ConfigFacade, useFactory: mockConfigFacade},
           ],
 
         })

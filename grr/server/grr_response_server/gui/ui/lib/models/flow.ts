@@ -250,3 +250,19 @@ export interface UnknownSource extends BaseArtifactSource {
 export type ArtifactSource =
     ChildArtifactSource|ClientActionSource|CommandSource|FileSource|
     RegistryKeySource|RegistryValueSource|WmiSource|UnknownSource;
+
+/** ExecuteRequest proto mapping. */
+export declare interface ExecuteRequest {
+  readonly cmd: string;
+  readonly args: ReadonlyArray<string>;
+  readonly timeLimitSeconds: number;
+}
+
+/** ExecuteResponse proto mapping. */
+export declare interface ExecuteResponse {
+  readonly request: ExecuteRequest;
+  readonly exitStatus: number;
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly timeUsedSeconds: number;
+}

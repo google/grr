@@ -1,6 +1,6 @@
-import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiScheduledFlow, ByteString, Hash} from '@app/lib/api/api_interfaces';
+import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiScheduledFlow, ByteString, ExecuteResponse as ApiExecuteResponse, Hash} from '@app/lib/api/api_interfaces';
 import {bytesToHex, createDate, createUnknownObject, decodeBase64} from '@app/lib/api_translation/primitive';
-import {Flow, FlowDescriptor, FlowResult, FlowState, HexHash, OperatingSystem, ScheduledFlow} from '@app/lib/models/flow';
+import {ExecuteResponse, Flow, FlowDescriptor, FlowResult, FlowState, HexHash, OperatingSystem, ScheduledFlow} from '@app/lib/models/flow';
 
 import {assertKeyNonNull, PreconditionError} from '../preconditions';
 
@@ -124,4 +124,22 @@ export function safeTranslateOperatingSystem(str: string|undefined):
   } catch (e: unknown) {
     return undefined;
   }
+}
+
+/** Constructs an ExecuteResponse from the corresponding API data structure. */
+export function translateExecuteResponse(er: ApiExecuteResponse):
+    ExecuteResponse {
+  assertKeyNonNull(er, 'request');
+
+  return {
+    request: {
+      cmd: er.request.cmd ?? '',
+      args: er.request.args ?? [],
+      timeLimitSeconds: er.request.timeLimit ?? 0,
+    },
+    exitStatus: er.exitStatus ?? -1,
+    stdout: atob(er.stdout ?? ''),
+    stderr: atob(er.stderr ?? ''),
+    timeUsedSeconds: (er.timeUsed ?? 0) / 1e6
+  };
 }

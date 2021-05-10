@@ -8,8 +8,9 @@ import {FlowListEntry, flowListEntryFromFlow, FlowResultsQuery, FlowState} from 
 import {newClient, newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
 import {ClientPageFacade, uniqueTagForQuery} from '@app/store/client_page_facade';
 import {initTestEnvironment, removeUndefinedKeys} from '@app/testing';
-import {of, Subject, throwError} from 'rxjs';
+import {firstValueFrom, of, Subject, throwError} from 'rxjs';
 import {delay} from 'rxjs/operators';
+
 import {ConfigFacade} from './config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from './config_facade_test_util';
 import {UserFacade} from './user_facade';
@@ -34,6 +35,7 @@ describe('ClientPageFacade', () => {
   let apiRemoveClientLabel$: Subject<string>;
   let configFacade: ConfigFacadeMock;
   let userFacade: UserFacadeMock;
+  let apiVerifyClientAccess$: Subject<boolean>;
 
   beforeEach(() => {
     apiListApprovals$ = new Subject();
@@ -45,6 +47,7 @@ describe('ClientPageFacade', () => {
     apiCancelFlow$ = new Subject();
     apiRemoveClientLabel$ = new Subject();
     apiSuggestApprovers$ = new Subject();
+    apiVerifyClientAccess$ = new Subject();
     httpApiService = {
       listApprovals:
           jasmine.createSpy('listApprovals').and.returnValue(apiListApprovals$),
@@ -65,6 +68,9 @@ describe('ClientPageFacade', () => {
                             .and.returnValue(apiSuggestApprovers$),
       removeClientLabel: jasmine.createSpy('removeClientLabel')
                              .and.returnValue(apiRemoveClientLabel$),
+      verifyClientAccess: jasmine.createSpy('verifyClientAccess')
+                              .and.returnValue(apiVerifyClientAccess$),
+
     };
 
     configFacade = mockConfigFacade();
@@ -170,6 +176,26 @@ describe('ClientPageFacade', () => {
 
        discardPeriodicTasks();
        expect(latestApproval).not.toBeUndefined();
+     }));
+
+  it('polls the API on hasAccess$ subscription', fakeAsync(() => {
+       expect(httpApiService.verifyClientAccess).not.toHaveBeenCalled();
+
+       clientPageFacade.hasAccess$.subscribe();
+
+       tick(configService.config.approvalPollingIntervalMs * 2 + 1);
+       discardPeriodicTasks();
+
+       // First call happens at 0, next one at approvalPollingIntervalMs
+       // and the next one at approvalPollingIntervalMs * 2.
+       expect(httpApiService.verifyClientAccess).toHaveBeenCalledTimes(3);
+     }));
+
+  it('emits latest access value in hasAccess$', fakeAsync(async () => {
+       const promise = firstValueFrom(clientPageFacade.hasAccess$);
+       tick(configService.config.approvalPollingIntervalMs * 2 + 1);
+       apiVerifyClientAccess$.next(true);
+       expect(await promise).toBeTrue();
      }));
 
   it('calls the listFlow API on flowListEntries$ subscription',

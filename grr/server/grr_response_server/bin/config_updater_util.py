@@ -745,8 +745,21 @@ def FinalizeConfigInit(config,
     repacking.TemplateRepacker().RepackAllTemplates(upload=True)
   print("\nGRR Initialization complete! You can edit the new configuration "
         "in %s.\n" % config["Config.writeback"])
-  print("Please restart the service for the new configuration to take "
-        "effect.\n")
+  if prompt and os.geteuid() == 0:
+    restart = RetryBoolQuestion(
+        "Restart service for the new configuration "
+        "to take effect?", True)
+    if restart:
+      for service in ("grr-server", "fleetspeak-server"):
+        try:
+          print(f"Restarting service: {service}.")
+          subprocess.check_call(["service", service, "restart"])
+        except subprocess.CalledProcessError as e:
+          print(f"Failed to restart: {service}.")
+          print(e, file=sys.stderr)
+  else:
+    print("Please restart the service for the new configuration to take "
+          "effect.\n")
 
 
 def Initialize(config=None,

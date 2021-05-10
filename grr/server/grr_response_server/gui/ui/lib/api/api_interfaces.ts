@@ -901,3 +901,21 @@ export declare interface Process {
   readonly openFiles?: ReadonlyArray<string>;
   readonly connections?: ReadonlyArray<unknown>;
 }
+
+/** ExecuteRequest proto mapping. */
+export declare interface ExecuteRequest {
+  readonly cmd?: string;
+  readonly args?: ReadonlyArray<string>;
+  // An execution time limit, given in seconds.
+  readonly timeLimit?: number;
+}
+
+/** ExecuteResponse proto mapping. */
+export declare interface ExecuteResponse {
+  readonly request?: ExecuteRequest;
+  readonly exitStatus?: number;
+  readonly stdout?: ByteString;
+  readonly stderr?: ByteString;
+  // The time used to execute the cmd, given in microseconds.
+  readonly timeUsed?: number;
+}

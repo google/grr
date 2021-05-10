@@ -83,6 +83,12 @@ class FlowBase(object):
     items = self._context.SendIteratorRequest("ListFlowResults", args)
     return utils.MapItemsIterator(lambda data: FlowResult(data=data), items)
 
+  def ListParsedResults(self) -> utils.ItemsIterator[FlowResult]:
+    args = flow_pb2.ApiListParsedFlowResultsArgs(
+        client_id=self.client_id, flow_id=self.flow_id)
+    items = self._context.SendIteratorRequest("ListParsedFlowResults", args)
+    return utils.MapItemsIterator(lambda data: FlowResult(data=data), items)
+
   def GetExportedResultsArchive(self, plugin_name) -> utils.BinaryChunkIterator:
     args = flow_pb2.ApiGetExportedFlowResultsArgs(
         client_id=self.client_id, flow_id=self.flow_id, plugin_name=plugin_name)

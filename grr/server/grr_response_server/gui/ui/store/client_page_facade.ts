@@ -9,9 +9,11 @@ import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSe
 import {queuedExhaustMap} from '@app/lib/queued_exhaust_map';
 import {combineLatest, EMPTY, Observable, of, Subject, throwError, timer} from 'rxjs';
 import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, groupBy, map, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
+
 import {translateApproverSuggestions} from '../lib/api_translation/user';
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
 import {isNonNull} from '../lib/preconditions';
+
 import {ConfigFacade} from './config_facade';
 
 
@@ -45,6 +47,7 @@ interface ClientPageState {
 
   readonly approvals: {readonly [key: string]: ClientApproval};
   readonly approvalSequence: string[];
+  readonly hasAccess?: boolean;
 
   readonly flowListEntries: {readonly [key: string]: FlowListEntry};
   readonly flowListEntrySequence: string[];
@@ -139,6 +142,9 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           approvalSequence: approvals.map(a => a.approvalId),
         };
       });
+
+  private readonly updateHasAccess =
+      this.updater<boolean>((state, hasAccess) => ({...state, hasAccess}));
 
   private updateFlowsFn(state: ClientPageState, flows: Flow[]) {
     const newEntries = flows.map((flow) => {
@@ -275,6 +281,20 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       ])
           .pipe(
               map(([, approval]) => approval),
+              shareReplay({bufferSize: 1, refCount: true}),
+          );
+
+  readonly hasAccess$: Observable<boolean> =
+      combineLatest([
+        timer(0, this.configService.config.approvalPollingIntervalMs)
+            .pipe(tap(() => {
+              this.verifyAccess();
+            })),
+        this.select(state => state.hasAccess)
+      ])
+          .pipe(
+              map(([, hasAccess]) => hasAccess),
+              filter(isNonNull),
               shareReplay({bufferSize: 1, refCount: true}),
           );
 
@@ -531,6 +551,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
             this.updateApprovals(approvals);
           })));
 
+  private readonly verifyAccess = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMapTo(this.selectedClientId$),
+          switchMap(
+              clientId => this.httpApiService.verifyClientAccess(clientId)),
+          tap(access => {
+            this.updateHasAccess(access);
+          })));
+
   // An effect to list flows.
   private readonly listFlows = this.effect<void>(
       obs$ => obs$.pipe(
@@ -590,6 +619,9 @@ export class ClientPageFacade {
   /** An observable emitting latest non-expired approval. */
   readonly latestApproval$: Observable<ClientApproval|undefined> =
       this.store.latestApproval$;
+
+  /** An obserable emitting if the user has access to the client. */
+  readonly hasAccess$ = this.store.hasAccess$;
 
   /** An observable emitting current flow entries. */
   readonly flowListEntries$: Observable<ReadonlyArray<FlowListEntry>> =

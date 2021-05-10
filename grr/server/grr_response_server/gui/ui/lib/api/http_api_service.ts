@@ -1,8 +1,9 @@
 import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
-import {Observable, throwError} from 'rxjs';
+import {Observable, of, throwError} from 'rxjs';
 import {catchError, map, mapTo, shareReplay, switchMap, take} from 'rxjs/operators';
+
 import {isNonNull} from '../preconditions';
 
 import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, ArtifactDescriptor, GlobComponentExplanation} from './api_interfaces';
@@ -117,6 +118,21 @@ export class HttpApiService {
             `${URL_PREFIX}/users/me/approvals/client/${clientId}`)
         .pipe(
             map(res => res.items ?? []),
+        );
+  }
+
+  /** Emits true, if the user has access to the client, false otherwise. */
+  verifyClientAccess(clientId: string): Observable<boolean> {
+    return this.http.get<{}>(`${URL_PREFIX}/clients/${clientId}/access`)
+        .pipe(
+            map(() => true),
+            catchError((err: HttpErrorResponse) => {
+              if (err.status === 403) {
+                return of(false);
+              } else {
+                return throwError(err);
+              }
+            }),
         );
   }
 

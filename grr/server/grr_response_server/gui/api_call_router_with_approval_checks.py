@@ -394,6 +394,14 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.ListFlowResults(args, context=context)
 
+  def ListParsedFlowResults(
+      self,
+      args: api_flow.ApiListParsedFlowResultsArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_flow.ApiListParsedFlowResultsHandler:
+    self.access_checker.CheckClientAccess(context, args.client_id)
+    return self.delegate.ListParsedFlowResults(args, context=context)
+
   def GetExportedFlowResults(self, args, context=None):
     self.access_checker.CheckClientAccess(context, args.client_id)
 

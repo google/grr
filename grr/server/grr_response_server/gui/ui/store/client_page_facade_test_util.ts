@@ -17,6 +17,7 @@ export declare interface ClientPageFacadeMock extends
   readonly approverSuggestionsSubject: Subject<ReadonlyArray<string>>;
   readonly lastRemovedClientLabelSubject: Subject<string>;
   readonly flowListEntriesSubject: Subject<ReadonlyArray<FlowListEntry>>;
+  readonly hasAccessSubject: Subject<boolean>;
 }
 
 export function mockClientPageFacade(): ClientPageFacadeMock {
@@ -29,6 +30,7 @@ export function mockClientPageFacade(): ClientPageFacadeMock {
       new ReplaySubject<ReadonlyArray<string>>(1);
   const lastRemovedClientLabelSubject = new ReplaySubject<string>(1);
   const flowListEntriesSubject = new Subject<ReadonlyArray<FlowListEntry>>();
+  const hasAccessSubject = new Subject<boolean>();
 
   latestApprovalSubject.next(undefined);
   startFlowStateSubject.next({state: 'request_not_sent'});
@@ -57,5 +59,7 @@ export function mockClientPageFacade(): ClientPageFacadeMock {
     selectClient: jasmine.createSpy('selectClient'),
     flowListEntriesSubject,
     flowListEntries$: flowListEntriesSubject.asObservable(),
+    hasAccessSubject,
+    hasAccess$: hasAccessSubject.asObservable(),
   };
 }

@@ -7,7 +7,6 @@ import {ConfigFacade} from '@app/store/config_facade';
 import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
 import {initTestEnvironment} from '@app/testing';
 
-import {ClientApproval} from '../../lib/models/client';
 import {newClient, newFlowDescriptor} from '../../lib/models/model_test_util';
 import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
 
@@ -18,19 +17,6 @@ initTestEnvironment();
 
 function getSubmit<T>(fixture: ComponentFixture<T>) {
   return fixture.nativeElement.querySelector('button[type=submit]');
-}
-
-function validApproval(): ClientApproval {
-  return {
-    approvalId: '444',
-    clientId: 'C.1234',
-    requestor: 'testuser',
-    reason: 'Approved.',
-    status: {type: 'valid'},
-    requestedApprovers: ['rick'],
-    approvers: ['rick', 'testuser'],
-    subject: newClient(),
-  };
 }
 
 describe('FlowForm Component', () => {
@@ -87,7 +73,7 @@ describe('FlowForm Component', () => {
         browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
       }
     }));
-    clientPageFacade.latestApprovalSubject.next(validApproval());
+    clientPageFacade.hasAccessSubject.next(true);
     fixture.detectChanges();
 
     getSubmit(fixture).click();
@@ -96,11 +82,12 @@ describe('FlowForm Component', () => {
     });
   });
 
-  it('triggers scheduleFlow on form submit without approval', () => {
+  it('triggers scheduleFlow on form submit without access', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
     clientPageFacade.selectedClientSubject.next(newClient());
+    clientPageFacade.hasAccessSubject.next(false);
     clientPageFacade.selectedFlowDescriptorSubject.next(newFlowDescriptor({
       name: 'CollectBrowserHistory',
       defaultArgs: {
@@ -121,7 +108,7 @@ describe('FlowForm Component', () => {
 
     clientPageFacade.selectedClientSubject.next(newClient());
     clientPageFacade.selectedFlowDescriptorSubject.next(newFlowDescriptor());
-    clientPageFacade.latestApprovalSubject.next(validApproval());
+    clientPageFacade.hasAccessSubject.next(true);
     fixture.detectChanges();
 
     clientPageFacade.startFlowStateSubject.next(

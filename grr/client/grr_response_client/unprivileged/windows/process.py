@@ -157,6 +157,10 @@ UpdateProcThreadAttribute.restype = BOOL
 DeleteProcThreadAttributeList = kernel32.DeleteProcThreadAttributeList
 DeleteProcThreadAttributeList.argtypes = [LPPROC_THREAD_ATTRIBUTE_LIST]
 
+GetProcessId = kernel32.GetProcessId
+GetProcessId.argtypes = [HANDLE]
+GetProcessId.restype = DWORD
+
 
 class Error(Exception):
   pass
@@ -241,6 +245,10 @@ class Process:
     self._handle = pi.hProcess
 
     win32api.CloseHandle(pi.hThread)
+
+    self.pid = GetProcessId(self._handle)
+    if self.pid == 0:
+      raise Error("GetProcessId failed.")
 
   def Stop(self) -> None:
     win32process.TerminateProcess(self._handle, -1)
