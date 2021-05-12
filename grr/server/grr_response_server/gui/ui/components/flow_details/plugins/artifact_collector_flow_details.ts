@@ -1,6 +1,6 @@
 import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
 import {flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
-import {ExecuteResponse, StatEntry} from '@app/lib/api/api_interfaces';
+import {ArtifactCollectorFlowArgs, ExecuteResponse, StatEntry} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {FlowListEntry, FlowState} from '@app/lib/models/flow';
 import {combineLatest, Observable, ReplaySubject} from 'rxjs';
@@ -81,9 +81,11 @@ export class ArtifactCollectorFlowDetails extends Plugin implements OnInit {
   );
 
   readonly hasMoreResults$ =
-      combineLatest([
-        this.totalResultsRequested$, this.totalResults$
-      ]).pipe(map(([requested, loaded]) => requested <= loaded));
+      combineLatest([this.totalResultsRequested$, this.totalResults$])
+          .pipe(
+              map(([requested, loaded]) => requested <= loaded),
+              startWith(true),
+          );
 
   readonly totalUnknownResults$ =
       combineLatest([
@@ -91,6 +93,10 @@ export class ArtifactCollectorFlowDetails extends Plugin implements OnInit {
         this.totalFileResults$,
         this.totalExecuteResponseResults$,
       ]).pipe(map(([total, file, execute]) => total - file - execute));
+
+  readonly flowArgs$: Observable<ArtifactCollectorFlowArgs> =
+      this.flowListEntry$.pipe(
+          map(fle => fle.flow.args as ArtifactCollectorFlowArgs));
 
   constructor(private readonly httpApiService: HttpApiService) {
     super();

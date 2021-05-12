@@ -88,6 +88,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
 
   category = "/Collectors/"
   args_type = rdf_artifacts.ArtifactCollectorFlowArgs
+  progress_type = rdf_artifacts.ArtifactCollectorFlowProgress
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):
@@ -98,6 +99,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
     self.state.failed_count = 0
     self.state.knowledge_base = self.args.knowledge_base
     self.state.response_count = 0
+    self.state.progress = rdf_artifacts.ArtifactCollectorFlowProgress()
 
     if self.args.use_tsk and self.args.use_raw_filesystem_access:
       raise ValueError(
@@ -161,6 +163,9 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
   def Collect(self, artifact_obj):
     """Collect the raw data from the client for this artifact."""
     artifact_name = artifact_obj.name
+
+    # Ensure attempted artifacts are shown in progress, even with 0 results.
+    self._GetOrInsertArtifactProgress(artifact_name)
 
     test_conditions = list(artifact_obj.conditions)
     os_conditions = ConvertSupportedOSToConditions(artifact_obj)
@@ -748,6 +753,10 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
     else:
       results = responses
 
+    # Increment artifact result count in flow progress.
+    progress = self._GetOrInsertArtifactProgress(artifact_name)
+    progress.num_results += len(results)
+
     for result in results:
       result_type = result.__class__.__name__
       if result_type == "Anomaly":
@@ -755,6 +764,18 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
       elif (not artifact_return_types or result_type in artifact_return_types):
         self.state.response_count += 1
         self.SendReply(result, tag="artifact:%s" % artifact_name)
+
+  def GetProgress(self) -> rdf_artifacts.ArtifactCollectorFlowProgress:
+    return self.state.progress
+
+  def _GetOrInsertArtifactProgress(self,
+                                   name: str) -> rdf_artifacts.ArtifactProgress:
+    try:
+      return next(a for a in self.state.progress.artifacts if a.name == name)
+    except StopIteration:
+      progress = rdf_artifacts.ArtifactProgress(name=name)
+      self.state.progress.artifacts.append(progress)
+      return progress
 
   def End(self, responses):
     del responses

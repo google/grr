@@ -413,6 +413,18 @@ class ArtifactCollectorFlowArgs(rdf_structs.RDFProtoStruct):
       raise ValueError("No artifacts to collect.")
 
 
+class ArtifactProgress(rdf_structs.RDFProtoStruct):
+  """Collection progress of an Artifact."""
+  protobuf = flows_pb2.ArtifactProgress
+  rdf_deps = []
+
+
+class ArtifactCollectorFlowProgress(rdf_structs.RDFProtoStruct):
+  """Collection progress of ArtifactCollectorFlow."""
+  protobuf = flows_pb2.ArtifactCollectorFlowProgress
+  rdf_deps = [ArtifactProgress]
+
+
 class ClientArtifactCollectorArgs(rdf_structs.RDFProtoStruct):
   """An RDFValue representation of an artifact bundle."""
   protobuf = artifact_pb2.ClientArtifactCollectorArgs

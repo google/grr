@@ -12,10 +12,10 @@ import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, groupBy
 
 import {translateApproverSuggestions} from '../lib/api_translation/user';
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
+import {poll} from '../lib/polling';
 import {isNonNull} from '../lib/preconditions';
 
 import {ConfigFacade} from './config_facade';
-
 
 
 interface FlowInConfiguration {
@@ -221,19 +221,28 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         };
       });
 
+  private readonly fetchClient = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMapTo(this.select(state => state.clientId)),
+          filter(isNonNull),
+          mergeMap(clientId => {
+            return this.httpApiService.fetchClient(clientId);
+          }),
+          map(apiClient => translateClient(apiClient)),
+          tap(client => {
+            this.updateSelectedClient(client);
+          }),
+          ));
+
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
-      combineLatest([
-        timer(0, this.configService.config.selectedClientPollingIntervalMs)
-            .pipe(
-                tap(() => {
-                  this.fetchClient();
-                }),
-                ),
-        this.select(state => state.client),
-      ])
+      poll({
+        pollIntervalMs:
+            this.configService.config.selectedClientPollingIntervalMs,
+        pollEffect: this.fetchClient,
+        selector: this.select(state => state.client),
+      })
           .pipe(
-              map(([, client]) => client),
               filter(isNonNull),
               shareReplay({bufferSize: 1, refCount: true}),
           );
@@ -264,37 +273,60 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   readonly flowInConfiguration$: Observable<FlowInConfiguration> =
       this.select(state => state.flowInConfiguration).pipe(filter(isNonNull));
 
+  private readonly listApprovals = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMapTo(this.selectedClientId$),
+          switchMap(clientId => this.httpApiService.listApprovals(clientId)),
+          map(apiApprovals => apiApprovals.map(translateApproval)),
+          tap(approvals => {
+            this.updateApprovals(approvals);
+          })));
+
   /** An observable emitting the latest non-expired approval. */
   readonly latestApproval$: Observable<ClientApproval|undefined> =
-      combineLatest([
-        timer(0, this.configService.config.approvalPollingIntervalMs)
-            .pipe(tap(() => {
-              this.listApprovals();
-            })),
-        this.select(state => {
+      poll({
+        pollIntervalMs: this.configService.config.approvalPollingIntervalMs,
+        pollEffect: this.listApprovals,
+        selector: this.select(state => {
           // Approvals are expected to be in reversed chronological order.
           const foundId = state.approvalSequence.find(
               approvalId =>
                   state.approvals[approvalId].status.type !== 'expired');
           return foundId ? state.approvals[foundId] : undefined;
-        })
-      ])
+        }),
+        // Only poll when approval is missing or outdated. The user no longer
+        // benefits from polling when they have a valid approval already.
+        pollWhile: (approval) => approval?.status.type !== 'valid',
+      }).pipe(shareReplay({bufferSize: 1, refCount: true}));
+
+  private readonly verifyAccess = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMapTo(this.selectedClientId$),
+          switchMap(
+              clientId => this.httpApiService.verifyClientAccess(clientId)),
+          tap(access => {
+            this.updateHasAccess(access);
+          })));
+
+  readonly hasAccess$: Observable<boolean> =
+      poll({
+        pollIntervalMs: this.configService.config.approvalPollingIntervalMs,
+        pollEffect: this.verifyAccess,
+        selector: this.select(state => state.hasAccess),
+        // Only poll if hasAccess is undefined or false. In this case, changes
+        // could happen any time soon.
+        pollWhile: (hasAccess) => !hasAccess,
+      })
           .pipe(
-              map(([, approval]) => approval),
+              filter(isNonNull),
               shareReplay({bufferSize: 1, refCount: true}),
           );
 
-  readonly hasAccess$: Observable<boolean> =
-      combineLatest([
-        timer(0, this.configService.config.approvalPollingIntervalMs)
-            .pipe(tap(() => {
-              this.verifyAccess();
-            })),
-        this.select(state => state.hasAccess)
-      ])
+  readonly approvalsEnabled$: Observable<boolean> =
+      combineLatest([this.hasAccess$, this.latestApproval$])
           .pipe(
-              map(([, hasAccess]) => hasAccess),
-              filter(isNonNull),
+              map(([hasAccess, latestApproval]) =>
+                      !hasAccess || latestApproval !== undefined),
               shareReplay({bufferSize: 1, refCount: true}),
           );
 
@@ -303,17 +335,34 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         return state.flowListEntrySequence.map(id => state.flowListEntries[id]);
       });
 
+  private readonly listFlows = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMapTo(this.selectedClientId$),
+          exhaustMap(
+              clientId => this.httpApiService.listFlowsForClient(clientId).pipe(
+                  catchError(err => {
+                    if (err instanceof MissingApprovalError) {
+                      return EMPTY;
+                    } else {
+                      return throwError(err);
+                    }
+                  }),
+                  )),
+          map(apiFlows => apiFlows.map(translateFlow)),
+          tap(flows => {
+            this.updateFlows(flows);
+          }),
+          ));
+
   /** An observable emitting current flow list entries. */
   readonly flowListEntries$: Observable<ReadonlyArray<FlowListEntry>> =
-      combineLatest([
-        timer(0, this.configService.config.flowListPollingIntervalMs)
-            .pipe(tap(() => {
-              this.listFlows();
-            })),
-        this.flowListEntriesImpl$
-      ])
+      poll({
+        pollIntervalMs: this.configService.config.flowListPollingIntervalMs,
+        pollEffect: this.listFlows,
+        selector: this.flowListEntriesImpl$,
+      })
           .pipe(
-              map(([, entries]) => entries),
+
               shareReplay({bufferSize: 1, refCount: true}),
           );
 
@@ -342,35 +391,22 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
                   defaultArgs: selectedFlow.initialArgs ?? fd.defaultArgs,
                 };
               }),
-              // Generally, selectedFlow$ emits `undefined` as first value to
-              // indicate that no flow has been selected. We use startWith() to
-              // immediately emit this, even though flowDescriptors$ is still
-              // waiting for the API result.
+              // Generally, selectedFlow$ emits `undefined` as first value
+              // to indicate that no flow has been selected. We use
+              // startWith() to immediately emit this, even though
+              // flowDescriptors$ is still waiting for the API result.
               startWith(undefined),
               shareReplay({bufferSize: 1, refCount: true}),
           );
-
-  private readonly fetchClient = this.effect<void>(
-      obs$ => obs$.pipe(
-          switchMapTo(this.select(state => state.clientId)),
-          filter(isNonNull),
-          mergeMap(clientId => {
-            return this.httpApiService.fetchClient(clientId);
-          }),
-          map(apiClient => translateClient(apiClient)),
-          tap(client => {
-            this.updateSelectedClient(client);
-          }),
-          ));
 
   /** An effect querying results of a given flow. */
   private readonly queryFlowResultsImpl = this.effect<FlowResultsQuery>(
       obs$ => obs$.pipe(
           takeUntil(this.selectedClientIdChanged$),
           withLatestFrom(this.selectedClientId$),
-          // Below we are grouping the requests by flowId, tag and type, and
-          // for each group we use a queuedExhaustMap with queue size 1 to send
-          // a http request for results.
+          // Below we are grouping the requests by flowId, tag and type,
+          // and for each group we use a queuedExhaustMap with queue size
+          // 1 to send a http request for results.
           groupBy(([query, clientId]) => {
             return uniqueTagForQuery(query);
           }),
@@ -394,12 +430,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
                   }),
                   ))));
 
-  /** A subject triggered every time the queryFlowResults() method is called. */
+  /**
+   * A subject triggered every time the queryFlowResults() method is
+   * called.
+   */
   private readonly queryFlowResultsSubject$ = new Subject<FlowResultsQuery>();
 
   /**
-   * Triggers flow results query. Results will be automatically updated until
-   * the flow completes or another client is selected.
+   * Triggers flow results query. Results will be automatically updated
+   * until the flow completes or another client is selected.
    */
   queryFlowResults(query: FlowResultsQuery) {
     this.queryFlowResultsSubject$.next(query);
@@ -413,18 +452,19 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
         .pipe(
             takeUntil(this.selectedClientIdChanged$),
             takeUntil(this.queryFlowResultsSubject$.pipe(
-                // If queryFlowResults gets called again for the query for the
-                // same flow id, tag and type, then stop doing the updates
-                // (as they'll be done by the subscribed observable initialized
-                // by the latest queryFlowResults call).
+                // If queryFlowResults gets called again for the query for
+                // the same flow id, tag and type, then stop doing the
+                // updates (as they'll be done by the subscribed
+                // observable initialized by the latest queryFlowResults
+                // call).
                 filter(
                     (incomingQuery) => incomingQuery.flowId === query.flowId &&
                         incomingQuery.withTag === query.withTag &&
                         incomingQuery.withType === query.withType))),
             takeWhile(([, fleState]) => fleState !== undefined),
             // Inclusive: the line below will trigger one more time, once
-            // the flow state becomes FINISHED. This guarantees that results
-            // will be updated correctly.
+            // the flow state becomes FINISHED. This guarantees that
+            // results will be updated correctly.
             takeWhile(([, fleState]) => fleState !== FlowState.FINISHED, true),
             map(([i]) => i),
             distinctUntilChanged(),
@@ -541,45 +581,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
     };
   });
 
-  /** An effect to list approvals. */
-  private readonly listApprovals = this.effect<void>(
-      obs$ => obs$.pipe(
-          switchMapTo(this.selectedClientId$),
-          switchMap(clientId => this.httpApiService.listApprovals(clientId)),
-          map(apiApprovals => apiApprovals.map(translateApproval)),
-          tap(approvals => {
-            this.updateApprovals(approvals);
-          })));
-
-  private readonly verifyAccess = this.effect<void>(
-      obs$ => obs$.pipe(
-          switchMapTo(this.selectedClientId$),
-          switchMap(
-              clientId => this.httpApiService.verifyClientAccess(clientId)),
-          tap(access => {
-            this.updateHasAccess(access);
-          })));
-
-  // An effect to list flows.
-  private readonly listFlows = this.effect<void>(
-      obs$ => obs$.pipe(
-          switchMapTo(this.selectedClientId$),
-          exhaustMap(
-              clientId => this.httpApiService.listFlowsForClient(clientId).pipe(
-                  catchError(err => {
-                    if (err instanceof MissingApprovalError) {
-                      return EMPTY;
-                    } else {
-                      return throwError(err);
-                    }
-                  }),
-                  )),
-          map(apiFlows => apiFlows.map(translateFlow)),
-          tap(flows => {
-            this.updateFlows(flows);
-          }),
-          ));
-
   /** An effect to add a label to the selected client */
   readonly addClientLabel = this.effect<string>(
       obs$ => obs$.pipe(
@@ -623,6 +624,11 @@ export class ClientPageFacade {
   /** An obserable emitting if the user has access to the client. */
   readonly hasAccess$ = this.store.hasAccess$;
 
+  /**
+   * An observable emitting if the approval system is enabled for the user.
+   */
+  readonly approvalsEnabled$ = this.store.approvalsEnabled$;
+
   /** An observable emitting current flow entries. */
   readonly flowListEntries$: Observable<ReadonlyArray<FlowListEntry>> =
       this.store.flowListEntries$;
@@ -638,7 +644,6 @@ export class ClientPageFacade {
   /** An observable emitting the last removed client label. */
   readonly lastRemovedClientLabel$: Observable<string> =
       this.store.lastRemovedClientLabel$;
-
 
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {

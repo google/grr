@@ -18,6 +18,7 @@ export declare interface ClientPageFacadeMock extends
   readonly lastRemovedClientLabelSubject: Subject<string>;
   readonly flowListEntriesSubject: Subject<ReadonlyArray<FlowListEntry>>;
   readonly hasAccessSubject: Subject<boolean>;
+  readonly approvalsEnabledSubject: Subject<boolean>;
 }
 
 export function mockClientPageFacade(): ClientPageFacadeMock {
@@ -31,6 +32,7 @@ export function mockClientPageFacade(): ClientPageFacadeMock {
   const lastRemovedClientLabelSubject = new ReplaySubject<string>(1);
   const flowListEntriesSubject = new Subject<ReadonlyArray<FlowListEntry>>();
   const hasAccessSubject = new Subject<boolean>();
+  const approvalsEnabledSubject = new Subject<boolean>();
 
   latestApprovalSubject.next(undefined);
   startFlowStateSubject.next({state: 'request_not_sent'});
@@ -61,5 +63,7 @@ export function mockClientPageFacade(): ClientPageFacadeMock {
     flowListEntries$: flowListEntriesSubject.asObservable(),
     hasAccessSubject,
     hasAccess$: hasAccessSubject.asObservable(),
+    approvalsEnabledSubject,
+    approvalsEnabled$: approvalsEnabledSubject.asObservable(),
   };
 }

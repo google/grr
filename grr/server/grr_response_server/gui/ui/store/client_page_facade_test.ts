@@ -198,6 +198,46 @@ describe('ClientPageFacade', () => {
        expect(await promise).toBeTrue();
      }));
 
+  it('approvalsEnabled$ emits true if access is false', fakeAsync(async () => {
+       const promise = firstValueFrom(clientPageFacade.approvalsEnabled$);
+       tick(configService.config.approvalPollingIntervalMs * 2 + 1);
+       apiVerifyClientAccess$.next(false);
+       apiListApprovals$.next([]);
+       expect(await promise).toBeTrue();
+     }));
+
+  it('approvalsEnabled$ emits true if access is true and approval is granted',
+     fakeAsync(async () => {
+       const promise = firstValueFrom(clientPageFacade.approvalsEnabled$);
+       tick(configService.config.approvalPollingIntervalMs * 2 + 1);
+       apiVerifyClientAccess$.next(false);
+       apiListApprovals$.next([{
+         subject: {
+           clientId: 'C.1234',
+           fleetspeakEnabled: false,
+           knowledgeBase: {},
+           labels: [],
+           age: '0',
+         },
+         id: '2',
+         reason: '-',
+         requestor: 'testuser',
+         isValid: true,
+         approvers: ['testuser1'],
+         notifiedUsers: [],
+       }]);
+       expect(await promise).toBeTrue();
+     }));
+
+  it('approvalsEnabled$ emits false if access is true and no approval exists',
+     fakeAsync(async () => {
+       const promise = firstValueFrom(clientPageFacade.approvalsEnabled$);
+       tick(configService.config.approvalPollingIntervalMs * 2 + 1);
+       apiVerifyClientAccess$.next(true);
+       apiListApprovals$.next([]);
+       expect(await promise).toBeFalse();
+     }));
+
   it('calls the listFlow API on flowListEntries$ subscription',
      fakeAsync(() => {
        clientPageFacade.flowListEntries$.subscribe();

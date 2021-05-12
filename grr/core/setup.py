@@ -152,7 +152,7 @@ setup_args = dict(
         "python-dateutil==2.8.1",
         "pytsk3==20200117",
         "pytz==2020.1",
-        "PyYAML==5.3.1",
+        "PyYAML==5.4.1",
         "requests==2.25.1",
         "yara-python==4.0.1",
     ],

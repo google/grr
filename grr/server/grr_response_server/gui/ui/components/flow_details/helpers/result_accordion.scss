@@ -1,0 +1,100 @@
+@use '~material-theme' as c;
+
+$header-left-padding: 24px;
+$files-counter-offset: 135px;
+
+.row-list {
+  margin-bottom: 0.15em;
+
+  .row {
+    .header {
+      cursor: pointer;
+
+      position: relative;
+      bottom: -2px;
+      &:hover {
+        background-color: c.mat-color(c.$primary, 100, 0.15);
+      }
+
+      border-top: 1px solid c.mat-color(c.$foreground, divider-light);
+      padding: 0.5em 0 0.5em $header-left-padding;
+
+      display: flex;
+      align-items: center;
+
+      .row-text {
+        position: relative;
+        right: $files-counter-offset;
+        white-space: nowrap;
+      }
+
+      .title,
+      .in-progress,
+      .success,
+      .warning,
+      .error {
+        display: flex;
+        align-items: center;
+
+        .material-icons {
+          position: relative;
+          top: -1px;
+        }
+      }
+
+      .title {
+        flex-grow: 1;
+        font-family: c.$google-sans-display-family;
+        font-weight: 400;
+
+        .arrow-icon {
+          font-size: 36px;
+        }
+      }
+
+      .success {
+        color: c.mat-color(c.$foreground, text-light);
+        font-size: 90%;
+
+        .material-icons {
+          color: c.mat-color(c.$foreground, success);
+          margin-left: 0.5em;
+        }
+      }
+
+      .warning {
+        color: c.mat-color(c.$warn, darker);
+        font-size: 90%;
+
+        .material-icons {
+          color: c.mat-color(c.$warn);
+          margin-left: 0.5em;
+        }
+      }
+
+      .error {
+        color: c.mat-color(c.$danger);
+        font-size: 90%;
+
+        .material-icons {
+          margin-left: 0.5em;
+        }
+      }
+
+      .expansion-indicator {
+        color: c.mat-color(c.$foreground, divider);
+        font-size: 30px;
+        text-align: center;
+        width: 40px;
+      }
+    }
+
+    .results-in-progress {
+      padding: 0.5em 24px;
+    }
+  }
+}
+
+.expand-results {
+  width: 100%;
+}

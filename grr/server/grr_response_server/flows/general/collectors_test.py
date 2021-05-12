@@ -452,6 +452,56 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
     results = flow_test_lib.GetFlowResults(client_id, flow_id)
     self.assertEmpty(results)
 
+  def testFlowProgressHasEntryForArtifactWithoutResults(self):
+
+    client_id = self.SetupClient(0, system="Linux")
+    with utils.Stubber(psutil, "process_iter", lambda: iter([])):
+      client_mock = action_mocks.ActionMock(standard.ListProcesses)
+
+      self.fakeartifact.sources.append(
+          rdf_artifacts.ArtifactSource(
+              type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+              attributes={"client_action": standard.ListProcesses.__name__}))
+
+      flow_id = flow_test_lib.TestFlowHelper(
+          collectors.ArtifactCollectorFlow.__name__,
+          client_mock,
+          artifact_list=["FakeArtifact"],
+          client_id=client_id)
+
+      progress = flow_test_lib.GetFlowProgress(client_id, flow_id)
+      self.assertLen(progress.artifacts, 1)
+      self.assertEqual(progress.artifacts[0].name, "FakeArtifact")
+      self.assertEqual(progress.artifacts[0].num_results, 0)
+
+  def testFlowProgressIsCountingResults(self):
+
+    def _Iter():
+      return iter([
+          client_test_lib.MockWindowsProcess(),
+          client_test_lib.MockWindowsProcess()
+      ])
+
+    client_id = self.SetupClient(0, system="Linux")
+    with utils.Stubber(psutil, "process_iter", _Iter):
+      client_mock = action_mocks.ActionMock(standard.ListProcesses)
+
+      self.fakeartifact.sources.append(
+          rdf_artifacts.ArtifactSource(
+              type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+              attributes={"client_action": standard.ListProcesses.__name__}))
+
+      flow_id = flow_test_lib.TestFlowHelper(
+          collectors.ArtifactCollectorFlow.__name__,
+          client_mock,
+          artifact_list=["FakeArtifact"],
+          client_id=client_id)
+
+      progress = flow_test_lib.GetFlowProgress(client_id, flow_id)
+      self.assertLen(progress.artifacts, 1)
+      self.assertEqual(progress.artifacts[0].name, "FakeArtifact")
+      self.assertEqual(progress.artifacts[0].num_results, 2)
+
 
 class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
                                        test_lib.GRRBaseTest):

@@ -723,6 +723,15 @@ message ArtifactCollectorFlowArgs {
   }];
 }
 
+message ArtifactProgress {
+  optional string name = 1;
+  optional uint32 num_results = 2;
+}
+
+message ArtifactCollectorFlowProgress {
+  repeated ArtifactProgress artifacts = 1;
+}
+
 // Next field ID: 11
 message ArtifactFilesDownloaderFlowArgs {
   repeated string artifact_list = 1 [(sem_type) = {

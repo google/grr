@@ -1,4 +1,4 @@
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowState} from '@app/lib/models/flow';
@@ -7,6 +7,7 @@ import {initTestEnvironment} from '@app/testing';
 import {firstValueFrom} from 'rxjs';
 
 import {ExecuteResponse} from '../../../lib/api/api_interfaces';
+import {ResultAccordion} from '../helpers/result_accordion';
 
 import {ArtifactCollectorFlowDetails} from './artifact_collector_flow_details';
 import {PluginsModule} from './module';
@@ -14,6 +15,13 @@ import {PluginsModule} from './module';
 
 
 initTestEnvironment();
+
+function openResultAccordion(fixture: ComponentFixture<{}>) {
+  const accordion = fixture.debugElement.query(By.directive(ResultAccordion));
+  expect(accordion.nativeElement).not.toBeNull();
+  accordion.componentInstance.toggle();
+  fixture.detectChanges();
+}
 
 describe('artifact-collector-flow-details component', () => {
   beforeEach(waitForAsync(() => {
@@ -34,13 +42,15 @@ describe('artifact-collector-flow-details component', () => {
     fixture.componentInstance.flowListEntry = {
       flow: newFlow({
         state: FlowState.FINISHED,
-        args: {},
+        args: {artifactList: ['foobar']},
       }),
       resultSets: [
         newFlowResultSet({stSize: 123, pathspec: {path: '/foo'}}, 'StatEntry'),
       ],
     };
     fixture.detectChanges();
+
+    openResultAccordion(fixture);
 
     expect(fixture.nativeElement.innerText).toContain('/foo');
     expect(fixture.nativeElement.innerText).toContain('123');
@@ -61,13 +71,15 @@ describe('artifact-collector-flow-details component', () => {
     fixture.componentInstance.flowListEntry = {
       flow: newFlow({
         state: FlowState.FINISHED,
-        args: {},
+        args: {artifactList: ['foobar']},
       }),
       resultSets: [
         newFlowResultSet(response, 'ExecuteResponse'),
       ],
     };
     fixture.detectChanges();
+
+    openResultAccordion(fixture);
 
     expect(fixture.nativeElement.innerText).toContain('/bin/foo');
     expect(fixture.nativeElement.innerText).toContain('bar');
@@ -80,7 +92,7 @@ describe('artifact-collector-flow-details component', () => {
     fixture.componentInstance.flowListEntry = {
       flow: newFlow({
         state: FlowState.FINISHED,
-        args: {},
+        args: {artifactList: ['foobar']},
       }),
       resultSets: [],
     };
@@ -89,11 +101,7 @@ describe('artifact-collector-flow-details component', () => {
     const flowResultsQueryPromise =
         firstValueFrom(fixture.componentInstance.flowResultsQuery);
 
-    const button = fixture.debugElement.query(
-        By.css('button[aria-label="Load more results"]'));
-    expect(button.nativeElement).not.toBeNull();
-    button.nativeElement.click();
-    fixture.detectChanges();
+    openResultAccordion(fixture);
 
     const flowResultsQuery = await flowResultsQueryPromise;
     expect(flowResultsQuery.offset).toEqual(0);
@@ -106,13 +114,15 @@ describe('artifact-collector-flow-details component', () => {
     fixture.componentInstance.flowListEntry = {
       flow: newFlow({
         state: FlowState.FINISHED,
-        args: {},
+        args: {artifactList: ['foobar']},
       }),
       resultSets: [
         newFlowResultSet({}, 'Unknown'),
       ],
     };
     fixture.detectChanges();
+
+    openResultAccordion(fixture);
 
     expect(fixture.nativeElement.innerText).toContain('old UI');
   });

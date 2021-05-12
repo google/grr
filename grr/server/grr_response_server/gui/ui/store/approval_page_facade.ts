@@ -3,10 +3,11 @@ import {ComponentStore} from '@ngrx/component-store';
 import {ConfigService} from '@app/components/config/config';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateApproval} from '@app/lib/api_translation/client';
-import {combineLatest, Observable, timer} from 'rxjs';
+import {Observable} from 'rxjs';
 import {filter, map, switchMap, switchMapTo, tap} from 'rxjs/operators';
 
 import {ClientApproval} from '../lib/models/client';
+import {poll} from '../lib/polling';
 import {isNonNull} from '../lib/preconditions';
 
 interface ApprovalPageState {
@@ -18,12 +19,6 @@ interface ApprovalKey {
   readonly approvalId: string;
   readonly clientId: string;
   readonly requestor: string;
-}
-
-interface PollingConfig<K> {
-  readonly pollingIntervalMs: number;
-  readonly pollingEffect: () => void;
-  readonly observable: Observable<K>;
 }
 
 
@@ -38,16 +33,6 @@ class BaseComponentStore<T extends {}> extends ComponentStore<T> {
 
   protected selectKey<K extends keyof T>(key: K): Observable<T[K]> {
     return this.select((state) => state[key]);
-  }
-
-  protected poll<T>(config: PollingConfig<T>) {
-    return combineLatest([
-             timer(0, config.pollingIntervalMs).pipe(tap(() => {
-               config.pollingEffect();
-             })),
-             config.observable,
-           ])
-        .pipe(map(([, value]) => value));
   }
 }
 
@@ -87,15 +72,11 @@ export class ApprovalPageStore extends BaseComponentStore<ApprovalPageState> {
 
   /** An observable emitting all ScheduledFlows for the client. */
   readonly approval$: Observable<ClientApproval> =
-      this.poll({
-            pollingIntervalMs:
-                this.configService.config.approvalPollingIntervalMs,
-            pollingEffect: this.fetchApproval,
-            observable: this.selectKey('approval'),
-          })
-          .pipe(
-              filter(isNonNull),
-          );
+      poll({
+        pollIntervalMs: this.configService.config.approvalPollingIntervalMs,
+        pollEffect: this.fetchApproval,
+        selector: this.selectKey('approval'),
+      }).pipe(filter(isNonNull));
 
   readonly grantApproval = this.effect<void>(
       obs$ => obs$.pipe(

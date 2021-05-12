@@ -4,9 +4,10 @@ import {ConfigService} from '@app/components/config/config';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateScheduledFlow} from '@app/lib/api_translation/flow';
 import {ScheduledFlow} from '@app/lib/models/flow';
-import {combineLatest, Observable, timer} from 'rxjs';
+import {Observable} from 'rxjs';
 import {concatMap, exhaustMap, filter, map, mapTo, shareReplay, tap, withLatestFrom} from 'rxjs/operators';
 
+import {poll} from '../lib/polling';
 import {isNonNull} from '../lib/preconditions';
 
 interface State {
@@ -54,18 +55,31 @@ export class ScheduledFlowStore extends ComponentStore<State> {
         };
       });
 
+  private readonly listScheduledFlows = this.effect<void>(
+      obs$ => obs$.pipe(
+          withLatestFrom(this.state$),
+          map(([, {clientId, creator}]) => ({clientId, creator})),
+          filter(
+              (args): args is {clientId: string, creator: string} =>
+                  isNonNull(args.clientId) && isNonNull(args.creator)),
+          exhaustMap(
+              ({creator, clientId}) =>
+                  this.httpApiService.listScheduledFlows(clientId, creator)),
+          map(apiScheduledFlows =>
+                  apiScheduledFlows.map(translateScheduledFlow)),
+          tap(scheduledFlows => {
+            this.updateScheduledFlows(scheduledFlows);
+          }),
+          ));
 
   /** An observable emitting all ScheduledFlows for the client. */
   readonly scheduledFlows$: Observable<ReadonlyArray<ScheduledFlow>> =
-      combineLatest([
-        timer(0, this.configService.config.flowListPollingIntervalMs)
-            .pipe(tap(() => {
-              this.listScheduledFlows();
-            })),
-        this.select(state => state.scheduledFlows)
-      ])
+      poll({
+        pollIntervalMs: this.configService.config.flowListPollingIntervalMs,
+        pollEffect: this.listScheduledFlows,
+        selector: this.select(state => state.scheduledFlows),
+      })
           .pipe(
-              map(([, entries]) => entries),
               filter(isNonNull),
               shareReplay({bufferSize: 1, refCount: true}),
           );
@@ -98,21 +112,4 @@ export class ScheduledFlowStore extends ComponentStore<State> {
               sf => sf.scheduledFlowId !== scheduledFlowId)
         };
       });
-
-  private readonly listScheduledFlows = this.effect<void>(
-      obs$ => obs$.pipe(
-          withLatestFrom(this.state$),
-          map(([, {clientId, creator}]) => ({clientId, creator})),
-          filter(
-              (args): args is {clientId: string, creator: string} =>
-                  isNonNull(args.clientId) && isNonNull(args.creator)),
-          exhaustMap(
-              ({creator, clientId}) =>
-                  this.httpApiService.listScheduledFlows(clientId, creator)),
-          map(apiScheduledFlows =>
-                  apiScheduledFlows.map(translateScheduledFlow)),
-          tap(scheduledFlows => {
-            this.updateScheduledFlows(scheduledFlows);
-          }),
-          ));
 }

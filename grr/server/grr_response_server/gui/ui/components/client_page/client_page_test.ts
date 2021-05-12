@@ -161,4 +161,28 @@ describe('ClientPage Component', () => {
        tick();
        discardPeriodicTasks();
      }));
+
+  it('shows approval iff approvalsEnabled$', () => {
+    const fixture = TestBed.createComponent(ClientComponent);
+    fixture.detectChanges();
+
+    clientPageFacade.approvalsEnabledSubject.next(true);
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.client-approval'))
+               .styles['display'])
+        .toEqual('block');
+  });
+
+  it('does not show approval if approvalsEnabled$ is false', () => {
+    const fixture = TestBed.createComponent(ClientComponent);
+    fixture.detectChanges();
+
+    clientPageFacade.approvalsEnabledSubject.next(false);
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.client-approval'))
+               .styles['display'])
+        .toEqual('none');
+  });
 });

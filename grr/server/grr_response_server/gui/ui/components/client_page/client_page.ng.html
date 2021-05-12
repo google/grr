@@ -25,7 +25,8 @@
       </div>
     </div>
 
-    <div class="client-approval mat-elevation-z5">
+    <div class="client-approval mat-elevation-z5"
+      [style.display]="(this.showApprovalView$ | async) ? 'block' : 'none'">
       <approval></approval>
     </div>
   </mat-drawer-content>

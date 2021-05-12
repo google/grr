@@ -9,7 +9,7 @@
   </a>
 </div>
 
-<div class="results">
+<result-accordion [title]="(flowArgs$ | async).artifactList[0]" [hasMoreResults]="hasMoreResults$ | async" (loadMore)="loadMoreResults()">
   <file-results-table *ngIf="(totalFileResults$ | async) > 0" [results]="fileResults$ | async">
   </file-results-table>
 
@@ -27,8 +27,6 @@
   <a mat-button *ngIf="totalUnknownResults$ | async as totalUnknownResults" href="{{fallbackUrl$ | async}}/results" class="result">
     View {{ totalUnknownResults | i18nPlural: {'=1': '1 parsed result', 'other': '# parsed results'} }} in old UI
   </a>
+</result-accordion>
 
-  <button class="expand-results" mat-button aria-label="Load more results" (click)="loadMoreResults()" *ngIf="hasMoreResults$ | async">
-    <mat-icon>expand_more</mat-icon>
-  </button>
-</div>
+

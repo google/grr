@@ -13,6 +13,7 @@ import {TimestampModule} from '@app/components/timestamp/module';
 
 import {FileResultsTable} from './file_results_table';
 import {OsqueryResultsTable} from './osquery_results_table';
+import {ResultAccordion} from './result_accordion';
 
 
 /**
@@ -37,11 +38,13 @@ import {OsqueryResultsTable} from './osquery_results_table';
     FileResultsTable,
     FileModePipe,
     OsqueryResultsTable,
+    ResultAccordion,
   ],
   exports: [
     FileResultsTable,
     FileModePipe,
     OsqueryResultsTable,
+    ResultAccordion,
   ],
 })
 export class HelpersModule {

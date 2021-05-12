@@ -53,12 +53,15 @@ export class ClientPage implements OnInit, AfterViewInit, OnDestroy {
 
   @ViewChild('clientDetailsDrawer') clientDetailsDrawer!: MatDrawer;
 
-  @ViewChild(Approval, {read: ElementRef}) approvalViewContainer!: ElementRef;
+  @ViewChild(Approval, {read: ElementRef}) approvalViewContainer?: ElementRef;
 
   approvalHeight: number = 0;
 
+  readonly showApprovalView$ = this.clientPageFacade.approvalsEnabled$;
+
   private readonly resizeObserver = new ResizeObserver(() => {
-    this.approvalHeight = this.approvalViewContainer.nativeElement.offsetHeight;
+    this.approvalHeight =
+        this.approvalViewContainer?.nativeElement.offsetHeight ?? 0;
     this.changeDetectorRef.markForCheck();
   });
 
@@ -88,7 +91,9 @@ export class ClientPage implements OnInit, AfterViewInit, OnDestroy {
   }
 
   ngAfterViewInit() {
-    this.resizeObserver.observe(this.approvalViewContainer.nativeElement);
+    if (this.approvalViewContainer !== undefined) {
+      this.resizeObserver.observe(this.approvalViewContainer.nativeElement);
+    }
 
     const urlTokens = this.router.routerState.snapshot.url.split('/');
     if (urlTokens[urlTokens.length - 1] === ClientPage.CLIENT_DETAILS_ROUTE) {

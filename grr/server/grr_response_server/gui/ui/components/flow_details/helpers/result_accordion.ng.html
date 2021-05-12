@@ -1,0 +1,23 @@
+<div class="row-list">
+  <div class="row">
+    <div class="header" (click)="toggle()">
+      <div class="title">
+        <span>{{ title }}</span>
+      </div>
+
+      <div class="expansion-indicator">
+        <span *ngIf="isOpen || hasMoreResults || hasResults" class="material-icons arrow-icon">
+          {{ isOpen ? 'keyboard_arrow_down' : 'keyboard_arrow_right' }}
+        </span>
+      </div>
+    </div>
+
+    <div class="results" *ngIf="isOpen">
+      <ng-content></ng-content>
+
+      <button class="expand-results" mat-button aria-label="Load more results" (click)="loadMoreClicked()" *ngIf="hasMoreResults">
+        <mat-icon>expand_more</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>
