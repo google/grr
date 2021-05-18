@@ -26,7 +26,7 @@ $gcs_dest = 'gs://{0}/{1}_{2}/appveyor_build_{3}_job_{4}/' -f @(
 Write-Output "Uploading templates to $gcs_dest"
 
 $stop_watch = [Diagnostics.Stopwatch]::StartNew()
-gsutil cp 'C:\grr_src\output\*' $gcs_dest
+gsutil cp 'C:\grr_src\output*\*' $gcs_dest
 if (!$?) {
   throw 'Failed to upload templates.'
 }

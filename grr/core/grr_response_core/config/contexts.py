@@ -46,6 +46,7 @@ TARGET_LINUX = config_lib.DEFINE_context("Target:Linux")
 TARGET_LINUX_DEB = config_lib.DEFINE_context("Target:LinuxDeb")
 TARGET_LINUX_RPM = config_lib.DEFINE_context("Target:LinuxRpm")
 TARGET_WINDOWS = config_lib.DEFINE_context("Target:Windows")
+TARGET_WINDOWS_MSI = config_lib.DEFINE_context("Target:WindowsMsi")
 
 # Running from the command line.
 COMMAND_LINE_CONTEXT = config_lib.DEFINE_context("Commandline Context")

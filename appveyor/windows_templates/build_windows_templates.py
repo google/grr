@@ -86,6 +86,13 @@ parser.add_argument(
     help="Optional path to a 32-bit Python virtualenv to be used instead "
     "of creating a new one.")
 
+parser.add_argument(
+    "--build_msi",
+    dest="build_msi",
+    default=False,
+    action="store_true",
+    help="Enable building of an MSI template.")
+
 args = parser.parse_args()
 
 
@@ -240,9 +247,23 @@ class WindowsTemplateBuilder(object):
       ]
     else:
       build_args = ["--verbose", "build", "--output", args.output_dir]
+    if args.build_msi:
+      wix_tools_path = self._WixToolsPath()
+      build_args += [
+        "-p",
+        "ClientBuilder.wix_tools_path=%{" + wix_tools_path + "}",
+        "-p",
+        "ClientBuilder.build_msi=true",
+      ]
     subprocess.check_call([self.grr_client_build64] + build_args)
     if args.build_32:
       subprocess.check_call([self.grr_client_build32] + build_args)
+
+  def _WixToolsPath(self) -> str:
+    matches = glob.glob("c:\\Program Files*\\WiX Toolset*")
+    if not matches:
+      raise Exception("Couldn't find WiX Toolset.")
+    return matches[0]
 
   def _RepackTemplates(self):
     """Repack templates with a dummy config."""
@@ -254,39 +275,51 @@ class WindowsTemplateBuilder(object):
     template_amd64 = glob.glob(os.path.join(args.output_dir,
                                             "*_amd64*.zip")).pop()
 
+    extra_args = [] # XXX
+
     # We put the installers in the output dir so they get stored as build
     # artifacts and we can test the 32bit build manually.
     subprocess.check_call([
         self.grr_client_build64, "--verbose", "--secondary_configs",
         dummy_config, "repack", "--template", template_amd64, "--output_dir",
         args.output_dir
-    ])
+    ] + extra_args)
     subprocess.check_call([
         self.grr_client_build64, "--verbose", "--context",
         "DebugClientBuild Context", "--secondary_configs", dummy_config,
         "repack", "--template", template_amd64, "--output_dir", args.output_dir
-    ])
+    ] + extra_args)
     if args.build_32:
       subprocess.check_call([
           self.grr_client_build32, "--verbose", "--secondary_configs",
           dummy_config, "repack", "--template", template_i386, "--output_dir",
           args.output_dir
-      ])
+      ] + extra_args)
       subprocess.check_call([
           self.grr_client_build32, "--verbose", "--context",
           "DebugClientBuild Context", "--secondary_configs", dummy_config,
           "repack", "--template", template_i386, "--output_dir", args.output_dir
-      ])
+      ] + extra_args)
 
   def _CleanupInstall(self):
     """Cleanup from any previous installer enough for _CheckInstallSuccess."""
-    if os.path.exists(self.install_path):
-      shutil.rmtree(self.install_path)
-      if os.path.exists(self.install_path):
-        raise RuntimeError("Install path still exists: %s" % self.install_path)
 
     # Deliberately don't check return code, since service may not be installed.
     subprocess.call(["sc", "stop", self.service_name])
+
+    if args.build_msi:
+      msiexec_args = [
+        "msiexec",
+        "/q", "/x",
+        glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop(),
+      ]
+      print("Running:", msiexec_args)
+      subprocess.check_call(msiexec_args)
+    else:
+      if os.path.exists(self.install_path):
+        shutil.rmtree(self.install_path)
+        if os.path.exists(self.install_path):
+          raise RuntimeError("Install path still exists: %s" % self.install_path)
 
   def _CheckInstallSuccess(self):
     """Checks if the installer installed correctly."""
@@ -320,12 +353,20 @@ class WindowsTemplateBuilder(object):
     """Install the installer built by RepackTemplates."""
     # 32 bit binary will refuse to install on a 64bit system so we only install
     # the 64 bit version
-    installer_amd64 = glob.glob(
-        os.path.join(args.output_dir, "dbg_*_amd64.exe")).pop()
-    self._CleanupInstall()
+    if args.build_msi:
+      installer_amd64_args = [
+        "msiexec",
+        "/i",
+        glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop(),
+      ]
+    else:
+      installer_amd64_args = [glob.glob(
+          os.path.join(args.output_dir, "dbg_*_amd64.exe")).pop()]
     # The exit code is always 0, test to see if install was actually successful.
-    subprocess.check_call([installer_amd64])
+    print("Running:", installer_amd64_args)
+    subprocess.check_call(installer_amd64_args)
     self._CheckInstallSuccess()
+    self._CleanupInstall()
 
   def Build(self):
     """Build templates."""

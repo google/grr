@@ -216,6 +216,8 @@ class TemplateBuilder(object):
     context.append("Target:%s" % self.platform)
     if "Target:Linux" in context:
       context.append(self.GetPackageFormat())
+    if ("Target:Windows" in context and grr_config.CONFIG["ClientBuilder.build_msi"]):
+      context.append("Target:WindowsMsi")
 
     template_path = None
     # If output is specified, place the built template file there, otherwise

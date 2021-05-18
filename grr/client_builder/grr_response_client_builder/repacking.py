@@ -238,7 +238,7 @@ class TemplateRepacker(object):
                        "installers"),
           upload=upload)
       # If it's windows also repack a debug version.
-      if template_path.endswith(".exe.zip"):
+      if template_path.endswith(".exe.zip") or template_path.endswith(".msi.zip"):
         print("Repacking as debug installer: %s." % template_path)
         self.RepackTemplate(
             template_path,
