@@ -6,6 +6,7 @@ import os
 import shutil
 import struct
 import subprocess
+import uuid
 from typing import Tuple, Dict, Any
 
 import olefile
@@ -25,6 +26,7 @@ GRR_CAB_STREAM_NAME = "䕪䞵䄦䠥"
 FEATURE_STREAM_NAME = "䡀䈏䗤䕸䠨"
 STRING_POOL_STREAM_NAME = "䡀㼿䕷䑬㹪䒲䠯"
 STRING_DATA_STREAM_NAME = "䡀㼿䕷䑬㭪䗤䠤"
+SUMMARY_INFORMATION_STREAM_NAME = "\x05SummaryInformation"
 
 
 class Error(Exception):
@@ -162,6 +164,22 @@ class FeatureTable:
     return self._data
 
 
+class SummaryInformation:
+
+  def __init__(self, data: bytes):
+    self._data = data
+
+  def Replace(self, old_value: bytes, new_value: bytes):
+    if old_value not in self._data:
+      raise Error(f"Value {old_value} not found in summary information.")
+    if len(old_value) != len(new_value):
+      raise Error("Replacement must be of same size as original.")
+    self._data = self._data.replace(old_value, new_value)
+
+  def Serialize(self) -> bytes:
+    return self._data
+
+
 def _SignCabFiles(directory_path: str, signer):
   """Signs EXE and DLL files in `directory_path`."""
   file_paths = []
@@ -193,6 +211,8 @@ class MsiFile:
     self._string_pool = StringPool(string_pool_raw, string_data_raw)
     feature_raw = ReadStream(FEATURE_STREAM_NAME)
     self._feature_table = FeatureTable(feature_raw, self._string_pool)
+    summary_information_raw = ReadStream(SUMMARY_INFORMATION_STREAM_NAME)
+    self._summary_information = SummaryInformation(summary_information_raw)
 
     cab_path = os.path.join(self._tmp_dir, "input.cab")
     cab_tmp_path = os.path.join(self._tmp_dir, "cab_tmp_dir")
@@ -217,6 +237,9 @@ class MsiFile:
   def EnableFeature(self, feature_name: bytes) -> None:
     self._feature_table.SetLevel(feature_name, 1)
 
+  def ReplaceSummaryInformation(self, old_value: bytes, new_value: bytes) -> None:
+    self._summary_information.Replace(old_value, new_value)
+
   def Write(self) -> None:
     """Writes the in-memory representation back to the file."""
     string_pool_raw, string_data_raw = self._string_pool.Serialize()
@@ -224,6 +247,8 @@ class MsiFile:
     self._olefile.write_stream(STRING_DATA_STREAM_NAME, string_data_raw)
     self._olefile.write_stream(FEATURE_STREAM_NAME,
                                self._feature_table.Serialize())
+    self._olefile.write_stream(SUMMARY_INFORMATION_STREAM_NAME,
+                               self._summary_information.Serialize())
     cab_path = os.path.join(self._tmp_dir, "output.cab")
     cab_padded_path = os.path.join(self._tmp_dir, "output_padded.cab")
     self._cab.Pack(cab_path)
@@ -272,10 +297,22 @@ class WindowsMsiClientRepacker(build.ClientRepacker):
       def RenameFileConfig(src: str, dst: str) -> None:
         RenameFile(src, GetConfig(dst))
 
+      def ReplaceSummaryInformation(src: str, dst: str) -> None:
+        msi_file.ReplaceSummaryInformation(src.encode("utf-8"), dst.encode("utf-8"))
+
       # Set product information
 
       ReplaceStringConfig("__ProductName", "Client.name")
       ReplaceStringConfig("__ProductManufacturer", "Client.company_name")
+
+      # Product and Package ID must be replaced with unique ones.
+      # Otherwise a newly repackaged MSI isn't considered a different package
+      # and installing it over and existing MSI with the same IDs doesn't work
+      # as expected.
+      # Keywords: "major upgrade".
+
+      ReplaceString("{66666666-6666-6666-6666-666666666666}", f"{{{uuid.uuid4()}}}")
+      ReplaceSummaryInformation("{77777777-7777-7777-7777-777777777777}", f"{{{uuid.uuid4()}}}")
 
       # Enable features
 
@@ -295,6 +332,9 @@ class WindowsMsiClientRepacker(build.ClientRepacker):
 
       if fleetspeak_enabled or fleetspeak_bundled:
         EnableFeature("FleetspeakServiceRegistryEntry")
+
+      if fleetspeak_enabled and not fleetspeak_bundled:
+        EnableFeature("FleetspeakServiceRestart")
 
       # Rename directories
 

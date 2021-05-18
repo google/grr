@@ -168,6 +168,11 @@ Target:Windows:
 
   ClientBuilder.template_extension: .exe.zip
 
+  Target:WindowsMsi:
+    ClientBuilder.output_extension: .msi
+
+    ClientBuilder.template_extension: .msi.zip
+
   # This indicates that we are building a client for debugging. It needs to
   # be nested deeper than the Client context so it always takes precedence
   # when both contexts apply.
