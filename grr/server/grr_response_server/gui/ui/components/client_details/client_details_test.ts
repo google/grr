@@ -8,9 +8,9 @@ import {ApiModule} from '../../lib/api/module';
 import {Client} from '../../lib/models/client';
 import {newClient} from '../../lib/models/model_test_util';
 import {ClientVersion, getClientVersions} from '../../store/client_details_diff';
-import {ClientDetailsFacade} from '../../store/client_details_facade';
-import {ConfigFacade} from '../../store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
+import {ClientDetailsGlobalStore} from '../../store/client_details_global_store';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 import {initTestEnvironment} from '../../testing';
 
 import {ClientDetails} from './client_details';
@@ -21,8 +21,8 @@ import {ClientDetailsModule} from './module';
 initTestEnvironment();
 
 describe('Client Details Component', () => {
-  let facade: ClientDetailsFacade;
-  let configFacade: ConfigFacadeMock;
+  let store: ClientDetailsGlobalStore;
+  let configGlobalStore: ConfigGlobalStoreMock;
   const clientVersionsMock = [
     newClient({
       clientId: 'C.1234',
@@ -46,7 +46,7 @@ describe('Client Details Component', () => {
   ];
 
   beforeEach(waitForAsync(() => {
-    configFacade = mockConfigFacade();
+    configGlobalStore = mockConfigGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -56,20 +56,20 @@ describe('Client Details Component', () => {
             ClientDetailsModule,
           ],
           providers: [
-            {provide: ConfigFacade, useFactory: () => configFacade},
+            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
             {provide: Router, useValue: {}},
           ],
 
         })
         .compileComponents();
 
-    facade = TestBed.inject(ClientDetailsFacade);
+    store = TestBed.inject(ClientDetailsGlobalStore);
   }));
 
   it('selects the first option in the timeline by default', () => {
     const subject = new Subject<ReadonlyArray<ClientVersion>>();
     Object.defineProperty(
-        facade, 'selectedClientVersions$', {get: () => subject});
+        store, 'selectedClientVersions$', {get: () => subject});
 
     const fixture = TestBed.createComponent(ClientDetails);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
@@ -208,10 +208,10 @@ describe('Client Details Component', () => {
      fakeAsync(() => {
        const subject = new Subject<ReadonlyArray<ClientVersion>>();
        Object.defineProperty(
-           facade, 'selectedClientVersions$', {get: () => subject});
+           store, 'selectedClientVersions$', {get: () => subject});
        const subjectClient = new Subject<Client>();
        Object.defineProperty(
-           facade, 'selectedClient$', {get: () => subjectClient});
+           store, 'selectedClient$', {get: () => subjectClient});
 
        const fixture = TestBed.createComponent(ClientDetails);
        fixture.detectChanges();  // Ensure ngOnInit hook completes.

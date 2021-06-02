@@ -6,6 +6,7 @@ import {initTestEnvironment} from '@app/testing';
 
 import {HelpersModule} from './module';
 
+import {Status} from './result_accordion';
 
 
 
@@ -16,15 +17,19 @@ initTestEnvironment();
   template: `
 <result-accordion
     [title]="title"
-    [hasMoreResults]="hasMoreResults"
-    (loadMore)="loadMoreTriggered()">
+    [expandable]="expandable"
+    [description]="description"
+    [status]="status"
+    (firstOpened)="firstOpenedTriggered()">
     contenttext
 </result-accordion>`
 })
 class TestHostComponent {
   title?: string;
-  hasMoreResults: boolean = true;
-  loadMoreTriggered = jasmine.createSpy('loadMoreTriggered');
+  description?: string;
+  status?: Status;
+  expandable: boolean = true;
+  firstOpenedTriggered = jasmine.createSpy('firstOpenedTriggered');
 }
 
 describe('ResultAccordion Component', () => {
@@ -48,7 +53,9 @@ describe('ResultAccordion Component', () => {
       ComponentFixture<TestHostComponent> {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.componentInstance.title = args.title;
-    fixture.componentInstance.hasMoreResults = args.hasMoreResults ?? true;
+    fixture.componentInstance.description = args.description;
+    fixture.componentInstance.status = args.status;
+    fixture.componentInstance.expandable = args.expandable ?? true;
     fixture.detectChanges();
 
     return fixture;
@@ -60,7 +67,7 @@ describe('ResultAccordion Component', () => {
   });
 
   it('shows content on click', () => {
-    const fixture = createComponent({hasMoreResults: true});
+    const fixture = createComponent({expandable: true});
 
     expect(fixture.debugElement.nativeElement.textContent)
         .not.toContain('contenttext');
@@ -70,11 +77,25 @@ describe('ResultAccordion Component', () => {
         .toContain('contenttext');
   });
 
-  it('emits loadMore on first open', () => {
-    const fixture = createComponent({hasMoreResults: true});
-    expect(fixture.componentInstance.loadMoreTriggered).not.toHaveBeenCalled();
+  it('emits firstOpened on first open', () => {
+    const fixture = createComponent({expandable: true});
+    expect(fixture.componentInstance.firstOpenedTriggered)
+        .not.toHaveBeenCalled();
 
     fixture.debugElement.query(By.css('.header')).nativeElement.click();
-    expect(fixture.componentInstance.loadMoreTriggered).toHaveBeenCalled();
+    expect(fixture.componentInstance.firstOpenedTriggered).toHaveBeenCalled();
+  });
+
+  it('shows description', () => {
+    const fixture = createComponent({description: 'foobar-description'});
+    expect(fixture.debugElement.nativeElement.textContent)
+        .toContain('foobar-description');
+  });
+
+  it('shows status icon and styling', () => {
+    const fixture = createComponent({status: Status.WARNING});
+    const iconEl =
+        fixture.debugElement.query(By.css('.warning .material-icons'));
+    expect(iconEl.nativeElement.textContent).toContain('warning');
   });
 });

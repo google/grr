@@ -3,7 +3,9 @@ import {OsqueryFlowArgs, OsqueryProgress, OsqueryResult} from '@app/lib/api/api_
 import {FlowState} from '@app/lib/models/flow';
 import {isNonNull} from '@app/lib/preconditions';
 import {combineLatest, concat, Observable} from 'rxjs';
-import {filter, flatMap, map, startWith, takeUntil} from 'rxjs/operators';
+import {filter, map, startWith, takeUntil} from 'rxjs/operators';
+
+import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 
 import {Plugin} from './plugin';
 
@@ -23,16 +25,13 @@ export class OsqueryDetails extends Plugin {
   readonly flowCompleted$ = this.flagByState(FlowState.FINISHED);
 
   private readonly osqueryResults$: Observable<OsqueryResult> =
-      this.flowListEntry$.pipe(
-          flatMap(listEntry => listEntry.resultSets),
-          flatMap(singleResultSet => singleResultSet?.items),
-          filter(isNonNull),
-          map(singleItem => singleItem.payload as OsqueryResult),
-      );
+      this.flowResultsLocalStore.results$.pipe(
+          map(results => results[0]?.payload as OsqueryResult),
+          filter(isNonNull));
 
   private readonly osqueryProgress$: Observable<OsqueryProgress> =
-      this.flowListEntry$.pipe(
-          map(listEntry => listEntry.flow.progress as OsqueryProgress),
+      this.flow$.pipe(
+          map(flow => flow.progress as OsqueryProgress),
           filter(isNonNull),
       );
 
@@ -85,14 +84,13 @@ export class OsqueryDetails extends Plugin {
               }),
           );
 
-  readonly args$: Observable<OsqueryFlowArgs> = this.flowListEntry$.pipe(
-      map(flowListEntry => flowListEntry.flow.args as OsqueryFlowArgs),
+  readonly args$: Observable<OsqueryFlowArgs> = this.flow$.pipe(
+      map(flow => flow.args as OsqueryFlowArgs),
   );
 
-  readonly clientAndFlowId$ = this.flowListEntry$.pipe(
-      map(fle => {
-        const clientId = fle.flow.clientId;
-        const flowId = fle.flow.flowId;
+  readonly clientAndFlowId$ = this.flow$.pipe(
+      map(flow => {
+        const {clientId, flowId} = flow;
 
         if (clientId && flowId) {
           return {
@@ -125,12 +123,19 @@ export class OsqueryDetails extends Plugin {
   );
 
   private flagByState(targetState: FlowState): Observable<boolean> {
-    return this.flowListEntry$.pipe(
-        map(listEntry => listEntry.flow.state === targetState));
+    return this.flow$.pipe(map(flow => flow.state === targetState));
+  }
+
+  constructor(
+      private readonly flowResultsLocalStore: FlowResultsLocalStore,
+  ) {
+    super();
+    this.flowResultsLocalStore.query(
+        this.flow$.pipe(map(flow => ({flow, withType: 'OsqueryResult'}))));
   }
 
   loadCompleteResults() {
     // TODO(user): Fetch more chunks if present
-    this.queryFlowResults({offset: 0, count: 1, withType: 'OsqueryResult'});
+    this.flowResultsLocalStore.queryMore(1);
   }
 }

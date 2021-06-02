@@ -25,11 +25,17 @@ class Opts:
       the output should use NTFS file reference format for inode values.
     backslash_escape: An (optional) flag that controls whether the output should
       have backslashes escaped.
+    carriage_return_escape: An (optional) flag that controls whether the output
+      should escape carriage return character.
+    non_printable_escape: An (optional) flag that controls whether non-printable
+      ASCII characters should be escaped.
   """
   chunk_size: int = DEFAULT_CHUNK_SIZE
   timestamp_subsecond_precision: bool = False
   inode_ntfs_file_reference_format: bool = False
   backslash_escape: bool = False
+  carriage_return_escape: bool = False
+  non_printable_escape: bool = False
 
 
 def Stream(
@@ -58,10 +64,16 @@ def Stream(
   else:
     inode_fmt = str
 
+  body_path_escape_table = dict(_BODY_PATH_ESCAPE_BASE_TABLE)
+  if opts.carriage_return_escape:
+    body_path_escape_table["\r"] = "\\r"
   if opts.backslash_escape:
-    path_trans = str.maketrans({**_BODY_PATH_ESCAPE, "\\": "\\\\"})
-  else:
-    path_trans = str.maketrans(_BODY_PATH_ESCAPE)
+    body_path_escape_table["\\"] = "\\\\"
+  if opts.non_printable_escape:
+    for char in _NON_PRINTABLE_ASCII:
+      body_path_escape_table[char] = f"\\x{ord(char):02x}"
+
+  path_trans = str.maketrans(body_path_escape_table)
 
   buf = io.StringIO()
 
@@ -117,10 +129,21 @@ def Stream(
 # problem because the format is extremely underspecified anyway and is supposed
 # to let the analyst quickly navigate the timeline. For precise and detailed
 # data other timeline export formats should be used.
-_BODY_PATH_ESCAPE = {
+_BODY_PATH_ESCAPE_BASE_TABLE = {
     "\n": "\\n",
     "|": "\\|",
 }
+
+# Non-printable (control) characters are characters corresponding to code points
+# from 0 to 31 or equal to 127 (the delete character). See [1] for more details.
+#
+# Note that Python's standard library offers `string.printable` set that could
+# simplify this code. However, we don't use it since it makes some questionable
+# decisions what is considered "printable" (e.g. vertical tabs or form feeds are
+# included there).
+#
+# [1]: https://en.wikipedia.org/wiki/ASCII#Character_groups
+_NON_PRINTABLE_ASCII = set(map(chr, range(32))) | {chr(0x7F)}
 
 
 def _NtfsFileReference(ino: int) -> str:

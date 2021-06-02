@@ -7,7 +7,7 @@ from __future__ import unicode_literals
 import collections
 import itertools
 import re
-from typing import Iterable, Optional, Tuple, Type
+from typing import DefaultDict, Iterable, List, Mapping, Optional, Tuple, Type
 
 
 from grr_response_core import config
@@ -486,9 +486,6 @@ class ApiListParsedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListParsedFlowResultsArgs
   result_type = ApiListParsedFlowResultsResult
 
-  _FLOW_RESULTS_BATCH_SIZE = 5000
-  _TAG_ARTIFACT_NAME = re.compile(r"artifact:(?P<name>\w+)")
-
   def Handle(
       self,
       args: ApiListParsedFlowResultsArgs,
@@ -511,6 +508,7 @@ class ApiListParsedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
         flow_id=flow_id,
         offset=args.offset,
         count=args.count)
+    flow_results_by_artifact = _GroupFlowResultsByArtifact(flow_results)
 
     # We determine results collection timestamp as the maximum of timestamps of
     # individual flow results. We cannot use just the flow timestamp for this,
@@ -520,17 +518,6 @@ class ApiListParsedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
       flow_results_timestamp = max([_.timestamp for _ in flow_results])
     else:
       flow_results_timestamp = None
-
-    flow_results_by_artifact = {}
-
-    for flow_result in flow_results:
-      artifact_name_match = self._TAG_ARTIFACT_NAME.match(flow_result.tag)
-      if artifact_name_match is None:
-        continue
-
-      artifact_name = artifact_name_match["name"]
-      artifact_results = flow_results_by_artifact.setdefault(artifact_name, [])
-      artifact_results.append(flow_result)
 
     knowledge_base = flow_obj.persistent_data["knowledge_base"]
 
@@ -554,6 +541,91 @@ class ApiListParsedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
         result.items.Append(item)
 
       result.errors.Extend(map(str, applicator.Errors()))
+
+    return result
+
+
+class ApiParserDescriptor(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper for parser descriptor protobuf."""
+
+  protobuf = flow_pb2.ApiParserDescriptor
+  rdf_deps = []
+
+
+class ApiListFlowApplicableParsersArgs(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper for arguments of the method listing applicable parsers."""
+
+  protobuf = flow_pb2.ApiListFlowApplicableParsersArgs
+  rdf_deps = [
+      client.ApiClientId,
+      ApiFlowId,
+  ]
+
+
+class ApiListFlowApplicableParsersResult(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper for result of the method listing applicable parsers."""
+
+  protobuf = flow_pb2.ApiListFlowApplicableParsersResult
+  rdf_deps = [
+      ApiParserDescriptor,
+  ]
+
+
+class ApiListFlowApplicableParsersHandler(api_call_handler_base.ApiCallHandler):
+  """An API handler for the method for listing applicable parsers."""
+
+  args_type = ApiListFlowApplicableParsersArgs
+  result_type = ApiListFlowApplicableParsersResult
+
+  _FLOW_RESULTS_BATCH_SIZE = 5000
+
+  def Handle(
+      self,
+      args: ApiListFlowApplicableParsersArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> ApiListFlowApplicableParsersResult:
+    client_id = str(args.client_id)
+    flow_id = str(args.flow_id)
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    if flow_obj.flow_class_name != collectors.ArtifactCollectorFlow.__name__:
+      message = "Not an artifact-collector flow: {}"
+      raise ValueError(message.format(flow_obj.flow_class_name))
+
+    if flow_obj.args.apply_parsers:
+      # The parsers were already applied, there is nothing applicable anymore.
+      return ApiListFlowApplicableParsersResult()
+
+    parser_names_by_type: DefaultDict[int, List[str]] = (
+        collections.defaultdict(list))
+
+    flow_results_offset = 0
+    while True:
+      flow_results = data_store.REL_DB.ReadFlowResults(
+          client_id=client_id,
+          flow_id=flow_id,
+          offset=flow_results_offset,
+          count=self._FLOW_RESULTS_BATCH_SIZE)
+      flow_results_offset += self._FLOW_RESULTS_BATCH_SIZE
+
+      if not flow_results:
+        break
+
+      for artifact_name in _GroupFlowResultsByArtifact(flow_results):
+        factory = parsers.ArtifactParserFactory(artifact_name)
+        parser_names_by_type[ApiParserDescriptor.Type.SINGLE_RESPONSE].extend(
+            factory.SingleResponseParserNames())
+        parser_names_by_type[ApiParserDescriptor.Type.MULTI_RESPONSE].extend(
+            factory.MultiResponseParserNames())
+        parser_names_by_type[ApiParserDescriptor.Type.SINGLE_FILE].extend(
+            factory.SingleFileParserNames())
+        parser_names_by_type[ApiParserDescriptor.Type.MULTI_FILE].extend(
+            factory.MultiFileParserNames())
+
+    result = ApiListFlowApplicableParsersResult()
+    for tpe, parser_names in parser_names_by_type.items():
+      for parser_name in parser_names:
+        result.parsers.append(ApiParserDescriptor(type=tpe, name=parser_name))
 
     return result
 
@@ -1384,3 +1456,34 @@ class ApiUnscheduleFlowHandler(api_call_handler_base.ApiCallHandler):
         creator=context.username,
         scheduled_flow_id=args.scheduled_flow_id)
     return ApiUnscheduleFlowResult()
+
+
+_TAG_ARTIFACT_NAME = re.compile(r"artifact:(?P<name>\w+)")
+
+
+def _GroupFlowResultsByArtifact(
+    results: Iterable[rdf_flow_objects.FlowResult],
+) -> Mapping[str, rdf_flow_objects.FlowResult]:
+  """Groups flow results by the artifact that caused their collection.
+
+  Note that flow results that did not originate from any artifact are going to
+  be ignored and will not be included in the output.
+
+  Args:
+    results: Flow results to group.
+
+  Returns:
+    A dictionary mapping artifact names to flow result sequences.
+  """
+  flow_results_by_artifact = {}
+
+  for result in results:
+    artifact_name_match = _TAG_ARTIFACT_NAME.match(result.tag)
+    if artifact_name_match is None:
+      continue
+
+    artifact_name = artifact_name_match["name"]
+    artifact_results = flow_results_by_artifact.setdefault(artifact_name, [])
+    artifact_results.append(result)
+
+  return flow_results_by_artifact

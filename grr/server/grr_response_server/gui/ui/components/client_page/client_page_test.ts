@@ -9,16 +9,16 @@ import {ApiModule} from '@app/lib/api/module';
 import {Subject} from 'rxjs';
 
 import {newClient} from '../../lib/models/model_test_util';
-import {ClientDetailsFacade} from '../../store/client_details_facade';
-import {ClientDetailsFacadeMock, mockClientDetailsFacade} from '../../store/client_details_facade_test_util';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
-import {ConfigFacade} from '../../store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
-import {ScheduledFlowFacade} from '../../store/scheduled_flow_facade';
-import {mockScheduledFlowFacade} from '../../store/scheduled_flow_facade_test_util';
-import {UserFacade} from '../../store/user_facade';
-import {mockUserFacade, UserFacadeMock} from '../../store/user_facade_test_util';
+import {ClientDetailsGlobalStore} from '../../store/client_details_global_store';
+import {ClientDetailsGlobalStoreMock, mockClientDetailsGlobalStore} from '../../store/client_details_global_store_test_util';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {ScheduledFlowGlobalStore} from '../../store/scheduled_flow_global_store';
+import {mockScheduledFlowGlobalStore} from '../../store/scheduled_flow_global_store_test_util';
+import {UserGlobalStore} from '../../store/user_global_store';
+import {mockUserGlobalStore, UserGlobalStoreMock} from '../../store/user_global_store_test_util';
 import {initTestEnvironment} from '../../testing';
 import {ClientDetailsModule} from '../client_details/module';
 
@@ -33,20 +33,20 @@ initTestEnvironment();
 describe('ClientPage Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
   let queryParamsSubject: Subject<Map<string, string>>;
-  let clientPageFacade: ClientPageFacadeMock;
-  let clientDetailsFacade: ClientDetailsFacadeMock;
-  let configFacade: ConfigFacadeMock;
-  let userFacade: UserFacadeMock;
+  let clientPageGlobalStore: ClientPageGlobalStoreMock;
+  let clientDetailsGlobalStore: ClientDetailsGlobalStoreMock;
+  let configGlobalStore: ConfigGlobalStoreMock;
+  let userGlobalStore: UserGlobalStoreMock;
   let location: Location;
   let router: Router;
 
   beforeEach(waitForAsync(() => {
     paramsSubject = new Subject();
     queryParamsSubject = new Subject();
-    configFacade = mockConfigFacade();
-    userFacade = mockUserFacade();
-    clientPageFacade = mockClientPageFacade();
-    clientDetailsFacade = mockClientDetailsFacade();
+    configGlobalStore = mockConfigGlobalStore();
+    userGlobalStore = mockUserGlobalStore();
+    clientPageGlobalStore = mockClientPageGlobalStore();
+    clientDetailsGlobalStore = mockClientDetailsGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -66,16 +66,19 @@ describe('ClientPage Component', () => {
                 snapshot: {},
               }),
             },
-            {provide: ConfigFacade, useFactory: () => configFacade},
-            {provide: UserFacade, useFactory: () => userFacade},
-            {provide: ClientPageFacade, useFactory: () => clientPageFacade},
+            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
+            {provide: UserGlobalStore, useFactory: () => userGlobalStore},
             {
-              provide: ClientDetailsFacade,
-              useFactory: () => clientDetailsFacade
+              provide: ClientPageGlobalStore,
+              useFactory: () => clientPageGlobalStore
             },
             {
-              provide: ScheduledFlowFacade,
-              useFactory: mockScheduledFlowFacade,
+              provide: ClientDetailsGlobalStore,
+              useFactory: () => clientDetailsGlobalStore
+            },
+            {
+              provide: ScheduledFlowGlobalStore,
+              useFactory: mockScheduledFlowGlobalStore,
             },
           ],
 
@@ -93,7 +96,7 @@ describe('ClientPage Component', () => {
     paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
     fixture.detectChanges();
 
-    expect(clientPageFacade.selectClient).toHaveBeenCalledWith('C.1234');
+    expect(clientPageGlobalStore.selectClient).toHaveBeenCalledWith('C.1234');
   });
 
   it('correctly updates URL when navigating from main page to details page',
@@ -104,7 +107,7 @@ describe('ClientPage Component', () => {
        fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
        paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
-       clientPageFacade.selectedClientSubject.next(newClient({
+       clientPageGlobalStore.selectedClientSubject.next(newClient({
          clientId: 'C.1234',
          labels: [{name: 'testlabel', owner: ''}],
        }));
@@ -136,7 +139,7 @@ describe('ClientPage Component', () => {
        fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
        paramsSubject.next(new Map(Object.entries({id: 'C.1234'})));
-       clientPageFacade.selectedClientSubject.next(newClient({
+       clientPageGlobalStore.selectedClientSubject.next(newClient({
          clientId: 'C.1234',
          labels: [{name: 'testlabel', owner: ''}],
        }));
@@ -166,7 +169,7 @@ describe('ClientPage Component', () => {
     const fixture = TestBed.createComponent(ClientComponent);
     fixture.detectChanges();
 
-    clientPageFacade.approvalsEnabledSubject.next(true);
+    clientPageGlobalStore.approvalsEnabledSubject.next(true);
     fixture.detectChanges();
 
     expect(fixture.debugElement.query(By.css('.client-approval'))
@@ -178,7 +181,7 @@ describe('ClientPage Component', () => {
     const fixture = TestBed.createComponent(ClientComponent);
     fixture.detectChanges();
 
-    clientPageFacade.approvalsEnabledSubject.next(false);
+    clientPageGlobalStore.approvalsEnabledSubject.next(false);
     fixture.detectChanges();
 
     expect(fixture.debugElement.query(By.css('.client-approval'))

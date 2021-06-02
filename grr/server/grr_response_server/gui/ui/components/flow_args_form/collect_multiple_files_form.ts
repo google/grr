@@ -10,7 +10,7 @@ import {isNonNull} from '@app/lib/preconditions';
 import {filter, map, shareReplay} from 'rxjs/operators';
 
 import {CollectMultipleFilesArgs, FileFinderContentsLiteralMatchCondition} from '../../lib/api/api_interfaces';
-import {ClientPageFacade} from '../../store/client_page_facade';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 
 
 function atLeastOnePathExpression(control: AbstractControl): ValidationErrors {
@@ -71,12 +71,12 @@ export class CollectMultipleFilesForm extends
 
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
 
-  readonly clientId$ = this.clientPageFacade.selectedClient$.pipe(
+  readonly clientId$ = this.clientPageGlobalStore.selectedClient$.pipe(
       map(client => client?.clientId),
   );
 
   constructor(
-      private readonly clientPageFacade: ClientPageFacade,
+      private readonly clientPageGlobalStore: ClientPageGlobalStore,
   ) {
     super();
   }

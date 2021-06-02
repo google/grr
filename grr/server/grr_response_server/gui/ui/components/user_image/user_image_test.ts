@@ -4,8 +4,8 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {initTestEnvironment} from '@app/testing';
 
-import {ConfigFacade} from '../../store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 
 import {UserImageModule} from './module';
 
@@ -19,10 +19,10 @@ class TestHostComponent {
 }
 
 describe('UserImage Component', () => {
-  let configFacade: ConfigFacadeMock;
+  let configGlobalStore: ConfigGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
-    configFacade = mockConfigFacade();
+    configGlobalStore = mockConfigGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -35,7 +35,7 @@ describe('UserImage Component', () => {
           ],
 
           providers: [
-            {provide: ConfigFacade, useFactory: () => configFacade},
+            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
           ]
         })
         .compileComponents();
@@ -54,7 +54,7 @@ describe('UserImage Component', () => {
   it('displays the profile image ', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.componentInstance.username = 'test';
-    configFacade.uiConfigSubject.next(
+    configGlobalStore.uiConfigSubject.next(
         {profileImageUrl: 'http://foo/{username}.jpg?sz=123'});
     fixture.detectChanges();
 

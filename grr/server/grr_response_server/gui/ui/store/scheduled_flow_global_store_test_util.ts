@@ -2,14 +2,17 @@
 // tslint:disable:enforce-comments-on-exported-symbols
 
 import {ReplaySubject, Subject} from 'rxjs';
-import {ScheduledFlow} from '../lib/models/flow';
-import {ScheduledFlowFacade} from './scheduled_flow_facade';
 
-export interface ScheduledFlowFacadeMock extends Partial<ScheduledFlowFacade> {
+import {ScheduledFlow} from '../lib/models/flow';
+
+import {ScheduledFlowGlobalStore} from './scheduled_flow_global_store';
+
+export interface ScheduledFlowGlobalStoreMock extends
+    Partial<ScheduledFlowGlobalStore> {
   readonly scheduledFlowsSubject: Subject<ReadonlyArray<ScheduledFlow>>;
 }
 
-export function mockScheduledFlowFacade(): ScheduledFlowFacadeMock {
+export function mockScheduledFlowGlobalStore(): ScheduledFlowGlobalStoreMock {
   const scheduledFlowsSubject =
       new ReplaySubject<ReadonlyArray<ScheduledFlow>>();
   return {

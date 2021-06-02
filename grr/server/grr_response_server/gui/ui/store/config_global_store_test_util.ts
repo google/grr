@@ -7,13 +7,13 @@ import {ApiUiConfig} from '../lib/api/api_interfaces';
 import {ApprovalConfig} from '../lib/models/client';
 import {ArtifactDescriptorMap, FlowDescriptorMap} from '../lib/models/flow';
 
-import {ConfigFacade} from './config_facade';
+import {ConfigGlobalStore} from './config_global_store';
 
 type I<T> = {
   [key in keyof T]: T[key];
 };
 
-export declare interface ConfigFacadeMock extends I<ConfigFacade> {
+export declare interface ConfigGlobalStoreMock extends I<ConfigGlobalStore> {
   flowDescriptorsSubject: Subject<FlowDescriptorMap>;
   artifactDescriptorsSubject: Subject<ArtifactDescriptorMap>;
   approvalConfigSubject: Subject<ApprovalConfig>;
@@ -21,7 +21,7 @@ export declare interface ConfigFacadeMock extends I<ConfigFacade> {
   clientsLabelsSubject: Subject<string[]>;
 }
 
-export function mockConfigFacade(): ConfigFacadeMock {
+export function mockConfigGlobalStore(): ConfigGlobalStoreMock {
   const flowDescriptorsSubject = new ReplaySubject<FlowDescriptorMap>();
   const artifactDescriptorsSubject = new ReplaySubject<ArtifactDescriptorMap>();
   const approvalConfigSubject = new ReplaySubject<ApprovalConfig>();

@@ -16,6 +16,8 @@ declare interface BodyOpts {
   timestampSubsecondPrecision: boolean;
   inodeNtfsFileReferenceFormat: boolean;
   backslashEscape: boolean;
+  carriageReturnEscape: boolean;
+  nonPrintableEscape: boolean;
 }
 
 /**
@@ -36,6 +38,8 @@ export class TimelineDetails extends Plugin {
     timestampSubsecondPrecision: new FormControl(true),
     inodeNtfsFileReferenceFormat: new FormControl(false),
     backslashEscape: new FormControl(true),
+    carriageReturnEscape: new FormControl(false),
+    nonPrintableEscape: new FormControl(false),
   });
 
   constructor(private readonly httpApiService: HttpApiService) {
@@ -56,37 +60,35 @@ export class TimelineDetails extends Plugin {
 
   /** Observable of the state that the flow currently is in. */
   readonly state$: Observable<FlowState> =
-      this.flowListEntry$.pipe(map(flowListEntry => flowListEntry.flow.state));
+      this.flow$.pipe(map(flow => flow.state));
 
   /** Observable of the arguments that the flow was created with. */
-  readonly args$: Observable<TimelineArgs> = this.flowListEntry$.pipe(
-      map(flowListEntry => flowListEntry.flow.args as TimelineArgs));
+  readonly args$: Observable<TimelineArgs> =
+      this.flow$.pipe(map(flow => flow.args as TimelineArgs));
 
   /**
    * Observable with URL to download the collected timeline in the body format.
    */
-  readonly bodyFileUrl$: Observable<URL> =
-      combineLatest([
-        this.flowListEntry$, this.bodyOpts$
-      ]).pipe(map(([flowListEntry, bodyOpts]) => {
-        const clientId = flowListEntry.flow.clientId;
-        const flowId = flowListEntry.flow.flowId;
-        return this.httpApiService.getTimelineBodyFileUrl(
-            clientId, flowId, bodyOpts);
-      }));
+  readonly bodyFileUrl$: Observable<URL> = combineLatest([
+                                             this.flow$, this.bodyOpts$
+                                           ]).pipe(map(([flow, bodyOpts]) => {
+    const clientId = flow.clientId;
+    const flowId = flow.flowId;
+    return this.httpApiService.getTimelineBodyFileUrl(
+        clientId, flowId, bodyOpts);
+  }));
 
   /**
    * Observable with a filename under which the timeline in the body format
    * should be saved.
    */
-  readonly bodyFileName$: Observable<string> =
-      this.flowListEntry$.pipe(map(flowListEntry => {
-        const clientId = flowListEntry.flow.clientId.replace('C.', '');
-        const flowId = flowListEntry.flow.flowId;
-        /*
-         * TODO(hanuszczak): Chrome does not respect the full file name. It
-         * should be invesigated why.
-         */
-        return `timeline_${clientId}_${flowId}.body`;
-      }));
+  readonly bodyFileName$: Observable<string> = this.flow$.pipe(map(flow => {
+    const clientId = flow.clientId.replace('C.', '');
+    const flowId = flow.flowId;
+    /*
+     * TODO(hanuszczak): Chrome does not respect the full file name. It
+     * should be invesigated why.
+     */
+    return `timeline_${clientId}_${flowId}.body`;
+  }));
 }

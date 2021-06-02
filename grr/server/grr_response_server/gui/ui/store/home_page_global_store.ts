@@ -12,15 +12,8 @@ interface HomePageState {
   readonly recentClientApprovals?: ReadonlyArray<ClientApproval>;
 }
 
-/**
- * ComponentStore implementation used by the HomePageFacade. Shouldn't be
- * used directly. Declared as an exported global symbol to make dependency
- * injection possible.
- */
-@Injectable({
-  providedIn: 'root',
-})
-export class HomePageStore extends ComponentStore<HomePageState> {
+/** ComponentStore implementation used by the HomePageGlobalStore. */
+class HomePageComponentStore extends ComponentStore<HomePageState> {
   constructor(
       private readonly httpApiService: HttpApiService,
   ) {
@@ -59,8 +52,10 @@ export class HomePageStore extends ComponentStore<HomePageState> {
 @Injectable({
   providedIn: 'root',
 })
-export class HomePageFacade {
-  constructor(private readonly store: HomePageStore) {}
+export class HomePageGlobalStore {
+  constructor(private readonly httpApiService: HttpApiService) {}
+
+  private readonly store = new HomePageComponentStore(this.httpApiService);
 
   readonly recentClientApprovals$: Observable<ReadonlyArray<ClientApproval>> =
       this.store.recentClientApprovals$;

@@ -1,16 +1,16 @@
 import {TestBed} from '@angular/core/testing';
 import {ApiSearchClientResult} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ClientSearchFacade} from '@app/store/client_search_facade';
+import {ClientSearchGlobalStore} from '@app/store/client_search_global_store';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
 import {skip} from 'rxjs/operators';
 
 initTestEnvironment();
 
-describe('ClientSearchFacade', () => {
+describe('ClientSearchGlobalStore', () => {
   let httpApiService: Partial<HttpApiService>;
-  let clientSearchFacade: ClientSearchFacade;
+  let clientSearchGlobalStore: ClientSearchGlobalStore;
   let apiSearchClients$: Subject<ApiSearchClientResult>;
 
   beforeEach(() => {
@@ -24,23 +24,23 @@ describe('ClientSearchFacade', () => {
     TestBed.configureTestingModule({
       imports: [],
       providers: [
-        ClientSearchFacade,
+        ClientSearchGlobalStore,
         {provide: HttpApiService, useFactory: () => httpApiService},
       ],
     });
 
-    clientSearchFacade = TestBed.inject(ClientSearchFacade);
+    clientSearchGlobalStore = TestBed.inject(ClientSearchGlobalStore);
   });
 
   it('fetches new search results from API when "searchClients" is called with a non-empty query, and sorts them by when they were last seen',
      (done) => {
-       clientSearchFacade.searchClients('sample query');
+       clientSearchGlobalStore.searchClients('sample query');
        expect(httpApiService.searchClients)
            .toHaveBeenCalledWith(
                {query: 'sample query', offset: 0, count: 100});
 
        const expectedClientIds = ['C.5678', 'C.1234'];
-       clientSearchFacade.clients$.pipe(skip(1)).subscribe((results) => {
+       clientSearchGlobalStore.clients$.pipe(skip(1)).subscribe((results) => {
          expect(results.map(c => c.clientId)).toEqual(expectedClientIds);
          done();
        });
@@ -63,28 +63,28 @@ describe('ClientSearchFacade', () => {
 
   it('does not fetch new search results from the API when "searchClients" is called with an empty query',
      (done) => {
-       clientSearchFacade.clients$.pipe(skip(1)).subscribe((results) => {
+       clientSearchGlobalStore.clients$.pipe(skip(1)).subscribe((results) => {
          expect(results).toEqual([]);
          done();
        });
 
-       clientSearchFacade.searchClients('');
+       clientSearchGlobalStore.searchClients('');
        expect(httpApiService.searchClients).not.toHaveBeenCalled();
      });
 
   it('returns only fresh results after multiple searches', (done) => {
-    clientSearchFacade.searchClients('sample query');
+    clientSearchGlobalStore.searchClients('sample query');
     expect(httpApiService.searchClients)
         .toHaveBeenCalledWith({query: 'sample query', offset: 0, count: 100});
 
-    clientSearchFacade.searchClients('new query');
+    clientSearchGlobalStore.searchClients('new query');
     expect(httpApiService.searchClients)
         .toHaveBeenCalledWith({query: 'new query', offset: 0, count: 100});
 
     const expectedClientIds = ['C.5678'];
 
     // Only listen to response from second search query.
-    clientSearchFacade.clients$.pipe(skip(2)).subscribe((results) => {
+    clientSearchGlobalStore.clients$.pipe(skip(2)).subscribe((results) => {
       expect(results.map(c => c.clientId)).toEqual(expectedClientIds);
       done();
     });

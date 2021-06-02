@@ -22,11 +22,8 @@ export interface ConfigState {
   clientsLabels?: ReadonlyArray<string>;
 }
 
-/** ComponentStore implementation for the config facade. */
-@Injectable({
-  providedIn: 'root',
-})
-export class ConfigStore extends ComponentStore<ConfigState> {
+/** ComponentStore implementation for the config store. */
+class ConfigComponentStore extends ComponentStore<ConfigState> {
   constructor(private readonly httpApiService: HttpApiService) {
     super({});
   }
@@ -170,12 +167,14 @@ export class ConfigStore extends ComponentStore<ConfigState> {
 }
 
 
-/** Facade to retrieve general purpose configuration and backend data. */
+/** Store to retrieve general purpose configuration and backend data. */
 @Injectable({
   providedIn: 'root',
 })
-export class ConfigFacade {
-  constructor(private readonly store: ConfigStore) {}
+export class ConfigGlobalStore {
+  constructor(private readonly httpApiService: HttpApiService) {}
+
+  private readonly store = new ConfigComponentStore(this.httpApiService);
 
   /** An observable emitting available flow descriptors. */
   readonly flowDescriptors$: Observable<FlowDescriptorMap> =

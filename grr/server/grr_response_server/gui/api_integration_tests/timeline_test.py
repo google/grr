@@ -44,6 +44,38 @@ class TimelineTest(api_integration_test_lib.ApiIntegrationTest):
     content = data.getvalue().decode("utf-8")
     self.assertIn("|C:\\\\Windows\\\\system32\\\\notepad.exe|", content)
 
+  def testGetCollectedTimelineBodyCarriageReturnEscape(self):
+    entry = rdf_timeline.TimelineEntry()
+    entry.path = "/foo\rbar/baz\r\r\rquux".encode("utf-8")
+
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = timeline_test_lib.WriteTimeline(client_id, [entry])
+
+    flow = self.api.Client(client_id).Flow(flow_id)
+    chunks = flow.GetCollectedTimelineBody(carriage_return_escape=True)
+
+    data = io.BytesIO()
+    chunks.WriteToStream(data)
+
+    content = data.getvalue().decode("utf-8")
+    self.assertIn("|/foo\\rbar/baz\\r\\r\\rquux|", content)
+
+  def testGetCollectedTimelineBodyNonPrintableEscape(self):
+    entry = rdf_timeline.TimelineEntry()
+    entry.path = b"/f\x00b\x0ar\x1baz"
+
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = timeline_test_lib.WriteTimeline(client_id, [entry])
+
+    flow = self.api.Client(client_id).Flow(flow_id)
+    chunks = flow.GetCollectedTimelineBody(non_printable_escape=True)
+
+    data = io.BytesIO()
+    chunks.WriteToStream(data)
+
+    content = data.getvalue().decode("utf-8")
+    self.assertIn(r"|/f\x00b\x0ar\x1baz|", content)
+
 
 if __name__ == "__main__":
   app.run(test_lib.main)

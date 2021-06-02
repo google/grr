@@ -6,19 +6,19 @@ import {ScheduledFlow} from '@app/lib/models/flow';
 import {initTestEnvironment} from '@app/testing';
 import {of, Subject} from 'rxjs';
 
-import {ConfigFacade} from './config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from './config_facade_test_util';
-import {ScheduledFlowFacade} from './scheduled_flow_facade';
+import {ConfigGlobalStore} from './config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from './config_global_store_test_util';
+import {ScheduledFlowGlobalStore} from './scheduled_flow_global_store';
 
 initTestEnvironment();
 
 
-describe('ScheduledFlowFacade', () => {
+describe('ScheduledFlowGlobalStore', () => {
   let httpApiService: Partial<HttpApiService>;
-  let scheduledFlowFacade: ScheduledFlowFacade;
+  let scheduledFlowGlobalStore: ScheduledFlowGlobalStore;
   let configService: ConfigService;
   let apiListScheduledFlows$: Subject<ReadonlyArray<ApiScheduledFlow>>;
-  let configFacade: ConfigFacadeMock;
+  let configGlobalStore: ConfigGlobalStoreMock;
 
   beforeEach(() => {
     apiListScheduledFlows$ = new Subject();
@@ -27,28 +27,28 @@ describe('ScheduledFlowFacade', () => {
                               .and.returnValue(apiListScheduledFlows$),
     };
 
-    configFacade = mockConfigFacade();
+    configGlobalStore = mockConfigGlobalStore();
 
     TestBed
         .configureTestingModule({
           imports: [],
           providers: [
-            ScheduledFlowFacade,
+            ScheduledFlowGlobalStore,
             {provide: HttpApiService, useFactory: () => httpApiService},
-            {provide: ConfigFacade, useFactory: () => configFacade},
+            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
           ],
         })
         .compileComponents();
 
-    scheduledFlowFacade = TestBed.inject(ScheduledFlowFacade);
+    scheduledFlowGlobalStore = TestBed.inject(ScheduledFlowGlobalStore);
     configService = TestBed.inject(ConfigService);
   });
 
   it('calls the listScheduledFlows API on scheduledFlows$ subscription',
      fakeAsync(() => {
-       scheduledFlowFacade.selectSource(
+       scheduledFlowGlobalStore.selectSource(
            {clientId: 'C.1234', creator: 'testuser'});
-       scheduledFlowFacade.scheduledFlows$.subscribe();
+       scheduledFlowGlobalStore.scheduledFlows$.subscribe();
 
        // This is needed since flow list entries are updated in a timer loop
        // and the first call is scheduled after 0 milliseconds (meaning it
@@ -82,11 +82,11 @@ describe('ScheduledFlowFacade', () => {
          },
        ];
 
-       scheduledFlowFacade.selectSource(
+       scheduledFlowGlobalStore.selectSource(
            {clientId: 'C.1234', creator: 'testuser'});
 
        let results: ReadonlyArray<ScheduledFlow> = [];
-       scheduledFlowFacade.scheduledFlows$.subscribe(scheduledFlows => {
+       scheduledFlowGlobalStore.scheduledFlows$.subscribe(scheduledFlows => {
          results = scheduledFlows;
        });
        tick(1);
@@ -119,9 +119,9 @@ describe('ScheduledFlowFacade', () => {
        httpApiService.listScheduledFlows =
            jasmine.createSpy('listScheduledFlows').and.callFake(() => of([]));
 
-       scheduledFlowFacade.selectSource(
+       scheduledFlowGlobalStore.selectSource(
            {clientId: 'C.1234', creator: 'testuser'});
-       scheduledFlowFacade.scheduledFlows$.subscribe();
+       scheduledFlowGlobalStore.scheduledFlows$.subscribe();
 
        tick(configService.config.flowListPollingIntervalMs * 2 + 1);
        discardPeriodicTasks();

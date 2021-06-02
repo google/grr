@@ -6,7 +6,8 @@ import {translateClient} from '@app/lib/api_translation/client';
 import {Client} from '@app/lib/models/client';
 import {BehaviorSubject, fromEvent, Observable, of, Subject} from 'rxjs';
 import {debounceTime, distinctUntilChanged, filter, map, switchMap, takeUntil, withLatestFrom} from 'rxjs/operators';
-import {ConfigFacade} from '../../store/config_facade';
+
+import {ConfigGlobalStore} from '../../store/config_global_store';
 
 
 const LABEL_IDENTIFIER = 'label';
@@ -25,7 +26,7 @@ const LABEL_IDENTIFIER = 'label';
 })
 export class SearchBox implements AfterViewInit, OnDestroy {
   constructor(
-      private readonly configFacade: ConfigFacade,
+      private readonly configGlobalStore: ConfigGlobalStore,
       private readonly httpApiService: HttpApiService) {}
 
   /** A binding for a reactive forms input element. */
@@ -46,7 +47,7 @@ export class SearchBox implements AfterViewInit, OnDestroy {
   private readonly unsubscribe$ = new Subject<void>();
 
   private readonly formattedClientsLabels$ =
-      this.configFacade.clientsLabels$.pipe(
+      this.configGlobalStore.clientsLabels$.pipe(
           map(labels => labels.map(label => `${LABEL_IDENTIFIER}:${label}`)));
 
   readonly clients$ = new BehaviorSubject<Client[]>([]);

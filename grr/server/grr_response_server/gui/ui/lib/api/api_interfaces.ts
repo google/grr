@@ -919,3 +919,14 @@ export declare interface ExecuteResponse {
   // The time used to execute the cmd, given in microseconds.
   readonly timeUsed?: number;
 }
+
+/** ArtifactProgress proto mapping. */
+export declare interface ArtifactProgress {
+  readonly name?: string;
+  readonly numResults?: number;
+}
+
+/** ArtifactCollectorFlowProgress proto mapping. */
+export declare interface ArtifactCollectorFlowProgress {
+  readonly artifacts?: ReadonlyArray<ArtifactProgress>;
+}

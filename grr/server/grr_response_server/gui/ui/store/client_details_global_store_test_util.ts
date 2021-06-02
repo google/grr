@@ -6,16 +6,16 @@ import {ReplaySubject, Subject} from 'rxjs';
 import {Client} from '../lib/models/client';
 
 import {ClientVersion} from './client_details_diff';
-import {ClientDetailsFacade} from './client_details_facade';
+import {ClientDetailsGlobalStore} from './client_details_global_store';
 
-export declare interface ClientDetailsFacadeMock extends
-    Partial<ClientDetailsFacade> {
+export declare interface ClientDetailsGlobalStoreMock extends
+    Partial<ClientDetailsGlobalStore> {
   readonly selectedClientVersionsSubject: Subject<ReadonlyArray<ClientVersion>>;
   readonly selectedClientEntriesChangedSubject:
       Subject<Map<string, ReadonlyArray<Client>>>;
 }
 
-export function mockClientDetailsFacade(): ClientDetailsFacadeMock {
+export function mockClientDetailsGlobalStore(): ClientDetailsGlobalStoreMock {
   const selectedClientVersionsSubject =
       new ReplaySubject<ReadonlyArray<ClientVersion>>(1);
   const selectedClientEntriesChangedSubject =

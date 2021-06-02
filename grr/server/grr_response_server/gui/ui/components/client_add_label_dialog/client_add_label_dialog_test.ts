@@ -6,8 +6,8 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {ClientLabel} from '../../lib/models/client';
-import {ConfigFacade} from '../../store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 import {initTestEnvironment} from '../../testing';
 
 import {ClientAddLabelDialog} from './client_add_label_dialog';
@@ -22,14 +22,14 @@ describe('Client Add Label Dialog', () => {
   const clientLabels: ReadonlyArray<ClientLabel> =
       [{owner: '', name: 'label1'}, {owner: '', name: 'testlabel'}];
 
-  let configFacadeMock: ConfigFacadeMock;
+  let configGlobalStoreMock: ConfigGlobalStoreMock;
   const dialogRefMock = {close() {}};
   let dialogCloseSpy: jasmine.Spy;
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
 
   beforeEach(waitForAsync(() => {
-    configFacadeMock = mockConfigFacade();
+    configGlobalStoreMock = mockConfigGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -42,8 +42,10 @@ describe('Client Add Label Dialog', () => {
           ],
           providers: [
             {provide: MatDialogRef, useFactory: () => dialogRefMock},
-            {provide: MAT_DIALOG_DATA, useFactory: () => clientLabels},
-            {provide: ConfigFacade, useFactory: () => configFacadeMock}
+            {provide: MAT_DIALOG_DATA, useFactory: () => clientLabels}, {
+              provide: ConfigGlobalStore,
+              useFactory: () => configGlobalStoreMock
+            }
           ],
 
         })
@@ -63,7 +65,7 @@ describe('Client Add Label Dialog', () => {
     fixture = TestBed.createComponent(ClientAddLabelDialog);
     component = fixture.componentInstance;
     dialogCloseSpy = spyOn(dialogRefMock, 'close');
-    configFacadeMock.clientsLabelsSubject.next([
+    configGlobalStoreMock.clientsLabelsSubject.next([
       'label1',
       'unusedlabel',
       'testlabel',

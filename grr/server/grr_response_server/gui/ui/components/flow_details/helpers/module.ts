@@ -4,6 +4,7 @@ import {NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
 import {MatIconModule} from '@angular/material/icon';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 import {ExpandableHashModule} from '@app/components/expandable_hash/module';
@@ -12,6 +13,7 @@ import {HumanReadableSizeModule} from '@app/components/human_readable_size/modul
 import {TimestampModule} from '@app/components/timestamp/module';
 
 import {FileResultsTable} from './file_results_table';
+import {LoadFlowResultsDirective} from './load_flow_results_directive';
 import {OsqueryResultsTable} from './osquery_results_table';
 import {ResultAccordion} from './result_accordion';
 
@@ -29,6 +31,7 @@ import {ResultAccordion} from './result_accordion';
     MatCardModule,
     MatButtonModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     // Child component modules
     TimestampModule,
     HumanReadableSizeModule,
@@ -39,12 +42,14 @@ import {ResultAccordion} from './result_accordion';
     FileModePipe,
     OsqueryResultsTable,
     ResultAccordion,
+    LoadFlowResultsDirective,
   ],
   exports: [
     FileResultsTable,
     FileModePipe,
     OsqueryResultsTable,
     ResultAccordion,
+    LoadFlowResultsDirective,
   ],
 })
 export class HelpersModule {

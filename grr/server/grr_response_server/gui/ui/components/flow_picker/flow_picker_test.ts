@@ -8,10 +8,11 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowChips} from '@app/components/flow_picker/flow_chips';
 import {FlowListItem, FlowListItemService} from '@app/components/flow_picker/flow_list_item';
 import {assertNonNull} from '@app/lib/preconditions';
-import {ClientPageFacade} from '@app/store/client_page_facade';
-import {ClientPageFacadeMock, mockClientPageFacade} from '@app/store/client_page_facade_test_util';
+import {ClientPageGlobalStore} from '@app/store/client_page_global_store';
+import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '@app/store/client_page_global_store_test_util';
 import {initTestEnvironment} from '@app/testing';
 import {from} from 'rxjs';
+
 import {FlowPicker} from './flow_picker';
 import {FlowPickerModule} from './module';
 
@@ -28,12 +29,12 @@ function getAutocompleteHarness(fixture: ComponentFixture<FlowPicker>) {
 
 describe('FlowPicker Component', () => {
   let flowListItemService: Partial<FlowListItemService>;
-  let clientPageFacade: ClientPageFacadeMock;
+  let clientPageGlobalStore: ClientPageGlobalStoreMock;
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
 
   beforeEach(waitForAsync(() => {
-    clientPageFacade = mockClientPageFacade();
+    clientPageGlobalStore = mockClientPageGlobalStore();
 
     flowListItemService = {
       flowsByCategory$: from([new Map([
@@ -78,7 +79,10 @@ describe('FlowPicker Component', () => {
               provide: FlowListItemService,
               useFactory: () => flowListItemService
             },
-            {provide: ClientPageFacade, useFactory: () => clientPageFacade},
+            {
+              provide: ClientPageGlobalStore,
+              useFactory: () => clientPageGlobalStore
+            },
           ]
         })
         .compileComponents();
@@ -156,7 +160,7 @@ describe('FlowPicker Component', () => {
 
     expect(fixture.componentInstance.textInput.value)
         .toBe('Forensic artifacts');
-    expect(clientPageFacade.startFlowConfiguration)
+    expect(clientPageGlobalStore.startFlowConfiguration)
         .toHaveBeenCalledWith('ArtifactCollectorFlow');
   });
 
@@ -260,7 +264,7 @@ describe('FlowPicker Component', () => {
     } as MatAutocompleteSelectedEvent);
     fixture.detectChanges();
 
-    expect(clientPageFacade.startFlowConfiguration)
+    expect(clientPageGlobalStore.startFlowConfiguration)
         .toHaveBeenCalledWith('CollectBrowserHistory');
   });
 
@@ -286,7 +290,7 @@ describe('FlowPicker Component', () => {
     } as MatAutocompleteSelectedEvent);
     fixture.detectChanges();
 
-    expect(clientPageFacade.startFlowConfiguration)
+    expect(clientPageGlobalStore.startFlowConfiguration)
         .toHaveBeenCalledWith('CollectBrowserHistory');
 
     const clearButton =
@@ -295,7 +299,7 @@ describe('FlowPicker Component', () => {
     clearButton.nativeElement.click();
     fixture.detectChanges();
 
-    expect(clientPageFacade.stopFlowConfiguration).toHaveBeenCalled();
+    expect(clientPageGlobalStore.stopFlowConfiguration).toHaveBeenCalled();
   });
 
   it('deselects flow when selectedFlowDescriptor$ emits undefined',
@@ -321,10 +325,10 @@ describe('FlowPicker Component', () => {
        } as MatAutocompleteSelectedEvent);
        fixture.detectChanges();
 
-       expect(clientPageFacade.startFlowConfiguration)
+       expect(clientPageGlobalStore.startFlowConfiguration)
            .toHaveBeenCalledWith('CollectBrowserHistory');
 
-       clientPageFacade.selectedFlowDescriptorSubject.next(undefined);
+       clientPageGlobalStore.selectedFlowDescriptorSubject.next(undefined);
        fixture.detectChanges();
 
        expect(fixture.componentInstance.textInput.value).toBe('');
@@ -346,7 +350,7 @@ describe('FlowPicker Component', () => {
 
     expect(fixture.componentInstance.textInput.value)
         .toBe('Forensic artifacts');
-    expect(clientPageFacade.startFlowConfiguration)
+    expect(clientPageGlobalStore.startFlowConfiguration)
         .toHaveBeenCalledWith('ArtifactCollectorFlow');
   });
 
@@ -358,7 +362,7 @@ describe('FlowPicker Component', () => {
     let flowChips = fixture.debugElement.query(By.directive(FlowChips));
     expect(flowChips).not.toBeNull();
 
-    clientPageFacade.selectedFlowDescriptorSubject.next({
+    clientPageGlobalStore.selectedFlowDescriptorSubject.next({
       category: 'Browser',
       name: 'CollectBrowserHistory',
       friendlyName: 'Collect browser history',

@@ -13,10 +13,10 @@ import {ArtifactCollectorFlowArgs, CollectBrowserHistoryArgs, CollectBrowserHist
 import {FlowDescriptor, OperatingSystem, SourceType} from '../../lib/models/flow';
 import {newArtifactDescriptorMap, newClient} from '../../lib/models/model_test_util';
 import {ExplainGlobExpressionService} from '../../lib/service/explain_glob_expression_service/explain_glob_expression_service';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
-import {ConfigFacade} from '../../store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 
 import {FlowArgsForm} from './flow_args_form';
 
@@ -90,8 +90,11 @@ function setUp() {
         ],
 
         providers: [
-          {provide: ConfigFacade, useFactory: mockConfigFacade},
-          {provide: ClientPageFacade, useFactory: mockClientPageFacade},
+          {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore},
+          {
+            provide: ClientPageGlobalStore,
+            useFactory: mockClientPageGlobalStore
+          },
         ],
       })
       .compileComponents();
@@ -259,12 +262,12 @@ describe(`FlowArgForm CollectSingleFile`, () => {
 });
 
 describe(`FlowArgForm CollectMultipleFiles`, () => {
-  let clientPageFacade: ClientPageFacadeMock;
+  let clientPageGlobalStore: ClientPageGlobalStoreMock;
   let explainGlobExpressionService: Partial<ExplainGlobExpressionService>;
   let explanation$: Subject<ReadonlyArray<GlobComponentExplanation>>;
 
   beforeEach(() => {
-    clientPageFacade = mockClientPageFacade();
+    clientPageGlobalStore = mockClientPageGlobalStore();
     explanation$ = new ReplaySubject(1);
     explainGlobExpressionService = {
       explanation$,
@@ -282,7 +285,10 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
           ],
 
           providers: [
-            {provide: ClientPageFacade, useFactory: () => clientPageFacade},
+            {
+              provide: ClientPageGlobalStore,
+              useFactory: () => clientPageGlobalStore
+            },
           ],
         })
         // Override ALL providers, because each path expression input provides
@@ -298,7 +304,7 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    clientPageFacade.selectedClientSubject.next(newClient({
+    clientPageGlobalStore.selectedClientSubject.next(newClient({
       clientId: 'C.1234',
     }));
 
@@ -309,7 +315,7 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
     return fixture;
   }
 
-  it('calls the Facade to explain GlobExpressions', fakeAsync(() => {
+  it('calls the GlobalStore to explain GlobExpressions', fakeAsync(() => {
        const fixture = prepareFixture();
 
        const input = fixture.debugElement.query(By.css('input')).nativeElement;
@@ -446,12 +452,12 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
 
 
 describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
-  let configFacade: ConfigFacadeMock;
-  let clientPageFacade: ClientPageFacadeMock;
+  let configGlobalStore: ConfigGlobalStoreMock;
+  let clientPageGlobalStore: ClientPageGlobalStoreMock;
 
   beforeEach(() => {
-    configFacade = mockConfigFacade();
-    clientPageFacade = mockClientPageFacade();
+    configGlobalStore = mockConfigGlobalStore();
+    clientPageGlobalStore = mockClientPageGlobalStore();
     TestBed
         .configureTestingModule({
           imports: [
@@ -464,8 +470,11 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
           ],
 
           providers: [
-            {provide: ConfigFacade, useFactory: () => configFacade},
-            {provide: ClientPageFacade, useFactory: () => clientPageFacade},
+            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
+            {
+              provide: ClientPageGlobalStore,
+              useFactory: () => clientPageGlobalStore
+            },
           ],
         })
         .compileComponents();
@@ -485,23 +494,25 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
   it('shows initial artifact suggestions', fakeAsync(async () => {
        const {fixture} = prepareFixture();
 
-       configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
-         {
-           name: 'foo',
-           sources: [
+       configGlobalStore.artifactDescriptorsSubject.next(
+           newArtifactDescriptorMap([
              {
-               type: SourceType.FILE,
-               paths: ['/sample/path'],
-               conditions: [],
-               returnedTypes: [],
-               supportedOs: new Set()
+               name: 'foo',
+               sources: [
+                 {
+                   type: SourceType.FILE,
+                   paths: ['/sample/path'],
+                   conditions: [],
+                   returnedTypes: [],
+                   supportedOs: new Set()
+                 },
+               ]
              },
-           ]
-         },
-         {name: 'bar', doc: 'description123'},
-         {name: 'baz'},
-       ]));
+             {name: 'bar', doc: 'description123'},
+             {name: 'baz'},
+           ]));
 
+       fixture.detectChanges();
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const autocompleteHarness =
            await harnessLoader.getHarness(MatAutocompleteHarness);
@@ -521,7 +532,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
   it('filters artifact suggestions based on user input', async () => {
     const {fixture} = prepareFixture();
 
-    configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
+    configGlobalStore.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
       {name: 'foo'},
       {name: 'baar'},
       {name: 'baaz'},
@@ -542,7 +553,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
   it('searches artifact fields based on user input', async () => {
     const {fixture} = prepareFixture();
 
-    configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
+    configGlobalStore.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
       {
         name: 'foo',
         sources: [
@@ -571,7 +582,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
   it('configures flow args with selected artifact suggestion', async () => {
     const {fixture} = prepareFixture();
 
-    configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
+    configGlobalStore.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
       {name: 'foo'},
       {name: 'bar'},
       {name: 'baz'},
@@ -593,15 +604,17 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
      async () => {
        const {fixture} = prepareFixture();
 
-       configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
-         {name: 'foo', supportedOs: new Set([OperatingSystem.DARWIN])},
-         {name: 'bar', supportedOs: new Set([OperatingSystem.WINDOWS])},
-         {
-           name: 'baz',
-           supportedOs: new Set([OperatingSystem.DARWIN, OperatingSystem.LINUX])
-         },
-       ]));
-       clientPageFacade.selectedClientSubject.next(
+       configGlobalStore.artifactDescriptorsSubject.next(
+           newArtifactDescriptorMap([
+             {name: 'foo', supportedOs: new Set([OperatingSystem.DARWIN])},
+             {name: 'bar', supportedOs: new Set([OperatingSystem.WINDOWS])},
+             {
+               name: 'baz',
+               supportedOs:
+                   new Set([OperatingSystem.DARWIN, OperatingSystem.LINUX])
+             },
+           ]));
+       clientPageGlobalStore.selectedClientSubject.next(
            newClient({knowledgeBase: {os: 'Darwin'}}));
        fixture.detectChanges();
 
@@ -624,7 +637,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
   it('previews sources for the selected artifact', async () => {
     const {fixture} = prepareFixture();
 
-    configFacade.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
+    configGlobalStore.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
       {
         name: 'foo',
         sources: [

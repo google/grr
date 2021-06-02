@@ -61,6 +61,9 @@ class ArtifactParserFactory(object):
   def SingleResponseParsers(self) -> Iterator[SingleResponseParser[_RDFValue]]:
     return self._CreateSupportedParsers(SINGLE_RESPONSE_PARSER_FACTORY)
 
+  def SingleResponseParserNames(self) -> Iterator[str]:
+    return self._SupportedNames(SINGLE_RESPONSE_PARSER_FACTORY)
+
   def SingleResponseParserTypes(
       self) -> Iterator[Type[SingleResponseParser[_RDFValue]]]:
     return self._SupportedTypes(SINGLE_RESPONSE_PARSER_FACTORY)
@@ -70,6 +73,9 @@ class ArtifactParserFactory(object):
 
   def MultiResponseParsers(self) -> Iterator[MultiResponseParser[_RDFValue]]:
     return self._CreateSupportedParsers(MULTI_RESPONSE_PARSER_FACTORY)
+
+  def MultiResponseParserNames(self) -> Iterator[str]:
+    return self._SupportedNames(MULTI_RESPONSE_PARSER_FACTORY)
 
   def MultiResponseParserTypes(
       self) -> Iterator[Type[MultiResponseParser[_RDFValue]]]:
@@ -81,6 +87,9 @@ class ArtifactParserFactory(object):
   def SingleFileParsers(self) -> Iterator[SingleFileParser[_RDFValue]]:
     return self._CreateSupportedParsers(SINGLE_FILE_PARSER_FACTORY)
 
+  def SingleFileParserNames(self) -> Iterator[str]:
+    return self._SupportedNames(SINGLE_FILE_PARSER_FACTORY)
+
   def SingleFileParserTypes(
       self) -> Iterator[Type[SingleFileParser[_RDFValue]]]:
     return self._SupportedTypes(SINGLE_FILE_PARSER_FACTORY)
@@ -90,6 +99,9 @@ class ArtifactParserFactory(object):
 
   def MultiFileParsers(self) -> Iterator[MultiFileParser[_RDFValue]]:
     return self._CreateSupportedParsers(MULTI_FILE_PARSER_FACTORY)
+
+  def MultiFileParserNames(self) -> Iterator[str]:
+    return self._SupportedNames(MULTI_FILE_PARSER_FACTORY)
 
   def MultiFileParserTypes(self) -> Iterator[Type[MultiFileParser[_RDFValue]]]:
     return self._SupportedTypes(MULTI_FILE_PARSER_FACTORY)
@@ -104,13 +116,15 @@ class ArtifactParserFactory(object):
     ])
 
   def _CreateSupportedParsers(self, fac: _Factory[_P]) -> Iterator[_P]:
-    for name in fac.Names():
-      cls = fac.GetType(name)
-      if self._artifact_name in cls.supported_artifacts:
-        yield fac.Create(name)
+    for name in self._SupportedNames(fac):
+      yield fac.Create(name)
 
   def _SupportedTypes(self, fac: _Factory[_P]) -> Iterator[Type[_P]]:
+    for name in self._SupportedNames(fac):
+      yield fac.GetType(name)
+
+  def _SupportedNames(self, fac: _Factory[_P]) -> Iterator[str]:
     for name in fac.Names():
       cls = fac.GetType(name)
       if self._artifact_name in cls.supported_artifacts:
-        yield cls
+        yield name

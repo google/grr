@@ -7,8 +7,8 @@ import {ActivatedRoute} from '@angular/router';
 
 import {ApiModule} from '../../lib/api/module';
 import {newClient} from '../../lib/models/model_test_util';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
 
 import {ClientOverview} from './client_overview';
 import {ClientOverviewModule} from './module';
@@ -16,11 +16,11 @@ import {ClientOverviewModule} from './module';
 
 
 describe('Client Overview', () => {
-  let facade: ClientPageFacadeMock;
+  let store: ClientPageGlobalStoreMock;
   let location: Location;
 
   beforeEach(waitForAsync(() => {
-    facade = mockClientPageFacade();
+    store = mockClientPageGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -35,8 +35,8 @@ describe('Client Overview', () => {
               useValue: {},
             },
             {
-              provide: ClientPageFacade,
-              useFactory: () => facade,
+              provide: ClientPageGlobalStore,
+              useFactory: () => store,
             }
           ],
 
@@ -50,7 +50,7 @@ describe('Client Overview', () => {
     const fixture = TestBed.createComponent(ClientOverview);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-    facade.selectedClientSubject.next(newClient({
+    store.selectedClientSubject.next(newClient({
       clientId: 'C.1234',
       knowledgeBase: {
         fqdn: 'foo.unknown',
@@ -67,7 +67,7 @@ describe('Client Overview', () => {
     const fixture = TestBed.createComponent(ClientOverview);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-    facade.selectedClientSubject.next(newClient({
+    store.selectedClientSubject.next(newClient({
       clientId: 'C.1234',
       labels: [{name: 'testlabel', owner: ''}],
     }));
@@ -76,14 +76,14 @@ describe('Client Overview', () => {
     const labelsChipList = fixture.debugElement.query(By.directive(MatChipList))
                                .componentInstance.chips.toArray() as MatChip[];
     labelsChipList[0].remove();
-    expect(facade.removeClientLabel).toHaveBeenCalledWith('testlabel');
+    expect(store.removeClientLabel).toHaveBeenCalledWith('testlabel');
   });
 
   it('shows a snackbar when a client label is removed', () => {
     const fixture = TestBed.createComponent(ClientOverview);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-    facade.selectedClientSubject.next(newClient({
+    store.selectedClientSubject.next(newClient({
       clientId: 'C.1234',
       labels: [{name: 'testlabel', owner: ''}],
     }));
@@ -92,7 +92,7 @@ describe('Client Overview', () => {
     const labelsChipList = fixture.debugElement.query(By.directive(MatChipList))
                                .componentInstance.chips.toArray() as MatChip[];
     labelsChipList[0].remove();
-    facade.lastRemovedClientLabelSubject.next('testlabel');
+    store.lastRemovedClientLabelSubject.next('testlabel');
     fixture.detectChanges();
 
     const snackbarDiv = document.querySelector('snack-bar-container');
@@ -105,7 +105,7 @@ describe('Client Overview', () => {
        const fixture = TestBed.createComponent(ClientOverview);
        fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-       facade.selectedClientSubject.next(newClient({
+       store.selectedClientSubject.next(newClient({
          clientId: 'C.1234',
          labels: [{name: 'testlabel', owner: ''}],
        }));
@@ -115,10 +115,10 @@ describe('Client Overview', () => {
            fixture.debugElement.query(By.directive(MatChipList))
                .componentInstance.chips.toArray() as MatChip[];
        labelsChipList[0].remove();
-       facade.lastRemovedClientLabelSubject.next('testlabel');
+       store.lastRemovedClientLabelSubject.next('testlabel');
        fixture.detectChanges();
 
-       expect(facade.addClientLabel).not.toHaveBeenCalled();
+       expect(store.addClientLabel).not.toHaveBeenCalled();
 
        const snackbarDivButton =
            document.querySelector('div.mat-simple-snackbar-action button');
@@ -126,6 +126,6 @@ describe('Client Overview', () => {
        fixture.detectChanges();
        tick();
        discardPeriodicTasks();
-       expect(facade.addClientLabel).toHaveBeenCalledWith('testlabel');
+       expect(store.addClientLabel).toHaveBeenCalledWith('testlabel');
      }));
 });

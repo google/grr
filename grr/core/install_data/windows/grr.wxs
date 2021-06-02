@@ -12,16 +12,18 @@
 <Wix
     xmlns="http://schemas.microsoft.com/wix/2006/wi"
     xmlns:util="http://schemas.microsoft.com/wix/UtilExtension">
+  <!-- Product.Id will be replaced at repackaging time. -->
   <Product
       Name="__ProductName"
-      Id="*"
+      Id="{66666666-6666-6666-6666-666666666666}"
       UpgradeCode="$(var.UPGRADECODE)"
       Language="1033"
       Version="$(var.VERSION)"
       Manufacturer="__ProductManufacturer">
 
+    <!-- Package.Id will be replaced at repackaging time. -->
     <Package
-        Id="*"
+        Id="{77777777-7777-7777-7777-777777777777}"
         Keywords="Installer"
         Description="Installer"
         InstallerVersion="200"
@@ -133,6 +135,10 @@
             </Component>
             <Component Id="CompFleetspeakServiceConfig">
               <File Id="FileFleetspeakServiceConfig" Source="$(var.InputDir)\fleetspeak-service-config.txt" Name="fleetspeak-service-config.txt" />
+            </Component>
+            <Component Id="CompFleetspeakServiceRestart">
+              <!-- Having only a ServiceControl in a Component (without any artifact such as a File) doesn't seem to work. -->
+              <File Id="RestartDummyFile" Source="$(var.InputDir)\restart-dummy.txt" Name="restart.txt" />
               <ServiceControl
                   Id="ServiceControlFleetspeakServiceConfig"
                   Name="FleetspeakClientService"
@@ -182,6 +188,10 @@
     <Feature Id="FleetspeakServiceRegistryEntry" Level="0">
       <ComponentRef Id="CompFleetspeakServiceReg"/>
       <ComponentRef Id="CompFleetspeakServiceConfig"/>
+    </Feature>
+
+    <Feature Id="FleetspeakServiceRestart" Level="0">
+      <ComponentRef Id="CompFleetspeakServiceRestart"/>
     </Feature>
 
     <Feature Id="PaddingFile" Level="0">

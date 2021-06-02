@@ -2,7 +2,7 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {CollectMultipleFilesArgs, CollectMultipleFilesProgress} from '@app/lib/api/api_interfaces';
 import {FlowState} from '@app/lib/models/flow';
-import {newFlowListEntry} from '@app/lib/models/model_test_util';
+import {newFlow} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
 
 import {CollectMultipleFilesDetails} from './collect_multiple_files_details';
@@ -36,7 +36,7 @@ describe('collect-multiple-files-details component', () => {
       numInProgress: '1',
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectMultipleFiles',
       args,
       progress,
@@ -54,7 +54,7 @@ describe('collect-multiple-files-details component', () => {
       numCollected: '0',
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectMultipleFiles',
       args,
       progress,
@@ -73,7 +73,7 @@ describe('collect-multiple-files-details component', () => {
       numCollected: '42',
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectMultipleFiles',
       args,
       progress,

@@ -1,6 +1,6 @@
 import {fakeAsync, tick} from '@angular/core/testing';
 import {initTestEnvironment} from '@app/testing';
-import {firstValueFrom, lastValueFrom, Subject} from 'rxjs';
+import {firstValueFrom, NEVER, Subject, timer} from 'rxjs';
 
 import {poll} from './polling';
 
@@ -12,7 +12,7 @@ describe('poll', () => {
        const pollEffect = jasmine.createSpy('pollEffect');
 
        const poll$ = poll({
-         pollIntervalMs: 10,
+         pollOn: timer(0, 10),
          pollEffect,
          selector: new Subject(),
        });
@@ -48,7 +48,7 @@ describe('poll', () => {
        const selector = new Subject<string>();
 
        const poll$ = poll({
-         pollIntervalMs: 10,
+         pollOn: timer(0, 10),
          pollEffect: () => {
            selector.next('foobar');
          },
@@ -67,7 +67,7 @@ describe('poll', () => {
        let counter = 0;
 
        const poll$ = poll({
-         pollIntervalMs: 10,
+         pollOn: timer(0, 10),
          pollEffect: () => {
            selector.next(counter);
            counter += 1;
@@ -103,7 +103,7 @@ describe('poll', () => {
        });
 
        const poll$ = poll({
-         pollIntervalMs: 10,
+         pollOn: timer(0, 10),
          pollEffect,
          selector,
        });
@@ -119,14 +119,14 @@ describe('poll', () => {
        expect(pollEffect).toHaveBeenCalledTimes(1);
      }));
 
-  it('continues polling while pollWhile() returns true', fakeAsync(() => {
+  it('continues polling while pollUntil does not emit', fakeAsync(() => {
        const pollEffect = jasmine.createSpy('pollEffect');
 
        const poll$ = poll({
-         pollIntervalMs: 10,
+         pollOn: timer(0, 10),
          pollEffect,
          selector: new Subject(),
-         pollWhile: () => true,
+         pollUntil: NEVER,
        });
 
        const subscription = poll$.subscribe();
@@ -138,26 +138,22 @@ describe('poll', () => {
        subscription.unsubscribe();
      }));
 
-  it('stops polling when pollWhile is false', fakeAsync(async () => {
-       let counter = 0;
+  it('stops polling when pollUntil emits', fakeAsync(() => {
        const selector = new Subject<number>();
-       const pollEffect = jasmine.createSpy('pollEffect').and.callFake(() => {
-         selector.next(counter);
-         counter += 1;
-       });
+       const pollUntil = new Subject<void>();
+       const pollOn = new Subject<void>();
+       const pollEffect = jasmine.createSpy('pollEffect');
+       const poll$ = poll({pollOn, pollEffect, selector, pollUntil});
 
-       const poll$ = poll({
-         pollIntervalMs: 10,
-         pollEffect,
-         selector,
-         pollWhile: (value) => value < 1,
-       });
+       poll$.subscribe();
 
-       const promise = lastValueFrom(poll$);
+       pollOn.next();
+       pollOn.next();
 
-       tick(30);
+       expect(pollEffect).toHaveBeenCalledTimes(2);
 
-       expect(await promise).toEqual(1);
+       pollUntil.next();
+       pollOn.next();
 
        expect(pollEffect).toHaveBeenCalledTimes(2);
      }));

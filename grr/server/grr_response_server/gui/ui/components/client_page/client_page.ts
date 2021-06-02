@@ -6,8 +6,8 @@ import {Subject} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
 import {isNonNull} from '../../lib/preconditions';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {UserFacade} from '../../store/user_facade';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {UserGlobalStore} from '../../store/user_global_store';
 import {Approval} from '../approval/approval';
 
 // Minimalistic polyfill for ResizeObserver typings. These typings represent a
@@ -43,9 +43,9 @@ export class ClientPage implements OnInit, AfterViewInit, OnDestroy {
       filter(isNonNull),
   );
 
-  readonly client$ = this.clientPageFacade.selectedClient$;
+  readonly client$ = this.clientPageGlobalStore.selectedClient$;
 
-  readonly currentUser$ = this.userFacade.currentUser$.pipe(
+  readonly currentUser$ = this.userGlobalStore.currentUser$.pipe(
       map(user => user.name),
   );
 
@@ -57,7 +57,7 @@ export class ClientPage implements OnInit, AfterViewInit, OnDestroy {
 
   approvalHeight: number = 0;
 
-  readonly showApprovalView$ = this.clientPageFacade.approvalsEnabled$;
+  readonly showApprovalView$ = this.clientPageGlobalStore.approvalsEnabled$;
 
   private readonly resizeObserver = new ResizeObserver(() => {
     this.approvalHeight =
@@ -67,8 +67,8 @@ export class ClientPage implements OnInit, AfterViewInit, OnDestroy {
 
   constructor(
       private readonly route: ActivatedRoute,
-      private readonly clientPageFacade: ClientPageFacade,
-      private readonly userFacade: UserFacade,
+      private readonly clientPageGlobalStore: ClientPageGlobalStore,
+      private readonly userGlobalStore: UserGlobalStore,
       private readonly title: Title,
       private readonly changeDetectorRef: ChangeDetectorRef,
       private readonly router: Router,
@@ -76,7 +76,7 @@ export class ClientPage implements OnInit, AfterViewInit, OnDestroy {
 
   ngOnInit() {
     this.id$.pipe(takeUntil(this.unsubscribe$)).subscribe(id => {
-      this.clientPageFacade.selectClient(id);
+      this.clientPageGlobalStore.selectClient(id);
     });
 
     this.client$

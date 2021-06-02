@@ -1,11 +1,11 @@
-import {Observable, timer} from 'rxjs';
+import {Observable, Subscription} from 'rxjs';
 
 
 interface PollArgs<T> {
-  readonly pollIntervalMs: number;
+  readonly pollOn: Observable<unknown>;
   readonly pollEffect: () => void;
   readonly selector: Observable<T>;
-  readonly pollWhile?: (value: T) => boolean;
+  readonly pollUntil?: Observable<unknown>;
 }
 
 /**
@@ -13,48 +13,62 @@ interface PollArgs<T> {
  *
  * This function returns an Observable that, while being subscribed to:
  *
- * 1) Calls pollEffect() every `pollIntervalMs`, starting immediately upon
- *    subscription.
+ * 1) Calls pollEffect() everytime `pollOn` emits. Use timer() for regular
+ *    polling.
  * 2) Passes through `selector`.
  *
  * Both the polling and the subscription to selector are stopped, as soon as:
- * * `selector` completes, or
- * * the caller unsubscribes from poll(), or
- * * pollWhile() returns false.
+ * - `selector` completes, or
+ * - the caller unsubscribes from poll(), or
+ * - pollOn completes, or
+ * - pollUntil emits.
  *
  * This function is designed to interoperate with RxJS:
- * * pollEffect() can trigger an RxJS effect that calls an API and updates
+ * - pollEffect() can trigger an RxJS effect that calls an API and updates
  *   the store.
- * * selector is a selector that reads from the updated store field.
+ * - selector is a selector that reads from the updated store field.
  */
 export function poll<T>(args: PollArgs<T>) {
   return new Observable<T>(subscriber => {
-    const timerSub = timer(0, args.pollIntervalMs).subscribe(() => {
-      args.pollEffect();
+    let pollUntilSub: Subscription|undefined;
+    let selectorSub: Subscription|undefined;
+    let pollSub: Subscription|undefined;
+
+    const unsubscribe = () => {
+      pollSub?.unsubscribe();
+      selectorSub?.unsubscribe();
+      pollUntilSub?.unsubscribe();
+    };
+
+    pollSub = args.pollOn.subscribe({
+      next() {
+        args.pollEffect();
+      },
+      complete() {
+        subscriber.complete();
+        unsubscribe();
+      }
     });
 
-    const selectorSub = args.selector.subscribe({
+    selectorSub = args.selector.subscribe({
       next(v) {
         subscriber.next(v);
-
-        if (args.pollWhile !== undefined && !args.pollWhile(v)) {
-          unsubscribe();
-          subscriber.complete();
-        }
       },
       error(e) {
         subscriber.error(e);
       },
       complete() {
-        timerSub.unsubscribe();
         subscriber.complete();
+        unsubscribe();
       },
     });
 
-    const unsubscribe = () => {
-      timerSub.unsubscribe();
-      selectorSub.unsubscribe();
-    };
+    pollUntilSub = args.pollUntil?.subscribe({
+      next() {
+        subscriber.complete();
+        unsubscribe();
+      }
+    });
 
     return unsubscribe;
   });

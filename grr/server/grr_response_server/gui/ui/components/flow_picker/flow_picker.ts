@@ -6,7 +6,7 @@ import {isNonNull} from '@app/lib/preconditions';
 import {BehaviorSubject, fromEvent, merge, Observable, Subject} from 'rxjs';
 import {debounceTime, filter, map, mapTo, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
-import {ClientPageFacade} from '../../store/client_page_facade';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 
 import {FlowListItem, FlowListItemService, FlowsByCategory} from './flow_list_item';
 
@@ -224,10 +224,10 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
   }
 
   constructor(
-      private readonly clientPageFacade: ClientPageFacade,
+      private readonly clientPageGlobalStore: ClientPageGlobalStore,
       private readonly flowListItemService: FlowListItemService,
   ) {
-    this.clientPageFacade.selectedFlowDescriptor$
+    this.clientPageGlobalStore.selectedFlowDescriptor$
         .pipe(
             takeUntil(this.unsubscribe$),
             withLatestFrom(this.flowsByName$),
@@ -260,7 +260,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
       return;
     }
     this.textInput.setValue(fli.friendlyName);
-    this.clientPageFacade.startFlowConfiguration(fli.name);
+    this.clientPageGlobalStore.startFlowConfiguration(fli.name);
     this.autocompleteTrigger.closePanel();
     this.selectedFlow$.next(fli);
   }
@@ -270,7 +270,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
       return;
     }
 
-    this.clientPageFacade.stopFlowConfiguration();
+    this.clientPageGlobalStore.stopFlowConfiguration();
     this.selectedFlow$.next(undefined);
 
     this.textInput.setValue('');

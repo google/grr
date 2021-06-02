@@ -1,7 +1,8 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
-import {newFlowListEntry} from '@app/lib/models/model_test_util';
+import {newFlow} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
+
 import {FlowState} from '../../../lib/models/flow';
 
 import {PluginsModule} from './module';
@@ -25,7 +26,7 @@ describe('timeline-details component', () => {
 
   it('should display a download button when the flow is finished', () => {
     const fixture = TestBed.createComponent(TimelineDetails);
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'TimelineFlow',
       clientId: 'C.1234',
       flowId: 'ABCDEF',
@@ -52,7 +53,7 @@ describe('timeline-details component', () => {
   it('should allow customizing output format of the body export', () => {
     const fixture = TestBed.createComponent(TimelineDetails);
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'TimelineFlow',
       clientId: 'C.1234',
       flowId: 'ABCDEF',
@@ -67,6 +68,8 @@ describe('timeline-details component', () => {
       timestampSubsecondPrecision: false,
       inodeNtfsFileReferenceFormat: true,
       backslashEscape: true,
+      carriageReturnEscape: true,
+      nonPrintableEscape: true,
     });
     fixture.detectChanges();
 
@@ -77,11 +80,13 @@ describe('timeline-details component', () => {
     expect(params.get('body_opts.timestamp_subsecond_precision')).toBe('0');
     expect(params.get('body_opts.inode_ntfs_file_reference_format')).toBe('1');
     expect(params.get('body_opts.backslash_escape')).toBe('1');
+    expect(params.get('body_opts.carriage_return_escape')).toBe('1');
+    expect(params.get('body_opts.non_printable_escape')).toBe('1');
   });
 
   it('should display the root path when the flow is still running', () => {
     const fixture = TestBed.createComponent(TimelineDetails);
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'TimelineFlow',
       state: FlowState.RUNNING,
       args: {
@@ -95,7 +100,7 @@ describe('timeline-details component', () => {
 
   it('should display an error message if the flow failed', () => {
     const fixture = TestBed.createComponent(TimelineDetails);
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'TimelineFlow',
       state: FlowState.ERROR,
       args: {

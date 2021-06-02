@@ -4,18 +4,17 @@ import {ConfigService} from '@app/components/config/config';
 import {AnyObject} from '@app/lib/api/api_interfaces';
 import {HttpApiService, MissingApprovalError} from '@app/lib/api/http_api_service';
 import {translateApproval, translateClient} from '@app/lib/api_translation/client';
-import {translateFlow, translateFlowResult, translateScheduledFlow} from '@app/lib/api_translation/flow';
-import {Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowResultsQuery, FlowState, ScheduledFlow, updateFlowListEntryResultSet} from '@app/lib/models/flow';
-import {queuedExhaustMap} from '@app/lib/queued_exhaust_map';
-import {combineLatest, EMPTY, Observable, of, Subject, throwError, timer} from 'rxjs';
-import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, groupBy, map, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, takeUntil, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
+import {translateFlow, translateScheduledFlow} from '@app/lib/api_translation/flow';
+import {Flow, FlowDescriptor, ScheduledFlow} from '@app/lib/models/flow';
+import {combineLatest, EMPTY, Observable, of, throwError, timer} from 'rxjs';
+import {catchError, concatMap, distinctUntilChanged, exhaustMap, filter, map, mergeMap, shareReplay, skip, startWith, switchMap, switchMapTo, tap, withLatestFrom} from 'rxjs/operators';
 
 import {translateApproverSuggestions} from '../lib/api_translation/user';
 import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
 import {poll} from '../lib/polling';
 import {isNonNull} from '../lib/preconditions';
 
-import {ConfigFacade} from './config_facade';
+import {ConfigGlobalStore} from './config_global_store';
 
 
 interface FlowInConfiguration {
@@ -49,7 +48,7 @@ interface ClientPageState {
   readonly approvalSequence: string[];
   readonly hasAccess?: boolean;
 
-  readonly flowListEntries: {readonly [key: string]: FlowListEntry};
+  readonly flowListEntries: {readonly [key: string]: Flow};
   readonly flowListEntrySequence: string[];
 
   readonly flowInConfiguration?: FlowInConfiguration;
@@ -58,34 +57,12 @@ interface ClientPageState {
   readonly approverSuggestions?: ReadonlyArray<string>;
 }
 
-/**
- * Generates a string tag for a FlowResultsQuery using the fields: flowId,
- * withType, withTag
- */
-export function uniqueTagForQuery(query: FlowResultsQuery): string {
-  const encodedFlowId = encodeURIComponent(query.flowId);
-  const encodedType =
-      query.withType ? encodeURIComponent(query.withType) : 'typeMissing';
-  const encodedTag =
-      query.withTag ? encodeURIComponent(query.withTag) : 'tagMissing';
-
-  return [encodedFlowId, encodedType, encodedTag].join(
-      '/');  // '/' won't occur in encoded fields
-}
-
-/**
- * ComponentStore implementation used by the ClientPageFacade. Shouldn't be
- * used directly. Declared as an exported global symbol to make dependency
- * injection possible.
- */
-@Injectable({
-  providedIn: 'root',
-})
-export class ClientPageStore extends ComponentStore<ClientPageState> {
+/** ComponentStore implementation used by the GlobalStore. */
+class ClientPageComponentStore extends ComponentStore<ClientPageState> {
   constructor(
       private readonly httpApiService: HttpApiService,
       private readonly configService: ConfigService,
-      private readonly configFacade: ConfigFacade,
+      private readonly configGlobalStore: ConfigGlobalStore,
   ) {
     super({
       approvals: {},
@@ -147,21 +124,15 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
       this.updater<boolean>((state, hasAccess) => ({...state, hasAccess}));
 
   private updateFlowsFn(state: ClientPageState, flows: Flow[]) {
-    const newEntries = flows.map((flow) => {
-      const fle =
-          state.flowListEntries[flow.flowId] ?? flowListEntryFromFlow(flow);
-      return {...fle, flow};
-    });
-
-    const flowListEntries = {...state.flowListEntries};
-    for (const fle of newEntries) {
-      flowListEntries[fle.flow.flowId] = fle;
-    }
+    const flowListEntries: {[key: string]: Flow} = Object.fromEntries([
+      ...Object.entries(state.flowListEntries),
+      ...flows.map(f => ([f.flowId, f])),
+    ]);
 
     const flowListEntrySequence =
         Object.values(flowListEntries)
-            .sort((a, b) => +b.flow.startedAt - +a.flow.startedAt)
-            .map(f => f.flow.flowId);
+            .sort((a, b) => +b.startedAt - +a.startedAt)
+            .map(f => f.flowId);
 
     return {
       ...state,
@@ -171,24 +142,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   }
   // Reducer updating flows.
   private readonly updateFlows = this.updater<Flow[]>(this.updateFlowsFn);
-
-  // Reducer updating flow results.
-  private readonly updateFlowResults =
-      this.updater<FlowResultSet>((state, resultSet) => {
-        const fle = state.flowListEntries[resultSet.sourceQuery.flowId];
-        if (!fle) {
-          // Assuming that there's no such flow in the list anymore.
-          return state;
-        }
-
-        return {
-          ...state,
-          flowListEntries: {
-            ...state.flowListEntries,
-            [fle.flow.flowId]: updateFlowListEntryResultSet(fle, resultSet),
-          },
-        };
-      });
 
   // Reducer updating state after a flow is started.
   private readonly updateStartedFlow = this.updater<Flow>((state, flow) => {
@@ -237,8 +190,8 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> =
       poll({
-        pollIntervalMs:
-            this.configService.config.selectedClientPollingIntervalMs,
+        pollOn:
+            timer(0, this.configService.config.selectedClientPollingIntervalMs),
         pollEffect: this.fetchClient,
         selector: this.select(state => state.client),
       })
@@ -282,21 +235,23 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
             this.updateApprovals(approvals);
           })));
 
+  private readonly latestApprovalValue$ = this.select(state => {
+    // Approvals are expected to be in reversed chronological order.
+    const foundId = state.approvalSequence.find(
+        approvalId => state.approvals[approvalId].status.type !== 'expired');
+    return foundId ? state.approvals[foundId] : undefined;
+  });
+
   /** An observable emitting the latest non-expired approval. */
   readonly latestApproval$: Observable<ClientApproval|undefined> =
       poll({
-        pollIntervalMs: this.configService.config.approvalPollingIntervalMs,
+        pollOn: timer(0, this.configService.config.approvalPollingIntervalMs),
         pollEffect: this.listApprovals,
-        selector: this.select(state => {
-          // Approvals are expected to be in reversed chronological order.
-          const foundId = state.approvalSequence.find(
-              approvalId =>
-                  state.approvals[approvalId].status.type !== 'expired');
-          return foundId ? state.approvals[foundId] : undefined;
-        }),
+        selector: this.latestApprovalValue$,
         // Only poll when approval is missing or outdated. The user no longer
         // benefits from polling when they have a valid approval already.
-        pollWhile: (approval) => approval?.status.type !== 'valid',
+        pollUntil: this.latestApprovalValue$.pipe(
+            filter((approval) => approval?.status.type === 'valid')),
       }).pipe(shareReplay({bufferSize: 1, refCount: true}));
 
   private readonly verifyAccess = this.effect<void>(
@@ -310,12 +265,13 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
 
   readonly hasAccess$: Observable<boolean> =
       poll({
-        pollIntervalMs: this.configService.config.approvalPollingIntervalMs,
+        pollOn: timer(0, this.configService.config.approvalPollingIntervalMs),
         pollEffect: this.verifyAccess,
         selector: this.select(state => state.hasAccess),
         // Only poll if hasAccess is undefined or false. In this case, changes
         // could happen any time soon.
-        pollWhile: (hasAccess) => !hasAccess,
+        pollUntil: this.select(state => state.hasAccess)
+                     .pipe(filter(hasAccess => !!hasAccess)),
       })
           .pipe(
               filter(isNonNull),
@@ -330,8 +286,8 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
               shareReplay({bufferSize: 1, refCount: true}),
           );
 
-  private readonly flowListEntriesImpl$:
-      Observable<ReadonlyArray<FlowListEntry>> = this.select(state => {
+  private readonly flowListEntriesImpl$: Observable<ReadonlyArray<Flow>> =
+      this.select(state => {
         return state.flowListEntrySequence.map(id => state.flowListEntries[id]);
       });
 
@@ -355,16 +311,12 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           ));
 
   /** An observable emitting current flow list entries. */
-  readonly flowListEntries$: Observable<ReadonlyArray<FlowListEntry>> =
+  readonly flowListEntries$: Observable<ReadonlyArray<Flow>> =
       poll({
-        pollIntervalMs: this.configService.config.flowListPollingIntervalMs,
+        pollOn: timer(0, this.configService.config.flowListPollingIntervalMs),
         pollEffect: this.listFlows,
         selector: this.flowListEntriesImpl$,
-      })
-          .pipe(
-
-              shareReplay({bufferSize: 1, refCount: true}),
-          );
+      }).pipe(shareReplay({bufferSize: 1, refCount: true}));
 
   /** An observable emitting the start flow state. */
   readonly startFlowState$: Observable<StartFlowState> =
@@ -374,7 +326,7 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
   readonly selectedFlowDescriptor$: Observable<FlowDescriptor|undefined> =
       this.select(state => state.flowInConfiguration)
           .pipe(
-              withLatestFrom(this.configFacade.flowDescriptors$),
+              withLatestFrom(this.configGlobalStore.flowDescriptors$),
               map(([selectedFlow, fds]) => {
                 if (selectedFlow === undefined) {
                   return undefined;
@@ -398,82 +350,6 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
               startWith(undefined),
               shareReplay({bufferSize: 1, refCount: true}),
           );
-
-  /** An effect querying results of a given flow. */
-  private readonly queryFlowResultsImpl = this.effect<FlowResultsQuery>(
-      obs$ => obs$.pipe(
-          takeUntil(this.selectedClientIdChanged$),
-          withLatestFrom(this.selectedClientId$),
-          // Below we are grouping the requests by flowId, tag and type,
-          // and for each group we use a queuedExhaustMap with queue size
-          // 1 to send a http request for results.
-          groupBy(([query, clientId]) => {
-            return uniqueTagForQuery(query);
-          }),
-          mergeMap(
-              group$ => group$.pipe(
-                  queuedExhaustMap(([query, clientId]) => {
-                    return combineLatest([
-                      of(query),
-                      this.httpApiService.listResultsForFlow(clientId, query),
-                    ]);
-                  }),
-                  map(([query, flowResults]) => {
-                    return {
-                      sourceQuery: query,
-                      state: FlowResultSetState.FETCHED,
-                      items: flowResults.map(translateFlowResult),
-                    } as FlowResultSet;
-                  }),
-                  tap((flowResultSet) => {
-                    this.updateFlowResults(flowResultSet);
-                  }),
-                  ))));
-
-  /**
-   * A subject triggered every time the queryFlowResults() method is
-   * called.
-   */
-  private readonly queryFlowResultsSubject$ = new Subject<FlowResultsQuery>();
-
-  /**
-   * Triggers flow results query. Results will be automatically updated
-   * until the flow completes or another client is selected.
-   */
-  queryFlowResults(query: FlowResultsQuery) {
-    this.queryFlowResultsSubject$.next(query);
-
-    const fleStateSelector = this.select(
-        (state) => state.flowListEntries[query.flowId]?.flow?.state);
-    return combineLatest([
-             timer(0, this.configService.config.flowResultsPollingIntervalMs),
-             fleStateSelector,
-           ])
-        .pipe(
-            takeUntil(this.selectedClientIdChanged$),
-            takeUntil(this.queryFlowResultsSubject$.pipe(
-                // If queryFlowResults gets called again for the query for
-                // the same flow id, tag and type, then stop doing the
-                // updates (as they'll be done by the subscribed
-                // observable initialized by the latest queryFlowResults
-                // call).
-                filter(
-                    (incomingQuery) => incomingQuery.flowId === query.flowId &&
-                        incomingQuery.withTag === query.withTag &&
-                        incomingQuery.withType === query.withType))),
-            takeWhile(([, fleState]) => fleState !== undefined),
-            // Inclusive: the line below will trigger one more time, once
-            // the flow state becomes FINISHED. This guarantees that
-            // results will be updated correctly.
-            takeWhile(([, fleState]) => fleState !== FlowState.FINISHED, true),
-            map(([i]) => i),
-            distinctUntilChanged(),
-            tap(() => {
-              this.queryFlowResultsImpl(query);
-            }),
-            )
-        .subscribe();
-  }
 
   /** An effect requesting a new client approval. */
   readonly requestApproval = this.effect<ApprovalRequest>(
@@ -607,12 +483,18 @@ export class ClientPageStore extends ComponentStore<ClientPageState> {
           ));
 }
 
-/** Facade for client-related API calls. */
+/** GlobalStore for client-related API calls. */
 @Injectable({
   providedIn: 'root',
 })
-export class ClientPageFacade {
-  constructor(private readonly store: ClientPageStore) {}
+export class ClientPageGlobalStore {
+  constructor(
+      private readonly httpApiService: HttpApiService,
+      private readonly configService: ConfigService,
+      private readonly configGlobalStore: ConfigGlobalStore) {}
+
+  private readonly store = new ClientPageComponentStore(
+      this.httpApiService, this.configService, this.configGlobalStore);
 
   /** An observable emitting the client loaded by `selectClient`. */
   readonly selectedClient$: Observable<Client> = this.store.selectedClient$;
@@ -630,7 +512,7 @@ export class ClientPageFacade {
   readonly approvalsEnabled$ = this.store.approvalsEnabled$;
 
   /** An observable emitting current flow entries. */
-  readonly flowListEntries$: Observable<ReadonlyArray<FlowListEntry>> =
+  readonly flowListEntries$: Observable<ReadonlyArray<Flow>> =
       this.store.flowListEntries$;
 
   /** An observable emitting the state of a flow being started. */
@@ -653,11 +535,6 @@ export class ClientPageFacade {
   /** Requests an approval for the currently selected client. */
   requestApproval(request: ApprovalRequest): void {
     this.store.requestApproval(request);
-  }
-
-  /** Queries results for a given flow. */
-  queryFlowResults(query: FlowResultsQuery) {
-    this.store.queryFlowResults(query);
   }
 
   /** Starts a flow with given arguments. */

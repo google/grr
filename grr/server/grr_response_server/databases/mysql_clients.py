@@ -1,16 +1,14 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """The MySQL database methods for client handling."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import collections
 import itertools
-from typing import Generator, List, Text
+from typing import Generator, List, Optional, Text
 
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
+import MySQLdb.cursors
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -351,7 +349,11 @@ class MySQLDBClientMixin(object):
       raise db.UnknownClientError(client_id, cause=e)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadClientStartupInfo(self, client_id, cursor=None):
+  def ReadClientStartupInfo(
+      self,
+      client_id: str,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None
+  ) -> Optional[rdf_client.StartupInfo]:
     """Reads the latest client startup record for a single client."""
     query = (
         "SELECT startup_info, UNIX_TIMESTAMP(timestamp) "

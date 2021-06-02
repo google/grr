@@ -43,86 +43,15 @@ export declare interface FlowResult {
  * are used by flow details components to request data to show.
  */
 export declare interface FlowResultsQuery {
-  readonly flowId: string;
-  readonly withType?: string;
+  readonly flow : {
+    readonly clientId: string,
+    readonly flowId: string,
+    readonly state?: FlowState,
+  };
   readonly withTag?: string;
-  readonly offset: number;
-  readonly count: number;
-}
-
-/** Represents a state of a flow result set. */
-export enum FlowResultSetState {
-  /** Flow result set is currently being fetched. */
-  IN_PROGRESS,
-  /** Flow result set is fully fetched. */
-  FETCHED,
-}
-
-/**
- * FlowResultSet represents a result set returned in response to a
- * FlowResulsQuery.
- */
-export declare interface FlowResultSet {
-  readonly sourceQuery: FlowResultsQuery;
-  readonly state: FlowResultSetState;
-  readonly items: ReadonlyArray<FlowResult>;
-}
-
-/** Single flow entry in the flows list. */
-export declare interface FlowListEntry {
-  readonly flow: Flow;
-  readonly resultSets: FlowResultSet[];
-}
-
-/**
- * Updates (by returning a modified copy) a flow list entry with a given
- * result set. Result sets are effectively identified by their withTag/withType
- * combination. I.e. a result set with
- * withTag=undefined/withType=undefined/offset=0/count=100 is different from the
- * one with withTag=someTag/withType=undefined/offset=0/count=100, but is
- * replaceable by withTag=undefined/withType=undefined/offset=100/count=100.
- */
-export function updateFlowListEntryResultSet(
-    fle: FlowListEntry, resultSet: FlowResultSet): FlowListEntry {
-  const newResultSets: FlowResultSet[] = [];
-  let pushed = false;
-  for (const rs of fle.resultSets) {
-    if (rs.sourceQuery.withTag === resultSet.sourceQuery.withTag &&
-        rs.sourceQuery.withType === resultSet.sourceQuery.withType) {
-      newResultSets.push(resultSet);
-      pushed = true;
-    } else {
-      newResultSets.push(rs);
-    }
-  }
-
-  if (!pushed) {
-    newResultSets.push(resultSet);
-  }
-
-  return {
-    ...fle,
-    resultSets: newResultSets,
-  };
-}
-
-/** In a given FlowListEntry, find a result set matching given criteria. */
-export function findFlowListEntryResultSet(
-    fle: FlowListEntry,
-    withType?: string,
-    withTag?: string,
-    ): FlowResultSet|undefined {
-  return fle.resultSets.find(
-      rs => rs.sourceQuery.withType === withType &&
-          rs.sourceQuery.withTag === withTag);
-}
-
-/** Creates a default flow list entry from a given flow. */
-export function flowListEntryFromFlow(flow: Flow): FlowListEntry {
-  return {
-    flow,
-    resultSets: [],
-  };
+  readonly withType?: string;
+  readonly offset?: number;
+  readonly count?: number;
 }
 
 /** A scheduled flow, to be executed after approval has been granted. */
@@ -265,4 +194,16 @@ export declare interface ExecuteResponse {
   readonly stdout: string;
   readonly stderr: string;
   readonly timeUsedSeconds: number;
+}
+
+/** ArtifactProgress proto mapping. */
+export declare interface ArtifactProgress {
+  readonly name: string;
+  // For legacy reasons, numResults can be unknown.
+  readonly numResults?: number;
+}
+
+/** ArtifactCollectorFlowProgress proto mapping. */
+export declare interface ArtifactCollectorFlowProgress {
+  readonly artifacts: ReadonlyMap<string, ArtifactProgress>;
 }

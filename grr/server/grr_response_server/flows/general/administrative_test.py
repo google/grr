@@ -28,6 +28,7 @@ from grr_response_proto import tests_pb2
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
+from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import maintenance_utils
 from grr_response_server import server_stubs
@@ -35,6 +36,7 @@ from grr_response_server import signed_binary_utils
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import discovery
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
@@ -628,6 +630,117 @@ magic_return_str = "foo(%s)"
 
     search_result = index.LookupClients(["label:test_label"])
     self.assertEqual(search_result, [client_id])
+
+  def testStartupTriggersInterrogateWhenVersionChanges(self):
+    with test_lib.ConfigOverrider({"Source.version_numeric": 3000}):
+      client_id = self.SetupClient(0)
+      self._RunSendStartupInfo(client_id)
+
+    si = data_store.REL_DB.ReadClientStartupInfo(client_id)
+    self.assertEqual(si.client_info.client_version, 3000)
+
+    flows = data_store.REL_DB.ReadAllFlowObjects(
+        client_id, include_child_flows=False)
+    orig_count = len([
+        f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
+    ])
+
+    with mock.patch.multiple(
+        discovery.Interrogate, Start=mock.DEFAULT, End=mock.DEFAULT):
+      with test_lib.ConfigOverrider({"Source.version_numeric": 3001}):
+        self._RunSendStartupInfo(client_id)
+
+    si = data_store.REL_DB.ReadClientStartupInfo(client_id)
+    self.assertEqual(si.client_info.client_version, 3001)
+
+    flows = data_store.REL_DB.ReadAllFlowObjects(
+        client_id, include_child_flows=False)
+    interrogates = [
+        f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
+    ]
+    self.assertLen(interrogates, orig_count + 1)
+    self.assertEqual(flows[-1].flow_class_name, discovery.Interrogate.__name__)
+
+  def testStartupDoesNotTriggerInterrogateIfVersionStaysTheSame(self):
+    with test_lib.ConfigOverrider({"Source.version_numeric": 3000}):
+      client_id = self.SetupClient(0)
+      self._RunSendStartupInfo(client_id)
+
+      flows = data_store.REL_DB.ReadAllFlowObjects(
+          client_id, include_child_flows=False)
+      orig_count = len([
+          f for f in flows
+          if f.flow_class_name == discovery.Interrogate.__name__
+      ])
+
+      self._RunSendStartupInfo(client_id)
+
+      flows = data_store.REL_DB.ReadAllFlowObjects(
+          client_id, include_child_flows=False)
+      same_ver_count = len([
+          f for f in flows
+          if f.flow_class_name == discovery.Interrogate.__name__
+      ])
+      self.assertEqual(same_ver_count, orig_count)
+
+  def testStartupDoesNotTriggerInterrogateIfRecentInterrogateIsRunning(self):
+    with test_lib.ConfigOverrider({"Source.version_numeric": 3000}):
+      client_id = self.SetupClient(0)
+      self._RunSendStartupInfo(client_id)
+
+      data_store.REL_DB.WriteFlowObject(
+          rdf_flow_objects.Flow(
+              flow_id=flow.RandomFlowId(),
+              client_id=client_id,
+              flow_class_name=discovery.Interrogate.__name__,
+              flow_state=rdf_flow_objects.Flow.FlowState.RUNNING))
+
+      flows = data_store.REL_DB.ReadAllFlowObjects(
+          client_id, include_child_flows=False)
+      orig_count = len([
+          f for f in flows
+          if f.flow_class_name == discovery.Interrogate.__name__
+      ])
+
+      self._RunSendStartupInfo(client_id)
+
+      flows = data_store.REL_DB.ReadAllFlowObjects(
+          client_id, include_child_flows=False)
+      same_ver_count = len([
+          f for f in flows
+          if f.flow_class_name == discovery.Interrogate.__name__
+      ])
+      self.assertEqual(same_ver_count, orig_count)
+
+  def testStartupTriggersInterrogateWhenPreviousInterrogateIsDone(self):
+    with test_lib.ConfigOverrider({"Source.version_numeric": 3000}):
+      client_id = self.SetupClient(0)
+      self._RunSendStartupInfo(client_id)
+
+    data_store.REL_DB.WriteFlowObject(
+        rdf_flow_objects.Flow(
+            flow_id=flow.RandomFlowId(),
+            client_id=client_id,
+            flow_class_name=discovery.Interrogate.__name__,
+            flow_state=rdf_flow_objects.Flow.FlowState.FINISHED))
+
+    flows = data_store.REL_DB.ReadAllFlowObjects(
+        client_id, include_child_flows=False)
+    orig_count = len([
+        f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
+    ])
+
+    with mock.patch.multiple(
+        discovery.Interrogate, Start=mock.DEFAULT, End=mock.DEFAULT):
+      with test_lib.ConfigOverrider({"Source.version_numeric": 3001}):
+        self._RunSendStartupInfo(client_id)
+
+    flows = data_store.REL_DB.ReadAllFlowObjects(
+        client_id, include_child_flows=False)
+    interrogates = [
+        f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
+    ]
+    self.assertLen(interrogates, orig_count + 1)
 
   def testNannyMessageHandler(self):
     client_id = self.SetupClient(0)

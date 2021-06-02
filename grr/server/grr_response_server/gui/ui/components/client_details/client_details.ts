@@ -1,5 +1,6 @@
 import {ChangeDetectionStrategy, Component, Input, OnChanges} from '@angular/core';
-import {ClientDetailsFacade} from '../../store/client_details_facade';
+
+import {ClientDetailsGlobalStore} from '../../store/client_details_global_store';
 
 /**
  * Component displaying the details for a single Client.
@@ -18,18 +19,19 @@ export class ClientDetails implements OnChanges {
   readonly INITIAL_NUM_INTERFACES_SHOWN = 3;
   readonly INITIAL_NUM_VOLUMES_SHOWN = 2;
 
-  readonly clientVersions$ = this.clientDetailsFacade.selectedClientVersions$;
+  readonly clientVersions$ =
+      this.clientDetailsGlobalStore.selectedClientVersions$;
 
   currentNumUsersShown = this.INITIAL_NUM_USERS_SHOWN;
   currentNumInterfacesShown = this.INITIAL_NUM_INTERFACES_SHOWN;
   currentNumVolumesShown = this.INITIAL_NUM_VOLUMES_SHOWN;
 
   constructor(
-      private readonly clientDetailsFacade: ClientDetailsFacade,
+      private readonly clientDetailsGlobalStore: ClientDetailsGlobalStore,
   ) {}
 
   ngOnChanges() {
-    this.clientDetailsFacade.selectClient(this.clientId);
+    this.clientDetailsGlobalStore.selectClient(this.clientId);
   }
 
   getAccordionButtonState(

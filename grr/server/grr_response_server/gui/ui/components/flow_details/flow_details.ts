@@ -1,10 +1,10 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentFactoryResolver, ComponentRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
 import {Plugin as FlowDetailsPlugin} from '@app/components/flow_details/plugins/plugin';
-import {Flow, FlowDescriptor, FlowListEntry, FlowResultsQuery, FlowState} from '@app/lib/models/flow';
+import {Flow, FlowDescriptor, FlowState} from '@app/lib/models/flow';
 import {Subject} from 'rxjs';
-import {takeUntil} from 'rxjs/operators';
 
 import {assertNonNull} from '../../lib/preconditions';
+import {FlowResultsLocalStore} from '../../store/flow_results_local_store';
 
 import {FLOW_DETAILS_DEFAULT_PLUGIN, FLOW_DETAILS_PLUGIN_REGISTRY} from './plugin_registry';
 
@@ -27,6 +27,7 @@ export enum FlowMenuAction {
   templateUrl: './flow_details.ng.html',
   styleUrls: ['./flow_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [FlowResultsLocalStore],
 })
 export class FlowDetails implements OnChanges, OnDestroy {
   private readonly detailsComponentUnsubscribe$ = new Subject<void>();
@@ -39,18 +40,12 @@ export class FlowDetails implements OnChanges, OnDestroy {
   /**
    * Flow list entry to display.
    */
-  @Input() flowListEntry!: FlowListEntry;
+  @Input() flow!: Flow;
   /**
    * Flow descriptor of the flow to display. May be undefined (for example,
    * if a flow got renamed on the backend).
    */
   @Input() flowDescriptor!: FlowDescriptor;
-
-  /**
-   * Event that is triggered when additional flow results data is needed to
-   * be flow plugin.
-   */
-  @Output() flowResultsQuery = new EventEmitter<FlowResultsQuery>();
 
   /**
    * Event that is triggered when a flow context menu action is selected.
@@ -65,10 +60,9 @@ export class FlowDetails implements OnChanges, OnDestroy {
   ) {}
 
   ngOnChanges(changes: SimpleChanges) {
-    assertNonNull(this.flowListEntry, '@Input() flow');
+    assertNonNull(this.flow, '@Input() flow');
 
-    const componentClass =
-        FLOW_DETAILS_PLUGIN_REGISTRY[this.flowListEntry.flow.name] ||
+    const componentClass = FLOW_DETAILS_PLUGIN_REGISTRY[this.flow.name] ||
         FLOW_DETAILS_DEFAULT_PLUGIN;
     // Only recreate the component if the component class has changed.
     if (componentClass !== this.detailsComponent?.instance.constructor) {
@@ -78,21 +72,6 @@ export class FlowDetails implements OnChanges, OnDestroy {
           this.componentFactoryResolver.resolveComponentFactory(componentClass);
       this.detailsContainer.clear();
       this.detailsComponent = this.detailsContainer.createComponent(factory);
-
-      // Propagate the flowResultsQuery event upwards.
-      this.detailsComponent.instance.flowResultsQuery
-          .pipe(
-              takeUntil(this.detailsComponentUnsubscribe$),
-              )
-          .subscribe(e => {
-            const flowId =
-                this.detailsComponent?.instance.flowListEntry.flow.flowId;
-            if (!flowId) {
-              throw new Error(
-                  'Logic error: can\'t determine flow id for a query.');
-            }
-            this.flowResultsQuery.emit({flowId, ...e});
-          });
     }
 
     if (!this.detailsComponent) {
@@ -100,7 +79,7 @@ export class FlowDetails implements OnChanges, OnDestroy {
           'detailsComponentInstance was expected to be defined at this point.');
     }
 
-    this.detailsComponent.instance.flowListEntry = this.flowListEntry;
+    this.detailsComponent.instance.flow = this.flow;
     // If the input bindings are set programmatically and not through a
     // template, and you have OnPush strategy, then change detection won't
     // trigger. We have to explicitly mark the dynamically created component
@@ -118,10 +97,6 @@ export class FlowDetails implements OnChanges, OnDestroy {
     // not on the component itself and because we’re in onPush and setting
     // the input programmatically from Angular perspective nothing has changed."
     this.detailsComponent.injector.get(ChangeDetectorRef).markForCheck();
-  }
-
-  get flow(): Flow {
-    return this.flowListEntry.flow;
   }
 
   triggerMenuEvent(action: FlowMenuAction) {

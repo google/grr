@@ -5,17 +5,18 @@ import {ReplaySubject, Subject} from 'rxjs';
 
 import {ClientApproval} from '../lib/models/client';
 
-import {ApprovalPageFacade} from './approval_page_facade';
+import {ApprovalPageGlobalStore} from './approval_page_global_store';
 
 type I<T> = {
   [key in keyof T]: T[key];
 };
 
-export declare interface ApprovalPageFacadeMock extends I<ApprovalPageFacade> {
+export declare interface ApprovalPageGlobalStoreMock extends
+    I<ApprovalPageGlobalStore> {
   approvalSubject: Subject<ClientApproval>;
 }
 
-export function mockApprovalPageFacade(): ApprovalPageFacadeMock {
+export function mockApprovalPageGlobalStore(): ApprovalPageGlobalStoreMock {
   const approvalSubject = new ReplaySubject<ClientApproval>(1);
 
   return {

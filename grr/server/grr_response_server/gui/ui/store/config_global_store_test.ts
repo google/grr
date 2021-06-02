@@ -2,15 +2,15 @@ import {TestBed} from '@angular/core/testing';
 import * as api from '@app/lib/api/api_interfaces';
 import {ApiClientLabel, ApiFlowDescriptor, ApiUiConfig} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ConfigFacade} from '@app/store/config_facade';
+import {ConfigGlobalStore} from '@app/store/config_global_store';
 import {initTestEnvironment} from '@app/testing';
 import {ReplaySubject, Subject} from 'rxjs';
 
 initTestEnvironment();
 
-describe('ConfigFacade', () => {
+describe('ConfigGlobalStore', () => {
   let httpApiService: Partial<HttpApiService>;
-  let configFacade: ConfigFacade;
+  let configGlobalStore: ConfigGlobalStore;
   let apiListFlowDescriptors$: Subject<ReadonlyArray<ApiFlowDescriptor>>;
   let apiListArtifactDescriptors$:
       Subject<ReadonlyArray<api.ArtifactDescriptor>>;
@@ -42,16 +42,16 @@ describe('ConfigFacade', () => {
     TestBed.configureTestingModule({
       imports: [],
       providers: [
-        ConfigFacade,
+        ConfigGlobalStore,
         {provide: HttpApiService, useFactory: () => httpApiService},
       ],
     });
 
-    configFacade = TestBed.inject(ConfigFacade);
+    configGlobalStore = TestBed.inject(ConfigGlobalStore);
   });
 
   it('calls the API on subscription to flowDescriptors$', () => {
-    configFacade.flowDescriptors$.subscribe();
+    configGlobalStore.flowDescriptors$.subscribe();
     expect(httpApiService.listFlowDescriptors).toHaveBeenCalled();
   });
 
@@ -75,7 +75,7 @@ describe('ConfigFacade', () => {
       ],
     ]);
 
-    configFacade.flowDescriptors$.subscribe((results) => {
+    configGlobalStore.flowDescriptors$.subscribe((results) => {
       expect(results).toEqual(expected);
       done();
     });
@@ -96,12 +96,12 @@ describe('ConfigFacade', () => {
   });
 
   it('calls the API on subscription to artifactDescriptors$', () => {
-    configFacade.artifactDescriptors$.subscribe();
+    configGlobalStore.artifactDescriptors$.subscribe();
     expect(httpApiService.listArtifactDescriptors).toHaveBeenCalled();
   });
 
   it('correctly emits the API results in artifactDescriptors$', (done) => {
-    configFacade.artifactDescriptors$.subscribe((results) => {
+    configGlobalStore.artifactDescriptors$.subscribe((results) => {
       expect(results.get('TestArtifact')).toEqual(jasmine.objectContaining({
         name: 'TestArtifact'
       }));
@@ -119,7 +119,7 @@ describe('ConfigFacade', () => {
 
   it('calls the API on subscription to uiConfig$', () => {
     expect(httpApiService.fetchUiConfig).not.toHaveBeenCalled();
-    configFacade.uiConfig$.subscribe();
+    configGlobalStore.uiConfig$.subscribe();
     expect(httpApiService.fetchUiConfig).toHaveBeenCalled();
   });
 
@@ -128,7 +128,7 @@ describe('ConfigFacade', () => {
       profileImageUrl: 'https://foo',
     };
 
-    configFacade.uiConfig$.subscribe((results) => {
+    configGlobalStore.uiConfig$.subscribe((results) => {
       expect(results).toEqual(expected);
       done();
     });
@@ -139,7 +139,7 @@ describe('ConfigFacade', () => {
   });
 
   it('calls the API on subscription to clientsLabels$', () => {
-    configFacade.clientsLabels$.subscribe();
+    configGlobalStore.clientsLabels$.subscribe();
     expect(httpApiService.fetchAllClientsLabels).toHaveBeenCalled();
   });
 
@@ -149,7 +149,7 @@ describe('ConfigFacade', () => {
       'second_label',
     ];
 
-    configFacade.clientsLabels$.subscribe((results) => {
+    configGlobalStore.clientsLabels$.subscribe((results) => {
       expect(results).toEqual(expected);
       done();
     });

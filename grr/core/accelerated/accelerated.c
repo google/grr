@@ -5,12 +5,8 @@
 //
 // author: Michael Cohen <scudette@gmail.com>
 
-
 #include <Python.h>
-
-#if PY_MAJOR_VERSION >= 3
-#define IS_PY3K
-#endif
+#include <limits.h>
 
 // Number of bits used to hold type info in a proto tag.
 #define TAG_TYPE_BITS 3
@@ -66,11 +62,7 @@ PyObject *py_varint_encode(PyObject *self, PyObject *args) {
   unsigned char buffer[100];
   Py_ssize_t index = sizeof(buffer);
   unsigned PY_LONG_LONG value;
-#ifdef IS_PY3K
   const char *fmt = "y#";
-#else
-  const char *fmt = "s#";
-#endif
 
   if (!PyArg_ParseTuple(args, "K", &value))
     return NULL;
@@ -120,11 +112,7 @@ PyObject *py_varint_decode(PyObject *self, PyObject *args) {
   Py_ssize_t pos = 0;
   Py_ssize_t length = 0;
   unsigned PY_LONG_LONG result = 0;
-#ifdef IS_PY3K
   const char *fmt = "y#n";
-#else
-  const char *fmt = "s#n";
-#endif
 
   if (!PyArg_ParseTuple(args, fmt, &buffer, &length, &pos))
     return NULL;
@@ -145,19 +133,17 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
   Py_ssize_t index = 0;
   static const char *kwlist[] = {"buffer", "index", "length", NULL};
   PyObject *encoded_tag = NULL;
-
-  PyObject *result = PyList_New(0);
-  if (!result)
-    return NULL;
+  PyObject *result = NULL;
 
   if (!PyArg_ParseTupleAndKeywords(args, kwargs, "s#|nn", (char **)kwlist,
-                                   &buffer, &buffer_len, &index, &length))
-    return NULL;
+                                   &buffer, &buffer_len, &index, &length)) {
+    goto error;
+  }
 
   if (index < 0 || length < 0 || index > buffer_len) {
     PyErr_SetString(
         PyExc_ValueError, "Invalid parameters.");
-    return NULL;
+    goto error;
   }
 
   // Advance the buffer to the required start index.
@@ -166,6 +152,11 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
   // Determine the length we will be splitting.
   if (length == 0 || length > buffer_len - index) {
     length = buffer_len - index;
+  }
+
+  result = PyList_New(0);
+  if (!result) {
+    goto error;
   }
 
   // We advance the buffer and decrement the length until there is no more
@@ -179,13 +170,13 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
     if (!varint_decode(&tag, buffer, length, &decoded_length)) {
       PyErr_SetString(
           PyExc_ValueError, "Broken tag encountered.");
-      return NULL;
+      goto error;
     }
 
     if (decoded_length == 0) {
       PyErr_SetString(
           PyExc_ValueError, "Zero-length tag encountered.");
-      return NULL;
+      goto error;
     }
 
     // Prepare to pass the encoded tag into the result tuple.
@@ -213,6 +204,7 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
         entry = PyTuple_New(3);
         PyTuple_SET_ITEM(
             entry, 0, encoded_tag);
+        encoded_tag = NULL; // Ensure it doesn't get accidentally dereferenced.
 
         // Empty string "".
         PyTuple_SET_ITEM(
@@ -236,9 +228,16 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
         // Fixed size data.
         Py_ssize_t tag_length = 8;
 
+        if (length < tag_length) {
+          PyErr_SetString(
+              PyExc_ValueError, "Fixed64 tag exceeds available buffer.");
+          goto error;
+        }
+
         PyObject *entry = PyTuple_New(3);
         PyTuple_SET_ITEM(
             entry, 0, encoded_tag);
+        encoded_tag = NULL; // Ensure it doesn't get accidentally dereferenced.
 
         // Empty string "".
         PyTuple_SET_ITEM(
@@ -262,9 +261,16 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
         // Fixed size data.
         Py_ssize_t tag_length = 4;
 
+        if (length < tag_length) {
+          PyErr_SetString(
+              PyExc_ValueError, "Fixed32 tag exceeds available buffer.");
+          goto error;
+        }
+
         PyObject *entry = PyTuple_New(3);
         PyTuple_SET_ITEM(
             entry, 0, encoded_tag);
+        encoded_tag = NULL; // Ensure it doesn't get accidentally dereferenced.
 
         // Empty string "".
         PyTuple_SET_ITEM(
@@ -297,17 +303,23 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
           goto error;
         }
 
+        if (data_size > INT_MAX) {
+          PyErr_SetString(
+              PyExc_ValueError, "Length delimited exceeds limits.");
+          goto error;
+        }
+
         // Check that we do not exceed the available buffer here.
         if (data_size + decoded_length > (unsigned int)length) {
           PyErr_SetString(
               PyExc_ValueError, "Length tag exceeds available buffer.");
-
           goto error;
         }
 
         entry = PyTuple_New(3);
         PyTuple_SET_ITEM(
             entry, 0, encoded_tag);
+        encoded_tag = NULL; // Ensure it doesn't get accidentally dereferenced.
 
         // Empty string "".
         PyTuple_SET_ITEM(
@@ -330,7 +342,6 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
       default:
         PyErr_SetString(
             PyExc_ValueError, "Unexpected Tag");
-
         goto error;
     }
   }
@@ -338,7 +349,9 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
   return result;
 
 error:
-  Py_DECREF(encoded_tag);
+  Py_XDECREF(result);
+  Py_XDECREF(encoded_tag);
+
   return NULL;
 }
 
@@ -366,7 +379,7 @@ static PyMethodDef _semantic_methods[] = {
     {"varint_decode",
      (PyCFunction)py_varint_decode,
      METH_VARARGS,
-     "Decode a varying from a buffer."},
+     "Decode a varint from a buffer."},
 
     {"split_buffer",
      (PyCFunction)py_split_buffer,
@@ -377,7 +390,6 @@ static PyMethodDef _semantic_methods[] = {
 };
 
 
-#ifdef IS_PY3K
 static struct PyModuleDef cSemanticMod =
 {
     PyModuleDef_HEAD_INIT,
@@ -390,9 +402,4 @@ static struct PyModuleDef cSemanticMod =
 PyMODINIT_FUNC PyInit__semantic(void) {
   return PyModule_Create(&cSemanticMod);
 }
-#else
-PyMODINIT_FUNC init_semantic(void) {
-  Py_InitModule3("_semantic", _semantic_methods,
-                 "Semantic Protobuf accelerator.");
-}
-#endif
+

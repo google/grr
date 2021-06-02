@@ -7,8 +7,8 @@ import {Subject} from 'rxjs';
 import {filter, map, withLatestFrom} from 'rxjs/operators';
 
 import {isNonNull} from '../../lib/preconditions';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {ConfigFacade} from '../../store/config_facade';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {ConfigGlobalStore} from '../../store/config_global_store';
 
 /**
  * Component to request approval for the current client.
@@ -35,14 +35,14 @@ export class Approval implements OnInit, OnDestroy {
 
   readonly formRequestedApprovers = new Set<string>();
 
-  readonly ccEmail$ = this.configFacade.approvalConfig$.pipe(
+  readonly ccEmail$ = this.configGlobalStore.approvalConfig$.pipe(
       map(config => config.optionalCcEmail));
 
   @HostBinding('class.closed') hideContent = true;
 
   showForm: boolean = false;
 
-  readonly latestApproval$ = this.clientPageFacade.latestApproval$.pipe(
+  readonly latestApproval$ = this.clientPageGlobalStore.latestApproval$.pipe(
       filter(isNonNull),
       map(approval => {
         const pathTree = this.router.createUrlTree([
@@ -64,21 +64,22 @@ export class Approval implements OnInit, OnDestroy {
       }),
   );
 
-  readonly latestApprovalState$ = this.clientPageFacade.latestApproval$.pipe(
-      map(approval => {
-        switch (approval?.status.type) {
-          case 'valid':
-            return 'valid';
-          case 'pending':
-            return 'pending';
-          default:
-            return 'missing';
-        }
-      }),
-  );
+  readonly latestApprovalState$ =
+      this.clientPageGlobalStore.latestApproval$.pipe(
+          map(approval => {
+            switch (approval?.status.type) {
+              case 'valid':
+                return 'valid';
+              case 'pending':
+                return 'pending';
+              default:
+                return 'missing';
+            }
+          }),
+      );
 
   readonly approverSuggestions$ =
-      this.clientPageFacade.approverSuggestions$.pipe(
+      this.clientPageGlobalStore.approverSuggestions$.pipe(
           map(approverSuggestions => approverSuggestions.filter(
                   username => !this.formRequestedApprovers.has(username))));
 
@@ -86,17 +87,17 @@ export class Approval implements OnInit, OnDestroy {
 
   constructor(
       private readonly route: ActivatedRoute,
-      private readonly clientPageFacade: ClientPageFacade,
-      private readonly configFacade: ConfigFacade,
+      private readonly clientPageGlobalStore: ClientPageGlobalStore,
+      private readonly configGlobalStore: ConfigGlobalStore,
       private readonly router: Router,
       private readonly location: Location,
   ) {
     this.submit$
         .pipe(withLatestFrom(
-            this.form.valueChanges, this.clientPageFacade.selectedClient$,
+            this.form.valueChanges, this.clientPageGlobalStore.selectedClient$,
             this.ccEmail$))
         .subscribe(([_, form, client, ccEmail]) => {
-          this.clientPageFacade.requestApproval({
+          this.clientPageGlobalStore.requestApproval({
             clientId: client.clientId,
             approvers: Array.from(this.formRequestedApprovers),
             reason: form.reason,
@@ -105,11 +106,11 @@ export class Approval implements OnInit, OnDestroy {
         });
 
     this.approversInputControl.valueChanges.subscribe(value => {
-      this.clientPageFacade.suggestApprovers(value);
+      this.clientPageGlobalStore.suggestApprovers(value);
     });
 
     // Trigger the suggestion of previously requested approvers.
-    this.clientPageFacade.suggestApprovers('');
+    this.clientPageGlobalStore.suggestApprovers('');
   }
 
   ngOnInit() {

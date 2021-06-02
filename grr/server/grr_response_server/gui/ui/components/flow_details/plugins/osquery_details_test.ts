@@ -2,9 +2,13 @@ import {DebugElement} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {newOsqueryTable, OsqueryResultsTableDOM} from '@app/components/flow_details/helpers/osquery_test_util';
-import {FlowListEntry, FlowState} from '@app/lib/models/flow';
-import {newFlow, newFlowListEntry, newFlowResultSet} from '@app/lib/models/model_test_util';
+import {Flow, FlowState} from '@app/lib/models/flow';
+import {newFlow, newFlowResult} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
+
+import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
+import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+
 import {PluginsModule} from './module';
 
 import {OsqueryDetails} from './osquery_details';
@@ -60,20 +64,23 @@ class OsqueryDetailsDOM {
 }
 
 /**
- * Function that creates a component fixture which is supplied with the
- * FlowListEntry value provided
+ * Function that creates a component fixture which is supplied with the Flow
+ * value provided.
  */
-function createFixtureFrom(flowListEntry: FlowListEntry):
-    ComponentFixture<OsqueryDetails> {
+function createFixtureFrom(flow: Flow): ComponentFixture<OsqueryDetails> {
   const fixture = TestBed.createComponent(OsqueryDetails);
-  fixture.componentInstance.flowListEntry = flowListEntry;
+  fixture.componentInstance.flow = flow;
   fixture.detectChanges();
 
   return fixture;
 }
 
 describe('osquery-details component', () => {
+  let flowResultsLocalStore: FlowResultsLocalStoreMock;
+
   beforeEach(waitForAsync(() => {
+    flowResultsLocalStore = mockFlowResultsLocalStore();
+
     TestBed
         .configureTestingModule({
           imports: [
@@ -82,13 +89,15 @@ describe('osquery-details component', () => {
 
           providers: [],
         })
+        .overrideProvider(
+            FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})
         .compileComponents();
   }));
 
   it('should display only the query argument when flow is still running',
      () => {
        const testQuery = 'SELECT * FROM users LIMIT 10;';
-       const testFlowListEntry = newFlowListEntry({
+       const testFlowListEntry = newFlow({
          state: FlowState.RUNNING,
          args: {
            query: testQuery,
@@ -110,7 +119,7 @@ describe('osquery-details component', () => {
 
   it('should display only the progress error message if the flow encounters an error',
      () => {
-       const testFlowListEntry = newFlowListEntry({
+       const testFlowListEntry = newFlow({
          state: FlowState.ERROR,
          progress: {
            errorMessage: 'Some syntax error',
@@ -138,7 +147,7 @@ describe('osquery-details component', () => {
        const testColName = 'column';
        const testCellValue = 'grr!';
 
-       const testFlowListEntry = newFlowListEntry({
+       const testFlowListEntry = newFlow({
          state: FlowState.FINISHED,
          progress: {
            partialTable:
@@ -168,7 +177,7 @@ describe('osquery-details component', () => {
        const testColName = 'column';
        const testCellValue = 'grr!';
 
-       const testFlowListEntry = newFlowListEntry({
+       const testFlowListEntry = newFlow({
          state: FlowState.FINISHED,
          progress: {
            partialTable:
@@ -204,24 +213,24 @@ describe('osquery-details component', () => {
        const progressColumns = ['progressCol1', 'progressCol2'];
        const progressCells = [['progress-1-1', 'progress-1-2']];
 
-       const testFlowListEntry = {
-         flow: newFlow({
-           state: FlowState.FINISHED,
-           progress: {
-             partialTable: newOsqueryTable(
-                 'doesnt matter', progressColumns, progressCells),
-             totalRowCount: '2',
-           },
-         }),
-         resultSets: [
-           newFlowResultSet({
-             table:
-                 newOsqueryTable('doesnt matter', resultColumns, resultCells),
-           }),
-         ],
-       };
+       const testFlowListEntry = newFlow({
+         state: FlowState.FINISHED,
+         progress: {
+           partialTable:
+               newOsqueryTable('doesnt matter', progressColumns, progressCells),
+           totalRowCount: '2',
+         },
+       });
 
        const fixture = createFixtureFrom(testFlowListEntry);
+
+       flowResultsLocalStore.resultsSubject.next([newFlowResult({
+         payload: {
+           table: newOsqueryTable('doesnt matter', resultColumns, resultCells),
+         }
+       })]);
+       fixture.detectChanges();
+
        const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
        expect(parsedElements.displayedTable).toBeTruthy();
@@ -234,7 +243,7 @@ describe('osquery-details component', () => {
   it('shouldn\'t display the show-additional section if flow is still in progress',
      () => {
        const testQuery = 'grr?';
-       const testFlowListEntry = newFlowListEntry({
+       const testFlowListEntry = newFlow({
          state: FlowState.RUNNING,
          args: {
            query: testQuery,
@@ -249,7 +258,7 @@ describe('osquery-details component', () => {
 
   it('should display the show-additional section if no table or progress is available (for some reason)',
      () => {
-       const testFlowListEntry = newFlowListEntry({
+       const testFlowListEntry = newFlow({
          state: FlowState.FINISHED,
        });
 
@@ -264,7 +273,7 @@ describe('osquery-details component', () => {
 
   it('doesn\'t display the show-additional section if totalRowCount in the progress is 0',
      () => {
-       const testFlowListEntry = newFlowListEntry({
+       const testFlowListEntry = newFlow({
          state: FlowState.FINISHED,
          args: {
            query: 'Some query',
@@ -281,7 +290,7 @@ describe('osquery-details component', () => {
      });
 
   it('shouldn\'t display the export button if flow is still running', () => {
-    const testFlowListEntry = newFlowListEntry({
+    const testFlowListEntry = newFlow({
       state: FlowState.RUNNING,
       args: {
         query: 'random',
@@ -296,7 +305,7 @@ describe('osquery-details component', () => {
 
   it('shouldn\'t display the export button if the flow encountered an error',
      () => {
-       const testFlowListEntry = newFlowListEntry({
+       const testFlowListEntry = newFlow({
          state: FlowState.ERROR,
          args: {
            query: 'Some query',
@@ -310,20 +319,20 @@ describe('osquery-details component', () => {
      });
 
   it('shouldn\'t display the export button if the table is empty', () => {
-    const testFlowListEntry = {
-      flow: newFlow({
-        state: FlowState.FINISHED,
-        flowId: 'flowId',
-        clientId: 'clientId',
-      }),
-      resultSets: [
-        newFlowResultSet({
-          table: newOsqueryTable('doesnt matter', ['c1', 'c2'], []),
-        }),
-      ],
-    };
+    const testFlowListEntry = newFlow({
+      state: FlowState.FINISHED,
+      flowId: 'flowId',
+      clientId: 'clientId',
+    });
 
     const fixture = createFixtureFrom(testFlowListEntry);
+
+    flowResultsLocalStore.resultsSubject.next([newFlowResult({
+      payload: {
+        table: newOsqueryTable('doesnt matter', ['c1', 'c2'], []),
+      }
+    })]);
+
     const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
     expect(parsedElements.exportCsvButton).toBeFalsy();
@@ -331,20 +340,21 @@ describe('osquery-details component', () => {
 
   it('should display the export button with correct href if the table is not empty',
      () => {
-       const testFlowListEntry = {
-         flow: newFlow({
-           state: FlowState.FINISHED,
-           clientId: 'someClient123',
-           flowId: 'someFlow321',
-         }),
-         resultSets: [
-           newFlowResultSet({
-             table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
-           }),
-         ],
-       };
+       const testFlowListEntry = newFlow({
+         state: FlowState.FINISHED,
+         clientId: 'someClient123',
+         flowId: 'someFlow321',
+       });
 
        const fixture = createFixtureFrom(testFlowListEntry);
+
+       flowResultsLocalStore.resultsSubject.next([newFlowResult({
+         payload: {
+           table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
+         }
+       })]);
+       fixture.detectChanges();
+
        const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
        expect(parsedElements.exportCsvButton).toBeTruthy();
@@ -357,20 +367,20 @@ describe('osquery-details component', () => {
 
   it('shouldn\'t display the download collected file button if no columns for collection are present',
      () => {
-       const testFlowListEntry = {
-         flow: newFlow({
-           state: FlowState.FINISHED,
-           clientId: 'someClient123',
-           flowId: 'someFlow321',
-         }),
-         resultSets: [
-           newFlowResultSet({
-             table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
-           }),
-         ],
-       };
+       const testFlowListEntry = newFlow({
+         state: FlowState.FINISHED,
+         clientId: 'someClient123',
+         flowId: 'someFlow321',
+       });
 
        const fixture = createFixtureFrom(testFlowListEntry);
+
+       flowResultsLocalStore.resultsSubject.next([newFlowResult({
+         payload: {
+           table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
+         }
+       })]);
+
        const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
        expect(parsedElements.downloadFilesButton).toBeFalsy();
@@ -378,24 +388,25 @@ describe('osquery-details component', () => {
 
   it('should display the download collected file button if columns for collection are present',
      () => {
-       const testFlowListEntry = {
-         flow: newFlow({
-           state: FlowState.FINISHED,
-           clientId: 'someClient123',
-           flowId: 'someFlow321',
-           args: {
-             // Columns for file collection are present
-             fileCollectionColumns: ['column'],
-           },
-         }),
-         resultSets: [
-           newFlowResultSet({
-             table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
-           }),
-         ],
-       };
+       const testFlowListEntry = newFlow({
+         state: FlowState.FINISHED,
+         clientId: 'someClient123',
+         flowId: 'someFlow321',
+         args: {
+           // Columns for file collection are present
+           fileCollectionColumns: ['column'],
+         },
+       });
 
        const fixture = createFixtureFrom(testFlowListEntry);
+
+       flowResultsLocalStore.resultsSubject.next([newFlowResult({
+         payload: {
+           table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
+         }
+       })]);
+       fixture.detectChanges();
+
        const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
 
        expect(parsedElements.downloadFilesButton).toBeTruthy();

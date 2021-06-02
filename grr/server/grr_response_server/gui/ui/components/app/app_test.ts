@@ -6,12 +6,12 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {Subject} from 'rxjs';
 
 import {Writable} from '../../lib/type_utils';
-import {ConfigFacade} from '../../store/config_facade';
-import {mockConfigFacade} from '../../store/config_facade_test_util';
-import {HomePageFacade} from '../../store/home_page_facade';
-import {mockHomePageFacade} from '../../store/home_page_facade_test_util';
-import {UserFacade} from '../../store/user_facade';
-import {mockUserFacade} from '../../store/user_facade_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {HomePageGlobalStore} from '../../store/home_page_global_store';
+import {mockHomePageGlobalStore} from '../../store/home_page_global_store_test_util';
+import {UserGlobalStore} from '../../store/user_global_store';
+import {mockUserGlobalStore} from '../../store/user_global_store_test_util';
 
 import {App} from './app';
 import {AppModule} from './app_module';
@@ -31,9 +31,9 @@ describe('App Component', () => {
           ],
 
           providers: [
-            {provide: ConfigFacade, useFactory: mockConfigFacade},
-            {provide: HomePageFacade, useFactory: mockHomePageFacade},
-            {provide: UserFacade, useFactory: mockUserFacade},
+            {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore},
+            {provide: HomePageGlobalStore, useFactory: mockHomePageGlobalStore},
+            {provide: UserGlobalStore, useFactory: mockUserGlobalStore},
           ],
         })
         .compileComponents();

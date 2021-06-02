@@ -8,8 +8,9 @@ import {ApiModule} from '@app/lib/api/module';
 import {initTestEnvironment} from '@app/testing';
 import {of} from 'rxjs';
 
-import {ConfigFacade} from '../../store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+
 import {HomeModule} from './module';
 
 import {SearchBox} from './search_box';
@@ -54,11 +55,11 @@ describe('SearchBox Component', () => {
   let httpApiService: jasmine.SpyObj<HttpApiService>;
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
-  let configFacadeMock: ConfigFacadeMock;
+  let configGlobalStoreMock: ConfigGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
     httpApiService = jasmine.createSpyObj('HttpApiService', ['searchClients']);
-    configFacadeMock = mockConfigFacade();
+    configGlobalStoreMock = mockConfigGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -68,8 +69,10 @@ describe('SearchBox Component', () => {
             ApiModule,
           ],
           providers: [
-            {provide: HttpApiService, useValue: httpApiService},
-            {provide: ConfigFacade, useFactory: () => configFacadeMock}
+            {provide: HttpApiService, useValue: httpApiService}, {
+              provide: ConfigGlobalStore,
+              useFactory: () => configGlobalStoreMock
+            }
           ],
 
         })
@@ -153,7 +156,7 @@ describe('SearchBox Component', () => {
      fakeAsync(() => {
        const fixture = TestBed.createComponent(SearchBox);
        // All client labels fetched from server.
-       configFacadeMock.clientsLabelsSubject.next([
+       configGlobalStoreMock.clientsLabelsSubject.next([
          'test1',
          'test2',
          'other',

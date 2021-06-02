@@ -32,7 +32,6 @@
     }
   },
   "angularCompilerOptions": {
-    "fullTemplateTypeCheck": true,
     "strictInjectionParameters": true
   }
 }

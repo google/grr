@@ -4,7 +4,7 @@ import {ConfigService} from '@app/components/config/config';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateScheduledFlow} from '@app/lib/api_translation/flow';
 import {ScheduledFlow} from '@app/lib/models/flow';
-import {Observable} from 'rxjs';
+import {Observable, timer} from 'rxjs';
 import {concatMap, exhaustMap, filter, map, mapTo, shareReplay, tap, withLatestFrom} from 'rxjs/operators';
 
 import {poll} from '../lib/polling';
@@ -16,12 +16,17 @@ interface State {
   readonly scheduledFlows?: ScheduledFlow[];
 }
 
-/** Interface for ScheduledFlowStore. */
+/** Global store for showing scheduled flows. */
 @Injectable({
   providedIn: 'root',
 })
-export class ScheduledFlowFacade {
-  constructor(private readonly store: ScheduledFlowStore) {}
+export class ScheduledFlowGlobalStore {
+  constructor(
+      private readonly httpApiService: HttpApiService,
+      private readonly configService: ConfigService) {}
+
+  private readonly store =
+      new ScheduledFlowComponentStore(this.httpApiService, this.configService);
 
   selectSource(source: {creator?: string, clientId?: string}) {
     this.store.selectSource(source);
@@ -35,11 +40,7 @@ export class ScheduledFlowFacade {
       this.store.scheduledFlows$;
 }
 
-/** Do not use. Use ScheduledFlowFacade instead. */
-@Injectable({
-  providedIn: 'root',
-})
-export class ScheduledFlowStore extends ComponentStore<State> {
+class ScheduledFlowComponentStore extends ComponentStore<State> {
   constructor(
       private readonly httpApiService: HttpApiService,
       private readonly configService: ConfigService,
@@ -75,7 +76,7 @@ export class ScheduledFlowStore extends ComponentStore<State> {
   /** An observable emitting all ScheduledFlows for the client. */
   readonly scheduledFlows$: Observable<ReadonlyArray<ScheduledFlow>> =
       poll({
-        pollIntervalMs: this.configService.config.flowListPollingIntervalMs,
+        pollOn: timer(0, this.configService.config.flowListPollingIntervalMs),
         pollEffect: this.listScheduledFlows,
         selector: this.select(state => state.scheduledFlows),
       })

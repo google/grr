@@ -2,8 +2,8 @@ import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} fro
 import {map} from 'rxjs/operators';
 
 import {ScheduledFlow} from '../../lib/models/flow';
-import {ScheduledFlowFacade} from '../../store/scheduled_flow_facade';
-import {UserFacade} from '../../store/user_facade';
+import {ScheduledFlowGlobalStore} from '../../store/scheduled_flow_global_store';
+import {UserGlobalStore} from '../../store/user_global_store';
 
 /** Component that displays flows scheduled to run on a client. */
 @Component({
@@ -16,23 +16,23 @@ export class ScheduledFlowList implements OnChanges {
   @Input() creator?: string;
   @Input() clientId?: string;
 
-  readonly scheduledFlows$ = this.facade.scheduledFlows$;
+  readonly scheduledFlows$ = this.store.scheduledFlows$;
 
-  readonly currentUsername$ = this.userFacade.currentUser$.pipe(
+  readonly currentUsername$ = this.userGlobalStore.currentUser$.pipe(
       map(user => user.name),
   );
 
   constructor(
-      private readonly facade: ScheduledFlowFacade,
-      private readonly userFacade: UserFacade,
+      private readonly store: ScheduledFlowGlobalStore,
+      private readonly userGlobalStore: UserGlobalStore,
   ) {}
 
   ngOnChanges(changes: SimpleChanges): void {
-    this.facade.selectSource({creator: this.creator, clientId: this.clientId});
+    this.store.selectSource({creator: this.creator, clientId: this.clientId});
   }
 
   unscheduleFlow(scheduledFlowId: string) {
-    this.facade.unscheduleFlow(scheduledFlowId);
+    this.store.unscheduleFlow(scheduledFlowId);
   }
 
   trackScheduledFlow(index: number, scheduledFlow: ScheduledFlow) {

@@ -1,15 +1,15 @@
 import {TestBed} from '@angular/core/testing';
 import {ApiClientApproval} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {HomePageFacade} from '@app/store/home_page_facade';
+import {HomePageGlobalStore} from '@app/store/home_page_global_store';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
 
 initTestEnvironment();
 
-describe('HomePageFacade', () => {
+describe('HomePageGlobalStore', () => {
   let httpApiService: Partial<HttpApiService>;
-  let facade: HomePageFacade;
+  let store: HomePageGlobalStore;
   let apiListRecentClientApprovals$: Subject<ReadonlyArray<ApiClientApproval>>;
 
   beforeEach(() => {
@@ -23,21 +23,21 @@ describe('HomePageFacade', () => {
     TestBed.configureTestingModule({
       imports: [],
       providers: [
-        HomePageFacade,
+        HomePageGlobalStore,
         {provide: HttpApiService, useFactory: () => httpApiService},
       ],
     });
 
-    facade = TestBed.inject(HomePageFacade);
+    store = TestBed.inject(HomePageGlobalStore);
   });
 
   it('calls the API on subscription to recentClientApprovals$', () => {
-    facade.recentClientApprovals$.subscribe();
+    store.recentClientApprovals$.subscribe();
     expect(httpApiService.listRecentClientApprovals).toHaveBeenCalled();
   });
 
   it('correctly emits the API results in recentClientApprovals$', (done) => {
-    facade.recentClientApprovals$.subscribe((results) => {
+    store.recentClientApprovals$.subscribe((results) => {
       expect(results.length).toBe(2);
       expect(results[0]).toEqual(jasmine.objectContaining({approvalId: '2'}));
       expect(results[1]).toEqual(jasmine.objectContaining({approvalId: '3'}));

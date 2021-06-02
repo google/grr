@@ -22,7 +22,7 @@
             "main": "./main.ts",
             "polyfills": "./polyfills.ts",
             "tsConfig": "tsconfig.app.json",
-            "aot": false,
+            "aot": true,
             "assets": [
               "./favicon.ico",
               "./assets"

@@ -1,12 +1,12 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ConfigFacade} from '@app/store/config_facade';
-import {UserFacade} from '@app/store/user_facade';
+import {ConfigGlobalStore} from '@app/store/config_global_store';
+import {UserGlobalStore} from '@app/store/user_global_store';
 import {initTestEnvironment} from '@app/testing';
 
-import {mockConfigFacade} from '../../store/config_facade_test_util';
-import {mockUserFacade, UserFacadeMock} from '../../store/user_facade_test_util';
+import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {mockUserGlobalStore, UserGlobalStoreMock} from '../../store/user_global_store_test_util';
 
 import {UserMenuModule} from './module';
 
@@ -17,10 +17,10 @@ initTestEnvironment();
 
 
 describe('UserMenu Component', () => {
-  let userFacade: UserFacadeMock;
+  let userGlobalStore: UserGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
-    userFacade = mockUserFacade();
+    userGlobalStore = mockUserGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -30,8 +30,8 @@ describe('UserMenu Component', () => {
           ],
 
           providers: [
-            {provide: UserFacade, useFactory: () => userFacade},
-            {provide: ConfigFacade, useFactory: mockConfigFacade}
+            {provide: UserGlobalStore, useFactory: () => userGlobalStore},
+            {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore}
           ],
         })
         .compileComponents();
@@ -39,7 +39,7 @@ describe('UserMenu Component', () => {
 
   it('displays the current user image', () => {
     const fixture = TestBed.createComponent(UserMenu);
-    userFacade.currentUserSubject.next({name: 'test'});
+    userGlobalStore.currentUserSubject.next({name: 'test'});
     fixture.detectChanges();
 
     const el = fixture.debugElement.query(By.css('user-image'));

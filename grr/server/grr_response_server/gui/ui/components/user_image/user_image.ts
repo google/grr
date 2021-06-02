@@ -1,7 +1,8 @@
 import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} from '@angular/core';
 import {combineLatest, ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
-import {ConfigFacade} from '../../store/config_facade';
+
+import {ConfigGlobalStore} from '../../store/config_global_store';
 
 /** Displays a user's profile image or fallback icon. */
 @Component({
@@ -17,7 +18,7 @@ export class UserImage implements OnChanges {
 
   readonly username$ = new ReplaySubject<string|undefined>(1);
 
-  private readonly userImageUrl$ = this.configFacade.uiConfig$.pipe(
+  private readonly userImageUrl$ = this.configGlobalStore.uiConfig$.pipe(
       map(uiConfig => uiConfig.profileImageUrl),
   );
 
@@ -31,7 +32,7 @@ export class UserImage implements OnChanges {
     }
   }));
 
-  constructor(private readonly configFacade: ConfigFacade) {}
+  constructor(private readonly configGlobalStore: ConfigGlobalStore) {}
 
   ngOnChanges(changes: SimpleChanges) {
     this.username$.next(this.username);

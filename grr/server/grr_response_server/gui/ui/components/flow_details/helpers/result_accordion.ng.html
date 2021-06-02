@@ -1,23 +1,25 @@
-<div class="row-list">
-  <div class="row">
-    <div class="header" (click)="toggle()">
-      <div class="title">
-        <span>{{ title }}</span>
-      </div>
-
-      <div class="expansion-indicator">
-        <span *ngIf="isOpen || hasMoreResults || hasResults" class="material-icons arrow-icon">
-          {{ isOpen ? 'keyboard_arrow_down' : 'keyboard_arrow_right' }}
-        </span>
-      </div>
+<div class="row">
+  <div class="header" (click)="toggle()">
+    <div class="title">
+      <span>{{ title }}</span>
     </div>
 
-    <div class="results" *ngIf="isOpen">
-      <ng-content></ng-content>
-
-      <button class="expand-results" mat-button aria-label="Load more results" (click)="loadMoreClicked()" *ngIf="hasMoreResults">
-        <mat-icon>expand_more</mat-icon>
-      </button>
+    <div *ngIf="status || description" [class]="rowClass">
+      <mat-progress-spinner *ngIf="status === IN_PROGRESS" mode="indeterminate" diameter="20" strokeWidth="1"></mat-progress-spinner>
+      <div class="flow-details-summary-aligned" *ngIf="status !== IN_PROGRESS && description">
+        <span class="row-text">{{ description }}</span>
+      </div>
+      <span *ngIf="icon" class="material-icons">{{icon}}</span>
     </div>
+
+    <div class="expansion-indicator">
+      <span *ngIf="isOpen || expandable" class="material-icons arrow-icon">
+        {{ isOpen ? 'keyboard_arrow_down' : 'keyboard_arrow_right' }}
+      </span>
+    </div>
+  </div>
+
+  <div class="results" *ngIf="isOpen">
+    <ng-content></ng-content>
   </div>
 </div>

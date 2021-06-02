@@ -1,15 +1,15 @@
 import {TestBed} from '@angular/core/testing';
 import {ApiGrrUser} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {UserFacade} from '@app/store/user_facade';
+import {UserGlobalStore} from '@app/store/user_global_store';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
 
 initTestEnvironment();
 
-describe('UserFacade', () => {
+describe('UserGlobalStore', () => {
   let httpApiService: Partial<HttpApiService>;
-  let userFacade: UserFacade;
+  let userGlobalStore: UserGlobalStore;
   let apiFetchCurrentUser$: Subject<ApiGrrUser>;
 
   beforeEach(() => {
@@ -22,12 +22,12 @@ describe('UserFacade', () => {
     TestBed.configureTestingModule({
       imports: [],
       providers: [
-        UserFacade,
+        UserGlobalStore,
         {provide: HttpApiService, useFactory: () => httpApiService},
       ],
     });
 
-    userFacade = TestBed.inject(UserFacade);
+    userGlobalStore = TestBed.inject(UserGlobalStore);
   });
 
   it('does not call the API without subscription', () => {
@@ -35,18 +35,18 @@ describe('UserFacade', () => {
   });
 
   it('calls the API on first currentUser subscription', () => {
-    userFacade.currentUser$.subscribe();
+    userGlobalStore.currentUser$.subscribe();
     expect(httpApiService.fetchCurrentUser).toHaveBeenCalled();
   });
 
   it('does not call the API on second currentUser subscription', () => {
-    userFacade.currentUser$.subscribe();
-    userFacade.currentUser$.subscribe();
+    userGlobalStore.currentUser$.subscribe();
+    userGlobalStore.currentUser$.subscribe();
     expect(httpApiService.fetchCurrentUser).toHaveBeenCalledTimes(1);
   });
 
   it('correctly emits the API result in currentUser$', (done) => {
-    userFacade.currentUser$.subscribe((user) => {
+    userGlobalStore.currentUser$.subscribe((user) => {
       expect(user).toEqual({
         name: 'test',
       });

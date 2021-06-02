@@ -7,9 +7,9 @@ import {map, takeUntil, tap} from 'rxjs/operators';
 
 import {ClientApproval} from '../../lib/models/client';
 import {assertNonNull} from '../../lib/preconditions';
-import {ApprovalPageFacade} from '../../store/approval_page_facade';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {UserFacade} from '../../store/user_facade';
+import {ApprovalPageGlobalStore} from '../../store/approval_page_global_store';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {UserGlobalStore} from '../../store/user_global_store';
 
 
 /** Component that displays an approval request. */
@@ -21,14 +21,14 @@ import {UserFacade} from '../../store/user_facade';
 export class ApprovalPage implements OnDestroy {
   private readonly unsubscribe$ = new Subject<void>();
 
-  readonly approval$ = this.approvalPageFacade.approval$.pipe(
+  readonly approval$ = this.approvalPageGlobalStore.approval$.pipe(
       tap((approval) => {
         this.setTitle(approval);
       }),
   );
 
   readonly canGrant$ =
-      combineLatest([this.approval$, this.userFacade.currentUser$])
+      combineLatest([this.approval$, this.userGlobalStore.currentUser$])
           .pipe(
               map(([approval, user]) => user.name !== approval.requestor &&
                       !approval.approvers.includes(user.name)));
@@ -39,11 +39,11 @@ export class ApprovalPage implements OnDestroy {
   constructor(
       route: ActivatedRoute,
       private readonly title: Title,
-      private readonly approvalPageFacade: ApprovalPageFacade,
-      // TODO(user): Refactor ClientOverview to not require ClientPageFacade in
-      // ApprovalPage.
-      private readonly clientPageFacade: ClientPageFacade,
-      private readonly userFacade: UserFacade,
+      private readonly approvalPageGlobalStore: ApprovalPageGlobalStore,
+      // TODO(user): Refactor ClientOverview to not require
+      // ClientPageGlobalStore in ApprovalPage.
+      private readonly clientPageGlobalStore: ClientPageGlobalStore,
+      private readonly userGlobalStore: UserGlobalStore,
   ) {
     this.title.setTitle('GRR | Approval');
 
@@ -60,9 +60,9 @@ export class ApprovalPage implements OnDestroy {
           assertNonNull(requestor, 'requestor');
           assertNonNull(approvalId, 'approvalId');
 
-          this.approvalPageFacade.selectApproval(
+          this.approvalPageGlobalStore.selectApproval(
               {clientId, requestor, approvalId});
-          this.clientPageFacade.selectClient(clientId);
+          this.clientPageGlobalStore.selectClient(clientId);
         });
   }
 
@@ -80,7 +80,7 @@ export class ApprovalPage implements OnDestroy {
   }
 
   grantApproval() {
-    this.approvalPageFacade.grantApproval();
+    this.approvalPageGlobalStore.grantApproval();
   }
 
   onClientDetailsButtonClick() {

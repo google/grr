@@ -1,27 +1,27 @@
 /** Test helpers. */
 // tslint:disable:enforce-comments-on-exported-symbols
 
-import {FlowDescriptor, FlowListEntry} from '@app/lib/models/flow';
+import {Flow, FlowDescriptor} from '@app/lib/models/flow';
 import {ReplaySubject, Subject} from 'rxjs';
 
 import {Client, ClientApproval} from '../lib/models/client';
 
-import {ClientPageFacade, StartFlowState} from './client_page_facade';
+import {ClientPageGlobalStore, StartFlowState} from './client_page_global_store';
 
-export declare interface ClientPageFacadeMock extends
-    Partial<ClientPageFacade> {
+export declare interface ClientPageGlobalStoreMock extends
+    Partial<ClientPageGlobalStore> {
   readonly selectedFlowDescriptorSubject: Subject<FlowDescriptor|undefined>;
   readonly selectedClientSubject: Subject<Client>;
   readonly startFlowStateSubject: Subject<StartFlowState>;
   readonly latestApprovalSubject: Subject<ClientApproval|undefined>;
   readonly approverSuggestionsSubject: Subject<ReadonlyArray<string>>;
   readonly lastRemovedClientLabelSubject: Subject<string>;
-  readonly flowListEntriesSubject: Subject<ReadonlyArray<FlowListEntry>>;
+  readonly flowListEntriesSubject: Subject<ReadonlyArray<Flow>>;
   readonly hasAccessSubject: Subject<boolean>;
   readonly approvalsEnabledSubject: Subject<boolean>;
 }
 
-export function mockClientPageFacade(): ClientPageFacadeMock {
+export function mockClientPageGlobalStore(): ClientPageGlobalStoreMock {
   const selectedFlowDescriptorSubject =
       new ReplaySubject<FlowDescriptor|undefined>();
   const selectedClientSubject = new ReplaySubject<Client>(1);
@@ -30,7 +30,7 @@ export function mockClientPageFacade(): ClientPageFacadeMock {
   const approverSuggestionsSubject =
       new ReplaySubject<ReadonlyArray<string>>(1);
   const lastRemovedClientLabelSubject = new ReplaySubject<string>(1);
-  const flowListEntriesSubject = new Subject<ReadonlyArray<FlowListEntry>>();
+  const flowListEntriesSubject = new Subject<ReadonlyArray<Flow>>();
   const hasAccessSubject = new Subject<boolean>();
   const approvalsEnabledSubject = new Subject<boolean>();
 

@@ -3,7 +3,7 @@ import {ComponentStore} from '@ngrx/component-store';
 import {ConfigService} from '@app/components/config/config';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateApproval} from '@app/lib/api_translation/client';
-import {Observable} from 'rxjs';
+import {Observable, timer} from 'rxjs';
 import {filter, map, switchMap, switchMapTo, tap} from 'rxjs/operators';
 
 import {ClientApproval} from '../lib/models/client';
@@ -36,15 +36,8 @@ class BaseComponentStore<T extends {}> extends ComponentStore<T> {
   }
 }
 
-/**
- * ComponentStore implementation used by the ApprovalPageFacade. Shouldn't be
- * used directly. Declared as an exported global symbol to make dependency
- * injection possible.
- */
-@Injectable({
-  providedIn: 'root',
-})
-export class ApprovalPageStore extends BaseComponentStore<ApprovalPageState> {
+/** ComponentStore implementation used by the ApprovalPageGlobalStore. */
+class ApprovalPageComponentStore extends BaseComponentStore<ApprovalPageState> {
   constructor(
       private readonly httpApiService: HttpApiService,
       private readonly configService: ConfigService,
@@ -73,7 +66,7 @@ export class ApprovalPageStore extends BaseComponentStore<ApprovalPageState> {
   /** An observable emitting all ScheduledFlows for the client. */
   readonly approval$: Observable<ClientApproval> =
       poll({
-        pollIntervalMs: this.configService.config.approvalPollingIntervalMs,
+        pollOn: timer(0, this.configService.config.approvalPollingIntervalMs),
         pollEffect: this.fetchApproval,
         selector: this.selectKey('approval'),
       }).pipe(filter(isNonNull));
@@ -97,8 +90,13 @@ export class ApprovalPageStore extends BaseComponentStore<ApprovalPageState> {
 @Injectable({
   providedIn: 'root',
 })
-export class ApprovalPageFacade {
-  constructor(private readonly store: ApprovalPageStore) {}
+export class ApprovalPageGlobalStore {
+  constructor(
+      private readonly httpApiService: HttpApiService,
+      private readonly configService: ConfigService) {}
+
+  private readonly store =
+      new ApprovalPageComponentStore(this.httpApiService, this.configService);
 
   readonly approval$: Observable<ClientApproval> = this.store.approval$;
 

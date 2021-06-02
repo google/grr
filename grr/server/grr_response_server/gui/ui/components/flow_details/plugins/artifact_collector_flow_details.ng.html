@@ -3,13 +3,17 @@
   <span class="num-files" *ngIf="totalResultsRequested$ | async">
     {{ totalResults$ | async | i18nPlural: {'=1': '1 result', 'other': '# results'} }}
   </span>
-  <a mat-stroked-button color="primary" *ngIf="(totalResults$ | async) > 0" [download]="archiveFileName$ | async"
+  <a mat-stroked-button color="primary" *ngIf="((totalResults$ | async) ?? 0) > 0" [download]="archiveFileName$ | async"
     [href]="archiveUrl$ | async">
     Download all
   </a>
 </div>
 
-<result-accordion [title]="(flowArgs$ | async).artifactList[0]" [hasMoreResults]="hasMoreResults$ | async" (loadMore)="loadMoreResults()">
+<result-accordion [title]="(flowArgs$ | async)?.artifactList[0] ?? ''"
+  [description]="description$ | async"
+  [expandable]="expandable$ | async"
+  [status]="status$ | async"
+  (firstOpened)="loadMoreResults()">
   <file-results-table *ngIf="(totalFileResults$ | async) > 0" [results]="fileResults$ | async">
   </file-results-table>
 
@@ -28,5 +32,3 @@
     View {{ totalUnknownResults | i18nPlural: {'=1': '1 parsed result', 'other': '# parsed results'} }} in old UI
   </a>
 </result-accordion>
-
-

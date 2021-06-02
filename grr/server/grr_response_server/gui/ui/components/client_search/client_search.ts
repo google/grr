@@ -1,6 +1,6 @@
 import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
 import {ActivatedRoute, Params} from '@angular/router';
-import {ClientSearchFacade} from '@app/store/client_search_facade';
+import {ClientSearchGlobalStore} from '@app/store/client_search_global_store';
 import {Observable} from 'rxjs';
 import {filter, map, skip} from 'rxjs/operators';
 
@@ -28,7 +28,7 @@ export class ClientSearch implements OnInit {
   /**
    * Table rows for the MatTable component.
    */
-  readonly rows$ = this.clientSearchFacade.clients$.pipe(
+  readonly rows$ = this.clientSearchGlobalStore.clients$.pipe(
       skip(1),
       map(clients => clients.map((c) => ({
                                    clientId: c.clientId,
@@ -44,12 +44,12 @@ export class ClientSearch implements OnInit {
 
   constructor(
       private readonly route: ActivatedRoute,
-      private readonly clientSearchFacade: ClientSearchFacade,
+      private readonly clientSearchGlobalStore: ClientSearchGlobalStore,
   ) {}
 
   ngOnInit() {
     this.query$.subscribe(query => {
-      this.clientSearchFacade.searchClients(query);
+      this.clientSearchGlobalStore.searchClients(query);
     });
   }
 }

@@ -926,6 +926,7 @@ class ApiGetFleetspeakPendingMessageCountHandler(
 
 
 class ApiFleetspeakAddress(rdf_structs.RDFProtoStruct):
+  """Mirrors the fleetspeak proto `common_pb2.Address`."""
   protobuf = client_pb2.ApiFleetspeakAddress
   rdf_deps = [
       ApiClientId,
@@ -934,8 +935,12 @@ class ApiFleetspeakAddress(rdf_structs.RDFProtoStruct):
   @classmethod
   def FromFleetspeakProto(cls,
                           proto: common_pb2.Address) -> "ApiFleetspeakAddress":
+    if proto.client_id:
+      client_id = fleetspeak_utils.FleetspeakIDToGRRID(proto.client_id)
+    else:
+      client_id = None
     return ApiFleetspeakAddress(
-        client_id=fleetspeak_utils.FleetspeakIDToGRRID(proto.client_id),
+        client_id=client_id,
         service_name=proto.service_name,
     )
 

@@ -4,7 +4,7 @@ import {Router} from '@angular/router';
 import {map} from 'rxjs/operators';
 
 import {Client} from '../../lib/models/client';
-import {HomePageFacade} from '../../store/home_page_facade';
+import {HomePageGlobalStore} from '../../store/home_page_global_store';
 
 function uniqueClients(clients: ReadonlyArray<Client>): ReadonlyArray<Client> {
   const unique: Client[] = [];
@@ -33,15 +33,16 @@ export class Home {
   constructor(
       private readonly router: Router,
       title: Title,
-      private readonly homePageFacade: HomePageFacade,
+      private readonly homePageGlobalStore: HomePageGlobalStore,
   ) {
     title.setTitle('GRR');
   }
 
-  readonly recentClients$ = this.homePageFacade.recentClientApprovals$.pipe(
-      map(approvals => approvals.map(approval => approval.subject)),
-      map(uniqueClients),
-  );
+  readonly recentClients$ =
+      this.homePageGlobalStore.recentClientApprovals$.pipe(
+          map(approvals => approvals.map(approval => approval.subject)),
+          map(uniqueClients),
+      );
 
   /**
    * Event handler for the search box. Gets triggered when a user initiates

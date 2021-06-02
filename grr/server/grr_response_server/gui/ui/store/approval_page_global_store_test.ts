@@ -2,7 +2,7 @@ import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/test
 import {ConfigService} from '@app/components/config/config';
 import {ApiClientApproval} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ApprovalPageFacade} from '@app/store/approval_page_facade';
+import {ApprovalPageGlobalStore} from '@app/store/approval_page_global_store';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
 
@@ -13,9 +13,9 @@ import {removeUndefinedKeys} from '../testing';
 
 initTestEnvironment();
 
-describe('ApprovalPageFacade', () => {
+describe('ApprovalPageGlobalStore', () => {
   let httpApiService: Partial<HttpApiService>;
-  let approvalPageFacade: ApprovalPageFacade;
+  let approvalPageGlobalStore: ApprovalPageGlobalStore;
   let configService: ConfigService;
   let apiFetchClientApproval$: Subject<ApiClientApproval>;
   let apiGrantClientApproval$: Subject<ApiClientApproval>;
@@ -34,7 +34,7 @@ describe('ApprovalPageFacade', () => {
         .configureTestingModule({
           imports: [],
           providers: [
-            ApprovalPageFacade,
+            ApprovalPageGlobalStore,
             // Apparently, useValue creates a copy of the object. Using
             // useFactory, to make sure the instance is shared.
             {provide: HttpApiService, useFactory: () => httpApiService},
@@ -42,13 +42,13 @@ describe('ApprovalPageFacade', () => {
         })
         .compileComponents();
 
-    approvalPageFacade = TestBed.inject(ApprovalPageFacade);
+    approvalPageGlobalStore = TestBed.inject(ApprovalPageGlobalStore);
     configService = TestBed.inject(ConfigService);
   });
 
 
   it('emits the approval in approval$', fakeAsync(() => {
-       approvalPageFacade.selectApproval(
+       approvalPageGlobalStore.selectApproval(
            {clientId: 'C.1234', requestor: 'testuser', approvalId: '123'});
 
        const expected: ClientApproval = {
@@ -69,7 +69,7 @@ describe('ApprovalPageFacade', () => {
        };
 
        let numCalls = 0;
-       approvalPageFacade.approval$.subscribe(approval => {
+       approvalPageGlobalStore.approval$.subscribe(approval => {
          numCalls++;
          expect(removeUndefinedKeys(approval)).toEqual(expected);
        });
@@ -99,9 +99,9 @@ describe('ApprovalPageFacade', () => {
 
   it('calls the fetchClientApproval API on approval$ subscription',
      fakeAsync(() => {
-       approvalPageFacade.selectApproval(
+       approvalPageGlobalStore.selectApproval(
            {clientId: 'C.1234', requestor: 'testuser', approvalId: '123'});
-       approvalPageFacade.approval$.subscribe();
+       approvalPageGlobalStore.approval$.subscribe();
 
        // This is needed since flow list entries are updated in a timer loop
        // and the first call is scheduled after 0 milliseconds (meaning it
@@ -115,9 +115,9 @@ describe('ApprovalPageFacade', () => {
      }));
 
   it('calls the API on grantApproval()', () => {
-    approvalPageFacade.selectApproval(
+    approvalPageGlobalStore.selectApproval(
         {clientId: 'C.1234', requestor: 'testuser', approvalId: '123'});
-    approvalPageFacade.grantApproval();
+    approvalPageGlobalStore.grantApproval();
 
     expect(httpApiService.grantClientApproval)
         .toHaveBeenCalledWith(
@@ -125,9 +125,9 @@ describe('ApprovalPageFacade', () => {
   });
 
   it('updates approval$ after grantApproval()', fakeAsync(() => {
-       approvalPageFacade.selectApproval(
+       approvalPageGlobalStore.selectApproval(
            {clientId: 'C.1234', requestor: 'testuser', approvalId: '123'});
-       approvalPageFacade.grantApproval();
+       approvalPageGlobalStore.grantApproval();
 
        const expected: ClientApproval = {
          status: {type: 'pending', reason: 'Need at least 1 more approvers.'},
@@ -147,7 +147,7 @@ describe('ApprovalPageFacade', () => {
        };
 
        let numCalls = 0;
-       approvalPageFacade.approval$.subscribe(approval => {
+       approvalPageGlobalStore.approval$.subscribe(approval => {
          numCalls++;
          expect(removeUndefinedKeys(approval)).toEqual(expected);
        });

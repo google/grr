@@ -13,8 +13,9 @@ import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, 
  * Parameters of the listResultsForFlow call.
  */
 export interface FlowResultsParams {
+  readonly clientId: string;
   readonly flowId: string;
-  readonly offset: number;
+  readonly offset?: number;
   readonly count: number;
   readonly withType?: string;
   readonly withTag?: string;
@@ -213,7 +214,7 @@ export class HttpApiService {
 
 
   /** Lists results of the given flow. */
-  listResultsForFlow(clientId: string, params: FlowResultsParams):
+  listResultsForFlow(params: FlowResultsParams):
       Observable<ReadonlyArray<ApiFlowResult>> {
     const options: {[key: string]: string} = {};
     if (params.withTag) {
@@ -225,7 +226,7 @@ export class HttpApiService {
 
     const httpParams = new HttpParams({
       fromObject: {
-        'offset': params.offset.toString(),
+        'offset': (params.offset ?? 0).toString(),
         'count': params.count.toString(),
         ...options,
       }
@@ -233,7 +234,8 @@ export class HttpApiService {
 
     return this.http
         .get<ApiListFlowResultsResult>(
-            `${URL_PREFIX}/clients/${clientId}/flows/${params.flowId}/results`,
+            `${URL_PREFIX}/clients/${params.clientId}/flows/${
+                params.flowId}/results`,
             {params: httpParams})
         .pipe(map(res => res.items ?? []));
   }
@@ -339,6 +341,8 @@ export class HttpApiService {
     timestampSubsecondPrecision: boolean,
     inodeNtfsFileReferenceFormat: boolean,
     backslashEscape: boolean,
+    carriageReturnEscape: boolean,
+    nonPrintableEscape: boolean,
   }): URL {
     const BODY = 1;
 
@@ -357,6 +361,14 @@ export class HttpApiService {
     url.searchParams.set(
         'body_opts.backslash_escape',
         Number(opts.backslashEscape).toString(),
+    );
+    url.searchParams.set(
+        'body_opts.carriage_return_escape',
+        Number(opts.carriageReturnEscape).toString(),
+    );
+    url.searchParams.set(
+        'body_opts.non_printable_escape',
+        Number(opts.nonPrintableEscape).toString(),
     );
 
     return url;

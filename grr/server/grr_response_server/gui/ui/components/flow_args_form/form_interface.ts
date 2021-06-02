@@ -1,7 +1,8 @@
-import {Input, Output} from '@angular/core';
+import {Component, Input, Output} from '@angular/core';
 import {Observable} from 'rxjs';
 
 /** Form component to configure arguments for a Flow. */
+@Component({template: ''})
 export abstract class FlowArgumentForm<T extends unknown> {
   @Input() defaultFlowArgs!: T;
   @Output() abstract formValues$: Observable<T>;

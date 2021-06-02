@@ -2,7 +2,7 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {CollectSingleFileDetails} from '@app/components/flow_details/plugins/collect_single_file_details';
 import {CollectSingleFileArgs, CollectSingleFileProgress, CollectSingleFileProgressStatus, PathSpecPathType} from '@app/lib/api/api_interfaces';
-import {newFlowListEntry} from '@app/lib/models/model_test_util';
+import {newFlow} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
 
 import {PluginsModule} from './module';
@@ -29,8 +29,7 @@ describe('collect-single-file-details component', () => {
   it('shows message if progress is not reported', () => {
     const fixture = TestBed.createComponent(CollectSingleFileDetails);
 
-    fixture.componentInstance.flowListEntry =
-        newFlowListEntry({name: 'CollectSingleFile'});
+    fixture.componentInstance.flow = newFlow({name: 'CollectSingleFile'});
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('legacy UI');
@@ -43,7 +42,7 @@ describe('collect-single-file-details component', () => {
     };
 
     const fixture = TestBed.createComponent(CollectSingleFileDetails);
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectSingleFile',
       args,
       progress,
@@ -68,7 +67,7 @@ describe('collect-single-file-details component', () => {
     };
 
     const fixture = TestBed.createComponent(CollectSingleFileDetails);
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectSingleFile',
       args,
       progress,
@@ -94,7 +93,7 @@ describe('collect-single-file-details component', () => {
     };
 
     const fixture = TestBed.createComponent(CollectSingleFileDetails);
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectSingleFile',
       args,
       progress,
@@ -121,7 +120,7 @@ describe('collect-single-file-details component', () => {
     };
 
     const fixture = TestBed.createComponent(CollectSingleFileDetails);
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectSingleFile',
       args,
       progress,
@@ -148,7 +147,7 @@ describe('collect-single-file-details component', () => {
     };
 
     const fixture = TestBed.createComponent(CollectSingleFileDetails);
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectSingleFile',
       args,
       progress,
@@ -165,7 +164,7 @@ describe('collect-single-file-details component', () => {
     };
 
     const fixture = TestBed.createComponent(CollectSingleFileDetails);
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectSingleFile',
       args,
       progress,
@@ -183,7 +182,7 @@ describe('collect-single-file-details component', () => {
     };
 
     const fixture = TestBed.createComponent(CollectSingleFileDetails);
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectSingleFile',
       args,
       progress,

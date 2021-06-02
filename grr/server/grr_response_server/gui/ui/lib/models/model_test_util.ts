@@ -2,7 +2,8 @@
 // tslint:disable:enforce-comments-on-exported-symbols
 
 import {Client, ClientApproval} from '@app/lib/models/client';
-import {ArtifactDescriptor, ArtifactDescriptorMap, Flow, FlowDescriptor, FlowListEntry, flowListEntryFromFlow, FlowResultSet, FlowResultSetState, FlowState, OperatingSystem, ScheduledFlow} from './flow';
+
+import {ArtifactDescriptor, ArtifactDescriptorMap, Flow, FlowDescriptor, FlowResult, FlowState, OperatingSystem, ScheduledFlow} from './flow';
 
 
 
@@ -43,11 +44,6 @@ export function newFlow(args: Partial<Flow> = {}): Flow {
     state: args.state || FlowState.UNSET,
     ...args,
   };
-}
-
-export function newFlowListEntry(partialFlow: Partial<Flow> = {}):
-    FlowListEntry {
-  return flowListEntryFromFlow(newFlow(partialFlow));
 }
 
 export function newFlowDescriptor(args: Partial<FlowDescriptor> = {}):
@@ -97,21 +93,13 @@ export function newClientApproval(args: Partial<ClientApproval> = {}):
   };
 }
 
-export function newFlowResultSet(
-    payload = {}, payloadType: string = 'Unknown'): FlowResultSet {
+export function newFlowResult(result: Partial<FlowResult>): FlowResult {
   return {
-    items: [{
-      payloadType,
-      payload,
-      tag: '',
-      timestamp: new Date(),
-    }],
-    sourceQuery: {
-      flowId: '',
-      offset: 0,
-      count: 0,
-    },
-    state: FlowResultSetState.FETCHED,
+    payloadType: 'Foobar',
+    payload: {foobar: 42},
+    tag: '',
+    timestamp: new Date(),
+    ...result,
   };
 }
 

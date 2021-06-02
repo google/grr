@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 import collections
+import io
 import os
 import platform
 from typing import List
@@ -148,6 +149,49 @@ class CommunicationTest(absltest.TestCase):
       communication.Main(channel, lambda connection: None, "fooUser",
                          "barGroup")
       mock_enter_sandbox.assert_called_with("fooUser", "barGroup")
+
+
+class PipeTransportTest(absltest.TestCase):
+
+  def testRead_AllReadsAreShort(self):
+
+    class ShortReadIO(io.BytesIO):
+
+      def read(self, size: int) -> bytes:
+        del size  # unused
+        return super().read(2)
+
+    short_read_io = ShortReadIO(b"foo bar baz")
+    transport = communication.PipeTransport(short_read_io, short_read_io)
+    self.assertEqual(transport.RecvBytes(len(b"foo bar baz")), b"foo bar baz")
+
+  def testRead_FirstReadIsShort(self):
+
+    class ShortReadIO(io.BytesIO):
+      _first_read = True
+
+      def read(self, size: int) -> bytes:
+        if self._first_read:
+          self._first_read = False
+          return super().read(2)
+        else:
+          return super().read(size)
+
+    short_read_io = ShortReadIO(b"foo bar baz EXTRA TRAILING DATA")
+    transport = communication.PipeTransport(short_read_io, short_read_io)
+    self.assertEqual(transport.RecvBytes(len(b"foo bar baz")), b"foo bar baz")
+
+  def testWrite(self):
+
+    class ShortWriteIO(io.BytesIO):
+
+      def write(self, data: bytes) -> int:
+        return super().write(data[:2])
+
+    short_write_io = ShortWriteIO()
+    transport = communication.PipeTransport(short_write_io, short_write_io)
+    transport.SendBytes(b"foo bar baz")
+    self.assertEqual(short_write_io.getvalue(), b"foo bar baz")
 
 
 if __name__ == "__main__":

@@ -4,8 +4,10 @@ import {CollectSingleFileArgs, CollectSingleFileProgress, CollectSingleFileProgr
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {EMPTY, Observable, of} from 'rxjs';
 import {filter, map, mergeMap} from 'rxjs/operators';
+
 import {translateHashToHex} from '../../../lib/api_translation/flow';
 import {isNonNull} from '../../../lib/preconditions';
+
 import {Plugin} from './plugin';
 
 
@@ -26,12 +28,9 @@ export class CollectSingleFileDetails extends Plugin {
 
   pathSpecPathType = PathSpecPathType;
 
-  progress$: Observable<CollectSingleFileProgress|undefined> =
-      this.flowListEntry$.pipe(
-          map((flowListEntry) =>
-                  flowListEntry.flow.progress as CollectSingleFileProgress |
-                  undefined),
-      );
+  progress$: Observable<CollectSingleFileProgress|undefined> = this.flow$.pipe(
+      map((flow) => flow.progress as CollectSingleFileProgress | undefined),
+  );
 
   errorDescription$: Observable<string> =
       this.progress$.pipe(mergeMap((progress) => {
@@ -60,19 +59,16 @@ export class CollectSingleFileDetails extends Plugin {
       filter(isNonNull),
   );
 
-  args$: Observable<CollectSingleFileArgs> = this.flowListEntry$.pipe(
-      map((flowListEntry) => flowListEntry.flow.args as CollectSingleFileArgs),
+  args$: Observable<CollectSingleFileArgs> = this.flow$.pipe(
+      map((flow) => flow.args as CollectSingleFileArgs),
   );
 
-  archiveUrl$: Observable<string> =
-      this.flowListEntry$.pipe(map((flowListEntry) => {
-        return this.httpApiService.getFlowFilesArchiveUrl(
-            flowListEntry.flow.clientId, flowListEntry.flow.flowId);
-      }));
+  archiveUrl$: Observable<string> = this.flow$.pipe(map((flow) => {
+    return this.httpApiService.getFlowFilesArchiveUrl(
+        flow.clientId, flow.flowId);
+  }));
 
-  archiveFileName$: Observable<string> =
-      this.flowListEntry$.pipe(map((flowListEntry) => {
-        return flowListEntry.flow.clientId.replace('.', '_') + '_' +
-            flowListEntry.flow.flowId + '.zip';
-      }));
+  archiveFileName$: Observable<string> = this.flow$.pipe(map((flow) => {
+    return flow.clientId.replace('.', '_') + '_' + flow.flowId + '.zip';
+  }));
 }

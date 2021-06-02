@@ -89,6 +89,18 @@ class FlowBase(object):
     items = self._context.SendIteratorRequest("ListParsedFlowResults", args)
     return utils.MapItemsIterator(lambda data: FlowResult(data=data), items)
 
+  def ListApplicableParsers(
+      self) -> flow_pb2.ApiListFlowApplicableParsersResult:
+    """Lists parsers that are applicable to results of the flow."""
+    args = flow_pb2.ApiListFlowApplicableParsersArgs(
+        client_id=self.client_id, flow_id=self.flow_id)
+
+    result = self._context.SendRequest("ListFlowApplicableParsers", args)
+    if not isinstance(result, flow_pb2.ApiListFlowApplicableParsersResult):
+      raise TypeError(f"Unexpected type: '{type(result)}'")
+
+    return result
+
   def GetExportedResultsArchive(self, plugin_name) -> utils.BinaryChunkIterator:
     args = flow_pb2.ApiGetExportedFlowResultsArgs(
         client_id=self.client_id, flow_id=self.flow_id, plugin_name=plugin_name)
@@ -118,6 +130,8 @@ class FlowBase(object):
       timestamp_subsecond_precision: bool = True,
       inode_ntfs_file_reference_format: bool = False,
       backslash_escape: bool = True,
+      carriage_return_escape: bool = False,
+      non_printable_escape: bool = False,
   ) -> utils.BinaryChunkIterator:
     """Fetches timeline content in the body format."""
     args = timeline_pb2.ApiGetCollectedTimelineArgs()
@@ -129,6 +143,8 @@ class FlowBase(object):
     opts.timestamp_subsecond_precision = timestamp_subsecond_precision
     opts.inode_ntfs_file_reference_format = inode_ntfs_file_reference_format
     opts.backslash_escape = backslash_escape
+    opts.carriage_return_escape = carriage_return_escape
+    opts.non_printable_escape = non_printable_escape
 
     return self._context.SendStreamingRequest("GetCollectedTimeline", args)
 

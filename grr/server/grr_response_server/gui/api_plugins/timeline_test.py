@@ -197,6 +197,42 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.assertIn("|C:\\\\Windows\\\\system32\\\\notepad.exe|", content)
 
+  def testCarriageReturnEscape(self):
+    entry = rdf_timeline.TimelineEntry()
+    entry.path = "/foo/bar\r\rbaz/quux\rnorf".encode("utf-8")
+
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = timeline_test_lib.WriteTimeline(client_id, [entry])
+
+    args = api_timeline.ApiGetCollectedTimelineArgs()
+    args.client_id = client_id
+    args.flow_id = flow_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.BODY
+    args.body_opts.carriage_return_escape = True
+
+    result = self.handler.Handle(args)
+    content = b"".join(result.GenerateContent()).decode("utf-8")
+
+    self.assertIn("|/foo/bar\\r\\rbaz/quux\\rnorf|", content)
+
+  def testNonPrintableEscape(self):
+    entry = rdf_timeline.TimelineEntry()
+    entry.path = b"/f\x00b\x0ar\x1baz"
+
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = timeline_test_lib.WriteTimeline(client_id, [entry])
+
+    args = api_timeline.ApiGetCollectedTimelineArgs()
+    args.client_id = client_id
+    args.flow_id = flow_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.BODY
+    args.body_opts.non_printable_escape = True
+
+    result = self.handler.Handle(args)
+    content = b"".join(result.GenerateContent()).decode("utf-8")
+
+    self.assertIn(r"|/f\x00b\x0ar\x1baz|", content)
+
   def testBodyMultipleResults(self):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
     flow_id = "ABCDEF42"

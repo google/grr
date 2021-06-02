@@ -5,6 +5,7 @@ import {translateGrrUser} from '@app/lib/api_translation/user';
 import {GrrUser} from '@app/lib/models/user';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, tap} from 'rxjs/operators';
+
 import {isNonNull} from '../lib/preconditions';
 
 
@@ -13,11 +14,8 @@ interface UserState {
   readonly users: {readonly [key: string]: GrrUser};
 }
 
-/** ComponentStore implementation for the user facade. */
-@Injectable({
-  providedIn: 'root',
-})
-export class UserStore extends ComponentStore<UserState> {
+/** ComponentStore implementation for the user store. */
+class UserCompoenntStore extends ComponentStore<UserState> {
   constructor(private readonly httpApiService: HttpApiService) {
     super({
       currentUserName: undefined,
@@ -61,12 +59,14 @@ export class UserStore extends ComponentStore<UserState> {
   );
 }
 
-/** Facade for user-related logic. */
+/** GlobalStore for user-related logic. */
 @Injectable({
   providedIn: 'root',
 })
-export class UserFacade {
-  constructor(private readonly userStore: UserStore) {}
+export class UserGlobalStore {
+  constructor(private readonly httpApiService: HttpApiService) {}
 
-  readonly currentUser$ = this.userStore.currentUser$;
+  private readonly store = new UserCompoenntStore(this.httpApiService);
+
+  readonly currentUser$ = this.store.currentUser$;
 }

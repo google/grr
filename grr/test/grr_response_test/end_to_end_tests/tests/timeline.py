@@ -35,12 +35,13 @@ class TestTimelineLinux(test_base.EndToEndTest):
         entries = list(csv.reader(temp_filedesc, delimiter="|"))
 
     paths = [entry[1] for entry in entries]
-    self.assertIn("/bin/bash", paths)
-    self.assertIn("/bin/cat", paths)
-    self.assertIn("/bin/chmod", paths)
-    self.assertIn("/bin/cp", paths)
-    self.assertIn("/bin/rm", paths)
-    self.assertIn("/bin/sleep", paths)
+    # `/bin` might be symlink to `/usr/bin`.
+    self.assertTrue("/bin/bash" in paths or "/usr/bin/bash" in paths)
+    self.assertTrue("/bin/cat" in paths or "/usr/bin/cat" in paths)
+    self.assertTrue("/bin/chmod" in paths or "/usr/bin/chmod" in paths)
+    self.assertTrue("/bin/cp" in paths or "/usr/bin/cp" in paths)
+    self.assertTrue("/bin/rm" in paths or "/usr/bin/rm" in paths)
+    self.assertTrue("/bin/sleep" in paths or "/usr/bin/sleep" in paths)
 
     for entry in entries:
       assertBodyEntrySanity(self, entry)

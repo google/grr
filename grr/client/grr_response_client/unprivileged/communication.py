@@ -12,6 +12,10 @@ from typing import NamedTuple, Callable, Optional, List, BinaryIO, Set
 import psutil
 
 
+class Error(Exception):
+  """Base class for exceptions in this module."""
+
+
 class Transport(abc.ABC):
   """Low-level transport protocol."""
 
@@ -113,10 +117,27 @@ class PipeTransport(Transport):
     self._write_pipe = write_pipe
 
   def SendBytes(self, data: bytes) -> None:
-    self._write_pipe.write(data)
+    # A write to a pipe could write less data than requested.
+    # It might be necessary to write multiple times to write all the data.
+    while data:
+      written = self._write_pipe.write(data)
+      if written == 0:
+        raise Error("Write to pipe returned 0 bytes.")
+      data = data[written:]
 
   def RecvBytes(self, size: int) -> bytes:
-    return self._read_pipe.read(size)
+    # A read from a pipe can return less data than requested.
+    # It might be necessary to read multiple times to read the exact amount
+    # of data requested.
+    parts = []
+    remaining = size
+    while remaining > 0:
+      part = self._read_pipe.read(remaining)
+      if not part:
+        raise Error("Read from pipe returned 0 bytes.")
+      remaining -= len(part)
+      parts.append(part)
+    return b"".join(parts)
 
 
 class Mode(enum.Enum):

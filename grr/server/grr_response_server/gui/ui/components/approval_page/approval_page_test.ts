@@ -7,18 +7,18 @@ import {ApiModule} from '@app/lib/api/module';
 import {Subject} from 'rxjs';
 
 import {newClientApproval} from '../../lib/models/model_test_util';
-import {ApprovalPageFacade} from '../../store/approval_page_facade';
-import {ApprovalPageFacadeMock, mockApprovalPageFacade} from '../../store/approval_page_facade_test_util';
-import {ClientDetailsFacade} from '../../store/client_details_facade';
-import {mockClientDetailsFacade} from '../../store/client_details_facade_test_util';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {mockClientPageFacade} from '../../store/client_page_facade_test_util';
-import {ConfigFacade} from '../../store/config_facade';
-import {mockConfigFacade} from '../../store/config_facade_test_util';
-import {ScheduledFlowFacade} from '../../store/scheduled_flow_facade';
-import {mockScheduledFlowFacade} from '../../store/scheduled_flow_facade_test_util';
-import {UserFacade} from '../../store/user_facade';
-import {mockUserFacade} from '../../store/user_facade_test_util';
+import {ApprovalPageGlobalStore} from '../../store/approval_page_global_store';
+import {ApprovalPageGlobalStoreMock, mockApprovalPageGlobalStore} from '../../store/approval_page_global_store_test_util';
+import {ClientDetailsGlobalStore} from '../../store/client_details_global_store';
+import {mockClientDetailsGlobalStore} from '../../store/client_details_global_store_test_util';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {ScheduledFlowGlobalStore} from '../../store/scheduled_flow_global_store';
+import {mockScheduledFlowGlobalStore} from '../../store/scheduled_flow_global_store_test_util';
+import {UserGlobalStore} from '../../store/user_global_store';
+import {mockUserGlobalStore} from '../../store/user_global_store_test_util';
 import {initTestEnvironment} from '../../testing';
 
 import {ApprovalPage} from './approval_page';
@@ -31,11 +31,11 @@ initTestEnvironment();
 
 describe('ApprovalPage Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
-  let approvalPageFacade: ApprovalPageFacadeMock;
+  let approvalPageGlobalStore: ApprovalPageGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
     paramsSubject = new Subject();
-    approvalPageFacade = mockApprovalPageFacade();
+    approvalPageGlobalStore = mockApprovalPageGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -53,28 +53,28 @@ describe('ApprovalPage Component', () => {
               },
             },
             {
-              provide: ApprovalPageFacade,
-              useFactory: () => approvalPageFacade,
+              provide: ApprovalPageGlobalStore,
+              useFactory: () => approvalPageGlobalStore,
             },
             {
-              provide: UserFacade,
-              useFactory: mockUserFacade,
+              provide: UserGlobalStore,
+              useFactory: mockUserGlobalStore,
             },
             {
-              provide: ConfigFacade,
-              useFactory: mockConfigFacade,
+              provide: ConfigGlobalStore,
+              useFactory: mockConfigGlobalStore,
             },
             {
-              provide: ClientDetailsFacade,
-              useFactory: mockClientDetailsFacade,
+              provide: ClientDetailsGlobalStore,
+              useFactory: mockClientDetailsGlobalStore,
             },
             {
-              provide: ClientPageFacade,
-              useFactory: mockClientPageFacade,
+              provide: ClientPageGlobalStore,
+              useFactory: mockClientPageGlobalStore,
             },
             {
-              provide: ScheduledFlowFacade,
-              useFactory: mockScheduledFlowFacade,
+              provide: ScheduledFlowGlobalStore,
+              useFactory: mockScheduledFlowGlobalStore,
             },
           ],
 
@@ -95,7 +95,7 @@ describe('ApprovalPage Component', () => {
         {clientId: 'cid', requestor: 'req', approvalId: 'aid'})));
     fixture.detectChanges();
 
-    expect(approvalPageFacade.selectApproval)
+    expect(approvalPageGlobalStore.selectApproval)
         .toHaveBeenCalledWith(
             {clientId: 'cid', requestor: 'req', approvalId: 'aid'});
   });
@@ -104,7 +104,7 @@ describe('ApprovalPage Component', () => {
     const fixture = TestBed.createComponent(ApprovalPage);
     fixture.detectChanges();
 
-    approvalPageFacade.approvalSubject.next(newClientApproval({
+    approvalPageGlobalStore.approvalSubject.next(newClientApproval({
       clientId: 'C.1234',
       requestor: 'msan',
       reason: 'foobazzle 42',
@@ -121,7 +121,7 @@ describe('ApprovalPage Component', () => {
     const fixture = TestBed.createComponent(ApprovalPage);
     fixture.detectChanges();
 
-    approvalPageFacade.approvalSubject.next(newClientApproval({
+    approvalPageGlobalStore.approvalSubject.next(newClientApproval({
       clientId: 'C.1234',
       requestor: 'msan',
       reason: 'foobazzle 42',
@@ -129,9 +129,9 @@ describe('ApprovalPage Component', () => {
     }));
     fixture.detectChanges();
 
-    expect(approvalPageFacade.grantApproval).not.toHaveBeenCalled();
+    expect(approvalPageGlobalStore.grantApproval).not.toHaveBeenCalled();
     fixture.debugElement.query(By.css('mat-card-actions button'))
         .triggerEventHandler('click', undefined);
-    expect(approvalPageFacade.grantApproval).toHaveBeenCalled();
+    expect(approvalPageGlobalStore.grantApproval).toHaveBeenCalled();
   });
 });

@@ -6,10 +6,10 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {initTestEnvironment} from '@app/testing';
 
 import {newClientApproval} from '../../lib/models/model_test_util';
-import {ConfigFacade} from '../../store/config_facade';
-import {mockConfigFacade} from '../../store/config_facade_test_util';
-import {HomePageFacade} from '../../store/home_page_facade';
-import {HomePageFacadeMock, mockHomePageFacade} from '../../store/home_page_facade_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {HomePageGlobalStore} from '../../store/home_page_global_store';
+import {HomePageGlobalStoreMock, mockHomePageGlobalStore} from '../../store/home_page_global_store_test_util';
 
 import {Home} from './home';
 import {HomeModule} from './module';
@@ -23,10 +23,10 @@ class TestComponent {
 }
 
 describe('Home Component', () => {
-  let homePageFacade: HomePageFacadeMock;
+  let homePageGlobalStore: HomePageGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
-    homePageFacade = mockHomePageFacade();
+    homePageGlobalStore = mockHomePageGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -40,8 +40,11 @@ describe('Home Component', () => {
             TestComponent,
           ],
           providers: [
-            {provide: HomePageFacade, useFactory: () => homePageFacade},
-            {provide: ConfigFacade, useFactory: mockConfigFacade},
+            {
+              provide: HomePageGlobalStore,
+              useFactory: () => homePageGlobalStore
+            },
+            {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore},
           ],
 
         })
@@ -66,7 +69,7 @@ describe('Home Component', () => {
 
   it('displays recently accessed clients', () => {
     const fixture = TestBed.createComponent(Home);
-    homePageFacade.recentClientApprovalsSubject.next([
+    homePageGlobalStore.recentClientApprovalsSubject.next([
       newClientApproval({clientId: 'C.1111', status: {type: 'valid'}}),
       newClientApproval({clientId: 'C.2222', status: {type: 'valid'}}),
     ]);

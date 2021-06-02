@@ -7,8 +7,8 @@ import {ApiModule} from '../../../lib/api/module';
 import {Client} from '../../../lib/models/client';
 import {newClient} from '../../../lib/models/model_test_util';
 import {getClientEntriesChanged} from '../../../store/client_details_diff';
-import {ClientDetailsFacade} from '../../../store/client_details_facade';
-import {ClientDetailsFacadeMock, mockClientDetailsFacade} from '../../../store/client_details_facade_test_util';
+import {ClientDetailsGlobalStore} from '../../../store/client_details_global_store';
+import {ClientDetailsGlobalStoreMock, mockClientDetailsGlobalStore} from '../../../store/client_details_global_store_test_util';
 import {initTestEnvironment} from '../../../testing';
 
 import {EntryHistoryButton} from './entry_history_button';
@@ -19,7 +19,7 @@ import {EntryHistoryButtonModule} from './module';
 initTestEnvironment();
 
 describe('Entry History Button Component', () => {
-  let facade: ClientDetailsFacadeMock;
+  let store: ClientDetailsGlobalStoreMock;
   const clientVersionsMock = [
     newClient({
       clientId: 'C.1234',
@@ -53,7 +53,7 @@ describe('Entry History Button Component', () => {
   ];
 
   beforeEach(waitForAsync(() => {
-    facade = mockClientDetailsFacade();
+    store = mockClientDetailsGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -64,7 +64,7 @@ describe('Entry History Button Component', () => {
           ],
 
           providers: [
-            {provide: ClientDetailsFacade, useFactory: () => facade},
+            {provide: ClientDetailsGlobalStore, useFactory: () => store},
           ],
         })
         .compileComponents();
@@ -75,7 +75,7 @@ describe('Entry History Button Component', () => {
        fixture.componentInstance.path = 'knowledgeBase.fqdn';
        fixture.detectChanges();
 
-       facade.selectedClientEntriesChangedSubject.next(
+       store.selectedClientEntriesChangedSubject.next(
            getClientEntriesChanged(clientVersionsMock));
        tick();
        fixture.detectChanges();
@@ -89,7 +89,7 @@ describe('Entry History Button Component', () => {
      fakeAsync(() => {
        const subject = new Subject<Map<string, ReadonlyArray<Client>>>();
        Object.defineProperty(
-           facade, 'selectedClientEntriesChanged$', {get: () => subject});
+           store, 'selectedClientEntriesChanged$', {get: () => subject});
 
        const fixture = TestBed.createComponent(EntryHistoryButton);
        fixture.componentInstance.path = 'memorySize';
@@ -108,7 +108,7 @@ describe('Entry History Button Component', () => {
      fakeAsync(() => {
        const subject = new Subject<Map<string, ReadonlyArray<Client>>>();
        Object.defineProperty(
-           facade, 'selectedClientEntriesChanged$', {get: () => subject});
+           store, 'selectedClientEntriesChanged$', {get: () => subject});
 
        const fixture = TestBed.createComponent(EntryHistoryButton);
        fixture.componentInstance.path = 'clientId';
@@ -126,7 +126,7 @@ describe('Entry History Button Component', () => {
      fakeAsync(() => {
        const subject = new Subject<Map<string, ReadonlyArray<Client>>>();
        Object.defineProperty(
-           facade, 'selectedClientEntriesChanged$', {get: () => subject});
+           store, 'selectedClientEntriesChanged$', {get: () => subject});
 
        const fixture = TestBed.createComponent(EntryHistoryButton);
        fixture.componentInstance.path = 'volumes.foo.bar';

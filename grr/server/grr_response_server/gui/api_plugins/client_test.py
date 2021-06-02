@@ -624,6 +624,65 @@ class ApiGetFleetspeakPendingMessagesHandlerTest(api_test_lib.ApiCallHandlerTest
       self.assertEqual(mock_get.call_args[1]["want_data"], True)
       self.assertEqual(result, expected_result)
 
+  @mock.patch.object(fleetspeak_connector, "CONN")
+  def testHandle_EmptySourceClientId(self, _):
+    handler = client_plugin.ApiGetFleetspeakPendingMessagesHandler()
+    args = client_plugin.ApiGetFleetspeakPendingMessagesArgs(
+        client_id="C.1111111111111111")
+    fleetspeak_proto = admin_pb2.GetPendingMessagesResponse()
+    text_format.Parse(
+        """
+        messages: {
+          source: {
+            service_name: "s1"
+            client_id: ""
+          }
+        }
+        """, fleetspeak_proto)
+    expected_result = (
+        client_plugin.ApiGetFleetspeakPendingMessagesResult.FromTextFormat("""
+        messages: {
+          source: {
+            service_name: "s1"
+          }
+        }
+        """))
+    with mock.patch.object(
+        fleetspeak_utils,
+        "GetFleetspeakPendingMessages",
+        return_value=fleetspeak_proto):
+      result = handler.Handle(args)
+      self.assertEqual(result, expected_result)
+
+  @mock.patch.object(fleetspeak_connector, "CONN")
+  def testHandle_MissingSourceClientId(self, _):
+    handler = client_plugin.ApiGetFleetspeakPendingMessagesHandler()
+    args = client_plugin.ApiGetFleetspeakPendingMessagesArgs(
+        client_id="C.1111111111111111")
+    fleetspeak_proto = admin_pb2.GetPendingMessagesResponse()
+    text_format.Parse(
+        """
+        messages: {
+          source: {
+            service_name: "s1"
+          }
+        }
+        """, fleetspeak_proto)
+    expected_result = (
+        client_plugin.ApiGetFleetspeakPendingMessagesResult.FromTextFormat("""
+        messages: {
+          source: {
+            service_name: "s1"
+          }
+        }
+        """))
+    with mock.patch.object(
+        fleetspeak_utils,
+        "GetFleetspeakPendingMessages",
+        return_value=fleetspeak_proto):
+      result = handler.Handle(args)
+      self.assertEqual(result, expected_result)
+
 
 def main(argv):
   test_lib.main(argv)

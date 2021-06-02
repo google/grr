@@ -22,6 +22,7 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import compatibility
+from grr_response_proto.api import flow_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server.databases import db
@@ -216,6 +217,44 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertLen(stdouts, 2)
     self.assertEqual(stdouts[0], "Lorem ipsum.")
     self.assertEqual(stdouts[1], "Dolor sit amet.")
+
+  def testListFlowApplicableParsers(self):
+    client_id = self.SetupClient(0)
+    flow_id = "4815162342ABCDEF"
+
+    flow = rdf_flow_objects.Flow()
+    flow.client_id = client_id
+    flow.flow_id = flow_id
+    flow.flow_class_name = collectors.ArtifactCollectorFlow.__name__
+    flow.args = rdf_artifacts.ArtifactCollectorFlowArgs(apply_parsers=False)
+    data_store.REL_DB.WriteFlowObject(flow)
+
+    result = rdf_flow_objects.FlowResult()
+    result.client_id = client_id
+    result.flow_id = flow_id
+    result.tag = "artifact:Fake"
+    result.payload = rdf_client_action.ExecuteResponse(stderr=b"foobar")
+    data_store.REL_DB.WriteFlowResults([result])
+
+    class FakeParser(parser.SingleResponseParser[None]):
+
+      supported_artifacts = ["Fake"]
+
+      def ParseResponse(
+          self,
+          knowledge_base: rdf_client.KnowledgeBase,
+          response: rdfvalue.RDFValue,
+      ) -> Iterable[None]:
+        raise NotImplementedError()
+
+    with parser_test_lib._ParserContext("Fake", FakeParser):
+      results = self.api.Client(client_id).Flow(flow_id).ListApplicableParsers()
+
+    self.assertLen(results.parsers, 1)
+
+    result = results.parsers[0]
+    self.assertEqual(result.name, "Fake")
+    self.assertEqual(result.type, flow_pb2.ApiParserDescriptor.SINGLE_RESPONSE)
 
   def testWaitUntilDoneReturnsWhenFlowCompletes(self):
     client_id = self.SetupClient(0)

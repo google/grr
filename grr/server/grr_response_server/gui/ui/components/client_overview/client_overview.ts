@@ -5,7 +5,7 @@ import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
 import {ClientLabel} from '../../lib/models/client';
-import {ClientPageFacade} from '../../store/client_page_facade';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
 
 /**
@@ -20,17 +20,17 @@ import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_
 export class ClientOverview implements OnInit, OnDestroy {
   private static readonly LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
 
-  readonly client$ = this.clientPageFacade.selectedClient$;
+  readonly client$ = this.clientPageGlobalStore.selectedClient$;
   private readonly unsubscribe$ = new Subject<void>();
 
   constructor(
-      private readonly clientPageFacade: ClientPageFacade,
+      private readonly clientPageGlobalStore: ClientPageGlobalStore,
       private readonly dialog: MatDialog,
       private readonly snackBar: MatSnackBar,
   ) {}
 
   ngOnInit() {
-    this.clientPageFacade.lastRemovedClientLabel$
+    this.clientPageGlobalStore.lastRemovedClientLabel$
         .pipe(takeUntil(this.unsubscribe$))
         .subscribe(label => {
           this.showLabelRemovedSnackBar(label);
@@ -68,11 +68,11 @@ export class ClientOverview implements OnInit, OnDestroy {
   }
 
   removeLabel(label: string) {
-    this.clientPageFacade.removeClientLabel(label);
+    this.clientPageGlobalStore.removeClientLabel(label);
   }
 
   addLabel(label: string) {
-    this.clientPageFacade.addClientLabel(label);
+    this.clientPageGlobalStore.addClientLabel(label);
   }
 
   ngOnDestroy() {

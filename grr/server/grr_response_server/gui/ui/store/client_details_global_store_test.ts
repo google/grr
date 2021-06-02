@@ -8,14 +8,14 @@ import {newClient} from '../lib/models/model_test_util';
 import {initTestEnvironment} from '../testing';
 
 import {getClientVersions} from './client_details_diff';
-import {ClientDetailsFacade} from './client_details_facade';
+import {ClientDetailsGlobalStore} from './client_details_global_store';
 
 
 initTestEnvironment();
 
-describe('ClientDetailsFacade', () => {
+describe('ClientDetailsGlobalStore', () => {
   let httpApiService: Partial<HttpApiService>;
-  let clientDetailsFacade: ClientDetailsFacade;
+  let clientDetailsGlobalStore: ClientDetailsGlobalStore;
   let configService: ConfigService;
   let apiFetchClientVersions$: Subject<ReadonlyArray<ApiClient>>;
 
@@ -30,7 +30,7 @@ describe('ClientDetailsFacade', () => {
         .configureTestingModule({
           imports: [],
           providers: [
-            ClientDetailsFacade,
+            ClientDetailsGlobalStore,
             // Apparently, useValue creates a copy of the object. Using
             // useFactory, to make sure the instance is shared.
             {provide: HttpApiService, useFactory: () => httpApiService},
@@ -38,16 +38,16 @@ describe('ClientDetailsFacade', () => {
         })
         .compileComponents();
 
-    clientDetailsFacade = TestBed.inject(ClientDetailsFacade);
+    clientDetailsGlobalStore = TestBed.inject(ClientDetailsGlobalStore);
     configService = TestBed.inject(ConfigService);
 
-    clientDetailsFacade.selectClient('C.1234');
+    clientDetailsGlobalStore.selectClient('C.1234');
   });
 
   it('fetches client versions from API when "selectClient" is called', () => {
     expect(httpApiService.fetchClientVersions).toHaveBeenCalledWith('C.1234');
 
-    clientDetailsFacade.selectClient('C.4321');
+    clientDetailsGlobalStore.selectClient('C.4321');
     expect(httpApiService.fetchClientVersions).toHaveBeenCalledWith('C.4321');
   });
 
@@ -65,7 +65,7 @@ describe('ClientDetailsFacade', () => {
       },
     ]);
 
-    clientDetailsFacade.selectedClientVersions$.subscribe((versions) => {
+    clientDetailsGlobalStore.selectedClientVersions$.subscribe((versions) => {
       expect(versions.length).toEqual(2);
       done();
     });
@@ -86,7 +86,7 @@ describe('ClientDetailsFacade', () => {
          },
        ]);
 
-       clientDetailsFacade.selectedClientEntriesChanged$.subscribe(
+       clientDetailsGlobalStore.selectedClientEntriesChanged$.subscribe(
            (clientEntriesChanged) => {
              expect(clientEntriesChanged).toBeTruthy();
              done();

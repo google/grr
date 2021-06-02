@@ -1,6 +1,7 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {MultiGetFileArgs, MultiGetFileProgress, PathSpec} from '@app/lib/api/api_interfaces';
 import {Complete} from '@app/lib/type_utils';
+
 import {Plugin} from './plugin';
 
 
@@ -19,15 +20,15 @@ export class MultiGetFileDetails extends Plugin {
   }
 
   get args() {
-    return this.flowListEntry.flow.args as MultiGetFileArgs;
+    return this.flow.args as MultiGetFileArgs;
   }
 
   get hasProgress() {
-    return this.flowListEntry.flow.progress !== undefined;
+    return this.flow.progress !== undefined;
   }
 
   get progress(): Complete<MultiGetFileProgress> {
-    const p = this.flowListEntry.flow.progress as MultiGetFileProgress;
+    const p = this.flow.progress as MultiGetFileProgress;
 
     return {
       numPendingHashes: p.numPendingHashes || 0,

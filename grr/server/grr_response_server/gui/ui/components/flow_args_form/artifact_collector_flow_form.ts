@@ -9,8 +9,8 @@ import {distinctUntilChanged, map, shareReplay, startWith, takeUntil} from 'rxjs
 import {ArtifactCollectorFlowArgs} from '../../lib/api/api_interfaces';
 import {safeTranslateOperatingSystem} from '../../lib/api_translation/flow';
 import {ArtifactDescriptor, ArtifactSource, OperatingSystem, SourceType} from '../../lib/models/flow';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {ConfigFacade} from '../../store/config_facade';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {ConfigGlobalStore} from '../../store/config_global_store';
 
 
 const ARTIFACT_NAME = 'artifactName';
@@ -209,7 +209,7 @@ export class ArtifactCollectorFlowForm extends
   );
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
 
-  private readonly clientOs$ = this.clientPageFacade.selectedClient$.pipe(
+  private readonly clientOs$ = this.clientPageGlobalStore.selectedClient$.pipe(
       map(client => safeTranslateOperatingSystem(client.knowledgeBase.os)),
       startWith(undefined),
       distinctUntilChanged(),
@@ -217,7 +217,7 @@ export class ArtifactCollectorFlowForm extends
 
   readonly artifactListEntries$ =
       combineLatest([
-        this.configFacade.artifactDescriptors$,
+        this.configGlobalStore.artifactDescriptors$,
         this.clientOs$,
       ])
           .pipe(
@@ -253,7 +253,7 @@ export class ArtifactCollectorFlowForm extends
           );
 
 
-  readonly clientId$ = this.clientPageFacade.selectedClient$.pipe(
+  readonly clientId$ = this.clientPageGlobalStore.selectedClient$.pipe(
       map(client => client?.clientId),
   );
 
@@ -265,8 +265,8 @@ export class ArtifactCollectorFlowForm extends
   readonly unsubscribe$ = new Subject<void>();
 
   constructor(
-      private readonly configFacade: ConfigFacade,
-      private readonly clientPageFacade: ClientPageFacade) {
+      private readonly configGlobalStore: ConfigGlobalStore,
+      private readonly clientPageGlobalStore: ClientPageGlobalStore) {
     super();
   }
 

@@ -2,11 +2,13 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {CollectBrowserHistoryDetails} from '@app/components/flow_details/plugins/collect_browser_history_details';
-import {FlowResultsQueryWithoutFlowId} from '@app/components/flow_details/plugins/plugin';
-import {BrowserProgressStatus, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectBrowserHistoryProgress} from '@app/lib/api/api_interfaces';
+import {BrowserProgressStatus, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectBrowserHistoryProgress, CollectBrowserHistoryResult} from '@app/lib/api/api_interfaces';
 import {FlowState} from '@app/lib/models/flow';
-import {newFlowListEntry} from '@app/lib/models/model_test_util';
+import {newFlow, newFlowResult} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
+
+import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
+import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
 
 import {PluginsModule} from './module';
 
@@ -16,7 +18,11 @@ import {PluginsModule} from './module';
 initTestEnvironment();
 
 describe('collect-browser-history-details component', () => {
+  let flowResultsLocalStore: FlowResultsLocalStoreMock;
+
   beforeEach(waitForAsync(() => {
+    flowResultsLocalStore = mockFlowResultsLocalStore();
+
     TestBed
         .configureTestingModule({
           imports: [
@@ -26,18 +32,10 @@ describe('collect-browser-history-details component', () => {
 
           providers: []
         })
+        .overrideProvider(
+            FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})
         .compileComponents();
   }));
-
-  it('shows message if progress is not reported', () => {
-    const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
-
-    fixture.componentInstance.flowListEntry =
-        newFlowListEntry({name: 'CollectBrowserHistory'});
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).toContain('legacy UI');
-  });
 
   it('does not show "Download all" button on non-finished flow', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
@@ -52,7 +50,7 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectBrowserHistory',
       args,
       progress,
@@ -77,7 +75,7 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectBrowserHistory',
       args,
       progress,
@@ -118,7 +116,7 @@ describe('collect-browser-history-details component', () => {
       ],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectBrowserHistory',
       args,
       progress,
@@ -148,7 +146,7 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectBrowserHistory',
       args,
       progress,
@@ -171,7 +169,7 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectBrowserHistory',
       args,
       progress,
@@ -197,7 +195,7 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectBrowserHistory',
       args,
       progress,
@@ -222,7 +220,7 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectBrowserHistory',
       args,
       progress,
@@ -247,7 +245,7 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
       name: 'CollectBrowserHistory',
       args,
       progress,
@@ -259,7 +257,7 @@ describe('collect-browser-history-details component', () => {
         .toBeDefined();
   });
 
-  it('emits results query on browser title link', (done) => {
+  it('emits results query on browser title link', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
       browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
@@ -272,7 +270,9 @@ describe('collect-browser-history-details component', () => {
       }],
     };
 
-    fixture.componentInstance.flowListEntry = newFlowListEntry({
+    fixture.componentInstance.flow = newFlow({
+      clientId: 'C.1',
+      flowId: '12',
       name: 'CollectBrowserHistory',
       args,
       progress,
@@ -280,17 +280,77 @@ describe('collect-browser-history-details component', () => {
     });
     fixture.detectChanges();
 
-    fixture.componentInstance.flowResultsQuery.subscribe(
-        (e: FlowResultsQueryWithoutFlowId) => {
-          expect(e).toEqual({
-            offset: 0,
-            count: CollectBrowserHistoryDetails.INITIAL_COUNT,
-            withTag: 'CHROME',
-          });
-          done();
-        });
+    expect(flowResultsLocalStore.queryMore).not.toHaveBeenCalled();
 
     const title = fixture.debugElement.query(By.css('.title')).nativeElement;
     title.click();
+
+    expect(flowResultsLocalStore.queryMore)
+        .toHaveBeenCalledWith(fixture.componentInstance.INITIAL_COUNT);
+  });
+
+  it('loads and displays file results', () => {
+    const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
+    const args: CollectBrowserHistoryArgs = {
+      browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
+    };
+    const progress: CollectBrowserHistoryProgress = {
+      browsers: [{
+        browser: CollectBrowserHistoryArgsBrowser.CHROME,
+        status: BrowserProgressStatus.SUCCESS,
+        numCollectedFiles: 200,
+      }],
+    };
+
+    fixture.componentInstance.flow = newFlow({
+      clientId: 'C.1',
+      flowId: '12',
+      name: 'CollectBrowserHistory',
+      args,
+      progress,
+      state: FlowState.FINISHED,
+    });
+    fixture.detectChanges();
+
+    const title = fixture.debugElement.query(By.css('.title')).nativeElement;
+    title.click();
+
+    expect(flowResultsLocalStore.queryMore)
+        .toHaveBeenCalledOnceWith(fixture.componentInstance.INITIAL_COUNT);
+
+    flowResultsLocalStore.resultsSubject.next(
+        [...new Array(100)].map((v, i) => newFlowResult({
+                                  payload: makeBrowserHistoryResult(i),
+                                  tag: 'CHROME',
+                                  payloadType: 'CollectBrowserHistoryResult',
+                                })));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.innerText).toContain('/browser/99.txt');
+
+
+    expect(flowResultsLocalStore.queryMore).toHaveBeenCalledTimes(1);
+
+    fixture.debugElement.query(By.css('button.load-more'))
+        .nativeElement.click();
+    fixture.detectChanges();
+
+    expect(flowResultsLocalStore.queryMore).toHaveBeenCalledTimes(2);
+    expect(flowResultsLocalStore.queryMore)
+        .toHaveBeenCalledWith(fixture.componentInstance.LOAD_STEP);
+
+    flowResultsLocalStore.resultsSubject.next(
+        [...new Array(200)].map((v, i) => newFlowResult({
+                                  payload: makeBrowserHistoryResult(i),
+                                  tag: 'CHROME',
+                                  payloadType: 'CollectBrowserHistoryResult',
+                                })));
   });
 });
+
+function makeBrowserHistoryResult(i: number): CollectBrowserHistoryResult {
+  return {
+    browser: CollectBrowserHistoryArgsBrowser.CHROME,
+    statEntry: {pathspec: {path: `/browser/${i}.txt`}}
+  };
+}

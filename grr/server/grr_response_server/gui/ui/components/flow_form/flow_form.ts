@@ -2,7 +2,7 @@ import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy
 import {fromEvent, Subject} from 'rxjs';
 import {map, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
-import {ClientPageFacade} from '../../store/client_page_facade';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {FlowArgsForm} from '../flow_args_form/flow_args_form';
 
 /**
@@ -17,7 +17,7 @@ import {FlowArgsForm} from '../flow_args_form/flow_args_form';
 export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
   private readonly unsubscribe$ = new Subject<void>();
 
-  readonly selectedFD$ = this.clientPageFacade.selectedFlowDescriptor$;
+  readonly selectedFD$ = this.clientPageGlobalStore.selectedFlowDescriptor$;
 
   @ViewChild('form') form!: ElementRef<HTMLFormElement>;
 
@@ -25,13 +25,14 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
 
   readonly disabled$ = new Subject<boolean>();
 
-  readonly error$ = this.clientPageFacade.startFlowState$.pipe(
+  readonly error$ = this.clientPageGlobalStore.startFlowState$.pipe(
       map(state => state.state === 'error' ? state.error : undefined));
 
-  readonly hasAccess$ = this.clientPageFacade.hasAccess$.pipe(startWith(false));
+  readonly hasAccess$ =
+      this.clientPageGlobalStore.hasAccess$.pipe(startWith(false));
 
   constructor(
-      private readonly clientPageFacade: ClientPageFacade,
+      private readonly clientPageGlobalStore: ClientPageGlobalStore,
   ) {}
 
   ngOnInit() {}
@@ -46,9 +47,9 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
           e.preventDefault();
 
           if (hasApproval) {
-            this.clientPageFacade.startFlow(flowArgs);
+            this.clientPageGlobalStore.startFlow(flowArgs);
           } else {
-            this.clientPageFacade.scheduleFlow(flowArgs);
+            this.clientPageGlobalStore.scheduleFlow(flowArgs);
           }
         });
 

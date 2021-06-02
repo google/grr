@@ -6,12 +6,12 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {initTestEnvironment} from '@app/testing';
 
 import {newScheduledFlow} from '../../lib/models/model_test_util';
-import {ConfigFacade} from '../../store/config_facade';
-import {mockConfigFacade} from '../../store/config_facade_test_util';
-import {ScheduledFlowFacade} from '../../store/scheduled_flow_facade';
-import {mockScheduledFlowFacade, ScheduledFlowFacadeMock} from '../../store/scheduled_flow_facade_test_util';
-import {UserFacade} from '../../store/user_facade';
-import {mockUserFacade, UserFacadeMock} from '../../store/user_facade_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {ScheduledFlowGlobalStore} from '../../store/scheduled_flow_global_store';
+import {mockScheduledFlowGlobalStore, ScheduledFlowGlobalStoreMock} from '../../store/scheduled_flow_global_store_test_util';
+import {UserGlobalStore} from '../../store/user_global_store';
+import {mockUserGlobalStore, UserGlobalStoreMock} from '../../store/user_global_store_test_util';
 
 import {ScheduledFlowListModule} from './module';
 
@@ -23,12 +23,12 @@ initTestEnvironment();
 
 
 describe('ScheduledFlowList Component', () => {
-  let scheduledFlowFacade: ScheduledFlowFacadeMock;
-  let userFacade: UserFacadeMock;
+  let scheduledFlowGlobalStore: ScheduledFlowGlobalStoreMock;
+  let userGlobalStore: UserGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
-    scheduledFlowFacade = mockScheduledFlowFacade();
-    userFacade = mockUserFacade();
+    scheduledFlowGlobalStore = mockScheduledFlowGlobalStore();
+    userGlobalStore = mockUserGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -39,16 +39,16 @@ describe('ScheduledFlowList Component', () => {
 
           providers: [
             {
-              provide: ScheduledFlowFacade,
-              useFactory: () => scheduledFlowFacade,
+              provide: ScheduledFlowGlobalStore,
+              useFactory: () => scheduledFlowGlobalStore,
             },
             {
-              provide: ConfigFacade,
-              useFactory: mockConfigFacade,
+              provide: ConfigGlobalStore,
+              useFactory: mockConfigGlobalStore,
             },
             {
-              provide: UserFacade,
-              useFactory: () => userFacade,
+              provide: UserGlobalStore,
+              useFactory: () => userGlobalStore,
             },
           ]
         })
@@ -59,7 +59,7 @@ describe('ScheduledFlowList Component', () => {
     const fixture = TestBed.createComponent(ScheduledFlowList);
     fixture.detectChanges();
 
-    scheduledFlowFacade.scheduledFlowsSubject.next([
+    scheduledFlowGlobalStore.scheduledFlowsSubject.next([
       newScheduledFlow({flowName: 'CollectSingleFile'}),
       newScheduledFlow({flowName: 'CollectBrowserHistory'}),
     ]);
@@ -74,10 +74,10 @@ describe('ScheduledFlowList Component', () => {
     const fixture = TestBed.createComponent(ScheduledFlowList);
     fixture.detectChanges();
 
-    userFacade.currentUserSubject.next({name: 'testuser'});
+    userGlobalStore.currentUserSubject.next({name: 'testuser'});
 
     const scheduledFlow = newScheduledFlow({creator: 'testuser'});
-    scheduledFlowFacade.scheduledFlowsSubject.next([scheduledFlow]);
+    scheduledFlowGlobalStore.scheduledFlowsSubject.next([scheduledFlow]);
     fixture.detectChanges();
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
@@ -86,7 +86,7 @@ describe('ScheduledFlowList Component', () => {
     const items = await menu.getItems();
     await items[0].click();
 
-    expect(scheduledFlowFacade.unscheduleFlow)
+    expect(scheduledFlowGlobalStore.unscheduleFlow)
         .toHaveBeenCalledWith(scheduledFlow.scheduledFlowId);
   });
 
@@ -94,10 +94,10 @@ describe('ScheduledFlowList Component', () => {
     const fixture = TestBed.createComponent(ScheduledFlowList);
     fixture.detectChanges();
 
-    userFacade.currentUserSubject.next({name: 'testuser'});
+    userGlobalStore.currentUserSubject.next({name: 'testuser'});
 
     const scheduledFlow = newScheduledFlow({creator: 'differentuser'});
-    scheduledFlowFacade.scheduledFlowsSubject.next([scheduledFlow]);
+    scheduledFlowGlobalStore.scheduledFlowsSubject.next([scheduledFlow]);
     fixture.detectChanges();
 
     expect(fixture.debugElement.query(By.css('mat-menu'))).toBeNull();

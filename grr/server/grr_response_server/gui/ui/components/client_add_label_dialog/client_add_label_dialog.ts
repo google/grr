@@ -6,7 +6,7 @@ import {filter, map, withLatestFrom} from 'rxjs/operators';
 
 import {ClientLabel} from '../../lib/models/client';
 import {isNonNull} from '../../lib/preconditions';
-import {ConfigFacade} from '../../store/config_facade';
+import {ConfigGlobalStore} from '../../store/config_global_store';
 
 /** Dialog that displays a form to add a label to a client. */
 @Component({
@@ -19,10 +19,10 @@ export class ClientAddLabelDialog {
       private readonly dialogRef: MatDialogRef<ClientAddLabelDialog>,
       @Inject(MAT_DIALOG_DATA) private readonly clientLabels:
           ReadonlyArray<ClientLabel>,
-      private readonly configFacade: ConfigFacade) {}
+      private readonly configGlobalStore: ConfigGlobalStore) {}
 
   readonly labelInputControl = new FormControl('', this.labelValidator());
-  private readonly allClientsLabels$ = this.configFacade.clientsLabels$;
+  private readonly allClientsLabels$ = this.configGlobalStore.clientsLabels$;
 
   /**
    * An internal observable, which emits the following combined:

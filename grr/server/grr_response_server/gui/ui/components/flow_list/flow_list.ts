@@ -3,24 +3,26 @@ import {MatDialog} from '@angular/material/dialog';
 import {combineLatest, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {FlowDescriptor, FlowDescriptorMap, FlowListEntry, FlowResultsQuery} from '../../lib/models/flow';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {ConfigFacade} from '../../store/config_facade';
+import {Flow, FlowDescriptor, FlowDescriptorMap} from '../../lib/models/flow';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {FlowResultsLocalStore} from '../../store/flow_results_local_store';
 import {FlowArgsDialog, FlowArgsDialogData} from '../flow_args_dialog/flow_args_dialog';
 import {FlowMenuAction} from '../flow_details/flow_details';
 
 
 
-interface FlowListEntryWithDescriptor extends FlowListEntry {
-  descriptor?: FlowDescriptor;
+interface FlowWithDescriptor {
+  readonly flow: Flow;
+  readonly descriptor?: FlowDescriptor;
 }
 
 /** Adds the corresponding FlowDescriptor to a Flow, if existent. */
 function withDescriptor(fds: FlowDescriptorMap):
-    ((flowListEntry: FlowListEntry) => FlowListEntryWithDescriptor) {
-  return flowListEntry => ({
-           ...flowListEntry,
-           descriptor: fds.get(flowListEntry.flow.name),
+    ((flow: Flow) => FlowWithDescriptor) {
+  return flow => ({
+           flow,
+           descriptor: fds.get(flow.name),
          });
 }
 
@@ -30,31 +32,28 @@ function withDescriptor(fds: FlowDescriptorMap):
   templateUrl: './flow_list.ng.html',
   styleUrls: ['./flow_list.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [FlowResultsLocalStore],
 })
 export class FlowList {
-  readonly entries$: Observable<ReadonlyArray<FlowListEntryWithDescriptor>> =
+  readonly entries$: Observable<ReadonlyArray<FlowWithDescriptor>> =
       combineLatest([
-        this.clientPageFacade.flowListEntries$,
-        this.configFacade.flowDescriptors$,
+        this.clientPageGlobalStore.flowListEntries$,
+        this.configGlobalStore.flowDescriptors$,
       ]).pipe(map(([flows, fds]) => flows.map(withDescriptor(fds))));
 
   constructor(
-      private readonly configFacade: ConfigFacade,
-      private readonly clientPageFacade: ClientPageFacade,
+      private readonly configGlobalStore: ConfigGlobalStore,
+      private readonly clientPageGlobalStore: ClientPageGlobalStore,
       private readonly dialog: MatDialog,
   ) {}
 
-  queryFlowResults(flowId: string, query: FlowResultsQuery) {
-    this.clientPageFacade.queryFlowResults(query);
-  }
-
-  triggerFlowAction(entry: FlowListEntryWithDescriptor, event: FlowMenuAction) {
+  triggerFlowAction(entry: FlowWithDescriptor, event: FlowMenuAction) {
     if (event === FlowMenuAction.DUPLICATE) {
-      this.clientPageFacade.startFlowConfiguration(
+      this.clientPageGlobalStore.startFlowConfiguration(
           entry.flow.name, entry.flow.args);
       window.scrollTo({top: 0, behavior: 'smooth'});
     } else if (event === FlowMenuAction.CANCEL) {
-      this.clientPageFacade.cancelFlow(entry.flow.flowId);
+      this.clientPageGlobalStore.cancelFlow(entry.flow.flowId);
     } else if (event === FlowMenuAction.VIEW_ARGS) {
       if (!entry.descriptor) {
         throw new Error('Cannot show flow args without flow descriptor.');
@@ -67,7 +66,7 @@ export class FlowList {
     }
   }
 
-  entryTrackByFunction(index: number, entry: FlowListEntryWithDescriptor) {
+  entryTrackByFunction(index: number, entry: FlowWithDescriptor) {
     return entry.flow.flowId;
   }
 }

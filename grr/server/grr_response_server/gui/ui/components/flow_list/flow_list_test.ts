@@ -2,14 +2,13 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 import {FlowListModule} from '@app/components/flow_list/module';
-import {Client} from '@app/lib/models/client';
-import {FlowListEntry} from '@app/lib/models/flow';
-import {newFlowDescriptorMap, newFlowListEntry} from '@app/lib/models/model_test_util';
-import {ClientPageFacade} from '@app/store/client_page_facade';
-import {ConfigFacade} from '@app/store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
+import {newFlow, newFlowDescriptorMap} from '@app/lib/models/model_test_util';
+import {ClientPageGlobalStore} from '@app/store/client_page_global_store';
+import {ConfigGlobalStore} from '@app/store/config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '@app/store/config_global_store_test_util';
 import {initTestEnvironment} from '@app/testing';
-import {ReplaySubject, Subject} from 'rxjs';
+
+import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
 
 import {FlowList} from './flow_list';
 
@@ -19,19 +18,12 @@ import {FlowList} from './flow_list';
 initTestEnvironment();
 
 describe('FlowList Component', () => {
-  let flowListEntries$: Subject<ReadonlyArray<FlowListEntry>>;
-  let selectedClient$: ReplaySubject<Client>;
-  let configFacade: ConfigFacadeMock;
-  let clientPageFacade: Partial<ClientPageFacade>;
+  let configGlobalStore: ConfigGlobalStoreMock;
+  let clientPageGlobalStore: ClientPageGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
-    flowListEntries$ = new Subject();
-    selectedClient$ = new ReplaySubject(1);
-    configFacade = mockConfigFacade();
-    clientPageFacade = {
-      flowListEntries$,
-      selectedClient$,
-    };
+    configGlobalStore = mockConfigGlobalStore();
+    clientPageGlobalStore = mockClientPageGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -42,8 +34,11 @@ describe('FlowList Component', () => {
           ],
 
           providers: [
-            {provide: ConfigFacade, useValue: configFacade},
-            {provide: ClientPageFacade, useValue: clientPageFacade},
+            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
+            {
+              provide: ClientPageGlobalStore,
+              useFactory: () => clientPageGlobalStore,
+            },
           ]
         })
         .compileComponents();
@@ -53,7 +48,7 @@ describe('FlowList Component', () => {
     const fixture = TestBed.createComponent(FlowList);
     fixture.detectChanges();
 
-    configFacade.flowDescriptorsSubject.next(newFlowDescriptorMap(
+    configGlobalStore.flowDescriptorsSubject.next(newFlowDescriptorMap(
         {
           name: 'ClientFileFinder',
           friendlyName: 'Client Side File Finder',
@@ -62,12 +57,12 @@ describe('FlowList Component', () => {
           name: 'KeepAlive',
           friendlyName: 'KeepAlive',
         }));
-    flowListEntries$.next([
-      newFlowListEntry({
+    clientPageGlobalStore.flowListEntriesSubject.next([
+      newFlow({
         name: 'KeepAlive',
         creator: 'morty',
       }),
-      newFlowListEntry({
+      newFlow({
         name: 'ClientFileFinder',
         creator: 'rick',
       }),
@@ -86,14 +81,14 @@ describe('FlowList Component', () => {
     fixture.detectChanges();
 
     // Flows won't be displayed until descriptors are fetched.
-    configFacade.flowDescriptorsSubject.next(newFlowDescriptorMap());
+    configGlobalStore.flowDescriptorsSubject.next(newFlowDescriptorMap());
 
-    flowListEntries$.next([
-      newFlowListEntry({
+    clientPageGlobalStore.flowListEntriesSubject.next([
+      newFlow({
         name: 'KeepAlive',
         creator: 'morty',
       }),
-      newFlowListEntry({
+      newFlow({
         name: 'ClientFileFinder',
         creator: 'rick',
       }),
@@ -110,10 +105,10 @@ describe('FlowList Component', () => {
     fixture.detectChanges();
 
     // Flows won't be displayed until descriptors are fetched.
-    configFacade.flowDescriptorsSubject.next(newFlowDescriptorMap());
+    configGlobalStore.flowDescriptorsSubject.next(newFlowDescriptorMap());
 
-    flowListEntries$.next([
-      newFlowListEntry({
+    clientPageGlobalStore.flowListEntriesSubject.next([
+      newFlow({
         name: 'KeepAlive',
         creator: 'morty',
       }),
@@ -123,8 +118,8 @@ describe('FlowList Component', () => {
     let text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('KeepAlive');
 
-    flowListEntries$.next([
-      newFlowListEntry({
+    clientPageGlobalStore.flowListEntriesSubject.next([
+      newFlow({
         name: 'ClientFileFinder',
         creator: 'rick',
       }),

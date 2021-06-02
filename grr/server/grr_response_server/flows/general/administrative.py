@@ -1,14 +1,10 @@
 #!/usr/bin/env python
 """Administrative flows for managing the clients state."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
-
 import logging
 import os
 import shlex
 import time
-from typing import Text, Tuple, Type
+from typing import Optional, Text, Tuple, Type
 
 import jinja2
 
@@ -31,6 +27,7 @@ from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import events
+from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import hunt
 from grr_response_server import message_handlers
@@ -737,8 +734,14 @@ class ClientAlertHandler(ClientAlertHandlerMixin,
       self.SendEmail(message.client_id, message.request.payload.string)
 
 
-class ClientStartupHandlerMixin(object):
-  """Handles client startup events."""
+class ClientStartupHandler(message_handlers.MessageHandler):
+  """MessageHandler that is invoked when the GRR client process starts."""
+
+  handler_name = "ClientStartupHandler"
+
+  def ProcessMessages(self, msgs):
+    for message in msgs:
+      self.WriteClientStartupInfo(message.client_id, message.request.payload)
 
   def WriteClientStartupInfo(self, client_id, new_si):
     """Handle a startup event."""
@@ -759,19 +762,43 @@ class ClientStartupHandlerMixin(object):
           index = client_index.ClientIndex()
           index.AddClientLabels(client_id, labels)
 
+        if self._IsInterrogateNeeded(client_id, current_si, new_si):
+          flow.StartFlow(
+              client_id=client_id,
+              flow_cls=discovery.Interrogate,
+              creator="GRRWorker")
+
       except db.UnknownClientError:
         # On first contact with a new client, this write will fail.
         logging.info("Can't write StartupInfo for unknown client %s", client_id)
 
+  def _IsInterrogateNeeded(self, client_id: str,
+                           current_si: Optional[rdf_client.StartupInfo],
+                           new_si: rdf_client.StartupInfo) -> bool:
+    # Interrogate the client immediately after its version has been
+    # updated. Only start an Interrogate here if `current_si` is set, thus
+    # the client is not new. New clients are interrogated from a different
+    # handler.
+    if (not current_si or current_si.client_info.client_version
+        == new_si.client_info.client_version):
+      return False
 
-class ClientStartupHandler(ClientStartupHandlerMixin,
-                           message_handlers.MessageHandler):
+    min_create_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
+        1, rdfvalue.HOURS)
 
-  handler_name = "ClientStartupHandler"
+    flows = data_store.REL_DB.ReadAllFlowObjects(
+        client_id=client_id,
+        min_create_time=min_create_time,
+        include_child_flows=False)
 
-  def ProcessMessages(self, msgs):
-    for message in msgs:
-      self.WriteClientStartupInfo(message.client_id, message.request.payload)
+    # Do not start an Interrogate if another Interrogate has been started
+    # recently and is not yet finished.
+    for f in flows:
+      if (f.flow_class_name == discovery.Interrogate.__name__ and
+          f.flow_state in (f.FlowState.UNSET, f.FlowState.RUNNING)):
+        return False
+
+    return True
 
 
 class KeepAliveArgs(rdf_structs.RDFProtoStruct):

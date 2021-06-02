@@ -1,6 +1,13 @@
-# Breaking Changes
+# Changelog (important and/or breaking changes).
 
-## Upcoming version
+## Upcoming release
+
+
+## 3.4.3.1
+
+* Introduced Hunt.default_client_rate configuration option.
+
+## 3.4.2.4
 
 * The server YAML configuration options path_globs_blacklist and
   path_globs_whitelist in get_flow_files_archive of router_params of
@@ -34,4 +41,3 @@
   * This message is obsolete, removing it.
 * ClientArtifactCollectorArgs
   * Removing use_tsk, since it hasn't been used on the client side
-* Introduced Hunt.default_client_rate configuration option.

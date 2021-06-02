@@ -87,6 +87,8 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
     opts.timestamp_subsecond_precision = args.body_opts.timestamp_subsecond_precision
     opts.inode_ntfs_file_reference_format = args.body_opts.inode_ntfs_file_reference_format
     opts.backslash_escape = args.body_opts.backslash_escape
+    opts.carriage_return_escape = args.body_opts.carriage_return_escape
+    opts.non_printable_escape = args.body_opts.non_printable_escape
 
     entries = timeline.ProtoEntries(client_id=client_id, flow_id=flow_id)
     content = body.Stream(entries, opts=opts)

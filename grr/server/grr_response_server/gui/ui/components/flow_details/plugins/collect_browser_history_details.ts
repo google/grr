@@ -1,24 +1,28 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FlowFileResult, flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
-import {BrowserProgress, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectBrowserHistoryProgress, CollectBrowserHistoryResult} from '@app/lib/api/api_interfaces';
+import {BrowserProgress, BrowserProgressStatus, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectBrowserHistoryProgress, CollectBrowserHistoryResult} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {findFlowListEntryResultSet, FlowListEntry, FlowResultSetState, FlowState} from '@app/lib/models/flow';
+import {Flow, FlowResult, FlowState} from '@app/lib/models/flow';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {assertNonNull} from '../../../lib/preconditions';
+import {FlowResultsQueryWithAdapter} from '../helpers/load_flow_results_directive';
+import {Status as ResultAccordionStatus} from '../helpers/result_accordion';
 
 import {Plugin} from './plugin';
-
 
 
 declare interface BrowserRow {
   name: CollectBrowserHistoryArgsBrowser;
   friendlyName: string;
   progress: BrowserProgress;
-  fetchInProgress: boolean;
-  results?: FlowFileResult[];
+  status?: ResultAccordionStatus;
+  description: string;
+  resultQuery:
+      FlowResultsQueryWithAdapter<ReadonlyArray<FlowFileResult>|undefined>;
 }
+
 
 
 /**
@@ -31,12 +35,10 @@ declare interface BrowserRow {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CollectBrowserHistoryDetails extends Plugin {
-  static readonly INITIAL_COUNT = 100;
-  static readonly LOAD_STEP = 100;
+  readonly INITIAL_COUNT = 100;
+  readonly LOAD_STEP = 100;
 
   readonly FINISHED = FlowState.FINISHED;
-
-  readonly expandedRows: {[key: string]: boolean} = {};
 
   constructor(private readonly httpApiService: HttpApiService) {
     super();
@@ -46,98 +48,90 @@ export class CollectBrowserHistoryDetails extends Plugin {
     return item.name;
   }
 
-  hasProgress$: Observable<boolean> = this.flowListEntry$.pipe(
-      map((flowListEntry) => flowListEntry.flow.progress !== undefined),
+  hasProgress$: Observable<boolean> = this.flow$.pipe(
+      map((flow) => flow.progress !== undefined),
   );
 
-  args$: Observable<CollectBrowserHistoryArgs> = this.flowListEntry$.pipe(
-      map((flowListEntry) =>
-              flowListEntry.flow.args as CollectBrowserHistoryArgs),
+  args$: Observable<CollectBrowserHistoryArgs> = this.flow$.pipe(
+      map((flow) => flow.args as CollectBrowserHistoryArgs),
   );
 
-  flowState$: Observable<FlowState> = this.flowListEntry$.pipe(
-      map((flowListEntry) => flowListEntry.flow.state),
+  flowState$: Observable<FlowState> = this.flow$.pipe(
+      map((flow) => flow.state),
   );
 
-  totalFiles$: Observable<number> =
-      this.flowListEntry$.pipe(map((flowListEntry) => {
-        const p = flowListEntry.flow.progress as CollectBrowserHistoryProgress;
-        return (p.browsers ?? [])
-            .reduce((total, cur) => total + (cur.numCollectedFiles ?? 0), 0);
-      }));
+  totalFiles$: Observable<number> = this.flow$.pipe(map((flow) => {
+    const p = flow.progress as CollectBrowserHistoryProgress;
+    return (p.browsers ?? [])
+        .reduce((total, cur) => total + (cur.numCollectedFiles ?? 0), 0);
+  }));
 
-  browserRows$: Observable<BrowserRow[]> =
-      this.flowListEntry$.pipe(map((flowListEntry) => {
-        const p = flowListEntry.flow.progress as CollectBrowserHistoryProgress;
-        return (p.browsers ?? [])
-            .map(bp => this.createBrowserRow(flowListEntry, bp));
-      }));
+  browserRows$: Observable<BrowserRow[]> = this.flow$.pipe(map((flow) => {
+    const p = flow.progress as CollectBrowserHistoryProgress;
+    return (p.browsers ?? []).map(bp => this.createBrowserRow(flow, bp));
+  }));
 
-  archiveUrl$: Observable<string> =
-      this.flowListEntry$.pipe(map((flowListEntry) => {
-        return this.httpApiService.getFlowFilesArchiveUrl(
-            flowListEntry.flow.clientId, flowListEntry.flow.flowId);
-      }));
+  archiveUrl$: Observable<string> = this.flow$.pipe(map((flow) => {
+    return this.httpApiService.getFlowFilesArchiveUrl(
+        flow.clientId, flow.flowId);
+  }));
 
-  archiveFileName$: Observable<string> =
-      this.flowListEntry$.pipe(map((flowListEntry) => {
-        return flowListEntry.flow.clientId.replace('.', '_') + '_' +
-            flowListEntry.flow.flowId + '.zip';
-      }));
-
-  loadMore(row: BrowserRow) {
-    let queryNum: number;
-    if (row.results) {
-      queryNum = row.results.length + CollectBrowserHistoryDetails.LOAD_STEP;
-    } else {
-      queryNum = CollectBrowserHistoryDetails.INITIAL_COUNT;
-    }
-    this.queryFlowResults({
-      offset: 0,
-      count: queryNum,
-      withTag: row.name.toUpperCase(),
-    });
-  }
-
-  rowClicked(row: BrowserRow) {
-    if (row.progress.numCollectedFiles === 0) {
-      return;
-    }
-
-    const newValue = !this.expandedRows[row.name];
-    this.expandedRows[row.name] = newValue;
-
-    // Only load results on first expansion.
-    if (newValue && row.results === undefined) {
-      this.loadMore(row);
-    }
-  }
+  archiveFileName$: Observable<string> = this.flow$.pipe(map((flow) => {
+    return flow.clientId.replace('.', '_') + '_' + flow.flowId + '.zip';
+  }));
 
   private capitalize(v: string): string {
     return v[0].toUpperCase() + v.slice(1);
   }
 
-  private createBrowserRow(fle: FlowListEntry, progress: BrowserProgress):
-      BrowserRow {
+  private createBrowserRow(flow: Flow, progress: BrowserProgress): BrowserRow {
     assertNonNull(progress.browser, 'progress.browser');
 
-    const resultSet =
-        findFlowListEntryResultSet(fle, undefined, progress.browser);
     const friendlyName = progress.browser.toLowerCase()
                              .split('_')
                              .map(this.capitalize)
                              .join(' ');
 
 
+    let status = ResultAccordionStatus.NONE;
+    let description = '';
+
+    if (progress.status === BrowserProgressStatus.ERROR) {
+      status = ResultAccordionStatus.ERROR;
+      description = progress.description ?? '';
+    } else if (progress.status === BrowserProgressStatus.IN_PROGRESS) {
+      status = ResultAccordionStatus.IN_PROGRESS;
+    } else if (progress.status === BrowserProgressStatus.SUCCESS) {
+      if (!progress.numCollectedFiles) {
+        status = ResultAccordionStatus.WARNING;
+        description = 'No files collected';
+      } else if (progress.numCollectedFiles === 1) {
+        status = ResultAccordionStatus.SUCCESS;
+        description = '1 file';
+      } else {
+        status = ResultAccordionStatus.SUCCESS;
+        description = `${progress.numCollectedFiles} files`;
+      }
+    }
+
     return {
       name: progress.browser,
       friendlyName,
       progress,
-      fetchInProgress: resultSet?.state !== FlowResultSetState.FETCHED,
-      results: resultSet?.items.map((i) => {
-        return flowFileResultFromStatEntry(
-            (i.payload as CollectBrowserHistoryResult).statEntry!);
-      }),
+      status,
+      description,
+      resultQuery: {
+        flow,
+        withTag: progress.browser.toUpperCase(),
+        resultMapper: mapFlowResults,
+      },
     };
   }
+}
+
+function mapFlowResults(results?: ReadonlyArray<FlowResult>):
+    ReadonlyArray<FlowFileResult>|undefined {
+  return results?.map(
+      r => flowFileResultFromStatEntry(
+          (r.payload as CollectBrowserHistoryResult).statEntry!));
 }

@@ -22,10 +22,19 @@ install:
     -secret %GCS_ENCRYPTION_KEY%
 
 build_script:
+  # Build (legacy) ZIP templates.
   - >-
     C:\Python36-x64\python.exe
     C:\grr_src\appveyor\windows_templates\build_windows_templates.py
     --grr_src=C:\grr_src
     --output_dir=C:\grr_src\output
+    --test_repack_install
+  # Build new-style MSI templates.
+  - >-
+    C:\Python36-x64\python.exe
+    C:\grr_src\appveyor\windows_templates\build_windows_templates.py
+    --build_msi
+    --grr_src=C:\grr_src
+    --output_dir=C:\grr_src\output_msi
     --test_repack_install
   - powershell C:\grr_src\appveyor\windows_templates\deploy_to_gcs.ps1

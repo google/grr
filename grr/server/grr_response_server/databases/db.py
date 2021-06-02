@@ -846,7 +846,8 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def ReadClientStartupInfo(self, client_id):
+  def ReadClientStartupInfo(self,
+                            client_id: str) -> Optional[rdf_client.StartupInfo]:
     """Reads the latest client startup record for a single client.
 
     Args:
@@ -3107,7 +3108,8 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.WriteClientStartupInfo(client_id, startup_info)
 
-  def ReadClientStartupInfo(self, client_id):
+  def ReadClientStartupInfo(self,
+                            client_id: str) -> Optional[rdf_client.StartupInfo]:
     precondition.ValidateClientId(client_id)
 
     return self.delegate.ReadClientStartupInfo(client_id)

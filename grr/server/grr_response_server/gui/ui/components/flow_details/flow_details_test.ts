@@ -5,13 +5,12 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 import {DefaultDetails} from '@app/components/flow_details/plugins/default_details';
 import {MultiGetFileDetails} from '@app/components/flow_details/plugins/multi_get_file_details';
-import {Plugin} from '@app/components/flow_details/plugins/plugin';
-import {FlowDescriptor, FlowListEntry, flowListEntryFromFlow} from '@app/lib/models/flow';
-import {newFlowListEntry} from '@app/lib/models/model_test_util';
+import {Flow, FlowDescriptor} from '@app/lib/models/flow';
+import {newFlow} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
 
-import {ConfigFacade} from '../../store/config_facade';
-import {mockConfigFacade} from '../../store/config_facade_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 
 import {FlowDetailsModule} from './module';
 
@@ -29,17 +28,13 @@ initTestEnvironment();
 @Component({
   template: `
 <flow-details
-    [flowListEntry]="flowListEntry"
-    [flowDescriptor]="flowDescriptor"
-
-    (flowResultsQuery)="flowResultsQueryTriggered($event)">
+    [flow]="flow"
+    [flowDescriptor]="flowDescriptor">
 </flow-details>`
 })
 class TestHostComponent {
-  flowListEntry: FlowListEntry|undefined;
+  flow: Flow|undefined;
   flowDescriptor: FlowDescriptor|undefined;
-
-  flowResultsQueryTriggered = jasmine.createSpy('flowResultsQueryTriggered');
 }
 
 describe('FlowDetails Component', () => {
@@ -56,24 +51,23 @@ describe('FlowDetails Component', () => {
           ],
 
           providers: [
-            {provide: ConfigFacade, useFactory: mockConfigFacade},
+            {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore},
           ]
         })
         .compileComponents();
   }));
 
-  function createComponent(
-      flowListEntry: FlowListEntry,
-      flowDescriptor?: FlowDescriptor): ComponentFixture<TestHostComponent> {
+  function createComponent(flow: Flow, flowDescriptor?: FlowDescriptor):
+      ComponentFixture<TestHostComponent> {
     const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.componentInstance.flowListEntry = flowListEntry;
+    fixture.componentInstance.flow = flow;
     fixture.componentInstance.flowDescriptor = flowDescriptor;
     fixture.detectChanges();
 
     return fixture;
   }
 
-  const SAMPLE_FLOW_LIST_ENTRY = Object.freeze(newFlowListEntry({
+  const SAMPLE_FLOW_LIST_ENTRY = Object.freeze(newFlow({
     flowId: '42',
     lastActiveAt: new Date('2019-09-23T12:00:00+0000'),
     startedAt: new Date('2019-08-23T12:00:00+0000'),
@@ -109,8 +103,8 @@ describe('FlowDetails Component', () => {
   it('displays new flow on "flow" binding update', () => {
     const fixture = createComponent(SAMPLE_FLOW_LIST_ENTRY);
 
-    fixture.componentInstance.flowListEntry = flowListEntryFromFlow(
-        {...SAMPLE_FLOW_LIST_ENTRY.flow, name: 'AnotherFlow'});
+    fixture.componentInstance.flow =
+        newFlow({...SAMPLE_FLOW_LIST_ENTRY, name: 'AnotherFlow'});
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -126,7 +120,7 @@ describe('FlowDetails Component', () => {
   });
 
   it('uses dedicated plugin if available', () => {
-    FLOW_DETAILS_PLUGIN_REGISTRY[SAMPLE_FLOW_LIST_ENTRY.flow.name] =
+    FLOW_DETAILS_PLUGIN_REGISTRY[SAMPLE_FLOW_LIST_ENTRY.name] =
         MultiGetFileDetails;
 
     const fixture = createComponent(SAMPLE_FLOW_LIST_ENTRY);
@@ -136,29 +130,7 @@ describe('FlowDetails Component', () => {
         .not.toBeNull();
   });
 
-  it('propagates flowResultsQuery event from the plugin', () => {
-    const fixture = createComponent(SAMPLE_FLOW_LIST_ENTRY);
-    const plugin = fixture.debugElement.query(By.directive(DefaultDetails))
-                       .componentInstance as Plugin;
-
-    plugin.queryFlowResults({
-      offset: 0,
-      count: 100,
-      withType: 'someType',
-      withTag: 'someTag',
-    });
-
-    expect(fixture.componentInstance.flowResultsQueryTriggered)
-        .toHaveBeenCalledWith({
-          flowId: SAMPLE_FLOW_LIST_ENTRY.flow.flowId,
-          withType: 'someType',
-          withTag: 'someTag',
-          offset: 0,
-          count: 100,
-        });
-  });
-
   afterEach(() => {
-    delete FLOW_DETAILS_PLUGIN_REGISTRY[SAMPLE_FLOW_LIST_ENTRY.flow.name];
+    delete FLOW_DETAILS_PLUGIN_REGISTRY[SAMPLE_FLOW_LIST_ENTRY.name];
   });
 });

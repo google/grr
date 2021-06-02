@@ -1,5 +1,5 @@
-import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
-import {UserFacade} from '@app/store/user_facade';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {UserGlobalStore} from '@app/store/user_global_store';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
@@ -12,7 +12,7 @@ import {map} from 'rxjs/operators';
 })
 export class UserMenu {
   readonly currentUsername$: Observable<string> =
-      this.userFacade.currentUser$.pipe(map(user => user.name));
+      this.userGlobalStore.currentUser$.pipe(map(user => user.name));
 
-  constructor(private readonly userFacade: UserFacade) {}
+  constructor(private readonly userGlobalStore: UserGlobalStore) {}
 }

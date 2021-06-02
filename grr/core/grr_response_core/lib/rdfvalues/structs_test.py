@@ -1100,17 +1100,106 @@ class AnyValueTest(absltest.TestCase):
     self.assertEqual(unpacked.username, "foo")
 
 
-class VarintReaderTest(absltest.TestCase):
-  """Test the VarintReader implementation."""
+class VarintTest(absltest.TestCase):
+  """Tests the VarintEncode and VarintReader implementations."""
 
-  def testZero(self):
+  _ENCODED_VARINTS = (
+      (1, b"\x01"),
+      (1 << 4, b"\x10"),
+      (1 << 8, b"\x80\x02"),
+      (1 << 12, b"\x80\x20"),
+      (1 << 16, b"\x80\x80\x04"),
+      (1 << 62, b"\x80\x80\x80\x80\x80\x80\x80\x80\x40"),
+      (1 << 63, b"\x80\x80\x80\x80\x80\x80\x80\x80\x80\x01"),
+  )
+
+  def testCorrectlyEncodesIntegers(self):
+    for val, b in self._ENCODED_VARINTS:
+      with self.subTest(value=val):
+        self.assertEqual(rdf_structs.VarintEncode(val), b)
+
+  def testEncodesOverflowIntegerAsZero(self):
+    self.assertEqual(rdf_structs.VarintEncode(1 << 66), b"\x00")
+
+  def testCorrectlyReadsEncodedIntegers(self):
+    for src_val, b in self._ENCODED_VARINTS:
+      with self.subTest(buffer=b):
+        self.assertEqual(rdf_structs.VarintReader(b, 0), (src_val, len(b)))
+
+  def testReaderCanReadWhatEncoderHasEncoded(self):
+    for v in [
+        0, 1, 2, 10, 20, 63, 64, 65, 127, 128, 129, 255, 256, 257, 1 << 63 - 1,
+        1 << 64 - 1
+    ]:
+      with self.subTest(value=v):
+        buf = rdf_structs.VarintEncode(v)
+        r, p = rdf_structs.VarintReader(buf, 0)
+        self.assertEqual(v, r)
+        self.assertLen(buf, p)
+
+  def testDecodingZeroBufferRaises(self):
     with self.assertRaisesRegex(ValueError,
                                 "Too many bytes when decoding varint"):
       rdf_structs.VarintReader(b"", 0)
 
-  def testStructInfiniteLoop(self):
+  def testDecodingValueLargerThan64BitReturnsTruncatedValue(self):
+    self.assertEqual(
+        rdf_structs.VarintReader(b"\x80\x80\x80\x80\x80\x80\x80\x80\x80\x02",
+                                 0), (0, 10))
+
+  def testRaisesWhenBufferIsTooLong(self):
+    with self.assertRaisesRegex(ValueError,
+                                "Too many bytes when decoding varint"):
+      rdf_structs.VarintReader(
+          b"\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x80\x01\x00\x00", 0)
+    with self.assertRaisesRegex(ValueError,
+                                "Too many bytes when decoding varint"):
+      rdf_structs.VarintReader(b"\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF\xFF",
+                               0)
+
+  def testNonCanonicalZeroDoesNotRaise(self):
+    self.assertEqual(rdf_structs.VarintReader(b"\x80\x80\x80\x00", 0), (0, 4))
+
+
+class SignedVarintTest(absltest.TestCase):
+  """Test the VarintReader implementation."""
+
+  _ENCODED_SIGNED_VARINTS = (
+      (-1, b"\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01"),
+      (-(1 << 4), b"\xf0\xff\xff\xff\xff\xff\xff\xff\xff\x01"),
+      (-(1 << 8), b"\x80\xfe\xff\xff\xff\xff\xff\xff\xff\x01"),
+      (-(1 << 12), b"\x80\xe0\xff\xff\xff\xff\xff\xff\xff\x01"),
+      (-(1 << 16), b"\x80\x80\xfc\xff\xff\xff\xff\xff\xff\x01"),
+      (-(1 << 62), b"\x80\x80\x80\x80\x80\x80\x80\x80\xc0\x01"),
+      (-(1 << 63), b"\x80\x80\x80\x80\x80\x80\x80\x80\x80\x01"),
+  )
+
+  def testCorrectlyEncodesSignedIntegers(self):
+    for val, b in self._ENCODED_SIGNED_VARINTS:
+      with self.subTest(value=val):
+        self.assertEqual(rdf_structs.SignedVarintEncode(val), b)
+
+  def testEncodesOverflowIntegerAsZero(self):
+    self.assertEqual(rdf_structs.SignedVarintEncode(-(1 << 66)), b"\x00")
+
+  def testCorrectlyReadsEncodedSignedIntegers(self):
+    for src_val, b in self._ENCODED_SIGNED_VARINTS:
+      with self.subTest(buffer=b):
+        self.assertEqual(
+            rdf_structs.SignedVarintReader(b, 0), (src_val, len(b)))
+
+
+class SplitBufferTest(absltest.TestCase):
+  """Test the SplitBuffer function."""
+
+  def testBrokenStructTagDoesNotLeadToInfiniteLoop(self):
     with self.assertRaisesRegex(ValueError, "Broken varint tag encountered"):
       rdf_structs.SplitBuffer(b"\x00", 0, 1)
+
+  def testOversizedLengthDelimitedTagIsCorrectlyProcessed(self):
+    with self.assertRaisesRegex(ValueError, "Length delimited exceeds limits"):
+      buf = b"\x0a\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x02\xff\xff\xff\xff\xff\xff\x27"
+      rdf_structs.SplitBuffer(buf, 0, len(buf))
 
 
 def main(argv):

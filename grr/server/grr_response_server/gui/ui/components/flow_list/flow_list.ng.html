@@ -4,9 +4,8 @@
 <div *ngFor="let entry of entries$ | async; trackBy: entryTrackByFunction">
   <div class="flow-item">
     <flow-details
-      [flowListEntry]="entry"
+      [flow]="entry.flow"
       [flowDescriptor]="entry.descriptor"
-      (flowResultsQuery)="queryFlowResults(entry.flow.flowId, $event)"
       (menuActionTriggered)="triggerFlowAction(entry, $event)">
     </flow-details>
   </div>

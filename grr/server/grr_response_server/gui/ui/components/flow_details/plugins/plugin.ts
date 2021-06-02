@@ -1,39 +1,25 @@
-import {EventEmitter, Input, OnDestroy, Output} from '@angular/core';
-import {FlowListEntry, FlowResultsQuery} from '@app/lib/models/flow';
+import {Component, Input, OnDestroy} from '@angular/core';
+import {Flow} from '@app/lib/models/flow';
 import {ReplaySubject, Subject} from 'rxjs';
 import {map} from 'rxjs/operators';
-import {makeLegacyLink} from '../../../lib/routing';
 
-/**
- * Flow results query without the flowId field.
- *
- * Flow results queries issues by details plugins are equivalent to the
- * FlowResultsQuery interface, but there should be no need for the user to
- * provide the flowId field, since it can/should be filled in automatically.
- */
-export type FlowResultsQueryWithoutFlowId = Omit<FlowResultsQuery, 'flowId'>;
+import {makeLegacyLink} from '../../../lib/routing';
 
 /**
  * Base class for all flow details plugins.
  */
+@Component({template: ''})
 export abstract class Plugin implements OnDestroy {
-  private flowListEntryValue?: FlowListEntry;
+  private flowValue?: Flow;
 
   /**
-   * Subject emitting new FlowListEntry values on every "flowListEntry"
+   * Subject emitting new Flow values on every "flow"
    * binding change.
    */
-  readonly flowListEntry$ = new ReplaySubject<FlowListEntry>(1);
+  readonly flow$ = new ReplaySubject<Flow>(1);
 
-  /**
-   * Event that is triggered when additional flow results data is needed to
-   * be present in the flowListEntry.
-   */
-  @Output()
-  flowResultsQuery = new EventEmitter<FlowResultsQueryWithoutFlowId>();
-
-  readonly fallbackUrl$ = this.flowListEntry$.pipe(map(fle => {
-    const {flowId, clientId} = fle.flow;
+  readonly fallbackUrl$ = this.flow$.pipe(map(flow => {
+    const {flowId, clientId} = flow;
     return makeLegacyLink(`#/clients/${clientId}/flows/${flowId}`);
   }));
 
@@ -43,27 +29,19 @@ export abstract class Plugin implements OnDestroy {
    * Flow input binding containing flow data information to display.
    */
   @Input()
-  set flowListEntry(value: FlowListEntry) {
-    this.flowListEntryValue = value;
-    this.flowListEntry$.next(value);
+  set flow(value: Flow) {
+    this.flowValue = value;
+    this.flow$.next(value);
   }
 
-  get flowListEntry(): FlowListEntry {
-    return this.flowListEntryValue!;
-  }
-
-  /**
-   * Emits an event indicating that the flow list entry should be updated with
-   * results of a gvein query.
-   */
-  queryFlowResults(query: FlowResultsQueryWithoutFlowId) {
-    this.flowResultsQuery.emit(query);
+  get flow(): Flow {
+    return this.flowValue!;
   }
 
   ngOnDestroy() {
     this.unsubscribe$.next();
     this.unsubscribe$.complete();
 
-    this.flowListEntry$.complete();
+    this.flow$.complete();
   }
 }

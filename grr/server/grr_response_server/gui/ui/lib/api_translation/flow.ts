@@ -1,8 +1,8 @@
-import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiScheduledFlow, ByteString, ExecuteResponse as ApiExecuteResponse, Hash} from '@app/lib/api/api_interfaces';
+import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiScheduledFlow, ArtifactCollectorFlowArgs, ArtifactCollectorFlowProgress as ApiArtifactCollectorFlowProgress, ByteString, ExecuteResponse as ApiExecuteResponse, Hash} from '@app/lib/api/api_interfaces';
 import {bytesToHex, createDate, createUnknownObject, decodeBase64} from '@app/lib/api_translation/primitive';
-import {ExecuteResponse, Flow, FlowDescriptor, FlowResult, FlowState, HexHash, OperatingSystem, ScheduledFlow} from '@app/lib/models/flow';
+import {ArtifactCollectorFlowProgress, ArtifactProgress, ExecuteResponse, Flow, FlowDescriptor, FlowResult, FlowState, HexHash, OperatingSystem, ScheduledFlow} from '@app/lib/models/flow';
 
-import {assertKeyNonNull, PreconditionError} from '../preconditions';
+import {assertKeyNonNull, assertNonNull, PreconditionError} from '../preconditions';
 
 /** Constructs a FlowDescriptor from the corresponding API data structure */
 export function translateFlowDescriptor(fd: ApiFlowDescriptor): FlowDescriptor {
@@ -142,4 +142,29 @@ export function translateExecuteResponse(er: ApiExecuteResponse):
     stderr: atob(er.stderr ?? ''),
     timeUsedSeconds: (er.timeUsed ?? 0) / 1e6
   };
+}
+
+/**
+ * Constructs internal ArtifactCollectorFlowProgress from an ArtifactCollector.
+ */
+export function translateArtifactCollectorFlowProgress(flow: Flow):
+    ArtifactCollectorFlowProgress {
+  const progressAritfacts =
+      (flow.progress as ApiArtifactCollectorFlowProgress)?.artifacts ?? [];
+
+  const argumentArtifacts =
+      (flow.args as ArtifactCollectorFlowArgs)?.artifactList ?? [];
+
+  const artifacts = new Map<string, ArtifactProgress>();
+
+  for (const name of argumentArtifacts) {
+    artifacts.set(name, {name, numResults: undefined});
+  }
+
+  for (const art of progressAritfacts) {
+    assertNonNull(art.name, 'ArtifactProgress.name');
+    artifacts.set(art.name, {name: art.name, numResults: art.numResults ?? 0});
+  }
+
+  return {artifacts};
 }

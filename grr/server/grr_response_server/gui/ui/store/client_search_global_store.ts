@@ -13,7 +13,7 @@ interface ClientSearchState {
 }
 
 /**
- * Store used by the ClientSearchFacade.
+ * Store used by the ClientSearchGlobalStore.
  */
 @Injectable({
   providedIn: 'root',
@@ -75,12 +75,12 @@ export class ClientSearchStore extends ComponentStore<ClientSearchState> {
 }
 
 /**
- * Facade for the client search.
+ * GlobalStore for the client search.
  */
 @Injectable({
   providedIn: 'root',
 })
-export class ClientSearchFacade {
+export class ClientSearchGlobalStore {
   constructor(private readonly store: ClientSearchStore) {}
 
   /**

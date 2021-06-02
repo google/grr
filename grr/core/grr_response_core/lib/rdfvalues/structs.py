@@ -15,6 +15,7 @@ from typing import ByteString, Iterator, Optional, Sequence, Text, Type, TypeVar
 from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
 from google.protobuf import text_format
+from grr_response_core import _semantic
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import serialization
 from grr_response_core.lib import type_info
@@ -24,18 +25,12 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_proto import semantic_pb2
 
-# pylint: disable=g-import-not-at-top
-try:
-  from grr_response_core import _semantic
-except ImportError:
-  _semantic = None
 
-# pylint: disable=super-init-not-called
-# pylint: enable=g-import-not-at-top
-
-# We copy these here to remove dependency on the protobuf library.
-TAG_TYPE_BITS = 3  # Number of bits used to hold type info in a proto tag.
-TAG_TYPE_MASK = (1 << TAG_TYPE_BITS) - 1  # 0x7
+# pylint: disable=invalid-name
+VarintEncode = _semantic.varint_encode
+VarintReader = _semantic.varint_decode
+SplitBuffer = _semantic.split_buffer
+# pylint: enable=invalid-name
 
 # These numbers identify the wire type of a protocol buffer value.
 # We use the least-significant TAG_TYPE_BITS bits of the varint-encoded
@@ -51,167 +46,23 @@ WIRETYPE_START_GROUP = 3
 WIRETYPE_END_GROUP = 4
 
 WIRETYPE_FIXED32 = 5
-_WIRETYPE_MAX = 5
-
-# The following are the varint encoding/decoding functions taken from the
-# protobuf library. Placing them in this file allows us to remove dependency on
-# the standard protobuf library.
-
-# TODO: Indexing `bytes` objects works differently between Python 2
-# and Python 3. In Python 3 it returns an integer representing given byte,
-# whereas in Python 2 it returns a byte character. Because the code below is
-# (allegedly) hot, we do not want to perform any type and compatibility checks
-# there. Instead, we just override what these maps accept (byte characters in
-# Python 2, integers in Python 3) and everything seems to work fine.
-if compatibility.PY2:
-  ORD_MAP = {chr(x).encode("latin-1"): x for x in range(0, 256)}
-else:
-  ORD_MAP = {x: x for x in range(0, 256)}
-
-CHR_MAP = {x: chr(x).encode("latin-1") for x in range(0, 256)}
-HIGH_CHR_MAP = {x: chr(0x80 | x).encode("latin-1") for x in range(0, 256)}
-
-# Some optimizations to get rid of AND operations below since they are really
-# slow in Python.
-
-# TODO: See a comment above.
-if compatibility.PY2:
-  ORD_MAP_AND_0X80 = {chr(x).encode("latin-1"): x & 0x80 for x in range(0, 256)}
-  ORD_MAP_AND_0X7F = {chr(x).encode("latin-1"): x & 0x7F for x in range(0, 256)}
-else:
-  ORD_MAP_AND_0X80 = {x: x & 0x80 for x in range(0, 256)}
-  ORD_MAP_AND_0X7F = {x: x & 0x7F for x in range(0, 256)}
-
-
-# This function is HOT.
-def ReadTag(buf, pos):
-  """Read a tag from the buffer, and return a (tag_bytes, new_pos) tuple."""
-  try:
-    start = pos
-    while ORD_MAP_AND_0X80[buf[pos]]:
-      pos += 1
-    pos += 1
-    return (buf[start:pos], pos)
-  except IndexError:
-    raise ValueError("Invalid tag")
-
-
-# This function is HOT.
-def VarintEncode(value):
-  """Convert an integer to a varint."""
-  result = b""
-  if value < 0:
-    raise ValueError("Varint can not encode a negative number.")
-
-  bits = value & 0x7f
-  value >>= 7
-
-  while value:
-    result += HIGH_CHR_MAP[bits]
-    bits = value & 0x7f
-    value >>= 7
-
-  result += CHR_MAP[bits]
-
-  return result
 
 
 def SignedVarintEncode(value):
-  """Encode a signed integer as a zigzag encoded signed integer."""
-  result = b""
+  """Encode a signed integer as a signed varint."""
   if value < 0:
     value += (1 << 64)
 
-  bits = value & 0x7f
-  value >>= 7
-  while value:
-    result += HIGH_CHR_MAP[bits]
-    bits = value & 0x7f
-    value >>= 7
-  result += CHR_MAP[bits]
-
-  return result
-
-
-# This function is HOT.
-def VarintReader(buf, pos=0):
-  """A 64 bit decoder from google.protobuf.internal.decoder."""
-  result = 0
-  shift = 0
-  while 1:
-    b = buf[pos]
-
-    result |= (ORD_MAP_AND_0X7F[b] << shift)
-    pos += 1
-    if not ORD_MAP_AND_0X80[b]:
-      return (result, pos)
-    shift += 7
-    if shift >= 64:
-      raise rdfvalue.DecodeError("Too many bytes when decoding varint.")
+  return VarintEncode(value)
 
 
 def SignedVarintReader(buf, pos=0):
-  """A Signed 64 bit decoder from google.protobuf.internal.decoder."""
-  result = 0
-  shift = 0
-  while 1:
-    b = buf[pos]
-    result |= (ORD_MAP_AND_0X7F[b] << shift)
-    pos += 1
-    if not ORD_MAP_AND_0X80[b]:
-      if result > 0x7fffffffffffffff:
-        result -= (1 << 64)
+  """A signed 64 bit decoder for signed varints."""
+  result, p = VarintReader(buf, pos)
+  if result > 0x7fffffffffffffff:
+    result -= (1 << 64)
 
-      return (result, pos)
-
-    shift += 7
-    if shift >= 64:
-      raise rdfvalue.DecodeError("Too many bytes when decoding varint.")
-
-
-def SplitBuffer(buff, index=0, length=None):
-  """Parses the buffer as a prototypes.
-
-  Args:
-    buff: The buffer to parse.
-    index: The position to start parsing.
-    length: Optional length to parse until.
-
-  Yields:
-    Splits the buffer into tuples of strings:
-        (encoded_tag, encoded_length, wire_format).
-  """
-  buffer_len = length or len(buff)
-  while index < buffer_len:
-    # data_index is the index where the data begins (i.e. after the tag).
-    encoded_tag, data_index = ReadTag(buff, index)
-
-    tag_type = ORD_MAP[encoded_tag[0]] & TAG_TYPE_MASK
-    if tag_type == WIRETYPE_VARINT:
-      # new_index is the index of the next tag.
-      _, new_index = VarintReader(buff, data_index)
-      yield (encoded_tag, b"", buff[data_index:new_index])
-      index = new_index
-
-    elif tag_type == WIRETYPE_FIXED64:
-      yield (encoded_tag, b"", buff[data_index:data_index + 8])
-      index = 8 + data_index
-
-    elif tag_type == WIRETYPE_FIXED32:
-      yield (encoded_tag, b"", buff[data_index:data_index + 4])
-      index = 4 + data_index
-
-    elif tag_type == WIRETYPE_LENGTH_DELIMITED:
-      # Start index of the string.
-      length, start = VarintReader(buff, data_index)
-      yield (
-          encoded_tag,
-          buff[data_index:start],  # Encoded length.
-          buff[start:start + length])  # Raw data of element.
-      index = start + length
-
-    else:
-      raise rdfvalue.DecodeError("Unexpected Tag.")
+  return (result, p)
 
 
 def _GetOrderedEntries(data):
@@ -304,14 +155,6 @@ def ReadIntoObject(buff, index, value_obj, length=0):
       raw_data[type_info_obj.name] = (None, wire_format, type_info_obj)
 
   value_obj.SetRawData(raw_data)
-
-
-# pylint: disable=invalid-name
-if _semantic:
-  VarintEncode = _semantic.varint_encode
-  VarintReader = _semantic.varint_decode
-  SplitBuffer = _semantic.split_buffer
-# pylint: enable=invalid-name
 
 
 class ProtoType(type_info.TypeInfoObject):

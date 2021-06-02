@@ -10,10 +10,10 @@ import {of} from 'rxjs';
 
 import {Client} from '../../lib/models/client';
 import {newClient} from '../../lib/models/model_test_util';
-import {ClientPageFacade} from '../../store/client_page_facade';
-import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
-import {ConfigFacade} from '../../store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '../../store/config_facade_test_util';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 
 import {Approval} from './approval';
 import {ApprovalModule} from './module';
@@ -29,12 +29,12 @@ function makeClient(args: Partial<Client> = {}): Client {
 }
 
 describe('Approval Component', () => {
-  let clientPageFacade: ClientPageFacadeMock;
-  let configFacade: ConfigFacadeMock;
+  let clientPageGlobalStore: ClientPageGlobalStoreMock;
+  let configGlobalStore: ConfigGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
-    clientPageFacade = mockClientPageFacade();
-    configFacade = mockConfigFacade();
+    clientPageGlobalStore = mockClientPageGlobalStore();
+    configGlobalStore = mockConfigGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -45,8 +45,11 @@ describe('Approval Component', () => {
           ],
 
           providers: [
-            {provide: ClientPageFacade, useFactory: () => clientPageFacade},
-            {provide: ConfigFacade, useFactory: () => configFacade},
+            {
+              provide: ClientPageGlobalStore,
+              useFactory: () => clientPageGlobalStore
+            },
+            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
             OverlayModule,
             {
               provide: ActivatedRoute,
@@ -65,8 +68,8 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageFacade.selectedClientSubject.next(makeClient());
-    configFacade.approvalConfigSubject.next({});
+    clientPageGlobalStore.selectedClientSubject.next(makeClient());
+    configGlobalStore.approvalConfigSubject.next({});
 
     fixture.componentInstance.formRequestedApprovers.add('rick');
     fixture.componentInstance.formRequestedApprovers.add('jerry');
@@ -76,7 +79,7 @@ describe('Approval Component', () => {
         .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(clientPageFacade.requestApproval).toHaveBeenCalledWith({
+    expect(clientPageGlobalStore.requestApproval).toHaveBeenCalledWith({
       clientId: 'C.1234',
       approvers: ['rick', 'jerry'],
       reason: 'sample reason',
@@ -88,9 +91,9 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageFacade.selectedClientSubject.next(makeClient());
+    clientPageGlobalStore.selectedClientSubject.next(makeClient());
 
-    configFacade.approvalConfigSubject.next(
+    configGlobalStore.approvalConfigSubject.next(
         {optionalCcEmail: 'foo@example.org'});
     fixture.detectChanges();
 
@@ -109,9 +112,9 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageFacade.selectedClientSubject.next(makeClient());
+    clientPageGlobalStore.selectedClientSubject.next(makeClient());
 
-    configFacade.approvalConfigSubject.next(
+    configGlobalStore.approvalConfigSubject.next(
         {optionalCcEmail: 'foo@example.org'});
     fixture.detectChanges();
 
@@ -122,7 +125,7 @@ describe('Approval Component', () => {
         .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(clientPageFacade.requestApproval)
+    expect(clientPageGlobalStore.requestApproval)
         .toHaveBeenCalledWith(
             jasmine.objectContaining({cc: ['foo@example.org']}));
   });
@@ -131,9 +134,9 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageFacade.selectedClientSubject.next(makeClient());
+    clientPageGlobalStore.selectedClientSubject.next(makeClient());
 
-    configFacade.approvalConfigSubject.next(
+    configGlobalStore.approvalConfigSubject.next(
         {optionalCcEmail: 'foo@example.org'});
     fixture.detectChanges();
 
@@ -144,7 +147,7 @@ describe('Approval Component', () => {
         .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(clientPageFacade.requestApproval)
+    expect(clientPageGlobalStore.requestApproval)
         .toHaveBeenCalledWith(jasmine.objectContaining({cc: []}));
   });
 
@@ -153,8 +156,8 @@ describe('Approval Component', () => {
     fixture.detectChanges();
 
     const client = makeClient();
-    clientPageFacade.selectedClientSubject.next(client);
-    clientPageFacade.latestApprovalSubject.next({
+    clientPageGlobalStore.selectedClientSubject.next(client);
+    clientPageGlobalStore.latestApprovalSubject.next({
       approvalId: '1',
       clientId: 'C.1234',
       requestor: 'testuser',
@@ -176,8 +179,8 @@ describe('Approval Component', () => {
     fixture.detectChanges();
 
     const client = makeClient();
-    clientPageFacade.selectedClientSubject.next(client);
-    clientPageFacade.latestApprovalSubject.next({
+    clientPageGlobalStore.selectedClientSubject.next(client);
+    clientPageGlobalStore.latestApprovalSubject.next({
       approvalId: '111',
       clientId: 'C.1234',
       requestor: 'testuser',
@@ -203,17 +206,17 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageFacade.selectedClientSubject.next(makeClient());
-    configFacade.approvalConfigSubject.next({});
+    clientPageGlobalStore.selectedClientSubject.next(makeClient());
+    configGlobalStore.approvalConfigSubject.next({});
 
-    expect(clientPageFacade.suggestApprovers).toHaveBeenCalledWith('');
+    expect(clientPageGlobalStore.suggestApprovers).toHaveBeenCalledWith('');
 
     const approversInput =
         fixture.debugElement.query(By.css('mat-chip-list input'));
     approversInput.triggerEventHandler('focusin', null);
     fixture.detectChanges();
 
-    clientPageFacade.approverSuggestionsSubject.next(['bar', 'baz']);
+    clientPageGlobalStore.approverSuggestionsSubject.next(['bar', 'baz']);
     fixture.detectChanges();
 
     const matOptions = document.querySelectorAll('mat-option');
@@ -226,8 +229,8 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageFacade.selectedClientSubject.next(makeClient());
-    configFacade.approvalConfigSubject.next({});
+    clientPageGlobalStore.selectedClientSubject.next(makeClient());
+    configGlobalStore.approvalConfigSubject.next({});
 
     const approversInput =
         fixture.debugElement.query(By.css('mat-chip-list input'));
@@ -235,8 +238,8 @@ describe('Approval Component', () => {
     approversInput.triggerEventHandler('focusin', null);
     fixture.detectChanges();
 
-    expect(clientPageFacade.suggestApprovers).toHaveBeenCalledWith('ba');
-    clientPageFacade.approverSuggestionsSubject.next(['bar', 'baz']);
+    expect(clientPageGlobalStore.suggestApprovers).toHaveBeenCalledWith('ba');
+    clientPageGlobalStore.approverSuggestionsSubject.next(['bar', 'baz']);
     fixture.detectChanges();
 
     const matOptions = document.querySelectorAll('mat-option');

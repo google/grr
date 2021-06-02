@@ -130,6 +130,30 @@ class StreamTest(absltest.TestCase):
 
     self.assertIn("|C:\\\\Windows\\\\system32\\\\notepad.exe|", content)
 
+  def testCarriageReturnEscape(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = "C:\\Foo\rBar\\Baz\r\rQuux".encode("utf-8")
+
+    opts = body.Opts()
+    opts.carriage_return_escape = True
+
+    stream = body.Stream(iter([entry]), opts=opts)
+    content = b"".join(stream).decode("utf-8")
+
+    self.assertIn("|C:\\Foo\\rBar\\Baz\\r\\rQuux|", content)
+
+  def testNonPrintableEscape(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = b"/f\x00b\x0ar\x1baz"
+
+    opts = body.Opts()
+    opts.non_printable_escape = True
+
+    stream = body.Stream(iter([entry]), opts=opts)
+    content = b"".join(stream).decode("utf-8")
+
+    self.assertIn(r"|/f\x00b\x0ar\x1baz|", content)
+
   def testPathWithPipe(self):
     entry = timeline_pb2.TimelineEntry()
     entry.path = "/foo|bar/baz".encode("utf-8")
@@ -174,6 +198,15 @@ class StreamTest(absltest.TestCase):
     content = b"".join(stream).decode("utf-8")
 
     self.assertIn("|C:\\Windows\\system32|", content)
+
+  def testPathWithCarriageReturn(self):
+    entry = timeline_pb2.TimelineEntry()
+    entry.path = "/foo/bar\rbaz/quux\r\rnorf".encode("utf-8")
+
+    stream = body.Stream(iter([entry]))
+    content = b"".join(stream).decode("utf-8")
+
+    self.assertIn("|/foo/bar\rbaz/quux\r\rnorf|", content)
 
 
 if __name__ == "__main__":

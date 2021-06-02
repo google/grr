@@ -16,15 +16,8 @@ interface ClientDetailsState {
   readonly clientVersions?: ReadonlyArray<ClientVersion>;
   readonly clientEntriesChanged?: Map<string, ReadonlyArray<Client>>;
 }
-/**
- * ComponentStore implementation used by the ClientDetailsFacade. Shouldn't be
- * used directly. Declared as an exported global symbol to make dependency
- * injection possible.
- */
-@Injectable({
-  providedIn: 'root',
-})
-export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
+/** ComponentStore implementation used by the ClientDetailsGlobalStore. */
+class ClientDetailsComponentStore extends ComponentStore<ClientDetailsState> {
   constructor(private readonly httpApiService: HttpApiService) {
     super({});
 
@@ -108,12 +101,14 @@ export class ClientDetailsStore extends ComponentStore<ClientDetailsState> {
                       clientEntriesChanged !== undefined));
 }
 
-/** Facade for client details related API calls. */
+/** GlobalStore for client details related API calls. */
 @Injectable({
   providedIn: 'root',
 })
-export class ClientDetailsFacade {
-  constructor(private readonly store: ClientDetailsStore) {}
+export class ClientDetailsGlobalStore {
+  constructor(private readonly httpApiService: HttpApiService) {}
+
+  private readonly store = new ClientDetailsComponentStore(this.httpApiService);
 
   /** An observable emitting the client versions of the selected client. */
   readonly selectedClientVersions$: Observable<ReadonlyArray<ClientVersion>> =

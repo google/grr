@@ -87,4 +87,31 @@ message ApiTimelineBodyOpts {
   // This flag will cause each backslash in the original path to be prepended
   // with one extra backslash.
   optional bool backslash_escape = 3;
+
+  // Whether carriage return character [1] should be escaped.
+  //
+  // By default, carriage return character is not escaped and is emitted in the
+  // output as is. This is because the official specification does not specify
+  // what to do with it and tools in general should not assume much about bytes
+  // in the path. However, sometimes (e.g. for Windows-specific tools) it might
+  // be more appropriate to actually escape this character.
+  //
+  // The flag will cause the carriage return byte (0x0D) to be replaced with
+  // '\r' (a backslash followed by the 'r' character).
+  //
+  // [1]: https://en.wikipedia.org/wiki/Carriage_return
+  optional bool carriage_return_escape = 4;
+
+  // Whether non-printable ASCII characters [1] should be escaped.
+  //
+  // Some tools have problems with correctly displaying the body file when the
+  // output contains ASCII control characters (e.g. null, escape or delete).
+  // This option can be used to bypass these limitations.
+  //
+  // The flag will cause all non-printable characters to be displayed using the
+  // '\x##' format (e.g. the cancel character with codepoint 0x18 will show up
+  // as '\x18'.
+  //
+  // [1]: https://en.wikipedia.org/wiki/ASCII#Control_characters
+  optional bool non_printable_escape = 5;
 }

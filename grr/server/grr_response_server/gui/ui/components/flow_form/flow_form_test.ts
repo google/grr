@@ -2,13 +2,13 @@ import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowFormModule} from '@app/components/flow_form/module';
 import {CollectBrowserHistoryArgsBrowser} from '@app/lib/api/api_interfaces';
-import {ClientPageFacade} from '@app/store/client_page_facade';
-import {ConfigFacade} from '@app/store/config_facade';
-import {ConfigFacadeMock, mockConfigFacade} from '@app/store/config_facade_test_util';
+import {ClientPageGlobalStore} from '@app/store/client_page_global_store';
+import {ConfigGlobalStore} from '@app/store/config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '@app/store/config_global_store_test_util';
 import {initTestEnvironment} from '@app/testing';
 
 import {newClient, newFlowDescriptor} from '../../lib/models/model_test_util';
-import {ClientPageFacadeMock, mockClientPageFacade} from '../../store/client_page_facade_test_util';
+import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
 
 import {FlowForm} from './flow_form';
 
@@ -20,12 +20,12 @@ function getSubmit<T>(fixture: ComponentFixture<T>) {
 }
 
 describe('FlowForm Component', () => {
-  let configFacade: ConfigFacadeMock;
-  let clientPageFacade: ClientPageFacadeMock;
+  let configGlobalStore: ConfigGlobalStoreMock;
+  let clientPageGlobalStore: ClientPageGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
-    configFacade = mockConfigFacade();
-    clientPageFacade = mockClientPageFacade();
+    configGlobalStore = mockConfigGlobalStore();
+    clientPageGlobalStore = mockClientPageGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -35,8 +35,11 @@ describe('FlowForm Component', () => {
           ],
 
           providers: [
-            {provide: ConfigFacade, useFactory: () => configFacade},
-            {provide: ClientPageFacade, useFactory: () => clientPageFacade},
+            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
+            {
+              provide: ClientPageGlobalStore,
+              useFactory: () => clientPageGlobalStore
+            },
           ]
         })
         .compileComponents();
@@ -48,7 +51,7 @@ describe('FlowForm Component', () => {
 
     expect(getSubmit(fixture)).toBeNull();
 
-    clientPageFacade.selectedFlowDescriptorSubject.next(undefined);
+    clientPageGlobalStore.selectedFlowDescriptorSubject.next(undefined);
     expect(getSubmit(fixture)).toBeNull();
   });
 
@@ -56,7 +59,8 @@ describe('FlowForm Component', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
-    clientPageFacade.selectedFlowDescriptorSubject.next(newFlowDescriptor());
+    clientPageGlobalStore.selectedFlowDescriptorSubject.next(
+        newFlowDescriptor());
     fixture.detectChanges();
 
     expect(getSubmit(fixture)).toBeTruthy();
@@ -66,18 +70,18 @@ describe('FlowForm Component', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
-    clientPageFacade.selectedClientSubject.next(newClient());
-    clientPageFacade.selectedFlowDescriptorSubject.next(newFlowDescriptor({
+    clientPageGlobalStore.selectedClientSubject.next(newClient());
+    clientPageGlobalStore.selectedFlowDescriptorSubject.next(newFlowDescriptor({
       name: 'CollectBrowserHistory',
       defaultArgs: {
         browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
       }
     }));
-    clientPageFacade.hasAccessSubject.next(true);
+    clientPageGlobalStore.hasAccessSubject.next(true);
     fixture.detectChanges();
 
     getSubmit(fixture).click();
-    expect(clientPageFacade.startFlow).toHaveBeenCalledWith({
+    expect(clientPageGlobalStore.startFlow).toHaveBeenCalledWith({
       browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
     });
   });
@@ -86,9 +90,9 @@ describe('FlowForm Component', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
-    clientPageFacade.selectedClientSubject.next(newClient());
-    clientPageFacade.hasAccessSubject.next(false);
-    clientPageFacade.selectedFlowDescriptorSubject.next(newFlowDescriptor({
+    clientPageGlobalStore.selectedClientSubject.next(newClient());
+    clientPageGlobalStore.hasAccessSubject.next(false);
+    clientPageGlobalStore.selectedFlowDescriptorSubject.next(newFlowDescriptor({
       name: 'CollectBrowserHistory',
       defaultArgs: {
         browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
@@ -97,7 +101,7 @@ describe('FlowForm Component', () => {
     fixture.detectChanges();
 
     getSubmit(fixture).click();
-    expect(clientPageFacade.scheduleFlow).toHaveBeenCalledWith({
+    expect(clientPageGlobalStore.scheduleFlow).toHaveBeenCalledWith({
       browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
     });
   });
@@ -106,12 +110,13 @@ describe('FlowForm Component', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
-    clientPageFacade.selectedClientSubject.next(newClient());
-    clientPageFacade.selectedFlowDescriptorSubject.next(newFlowDescriptor());
-    clientPageFacade.hasAccessSubject.next(true);
+    clientPageGlobalStore.selectedClientSubject.next(newClient());
+    clientPageGlobalStore.selectedFlowDescriptorSubject.next(
+        newFlowDescriptor());
+    clientPageGlobalStore.hasAccessSubject.next(true);
     fixture.detectChanges();
 
-    clientPageFacade.startFlowStateSubject.next(
+    clientPageGlobalStore.startFlowStateSubject.next(
         {state: 'error', error: 'foobazzle rapidly disintegrated'});
     fixture.detectChanges();
 

@@ -3,7 +3,7 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {MultiGetFileDetails} from '@app/components/flow_details/plugins/multi_get_file_details';
 import {PathSpecProgressStatus} from '@app/lib/api/api_interfaces';
 import {newPathSpec} from '@app/lib/api/api_test_util';
-import {newFlowListEntry} from '@app/lib/models/model_test_util';
+import {newFlow} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
 
 import {PluginsModule} from './module';
@@ -30,14 +30,13 @@ describe('multi-get-file-details component', () => {
   it('shows message if progress is not reported', () => {
     const fixture = TestBed.createComponent(MultiGetFileDetails);
 
-    fixture.componentInstance.flowListEntry =
-        newFlowListEntry({name: 'MultiGetFile'});
+    fixture.componentInstance.flow = newFlow({name: 'MultiGetFile'});
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('legacy UI');
   });
 
-  const FLOW_LIST_ENTRY = Object.freeze(newFlowListEntry({
+  const FLOW_LIST_ENTRY = Object.freeze(newFlow({
     name: 'MultiGetFile',
     args: {
       pathspecs: [
@@ -65,7 +64,7 @@ describe('multi-get-file-details component', () => {
 
   it('shows information about collected files', () => {
     const fixture = TestBed.createComponent(MultiGetFileDetails);
-    fixture.componentInstance.flowListEntry = FLOW_LIST_ENTRY;
+    fixture.componentInstance.flow = FLOW_LIST_ENTRY;
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('Processed 0 out of 2');

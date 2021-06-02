@@ -5,7 +5,8 @@ import {map, takeUntil, takeWhile} from 'rxjs/operators';
 
 import {Process} from '../../../lib/api/api_interfaces';
 import {createOptionalDate} from '../../../lib/api_translation/primitive';
-import {FlowListEntry} from '../../../lib/models/flow';
+import {FlowResult} from '../../../lib/models/flow';
+import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 
 import {Plugin} from './plugin';
 
@@ -25,20 +26,14 @@ function newNode(process: Process): ProcessNode {
   };
 }
 
-function asProcess(data: unknown): Process {
-  const process = data as Process;
+function asProcess(data: FlowResult): Process {
+  const process = data.payload as Process;
 
   if (process.pid === undefined) {
     throw new Error(`"Expected Process with pid, received ${data}.`);
   }
 
   return process;
-}
-
-function getResults<T>(
-    fle: FlowListEntry, mapper: (result: unknown) => T): T[] {
-  return fle.resultSets.flatMap(
-      rs => rs.items.map(item => mapper(item.payload)));
 }
 
 function toTrees(processes: Process[]): ProcessNode[] {
@@ -71,19 +66,21 @@ const INITIAL_RESULT_COUNT = 1000;
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ListProcessesDetails extends Plugin {
-  showResults = false;
-
   readonly treeControl = new NestedTreeControl<ProcessNode, number>(
       node => node.children, {trackBy: (node) => node.pid});
 
   readonly dataSource = new MatTreeNestedDataSource<ProcessNode>();
 
-  constructor() {
+  constructor(
+      private readonly flowResultsLocalStore: FlowResultsLocalStore,
+  ) {
     super();
 
-    this.flowListEntry$
+    this.flowResultsLocalStore.query(this.flow$.pipe(map(flow => ({flow}))));
+
+    this.flowResultsLocalStore.results$
         .pipe(
-            map(fle => getResults(fle, asProcess)),
+            map(results => results.map(asProcess)),
             map(toTrees),
             takeWhile((nodes) => nodes.length === 0, true),
             takeUntil(this.unsubscribe$),
@@ -94,11 +91,7 @@ export class ListProcessesDetails extends Plugin {
   }
 
   onShowClicked() {
-    this.showResults = true;
-    this.queryFlowResults({
-      offset: 0,
-      count: INITIAL_RESULT_COUNT,
-    });
+    this.flowResultsLocalStore.queryMore(INITIAL_RESULT_COUNT);
   }
 
   hasChild(index: number, process: ProcessNode): boolean {

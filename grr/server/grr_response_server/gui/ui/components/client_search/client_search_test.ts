@@ -4,7 +4,7 @@ import {ActivatedRoute, RouterLink} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 import {ApiModule} from '@app/lib/api/module';
 import {Client} from '@app/lib/models/client';
-import {ClientSearchFacade} from '@app/store/client_search_facade';
+import {ClientSearchGlobalStore} from '@app/store/client_search_global_store';
 import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
 
@@ -32,7 +32,7 @@ function htmlCollectionToList(c: HTMLCollection): Element[] {
 
 describe('ClientSearch Component', () => {
   let paramsSubject: Subject<Map<string, string>>;
-  let facade: ClientSearchFacade;
+  let store: ClientSearchGlobalStore;
 
   beforeEach(waitForAsync(() => {
     paramsSubject = new Subject();
@@ -55,7 +55,7 @@ describe('ClientSearch Component', () => {
         })
         .compileComponents();
 
-    facade = TestBed.inject(ClientSearchFacade);
+    store = TestBed.inject(ClientSearchGlobalStore);
   }));
 
   it('triggers a new search on route change', () => {
@@ -63,7 +63,7 @@ describe('ClientSearch Component', () => {
     // Ensure ngOnInit hook completes.
     fixture.detectChanges();
 
-    const searchClientsSpy = spyOn(facade, 'searchClients');
+    const searchClientsSpy = spyOn(store, 'searchClients');
     paramsSubject.next(new Map([
       ['q', 'foo'],
     ]));
@@ -74,7 +74,7 @@ describe('ClientSearch Component', () => {
 
   it('displays a list of clients on clients change', () => {
     const subject = new Subject<Client[]>();
-    Object.defineProperty(facade, 'clients$', {
+    Object.defineProperty(store, 'clients$', {
       get() {
         return subject.asObservable();
       }
@@ -125,7 +125,7 @@ describe('ClientSearch Component', () => {
 
   it('includes the reason url param in client urls', () => {
     const subject = new Subject<Client[]>();
-    Object.defineProperty(facade, 'clients$', {
+    Object.defineProperty(store, 'clients$', {
       get() {
         return subject.asObservable();
       }

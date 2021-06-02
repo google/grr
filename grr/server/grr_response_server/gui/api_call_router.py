@@ -650,6 +650,18 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Flows")
+  @ArgsType(api_flow.ApiListFlowApplicableParsersArgs)
+  @ResultType(api_flow.ApiListFlowApplicableParsersResult)
+  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/results/parsers")
+  def ListFlowApplicableParsers(
+      self,
+      args: api_flow.ApiListFlowApplicableParsersArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_flow.ApiListFlowApplicableParsersHandler:
+    """Lists parsers that are applicable to results of the specified flow."""
+    raise NotImplementedError()
+
+  @Category("Flows")
   @ArgsType(api_flow.ApiGetExportedFlowResultsArgs)
   @ResultBinaryStream()
   @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/"

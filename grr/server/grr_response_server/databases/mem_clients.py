@@ -1,10 +1,7 @@
 #!/usr/bin/env python
 """The in memory database methods for client handling."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
-from typing import Generator, List, Text
+from typing import Generator, Optional, List, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -302,7 +299,8 @@ class InMemoryDBClientMixin(object):
     history[ts] = startup_info.SerializeToBytes()
 
   @utils.Synchronized
-  def ReadClientStartupInfo(self, client_id):
+  def ReadClientStartupInfo(self,
+                            client_id: str) -> Optional[rdf_client.StartupInfo]:
     """Reads the latest client startup record for a single client."""
     history = self.startup_history.get(client_id, None)
     if not history:

@@ -8,7 +8,9 @@ import io
 import os
 import random
 import tarfile
+from typing import IO
 from typing import Iterable
+from typing import Iterator
 from unittest import mock
 import zipfile
 
@@ -45,6 +47,7 @@ from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
 from grr_response_server.gui.api_plugins import flow as flow_plugin
 from grr_response_server.output_plugins import test_plugins
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
@@ -404,6 +407,153 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
             flow_id=self.flow_id,
             with_tag="non-existing"))
     self.assertEmpty(result.items)
+
+
+class ApiListFlowApplicableParsersHandler(absltest.TestCase):
+
+  class FakeSingleResponseParser(abstract_parser.SingleResponseParser[None]):
+
+    supported_artifacts = ["Fake"]
+
+    def ParseResponse(
+        self,
+        knowledge_base: rdf_client.KnowledgeBase,
+        response: rdfvalue.RDFValue,
+    ) -> Iterator[None]:
+      raise NotImplementedError()
+
+  class FakeMultiResponseParser(abstract_parser.MultiResponseParser[None]):
+
+    supported_artifacts = ["Fake"]
+
+    def ParseResponses(
+        self,
+        knowledge_base: rdf_client.KnowledgeBase,
+        responses: Iterable[rdfvalue.RDFValue],
+    ) -> Iterator[None]:
+      raise NotImplementedError()
+
+  class FakeSingleFileParser(abstract_parser.SingleFileParser[None]):
+
+    supported_artifacts = ["Fake"]
+
+    def ParseFile(
+        self,
+        knowledge_base: rdf_client.KnowledgeBase,
+        pathspec: rdf_paths.PathSpec,
+        filedesc: IO[bytes],
+    ) -> Iterator[None]:
+      raise NotImplementedError()
+
+  class FakeMultiFileParser(abstract_parser.MultiFileParser[None]):
+
+    supported_artifacts = ["Fake"]
+
+    def ParseFiles(
+        self,
+        knowledge_base: rdf_client.KnowledgeBase,
+        pathspecs: Iterable[rdf_paths.PathSpec],
+        filedescs: Iterable[IO[bytes]],
+    ) -> Iterator[None]:
+      raise NotImplementedError()
+
+  def setUp(self):
+    super().setUp()
+    self.handler = flow_plugin.ApiListFlowApplicableParsersHandler()
+
+  @db_test_lib.WithDatabase
+  def testIncorrectFlowType(self, db: abstract_db.Database) -> None:
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = "4815162342ABCDEF"
+
+    flow_obj = rdf_flow_objects.Flow()
+    flow_obj.client_id = client_id
+    flow_obj.flow_id = flow_id
+    flow_obj.flow_class_name = "NotArtifactCollector"
+    db.WriteFlowObject(flow_obj)
+
+    args = flow_plugin.ApiListFlowApplicableParsersArgs()
+    args.client_id = client_id
+    args.flow_id = flow_id
+
+    with self.assertRaisesRegex(ValueError, "Not an artifact-collector flow"):
+      self.handler.Handle(args)
+
+  @parser_test_lib.WithParser("FakeSingleResponse", FakeSingleResponseParser)
+  @parser_test_lib.WithParser("FakeMultiResponse", FakeMultiResponseParser)
+  @parser_test_lib.WithParser("FakeSingleFile", FakeSingleFileParser)
+  @parser_test_lib.WithParser("FakeMultiFile", FakeMultiFileParser)
+  @db_test_lib.WithDatabase
+  def testAlreadyAppliedParsers(self, db: abstract_db.Database) -> None:
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = "4815162342ABCDEF"
+
+    flow_obj = rdf_flow_objects.Flow()
+    flow_obj.client_id = client_id
+    flow_obj.flow_id = flow_id
+    flow_obj.flow_class_name = collectors.ArtifactCollectorFlow.__name__
+    flow_obj.args = rdf_artifacts.ArtifactCollectorFlowArgs(apply_parsers=True)
+    db.WriteFlowObject(flow_obj)
+
+    flow_result = rdf_flow_objects.FlowResult()
+    flow_result.client_id = client_id
+    flow_result.flow_id = flow_id
+    flow_result.tag = "artifact:Fake"
+    db.WriteFlowResults([flow_result])
+
+    args = flow_plugin.ApiListFlowApplicableParsersArgs()
+    args.client_id = client_id
+    args.flow_id = flow_id
+
+    result = self.handler.Handle(args)
+    self.assertEmpty(result.parsers)
+
+  @parser_test_lib.WithParser("FakeSingleResponse", FakeSingleResponseParser)
+  @parser_test_lib.WithParser("FakeMultiResponse", FakeMultiResponseParser)
+  @parser_test_lib.WithParser("FakeSingleFile", FakeSingleFileParser)
+  @parser_test_lib.WithParser("FakeMultiFile", FakeMultiFileParser)
+  @db_test_lib.WithDatabase
+  def testNotAppliedParsers(self, db: abstract_db.Database) -> None:
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = "4815162342ABCDEF"
+
+    flow_obj = rdf_flow_objects.Flow()
+    flow_obj.client_id = client_id
+    flow_obj.flow_id = flow_id
+    flow_obj.flow_class_name = collectors.ArtifactCollectorFlow.__name__
+    flow_obj.args = rdf_artifacts.ArtifactCollectorFlowArgs(apply_parsers=False)
+    db.WriteFlowObject(flow_obj)
+
+    flow_result = rdf_flow_objects.FlowResult()
+    flow_result.client_id = client_id
+    flow_result.flow_id = flow_id
+    flow_result.tag = "artifact:Fake"
+    flow_result.payload = rdfvalue.RDFString("foobar")
+    db.WriteFlowResults([flow_result])
+
+    args = flow_plugin.ApiListFlowApplicableParsersArgs()
+    args.client_id = client_id
+    args.flow_id = flow_id
+
+    result = self.handler.Handle(args)
+    self.assertCountEqual(result.parsers, [
+        flow_plugin.ApiParserDescriptor(
+            type=flow_plugin.ApiParserDescriptor.Type.SINGLE_RESPONSE,
+            name="FakeSingleResponse",
+        ),
+        flow_plugin.ApiParserDescriptor(
+            type=flow_plugin.ApiParserDescriptor.Type.MULTI_RESPONSE,
+            name="FakeMultiResponse",
+        ),
+        flow_plugin.ApiParserDescriptor(
+            type=flow_plugin.ApiParserDescriptor.Type.SINGLE_FILE,
+            name="FakeSingleFile",
+        ),
+        flow_plugin.ApiParserDescriptor(
+            type=flow_plugin.ApiParserDescriptor.Type.MULTI_FILE,
+            name="FakeMultiFile",
+        ),
+    ])
 
 
 class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):

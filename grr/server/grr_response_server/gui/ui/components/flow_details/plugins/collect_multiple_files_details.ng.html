@@ -8,7 +8,11 @@
   </a>
 </div>
 
-<div class="results" *ngIf="(totalFiles$ | async) > 0">
-  <file-results-table [results]="fileResults$ | async" [totalCount]="totalFiles$ | async" (loadMore)="loadMore()">
+<result-accordion
+  *loadFlowResults="query$ | async; let results=results; let queryMore=queryMore"
+  [title]="description$ | async"
+  [expandable]="(totalFiles$ | async) > 0"
+  (firstOpened)="queryMore(QUERY_MORE_COUNT)">
+  <file-results-table *ngIf="results" [results]="results" [totalCount]="totalFiles$ | async" (loadMore)="queryMore(QUERY_MORE_COUNT)">
   </file-results-table>
-</div>
+</result-accordion>
