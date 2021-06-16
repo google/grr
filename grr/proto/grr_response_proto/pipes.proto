@@ -1,0 +1,65 @@
+syntax = "proto2";
+
+package grr;
+
+import "grr_response_proto/sysinfo.proto";
+
+// Input arguments for the flow listing named pipes.
+message ListNamedPipesFlowArgs {
+  // A filter for the pipe type.
+  //
+  // https://docs.microsoft.com/en-us/windows/win32/ipc/named-pipe-type-read-and-wait-modes#type-mode
+  enum PipeTypeFilter {
+    // Match any pipe type.
+    ANY_TYPE = 0;
+    // Match only byte-type pipes.
+    BYTE_TYPE = 1;
+    // Match only message-type pipes.
+    MESSAGE_TYPE = 2;
+  }
+
+  // A filter for the pipe end type.
+  //
+  // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-getnamedpipeinfo
+  enum PipeEndFilter {
+    // Match any kind of pipe end.
+    ANY_END = 0;
+    // Match only client-end pipes.
+    CLIENT_END = 1;
+    // Match only server-end pipes.
+    SERVER_END = 2;
+  }
+
+  // A regular expression to match the pipe name against.
+  //
+  // All pipes listed from the target machine that do not have matching name are
+  // going to be discarded from the flow results.
+  optional string pipe_name_regex = 1;
+
+  // A regular expression to match the associated process executable against.
+  //
+  // All pipes listed from the target machine that do not have an associated
+  // process whose executable path does not match the provided regex is going to
+  // be discarded from the flow results.
+  optional string proc_exe_regex = 4;
+
+  // A type filter to match the pipe type against.
+  //
+  // All pipes listed from the target machine that do not have matching type are
+  // going to be discarded from the flow results.
+  optional PipeTypeFilter pipe_type_filter = 2;
+
+  // A type filter to match the pipe end type against.
+  //
+  // All pipes listed from the target machine that do not have matching end type
+  // are going to be discarded from the flow results.
+  optional PipeEndFilter pipe_end_filter = 3;
+}
+
+// A single result of the named pipe collection flow.
+message ListNamedPipesFlowResult {
+  // Basic information about the pipe.
+  optional NamedPipe pipe = 1;
+  // Information about the process associated with the pipe.
+  optional Process proc = 2;
+}

@@ -128,11 +128,16 @@ class RouterMethodMetadata(object):
   _RULE_REGEX = re.compile("<([a-zA-Z0-9:_]+)")
 
   def GetQueryParamsNames(self):
-    """This extracts all parameters from URL paths for logging.
+    """Extracts all mandatory and optional parameters from URLs for logging.
 
-    This extracts the name of all parameters that are sent inside the
-    URL path for the given route. For example the path
+    This extracts names of all mandatory parameters that are sent inside the
+    URL path for a given route. For example, the path
     /api/clients/<client_id>/last-ip would return ["client_id"].
+
+    For GET requests the returned list will also include optional
+    query paramerters. For example, /api/clients?query=... will
+    return ["query"]. For non-GET HTTP methods no optional parameters will
+    be included into the result.
 
     Some URL paths contain annotated parameters - for example paths as
     in /api/clients/<client_id>/vfs-index/<path:file_path>. Those
@@ -143,11 +148,20 @@ class RouterMethodMetadata(object):
       A list of extracted parameters.
     """
     result = []
-    for unused_method, path, unused_params in self.http_methods or []:
+    found = set()
+    for method, path, unused_params in self.http_methods or []:
       for arg in re.findall(self._RULE_REGEX, path):
         if ":" in arg:
           arg = arg[arg.find(":") + 1:]
         result.append(arg)
+        found.add(arg)
+
+      if method == "GET" and self.args_type is not None:
+        for field in self.args_type.type_infos:
+          if field.name not in found:
+            result.append(field.name)
+            found.add(field.name)
+
     return result
 
 

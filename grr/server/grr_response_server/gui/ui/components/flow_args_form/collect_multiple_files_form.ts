@@ -3,13 +3,13 @@ import {AbstractControl, FormArray, FormControl, FormGroup, ValidationErrors} fr
 import {ExtFlagsCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/ext_flags_condition';
 import {createLiteralMatchFormGroup} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
 import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
-import {SizeCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/size_condition';
+import {createSizeFormGroup} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/size_condition';
 import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 import {isNonNull} from '@app/lib/preconditions';
 import {filter, map, shareReplay} from 'rxjs/operators';
 
-import {CollectMultipleFilesArgs, FileFinderContentsLiteralMatchCondition} from '../../lib/api/api_interfaces';
+import {CollectMultipleFilesArgs, FileFinderContentsLiteralMatchCondition, FileFinderSizeCondition} from '../../lib/api/api_interfaces';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 
 
@@ -56,6 +56,7 @@ export class CollectMultipleFilesForm extends
           contentsRegexMatch: v.contentsRegexMatch &&
               formValuesToFileFinderContentsRegexMatchCondition(
                                   v.contentsRegexMatch),
+          size: v.size as FileFinderSizeCondition,
         };
 
         let trimmedResults: CollectMultipleFilesArgs = {};
@@ -152,7 +153,7 @@ export class CollectMultipleFilesForm extends
 
   // File size condition.
   addSizeCondition() {
-    this.form.addControl('size', SizeCondition.createFormGroup());
+    this.form.addControl('size', createSizeFormGroup());
   }
 
   removeSizeCondition() {

@@ -5,11 +5,15 @@ from __future__ import division
 from __future__ import unicode_literals
 
 import argparse
+import errno
 import glob
+import logging
 import os
 import shutil
 import subprocess
 import time
+
+from typing import Callable
 
 parser = argparse.ArgumentParser(description="Build windows templates.")
 
@@ -97,7 +101,60 @@ parser.add_argument(
 args = parser.parse_args()
 
 
-_SC_STOP_WAIT_TIME_SECS = 5
+_SC_STOP_WAIT_TIME_SECS = 10
+_FILE_RETRY_LOOP_RETRY_TIME_SECS = 30
+
+
+def _FileRetryLoop(path: str, f: Callable[[], None]) -> None:
+  """If `path` exists, calls `f` in a retry loop."""
+  if not os.path.exists(path):
+    return
+  attempts = 0
+  while True:
+    try:
+      f()
+      return
+    except OSError as e:
+      attempts += 1
+      if (e.errno == errno.EACCES and
+          attempts < _FILE_RETRY_LOOP_RETRY_TIME_SECS):
+        # The currently installed GRR process may stick around for a few
+        # seconds after the service is terminated (keeping the contents of
+        # the installation directory locked).
+        logging.info("Permission-denied error while trying to process %s.",
+                     path)
+        time.sleep(1)
+      else:
+        raise
+
+
+def _RmTree(path: str) -> None:
+  _FileRetryLoop(path, lambda: shutil.rmtree(path))
+
+
+def _Rename(src: str, dst: str) -> None:
+  _FileRetryLoop(src, lambda: os.rename(src, dst))
+
+
+def _RmTreePseudoTransactional(path: str) -> None:
+  """Removes `path`.
+
+  Makes sure that either `path` is gone or that it is still present as
+  it was.
+
+  Args:
+    path: The path to remove.
+  """
+  temp_path = f"{path}_orphaned_{int(time.time())}"
+  logging.info("Trying to rename %s -> %s.", path, temp_path)
+
+  _Rename(path, temp_path)
+
+  try:
+    logging.info("Trying to remove %s.", temp_path)
+    _RmTree(temp_path)
+  except:  # pylint: disable=bare-except
+    logging.info("Failed to remove %s. Ignoring.", temp_path, exc_info=True)
 
 
 class WindowsTemplateBuilder(object):
@@ -303,9 +360,22 @@ class WindowsTemplateBuilder(object):
           "repack", "--template", template_i386, "--output_dir", args.output_dir
       ])
 
+  def _WaitForServiceToStop(self) -> bool:
+    """Waits for the GRR monitor service to stop."""
+    logging.info("Waiting for service %s to stop.", self.service_name)
+    for _ in range(_SC_STOP_WAIT_TIME_SECS):
+      command = ["sc", "query", self.service_name]
+      output = subprocess.check_output(command, encoding="utf-8")
+      logging.info("Command %s returned %s.", command, output)
+      if "STOPPED" in output:
+        return True
+      time.sleep(1.0)
+    return False
+
   def _CleanupInstall(self):
     """Cleanup from any previous installer enough for _CheckInstallSuccess."""
 
+    logging.info("Stoping service %s.", self.service_name)
     subprocess.check_call(["sc", "stop", self.service_name])
 
     if args.build_msi:
@@ -315,19 +385,12 @@ class WindowsTemplateBuilder(object):
           "/x",
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop(),
       ]
-      print("Running:", msiexec_args)
+      logging.info("Running: %s.", msiexec_args)
       subprocess.check_call(msiexec_args)
     else:
-      # Wait for service to stop.
-      for _ in range(_SC_STOP_WAIT_TIME_SECS):
-        output = subprocess.check_output(["sc", "query", self.service_name],
-                                         encoding="utf-8")
-        stopped = "STOPPED" in output
-        if stopped:
-          break
-        time.sleep(1.0)
+      self._WaitForServiceToStop()
       if os.path.exists(self.install_path):
-        shutil.rmtree(self.install_path)
+        _RmTreePseudoTransactional(self.install_path)
         if os.path.exists(self.install_path):
           raise RuntimeError("Install path still exists: %s" %
                              self.install_path)
@@ -375,7 +438,7 @@ class WindowsTemplateBuilder(object):
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.exe")).pop()
       ]
     # The exit code is always 0, test to see if install was actually successful.
-    print("Running:", installer_amd64_args)
+    logging.info("Running: %s.", installer_amd64_args)
     subprocess.check_call(installer_amd64_args)
     self._CheckInstallSuccess()
     self._CleanupInstall()

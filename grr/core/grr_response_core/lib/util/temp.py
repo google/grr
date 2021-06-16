@@ -66,8 +66,9 @@ def TempDirPath(suffix: Text = "", prefix: Text = "tmp") -> Text:
   return tempfile.mkdtemp(suffix=suffix, prefix=prefix, dir=_TestTempRootPath())
 
 
-def TempFilePath(suffix: Text = "", prefix: Text = "tmp",
-                 dir: Text = None) -> Text:  # pylint: disable=redefined-builtin
+def TempFilePath(suffix: Text = "",
+                 prefix: Text = "tmp",
+                 dir: Optional[Text] = None) -> Text:  # pylint: disable=redefined-builtin
   """Creates a temporary file based on the environment configuration.
 
   If no directory is specified the file will be placed in folder as specified by

@@ -1192,14 +1192,86 @@ class SignedVarintTest(absltest.TestCase):
 class SplitBufferTest(absltest.TestCase):
   """Test the SplitBuffer function."""
 
-  def testBrokenStructTagDoesNotLeadToInfiniteLoop(self):
+  def testRaisesIfIndexOrLengthIncorrect(self):
+    buf = b"\x00\x00"
+    with self.assertRaises(ValueError):
+      rdf_structs.SplitBuffer(buf, -1, 2)
+    with self.assertRaises(ValueError):
+      rdf_structs.SplitBuffer(buf, 0, -1)
+    with self.assertRaises(ValueError):
+      rdf_structs.SplitBuffer(buf, -1, -1)
+    with self.assertRaises(ValueError):
+      rdf_structs.SplitBuffer(buf, 3, 2)
+
+  def testReturnsNothingOnEmptyBuffer(self):
+    self.assertEqual(rdf_structs.SplitBuffer(b"", 0, 0), [])
+    self.assertEqual(rdf_structs.SplitBuffer(b"\x00\x00", 2, 2), [])
+
+  def testRaisesOnBrokenTag(self):
+    with self.assertRaisesRegex(ValueError, "Broken tag encountered"):
+      rdf_structs.SplitBuffer(b"\xff", 0, 1)
+
+  def testRaisesOnBrokenVarintTag(self):
+    # This used to trigger an infinite loop in the accelerated.c implementation.
     with self.assertRaisesRegex(ValueError, "Broken varint tag encountered"):
       rdf_structs.SplitBuffer(b"\x00", 0, 1)
 
-  def testOversizedLengthDelimitedTagIsCorrectlyProcessed(self):
+    with self.assertRaisesRegex(ValueError, "Broken varint tag encountered"):
+      rdf_structs.SplitBuffer(b"\x00\xff", 0, 2)
+
+  def testCorrectlyProcessesVarintTag(self):
+    self.assertEqual(
+        rdf_structs.SplitBuffer("\x00\x01", 0, 2), [(b"\x00", b"", b"\x01")])
+
+  def testRaisesOnOversizedFixed64Tag(self):
+    for l in range(8):
+      with self.subTest(l=l):
+        with self.assertRaisesRegex(ValueError,
+                                    "Fixed64 tag exceeds available buffer"):
+          buf = b"\x01" + b"\x00" * l
+          rdf_structs.SplitBuffer(buf, 0, len(buf))
+
+  def testCorrectlyProcessesFixed64Tag(self):
+    self.assertEqual(
+        rdf_structs.SplitBuffer("\x01\x00\x01\x02\x03\x04\x05\0x6\0x7", 0, 9),
+        [(b"\x01", b"", b"\x00\x01\x02\x03\x04\x05\x00x")])
+
+  def testRaisesOnOversizedFixed32Tag(self):
+    for l in range(4):
+      with self.subTest(l=l):
+        with self.assertRaisesRegex(ValueError,
+                                    "Fixed32 tag exceeds available buffer"):
+          buf = b"\x05" + b"\x00" * l
+          rdf_structs.SplitBuffer(buf, 0, len(buf))
+
+  def testCorrectlyProcessesFixed32Tag(self):
+    self.assertEqual(
+        rdf_structs.SplitBuffer("\x05\x00\x01\x02\x03", 0, 5),
+        [(b"\x05", b"", b"\x00\x01\x02\x03")])
+
+  def testRaisesOnBrokenLengthDelimitedTag(self):
+    with self.assertRaisesRegex(ValueError,
+                                "Broken length_delimited tag encountered"):
+      rdf_structs.SplitBuffer(b"\x02\xff", 0, 2)
+
+  def testRaisesOnLengthDelimitedTagExceedingMaxInt(self):
     with self.assertRaisesRegex(ValueError, "Length delimited exceeds limits"):
       buf = b"\x0a\xff\xff\xff\xff\xff\xff\xff\xff\xff\x01\x02\xff\xff\xff\xff\xff\xff\x27"
       rdf_structs.SplitBuffer(buf, 0, len(buf))
+
+  def testRaisesOnOversizedLengthDelimitedTag(self):
+    with self.assertRaisesRegex(ValueError,
+                                "Length tag exceeds available buffer"):
+      rdf_structs.SplitBuffer(b"\x02\x02", 0, 2)
+
+  def testCorrectlyProcessesLengthDelimitedTag(self):
+    self.assertEqual(
+        rdf_structs.SplitBuffer("\x02\x02\x00\x01", 0, 4),
+        [(b"\x02", b"\x02", b"\x00\x01")])
+
+  def testRaisesOnUnknownTag(self):
+    with self.assertRaisesRegex(ValueError, "Unexpected Tag"):
+      rdf_structs.SplitBuffer(b"\x03", 0, 1)
 
 
 def main(argv):

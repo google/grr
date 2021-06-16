@@ -150,7 +150,6 @@ setup_args = dict(
         "psutil==5.7.0",
         "python-crontab==2.5.1",
         "python-dateutil==2.8.1",
-        "pytsk3==20200117",
         "pytz==2020.1",
         "PyYAML==5.4.1",
         "requests==2.25.1",

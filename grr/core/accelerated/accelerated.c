@@ -174,6 +174,12 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
     }
 
     if (decoded_length == 0) {
+      // NOTE: this code is unreachable - decoded length should never be 0,
+      // as the current implementation of varint_decode always sets
+      // decoded_length to non-zero on success.
+      //
+      // Keeping the check here, just in case (i.e. in case varint_decode
+      // implementation changes).
       PyErr_SetString(
           PyExc_ValueError, "Zero-length tag encountered.");
       goto error;

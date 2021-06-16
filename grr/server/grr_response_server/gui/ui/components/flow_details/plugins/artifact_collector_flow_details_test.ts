@@ -6,7 +6,7 @@ import {FlowState} from '@app/lib/models/flow';
 import {newFlow, newFlowResult} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
 
-import {ExecuteResponse} from '../../../lib/api/api_interfaces';
+import {ExecuteResponse, PathSpecPathType, RegistryType, StatEntry} from '../../../lib/api/api_interfaces';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
 import {ResultAccordion, Status} from '../helpers/result_accordion';
@@ -49,7 +49,7 @@ describe('artifact-collector-flow-details component', () => {
     });
     flowResultsLocalStore.resultsSubject.next([newFlowResult({
       payloadType: 'StatEntry',
-      payload: {stSize: 123, pathspec: {path: '/foo'}},
+      payload: {stSize: '123', pathspec: {path: '/foo'}},
     })]);
     fixture.detectChanges();
 
@@ -60,6 +60,32 @@ describe('artifact-collector-flow-details component', () => {
 
     expect(fixture.nativeElement.innerText).toContain('/foo');
     expect(fixture.nativeElement.innerText).toContain('123');
+  });
+
+  it('displays registry results ', async () => {
+    const fixture = TestBed.createComponent(ArtifactCollectorFlowDetails);
+    fixture.componentInstance.flow = newFlow({
+      state: FlowState.FINISHED,
+      args: {artifactList: ['foobar']},
+    });
+
+    const statEntry: StatEntry = {
+      stSize: '123',
+      registryType: RegistryType.REG_BINARY,
+      pathspec: {path: 'HKLM\\foo', pathtype: PathSpecPathType.REGISTRY},
+    };
+
+    flowResultsLocalStore.resultsSubject.next(
+        [newFlowResult({payloadType: 'StatEntry', payload: statEntry})]);
+    fixture.detectChanges();
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const resultAccordionHarness =
+        await harnessLoader.getHarness(ResultAccordionHarness);
+    await resultAccordionHarness.toggle();
+
+    expect(fixture.nativeElement.innerText).toContain('HKLM\\foo');
+    expect(fixture.nativeElement.innerText).toContain('REG_BINARY');
   });
 
   it('displays cmd results', async () => {

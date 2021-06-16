@@ -6,7 +6,9 @@ from __future__ import unicode_literals
 
 from absl import app
 
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
+from grr_response_proto import tests_pb2
 from grr_response_server.gui import api_call_router
 from grr.test_lib import test_lib
 
@@ -76,16 +78,34 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
               name))
 
 
+class ApiSingleStringArgument(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.ApiSingleStringArgument
+
+
 class RouterMethodMetadataTest(test_lib.GRRBaseTest):
   """Tests for RouterMethodMetadata."""
 
-  def testGetQueryParamsNamesReturnsEmptyListOnEmptyMetadata(self):
+  def testGetQueryParamsNamesReturnsEmptyListsOnEmptyMetadata(self):
     m = api_call_router.RouterMethodMetadata("SomeMethod")
     self.assertEqual(m.GetQueryParamsNames(), [])
 
-  def testGetQueryParamsNamesWorksCorrectly(self):
+  def testGetQueryParamsNamesReturnsMandaotryParamsCorrectly(self):
     m = api_call_router.RouterMethodMetadata(
-        "SomeMethod", http_methods=[("GET", "/a/<foo>/<bar:zoo>", {})])
+        "SomeMethod", http_methods=[("GET", "/a/<arg>/<bar:zoo>", {})])
+    self.assertEqual(m.GetQueryParamsNames(), ["arg", "zoo"])
+
+  def testGetQueryParamsNamesReturnsOptionalParamsForGET(self):
+    m = api_call_router.RouterMethodMetadata(
+        "SomeMethod",
+        args_type=ApiSingleStringArgument,
+        http_methods=[("GET", "/a/<foo>/<bar:zoo>", {})])
+    self.assertEqual(m.GetQueryParamsNames(), ["foo", "zoo", "arg"])
+
+  def testGetQueryParamsNamesReturnsNoOptionalParamsForPOST(self):
+    m = api_call_router.RouterMethodMetadata(
+        "SomeMethod",
+        args_type=ApiSingleStringArgument,
+        http_methods=[("POST", "/a/<foo>/<bar:zoo>", {})])
     self.assertEqual(m.GetQueryParamsNames(), ["foo", "zoo"])
 
 

@@ -1,4 +1,4 @@
-<table mat-table [dataSource]="rows$ | async">
+<table mat-table [dataSource]="rows$">
   <ng-container matColumnDef="clientId">
     <th mat-header-cell *matHeaderCellDef>Client ID</th>
     <td mat-cell *matCellDef="let element">{{ element.clientId }}</td>

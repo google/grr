@@ -522,6 +522,20 @@ export declare interface CollectSingleFileProgress {
   readonly errorDescription?: string;
 }
 
+/** RegistryType proto mapping. */
+export enum RegistryType {
+  REG_NONE = 'REG_NONE',
+  REG_SZ = 'REG_SZ',
+  REG_EXPAND_SZ = 'REG_EXPAND_SZ',
+  REG_BINARY = 'REG_BINARY',
+  REG_DWORD = 'REG_DWORD',
+  REG_DWORD_LITTLE_ENDIAN = 'REG_DWORD_LITTLE_ENDIAN',
+  REG_DWORD_BIG_ENDIAN = 'REG_DWORD_BIG_ENDIAN',
+  REG_LINK = 'REG_LINK',
+  REG_MULTI_SZ = 'REG_MULTI_SZ',
+  REG_QWORD = 'REG_QWORD',
+}
+
 /** StatEntry proto mapping. */
 export declare interface StatEntry {
   readonly stMode?: string;
@@ -543,9 +557,11 @@ export declare interface StatEntry {
   readonly stFlagsLinux?: number;
 
   readonly symlink?: string;
+  readonly registryType?: RegistryType;
 
   readonly pathspec?: PathSpec;
 }
+
 
 /** AuthenticodeSignedData proto mapping. */
 export declare interface AuthenticodeSignedData {

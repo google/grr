@@ -326,7 +326,7 @@ class MultiTemplateRepacker(object):
         passwd = None
 
         if sign:
-          if template.endswith(".exe.zip"):
+          if template.endswith(".exe.zip") or template.endswith(".msi.zip"):
             # This is for osslsigncode only.
             if platform.system() != "Windows":
               passwd = self.GetWindowsPassphrase()
@@ -343,7 +343,7 @@ class MultiTemplateRepacker(object):
             pool.apply_async(SpawnProcess, (repack_args,), dict(passwd=passwd)))
 
         # Also build debug if it's windows.
-        if template.endswith(".exe.zip"):
+        if template.endswith(".exe.zip") or template.endswith(".msi.zip"):
           debug_args = []
           debug_args.extend(repack_args)
           debug_args.append("--debug_build")

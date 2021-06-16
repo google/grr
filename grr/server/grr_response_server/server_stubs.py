@@ -88,6 +88,13 @@ class WmiQuery(ClientActionStub):
   out_rdfvalues = [rdf_protodict.Dict]
 
 
+class ListNamedPipes(ClientActionStub):
+  """Lists named pipes available on the system."""
+
+  in_rdfvalue = None
+  out_rdfvalues = [rdf_client.NamedPipe]
+
+
 # OS X-specific
 class OSXEnumerateRunningServices(ClientActionStub):
   """Enumerate all running launchd jobs."""

@@ -42,6 +42,7 @@ ACTION_STUB_BY_ID = {
     "HashFile": server_stubs.HashFile,
     "Kill": server_stubs.Kill,
     "ListDirectory": server_stubs.ListDirectory,
+    "ListNamedPipes": server_stubs.ListNamedPipes,
     "ListNetworkConnections": server_stubs.ListNetworkConnections,
     "ListProcesses": server_stubs.ListProcesses,
     "OSXEnumerateRunningServices": server_stubs.OSXEnumerateRunningServices,

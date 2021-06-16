@@ -6,7 +6,7 @@ import {ArtifactCollectorFlowProgress, FlowResult, FlowState} from '@app/lib/mod
 import {combineLatest, Observable} from 'rxjs';
 import {map, take} from 'rxjs/operators';
 
-import {translateArtifactCollectorFlowProgress, translateExecuteResponse} from '../../../lib/api_translation/flow';
+import {isRegistryEntry, isStatEntry, translateArtifactCollectorFlowProgress, translateExecuteResponse, translateStatEntry} from '../../../lib/api_translation/flow';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {fromFlowState} from '../helpers/result_accordion';
 
@@ -77,13 +77,24 @@ export class ArtifactCollectorFlowDetails extends Plugin implements OnInit {
   readonly totalLoadedResults$ =
       this.results$.pipe(map(results => results.length));
 
-  readonly fileResults$ = this.flowResultGlobalStore.results$.pipe(
-      map((results) => getResults(results ?? [], 'StatEntry')
+  private readonly statEntryResults$ = this.flowResultGlobalStore.results$.pipe(
+      map((results) =>
+              getResults(results ?? [], 'StatEntry').map(translateStatEntry)));
+
+  readonly fileResults$ = this.statEntryResults$.pipe(
+      map((results) => results.filter(isStatEntry)
                            .map(stat => flowFileResultFromStatEntry(stat))),
   );
 
   readonly totalFileResults$ =
       this.fileResults$.pipe(map(results => results.length));
+
+  readonly registryResults$ = this.statEntryResults$.pipe(
+      map((results) => results.filter(isRegistryEntry)),
+  );
+
+  readonly totalRegistryResults$ =
+      this.registryResults$.pipe(map(results => results.length));
 
   readonly executeResponseResults$ = this.flowResultGlobalStore.results$.pipe(
       map((results) => getResults(results ?? [], 'ExecuteResponse')

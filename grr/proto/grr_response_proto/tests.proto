@@ -270,3 +270,7 @@ message MetadataSemTypeMessage {
     string oneof_string = 12;
   }
 }
+
+message ApiSingleStringArgument {
+  optional string arg = 1;
+}

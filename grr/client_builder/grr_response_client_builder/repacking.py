@@ -117,7 +117,8 @@ class TemplateRepacker(object):
   def SignTemplate(self, template_path, output_path, context=None):
     """Signs a given template and writes it to a given path."""
 
-    if not template_path.endswith(".exe.zip"):
+    if not (template_path.endswith(".exe.zip") or
+            template_path.endswith(".msi.zip")):
       raise RuntimeError(
           "Signing templates is only worthwhile for windows, rpms are signed "
           "at the package level and signing isn't supported for others.")

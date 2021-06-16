@@ -34,6 +34,8 @@ from grr_response_server.flows.general import collectors
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 FLEETSPEAK_UNLABELED_CLIENTS = metrics.Counter("fleetspeak_unlabeled_clients")
+CLOUD_METADATA_COLLECTION_ERRORS = metrics.Counter(
+    "cloud_metadata_collection_errors")
 
 
 class InterrogateArgs(rdf_structs.RDFProtoStruct):
@@ -93,6 +95,8 @@ class Interrogate(flow_base.FlowBase):
   def CloudMetadata(self, responses):
     """Process cloud metadata and store in the client."""
     if not responses.success:
+      CLOUD_METADATA_COLLECTION_ERRORS.Increment()
+
       # We want to log this but it's not serious enough to kill the whole flow.
       self.Log("Failed to collect cloud metadata: %s" % responses.status)
       return

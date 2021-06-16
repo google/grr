@@ -4,7 +4,7 @@
 The module contains classes that interact with VFS.
 """
 import io
-from typing import Text, List, Iterator, Callable
+from typing import Optional, Text, List, Iterator, Callable
 
 from grr_api_client import client
 from grr_api_client import errors as api_errors
@@ -110,7 +110,7 @@ class VfsFile(io.BufferedIOBase):
     self._ensure_not_closed()
     return self._pos
 
-  def truncate(self, size: int = None) -> None:
+  def truncate(self, size: Optional[int] = None) -> None:
     raise io.UnsupportedOperation()
 
   def writable(self) -> bool:

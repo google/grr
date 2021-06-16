@@ -1,8 +1,8 @@
-import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiScheduledFlow, ArtifactCollectorFlowArgs, ArtifactCollectorFlowProgress as ApiArtifactCollectorFlowProgress, ByteString, ExecuteResponse as ApiExecuteResponse, Hash} from '@app/lib/api/api_interfaces';
+import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiScheduledFlow, ArtifactCollectorFlowArgs, ArtifactCollectorFlowProgress as ApiArtifactCollectorFlowProgress, ByteString, ExecuteResponse as ApiExecuteResponse, Hash, PathSpecPathType, StatEntry} from '@app/lib/api/api_interfaces';
 import {bytesToHex, createDate, createUnknownObject, decodeBase64} from '@app/lib/api_translation/primitive';
-import {ArtifactCollectorFlowProgress, ArtifactProgress, ExecuteResponse, Flow, FlowDescriptor, FlowResult, FlowState, HexHash, OperatingSystem, ScheduledFlow} from '@app/lib/models/flow';
+import {ArtifactCollectorFlowProgress, ArtifactProgress, ExecuteResponse, Flow, FlowDescriptor, FlowResult, FlowState, HexHash, OperatingSystem, RegistryKey, RegistryValue, ScheduledFlow} from '@app/lib/models/flow';
 
-import {assertKeyNonNull, assertNonNull, PreconditionError} from '../preconditions';
+import {assertKeyNonNull, assertNonNull, isNonNull, PreconditionError} from '../preconditions';
 
 /** Constructs a FlowDescriptor from the corresponding API data structure */
 export function translateFlowDescriptor(fd: ApiFlowDescriptor): FlowDescriptor {
@@ -167,4 +167,48 @@ export function translateArtifactCollectorFlowProgress(flow: Flow):
   }
 
   return {artifacts};
+}
+
+/**
+ * Parses a StatEntry to a RegistryKey/Value if possible. As fallback, returns
+ * the original StatEntry.
+ */
+export function translateStatEntry(statEntry: StatEntry): StatEntry|RegistryKey|
+    RegistryValue {
+  assertKeyNonNull(statEntry, 'pathspec');
+  assertKeyNonNull(statEntry.pathspec, 'path');
+
+  const path = statEntry.pathspec.path;
+
+  if (statEntry.registryType) {
+    return {
+      path,
+      type: statEntry.registryType,
+      size: BigInt(statEntry.stSize ?? 0),
+    };
+  } else if (statEntry.pathspec.pathtype === PathSpecPathType.REGISTRY) {
+    return {
+      path,
+      type: 'REG_KEY',
+    };
+  } else {
+    return statEntry;
+  }
+}
+
+/**
+ * Returns true if the returned value of translateStatEntry() is a StatEntry.
+ */
+export function isStatEntry(entry: StatEntry|RegistryKey|
+                            RegistryValue): entry is StatEntry {
+  return isNonNull((entry as StatEntry).pathspec);
+}
+
+/**
+ * Returns true if the returned value of translateStatEntry() is a Registry key
+ * or value.
+ */
+export function isRegistryEntry(entry: StatEntry|RegistryKey|RegistryValue):
+    entry is RegistryKey|RegistryValue {
+  return isNonNull((entry as RegistryKey).type);
 }

@@ -131,6 +131,7 @@ setup_args = dict(
         "absl-py==0.9.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "PyInstaller==3.6",
+        "pytsk3==20200117",
         "retry==0.9.2",
         "libfsntfs-python==20200506",
     ],

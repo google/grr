@@ -17,6 +17,9 @@
   <file-results-table *ngIf="(totalFileResults$ | async) > 0" [results]="fileResults$ | async">
   </file-results-table>
 
+  <registry-results-table *ngIf="(totalRegistryResults$ | async) > 0" [results]="registryResults$ | async">
+  </registry-results-table>
+
   <div *ngFor="let response of executeResponseResults$ | async" class="result">
     <p><strong>cmd:</strong> <span class="monospace">{{response.request.cmd}} {{response.request.args.join(" ")}}</span></p>
     <p><strong>exit code:</strong> <span class="monospace">{{response.exitStatus}}</span></p>

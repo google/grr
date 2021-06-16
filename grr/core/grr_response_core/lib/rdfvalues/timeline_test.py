@@ -24,13 +24,15 @@ class TimelineEntryTest(absltest.TestCase):
       filepath = os.path.join(dirpath, "foobar")
 
       # TODO(hanuszczak): Use `time.time_ns` once we are Python 3.7-only.
-      time_before_ns = math.floor(time.time()) * 1e9
+      # We subtract a second to account for the terrible Windows clock accuracy.
+      time_before_ns = math.floor(time.time() - 1.0) * 1e9
 
       with io.open(filepath, mode="wb") as filedesc:
         filedesc.write(b"1234567")
 
       # TODO(hanuszczak): Use `time.time_ns` once we are Python 3.7-only.
-      time_after_ns = math.ceil(time.time()) * 1e9
+      # We add a second to account for the terrible Windows clock accuracy.
+      time_after_ns = math.ceil(time.time() + 1.0) * 1e9
 
       # TODO(hanuszczak): `AutoTempFilePath` should return a `Path` object.
       filepath_bytes = filepath.encode("utf-8")

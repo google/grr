@@ -23,6 +23,7 @@ from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
 from grr_response_client.client_actions import timeline
 from grr_response_client.client_actions import vfs_file_finder
+from grr_response_client.client_actions.windows import pipes
 
 
 def RegisterClientActions():
@@ -97,6 +98,7 @@ def RegisterClientActions():
     client_actions.Register("WmiQuery", windows.WmiQuery)
     client_actions.Register("Uninstall", windows.Uninstall)
     client_actions.Register("UpdateAgent", windows.UpdateAgent)
+    client_actions.Register("ListNamedPipes", pipes.ListNamedPipesAction)
 
   elif platform.system() == "Darwin":
     from grr_response_client.client_actions.osx import osx  # pylint: disable=g-import-not-at-top

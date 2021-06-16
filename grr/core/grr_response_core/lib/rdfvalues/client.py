@@ -463,6 +463,13 @@ class Process(rdf_structs.RDFProtoStruct):
       return response
 
 
+class NamedPipe(rdf_structs.RDFProtoStruct):
+  """An RDF wrapper for the named pipe message."""
+
+  protobuf = sysinfo_pb2.NamedPipe
+  rdf_deps = []
+
+
 class SoftwarePackage(rdf_structs.RDFProtoStruct):
   """Represent an installed package on the client."""
   protobuf = sysinfo_pb2.SoftwarePackage

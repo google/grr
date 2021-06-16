@@ -1,10 +1,10 @@
-import {ApiFlow, ApiFlowResult, ApiFlowState} from '@app/lib/api/api_interfaces';
+import {ApiFlow, ApiFlowResult, ApiFlowState, PathSpecPathType, RegistryType as ApiRegistryType} from '@app/lib/api/api_interfaces';
 import {newPathSpec} from '@app/lib/api/api_test_util';
-import {Flow, FlowResult, FlowState} from '@app/lib/models/flow';
+import {Flow, FlowResult, FlowState, RegistryType} from '@app/lib/models/flow';
 
 import {initTestEnvironment} from '../../testing';
 
-import {translateFlow, translateFlowResult, translateHashToHex} from './flow';
+import {translateFlow, translateFlowResult, translateHashToHex, translateStatEntry} from './flow';
 
 
 
@@ -90,4 +90,38 @@ describe('translateHashToHex', () => {
       sha256: '56',
     });
   });
+});
+
+describe('translateStatEntry', () => {
+  it('returns the original StatEntry as fallback', () => {
+    expect(translateStatEntry({
+      pathspec: {path: 'foo'},
+      stBlksize: 4,
+    })).toEqual({
+      pathspec: {path: 'foo'},
+      stBlksize: 4,
+    });
+  });
+
+  it('returns a RegistryValue if registryType is set', () => {
+    expect(translateStatEntry({
+      pathspec: {path: 'foo', pathtype: PathSpecPathType.REGISTRY},
+      registryType: ApiRegistryType.REG_NONE,
+      stSize: '123',
+    })).toEqual({
+      path: 'foo',
+      type: RegistryType.REG_NONE,
+      size: BigInt(123),
+    });
+  });
+
+  it('returns a RegistryKey for non-Registry-Values with PathType REGISTRY',
+     () => {
+       expect(translateStatEntry({
+         pathspec: {path: 'foo', pathtype: PathSpecPathType.REGISTRY},
+       })).toEqual({
+         path: 'foo',
+         type: 'REG_KEY',
+       });
+     });
 });

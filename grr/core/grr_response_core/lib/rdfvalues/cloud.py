@@ -14,7 +14,9 @@ from grr_response_proto import jobs_pb2
 AMAZON_URL_BASE = "http://169.254.169.254/latest/meta-data/"
 AMAZON_BIOS_REGEX = ".*amazon"
 AMAZON_SERVICE_REGEX = "SERVICE_NAME: AWSLiteAgent"
-GOOGLE_URL_BASE = "http://metadata.google.internal/computeMetadata/v1"
+# Using the ip and not metadata.google.internal to avoid issues on endpoints
+# with misconfigured DNS resolvers.
+GOOGLE_URL_BASE = "http://169.254.169.254/computeMetadata/v1"
 GOOGLE_BIOS_REGEX = "Google"
 GOOGLE_SERVICE_REGEX = "SERVICE_NAME: GCEAgent"
 

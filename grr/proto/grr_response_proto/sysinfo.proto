@@ -124,6 +124,68 @@ message Process {
   repeated NetworkConnection connections = 26;
 }
 
+// A message containing metadata about named pipes running on the system.
+//
+// Named pipes [1] is one of the Windows-specific mechanisms for communication
+// between processes. A pipe server and pipe clients communicate through a file-
+// like interface, handling all the details with synchronization, buffering and
+// networking for the user.
+//
+// [1]: https://docs.microsoft.com/en-us/windows/win32/ipc/named-pipes
+message NamedPipe {
+  // A name of the pipe.
+  optional string name = 1;
+
+  // An identifier of the process that owns the pipe (pipe server only).
+  //
+  // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getnamedpipeserverprocessid
+  optional uint32 server_pid = 2;
+
+  // An identifier of the process that owns the pipe (pipe client only).
+  //
+  // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getnamedpipeclientprocessid
+  optional uint32 client_pid = 3;
+
+  // A name of the computer of the pipe.
+  //
+  // https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-getnamedpipeclientcomputernamea
+  optional string client_computer_name = 4;
+
+  // A name of the user that is associated with the client application (pipe
+  // server only).
+  //
+  // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-getnamedpipehandlestatew
+  optional string client_user_name = 5;
+
+  // A bitmask with flags describing the type of the pipe.
+  //
+  // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-getnamedpipeinfo
+  optional uint32 flags = 6;
+
+  // Current number of instances of the pipe.
+  //
+  // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-getnamedpipehandlestatew
+  optional uint32 cur_instance_count = 7;
+
+  // Maximum number of instances of the pipe that can be created.
+  //
+  // The value of 255 denotes unlimited number of instances (subject to limits
+  // of the system resources).
+  //
+  // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-getnamedpipeinfo
+  optional uint32 max_instance_count = 8;
+
+  // Size of the buffer for incoming pipe data (in bytes).
+  //
+  // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-getnamedpipeinfo
+  optional uint32 in_buffer_size = 9;
+
+  // Size of the buffer for outgoing pipe data (in bytes).
+  //
+  // https://docs.microsoft.com/en-us/windows/win32/api/namedpipeapi/nf-namedpipeapi-getnamedpipeinfo
+  optional uint32 out_buffer_size = 10;
+}
+
 message NetworkEndpoint {
   optional string ip = 1;
   optional int32 port = 2;

@@ -207,3 +207,30 @@ export declare interface ArtifactProgress {
 export declare interface ArtifactCollectorFlowProgress {
   readonly artifacts: ReadonlyMap<string, ArtifactProgress>;
 }
+
+/** A Windows Registry Key. */
+export declare interface RegistryKey {
+  readonly path: string;
+  readonly type: 'REG_KEY';
+}
+
+/** RegistryType proto mapping. */
+export enum RegistryType {
+  REG_NONE = 'REG_NONE',
+  REG_SZ = 'REG_SZ',
+  REG_EXPAND_SZ = 'REG_EXPAND_SZ',
+  REG_BINARY = 'REG_BINARY',
+  REG_DWORD = 'REG_DWORD',
+  REG_DWORD_LITTLE_ENDIAN = 'REG_DWORD_LITTLE_ENDIAN',
+  REG_DWORD_BIG_ENDIAN = 'REG_DWORD_BIG_ENDIAN',
+  REG_LINK = 'REG_LINK',
+  REG_MULTI_SZ = 'REG_MULTI_SZ',
+  REG_QWORD = 'REG_QWORD',
+}
+
+/** A Windows Registry Value. */
+export declare interface RegistryValue {
+  readonly path: string;
+  readonly type: RegistryType;
+  readonly size: BigInt;
+}

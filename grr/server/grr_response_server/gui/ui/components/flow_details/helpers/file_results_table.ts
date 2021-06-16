@@ -3,7 +3,7 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
 import {StatEntry} from '@app/lib/api/api_interfaces';
 import {createOptionalDateSeconds} from '@app/lib/api_translation/primitive';
-import {combineLatest, Observable, ReplaySubject} from 'rxjs';
+import {combineLatest, Observable, of, ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {HexHash} from '../../../lib/models/flow';
@@ -14,7 +14,7 @@ import {HexHash} from '../../../lib/models/flow';
  */
 export declare interface FlowFileResult {
   readonly statEntry: StatEntry;
-  readonly hashes: HexHash;
+  readonly hashes?: HexHash;
 }
 
 /**
@@ -23,7 +23,7 @@ export declare interface FlowFileResult {
  * a StatEntry->FlowFileResult conversion function is provided.
  */
 export function flowFileResultFromStatEntry(
-    statEntry: StatEntry, hashes: HexHash = {}): FlowFileResult {
+    statEntry: StatEntry, hashes?: HexHash): FlowFileResult {
   return {
     statEntry,
     hashes,
@@ -32,7 +32,7 @@ export function flowFileResultFromStatEntry(
 
 declare interface TableRow {
   readonly path: string;
-  readonly hashes: HexHash;
+  readonly hashes?: HexHash;
   readonly mode?: string;
   readonly uid: string;
   readonly gid: string;
@@ -43,6 +43,16 @@ declare interface TableRow {
   readonly btime?: Date;
 }
 
+const COLUMNS: ReadonlyArray<keyof TableRow> = [
+  'path',
+  'hashes',
+  'mode',
+  'size',
+  'atime',
+  'mtime',
+  'ctime',
+  'btime',
+];
 
 /**
  * Component that displays a file table.
@@ -83,6 +93,8 @@ export class FileResultsTable {
           };
         });
       }));
+
+  displayedColumns$: Observable<ReadonlyArray<string>> = of(COLUMNS);
 
   /**
    * Subject indicating whether a "Load more" button has to be shown.

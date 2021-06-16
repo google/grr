@@ -9,6 +9,7 @@ import {MatInputModule} from '@angular/material/input';
 import {MatSelectModule} from '@angular/material/select';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
+import {ByteComponentsModule} from '@app/components/form/byte_input/module';
 import {DateTimeInputModule} from '@app/components/form/date_time_input/module';
 
 import {ConditionPanel} from './condition_panel';
@@ -30,6 +31,7 @@ import {TimeRangeCondition} from './time_range_condition';
     CommonModule,
     // Our custom modules.
     DateTimeInputModule,
+    ByteComponentsModule,
     // Angular Material modules.
     MatCardModule,
     MatButtonModule,
