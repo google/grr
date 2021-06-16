@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """A module with compatibility wrappers for YAML processing."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import collections
 import io

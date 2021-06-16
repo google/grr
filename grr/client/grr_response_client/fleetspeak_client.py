@@ -4,9 +4,6 @@
 This module contains glue code necessary for Fleetspeak and the GRR client
 to work together.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import logging
 import pdb

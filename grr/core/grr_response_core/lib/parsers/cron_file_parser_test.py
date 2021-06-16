@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.cron_file_parser."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import os
 

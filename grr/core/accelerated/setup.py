@@ -15,9 +15,6 @@
 # limitations under the License.
 """Acceleration module for semantic protobuf parsing."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 # pylint: disable=g-importing-member
 from distutils.core import Extension

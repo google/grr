@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Tests for the worker."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import threading
 from unittest import mock

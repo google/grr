@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """The base class for flow objects."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import logging
 import traceback

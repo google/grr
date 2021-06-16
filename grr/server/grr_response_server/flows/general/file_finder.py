@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Search for certain files, filter them by given criteria and do something."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import stat
 

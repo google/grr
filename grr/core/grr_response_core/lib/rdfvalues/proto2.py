@@ -9,9 +9,6 @@ This file contains interoperability code with the Google protocol buffer
 library.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import inspect
 import logging

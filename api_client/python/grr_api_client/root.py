@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Root (i.e. administrative) actions support in GRR API client library."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import hashlib
 from typing import Callable

@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """Tests for grr.lib.client_index."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import binascii
 import ipaddress

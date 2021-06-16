@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """A module with utilities for dealing with context managers."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import ContextManager
 from typing import Generic

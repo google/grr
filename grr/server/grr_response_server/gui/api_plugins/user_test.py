@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """This module contains tests for user API handlers."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from unittest import mock
 

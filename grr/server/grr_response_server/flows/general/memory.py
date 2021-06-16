@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Flows related to process memory."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import collections
 import logging

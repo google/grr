@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """UI report plugins server-side interface."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 
 from grr_response_server.gui.api_plugins.report_plugins import client_report_plugins

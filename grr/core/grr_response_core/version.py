@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """GRR Rapid Response Framework."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import configparser
 import os

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """API E2E tests for an ApiCallRouterWithChecks."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from absl import app
 

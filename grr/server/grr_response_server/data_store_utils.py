@@ -5,9 +5,6 @@ This module serves simple functions that delegate calls to appropriate store
 (legacy or relational). Once the legacy data store is deprecated functions
 provided in this module should be no longer useful.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import client as rdf_client

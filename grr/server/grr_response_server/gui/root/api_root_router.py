@@ -5,9 +5,6 @@ Root router provides root-level access to GRR. It is not externally accessible
 and must be accessed from a machine that runs GRR services directly (it runs
 on top of a server bound to "localhost").
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import Optional
 

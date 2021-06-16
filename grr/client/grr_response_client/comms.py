@@ -67,9 +67,6 @@ Examples:
    URL/Proxy combination as in example 1.
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import collections
 import logging

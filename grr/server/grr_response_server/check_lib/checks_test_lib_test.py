@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """Tests for checks_test_lib."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import IO
 from typing import Iterator

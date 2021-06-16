@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Root-access-level API handlers for binary management."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs

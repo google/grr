@@ -7,9 +7,6 @@ run GRR tests.
 If you want to do any development, you probably want this.
 
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import configparser
 import os

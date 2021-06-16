@@ -4,9 +4,6 @@
 
 These tests don't have OS X dependencies and will run on linux.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import ctypes
 from unittest import mock

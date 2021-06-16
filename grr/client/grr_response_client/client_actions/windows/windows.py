@@ -5,9 +5,6 @@ Most of these actions share an interface (in/out rdfvalues) with linux actions
 of the same name. Windows-only actions are registered with the server via
 libs/server_stubs.py
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import binascii
 import ctypes

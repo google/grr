@@ -9,9 +9,6 @@ of assurance that a request was authorized by IAP.
 For applications running in the App Engine standard environment, use
 App Engine's Users API instead.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import jwt
 import requests

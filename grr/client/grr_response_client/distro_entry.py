@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """This file defines the entry points for the client."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from absl import app
 

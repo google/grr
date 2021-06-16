@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Tests for client_utils_linux.py."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import os
 import platform

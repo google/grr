@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """A resolver for ip addresses to hostnames."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import ipaddress
 import logging

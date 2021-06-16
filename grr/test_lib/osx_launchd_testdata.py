@@ -5,9 +5,6 @@ These dicts are python representations of the pyobjc NSCFDictionarys returned by
 the ServiceManagement framework.  It's close enough to the pyobjc object that we
 can use it to test the parsing code without needing to run on OS X.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 
 # Disable some lint warnings to avoid tedious fixing of test data

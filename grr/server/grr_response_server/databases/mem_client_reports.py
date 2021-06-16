@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """In-memory implementation of DB methods for handling client report data."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import Dict, Optional, Text
 

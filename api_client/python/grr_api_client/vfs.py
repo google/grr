@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """VFS-related part of GRR API client library."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import abc
 from typing import Optional

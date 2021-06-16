@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Router giving access only to clients with certain labels."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import Optional
 

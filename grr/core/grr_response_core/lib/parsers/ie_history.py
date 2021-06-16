@@ -11,10 +11,6 @@ For anyone who wants a useful reference, see this:
 - https://github.com/libyal/libmsiecf/blob/master/documentation/MSIE%20Cache%20File%20%28index.dat%29%20format.asciidoc
 """
 # pylint: enable=line-too-long
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import logging
 import operator

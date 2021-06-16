@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Tests for clients with special approval logic."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import os
 

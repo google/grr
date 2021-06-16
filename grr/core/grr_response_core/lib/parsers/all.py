@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """A module for registering all known parsers."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib.parsers import chrome_history

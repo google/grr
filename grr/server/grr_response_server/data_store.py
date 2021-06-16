@@ -33,10 +33,6 @@ More complex types should be encoded into bytes and stored in the data store as
 bytes. The data store can then treat the type as an opaque type (and will not be
 able to filter it directly).
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import logging
 import sys

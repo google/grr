@@ -42,9 +42,6 @@ of statistics data will be collected. Given that it's extremely important
 to ensure that every field used in particular metric has a finite number of
 possible values.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import abc
 import threading

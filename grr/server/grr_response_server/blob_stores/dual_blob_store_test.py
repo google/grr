@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """Tests for the legacy AFF4-based blob store."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import queue
 from unittest import mock

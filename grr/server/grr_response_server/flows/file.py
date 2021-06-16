@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Flows to collect file contents and metadata."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import Any, Optional
 

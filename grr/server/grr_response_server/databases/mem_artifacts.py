@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """The in-memory database methods for handling artifacts."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 
 from grr_response_server.databases import db

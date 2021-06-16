@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """Throttle user calls to flows."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows

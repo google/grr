@@ -9,9 +9,6 @@ RDFValue class, regardless of where they are defined. To do this reliably, these
 implementations must be imported _before_ the relevant classes are referenced
 from this module.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import abc
 import calendar

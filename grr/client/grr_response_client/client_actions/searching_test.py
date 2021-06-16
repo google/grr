@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """Test client vfs."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import functools
 import os

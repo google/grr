@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Load all blob stores so that they are visible in the registry."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from grr_response_core.lib.util import compatibility
 from grr_response_server import blob_store

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """A module with utilities for testing osquery-related code."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import contextlib
 import os

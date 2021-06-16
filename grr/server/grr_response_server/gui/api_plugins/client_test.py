@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """This modules contains tests for clients API handlers."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import ipaddress
 from unittest import mock

@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """Tests for grr_response_client.client_actions.plist."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import os
 

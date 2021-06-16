@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Simple parsers for the output of linux commands."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import logging
 import re

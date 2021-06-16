@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """Module containing code for user notifications reading/writing."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from grr_response_server import access_control
 from grr_response_server import data_store

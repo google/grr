@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """This file abstracts the loading of the private key."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from cryptography import x509
 from cryptography.hazmat.backends import openssl

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """This module contains report plugin mocks used for testing."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 
 from grr_response_core.lib import rdfvalue

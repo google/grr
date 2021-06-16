@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """Contains a stats-collector singleton shared across a GRR process."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import logging
 import threading

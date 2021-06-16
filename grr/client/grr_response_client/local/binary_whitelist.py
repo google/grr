@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Deployment-specific whitelisted binaries."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 
 def IsExecutionWhitelisted(cmd, args):

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """A module with RDF values wrapping osquery protobufs."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import Iterator
 from typing import Sequence

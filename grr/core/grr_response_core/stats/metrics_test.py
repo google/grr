@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """Tests for the metrics interface for stats collection."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from unittest import mock
 

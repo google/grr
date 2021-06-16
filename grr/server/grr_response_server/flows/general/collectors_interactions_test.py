@@ -5,9 +5,6 @@ These tests cover the interaction of artifacts. They test that collection of
 good artifacts can still succeed if some bad artifacts are defined, and the
 various ways of loading artifacts.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import os
 

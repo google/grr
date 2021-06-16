@@ -2,9 +2,6 @@
 # Lint as: python3
 """Prometheus-based statistics collection."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import collections
 from typing import Dict, Text

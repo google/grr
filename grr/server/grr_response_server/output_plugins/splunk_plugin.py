@@ -8,9 +8,6 @@ core/grr_response_core/config/output_plugins.py
 The spec for HTTP Event Collector is taken from https://docs.splunk.com
 /Documentation/Splunk/8.0.1/Data/FormateventsforHTTPEventCollector
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import Any
 from typing import Dict

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """A module with YARA convenience wrappers for the GRR API."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import Text
 

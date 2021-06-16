@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Entry points for the grr-response-client-builder pip package."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 # pylint: disable=g-import-not-at-top
 

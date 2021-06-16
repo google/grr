@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """Locally defined rdfvalues."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import paths as rdf_paths

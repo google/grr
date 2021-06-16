@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """A compatibility layer for the IPython shell."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 
 # pylint: disable=g-import-not-at-top

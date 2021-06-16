@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Test classes for clients actions-related testing."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from grr_response_client import client_actions
 from grr_response_client.client_actions import registry_init

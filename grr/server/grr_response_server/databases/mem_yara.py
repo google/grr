@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """A module with YARA-related methods of the in-memory database."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import Dict
 from typing import Text

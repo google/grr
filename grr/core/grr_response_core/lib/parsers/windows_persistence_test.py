@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.windows_persistence."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from absl import app
 

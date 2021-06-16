@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """This file implements a VFS abstraction on the client."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import functools
 import platform

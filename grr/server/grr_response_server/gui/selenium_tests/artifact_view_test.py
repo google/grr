@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """Test the artifact rendering interface."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import io
 import os

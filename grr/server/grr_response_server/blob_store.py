@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """The blob store abstraction."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import abc
 import time

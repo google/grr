@@ -86,9 +86,6 @@ filter is easy. Three basic filter implementations are given:
   to the given object. So "a.b" expands the object obj to obj["a"]["b"]
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import abc
 import binascii

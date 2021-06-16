@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """Helper functions used by client building/repacking process."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import io
 import logging

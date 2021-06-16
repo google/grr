@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Registry for parsers and abstract classes for basic parser functionality."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import abc
 from typing import Generic

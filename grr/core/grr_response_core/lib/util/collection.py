@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """A module with utility functions for working with collections."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import itertools
 from typing import Callable, Dict, Iterable, Iterator, List, Tuple, TypeVar

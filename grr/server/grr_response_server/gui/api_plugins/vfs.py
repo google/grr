@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import itertools
 import os

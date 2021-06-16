@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 """Configuration parameters for the admin UI."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib.rdfvalues import config as rdf_config

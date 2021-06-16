@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 """Utilities for generating GRR keys as part of config_updater run."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 from grr_response_core import config as grr_config
 from grr_response_core.lib import utils

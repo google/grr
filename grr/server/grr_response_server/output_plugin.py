@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # Lint as: python3
 """Output plugins used by flows and hunts for results exports."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import abc
 import threading

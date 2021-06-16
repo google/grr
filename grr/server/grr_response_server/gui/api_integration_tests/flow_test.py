@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """Tests for API client and flows-related API calls."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import io
 import threading

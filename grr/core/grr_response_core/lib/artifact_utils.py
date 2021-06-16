@@ -5,9 +5,6 @@ This file contains non-GRR specific pieces of artifact processing and is
 intended to end up as an independent library.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import re
 from typing import Iterable

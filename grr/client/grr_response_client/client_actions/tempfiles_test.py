@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Tests for grr_response_client.client_actions.tempfiles."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import io
 import os

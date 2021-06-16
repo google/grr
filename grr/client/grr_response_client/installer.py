@@ -8,9 +8,6 @@ in their specified order (according to the registry plugin system).
 Installers are usually used to upgrade existing clients and setup
 clients in unusual situations.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import logging
 import os

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Implementation of a router class that has approvals-based ACL checks."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import Optional
 from typing import Text

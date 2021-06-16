@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """A library of client action mocks for use in tests."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import collections
 import io

@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Setup configuration for the grr-response-client-builder package."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import configparser
 import os

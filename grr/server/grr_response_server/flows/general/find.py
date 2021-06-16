@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Find files on the client."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import structs as rdf_structs

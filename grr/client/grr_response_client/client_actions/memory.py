@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Client actions dealing with memory."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import abc
 import collections

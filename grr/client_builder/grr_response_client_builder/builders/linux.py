@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """An implementation of linux client builder."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import fnmatch
 import logging

@@ -15,9 +15,6 @@ handler. The type of the handler is carried by the pathtype parameter.
 On the server the PathSpec is represented as a PathSpec object, and stored
 as an attribute of the AFF4 object. This module defines this abstraction.
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import collections
 import itertools

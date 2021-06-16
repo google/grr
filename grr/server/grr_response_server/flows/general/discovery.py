@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """These are flows designed to discover information about the host."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import logging
 from typing import Any

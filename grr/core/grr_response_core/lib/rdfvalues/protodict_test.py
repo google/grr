@@ -10,9 +10,6 @@ Dict objects behave generally like a dict (with __getitem__, items() and
 an __iter__) method, but are serializable as an RDFProto.
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import collections
 from typing import Text

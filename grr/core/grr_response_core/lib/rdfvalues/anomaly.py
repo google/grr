@@ -62,9 +62,6 @@ anomaly and knowledge_base using object filter syntax. E.g.
 
 """
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs

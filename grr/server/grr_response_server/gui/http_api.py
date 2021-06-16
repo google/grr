@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """HTTP API logic that ties API call handlers with HTTP routes."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import functools
 import http.client

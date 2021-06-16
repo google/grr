@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """Test classes for clients-related testing."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import codecs
 import collections

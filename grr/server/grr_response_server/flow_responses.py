@@ -1,8 +1,5 @@
 #!/usr/bin/env python
 """The class encapsulating flow responses."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 from typing import Iterable, Iterator, Optional, TypeVar
 

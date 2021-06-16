@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """Tests for Interrogate."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import platform
 import socket

@@ -2,9 +2,6 @@
 # -*- encoding: utf-8 -*-
 """Unit test for the linux pam config parser."""
 
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import platform
 import unittest

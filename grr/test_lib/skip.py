@@ -1,9 +1,5 @@
 #!/usr/bin/env python
 """A module with utility decorators for skipping tests."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-from __future__ import unicode_literals
 
 import functools
 import types

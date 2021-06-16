@@ -1,9 +1,6 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 """Tests email links."""
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import unicode_literals
 
 import re
 from urllib import parse as urlparse
