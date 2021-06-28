@@ -53,6 +53,10 @@ class ListProcesses(flow_base.FlowBase):
       raise flow_base.FlowError("Error during process listing %s" %
                                 responses.status)
 
+    if self.args.pids:
+      pids = set(self.args.pids)
+      responses = [response for response in responses if response.pid in pids]
+
     if self.args.fetch_binaries:
       # Filter out processes entries without "exe" attribute and
       # deduplicate the list.

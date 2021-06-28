@@ -499,6 +499,37 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
       self.assertEqual(progress.artifacts[0].name, "FakeArtifact")
       self.assertEqual(progress.artifacts[0].num_results, 2)
 
+  def testProcessesResultsOfFailedChildArtifactCollector(self):
+
+    client_id = self.SetupClient(0, system="Linux")
+    client_mock = action_mocks.ActionMock(standard.ListProcesses)
+
+    self.fakeartifact.sources.append(
+        rdf_artifacts.ArtifactSource(
+            type=rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP,
+            attributes={"names": ["FakeArtifact2"]}))
+
+    self.fakeartifact2.sources.append(
+        rdf_artifacts.ArtifactSource(
+            type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
+            attributes={"client_action": standard.ListProcesses.__name__}))
+
+    def _RunListProcesses(self, args):
+      self.SendReply(rdf_client.Process(pid=123))
+      raise ValueError()
+
+    with mock.patch.object(standard.ListProcesses, "Run", _RunListProcesses):
+      flow_id = flow_test_lib.TestFlowHelper(
+          collectors.ArtifactCollectorFlow.__name__,
+          client_mock,
+          artifact_list=["FakeArtifact"],
+          client_id=client_id,
+          check_flow_errors=False)
+
+    results = flow_test_lib.GetFlowResults(client_id, flow_id)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].pid, 123)
+
 
 class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
                                        test_lib.GRRBaseTest):

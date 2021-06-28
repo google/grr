@@ -34,7 +34,7 @@ message ApiFlowDescriptor {
       [(sem_type) = { description: "Flow behaviours." }];
 }
 
-// Next id: 17
+// Next id: 18
 message ApiFlow {
   // Enum values here correspond to Flow.State values.
   enum State {
@@ -62,6 +62,9 @@ message ApiFlow {
     description: "Flow progress info.",
     dynamic_type: "GetProgressClass"
   }];
+  optional FlowResultMetadata result_metadata = 17 [
+    (sem_type) = { description: "Metadata about results returned by the flow." }
+  ];
   optional FlowRunnerArgs runner_args = 4
       [(sem_type) = { description: "Flow runner arguments." }];
   optional State state = 5

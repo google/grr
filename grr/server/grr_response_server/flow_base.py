@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """The base class for flow objects."""
 
+import collections
 import logging
 import traceback
 from typing import Any, Iterator, Mapping, NamedTuple, Optional, Sequence, Tuple, Type
@@ -115,10 +116,11 @@ class FlowBase(metaclass=FlowRegistry):
   # provide the args.
   args_type = rdf_flows.EmptyFlowArgs
 
-  # (Optional) An RDFProtoStruct to be produced by the flow's 'progress'
+  # An RDFProtoStruct to be produced by the flow's 'progress'
   # property. To be used by the API/UI to report on the flow's progress in a
-  # structured way.
-  progress_type = None
+  # structured way. Can be overridden and has to match GetProgress's
+  # return type.
+  progress_type = rdf_flow_objects.DefaultFlowProgress
 
   # This is used to arrange flows into a tree view
   category = ""
@@ -147,6 +149,8 @@ class FlowBase(metaclass=FlowRegistry):
     self._client_os = None
     self._client_knowledge_base = None
     self._client_info: Optional[rdf_client.ClientInformation] = None
+
+    self._num_replies_per_type_tag = collections.Counter()
 
   def Start(self) -> None:
     """The first state of the flow."""
@@ -411,6 +415,17 @@ class FlowBase(metaclass=FlowRegistry):
       self.replies_to_process.append(reply)
 
     self.rdf_flow.num_replies_sent += 1
+
+    # Keeping track of result types/tags in a plain Python
+    # _num_replies_per_type_tag dict. In RDFValues/proto2 we have to represent
+    # dictionaries as lists of key-value pairs (i.e. there's no library
+    # support for dicts as data structures). Hence, updating a key would require
+    # iterating over the pairs - which might get expensive for hundreds of
+    # thousands of results. To avoid the issue we keep a non-serialized Python
+    # dict to be later accumulated into a serializable FlowResultCount
+    # in PersistState().
+    key = (type(response).__name__, tag or "")
+    self._num_replies_per_type_tag[key] += 1
 
   def SaveResourceUsage(self, status: rdf_flows.GrrStatus) -> None:
     """Method to tally resources."""
@@ -944,12 +959,14 @@ class FlowBase(metaclass=FlowRegistry):
   def IsRunning(self) -> bool:
     return self.rdf_flow.flow_state == self.rdf_flow.FlowState.RUNNING
 
-  def GetProgress(self) -> Optional[rdf_structs.RDFProtoStruct]:
-    if self.__class__.progress_type is not None:
-      raise NotImplementedError(
-          "GetProgress() methods has to be implemented "
-          "on a flow with defined 'progress_type' attribute.")
-    return None
+  def GetProgress(self) -> rdf_structs.RDFProtoStruct:
+    return rdf_flow_objects.DefaultFlowProgress()
+
+  def GetResultMetadata(self) -> rdf_flow_objects.FlowResultMetadata:
+    if hasattr(self.state, "_result_metadata"):
+      return self.state._result_metadata.Copy()  # pylint: disable=protected-access
+    else:
+      return rdf_flow_objects.FlowResultMetadata()
 
   def GetFilesArchiveMappings(
       self, flow_results: Iterator[rdf_flow_objects.FlowResult]
@@ -986,8 +1003,30 @@ class FlowBase(metaclass=FlowRegistry):
     return self._state
 
   def PersistState(self) -> None:
-    if self._state is not None:
-      self.rdf_flow.persistent_data = self._state
+    """Persists flow state."""
+    if hasattr(self.state, "_result_metadata"):
+      result_metadata = self.state._result_metadata  # pylint: disable=protected-access
+    else:
+      result_metadata = rdf_flow_objects.FlowResultMetadata()
+
+    for r in result_metadata.num_results_per_type_tag:
+      key = (r.type, r.tag)
+      # This removes the item from _num_replies_per_type_tag if it's present in
+      # result_metadata.
+      count = self._num_replies_per_type_tag.pop(key, 0)
+      r.count += count
+
+    # Iterate over remaining items - i.e. items that were not present in
+    # result_metadata.
+    for (result_type,
+         result_tag), count in self._num_replies_per_type_tag.items():
+      result_metadata.num_results_per_type_tag.append(
+          rdf_flow_objects.FlowResultCount(
+              type=result_type, tag=result_tag, count=count))
+
+    self.state._result_metadata = result_metadata  # pylint: disable=protected-access
+    self._num_replies_per_type_tag = collections.Counter()
+    self.rdf_flow.persistent_data = self.state
 
   @property
   def args(self) -> Any:

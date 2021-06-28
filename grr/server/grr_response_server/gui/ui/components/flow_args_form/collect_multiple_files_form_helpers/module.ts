@@ -7,6 +7,7 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatSelectModule} from '@angular/material/select';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 import {ByteComponentsModule} from '@app/components/form/byte_input/module';
@@ -39,6 +40,7 @@ import {TimeRangeCondition} from './time_range_condition';
     MatSelectModule,
     MatIconModule,
     MatInputModule,
+    MatTooltipModule,
   ],
   declarations: [
     ConditionPanel,

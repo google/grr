@@ -1402,7 +1402,7 @@ message VerifyHuntOutputPluginsCronFlowArgs {
   }];
 }
 
-// Next field ID: 4
+// Next field ID: 5
 message ListProcessesArgs {
   // TODO: Rename to filepath_regex.
   optional string filename_regex = 1 [
@@ -1427,6 +1427,12 @@ message ListProcessesArgs {
                  "network connections in any status listed here, it will be "
                  "considered a match",
   }];
+
+  // Identifiers of processes to fetch the information for.
+  //
+  // If present, only processes with identifiers corresponding to those that are
+  // specified here are going to be included in the results.
+  repeated uint32 pids = 4;
 }
 
 // Next field ID: 3
@@ -2803,3 +2809,15 @@ message ScheduledFlow {
   }];
   optional string error = 8;
 }
+
+message FlowResultCount {
+  optional string type = 1;
+  optional string tag = 2;
+  optional uint64 count = 3;
+}
+
+message FlowResultMetadata {
+  repeated FlowResultCount num_results_per_type_tag = 2;
+}
+
+message DefaultFlowProgress {}

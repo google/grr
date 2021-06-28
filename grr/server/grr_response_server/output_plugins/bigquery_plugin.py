@@ -124,7 +124,16 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
       if isinstance(type_info, rdf_structs.ProtoEmbedded):
         row[type_info.name] = self._GetNestedDict(value.Get(type_info.name))
       else:
-        row[type_info.name] = str(value.Get(type_info.name))
+        field = value.Get(type_info.name)
+        # We want to stringify only not `None` values, since otherwise we end up
+        # we `"None"` strings which do not make much sense neither in JSON nor
+        # in BigQuery. See [1] for related issue report.
+        #
+        # [1]: https://groups.google.com/g/grr-users/c/3BOgnvF5I4s/
+        if field is None:
+          row[type_info.name] = None
+        else:
+          row[type_info.name] = str(field)
 
     return row
 

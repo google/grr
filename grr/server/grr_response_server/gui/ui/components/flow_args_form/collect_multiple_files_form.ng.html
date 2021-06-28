@@ -112,7 +112,8 @@
     <ext-flags-condition
       formGroupName="extFlags"
       (conditionRemoved)="removeExtFlagsCondition()"
-      *ngIf="(formValues$ | async).extFlags !== undefined">
+      *ngIf="(formValues$ | async).extFlags !== undefined"
+      >
     </ext-flags-condition>
 
   </div>

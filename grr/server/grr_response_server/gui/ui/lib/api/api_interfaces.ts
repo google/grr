@@ -628,6 +628,14 @@ export declare interface FileFinderSizeCondition {
   readonly maxFileSize?: DecimalString;
 }
 
+/** FileFinderExtFlagsCondition proto mapping. */
+export declare interface FileFinderExtFlagsCondition {
+  readonly linuxBitsSet?: number;
+  readonly linuxBitsUnset?: number;
+  readonly osxBitsSet?: number;
+  readonly osxBitsUnset?: number;
+}
+
 /** CollectMultipleFilesArgs proto mapping. */
 export declare interface CollectMultipleFilesArgs {
   readonly pathExpressions?: ReadonlyArray<string>;
@@ -639,6 +647,7 @@ export declare interface CollectMultipleFilesArgs {
   readonly accessTime?: FileFinderAccessTimeCondition;
   readonly inodeChangeTime?: FileFinderInodeChangeTimeCondition;
   readonly size?: FileFinderSizeCondition;
+  readonly extFlags?: FileFinderExtFlagsCondition;
 }
 
 /** CollectMultipleFilesResultStatus proto mapping. */

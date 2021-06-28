@@ -244,6 +244,40 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     self.assertLen(binaries, 1)
     self.assertEqual(binaries[0].pathspec.path, process1.exe)
 
+  def testPidFiltering(self):
+    client_id = self.SetupClient(0)
+
+    proc_foo = rdf_client.Process()
+    proc_foo.pid = 42
+    proc_foo.exe = "/usr/bin/foo"
+
+    proc_bar = rdf_client.Process()
+    proc_bar.pid = 108
+    proc_bar.exe = "/usr/bin/bar"
+
+    proc_baz = rdf_client.Process()
+    proc_baz.pid = 1337
+    proc_baz.exe = "/usr/bin/baz"
+
+    args = flow_processes.ListProcessesArgs()
+    args.pids = [42, 1337]
+
+    client_mock = action_mocks.ListProcessesMock([proc_foo, proc_bar, proc_baz])
+    flow_id = flow_test_lib.StartAndRunFlow(
+        flow_processes.ListProcesses,
+        client_mock=client_mock,
+        client_id=client_id,
+        flow_args=args,
+    )
+
+    results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
+    self.assertLen(results, 2)
+
+    result_exes = {result.exe for result in results}
+    self.assertIn("/usr/bin/foo", result_exes)
+    self.assertIn("/usr/bin/baz", result_exes)
+    self.assertNotIn("/usr/bin/bar", result_exes)
+
 
 def main(argv):
   # Run the full test suite

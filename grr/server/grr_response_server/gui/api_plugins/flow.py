@@ -179,6 +179,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       ApiFlowId,
       ApiFlowReference,
       rdf_flow_runner.FlowContext,
+      rdf_flow_objects.FlowResultMetadata,
       rdf_flow_runner.FlowRunnerArgs,
       rdfvalue.RDFDatetime,
       rdfvalue.SessionID,
@@ -271,7 +272,9 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       if with_progress:
         flow_cls = self._GetFlowClass()
         if flow_cls:
-          self.progress = flow_cls(flow_obj).GetProgress()
+          flow_instance = flow_cls(flow_obj)
+          self.progress = flow_instance.GetProgress()
+          self.result_metadata = flow_instance.GetResultMetadata()
 
       self.runner_args = rdf_flow_runner.FlowRunnerArgs(
           client_id=flow_obj.client_id,

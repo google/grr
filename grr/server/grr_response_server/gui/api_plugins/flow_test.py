@@ -82,18 +82,26 @@ class ApiFlowTest(test_lib.GRRBaseTest):
     self.assertEqual(flow_api_obj.client_id,
                      client_plugin.ApiClientId(client_id))
 
-  def testFlowWithoutFlowProgressTypeDoesNotReportProgress(self):
+  def testFlowWithoutFlowProgressTypeReportsDefaultFlowProgress(self):
     client_id = self.SetupClient(0)
     flow_id = flow.StartFlow(
         client_id=client_id, flow_cls=flow_test_lib.DummyFlow)
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
 
     flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(flow_obj)
-    self.assertIsNone(flow_api_obj.progress)
+    self.assertIsNotNone(flow_api_obj.progress)
+    self.assertIsInstance(flow_api_obj.progress,
+                          rdf_flow_objects.DefaultFlowProgress)
 
-    flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(
-        flow_obj, with_progress=True)
-    self.assertIsNone(flow_api_obj.progress)
+  def testFlowWithoutResultsCorrectlyReportsEmptyResultMetadata(self):
+    client_id = self.SetupClient(0)
+    flow_id = flow.StartFlow(
+        client_id=client_id, flow_cls=flow_test_lib.DummyFlow)
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+
+    flow_api_obj = flow_plugin.ApiFlow().InitFromFlowObject(flow_obj)
+    self.assertIsNotNone(flow_api_obj.result_metadata)
+    self.assertEmpty(flow_api_obj.result_metadata.num_results_per_type_tag)
 
   def testWithFlowProgressTypeReportsProgressCorrectly(self):
     client_id = self.SetupClient(0)

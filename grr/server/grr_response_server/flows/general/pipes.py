@@ -64,6 +64,7 @@ class ListNamedPipesFlow(flow_base.FlowBase):
     pipe_end_filter = self.args.pipe_end_filter
 
     self.state.pipes = []
+    pids = []
 
     for response in responses:
       if not isinstance(response, rdf_client.NamedPipe):
@@ -88,13 +89,16 @@ class ListNamedPipesFlow(flow_base.FlowBase):
 
       self.state.pipes.append(response)
 
-    # TODO: Consider extending `ListProcesses` flow so that it is
-    # able to filter responses by pid. This way we will not need to list all of
-    # them only to discard most of the results.
+      if response.HasField("server_pid"):
+        pids.append(response.server_pid)
+      if response.HasField("client_pid"):
+        pids.append(response.client_pid)
+
     self.CallFlow(
         flow_name=processes.ListProcesses.__name__,
         next_state=self.OnListProcessesResult.__name__,
         filename_regex=self.args.proc_exe_regex,
+        pids=pids,
     )
 
   def OnListProcessesResult(

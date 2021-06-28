@@ -122,6 +122,10 @@ class RouterMethodMetadata(object):
     self.http_methods = http_methods or set()
     self.no_audit_log_required = no_audit_log_required
 
+  @property
+  def is_streaming(self) -> bool:
+    return self.result_type == self.__class__.BINARY_STREAM_RESULT_TYPE
+
   _RULE_REGEX = re.compile("<([a-zA-Z0-9:_]+)")
 
   def GetQueryParamsNames(self):

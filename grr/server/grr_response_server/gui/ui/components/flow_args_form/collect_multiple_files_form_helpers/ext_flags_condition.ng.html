@@ -1,8 +1,43 @@
 <condition-panel
-  title="Ext flags"
-  [formGroup]="controlContainer.control"
-  (conditionRemoved)="conditionRemoved.emit()">
+  title="Extended flags"
+  [formGroup]="formGroup"
+  (conditionRemoved)="conditionRemoved.emit()"
+>
+  <ng-container *ngIf="showLinux$ | async">
+    <h3 class="mat-h3">Linux file flags</h3>
+    <div class="flags stretch">
+      <button
+        *ngFor="let flag of linuxFlags"
+        mat-button
+        type="button"
+        (click)="toggleFlag(flag)"
+        [attr.aria-label]="tooltip(flag)"
+        [matTooltip]="tooltip(flag)"
+      >
+        <div class="flag-content">
+          <span class="identifier monospace">{{flag.identifier}}</span>
+          <mat-icon>{{ ICONS[flag.condition] }}</mat-icon>
+        </div>
+      </button>
+    </div>
+  </ng-container>
 
-  <span>To be implemented...</span>
-
+  <ng-container *ngIf="showOsx$ | async">
+    <h3 class="mat-h3 space-top">macOS file flags</h3>
+    <div class="flags">
+      <button
+        *ngFor="let flag of osxFlags"
+        mat-button
+        type="button"
+        (click)="toggleFlag(flag)"
+        [attr.aria-label]="tooltip(flag)"
+        [matTooltip]="tooltip(flag)"
+      >
+        <div class="flag-content">
+          <span class="identifier monospace">{{flag.identifier}}</span>
+          <mat-icon>{{ ICONS[flag.condition] }}</mat-icon>
+        </div>
+      </button>
+    </div>
+  </ng-container>
 </condition-panel>

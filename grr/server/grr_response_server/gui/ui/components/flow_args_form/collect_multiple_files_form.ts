@@ -57,6 +57,7 @@ export class CollectMultipleFilesForm extends
               formValuesToFileFinderContentsRegexMatchCondition(
                                   v.contentsRegexMatch),
           size: v.size as FileFinderSizeCondition,
+          extFlags: v.extFlags,
         };
 
         let trimmedResults: CollectMultipleFilesArgs = {};

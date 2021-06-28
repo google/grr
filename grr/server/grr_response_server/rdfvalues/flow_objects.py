@@ -269,3 +269,21 @@ class ScheduledFlow(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ScheduledFlow
 
   rdf_deps = [rdf_flow_runner.FlowRunnerArgs, rdfvalue.RDFDatetime]
+
+
+class FlowResultCount(rdf_structs.RDFProtoStruct):
+  """Result count per type and tag."""
+  protobuf = flows_pb2.FlowResultCount
+
+
+class FlowResultMetadata(rdf_structs.RDFProtoStruct):
+  """Metadata about results returned for the flow."""
+  protobuf = flows_pb2.FlowResultMetadata
+  rdf_deps = [
+      FlowResultCount,
+  ]
+
+
+class DefaultFlowProgress(rdf_structs.RDFProtoStruct):
+  """Default flow progress for flows without a custom GetProgress handler."""
+  protobuf = flows_pb2.DefaultFlowProgress

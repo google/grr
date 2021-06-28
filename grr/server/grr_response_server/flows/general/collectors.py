@@ -628,19 +628,24 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
     artifact_name = str(responses.request_data["artifact_name"])
     source = responses.request_data.GetItem("source", None)
 
-    if not responses.success:
+    if responses.success:
+      self.Log(
+          "Artifact data collection %s completed successfully in flow %s "
+          "with %d responses", artifact_name, flow_name, len(responses))
+    else:
       self.Log("Artifact %s data collection failed. Status: %s.", artifact_name,
                responses.status)
-      if not self.CallFallback(artifact_name, responses.request_data):
-        self.state.failed_count += 1
-        self.state.artifacts_failed.append(artifact_name)
-      return
 
-    self.Log(
-        "Artifact data collection %s completed successfully in flow %s "
-        "with %d responses", artifact_name, flow_name, len(responses))
+      # If the ArtifactDescriptor specifies a fallback for the failed Artifact,
+      # call the fallback without processing any responses of the failed
+      # artifact. If there is no fallback, process any responses that have been
+      # received before the child ArtifactCollector failed.
+      if self.CallFallback(artifact_name, responses.request_data):
+        return
 
-    # Now process the responses.
+      self.state.failed_count += 1
+      self.state.artifacts_failed.append(artifact_name)
+
     self._ParseResponses(list(responses), artifact_name, source)
 
   def ProcessCollectedRegistryStatEntry(self, responses):

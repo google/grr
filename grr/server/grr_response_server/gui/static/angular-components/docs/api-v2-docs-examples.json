@@ -1261,6 +1261,10 @@
         "flowId": "F:ABCDEF12",
         "lastActiveAt": "42000000",
         "name": "Interrogate",
+        "progress": {
+          "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+        },
+        "resultMetadata": {},
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "Interrogate",
@@ -1270,6 +1274,13 @@
         "state": "RUNNING",
         "stateData": {
           "items": [
+            {
+              "key": "_result_metadata",
+              "type": "FlowResultMetadata",
+              "value": {
+                "@type": "type.googleapis.com/grr.FlowResultMetadata"
+              }
+            },
             {
               "key": "client",
               "type": "ClientSnapshot",
@@ -1318,6 +1329,10 @@
         "flowId": "F:ABCDEF13",
         "lastActiveAt": "42000000",
         "name": "Interrogate",
+        "progress": {
+          "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+        },
+        "resultMetadata": {},
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "Interrogate",
@@ -1327,6 +1342,13 @@
         "state": "ERROR",
         "stateData": {
           "items": [
+            {
+              "key": "_result_metadata",
+              "type": "FlowResultMetadata",
+              "value": {
+                "@type": "type.googleapis.com/grr.FlowResultMetadata"
+              }
+            },
             {
               "key": "client",
               "type": "ClientSnapshot",
@@ -2741,6 +2763,15 @@
             "repeated": false
           },
           {
+            "doc": "Metadata about results returned by the flow.",
+            "dynamic": false,
+            "friendlyName": "Result metadata",
+            "index": 17,
+            "name": "result_metadata",
+            "repeated": false,
+            "type": "FlowResultMetadata"
+          },
+          {
             "doc": "Flow runner arguments.",
             "dynamic": false,
             "friendlyName": "Runner args",
@@ -4027,7 +4058,7 @@
             "defaultArgs": {
               "@type": "type.googleapis.com/grr.ListProcessesArgs"
             },
-            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=processes.ListProcesses, filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: bool\n      default: False\n\n    filename_regex\n      description: Regex used to filter the list of processes. The regex is applied to the full path and not only to the filename.\n      type: RegularExpression\n      default: .\n",
+            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=processes.ListProcesses, filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states, pids=pids)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: bool\n      default: False\n\n    filename_regex\n      description: Regex used to filter the list of processes. The regex is applied to the full path and not only to the filename.\n      type: RegularExpression\n      default: .\n\n    pids\n      description: \n      type: \n      default: None\n",
             "name": "ListProcesses"
           }
         ]
@@ -4226,6 +4257,10 @@
             "flowId": "F:ABCDEF11",
             "lastActiveAt": "44000000",
             "name": "ListProcesses",
+            "progress": {
+              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+            },
+            "resultMetadata": {},
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "ListProcesses",
@@ -4244,6 +4279,10 @@
             "flowId": "F:ABCDEF10",
             "lastActiveAt": "43000000",
             "name": "Interrogate",
+            "progress": {
+              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+            },
+            "resultMetadata": {},
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "Interrogate",
@@ -4272,6 +4311,10 @@
             "flowId": "F:ABCDEF11",
             "lastActiveAt": "44000000",
             "name": "ListProcesses",
+            "progress": {
+              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+            },
+            "resultMetadata": {},
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "ListProcesses",
@@ -4300,6 +4343,10 @@
             "flowId": "F:ABCDEF10",
             "lastActiveAt": "43000000",
             "name": "Interrogate",
+            "progress": {
+              "@type": "type.googleapis.com/grr.DefaultFlowProgress"
+            },
+            "resultMetadata": {},
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "Interrogate",

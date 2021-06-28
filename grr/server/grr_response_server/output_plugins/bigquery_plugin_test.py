@@ -128,6 +128,23 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
     self.assertEqual(counter, 10)
 
+  def testMissingTimestampSerialization(self):
+    response = rdf_client_fs.StatEntry()
+    response.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+    response.pathspec.path = "/foo/bar"
+    response.st_mtime = None
+
+    args = bigquery_plugin.BigQueryOutputPluginArgs()
+
+    output = self.ProcessResponses(plugin_args=args, responses=[response])
+    self.assertLen(output, 1)
+
+    _, filedesc, _, _ = output[0]
+    with gzip.GzipFile(mode="r", fileobj=filedesc) as filedesc:
+      content = json.Parse(filedesc.read().decode("utf-8"))
+
+    self.assertIsNone(content["st_mtime"])
+
   def _parseOutput(self, name, stream):
     content_fd = gzip.GzipFile(None, "r", 9, stream)
     counter = 0
