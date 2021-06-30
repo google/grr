@@ -10,6 +10,7 @@ import {MatDialogModule} from '@angular/material/dialog';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
+import {MatSelectModule} from '@angular/material/select';
 import {MatTreeModule} from '@angular/material/tree';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
@@ -26,6 +27,7 @@ import {CodeEditorModule} from '../code_editor/module';
 
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
 import {FlowArgsForm} from './flow_args_form';
+import {ListNamedPipesForm} from './list_named_pipes_form';
 import {OsqueryForm} from './osquery_form';
 import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
 import {TimelineForm} from './timeline_form';
@@ -49,6 +51,7 @@ import {TimelineForm} from './timeline_form';
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatSelectModule,
     MatTreeModule,
     OsqueryQueryHelperModule,
     ReactiveFormsModule,
@@ -60,6 +63,7 @@ import {TimelineForm} from './timeline_form';
     CollectBrowserHistoryForm,
     CollectSingleFileForm,
     CollectMultipleFilesForm,
+    ListNamedPipesForm,
     OsqueryForm,
     TimelineForm,
     FallbackFlowArgsForm,
@@ -69,6 +73,7 @@ import {TimelineForm} from './timeline_form';
     CollectBrowserHistoryForm,
     CollectSingleFileForm,
     CollectMultipleFilesForm,
+    ListNamedPipesForm,
     OsqueryForm,
     TimelineForm,
     FallbackFlowArgsForm,

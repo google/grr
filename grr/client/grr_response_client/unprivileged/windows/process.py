@@ -28,6 +28,7 @@ Once we migrate to Python 3.7, this custom code can be removed.
 # win32 api types and class members violate naming conventions.
 # pylint: disable=invalid-name
 
+import contextlib
 import ctypes
 # pylint: disable=g-importing-member
 from ctypes.wintypes import BOOL
@@ -47,7 +48,22 @@ import win32api
 import win32event
 import win32process
 
+from grr_response_client.unprivileged.windows import sandbox
+
 kernel32 = ctypes.WinDLL("kernel32")
+advapi32 = ctypes.WinDLL("advapi32")
+
+PSID_AND_ATTRIBUTES = LPVOID
+PSID = LPVOID
+
+
+class SECURITY_CAPABILITIES(ctypes.Structure):
+  _fields_ = [
+      ("AppContainerSid", PSID),
+      ("Capabilities", PSID_AND_ATTRIBUTES),
+      ("CapabilityCount", DWORD),
+      ("Reserved", DWORD),
+  ]
 
 
 class SECURITY_ATTRIBUTES(ctypes.Structure):
@@ -161,6 +177,14 @@ GetProcessId = kernel32.GetProcessId
 GetProcessId.argtypes = [HANDLE]
 GetProcessId.restype = DWORD
 
+ConvertStringSidToSidW = advapi32.ConvertStringSidToSidW
+ConvertStringSidToSidW.argtypes = [LPCWSTR, ctypes.POINTER(PSID)]
+ConvertStringSidToSidW.restype = BOOL
+
+FreeSid = advapi32.FreeSid
+FreeSid.argtypes = [PSID]
+FreeSid.restype = PVOID
+
 
 class Error(Exception):
   pass
@@ -169,6 +193,7 @@ class Error(Exception):
 EXTENDED_STARTUPINFO_PRESENT = 0x00080000
 
 PROC_THREAD_ATTRIBUTE_HANDLE_LIST = 0x20002
+PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES = 0x20009
 
 
 class Process:
@@ -191,68 +216,95 @@ class Process:
       Error: if a win32 call fails.
     """
 
-    size = SIZE_T()
-    InitializeProcThreadAttributeList(None, 1, 0, ctypes.byref(size))
-    attr_list = ctypes.create_string_buffer(size.value)
-    res = InitializeProcThreadAttributeList(attr_list, 1, 0, ctypes.byref(size))
-    if not res:
-      raise Error("InitializeProcThreadAttributeList failed.")
+    # Stack for resources which are needed by this instance.
+    self._exit_stack = contextlib.ExitStack()
 
-    if extra_handles is None:
-      extra_handles = []
+    # Stack for resources which are needed only during this method.
+    with contextlib.ExitStack() as stack:
+      sandbox_obj = self._exit_stack.enter_context(sandbox.CreateSandbox())
 
-    for extra_handle in extra_handles:
-      os.set_handle_inheritable(extra_handle, True)
+      size = SIZE_T()
+      InitializeProcThreadAttributeList(None, 2, 0, ctypes.byref(size))
+      attr_list = ctypes.create_string_buffer(size.value)
+      res = InitializeProcThreadAttributeList(attr_list, 2, 0,
+                                              ctypes.byref(size))
+      if not res:
+        raise Error("InitializeProcThreadAttributeList failed.")
+      stack.callback(DeleteProcThreadAttributeList, attr_list)
 
-    handle_list_size = len(extra_handles)
-    handle_list = (HANDLE * handle_list_size)(
-        *[HANDLE(handle) for handle in extra_handles])
-    res = UpdateProcThreadAttribute(attr_list, 0,
-                                    PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
-                                    handle_list, ctypes.sizeof(handle_list),
-                                    None, None)
-    if not res:
-      raise Error("UpdateProcThreadAttribute failed.")
+      if extra_handles is None:
+        extra_handles = []
 
-    DeleteProcThreadAttributeList(attr_list)
+      for extra_handle in extra_handles:
+        os.set_handle_inheritable(extra_handle, True)
 
-    siex = STARTUPINFOEXW()
-    si = siex.StartupInfo
-    si.cb = ctypes.sizeof(siex)
-    si.wShowWindow = False
-    siex.lpAttributeList = ctypes.cast(attr_list, LPPROC_THREAD_ATTRIBUTE_LIST)
+      handle_list_size = len(extra_handles)
+      handle_list = (HANDLE * handle_list_size)(
+          *[HANDLE(handle) for handle in extra_handles])
+      if handle_list:
+        res = UpdateProcThreadAttribute(attr_list, 0,
+                                        PROC_THREAD_ATTRIBUTE_HANDLE_LIST,
+                                        handle_list, ctypes.sizeof(handle_list),
+                                        None, None)
+        if not res:
+          raise Error("UpdateProcThreadAttribute failed.")
 
-    pi = PROCESS_INFORMATION()
+      if sandbox_obj.sid_string is not None:
+        psid = PSID()
+        if not ConvertStringSidToSidW(sandbox_obj.sid_string,
+                                      ctypes.byref(psid)):
+          raise Error("ConvertStringSidToSidW")
+        stack.callback(FreeSid, psid)
+        security_capabilities = SECURITY_CAPABILITIES()
+        security_capabilities.AppContainerSid = psid
+        res = UpdateProcThreadAttribute(
+            attr_list, 0, PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES,
+            ctypes.byref(security_capabilities),
+            ctypes.sizeof(security_capabilities), None, None)
+        if not res:
+          raise Error("UpdateProcThreadAttribute failed.")
 
-    command_line = subprocess.list2cmdline(args)
+      siex = STARTUPINFOEXW()
+      si = siex.StartupInfo
+      si.cb = ctypes.sizeof(siex)
+      si.wShowWindow = False
+      siex.lpAttributeList = ctypes.cast(attr_list,
+                                         LPPROC_THREAD_ATTRIBUTE_LIST)
 
-    res = CreateProcessW(
-        None,
-        command_line,
-        None,
-        None,
-        True,
-        EXTENDED_STARTUPINFO_PRESENT,
-        None,
-        None,
-        ctypes.byref(si),
-        ctypes.byref(pi),
-    )
+      if sandbox_obj.desktop_name is not None:
+        si.lpDesktop = sandbox_obj.desktop_name
 
-    if not res:
-      raise Error("CreateProcessW failed.")
+      pi = PROCESS_INFORMATION()
 
-    self._handle = pi.hProcess
+      command_line = subprocess.list2cmdline(args)
 
-    win32api.CloseHandle(pi.hThread)
+      res = CreateProcessW(
+          None,
+          command_line,
+          None,
+          None,
+          True,
+          EXTENDED_STARTUPINFO_PRESENT,
+          None,
+          None,
+          ctypes.byref(si),
+          ctypes.byref(pi),
+      )
 
-    self.pid = GetProcessId(self._handle)
-    if self.pid == 0:
-      raise Error("GetProcessId failed.")
+      if not res:
+        raise Error("CreateProcessW failed.")
+
+      self._handle = pi.hProcess
+      self._exit_stack.callback(win32api.CloseHandle, pi.hProcess)
+      win32api.CloseHandle(pi.hThread)
+
+      self.pid = GetProcessId(self._handle)
+      if self.pid == 0:
+        raise Error("GetProcessId failed.")
 
   def Stop(self) -> None:
     win32process.TerminateProcess(self._handle, -1)
     res = win32event.WaitForSingleObject(self._handle, win32event.INFINITE)
     if res == win32event.WAIT_FAILED:
       raise Error("WaitForSingleObject failed.")
-    win32api.CloseHandle(self._handle)
+    self._exit_stack.close()

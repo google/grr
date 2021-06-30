@@ -9,7 +9,7 @@ import {ApiModule} from '@app/lib/api/module';
 import {initTestEnvironment} from '@app/testing';
 import {firstValueFrom, ReplaySubject, Subject} from 'rxjs';
 
-import {ArtifactCollectorFlowArgs, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, GlobComponentExplanation} from '../../lib/api/api_interfaces';
+import {ArtifactCollectorFlowArgs, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, GlobComponentExplanation, PipeEndFilter, PipeTypeFilter} from '../../lib/api/api_interfaces';
 import {FlowDescriptor, OperatingSystem, SourceType} from '../../lib/models/flow';
 import {newArtifactDescriptorMap, newClient} from '../../lib/models/model_test_util';
 import {ExplainGlobExpressionService} from '../../lib/service/explain_glob_expression_service/explain_glob_expression_service';
@@ -55,6 +55,17 @@ const TEST_FLOW_DESCRIPTORS = Object.freeze({
     category: 'Filesystem',
     defaultArgs: {
       pathExpressions: [],
+    },
+  },
+  ListNamedPipes: {
+    name: 'ListNamedPipesFlow',
+    friendlyName: 'List named pipes',
+    category: 'Processes',
+    defaultArgs: {
+      pipeNameRegex: '',
+      procExeRegex: '',
+      pipeTypeFilter: PipeTypeFilter.ANY_TYPE,
+      pipeEndFilter: PipeEndFilter.ANY_END,
     },
   },
   TimelineFlow: {

@@ -22,6 +22,7 @@ from grr_response_server.flows.general import large_file
 from grr_response_server.flows.general import memory
 from grr_response_server.flows.general import network
 from grr_response_server.flows.general import osquery
+from grr_response_server.flows.general import pipes
 from grr_response_server.flows.general import processes
 from grr_response_server.flows.general import registry
 from grr_response_server.flows.general import timeline

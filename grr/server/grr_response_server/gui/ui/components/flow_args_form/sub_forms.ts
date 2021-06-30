@@ -6,6 +6,7 @@ import {CollectSingleFileForm} from '@app/components/flow_args_form/collect_sing
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
+import {ListNamedPipesForm} from './list_named_pipes_form';
 import {OsqueryForm} from './osquery_form';
 import {TimelineForm} from './timeline_form';
 
@@ -15,6 +16,7 @@ export const FORMS: {[key: string]: Type<FlowArgumentForm<unknown>>} = {
   'CollectBrowserHistory': CollectBrowserHistoryForm,
   'CollectMultipleFiles': CollectMultipleFilesForm,
   'CollectSingleFile': CollectSingleFileForm,
+  'ListNamedPipesFlow': ListNamedPipesForm,
   'OsqueryFlow': OsqueryForm,
   'TimelineFlow': TimelineForm,
 

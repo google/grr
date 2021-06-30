@@ -1,0 +1,29 @@
+@use '../../../material-theme' as c;
+
+.mat-button {
+  overflow: hidden;
+}
+
+.mat-h3 {
+  margin: 0;
+}
+
+.stretch {
+  align-items: stretch;
+
+  .mat-button {
+    padding: 0;
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.flags {
+  display: flex;
+
+  .flag-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+}

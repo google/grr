@@ -28,7 +28,7 @@ def _MakeServerArgs(channel: communication.Channel,
 
   # PyInstaller executable
   if getattr(sys, "frozen", False):
-    return [sys.executable] + sys.argv[1:] + named_flags
+    return [sys.executable] + named_flags
 
   # Running from a unit test
 

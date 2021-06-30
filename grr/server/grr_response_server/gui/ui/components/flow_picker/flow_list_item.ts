@@ -86,6 +86,8 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map(Object.entries({
   'Processes': [
     fli('ListProcesses', 'List processes',
         'Collects metadata about running processes'),
+    fli('ListNamedPipesFlow', 'List named pipes',
+        'Collects metadata about named pipes open on the system'),
   ],
   'Network': [
     fli('Netstat', 'Netstat', 'Enumerate all open network connections'),

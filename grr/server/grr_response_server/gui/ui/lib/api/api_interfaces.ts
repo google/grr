@@ -955,3 +955,25 @@ export declare interface ArtifactProgress {
 export declare interface ArtifactCollectorFlowProgress {
   readonly artifacts?: ReadonlyArray<ArtifactProgress>;
 }
+
+/** `ListNamedPipesFlowArgs.PipeTypeFilter` proto mapping. */
+export enum PipeTypeFilter {
+  ANY_TYPE = 'ANY_TYPE',
+  BYTE_TYPE = 'BYTE_TYPE',
+  MESSAGE_TYPE = 'MESSAGE_TYPE',
+}
+
+/** `ListNamedPipesFlowArgs.PipeEndFilter` proto mapping. */
+export enum PipeEndFilter {
+  ANY_END = 'ANY_END',
+  CLIENT_END = 'CLIENT_END',
+  SERVER_END = 'SERVER_END',
+}
+
+/** `ListNamedPipesFlowArgs` proto mapping. */
+export declare interface ListNamedPipesFlowArgs {
+  readonly pipeNameRegex?: string;
+  readonly procExeRegex?: string;
+  readonly pipeTypeFilter?: PipeTypeFilter;
+  readonly pipeEndFilter?: PipeEndFilter;
+}
