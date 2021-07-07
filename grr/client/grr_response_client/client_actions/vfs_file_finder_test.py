@@ -3,21 +3,28 @@
 """Tests the client file finder action."""
 
 import hashlib
+import os
 import platform
+from typing import List
 import unittest
 from unittest import mock
 import zlib
 
 from absl.testing import absltest
+from absl.testing import flagsaver
 
 from grr_response_client.client_actions import vfs_file_finder
 from grr_response_client.client_actions.file_finder_utils import globbing
+from grr_response_client.vfs_handlers import files
 
+from grr_response_core.lib import config_lib
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util import temp
 from grr.test_lib import client_test_lib
 
 _LONG_KEY = "🚀a🚀b🚀" * 51  # 255 characters.
@@ -452,6 +459,51 @@ class RegistryTest(absltest.TestCase):
     self.assertCountEqual(results, [
         r"HKEY_LOCAL_MACHINE\SOFTWARE\GRR_TEST\1\aaa",
     ])
+
+
+class OsTest(absltest.TestCase):
+
+  def _RunFileFinder(
+      self, args: rdf_file_finder.FileFinderArgs
+  ) -> List[rdf_file_finder.FileFinderResult]:
+    results = []
+
+    def SendReply(rdf_value, *args, **kwargs):
+      del args, kwargs  # Unused.
+      results.append(rdf_value)
+
+    ff = vfs_file_finder.VfsFileFinder()
+    ff.grr_worker = mock.MagicMock()
+    ff.SendReply = SendReply
+    ff.message = rdf_flows.GrrMessage(payload=args)
+    ff.Run(args)
+
+    return results
+
+  def testRecursiveRegexMatch(self) -> None:
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dir:
+      nested_dir = os.path.join(temp_dir, "a", "b", "c")
+      os.makedirs(nested_dir)
+      with open(os.path.join(nested_dir, "foo.txt"), "w") as f:
+        f.write("bar123")
+      results = self._RunFileFinder(
+          rdf_file_finder.FileFinderArgs(
+              paths=[os.path.join(temp_dir, "**", "*")],
+              pathtype=rdf_paths.PathSpec.PathType.OS,
+              conditions=[
+                  rdf_file_finder.FileFinderCondition.ContentsRegexMatch(
+                      regex=b"bar[0-9]+"),
+              ],
+              action=rdf_file_finder.FileFinderAction.Stat()))
+      self.assertLen(results, 1)
+      self.assertEqual(results[0].matches[0].data, b"bar123")
+      files.FlushHandleCache()
+
+
+def setUpModule() -> None:
+  with temp.AutoTempFilePath(suffix=".yaml") as dummy_config_path:
+    with flagsaver.flagsaver(config=dummy_config_path):
+      config_lib.ParseConfigCommandLine()
 
 
 if __name__ == "__main__":

@@ -18,6 +18,7 @@ from grr_response_client import actions
 from grr_response_client import communicator
 from grr_response_client.client_actions import tempfiles
 from grr_response_client.client_actions import timeline
+from grr_response_client.unprivileged import sandbox
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import queues
@@ -238,7 +239,8 @@ def GetClientInformation() -> rdf_client.ClientInformation:
       client_version=int(config.CONFIG["Source.version_numeric"]),
       build_time=config.CONFIG["Client.build_time"],
       labels=config.CONFIG.Get("Client.labels", default=None),
-      timeline_btime_support=timeline.BTIME_SUPPORT)
+      timeline_btime_support=timeline.BTIME_SUPPORT,
+      sandbox_support=sandbox.IsSandboxInitialized())
 
 
 class GetClientInfo(actions.ActionPlugin):

@@ -537,6 +537,10 @@ class RegistryFile(vfs_base.VFSHandler):
     return self.fd.seek(offset, whence)
 
   @property
+  def size(self) -> int:
+    return len(self._bytes_value)
+
+  @property
   def _bytes_value(self):
     if isinstance(self.value, bytes):
       return self.value

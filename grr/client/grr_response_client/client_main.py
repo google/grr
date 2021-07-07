@@ -3,6 +3,7 @@
 
 import logging
 import pdb
+import platform
 import sys
 
 from absl import app
@@ -13,6 +14,7 @@ from grr_response_client import client_startup
 from grr_response_client import comms
 from grr_response_client import fleetspeak_client
 from grr_response_client import installer
+from grr_response_client.unprivileged import sandbox
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
@@ -72,6 +74,16 @@ def main(unused_args):
   if flags.FLAGS.install:
     installer.RunInstaller()
     sys.exit(0)
+
+  is_pyinstaller_binary = getattr(sys, "frozen", False)
+  if is_pyinstaller_binary and platform.system() == "Windows":
+    # Since `Client.install_path` is shared with the Sandbox, Sandbox
+    # initialization makes only sense if we run from a proper installation.
+    # This is the case if this is a PyInstaller binary.
+    sandbox.InitSandbox(
+        "{}_{}".format(config.CONFIG["Client.name"],
+                       config.CONFIG["Source.version_string"]),
+        [config.CONFIG["Client.install_path"]])
 
   if config.CONFIG["Client.fleetspeak_enabled"]:
     fleetspeak_client.GRRFleetspeakClient().Run()

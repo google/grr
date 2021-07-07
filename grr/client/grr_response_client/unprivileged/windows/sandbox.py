@@ -129,3 +129,8 @@ def CreateSandbox() -> Sandbox:
     return NullSandbox()
   else:
     return AppContainerSandbox(_sandbox_name)
+
+
+def IsSandboxInitialized() -> bool:
+  """Returns `True` if a global sandbox has been successfully initialized."""
+  return _sandbox_name is not None

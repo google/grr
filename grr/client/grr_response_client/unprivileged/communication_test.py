@@ -11,6 +11,7 @@ from absl.testing import absltest
 import psutil
 
 from grr_response_client.unprivileged import communication
+from grr_response_client.unprivileged import sandbox
 
 
 def _MakeArgs(channel: communication.Channel) -> List[str]:
@@ -137,9 +138,6 @@ class CommunicationTest(absltest.TestCase):
   @unittest.skipIf(platform.system() != "Linux" and
                    platform.system() != "Darwin", "Unix only test.")
   def testMain_entersSandbox(self):
-    # pylint: disable=g-import-not-at-top
-    from grr_response_client.unprivileged.unix import sandbox
-    # pylint: enable=g-import-not-at-top
     with mock.patch.object(sandbox, "EnterSandbox") as mock_enter_sandbox:
       input_fd = os.open("/dev/null", os.O_RDONLY)
       output_file = os.open("/dev/null", os.O_WRONLY)

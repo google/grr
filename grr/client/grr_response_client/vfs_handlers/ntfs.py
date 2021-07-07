@@ -129,6 +129,7 @@ class NTFSFile(vfs_base.VFSHandler):
     return self._Stat(self.fd, self.data_stream, self.pathspec.Copy())
 
   def Read(self, length: int) -> bytes:
+    self._CheckIsFile()
     self.data_stream.seek(self.offset)
     data = self.data_stream.read(length)
     self.offset += len(data)
@@ -165,6 +166,10 @@ class NTFSFile(vfs_base.VFSHandler):
     if not self.IsDirectory():
       raise IOError("{} is not a directory".format(
           self.pathspec.CollapsePath()))
+
+  def _CheckIsFile(self) -> None:
+    if self.IsDirectory():
+      raise IOError("{} is not a file".format(self.pathspec.CollapsePath()))
 
   def _Stat(
       self,

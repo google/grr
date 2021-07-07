@@ -69,7 +69,11 @@ def _CheckConditionsShortCircuit(content_conditions, pathspec):
   matches = []
   for cond in content_conditions:
     with vfs.VFSOpen(pathspec) as vfs_file:
-      cur_matches = list(cond.Search(vfs_file))
+      if vfs_file.size == 0 or vfs_file.size is None:
+        # Skip directories.
+        cur_matches = []
+      else:
+        cur_matches = list(cond.Search(vfs_file))
     if cur_matches:
       matches.extend(cur_matches)
     else:  # As soon as one condition does not match, we skip the file.

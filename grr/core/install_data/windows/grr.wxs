@@ -36,6 +36,9 @@
     <MajorUpgrade AllowDowngrades="yes" Schedule="afterInstallInitialize" />
 
     <Property Id="Dummy" Value="MagicPropertyValueForPadding$(var.FILLER5)$(var.FILLER5)$(var.FILLER5)$(var.FILLER5)$(var.FILLER5)" />
+    <!-- This is a deprecated string that used to be replaced at repacking time.
+         Keeping it for compatibility with old repackers. -->
+    <Property Id="Dummy2" Value="|__GrrVersion" />
 
     <Media Id="1" Cabinet="grr.cab" EmbedCab="yes" />
 
@@ -43,7 +46,7 @@
     <Directory Id="TARGETDIR" Name="SourceDir" DiskId="1">
       <Directory Id="System64Folder">
         <Directory Id="Grr" Name="__GrrDirectory">
-          <Directory Id="INSTALLDIR" Name="__GrrVersion">
+          <Directory Id="INSTALLDIR" Name="$(var.VERSION)">
             <Component Id="CompDbgGrrExe" Guid="*">
               <File Id="FileDbgGrrExe" Source="$(var.InputDir)\dbg_grr-client.exe" Name="__dbg_grr-client.exe" />
             </Component>

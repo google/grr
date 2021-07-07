@@ -416,3 +416,9 @@ class NTFSImageTest(absltest.TestCase, abc.ABC):
     fd = vfs.VFSOpen(pathspec)
     expected = "Chinese news\n中国新闻\n".encode("utf-8")
     self.assertEqual(fd.Read(100), expected)
+
+  def testNTFSRead_fromDirectoryRaises(self):
+    pathspec = self._GetNTFSPathSpec("/")
+    fd = vfs.VFSOpen(pathspec)
+    with self.assertRaises(IOError):
+      fd.Read(1)

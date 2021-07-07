@@ -2,18 +2,22 @@
 
 <flow-picker></flow-picker>
 
-<form autocomplete="off" #form>
+<form autocomplete="off" spellcheck="false" #form>
   <flow-args-form [flowDescriptor]="selectedFD$ | async"></flow-args-form>
 
   <mat-error *ngIf="error$ | async as error">{{error}}</mat-error>
 
   <div *ngIf="selectedFD$ | async">
-    <button mat-flat-button color="primary" type="submit" [disabled]="disabled$ | async">
+    <button
+      mat-flat-button
+      color="primary"
+      type="submit"
+      [disabled]="disabled$ | async"
+    >
       {{ (hasAccess$ | async) ? "Start" : "Schedule" }}
     </button>
     <span *ngIf="(hasAccess$ | async) !== true" class="mat-small">
       Scheduled flows will be started automatically when approval is granted.
     </span>
   </div>
-
 </form>

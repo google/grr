@@ -14,6 +14,7 @@ from grr_response_client import client_stats
 from grr_response_client import comms
 from grr_response_client import communicator
 from grr_response_client.client_actions import admin
+from grr_response_client.unprivileged import sandbox
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -273,6 +274,14 @@ class GetClientInformationTest(absltest.TestCase):
     # check that some information is set. This should be enough to guarantee
     # line coverage.
     self.assertTrue(client_info.HasField("timeline_btime_support"))
+
+  def testSandboxSupport(self):
+    with mock.patch.object(sandbox, "IsSandboxInitialized", return_value=True):
+      client_info = admin.GetClientInformation()
+      self.assertTrue(client_info.sandbox_support)
+    with mock.patch.object(sandbox, "IsSandboxInitialized", return_value=False):
+      client_info = admin.GetClientInformation()
+      self.assertFalse(client_info.sandbox_support)
 
 
 def main(argv):

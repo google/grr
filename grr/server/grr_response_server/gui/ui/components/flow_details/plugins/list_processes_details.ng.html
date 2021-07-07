@@ -1,4 +1,4 @@
-<result-accordion title="List processes" (firstOpened)="onShowClicked()">
+<result-accordion [title]="title$ | async" (firstOpened)="onShowClicked()">
   <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="process-tree">
     <!-- This is the tree node template for leaf nodes. -->
     <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle>

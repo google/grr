@@ -54,11 +54,16 @@ class CollectLargeFileFlow(flow_base.FlowBase):
     pass
 
   def Callback(self, responses: _Responses) -> None:
+    if not responses.success:
+      raise flow_base.FlowError(f"Failed to start upload: {responses.status}")
+
     # TODO: Once progress updates are expected we should be fine
     # with more responses. For now though, only a single response is expected
     # and it should set session URL.
-    if "session_url" in self.state or len(responses) != 1:
-      raise ValueError(f"Unexpected responses: {responses}")
+    if "session_url" in self.state:
+      raise ValueError("Session URL already received.")
+    if len(responses) != 1:
+      raise ValueError(f"Unexpected number of responses: {len(responses)}")
 
     response = responses.First()
     if not isinstance(response, rdf_large_file.CollectLargeFileResult):

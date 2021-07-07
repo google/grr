@@ -257,6 +257,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     return self._stat_result
 
   def Read(self, length: int) -> bytes:
+    self._CheckIsFile()
     data = self.fd.Read(self.offset, length)
     self.offset += len(data)
     return data
@@ -289,6 +290,10 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     if not self.IsDirectory():
       raise IOError("{} is not a directory".format(
           self.pathspec.CollapsePath()))
+
+  def _CheckIsFile(self) -> None:
+    if self.IsDirectory():
+      raise IOError("{} is not a file".format(self.pathspec.CollapsePath()))
 
   def Close(self) -> None:
     self.fd.Close()

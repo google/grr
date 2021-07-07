@@ -24,10 +24,12 @@ import {DateTimeInputModule} from '@app/components/form/date_time_input/module';
 import {GlobExpressionExplanationModule} from '@app/components/form/glob_expression_form_field/module';
 
 import {CodeEditorModule} from '../code_editor/module';
+import {CommaSeparatedInputModule} from '../form/comma_separated_input/module';
 
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
 import {FlowArgsForm} from './flow_args_form';
 import {ListNamedPipesForm} from './list_named_pipes_form';
+import {ListProcessesForm} from './list_processes_form';
 import {OsqueryForm} from './osquery_form';
 import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
 import {TimelineForm} from './timeline_form';
@@ -39,6 +41,7 @@ import {TimelineForm} from './timeline_form';
     ByteComponentsModule,
     CdkTreeModule,
     CodeEditorModule,
+    CommaSeparatedInputModule,
     CommonModule,
     DateTimeInputModule,
     GlobExpressionExplanationModule,
@@ -64,6 +67,7 @@ import {TimelineForm} from './timeline_form';
     CollectSingleFileForm,
     CollectMultipleFilesForm,
     ListNamedPipesForm,
+    ListProcessesForm,
     OsqueryForm,
     TimelineForm,
     FallbackFlowArgsForm,
@@ -74,6 +78,7 @@ import {TimelineForm} from './timeline_form';
     CollectSingleFileForm,
     CollectMultipleFilesForm,
     ListNamedPipesForm,
+    ListProcessesForm,
     OsqueryForm,
     TimelineForm,
     FallbackFlowArgsForm,

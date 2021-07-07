@@ -1,7 +1,8 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, Input, ViewChild} from '@angular/core';
-import {fakeAsync, TestBed, tick} from '@angular/core/testing';
+import {ComponentFixture, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
+import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowArgsFormModule} from '@app/components/flow_args_form/module';
@@ -66,6 +67,15 @@ const TEST_FLOW_DESCRIPTORS = Object.freeze({
       procExeRegex: '',
       pipeTypeFilter: PipeTypeFilter.ANY_TYPE,
       pipeEndFilter: PipeEndFilter.ANY_END,
+    },
+  },
+  ListProcesses: {
+    name: 'ListProcesses',
+    friendlyName: 'List processes',
+    category: 'Processes',
+    defaultArgs: {
+      filenameRegex: '/(default)foo)/',
+      pids: [12222234, 456],
     },
   },
   TimelineFlow: {
@@ -687,3 +697,53 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
     expect(text).toContain('HKLM');
   });
 });
+
+describe(`FlowArgForm ListProcesses`, () => {
+  beforeEach(setUp);
+
+  it('emits form input values', async (done) => {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.flowDescriptor =
+        TEST_FLOW_DESCRIPTORS.ListProcesses;
+    fixture.detectChanges();
+
+    await setInputValue(
+        fixture, 'input[formControlName="filenameRegex"]', '/foo/');
+    await setInputValue(fixture, 'input[formControlName="pids"]', '123, 456');
+
+    fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe(values => {
+      expect(values).toEqual({
+        pids: [123, 456],
+        filenameRegex: '/foo/',
+      });
+      done();
+    });
+  });
+
+  it('flags non-numeric pids as invalid', async (done) => {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.flowDescriptor =
+        TEST_FLOW_DESCRIPTORS.ListProcesses;
+    fixture.detectChanges();
+
+    await setInputValue(
+        fixture, 'input[formControlName="pids"]', '12notnumeric3');
+
+    fixture.componentInstance.flowArgsForm.valid$.subscribe(valid => {
+      expect(valid).toBeFalse();
+      done();
+    });
+  });
+});
+
+async function setInputValue(
+    fixture: ComponentFixture<unknown>, query: string, value: string) {
+  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+  const inputHarness =
+      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
+  await inputHarness.setValue(value);
+}

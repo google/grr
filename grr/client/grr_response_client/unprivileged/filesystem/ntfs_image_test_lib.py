@@ -395,3 +395,9 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
     with self._client.Open(path=self._Path("\\入乡随俗 海外春节别样过法.txt")) as file_obj:
       expected = "Chinese news\n中国新闻\n".encode("utf-8")
       self.assertEqual(file_obj.Read(0, 100), expected)
+
+  def testRead_fromDirectoryRaises(self):
+    with self.assertRaisesRegex(client.OperationError,
+                                "Attempting to read from a directory"):
+      with self._client.Open(path=self._Path("\\a")) as file_obj:
+        file_obj.Read(offset=0, size=1)

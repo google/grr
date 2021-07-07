@@ -385,7 +385,7 @@ message FlowNotification {
 }
 
 // Stores information about the GRR client itself
-// Next field: 9
+// Next field: 10
 message ClientInformation {
   optional string client_name = 1;
   optional uint32 client_version = 2;
@@ -398,6 +398,9 @@ message ClientInformation {
   // Indicates whether the client supports file birth time collection in the
   // timeline action.
   optional bool timeline_btime_support = 8;
+
+  // Indicates whether the client supports sandboxing.
+  optional bool sandbox_support = 9;
 }
 
 // A generic protobuf to deliver some data

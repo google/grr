@@ -977,3 +977,30 @@ export declare interface ListNamedPipesFlowArgs {
   readonly pipeTypeFilter?: PipeTypeFilter;
   readonly pipeEndFilter?: PipeEndFilter;
 }
+
+/** ListProcessesArgs proto mapping. */
+export declare interface ListProcessesArgs {
+  readonly filenameRegex?: string;
+  readonly fetchBinaries?: boolean;
+  readonly connectionStates?: ReadonlyArray<NetworkConnectionState>;
+  readonly pids?: ReadonlyArray<number>;
+}
+
+/** NetworkConnection.State proto mapping */
+export enum NetworkConnectionState {
+  UNKNOWN = 'UNKNOWN',
+  CLOSED = 'CLOSED',
+  LISTEN = 'LISTEN',
+  SYN_SENT = 'SYN_SENT',
+  SYN_RECV = 'SYN_RECV',
+  ESTABLISHED = 'ESTABLISHED',
+  FIN_WAIT1 = 'FIN_WAIT1',
+  FIN_WAIT2 = 'FIN_WAIT2',
+  CLOSE_WAIT = 'CLOSE_WAIT',
+  CLOSING = 'CLOSING',
+  LAST_ACK = 'LAST_ACK',
+  TIME_WAIT = 'TIME_WAIT',
+  DELETE_TCB = 'DELETE_TCB',
+  NONE = 'NONE',
+  CLOSE = 'CLOSE',
+}

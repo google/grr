@@ -42,6 +42,8 @@ class NtfsFile(filesystem.File):
     self.data_stream = data_stream
 
   def Read(self, offset: int, size: int) -> bytes:
+    if self.fd.has_directory_entries_index():
+      raise IOError("Attempting to read from a directory.")
     self.data_stream.seek(offset)
     data = self.data_stream.read(size)
     return data

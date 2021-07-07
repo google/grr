@@ -1,5 +1,5 @@
 import {Component, Inject} from '@angular/core';
-import {AbstractControl, FormControl, ValidatorFn} from '@angular/forms';
+import {FormControl, ValidatorFn} from '@angular/forms';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {Observable} from 'rxjs';
 import {filter, map, withLatestFrom} from 'rxjs/operators';
@@ -68,8 +68,7 @@ export class ClientAddLabelDialog {
   }
 
   private labelValidator(): ValidatorFn {
-    // tslint:disable-next-line:no-any
-    return (control: AbstractControl): {[key: string]: any}|null => {
+    return (control) => {
       if (control.value === undefined) {
         return null;
       }

@@ -3,7 +3,7 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {MatTreeNestedDataSource} from '@angular/material/tree';
 import {map, takeUntil, takeWhile} from 'rxjs/operators';
 
-import {Process} from '../../../lib/api/api_interfaces';
+import {ListProcessesArgs, Process} from '../../../lib/api/api_interfaces';
 import {createOptionalDate} from '../../../lib/api_translation/primitive';
 import {FlowResult} from '../../../lib/models/flow';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
@@ -90,6 +90,29 @@ export class ListProcessesDetails extends Plugin {
         });
   }
 
+  private readonly flowArgs$ =
+      this.flow$.pipe(map(flow => flow.args as ListProcessesArgs));
+
+  readonly title$ = this.flowArgs$.pipe(map(args => {
+    const conditions: string[] = [];
+
+    if (args.pids?.length) {
+      conditions.push(`PID matching ${args.pids.join(', ')}`);
+    }
+
+    if (args.filenameRegex) {
+      conditions.push(`executable matching ${args.filenameRegex}`);
+    }
+
+    // TODO(user): Display network connection state.
+
+    if (conditions.length) {
+      return capitalize(conditions.join(' and '));
+    } else {
+      return 'All processes';
+    }
+  }));
+
   onShowClicked() {
     this.flowResultsLocalStore.queryMore(INITIAL_RESULT_COUNT);
   }
@@ -97,4 +120,8 @@ export class ListProcessesDetails extends Plugin {
   hasChild(index: number, process: ProcessNode): boolean {
     return process.children.length > 0;
   }
+}
+
+function capitalize(v: string): string {
+  return v[0].toUpperCase() + v.slice(1);
 }

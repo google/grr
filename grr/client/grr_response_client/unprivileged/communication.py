@@ -11,6 +11,8 @@ import subprocess
 from typing import NamedTuple, Callable, Optional, List, BinaryIO, Set
 import psutil
 
+from grr_response_client.unprivileged import sandbox
+
 
 class Error(Exception):
   """Base class for exceptions in this module."""
@@ -369,14 +371,6 @@ class SubprocessServer(Server):
       raise ValueError("Can't determine process.")
 
 
-def _EnterSandbox(user: str, group: str) -> None:
-  if platform.system() == "Linux" or platform.system() == "Darwin":
-    # pylint: disable=g-import-not-at-top
-    from grr_response_client.unprivileged.unix import sandbox
-    # pylint: enable=g-import-not-at-top
-    sandbox.EnterSandbox(user, group)
-
-
 def Main(channel: Channel, connection_handler: ConnectionHandler, user: str,
          group: str) -> None:
   """The entry point of the server process.
@@ -387,7 +381,7 @@ def Main(channel: Channel, connection_handler: ConnectionHandler, user: str,
     user: Unprivileged (UNIX) user to run as. If `""`, don't change user.
     group: Unprivileged (UNIX) group to run as. If `""`, don't change group.
   """
-  _EnterSandbox(user, group)
+  sandbox.EnterSandbox(user, group)
   with os.fdopen(
       channel.pipe_input.ToFileDescriptor(), "rb",
       buffering=False) as pipe_input:
