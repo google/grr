@@ -4,6 +4,8 @@
 
 import platform
 
+from grr.client.grr_response_client import client_utils_common 
+
 tested_versions = ['xp', 'vista', '2008', '2003']
 cmd = 'cmd'
 args = ['/c', '%SystemRoot%\\System32\\shutdown.exe', '/s', '/f']
