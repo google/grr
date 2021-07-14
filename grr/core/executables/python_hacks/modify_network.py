@@ -5,6 +5,8 @@
 import platform
 import re
 
+from grr.client.grr_response_client import client_utils_common
+
 
 def NetshStaticIp(interface,
                   ip=u'127.0.0.9',
