@@ -99,6 +99,7 @@ def MsgUser(msg):
 
 
 def main():
+  global py_args  # Predefined in the environment. See google/grr#937
   return_str = {}
   # pylint: disable=g-bad-name
   MSG_STRING = ('***WARNING for Acme Corp Security***\n'
@@ -106,7 +107,6 @@ def main():
                 'very scary virus. As a security measure we are \n'
                 'shutting down your internet connection. Please \n'
                 'call 0800-OHNOES immediately.')
-  # pylint: disable=undefined-variable
   if 'msg' in py_args:
     return_str['msg'] = MsgUser(py_args['msg'])
   else:
