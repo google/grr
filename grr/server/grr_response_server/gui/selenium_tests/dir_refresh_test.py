@@ -138,7 +138,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
         "~ td.proto_value")
 
   # NOTE: sometimes with headless Chrome the button doesn't get
-  # reenabled.
+  # re-enabled.
   @flaky
   def testRefreshButtonGetsDisabledWhileUpdateIsRunning(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")

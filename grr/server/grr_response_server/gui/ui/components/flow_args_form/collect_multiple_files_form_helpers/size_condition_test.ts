@@ -49,7 +49,7 @@ describe('SizeCondition component', () => {
        expect(maxField.nativeElement.value).toBe('20 MB');
      });
 
-  it('exposes form values and shows currect hint when only minimum file size field is filled',
+  it('exposes form values and shows correct hint when only minimum file size field is filled',
      async () => {
        const fixture = TestBed.createComponent(SizeCondition);
        const loader = TestbedHarnessEnvironment.loader(fixture);
@@ -75,7 +75,7 @@ describe('SizeCondition component', () => {
                '10,000,000 bytes, inclusive');
      });
 
-  it('exposes form values and shows currect hint when both fields are filled',
+  it('exposes form values and shows correct hint when both fields are filled',
      async () => {
        const fixture = TestBed.createComponent(SizeCondition);
        const loader = TestbedHarnessEnvironment.loader(fixture);

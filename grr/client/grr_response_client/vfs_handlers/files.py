@@ -197,7 +197,7 @@ class File(vfs_base.VFSHandler):
       # files and directories using the file listing property, we must force
       # treating raw devices as files.
       elif re.match(r"/*\\\\.\\[^\\]+\\?$", self.path) is not None:
-        # Special case windows devices cant seek to the end so just lie about
+        # Special case windows devices can't seek to the end so just lie about
         # the size
         self.size = 0x7fffffffffffffff
 

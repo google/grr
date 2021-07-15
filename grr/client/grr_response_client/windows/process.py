@@ -153,7 +153,7 @@ class Process(object):
     self.min_addr = si.lpMinimumApplicationAddress
 
   def Close(self):
-    """Relases all resources this instance is using."""
+    """Releases all resources this instance is using."""
     if self.h_process is not None:
       if self.h_process == self._existing_handle:
         # Not owned by this instance.

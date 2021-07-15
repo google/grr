@@ -255,7 +255,7 @@ class Artifact(rdf_structs.RDFProtoStruct):
   # These labels represent the full set of labels that an Artifact can have.
   # This set is tested on creation to ensure our list of labels doesn't get out
   # of hand.
-  # Labels are used to logicaly group Artifacts for ease of use.
+  # Labels are used to logically group Artifacts for ease of use.
 
   ARTIFACT_LABELS = {
       "Antivirus": "Antivirus related artifacts, e.g. quarantine files.",

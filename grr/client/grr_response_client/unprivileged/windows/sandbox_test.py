@@ -35,7 +35,7 @@ def setUpModule():
       sys.prefix,
       # Path to the Python installation
       sys.base_prefix,
-      # Path to the souce code tree
+      # Path to the source code tree
       _SourceCodeBaseDir(),
   }
 
@@ -45,8 +45,8 @@ def setUpModule():
   if hasattr(sys, "real_prefix"):
     read_only_paths.add(getattr(sys, "real_prefix"))
 
-  # For permissions to be set correctly on the directory treees, inhertiance
-  # needs to be enabled. Otherwise, permissions don't propage recursively.
+  # For permissions to be set correctly on the directory treees, inheritance
+  # needs to be enabled. Otherwise, permissions don't propagate recursively.
   # This enables inheritance on all directory trees recursively.
   # Since this is a very slow operation, directories are processed in parallel.
 

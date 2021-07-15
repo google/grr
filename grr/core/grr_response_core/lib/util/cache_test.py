@@ -174,7 +174,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
 
     self.assertEqual(mock_fn.call_count, 10)
 
-  # TODO(user): add a test case for a cace when non-hashable arguments are
+  # TODO(user): add a test case for a cache when non-hashable arguments are
   # passed.
 
 

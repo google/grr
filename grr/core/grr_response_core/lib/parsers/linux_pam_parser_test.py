@@ -48,9 +48,9 @@ ETC_PAMD_TELNET = b"""
   testing.so module arguments  # Comments
 """
 ETC_PAMD_EXTERNAL = b"""
-password substack nonexistant
+password substack nonexistent
 auth optional testing.so
-@include /external/nonexistant
+@include /external/nonexistent
 """
 
 TELNET_ONLY_CONFIG = {'/etc/pam.d/telnet': ETC_PAMD_TELNET}

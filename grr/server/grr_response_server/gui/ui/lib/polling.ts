@@ -13,7 +13,7 @@ interface PollArgs<T> {
  *
  * This function returns an Observable that, while being subscribed to:
  *
- * 1) Calls pollEffect() everytime `pollOn` emits. Use timer() for regular
+ * 1) Calls pollEffect() every time `pollOn` emits. Use timer() for regular
  *    polling.
  * 2) Passes through `selector`.
  *

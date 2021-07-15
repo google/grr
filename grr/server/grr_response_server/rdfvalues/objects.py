@@ -341,7 +341,7 @@ class PathInfo(rdf_structs.RDFProtoStruct):
     super().__init__(*args, **kwargs)
     _ValidatePathComponents(self.components)
 
-  # TODO(hanuszczak): Find a reliable way to make sure that noone ends up with
+  # TODO(hanuszczak): Find a reliable way to make sure that no one ends up with
   # incorrect `PathInfo` (a one that is both root and non-directory). Simple
   # validation in a constructor has two flaws:
   #

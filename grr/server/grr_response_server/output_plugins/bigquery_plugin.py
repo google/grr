@@ -251,7 +251,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
                                                  None) or "STRING"
 
         # For protos with RDF types we need to do some more checking to properly
-        # covert types.
+        # convert types.
         if hasattr(type_info, "original_proto_type_name"):
           if type_info.original_proto_type_name in [
               "RDFDatetime", "RDFDatetimeSeconds"

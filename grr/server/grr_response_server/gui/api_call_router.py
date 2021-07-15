@@ -136,7 +136,7 @@ class RouterMethodMetadata(object):
     /api/clients/<client_id>/last-ip would return ["client_id"].
 
     For GET requests the returned list will also include optional
-    query paramerters. For example, /api/clients?query=... will
+    query parameters. For example, /api/clients?query=... will
     return ["query"]. For non-GET HTTP methods no optional parameters will
     be included into the result.
 

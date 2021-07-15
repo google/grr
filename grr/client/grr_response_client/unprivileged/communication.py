@@ -273,7 +273,7 @@ class SubprocessServer(Server):
     Args:
       args_factory: Function which takes a channel and returns the args to run
         the server subprocess (as required by subprocess.Popen).
-      extra_file_descriptors: Extra file desctiptors to map to the subprocess.
+      extra_file_descriptors: Extra file descriptors to map to the subprocess.
     """
     self._args_factory = args_factory
     self._process = None  # type: Optional[subprocess.Popen]

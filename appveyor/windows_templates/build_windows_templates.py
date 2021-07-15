@@ -372,7 +372,7 @@ class WindowsTemplateBuilder(object):
   def _CleanupInstall(self):
     """Cleanup from any previous installer enough for _CheckInstallSuccess."""
 
-    logging.info("Stoping service %s.", self.service_name)
+    logging.info("Stopping service %s.", self.service_name)
     subprocess.check_call(["sc", "stop", self.service_name])
 
     if args.build_msi:

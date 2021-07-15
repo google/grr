@@ -140,14 +140,14 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
     """Test we detect when PAM ssh service doesn't deny auth by default."""
     pam_good = {"/etc/pam.d/ssh": "auth include other", "/etc/pam.d/other": ""}
     pam_bad = {
-        "/etc/pam.d/ssh": "auth include non-existant",
-        "/etc/pam.d/other": "password include /tmp/non-existant"
+        "/etc/pam.d/ssh": "auth include non-existent",
+        "/etc/pam.d/other": "password include /tmp/non-existent"
     }
     # Check the detection case.
     sym = "Found: PAM configuration refers to files outside of /etc/pam.d."
     found = [
-        "/etc/pam.d/ssh -> /etc/pam.d/non-existant",
-        "/etc/pam.d/other -> /tmp/non-existant"
+        "/etc/pam.d/ssh -> /etc/pam.d/non-existent",
+        "/etc/pam.d/other -> /tmp/non-existent"
     ]
     results = self.RunChecks(
         self.GenFileData("PamConfig", pam_bad, parser=self.parser))

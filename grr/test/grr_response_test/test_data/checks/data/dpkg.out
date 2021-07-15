@@ -7,9 +7,9 @@ ii  acpi-support-base               0.140-5                   all          scrip
 ii  acpid                           1:2.0.16-1+deb7u1         amd64        Advanced Configuration and Power Interface event daemon
 ii  adduser                         3.113+nmu3                all          add and remove users and groups
 ii  apt                             0.9.7.9                   amd64        commandline package manager
-ii  apt-utils                       0.9.7.9                   amd64        package managment related utility programs
+ii  apt-utils                       0.9.7.9                   amd64        package management related utility programs
 ii  aptitude                        0.6.8.2-1                 amd64        terminal-based package manager
-ii  aptitude-common                 0.6.8.2-1                 all          architecture indepedent files for the aptitude package manager
+ii  aptitude-common                 0.6.8.2-1                 all          architecture independent files for the aptitude package manager
 ii  base-files                      7.1wheezy1                amd64        Debian base system miscellaneous files
 ii  base-passwd                     3.5.26                    amd64        Debian base system master password and group files
 ii  bash                            4.2+dfsg-0.1              amd64        GNU Bourne Again SHell
@@ -57,7 +57,7 @@ ii  kmod                            9-3                       amd64        tools
 ii  kpartx                          0.4.9+git0.4dfdaf2b-6     amd64        create device mappings for partitions
 ii  libacl1:amd64                   2.2.51-8                  amd64        Access control list shared library
 ii  libapt-inst1.5:amd64            0.9.7.9                   amd64        deb package format runtime library
-ii  libapt-pkg4.12:amd64            0.9.7.9                   amd64        package managment runtime library
+ii  libapt-pkg4.12:amd64            0.9.7.9                   amd64        package management runtime library
 ii  libattr1:amd64                  1:2.4.46-8                amd64        Extended attribute shared library
 ii  libblkid1:amd64                 2.20.1-5.3                amd64        block device id library
 ii  libboost-iostreams1.49.0        1.49.0-3.2                amd64        Boost.Iostreams Library

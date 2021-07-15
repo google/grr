@@ -345,5 +345,5 @@ class Sandbox:
     self.desktop_name = _GetFullDesktopName(h_window_station, h_desktop)
 
   def Close(self) -> None:
-    """Releases the sate of the sandbox."""
+    """Releases the state of the sandbox."""
     self._exit_stack.close()
