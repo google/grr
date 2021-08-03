@@ -6,12 +6,7 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {Subject} from 'rxjs';
 
 import {Writable} from '../../lib/type_utils';
-import {ConfigGlobalStore} from '../../store/config_global_store';
-import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
-import {HomePageGlobalStore} from '../../store/home_page_global_store';
-import {mockHomePageGlobalStore} from '../../store/home_page_global_store_test_util';
-import {UserGlobalStore} from '../../store/user_global_store';
-import {mockUserGlobalStore} from '../../store/user_global_store_test_util';
+import {STORE_PROVIDERS} from '../../store/store_test_providers';
 
 import {App} from './app';
 import {AppModule} from './app_module';
@@ -31,9 +26,7 @@ describe('App Component', () => {
           ],
 
           providers: [
-            {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore},
-            {provide: HomePageGlobalStore, useFactory: mockHomePageGlobalStore},
-            {provide: UserGlobalStore, useFactory: mockUserGlobalStore},
+            ...STORE_PROVIDERS,
           ],
         })
         .compileComponents();
@@ -53,11 +46,14 @@ describe('App Component', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
-    const snapshot = new ActivatedRouteSnapshot();
-    snapshot.params = {id: 'C.1234'};
-    snapshot.queryParams = {};
-    snapshot.data = {legacyLink: '#/legacy/:id/foo'};
-    routerEvents.next(new ActivationEnd(snapshot));
+    const snapshot: Partial<ActivatedRouteSnapshot> = {
+      params: {id: 'C.1234'},
+      queryParams: {},
+      data: {legacyLink: '#/legacy/:id/foo'},
+      children: [],
+    };
+
+    routerEvents.next(new ActivationEnd(snapshot as ActivatedRouteSnapshot));
 
     fixture.detectChanges();
 

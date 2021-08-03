@@ -34,6 +34,8 @@ class VfsFileFinder(actions.ActionPlugin):
     for path in _GetExpandedPaths(args, heartbeat_cb=self.Progress):
       self.Progress()
       pathspec = rdf_paths.PathSpec(path=path, pathtype=args.pathtype)
+      if args.HasField("implementation_type"):
+        pathspec.implementation_type = args.implementation_type
 
       with vfs.VFSOpen(pathspec) as vfs_file:
         stat_entry = vfs_file.Stat()
@@ -86,8 +88,14 @@ def _GetExpandedPaths(
     heartbeat_cb: Callable[[], None] = _NoOp,
 ) -> Iterator[Text]:
   """Yields all possible expansions from given path patterns."""
+  if args.HasField("implementation_type"):
+    implementation_type = args.implementation_type
+  else:
+    implementation_type = None
   opts = globbing.PathOpts(
-      follow_links=args.follow_links, pathtype=args.pathtype)
+      follow_links=args.follow_links,
+      pathtype=args.pathtype,
+      implementation_type=implementation_type)
 
   for path in args.paths:
     for expanded_path in globbing.ExpandPath(str(path), opts, heartbeat_cb):

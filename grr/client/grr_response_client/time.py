@@ -23,6 +23,11 @@ def Sleep(
     progress_secs: The amount of seconds between progress callback calls.
     progress_callback: A progress function to invoke.
   """
+  if secs < 0.0:
+    raise ValueError(f"Negative sleep time: {secs}s")
+  if progress_secs <= 0.0:
+    raise ValueError(f"Non-positive progress frequency: {progress_secs}s")
+
   while progress_secs <= secs:
     time.sleep(progress_secs)
     secs -= progress_secs

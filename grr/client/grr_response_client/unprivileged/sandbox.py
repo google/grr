@@ -67,8 +67,15 @@ def EnterSandbox(user: str, group: str) -> None:
     user: New user name to run as. If empty then the user is not changed.
     group: New group name to run as. If empty then the group is not changed.
   """
-  if platform.system() == "Linux" or platform.system() == "Darwin":
+  if platform.system() == "Linux":
     # pylint: disable=g-import-not-at-top
-    from grr_response_client.unprivileged.unix import sandbox
+    from grr_response_client.unprivileged.linux import sandbox
     # pylint: enable=g-import-not-at-top
+    sandbox.EnterSandbox(user, group)
+  elif platform.system() == "Darwin":
+    # pytype: disable=import-error
+    # pylint: disable=g-import-not-at-top
+    from grr_response_client.unprivileged.osx import sandbox
+    # pylint: enable=g-import-not-at-top
+    # pytype: enable=import-error
     sandbox.EnterSandbox(user, group)

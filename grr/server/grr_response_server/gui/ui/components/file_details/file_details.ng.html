@@ -1,0 +1,6 @@
+<h3 class="mat-h3">
+  {{(fileId$ | async)?.path}}
+</h3>
+
+<pre class="monospace"><span *ngFor="let line of textContent$ | async"
+  >{{line}}</span></pre>

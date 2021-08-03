@@ -8,8 +8,8 @@ import {FlowFormModule} from '@app/components/flow_form/module';
 import {FlowListModule} from '@app/components/flow_list/module';
 
 import {ApprovalModule} from '../approval/module';
-import {ClientDetailsModule} from '../client_details/module';
 import {ClientOverviewModule} from '../client_overview/module';
+import {DrawerLinkModule} from '../helpers/drawer_link/drawer_link_module';
 import {ScheduledFlowListModule} from '../scheduled_flow_list/module';
 
 import {ClientPage} from './client_page';
@@ -22,9 +22,9 @@ import {ClientPageRoutingModule} from './routing';
   imports: [
     ApprovalModule,
     BrowserAnimationsModule,
-    ClientDetailsModule,
     ClientOverviewModule,
     ClientPageRoutingModule,
+    DrawerLinkModule,
     FlowFormModule,
     FlowListModule,
     MatButtonModule,

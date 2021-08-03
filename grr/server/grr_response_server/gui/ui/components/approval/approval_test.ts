@@ -3,10 +3,9 @@ import {OverlayModule} from '@angular/cdk/overlay';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute} from '@angular/router';
+import {Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 import {initTestEnvironment} from '@app/testing';
-import {of} from 'rxjs';
 
 import {Client} from '../../lib/models/client';
 import {newClient} from '../../lib/models/model_test_util';
@@ -40,7 +39,7 @@ describe('Approval Component', () => {
         .configureTestingModule({
           imports: [
             NoopAnimationsModule,
-            RouterTestingModule.withRoutes([]),
+            RouterTestingModule,
             ApprovalModule,
           ],
 
@@ -49,16 +48,11 @@ describe('Approval Component', () => {
               provide: ClientPageGlobalStore,
               useFactory: () => clientPageGlobalStore
             },
-            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
-            OverlayModule,
             {
-              provide: ActivatedRoute,
-              useFactory: () => {
-                const route = new ActivatedRoute();
-                route.queryParams = of({reason: 'vimes/t/abcd'});
-                return route;
-              }
+              provide: ConfigGlobalStore,
+              useFactory: () => configGlobalStore,
             },
+            OverlayModule,
           ]
         })
         .compileComponents();
@@ -68,8 +62,8 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageGlobalStore.selectedClientSubject.next(makeClient());
-    configGlobalStore.approvalConfigSubject.next({});
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
+    configGlobalStore.mockedObservables.approvalConfig$.next({});
 
     fixture.componentInstance.formRequestedApprovers.add('rick');
     fixture.componentInstance.formRequestedApprovers.add('jerry');
@@ -91,9 +85,9 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageGlobalStore.selectedClientSubject.next(makeClient());
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
 
-    configGlobalStore.approvalConfigSubject.next(
+    configGlobalStore.mockedObservables.approvalConfig$.next(
         {optionalCcEmail: 'foo@example.org'});
     fixture.detectChanges();
 
@@ -101,20 +95,23 @@ describe('Approval Component', () => {
     expect(text).toContain('foo@example.org');
   });
 
-  it('sets reason for approval value in form based on url param', () => {
+  it('sets reason for approval value in form based on url param', async () => {
+    await TestBed.inject(Router).navigate(
+        [], {queryParams: {reason: 'foo/t/abcd'}});
+
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.form.value.reason).toEqual('vimes/t/abcd');
+    expect(fixture.componentInstance.form.value.reason).toEqual('foo/t/abcd');
   });
 
   it('uses optional cc address for approval by default', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageGlobalStore.selectedClientSubject.next(makeClient());
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
 
-    configGlobalStore.approvalConfigSubject.next(
+    configGlobalStore.mockedObservables.approvalConfig$.next(
         {optionalCcEmail: 'foo@example.org'});
     fixture.detectChanges();
 
@@ -134,9 +131,9 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageGlobalStore.selectedClientSubject.next(makeClient());
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
 
-    configGlobalStore.approvalConfigSubject.next(
+    configGlobalStore.mockedObservables.approvalConfig$.next(
         {optionalCcEmail: 'foo@example.org'});
     fixture.detectChanges();
 
@@ -156,8 +153,8 @@ describe('Approval Component', () => {
     fixture.detectChanges();
 
     const client = makeClient();
-    clientPageGlobalStore.selectedClientSubject.next(client);
-    clientPageGlobalStore.latestApprovalSubject.next({
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(client);
+    clientPageGlobalStore.mockedObservables.latestApproval$.next({
       approvalId: '1',
       clientId: 'C.1234',
       requestor: 'testuser',
@@ -179,8 +176,8 @@ describe('Approval Component', () => {
     fixture.detectChanges();
 
     const client = makeClient();
-    clientPageGlobalStore.selectedClientSubject.next(client);
-    clientPageGlobalStore.latestApprovalSubject.next({
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(client);
+    clientPageGlobalStore.mockedObservables.latestApproval$.next({
       approvalId: '111',
       clientId: 'C.1234',
       requestor: 'testuser',
@@ -206,8 +203,8 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageGlobalStore.selectedClientSubject.next(makeClient());
-    configGlobalStore.approvalConfigSubject.next({});
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
+    configGlobalStore.mockedObservables.approvalConfig$.next({});
 
     expect(clientPageGlobalStore.suggestApprovers).toHaveBeenCalledWith('');
 
@@ -216,7 +213,8 @@ describe('Approval Component', () => {
     approversInput.triggerEventHandler('focusin', null);
     fixture.detectChanges();
 
-    clientPageGlobalStore.approverSuggestionsSubject.next(['bar', 'baz']);
+    clientPageGlobalStore.mockedObservables.approverSuggestions$.next(
+        ['bar', 'baz']);
     fixture.detectChanges();
 
     const matOptions = document.querySelectorAll('mat-option');
@@ -229,8 +227,8 @@ describe('Approval Component', () => {
     const fixture = TestBed.createComponent(Approval);
     fixture.detectChanges();
 
-    clientPageGlobalStore.selectedClientSubject.next(makeClient());
-    configGlobalStore.approvalConfigSubject.next({});
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
+    configGlobalStore.mockedObservables.approvalConfig$.next({});
 
     const approversInput =
         fixture.debugElement.query(By.css('mat-chip-list input'));
@@ -239,7 +237,8 @@ describe('Approval Component', () => {
     fixture.detectChanges();
 
     expect(clientPageGlobalStore.suggestApprovers).toHaveBeenCalledWith('ba');
-    clientPageGlobalStore.approverSuggestionsSubject.next(['bar', 'baz']);
+    clientPageGlobalStore.mockedObservables.approverSuggestions$.next(
+        ['bar', 'baz']);
     fixture.detectChanges();
 
     const matOptions = document.querySelectorAll('mat-option');

@@ -54,7 +54,7 @@ describe('UserImage Component', () => {
   it('displays the profile image ', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.componentInstance.username = 'test';
-    configGlobalStore.uiConfigSubject.next(
+    configGlobalStore.mockedObservables.uiConfig$.next(
         {profileImageUrl: 'http://foo/{username}.jpg?sz=123'});
     fixture.detectChanges();
 

@@ -55,11 +55,11 @@ describe('SearchBox Component', () => {
   let httpApiService: jasmine.SpyObj<HttpApiService>;
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
-  let configGlobalStoreMock: ConfigGlobalStoreMock;
+  let configGlobalStore: ConfigGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
     httpApiService = jasmine.createSpyObj('HttpApiService', ['searchClients']);
-    configGlobalStoreMock = mockConfigGlobalStore();
+    configGlobalStore = mockConfigGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -69,10 +69,8 @@ describe('SearchBox Component', () => {
             ApiModule,
           ],
           providers: [
-            {provide: HttpApiService, useValue: httpApiService}, {
-              provide: ConfigGlobalStore,
-              useFactory: () => configGlobalStoreMock
-            }
+            {provide: HttpApiService, useValue: httpApiService},
+            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore}
           ],
 
         })
@@ -156,7 +154,7 @@ describe('SearchBox Component', () => {
      fakeAsync(() => {
        const fixture = TestBed.createComponent(SearchBox);
        // All client labels fetched from server.
-       configGlobalStoreMock.clientsLabelsSubject.next([
+       configGlobalStore.mockedObservables.clientsLabels$.next([
          'test1',
          'test2',
          'other',

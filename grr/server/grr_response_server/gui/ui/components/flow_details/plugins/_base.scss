@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../../material-theme' as c;
 
 $files-counter-offset: 135px;
@@ -10,10 +11,10 @@ $header-left-padding: 24px;
 
   font-size: 90%;
   font-weight: 400;
-  color: c.mat-color(c.$foreground, text-light);
+  color: mat.get-color-from-palette(c.$foreground, text-light);
 
   button {
-    border-color: c.mat-color(c.$foreground, divider-light);
+    border-color: mat.get-color-from-palette(c.$foreground, divider-light);
     margin-left: 1.5em;
   }
 

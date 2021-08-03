@@ -1,25 +1,13 @@
 /** Test helpers. */
 // tslint:disable:enforce-comments-on-exported-symbols
 
-import {ReplaySubject, Subject} from 'rxjs';
-
-import {GrrUser} from '../lib/models/user';
-
+import {MockStore, mockStore} from './store_test_util';
 import {UserGlobalStore} from './user_global_store';
 
-type I<T> = {
-  [key in keyof T]: T[key];
-};
 
-export declare interface UserGlobalStoreMock extends I<UserGlobalStore> {
-  currentUserSubject: Subject<GrrUser>;
-}
+export declare interface UserGlobalStoreMock extends
+    MockStore<UserGlobalStore> {}
 
-export function mockUserGlobalStore(): UserGlobalStoreMock {
-  const currentUserSubject = new ReplaySubject<GrrUser>(1);
-
-  return {
-    currentUserSubject,
-    currentUser$: currentUserSubject.asObservable(),
-  };
+export function mockUserGlobalStore() {
+  return mockStore(UserGlobalStore);
 }

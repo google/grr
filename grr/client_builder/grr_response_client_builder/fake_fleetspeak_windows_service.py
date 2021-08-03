@@ -37,8 +37,10 @@ class FakeFleetspeakSvc(win32serviceutil.ServiceFramework):
     cls._exe_args_ = subprocess.list2cmdline([
         "-m",
         "grr_response_client_builder.fake_fleetspeak_windows_service",
-        f"--logfile={flags.FLAGS.logfile}",
-        f"--service_name={flags.FLAGS.service_name}",
+        "--logfile",
+        flags.FLAGS.logfile,
+        "--service_name",
+        flags.FLAGS.service_name,
     ])
 
   def __init__(self, args):

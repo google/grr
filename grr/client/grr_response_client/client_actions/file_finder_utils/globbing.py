@@ -7,13 +7,14 @@ import os
 import platform
 import re
 import stat
-from typing import Callable, Iterator, Optional, Text
+from typing import Callable, Iterator, Optional, Text, Iterable
 
 import psutil
 
 from grr_response_client import vfs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util.compat import fnmatch
 
@@ -35,9 +36,15 @@ class PathOpts(object):
     pathtype: The pathtype to use.
   """
 
-  def __init__(self, follow_links=False, xdev=None, pathtype=None):
+  def __init__(
+      self,
+      follow_links: bool = False,
+      xdev: Optional[rdf_structs.EnumNamedValue] = None,
+      pathtype: Optional[rdf_structs.EnumNamedValue] = None,
+      implementation_type: Optional[rdf_structs.EnumNamedValue] = None):
     self.follow_links = follow_links
     self.pathtype = pathtype or rdf_paths.PathSpec.PathType.OS
+    self.implementation_type = implementation_type
     if xdev is None:
       self.xdev = rdf_file_finder.FileFinderArgs.XDev.ALWAYS
     else:
@@ -86,7 +93,8 @@ class RecursiveComponent(PathComponent):
     if depth > self.max_depth:
       return
 
-    for item in _ListDir(dirpath, self.opts.pathtype):
+    for item in _ListDir(dirpath, self.opts.pathtype,
+                         self.opts.implementation_type):
       itempath = os.path.join(dirpath, item)
 
       yield itempath
@@ -125,7 +133,8 @@ class RecursiveComponent(PathComponent):
       except IOError:
         return  # Skip inaccessible Registry parts (e.g. HKLM\SAM\SAM) silently.
     else:
-      raise AssertionError("Invalid pathtype {}".format(self.opts.pathtype))
+      raise AssertionError("Pathtype {} is not supported for recursion".format(
+          self.opts.pathtype))
 
     for childpath in self._Generate(path, depth + 1):
       yield childpath
@@ -189,7 +198,10 @@ class GlobComponent(PathComponent):
     # that the VFSOpen call below becomes much faster. Tests show that there is
     # an unicode issue with CASE_LITERAL that we need to fix before adding that
     # option.
-    pathspec = rdf_paths.PathSpec(path=new_path, pathtype=self.opts.pathtype)
+    pathspec = rdf_paths.PathSpec(
+        path=new_path,
+        pathtype=self.opts.pathtype,
+        implementation_type=self.opts.implementation_type)
     try:
       with vfs.VFSOpen(pathspec) as filedesc:
         if filedesc.path == "/" and new_path != "/":
@@ -216,7 +228,8 @@ class GlobComponent(PathComponent):
         yield os.path.join(dirpath, literal_match)
         return
 
-    for item in _ListDir(dirpath, self.opts.pathtype):
+    for item in _ListDir(dirpath, self.opts.pathtype,
+                         self.opts.implementation_type):
       if self.regex.match(item):
         yield os.path.join(dirpath, item)
 
@@ -433,7 +446,10 @@ def _ExpandComponents(basepath, components, index=0, heartbeat_cb=_NoOp):
       yield path
 
 
-def _ListDir(dirpath, pathtype):
+def _ListDir(
+    dirpath: str, pathtype: rdf_paths.PathSpec.PathType,
+    implementation_type: rdf_paths.PathSpec.ImplementationType
+) -> Iterable[str]:
   """Returns children of a given directory.
 
   This function is intended to be used by the `PathComponent` subclasses to get
@@ -443,6 +459,7 @@ def _ListDir(dirpath, pathtype):
   Args:
     dirpath: A path to the directory.
     pathtype: The pathtype to use.
+    implementation_type: Implementation type to use.
 
   Raises:
     ValueError: in case of unsupported path types.
@@ -453,7 +470,8 @@ def _ListDir(dirpath, pathtype):
     except OSError:
       return []
 
-  pathspec = rdf_paths.PathSpec(path=dirpath, pathtype=pathtype)
+  pathspec = rdf_paths.PathSpec(
+      path=dirpath, pathtype=pathtype, implementation_type=implementation_type)
   childpaths = []
   try:
     with vfs.VFSOpen(pathspec) as filedesc:

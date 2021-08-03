@@ -342,6 +342,9 @@ class WindowsMsiClientRepacker(build.ClientRepacker):
       if fleetspeak_enabled and not fleetspeak_bundled:
         EnableFeature("FleetspeakServiceRestart")
 
+      if fleetspeak_enabled or fleetspeak_bundled:
+        EnableFeature("NannyServiceRemove")
+
       # Rename directories
 
       RenameFileConfig("__GrrDirectory", "Client.name")
@@ -433,6 +436,9 @@ class WindowsMsiClientRepacker(build.ClientRepacker):
         ]
         ReplaceString("__NannyChildCommandLine",
                       subprocess.list2cmdline(child_args))
+
+      if fleetspeak_enabled or fleetspeak_bundled:
+        ReplaceStringConfig("__NannyServiceNameToRemove", "Nanny.service_name")
 
       if self.signer:
         _SignCabFiles(msi_file.CabFilesDirectory(), self.signer)

@@ -14,6 +14,8 @@ import {isNonNull} from '@app/lib/preconditions';
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
+import {observeOnDestroy} from '../../lib/reactive';
+
 type OnChangeFn = (textValue: string) => void;
 
 /**
@@ -46,7 +48,9 @@ export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
                                    AfterViewInit, ControlValueAccessor {
   private static uniqueNumber = 0;
 
-  private readonly unsubscribe$ = new Subject<void>();
+  readonly ngOnDestroy = observeOnDestroy(() => {
+    this.focusMonitor.stopMonitoring(this.rootElement.nativeElement);
+  });
 
   readonly controlType = 'code-editor';
 
@@ -131,7 +135,7 @@ export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
       this.stateChanges.next();
     });
 
-    this.editorValueChanges$.pipe(takeUntil(this.unsubscribe$))
+    this.editorValueChanges$.pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe(() => {
           this.stateChanges.next();
         });
@@ -167,13 +171,6 @@ export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
 
   get editorValue() {
     return this.editor?.getValue() ?? '';
-  }
-
-  ngOnDestroy(): void {
-    this.focusMonitor.stopMonitoring(this.rootElement.nativeElement);
-
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
   }
 
   ngAfterViewInit(): void {

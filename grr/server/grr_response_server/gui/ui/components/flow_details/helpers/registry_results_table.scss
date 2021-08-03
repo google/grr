@@ -1,13 +1,14 @@
+@use '~@angular/material' as mat;
 @use '../../../material-theme' as c;
 
 .mat-cell {
-  border-color: c.mat-color(c.$foreground, divider-light);
-  color: c.mat-color(c.$foreground, text-light);
+  border-color: mat.get-color-from-palette(c.$foreground, divider-light);
+  color: mat.get-color-from-palette(c.$foreground, text-light);
 }
 
 table {
-  border-color: c.mat-color(c.$foreground, divider-light);
-  color: c.mat-color(c.$foreground, text-light);
+  border-color: mat.get-color-from-palette(c.$foreground, divider-light);
+  color: mat.get-color-from-palette(c.$foreground, text-light);
   font-size: 14px;
   width: 100%;
 

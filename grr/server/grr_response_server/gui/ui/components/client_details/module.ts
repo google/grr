@@ -16,6 +16,7 @@ import {EntryHistoryButtonModule} from './entry_history_button/module';
 import {EntryHistoryDialog} from './entry_history_dialog/entry_history_dialog';
 import {EntryHistoryDialogModule} from './entry_history_dialog/module';
 import {InterfacesDetailsModule} from './interfaces_details/module';
+import {ClientDetailsRoutingModule} from './routing';
 import {UsersDetailsModule} from './users_details/module';
 import {VolumesDetailsModule} from './volumes_details/module';
 
@@ -26,19 +27,22 @@ import {VolumesDetailsModule} from './volumes_details/module';
   imports: [
     CommonModule,
     RouterModule,
-    MatIconModule,
-    TimestampModule,
-    HumanReadableSizeModule,
-    MatDividerModule,
-    MatChipsModule,
-    MatListModule,
+
     MatButtonModule,
+    MatChipsModule,
     MatDialogModule,
-    EntryHistoryDialogModule,
+    MatDividerModule,
+    MatIconModule,
+    MatListModule,
+
+    ClientDetailsRoutingModule,
     EntryHistoryButtonModule,
+    EntryHistoryDialogModule,
+    HumanReadableSizeModule,
+    InterfacesDetailsModule,
+    TimestampModule,
     UsersDetailsModule,
     VolumesDetailsModule,
-    InterfacesDetailsModule,
   ],
   declarations: [
     ClientDetails,

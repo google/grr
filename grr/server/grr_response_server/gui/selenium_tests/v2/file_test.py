@@ -9,6 +9,7 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.flows import file
 from grr_response_server.gui import gui_test_lib
+from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -180,6 +181,31 @@ class CollectSingleFileTest(gui_test_lib.GRRSeleniumTest):
           self.IsElementPresent,
           "css=collect-single-file-details .error:contains('Something went wrong')"
       )
+
+
+class VfsFileViewTest(gui_test_lib.GRRSeleniumTest):
+
+  def setUp(self):
+    super().setUp()
+    self.client_id = "C.0000000000000001"
+
+    with test_lib.FakeTime(test_lib.FIXED_TIME):
+      fixture_test_lib.ClientFixture(self.client_id)
+
+    gui_test_lib.CreateFileVersions(self.client_id)
+    self.RequestAndGrantClientApproval("C.0000000000000001")
+
+  def testShowsVfsFileContents(self):
+    gui_test_lib.CreateFileVersion(
+        self.client_id,
+        "fs/os/foo/barfile",
+        "Hello VFS View".encode("utf-8"),
+        timestamp=gui_test_lib.TIME_1)
+
+    self.Open(f"/v2/clients/{self.client_id}(drawer:files/os/%2Ffoo%2Fbarfile)")
+
+    self.WaitUntilContains("/foo/barfile", self.GetText, "css=mat-drawer")
+    self.WaitUntilContains("Hello VFS View", self.GetText, "css=mat-drawer")
 
 
 if __name__ == "__main__":

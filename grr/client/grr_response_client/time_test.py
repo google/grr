@@ -19,6 +19,14 @@ class SleepTest(absltest.TestCase):
     sleep_patcher.start()
     self.addCleanup(sleep_patcher.stop)
 
+  def testNegative(self):
+    with self.assertRaisesRegex(ValueError, "Negative"):
+      time.Sleep(-1.0)
+
+  def testNonPositiveProgress(self):
+    with self.assertRaisesRegex(ValueError, "Non-positive"):
+      time.Sleep(1.0, progress_secs=0.0)
+
   def testZero(self):
     time.Sleep(0.0)
     self.assertEqual(sum(self.sleeps), 0.0)

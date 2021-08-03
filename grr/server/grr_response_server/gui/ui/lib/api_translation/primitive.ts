@@ -1,6 +1,7 @@
 import {AnyObject, DataBlob, DecimalString, Dict, KeyValue} from '@app/lib/api/api_interfaces';
 import {DateTime} from '@app/lib/date_time';
 import {isNonNull} from '@app/lib/preconditions';
+
 import {assertTruthy} from '../preconditions';
 
 
@@ -73,6 +74,14 @@ export function createOptionalDateSeconds(timestampSeconds?: string): Date|
   return result;
 }
 
+
+/** Converts a Date to millseconds since unix epoch. */
+export function toOptionalMillis(date: undefined): undefined;
+export function toOptionalMillis(date: Date): number;
+export function toOptionalMillis(date?: Date): number|undefined;
+export function toOptionalMillis(date?: Date): number|undefined {
+  return date?.getTime();
+}
 
 
 /**

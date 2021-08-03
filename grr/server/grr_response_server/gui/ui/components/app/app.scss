@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../material-theme' as c;
 @use '../../main' as main;
 
@@ -10,8 +11,8 @@
 .toolbar {
   box-sizing: border-box;
   height: main.$toolbar-height;
-  box-shadow: 0px 0px 4px c.mat-color(c.$background, shadow);
-  border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
+  box-shadow: 0px 0px 4px mat.get-color-from-palette(c.$background, shadow);
+  border-bottom: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
 
   .brand {
     margin-left: 0.5em;
@@ -30,7 +31,7 @@
     }
 
     .title {
-      color: c.mat-color(c.$foreground, logo);
+      color: mat.get-color-from-palette(c.$foreground, logo);
       font-size: 24px;
       font-family: c.$google-sans-display-family;
       margin-top: 2px;
@@ -38,8 +39,8 @@
 
     .badge {
       border-radius: 5px;
-      border: 1px solid c.mat-color(c.$foreground, divider-light);
-      color: c.mat-color(c.$foreground, logo);
+      border: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
+      color: mat.get-color-from-palette(c.$foreground, logo);
       display: inline-block;
       font-size: 10px;
       font-weight: bold;
@@ -53,4 +54,24 @@
   .spacer {
     flex: 1 1 auto;
   }
+}
+
+mat-drawer-container {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+
+  // Angular inserts a .mat-drawer-content element. We need to override its
+  // style in order to allow all children to fill the parent height.
+  // See: https://github.com/angular/components/issues/13983
+  ::ng-deep .mat-drawer-content {
+    flex: 1;
+    display: flex;
+  }
+}
+
+.noscroll {
+  position: fixed;
+  width: 100%;
+  top: main.$toolbar-height;
 }

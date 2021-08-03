@@ -315,7 +315,8 @@ class GlobLogic(object):
                    pathtype="OS",
                    root_path=None,
                    process_non_regular_files=False,
-                   collect_ext_attrs=False):
+                   collect_ext_attrs=False,
+                   implementation_type=None):
     """Starts the Glob.
 
     This is the main entry point for this flow mixin.
@@ -332,6 +333,7 @@ class GlobLogic(object):
         regular ones.
       collect_ext_attrs: Whether to gather information about file extended
         attributes.
+      implementation_type: The implementation type to use for create pathspecs.
     """
     patterns = []
 
@@ -340,6 +342,7 @@ class GlobLogic(object):
       return
 
     self.state.pathtype = pathtype
+    self.state.implementation_type = implementation_type
     self.state.root_path = root_path
     self.state.process_non_regular_files = process_non_regular_files
     self.state.collect_ext_attrs = collect_ext_attrs
@@ -399,6 +402,13 @@ class GlobLogic(object):
 
   # Maximum number of files to inspect in a single directory
   FILE_MAX_PER_DIR = 1000000
+
+  def _PathSpecForClient(self,
+                         pathspec: rdf_paths.PathSpec) -> rdf_paths.PathSpec:
+    if self.state.implementation_type:
+      pathspec = pathspec.Copy()
+      pathspec.implementation_type = self.state.implementation_type
+    return pathspec
 
   def _ConvertGlobIntoPathComponents(self, pattern):
     r"""Converts a glob pattern into a list of pathspec components.
@@ -604,12 +614,13 @@ class GlobLogic(object):
               if not self.client_version or self.client_version >= 3221:
                 stub = server_stubs.GetFileStat
                 request = rdf_client_action.GetFileStatRequest(
-                    pathspec=pathspec,
+                    pathspec=self._PathSpecForClient(pathspec),
                     collect_ext_attrs=self.state.collect_ext_attrs,
                     follow_symlink=True)
               else:
                 stub = server_stubs.StatFile
-                request = rdf_client_action.ListDirRequest(pathspec=pathspec)
+                request = rdf_client_action.ListDirRequest(
+                    pathspec=self._PathSpecForClient(pathspec))
 
               self.CallClient(
                   stub,
@@ -640,7 +651,7 @@ class GlobLogic(object):
                                                 ])) + "$"
 
           findspec = rdf_client_fs.FindSpec(
-              pathspec=base_pathspec,
+              pathspec=self._PathSpecForClient(base_pathspec),
               cross_devs=True,
               max_depth=depth,
               path_regex=path_regex)
@@ -656,7 +667,9 @@ class GlobLogic(object):
           path_regex = "(?i)^" + "$|^".join(
               set([c.path for c in regexes_to_get])) + "$"
           findspec = rdf_client_fs.FindSpec(
-              pathspec=base_pathspec, max_depth=1, path_regex=path_regex)
+              pathspec=self._PathSpecForClient(base_pathspec),
+              max_depth=1,
+              path_regex=path_regex)
 
           findspec.iterator.number = self.FILE_MAX_PER_DIR
           self.CallClient(
@@ -686,11 +699,18 @@ class Glob(GlobLogic, flow_base.FlowBase):
     combinations.
     """
     super().Start()
+
+    if self.args.HasField("implementation_type"):
+      implementation_type = self.args.implementation_type
+    else:
+      implementation_type = None
+
     self.GlobForPaths(
         self.args.paths,
         pathtype=self.args.pathtype,
         root_path=self.args.root_path,
-        process_non_regular_files=self.args.process_non_regular_files)
+        process_non_regular_files=self.args.process_non_regular_files,
+        implementation_type=implementation_type)
 
   def GlobReportMatch(self, stat_response):
     """Called when we've found a matching StatEntry."""

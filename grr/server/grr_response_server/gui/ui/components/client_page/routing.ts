@@ -13,9 +13,6 @@ export const CLIENT_PAGE_ROUTES: Routes&RoutesWithLegacyLinks = [
     path: 'clients/:id',
     component: ClientPage,
     data: {legacyLink: '#/clients/:id'},
-    children: [
-      {path: ClientPage.CLIENT_DETAILS_ROUTE, component: ClientPage},
-    ],
   },
 ];
 

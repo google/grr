@@ -30,6 +30,11 @@ os.chdir(THIS_DIRECTORY)
 GRPCIO_TOOLS = "grpcio-tools==1.29.0"
 PROTOBUF = "protobuf==3.12.2"
 
+if platform.system() == "Darwin":
+  PYTSK3 = "pytsk3==20210419"
+else:
+  PYTSK3 = "pytsk3==20200117"
+
 
 def get_config():
   """Get INI parser with version.ini data."""
@@ -128,7 +133,7 @@ setup_args = dict(
         "absl-py==0.9.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "PyInstaller==3.6",
-        "pytsk3==20200117",
+        PYTSK3,
         "retry==0.9.2",
         "libfsntfs-python==20200506",
     ],

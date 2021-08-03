@@ -48,7 +48,7 @@ describe('ListProcessesDetails component', () => {
         await harnessLoader.getHarness(ResultAccordionHarness);
     await resultAccordionHarness.toggle();
 
-    flowResultsLocalStore.resultsSubject.next([
+    flowResultsLocalStore.mockedObservables.results$.next([
       newFlowResult(
           {payloadType: 'Process', payload: {pid: 0, cmdline: ['/foo', 'bar']}})
     ]);

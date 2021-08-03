@@ -3,6 +3,7 @@
 
 import abc
 import sys
+import time
 import traceback
 from typing import TypeVar, Generic, Optional, Tuple
 import yara
@@ -103,7 +104,10 @@ class UploadSignatureHandler(
 def _YaraStringMatchToProto(
     offset: int, value: Tuple[int, str, bytes]) -> memory_pb2.StringMatch:
   return memory_pb2.StringMatch(
-      offset=offset + value[0], string_id=value[1], data=value[2])
+      chunk_offset=offset,
+      offset=offset + value[0],
+      string_id=value[1],
+      data=value[2])
 
 
 def _YaraMatchToProto(offset: int, value: "yara.Match") -> memory_pb2.RuleMatch:
@@ -123,29 +127,32 @@ class ProcessScanHandler(OperationHandler[memory_pb2.ProcessScanRequest,
       request: memory_pb2.ProcessScanRequest) -> memory_pb2.ProcessScanResponse:
     if state.yara_rules is None:
       raise Error("Rules have not been set.")
+    deadline = time.time() + request.timeout_seconds
     with client_utils.CreateProcessFromSerializedFileDescriptor(
         request.serialized_file_descriptor) as process:
       result = memory_pb2.ScanResult()
-      data = process.ReadBytes(request.offset, request.size)
-      try:
-        for yara_match in state.yara_rules.match(
-            data=data, timeout=request.timeout_seconds):
-          result.scan_match.append(
-              _YaraMatchToProto(request.offset, yara_match))
-        return memory_pb2.ProcessScanResponse(
-            scan_result=result,
-            status=memory_pb2.ProcessScanResponse.Status.NO_ERROR)
-      except yara.TimeoutError as e:
-        return memory_pb2.ProcessScanResponse(
-            status=memory_pb2.ProcessScanResponse.Status.TIMEOUT_ERROR)
-      except yara.Error as e:
-        # Yara internal error 30 is too many hits.
-        if "internal error: 30" in str(e):
+      for chunk in request.chunks:
+        data = process.ReadBytes(chunk.offset, chunk.size)
+        try:
+          timeout_secs = int(max(deadline - time.time(), 0))
+          for yara_match in state.yara_rules.match(
+              data=data, timeout=timeout_secs):
+            result.scan_match.append(
+                _YaraMatchToProto(chunk.offset, yara_match))
+        except yara.TimeoutError as e:
           return memory_pb2.ProcessScanResponse(
-              status=memory_pb2.ProcessScanResponse.Status.TOO_MANY_MATCHES)
-        else:
-          return memory_pb2.ProcessScanResponse(
-              status=memory_pb2.ProcessScanResponse.Status.GENERIC_ERROR)
+              status=memory_pb2.ProcessScanResponse.Status.TIMEOUT_ERROR)
+        except yara.Error as e:
+          # Yara internal error 30 is too many hits.
+          if "internal error: 30" in str(e):
+            return memory_pb2.ProcessScanResponse(
+                status=memory_pb2.ProcessScanResponse.Status.TOO_MANY_MATCHES)
+          else:
+            return memory_pb2.ProcessScanResponse(
+                status=memory_pb2.ProcessScanResponse.Status.GENERIC_ERROR)
+      return memory_pb2.ProcessScanResponse(
+          scan_result=result,
+          status=memory_pb2.ProcessScanResponse.Status.NO_ERROR)
 
   def PackResponse(
       self, response: memory_pb2.ProcessScanResponse) -> memory_pb2.Response:

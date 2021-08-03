@@ -224,7 +224,7 @@ describe('osquery-details component', () => {
 
        const fixture = createFixtureFrom(testFlowListEntry);
 
-       flowResultsLocalStore.resultsSubject.next([newFlowResult({
+       flowResultsLocalStore.mockedObservables.results$.next([newFlowResult({
          payload: {
            table: newOsqueryTable('doesnt matter', resultColumns, resultCells),
          }
@@ -327,7 +327,7 @@ describe('osquery-details component', () => {
 
     const fixture = createFixtureFrom(testFlowListEntry);
 
-    flowResultsLocalStore.resultsSubject.next([newFlowResult({
+    flowResultsLocalStore.mockedObservables.results$.next([newFlowResult({
       payload: {
         table: newOsqueryTable('doesnt matter', ['c1', 'c2'], []),
       }
@@ -348,7 +348,7 @@ describe('osquery-details component', () => {
 
        const fixture = createFixtureFrom(testFlowListEntry);
 
-       flowResultsLocalStore.resultsSubject.next([newFlowResult({
+       flowResultsLocalStore.mockedObservables.results$.next([newFlowResult({
          payload: {
            table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
          }
@@ -375,7 +375,7 @@ describe('osquery-details component', () => {
 
        const fixture = createFixtureFrom(testFlowListEntry);
 
-       flowResultsLocalStore.resultsSubject.next([newFlowResult({
+       flowResultsLocalStore.mockedObservables.results$.next([newFlowResult({
          payload: {
            table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
          }
@@ -400,7 +400,7 @@ describe('osquery-details component', () => {
 
        const fixture = createFixtureFrom(testFlowListEntry);
 
-       flowResultsLocalStore.resultsSubject.next([newFlowResult({
+       flowResultsLocalStore.mockedObservables.results$.next([newFlowResult({
          payload: {
            table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
          }

@@ -81,12 +81,17 @@ class GetCloudVMMetadata(actions.ActionPlugin):
   def Run(self, args: rdf_cloud.CloudMetadataRequests):
     bios_version = None
     services = None
+
+    # The output of commands is not guaranteed to contain valid Unicode text but
+    # it should most of the time. Since we are just searching for a particular
+    # pattern it is safe to replace spurious bytes with '�' as they simply have
+    # no significance for search results.
     if platform.system() == "Linux":
       bios_version = subprocess.check_output(self.LINUX_BIOS_VERSION_COMMAND)
-      bios_version = bios_version.decode("utf-8")
+      bios_version = bios_version.decode("utf-8", "replace")
     elif platform.system() == "Windows":
       services = subprocess.check_output(self.WINDOWS_SERVICES_COMMAND)
-      services = services.decode("utf-8")
+      services = services.decode("utf-8", "replace")
     else:
       # Interrogate shouldn't call this client action on OS X machines at all,
       # so raise.

@@ -6,8 +6,10 @@ import collections
 import contextlib
 import io
 import os
+import platform
 import re
 import shutil
+from typing import Callable
 from typing import Dict
 from typing import Iterable
 from typing import Iterator
@@ -108,14 +110,16 @@ class YaraWrapper(abc.ABC):
   """Wraps the Yara library."""
 
   @abc.abstractmethod
-  def Match(self, process, chunk: streaming.Chunk,
-            timeout_secs: int) -> Iterator[rdf_memory.YaraMatch]:
+  def Match(self, process, chunks: Iterable[streaming.Chunk],
+            deadline: rdfvalue.RDFDatetime,
+            progress: Callable[[], None]) -> Iterator[rdf_memory.YaraMatch]:
     """Matches the rules in this instance against a chunk of process memory.
 
     Args:
       process: A process opened by `client_utils.OpenProcessForMemoryAccess`.
-      chunk: The chunk to match. The chunk doesn't have `data` set.
-      timeout_secs: Timeout in seconds.
+      chunks: Chunks to match. The chunks doesn't have `data` set.
+      deadline: Deadline for the match.
+      progress: Progress callback.
 
     Yields:
       Matches matching the rules.
@@ -152,8 +156,20 @@ class DirectYaraWrapper(YaraWrapper):
     self._rules_str = rules_str
     self._rules: Optional[yara.Rules] = None
 
-  def Match(self, process, chunk: streaming.Chunk,
-            timeout_secs: int) -> Iterator[rdf_memory.YaraMatch]:
+  def Match(self, process, chunks: Iterable[streaming.Chunk],
+            deadline: rdfvalue.RDFDatetime,
+            progress: Callable[[], None]) -> Iterator[rdf_memory.YaraMatch]:
+    for chunk in chunks:
+      for match in self._MatchChunk(process, chunk, deadline):
+        yield match
+      progress()
+
+  def _MatchChunk(
+      self, process, chunk: streaming.Chunk,
+      deadline: rdfvalue.RDFDatetime) -> Iterator[rdf_memory.YaraMatch]:
+    """Matches one chunk of memory."""
+    timeout_secs = (deadline - rdfvalue.RDFDatetime.Now()).ToInt(
+        rdfvalue.SECONDS)
     if self._rules is None:
       self._rules = yara.compile(source=self._rules_str)
     data = process.ReadBytes(chunk.offset, chunk.amount)
@@ -225,8 +241,11 @@ class UnprivilegedYaraWrapper(YaraWrapper):
     if self._server is not None:
       self._server.Stop()
 
-  def Match(self, process, chunk: streaming.Chunk,
-            timeout_secs: int) -> Iterator[rdf_memory.YaraMatch]:
+  def Match(self, process, chunks: Iterable[streaming.Chunk],
+            deadline: rdfvalue.RDFDatetime,
+            progress: Callable[[], None]) -> Iterator[rdf_memory.YaraMatch]:
+    timeout_secs = (deadline - rdfvalue.RDFDatetime.Now()).ToInt(
+        rdfvalue.SECONDS)
     if not self._rules_uploaded:
       self._client.UploadSignature(self._rules_str)
       self._rules_uploaded = True
@@ -234,12 +253,19 @@ class UnprivilegedYaraWrapper(YaraWrapper):
       raise (
           process_error.ProcessError(f"Failed to open process {process.pid}.")
       ) from self._pid_to_exception.get(process.pid)
+    chunks_pb = [
+        memory_pb2.Chunk(offset=chunk.offset, size=chunk.amount)
+        for chunk in chunks
+    ]
+    overlap_end_map = {
+        chunk.offset: chunk.offset + chunk.overlap for chunk in chunks
+    }
     response = self._client.ProcessScan(
-        self._pid_to_serializable_file_descriptor[process.pid], chunk.offset,
-        chunk.amount, timeout_secs)
+        self._pid_to_serializable_file_descriptor[process.pid], chunks_pb,
+        timeout_secs)
     if response.status == memory_pb2.ProcessScanResponse.Status.NO_ERROR:
       return self._ScanResultToYaraMatches(response.scan_result,
-                                           chunk.offset + chunk.overlap)
+                                           overlap_end_map)
     elif (response.status ==
           memory_pb2.ProcessScanResponse.Status.TOO_MANY_MATCHES):
       raise TooManyMatchesError()
@@ -251,11 +277,14 @@ class UnprivilegedYaraWrapper(YaraWrapper):
 
   def _ScanResultToYaraMatches(
       self, scan_result: memory_pb2.ScanResult,
-      overlap_end: int) -> Iterator[rdf_memory.YaraMatch]:
+      overlap_end_map: Dict[int, int]) -> Iterator[rdf_memory.YaraMatch]:
+    """Converts a scan result from protobuf to RDF."""
     for rule_match in scan_result.scan_match:
       rdf_match = self._RuleMatchToYaraMatch(rule_match)
-      for rdf_string_match in rdf_match.string_matches:
-        if rdf_string_match.offset + len(rdf_string_match.data) > overlap_end:
+      for string_match, rdf_string_match in zip(rule_match.string_matches,
+                                                rdf_match.string_matches):
+        if rdf_string_match.offset + len(
+            rdf_string_match.data) > overlap_end_map[string_match.chunk_offset]:
           yield rdf_match
           break
 
@@ -286,19 +315,44 @@ class YaraProcessScan(actions.ActionPlugin):
   in_rdfvalue = rdf_memory.YaraProcessScanRequest
   out_rdfvalues = [rdf_memory.YaraProcessScanResponse]
 
+  MAX_BATCH_SIZE_CHUNKS = 100
+
   def __init__(self, grr_worker=None):
     super().__init__(grr_worker=grr_worker)
     self._yara_wrapper = None
 
-  def _ScanRegion(self, process, chunks, deadline):
-    for chunk in chunks:
-      self.Progress()
+  def _ScanRegion(
+      self, process, chunks: Iterable[streaming.Chunk],
+      deadline: rdfvalue.RDFDatetime) -> Iterator[rdf_memory.YaraMatch]:
+    yield from self._yara_wrapper.Match(process, chunks, deadline,
+                                        self.Progress)
 
-      time_left = (deadline - rdfvalue.RDFDatetime.Now()).ToInt(
-          rdfvalue.SECONDS)
-
-      for m in self._yara_wrapper.Match(process, chunk, time_left):
-        yield m
+  # Windows has 1000-2000 regions per process.
+  # There a lot of small regions consiting of 1 chunk only.
+  # With sandboxing, using 1 RPC per region creates a significant overhead.
+  # To avoid the overhead, chunks are grouped into batches which are in turn
+  # send to the sandboxed process in 1 RPC.
+  # Without sandboxing, the batching has no effect.
+  def _BatchIterateRegions(
+      self, process, scan_request: rdf_memory.YaraProcessScanRequest
+  ) -> Iterator[List[streaming.Chunk]]:
+    streamer = streaming.Streamer(
+        chunk_size=scan_request.chunk_size,
+        overlap_size=scan_request.overlap_size)
+    batch = []
+    batch_size_bytes = 0
+    for region in client_utils.MemoryRegions(process, scan_request):
+      chunks = streamer.StreamRanges(offset=region.start, amount=region.size)
+      for chunk in chunks:
+        batch.append(chunk)
+        batch_size_bytes += chunk.amount
+        if (len(batch) >= self.MAX_BATCH_SIZE_CHUNKS or
+            batch_size_bytes >= scan_request.chunk_size):
+          yield batch
+          batch = []
+          batch_size_bytes = 0
+    if batch:
+      yield batch
 
   def _GetMatches(self, psutil_process, scan_request):
     if scan_request.per_process_timeout:
@@ -309,15 +363,10 @@ class YaraProcessScan(actions.ActionPlugin):
 
     process = client_utils.OpenProcessForMemoryAccess(pid=psutil_process.pid)
     with process:
-      streamer = streaming.Streamer(
-          chunk_size=scan_request.chunk_size,
-          overlap_size=scan_request.overlap_size)
       matches = []
 
       try:
-        for region in client_utils.MemoryRegions(process, scan_request):
-          chunks = streamer.StreamRanges(
-              offset=region.start, amount=region.size)
+        for chunks in self._BatchIterateRegions(process, scan_request):
           for m in self._ScanRegion(process, chunks, deadline):
             matches.append(m)
             if 0 < scan_request.max_results_per_process <= len(matches):
@@ -446,6 +495,9 @@ class YaraProcessScan(actions.ActionPlugin):
       self.SendReply(scan_response)
 
   def _UseSandboxing(self, args: rdf_memory.YaraProcessScanRequest) -> bool:
+    # Memory sandboxing is currently not supported on macOS.
+    if platform.system() == "Darwin":
+      return False
     if (args.implementation_type ==
         rdf_memory.YaraProcessScanRequest.ImplementationType.DIRECT):
       return False

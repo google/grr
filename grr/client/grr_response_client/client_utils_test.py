@@ -214,6 +214,17 @@ class MultiHasherTest(absltest.TestCase):
     self.assertEqual(stat_obj, client_utils.StatResultFromStatEntry(stat_entry))
 
 
+class GetRawDeviceTest(absltest.TestCase):
+
+  def testGetRawDevice(self):
+    if platform.system() == "Windows":
+      path = "C:\\"
+    else:
+      path = "/"
+    result, _ = client_utils.GetRawDevice(path)
+    self.assertTrue(result.path)
+
+
 def main(argv):
   test_lib.main(argv)
 

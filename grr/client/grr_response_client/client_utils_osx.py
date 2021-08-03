@@ -74,7 +74,9 @@ def GetMountpoints():
   devices = {}
 
   for filesys in GetFileSystems():
-    devices[filesys.f_mntonname] = (filesys.f_mntfromname, filesys.f_fstypename)
+    devices[filesys.f_mntonname.decode("utf-8")] = (
+        filesys.f_mntfromname.decode("utf-8"),
+        filesys.f_fstypename.decode("utf-8"))
 
   return devices
 
@@ -197,7 +199,15 @@ def GetRawDevice(path):
     try:
       result.path, fs_type = device_map[mount_point]
       if fs_type in [
-          "ext2", "ext3", "ext4", "vfat", "ntfs", "Apple_HFS", "hfs", "msdos"
+          "ext2",
+          "ext3",
+          "ext4",
+          "vfat",
+          "ntfs",
+          "Apple_HFS",
+          "hfs",
+          "msdos",
+          "apfs",
       ]:
         # These are read filesystems
         result.pathtype = rdf_paths.PathSpec.PathType.OS

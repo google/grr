@@ -1,0 +1,34 @@
+:host {
+  display: block;
+  min-width: 30vw;
+}
+
+h3 {
+  padding: 1em 1em 0;
+}
+
+pre {
+  background: rgba(0, 0, 0, 0.04);
+  counter-reset: line;
+  max-width: 100ch;
+  overflow-x: auto;
+  padding: 1em;
+}
+
+pre span {
+  display: inline;
+  line-height: 1.5rem;
+}
+
+pre span:before {
+  border-right: 1px solid #ddd;
+  color: #888;
+  content: counter(line);
+  counter-increment: line;
+  display: inline-block;
+  margin-right: 0.5em;
+  min-width: 4ch;
+  padding: 0 0.5em 0 0;
+  text-align: end;
+  user-select: none;
+}

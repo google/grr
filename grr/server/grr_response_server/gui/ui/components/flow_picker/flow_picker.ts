@@ -6,6 +6,7 @@ import {isNonNull} from '@app/lib/preconditions';
 import {BehaviorSubject, fromEvent, merge, Observable, Subject} from 'rxjs';
 import {debounceTime, filter, map, mapTo, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
+import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 
 import {FlowListItem, FlowListItemService, FlowsByCategory} from './flow_list_item';
@@ -50,7 +51,7 @@ enum InputToShow {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlowPicker implements AfterViewInit, OnDestroy {
-  private readonly unsubscribe$ = new Subject<void>();
+  readonly ngOnDestroy = observeOnDestroy();
 
   readonly flowsByCategory$ = this.flowListItemService.flowsByCategory$;
 
@@ -229,7 +230,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
   ) {
     this.clientPageGlobalStore.selectedFlowDescriptor$
         .pipe(
-            takeUntil(this.unsubscribe$),
+            takeUntil(this.ngOnDestroy.triggered$),
             withLatestFrom(this.flowsByName$),
             )
         .subscribe(([fd, flowsByName]) => {
@@ -300,12 +301,12 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
 
   ngAfterViewInit() {
     fromEvent(this.textInputElement.nativeElement, 'focus')
-        .pipe(takeUntil(this.unsubscribe$))
+        .pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe(() => {
           this.textInputFocused$.next(true);
         });
     fromEvent(this.textInputElement.nativeElement, 'blur')
-        .pipe(takeUntil(this.unsubscribe$))
+        .pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe(() => {
           this.textInputFocused$.next(false);
         });
@@ -313,7 +314,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
     // scenarios when used together with matAutocomplete. Making sure
     // the overlay is hidden when Esc is pressed.
     fromEvent(this.textInputElement.nativeElement, 'keydown', {capture: true})
-        .pipe(takeUntil(this.unsubscribe$))
+        .pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe((e: Event) => {
           if ((e as KeyboardEvent).key === 'Escape') {
             this.overviewOverlayAttached$.next(false);
@@ -322,7 +323,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
 
     fromEvent(window, 'resize')
         .pipe(
-            takeUntil(this.unsubscribe$),
+            takeUntil(this.ngOnDestroy.triggered$),
             startWith(null),
             debounceTime(100),
             )
@@ -330,10 +331,5 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
           this.textInputWidth$.next(
               this.textInputElement.nativeElement.clientWidth);
         });
-  }
-
-  ngOnDestroy() {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
   }
 }

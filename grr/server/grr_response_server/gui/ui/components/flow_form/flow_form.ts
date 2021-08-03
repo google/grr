@@ -2,6 +2,7 @@ import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy
 import {fromEvent, Subject} from 'rxjs';
 import {map, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
+import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {FlowArgsForm} from '../flow_args_form/flow_args_form';
 
@@ -15,7 +16,7 @@ import {FlowArgsForm} from '../flow_args_form/flow_args_form';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
-  private readonly unsubscribe$ = new Subject<void>();
+  readonly ngOnDestroy = observeOnDestroy();
 
   readonly selectedFD$ = this.clientPageGlobalStore.selectedFlowDescriptor$;
 
@@ -40,7 +41,7 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
   ngAfterViewInit() {
     fromEvent(this.form.nativeElement, 'submit')
         .pipe(
-            takeUntil(this.unsubscribe$),
+            takeUntil(this.ngOnDestroy.triggered$),
             withLatestFrom(this.flowArgsForm.flowArgValues$, this.hasAccess$),
             )
         .subscribe(([e, flowArgs, hasApproval]) => {
@@ -53,14 +54,9 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
           }
         });
 
-    this.flowArgsForm.valid$.pipe(takeUntil(this.unsubscribe$))
+    this.flowArgsForm.valid$.pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe(valid => {
           this.disabled$.next(!valid);
         });
-  }
-
-  ngOnDestroy() {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
   }
 }

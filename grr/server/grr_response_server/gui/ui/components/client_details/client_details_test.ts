@@ -1,27 +1,28 @@
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {Router} from '@angular/router';
-import {Subject} from 'rxjs';
+import {RouterTestingModule} from '@angular/router/testing';
 
 import {ApiModule} from '../../lib/api/module';
-import {Client} from '../../lib/models/client';
 import {newClient} from '../../lib/models/model_test_util';
-import {ClientVersion, getClientVersions} from '../../store/client_details_diff';
+import {getClientVersions} from '../../store/client_details_diff';
 import {ClientDetailsGlobalStore} from '../../store/client_details_global_store';
+import {ClientDetailsGlobalStoreMock, mockClientDetailsGlobalStore} from '../../store/client_details_global_store_test_util';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
 import {initTestEnvironment} from '../../testing';
 
 import {ClientDetails} from './client_details';
 import {ClientDetailsModule} from './module';
 
+import {CLIENT_DETAILS_ROUTES} from './routing';
 
 
 initTestEnvironment();
 
 describe('Client Details Component', () => {
-  let store: ClientDetailsGlobalStore;
+  let store: ClientDetailsGlobalStoreMock;
   let configGlobalStore: ConfigGlobalStoreMock;
   const clientVersionsMock = [
     newClient({
@@ -47,6 +48,7 @@ describe('Client Details Component', () => {
 
   beforeEach(waitForAsync(() => {
     configGlobalStore = mockConfigGlobalStore();
+    store = mockClientDetailsGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -54,26 +56,31 @@ describe('Client Details Component', () => {
             ApiModule,
             NoopAnimationsModule,
             ClientDetailsModule,
+            RouterTestingModule.withRoutes(CLIENT_DETAILS_ROUTES),
           ],
           providers: [
             {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
-            {provide: Router, useValue: {}},
+            {provide: ClientDetailsGlobalStore, useFactory: () => store},
           ],
 
         })
         .compileComponents();
-
-    store = TestBed.inject(ClientDetailsGlobalStore);
   }));
 
-  it('selects the first option in the timeline by default', () => {
-    const subject = new Subject<ReadonlyArray<ClientVersion>>();
-    Object.defineProperty(
-        store, 'selectedClientVersions$', {get: () => subject});
+  it('reads globally selected client id', () => {
+    TestBed.createComponent(ClientDetails);
+    const selectedClientGlobalStore = TestBed.inject(SelectedClientGlobalStore);
 
+    selectedClientGlobalStore.selectClientId('C.1222');
+    expect(store.selectClient).toHaveBeenCalledWith('C.1222');
+  });
+
+
+  it('selects the first option in the timeline by default', () => {
     const fixture = TestBed.createComponent(ClientDetails);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
-    subject.next(getClientVersions(clientVersionsMock));
+    store.mockedObservables.selectedClientVersions$.next(
+        getClientVersions(clientVersionsMock));
     fixture.detectChanges();
     const firstOption =
         fixture.debugElement.queryAll(By.css('mat-list-option'))[0];
@@ -206,17 +213,11 @@ describe('Client Details Component', () => {
 
   it('allows expanding and collapsing of lists on button click',
      fakeAsync(() => {
-       const subject = new Subject<ReadonlyArray<ClientVersion>>();
-       Object.defineProperty(
-           store, 'selectedClientVersions$', {get: () => subject});
-       const subjectClient = new Subject<Client>();
-       Object.defineProperty(
-           store, 'selectedClient$', {get: () => subjectClient});
-
        const fixture = TestBed.createComponent(ClientDetails);
        fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-       subject.next(getClientVersions(clientVersionsMock));
+       store.mockedObservables.selectedClientVersions$.next(
+           getClientVersions(clientVersionsMock));
        fixture.detectChanges();
 
        tick();

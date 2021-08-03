@@ -7,60 +7,11 @@ from grr_response_core.lib import config_lib
 config_lib.DEFINE_integer("Datastore.maximum_blob_size", 512 * 1024,
                           "Maximum blob size we may store in the datastore.")
 
-config_lib.DEFINE_string("Datastore.implementation", "", "Deprecated")
-
 config_lib.DEFINE_string("Blobstore.implementation", "DbBlobStore",
                          "Blob storage subsystem to use.")
 
 config_lib.DEFINE_string("Database.implementation", "",
                          "Relational database system to use.")
-
-# Deprecated. There is no choice anymore, relational db is always enabled.
-config_lib.DEFINE_bool(
-    "Database.enabled", True,
-    "Use relational database for reading as well as for writing.")
-
-config_lib.DEFINE_bool("Database.aff4_enabled", False, "Deprecated.")
-
-config_lib.DEFINE_string(
-    "Datastore.location",
-    default="%(Config.prefix)/var/grr-datastore",
-    help=("Location of the data store (usually a "
-          "filesystem directory)"))
-
-# SQLite data store.
-# NOTE: The SQLite datastore was obsoleted, so these options do not get
-# used. We can remove them once users have migrated to MySQL.
-config_lib.DEFINE_integer(
-    "SqliteDatastore.vacuum_check",
-    default=10,
-    help=("Number of rows that need to be deleted before "
-          "checking if the sqlite file may need to be "
-          "vacuumed."))
-
-config_lib.DEFINE_integer(
-    "SqliteDatastore.vacuum_frequency",
-    default=60,
-    help=("Minimum interval (in seconds) between vacuum"
-          "operations on the same sqlite file."))
-
-config_lib.DEFINE_integer(
-    "SqliteDatastore.vacuum_minsize",
-    default=10 * 1024,
-    help=("Minimum size of sqlite file in bytes required"
-          " for vacuuming"))
-
-config_lib.DEFINE_integer(
-    "SqliteDatastore.vacuum_ratio",
-    default=50,
-    help=("Percentage of pages that are free before "
-          "vacuuming a sqlite file."))
-
-config_lib.DEFINE_integer(
-    "SqliteDatastore.connection_cache_size",
-    default=1000,
-    help=("Number of file handles kept in the SQLite "
-          "data_store cache."))
 
 # MySQL configuration.
 config_lib.DEFINE_string("Mysql.host", "localhost",

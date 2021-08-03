@@ -86,7 +86,7 @@ describe('LoadFlowResultsDirective', () => {
                       .componentInstance as InnerComponent;
 
 
-    flowResultsLocalStore.resultsSubject.next([
+    flowResultsLocalStore.mockedObservables.results$.next([
       newFlowResult({payload: {foo: 42}}),
     ]);
     fixture.detectChanges();

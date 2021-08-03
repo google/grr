@@ -1,8 +1,9 @@
 import {Component, Input, OnDestroy} from '@angular/core';
 import {Flow} from '@app/lib/models/flow';
-import {ReplaySubject, Subject} from 'rxjs';
+import {ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
 
+import {observeOnDestroy} from '../../../lib/reactive';
 import {makeLegacyLink} from '../../../lib/routing';
 
 /**
@@ -23,7 +24,9 @@ export abstract class Plugin implements OnDestroy {
     return makeLegacyLink(`#/clients/${clientId}/flows/${flowId}`);
   }));
 
-  readonly unsubscribe$ = new Subject<void>();
+  readonly ngOnDestroy = observeOnDestroy(() => {
+    this.flow$.complete();
+  });
 
   /**
    * Flow input binding containing flow data information to display.
@@ -36,12 +39,5 @@ export abstract class Plugin implements OnDestroy {
 
   get flow(): Flow {
     return this.flowValue!;
-  }
-
-  ngOnDestroy() {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
-
-    this.flow$.complete();
   }
 }

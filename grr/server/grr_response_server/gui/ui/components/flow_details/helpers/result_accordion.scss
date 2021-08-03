@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../../material-theme' as c;
 
 $header-left-padding: 24px;
@@ -10,10 +11,10 @@ $files-counter-offset: 135px;
     position: relative;
     bottom: -2px;
     &:hover {
-      background-color: c.mat-color(c.$primary, 100, 0.15);
+      background-color: mat.get-color-from-palette(c.$primary, 100, 0.15);
     }
 
-    border-top: 1px solid c.mat-color(c.$foreground, divider-light);
+    border-top: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
     padding: 0.5em 0 0.5em $header-left-padding;
 
     display: flex;
@@ -50,27 +51,27 @@ $files-counter-offset: 135px;
     }
 
     .success {
-      color: c.mat-color(c.$foreground, text-light);
+      color: mat.get-color-from-palette(c.$foreground, text-light);
       font-size: 90%;
 
       .material-icons {
-        color: c.mat-color(c.$foreground, success);
+        color: mat.get-color-from-palette(c.$foreground, success);
         margin-left: 0.5em;
       }
     }
 
     .warning {
-      color: c.mat-color(c.$warn, darker);
+      color: mat.get-color-from-palette(c.$warn, darker);
       font-size: 90%;
 
       .material-icons {
-        color: c.mat-color(c.$warn);
+        color: mat.get-color-from-palette(c.$warn);
         margin-left: 0.5em;
       }
     }
 
     .error {
-      color: c.mat-color(c.$danger);
+      color: mat.get-color-from-palette(c.$danger);
       font-size: 90%;
 
       .material-icons {
@@ -79,7 +80,7 @@ $files-counter-offset: 135px;
     }
 
     .expansion-indicator {
-      color: c.mat-color(c.$foreground, divider);
+      color: mat.get-color-from-palette(c.$foreground, divider);
       font-size: 30px;
       text-align: center;
       width: 40px;

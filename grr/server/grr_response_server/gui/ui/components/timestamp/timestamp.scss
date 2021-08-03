@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../material-theme' as c;
 
 // NOTE: Styles used here are effectively global. Make sure to
@@ -16,9 +17,9 @@
 
 .ts_component_inline_relative {
   display: inline-block;
-  color: c.mat-color(c.$foreground, text-light);
+  color: mat.get-color-from-palette(c.$foreground, text-light);
 }
 
 .ts_component_copy_button {
-  color: c.mat-color(c.$foreground, icon-grey);
+  color: mat.get-color-from-palette(c.$foreground, icon-grey);
 }

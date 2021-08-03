@@ -4,9 +4,10 @@ import {ApiSearchClientResult} from '@app/lib/api/api_interfaces';
 import {HttpApiService} from '@app/lib/api/http_api_service';
 import {translateClient} from '@app/lib/api_translation/client';
 import {Client} from '@app/lib/models/client';
-import {BehaviorSubject, fromEvent, Observable, of, Subject} from 'rxjs';
+import {BehaviorSubject, fromEvent, Observable, of} from 'rxjs';
 import {debounceTime, distinctUntilChanged, filter, map, switchMap, takeUntil, withLatestFrom} from 'rxjs/operators';
 
+import {observeOnDestroy} from '../../lib/reactive';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 
 
@@ -44,7 +45,7 @@ export class SearchBox implements AfterViewInit, OnDestroy {
    */
   @Output() querySubmitted = new EventEmitter<string>();
 
-  private readonly unsubscribe$ = new Subject<void>();
+  readonly ngOnDestroy = observeOnDestroy();
 
   private readonly formattedClientsLabels$ =
       this.configGlobalStore.clientsLabels$.pipe(
@@ -66,12 +67,13 @@ export class SearchBox implements AfterViewInit, OnDestroy {
                 map(([, query]) => query),
                 filter(query => query !== ''),
             );
-    enterPressed$.pipe(takeUntil(this.unsubscribe$)).subscribe(query => {
-      this.querySubmitted.emit(query);
-    });
+    enterPressed$.pipe(takeUntil(this.ngOnDestroy.triggered$))
+        .subscribe(query => {
+          this.querySubmitted.emit(query);
+        });
 
     const valueChanged$ = this.inputFormControl.valueChanges.pipe(
-        takeUntil(this.unsubscribe$), debounceTime(300),
+        takeUntil(this.ngOnDestroy.triggered$), debounceTime(300),
         distinctUntilChanged());
 
     valueChanged$.pipe(switchMap((query: string) => this.searchClients(query)))
@@ -84,10 +86,7 @@ export class SearchBox implements AfterViewInit, OnDestroy {
         .subscribe(this.labels$);
   }
 
-  ngOnDestroy() {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
-  }
+
 
   private filterLabels(query: string, allLabels: string[]) {
     const trimmedQuery = query.trim();

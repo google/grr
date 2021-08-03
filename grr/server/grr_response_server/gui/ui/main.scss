@@ -1,10 +1,11 @@
+@use '~@angular/material' as mat;
 @import 'material-theme';
 
 // Initialize Angular material theme.
 // Include non-theme styles for core.
-@include mat-core($custom-typography);
+@include mat.core($custom-typography);
 // Include all theme-styles for the components based on the current theme.
-@include angular-material-theme($theme);
+@include mat.all-component-themes($theme);
 
 $toolbar-height: 64px;
 
@@ -38,7 +39,7 @@ html {
 // to be defined globally.
 .flow-search-results {
   .mat-optgroup-label {
-    background-color: mat-color($background, darker-background);
+    background-color: mat.get-color-from-palette($background, darker-background);
     line-height: 24px;
     height: 24px;
   }

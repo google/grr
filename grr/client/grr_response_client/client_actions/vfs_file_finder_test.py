@@ -2,10 +2,11 @@
 # -*- encoding: utf-8 -*-
 """Tests the client file finder action."""
 
+import contextlib
 import hashlib
 import os
 import platform
-from typing import List
+from typing import List, Tuple, Optional
 import unittest
 from unittest import mock
 import zlib
@@ -13,15 +14,19 @@ import zlib
 from absl.testing import absltest
 from absl.testing import flagsaver
 
+from grr_response_client import client_utils
+from grr_response_client import vfs
 from grr_response_client.client_actions import vfs_file_finder
 from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_client.vfs_handlers import files
 
+from grr_response_core import config
 from grr_response_core.lib import config_lib
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import temp
@@ -78,6 +83,24 @@ def _GroupItemsByType(iterable):
   return results
 
 
+def _RunFileFinder(
+    args: rdf_file_finder.FileFinderArgs
+) -> List[rdf_file_finder.FileFinderResult]:
+  results = []
+
+  def SendReply(rdf_value, *args, **kwargs):
+    del args, kwargs  # Unused.
+    results.append(rdf_value)
+
+  ff = vfs_file_finder.VfsFileFinder()
+  ff.grr_worker = mock.MagicMock()
+  ff.SendReply = SendReply
+  ff.message = rdf_flows.GrrMessage(payload=args)
+  ff.Run(args)
+
+  return results
+
+
 @unittest.skipIf(platform.system() != "Windows", "Skipping Windows-only test.")
 class RegistryTest(absltest.TestCase):
 
@@ -92,23 +115,8 @@ class RegistryTest(absltest.TestCase):
     super(RegistryTest, cls).tearDownClass()
     client_test_lib.import_to_registry(REG_TEARDOWN)
 
-  def RunFileFinder(self, args):
-    results = []
-
-    def SendReply(rdf_value, *args, **kwargs):
-      del args, kwargs  # Unused.
-      results.append(rdf_value)
-
-    ff = vfs_file_finder.VfsFileFinder()
-    ff.grr_worker = mock.MagicMock()
-    ff.SendReply = SendReply
-    ff.message = rdf_flows.GrrMessage(payload=args)
-    ff.Run(args)
-
-    return results
-
   def testStatDoesNotFailForInaccessiblePath(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SAM/SAM/FOOBAR"],
             pathtype="REGISTRY",
@@ -117,7 +125,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEmpty(results)
 
   def testCaseInsensitivitiy(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/AaA"],
             pathtype="REGISTRY",
@@ -129,7 +137,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")
 
   def testStatExactPath(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa"],
             pathtype="REGISTRY",
@@ -142,7 +150,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEqual(results[0].stat_entry.st_size, 6)
 
   def testStatExactPathInWindowsNativeFormat(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=[r"HKEY_LOCAL_MACHINE\SOFTWARE\GRR_TEST\aaa"],
             pathtype="REGISTRY",
@@ -155,7 +163,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEqual(results[0].stat_entry.st_size, 6)
 
   def testStatLongUnicodeName(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=[
                 "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/{}".format(_LONG_KEY)
@@ -170,7 +178,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEqual(results[0].stat_entry.pathspec.pathtype, "REGISTRY")
 
   def testStatKeyWithDefaultValue(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/1"],
             pathtype="REGISTRY",
@@ -183,7 +191,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEqual(results[0].stat_entry.st_size, 13)
 
   def testDownloadExactPath(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa"],
             pathtype="REGISTRY",
@@ -195,7 +203,7 @@ class RegistryTest(absltest.TestCase):
                      "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa")
 
   def testDownloadUnicode(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=[
                 "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/{}".format(_LONG_KEY)
@@ -213,7 +221,7 @@ class RegistryTest(absltest.TestCase):
         "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/{}".format(_LONG_KEY))
 
   def testDownloadDword(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aba"],
             pathtype="REGISTRY",
@@ -228,7 +236,7 @@ class RegistryTest(absltest.TestCase):
         "/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aba")
 
   def testDownloadGlob(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/a*"],
             pathtype="REGISTRY",
@@ -243,7 +251,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEqual(_DecodeDataBlob(results[2]), "4294967295")
 
   def testHashExactPath(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa"],
             pathtype="REGISTRY",
@@ -259,7 +267,7 @@ class RegistryTest(absltest.TestCase):
                      hashlib.sha256(b"lolcat").hexdigest())
 
   def testHashSkipExactPath(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa"],
             pathtype="REGISTRY",
@@ -269,7 +277,7 @@ class RegistryTest(absltest.TestCase):
     self.assertFalse(results[0].HasField("hash"))
 
   def testHashTruncateExactPath(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa"],
             pathtype="REGISTRY",
@@ -285,7 +293,7 @@ class RegistryTest(absltest.TestCase):
                      hashlib.sha256(b"lolca").hexdigest())
 
   def testStatSingleGlob(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/a*"],
             pathtype="REGISTRY",
@@ -304,7 +312,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEqual(results[1].stat_entry.pathspec.pathtype, "REGISTRY")
 
   def testQuestionMarkMatchesOneCharacterOnly(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/a?"],
             pathtype="REGISTRY",
@@ -312,7 +320,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEmpty(results)
 
   def testQuestionMarkIsWildcard(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/a?a"],
             pathtype="REGISTRY",
@@ -324,7 +332,7 @@ class RegistryTest(absltest.TestCase):
     ])
 
   def testStatEmptyGlob(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/nonexistent*"],
             pathtype="REGISTRY",
@@ -332,7 +340,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEmpty(results)
 
   def testStatNonExistentPath(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/nonexistent"],
             pathtype="REGISTRY",
@@ -340,7 +348,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEmpty(results)
 
   def testStatRecursiveGlobDefaultLevel(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/**/aaa"],
             pathtype="REGISTRY",
@@ -352,7 +360,7 @@ class RegistryTest(absltest.TestCase):
     ])
 
   def testStatRecursiveGlobCustomLevel(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/**4/aaa"],
             pathtype="REGISTRY",
@@ -365,7 +373,7 @@ class RegistryTest(absltest.TestCase):
     ])
 
   def testStatRecursiveGlobAndRegularGlob(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/**4/a*"],
             pathtype="REGISTRY",
@@ -385,7 +393,7 @@ class RegistryTest(absltest.TestCase):
     progress = mock.MagicMock()
 
     with mock.patch.object(vfs_file_finder.VfsFileFinder, "Progress", progress):
-      results = self.RunFileFinder(
+      results = _RunFileFinder(
           rdf_file_finder.FileFinderArgs(
               paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/**4/nonexistent"],
               pathtype="REGISTRY",
@@ -397,7 +405,7 @@ class RegistryTest(absltest.TestCase):
     self.assertGreater(progress.call_count, 10)
 
   def testMetadataConditionMatch(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/*"],
             pathtype="REGISTRY",
@@ -410,7 +418,7 @@ class RegistryTest(absltest.TestCase):
                           ["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/aaa"])
 
   def testSkipsIfMetadataConditionDoesNotMatch(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/*"],
             pathtype="REGISTRY",
@@ -424,7 +432,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEmpty(results)
 
   def testContentConditionMatch(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/*"],
             pathtype="REGISTRY",
@@ -439,7 +447,7 @@ class RegistryTest(absltest.TestCase):
                           [b"lol"])
 
   def testSkipsIfContentConditionDoesNotMatch(self):
-    results = self.RunFileFinder(
+    results = _RunFileFinder(
         rdf_file_finder.FileFinderArgs(
             paths=["/HKEY_LOCAL_MACHINE/SOFTWARE/GRR_TEST/*"],
             pathtype="REGISTRY",
@@ -453,7 +461,7 @@ class RegistryTest(absltest.TestCase):
     self.assertEmpty(results)
 
   def testGlobbingKeyDoesNotYieldDuplicates(self):
-    opts = globbing.PathOpts(pathtype="REGISTRY")
+    opts = globbing.PathOpts(pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
     results = globbing.ExpandGlobs(
         r"HKEY_LOCAL_MACHINE\SOFTWARE\GRR_TEST\*\aaa", opts)
     self.assertCountEqual(results, [
@@ -463,30 +471,13 @@ class RegistryTest(absltest.TestCase):
 
 class OsTest(absltest.TestCase):
 
-  def _RunFileFinder(
-      self, args: rdf_file_finder.FileFinderArgs
-  ) -> List[rdf_file_finder.FileFinderResult]:
-    results = []
-
-    def SendReply(rdf_value, *args, **kwargs):
-      del args, kwargs  # Unused.
-      results.append(rdf_value)
-
-    ff = vfs_file_finder.VfsFileFinder()
-    ff.grr_worker = mock.MagicMock()
-    ff.SendReply = SendReply
-    ff.message = rdf_flows.GrrMessage(payload=args)
-    ff.Run(args)
-
-    return results
-
   def testRecursiveRegexMatch(self) -> None:
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dir:
       nested_dir = os.path.join(temp_dir, "a", "b", "c")
       os.makedirs(nested_dir)
       with open(os.path.join(nested_dir, "foo.txt"), "w") as f:
         f.write("bar123")
-      results = self._RunFileFinder(
+      results = _RunFileFinder(
           rdf_file_finder.FileFinderArgs(
               paths=[os.path.join(temp_dir, "**", "*")],
               pathtype=rdf_paths.PathSpec.PathType.OS,
@@ -498,6 +489,81 @@ class OsTest(absltest.TestCase):
       self.assertLen(results, 1)
       self.assertEqual(results[0].matches[0].data, b"bar123")
       files.FlushHandleCache()
+
+
+class NtfsImageTestBase(absltest.TestCase):
+
+  pathtype: Optional[rdf_structs.EnumNamedValue] = None
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(*args, **kwargs)
+    if platform.system() == "Windows":
+      self._root = "C:"
+      self._paths_expr = "C:/*"
+    else:
+      self._root = "/"
+      self._paths_expr = "/*"
+
+  def _MockGetRawDevice(self, path: str) -> Tuple[rdf_paths.PathSpec, str]:
+    ntfs_img_path = os.path.join(config.CONFIG["Test.data_dir"], "ntfs.img")
+
+    pathspec = rdf_paths.PathSpec(
+        path=ntfs_img_path,
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
+
+    if platform.system() == "Windows":
+      return (pathspec, path[len(self._root):])
+    else:
+      return (pathspec, path)
+
+  def testListRootDirectory(self):
+    with mock.patch.object(
+        client_utils, "GetRawDevice", new=self._MockGetRawDevice):
+      results = _RunFileFinder(
+          rdf_file_finder.FileFinderArgs(
+              paths=[self._paths_expr],
+              pathtype=self.pathtype,
+              action=rdf_file_finder.FileFinderAction.Stat()))
+      names = [
+          result.stat_entry.pathspec.nested_path.path for result in results
+      ]
+      self.assertIn("/numbers.txt", names)
+      files.FlushHandleCache()
+
+  def testImplementationType(self) -> None:
+    orig_vfs_open = vfs.VFSOpen
+
+    def MockVfsOpen(pathspec, *args, **kwargs):
+      self.assertEqual(pathspec.implementation_type,
+                       rdf_paths.PathSpec.ImplementationType.DIRECT)
+      return orig_vfs_open(pathspec, *args, **kwargs)
+
+    with contextlib.ExitStack() as stack:
+      stack.enter_context(mock.patch.object(vfs, "VFSOpen", new=MockVfsOpen))
+      stack.enter_context(
+          mock.patch.object(
+              client_utils, "GetRawDevice", new=self._MockGetRawDevice))
+      _RunFileFinder(
+          rdf_file_finder.FileFinderArgs(
+              paths=[self._paths_expr],
+              pathtype=self.pathtype,
+              implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT,
+              action=rdf_file_finder.FileFinderAction.Stat()))
+
+    files.FlushHandleCache()
+
+
+class NtfsTest(NtfsImageTestBase):
+  pathtype = rdf_paths.PathSpec.PathType.NTFS
+
+
+class TskTest(NtfsImageTestBase):
+  pathtype = rdf_paths.PathSpec.PathType.TSK
+
+
+# Abstract test case
+del NtfsImageTestBase
 
 
 def setUpModule() -> None:

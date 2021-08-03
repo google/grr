@@ -7,6 +7,7 @@ starting flows and for validating arguments.
 """
 
 import logging
+from typing import Iterable
 from typing import Optional
 from typing import Text
 
@@ -223,7 +224,7 @@ class RDFStructDictType(TypeInfoObject):
     return self.rdfclass.FromSerializedBytes(string)
 
 
-class TypeDescriptorSet(object):
+class TypeDescriptorSet(Iterable[TypeInfoObject]):
   """This is a collection of type descriptors.
 
   This collections is effectively immutable. Add/Remove operations create new
@@ -258,9 +259,6 @@ class TypeDescriptorSet(object):
     return self.Add(other)
 
   def __radd__(self, other):
-    return self.Add(other)
-
-  def __iadd__(self, other):
     return self.Add(other)
 
   def Add(self, other):

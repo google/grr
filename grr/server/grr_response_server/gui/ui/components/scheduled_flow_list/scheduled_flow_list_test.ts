@@ -6,12 +6,9 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {initTestEnvironment} from '@app/testing';
 
 import {newScheduledFlow} from '../../lib/models/model_test_util';
-import {ConfigGlobalStore} from '../../store/config_global_store';
-import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 import {ScheduledFlowGlobalStore} from '../../store/scheduled_flow_global_store';
-import {mockScheduledFlowGlobalStore, ScheduledFlowGlobalStoreMock} from '../../store/scheduled_flow_global_store_test_util';
+import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
 import {UserGlobalStore} from '../../store/user_global_store';
-import {mockUserGlobalStore, UserGlobalStoreMock} from '../../store/user_global_store_test_util';
 
 import {ScheduledFlowListModule} from './module';
 
@@ -21,15 +18,8 @@ import {ScheduledFlowList} from './scheduled_flow_list';
 initTestEnvironment();
 
 
-
 describe('ScheduledFlowList Component', () => {
-  let scheduledFlowGlobalStore: ScheduledFlowGlobalStoreMock;
-  let userGlobalStore: UserGlobalStoreMock;
-
   beforeEach(waitForAsync(() => {
-    scheduledFlowGlobalStore = mockScheduledFlowGlobalStore();
-    userGlobalStore = mockUserGlobalStore();
-
     TestBed
         .configureTestingModule({
           imports: [
@@ -38,18 +28,7 @@ describe('ScheduledFlowList Component', () => {
           ],
 
           providers: [
-            {
-              provide: ScheduledFlowGlobalStore,
-              useFactory: () => scheduledFlowGlobalStore,
-            },
-            {
-              provide: ConfigGlobalStore,
-              useFactory: mockConfigGlobalStore,
-            },
-            {
-              provide: UserGlobalStore,
-              useFactory: () => userGlobalStore,
-            },
+            ...STORE_PROVIDERS,
           ]
         })
         .compileComponents();
@@ -59,10 +38,11 @@ describe('ScheduledFlowList Component', () => {
     const fixture = TestBed.createComponent(ScheduledFlowList);
     fixture.detectChanges();
 
-    scheduledFlowGlobalStore.scheduledFlowsSubject.next([
-      newScheduledFlow({flowName: 'CollectSingleFile'}),
-      newScheduledFlow({flowName: 'CollectBrowserHistory'}),
-    ]);
+    injectMockStore(ScheduledFlowGlobalStore)
+        .mockedObservables.scheduledFlows$.next([
+          newScheduledFlow({flowName: 'CollectSingleFile'}),
+          newScheduledFlow({flowName: 'CollectBrowserHistory'}),
+        ]);
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -74,10 +54,13 @@ describe('ScheduledFlowList Component', () => {
     const fixture = TestBed.createComponent(ScheduledFlowList);
     fixture.detectChanges();
 
-    userGlobalStore.currentUserSubject.next({name: 'testuser'});
+    injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
+      name: 'testuser'
+    });
 
     const scheduledFlow = newScheduledFlow({creator: 'testuser'});
-    scheduledFlowGlobalStore.scheduledFlowsSubject.next([scheduledFlow]);
+    injectMockStore(ScheduledFlowGlobalStore)
+        .mockedObservables.scheduledFlows$.next([scheduledFlow]);
     fixture.detectChanges();
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
@@ -86,7 +69,7 @@ describe('ScheduledFlowList Component', () => {
     const items = await menu.getItems();
     await items[0].click();
 
-    expect(scheduledFlowGlobalStore.unscheduleFlow)
+    expect(injectMockStore(ScheduledFlowGlobalStore).unscheduleFlow)
         .toHaveBeenCalledWith(scheduledFlow.scheduledFlowId);
   });
 
@@ -94,10 +77,13 @@ describe('ScheduledFlowList Component', () => {
     const fixture = TestBed.createComponent(ScheduledFlowList);
     fixture.detectChanges();
 
-    userGlobalStore.currentUserSubject.next({name: 'testuser'});
+    injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
+      name: 'testuser'
+    });
 
     const scheduledFlow = newScheduledFlow({creator: 'differentuser'});
-    scheduledFlowGlobalStore.scheduledFlowsSubject.next([scheduledFlow]);
+    injectMockStore(ScheduledFlowGlobalStore)
+        .mockedObservables.scheduledFlows$.next([scheduledFlow]);
     fixture.detectChanges();
 
     expect(fixture.debugElement.query(By.css('mat-menu'))).toBeNull();

@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../material-theme' as c;
 
 .title {
@@ -10,7 +11,7 @@
 
   p {
     font-family: c.$roboto-family;
-    color: c.mat-color(c.$foreground, text-light);
+    color: mat.get-color-from-palette(c.$foreground, text-light);
   }
 
   .label-field {

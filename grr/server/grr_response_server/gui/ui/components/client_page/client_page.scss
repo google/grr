@@ -1,69 +1,66 @@
+@use '~@angular/material' as mat;
 @use '../../material-theme' as c;
 @use '../../main' as main;
 
 $max-width: 1280px;
 $width: 80%;
 
-.noscroll {
-  overflow: hidden;
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
-.container {
-  height: calc(100vh - #{main.$toolbar-height});
+client-overview {
+  display: block;
+  margin-left: auto;
+  margin-right: auto;
+  max-width: $max-width;
+  width: $width;
 
-  client-overview {
+  .goto-details {
+    margin-left: auto;
+    margin-right: 2em;
+    align-self: flex-end;
+  }
+}
+
+.client-approval {
+  position: fixed;
+  bottom: 0;
+  background-color: white;
+  width: 100%;
+  z-index: 1;
+}
+
+.client-start-flow {
+  border-bottom: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
+  flow-form {
+    margin-left: auto;
+    margin-right: auto;
+    max-width: $max-width;
+    width: $width;
+  }
+  background: mat.get-color-from-palette(c.$background, app-bar);
+}
+
+.client-flows {
+  padding-top: 2em;
+  background-color: mat.get-color-from-palette(c.$background, darker-background);
+  flex: 1 1 auto;
+
+  flow-list,
+  scheduled-flow-list {
     display: block;
     margin-left: auto;
     margin-right: auto;
     max-width: $max-width;
     width: $width;
-
-    .goto-details {
-      margin-left: auto;
-      margin-right: 2em;
-      align-self: flex-end;
-    }
   }
-  .client-approval {
-    position: fixed;
-    bottom: 0;
-    background-color: white;
-    width: 100%;
-    z-index: 1;
-  }
+}
 
-  .client-start-flow {
-    border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
-    flow-form {
-      margin-left: auto;
-      margin-right: auto;
-      max-width: $max-width;
-      width: $width;
-    }
-    background: c.mat-color(c.$background, app-bar);
-  }
-
-  .client-flows {
-    padding-top: 2em;
-    background-color: c.mat-color(c.$background, darker-background);
-
-    flow-list,
-    scheduled-flow-list {
-      display: block;
-      margin-left: auto;
-      margin-right: auto;
-      max-width: $max-width;
-      width: $width;
-    }
-  }
-
-  mat-chip-list {
-    /* mat-chip-list causes slight horizontal scrolling otherwise. */
-    display: block;
-    overflow: hidden;
-  }
-
-  .mat-drawer-content {
-    background-color: c.mat-color(c.$background, app-bar);
-  }
+mat-chip-list {
+  /* mat-chip-list causes slight horizontal scrolling otherwise. */
+  display: block;
+  overflow: hidden;
 }

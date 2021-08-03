@@ -2,8 +2,10 @@ import {Component, OnDestroy, ViewEncapsulation} from '@angular/core';
 import {FormControl} from '@angular/forms';
 import {FuzzyMatcher, Match} from '@app/lib/fuzzy_matcher';
 import {isNonNull} from '@app/lib/preconditions';
-import {Observable, Subject} from 'rxjs';
+import {Observable} from 'rxjs';
 import {debounceTime, distinctUntilChanged, filter, map, shareReplay, startWith, takeUntil,} from 'rxjs/operators';
+
+import {observeOnDestroy} from '../../../lib/reactive';
 
 import {TableCategory, tableCategoryFromNames, tableCategoryFromSpecs, TableCategoryWithMatchMap,} from './osquery_helper_model';
 import {allTableSpecs, nameToTable, OsqueryTableSpec} from './osquery_table_specs';
@@ -27,7 +29,7 @@ export class OsqueryQueryHelper implements OnDestroy {
   private static readonly INPUT_DEBOUNCE_TIME_MS = 50;
   readonly minCharactersToSearch = 2;
 
-  private readonly unsubscribe$ = new Subject<void>();
+  readonly ngOnDestroy = observeOnDestroy();
 
   readonly searchControl = new FormControl('');
 
@@ -43,7 +45,7 @@ export class OsqueryQueryHelper implements OnDestroy {
       }),
       startWith(''),
       distinctUntilChanged(),
-      takeUntil(this.unsubscribe$),
+      takeUntil(this.ngOnDestroy.triggered$),
 
       // Without sharing the execution, unsubscribing and subscribing again will
       // produce an un-needed '' first value.
@@ -130,11 +132,6 @@ export class OsqueryQueryHelper implements OnDestroy {
       tableSpecs: eligibleTables,
       matchMap,
     };
-  }
-
-  ngOnDestroy(): void {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
   }
 
   trackCategoryByName(

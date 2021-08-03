@@ -143,7 +143,7 @@ setup_args = dict(
         "ipython==7.15.0",
         "pexpect==4.8.0",
         "pip>=21.0.1",
-        "psutil==5.7.0",
+        "psutil==5.8.0",
         "python-crontab==2.5.1",
         "python-dateutil==2.8.1",
         "pytz==2020.1",

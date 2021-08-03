@@ -1765,11 +1765,21 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
     # are unset in both `self` and `other`. We deliberately check fields that
     # are set in one class and not in the other. This allows RDFStructs to be
     # considered equal, when one has a field set to its default value and the
-    # other has the field unset (where .Get implicitly returns the default value
-    # then).
+    # other has the field unset (where .Get implicitly returns the default
+    # value then).
     for field in set(self.GetRawData()) | set(other.GetRawData()):
+
+      # Deserializing Protobuf of newer versions can put `_unknown_field_{n}` in
+      # _data. This is a special field without type descriptor, thus raising an
+      # error in Get(). To follow Protobuf semantics, ignore fields that do not
+      # have a type descriptor.
+      # pylint: disable=unsupported-membership-test
+      if field not in self.type_infos:
+        continue
+
       self_val = self.Get(field, allow_set_default=False)
       other_val = other.Get(field, allow_set_default=False)
+
       if self_val != other_val:
         return False
 

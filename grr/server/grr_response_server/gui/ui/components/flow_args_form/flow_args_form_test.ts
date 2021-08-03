@@ -2,6 +2,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, Input, ViewChild} from '@angular/core';
 import {ComponentFixture, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
+import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -14,17 +15,18 @@ import {ArtifactCollectorFlowArgs, CollectBrowserHistoryArgs, CollectBrowserHist
 import {FlowDescriptor, OperatingSystem, SourceType} from '../../lib/models/flow';
 import {newArtifactDescriptorMap, newClient} from '../../lib/models/model_test_util';
 import {ExplainGlobExpressionService} from '../../lib/service/explain_glob_expression_service/explain_glob_expression_service';
+import {deepFreeze} from '../../lib/type_utils';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
 import {ConfigGlobalStore} from '../../store/config_global_store';
-import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
 
 import {FlowArgsForm} from './flow_args_form';
 
 
 initTestEnvironment();
 
-const TEST_FLOW_DESCRIPTORS = Object.freeze({
+const TEST_FLOW_DESCRIPTORS = deepFreeze({
   ArtifactCollectorFlow: {
     name: 'ArtifactCollectorFlow',
     friendlyName: 'Collect artifact',
@@ -76,6 +78,8 @@ const TEST_FLOW_DESCRIPTORS = Object.freeze({
     defaultArgs: {
       filenameRegex: '/(default)foo)/',
       pids: [12222234, 456],
+      connectionStates: [],
+      fetchBinaries: false,
     },
   },
   TimelineFlow: {
@@ -111,11 +115,7 @@ function setUp() {
         ],
 
         providers: [
-          {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore},
-          {
-            provide: ClientPageGlobalStore,
-            useFactory: mockClientPageGlobalStore
-          },
+          ...STORE_PROVIDERS,
         ],
       })
       .compileComponents();
@@ -325,7 +325,7 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    clientPageGlobalStore.selectedClientSubject.next(newClient({
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(newClient({
       clientId: 'C.1234',
     }));
 
@@ -473,12 +473,7 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
 
 
 describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
-  let configGlobalStore: ConfigGlobalStoreMock;
-  let clientPageGlobalStore: ClientPageGlobalStoreMock;
-
   beforeEach(() => {
-    configGlobalStore = mockConfigGlobalStore();
-    clientPageGlobalStore = mockClientPageGlobalStore();
     TestBed
         .configureTestingModule({
           imports: [
@@ -491,11 +486,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
           ],
 
           providers: [
-            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
-            {
-              provide: ClientPageGlobalStore,
-              useFactory: () => clientPageGlobalStore
-            },
+            ...STORE_PROVIDERS,
           ],
         })
         .compileComponents();
@@ -515,23 +506,24 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
   it('shows initial artifact suggestions', fakeAsync(async () => {
        const {fixture} = prepareFixture();
 
-       configGlobalStore.artifactDescriptorsSubject.next(
-           newArtifactDescriptorMap([
-             {
-               name: 'foo',
-               sources: [
+       injectMockStore(ConfigGlobalStore)
+           .mockedObservables.artifactDescriptors$.next(
+               newArtifactDescriptorMap([
                  {
-                   type: SourceType.FILE,
-                   paths: ['/sample/path'],
-                   conditions: [],
-                   returnedTypes: [],
-                   supportedOs: new Set()
+                   name: 'foo',
+                   sources: [
+                     {
+                       type: SourceType.FILE,
+                       paths: ['/sample/path'],
+                       conditions: [],
+                       returnedTypes: [],
+                       supportedOs: new Set()
+                     },
+                   ]
                  },
-               ]
-             },
-             {name: 'bar', doc: 'description123'},
-             {name: 'baz'},
-           ]));
+                 {name: 'bar', doc: 'description123'},
+                 {name: 'baz'},
+               ]));
 
        fixture.detectChanges();
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
@@ -553,11 +545,12 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
   it('filters artifact suggestions based on user input', async () => {
     const {fixture} = prepareFixture();
 
-    configGlobalStore.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
-      {name: 'foo'},
-      {name: 'baar'},
-      {name: 'baaz'},
-    ]));
+    injectMockStore(ConfigGlobalStore)
+        .mockedObservables.artifactDescriptors$.next(newArtifactDescriptorMap([
+          {name: 'foo'},
+          {name: 'baar'},
+          {name: 'baaz'},
+        ]));
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
@@ -574,22 +567,23 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
   it('searches artifact fields based on user input', async () => {
     const {fixture} = prepareFixture();
 
-    configGlobalStore.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
-      {
-        name: 'foo',
-        sources: [
+    injectMockStore(ConfigGlobalStore)
+        .mockedObservables.artifactDescriptors$.next(newArtifactDescriptorMap([
           {
-            type: SourceType.FILE,
-            paths: ['/sample/path'],
-            conditions: [],
-            returnedTypes: [],
-            supportedOs: new Set()
+            name: 'foo',
+            sources: [
+              {
+                type: SourceType.FILE,
+                paths: ['/sample/path'],
+                conditions: [],
+                returnedTypes: [],
+                supportedOs: new Set()
+              },
+            ]
           },
-        ]
-      },
-      {name: 'bar'},
-      {name: 'baz'},
-    ]));
+          {name: 'bar'},
+          {name: 'baz'},
+        ]));
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
@@ -603,11 +597,12 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
   it('configures flow args with selected artifact suggestion', async () => {
     const {fixture} = prepareFixture();
 
-    configGlobalStore.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
-      {name: 'foo'},
-      {name: 'bar'},
-      {name: 'baz'},
-    ]));
+    injectMockStore(ConfigGlobalStore)
+        .mockedObservables.artifactDescriptors$.next(newArtifactDescriptorMap([
+          {name: 'foo'},
+          {name: 'bar'},
+          {name: 'baz'},
+        ]));
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
@@ -625,18 +620,20 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
      async () => {
        const {fixture} = prepareFixture();
 
-       configGlobalStore.artifactDescriptorsSubject.next(
-           newArtifactDescriptorMap([
-             {name: 'foo', supportedOs: new Set([OperatingSystem.DARWIN])},
-             {name: 'bar', supportedOs: new Set([OperatingSystem.WINDOWS])},
-             {
-               name: 'baz',
-               supportedOs:
-                   new Set([OperatingSystem.DARWIN, OperatingSystem.LINUX])
-             },
-           ]));
-       clientPageGlobalStore.selectedClientSubject.next(
-           newClient({knowledgeBase: {os: 'Darwin'}}));
+       injectMockStore(ConfigGlobalStore)
+           .mockedObservables.artifactDescriptors$.next(
+               newArtifactDescriptorMap([
+                 {name: 'foo', supportedOs: new Set([OperatingSystem.DARWIN])},
+                 {name: 'bar', supportedOs: new Set([OperatingSystem.WINDOWS])},
+                 {
+                   name: 'baz',
+                   supportedOs:
+                       new Set([OperatingSystem.DARWIN, OperatingSystem.LINUX])
+                 },
+               ]));
+       injectMockStore(ClientPageGlobalStore)
+           .mockedObservables.selectedClient$.next(
+               newClient({knowledgeBase: {os: 'Darwin'}}));
        fixture.detectChanges();
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
@@ -658,32 +655,33 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
   it('previews sources for the selected artifact', async () => {
     const {fixture} = prepareFixture();
 
-    configGlobalStore.artifactDescriptorsSubject.next(newArtifactDescriptorMap([
-      {
-        name: 'foo',
-        sources: [
+    injectMockStore(ConfigGlobalStore)
+        .mockedObservables.artifactDescriptors$.next(newArtifactDescriptorMap([
           {
-            type: SourceType.ARTIFACT_GROUP,
-            names: ['bar'],
-            conditions: [],
-            returnedTypes: [],
-            supportedOs: new Set()
+            name: 'foo',
+            sources: [
+              {
+                type: SourceType.ARTIFACT_GROUP,
+                names: ['bar'],
+                conditions: [],
+                returnedTypes: [],
+                supportedOs: new Set()
+              },
+            ]
           },
-        ]
-      },
-      {
-        name: 'bar',
-        sources: [
           {
-            type: SourceType.REGISTRY_KEY,
-            keys: ['HKLM'],
-            conditions: [],
-            returnedTypes: [],
-            supportedOs: new Set()
+            name: 'bar',
+            sources: [
+              {
+                type: SourceType.REGISTRY_KEY,
+                keys: ['HKLM'],
+                conditions: [],
+                returnedTypes: [],
+                supportedOs: new Set()
+              },
+            ]
           },
-        ]
-      },
-    ]));
+        ]));
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
@@ -701,7 +699,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 describe(`FlowArgForm ListProcesses`, () => {
   beforeEach(setUp);
 
-  it('emits form input values', async (done) => {
+  it('emits form input values', async () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
@@ -713,16 +711,26 @@ describe(`FlowArgForm ListProcesses`, () => {
         fixture, 'input[formControlName="filenameRegex"]', '/foo/');
     await setInputValue(fixture, 'input[formControlName="pids"]', '123, 456');
 
-    fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe(values => {
-      expect(values).toEqual({
-        pids: [123, 456],
-        filenameRegex: '/foo/',
-      });
-      done();
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const autocompleteHarness =
+        await harnessLoader.getHarness(MatAutocompleteHarness);
+    await autocompleteHarness.selectOption({text: 'CLOSING'});
+
+    const checkboxHarness = await harnessLoader.getHarness(MatCheckboxHarness);
+    await checkboxHarness.check();
+
+    const values = await firstValueFrom(
+        fixture.componentInstance.flowArgsForm.flowArgValues$);
+
+    expect(values).toEqual({
+      pids: [123, 456],
+      filenameRegex: '/foo/',
+      connectionStates: ['CLOSING'],
+      fetchBinaries: true,
     });
   });
 
-  it('flags non-numeric pids as invalid', async (done) => {
+  it('flags non-numeric pids as invalid', async () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
@@ -733,10 +741,9 @@ describe(`FlowArgForm ListProcesses`, () => {
     await setInputValue(
         fixture, 'input[formControlName="pids"]', '12notnumeric3');
 
-    fixture.componentInstance.flowArgsForm.valid$.subscribe(valid => {
-      expect(valid).toBeFalse();
-      done();
-    });
+    const valid =
+        await firstValueFrom(fixture.componentInstance.flowArgsForm.valid$);
+    expect(valid).toBeFalse();
   });
 });
 

@@ -1,6 +1,6 @@
 import {initTestEnvironment} from '@app/testing';
 
-import {assertKeyNonNull, assertKeyTruthy, assertNonNull, assertTruthy, isNonNull, PreconditionError} from './preconditions';
+import {assertEnum, assertKeyNonNull, assertKeyTruthy, assertNonNull, assertTruthy, isEnum, isNonNull, PreconditionError} from './preconditions';
 
 initTestEnvironment();
 
@@ -156,6 +156,44 @@ describe('assertKeyTruthy', () => {
     assertKeyTruthy({a: 5, b: false}, 'a');
     assertKeyTruthy({a: {}, b: false}, 'a');
     assertKeyTruthy({a: [], b: false}, 'a');
+    expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
+  });
+});
+
+enum TestEnum {
+  FOO_KEY = 'FOO',
+  BAR = 'BAR',
+}
+
+describe('isEnum', () => {
+  it('returns true if string is in enum', () => {
+    expect(isEnum('FOO', TestEnum)).toBeTrue();
+    expect(isEnum('BAR', TestEnum)).toBeTrue();
+  });
+
+  it('returns false if string is not in enum', () => {
+    expect(isEnum('foo', TestEnum)).toBeFalse();
+    expect(isEnum('FOO_KEY', TestEnum)).toBeFalse();
+    expect(isEnum('', TestEnum)).toBeFalse();
+  });
+});
+
+describe('assertEnum', () => {
+  it('throws if string is not in enum', () => {
+    expect(() => {
+      assertEnum('foo', TestEnum);
+    }).toThrowError(PreconditionError);
+    expect(() => {
+      assertEnum('FOO_KEY', TestEnum);
+    }).toThrowError(PreconditionError);
+    expect(() => {
+      assertEnum('', TestEnum);
+    }).toThrowError(PreconditionError);
+  });
+
+  it('does not throw if string is in enum', () => {
+    assertEnum('FOO', TestEnum);
+    assertEnum('BAR', TestEnum);
     expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
   });
 });

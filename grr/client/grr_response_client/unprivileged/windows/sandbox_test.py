@@ -1,14 +1,25 @@
 #!/usr/bin/env python
 import concurrent.futures
+import contextlib
 import os
+import socket
 import subprocess
 import sys
+import unittest
 
 from absl import flags
 from absl.testing import absltest
 
 from grr_response_client.unprivileged.windows import process_test
 from grr_response_client.unprivileged.windows import sandbox
+
+try:
+  # pylint: disable=g-import-not-at-top
+  from grr_response_client.unprivileged.windows import process
+  import winreg
+  # pylint: enable=g-import-not-at-top
+except ImportError:
+  raise unittest.SkipTest("This is a Windows only test.")
 
 flags.DEFINE_bool(
     "set_inheritance",
@@ -74,6 +85,37 @@ def setUpModule():
 
 class SandboxTest(process_test.ProcessTest):
   pass
+
+
+class SandboxSecurityTest(absltest.TestCase):
+
+  def testSandboxSecurity(self):
+    with contextlib.ExitStack() as stack:
+      port = 12395
+      sock = stack.enter_context(
+          socket.socket(socket.AF_INET, socket.SOCK_STREAM))
+      sock.bind(("", port))
+      sock.listen()
+
+      sub_key = "Software\\SandboxTest"
+      key = winreg.CreateKeyEx(
+          winreg.HKEY_LOCAL_MACHINE, sub_key, access=winreg.KEY_ALL_ACCESS)
+      winreg.SetValueEx(key, "foo", 0, winreg.REG_SZ, "bar")
+      winreg.FlushKey(key)
+      stack.callback(winreg.DeleteKey, winreg.HKEY_LOCAL_MACHINE, sub_key)
+      stack.callback(winreg.CloseKey, key)
+      stack.callback(winreg.DeleteValue, key, "foo")
+
+      args = [
+          sys.executable, "-m",
+          "grr_response_client.unprivileged.windows.sandbox_unprivileged_test_lib",
+          "--localhost_port",
+          str(port), "--registry_sub_key", sub_key
+      ]
+
+      p = process.Process(args, [])
+      exit_code = p.Wait()
+      self.assertEqual(exit_code, 0)
 
 
 if __name__ == "__main__":

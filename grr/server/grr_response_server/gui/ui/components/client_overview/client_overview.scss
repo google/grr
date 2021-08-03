@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../material-theme' as c;
 @use '../../main' as main;
 
@@ -6,7 +7,7 @@ $width: 80%;
 
 .client-header {
   padding: 15px 0 10px;
-  border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
+  border-bottom: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
 
   .fqdn-chips {
     display: flex;
@@ -28,8 +29,8 @@ $width: 80%;
       mat-chip {
         min-height: 26px;
         font-size: 13px;
-        border: 1px solid c.mat-color(c.$foreground, divider);
-        background-color: c.mat-color(c.$background, app-bar);
+        border: 1px solid mat.get-color-from-palette(c.$foreground, divider);
+        background-color: mat.get-color-from-palette(c.$background, app-bar);
       }
 
       .add_label {
@@ -47,7 +48,7 @@ $width: 80%;
     margin-left: 35px;
 
     .copy-button {
-      color: c.mat-color(c.$foreground, icon-grey);
+      color: mat.get-color-from-palette(c.$foreground, icon-grey);
     }
 
     .os {

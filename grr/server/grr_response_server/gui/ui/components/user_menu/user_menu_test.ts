@@ -1,12 +1,10 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ConfigGlobalStore} from '@app/store/config_global_store';
 import {UserGlobalStore} from '@app/store/user_global_store';
 import {initTestEnvironment} from '@app/testing';
 
-import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
-import {mockUserGlobalStore, UserGlobalStoreMock} from '../../store/user_global_store_test_util';
+import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
 
 import {UserMenuModule} from './module';
 
@@ -17,11 +15,7 @@ initTestEnvironment();
 
 
 describe('UserMenu Component', () => {
-  let userGlobalStore: UserGlobalStoreMock;
-
   beforeEach(waitForAsync(() => {
-    userGlobalStore = mockUserGlobalStore();
-
     TestBed
         .configureTestingModule({
           imports: [
@@ -30,8 +24,7 @@ describe('UserMenu Component', () => {
           ],
 
           providers: [
-            {provide: UserGlobalStore, useFactory: () => userGlobalStore},
-            {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore}
+            ...STORE_PROVIDERS,
           ],
         })
         .compileComponents();
@@ -39,7 +32,9 @@ describe('UserMenu Component', () => {
 
   it('displays the current user image', () => {
     const fixture = TestBed.createComponent(UserMenu);
-    userGlobalStore.currentUserSubject.next({name: 'test'});
+    injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
+      name: 'test'
+    });
     fixture.detectChanges();
 
     const el = fixture.debugElement.query(By.css('user-image'));

@@ -1,6 +1,4 @@
 #!/usr/bin/env python
-from typing import Text
-
 from absl.testing import absltest
 
 from grr_response_core.lib import factory
@@ -40,10 +38,10 @@ class FactoryTest(absltest.TestCase):
       obj_factory.Unregister("foo")
 
   def testCreateString(self):
-    str_factory = factory.Factory(Text)
-    str_factory.Register("foo", Text, lambda: "FOO")
-    str_factory.Register("bar", Text, lambda: "BAR")
-    str_factory.Register("baz", Text, lambda: "BAZ")
+    str_factory = factory.Factory(str)
+    str_factory.Register("foo", str, lambda: "FOO")
+    str_factory.Register("bar", str, lambda: "BAR")
+    str_factory.Register("baz", str, lambda: "BAZ")
 
     self.assertEqual(str_factory.Create("foo"), "FOO")
     self.assertEqual(str_factory.Create("bar"), "BAR")

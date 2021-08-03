@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../material-theme' as c;
 
 .container {
@@ -7,8 +8,8 @@
   position: relative;
 
   padding: 0;
-  background-color: c.mat-color(c.$background, app-bar);
-  border: 1px solid c.mat-color(c.$foreground, divider-light);
+  background-color: mat.get-color-from-palette(c.$background, app-bar);
+  border: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
   border-radius: 8px;
 
   .header-wrapper {
@@ -29,7 +30,7 @@
         .flow-title {
           font-family: c.$google-sans-display-family;
           font-size: 105%;
-          color: c.mat-color(c.$foreground, text);
+          color: mat.get-color-from-palette(c.$foreground, text);
 
           mat-icon {
             visibility: hidden;
@@ -69,22 +70,22 @@
           padding-left: 3em;
           padding-top: 2px;
           font-size: 85%;
-          color: c.mat-color(c.$foreground, text-light);
+          color: mat.get-color-from-palette(c.$foreground, text-light);
         }
 
         .flow-status {
           padding-top: 6px;
 
           .in-progress {
-            color: c.mat-color(c.$foreground, in-progress);
+            color: mat.get-color-from-palette(c.$foreground, in-progress);
           }
 
           .error {
-            color: c.mat-color(c.$foreground, danger);
+            color: mat.get-color-from-palette(c.$foreground, danger);
           }
 
           .success {
-            color: c.mat-color(c.$foreground, success);
+            color: mat.get-color-from-palette(c.$foreground, success);
           }
         }
       }

@@ -59,9 +59,6 @@ def main(argv):
   config_lib.LoadConfig(config.CONFIG, source_server_config_path)
   config.CONFIG.SetWriteBack(flags.FLAGS.dest_server_config_path)
 
-  # TODO(user): remove when AFF4 is gone.
-  config.CONFIG.Set("Database.enabled", True)
-
   config.CONFIG.Set("Blobstore.implementation", "DbBlobStore")
   config.CONFIG.Set("Database.implementation", "MysqlDB")
   config.CONFIG.Set("Mysql.database", flags.FLAGS.config_mysql_database)

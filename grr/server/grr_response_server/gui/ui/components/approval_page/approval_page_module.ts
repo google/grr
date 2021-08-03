@@ -7,6 +7,7 @@ import {MatSidenavModule} from '@angular/material/sidenav';
 
 import {ClientDetailsModule} from '../client_details/module';
 import {ClientOverviewModule} from '../client_overview/module';
+import {DrawerLinkModule} from '../helpers/drawer_link/drawer_link_module';
 import {ScheduledFlowListModule} from '../scheduled_flow_list/module';
 import {UserImageModule} from '../user_image/module';
 
@@ -15,14 +16,16 @@ import {ApprovalRoutingModule} from './routing';
 
 @NgModule({
   imports: [
-    ApprovalRoutingModule,
-    ClientDetailsModule,
-    ClientOverviewModule,
     CommonModule,
     MatButtonModule,
     MatCardModule,
     MatIconModule,
     MatSidenavModule,
+
+    ApprovalRoutingModule,
+    ClientDetailsModule,
+    ClientOverviewModule,
+    DrawerLinkModule,
     ScheduledFlowListModule,
     UserImageModule,
   ],

@@ -103,13 +103,13 @@ def assertBodyEntrySanity(  # pylint: disable=invalid-name
   # Size should be non-negative (some files might be empty, though).
   test.assertGreaterEqual(int(entry[6]), 0)
 
-  # All timestamps should be positive.
-  test.assertGreater(int(entry[7]), 0)
-  test.assertGreater(int(entry[8]), 0)
-  test.assertGreater(int(entry[9]), 0)
+  # All timestamps should be positive or zero (in some pathological cases).
+  test.assertGreaterEqual(float(entry[7]), 0.0)
+  test.assertGreaterEqual(float(entry[8]), 0.0)
+  test.assertGreaterEqual(float(entry[9]), 0.0)
 
   # All timestamps should be older than now.
-  now = rdfvalue.RDFDatetime.Now()
-  test.assertLessEqual(int(entry[7]), now.AsSecondsSinceEpoch())
-  test.assertLessEqual(int(entry[8]), now.AsSecondsSinceEpoch())
-  test.assertLessEqual(int(entry[9]), now.AsSecondsSinceEpoch())
+  now_secs = rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch() / 1e6
+  test.assertLessEqual(float(entry[7]), now_secs)
+  test.assertLessEqual(float(entry[8]), now_secs)
+  test.assertLessEqual(float(entry[9]), now_secs)

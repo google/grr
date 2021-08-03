@@ -633,8 +633,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
       time.sleep(self.sleep_time)
 
-    self.fail("condition not met. got: %r, does not contain: %s" %
-              (data, target))
+    self.fail("condition not met. got: {!r}, does not contain: {!r}".format(
+        data, target))
 
   def setUp(self):
     super().setUp()

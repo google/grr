@@ -1,9 +1,7 @@
-import {Location} from '@angular/common';
 import {discardPeriodicTasks, fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {MatChip, MatChipList} from '@angular/material/chips';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute} from '@angular/router';
 
 import {ApiModule} from '../../lib/api/module';
 import {newClient} from '../../lib/models/model_test_util';
@@ -17,7 +15,6 @@ import {ClientOverviewModule} from './module';
 
 describe('Client Overview', () => {
   let store: ClientPageGlobalStoreMock;
-  let location: Location;
 
   beforeEach(waitForAsync(() => {
     store = mockClientPageGlobalStore();
@@ -29,28 +26,20 @@ describe('Client Overview', () => {
             NoopAnimationsModule,
             ClientOverviewModule,
           ],
-          providers: [
-            {
-              provide: ActivatedRoute,
-              useValue: {},
-            },
-            {
-              provide: ClientPageGlobalStore,
-              useFactory: () => store,
-            }
-          ],
+          providers: [{
+            provide: ClientPageGlobalStore,
+            useFactory: () => store,
+          }],
 
         })
         .compileComponents();
-
-    location = TestBed.inject(Location);
   }));
 
   it('displays client details on client change', () => {
     const fixture = TestBed.createComponent(ClientOverview);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-    store.selectedClientSubject.next(newClient({
+    store.mockedObservables.selectedClient$.next(newClient({
       clientId: 'C.1234',
       knowledgeBase: {
         fqdn: 'foo.unknown',
@@ -67,7 +56,7 @@ describe('Client Overview', () => {
     const fixture = TestBed.createComponent(ClientOverview);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-    store.selectedClientSubject.next(newClient({
+    store.mockedObservables.selectedClient$.next(newClient({
       clientId: 'C.1234',
       labels: [{name: 'testlabel', owner: ''}],
     }));
@@ -83,7 +72,7 @@ describe('Client Overview', () => {
     const fixture = TestBed.createComponent(ClientOverview);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-    store.selectedClientSubject.next(newClient({
+    store.mockedObservables.selectedClient$.next(newClient({
       clientId: 'C.1234',
       labels: [{name: 'testlabel', owner: ''}],
     }));
@@ -92,7 +81,7 @@ describe('Client Overview', () => {
     const labelsChipList = fixture.debugElement.query(By.directive(MatChipList))
                                .componentInstance.chips.toArray() as MatChip[];
     labelsChipList[0].remove();
-    store.lastRemovedClientLabelSubject.next('testlabel');
+    store.mockedObservables.lastRemovedClientLabel$.next('testlabel');
     fixture.detectChanges();
 
     const snackbarDiv = document.querySelector('snack-bar-container');
@@ -105,7 +94,7 @@ describe('Client Overview', () => {
        const fixture = TestBed.createComponent(ClientOverview);
        fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-       store.selectedClientSubject.next(newClient({
+       store.mockedObservables.selectedClient$.next(newClient({
          clientId: 'C.1234',
          labels: [{name: 'testlabel', owner: ''}],
        }));
@@ -115,7 +104,7 @@ describe('Client Overview', () => {
            fixture.debugElement.query(By.directive(MatChipList))
                .componentInstance.chips.toArray() as MatChip[];
        labelsChipList[0].remove();
-       store.lastRemovedClientLabelSubject.next('testlabel');
+       store.mockedObservables.lastRemovedClientLabel$.next('testlabel');
        fixture.detectChanges();
 
        expect(store.addClientLabel).not.toHaveBeenCalled();

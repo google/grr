@@ -233,6 +233,9 @@ def VFSOpen(pathspec: rdf_paths.PathSpec,
     except KeyError:
       raise UnsupportedHandlerError(component.pathtype)
 
+    orig_component = component.Copy()
+    orig_working_pathspec = working_pathspec.Copy()
+
     # Open the component.
     fd = handler.Open(
         fd=fd,
@@ -240,6 +243,17 @@ def VFSOpen(pathspec: rdf_paths.PathSpec,
         handlers=dict(handlers),
         pathspec=working_pathspec,
         progress_callback=progress_callback)
+
+    # If the handler uses `client_utils.GetRawDevice`, it will rewrite
+    # `working_pathspec`, adding 3 new entries (only the first 2 matter).
+    # If there was an `implementation_type` set, we need to add it to
+    # the new top-level entry and remove it from the original entry (which is
+    # now modified at index 1).
+
+    if (orig_component.HasField("implementation_type") and
+        len(working_pathspec) >= len(orig_working_pathspec) + 2):
+      working_pathspec.implementation_type = orig_component.implementation_type
+      working_pathspec[1].implementation_type = None
 
   if fd is None:
     raise ValueError("VFSOpen cannot be called with empty PathSpec.")

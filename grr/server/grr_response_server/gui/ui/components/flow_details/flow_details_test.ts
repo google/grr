@@ -9,8 +9,7 @@ import {Flow, FlowDescriptor} from '@app/lib/models/flow';
 import {newFlow} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
 
-import {ConfigGlobalStore} from '../../store/config_global_store';
-import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {STORE_PROVIDERS} from '../../store/store_test_providers';
 
 import {FlowDetailsModule} from './module';
 
@@ -44,14 +43,14 @@ describe('FlowDetails Component', () => {
           imports: [
             NoopAnimationsModule,
             FlowDetailsModule,
-            RouterTestingModule.withRoutes([]),
+            RouterTestingModule,
           ],
           declarations: [
             TestHostComponent,
           ],
 
           providers: [
-            {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore},
+            ...STORE_PROVIDERS,
           ]
         })
         .compileComponents();

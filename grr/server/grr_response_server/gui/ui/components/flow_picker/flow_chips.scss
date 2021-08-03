@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../material-theme' as c;
 
 .flow-chips {
@@ -5,8 +6,8 @@
   flex-wrap: wrap;
 
   button {
-    border-color: c.mat-color(c.$foreground, divider-light);
-    color: c.mat-color(c.$foreground, text-light);
+    border-color: mat.get-color-from-palette(c.$foreground, divider-light);
+    color: mat.get-color-from-palette(c.$foreground, text-light);
     margin-bottom: 8px;
     margin-right: 12px;
   }

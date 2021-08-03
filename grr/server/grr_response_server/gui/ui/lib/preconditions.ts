@@ -42,3 +42,24 @@ export function assertKeyTruthy<T, K extends keyof T>(
     value: T, key: K): asserts value is TruthyKey<T, K> {
   assertTruthy(value[key], `key ${key}`);
 }
+
+interface StringEnum<T> {
+  [id: string]: T|string;
+}
+
+/** Returns true if the given string value is present in an enum. */
+export function isEnum<T extends string>(
+    value: string, enumType: StringEnum<T>): value is T {
+  return Object.values(enumType).some(enumVal => enumVal === value);
+}
+
+/**
+ * Throws PreconditionError if the given string value is not present in the
+ * enum.
+ */
+export function assertEnum<T extends string>(
+    value: string, enumType: StringEnum<T>): asserts value is T {
+  if (!isEnum(value, enumType)) {
+    throw new PreconditionError('');
+  }
+}

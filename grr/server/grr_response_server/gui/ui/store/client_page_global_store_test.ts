@@ -96,7 +96,7 @@ describe('ClientPageGlobalStore', () => {
     apiFetchClient$.next({
       clientId: 'C.1234',
     });
-    userGlobalStore.currentUserSubject.next({name: 'testuser'});
+    userGlobalStore.mockedObservables.currentUser$.next({name: 'testuser'});
   });
 
   it('polls the API on latestApproval$ subscription ', fakeAsync(() => {
@@ -538,10 +538,11 @@ describe('ClientPageGlobalStore', () => {
   });
 
   it('emits the selected flow in selectedFlowDescriptor$', done => {
-    configGlobalStore.flowDescriptorsSubject.next(newFlowDescriptorMap(
-        {name: 'ClientSideFileFinder'},
-        {name: 'KeepAlive', defaultArgs: {foo: 1}},
-        ));
+    configGlobalStore.mockedObservables.flowDescriptors$.next(
+        newFlowDescriptorMap(
+            {name: 'ClientSideFileFinder'},
+            {name: 'KeepAlive', defaultArgs: {foo: 1}},
+            ));
     clientPageGlobalStore.startFlowConfiguration('KeepAlive');
     clientPageGlobalStore.selectedFlowDescriptor$.subscribe(flow => {
       // First value is expected to be undefined.
@@ -556,7 +557,7 @@ describe('ClientPageGlobalStore', () => {
   });
 
   it('emits the supplied args in selectedFlowDescriptor$', done => {
-    configGlobalStore.flowDescriptorsSubject.next(
+    configGlobalStore.mockedObservables.flowDescriptors$.next(
         newFlowDescriptorMap({name: 'KeepAlive', defaultArgs: {foo: 1}}));
     clientPageGlobalStore.startFlowConfiguration('KeepAlive', {foo: 42});
     clientPageGlobalStore.selectedFlowDescriptor$.subscribe(flow => {
@@ -572,9 +573,10 @@ describe('ClientPageGlobalStore', () => {
   });
 
   it('fails when selecting unknown flow', done => {
-    configGlobalStore.flowDescriptorsSubject.next(newFlowDescriptorMap(
-        {name: 'KeepAlive'},
-        ));
+    configGlobalStore.mockedObservables.flowDescriptors$.next(
+        newFlowDescriptorMap(
+            {name: 'KeepAlive'},
+            ));
 
     clientPageGlobalStore.startFlowConfiguration('unknown');
     clientPageGlobalStore.selectedFlowDescriptor$.subscribe(
@@ -588,10 +590,11 @@ describe('ClientPageGlobalStore', () => {
 
   it('emits undefined in selectedFlowDescriptor$ after unselectFlow()',
      done => {
-       configGlobalStore.flowDescriptorsSubject.next(newFlowDescriptorMap(
-           {name: 'ClientSideFileFinder'},
-           {name: 'KeepAlive'},
-           ));
+       configGlobalStore.mockedObservables.flowDescriptors$.next(
+           newFlowDescriptorMap(
+               {name: 'ClientSideFileFinder'},
+               {name: 'KeepAlive'},
+               ));
 
        clientPageGlobalStore.startFlowConfiguration('KeepAlive');
        clientPageGlobalStore.stopFlowConfiguration();

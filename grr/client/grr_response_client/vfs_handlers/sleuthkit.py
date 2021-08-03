@@ -219,6 +219,9 @@ class TSKFile(vfs_base.VFSHandler):
       # TSK. Prefer to compare unicode objects to guarantee they are normalized.
       name = _DecodeUTF8WithWarning(f.info.name.name)
 
+      if name in [".", ".."] or name in self._IGNORE_FILES:
+        continue
+
       # TODO: TSK lists duplicate filenames. Only return unique
       # names from ListNames(), because parts of the system fail otherwise.
       if name not in seen_names:

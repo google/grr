@@ -1,85 +1,43 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute} from '@angular/router';
+import {ActivatedRoute, Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 import {ApiModule} from '@app/lib/api/module';
-import {Subject} from 'rxjs';
 
 import {newClientApproval} from '../../lib/models/model_test_util';
 import {ApprovalPageGlobalStore} from '../../store/approval_page_global_store';
-import {ApprovalPageGlobalStoreMock, mockApprovalPageGlobalStore} from '../../store/approval_page_global_store_test_util';
-import {ClientDetailsGlobalStore} from '../../store/client_details_global_store';
-import {mockClientDetailsGlobalStore} from '../../store/client_details_global_store_test_util';
-import {ClientPageGlobalStore} from '../../store/client_page_global_store';
-import {mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
-import {ConfigGlobalStore} from '../../store/config_global_store';
-import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
-import {ScheduledFlowGlobalStore} from '../../store/scheduled_flow_global_store';
-import {mockScheduledFlowGlobalStore} from '../../store/scheduled_flow_global_store_test_util';
-import {UserGlobalStore} from '../../store/user_global_store';
-import {mockUserGlobalStore} from '../../store/user_global_store_test_util';
-import {initTestEnvironment} from '../../testing';
+import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
+import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
 
 import {ApprovalPage} from './approval_page';
 import {ApprovalPageModule} from './approval_page_module';
 
+import {APPROVAL_ROUTES} from './routing';
 
 
 initTestEnvironment();
 
 
 describe('ApprovalPage Component', () => {
-  let paramsSubject: Subject<Map<string, string>>;
-  let approvalPageGlobalStore: ApprovalPageGlobalStoreMock;
-
   beforeEach(waitForAsync(() => {
-    paramsSubject = new Subject();
-    approvalPageGlobalStore = mockApprovalPageGlobalStore();
-
     TestBed
         .configureTestingModule({
           imports: [
-            RouterTestingModule.withRoutes([]),
+            RouterTestingModule.withRoutes(APPROVAL_ROUTES),
             ApiModule,
             NoopAnimationsModule,
             ApprovalPageModule,
           ],
           providers: [
-            {
-              provide: ActivatedRoute,
-              useValue: {
-                paramMap: paramsSubject,
-              },
-            },
-            {
-              provide: ApprovalPageGlobalStore,
-              useFactory: () => approvalPageGlobalStore,
-            },
-            {
-              provide: UserGlobalStore,
-              useFactory: mockUserGlobalStore,
-            },
-            {
-              provide: ConfigGlobalStore,
-              useFactory: mockConfigGlobalStore,
-            },
-            {
-              provide: ClientDetailsGlobalStore,
-              useFactory: mockClientDetailsGlobalStore,
-            },
-            {
-              provide: ClientPageGlobalStore,
-              useFactory: mockClientPageGlobalStore,
-            },
-            {
-              provide: ScheduledFlowGlobalStore,
-              useFactory: mockScheduledFlowGlobalStore,
-            },
+            ...STORE_PROVIDERS,
+            {provide: ActivatedRoute, useFactory: getActivatedChildRoute},
           ],
 
         })
         .compileComponents();
+
+    TestBed.inject(Router).navigate(['clients/cid/users/req/approvals/aid']);
   }));
 
   it('should be created', () => {
@@ -87,15 +45,11 @@ describe('ApprovalPage Component', () => {
     expect(fixture.nativeElement).toBeTruthy();
   });
 
-  it('loads approval information on route change', () => {
+  it('loads approval information on route change', async () => {
     const fixture = TestBed.createComponent(ApprovalPage);
     fixture.detectChanges();
 
-    paramsSubject.next(new Map(Object.entries(
-        {clientId: 'cid', requestor: 'req', approvalId: 'aid'})));
-    fixture.detectChanges();
-
-    expect(approvalPageGlobalStore.selectApproval)
+    expect(injectMockStore(ApprovalPageGlobalStore).selectApproval)
         .toHaveBeenCalledWith(
             {clientId: 'cid', requestor: 'req', approvalId: 'aid'});
   });
@@ -104,11 +58,12 @@ describe('ApprovalPage Component', () => {
     const fixture = TestBed.createComponent(ApprovalPage);
     fixture.detectChanges();
 
-    approvalPageGlobalStore.approvalSubject.next(newClientApproval({
-      clientId: 'C.1234',
-      requestor: 'msan',
-      reason: 'foobazzle 42',
-    }));
+    injectMockStore(ApprovalPageGlobalStore)
+        .mockedObservables.approval$.next(newClientApproval({
+          clientId: 'C.1234',
+          requestor: 'msan',
+          reason: 'foobazzle 42',
+        }));
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -121,7 +76,9 @@ describe('ApprovalPage Component', () => {
     const fixture = TestBed.createComponent(ApprovalPage);
     fixture.detectChanges();
 
-    approvalPageGlobalStore.approvalSubject.next(newClientApproval({
+    const approvalPageGlobalStore = injectMockStore(ApprovalPageGlobalStore);
+
+    approvalPageGlobalStore.mockedObservables.approval$.next(newClientApproval({
       clientId: 'C.1234',
       requestor: 'msan',
       reason: 'foobazzle 42',

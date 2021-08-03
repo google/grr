@@ -1,33 +1,32 @@
-<mat-drawer-container class="container" [class.noscroll]="clientDetailsDrawer.opened">
-  <mat-drawer #clientDetailsDrawer position="end">
-    <client-details [clientId]="id$ | async"></client-details>
-  </mat-drawer>
+<client-overview>
+  <a
+    mat-button
+    class="goto-details"
+    [drawerLink]="['details']"
+  >
+    Client details
+    <mat-icon>keyboard_arrow_left</mat-icon>
+  </a>
+</client-overview>
 
-  <mat-drawer-content>
-    <client-overview>
-      <button mat-button class="goto-details" (click)="onClientDetailsButtonClick()">Client details
-        <mat-icon *ngIf="!clientDetailsDrawer.opened; else iconArrowRight">keyboard_arrow_left</mat-icon>
-        <ng-template #iconArrowRight>
-          <mat-icon>keyboard_arrow_right</mat-icon>
-        </ng-template>
-      </button>
-    </client-overview>
-
-    <div class="client-start-flow">
-      <flow-form></flow-form>
-    </div>
-    <div class="client-flows">
-      <scheduled-flow-list [creator]="currentUser$ | async" [clientId]="id$ | async"></scheduled-flow-list>
-      <flow-list></flow-list>
-      <div [style.height.px]="approvalHeight">
-        <!-- Placeholder behind Approval bottom sheet to allow scrolling to the
+<div class="client-start-flow">
+  <flow-form></flow-form>
+</div>
+<div class="client-flows">
+  <scheduled-flow-list
+    [creator]="currentUser$ | async"
+    [clientId]="id$ | async"
+  ></scheduled-flow-list>
+  <flow-list></flow-list>
+  <div [style.height.px]="approvalHeight">
+    <!-- Placeholder behind Approval bottom sheet to allow scrolling to the
              bottom of the flows list. -->
-      </div>
-    </div>
+  </div>
+</div>
 
-    <div class="client-approval mat-elevation-z5"
-      [style.display]="(this.showApprovalView$ | async) ? 'block' : 'none'">
-      <approval></approval>
-    </div>
-  </mat-drawer-content>
-</mat-drawer-container>
+<div
+  class="client-approval mat-elevation-z5"
+  [style.display]="(this.showApprovalView$ | async) ? 'block' : 'none'"
+>
+  <approval></approval>
+</div>

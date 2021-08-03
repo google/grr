@@ -1,9 +1,10 @@
 import {AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentFactoryResolver, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
 import {DEFAULT_FORM, FORMS} from '@app/components/flow_args_form/sub_forms';
-import {Observable, ReplaySubject, Subject} from 'rxjs';
+import {Observable, ReplaySubject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
 import {FlowDescriptor} from '../../lib/models/flow';
+import {observeOnDestroy} from '../../lib/reactive';
 
 /** Component that allows configuring Flow arguments. */
 @Component({
@@ -12,7 +13,7 @@ import {FlowDescriptor} from '../../lib/models/flow';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
-  private readonly unsubscribe$ = new Subject<void>();
+  readonly ngOnDestroy = observeOnDestroy();
 
   @Input() flowDescriptor?: FlowDescriptor;
 
@@ -57,20 +58,15 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
     // As it's not clear whether formValues$ observable is supposed to
     // complete when component.instance is destroyed, we should make sure
     // we don't have a hanging subscription left. Hence - takeUntil() pattern.
-    component.instance.formValues$.pipe(takeUntil(this.unsubscribe$))
+    component.instance.formValues$.pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe(values => {
           this.flowArgValuesSubject.next(values);
         });
-    component.instance.status$.pipe(takeUntil(this.unsubscribe$))
+    component.instance.status$.pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe(status => {
           this.validSubject.next(status === 'VALID');
         });
 
     this.cdr.detectChanges();
-  }
-
-  ngOnDestroy() {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
   }
 }

@@ -99,6 +99,32 @@ TestStruct.AddDescriptor(
             name="repeat_nested", field_number=5, nested=TestStruct)),)
 
 
+class VersionedTestStructV1(rdf_structs.RDFProtoStruct):
+  """A test struct object."""
+
+  type_description = type_info.TypeDescriptorSet(
+      rdf_structs.ProtoBoolean(
+          name="bool1",
+          field_number=1,
+          default=False,
+      ))
+
+
+class VersionedTestStructV2(rdf_structs.RDFProtoStruct):
+  """A test struct object."""
+
+  type_description = type_info.TypeDescriptorSet(
+      rdf_structs.ProtoBoolean(
+          name="bool1",
+          field_number=1,
+          default=False,
+      ), rdf_structs.ProtoBoolean(
+          name="bool2",
+          field_number=2,
+          default=False,
+      ))
+
+
 class TestStructWithBool(rdf_structs.RDFProtoStruct):
   """A test struct object."""
 
@@ -816,6 +842,23 @@ message DynamicTypeTest {{
   def testUnsetFieldsHaveSymmetricEqualityWithDefaultValues(self):
     self.assertEqual(TestStruct(repeated=[]), TestStruct())
     self.assertEqual(TestStruct(), TestStruct(repeated=[]))
+
+  def testCanDeserializeOldVersion(self):
+    a = VersionedTestStructV2(bool1=True, bool2=True)
+    a_ser = a.SerializeToBytes()
+    a_old = VersionedTestStructV1.FromSerializedBytes(a_ser)
+
+    with self.assertRaises(AttributeError):
+      a_old.Get("bool2")
+
+  def testCanCompareEqualityAcrossVersions(self):
+    a = VersionedTestStructV1.FromSerializedBytes(
+        VersionedTestStructV2(bool1=True, bool2=True).SerializeToBytes())
+
+    b = VersionedTestStructV1(bool1=True)
+
+    self.assertEqual(a, b)
+    self.assertEqual(b, a)
 
 
 class BooleanToEnumMigrationTest(test_lib.GRRBaseTest):

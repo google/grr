@@ -1004,3 +1004,75 @@ export enum NetworkConnectionState {
   NONE = 'NONE',
   CLOSE = 'CLOSE',
 }
+
+/** ApiGetFileTextArgs.Encoding proto mapping. */
+export enum ApiGetFileTextArgsEncoding {
+  BASE64_CODEC = 'BASE64_CODEC',
+  BIG5 = 'BIG5',
+  BIG5HKSCS = 'BIG5HKSCS',
+  CP037 = 'CP037',
+  CP1006 = 'CP1006',
+  CP1026 = 'CP1026',
+  CP1140 = 'CP1140',
+  CP1250 = 'CP1250',
+  CP1251 = 'CP1251',
+  CP1252 = 'CP1252',
+  CP1253 = 'CP1253',
+  CP1254 = 'CP1254',
+  CP1255 = 'CP1255',
+  CP1256 = 'CP1256',
+  CP1257 = 'CP1257',
+  CP1258 = 'CP1258',
+  CP424 = 'CP424',
+  CP437 = 'CP437',
+  CP500 = 'CP500',
+  CP737 = 'CP737',
+  CP775 = 'CP775',
+  CP850 = 'CP850',
+  CP852 = 'CP852',
+  CP855 = 'CP855',
+  CP856 = 'CP856',
+  CP857 = 'CP857',
+  CP860 = 'CP860',
+  CP861 = 'CP861',
+  CP862 = 'CP862',
+  CP863 = 'CP863',
+  CP864 = 'CP864',
+  CP865 = 'CP865',
+  CP866 = 'CP866',
+  CP869 = 'CP869',
+  CP874 = 'CP874',
+  CP875 = 'CP875',
+  CP932 = 'CP932',
+  CP949 = 'CP949',
+  CP950 = 'CP950',
+  IDNA = 'IDNA',
+  ROT_13 = 'ROT_13',
+  UTF_16 = 'UTF_16',
+  UTF_16_BE = 'UTF_16_BE',
+  UTF_16_LE = 'UTF_16_LE',
+  UTF_32 = 'UTF_32',
+  UTF_32_BE = 'UTF_32_BE',
+  UTF_32_LE = 'UTF_32_LE',
+  UTF_7 = 'UTF_7',
+  UTF_8 = 'UTF_8',
+  UTF_8_SIG = 'UTF_8_SIG',
+  UU_CODEC = 'UU_CODEC',
+  ZLIB_CODEC = 'ZLIB_CODEC',
+}
+
+/** ApiGetFileTextArgs proto mapping */
+export declare interface ApiGetFileTextArgs {
+  readonly clientId?: string;
+  readonly filePath?: string;
+  readonly offset?: DecimalString;
+  readonly length?: DecimalString;
+  readonly encoding?: ApiGetFileTextArgsEncoding;
+  readonly timestamp?: DecimalString;
+}
+
+/** ApiGetFileTextResult proto mapping. */
+export declare interface ApiGetFileTextResult {
+  readonly content?: string;
+  readonly totalSize?: DecimalString;
+}

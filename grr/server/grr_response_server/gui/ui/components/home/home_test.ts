@@ -6,10 +6,8 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {initTestEnvironment} from '@app/testing';
 
 import {newClientApproval} from '../../lib/models/model_test_util';
-import {ConfigGlobalStore} from '../../store/config_global_store';
-import {mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 import {HomePageGlobalStore} from '../../store/home_page_global_store';
-import {HomePageGlobalStoreMock, mockHomePageGlobalStore} from '../../store/home_page_global_store_test_util';
+import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
 
 import {Home} from './home';
 import {HomeModule} from './module';
@@ -23,11 +21,7 @@ class TestComponent {
 }
 
 describe('Home Component', () => {
-  let homePageGlobalStore: HomePageGlobalStoreMock;
-
   beforeEach(waitForAsync(() => {
-    homePageGlobalStore = mockHomePageGlobalStore();
-
     TestBed
         .configureTestingModule({
           imports: [
@@ -40,11 +34,7 @@ describe('Home Component', () => {
             TestComponent,
           ],
           providers: [
-            {
-              provide: HomePageGlobalStore,
-              useFactory: () => homePageGlobalStore
-            },
-            {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore},
+            ...STORE_PROVIDERS,
           ],
 
         })
@@ -69,10 +59,11 @@ describe('Home Component', () => {
 
   it('displays recently accessed clients', () => {
     const fixture = TestBed.createComponent(Home);
-    homePageGlobalStore.recentClientApprovalsSubject.next([
-      newClientApproval({clientId: 'C.1111', status: {type: 'valid'}}),
-      newClientApproval({clientId: 'C.2222', status: {type: 'valid'}}),
-    ]);
+    injectMockStore(HomePageGlobalStore)
+        .mockedObservables.recentClientApprovals$.next([
+          newClientApproval({clientId: 'C.1111', status: {type: 'valid'}}),
+          newClientApproval({clientId: 'C.2222', status: {type: 'valid'}}),
+        ]);
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;

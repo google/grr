@@ -1,6 +1,7 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {RouterTestingModule} from '@angular/router/testing';
 import {CollectBrowserHistoryDetails} from '@app/components/flow_details/plugins/collect_browser_history_details';
 import {BrowserProgressStatus, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectBrowserHistoryProgress, CollectBrowserHistoryResult} from '@app/lib/api/api_interfaces';
 import {FlowState} from '@app/lib/models/flow';
@@ -28,6 +29,7 @@ describe('collect-browser-history-details component', () => {
           imports: [
             NoopAnimationsModule,
             PluginsModule,
+            RouterTestingModule,
           ],
 
           providers: []
@@ -318,7 +320,7 @@ describe('collect-browser-history-details component', () => {
     expect(flowResultsLocalStore.queryMore)
         .toHaveBeenCalledOnceWith(fixture.componentInstance.INITIAL_COUNT);
 
-    flowResultsLocalStore.resultsSubject.next(
+    flowResultsLocalStore.mockedObservables.results$.next(
         [...new Array(100)].map((v, i) => newFlowResult({
                                   payload: makeBrowserHistoryResult(i),
                                   tag: 'CHROME',
@@ -339,7 +341,7 @@ describe('collect-browser-history-details component', () => {
     expect(flowResultsLocalStore.queryMore)
         .toHaveBeenCalledWith(fixture.componentInstance.LOAD_STEP);
 
-    flowResultsLocalStore.resultsSubject.next(
+    flowResultsLocalStore.mockedObservables.results$.next(
         [...new Array(200)].map((v, i) => newFlowResult({
                                   payload: makeBrowserHistoryResult(i),
                                   tag: 'CHROME',

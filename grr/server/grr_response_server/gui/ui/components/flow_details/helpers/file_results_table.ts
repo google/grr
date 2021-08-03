@@ -1,6 +1,7 @@
 
 
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
+import {ActivatedRoute} from '@angular/router';
 import {StatEntry} from '@app/lib/api/api_interfaces';
 import {createOptionalDateSeconds} from '@app/lib/api_translation/primitive';
 import {combineLatest, Observable, of, ReplaySubject} from 'rxjs';
@@ -41,6 +42,7 @@ declare interface TableRow {
   readonly mtime?: Date;
   readonly ctime?: Date;
   readonly btime?: Date;
+  readonly link: ReadonlyArray<string|undefined>;
 }
 
 const COLUMNS: ReadonlyArray<keyof TableRow> = [
@@ -52,6 +54,7 @@ const COLUMNS: ReadonlyArray<keyof TableRow> = [
   'mtime',
   'ctime',
   'btime',
+  'link',
 ];
 
 /**
@@ -90,6 +93,10 @@ export class FileResultsTable {
             mtime: createOptionalDateSeconds(e.statEntry.stMtime),
             ctime: createOptionalDateSeconds(e.statEntry.stCtime),
             btime: createOptionalDateSeconds(e.statEntry.stCrtime),
+            link: [
+              'files', e.statEntry.pathspec?.pathtype?.toLowerCase(),
+              e.statEntry.pathspec?.path
+            ],
           };
         });
       }));
@@ -125,6 +132,8 @@ export class FileResultsTable {
   }
 
   @Output() readonly loadMore = new EventEmitter<void>();
+
+  constructor(readonly activatedRoute: ActivatedRoute) {}
 
   loadMoreClicked() {
     this.loadMore.emit();

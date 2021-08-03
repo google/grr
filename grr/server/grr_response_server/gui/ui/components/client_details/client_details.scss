@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../material-theme' as c;
 @use '../../main' as main;
 
@@ -7,7 +8,7 @@
   width: 1200px;
 
   .timeline {
-    border-right: 1px solid c.mat-color(c.$foreground, divider-light);
+    border-right: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
     padding-right: 1em;
     overflow: auto;
 
@@ -22,7 +23,7 @@
 
       .since {
         font-size: 10px;
-        color: c.mat-color(c.$foreground, text-light);
+        color: mat.get-color-from-palette(c.$foreground, text-light);
       }
     }
 
@@ -45,13 +46,13 @@
 
       .change-list {
         margin-left: 7px;
-        border-left: 1px solid c.mat-color(c.$foreground, divider);
+        border-left: 1px solid mat.get-color-from-palette(c.$foreground, divider);
         padding-left: 27px;
       }
     }
 
     .entry[aria-selected='true'] {
-      color: c.mat-color(c.$primary);
+      color: mat.get-color-from-palette(c.$primary);
       background: #e8f0fe;
     }
   }
@@ -66,7 +67,7 @@
       display: flex;
       font-weight: bold;
       text-align: left;
-      border-bottom: 1px solid c.mat-color(c.$foreground, divider);
+      border-bottom: 1px solid mat.get-color-from-palette(c.$foreground, divider);
 
       entry-history-button {
         height: 16px;

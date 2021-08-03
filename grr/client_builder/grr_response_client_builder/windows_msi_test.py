@@ -132,6 +132,9 @@ class WindowsMsiTest(absltest.TestCase):
     self._fake_fleetspeak_service_log_file = os.path.join(
         tempfile.gettempdir(), "fake_fleetspeak_service_log_file.txt")
     stack.callback(os.unlink, self._fake_fleetspeak_service_log_file)
+    self._fake_nanny_service_log_file = os.path.join(
+        tempfile.gettempdir(), "fake_nanny_service_log_file.txt")
+    stack.callback(os.unlink, self._fake_nanny_service_log_file)
 
   def _TmpPath(self, *args) -> str:
     return os.path.join(self._tmp_dir, *args)
@@ -167,6 +170,13 @@ class WindowsMsiTest(absltest.TestCase):
     processes = sorted([p.name() for p in psutil.process_iter()])
     self.assertNotIn(name, processes)
 
+  def _AssertServiceExists(self, name: str) -> None:
+    subprocess.check_call(["sc", "query", name])
+
+  def _AssertServiceDoesNotExist(self, name: str) -> None:
+    with self.assertRaises(Exception):
+      self._AssertServiceExists(name)
+
   def _RunFakeFleestpeakServiceCommand(self, command: str) -> None:
     service_name = config.CONFIG["Client.fleetspeak_service_name"]
     subprocess.check_call([
@@ -178,50 +188,86 @@ class WindowsMsiTest(absltest.TestCase):
         f"--logfile={self._fake_fleetspeak_service_log_file}",
     ])
 
+  def _RunFakeNannyServiceCommand(self, command: str) -> None:
+    service_name = "bar Monitor"
+    subprocess.check_call([
+        sys.executable,
+        "-m",
+        "grr_response_client_builder.fake_fleetspeak_windows_service",
+        "--command",
+        command,
+        "--service_name",
+        service_name,
+        "--logfile",
+        self._fake_nanny_service_log_file,
+    ])
+
   def testInstaller(self):
     self._BuildTemplate()
 
-    installer_path = self._RepackTemplate("legacy", False, False)
-    self._Install(installer_path)
-    self._WaitForProcess("foo.exe")
-    self._WaitForProcess("bar.exe")
+    with self.subTest("legacy"):
+      installer_path = self._RepackTemplate("legacy", False, False)
+      self._Install(installer_path)
+      self._WaitForProcess("foo.exe")
+      self._WaitForProcess("bar.exe")
+      self._AssertServiceExists("bar Monitor")
 
-    self._Uninstall(installer_path)
-    time.sleep(5)
-    self._AssertProcessNotRunning("foo.exe")
-    self._AssertProcessNotRunning("bar.exe")
+      self._Uninstall(installer_path)
+      time.sleep(5)
+      self._AssertProcessNotRunning("foo.exe")
+      self._AssertProcessNotRunning("bar.exe")
+      self._AssertServiceDoesNotExist("bar Monitor")
 
-    self._RunFakeFleestpeakServiceCommand("install")
-    self._RunFakeFleestpeakServiceCommand("start")
-    installer_path = self._RepackTemplate("fs_enabled", True, False)
-    self._Install(installer_path)
-    time.sleep(5)
-    self._AssertProcessNotRunning("foo.exe")
-    self._AssertProcessNotRunning("bar.exe")
+    with self.subTest("fleetspeak enabled"):
+      self._RunFakeFleestpeakServiceCommand("install")
+      self._RunFakeFleestpeakServiceCommand("start")
+      installer_path = self._RepackTemplate("fs_enabled", True, False)
+      self._Install(installer_path)
+      time.sleep(5)
+      self._AssertProcessNotRunning("foo.exe")
+      self._AssertProcessNotRunning("bar.exe")
 
-    self._Uninstall(installer_path)
-    self._RunFakeFleestpeakServiceCommand("stop")
-    self._RunFakeFleestpeakServiceCommand("remove")
-    with open(self._fake_fleetspeak_service_log_file, "r") as f:
-      # There should be 4 stare/stop events logged by the fake service:
-      # - 1x from this script.
-      # - 1x from the CustomAction in grr.wxs
-      # - 2x from ServiceControl in grr.wxs (on install, on uninstall).
-      lines = [line.strip("\r\n") for line in f.readlines()]
-      self.assertEqual(lines.count("start"), 4)
-      self.assertEqual(lines.count("stop"), 4)
+      self._Uninstall(installer_path)
+      self._RunFakeFleestpeakServiceCommand("stop")
+      self._RunFakeFleestpeakServiceCommand("remove")
+      with open(self._fake_fleetspeak_service_log_file, "r") as f:
+        # There should be 4 stare/stop events logged by the fake service:
+        # - 1x from this script.
+        # - 1x from the CustomAction in grr.wxs
+        # - 2x from ServiceControl in grr.wxs (on install, on uninstall).
+        lines = [line.strip("\r\n") for line in f.readlines()]
+        self.assertEqual(lines.count("start"), 4)
+        self.assertEqual(lines.count("stop"), 4)
 
-    installer_path = self._RepackTemplate("fs_bundled", True, True)
-    self._Install(installer_path)
-    self._WaitForProcess("fleetspeak-client.exe")
-    self._WaitForProcess("bar.exe")
-    self._AssertProcessNotRunning("foo.exe")
+    with self.subTest("fleetspeak enabled / removes nanny"):
+      self._RunFakeNannyServiceCommand("install")
+      self._RunFakeNannyServiceCommand("start")
+      self._AssertServiceExists("bar Monitor")
+      installer_path = self._RepackTemplate("fs_enabled_remove_nanny", True,
+                                            False)
+      self._Install(installer_path)
+      time.sleep(5)
+      self._AssertServiceDoesNotExist("bar Monitor")
+      self._Uninstall(installer_path)
 
-    self._Uninstall(installer_path)
-    time.sleep(5)
-    self._AssertProcessNotRunning("foo.exe")
-    self._AssertProcessNotRunning("fleetspeak-client.exe")
-    self._AssertProcessNotRunning("bar.exe")
+    with self.subTest("fleetspeak bundled"):
+      self._RunFakeNannyServiceCommand("install")
+      self._RunFakeNannyServiceCommand("start")
+      self._AssertServiceExists("bar Monitor")
+      installer_path = self._RepackTemplate("fs_bundled", True, True)
+      self._Install(installer_path)
+      self._WaitForProcess("fleetspeak-client.exe")
+      self._WaitForProcess("bar.exe")
+      self._AssertProcessNotRunning("foo.exe")
+
+      self._Uninstall(installer_path)
+      time.sleep(5)
+      self._AssertProcessNotRunning("foo.exe")
+      self._AssertProcessNotRunning("fleetspeak-client.exe")
+      self._AssertProcessNotRunning("bar.exe")
+      self._AssertServiceDoesNotExist(
+          config.CONFIG["Client.fleetspeak_service_name"])
+      self._AssertServiceDoesNotExist("bar Monitor")
 
   def _BuildTemplate(self) -> None:
     wix_tools_path = self._WixToolsPath()
@@ -300,11 +346,11 @@ class WindowsMsiTest(absltest.TestCase):
     self._MsiExec("/q", "/x", path)
 
   def _MsiExec(self, *args: str) -> None:
-    log_file = self._TmpPath("insaller.log")
+    log_file = self._TmpPath("installer.log")
     args = [
         "msiexec",
     ] + list(args) + [
-        "/l*",
+        "/l*V",
         log_file,
     ]
     try:

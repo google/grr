@@ -51,7 +51,8 @@ describe('FlowForm Component', () => {
 
     expect(getSubmit(fixture)).toBeNull();
 
-    clientPageGlobalStore.selectedFlowDescriptorSubject.next(undefined);
+    clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
+        undefined);
     expect(getSubmit(fixture)).toBeNull();
   });
 
@@ -59,7 +60,7 @@ describe('FlowForm Component', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
-    clientPageGlobalStore.selectedFlowDescriptorSubject.next(
+    clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
         newFlowDescriptor());
     fixture.detectChanges();
 
@@ -70,14 +71,15 @@ describe('FlowForm Component', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
-    clientPageGlobalStore.selectedClientSubject.next(newClient());
-    clientPageGlobalStore.selectedFlowDescriptorSubject.next(newFlowDescriptor({
-      name: 'CollectBrowserHistory',
-      defaultArgs: {
-        browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
-      }
-    }));
-    clientPageGlobalStore.hasAccessSubject.next(true);
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(newClient());
+    clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
+        newFlowDescriptor({
+          name: 'CollectBrowserHistory',
+          defaultArgs: {
+            browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
+          }
+        }));
+    clientPageGlobalStore.mockedObservables.hasAccess$.next(true);
     fixture.detectChanges();
 
     getSubmit(fixture).click();
@@ -90,14 +92,15 @@ describe('FlowForm Component', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
-    clientPageGlobalStore.selectedClientSubject.next(newClient());
-    clientPageGlobalStore.hasAccessSubject.next(false);
-    clientPageGlobalStore.selectedFlowDescriptorSubject.next(newFlowDescriptor({
-      name: 'CollectBrowserHistory',
-      defaultArgs: {
-        browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
-      }
-    }));
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(newClient());
+    clientPageGlobalStore.mockedObservables.hasAccess$.next(false);
+    clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
+        newFlowDescriptor({
+          name: 'CollectBrowserHistory',
+          defaultArgs: {
+            browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
+          }
+        }));
     fixture.detectChanges();
 
     getSubmit(fixture).click();
@@ -110,13 +113,13 @@ describe('FlowForm Component', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
-    clientPageGlobalStore.selectedClientSubject.next(newClient());
-    clientPageGlobalStore.selectedFlowDescriptorSubject.next(
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(newClient());
+    clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
         newFlowDescriptor());
-    clientPageGlobalStore.hasAccessSubject.next(true);
+    clientPageGlobalStore.mockedObservables.hasAccess$.next(true);
     fixture.detectChanges();
 
-    clientPageGlobalStore.startFlowStateSubject.next(
+    clientPageGlobalStore.mockedObservables.startFlowState$.next(
         {state: 'error', error: 'foobazzle rapidly disintegrated'});
     fixture.detectChanges();
 

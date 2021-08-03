@@ -3,12 +3,13 @@ import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, Output} from '@an
 import {FormControl, FormGroup} from '@angular/forms';
 import {MatTreeNestedDataSource} from '@angular/material/tree';
 import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
-import {combineLatest, Subject} from 'rxjs';
+import {combineLatest} from 'rxjs';
 import {distinctUntilChanged, map, shareReplay, startWith, takeUntil} from 'rxjs/operators';
 
 import {ArtifactCollectorFlowArgs} from '../../lib/api/api_interfaces';
 import {safeTranslateOperatingSystem} from '../../lib/api_translation/flow';
 import {ArtifactDescriptor, ArtifactSource, OperatingSystem, SourceType} from '../../lib/models/flow';
+import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 
@@ -34,23 +35,23 @@ const READABLE_SOURCE_NAME: {[key in SourceType]?: string} = {
 };
 
 declare interface SampleSource {
-  name: string;
-  value: string;
+  readonly name: string;
+  readonly value: string;
 }
 
 declare interface SourceNode {
-  type: SourceType;
-  name: string;
-  values: ReadonlyArray<string>;
-  children: SourceNode[];
+  readonly type: SourceType;
+  readonly name: string;
+  readonly values: ReadonlyArray<string>;
+  readonly children: ReadonlyArray<SourceNode>;
 }
 
 declare interface ArtifactListEntry extends ArtifactDescriptor {
-  readableSources: ReadonlyMap<SourceType, ReadonlyArray<string>>;
-  totalSources: number;
-  sampleSource?: SampleSource;
-  availableOnClient: boolean;
-  searchStrings: string[];
+  readonly readableSources: ReadonlyMap<SourceType, ReadonlyArray<string>>;
+  readonly totalSources: number;
+  readonly sampleSource?: SampleSource;
+  readonly availableOnClient: boolean;
+  readonly searchStrings: ReadonlyArray<string>;
 }
 
 function getOrSet<K, V>(map: Map<K, V>, key: K, factory: () => V): V {
@@ -105,10 +106,9 @@ function createListEntry(
       continue;
     }
 
-    const sourceList = getOrSet(readableSources, source.type, Array);
-    getReadableSources(source).forEach(val => {
-      sourceList.push(val);
-    });
+    const sourceList =
+        getOrSet<SourceType, string[]>(readableSources, source.type, Array);
+    sourceList.push(...getReadableSources(source));
   }
 
   let sampleSource: SampleSource|undefined;
@@ -258,11 +258,11 @@ export class ArtifactCollectorFlowForm extends
   );
 
   readonly treeControl =
-      new NestedTreeControl<SourceNode>(node => node.children);
+      new NestedTreeControl<SourceNode>(node => [...node.children]);
 
   readonly dataSource = new MatTreeNestedDataSource<SourceNode>();
 
-  readonly unsubscribe$ = new Subject<void>();
+  readonly ngOnDestroy = observeOnDestroy();
 
   constructor(
       private readonly configGlobalStore: ConfigGlobalStore,
@@ -276,7 +276,7 @@ export class ArtifactCollectorFlowForm extends
       this.artifactListEntries$.pipe(
           map((entries) => new Map(entries.map(e => [e.name, e])))),
     ])
-        .pipe(takeUntil(this.unsubscribe$))
+        .pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe(([artifact, entries]) => {
           if (artifact === undefined) {
             this.dataSource.data = [];
@@ -302,11 +302,6 @@ export class ArtifactCollectorFlowForm extends
 
   printOs(artifact: ArtifactListEntry): string {
     return Array.from(artifact.supportedOs.values()).join(', ');
-  }
-
-  ngOnDestroy() {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
   }
 
   hasChild(index: number, node: SourceNode): boolean {

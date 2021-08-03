@@ -111,9 +111,15 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
       # Registry StatEntries won't pass the file type check.
       self.args.process_non_regular_files = True
 
+    if self.args.HasField("implementation_type"):
+      implementation_type = self.args.implementation_type
+    else:
+      implementation_type = None
+
     self.GlobForPaths(
         self.args.paths,
         pathtype=self.args.pathtype,
+        implementation_type=implementation_type,
         process_non_regular_files=self.args.process_non_regular_files,
         collect_ext_attrs=action.stat.collect_ext_attrs)
 

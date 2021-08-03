@@ -2,7 +2,7 @@
 """Unprivileged memory RPC client code."""
 
 import abc
-from typing import TypeVar, Generic
+from typing import TypeVar, Generic, Iterable
 
 from grr_response_client.unprivileged import communication
 from grr_response_client.unprivileged.proto import memory_pb2
@@ -116,15 +116,15 @@ class Client:
     request = memory_pb2.UploadSignatureRequest(yara_signature=yara_signature)
     UploadSignatureHandler(self._connection).Run(request)
 
-  def ProcessScan(self, serialized_file_descriptor: int, offset: int, size: int,
+  def ProcessScan(self, serialized_file_descriptor: int,
+                  chunks: Iterable[memory_pb2.Chunk],
                   timeout_seconds: int) -> memory_pb2.ProcessScanResponse:
     """Scans process memory.
 
     Args:
       serialized_file_descriptor: Serialized file descriptor for the process
         memory. The file descriptor must be accessible by the server process.
-      offset: Offset in memory.
-      size: Size of memory to scan.
+      chunks: Chunks (offset, size) to scan.
       timeout_seconds: Timeout in seconds.
 
     Returns:
@@ -132,8 +132,7 @@ class Client:
     """
     request = memory_pb2.ProcessScanRequest(
         serialized_file_descriptor=serialized_file_descriptor,
-        offset=offset,
-        size=size,
+        chunks=chunks,
         timeout_seconds=timeout_seconds)
     response = ProcessScanHandler(self._connection).Run(request)
     return response

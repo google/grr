@@ -58,8 +58,8 @@ class MemoryTest(absltest.TestCase):
           chunk_size=1024 * 1024, overlap_size=32 * 1024)
       for chunk in streamer.StreamRanges(region.start, region.size):
         response = self._client.ProcessScan(
-            self._process_file_descriptor.Serialize(), chunk.offset,
-            chunk.amount, 60)
+            self._process_file_descriptor.Serialize(),
+            [memory_pb2.Chunk(offset=chunk.offset, size=chunk.amount)], 60)
         self.assertEqual(response.status,
                          memory_pb2.ProcessScanResponse.Status.NO_ERROR)
         all_scan_matches.extend(response.scan_result.scan_match)

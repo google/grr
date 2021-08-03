@@ -1,8 +1,8 @@
 import {ChangeDetectorRef, Directive, Input, OnDestroy, TemplateRef, ViewContainerRef} from '@angular/core';
-import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
 import {FlowResult, FlowResultsQuery} from '../../../lib/models/flow';
+import {observeOnDestroy} from '../../../lib/reactive';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 
 interface Context<R = ReadonlyArray<FlowResult>> {
@@ -29,7 +29,7 @@ export class LoadFlowResultsDirective<R = ReadonlyArray<FlowResult>> implements
     OnDestroy {
   private readonly context: Context<R>;
   private resultMapper?: FlowResultMapFunction<R>;
-  private readonly unsubscribe$ = new Subject<void>();
+  readonly ngOnDestroy = observeOnDestroy();
 
   constructor(
       templateRef: TemplateRef<unknown>,
@@ -47,7 +47,7 @@ export class LoadFlowResultsDirective<R = ReadonlyArray<FlowResult>> implements
 
     this.store.results$
         .pipe(
-            takeUntil(this.unsubscribe$),
+            takeUntil(this.ngOnDestroy.triggered$),
             )
         .subscribe((results) => {
           if (this.resultMapper) {
@@ -60,11 +60,6 @@ export class LoadFlowResultsDirective<R = ReadonlyArray<FlowResult>> implements
 
           this.changeDetectorRef.markForCheck();
         });
-  }
-
-  ngOnDestroy(): void {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
   }
 
   @Input()

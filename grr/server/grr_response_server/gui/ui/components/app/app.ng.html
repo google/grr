@@ -2,13 +2,18 @@
   <mat-toolbar-row>
     <a class="brand" routerLink="/">
       <div class="logo">
-        <img src="/static/images/grr_logo_notification.png" alt="GRR logo">
+        <img src="/static/images/grr_logo_notification.png" alt="GRR logo" />
       </div>
       <div class="title">GRR</div>
       <div class="badge">ALPHA</div>
     </a>
     <span class="spacer"></span>
-    <a id="fallback-link" mat-button color="primary" href="{{fallbackLink$ | async}}">
+    <a
+      id="fallback-link"
+      mat-button
+      color="primary"
+      href="{{fallbackLink$ | async}}"
+    >
       <mat-icon>launch</mat-icon>
       Use the old UI
     </a>
@@ -16,4 +21,15 @@
   </mat-toolbar-row>
 </mat-toolbar>
 
-<router-outlet></router-outlet>
+<mat-drawer-container
+  class="container"
+  [class.noscroll]="drawer.opened"
+>
+
+  <mat-drawer #drawer position="end">
+    <router-outlet name="drawer"></router-outlet>
+  </mat-drawer>
+
+  <router-outlet></router-outlet>
+
+</mat-drawer-container>

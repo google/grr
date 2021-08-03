@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../../material-theme' as c;
 
 .results-query {
@@ -19,12 +20,12 @@
   overflow: scroll;
   max-height: 30em;
 
-  border-top: 1px dashed c.mat-color(c.$foreground, divider-light);
+  border-top: 1px dashed mat.get-color-from-palette(c.$foreground, divider-light);
 }
 
 table {
   border-spacing: 0;
-  color: c.mat-color(c.$foreground, text-light);
+  color: mat.get-color-from-palette(c.$foreground, text-light);
   font-size: 14px;
   padding: 1em 0;
   width: 100%;
@@ -38,7 +39,7 @@ table {
 
   th,
   td {
-    border-bottom: 1px solid c.mat-color(c.$foreground, divider-light);
+    border-bottom: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
     padding-right: 1.5em;
     vertical-align: top;
   }
@@ -101,7 +102,7 @@ table {
 }
 
 .error {
-  color: c.mat-color(c.$foreground, text-light);
+  color: mat.get-color-from-palette(c.$foreground, text-light);
 
   padding: 0.5em 0 0.5em 24px;
 

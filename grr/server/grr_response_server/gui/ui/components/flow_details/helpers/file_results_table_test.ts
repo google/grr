@@ -1,6 +1,7 @@
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {RouterTestingModule} from '@angular/router/testing';
 import {FlowFileResult, flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
 import {StatEntry} from '@app/lib/api/api_interfaces';
 import {newPathSpec} from '@app/lib/api/api_test_util';
@@ -40,6 +41,7 @@ describe('FileResultsTable Component', () => {
           imports: [
             NoopAnimationsModule,
             HelpersModule,
+            RouterTestingModule,
           ],
           declarations: [
             TestHostComponent,

@@ -1,10 +1,10 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {MatSnackBar} from '@angular/material/snack-bar';
-import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
 import {ClientLabel} from '../../lib/models/client';
+import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
 
@@ -21,7 +21,7 @@ export class ClientOverview implements OnInit, OnDestroy {
   private static readonly LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
 
   readonly client$ = this.clientPageGlobalStore.selectedClient$;
-  private readonly unsubscribe$ = new Subject<void>();
+  readonly ngOnDestroy = observeOnDestroy();
 
   constructor(
       private readonly clientPageGlobalStore: ClientPageGlobalStore,
@@ -31,7 +31,7 @@ export class ClientOverview implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.clientPageGlobalStore.lastRemovedClientLabel$
-        .pipe(takeUntil(this.unsubscribe$))
+        .pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe(label => {
           this.showLabelRemovedSnackBar(label);
         });
@@ -73,10 +73,5 @@ export class ClientOverview implements OnInit, OnDestroy {
 
   addLabel(label: string) {
     this.clientPageGlobalStore.addClientLabel(label);
-  }
-
-  ngOnDestroy() {
-    this.unsubscribe$.next();
-    this.unsubscribe$.complete();
   }
 }

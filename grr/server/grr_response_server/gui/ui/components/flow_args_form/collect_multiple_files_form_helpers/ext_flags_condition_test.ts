@@ -175,7 +175,7 @@ describe('ExtFlagsCondition component', () => {
 
   it('shows only macOS flags (not linux) if client is macOS', async () => {
     const fixture = TestBed.createComponent(ExtFlagsCondition);
-    clientPageGlobalStore.selectedClientSubject.next(
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(
         newClient({knowledgeBase: {os: 'Darwin'}}));
     fixture.detectChanges();
 
@@ -187,7 +187,7 @@ describe('ExtFlagsCondition component', () => {
 
   it('shows only linux flags (not macOS) if client is linux', async () => {
     const fixture = TestBed.createComponent(ExtFlagsCondition);
-    clientPageGlobalStore.selectedClientSubject.next(
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(
         newClient({knowledgeBase: {os: 'Linux'}}));
     fixture.detectChanges();
 
@@ -199,7 +199,7 @@ describe('ExtFlagsCondition component', () => {
 
   it('shows both linux and macOS flags for other clients', async () => {
     const fixture = TestBed.createComponent(ExtFlagsCondition);
-    clientPageGlobalStore.selectedClientSubject.next(
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(
         newClient({knowledgeBase: {os: 'Windows'}}));
     fixture.detectChanges();
 
@@ -211,7 +211,7 @@ describe('ExtFlagsCondition component', () => {
 
   it('shows both linux and macOS flags for unknown clients', async () => {
     const fixture = TestBed.createComponent(ExtFlagsCondition);
-    clientPageGlobalStore.selectedClientSubject.next(
+    clientPageGlobalStore.mockedObservables.selectedClient$.next(
         newClient({knowledgeBase: {os: undefined}}));
     fixture.detectChanges();
 

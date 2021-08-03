@@ -76,14 +76,16 @@ export class ListProcessesDetails extends Plugin {
   ) {
     super();
 
-    this.flowResultsLocalStore.query(this.flow$.pipe(map(flow => ({flow}))));
+    // Ignore StatEntry results when fetchBinaries is set.
+    this.flowResultsLocalStore.query(
+        this.flow$.pipe(map(flow => ({flow, withType: 'Process'}))));
 
     this.flowResultsLocalStore.results$
         .pipe(
             map(results => results.map(asProcess)),
             map(toTrees),
             takeWhile((nodes) => nodes.length === 0, true),
-            takeUntil(this.unsubscribe$),
+            takeUntil(this.ngOnDestroy.triggered$),
             )
         .subscribe(nodes => {
           this.dataSource.data = nodes;
@@ -104,7 +106,9 @@ export class ListProcessesDetails extends Plugin {
       conditions.push(`executable matching ${args.filenameRegex}`);
     }
 
-    // TODO(user): Display network connection state.
+    if (args.connectionStates?.length) {
+      conditions.push(`connections in ${args.connectionStates.join(', ')}`);
+    }
 
     if (conditions.length) {
       return capitalize(conditions.join(' and '));

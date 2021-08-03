@@ -1,5 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
+import {ActivatedRoute, Router} from '@angular/router';
 import {DateTime} from '@app/lib/date_time';
 
 
@@ -44,4 +45,16 @@ export function removeUndefinedKeys<T>(obj: T|T[]): T|Partial<T>|T[] {
   } else {
     return obj;
   }
+}
+
+/**
+ * Returns a sensible route for testing.
+ *
+ * The root route '' is rarely what we want to inject in a Component for
+ * testing. if tests need a component to access a route, this is likely the
+ * first child component
+ */
+export function getActivatedChildRoute(): ActivatedRoute {
+  const router = TestBed.inject(Router);
+  return router.routerState.root.firstChild ?? router.routerState.root;
 }

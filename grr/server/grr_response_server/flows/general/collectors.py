@@ -55,6 +55,14 @@ def _GetPathType(args: rdf_artifacts.ArtifactCollectorFlowArgs,
     return rdf_paths.PathSpec.PathType.OS
 
 
+def _GetImplementationType(
+    args: rdf_artifacts.ArtifactCollectorFlowArgs
+) -> rdf_paths.PathSpec.ImplementationType:
+  if args.HasField("implementation_type"):
+    return args.implementation_type
+  return None
+
+
 class ArtifactCollectorFlow(flow_base.FlowBase):
   """Flow that takes a list of artifacts and collects them.
 
@@ -200,12 +208,15 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         if type_name == source_type.COMMAND:
           self.RunCommand(source)
         elif type_name == source_type.DIRECTORY:
-          self.Glob(source, _GetPathType(self.args, self.client_os))
+          self.Glob(source, _GetPathType(self.args, self.client_os),
+                    _GetImplementationType(self.args))
         elif type_name == source_type.FILE:
           self.GetFiles(source, _GetPathType(self.args, self.client_os),
+                        _GetImplementationType(self.args),
                         self.args.max_file_size)
         elif type_name == source_type.GREP:
-          self.Grep(source, _GetPathType(self.args, self.client_os))
+          self.Grep(source, _GetPathType(self.args, self.client_os),
+                    _GetImplementationType(self.args))
         elif type_name == source_type.PATH:
           # TODO(user): GRR currently ignores PATH types, they are currently
           # only useful to plaso during bootstrapping when the registry is
@@ -243,7 +254,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         return False
     return True
 
-  def GetFiles(self, source, path_type, max_size):
+  def GetFiles(self, source, path_type, implementation_type, max_size):
     """Get a set of files."""
     new_path_list = []
     for path in source.attributes["paths"]:
@@ -265,6 +276,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         file_finder.FileFinder.__name__,
         paths=new_path_list,
         pathtype=path_type,
+        implementation_type=implementation_type,
         action=action,
         request_data={
             "artifact_name": self.current_artifact_name,
@@ -282,12 +294,13 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
           request_data=responses.request_data,
           messages=[r.stat_entry for r in responses])
 
-  def Glob(self, source, pathtype):
+  def Glob(self, source, pathtype, implementation_type):
     """Glob paths, return StatEntry objects."""
     self.CallFlow(
         filesystem.Glob.__name__,
         paths=self.InterpolateList(source.attributes.get("paths", [])),
         pathtype=pathtype,
+        implementation_type=implementation_type,
         request_data={
             "artifact_name": self.current_artifact_name,
             "source": source.ToPrimitiveDict()
@@ -306,14 +319,17 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         regex_combined = b"(%s)" % regex
     return regex_combined
 
-  def Grep(self, source, pathtype):
+  def Grep(self, source, pathtype, implementation_type):
     """Grep files in paths for any matches to content_regex_list.
+
+    When multiple regexes are supplied, combine
+    them into a single regex as an OR match so that we check all regexes at
+    once.
 
     Args:
       source: artifact source
-      pathtype: pathspec path type  When multiple regexes are supplied, combine
-        them into a single regex as an OR match so that we check all regexes at
-        once.
+      pathtype: pathspec path typed
+      implementation_type: Pathspec implementation type to use.
     """
     path_list = self.InterpolateList(source.attributes.get("paths", []))
 
@@ -346,6 +362,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         conditions=[file_finder_condition],
         action=rdf_file_finder.FileFinderAction(),
         pathtype=pathtype,
+        implementation_type=implementation_type,
         request_data={
             "artifact_name": self.current_artifact_name,
             "source": source.ToPrimitiveDict()
@@ -853,12 +870,18 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileLogic,
     self.state.file_size = self.args.max_file_size
     self.state.results_to_download = []
 
+    if self.args.HasField("implementation_type"):
+      implementation_type = self.args.implementation_type
+    else:
+      implementation_type = None
+
     self.CallFlow(
         ArtifactCollectorFlow.__name__,
         next_state=compatibility.GetName(self._DownloadFiles),
         artifact_list=self.args.artifact_list,
         use_raw_filesystem_access=(self.args.use_tsk or
                                    self.args.use_raw_filesystem_access),
+        implementation_type=implementation_type,
         max_file_size=self.args.max_file_size)
 
   def _DownloadFiles(self, responses):

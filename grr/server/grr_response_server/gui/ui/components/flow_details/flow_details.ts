@@ -1,7 +1,6 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentFactoryResolver, ComponentRef, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentFactoryResolver, ComponentRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
 import {Plugin as FlowDetailsPlugin} from '@app/components/flow_details/plugins/plugin';
 import {Flow, FlowDescriptor, FlowState} from '@app/lib/models/flow';
-import {Subject} from 'rxjs';
 
 import {assertNonNull} from '../../lib/preconditions';
 import {FlowResultsLocalStore} from '../../store/flow_results_local_store';
@@ -29,9 +28,7 @@ export enum FlowMenuAction {
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [FlowResultsLocalStore],
 })
-export class FlowDetails implements OnChanges, OnDestroy {
-  private readonly detailsComponentUnsubscribe$ = new Subject<void>();
-
+export class FlowDetails implements OnChanges {
   private detailsComponent: ComponentRef<FlowDetailsPlugin>|undefined;
 
   flowState = FlowState;
@@ -66,8 +63,6 @@ export class FlowDetails implements OnChanges, OnDestroy {
         FLOW_DETAILS_DEFAULT_PLUGIN;
     // Only recreate the component if the component class has changed.
     if (componentClass !== this.detailsComponent?.instance.constructor) {
-      this.detailsComponentUnsubscribe$.next();
-
       const factory =
           this.componentFactoryResolver.resolveComponentFactory(componentClass);
       this.detailsContainer.clear();
@@ -101,10 +96,5 @@ export class FlowDetails implements OnChanges, OnDestroy {
 
   triggerMenuEvent(action: FlowMenuAction) {
     this.menuActionTriggered.emit(action);
-  }
-
-  ngOnDestroy() {
-    this.detailsComponentUnsubscribe$.next();
-    this.detailsComponentUnsubscribe$.complete();
   }
 }

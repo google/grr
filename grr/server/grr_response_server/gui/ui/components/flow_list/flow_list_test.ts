@@ -48,16 +48,17 @@ describe('FlowList Component', () => {
     const fixture = TestBed.createComponent(FlowList);
     fixture.detectChanges();
 
-    configGlobalStore.flowDescriptorsSubject.next(newFlowDescriptorMap(
-        {
-          name: 'ClientFileFinder',
-          friendlyName: 'Client Side File Finder',
-        },
-        {
-          name: 'KeepAlive',
-          friendlyName: 'KeepAlive',
-        }));
-    clientPageGlobalStore.flowListEntriesSubject.next([
+    configGlobalStore.mockedObservables.flowDescriptors$.next(
+        newFlowDescriptorMap(
+            {
+              name: 'ClientFileFinder',
+              friendlyName: 'Client Side File Finder',
+            },
+            {
+              name: 'KeepAlive',
+              friendlyName: 'KeepAlive',
+            }));
+    clientPageGlobalStore.mockedObservables.flowListEntries$.next([
       newFlow({
         name: 'KeepAlive',
         creator: 'morty',
@@ -81,9 +82,10 @@ describe('FlowList Component', () => {
     fixture.detectChanges();
 
     // Flows won't be displayed until descriptors are fetched.
-    configGlobalStore.flowDescriptorsSubject.next(newFlowDescriptorMap());
+    configGlobalStore.mockedObservables.flowDescriptors$.next(
+        newFlowDescriptorMap());
 
-    clientPageGlobalStore.flowListEntriesSubject.next([
+    clientPageGlobalStore.mockedObservables.flowListEntries$.next([
       newFlow({
         name: 'KeepAlive',
         creator: 'morty',
@@ -105,9 +107,10 @@ describe('FlowList Component', () => {
     fixture.detectChanges();
 
     // Flows won't be displayed until descriptors are fetched.
-    configGlobalStore.flowDescriptorsSubject.next(newFlowDescriptorMap());
+    configGlobalStore.mockedObservables.flowDescriptors$.next(
+        newFlowDescriptorMap());
 
-    clientPageGlobalStore.flowListEntriesSubject.next([
+    clientPageGlobalStore.mockedObservables.flowListEntries$.next([
       newFlow({
         name: 'KeepAlive',
         creator: 'morty',
@@ -118,7 +121,7 @@ describe('FlowList Component', () => {
     let text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('KeepAlive');
 
-    clientPageGlobalStore.flowListEntriesSubject.next([
+    clientPageGlobalStore.mockedObservables.flowListEntries$.next([
       newFlow({
         name: 'ClientFileFinder',
         creator: 'rick',

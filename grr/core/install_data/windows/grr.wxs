@@ -149,6 +149,20 @@
                   Stop="both"
                   Wait="no" />
             </Component>
+            <Component Id="CompNannyServiceRemove">
+              <!-- Having only a ServiceControl in a Component (without any artifact such as a File) doesn't seem to work. -->
+              <File Id="RemoveDummyFile" Source="$(var.InputDir)\remove-dummy.txt" Name="remove.txt" />
+              <ServiceControl
+                  Id="ServiceControlNannyStop"
+                  Name="__NannyServiceNameToRemove"
+                  Stop="both"
+                  Wait="no" />
+              <ServiceControl
+                  Id="ServiceControlNannyRemove"
+                  Name="__NannyServiceNameToRemove"
+                  Remove="both"
+                  Wait="no" />
+            </Component>
             <Component Id="CompFleetspeakServiceReg" Guid="*">
               <RegistryKey Root="HKLM" Key="__FleetspeakServiceRegistryKey">
                 <RegistryValue Type="string" Name="__FleetspeakServiceRegistryName" KeyPath="yes" Value="__FleetspeakServiceRegistryValue" />
@@ -195,6 +209,10 @@
 
     <Feature Id="FleetspeakServiceRestart" Level="0">
       <ComponentRef Id="CompFleetspeakServiceRestart"/>
+    </Feature>
+
+    <Feature Id="NannyServiceRemove" Level="0">
+      <ComponentRef Id="CompNannyServiceRemove"/>
     </Feature>
 
     <Feature Id="PaddingFile" Level="0">

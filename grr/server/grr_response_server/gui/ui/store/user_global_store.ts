@@ -15,7 +15,7 @@ interface UserState {
 }
 
 /** ComponentStore implementation for the user store. */
-class UserCompoenntStore extends ComponentStore<UserState> {
+class UserComponentStore extends ComponentStore<UserState> {
   constructor(private readonly httpApiService: HttpApiService) {
     super({
       currentUserName: undefined,
@@ -66,7 +66,7 @@ class UserCompoenntStore extends ComponentStore<UserState> {
 export class UserGlobalStore {
   constructor(private readonly httpApiService: HttpApiService) {}
 
-  private readonly store = new UserCompoenntStore(this.httpApiService);
+  private readonly store = new UserComponentStore(this.httpApiService);
 
   readonly currentUser$ = this.store.currentUser$;
 }

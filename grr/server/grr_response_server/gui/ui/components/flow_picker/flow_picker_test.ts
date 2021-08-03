@@ -328,7 +328,8 @@ describe('FlowPicker Component', () => {
        expect(clientPageGlobalStore.startFlowConfiguration)
            .toHaveBeenCalledWith('CollectBrowserHistory');
 
-       clientPageGlobalStore.selectedFlowDescriptorSubject.next(undefined);
+       clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
+           undefined);
        fixture.detectChanges();
 
        expect(fixture.componentInstance.textInput.value).toBe('');
@@ -362,7 +363,7 @@ describe('FlowPicker Component', () => {
     let flowChips = fixture.debugElement.query(By.directive(FlowChips));
     expect(flowChips).not.toBeNull();
 
-    clientPageGlobalStore.selectedFlowDescriptorSubject.next({
+    clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next({
       category: 'Browser',
       name: 'CollectBrowserHistory',
       friendlyName: 'Collect browser history',

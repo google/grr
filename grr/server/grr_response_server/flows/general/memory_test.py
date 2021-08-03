@@ -1020,6 +1020,25 @@ class YaraFlowsUnprivilegedTest(YaraFlowsTest):
     stack.enter_context(
         test_lib.ConfigOverrider({"Client.use_memory_sandboxing": True}))
 
+  # Tracking of time works differently in unprivileged mode.
+  # (There isn't one call to RDFDatetime.Now() per chunk due to batching).
+
+  def testScanTimingInformation(self):
+    with test_lib.FakeTime(10000, increment=1):
+      _, _, misses = self._RunYaraProcessScan(
+          self.procs, pids=[105], include_misses_in_results=True)
+
+    self.assertLen(misses, 1)
+    miss = misses[0]
+    self.assertEqual(miss.scan_time_us, 3 * 1e6)
+
+    with test_lib.FakeTime(10000, increment=1):
+      matches, _, _ = self._RunYaraProcessScan(self.procs, pids=[102])
+
+    self.assertLen(matches, 1)
+    match = matches[0]
+    self.assertEqual(match.scan_time_us, 3 * 1e6)
+
   # The following tests don't work with sandboxing, because they mock
   # yara.compile, which is executed in the unprivileged process.
 

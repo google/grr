@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../material-theme' as c;
 
 h1.mat-h1 {
@@ -11,8 +12,8 @@ h1.mat-h1 {
   position: relative;
   padding: 0;
   margin: 0 0 1em;
-  background-color: c.mat-color(c.$background, app-bar);
-  border: 1px solid c.mat-color(c.$foreground, divider-light);
+  background-color: mat.get-color-from-palette(c.$background, app-bar);
+  border: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
   border-radius: 8px;
 
   .header-wrapper {
@@ -33,7 +34,7 @@ h1.mat-h1 {
         .flow-title {
           font-family: c.$google-sans-display-family;
           font-size: 105%;
-          color: c.mat-color(c.$foreground, text);
+          color: mat.get-color-from-palette(c.$foreground, text);
         }
 
         .flow-info {
@@ -41,12 +42,12 @@ h1.mat-h1 {
           padding-left: 3em;
           padding-top: 2px;
           font-size: 85%;
-          color: c.mat-color(c.$foreground, text-light);
+          color: mat.get-color-from-palette(c.$foreground, text-light);
         }
 
         .flow-status {
           padding-top: 6px;
-          color: c.mat-color(c.$foreground, danger);
+          color: mat.get-color-from-palette(c.$foreground, danger);
         }
       }
 

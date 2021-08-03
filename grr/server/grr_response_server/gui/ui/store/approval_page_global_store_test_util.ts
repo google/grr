@@ -1,28 +1,12 @@
 /** Test helpers. */
 // tslint:disable:enforce-comments-on-exported-symbols
 
-import {ReplaySubject, Subject} from 'rxjs';
-
-import {ClientApproval} from '../lib/models/client';
-
 import {ApprovalPageGlobalStore} from './approval_page_global_store';
-
-type I<T> = {
-  [key in keyof T]: T[key];
-};
+import {MockStore, mockStore} from './store_test_util';
 
 export declare interface ApprovalPageGlobalStoreMock extends
-    I<ApprovalPageGlobalStore> {
-  approvalSubject: Subject<ClientApproval>;
-}
+    MockStore<ApprovalPageGlobalStore> {}
 
-export function mockApprovalPageGlobalStore(): ApprovalPageGlobalStoreMock {
-  const approvalSubject = new ReplaySubject<ClientApproval>(1);
-
-  return {
-    approvalSubject,
-    approval$: approvalSubject.asObservable(),
-    selectApproval: jasmine.createSpy('selectApproval'),
-    grantApproval: jasmine.createSpy('grantApproval'),
-  };
+export function mockApprovalPageGlobalStore() {
+  return mockStore(ApprovalPageGlobalStore);
 }

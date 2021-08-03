@@ -4,9 +4,10 @@ import {ChangeDetectionStrategy, Component, ElementRef, HostBinding, HostListene
 import {FormControl, FormGroup} from '@angular/forms';
 import {ActivatedRoute, Router} from '@angular/router';
 import {Subject} from 'rxjs';
-import {filter, map, withLatestFrom} from 'rxjs/operators';
+import {filter, map, takeUntil, withLatestFrom} from 'rxjs/operators';
 
 import {isNonNull} from '../../lib/preconditions';
+import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 
@@ -85,6 +86,8 @@ export class Approval implements OnInit, OnDestroy {
 
   private readonly submit$ = new Subject<void>();
 
+  readonly ngOnDestroy = observeOnDestroy();
+
   constructor(
       private readonly route: ActivatedRoute,
       private readonly clientPageGlobalStore: ClientPageGlobalStore,
@@ -93,9 +96,14 @@ export class Approval implements OnInit, OnDestroy {
       private readonly location: Location,
   ) {
     this.submit$
-        .pipe(withLatestFrom(
-            this.form.valueChanges, this.clientPageGlobalStore.selectedClient$,
-            this.ccEmail$))
+        .pipe(
+            takeUntil(this.ngOnDestroy.triggered$),
+            withLatestFrom(
+                this.form.valueChanges,
+                this.clientPageGlobalStore.selectedClient$,
+                this.ccEmail$,
+                ),
+            )
         .subscribe(([_, form, client, ccEmail]) => {
           this.clientPageGlobalStore.requestApproval({
             clientId: client.clientId,
@@ -144,10 +152,6 @@ export class Approval implements OnInit, OnDestroy {
 
   removeRequestedApprover(username: string) {
     this.formRequestedApprovers.delete(username);
-  }
-
-  ngOnDestroy() {
-    this.submit$.complete();
   }
 
   submitRequest() {

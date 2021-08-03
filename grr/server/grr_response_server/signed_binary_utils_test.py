@@ -58,7 +58,7 @@ class SignedBinaryUtilsTest(test_lib.GRRBaseTest):
     blobs_iter, timestamp = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
         test_urn)
     self.assertGreater(timestamp.AsMicrosecondsSinceEpoch(), 0)
-    self.assertIsInstance(blobs_iter, collections.Iterator)
+    self.assertIsInstance(blobs_iter, collections.abc.Iterator)
     # We expect blobs to have at most 3 contiguous bytes of data.
     expected_blobs = [
         rdf_crypto.SignedBlob().Sign(b"\x00\x11\x22", self._private_key),

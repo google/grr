@@ -1,3 +1,4 @@
+@use '~@angular/material' as mat;
 @use '../../material-theme' as c;
 
 :host {
@@ -13,7 +14,7 @@
 
     mat-icon {
       margin-right: 0.5em;
-      color: c.mat-color(c.$foreground, divider);
+      color: mat.get-color-from-palette(c.$foreground, divider);
     }
   }
 }

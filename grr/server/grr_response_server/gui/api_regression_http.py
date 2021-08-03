@@ -172,7 +172,7 @@ class HttpApiRegressionTestMixinBase(object):
 
 
 class HttpApiV1RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
-  """Test class for HTTP v1 protocol with Database.enabled=True."""
+  """Test class for HTTP v1 protocol API regression test."""
 
   connection_type = "http_v1"
   skip_legacy_dynamic_proto_tests = False
@@ -185,7 +185,7 @@ class HttpApiV1RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
 
 
 class HttpApiV2RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
-  """Test class for HTTP v2 protocol with Database.enabled=True."""
+  """Test class for HTTP v2 protocol API regression test."""
 
   connection_type = "http_v2"
   skip_legacy_dynamic_proto_tests = True

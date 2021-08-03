@@ -565,6 +565,7 @@ class VFSMultiOpenTest(absltest.TestCase):
         self.assertEqual(filedescs[0].Read(), b"FOO")
         self.assertEqual(filedescs[1].Read(), b"BAR")
         self.assertEqual(filedescs[2].Read(), b"BAZ")
+        files.FlushHandleCache()
 
   def testProgressCallback(self):
     with temp.AutoTempFilePath() as temppath:
@@ -580,6 +581,7 @@ class VFSMultiOpenTest(absltest.TestCase):
         self.assertEqual(filedescs[0].Read(), b"QUUX")
 
       self.assertTrue(func.called)
+      files.FlushHandleCache()
 
   def _Touch(self, filepath, content=b""):
     with io.open(filepath, mode="wb") as filedesc:

@@ -1,14 +1,13 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, RouterLink} from '@angular/router';
+import {Router, RouterLink} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 import {ApiModule} from '@app/lib/api/module';
-import {Client} from '@app/lib/models/client';
-import {ClientSearchGlobalStore} from '@app/store/client_search_global_store';
 import {initTestEnvironment} from '@app/testing';
-import {Subject} from 'rxjs';
 
 import {newClient} from '../../lib/models/model_test_util';
+import {ClientSearchGlobalStore} from '../../store/client_search_global_store';
+import {ClientSearchGlobalStoreMock, mockClientSearchGlobalStore} from '../../store/client_search_global_store_test_util';
 
 import {ClientSearch} from './client_search';
 import {ClientSearchModule} from './module';
@@ -31,12 +30,9 @@ function htmlCollectionToList(c: HTMLCollection): Element[] {
 }
 
 describe('ClientSearch Component', () => {
-  let paramsSubject: Subject<Map<string, string>>;
-  let store: ClientSearchGlobalStore;
+  let store: ClientSearchGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
-    paramsSubject = new Subject();
-
     TestBed
         .configureTestingModule({
           imports: [
@@ -45,49 +41,39 @@ describe('ClientSearch Component', () => {
             ClientSearchModule,
             RouterTestingModule,
           ],
-          providers: [{
-            provide: ActivatedRoute,
-            useValue: {
-              queryParamMap: paramsSubject,
+          providers: [
+            {
+              provide: ClientSearchGlobalStore,
+              useFactory: () => store,
             },
-          }],
+          ],
 
         })
         .compileComponents();
 
-    store = TestBed.inject(ClientSearchGlobalStore);
+    store = mockClientSearchGlobalStore();
   }));
 
-  it('triggers a new search on route change', () => {
+  it('triggers a new search on route change', async () => {
     const fixture = TestBed.createComponent(ClientSearch);
     // Ensure ngOnInit hook completes.
     fixture.detectChanges();
 
-    const searchClientsSpy = spyOn(store, 'searchClients');
-    paramsSubject.next(new Map([
-      ['q', 'foo'],
-    ]));
+    await TestBed.inject(Router).navigate([], {queryParams: {q: 'foo'}});
     fixture.detectChanges();
 
-    expect(searchClientsSpy).toHaveBeenCalledWith('foo');
+    expect(store.searchClients).toHaveBeenCalledWith('foo');
   });
 
   it('displays a list of clients on clients change', () => {
-    const subject = new Subject<Client[]>();
-    Object.defineProperty(store, 'clients$', {
-      get() {
-        return subject.asObservable();
-      }
-    });
-
     const fixture = TestBed.createComponent(ClientSearch);
     // Ensure ngOnInit hook completes.
     fixture.detectChanges();
 
     // Simulate initial emission on subscription.
-    subject.next([]);
+    store.mockedObservables.clients$.next([]);
 
-    subject.next([
+    store.mockedObservables.clients$.next([
       newClient({
         clientId: 'C.1234',
         knowledgeBase: {
@@ -123,22 +109,15 @@ describe('ClientSearch Component', () => {
     expect(rows[2].hasAttribute('ng-reflect-query-params')).toBeFalse();
   });
 
-  it('includes the reason url param in client urls', () => {
-    const subject = new Subject<Client[]>();
-    Object.defineProperty(store, 'clients$', {
-      get() {
-        return subject.asObservable();
-      }
-    });
-
+  it('includes the reason url param in client urls', async () => {
     const fixture = TestBed.createComponent(ClientSearch);
     // Ensure ngOnInit hook completes.
     fixture.detectChanges();
 
     // Simulate initial emission on subscription.
-    subject.next([]);
+    store.mockedObservables.clients$.next([]);
 
-    subject.next([
+    store.mockedObservables.clients$.next([
       newClient({
         clientId: 'C.1234',
         knowledgeBase: {
@@ -148,9 +127,9 @@ describe('ClientSearch Component', () => {
       }),
     ]);
     fixture.detectChanges();
-    paramsSubject.next(new Map([
-      ['reason', 'vimes/t/123'],
-    ]));
+    await TestBed.inject(Router).navigate(
+        [], {queryParams: {reason: 'foo/t/123'}});
+
     fixture.detectChanges();
 
     // Traverse the levels in the DOM tree manually since we can't use
@@ -159,7 +138,7 @@ describe('ClientSearch Component', () => {
     const matTableBody = matTable.children[1];
     const dataRow = matTableBody.children[0];
     expect(dataRow.injector.get(RouterLink).queryParams).toEqual({
-      reason: 'vimes/t/123'
+      reason: 'foo/t/123'
     });
   });
 });

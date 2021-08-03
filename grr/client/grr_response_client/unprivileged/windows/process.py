@@ -45,6 +45,7 @@ import subprocess
 from typing import List, Optional
 
 import win32api
+import win32con
 import win32event
 import win32process
 
@@ -302,9 +303,29 @@ class Process:
       if self.pid == 0:
         raise Error("GetProcessId failed.")
 
-  def Stop(self) -> None:
-    win32process.TerminateProcess(self._handle, -1)
+  def Stop(self) -> int:
+    """Terminates the process and waits for the process to exit.
+
+    Returns:
+      The exit code.
+    """
+    exit_code = win32process.GetExitCodeProcess(self._handle)
+    if exit_code == win32con.STILL_ACTIVE:
+      win32process.TerminateProcess(self._handle, -1)
+    return self.Wait()
+
+  def Wait(self) -> int:
+    """Waits for the process to exit.
+
+    Returns:
+      The exit code.
+
+    Raises:
+      Error: on system error.
+    """
     res = win32event.WaitForSingleObject(self._handle, win32event.INFINITE)
     if res == win32event.WAIT_FAILED:
       raise Error("WaitForSingleObject failed.")
+    exit_code = win32process.GetExitCodeProcess(self._handle)
     self._exit_stack.close()
+    return exit_code

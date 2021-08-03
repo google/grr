@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for client_utils_linux.py."""
 
+import contextlib
 import os
 import platform
 import tempfile
@@ -44,30 +45,31 @@ none /lib/init/rw tmpfs rw,nosuid,relatime,mode=755 0 0
 binfmt_misc /proc/sys/fs/binfmt_misc binfmt_misc rw,nosuid,relatime 0 0
 server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
 """
-    mountpoints = client_utils_linux.GetMountpoints(proc_mounts)
+    with contextlib.ExitStack() as stack:
+      stack.enter_context(
+          mock.patch.object(
+              client_utils_linux, "MOUNTPOINT_CACHE", new=[0, None]))
 
-    def GetMountpointsMock():
-      return mountpoints
+      mountpoints = client_utils_linux.GetMountpoints(proc_mounts)
 
-    old_getmountpoints = client_utils_linux.GetMountpoints
-    client_utils_linux.GetMountpoints = GetMountpointsMock
+      stack.enter_context(
+          mock.patch.object(
+              client_utils_linux, "GetMountpoints", return_value=mountpoints))
+      for filename, expected_device, expected_path, device_type in [
+          ("/etc/passwd", "/dev/mapper/root", "/etc/passwd",
+           rdf_paths.PathSpec.PathType.OS),
+          ("/usr/local/bin/ls", "/dev/mapper/usr", "/bin/ls",
+           rdf_paths.PathSpec.PathType.OS),
+          ("/proc/net/sys", "none", "/net/sys",
+           rdf_paths.PathSpec.PathType.UNSET),
+          ("/home/user/test.txt", "server.nfs:/vol/home", "/test.txt",
+           rdf_paths.PathSpec.PathType.UNSET)
+      ]:
+        raw_pathspec, path = client_utils_linux.GetRawDevice(filename)
 
-    for filename, expected_device, expected_path, device_type in [
-        ("/etc/passwd", "/dev/mapper/root", "/etc/passwd",
-         rdf_paths.PathSpec.PathType.OS),
-        ("/usr/local/bin/ls", "/dev/mapper/usr", "/bin/ls",
-         rdf_paths.PathSpec.PathType.OS),
-        ("/proc/net/sys", "none", "/net/sys",
-         rdf_paths.PathSpec.PathType.UNSET),
-        ("/home/user/test.txt", "server.nfs:/vol/home", "/test.txt",
-         rdf_paths.PathSpec.PathType.UNSET)
-    ]:
-      raw_pathspec, path = client_utils_linux.GetRawDevice(filename)
-
-      self.assertEqual(expected_device, raw_pathspec.path)
-      self.assertEqual(device_type, raw_pathspec.pathtype)
-      self.assertEqual(expected_path, path)
-      client_utils_linux.GetMountpoints = old_getmountpoints
+        self.assertEqual(expected_device, raw_pathspec.path)
+        self.assertEqual(device_type, raw_pathspec.pathtype)
+        self.assertEqual(expected_path, path)
 
   def testLinuxNanny(self):
     """Tests the linux nanny."""

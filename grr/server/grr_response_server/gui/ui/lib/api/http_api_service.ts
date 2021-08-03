@@ -6,7 +6,7 @@ import {catchError, map, mapTo, shareReplay, switchMap, take} from 'rxjs/operato
 
 import {isNonNull} from '../preconditions';
 
-import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, ArtifactDescriptor, GlobComponentExplanation} from './api_interfaces';
+import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGetFileTextArgs, ApiGetFileTextArgsEncoding, ApiGetFileTextResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, ArtifactDescriptor, DecimalString, GlobComponentExplanation, PathSpecPathType} from './api_interfaces';
 
 
 /**
@@ -56,6 +56,14 @@ export class WithCredentialsInterceptor implements HttpInterceptor {
     return next.handle(req.clone(
         {withCredentials: true, setHeaders: {'X-User-Agent': 'GRR-UI/2.0'}}));
   }
+}
+
+/** Arguments of GetFileText API call. */
+export interface GetFileTextOptions {
+  readonly offset?: DecimalString;
+  readonly length?: DecimalString;
+  readonly timestamp?: Date;
+  readonly encoding?: ApiGetFileTextArgsEncoding;
 }
 
 /**
@@ -441,6 +449,27 @@ export class HttpApiService {
             map(result => result.items ?? []),
         );
   }
+
+  getFileText(
+      clientId: string, pathType: PathSpecPathType, path: string,
+      opts?: GetFileTextOptions): Observable<ApiGetFileTextResult> {
+    const queryArgs: ApiGetFileTextArgs = {
+      encoding: ApiGetFileTextArgsEncoding.UTF_8,
+      offset: 0,
+      ...opts,
+      timestamp: opts?.timestamp?.getTime(),
+    };
+
+    const vfsPath = toVFSPath(pathType, path);
+    return this.http.get<ApiGetFileTextResult>(
+        `${URL_PREFIX}/clients/${clientId}/vfs-text${vfsPath}`,
+        {params: objectToHttpParams(queryArgs as HttpParamObject)});
+  }
+}
+
+function toVFSPath(pathType: PathSpecPathType, path: string): string {
+  path = path.replace(/^\//, '');  // Remove leading slash.
+  return `/fs/${pathType.toLowerCase()}/${path}`;
 }
 
 interface HttpParamObject {

@@ -1,4 +1,5 @@
-import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {ChangeDetectionStrategy, Component, ViewChild} from '@angular/core';
+import {MatDrawer} from '@angular/material/sidenav';
 import {ActivatedRouteSnapshot, ActivationEnd, Router} from '@angular/router';
 import {filter, map} from 'rxjs/operators';
 
@@ -48,5 +49,29 @@ export class App {
       }),
   );
 
-  constructor(private readonly router: Router) {}
+  @ViewChild('drawer') drawer!: MatDrawer;
+
+  constructor(private readonly router: Router) {
+    this.router.events
+        .pipe(
+            filter(
+                (event): event is ActivationEnd =>
+                    event instanceof ActivationEnd),
+            )
+        .subscribe(async (event) => {
+          const drawerRoute = findRouteWith(
+              event.snapshot, (route) => route.outlet === 'drawer');
+          if (drawerRoute) {
+            await this.drawer.open();
+          } else {
+            await this.drawer.close();
+          }
+        });
+  }
+
+  ngAfterViewInit() {
+    this.drawer.closedStart.subscribe(() => {
+      this.router.navigate([{outlets: {drawer: null}}], {replaceUrl: true});
+    });
+  }
 }

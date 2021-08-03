@@ -1,36 +1,23 @@
 /** Test helpers. */
 // tslint:disable:enforce-comments-on-exported-symbols
 
-import {Observable, ReplaySubject, Subject} from 'rxjs';
-
-import {FlowResult, FlowResultsQuery} from '../lib/models/flow';
+import {Observable} from 'rxjs';
 
 import {FlowResultsLocalStore} from './flow_results_local_store';
-
-type I<T> = {
-  [key in keyof T]: T[key];
-};
+import {MockStore, mockStore} from './store_test_util';
 
 export declare interface FlowResultsLocalStoreMock extends
-    I<FlowResultsLocalStore> {
-  resultsSubject: Subject<ReadonlyArray<FlowResult>>;
-}
+    MockStore<FlowResultsLocalStore> {}
 
-export function mockFlowResultsLocalStore(): FlowResultsLocalStoreMock {
-  const resultsSubject = new ReplaySubject<ReadonlyArray<FlowResult>>();
-  const querySubject = new ReplaySubject<FlowResultsQuery>();
-
-  return {
-    resultsSubject,
-    results$: resultsSubject.asObservable(),
-    query$: querySubject.asObservable(),
+export function mockFlowResultsLocalStore() {
+  const mock = mockStore(FlowResultsLocalStore, {
     query: jasmine.createSpy('query').and.callFake((q) => {
       if (q instanceof Observable) {
-        q.subscribe(querySubject);
+        q.subscribe(mock.mockedObservables.query$);
       } else {
-        querySubject.next(q);
+        mock.mockedObservables.query$.next(q);
       }
     }),
-    queryMore: jasmine.createSpy('queryMore'),
-  };
+  });
+  return mock;
 }

@@ -11,6 +11,9 @@ message StringMatch {
 
   // Matching data in memory.
   optional bytes data = 3;
+
+  // Original offset of the chunk that has been matched.
+  optional uint64 chunk_offset = 4;
 }
 
 message RuleMatch {
@@ -32,19 +35,26 @@ message UploadSignatureRequest {
 
 message UploadSignatureResponse {}
 
+message Chunk {
+  // Offset in memory to start scan.
+  optional uint64 offset = 1;
+
+  // Size of memory to scan.
+  optional uint64 size = 2;
+}
+
 message ProcessScanRequest {
   // Serialized file descriptor to process memory.
   // The file descriptor must be accessible to the server process.
   optional uint64 serialized_file_descriptor = 1;
 
-  // Offset in memory to start scan.
-  optional uint64 offset = 2;
-
-  // Size of memory to scan.
-  optional uint64 size = 3;
+  // List of memory chunks to scan.
+  repeated Chunk chunks = 5;
 
   // Timeout in seconds for the scan.
   optional uint64 timeout_seconds = 4;
+
+  reserved 2, 3;
 }
 
 message ProcessScanResponse {

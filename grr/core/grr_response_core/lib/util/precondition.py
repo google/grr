@@ -52,7 +52,7 @@ def AssertIterableType(iterable, expected_item_type):
   # because it makes no sense to construct an iterator for iterator. The most
   # important practical implication is that act of iterating an iterator drains
   # it whereas act of iterating the iterable does not.
-  if isinstance(iterable, collections.Iterator):
+  if isinstance(iterable, collections.abc.Iterator):
     message = "Expected iterable container but got iterator `%s` instead"
     message %= iterable
     raise TypeError(message)

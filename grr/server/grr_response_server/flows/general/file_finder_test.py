@@ -8,6 +8,7 @@ import io
 import os
 import stat
 import struct
+from typing import List, Optional, Sequence, Any
 from unittest import mock
 
 from absl import app
@@ -19,6 +20,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
 from grr_response_server import data_store
@@ -124,7 +126,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
                 self.client_id,
                 rdf_objects.PathInfo.PathType.OS,
                 components=self.FilenameToPathComponents(fname)))
-        self.Fail("Found downloaded file: %s" % fname)
+        self.fail("Found downloaded file: %s" % fname)
       except file_store.FileHasNoContentError:
         pass
 
@@ -174,13 +176,20 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
 
     self.assertEqual(reply_count, len(expected_files))
 
-  def RunFlow(self, paths=None, conditions=None, action=None):
+  def RunFlow(
+      self,
+      paths: Optional[List[str]] = None,
+      conditions: Optional[List[rdf_file_finder.FileFinderCondition]] = None,
+      action: Optional[rdf_file_finder.FileFinderAction] = None,
+      implementation_type: Optional[rdf_structs.EnumNamedValue] = None
+  ) -> Sequence[Any]:
     self.last_session_id = flow_test_lib.TestFlowHelper(
         file_finder.FileFinder.__name__,
         self.client_mock,
         client_id=self.client_id,
         paths=paths or [self.path],
         pathtype=rdf_paths.PathSpec.PathType.OS,
+        implementation_type=implementation_type,
         action=action,
         conditions=conditions,
         creator=self.test_username)
@@ -906,6 +915,34 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
 
       self.assertEqual(results[0].stat_entry.st_ino,
                        results[1].stat_entry.st_ino)
+
+
+class TestFileFinderFlowWithImplementationType(TestFileFinderFlow):
+
+  def RunFlow(
+      self,
+      paths: Optional[List[str]] = None,
+      conditions: Optional[List[rdf_file_finder.FileFinderCondition]] = None,
+      action: Optional[rdf_file_finder.FileFinderAction] = None,
+      implementation_type: Optional[rdf_structs.EnumNamedValue] = None
+  ) -> Sequence[Any]:
+
+    results = super().RunFlow(
+        paths=paths,
+        conditions=conditions,
+        action=action,
+        implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT)
+
+    for result in results:
+      if result.HasField("stat_entry"):
+        self.assertEqual(result.stat_entry.pathspec.implementation_type,
+                         rdf_paths.PathSpec.ImplementationType.DIRECT)
+      for match in result.matches:
+        if match.HasField("pathspec"):
+          self.assertEqual(match.pathspec.implementation_type,
+                           rdf_paths.PathSpec.ImplementationType.DIRECT)
+
+    return results
 
 
 class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):

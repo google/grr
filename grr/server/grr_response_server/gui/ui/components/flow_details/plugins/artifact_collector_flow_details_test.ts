@@ -2,6 +2,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {RouterTestingModule} from '@angular/router/testing';
 import {FlowState} from '@app/lib/models/flow';
 import {newFlow, newFlowResult} from '@app/lib/models/model_test_util';
 import {initTestEnvironment} from '@app/testing';
@@ -30,6 +31,7 @@ describe('artifact-collector-flow-details component', () => {
           imports: [
             NoopAnimationsModule,
             PluginsModule,
+            RouterTestingModule,
           ],
 
           providers: []
@@ -47,7 +49,7 @@ describe('artifact-collector-flow-details component', () => {
       state: FlowState.FINISHED,
       args: {artifactList: ['foobar']},
     });
-    flowResultsLocalStore.resultsSubject.next([newFlowResult({
+    flowResultsLocalStore.mockedObservables.results$.next([newFlowResult({
       payloadType: 'StatEntry',
       payload: {stSize: '123', pathspec: {path: '/foo'}},
     })]);
@@ -75,7 +77,7 @@ describe('artifact-collector-flow-details component', () => {
       pathspec: {path: 'HKLM\\foo', pathtype: PathSpecPathType.REGISTRY},
     };
 
-    flowResultsLocalStore.resultsSubject.next(
+    flowResultsLocalStore.mockedObservables.results$.next(
         [newFlowResult({payloadType: 'StatEntry', payload: statEntry})]);
     fixture.detectChanges();
 
@@ -104,7 +106,7 @@ describe('artifact-collector-flow-details component', () => {
       state: FlowState.FINISHED,
       args: {artifactList: ['foobar']},
     });
-    flowResultsLocalStore.resultsSubject.next(
+    flowResultsLocalStore.mockedObservables.results$.next(
         [newFlowResult({payload: response, payloadType: 'ExecuteResponse'})]);
     fixture.detectChanges();
 
@@ -144,7 +146,7 @@ describe('artifact-collector-flow-details component', () => {
       state: FlowState.FINISHED,
       args: {artifactList: ['foobar']},
     });
-    flowResultsLocalStore.resultsSubject.next(
+    flowResultsLocalStore.mockedObservables.results$.next(
         [newFlowResult({payload: {}, payloadType: 'unknown'})]);
     fixture.detectChanges();
 

@@ -1,11 +1,9 @@
 @use '../../main' as main;
 
 :host {
-  display: block;
-}
-
-.container {
-  height: calc(100vh - #{main.$toolbar-height});
+  display: flex;
+  flex-direction: column;
+  flex: 1;
 }
 
 .wrapper {

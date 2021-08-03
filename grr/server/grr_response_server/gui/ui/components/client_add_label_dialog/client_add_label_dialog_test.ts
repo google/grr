@@ -65,7 +65,7 @@ describe('Client Add Label Dialog', () => {
     fixture = TestBed.createComponent(ClientAddLabelDialog);
     component = fixture.componentInstance;
     dialogCloseSpy = spyOn(dialogRefMock, 'close');
-    configGlobalStoreMock.clientsLabelsSubject.next([
+    configGlobalStoreMock.mockedObservables.clientsLabels$.next([
       'label1',
       'unusedlabel',
       'testlabel',

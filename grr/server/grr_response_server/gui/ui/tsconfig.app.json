@@ -15,6 +15,6 @@
     "./**/test.ts",
     "./**/testing.ts",
     "./**/*_test.ts",
-    "./**/*_test_util.ts"
+    "./**/*_test_*.ts"
   ]
 }

@@ -13,6 +13,8 @@ import {FileModePipe} from '@app/components/flow_details/helpers/file_mode_pipe'
 import {HumanReadableSizeModule} from '@app/components/human_readable_size/module';
 import {TimestampModule} from '@app/components/timestamp/module';
 
+import {DrawerLinkModule} from '../../helpers/drawer_link/drawer_link_module';
+
 import {FileResultsTable} from './file_results_table';
 import {LoadFlowResultsDirective} from './load_flow_results_directive';
 import {OsqueryResultsTable} from './osquery_results_table';
@@ -35,10 +37,11 @@ import {ResultAccordion} from './result_accordion';
     MatIconModule,
     MatProgressSpinnerModule,
     MatTableModule,
-    // Child component modules
-    TimestampModule,
-    HumanReadableSizeModule,
+
+    DrawerLinkModule,
     ExpandableHashModule,
+    HumanReadableSizeModule,
+    TimestampModule,
   ],
   declarations: [
     FileResultsTable,

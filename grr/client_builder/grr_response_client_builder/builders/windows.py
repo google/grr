@@ -180,6 +180,11 @@ def _MakeMsi(input_dir: str, output_path: str) -> None:
     with open(os.path.join(input_dir, "restart-dummy.txt"), "w"):
       pass
 
+    # To conditionally delete the legacy nanny service,
+    # a dummy file is needed.
+    with open(os.path.join(input_dir, "remove-dummy.txt"), "w"):
+      pass
+
     object_files = []
     for source_file in (wxs_file, fleetspeak_wxs_lib,
                         os.path.join(temp_dir, "heat.wxs")):
