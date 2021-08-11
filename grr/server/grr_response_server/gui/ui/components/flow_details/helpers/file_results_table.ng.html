@@ -11,79 +11,78 @@
         <mat-icon class="menu-icon">content_copy</mat-icon>
       </button>
     </td>
-
-    <ng-container matColumnDef="hashes">
-      <th mat-header-cell *matHeaderCellDef>Hash</th>
-      <td mat-cell *matCellDef="let r" class="hash">
-        <expandable-hash [hashes]="r.hashes ?? {}"></expandable-hash>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="mode">
-      <th mat-header-cell *matHeaderCellDef>Mode</th>
-      <td mat-cell *matCellDef="let r" class="number">{{r.mode | fileMode }}</td>
-    </ng-container>
-
-    <ng-container matColumnDef="size">
-      <th mat-header-cell *matHeaderCellDef>Size</th>
-      <td mat-cell *matCellDef="let r" class="number">
-        <human-readable-size [size]="r.size"></human-readable-size>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="atime">
-      <th mat-header-cell *matHeaderCellDef>A-time</th>
-      <td mat-cell *matCellDef="let r" class="timestamp">
-        <timestamp
-          [date]="r.atime"
-          [forceDisableUnderlining]="true"
-        ></timestamp>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="mtime">
-      <th mat-header-cell *matHeaderCellDef>M-time</th>
-      <td mat-cell *matCellDef="let r" class="timestamp">
-        <timestamp
-          [date]="r.mtime"
-          [forceDisableUnderlining]="true"
-        ></timestamp>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="ctime">
-      <th mat-header-cell *matHeaderCellDef>C-time</th>
-      <td mat-cell *matCellDef="let r" class="timestamp">
-        <timestamp
-          [date]="r.ctime"
-          [forceDisableUnderlining]="true"
-        ></timestamp>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="btime">
-      <th mat-header-cell *matHeaderCellDef>B-time</th>
-      <td mat-cell *matCellDef="let r" class="timestamp">
-        <timestamp
-          [date]="r.btime"
-          [forceDisableUnderlining]="true"
-        ></timestamp>
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="link">
-      <th mat-header-cell *matHeaderCellDef></th>
-      <td mat-cell *matCellDef="let r">
-        <a [drawerLink]="r.link" mat-flat-button>
-          <mat-icon>menu_open</mat-icon>
-        </a>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-
   </ng-container>
+
+  <ng-container matColumnDef="hashes">
+    <th mat-header-cell *matHeaderCellDef>Hash</th>
+    <td mat-cell *matCellDef="let r" class="hash">
+      <expandable-hash [hashes]="r.hashes ?? {}"></expandable-hash>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="mode">
+    <th mat-header-cell *matHeaderCellDef>Mode</th>
+    <td mat-cell *matCellDef="let r" class="number">{{r.mode | fileMode }}</td>
+  </ng-container>
+
+  <ng-container matColumnDef="size">
+    <th mat-header-cell *matHeaderCellDef>Size</th>
+    <td mat-cell *matCellDef="let r" class="number">
+      <human-readable-size [size]="r.size"></human-readable-size>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="atime">
+    <th mat-header-cell *matHeaderCellDef>A-time</th>
+    <td mat-cell *matCellDef="let r" class="timestamp">
+      <timestamp
+        [date]="r.atime"
+        [forceDisableUnderlining]="true"
+      ></timestamp>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="mtime">
+    <th mat-header-cell *matHeaderCellDef>M-time</th>
+    <td mat-cell *matCellDef="let r" class="timestamp">
+      <timestamp
+        [date]="r.mtime"
+        [forceDisableUnderlining]="true"
+      ></timestamp>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="ctime">
+    <th mat-header-cell *matHeaderCellDef>C-time</th>
+    <td mat-cell *matCellDef="let r" class="timestamp">
+      <timestamp
+        [date]="r.ctime"
+        [forceDisableUnderlining]="true"
+      ></timestamp>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="btime">
+    <th mat-header-cell *matHeaderCellDef>B-time</th>
+    <td mat-cell *matCellDef="let r" class="timestamp">
+      <timestamp
+        [date]="r.btime"
+        [forceDisableUnderlining]="true"
+      ></timestamp>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="link">
+    <th mat-header-cell *matHeaderCellDef></th>
+    <td mat-cell *matCellDef="let r">
+      <a [drawerLink]="r.link" mat-flat-button>
+        <mat-icon>menu_open</mat-icon>
+      </a>
+    </td>
+  </ng-container>
+
+  <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
 </table>
 
 <div *ngIf="shouldShowLoadMoreButton$ | async">

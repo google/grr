@@ -6,6 +6,7 @@ import {Flow, FlowResult, FlowState} from '@app/lib/models/flow';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
+import {translateStatEntry} from '../../../lib/api_translation/flow';
 import {assertNonNull} from '../../../lib/preconditions';
 import {FlowResultsQueryWithAdapter} from '../helpers/load_flow_results_directive';
 import {Status as ResultAccordionStatus} from '../helpers/result_accordion';
@@ -132,6 +133,6 @@ export class CollectBrowserHistoryDetails extends Plugin {
 function mapFlowResults(results?: ReadonlyArray<FlowResult>):
     ReadonlyArray<FlowFileResult>|undefined {
   return results?.map(
-      r => flowFileResultFromStatEntry(
-          (r.payload as CollectBrowserHistoryResult).statEntry!));
+      r => flowFileResultFromStatEntry(translateStatEntry(
+          (r.payload as CollectBrowserHistoryResult).statEntry!)));
 }

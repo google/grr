@@ -502,7 +502,7 @@ def CreateFile(client_path, content=b""):
   stat_entry = rdf_client_fs.StatEntry(
       pathspec=rdf_paths.PathSpec(
           pathtype=client_path.path_type,
-          path="/".join(client_path.components)),
+          path="/" + "/".join(client_path.components)),
       st_mode=33206,
       st_size=len(content))
 

@@ -16,8 +16,8 @@ import {MatTreeModule} from '@angular/material/tree';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 import {ApiModule} from '@app/lib/api/module';
-import {TimestampModule} from '../../timestamp/module';
 
+import {TimestampModule} from '../../timestamp/module';
 import {HelpersModule} from '../helpers/module';
 
 import {ArtifactCollectorFlowDetails} from './artifact_collector_flow_details';
@@ -27,6 +27,7 @@ import {CollectSingleFileDetails} from './collect_single_file_details';
 import {DefaultDetails} from './default_details';
 import {ListProcessesDetails} from './list_processes_details';
 import {MultiGetFileDetails} from './multi_get_file_details';
+import {NetstatDetails} from './netstat_details';
 import {OsqueryDetails} from './osquery_details';
 import {TimelineDetails} from './timeline_details';
 
@@ -39,6 +40,7 @@ const COMPONENTS = [
   DefaultDetails,
   ListProcessesDetails,
   MultiGetFileDetails,
+  NetstatDetails,
   OsqueryDetails,
   TimelineDetails,
 ];

@@ -3,9 +3,11 @@ import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 import {FlowFileResult, flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
-import {StatEntry} from '@app/lib/api/api_interfaces';
 import {newPathSpec} from '@app/lib/api/api_test_util';
 import {initTestEnvironment} from '@app/testing';
+
+import {translateStatEntry} from '../../../lib/api_translation/flow';
+import {StatEntry} from '../../../lib/models/vfs';
 
 import {HelpersModule} from './module';
 
@@ -63,7 +65,7 @@ describe('FileResultsTable Component', () => {
   }
 
   function createStatEntry(index: number): StatEntry {
-    return {
+    return translateStatEntry({
       pathspec: newPathSpec(`/home/foo/bar/${index}`),
       stMode: '420',  // 0644
       stDev: 16777220 + index,
@@ -72,8 +74,8 @@ describe('FileResultsTable Component', () => {
       stAtime: `${index + 1}40000`,
       stMtime: `${index + 1}400000`,
       stCtime: `${index + 1}4000000`,
-      stCrtime: `${index + 1}40000000`,
-    };
+      stBtime: `${index + 1}40000000`,
+    });
   }
 
   /**

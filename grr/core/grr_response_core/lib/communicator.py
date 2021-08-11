@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Abstracts encryption and authentication."""
 
+import logging
 import struct
 
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
@@ -111,7 +112,8 @@ class ReceivedCipher(Cipher):
   """A cipher which we received from our peer."""
 
   # pylint: disable=super-init-not-called
-  def __init__(self, response_comms, private_key):
+  def __init__(self, response_comms: rdf_flows.ClientCommunication,
+               private_key):
     self.private_key = private_key
     self.response_comms = response_comms
 
@@ -120,9 +122,11 @@ class ReceivedCipher(Cipher):
                             response_comms.api_version)
 
     if not response_comms.encrypted_cipher:
+      logging.error("No encrypted_cipher. orig_request=%s",
+                    str(response_comms.orig_request)[:1000])
       # The message is not encrypted. We do not allow unencrypted
       # messages:
-      raise DecryptionError("Server response is not encrypted.")
+      raise DecryptionError("Message is not encrypted.")
 
     try:
       # The encrypted_cipher contains the session key, iv and hmac_key.

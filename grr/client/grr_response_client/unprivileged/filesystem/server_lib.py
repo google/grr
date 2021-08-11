@@ -256,6 +256,26 @@ class ListFilesHandler(OperationHandler[filesystem_pb2.ListFilesRequest,
     return request.list_files_request
 
 
+class ListNamesHandler(OperationHandler[filesystem_pb2.ListNamesRequest,
+                                        filesystem_pb2.ListNamesResponse]):
+  """Implements the ListNames operation."""
+
+  def HandleOperation(
+      self, state: State, request: filesystem_pb2.ListNamesRequest
+  ) -> filesystem_pb2.ListNamesResponse:
+    file_obj = state.files.Get(request.file_id)
+    return filesystem_pb2.ListNamesResponse(names=file_obj.ListNames())
+
+  def PackResponse(
+      self,
+      response: filesystem_pb2.ListNamesResponse) -> filesystem_pb2.Response:
+    return filesystem_pb2.Response(list_names_response=response)
+
+  def UnpackRequest(
+      self, request: filesystem_pb2.Request) -> filesystem_pb2.ListNamesRequest:
+    return request.list_names_request
+
+
 class CloseHandler(OperationHandler[filesystem_pb2.CloseRequest,
                                     filesystem_pb2.CloseResponse]):
   """Implements the Close operation."""
@@ -327,6 +347,8 @@ def DispatchWrapped(connection: ConnectionWrapper) -> None:
         handler_class = ListFilesHandler
       elif request.HasField('lookup_case_insensitive_request'):
         handler_class = LookupCaseInsensitiveHandler
+      elif request.HasField('list_names_request'):
+        handler_class = ListNamesHandler
       else:
         raise DispatchError('No request set.')
 

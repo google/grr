@@ -1746,7 +1746,14 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
   def FromSerializedBytes(cls, value: bytes):
     precondition.AssertType(value, bytes)
     instance = cls()
-    ReadIntoObject(value, 0, instance)
+
+    try:
+      ReadIntoObject(value, 0, instance)
+    except ValueError:
+      logging.error("Error in ReadIntoObject for bytes, extract: %r",
+                    value[:1000])
+      raise
+
     instance.dirty = True
     return instance
 

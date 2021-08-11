@@ -1,10 +1,11 @@
-import {ApiFlow, ApiFlowResult, ApiFlowState, PathSpecPathType, RegistryType as ApiRegistryType} from '@app/lib/api/api_interfaces';
+import {ApiFlow, ApiFlowResult, ApiFlowState, PathSpecPathType, RegistryType as ApiRegistryType, StatEntry as ApiStatEntry} from '@app/lib/api/api_interfaces';
 import {newPathSpec} from '@app/lib/api/api_test_util';
 import {Flow, FlowResult, FlowState, RegistryType} from '@app/lib/models/flow';
 
-import {initTestEnvironment} from '../../testing';
+import {initTestEnvironment, removeUndefinedKeys} from '../../testing';
+import {StatEntry} from '../models/vfs';
 
-import {translateFlow, translateFlowResult, translateHashToHex, translateStatEntry} from './flow';
+import {translateFlow, translateFlowResult, translateHashToHex, translateStatEntry, translateVfsStatEntry} from './flow';
 
 
 
@@ -92,19 +93,17 @@ describe('translateHashToHex', () => {
   });
 });
 
-describe('translateStatEntry', () => {
-  it('returns the original StatEntry as fallback', () => {
-    expect(translateStatEntry({
+describe('translateVfsStatEntry', () => {
+  it('returns a StatEntry as fallback', () => {
+    expect(removeUndefinedKeys(translateVfsStatEntry({
       pathspec: {path: 'foo'},
-      stBlksize: 4,
-    })).toEqual({
+    }))).toEqual({
       pathspec: {path: 'foo'},
-      stBlksize: 4,
     });
   });
 
   it('returns a RegistryValue if registryType is set', () => {
-    expect(translateStatEntry({
+    expect(translateVfsStatEntry({
       pathspec: {path: 'foo', pathtype: PathSpecPathType.REGISTRY},
       registryType: ApiRegistryType.REG_NONE,
       stSize: '123',
@@ -117,11 +116,75 @@ describe('translateStatEntry', () => {
 
   it('returns a RegistryKey for non-Registry-Values with PathType REGISTRY',
      () => {
-       expect(translateStatEntry({
+       expect(translateVfsStatEntry({
          pathspec: {path: 'foo', pathtype: PathSpecPathType.REGISTRY},
        })).toEqual({
          path: 'foo',
          type: 'REG_KEY',
        });
      });
+});
+
+describe('translateStatEntry', () => {
+  it('converts all fields correctly', () => {
+    const statEntry: ApiStatEntry = {
+      stMode: '33261',
+      stIno: '14157337',
+      stDev: '65025',
+      stNlink: '1',
+      stUid: 610129,
+      stGid: 89939,
+      stSize: '14',
+      stAtime: '1627312917',
+      stMtime: '1580294217',
+      stCtime: '1580294236',
+      stBlocks: '8',
+      stBlksize: '4096',
+      stRdev: '0',
+      pathspec: {
+        pathtype: 'OS' as PathSpecPathType,
+        path: '/foo/bar/get_rich_quick.sh',
+      },
+      stFlagsOsx: 0,
+      stFlagsLinux: 524288,
+    };
+    const result: StatEntry = {
+      stMode: BigInt(33261),
+      stIno: BigInt(14157337),
+      stDev: BigInt(65025),
+      stNlink: BigInt(1),
+      stUid: 610129,
+      stGid: 89939,
+      stSize: BigInt(14),
+      stAtime: new Date(1627312917000),
+      stMtime: new Date(1580294217000),
+      stCtime: new Date(1580294236000),
+      stBlocks: BigInt(8),
+      stBlksize: BigInt(4096),
+      stRdev: BigInt(0),
+      pathspec: {
+        pathtype: PathSpecPathType.OS,
+        path: '/foo/bar/get_rich_quick.sh',
+      },
+      stFlagsOsx: 0,
+      stFlagsLinux: 524288
+    };
+    expect(removeUndefinedKeys(translateStatEntry(statEntry))).toEqual(result);
+  });
+
+  it('converts optional fields correctly', () => {
+    const statEntry: ApiStatEntry = {
+      pathspec: {
+        pathtype: 'OS' as PathSpecPathType,
+        path: '/foo/bar/get_rich_quick.sh',
+      }
+    };
+    const result: StatEntry = {
+      pathspec: {
+        pathtype: PathSpecPathType.OS,
+        path: '/foo/bar/get_rich_quick.sh',
+      },
+    };
+    expect(removeUndefinedKeys(translateStatEntry(statEntry))).toEqual(result);
+  });
 });

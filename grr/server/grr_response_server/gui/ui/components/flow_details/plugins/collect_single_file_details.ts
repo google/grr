@@ -5,7 +5,7 @@ import {HttpApiService} from '@app/lib/api/http_api_service';
 import {EMPTY, Observable, of} from 'rxjs';
 import {filter, map, mergeMap} from 'rxjs/operators';
 
-import {translateHashToHex} from '../../../lib/api_translation/flow';
+import {translateHashToHex, translateStatEntry} from '../../../lib/api_translation/flow';
 import {isNonNull} from '../../../lib/preconditions';
 
 import {Plugin} from './plugin';
@@ -51,7 +51,8 @@ export class CollectSingleFileDetails extends Plugin {
       map((progress) => progress?.result),
       filter(isNonNull),
       map((result) => [flowFileResultFromStatEntry(
-              result.stat!, translateHashToHex(result.hash ?? {}))]),
+              translateStatEntry(result.stat!),
+              translateHashToHex(result.hash ?? {}))]),
   );
 
   filePathType$: Observable<PathSpecPathType> = this.progress$.pipe(

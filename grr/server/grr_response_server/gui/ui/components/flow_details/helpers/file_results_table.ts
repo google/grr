@@ -2,12 +2,11 @@
 
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
-import {StatEntry} from '@app/lib/api/api_interfaces';
-import {createOptionalDateSeconds} from '@app/lib/api_translation/primitive';
 import {combineLatest, Observable, of, ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {HexHash} from '../../../lib/models/flow';
+import {StatEntry} from '../../../lib/models/vfs';
 
 /**
  * FlowFileResult represents a single result to be displayed in the file
@@ -34,10 +33,10 @@ export function flowFileResultFromStatEntry(
 declare interface TableRow {
   readonly path: string;
   readonly hashes?: HexHash;
-  readonly mode?: string;
-  readonly uid: string;
-  readonly gid: string;
-  readonly size: string;
+  readonly mode?: bigint;
+  readonly uid?: number;
+  readonly gid?: number;
+  readonly size?: bigint;
   readonly atime?: Date;
   readonly mtime?: Date;
   readonly ctime?: Date;
@@ -86,13 +85,13 @@ export class FileResultsTable {
             path: e.statEntry.pathspec?.path ?? '',
             hashes: e.hashes,
             mode: e.statEntry.stMode,  // formatting will be handled by the pipe
-            uid: e.statEntry.stUid?.toString() ?? '',
-            gid: e.statEntry.stGid?.toString() ?? '',
-            size: e.statEntry.stSize?.toString() ?? '',
-            atime: createOptionalDateSeconds(e.statEntry.stAtime),
-            mtime: createOptionalDateSeconds(e.statEntry.stMtime),
-            ctime: createOptionalDateSeconds(e.statEntry.stCtime),
-            btime: createOptionalDateSeconds(e.statEntry.stCrtime),
+            uid: e.statEntry.stUid,
+            gid: e.statEntry.stGid,
+            size: e.statEntry.stSize,
+            atime: e.statEntry.stAtime,
+            mtime: e.statEntry.stMtime,
+            ctime: e.statEntry.stCtime,
+            btime: e.statEntry.stBtime,
             link: [
               'files', e.statEntry.pathspec?.pathtype?.toLowerCase(),
               e.statEntry.pathspec?.path

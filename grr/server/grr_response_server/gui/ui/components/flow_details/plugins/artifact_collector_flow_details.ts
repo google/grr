@@ -6,7 +6,7 @@ import {ArtifactCollectorFlowProgress, FlowResult, FlowState} from '@app/lib/mod
 import {combineLatest, Observable} from 'rxjs';
 import {map, take} from 'rxjs/operators';
 
-import {isRegistryEntry, isStatEntry, translateArtifactCollectorFlowProgress, translateExecuteResponse, translateStatEntry} from '../../../lib/api_translation/flow';
+import {isRegistryEntry, isStatEntry, translateArtifactCollectorFlowProgress, translateExecuteResponse, translateVfsStatEntry} from '../../../lib/api_translation/flow';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {fromFlowState} from '../helpers/result_accordion';
 
@@ -78,8 +78,8 @@ export class ArtifactCollectorFlowDetails extends Plugin implements OnInit {
       this.results$.pipe(map(results => results.length));
 
   private readonly statEntryResults$ = this.flowResultGlobalStore.results$.pipe(
-      map((results) =>
-              getResults(results ?? [], 'StatEntry').map(translateStatEntry)));
+      map((results) => getResults(results ?? [], 'StatEntry')
+                           .map(translateVfsStatEntry)));
 
   readonly fileResults$ = this.statEntryResults$.pipe(
       map((results) => results.filter(isStatEntry)

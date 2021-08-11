@@ -6,7 +6,7 @@ import {catchError, map, mapTo, shareReplay, switchMap, take} from 'rxjs/operato
 
 import {isNonNull} from '../preconditions';
 
-import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGetFileTextArgs, ApiGetFileTextArgsEncoding, ApiGetFileTextResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, ArtifactDescriptor, DecimalString, GlobComponentExplanation, PathSpecPathType} from './api_interfaces';
+import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFile, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGetFileDetailsResult, ApiGetFileTextArgs, ApiGetFileTextArgsEncoding, ApiGetFileTextResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, ArtifactDescriptor, DecimalString, GlobComponentExplanation, PathSpecPathType} from './api_interfaces';
 
 
 /**
@@ -450,9 +450,28 @@ export class HttpApiService {
         );
   }
 
+  getFileDetails(
+      clientId: string,
+      pathType: PathSpecPathType,
+      path: string,
+      opts?: {timestamp?: Date},
+      ): Observable<ApiFile> {
+    const params = objectToHttpParams({timestamp: opts?.timestamp?.getDate()});
+    const vfsPath = toVFSPath(pathType, path);
+    return this.http
+        .get<ApiGetFileDetailsResult>(
+            `${URL_PREFIX}/clients/${clientId}/vfs-details${vfsPath}`, {params})
+        .pipe(
+            map(response => response.file ?? {}),
+        );
+  }
+
   getFileText(
-      clientId: string, pathType: PathSpecPathType, path: string,
-      opts?: GetFileTextOptions): Observable<ApiGetFileTextResult> {
+      clientId: string,
+      pathType: PathSpecPathType,
+      path: string,
+      opts?: GetFileTextOptions,
+      ): Observable<ApiGetFileTextResult> {
     const queryArgs: ApiGetFileTextArgs = {
       encoding: ApiGetFileTextArgsEncoding.UTF_8,
       offset: 0,

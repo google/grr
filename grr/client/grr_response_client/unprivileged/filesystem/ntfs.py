@@ -36,7 +36,8 @@ class NtfsFile(filesystem.File):
   """pyfsntfs implementation of File."""
 
   def __init__(self, filesystem_obj: filesystem.Filesystem,
-               fd: pyfsntfs.file_entry, data_stream: pyfsntfs.data_stream):
+               fd: pyfsntfs.file_entry,
+               data_stream: Optional[pyfsntfs.data_stream]):
     super().__init__(filesystem_obj)
     self.fd = fd
     self.data_stream = data_stream
@@ -44,6 +45,8 @@ class NtfsFile(filesystem.File):
   def Read(self, offset: int, size: int) -> bytes:
     if self.fd.has_directory_entries_index():
       raise IOError("Attempting to read from a directory.")
+    if self.data_stream is None:
+      raise IOError("Missing data stream.")
     self.data_stream.seek(offset)
     data = self.data_stream.read(size)
     return data
@@ -64,6 +67,14 @@ class NtfsFile(filesystem.File):
       for data_stream in self.fd.alternate_data_streams:
         yield self._Stat(self.fd, data_stream)
 
+  def ListNames(self) -> Iterable[str]:
+    if self.fd.has_directory_entries_index():
+      for entry in self.fd.sub_file_entries:
+        yield entry.name
+    else:
+      for data_stream in self.fd.alternate_data_streams:
+        yield data_stream.name
+
   def LookupCaseInsensitive(self, name: str) -> Optional[str]:
     name_lower = name.lower()
     if self.fd.has_directory_entries_index():
@@ -82,7 +93,7 @@ class NtfsFile(filesystem.File):
   def _Stat(
       self,
       entry: pyfsntfs.file_entry,
-      data_stream: pyfsntfs.data_stream,
+      data_stream: Optional[pyfsntfs.data_stream],
   ) -> filesystem_pb2.StatEntry:
     st = filesystem_pb2.StatEntry()
     if entry.name is not None:
@@ -104,10 +115,15 @@ class NtfsFile(filesystem.File):
     return self.fd.file_reference
 
 
-def _get_data_stream(entry: pyfsntfs.file_entry,
-                     stream_name: Optional[str]) -> pyfsntfs.data_stream:
+def _get_data_stream(
+    entry: pyfsntfs.file_entry,
+    stream_name: Optional[str]) -> Optional[pyfsntfs.data_stream]:
+  """Returns a data stream by name, or the default data stream."""
   if stream_name is None:
-    return entry
+    if entry.has_default_data_stream():
+      return entry
+    else:
+      return None
   data_stream = entry.get_alternate_data_stream_by_name(stream_name)
   if data_stream is None:
     raise IOError(f"Failed to open data stream {stream_name}.")

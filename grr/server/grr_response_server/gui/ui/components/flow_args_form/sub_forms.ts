@@ -8,6 +8,7 @@ import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
 import {ListNamedPipesForm} from './list_named_pipes_form';
 import {ListProcessesForm} from './list_processes_form';
+import {NetstatForm} from './netstat_form';
 import {OsqueryForm} from './osquery_form';
 import {TimelineForm} from './timeline_form';
 
@@ -19,6 +20,7 @@ export const FORMS: {[key: string]: Type<FlowArgumentForm<unknown>>} = {
   'CollectSingleFile': CollectSingleFileForm,
   'ListNamedPipesFlow': ListNamedPipesForm,
   'ListProcesses': ListProcessesForm,
+  'Netstat': NetstatForm,
   'OsqueryFlow': OsqueryForm,
   'TimelineFlow': TimelineForm,
 
@@ -32,7 +34,6 @@ export const FORMS: {[key: string]: Type<FlowArgumentForm<unknown>>} = {
   'GetMBR': FallbackFlowArgsForm,
   'Interrogate': FallbackFlowArgsForm,
   'ListVolumeShadowCopies': FallbackFlowArgsForm,
-  'Netstat': FallbackFlowArgsForm,
 };
 
 /** Fallback form for Flows without configured form. */

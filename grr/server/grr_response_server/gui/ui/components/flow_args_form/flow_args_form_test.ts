@@ -82,6 +82,14 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
       fetchBinaries: false,
     },
   },
+  Netstat: {
+    name: 'Netstat',
+    friendlyName: 'List active network connections on a system.',
+    category: 'Network',
+    defaultArgs: {
+      listeningOnly: false,
+    },
+  },
   TimelineFlow: {
     name: 'TimelineFlow',
     friendlyName: 'Collect path timeline',

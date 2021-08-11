@@ -58,12 +58,13 @@ export function createOptionalDate(apiTimestamp?: DecimalString): Date|
  */
 export function createOptionalDateSeconds(timestampSeconds: undefined):
     undefined;
-export function createOptionalDateSeconds(timestampSeconds: string): Date;
-export function createOptionalDateSeconds(timestampSeconds?: string): Date|
-    undefined;
+export function createOptionalDateSeconds(timestampSeconds: DecimalString):
+    Date;
+export function createOptionalDateSeconds(timestampSeconds?: DecimalString):
+    Date|undefined;
 
-export function createOptionalDateSeconds(timestampSeconds?: string): Date|
-    undefined {
+export function createOptionalDateSeconds(timestampSeconds?: DecimalString):
+    Date|undefined {
   if (!timestampSeconds) {
     return undefined;
   }
@@ -206,4 +207,9 @@ function translateKeyValue({k, v}: KeyValue): [unknown, unknown] {
 export function translateDict(dict: Dict): ReadonlyMap<unknown, unknown> {
   const keyvalues = [...dict.dat ?? []].map(translateKeyValue);
   return new Map(keyvalues);
+}
+
+/** Converts an optional numeric value to a bigint. */
+export function createOptionalBigInt(data?: DecimalString): bigint|undefined {
+  return isNonNull(data) ? BigInt(data) : data;
 }

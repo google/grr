@@ -1,10 +1,14 @@
 :host {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  row-gap: 1em;
   min-width: 30vw;
+  padding: 1em 0;
 }
 
-h3 {
-  padding: 1em 1em 0;
+.mat-h3 {
+  padding: 0 1em;
+  margin: 0;
 }
 
 pre {
@@ -13,6 +17,7 @@ pre {
   max-width: 100ch;
   overflow-x: auto;
   padding: 1em;
+  margin: 0;
 }
 
 pre span {
@@ -31,4 +36,21 @@ pre span:before {
   padding: 0 0.5em 0 0;
   text-align: end;
   user-select: none;
+}
+
+.load-more {
+  width: 100%;
+}
+
+.more-indicator {
+  display: inline;
+  background: rgba(0, 0, 0, 0.04);
+  padding: 0 1ch;
+  border-radius: 4px;
+  user-select: none;
+  cursor: default;
+}
+
+.details {
+  padding: 0 1em;
 }

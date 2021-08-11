@@ -2,11 +2,12 @@ import {Type} from '@angular/core';
 import {CollectBrowserHistoryDetails} from '@app/components/flow_details/plugins/collect_browser_history_details';
 import {CollectMultipleFilesDetails} from '@app/components/flow_details/plugins/collect_multiple_files_details';
 import {CollectSingleFileDetails} from '@app/components/flow_details/plugins/collect_single_file_details';
-import {ArtifactCollectorFlowDetails} from './plugins/artifact_collector_flow_details';
 
+import {ArtifactCollectorFlowDetails} from './plugins/artifact_collector_flow_details';
 import {DefaultDetails} from './plugins/default_details';
 import {ListProcessesDetails} from './plugins/list_processes_details';
 import {MultiGetFileDetails} from './plugins/multi_get_file_details';
+import {NetstatDetails} from './plugins/netstat_details';
 import {OsqueryDetails} from './plugins/osquery_details';
 import {Plugin} from './plugins/plugin';
 import {TimelineDetails} from './plugins/timeline_details';
@@ -25,6 +26,7 @@ export const FLOW_DETAILS_PLUGIN_REGISTRY: {[key: string]: Type<Plugin>} = {
   'CollectMultipleFiles': CollectMultipleFilesDetails,
   'CollectSingleFile': CollectSingleFileDetails,
   'ListProcesses': ListProcessesDetails,
+  'Netstat': NetstatDetails,
   'MultiGetFile': MultiGetFileDetails,
   'OsqueryFlow': OsqueryDetails,
   'TimelineFlow': TimelineDetails,

@@ -3,14 +3,11 @@ import {ActivatedRoute} from '@angular/router';
 import {combineLatest} from 'rxjs';
 import {map, takeUntil} from 'rxjs/operators';
 
-import {ApiGetFileTextArgsEncoding, PathSpecPathType} from '../../lib/api/api_interfaces';
+import {PathSpecPathType} from '../../lib/api/api_interfaces';
 import {assertEnum, assertNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
 import {FileDetailsLocalStore} from '../../store/file_details_local_store';
 import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
-
-const DEFAULT_PAGE_LENGTH = 10000;
-const ENCODING = ApiGetFileTextArgsEncoding.UTF_8;
 
 /** Component to show file contents and metadata. */
 @Component({
@@ -19,11 +16,17 @@ const ENCODING = ApiGetFileTextArgsEncoding.UTF_8;
   providers: [FileDetailsLocalStore],
 })
 export class FileDetails implements OnDestroy {
+  readonly DEFAULT_PAGE_LENGTH = BigInt(10000);
+
   readonly ngOnDestroy = observeOnDestroy();
 
   readonly textContent$ = this.fileDetailsLocalStore.textContent$.pipe(
-      map(textContent => textContent?.split('\n').map(line => `${line}\n`)),
+      map(textContent => textContent?.split('\n')),
   );
+
+  readonly hasMore$ = this.fileDetailsLocalStore.hasMore$;
+
+  readonly details$ = this.fileDetailsLocalStore.details$;
 
   readonly fileId$ =
       combineLatest(
@@ -54,11 +57,12 @@ export class FileDetails implements OnDestroy {
             )
         .subscribe(fileId => {
           this.fileDetailsLocalStore.selectFile(fileId);
-          this.fileDetailsLocalStore.fetchContent({
-            offset: 0,
-            length: DEFAULT_PAGE_LENGTH,
-            encoding: ENCODING,
-          });
+          this.fileDetailsLocalStore.fetchDetails();
+          this.fileDetailsLocalStore.fetchMoreContent(this.DEFAULT_PAGE_LENGTH);
         });
+  }
+
+  loadMore() {
+    this.fileDetailsLocalStore.fetchMoreContent(this.DEFAULT_PAGE_LENGTH);
   }
 }

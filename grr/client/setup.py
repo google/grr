@@ -135,7 +135,7 @@ setup_args = dict(
         "PyInstaller==3.6",
         PYTSK3,
         "retry==0.9.2",
-        "libfsntfs-python==20200506",
+        "libfsntfs-python==20210503",
     ],
     extras_require={
         # The following requirements are needed in Windows.

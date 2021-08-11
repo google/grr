@@ -1,5 +1,7 @@
 import {Pipe, PipeTransform} from '@angular/core';
 
+import {DecimalString} from '../../../lib/api/api_interfaces';
+
 const S_IFMT = 0o170000;    // type of file
 const S_IFIFO = 0o010000;   // named pipe
 const S_IFCHR = 0o020000;   // character device
@@ -37,8 +39,8 @@ const FILE_TYPE_CHARS_MAP: ReadonlyMap<number, string> = new Map([
  */
 @Pipe({name: 'fileMode'})
 export class FileModePipe implements PipeTransform {
-  transform(statModeStr: string|undefined): string {
-    if (!statModeStr) {
+  transform(statModeStr: DecimalString|undefined): string {
+    if (statModeStr === undefined || statModeStr === '') {
       return '-';
     }
 

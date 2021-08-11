@@ -52,6 +52,14 @@ class File(abc.ABC):
     pass
 
   @abc.abstractmethod
+  def ListNames(self) -> Iterable[str]:
+    """Lists file names in a directory.
+
+    If the file is a regular file, lists alternate data stream names.
+    """
+    pass
+
+  @abc.abstractmethod
   def Stat(self) -> filesystem_pb2.StatEntry:
     """Returns information about the file."""
     pass

@@ -30,6 +30,7 @@ import {FallbackFlowArgsForm} from './fallback_flow_args_form';
 import {FlowArgsForm} from './flow_args_form';
 import {ListNamedPipesForm} from './list_named_pipes_form';
 import {ListProcessesForm} from './list_processes_form';
+import {NetstatForm} from './netstat_form';
 import {OsqueryForm} from './osquery_form';
 import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
 import {TimelineForm} from './timeline_form';
@@ -68,6 +69,7 @@ import {TimelineForm} from './timeline_form';
     CollectMultipleFilesForm,
     ListNamedPipesForm,
     ListProcessesForm,
+    NetstatForm,
     OsqueryForm,
     TimelineForm,
     FallbackFlowArgsForm,
@@ -79,6 +81,7 @@ import {TimelineForm} from './timeline_form';
     CollectMultipleFilesForm,
     ListNamedPipesForm,
     ListProcessesForm,
+    NetstatForm,
     OsqueryForm,
     TimelineForm,
     FallbackFlowArgsForm,

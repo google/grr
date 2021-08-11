@@ -259,6 +259,13 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
       ]
       self.assertEqual(files, expected_files)
 
+  def testListNames(self):
+    with self._client.Open(path=self._Path("\\")) as file_obj:
+      names = file_obj.ListNames()
+      stat_entries = file_obj.ListFiles()
+      expected_names = [stat_entry.name for stat_entry in stat_entries]
+      self.assertSameElements(names, expected_names)
+
   def testListFiles_alternateDataStreams(self):
     with self._client.Open(path=self._Path("\\ads")) as file_obj:
       files = file_obj.ListFiles()
@@ -314,6 +321,13 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
               )),
       ]
       self.assertEqual(files, expected_files)
+
+  def testListNames_alternateDataStreams(self):
+    with self._client.Open(path=self._Path("\\ads\\ads.txt")) as file_obj:
+      names = file_obj.ListNames()
+      stat_entries = file_obj.ListFiles()
+      expected_names = [stat_entry.stream_name for stat_entry in stat_entries]
+      self.assertSameElements(names, expected_names)
 
   def testOpen_alternateDataStreams(self):
     with self._client.Open(path=self._Path("\\ads\\ads.txt")) as file_obj:

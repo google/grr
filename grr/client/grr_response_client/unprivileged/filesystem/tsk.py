@@ -166,6 +166,20 @@ class TskFile(filesystem.File):
         if _IsAlternateDataStream(attribute):
           yield self._Stat(self._fd, attribute)
 
+  def ListNames(self) -> Iterator[str]:
+    if self._IsDirectory():
+      # Return file names.
+      for fd in self._fd.as_directory():
+        name = _DecodeName(fd.info.name.name)
+        if name in _LIST_FILES_IGNORE:
+          continue
+        yield name
+    else:
+      # Return alternate data stream names.
+      for attribute in self._fd:
+        if _IsAlternateDataStream(attribute):
+          yield _DecodeName(attribute.info.name)
+
   def LookupCaseInsensitive(self, name: str) -> Optional[str]:
     name_lower = name.lower()
     if self._IsDirectory():

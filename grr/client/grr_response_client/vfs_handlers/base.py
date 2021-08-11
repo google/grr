@@ -324,7 +324,7 @@ class VFSHandler(IO[bytes], metaclass=abc.ABCMeta):
       except IOError as e:
         # Can not open the first component, we must raise here.
         if i <= 1:
-          raise IOError("File not found: {}".format(component))
+          raise IOError("File not found: {}".format(component)) from e
 
         # Do not try to use TSK to open a not-found registry entry, fail
         # instead. Using TSK would lead to confusing error messages, hiding

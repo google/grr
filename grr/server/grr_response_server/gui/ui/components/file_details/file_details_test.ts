@@ -1,9 +1,11 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
+import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute, Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 
 import {PathSpecPathType} from '../../lib/api/api_interfaces';
+import {Writable} from '../../lib/type_utils';
 import {FileDetailsLocalStore} from '../../store/file_details_local_store';
 import {FileDetailsLocalStoreMock, mockFileDetailsLocalStore} from '../../store/file_details_local_store_test_util';
 import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
@@ -56,6 +58,8 @@ describe('FileDetails Component', () => {
 
   it('queries file content on route change', () => {
     const fixture = TestBed.createComponent(FileDetails);
+    (fixture.componentInstance as Writable<FileDetails>).DEFAULT_PAGE_LENGTH =
+        BigInt(123);
     fixture.detectChanges();
 
     selectedClientGlobalStore.mockedObservables.clientId$.next('C.8765');
@@ -66,18 +70,71 @@ describe('FileDetails Component', () => {
       pathType: PathSpecPathType.OS,
       path: '/foo/bar/baz',
     });
-    expect(fileDetailsLocalStore.fetchContent).toHaveBeenCalled();
+    expect(fileDetailsLocalStore.fetchDetails).toHaveBeenCalled();
+    expect(fileDetailsLocalStore.fetchMoreContent)
+        .toHaveBeenCalledOnceWith(BigInt(123));
   });
 
   it('shows loaded content', () => {
     const fixture = TestBed.createComponent(FileDetails);
     fixture.detectChanges();
 
+    fileDetailsLocalStore.mockedObservables.details$.next(
+        {stat: {pathspec: {path: '/examplefile'}}});
     fileDetailsLocalStore.mockedObservables.textContent$.next(
         'hello file content');
     fixture.detectChanges();
 
     expect(fixture.debugElement.nativeElement.textContent)
+        .toContain('/examplefile');
+    expect(fixture.debugElement.nativeElement.textContent)
         .toContain('hello file content');
+  });
+
+  it('indicates that more content is available', () => {
+    const fixture = TestBed.createComponent(FileDetails);
+    fixture.detectChanges();
+
+    fileDetailsLocalStore.mockedObservables.textContent$.next('hello');
+    fileDetailsLocalStore.mockedObservables.hasMore$.next(true);
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.more-indicator'))).toBeTruthy();
+    expect(fixture.debugElement.query(By.css('.load-more'))).toBeTruthy();
+  });
+
+  it('hides more content indicators when full content has been loaded', () => {
+    const fixture = TestBed.createComponent(FileDetails);
+    fixture.detectChanges();
+
+    fileDetailsLocalStore.mockedObservables.textContent$.next('hello');
+    fileDetailsLocalStore.mockedObservables.hasMore$.next(true);
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.more-indicator'))).toBeTruthy();
+    expect(fixture.debugElement.query(By.css('.load-more'))).toBeTruthy();
+
+    fileDetailsLocalStore.mockedObservables.hasMore$.next(false);
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.more-indicator'))).toBeFalsy();
+    expect(fixture.debugElement.query(By.css('.load-more'))).toBeFalsy();
+  });
+
+  it('queries more file content on "load more" click', () => {
+    const fixture = TestBed.createComponent(FileDetails);
+    fixture.detectChanges();
+
+    fileDetailsLocalStore.mockedObservables.textContent$.next('hello');
+    fileDetailsLocalStore.mockedObservables.hasMore$.next(true);
+    fixture.detectChanges();
+
+    const previousCalls = fileDetailsLocalStore.fetchMoreContent.calls.count();
+    const loadMoreButton = fixture.debugElement.query(By.css('.load-more'));
+    loadMoreButton.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+
+    expect(fileDetailsLocalStore.fetchMoreContent)
+        .toHaveBeenCalledTimes(previousCalls + 1);
   });
 });

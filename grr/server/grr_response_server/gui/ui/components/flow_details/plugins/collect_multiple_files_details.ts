@@ -6,7 +6,7 @@ import {FlowState} from '@app/lib/models/flow';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {translateHashToHex} from '../../../lib/api_translation/flow';
+import {translateHashToHex, translateStatEntry} from '../../../lib/api_translation/flow';
 import {FlowResultMapFunction, FlowResultsQueryWithAdapter} from '../helpers/load_flow_results_directive';
 
 import {Plugin} from './plugin';
@@ -17,7 +17,8 @@ const ADAPTER: FlowResultMapFunction<ReadonlyArray<FlowFileResult>|undefined> =
         results?.map(item => item.payload as CollectMultipleFilesResult)
             .map(
                 res => flowFileResultFromStatEntry(
-                    res.stat!, translateHashToHex(res.hash ?? {})));
+                    translateStatEntry(res.stat!),
+                    translateHashToHex(res.hash ?? {})));
 
 
 /**

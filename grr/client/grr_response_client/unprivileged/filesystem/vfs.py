@@ -124,7 +124,8 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
       self.pathspec.Append(pathspec)
       self.pathspec.last.path = last_path
     elif not base_fd.IsDirectory():
-      cache_key = base_fd.pathspec.SerializeToBytes()
+      cache_key = base_fd.pathspec.SerializeToBytes() + str(
+          self.implementation_type).encode("utf-8")
       try:
         self.client = MOUNT_CACHE.Get(cache_key).client
       except KeyError:
@@ -282,9 +283,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
 
   def ListNames(self) -> Iterator[Text]:
     self._CheckIsDirectory()
-
-    for entry in self.fd.ListFiles():
-      yield entry.name
+    return iter(self.fd.ListNames())
 
   def _CheckIsDirectory(self) -> None:
     if not self.IsDirectory():

@@ -1,0 +1,34 @@
+<result-accordion [title]="title$ | async" (firstOpened)="onShowClicked()">
+  <!-- TODO: Add download options (CSV, YAML, SQLite) -->
+
+  <div class="table-container">
+    <table *ngIf="(netstatResults$ | async)?.length; else noTable">
+      <thead>
+        <th *ngFor="let column of columns; trackBy: trackByIndex">
+          {{column}}
+        </th>
+      </thead>
+      <tbody>
+        <ng-template ngFor let-conn [ngForOf]="netstatResults$ | async">
+          <tr>
+            <td>{{conn.pid}}</td>
+            <td>{{conn.processName}}</td>
+            <td>{{conn.state}}</td>
+            <td>{{conn.type}}</td>
+            <td>{{conn.family}}</td>
+            <td>{{conn.localAddress?.ip}}</td>
+            <td>{{conn.localAddress?.port}}</td>
+            <td>{{conn.remoteAddress?.ip}}</td>
+            <td>{{conn.remoteAddress?.port}}</td>
+          </tr>
+        </ng-template>
+      </tbody>
+    </table>
+
+    <ng-template #noTable>
+      <div class="error">
+        No results to display.
+      </div>
+    </ng-template>
+  </div>
+</result-accordion>

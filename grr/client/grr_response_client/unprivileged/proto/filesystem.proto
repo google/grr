@@ -161,6 +161,14 @@ message ListFilesResponse {
   repeated StatEntry entries = 1;
 }
 
+message ListNamesRequest {
+  optional int64 file_id = 1;
+}
+
+message ListNamesResponse {
+  repeated string names = 1;
+}
+
 message LookupCaseInsensitiveRequest {
   optional int64 file_id = 1;
   // Case-insensitive name to lookup.
@@ -203,6 +211,10 @@ message Request {
     // If the file is a directory, matches directory entry names.
     // If the file is a regular file, matches altenate data stream names.
     LookupCaseInsensitiveRequest lookup_case_insensitive_request = 8;
+
+    // Lists file names in a directory.
+    // If the file is a regular file, lists alternate data stream names.
+    ListNamesRequest list_names_request = 9;
   }
 }
 
@@ -234,5 +246,7 @@ message Response {
     ListFilesResponse list_files_response = 8;
 
     LookupCaseInsensitiveResponse lookup_case_insensitive_response = 9;
+
+    ListNamesResponse list_names_response = 10;
   }
 }

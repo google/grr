@@ -19,7 +19,7 @@ export declare interface AnyObject {
  * JSON because JS loses precision for big numeric types. During
  * deserialization, both decimal strings and numbers are accepted.
  */
-export type DecimalString = string|number;
+export type DecimalString = string|number|bigint;
 
 /**
  * ApiUser protomapping.
@@ -539,20 +539,20 @@ export enum RegistryType {
 /** StatEntry proto mapping. */
 export declare interface StatEntry {
   readonly stMode?: string;
-  readonly stIno?: number;
-  readonly stDev?: number;
-  readonly stNlink?: number;
+  readonly stIno?: DecimalString;
+  readonly stDev?: DecimalString;
+  readonly stNlink?: DecimalString;
   readonly stUid?: number;
   readonly stGid?: number;
-  readonly stSize?: string;
-  readonly stAtime?: string;
-  readonly stMtime?: string;
-  readonly stCtime?: string;
-  readonly stCrtime?: string;
+  readonly stSize?: DecimalString;
+  readonly stAtime?: DecimalString;
+  readonly stMtime?: DecimalString;
+  readonly stCtime?: DecimalString;
+  readonly stBtime?: DecimalString;
 
-  readonly stBlocks?: number;
-  readonly stBlksize?: number;
-  readonly stRdev?: number;
+  readonly stBlocks?: DecimalString;
+  readonly stBlksize?: DecimalString;
+  readonly stRdev?: DecimalString;
   readonly stFlagsOsx?: number;
   readonly stFlagsLinux?: number;
 
@@ -726,6 +726,13 @@ export declare interface ApiListApproverSuggestionsResult {
 /** ApproverSuggestion proto mapping. */
 export declare interface ApproverSuggestion {
   readonly username?: string;
+}
+
+/**
+ * Interface for the `NetstatArgs` proto message.
+ */
+export declare interface NetstatArgs {
+  readonly listeningOnly?: boolean;
 }
 
 /** OsqueryFlowArgs proto mapping. */
@@ -986,6 +993,12 @@ export declare interface ListProcessesArgs {
   readonly pids?: ReadonlyArray<number>;
 }
 
+/** NetworkEndpoint proto mapping */
+export declare interface NetworkEndpoint {
+  readonly ip?: string;
+  readonly port?: number;
+}
+
 /** NetworkConnection.State proto mapping */
 export enum NetworkConnectionState {
   UNKNOWN = 'UNKNOWN',
@@ -1003,6 +1016,33 @@ export enum NetworkConnectionState {
   DELETE_TCB = 'DELETE_TCB',
   NONE = 'NONE',
   CLOSE = 'CLOSE',
+}
+
+/** NetworkConnection.Family proto mapping */
+export enum NetworkConnectionFamily {
+  INET = 'INET',
+  INET6 = 'INET6',
+  INET6_WIN = 'INET6_WIN',
+  INET6_OSX = 'INET6_OSX',
+}
+
+/** NetworkConnection.Type proto mapping */
+export enum NetworkConnectionType {
+  UNKNOWN_SOCKET = 'UNKNOWN_SOCKET',
+  SOCK_STREAM = 'SOCK_STREAM',
+  SOCK_DGRAM = 'SOCK_DGRAM',
+}
+
+/** NetworkConnection proto mapping */
+export declare interface NetworkConnection {
+  readonly family?: NetworkConnectionFamily;
+  readonly type?: NetworkConnectionType;
+  readonly local_address?: NetworkEndpoint;
+  readonly remote_address?: NetworkEndpoint;
+  readonly state?: NetworkConnectionState;
+  readonly pid?: number;
+  readonly ctime?: number;
+  readonly process_name?: string;
 }
 
 /** ApiGetFileTextArgs.Encoding proto mapping. */
@@ -1075,4 +1115,26 @@ export declare interface ApiGetFileTextArgs {
 export declare interface ApiGetFileTextResult {
   readonly content?: string;
   readonly totalSize?: DecimalString;
+}
+
+/** ApiFile proto mapping. */
+export declare interface ApiFile {
+  readonly name?: string;
+  readonly path?: string;
+  readonly type?: string;
+  readonly stat?: StatEntry;
+  readonly age?: DecimalString;
+  readonly isDirectory?: boolean;
+  readonly hash?: Hash;
+  readonly lastCollected?: DecimalString;
+  readonly lastCollectedSize?: DecimalString;
+
+  // Not mapping the very generic ApiAff4ObjectRepresentation unless the
+  // contained data is really useful for the new UI.
+  // readonly details?: ApiAff4ObjectRepresentation;
+}
+
+/** ApiGetFileDetailsResult proto mapping. */
+export declare interface ApiGetFileDetailsResult {
+  readonly file?: ApiFile;
 }

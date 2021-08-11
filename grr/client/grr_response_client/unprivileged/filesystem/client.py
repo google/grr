@@ -199,6 +199,20 @@ class ListFilesHandler(OperationHandler[filesystem_pb2.ListFilesRequest,
     return filesystem_pb2.Request(list_files_request=request)
 
 
+class ListNamesHandler(OperationHandler[filesystem_pb2.ListNamesRequest,
+                                        filesystem_pb2.ListNamesResponse]):
+  """Implements the ListNames RPC."""
+
+  def UnpackResponse(
+      self,
+      response: filesystem_pb2.Response) -> filesystem_pb2.ListNamesResponse:
+    return response.list_names_response
+
+  def PackRequest(
+      self, request: filesystem_pb2.ListNamesRequest) -> filesystem_pb2.Request:
+    return filesystem_pb2.Request(list_names_request=request)
+
+
 class CloseHandler(OperationHandler[filesystem_pb2.CloseRequest,
                                     filesystem_pb2.CloseResponse]):
   """Implements the Close RPC."""
@@ -257,6 +271,11 @@ class File:
     request = filesystem_pb2.ListFilesRequest(file_id=self._file_id)
     response = ListFilesHandler(self._connection, self._device).Run(request)
     return list(response.entries)
+
+  def ListNames(self) -> Sequence[str]:
+    request = filesystem_pb2.ListNamesRequest(file_id=self._file_id)
+    response = ListNamesHandler(self._connection, self._device).Run(request)
+    return list(response.names)
 
   @property
   def inode(self) -> int:
