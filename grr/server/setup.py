@@ -191,6 +191,7 @@ setup_args = dict(
         "python-crontab==2.5.1",
         "python-debian==0.1.37",
         "Werkzeug==1.0.1",
+        "fleetspeak-server-bin==0.1.9",
     ],
     extras_require={
         # This is an optional component. Install to get MySQL data
