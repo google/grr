@@ -342,11 +342,11 @@ class FleetspeakConfig:
 
     if self._IsFleetspeakPresent():
       self.use_fleetspeak = RetryBoolQuestion(
-          "Use Fleetspeak (EXPERIMENTAL, next generation communication "
-          "framework)?", False)
+          "Use Fleetspeak (next generation communication "
+          "framework)?", True)
     else:
       self.use_fleetspeak = False
-      print("Fleetspeak (EXPERIMENTAL, optional, next generation "
+      print("Fleetspeak (next generation "
             "communication framework) seems to be missing.")
       print("Skipping Fleetspeak configuration.\n")
 

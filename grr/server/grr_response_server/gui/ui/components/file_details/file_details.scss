@@ -42,6 +42,15 @@ pre span:before {
   width: 100%;
 }
 
+.recollect {
+  align-self: start;
+  margin-left: 1em;
+
+  mat-spinner {
+    display: inline-block;
+  }
+}
+
 .more-indicator {
   display: inline;
   background: rgba(0, 0, 0, 0.04);

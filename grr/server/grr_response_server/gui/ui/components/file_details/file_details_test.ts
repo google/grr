@@ -137,4 +137,25 @@ describe('FileDetails Component', () => {
     expect(fileDetailsLocalStore.fetchMoreContent)
         .toHaveBeenCalledTimes(previousCalls + 1);
   });
+
+  it('reloads content on "recollect" click', () => {
+    const fixture = TestBed.createComponent(FileDetails);
+    fixture.detectChanges();
+
+    fileDetailsLocalStore.mockedObservables.textContent$.next('hello');
+    fixture.detectChanges();
+
+    expect(fileDetailsLocalStore.recollectFile).not.toHaveBeenCalled();
+
+    const recollectButton = fixture.debugElement.query(By.css('.recollect'));
+    recollectButton.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+
+    expect(fileDetailsLocalStore.recollectFile).toHaveBeenCalledOnceWith();
+
+    fileDetailsLocalStore.mockedObservables.textContent$.next('hellonew');
+    fixture.detectChanges();
+    expect(fixture.debugElement.nativeElement.textContent)
+        .toContain('hellonew');
+  });
 });

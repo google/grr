@@ -46,6 +46,8 @@ export class FileDetails implements OnDestroy {
               }),
           );
 
+  readonly isRecollecting$ = this.fileDetailsLocalStore.isRecollecting$;
+
   constructor(
       private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
       private readonly fileDetailsLocalStore: FileDetailsLocalStore,
@@ -64,5 +66,9 @@ export class FileDetails implements OnDestroy {
 
   loadMore() {
     this.fileDetailsLocalStore.fetchMoreContent(this.DEFAULT_PAGE_LENGTH);
+  }
+
+  recollect() {
+    this.fileDetailsLocalStore.recollectFile();
   }
 }

@@ -15,6 +15,12 @@
   </tr>
 </table>
 
+<button mat-stroked-button (click)="recollect()" [disabled]="isRecollecting$ | async" class="recollect">
+  <mat-spinner *ngIf="isRecollecting$ | async; else enabledIcon" diameter="24"></mat-spinner>
+  <ng-template #enabledIcon><mat-icon>refresh</mat-icon></ng-template>
+  Recollect from client
+</button>
+
 <pre
   class="monospace"
 ><span *ngFor="let line of textContent$ | async; last as isLast">{{

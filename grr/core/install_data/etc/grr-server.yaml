@@ -58,6 +58,10 @@ Target:Darwin:
   Client.install_path: |
     /usr/local/lib/%(Client.name)/%(ClientRepacker.output_basename)
 
+  Client.unprivileged_user: nobody
+  Client.unprivileged_group: nobody
+  Client.use_filesystem_sandboxing: True
+
   ClientBuilder.build_dest: "%(Client.name)-build"
 
   ClientBuilder.build_root_dir: /Users/%(USER|env)/mac-build
@@ -121,6 +125,11 @@ Target:Linux:
   PyInstaller.distpath: |
     %(PyInstaller.dpkg_root)/debian/
 
+  Client.unprivileged_user: _%(Client.name)
+  Client.unprivileged_group: _%(Client.name)
+  Client.use_filesystem_sandboxing: True
+  Client.use_memory_sandboxing: True
+
   Target:LinuxRpm:
     ClientBuilder.output_extension: .rpm
 
@@ -168,6 +177,9 @@ Target:Windows:
 
   ClientBuilder.template_extension: .exe.zip
 
+  Client.use_filesystem_sandboxing: True
+  Client.use_memory_sandboxing: True
+
   Target:WindowsMsi:
     ClientBuilder.output_extension: .msi
 
@@ -196,11 +208,6 @@ Platform:Darwin:
 
   Client.platform: darwin
 
-  Global Install Context:
-    Client.unprivileged_user: nobody
-    Client.unprivileged_group: nobody
-    Client.use_filesystem_sandboxing: True
-
   Client Context:
     Logging.engines: stderr,file,syslog
 
@@ -210,12 +217,6 @@ Platform:Linux:
   Client.binary_name: grrd
 
   Client.platform: linux
-
-  Global Install Context:
-    Client.unprivileged_user: _%(Client.name)
-    Client.unprivileged_group: _%(Client.name)
-    Client.use_filesystem_sandboxing: True
-    Client.use_memory_sandboxing: True
 
   Client Context:
 
@@ -243,10 +244,6 @@ Platform:Windows:
   Client.tempdir_roots:
     - "%(install_path)"
   Client.grr_tempdir: "Temp"
-
-  Global Install Context:
-    Client.use_filesystem_sandboxing: True
-    Client.use_memory_sandboxing: True
 
   Arch:amd64:
     ClientBuilder.vs_arch: x64
