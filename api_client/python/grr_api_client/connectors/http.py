@@ -453,7 +453,7 @@ class HttpConnector(abstract.Connector):
     self._CheckResponseStatus(response)
 
     def GenerateChunks() -> Iterator[bytes]:
-      with contextlib.closing(session):
+      with contextlib.closing(session):  # pytype: disable=wrong-arg-types
         with contextlib.closing(response):
           for chunk in response.iter_content(self.DEFAULT_BINARY_CHUNK_SIZE):
             yield chunk

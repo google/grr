@@ -10,11 +10,17 @@ interface Context<R = ReadonlyArray<FlowResult>> {
   queryMore: (additionalCount: number) => void;
 }
 
-/** Flow query parameter with an optional mapping function. */
-export declare interface FlowResultsQueryWithAdapter<R> extends
-    FlowResultsQuery {
-  resultMapper?: FlowResultMapFunction<R>;
+interface WithAdapter<R> {
+  resultMapper: FlowResultMapFunction<R>;
 }
+
+/** Flow query parameter with an optional mapping function. */
+export declare interface FlowResultsQueryWithOptionalAdapter<R> extends
+    FlowResultsQuery, Partial<WithAdapter<R>> {}
+
+/** Flow query parameter with a mapping function. */
+export declare interface FlowResultsQueryWithAdapter<R> extends
+    FlowResultsQuery, WithAdapter<R> {}
 
 /** Function that maps optional FlowResults[] to a desired data type.  */
 export type FlowResultMapFunction<R> = (results?: ReadonlyArray<FlowResult>) =>
@@ -63,7 +69,8 @@ export class LoadFlowResultsDirective<R = ReadonlyArray<FlowResult>> implements
   }
 
   @Input()
-  set loadFlowResults(query: FlowResultsQueryWithAdapter<R>|null|undefined) {
+  set loadFlowResults(query: FlowResultsQueryWithOptionalAdapter<R>|null|
+                      undefined) {
     if (!query) {
       return;  // Ignore initial null values, e.g. from AsyncPipe.
     }

@@ -196,6 +196,11 @@ Platform:Darwin:
 
   Client.platform: darwin
 
+  Global Install Context:
+    Client.unprivileged_user: nobody
+    Client.unprivileged_group: nobody
+    Client.use_filesystem_sandboxing: True
+
   Client Context:
     Logging.engines: stderr,file,syslog
 
@@ -205,6 +210,12 @@ Platform:Linux:
   Client.binary_name: grrd
 
   Client.platform: linux
+
+  Global Install Context:
+    Client.unprivileged_user: _%(Client.name)
+    Client.unprivileged_group: _%(Client.name)
+    Client.use_filesystem_sandboxing: True
+    Client.use_memory_sandboxing: True
 
   Client Context:
 
@@ -232,6 +243,10 @@ Platform:Windows:
   Client.tempdir_roots:
     - "%(install_path)"
   Client.grr_tempdir: "Temp"
+
+  Global Install Context:
+    Client.use_filesystem_sandboxing: True
+    Client.use_memory_sandboxing: True
 
   Arch:amd64:
     ClientBuilder.vs_arch: x64

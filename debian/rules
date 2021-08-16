@@ -24,7 +24,8 @@ override_dh_auto_test:
 override_dh_installinit:
 	dh_installinit
 	bash grr/core/scripts/install_server_from_src.sh -i debian/grr-server
-	cp -v -r fleetspeak-server-bin/* debian/grr-server
+	cp -v -r debian/grr-server/usr/share/grr-server/fleetspeak-server-bin/etc/fleetspeak-server debian/grr-server/etc
+	rm -r debian/grr-server/usr/share/grr-server/fleetspeak-server-bin/etc/fleetspeak-server
 
 override_dh_installdocs:
 
@@ -49,6 +50,10 @@ override_dh_installwm:
 override_dh_installxfonts:
 
 override_dh_link:
+	dh_link etc/fleetspeak-server usr/share/grr-server/fleetspeak-server-bin/etc/fleetspeak-server
+	dh_link usr/share/grr-server/fleetspeak-server-bin/usr/bin/fleetspeak-server usr/bin/fleetspeak-server
+	dh_link usr/share/grr-server/fleetspeak-server-bin/usr/bin/fleetspeak-config usr/bin/fleetspeak-config
+	dh_link usr/share/grr-server/fleetspeak-server-bin/lib/systemd/system/fleetspeak-server.service lib/systemd/system/fleetspeak-server.service
 
 override_dh_gconf:
 

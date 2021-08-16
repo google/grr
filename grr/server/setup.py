@@ -173,6 +173,8 @@ setup_args = dict(
             "grr_response_server.distro_entry:Worker",
             "grr_admin_ui = "
             "grr_response_server.distro_entry:AdminUI",
+            "fleetspeak_server = "
+            "grr_response_server.distro_entry:FleetspeakServer",
         ]
     },
     install_requires=[
@@ -211,6 +213,9 @@ setup_args = dict(
         # TODO(user): Find a way to use the latest mysqlclient version
         # in GRR server DEB.
         "mysqldatastore": ["mysqlclient==1.3.10"],
+        # TODO: We currently release fleetspeak-server-bin packages
+        # for Linux only.
+        ":sys_platform==\"linux\"": ["fleetspeak-server-bin==0.1.9",],
     },
     data_files=data_files)
 

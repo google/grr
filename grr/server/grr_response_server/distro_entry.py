@@ -44,3 +44,8 @@ def AdminUI():
 def Grrafana():
   from grr_response_server.bin import grrafana
   app.run(grrafana.main)
+
+
+def FleetspeakServer():
+  from grr_response_server.bin import fleetspeak_server_wrapper
+  app.run(fleetspeak_server_wrapper.main)

@@ -12,6 +12,7 @@ from grr_response_core.config import server as config_server
 
 from grr_response_server import server_startup
 from grr_response_server.bin import fleetspeak_frontend
+from grr_response_server.bin import fleetspeak_server_wrapper
 from grr_response_server.bin import frontend
 from grr_response_server.bin import grrafana
 from grr_response_server.bin import worker
@@ -60,6 +61,10 @@ def main(argv):
   # Start as GRRafana.
   elif flags.FLAGS.component.startswith("grrafana"):
     grrafana.main([argv])
+
+  # Start a fleetspeak server.
+  elif flags.FLAGS.component.startswith("fleetspeak_server"):
+    fleetspeak_server_wrapper.main(argv)
 
   # Raise on invalid component.
   else:

@@ -103,6 +103,7 @@ class CollectMultipleFiles(transfer.MultiGetFileLogic, flow_base.FlowBase):
   category = "/Filesystem/"
   args_type = rdf_file_finder.CollectMultipleFilesArgs
   result_types = (rdf_file_finder.CollectMultipleFilesResult,)
+  progress_type = rdf_file_finder.CollectMultipleFilesProgress
   behaviours = flow_base.BEHAVIOUR_DEBUG
 
   MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10  # 10GiB

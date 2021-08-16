@@ -9,7 +9,7 @@ import {newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
 
-import {FlowResultsQueryWithAdapter} from './load_flow_results_directive';
+import {LoadFlowResultsDirective} from './load_flow_results_directive';
 import {HelpersModule} from './module';
 
 
@@ -24,7 +24,7 @@ class InnerComponent {
       `<test-inner *loadFlowResults="query; let results=results; let queryMore=queryMore;" [results]="results" [queryMore]="queryMore"></test-inner>`
 })
 class TestHostComponent<R> {
-  @Input() query!: FlowResultsQueryWithAdapter<R>;
+  @Input() query!: LoadFlowResultsDirective<R>['loadFlowResults'];
 }
 
 initTestEnvironment();

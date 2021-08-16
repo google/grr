@@ -5,7 +5,6 @@ import argparse
 import getpass
 import os
 import re
-import shutil
 import socket
 import subprocess
 import sys
@@ -27,6 +26,7 @@ from grr_api_client import errors as api_errors
 from grr_api_client import root as api_root
 from grr_response_client_builder import repacking
 from grr_response_core import config as grr_config
+from grr_response_core.lib import package
 from grr_response_core.lib.util import compatibility
 from grr_response_server import maintenance_utils
 from grr_response_server import server_startup
@@ -331,7 +331,11 @@ class FleetspeakConfig:
     self.mysql_port = 3306
     self.mysql_database: str = None
     self.mysql_unix_socket: str = None
-    self.config_dir = "/etc/fleetspeak-server"
+    self.config_dir = package.ResourcePath(
+        "fleetspeak-server-bin", "fleetspeak-server-bin/etc/fleetspeak-server")
+    self._fleetspeak_config_command_path = package.ResourcePath(
+        "fleetspeak-server-bin",
+        "fleetspeak-server-bin/usr/bin/fleetspeak-config")
 
   def Prompt(self, config):
     """Sets up the in-memory configuration interactively."""
@@ -372,9 +376,10 @@ class FleetspeakConfig:
     return os.path.join(self.config_dir, *path_components)
 
   def _IsFleetspeakPresent(self) -> bool:
+    """Returns True, if a fleetspeak server is available on this system."""
     if not os.path.exists(self._ConfigPath()):
       return False
-    if not shutil.which("fleetspeak-config"):
+    if not os.path.exists(self._fleetspeak_config_command_path):
       return False
     return True
 
@@ -477,8 +482,9 @@ class FleetspeakConfig:
     cp.darwin_client_configuration_file = self._ConfigPath(
         "darwin_client.config")
 
-    p = subprocess.Popen(["fleetspeak-config", "-config", "/dev/stdin"],
-                         stdin=subprocess.PIPE)
+    p = subprocess.Popen(
+        [self._fleetspeak_config_command_path, "-config", "/dev/stdin"],
+        stdin=subprocess.PIPE)
     p.communicate(input=text_format.MessageToString(cp).encode())
     if p.wait() != 0:
       raise RuntimeError("fleetspeak-config command failed.")
@@ -490,10 +496,10 @@ class FleetspeakConfig:
     # pylint: enable=g-import-not-at-top
 
     if (os.geteuid() == 0 and pwd.getpwnam("fleetspeak") and
-        grp.getgrnam("fleetspeak")):
+        grp.getgrnam("fleetspeak") and
+        os.path.exists("/etc/fleetspeak-server")):
       subprocess.check_call(
-          ["chown", "-R", "fleetspeak:fleetspeak",
-           self._ConfigPath()])
+          ["chown", "-R", "fleetspeak:fleetspeak", "/etc/fleetspeak-server"])
 
     try:
       os.unlink(self._ConfigPath("disabled"))
@@ -577,35 +583,7 @@ def ConfigureDatastore(config):
         "For GRR to work each GRR server has to be able to communicate with\n"
         "the datastore. To do this we need to configure a datastore.\n")
 
-  existing_datastore = grr_config.CONFIG.Get("Datastore.implementation")
-
-  if not existing_datastore or existing_datastore == "FakeDataStore":
-    ConfigureMySQLDatastore(config)
-    return
-
-  print("Found existing settings:\n  REL_DB MySQL database")
-  if existing_datastore == "SqliteDataStore":
-    set_up_mysql = RetryBoolQuestion(
-        "The SQLite datastore is no longer supported. Would you like to\n"
-        "set up a MySQL datastore? Answering 'no' will abort config "
-        "initialization.", True)
-    if set_up_mysql:
-      print("\nPlease note that no data will be migrated from SQLite to "
-            "MySQL.\n")
-      ConfigureMySQLDatastore(config)
-    else:
-      raise ConfigInitError()
-  elif existing_datastore == "MySQLAdvancedDataStore":
-    set_up_mysql = RetryBoolQuestion(
-        "The MySQLAdvancedDataStore is no longer supported. Would you like to\n"
-        "set up a new MySQL datastore? Answering 'no' will abort config "
-        "initialization.", True)
-    if set_up_mysql:
-      print("\nPlease note that no data will be migrated from the old data "
-            "store.\n")
-      ConfigureMySQLDatastore(config)
-    else:
-      raise ConfigInitError()
+  ConfigureMySQLDatastore(config)
 
 
 def ConfigureUrls(config, external_hostname: Optional[Text] = None):

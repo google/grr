@@ -1,12 +1,12 @@
 import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpRequest} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
-import {Observable, of, throwError} from 'rxjs';
-import {catchError, map, mapTo, shareReplay, switchMap, take} from 'rxjs/operators';
+import {Observable, of, throwError, timer} from 'rxjs';
+import {catchError, map, mapTo, shareReplay, switchMap, take, takeLast, takeWhile} from 'rxjs/operators';
 
 import {isNonNull} from '../preconditions';
 
-import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFile, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGetFileDetailsResult, ApiGetFileTextArgs, ApiGetFileTextArgsEncoding, ApiGetFileTextResult, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApproverSuggestion, ArtifactDescriptor, DecimalString, GlobComponentExplanation, PathSpecPathType} from './api_interfaces';
+import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFile, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGetFileDetailsResult, ApiGetFileTextArgs, ApiGetFileTextArgsEncoding, ApiGetFileTextResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApiUpdateVfsFileContentArgs, ApiUpdateVfsFileContentResult, ApproverSuggestion, ArtifactDescriptor, DecimalString, GlobComponentExplanation, PathSpecPathType} from './api_interfaces';
 
 
 /**
@@ -71,6 +71,8 @@ export interface GetFileTextOptions {
  */
 @Injectable()
 export class HttpApiService {
+  readonly POLLING_INTERVAL = 5000;
+
   constructor(private readonly http: HttpClient) {}
 
   /**
@@ -483,6 +485,51 @@ export class HttpApiService {
     return this.http.get<ApiGetFileTextResult>(
         `${URL_PREFIX}/clients/${clientId}/vfs-text${vfsPath}`,
         {params: objectToHttpParams(queryArgs as HttpParamObject)});
+  }
+
+  /**
+   * Triggers recollection of a file and returns the new ApiFile after
+   * the recollection has been finished.
+   */
+  updateVfsFileContent(
+      clientId: string,
+      pathType: PathSpecPathType,
+      path: string,
+      ): Observable<ApiFile> {
+    const data:
+        ApiUpdateVfsFileContentArgs = {filePath: toVFSPath(pathType, path)};
+    return this.http
+        .post<ApiUpdateVfsFileContentResult>(
+            `${URL_PREFIX}/clients/${clientId}/vfs-update`, data)
+        .pipe(
+            switchMap(
+                response => this.pollVfsFileContentUpdateState(
+                    clientId, response.operationId!)),
+            takeLast(1),
+            switchMap(() => this.getFileDetails(clientId, pathType, path)),
+        );
+  }
+
+  private getVfsFileContentUpdateState(
+      clientId: string,
+      operationId: string,
+      ): Observable<ApiGetVfsFileContentUpdateStateResult> {
+    return this.http.get<ApiGetVfsFileContentUpdateStateResult>(
+        `${URL_PREFIX}/clients/${clientId}/vfs-update/${operationId}`);
+  }
+
+  private pollVfsFileContentUpdateState(
+      clientId: string,
+      operationId: string,
+      ): Observable<ApiGetVfsFileContentUpdateStateResult> {
+    return timer(0, this.POLLING_INTERVAL)
+        .pipe(
+            switchMap(
+                () => this.getVfsFileContentUpdateState(clientId, operationId)),
+            takeWhile(
+                (response) => response.state ===
+                    ApiGetVfsFileContentUpdateStateResultState.RUNNING,
+                true));
   }
 }
 

@@ -67,7 +67,7 @@ export class CollectMultipleFilesDetails extends Plugin {
 
   readonly query$: Observable<
       FlowResultsQueryWithAdapter<ReadonlyArray<FlowFileResult>|undefined>> =
-      this.flow$.pipe(map(flow => ({flow, adapter: ADAPTER})));
+      this.flow$.pipe(map(flow => ({flow, resultMapper: ADAPTER})));
 
   readonly description$ = this.args$.pipe(map(args => {
     const length = args.pathExpressions?.length ?? 0;

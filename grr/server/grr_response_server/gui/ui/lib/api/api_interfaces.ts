@@ -1138,3 +1138,31 @@ export declare interface ApiFile {
 export declare interface ApiGetFileDetailsResult {
   readonly file?: ApiFile;
 }
+
+/** ApiUpdateVfsFileContentArgs proto mapping. */
+export declare interface ApiUpdateVfsFileContentArgs {
+  clientId?: string;
+  filePath?: string;
+}
+
+/** ApiUpdateVfsFileContentResult proto mapping. */
+export declare interface ApiUpdateVfsFileContentResult {
+  operationId?: string;
+}
+
+/** ApiGetVfsFileContentUpdateStateArgs proto mapping. */
+export declare interface ApiGetVfsFileContentUpdateStateArgs {
+  clientId?: string;
+  operationId?: string;
+}
+
+/** ApiGetVfsFileContentUpdateStateResult.State proto mapping. */
+export enum ApiGetVfsFileContentUpdateStateResultState {
+  RUNNING = 'RUNNING',
+  FINISHED = 'FINISHED',
+}
+
+/** ApiGetVfsFileContentUpdateStateResult proto mapping. */
+export declare interface ApiGetVfsFileContentUpdateStateResult {
+  state?: ApiGetVfsFileContentUpdateStateResultState;
+}

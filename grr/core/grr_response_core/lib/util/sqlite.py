@@ -37,7 +37,7 @@ class ConnectionContext(object):
     Yields:
       Database rows that are results of the query.
     """
-    with contextlib.closing(self._conn.cursor()) as cursor:
+    with contextlib.closing(self._conn.cursor()) as cursor:  # pytype: disable=wrong-arg-types
       cursor.execute(query)
 
       while True:
@@ -65,7 +65,7 @@ def IOConnection(db_filedesc: IO[bytes]) -> Iterator[ConnectionContext]:
     with io.open(temp_db_filepath, mode="wb") as temp_db_filedesc:
       _CopyIO(input=db_filedesc, output=temp_db_filedesc)
 
-    with contextlib.closing(sqlite3.connect(temp_db_filepath)) as conn:
+    with contextlib.closing(sqlite3.connect(temp_db_filepath)) as conn:  # pytype: disable=wrong-arg-types
       yield ConnectionContext(conn)
 
 

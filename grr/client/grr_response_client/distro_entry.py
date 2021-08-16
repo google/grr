@@ -19,3 +19,8 @@ def FleetspeakClient():
 def PoolClient():
   from grr_response_client import poolclient
   app.run(poolclient.main)
+
+
+def FleetspeakClientWrapper():
+  from grr_response_client import fleetspeak_client_wrapper
+  app.run(fleetspeak_client_wrapper.main)

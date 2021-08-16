@@ -119,7 +119,9 @@ setup_args = dict(
             "grr_client = grr_response_client.distro_entry:Client",
             ("grr_fleetspeak_client = "
              "grr_response_client.distro_entry:FleetspeakClient"),
-            "grr_pool_client = grr_response_client.distro_entry:PoolClient"
+            "grr_pool_client = grr_response_client.distro_entry:PoolClient",
+            ("fleetspeak_client = "
+             "grr_response_client.distro_entry:FleetspeakClientWrapper"),
         ]
     },
     cmdclass={
@@ -136,6 +138,7 @@ setup_args = dict(
         PYTSK3,
         "retry==0.9.2",
         "libfsntfs-python==20210503",
+        "fleetspeak-client-bin==0.1.9",
     ],
     extras_require={
         # The following requirements are needed in Windows.
