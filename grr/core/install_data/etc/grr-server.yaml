@@ -196,7 +196,7 @@ Platform:Darwin:
 
   Client.platform: darwin
 
-  Global Install Context:
+  ClientBuilder Context:
     Client.unprivileged_user: nobody
     Client.unprivileged_group: nobody
     Client.use_filesystem_sandboxing: True
@@ -211,7 +211,7 @@ Platform:Linux:
 
   Client.platform: linux
 
-  Global Install Context:
+  ClientBuilder Context:
     Client.unprivileged_user: _%(Client.name)
     Client.unprivileged_group: _%(Client.name)
     Client.use_filesystem_sandboxing: True
@@ -244,7 +244,7 @@ Platform:Windows:
     - "%(install_path)"
   Client.grr_tempdir: "Temp"
 
-  Global Install Context:
+  ClientBuilder Context:
     Client.use_filesystem_sandboxing: True
     Client.use_memory_sandboxing: True
 
