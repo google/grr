@@ -68,7 +68,7 @@ setup_args = dict(
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "PyInstaller==3.6",
-        "fleetspeak-client-bin==0.1.9",
+        "fleetspeak-client-bin==0.1.11",
         "olefile==0.46",
     ],
 

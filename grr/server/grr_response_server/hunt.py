@@ -98,7 +98,7 @@ def StopHuntIfCrashLimitExceeded(hunt_id):
   return hunt_obj
 
 
-_TIME_BETWEEN_STOP_CHECKS = rdfvalue.Duration.From(5, rdfvalue.SECONDS)
+_TIME_BETWEEN_STOP_CHECKS = rdfvalue.Duration.From(30, rdfvalue.SECONDS)
 
 
 @cache.WithLimitedCallFrequency(_TIME_BETWEEN_STOP_CHECKS)

@@ -328,7 +328,10 @@ class MultiTemplateRepacker(object):
               passwd = self.GetWindowsPassphrase()
               repack_args.append("--sign")
             else:
-              bulk_sign_installers = True
+              if template.endswith(".msi.zip"):
+                repack_args.append("--sign")
+              else:
+                bulk_sign_installers = True
             if signed_template:
               repack_args.append("--signed_template")
           elif template.endswith(".rpm.zip"):

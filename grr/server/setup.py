@@ -215,7 +215,7 @@ setup_args = dict(
         "mysqldatastore": ["mysqlclient==1.3.10"],
         # TODO: We currently release fleetspeak-server-bin packages
         # for Linux only.
-        ":sys_platform==\"linux\"": ["fleetspeak-server-bin==0.1.9",],
+        ":sys_platform==\"linux\"": ["fleetspeak-server-bin==0.1.11",],
     },
     data_files=data_files)
 

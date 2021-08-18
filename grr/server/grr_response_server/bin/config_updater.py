@@ -411,6 +411,11 @@ You are about to rotate the server key. Note that:
       maintenance_utils.RotateServerKey(
           cn=args.common_name, keylength=keylength)
 
+      if grr_config.CONFIG["Server.fleetspeak_enabled"]:
+        config_updater_util.FleetspeakConfig().RotateKey()
+        print("Fleetspeak server key rotated, "
+              "please restart fleetspeak-server.")
+
 
 def Run():
   app.run(main, flags_parser=lambda argv: parser.parse_args(argv[1:]))

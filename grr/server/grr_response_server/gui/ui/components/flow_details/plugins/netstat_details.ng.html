@@ -1,34 +1,98 @@
+<div class="download flow-details-summary-actions" *ngIf="(flowState$ | async) === FINISHED">
+  <!-- TODO: Add progress (number of connections). -->
+  <!-- TODO: Add download options (CSV, YAML, SQLite). -->
+</div>
+
 <result-accordion [title]="title$ | async" (firstOpened)="onShowClicked()">
-  <!-- TODO: Add download options (CSV, YAML, SQLite) -->
-
   <div class="table-container">
-    <table *ngIf="(netstatResults$ | async)?.length; else noTable">
-      <thead>
-        <th *ngFor="let column of columns; trackBy: trackByIndex">
-          {{column}}
-        </th>
-      </thead>
-      <tbody>
-        <ng-template ngFor let-conn [ngForOf]="netstatResults$ | async">
-          <tr>
-            <td>{{conn.pid}}</td>
-            <td>{{conn.processName}}</td>
-            <td>{{conn.state}}</td>
-            <td>{{conn.type}}</td>
-            <td>{{conn.family}}</td>
-            <td>{{conn.localAddress?.ip}}</td>
-            <td>{{conn.localAddress?.port}}</td>
-            <td>{{conn.remoteAddress?.ip}}</td>
-            <td>{{conn.remoteAddress?.port}}</td>
-          </tr>
-        </ng-template>
-      </tbody>
-    </table>
+    <table mat-table [dataSource]="netstatResults$" [trackBy]="trackByConnectionRowIndex" *ngIf="displayedColumns$ | async as displayedColumns">
 
-    <ng-template #noTable>
-      <div class="error">
-        No results to display.
-      </div>
-    </ng-template>
+      <ng-container matColumnDef="pid">
+        <th mat-header-cell *matHeaderCellDef>PID</th>
+        <td mat-cell *matCellDef="let r" class="cell">
+          {{r.pid}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="processName">
+        <th mat-header-cell *matHeaderCellDef>Process Name</th>
+        <td mat-cell *matCellDef="let c" class="with-copy process-name monospace">
+          {{c.processName}}<button
+            class="copy-button"
+            [cdkCopyToClipboard]="c.processName"
+            mat-icon-button
+            aria-label="Copy process name to clipboard"
+          >
+            <mat-icon class="menu-icon">content_copy</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="state">
+        <th mat-header-cell *matHeaderCellDef>State</th>
+        <td mat-cell *matCellDef="let c" class="cell">
+          {{c.state}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="type">
+        <th mat-header-cell *matHeaderCellDef>Type</th>
+        <td mat-cell *matCellDef="let c" class="cell">
+          {{c.type | networkConnectionType}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="family">
+        <th mat-header-cell *matHeaderCellDef>Family</th>
+        <td mat-cell *matCellDef="let c" class="cell">
+          {{c.family | networkConnectionFamily}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="localIP">
+        <th mat-header-cell *matHeaderCellDef>Local IP</th>
+        <td mat-cell *matCellDef="let c" class="with-copy ip-address">
+          {{c.localAddress?.ip}}<button
+            class="copy-button"
+            [cdkCopyToClipboard]="c.localIP"
+            mat-icon-button
+            aria-label="Copy local IP to clipboard"
+          >
+            <mat-icon class="menu-icon">content_copy</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="localPort">
+        <th mat-header-cell *matHeaderCellDef>Local Port</th>
+        <td mat-cell *matCellDef="let c" class="cell">
+          {{c.localAddress?.port}}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="remoteIP">
+        <th mat-header-cell *matHeaderCellDef>Remote IP</th>
+        <td mat-cell *matCellDef="let c" class="with-copy ip-address">
+          {{c.remoteAddress?.ip}}<button
+            class="copy-button"
+            [cdkCopyToClipboard]="c.remoteIP"
+            mat-icon-button
+            aria-label="Copy remote IP to clipboard"
+          >
+            <mat-icon class="menu-icon">content_copy</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="remotePort">
+        <th mat-header-cell *matHeaderCellDef>Remote Port</th>
+        <td mat-cell *matCellDef="let c" class="cell">
+          {{c.remoteAddress?.port}}
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
   </div>
 </result-accordion>

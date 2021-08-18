@@ -1037,12 +1037,12 @@ export enum NetworkConnectionType {
 export declare interface NetworkConnection {
   readonly family?: NetworkConnectionFamily;
   readonly type?: NetworkConnectionType;
-  readonly local_address?: NetworkEndpoint;
-  readonly remote_address?: NetworkEndpoint;
+  readonly localAddress?: NetworkEndpoint;
+  readonly remoteAddress?: NetworkEndpoint;
   readonly state?: NetworkConnectionState;
   readonly pid?: number;
   readonly ctime?: number;
-  readonly process_name?: string;
+  readonly processName?: string;
 }
 
 /** ApiGetFileTextArgs.Encoding proto mapping. */

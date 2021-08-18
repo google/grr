@@ -10,6 +10,7 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 import {ExpandableHashModule} from '@app/components/expandable_hash/module';
 import {FileModePipe} from '@app/components/flow_details/helpers/file_mode_pipe';
+import {NetworkConnectionFamilyPipe, NetworkConnectionTypePipe} from '@app/components/flow_details/helpers/network_connection_pipes';
 import {HumanReadableSizeModule} from '@app/components/human_readable_size/module';
 import {TimestampModule} from '@app/components/timestamp/module';
 
@@ -46,6 +47,8 @@ import {ResultAccordion} from './result_accordion';
   declarations: [
     FileResultsTable,
     FileModePipe,
+    NetworkConnectionFamilyPipe,
+    NetworkConnectionTypePipe,
     OsqueryResultsTable,
     ResultAccordion,
     LoadFlowResultsDirective,
@@ -54,6 +57,8 @@ import {ResultAccordion} from './result_accordion';
   exports: [
     FileResultsTable,
     FileModePipe,
+    NetworkConnectionFamilyPipe,
+    NetworkConnectionTypePipe,
     OsqueryResultsTable,
     ResultAccordion,
     LoadFlowResultsDirective,

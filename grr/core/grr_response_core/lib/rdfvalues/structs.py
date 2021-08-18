@@ -1750,8 +1750,8 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
     try:
       ReadIntoObject(value, 0, instance)
     except ValueError:
-      logging.error("Error in ReadIntoObject for bytes, extract: %r",
-                    value[:1000])
+      logging.error("Error in ReadIntoObject. %d bytes, extract: %r",
+                    len(value), value[:1000])
       raise
 
     instance.dirty = True
@@ -1879,7 +1879,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
       The attribute's value, or the attribute's type's default value, if unset.
     """
     entry = self._data.get(attr)
-    # We dont have this field, try the defaults.
+    # We don't have this field, try the defaults.
     if entry is None:
       type_descriptor = self._GetTypeDescriptor(attr)
       default = type_descriptor.GetDefault(container=self)

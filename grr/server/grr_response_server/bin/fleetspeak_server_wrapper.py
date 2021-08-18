@@ -15,7 +15,6 @@ import subprocess
 
 from absl import app
 
-from grr_response_core.lib import config_lib
 from grr_response_core.lib import package
 
 
@@ -24,7 +23,6 @@ class Error(Exception):
 
 
 def main(argv):
-  config_lib.ParseConfigCommandLine()
   config_dir = package.ResourcePath(
       "fleetspeak-server-bin", "fleetspeak-server-bin/etc/fleetspeak-server")
   if not os.path.exists(config_dir):

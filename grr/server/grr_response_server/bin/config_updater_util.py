@@ -2,6 +2,7 @@
 """Utilities for modifying the GRR server configuration."""
 
 import argparse
+import datetime
 import getpass
 import os
 import re
@@ -372,6 +373,18 @@ class FleetspeakConfig:
     else:
       self._WriteDisabled(config)
 
+  def RotateKey(self):
+    now_str = datetime.datetime.now().isoformat()
+    # Move the old server keys
+    for cert_file in ("server_cert.pem", "server_cert_key.pem"):
+      old_file = f"old_{now_str}_{cert_file}"
+      os.rename(self._ConfigPath(cert_file), self._ConfigPath(old_file))
+    # Run fleetspeak-config to regenerate them
+    subprocess.check_call([
+        self._fleetspeak_config_command_path, "-config",
+        self._ConfigPath("fleetspeak_config.config")
+    ])
+
   def _ConfigPath(self, *path_components: str) -> str:
     return os.path.join(self.config_dir, *path_components)
 
@@ -482,12 +495,13 @@ class FleetspeakConfig:
     cp.darwin_client_configuration_file = self._ConfigPath(
         "darwin_client.config")
 
-    p = subprocess.Popen(
-        [self._fleetspeak_config_command_path, "-config", "/dev/stdin"],
-        stdin=subprocess.PIPE)
-    p.communicate(input=text_format.MessageToString(cp).encode())
-    if p.wait() != 0:
-      raise RuntimeError("fleetspeak-config command failed.")
+    with open(self._ConfigPath("fleetspeak_config.config"), "w") as f:
+      f.write(text_format.MessageToString(cp))
+
+    subprocess.check_call([
+        self._fleetspeak_config_command_path, "-config",
+        self._ConfigPath("fleetspeak_config.config")
+    ])
 
     # These modules don't exist on Windows, so importing locally.
     # pylint: disable=g-import-not-at-top
