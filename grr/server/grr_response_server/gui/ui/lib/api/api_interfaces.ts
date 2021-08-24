@@ -258,6 +258,7 @@ export declare interface ApiFlow {
   readonly args?: AnyObject;
   readonly progress?: AnyObject;
   readonly state?: ApiFlowState;
+  readonly resultMetadata?: FlowResultMetadata;
 }
 
 /** ApiListFlowsResult proto mapping. */
@@ -1111,6 +1112,15 @@ export declare interface ApiGetFileTextArgs {
   readonly timestamp?: DecimalString;
 }
 
+/** ApiGetFileBlobArgs proto mapping */
+export declare interface ApiGetFileBlobArgs {
+  readonly clientId?: string;
+  readonly filePath?: string;
+  readonly offset?: DecimalString;
+  readonly length?: DecimalString;
+  readonly timestamp?: DecimalString;
+}
+
 /** ApiGetFileTextResult proto mapping. */
 export declare interface ApiGetFileTextResult {
   readonly content?: string;
@@ -1165,4 +1175,16 @@ export enum ApiGetVfsFileContentUpdateStateResultState {
 /** ApiGetVfsFileContentUpdateStateResult proto mapping. */
 export declare interface ApiGetVfsFileContentUpdateStateResult {
   state?: ApiGetVfsFileContentUpdateStateResultState;
+}
+
+/** FlowResultCount proto mapping. */
+export declare interface FlowResultCount {
+  readonly type?: string;
+  readonly tag?: string;
+  readonly count?: number;
+}
+
+/** FlowResultMetadata proto mapping. */
+export declare interface FlowResultMetadata {
+  readonly numResultsPerTypeTag?: ReadonlyArray<FlowResultCount>;
 }

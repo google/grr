@@ -1,6 +1,6 @@
 import {fakeAsync, TestBed} from '@angular/core/testing';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {FileDetailsLocalStore} from '@app/store/file_details_local_store';
+import {ContentFetchMode, FileDetailsLocalStore} from '@app/store/file_details_local_store';
 import {initTestEnvironment} from '@app/testing';
 import {firstValueFrom, Subject} from 'rxjs';
 
@@ -11,6 +11,7 @@ import {injectHttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_
 
 initTestEnvironment();
 
+const arrayBufferOf = (bytes: number[]) => new Uint8Array(bytes).buffer;
 
 describe('FileDetailsLocalStore', () => {
   beforeEach(() => {
@@ -69,7 +70,7 @@ describe('FileDetailsLocalStore', () => {
            .toEqual(jasmine.objectContaining({name: 'BAR'}));
      }));
 
-  it('recollectFile reloads file contents', fakeAsync(async () => {
+  it('recollectFile reloads text file contents', fakeAsync(async () => {
        const fileDetailsLocalStore = TestBed.inject(FileDetailsLocalStore);
        const httpApiService = injectHttpApiServiceMock();
 
@@ -99,9 +100,51 @@ describe('FileDetailsLocalStore', () => {
        expect(httpApiService.getFileText)
            .toHaveBeenCalledWith(
                'C.1234', PathSpecPathType.OS, '/foo/bar',
-               jasmine.objectContaining({offset: 0, length: BigInt(7)}));
+               jasmine.objectContaining(
+                   {offset: BigInt(0), length: BigInt(7)}));
        expect(await firstValueFrom(fileDetailsLocalStore.textContent$))
            .toBe('abcdefg');
+     }));
+
+  it('recollectFile reloads blob file contents', fakeAsync(async () => {
+       const fileDetailsLocalStore = TestBed.inject(FileDetailsLocalStore);
+       const httpApiService = injectHttpApiServiceMock();
+
+       fileDetailsLocalStore.selectFile({
+         clientId: 'C.1234',
+         pathType: PathSpecPathType.OS,
+         path: '/foo/bar'
+       });
+       fileDetailsLocalStore.setMode(ContentFetchMode.BLOB);
+
+       httpApiService.mockedObservables.getFileBlob = new Subject();
+       fileDetailsLocalStore.fetchMoreContent(BigInt(2));
+       httpApiService.mockedObservables.getFileBlobLength.next(BigInt(10));
+       httpApiService.mockedObservables.getFileBlob.next(arrayBufferOf([1, 2]));
+
+       httpApiService.mockedObservables.getFileBlob = new Subject();
+       fileDetailsLocalStore.fetchMoreContent(BigInt(3));
+       httpApiService.mockedObservables.getFileBlob.next(
+           arrayBufferOf([3, 4, 5]));
+
+       httpApiService.mockedObservables.getFileBlob = new Subject();
+       fileDetailsLocalStore.recollectFile();
+       httpApiService.mockedObservables.updateVfsFileContent.next(
+           {name: 'BAR', stat: {pathspec: {path: '/foo/bar'}}});
+       const NEW_LENGTH = BigInt(12);
+       httpApiService.mockedObservables.getFileBlobLength.next(NEW_LENGTH);
+       httpApiService.mockedObservables.getFileBlob.next(
+           arrayBufferOf([55, 4, 3, 2, 1]));
+
+       expect(httpApiService.getFileBlob)
+           .toHaveBeenCalledWith(
+               'C.1234', PathSpecPathType.OS, '/foo/bar',
+               jasmine.objectContaining(
+                   {offset: BigInt(0), length: BigInt(5)}));
+       expect(await firstValueFrom(fileDetailsLocalStore.totalLength$))
+           .toEqual(NEW_LENGTH);
+       expect(await firstValueFrom(fileDetailsLocalStore.blobContent$))
+           .toEqual(arrayBufferOf([55, 4, 3, 2, 1]));
      }));
 
   it('fetchMoreContent appends file contents', fakeAsync(async () => {
@@ -120,7 +163,8 @@ describe('FileDetailsLocalStore', () => {
        expect(httpApiService.getFileText)
            .toHaveBeenCalledOnceWith(
                'C.1234', PathSpecPathType.OS, '/foo/bar',
-               jasmine.objectContaining({offset: 0, length: BigInt(3)}));
+               jasmine.objectContaining(
+                   {offset: BigInt(0), length: BigInt(3)}));
        httpApiService.getFileText.calls.reset();
 
        httpApiService.mockedObservables.getFileText.next(
@@ -135,12 +179,57 @@ describe('FileDetailsLocalStore', () => {
        expect(httpApiService.getFileText)
            .toHaveBeenCalledOnceWith(
                'C.1234', PathSpecPathType.OS, '/foo/bar',
-               jasmine.objectContaining({offset: 3, length: BigInt(4)}));
+               jasmine.objectContaining(
+                   {offset: BigInt(3), length: BigInt(4)}));
 
        httpApiService.mockedObservables.getFileText.next(
            {content: '4567', totalSize: 12});
 
        expect(await firstValueFrom(fileDetailsLocalStore.textContent$))
            .toBe('1234567');
+     }));
+
+  it('fetchMoreContent appends blob contents', fakeAsync(async () => {
+       const fileDetailsLocalStore = TestBed.inject(FileDetailsLocalStore);
+       const httpApiService = injectHttpApiServiceMock();
+
+       fileDetailsLocalStore.selectFile({
+         clientId: 'C.1234',
+         pathType: PathSpecPathType.OS,
+         path: '/foo/bar'
+       });
+       fileDetailsLocalStore.setMode(ContentFetchMode.BLOB);
+
+       httpApiService.mockedObservables.getFileBlob = new Subject();
+       fileDetailsLocalStore.fetchMoreContent(BigInt(2));
+
+       expect(httpApiService.getFileBlob)
+           .toHaveBeenCalledOnceWith(
+               'C.1234', PathSpecPathType.OS, '/foo/bar',
+               jasmine.objectContaining(
+                   {offset: BigInt(0), length: BigInt(2)}));
+       httpApiService.getFileBlob.calls.reset();
+
+       httpApiService.mockedObservables.getFileBlobLength.next(BigInt(10));
+       httpApiService.mockedObservables.getFileBlob.next(
+           arrayBufferOf([128, 5]));
+
+       expect(await firstValueFrom(fileDetailsLocalStore.blobContent$))
+           .toEqual(arrayBufferOf([128, 5]));
+
+       httpApiService.mockedObservables.getFileBlob = new Subject();
+       fileDetailsLocalStore.fetchMoreContent(BigInt(3));
+
+       expect(httpApiService.getFileBlob)
+           .toHaveBeenCalledOnceWith(
+               'C.1234', PathSpecPathType.OS, '/foo/bar',
+               jasmine.objectContaining(
+                   {offset: BigInt(2), length: BigInt(3)}));
+
+       httpApiService.mockedObservables.getFileBlob.next(
+           arrayBufferOf([5, 6, 7]));
+
+       expect(await firstValueFrom(fileDetailsLocalStore.blobContent$))
+           .toEqual(arrayBufferOf([128, 5, 5, 6, 7]));
      }));
 });

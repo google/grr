@@ -113,10 +113,10 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     """Turn Exported* protos with embedded metadata into a nested dict."""
     row = {}
     for type_info in value.__class__.type_infos:
-      # We are not interested in serializing binary data. JSON files have to be
-      # UTF-8 encoded and dumping arbitrary binary strings is not possible. One
-      # viable solution would be to use e.g. base64 but it is unclear whether
-      # such data would be useful for anyone.
+      # TODO: Add support for serializing binary data.
+      #
+      # JSON files have to be UTF-8 encoded and dumping arbitrary binary strings
+      # is not possible. One viable solution would be to use e.g. base64.
       if isinstance(type_info, rdf_structs.ProtoBinary):
         continue
 

@@ -1,19 +1,21 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
 import {HttpApiService} from '@app/lib/api/http_api_service';
-import {Observable, of} from 'rxjs';
+import {combineLatest, Observable, of} from 'rxjs';
 import {map, switchMap, tap, withLatestFrom} from 'rxjs/operators';
 
-import {ApiGetFileTextArgsEncoding, ApiGetFileTextResult, PathSpecPathType} from '../lib/api/api_interfaces';
+import {ApiGetFileTextArgsEncoding, PathSpecPathType} from '../lib/api/api_interfaces';
 import {translateFile} from '../lib/api_translation/vfs';
 import {File} from '../lib/models/vfs';
 import {assertKeyNonNull} from '../lib/preconditions';
 
 interface State {
+  readonly mode?: ContentFetchMode;
   readonly file?: FileIdentifier;
   readonly fetchContentLength?: bigint;
   readonly textContent?: string;
-  readonly totalSize?: bigint;
+  readonly blobContent?: ArrayBuffer;
+  readonly totalLength?: bigint;
   readonly details?: File;
   readonly isRecollecting?: boolean;
 }
@@ -22,6 +24,19 @@ interface FileIdentifier {
   readonly clientId: string;
   readonly pathType: PathSpecPathType;
   readonly path: string;
+}
+
+
+/** Mode to define whether to load text or blob file contents. */
+export enum ContentFetchMode {
+  TEXT,
+  BLOB,
+}
+
+interface FetchResult {
+  readonly totalLength: bigint;
+  readonly textContent?: string;
+  readonly blobContent?: ArrayBuffer;
 }
 
 const ENCODING = ApiGetFileTextArgsEncoding.UTF_8;
@@ -41,11 +56,17 @@ export class FileDetailsLocalStore {
     this.store.fetchDetails();
   }
 
+  setMode(mode: ContentFetchMode) {
+    this.store.setMode(mode);
+  }
+
   readonly details$ = this.store.details$;
 
   readonly textContent$ = this.store.textContent$;
 
-  readonly totalTextLength$ = this.store.totalTextLength$;
+  readonly blobContent$ = this.store.blobContent$;
+
+  readonly totalLength$ = this.store.totalLength$;
 
   readonly hasMore$ = this.store.hasMore$;
 
@@ -68,16 +89,43 @@ class FileDetailsComponentStore extends ComponentStore<State> {
   // Clear whole state when selecting a new file.
   readonly selectFile = this.updater<FileIdentifier>((state, file) => ({file}));
 
+  readonly setMode = this.updater<ContentFetchMode>((state, mode) => {
+    if (state.mode === mode) {
+      return state;
+    } else {
+      return {
+        ...state,
+        mode,
+        totalLength: undefined,
+        textContent: undefined,
+        blobContent: undefined,
+        fetchContentLength: undefined,
+      };
+    }
+  });
+
   readonly details$ = this.select(state => state.details);
 
   readonly textContent$ = this.select(state => state.textContent);
 
-  readonly totalTextLength$ = this.select(state => state.totalSize);
+  readonly blobContent$ = this.select(state => state.blobContent);
 
-  readonly hasMore$ = this.state$.pipe(
-      map(({totalSize, textContent}) =>
-              BigInt(totalSize ?? 0) > BigInt(textContent?.length ?? 0)),
+  readonly totalLength$ = this.select(state => state.totalLength);
+
+  private readonly fetchedLength$ = this.state$.pipe(
+      map(({textContent, blobContent, mode}) => BigInt(
+              (mode === ContentFetchMode.BLOB ? blobContent?.byteLength :
+                                                textContent?.length) ??
+              0)),
   );
+
+  readonly hasMore$ =
+      combineLatest(
+          [this.select(state => state.totalLength), this.fetchedLength$])
+          .pipe(map(
+              ([totalLength, fetchedLength]) =>
+                  BigInt(totalLength ?? 0) > fetchedLength,
+              ));
 
   readonly fetchDetails = this.effect<void>(
       obs$ => obs$.pipe(
@@ -93,6 +141,43 @@ class FileDetailsComponentStore extends ComponentStore<State> {
           }),
           ));
 
+  private fetch({file, mode, offset, length, totalLength}: {
+    file: FileIdentifier,
+    mode: ContentFetchMode,
+    offset: bigint,
+    length: bigint,
+    totalLength?: bigint
+  }): Observable<FetchResult> {
+    if (mode === ContentFetchMode.BLOB) {
+      const totalLength$ = totalLength !== undefined ?
+          of(totalLength) :
+          this.httpApiService.getFileBlobLength(
+              file.clientId, file.pathType, file.path);
+
+      const blobContent$ = this.httpApiService.getFileBlob(
+          file.clientId, file.pathType, file.path, {
+            offset,
+            length,
+          });
+
+      return combineLatest([totalLength$, blobContent$])
+          .pipe(map(
+              ([totalLength, blobContent]) => ({blobContent, totalLength})));
+
+    } else {
+      return this.httpApiService
+          .getFileText(file.clientId, file.pathType, file.path, {
+            encoding: ENCODING,
+            offset,
+            length,
+          })
+          .pipe(map(response => ({
+                      totalLength: BigInt(response.totalSize ?? 0),
+                      textContent: response.content ?? '',
+                    })));
+    }
+  }
+
   readonly fetchMoreContent = this.effect<bigint>(
       obs$ => obs$.pipe(
           tap(fetchLength => {
@@ -102,15 +187,22 @@ class FileDetailsComponentStore extends ComponentStore<State> {
           switchMap(([fetchLength, state]) => {
             assertKeyNonNull(state, 'file');
 
-            return this.httpApiService.getFileText(
-                state.file.clientId, state.file.pathType, state.file.path, {
-                  encoding: ENCODING,
-                  offset: state.textContent?.length ?? 0,
+            const length = state.mode === ContentFetchMode.BLOB ?
+                state.blobContent?.byteLength :
+                state.textContent?.length;
+            return this
+                .fetch({
+                  file: state.file,
+                  mode: state.mode ?? ContentFetchMode.TEXT,
+                  offset: BigInt(length ?? 0),
                   length: fetchLength,
-                });
-          }),
-          tap(response => {
-            this.appendTextContent(response);
+                  totalLength: state.totalLength,
+                })
+                .pipe(tap((result) => {
+                  this.updateTotalLength(result.totalLength);
+                  this.appendBlobContent(result.blobContent);
+                  this.appendTextContent(result.textContent);
+                }));
           }),
           ));
 
@@ -142,42 +234,70 @@ class FileDetailsComponentStore extends ComponentStore<State> {
                 );
           }),
           switchMap(({details, state}) => {
-            const content$: Observable<ApiGetFileTextResult|null> =
-                state.fetchContentLength ?
-                this.httpApiService.getFileText(
-                    state.file.clientId, state.file.pathType, state.file.path, {
-                      encoding: ENCODING,
-                      offset: 0,
-                      length: state.fetchContentLength,
-                    }) :
-                of(null);
-            return content$.pipe(
-                map(content => ({details, content})),
-            );
+            if (!state.fetchContentLength) {
+              return of({details, content: undefined});
+            }
+
+            return this
+                .fetch({
+                  file: state.file,
+                  mode: state.mode ?? ContentFetchMode.TEXT,
+                  offset: BigInt(0),
+                  length: state.fetchContentLength,
+                  totalLength: undefined,
+                })
+                .pipe(map(content => ({details, content})));
           }),
           tap(({details, content}) => {
             this.setIsRecollecting(false);
             this.updateDetails(translateFile(details));
-            if (content !== null) {
-              this.setTextContent(content);
-            }
+            this.updateTotalLength(content?.totalLength);
+            this.setTextContent(content?.textContent);
+            this.setBlobContent(content?.blobContent);
           }),
           ));
 
-  private readonly appendTextContent = this.updater<ApiGetFileTextResult>(
-      (state, result) => ({
-        ...state,
-        textContent: (state.textContent ?? '') + (result.content ?? ''),
-        totalSize: BigInt(result.totalSize ?? 0),
-      }));
+  private readonly updateTotalLength =
+      this.updater<bigint|undefined>((state, totalLength) => ({
+                                       ...state,
+                                       totalLength,
+                                     }));
 
+  private readonly appendTextContent =
+      this.updater<string|undefined>((state, textContent) => {
+        if (textContent === undefined) {
+          return state;
+        }
+        return {
+          ...state,
+          textContent: (state.textContent ?? '') + (textContent ?? ''),
+        };
+      });
 
-  private readonly setTextContent = this.updater<ApiGetFileTextResult>(
-      (state, result) => ({
-        ...state,
-        textContent: result.content ?? '',
-        totalSize: BigInt(result.totalSize ?? 0),
-      }));
+  private readonly appendBlobContent =
+      this.updater<ArrayBuffer|undefined>((state, appendBuffer) => {
+        if (appendBuffer === undefined || state.blobContent === undefined) {
+          return {
+            ...state,
+            blobContent: state.blobContent ?? appendBuffer,
+          };
+        }
+        const oldLength = state.blobContent.byteLength;
+        const blobContent = new Uint8Array(oldLength + appendBuffer.byteLength);
+        blobContent.set(new Uint8Array(state.blobContent), 0);
+        blobContent.set(new Uint8Array(appendBuffer), oldLength);
+
+        return {
+          ...state,
+          blobContent: blobContent.buffer,
+        };
+      });
+
+  private readonly setTextContent = this.updater<string|undefined>(
+      (state, textContent) => ({...state, textContent}));
+
+  private readonly setBlobContent = this.updater<ArrayBuffer|undefined>(
+      (state, blobContent) => ({...state, blobContent}));
 
   private readonly increaseFetchContentLength = this.updater<bigint>(
       (state, length) => ({

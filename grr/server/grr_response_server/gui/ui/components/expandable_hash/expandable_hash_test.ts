@@ -70,7 +70,7 @@ describe('ExpandableHash component', () => {
     expect(dom.noHashesSpanText).toBe(emDash);
   });
 
-  it('should only display \"Copy value\" text if 1 hash is available', () => {
+  it('should only display "Copy value" text if 1 hash is available', () => {
     const oneHash = {
       sha256: 'sha256',
     };

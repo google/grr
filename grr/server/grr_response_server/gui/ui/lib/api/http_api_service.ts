@@ -4,7 +4,7 @@ import {ApprovalConfig, ApprovalRequest} from '@app/lib/models/client';
 import {Observable, of, throwError, timer} from 'rxjs';
 import {catchError, map, mapTo, shareReplay, switchMap, take, takeLast, takeWhile} from 'rxjs/operators';
 
-import {isNonNull} from '../preconditions';
+import {assertNonNull, isNonNull} from '../preconditions';
 
 import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFile, ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiGetClientVersionsResult, ApiGetFileDetailsResult, ApiGetFileTextArgs, ApiGetFileTextArgsEncoding, ApiGetFileTextResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGrrUser, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApiUpdateVfsFileContentArgs, ApiUpdateVfsFileContentResult, ApproverSuggestion, ArtifactDescriptor, DecimalString, GlobComponentExplanation, PathSpecPathType} from './api_interfaces';
 
@@ -64,6 +64,13 @@ export interface GetFileTextOptions {
   readonly length?: DecimalString;
   readonly timestamp?: Date;
   readonly encoding?: ApiGetFileTextArgsEncoding;
+}
+
+/** Arguments of GetFileBlob API call. */
+export interface GetFileBlobOptions {
+  readonly offset?: DecimalString;
+  readonly length?: DecimalString;
+  readonly timestamp?: Date;
 }
 
 /**
@@ -347,6 +354,12 @@ export class HttpApiService {
         flowId}/results/files-archive`;
   }
 
+  /** Triggers an exported results CSV download for a flow. */
+  getExportedResultsCsvUrl(clientId: string, flowId: string) {
+    return `${URL_PREFIX}/clients/${clientId}/flows/${
+        flowId}/exported-results/csv-zip`;
+  }
+
   getTimelineBodyFileUrl(clientId: string, flowId: string, opts: {
     timestampSubsecondPrecision: boolean,
     inodeNtfsFileReferenceFormat: boolean,
@@ -485,6 +498,55 @@ export class HttpApiService {
     return this.http.get<ApiGetFileTextResult>(
         `${URL_PREFIX}/clients/${clientId}/vfs-text${vfsPath}`,
         {params: objectToHttpParams(queryArgs as HttpParamObject)});
+  }
+
+  /** Queries the length of the given VFS file. */
+  getFileBlobLength(
+      clientId: string,
+      pathType: PathSpecPathType,
+      path: string,
+      opts?: GetFileBlobOptions,
+      ): Observable<bigint> {
+    const queryArgs: ApiGetFileTextArgs = {
+      ...opts,
+      timestamp: opts?.timestamp?.getTime(),
+    };
+
+    const vfsPath = toVFSPath(pathType, path);
+    return this.http
+        .head(`${URL_PREFIX}/clients/${clientId}/vfs-blob${vfsPath}`, {
+          observe: 'response',
+          params: objectToHttpParams(queryArgs as HttpParamObject),
+        })
+        .pipe(
+            map(response => {
+              const length = response.headers.get('content-length');
+              assertNonNull(length, 'content-length header');
+              return BigInt(length);
+            }),
+        );
+  }
+
+  /** Queries the raw, binary contents of a VFS file. */
+  getFileBlob(
+      clientId: string,
+      pathType: PathSpecPathType,
+      path: string,
+      opts?: GetFileBlobOptions,
+      ): Observable<ArrayBuffer> {
+    const queryArgs: ApiGetFileTextArgs = {
+      encoding: ApiGetFileTextArgsEncoding.UTF_8,
+      offset: 0,
+      ...opts,
+      timestamp: opts?.timestamp?.getTime(),
+    };
+
+    const vfsPath = toVFSPath(pathType, path);
+    return this.http.get(
+        `${URL_PREFIX}/clients/${clientId}/vfs-blob${vfsPath}`, {
+          responseType: 'arraybuffer',
+          params: objectToHttpParams(queryArgs as HttpParamObject),
+        });
   }
 
   /**

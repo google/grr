@@ -1,12 +1,16 @@
 @use '~@angular/material' as mat;
 @use '../../../material-theme' as c;
 
+.num-connections {
+  color: mat.get-color-from-palette(c.$foreground, text-light);
+}
+
 .mat-cell {
   border-color: mat.get-color-from-palette(c.$foreground, divider-light);
   color: mat.get-color-from-palette(c.$foreground, text-light);
 }
 
-.table-container {
+.results-container {
   padding-left: 24px;
 }
 

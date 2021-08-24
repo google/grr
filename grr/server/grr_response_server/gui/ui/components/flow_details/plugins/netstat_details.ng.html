@@ -1,11 +1,18 @@
 <div class="download flow-details-summary-actions" *ngIf="(flowState$ | async) === FINISHED">
-  <!-- TODO: Add progress (number of connections). -->
-  <!-- TODO: Add download options (CSV, YAML, SQLite). -->
+  <span class="num-connections">
+    {{ progressCount$ | async | i18nPlural: {'=1': '1 connection', 'other': '# connections'} }}
+  </span>
+  <a mat-stroked-button color="primary" [download]="archiveFileName$ | async" [href]="archiveUrl$ | async">Download</a>
 </div>
 
 <result-accordion [title]="title$ | async" (firstOpened)="onShowClicked()">
-  <div class="table-container">
-    <table mat-table [dataSource]="netstatResults$" [trackBy]="trackByConnectionRowIndex" *ngIf="displayedColumns$ | async as displayedColumns">
+  <mat-form-field appearance="standard" class="results-container">
+    <mat-label>Filter</mat-label>
+    <input matInput [formControl]="searchStringControl" placeholder="Ex. bash, 127.0.0.1">
+  </mat-form-field>
+
+  <div class="results-container">
+    <table mat-table [dataSource]="filteredResults$" [trackBy]="trackByConnectionRowIndex" *ngIf="displayedColumns$ | async as displayedColumns">
 
       <ng-container matColumnDef="pid">
         <th mat-header-cell *matHeaderCellDef>PID</th>
@@ -93,6 +100,10 @@
 
       <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
       <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+
+      <tr class="mat-row" *matNoDataRow>
+        <td class="mat-cell" colspan="4">No data matching the filter "{{searchStringControl.value}}"</td>
+      </tr>
     </table>
   </div>
 </result-accordion>

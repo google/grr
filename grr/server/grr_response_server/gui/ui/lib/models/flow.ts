@@ -28,6 +28,14 @@ export declare interface Flow {
   readonly args: unknown|undefined;
   readonly progress: unknown|undefined;
   readonly state: FlowState;
+  readonly resultCounts: ReadonlyArray<FlowResultCount>|undefined;
+}
+
+/** FlowResultCount proto mapping. */
+export declare interface FlowResultCount {
+  readonly type?: string;
+  readonly tag?: string;
+  readonly count?: number;
 }
 
 /** FlowResult represents a single flow result. */

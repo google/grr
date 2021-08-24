@@ -42,6 +42,7 @@ export function newFlow(args: Partial<Flow> = {}): Flow {
     args: undefined,
     progress: undefined,
     state: args.state || FlowState.UNSET,
+    resultCounts: args.resultCounts ?? undefined,
     ...args,
   };
 }
