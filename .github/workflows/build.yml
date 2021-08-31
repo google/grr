@@ -41,7 +41,7 @@ jobs:
       - name: Build
         run: |
           travis/install.sh
-          travis/fetch_client_templates.sh
+          # travis/fetch_client_templates.sh
           travis/build_local_pyindex.sh
           travis/build_api_documentation.sh "${HOME}/generated_description/openapi_description.json" "${HOME}/generated_documentation/openapi_documentation.html"
           travis/build_server_deb.sh
@@ -63,3 +63,11 @@ jobs:
           travis/install_client_builder.sh
           travis/build_templates.sh
           ls -la gcs_upload_dir
+
+  build-ubuntu-docker:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - run: |
+          sudo apt-get -y install docker-ce docker-ce-cli
+          ./appveyor/docker_build/build_docker_image.sh
