@@ -5,7 +5,11 @@
 
 set -e
 
+source "${HOME}/INSTALL/bin/activate"
 pip install --upgrade pip wheel six setuptools
+
+# Get around a Travis bug: https://github.com/travis-ci/travis-ci/issues/8315#issuecomment-327951718
+unset _JAVA_OPTIONS
 
 # Install GRR packages.
 # Note that because of dependencies, order here is important.

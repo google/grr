@@ -13,6 +13,8 @@ jobs:
       - name: Set up
         run: |
           sudo apt install fakeroot debhelper libffi-dev libssl-dev
+          pip install virtualenv
+          virtualenv "${HOME}/INSTALL"
       - name: Build
         run: |
           travis/install_client_builder.sh
@@ -31,7 +33,8 @@ jobs:
       - name: Set up
         run: |
           sudo apt-get install -y fakeroot debhelper libffi-dev libssl-dev python3-dev python3-pip python3-venv wget openjdk-8-jdk zip git devscripts dh-systemd libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
-          pip install --upgrade setuptools
+          pip install --upgrade setuptools virtualenv
+          virtualenv "${HOME}/INSTALL"
       - name: Build
         run: |
           travis/install.sh
