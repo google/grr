@@ -1,0 +1,55 @@
+name: Build
+on: [push, pull_request]
+jobs:
+  build-linux:
+    runs-on: ubuntu-16.04
+    env:
+      GCS_TAG: ubuntu_64bit
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+      - name: Set up
+        run: |
+          sudo apt install fakeroot debhelper libffi-dev libssl-dev
+      - name: Build
+        run: |
+          travis/install_client_builder.sh
+          travis/build_templates.sh
+          ls -la gcs_upload_dir
+
+  build-server-deb:
+    runs-on: ubuntu-18.04
+    env:
+      GCS_TAG: server_deb
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+      - name: Set up
+        run: |
+          sudo apt-get install -y fakeroot debhelper libffi-dev libssl-dev python3-dev python3-pip python3-venv wget openjdk-8-jdk zip git devscripts dh-systemd libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
+          pip install --upgrade setuptools
+      - name: Build
+        run: |
+          travis/install.sh
+          travis/fetch_client_templates.sh
+          travis/build_local_pyindex.sh
+          travis/build_api_documentation.sh "${HOME}/generated_description/openapi_description.json" "${HOME}/generated_documentation/openapi_documentation.html"
+          travis/build_server_deb.sh
+          ls -la gcs_upload_dir
+
+  build-osx:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+      - name: Build installers
+        run: |
+          travis/install_client_builder.sh
+          travis/build_templates.sh
+          ls -la gcs_upload_dir
