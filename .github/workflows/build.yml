@@ -69,4 +69,5 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: |
+          BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)
           ./appveyor/docker_build/build_docker_image.sh
