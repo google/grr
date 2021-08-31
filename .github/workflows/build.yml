@@ -69,5 +69,4 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - run: |
-          sudo apt-get -y install docker-ce docker-ce-cli
           ./appveyor/docker_build/build_docker_image.sh
