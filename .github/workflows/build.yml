@@ -1,6 +1,9 @@
 name: Build
 on: [push, pull_request]
 jobs:
+  env:
+    GCS_BUCKET=autobuilds.grr-response.com
+    GCS_BUCKET_OPENAPI=autobuilds-grr-openapi
   build-linux:
     runs-on: ubuntu-18.04
     env:
