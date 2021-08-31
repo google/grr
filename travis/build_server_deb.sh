@@ -24,7 +24,7 @@ print('%s.%s.%s-%s' % (
       --urgency low \
       --controlmaint \
       --distribution unstable \
-      "Built by Travis CI at ${TRAVIS_COMMIT}"
+      "Built by GitHub Actions at ${GITHUB_SHA}"
 }
 
 # Sets environment variables to be used by debhelper.

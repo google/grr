@@ -12,7 +12,7 @@ TIMEOUT_SECS=3600
 GCS_POLL_INTERVAL_SECS=30
 LOCAL_TEMPLATE_DIR='grr/config/grr_response_templates/templates'
 
-commit_timestamp_secs="$(git show -s --format=%ct "${TRAVIS_COMMIT}")"
+commit_timestamp_secs="$(git show -s --format=%ct "${GITHUB_SHA}")"
 # Hacky, but platform independent way of formatting the timestamp.
 pyscript="
 from datetime import datetime
@@ -20,7 +20,7 @@ print(datetime.utcfromtimestamp(
     ${commit_timestamp_secs}).strftime('%Y-%m-%dT%H:%MUTC'));
 "
 commit_timestamp=$(python -c "${pyscript}")
-COMMIT_DIR="gs://${GCS_BUCKET}/${commit_timestamp}_${TRAVIS_COMMIT}"
+COMMIT_DIR="gs://${GCS_BUCKET}/${commit_timestamp}_${GITHUB_SHA}"
 
 declare -A remote_templates
 remote_templates['windows_64bit_template']='appveyor_build_*_job_1/GRR_*_amd64.exe.zip'
