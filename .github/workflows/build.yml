@@ -159,6 +159,13 @@ jobs:
           travis/build_api_documentation.sh "${HOME}/generated_description/openapi_description.json" "${HOME}/generated_documentation/openapi_documentation.html"
           travis/build_server_deb.sh
           ls -la gcs_upload_dir
+      - if: ${{ github.event_name == 'push' }}
+        name: Upload installers to GitHub artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: server-deb
+          path: gcs_upload_dir/
+          retention-days: 1
 
   test-ubuntu:
     runs-on: ubuntu-18.04
@@ -169,6 +176,11 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.7'
+      - name: Download installers from GitHub artifacts
+        id: download
+        uses: actions/download-artifact@v2
+        with:
+          path: ~/_artifacts
       - name: Install
         run: |
           free -hmw
@@ -195,6 +207,8 @@ jobs:
     env:
       GRR_ADMIN_PASS: 'e2e_tests'
       APPVEYOR_MYSQL_PASS: 'root' 
+    needs:
+      - build-server-deb
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
@@ -203,6 +217,12 @@ jobs:
       - name: Set up MySQL
         run: |
           sudo /etc/init.d/mysql start
+      - name: Download installers from GitHub artifacts
+        id: download
+        uses: actions/download-artifact@v2
+        with:
+          name: server-deb
+          path: ~/_artifacts
       - name: Install
         run: |
           free -hmw
