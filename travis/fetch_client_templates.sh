@@ -12,6 +12,9 @@ TIMEOUT_SECS=3600
 GCS_POLL_INTERVAL_SECS=30
 LOCAL_TEMPLATE_DIR='grr/config/grr_response_templates/templates'
 
+# TODO: Remove. Hardcoded for testing in a fork:
+GITHUB_SHA=166794f9dfebca3cc8c1361ed7f31fb7962a87c1
+
 commit_timestamp_secs="$(git show -s --format=%ct "${GITHUB_SHA}")"
 # Hacky, but platform independent way of formatting the timestamp.
 pyscript="
