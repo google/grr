@@ -49,7 +49,7 @@ jobs:
       - name: Upload installers to GitHub artifacts
         uses: actions/upload-artifact@v2
         with:
-          name: macos-installers
+          name: osx-installers
           path: gcs_upload_dir/
           retention-days: 1
 
@@ -148,7 +148,12 @@ jobs:
           travis/install.sh
 
           mkdir -p grr/config/grr_response_templates/templates
-          mv -v ~/_artifacts/*/* grr/config/grr_response_templates/templates
+
+          mv -v ~/_artifacts/windows-installers/GRR_*_amd64.exe.zip grr/config/grr_response_templates/templates
+          mv -v ~/_artifacts/windows-installers/GRR_*_amd64.msi.zip grr/config/grr_response_templates/templates
+          mv -v ~/_artifacts/ubuntu-installers/grr_*_amd64.deb.zip grr/config/grr_response_templates/templates
+          mv -v ~/_artifacts/centos-installers/grr_*_amd64.rpm.zip grr/config/grr_response_templates/templates
+          mv -v ~/_artifacts/osx-installers/grr_*_amd64.xar.zip grr/config/grr_response_templates/templates
 
           travis/build_local_pyindex.sh
           travis/build_api_documentation.sh "${HOME}/generated_description/openapi_description.json" "${HOME}/generated_documentation/openapi_documentation.html"
