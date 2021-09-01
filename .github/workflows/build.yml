@@ -159,3 +159,33 @@ jobs:
           travis/build_api_documentation.sh "${HOME}/generated_description/openapi_description.json" "${HOME}/generated_documentation/openapi_documentation.html"
           travis/build_server_deb.sh
           ls -la gcs_upload_dir
+
+  test-ubuntu:
+    runs-on: ubuntu-18.04
+    env:
+      CHROME_DEB: google-chrome-stable_current_amd64.deb
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install
+        run: |
+          free -hmw
+          lscpu
+          sudo apt install -y libmysqlclient-dev
+          if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
+            wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
+          fi
+          python -m venv "${HOME}/INSTALL"
+          pip install pytest-xdist==2.2.1
+          travis/install.sh
+      - name: Test
+        run: |
+          source "${HOME}/INSTALL/bin/activate"
+          # We have 4 vCPUs available, but only use 3 here to avoid timeouts like
+          # https://ci.appveyor.com/project/grr/grr-ia94e/builds/20483467/messages ,
+          # which happen when tests stall.
+          pytest --verbose -n 3 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/ --ignore grr/client/grr_response_client/client_actions/windows/
+          # jsTree tests seem to fail on Chrome 71 headless due to https://github.com/GoogleChrome/puppeteer/issues/3463
+          if [ $(google-chrome --version | grep -Eo " [0-9]{1,3}") != "71" ]; then (cd grr/server/grr_response_server/gui/static/ && npm run gulp test); fi
