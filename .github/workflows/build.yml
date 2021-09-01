@@ -131,8 +131,8 @@ jobs:
         shell: bash
         run: |
           # appveyor/windows_templates/install_for_build.bat
-          python appveyor\windows_templates\build_windows_templates.py --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output --test_repack_install
-          python $GITHUB_WORKSPACE\appveyor\windows_templates\build_windows_templates.py --build_msi --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output_msi --test_repack_install
+          python appveyor/windows_templates/build_windows_templates.py --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output --test_repack_install
+          python $GITHUB_WORKSPACE/appveyor/windows_templates/build_windows_templates.py --build_msi --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output_msi --test_repack_install
       - if: ${{ github.event_name == 'push' }}
         name: Upload installers to GitHub artifacts
         uses: actions/upload-artifact@v2
