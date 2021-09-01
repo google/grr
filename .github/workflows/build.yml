@@ -178,11 +178,11 @@ jobs:
             wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
           fi
           python -m venv "${HOME}/INSTALL"
-          pip install pytest-xdist==2.2.1
           travis/install.sh
       - name: Test
         run: |
           source "${HOME}/INSTALL/bin/activate"
+          pip install pytest-xdist==2.2.1
           # We have 4 vCPUs available, but only use 3 here to avoid timeouts like
           # https://ci.appveyor.com/project/grr/grr-ia94e/builds/20483467/messages ,
           # which happen when tests stall.
