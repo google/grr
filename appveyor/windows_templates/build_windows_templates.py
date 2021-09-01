@@ -314,9 +314,9 @@ class WindowsTemplateBuilder(object):
           "-p",
           "ClientBuilder.build_msi=true",
       ]
-    subprocess.check_call([self.grr_client_build64] + build_args)
+    VerboseCheckCall([self.grr_client_build64] + build_args)
     if args.build_32:
-      subprocess.check_call([self.grr_client_build32] + build_args)
+      VerboseCheckCall([self.grr_client_build32] + build_args)
 
   def _WixToolsPath(self) -> str:
     matches = glob.glob("C:\\Program Files*\\WiX Toolset*")
