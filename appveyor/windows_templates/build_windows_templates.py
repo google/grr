@@ -165,10 +165,8 @@ class WindowsTemplateBuilder(object):
     self.python_dir_64 = args.python64_dir
     self.python_dir_32 = args.python32_dir
 
-    self.virtualenv_bin64 = os.path.join(self.python_dir_64,
-                                         r"Scripts\virtualenv.exe")
-    self.virtualenv_bin32 = os.path.join(self.python_dir_32,
-                                         r"Scripts\virtualenv.exe")
+    self.virtualenv_bin64 = "virtualenv"
+    self.virtualenv_bin32 = "virtualenv"
 
     if args.virtualenv_64bit:
       self.virtualenv64 = args.virtualenv_64bit

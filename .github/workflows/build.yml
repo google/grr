@@ -131,7 +131,6 @@ jobs:
         shell: bash
         run: |
           pip install virtualenv
-          virtualenv --help
           # appveyor/windows_templates/install_for_build.bat
           python appveyor/windows_templates/build_windows_templates.py --python64_dir=${{ env.pythonLocation }} --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output --test_repack_install
           python $GITHUB_WORKSPACE/appveyor/windows_templates/build_windows_templates.py  --python64_dir=${{ env.pythonLocation }} --build_msi --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output_msi --test_repack_install
