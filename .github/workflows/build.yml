@@ -70,6 +70,6 @@ jobs:
       - uses: actions/checkout@v2
       - run: |
           export BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)
-          echo $BRANCH
-          echo $GITHUB_REF
+          # TODO: Remove. Hardcoded for testing in a fork:
+          export GITHUB_SHA=166794f9dfebca3cc8c1361ed7f31fb7962a87c1
           ./appveyor/docker_build/build_docker_image.sh
