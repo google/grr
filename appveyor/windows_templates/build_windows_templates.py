@@ -154,6 +154,11 @@ def _RmTreePseudoTransactional(path: str) -> None:
     logging.info("Failed to remove %s. Ignoring.", temp_path, exc_info=True)
 
 
+def VerboseCheckCall(args):
+  logging.info("Running: %s.", msiexec_args)
+  return subprocess.check_call(args)
+
+
 class WindowsTemplateBuilder(object):
   """Build windows templates."""
 
@@ -181,15 +186,13 @@ class WindowsTemplateBuilder(object):
                                            r"Scripts\grr_client_build.exe")
     self.grr_client_build32 = os.path.join(self.virtualenv32,
                                            r"Scripts\grr_client_build.exe")
-    self.pip64 = os.path.join(self.virtualenv64, r"Scripts\pip.exe")
-    self.pip32 = os.path.join(self.virtualenv32, r"Scripts\pip.exe")
+    self.pip64 = "pip"
+    self.pip32 = "pip"
 
-    self.virtualenv_python64 = os.path.join(self.virtualenv64,
-                                            r"Scripts\python.exe")
-    self.virtualenv_python32 = os.path.join(self.virtualenv32,
-                                            r"Scripts\python.exe")
+    self.virtualenv_python64 = "python"
+    self.virtualenv_python32 = "python"
 
-    self.git = r"C:\Program Files\Git\bin\git.exe"
+    self.git = r"git"
 
     self.install_path = r"C:\Windows\System32\GRR"
     self.service_name = "GRR Monitor"
@@ -333,23 +336,23 @@ class WindowsTemplateBuilder(object):
 
     # We put the installers in the output dir so they get stored as build
     # artifacts and we can test the 32bit build manually.
-    subprocess.check_call([
+    VerboseCheckCall([
         self.grr_client_build64, "--verbose", "--secondary_configs",
         dummy_config, "repack", "--template", template_amd64, "--output_dir",
         args.output_dir
     ])
-    subprocess.check_call([
+    VerboseCheckCall([
         self.grr_client_build64, "--verbose", "--context",
         "DebugClientBuild Context", "--secondary_configs", dummy_config,
         "repack", "--template", template_amd64, "--output_dir", args.output_dir
     ])
     if args.build_32:
-      subprocess.check_call([
+      VerboseCheckCall([
           self.grr_client_build32, "--verbose", "--secondary_configs",
           dummy_config, "repack", "--template", template_i386, "--output_dir",
           args.output_dir
       ])
-      subprocess.check_call([
+      VerboseCheckCall([
           self.grr_client_build32, "--verbose", "--context",
           "DebugClientBuild Context", "--secondary_configs", dummy_config,
           "repack", "--template", template_i386, "--output_dir", args.output_dir
@@ -433,8 +436,7 @@ class WindowsTemplateBuilder(object):
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.exe")).pop()
       ]
     # The exit code is always 0, test to see if install was actually successful.
-    logging.info("Running: %s.", installer_amd64_args)
-    subprocess.check_call(installer_amd64_args)
+    VerboseCheckCall(installer_amd64_args)
     self._CheckInstallSuccess()
     self._CleanupInstall()
 
