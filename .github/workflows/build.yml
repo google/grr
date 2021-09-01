@@ -30,29 +30,6 @@ jobs:
           path: gcs_upload_dir/
           retention-days: 1
 
-  build-server-deb:
-    runs-on: ubuntu-18.04
-    env:
-      GCS_TAG: server_deb
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.6'
-      - name: Set up
-        run: |
-          sudo apt-get install -y fakeroot debhelper libffi-dev libssl-dev python3-dev python3-pip python3-venv wget openjdk-8-jdk zip git devscripts dh-systemd libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
-          pip install --upgrade setuptools virtualenv
-          virtualenv "${HOME}/INSTALL"
-      - name: Build
-        run: |
-          travis/install.sh
-          # travis/fetch_client_templates.sh
-          travis/build_local_pyindex.sh
-          travis/build_api_documentation.sh "${HOME}/generated_description/openapi_description.json" "${HOME}/generated_documentation/openapi_documentation.html"
-          travis/build_server_deb.sh
-          ls -la gcs_upload_dir
-
   build-osx:
     runs-on: macos-latest
     steps:
@@ -142,3 +119,38 @@ jobs:
           path: deploy/
           retention-days: 1
 
+  build-server-deb:
+    runs-on: ubuntu-18.04
+    env:
+      GCS_TAG: server_deb
+    needs:
+      - build-centos
+      - build-linux
+      - build-osx
+      - build-windows
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+      - name: Download installers from GitHub artifacts
+        id: download
+        uses: actions/download-artifact@v2
+        with:
+          path: ~/_artifacts
+      - name: Set up
+        run: |
+          sudo apt-get install -y fakeroot debhelper libffi-dev libssl-dev python3-dev python3-pip python3-venv wget openjdk-8-jdk zip git devscripts dh-systemd libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
+          pip install --upgrade setuptools virtualenv
+          virtualenv "${HOME}/INSTALL"
+      - name: Build
+        run: |
+          travis/install.sh
+
+          mkdir -p grr/config/grr_response_templates/templates
+          mv -v ~/_artifacts/*/* grr/config/grr_response_templates/templates
+
+          travis/build_local_pyindex.sh
+          travis/build_api_documentation.sh "${HOME}/generated_description/openapi_description.json" "${HOME}/generated_documentation/openapi_documentation.html"
+          travis/build_server_deb.sh
+          ls -la gcs_upload_dir
