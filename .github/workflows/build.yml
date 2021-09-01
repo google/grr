@@ -73,3 +73,31 @@ jobs:
           # TODO: Remove. Hardcoded for testing in a fork:
           export GITHUB_SHA=166794f9dfebca3cc8c1361ed7f31fb7962a87c1
           ./appveyor/docker_build/build_docker_image.sh
+
+  build-centos:
+    runs-on: ubuntu-18.04
+    env:
+      GCS_TAG: centos_64bit
+      DOCKER_IMG: grrdocker/centos7
+      DOCKER_CONTAINER: centos_64bit_container
+      DOCKER_USER: grrbot
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.6'
+      - name: Build installers
+        run: |
+          sudo docker run -dit \
+            --volume "${PWD}:/mnt/grr" \
+            --workdir /mnt/grr \
+            --env DOCKER_USER="${DOCKER_USER}" \
+            --env TRAVIS_OS_NAME="linux" \
+            --name "${DOCKER_CONTAINER}" \
+            "${DOCKER_IMG}"
+          sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" /usr/local/bin/python3.6 -m venv "/home/${DOCKER_USER}/INSTALL"
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" travis/install_client_builder.sh
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" travis/build_templates.sh
+          sudo docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
+          ls -la gcs_upload_dir
