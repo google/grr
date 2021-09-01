@@ -155,7 +155,7 @@ def _RmTreePseudoTransactional(path: str) -> None:
 
 
 def VerboseCheckCall(args):
-  logging.info("Running: %s.", msiexec_args)
+  logging.info("Running: %s.", args)
   return subprocess.check_call(args)
 
 
