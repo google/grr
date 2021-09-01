@@ -23,6 +23,12 @@ jobs:
           travis/install_client_builder.sh
           travis/build_templates.sh
           ls -la gcs_upload_dir
+      - name: Upload installers to GitHub artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: ubuntu-installers
+          path: gcs_upload_dir/
+          retention-days: 1
 
   build-server-deb:
     runs-on: ubuntu-18.04
@@ -63,6 +69,12 @@ jobs:
           travis/install_client_builder.sh
           travis/build_templates.sh
           ls -la gcs_upload_dir
+      - name: Upload installers to GitHub artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: macos-installers
+          path: gcs_upload_dir/
+          retention-days: 1
 
   build-ubuntu-docker:
     runs-on: ubuntu-18.04
@@ -101,3 +113,31 @@ jobs:
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" travis/build_templates.sh
           sudo docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
           ls -la gcs_upload_dir
+      - name: Upload installers to GitHub artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: centos-installers
+          path: gcs_upload_dir/
+          retention-days: 1
+
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Build installers
+        shell: bash
+        run: |
+          appveyor/windows_templates/install_for_build.bat
+          python appveyor\windows_templates\build_windows_templates.py --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output --test_repack_install
+          python $GITHUB_WORKSPACE\appveyor\windows_templates\build_windows_templates.py --build_msi --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output_msi --test_repack_install
+      - if: ${{ github.event_name == 'push' }}
+        name: Upload installers to GitHub artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: windows-installers
+          path: deploy/
+          retention-days: 1
+
