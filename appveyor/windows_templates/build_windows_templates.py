@@ -187,10 +187,8 @@ class WindowsTemplateBuilder(object):
     else:
       self.virtualenv32 = os.path.join(args.build_dir, "python_32")
 
-    self.grr_client_build64 = os.path.join(self.virtualenv64,
-                                           r"Scripts\grr_client_build.exe")
-    self.grr_client_build32 = os.path.join(self.virtualenv32,
-                                           r"Scripts\grr_client_build.exe")
+    self.grr_client_build64 = "grr_client_build"
+    self.grr_client_build32 = "grr_client_build"
     self.pip64 = "pip"
     self.pip32 = "pip"
 
