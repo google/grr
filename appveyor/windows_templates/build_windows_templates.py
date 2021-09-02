@@ -443,8 +443,12 @@ class WindowsTemplateBuilder(object):
       installer_amd64_args = [
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.exe")).pop()
       ]
+    print("START_InstallInstallers", installer_amd64_args)
+
     # The exit code is always 0, test to see if install was actually successful.
     VerboseCheckCall(installer_amd64_args)
+
+    print("AFTER CALL")
     self._CheckInstallSuccess()
     self._CleanupInstall()
 
