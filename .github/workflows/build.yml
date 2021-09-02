@@ -109,6 +109,7 @@ jobs:
         run: |
           set -ex
           pip install virtualenv wheel
+          icacls "C:\Windows\Temp" /q /c /t /grant Users:F /T
           # appveyor/windows_templates/install_for_build.bat
           python -u appveyor/windows_templates/build_windows_templates.py --python64_dir=${{ env.pythonLocation }} --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output --test_repack_install
           echo build_windows_templatesMID
