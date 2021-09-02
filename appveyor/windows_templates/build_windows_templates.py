@@ -386,7 +386,7 @@ class WindowsTemplateBuilder(object):
           "msiexec",
           "/q",
           "/x",
-          glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop(),
+          glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop().replace("/", "\\"),
       ]
       logging.info("Running: %s.", msiexec_args)
       VerboseCheckCall(msiexec_args)
