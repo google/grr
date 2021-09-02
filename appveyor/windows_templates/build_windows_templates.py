@@ -436,6 +436,7 @@ class WindowsTemplateBuilder(object):
           "msiexec",
           "/i",
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop(),
+          "/qn",
       ]
     else:
       installer_amd64_args = [
