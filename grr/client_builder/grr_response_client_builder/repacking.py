@@ -191,7 +191,7 @@ class TemplateRepacker(object):
         logging.exception("Repacking template %s failed:", template_path)
 
       if result_path:
-        print("Repacked into %s" % result_path)
+        print("Repacked into %s, upload=%s" % (result_path, upload))
         if upload:
           # We delay import here so we don't have to import the entire server
           # codebase and do full server init if we're just building and
