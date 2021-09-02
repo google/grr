@@ -377,9 +377,9 @@ class WindowsTemplateBuilder(object):
 
   def _CleanupInstall(self):
     """Cleanup from any previous installer enough for _CheckInstallSuccess."""
-
+    print("START _CleanupInstall")
     logging.info("Stoping service %s.", self.service_name)
-    subprocess.check_call(["sc", "stop", self.service_name])
+    VerboseCheckCall(["sc", "stop", self.service_name])
 
     if args.build_msi:
       msiexec_args = [
@@ -389,7 +389,7 @@ class WindowsTemplateBuilder(object):
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop(),
       ]
       logging.info("Running: %s.", msiexec_args)
-      subprocess.check_call(msiexec_args)
+      VerboseCheckCall(msiexec_args)
     else:
       self._WaitForServiceToStop()
       if os.path.exists(self.install_path):
@@ -430,6 +430,7 @@ class WindowsTemplateBuilder(object):
     """Install the installer built by RepackTemplates."""
     # 32 bit binary will refuse to install on a 64bit system so we only install
     # the 64 bit version
+    print("START_InstallInstallers")
     if args.build_msi:
       installer_amd64_args = [
           "msiexec",
