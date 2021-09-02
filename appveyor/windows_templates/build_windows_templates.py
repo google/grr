@@ -156,7 +156,12 @@ def _RmTreePseudoTransactional(path: str) -> None:
 
 def VerboseCheckCall(args):
   logging.info("Running: %s", args)
-  return subprocess.check_call(args)
+
+  try:
+    return subprocess.check_call(args)
+  except Exception as e:
+    logging.error("Running %s raised %s", args, e)
+    raise
 
 
 class WindowsTemplateBuilder(object):
