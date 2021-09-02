@@ -155,11 +155,11 @@ def _RmTreePseudoTransactional(path: str) -> None:
 
 
 def VerboseCheckCall(args):
-  logging.info("Running: %s", args)
+  print("Running: %s" % (args,))
 
   try:
     subprocess.check_call(args)
-    logging.info("Finished successfully: %s", args)
+    print("Finished successfully: %s" % (args,))
   except Exception as e:
     logging.error("Running %s raised %s", args, e)
     raise
@@ -430,19 +430,21 @@ class WindowsTemplateBuilder(object):
     """Install the installer built by RepackTemplates."""
     # 32 bit binary will refuse to install on a 64bit system so we only install
     # the 64 bit version
-    print("START_InstallInstallers")
+
     if args.build_msi:
       installer_amd64_args = [
           "msiexec",
-          "/i",
-          glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop(),
           "/qn",
           "/log",
+          "/i",
+          glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop().replace("/", "\\"),
       ]
     else:
       installer_amd64_args = [
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.exe")).pop()
       ]
+install
+
     print("START_InstallInstallers", installer_amd64_args)
 
     # The exit code is always 0, test to see if install was actually successful.
