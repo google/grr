@@ -443,7 +443,6 @@ class WindowsTemplateBuilder(object):
       installer_amd64_args = [
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.exe")).pop()
       ]
-install
 
     print("START_InstallInstallers", installer_amd64_args)
 
