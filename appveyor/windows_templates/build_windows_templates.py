@@ -155,11 +155,11 @@ def _RmTreePseudoTransactional(path: str) -> None:
 
 
 def VerboseCheckCall(args):
-  print("Running: %s" % (args,))
+  logging.info("Running: %s" % (args,))
 
   try:
     subprocess.check_call(args)
-    print("Finished successfully: %s" % (args,))
+    logging.info("Finished successfully: %s" % (args,))
   except Exception as e:
     logging.error("Running %s raised %s", args, e)
     raise
@@ -361,7 +361,6 @@ class WindowsTemplateBuilder(object):
           "DebugClientBuild Context", "--secondary_configs", dummy_config,
           "repack", "--template", template_i386, "--output_dir", args.output_dir
       ])
-    print("FINISHED _RepackTemplates")
 
   def _WaitForServiceToStop(self) -> bool:
     """Waits for the GRR monitor service to stop."""
@@ -377,7 +376,6 @@ class WindowsTemplateBuilder(object):
 
   def _CleanupInstall(self):
     """Cleanup from any previous installer enough for _CheckInstallSuccess."""
-    print("START _CleanupInstall")
     logging.info("Stoping service %s.", self.service_name)
     VerboseCheckCall(["sc", "stop", self.service_name])
 
@@ -388,7 +386,6 @@ class WindowsTemplateBuilder(object):
           "/x",
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop().replace("/", "\\"),
       ]
-      logging.info("Running: %s.", msiexec_args)
       VerboseCheckCall(msiexec_args)
     else:
       self._WaitForServiceToStop()
@@ -445,12 +442,9 @@ class WindowsTemplateBuilder(object):
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.exe")).pop()
       ]
 
-    print("START_InstallInstallers", installer_amd64_args)
-
     # The exit code is always 0, test to see if install was actually successful.
     VerboseCheckCall(installer_amd64_args)
 
-    print("AFTER CALL")
     self._CheckInstallSuccess()
     self._CleanupInstall()
 
