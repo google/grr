@@ -116,7 +116,7 @@ jobs:
         uses: actions/upload-artifact@v2
         with:
           name: windows-installers
-          path: gcs_uploader_dir/
+          path: outout/
           retention-days: 1
 
   build-server-deb:
