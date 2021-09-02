@@ -435,6 +435,8 @@ class WindowsTemplateBuilder(object):
       installer_amd64_args = [
           "msiexec",
           "/qn",
+          "/norestart",
+          "/passive",
           "/log",
           "/i",
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop().replace("/", "\\"),
