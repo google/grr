@@ -158,7 +158,8 @@ def VerboseCheckCall(args):
   logging.info("Running: %s", args)
 
   try:
-    return subprocess.check_call(args)
+    subprocess.check_call(args)
+    logging.info("Finished successfully: %s", args)
   except Exception as e:
     logging.error("Running %s raised %s", args, e)
     raise
@@ -360,6 +361,7 @@ class WindowsTemplateBuilder(object):
           "DebugClientBuild Context", "--secondary_configs", dummy_config,
           "repack", "--template", template_i386, "--output_dir", args.output_dir
       ])
+    print("FINISHED _RepackTemplates")
 
   def _WaitForServiceToStop(self) -> bool:
     """Waits for the GRR monitor service to stop."""
