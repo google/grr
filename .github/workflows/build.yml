@@ -254,3 +254,17 @@ jobs:
           sudo -EH ./appveyor/e2e_tests/run_e2e_tests.sh
           sudo -EH ./appveyor/e2e_tests/test_repack.sh
           # ./appveyor/e2e_tests/upload_e2e_artifacts.sh
+
+  upload:
+    runs-on: ubuntu-18.04
+    needs:
+      - build-ubuntu-docker
+      - test-ubuntu-e2e
+      - test-ubuntu
+    steps:
+      - uses: actions/checkout@v2
+      - name: Download installers from GitHub artifacts
+        id: download
+        uses: actions/download-artifact@v2
+        with:
+          path: _artifacts
