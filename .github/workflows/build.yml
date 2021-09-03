@@ -4,6 +4,43 @@ env:
   GCS_BUCKET: autobuilds.grr-response.com
   GCS_BUCKET_OPENAPI: autobuilds-grr-openapi
 jobs:
+
+  test-ubuntu:
+    runs-on: ubuntu-18.04
+    env:
+      CHROME_DEB: google-chrome-stable_current_amd64.deb
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Download installers from GitHub artifacts
+        id: download
+        uses: actions/download-artifact@v2
+        with:
+          path: ~/_artifacts
+      - name: Install
+        run: |
+          free -hmw
+          lscpu
+          sudo apt install -y libmysqlclient-dev
+          if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
+            wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
+          fi
+          python -m venv "${HOME}/INSTALL"
+          travis/install.sh
+      - name: Test
+        run: |
+          source "${HOME}/INSTALL/bin/activate"
+          pip install pytest-xdist==2.2.1
+          # We have 4 vCPUs available, but only use 3 here to avoid timeouts like
+          # https://ci.appveyor.com/project/grr/grr-ia94e/builds/20483467/messages ,
+          # which happen when tests stall.
+          pytest --verbose -n 3 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/ --ignore grr/client/grr_response_client/client_actions/windows/
+          # jsTree tests seem to fail on Chrome 71 headless due to https://github.com/GoogleChrome/puppeteer/issues/3463
+          if [ $(google-chrome --version | grep -Eo " [0-9]{1,3}") != "71" ]; then (cd grr/server/grr_response_server/gui/static/ && npm run gulp test); fi
+
+
   build-linux:
     runs-on: ubuntu-18.04
     env:
@@ -52,16 +89,6 @@ jobs:
           name: osx-installers
           path: gcs_upload_dir/
           retention-days: 1
-
-  build-ubuntu-docker:
-    runs-on: ubuntu-18.04
-    steps:
-      - uses: actions/checkout@v2
-      - run: |
-          export BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)
-          # TODO: Remove. Hardcoded for testing in a fork:
-          export GITHUB_SHA=166794f9dfebca3cc8c1361ed7f31fb7962a87c1
-          ./appveyor/docker_build/build_docker_image.sh
 
   build-centos:
     runs-on: ubuntu-18.04
@@ -171,40 +198,23 @@ jobs:
           path: gcs_upload_dir/
           retention-days: 1
 
-  test-ubuntu:
+  build-ubuntu-docker:
     runs-on: ubuntu-18.04
-    env:
-      CHROME_DEB: google-chrome-stable_current_amd64.deb
+    needs:
+      - build-server-deb
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.7'
       - name: Download installers from GitHub artifacts
         id: download
         uses: actions/download-artifact@v2
         with:
-          path: ~/_artifacts
-      - name: Install
-        run: |
-          free -hmw
-          lscpu
-          sudo apt install -y libmysqlclient-dev
-          if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
-            wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
-          fi
-          python -m venv "${HOME}/INSTALL"
-          travis/install.sh
-      - name: Test
-        run: |
-          source "${HOME}/INSTALL/bin/activate"
-          pip install pytest-xdist==2.2.1
-          # We have 4 vCPUs available, but only use 3 here to avoid timeouts like
-          # https://ci.appveyor.com/project/grr/grr-ia94e/builds/20483467/messages ,
-          # which happen when tests stall.
-          pytest --verbose -n 3 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/ --ignore grr/client/grr_response_client/client_actions/windows/
-          # jsTree tests seem to fail on Chrome 71 headless due to https://github.com/GoogleChrome/puppeteer/issues/3463
-          if [ $(google-chrome --version | grep -Eo " [0-9]{1,3}") != "71" ]; then (cd grr/server/grr_response_server/gui/static/ && npm run gulp test); fi
+          name: server-deb
+          path: _artifacts
+      - run: |
+          export BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)
+          # TODO: Remove. Hardcoded for testing in a fork:
+          export GITHUB_SHA=166794f9dfebca3cc8c1361ed7f31fb7962a87c1
+          ./appveyor/docker_build/build_docker_image.sh
 
   test-ubuntu-e2e:
     runs-on: ubuntu-18.04
