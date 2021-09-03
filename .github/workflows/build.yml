@@ -187,7 +187,8 @@ jobs:
 
           travis/build_local_pyindex.sh
 
-          mkdir $HOME/_openapi_artifacts/
+          mkdir -p $HOME/_openapi_artifacts/openapi_description
+          mkdir -p $HOME/_openapi_artifacts/documentation
           travis/build_api_documentation.sh "${HOME}/_openapi_artifacts/openapi_description/openapi_description.json" "${HOME}/_openapi_artifacts/documentation/openapi_documentation.html"
           travis/build_server_deb.sh
           ls -la gcs_upload_dir
@@ -279,6 +280,25 @@ jobs:
           path: _artifacts
       - run: |
           ls -la _artifacts/*/
+
+          COMMIT_TIME=$(git show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format="%cd" $GITHUB_SHA)
+          OUTPUT_DIR=gcs_upload_dir/${COMMIT_TIME}_${GITHUB_SHA}/
+          echo "OUTPUT_DIR=$OUTPUT_DIR" >> $GITHUB_ENV
+
+          mkdir -p $OUTPUT_DIR/centos/
+          mv -v _artifacts/centos-installers/* $OUTPUT_DIR/centos
+
+          mkdir -p $OUTPUT_DIR/ubuntu/
+          mv -v _artifacts/ubuntu-installers/* $OUTPUT_DIR/ubuntu
+
+          mkdir -p $OUTPUT_DIR/osx/
+          mv -v _artifacts/osx-installers/* $OUTPUT_DIR/osx
+
+          mkdir -p $OUTPUT_DIR/windows/
+          mv -v _artifacts/windows-installers/* $OUTPUT_DIR/windows
+
+          mkdir -p $OUTPUT_DIR/server_deb/
+          mv -v _artifacts/server-deb/* $OUTPUT_DIR/server_deb
       - name: Upload OpenAPI to GCS
         uses: google-github-actions/upload-cloud-storage@main
         with:
@@ -291,7 +311,7 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@main
         with:
           credentials: ${{ secrets.GCP_SA_KEY }}
-          path: _artifacts/
-          destination: ${{ env.GCS_BUCKET }}/${{ env.GITHUB_SHA }}/
+          path: ${{ env.OUTPUT_DIR }}
+          destination: ${{ env.GCS_BUCKET }}
           # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
           parent: false
