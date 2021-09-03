@@ -226,7 +226,7 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           name: server-deb
-          path: ~/_artifacts
+          path: _artifacts
       - name: Install
         run: |
           free -hmw

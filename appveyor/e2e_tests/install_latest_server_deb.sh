@@ -32,15 +32,15 @@ readonly GCS_DEB_DIR="https://storage.googleapis.com/autobuilds.grr-response.com
 # wget "${GCS_DEB_DIR}/grr-server_${DEB_VERSION}_amd64.changes"
 # wget "${GCS_DEB_DIR}/grr-server_${DEB_VERSION}.tar.gz"
 
-echo -e ".changes file for downloaded server deb:\n\n$(cat ~/_artifacts/grr-server_*_amd64.changes)\n"
-DEBIAN_FRONTEND=noninteractive apt install -y ~/_artifacts/grr-server_*_amd64.deb
+echo -e ".changes file for downloaded server deb:\n\n$(cat $GITHUB_WORKSPACE/_artifacts/grr-server_*_amd64.changes)\n"
+DEBIAN_FRONTEND=noninteractive apt install -y $GITHUB_WORKSPACE/_artifacts/grr-server_*_amd64.deb
 grr_config_updater initialize --noprompt --use_rel_db --external_hostname=localhost --admin_password="${GRR_ADMIN_PASS}" --mysql_password="${APPVEYOR_MYSQL_PASS}"
 echo 'Logging.verbose: True' >> /etc/grr/server.local.yaml
 systemctl restart grr-server
 
 echo "Installation of server deb completed."
 
-tar xzf ~/_artifacts/grr-server_*.tar.gz
+tar xzf $GITHUB_WORKSPACE/_artifacts/grr-server_*.tar.gz
 source /usr/share/grr-server/bin/activate
 pip install --no-index --find-links=grr/local_pypi grr/local_pypi/grr-response-test-*.zip
 deactivate
