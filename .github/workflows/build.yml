@@ -315,3 +315,4 @@ jobs:
           destination: ${{ env.GCS_BUCKET }}
           # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
           parent: false
+        # TODO: Replace _latest folder.
