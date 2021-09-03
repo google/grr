@@ -1,8 +1,7 @@
 name: Build
 on: [push, pull_request]
 env:
-  GCS_BUCKET: autobuilds.grr-response.com
-  GCS_BUCKET_OPENAPI: autobuilds-grr-openapi
+  GCS_BUCKET: grr-github-actions-test
 jobs:
 
   test-ubuntu:
@@ -187,7 +186,9 @@ jobs:
           mv -v ~/_artifacts/osx-installers/grr_*_amd64.xar.zip grr/config/grr_response_templates/templates
 
           travis/build_local_pyindex.sh
-          travis/build_api_documentation.sh "${HOME}/generated_description/openapi_description.json" "${HOME}/generated_documentation/openapi_documentation.html"
+
+          mkdir $HOME/_openapi_artifacts/
+          travis/build_api_documentation.sh "${HOME}/_openapi_artifacts/openapi_description/openapi_description.json" "${HOME}/_openapi_artifacts/documentation/openapi_documentation.html"
           travis/build_server_deb.sh
           ls -la gcs_upload_dir
       - if: ${{ github.event_name == 'push' }}
@@ -196,6 +197,13 @@ jobs:
         with:
           name: server-deb
           path: gcs_upload_dir/
+          retention-days: 1
+      - if: ${{ github.event_name == 'push' }}
+        name: Upload OpenAPI to GitHub artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: openapi
+          path: ~/_openapi_artifacts/
           retention-days: 1
 
   build-ubuntu-docker:
@@ -217,6 +225,7 @@ jobs:
           ./appveyor/docker_build/build_docker_image.sh
 
   test-ubuntu-e2e:
+    continue-on-error: true  # Debug follow up step.
     runs-on: ubuntu-18.04
     env:
       GRR_ADMIN_PASS: 'e2e_tests'
@@ -268,3 +277,21 @@ jobs:
         uses: actions/download-artifact@v2
         with:
           path: _artifacts
+      - run: |
+          ls -la _artifacts/*/
+      - name: Upload OpenAPI to GCS
+        uses: google-github-actions/upload-cloud-storage@main
+        with:
+          credentials: ${{ secrets.GCP_SA_KEY }}
+          path: _artifacts/openapi/
+          destination: ${{ env.GCS_BUCKET }}/openapitest/
+          # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
+          parent: false
+      - name: Upload installers to GCS
+        uses: google-github-actions/upload-cloud-storage@main
+        with:
+          credentials: ${{ secrets.GCP_SA_KEY }}
+          path: _artifacts/
+          destination: ${{ env.GCS_BUCKET }}/${{ env.GITHUB_SHA }}/
+          # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
+          parent: false
