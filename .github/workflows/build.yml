@@ -311,7 +311,7 @@ jobs:
         uses: google-github-actions/upload-cloud-storage@main
         with:
           credentials: ${{ secrets.GCP_SA_KEY }}
-          path: ${{ env.OUTPUT_DIR }}
+          path: gcs_upload_dir/
           destination: ${{ env.GCS_BUCKET }}
           # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
           parent: false
