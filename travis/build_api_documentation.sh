@@ -34,6 +34,7 @@ function generate_openapi_description() {
 }
 
 function generate_documentation() {
+  npm install -g react react-dom mobx@5.15.4 mobx-react-lite@2.2.2 styled-components core-js redoc-cli@0.9.1
   npx redoc-cli@0.9.12 bundle "$1"
   mv "redoc-static.html" "$2"
 }
