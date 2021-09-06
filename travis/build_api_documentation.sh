@@ -39,7 +39,7 @@ function generate_documentation() {
   mv "redoc-static.html" "$2"
 }
 
-setup_environment
+# setup_environment
 generate_openapi_description "$OPENAPI_JSON_PATH"
 generate_documentation "$OPENAPI_JSON_PATH" "$OPENAPI_DOCUMENTATION_PATH"
 

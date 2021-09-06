@@ -13,11 +13,6 @@ jobs:
       - uses: actions/setup-python@v2
         with:
           python-version: '3.7'
-      - name: Download installers from GitHub artifacts
-        id: download
-        uses: actions/download-artifact@v2
-        with:
-          path: ~/_artifacts
       - name: Install
         run: |
           free -hmw
@@ -39,6 +34,22 @@ jobs:
           # jsTree tests seem to fail on Chrome 71 headless due to https://github.com/GoogleChrome/puppeteer/issues/3463
           if [ $(google-chrome --version | grep -Eo " [0-9]{1,3}") != "71" ]; then (cd grr/server/grr_response_server/gui/static/ && npm run gulp test); fi
 
+  build-openapi:
+    runs-on: ubuntu-18.04
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        with:
+          python-version: '3.7'
+      - name: Install
+        run: |
+          sudo apt install -y libmysqlclient-dev
+          python -m venv "${HOME}/INSTALL"
+          travis/install.sh
+      - name: Build
+        run: |
+          source "${HOME}/INSTALL/bin/activate"
+          travis/build_api_documentation.sh
 
   build-linux:
     runs-on: ubuntu-18.04
