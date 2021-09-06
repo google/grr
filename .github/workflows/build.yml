@@ -53,6 +53,13 @@ jobs:
           mkdir -p _openapi_artifacts/documentation
           travis/build_api_documentation.sh "_openapi_artifacts/openapi_description/openapi_description.json" "_openapi_artifacts/documentation/openapi_documentation.html"
           ls -la _openapi_artifacts/*
+      - if: ${{ github.event_name == 'push' }}
+        name: Upload OpenAPI to GitHub artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: openapi
+          path: _openapi_artifacts/
+          retention-days: 1
 
   build-linux:
     runs-on: ubuntu-18.04
@@ -214,13 +221,6 @@ jobs:
           name: server-deb
           path: gcs_upload_dir/
           retention-days: 1
-      - if: ${{ github.event_name == 'push' }}
-        name: Upload OpenAPI to GitHub artifacts
-        uses: actions/upload-artifact@v2
-        with:
-          name: openapi
-          path: ~/_openapi_artifacts/
-          retention-days: 1
 
   build-ubuntu-docker:
     runs-on: ubuntu-18.04
@@ -286,6 +286,7 @@ jobs:
       - build-ubuntu-docker
       # - test-ubuntu-e2e  # TODO: Comment back in after debugging is finished.
       - test-ubuntu
+      - build-openapi
     steps:
       - uses: actions/checkout@v2
       - name: Download installers from GitHub artifacts
