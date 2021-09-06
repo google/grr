@@ -10,7 +10,4 @@ else
   readonly BUILD_TAG="grrdocker/grr:${BRANCH}"
 fi
 
-docker build -t "${BUILD_TAG}" \
-  --build-arg GCS_BUCKET="${GCS_BUCKET}" \
-  --build-arg GRR_COMMIT="${GITHUB_SHA}" \
-  .
+docker build -t "${BUILD_TAG}" .
