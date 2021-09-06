@@ -35,7 +35,6 @@ function generate_openapi_description() {
 
 function generate_documentation() {
   npx redoc-cli@0.9.12 bundle "$1"
-  mkdir -p "$(dirname "$2")"
   mv "redoc-static.html" "$2"
 }
 
@@ -43,4 +42,4 @@ function generate_documentation() {
 generate_openapi_description "$OPENAPI_JSON_PATH"
 generate_documentation "$OPENAPI_JSON_PATH" "$OPENAPI_DOCUMENTATION_PATH"
 
-deactivate
+# deactivate

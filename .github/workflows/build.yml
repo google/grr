@@ -49,7 +49,10 @@ jobs:
       - name: Build
         run: |
           source "${HOME}/INSTALL/bin/activate"
-          travis/build_api_documentation.sh
+          mkdir -p _openapi_artifacts/openapi_description
+          mkdir -p _openapi_artifacts/documentation
+          travis/build_api_documentation.sh "_openapi_artifacts/openapi_description/openapi_description.json" "_openapi_artifacts/documentation/openapi_documentation.html"
+          ls -la _openapi_artifacts/*
 
   build-linux:
     runs-on: ubuntu-18.04
