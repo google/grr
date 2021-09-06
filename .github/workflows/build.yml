@@ -56,8 +56,7 @@ jobs:
           mkdir -p _openapi_artifacts/documentation
           travis/build_api_documentation.sh "_openapi_artifacts/openapi_description/openapi_description.json" "_openapi_artifacts/documentation/openapi_documentation.html"
           ls -la _openapi_artifacts/*
-      - if: ${{ github.event_name == 'push' }}
-        name: Upload OpenAPI to GitHub artifacts
+      - name: Upload OpenAPI to GitHub artifacts
         uses: actions/upload-artifact@v2
         with:
           name: openapi
@@ -165,8 +164,7 @@ jobs:
           mkdir -p gcs_upload_dir
           mv -v output*/* gcs_upload_dir
           ls -la gcs_upload_dir
-      - if: ${{ github.event_name == 'push' }}
-        name: Upload installers to GitHub artifacts
+      - name: Upload installers to GitHub artifacts
         uses: actions/upload-artifact@v2
         with:
           name: windows-installers
@@ -212,8 +210,7 @@ jobs:
           travis/build_local_pyindex.sh
           travis/build_server_deb.sh
           ls -la gcs_upload_dir
-      - if: ${{ github.event_name == 'push' }}
-        name: Upload installers to GitHub artifacts
+      - name: Upload installers to GitHub artifacts
         uses: actions/upload-artifact@v2
         with:
           name: server-deb
