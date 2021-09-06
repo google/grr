@@ -190,6 +190,7 @@ jobs:
           mkdir -p $HOME/_openapi_artifacts/openapi_description
           mkdir -p $HOME/_openapi_artifacts/documentation
           travis/build_api_documentation.sh "${HOME}/_openapi_artifacts/openapi_description/openapi_description.json" "${HOME}/_openapi_artifacts/documentation/openapi_documentation.html"
+          ls -la $HOME/_openapi_artifacts/*
           travis/build_server_deb.sh
           ls -la gcs_upload_dir
       - if: ${{ github.event_name == 'push' }}

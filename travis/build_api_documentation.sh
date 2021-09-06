@@ -1,5 +1,7 @@
 #!/bin/bash
 
+set -ex
+
 if [[ $# -ne 2 ]]
   then
     echo "Usage: $0 <OPENAPI_JSON_PATH> <OPENAPI_DOCUMENTATION_PATH>"
