@@ -2,6 +2,8 @@ name: Build
 on: [push, pull_request]
 env:
   GCS_BUCKET: grr-github-actions-test
+  GCS_BUCKET_OPENAPI: grr-github-actions-test
+  GCS_LATEST_PATH: _latest_server_deb
 jobs:
 
   test-ubuntu:
@@ -310,20 +312,27 @@ jobs:
 
           mkdir -p $OUTPUT_DIR/server_deb/
           mv -v _artifacts/server-deb/* $OUTPUT_DIR/server_deb
-      - name: Upload OpenAPI to GCS
-        uses: google-github-actions/upload-cloud-storage@main
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v0.2.1
         with:
-          credentials: ${{ secrets.GCP_SA_KEY }}
-          path: _artifacts/openapi/
-          destination: ${{ env.GCS_BUCKET }}/openapitest/
-          # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
-          parent: false
+          project_id: ${{ secrets.GCP_PROJECT_ID }}
+          service_account_key: ${{ secrets.GCP_SA_KEY }}
+          export_default_credentials: true
       - name: Upload installers to GCS
         uses: google-github-actions/upload-cloud-storage@main
         with:
-          credentials: ${{ secrets.GCP_SA_KEY }}
           path: gcs_upload_dir/
           destination: ${{ env.GCS_BUCKET }}
           # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
           parent: false
-        # TODO: Replace _latest folder.
+      - name: Replace ${{ env.GCS_LATEST_PATH }} folder in GCS
+        run: |
+          gsutil rm gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/** || true
+          gsutil cp -r $OUTPUT_DIR/server_deb/* gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/
+      - name: Upload OpenAPI to GCS
+        uses: google-github-actions/upload-cloud-storage@main
+        with:
+          path: _artifacts/openapi/
+          destination: ${{ env.GCS_BUCKET_OPENAPI }}
+          # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
+          parent: false
