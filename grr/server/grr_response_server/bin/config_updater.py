@@ -326,7 +326,6 @@ def main(args):
 
   elif args.subparser_name == "repack_clients":
     upload = not args.noupload
-    print("DEBUG repack_clients", upload)
     repacking.TemplateRepacker().RepackAllTemplates(upload=upload)
 
   elif args.subparser_name == "show_user":
