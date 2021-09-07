@@ -272,10 +272,9 @@ jobs:
         with:
           name: server-deb
           path: _artifacts
-      - run: |
+      - name: Build Docker image
+        run: |
           export BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)
-          # TODO: Remove. Hardcoded for testing in a fork:
-          export GITHUB_SHA=166794f9dfebca3cc8c1361ed7f31fb7962a87c1
           ./appveyor/docker_build/build_docker_image.sh
       - name: Log in to Docker Hub
         uses: docker/login-action@v1

@@ -5,9 +5,9 @@
 set -ex
 
 if [[ "${BRANCH}" == 'master' ]]; then
-  readonly BUILD_TAG='grrdocker/grr:latest'
+  readonly BUILD_TAG="${DOCKER_REPOSITORY}:latest"
 else
-  readonly BUILD_TAG="grrdocker/grr:${BRANCH}"
+  readonly BUILD_TAG="${DOCKER_REPOSITORY}:${BRANCH}"
 fi
 
 docker build -t "${BUILD_TAG}" .
