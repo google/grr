@@ -1,10 +1,10 @@
 name: Build
 on: [push, pull_request]
 env:
-  GCS_BUCKET: grr-github-actions-test
-  GCS_BUCKET_OPENAPI: grr-github-actions-test
+  GCS_BUCKET: autobuilds.grr-response.com
+  GCS_BUCKET_OPENAPI: autobuilds-grr-openapi
   GCS_LATEST_PATH: _latest_server_deb
-  DOCKER_REPOSITORY: maxvo/grr-test  # grrdocker/grr
+  DOCKER_REPOSITORY: grrdocker/grr
 jobs:
 
   test-ubuntu:

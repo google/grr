@@ -4,7 +4,7 @@
 <p align="center">
 GRR Rapid Response is an incident response framework focused on remote live forensics.
 
-[![Build](https://github.com/max-vogler/grr/actions/workflows/build.yml/badge.svg)](https://github.com/max-vogler/grr/actions/workflows/build.yml)
+[![Build](https://github.com/google/grr/actions/workflows/build.yml/badge.svg)](https://github.com/google/grr/actions/workflows/build.yml)
 
 GRR is a python client (agent) that is installed on target systems, and
 python server infrastructure that can manage and talk to clients.<br>
