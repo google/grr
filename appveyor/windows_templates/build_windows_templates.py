@@ -42,24 +42,6 @@ parser.add_argument(
     help="A directory that will be passed to pip as the wheel-dir parameter.")
 
 parser.add_argument(
-    "--build_32",
-    dest="build_32",
-    default=False,
-    action="store_true",
-    help="Enable building the 32 bit version.")
-parser.add_argument("--no_build_32", dest="build_32", action="store_false")
-
-parser.add_argument(
-    "--python32_dir",
-    default=r"C:\Python36",
-    help="Path to the 32 bit Python installation.")
-
-parser.add_argument(
-    "--python64_dir",
-    default=r"C:\Python36-x64",
-    help="Path to the 64 bit Python installation.")
-
-parser.add_argument(
     "--expect_service_running",
     dest="expect_service_running",
     action="store_true",
@@ -75,18 +57,6 @@ parser.add_argument(
     "--config",
     default="",
     help="Path to the config file to be used when building templates.")
-
-parser.add_argument(
-    "--virtualenv_64bit",
-    default="",
-    help="Optional path to a 64-bit Python virtualenv to be used instead "
-    "of creating a new one.")
-
-parser.add_argument(
-    "--virtualenv_32bit",
-    default="",
-    help="Optional path to a 32-bit Python virtualenv to be used instead "
-    "of creating a new one.")
 
 parser.add_argument(
     "--build_msi",
@@ -154,7 +124,7 @@ def _RmTreePseudoTransactional(path: str) -> None:
     logging.info("Failed to remove %s. Ignoring.", temp_path, exc_info=True)
 
 
-def VerboseCheckCall(args):
+def _VerboseCheckCall(args):
   logging.info("Running: %s" % (args,))
 
   try:
@@ -173,28 +143,10 @@ class WindowsTemplateBuilder(object):
     # Python paths chosen to match appveyor:
     # http://www.appveyor.com/docs/installed-software#python
 
-    self.python_dir_64 = args.python64_dir
-    self.python_dir_32 = args.python32_dir
-
-    self.virtualenv_bin64 = "virtualenv"
-    self.virtualenv_bin32 = "virtualenv"
-
-    if args.virtualenv_64bit:
-      self.virtualenv64 = args.virtualenv_64bit
-    else:
-      self.virtualenv64 = os.path.join(args.build_dir, "python_64")
-    if args.virtualenv_32bit:
-      self.virtualenv32 = args.virtualenv_32bit
-    else:
-      self.virtualenv32 = os.path.join(args.build_dir, "python_32")
-
+    self.virtualenv64 = os.path.join(args.build_dir, "python_64")
     self.grr_client_build64 = "grr_client_build"
-    self.grr_client_build32 = "grr_client_build"
-    self.pip64 = "pip"
-    self.pip32 = "pip"
-
-    self.virtualenv_python64 = "python"
-    self.virtualenv_python32 = "python"
+    self.virtualenv_python64 = os.path.join(self.virtualenv64,
+                                            r"Scripts\python.exe")
 
     self.git = r"git"
 
@@ -215,10 +167,7 @@ class WindowsTemplateBuilder(object):
     os.makedirs(args.output_dir)
 
     # Create virtualenvs.
-    if not args.virtualenv_64bit:
-      subprocess.check_call([self.virtualenv_bin64, self.virtualenv64])
-    if args.build_32 and not args.virtualenv_32bit:
-      subprocess.check_call([self.virtualenv_bin32, self.virtualenv32])
+    subprocess.check_call(["virtualenv", self.virtualenv64])
 
     # Currently this should do nothing as we will already have a modern pip
     # installed, but we leave this here so if we get broken by pip again it's
@@ -229,14 +178,8 @@ class WindowsTemplateBuilder(object):
     if args.wheel_dir:
       cmd += ["--no-index", r"--find-links=file:///%s" % args.wheel_dir]
 
-    subprocess.check_call([self.virtualenv_python64] + cmd +
-                          ["--upgrade", "pip>=21.0.1"])
-    subprocess.check_call([self.pip64, "debug", "--verbose"])
-
-    if args.build_32:
-      subprocess.check_call([self.virtualenv_python32] + cmd +
-                            ["--upgrade", "pip>=21.0.1"])
-      subprocess.check_call([self.pip32, "debug", "--verbose"])
+    subprocess.check_call(["python"] + cmd + ["--upgrade", "pip>=21.0.1"])
+    subprocess.check_call(["pip", "debug", "--verbose"])
 
   def GitCheckoutGRR(self):
     os.chdir(args.build_dir)
@@ -283,19 +226,14 @@ class WindowsTemplateBuilder(object):
   def InstallGRR(self, path):
     """Installs GRR."""
 
-    cmd64 = [self.pip64, "install"]
-    cmd32 = [self.pip32, "install"]
+    cmd64 = ["pip", "install"]
 
     if args.wheel_dir:
       cmd64 += ["--no-index", r"--find-links=file:///%s" % args.wheel_dir]
-      cmd32 += ["--no-index", r"--find-links=file:///%s" % args.wheel_dir]
 
     cmd64.append(path)
-    cmd32.append(path)
 
     subprocess.check_call(cmd64)
-    if args.build_32:
-      subprocess.check_call(cmd32)
 
   def BuildTemplates(self):
     """Builds the client templates.
@@ -318,9 +256,7 @@ class WindowsTemplateBuilder(object):
           "-p",
           "ClientBuilder.build_msi=true",
       ]
-    VerboseCheckCall([self.grr_client_build64] + build_args)
-    if args.build_32:
-      VerboseCheckCall([self.grr_client_build32] + build_args)
+    _VerboseCheckCall([self.grr_client_build64] + build_args)
 
   def _WixToolsPath(self) -> str:
     matches = glob.glob("C:\\Program Files*\\WiX Toolset*")
@@ -332,35 +268,21 @@ class WindowsTemplateBuilder(object):
     """Repack templates with a dummy config."""
     dummy_config = os.path.join(
         args.grr_src, "grr/test/grr_response_test/test_data/dummyconfig.yaml")
-    if args.build_32:
-      template_i386 = glob.glob(os.path.join(args.output_dir,
-                                             "*_i386*.zip")).pop()
     template_amd64 = glob.glob(os.path.join(args.output_dir,
                                             "*_amd64*.zip")).pop()
 
     # We put the installers in the output dir so they get stored as build
-    # artifacts and we can test the 32bit build manually.
-    VerboseCheckCall([
+    # artifacts.
+    _VerboseCheckCall([
         self.grr_client_build64, "--verbose", "--secondary_configs",
         dummy_config, "repack", "--template", template_amd64, "--output_dir",
         args.output_dir
     ])
-    VerboseCheckCall([
+    _VerboseCheckCall([
         self.grr_client_build64, "--verbose", "--context",
         "DebugClientBuild Context", "--secondary_configs", dummy_config,
         "repack", "--template", template_amd64, "--output_dir", args.output_dir
     ])
-    if args.build_32:
-      VerboseCheckCall([
-          self.grr_client_build32, "--verbose", "--secondary_configs",
-          dummy_config, "repack", "--template", template_i386, "--output_dir",
-          args.output_dir
-      ])
-      VerboseCheckCall([
-          self.grr_client_build32, "--verbose", "--context",
-          "DebugClientBuild Context", "--secondary_configs", dummy_config,
-          "repack", "--template", template_i386, "--output_dir", args.output_dir
-      ])
 
   def _WaitForServiceToStop(self) -> bool:
     """Waits for the GRR monitor service to stop."""
@@ -377,7 +299,7 @@ class WindowsTemplateBuilder(object):
   def _CleanupInstall(self):
     """Cleanup from any previous installer enough for _CheckInstallSuccess."""
     logging.info("Stoping service %s.", self.service_name)
-    VerboseCheckCall(["sc", "stop", self.service_name])
+    _VerboseCheckCall(["sc", "stop", self.service_name])
 
     if args.build_msi:
       msiexec_args = [
@@ -386,7 +308,7 @@ class WindowsTemplateBuilder(object):
           "/x",
           glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop().replace("/", "\\"),
       ]
-      VerboseCheckCall(msiexec_args)
+      _VerboseCheckCall(msiexec_args)
     else:
       self._WaitForServiceToStop()
       if os.path.exists(self.install_path):
@@ -425,9 +347,6 @@ class WindowsTemplateBuilder(object):
 
   def _InstallInstallers(self):
     """Install the installer built by RepackTemplates."""
-    # 32 bit binary will refuse to install on a 64bit system so we only install
-    # the 64 bit version
-
     if args.build_msi:
       installer_amd64_args = [
           "msiexec",
@@ -443,7 +362,7 @@ class WindowsTemplateBuilder(object):
       ]
 
     # The exit code is always 0, test to see if install was actually successful.
-    VerboseCheckCall(installer_amd64_args)
+    _VerboseCheckCall(installer_amd64_args)
 
     self._CheckInstallSuccess()
     self._CleanupInstall()
