@@ -182,9 +182,6 @@ jobs:
       - build-windows
     steps:
       - uses: actions/checkout@v2
-      # - uses: actions/setup-python@v2
-      #   with:
-      #     python-version: '3.6'
       - name: Download installers from GitHub artifacts
         id: download
         uses: actions/download-artifact@v2
@@ -255,7 +252,14 @@ jobs:
         run: |
           sudo -EH ./appveyor/e2e_tests/run_e2e_tests.sh
           sudo -EH ./appveyor/e2e_tests/test_repack.sh
-          # ./appveyor/e2e_tests/upload_e2e_artifacts.sh
+          ./appveyor/e2e_tests/upload_e2e_artifacts.sh
+      - name: Upload logs and configs to GitHub artifacts
+        uses: actions/upload-artifact@v2
+        with:
+          name: e2e-test
+          path: appveyor_e2e_artifacts/
+          retention-days: 1
+
 
   build-push-docker:
     runs-on: ubuntu-18.04
@@ -276,16 +280,19 @@ jobs:
         run: |
           export BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)
           ./appveyor/docker_build/build_docker_image.sh
-      - name: Log in to Docker Hub
+      - if: ${{ github.event_name == 'push' }} 
+        name: Log in to Docker Hub
         uses: docker/login-action@v1
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
-      - name: Push to ${{ env.DOCKER_REPOSITORY }}
+      - if: ${{ github.event_name == 'push' }}
+        name: Push to ${{ env.DOCKER_REPOSITORY }}
         run: |
           docker push ${{ env.DOCKER_REPOSITORY }}
 
   upload:
+    if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-18.04
     needs:
       - build-push-docker
