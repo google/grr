@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# Fetches the latest server deb from Google Cloud Storage and installs it.
+# Installs the server deb from a local path.
 # This script needs root privileges to run.
 
 set -ex
@@ -26,13 +26,7 @@ print('%s.%s.%s-%s' % (
     config.get('Version', 'revision'),
     config.get('Version', 'release')))
 "
-readonly DEB_VERSION="$(python3 -c "${pyscript}")"
-readonly GCS_DEB_DIR="https://storage.googleapis.com/autobuilds.grr-response.com/_latest_server_deb"
-# wget "${GCS_DEB_DIR}/grr-server_${DEB_VERSION}_amd64.deb"
-# wget "${GCS_DEB_DIR}/grr-server_${DEB_VERSION}_amd64.changes"
-# wget "${GCS_DEB_DIR}/grr-server_${DEB_VERSION}.tar.gz"
-
-echo -e ".changes file for downloaded server deb:\n\n$(cat $GITHUB_WORKSPACE/_artifacts/grr-server_*_amd64.changes)\n"
+echo -e ".changes file for server deb:\n\n$(cat $GITHUB_WORKSPACE/_artifacts/grr-server_*_amd64.changes)\n"
 DEBIAN_FRONTEND=noninteractive apt install -y $GITHUB_WORKSPACE/_artifacts/grr-server_*_amd64.deb
 grr_config_updater initialize --noprompt --use_rel_db --external_hostname=localhost --admin_password="${GRR_ADMIN_PASS}" --mysql_password="${APPVEYOR_MYSQL_PASS}"
 echo 'Logging.verbose: True' >> /etc/grr/server.local.yaml
