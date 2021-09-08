@@ -4,13 +4,10 @@
 
 set -ex
 
-if [[ "${APPVEYOR_REPO_BRANCH}" == 'master' ]]; then
-  readonly BUILD_TAG='grrdocker/grr:latest'
+if [[ "${BRANCH}" == 'master' ]]; then
+  readonly BUILD_TAG="${DOCKER_REPOSITORY}:latest"
 else
-  readonly BUILD_TAG="grrdocker/grr:${APPVEYOR_REPO_BRANCH}"
+  readonly BUILD_TAG="${DOCKER_REPOSITORY}:${BRANCH}"
 fi
 
-docker build -t "${BUILD_TAG}" \
-  --build-arg GCS_BUCKET="${GCS_BUCKET}" \
-  --build-arg GRR_COMMIT="${APPVEYOR_REPO_COMMIT}" \
-  .
+docker build -t "${BUILD_TAG}" .
