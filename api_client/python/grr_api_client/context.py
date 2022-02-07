@@ -105,6 +105,6 @@ class GrrApiContext(object):
   @property
   def username(self) -> str:
     if self.user is None:
-      self.user = self.SendRequest("GetGrrUser", None)
+      self.user = self.SendRequest("GetGrrUser", None)  # pytype: disable=annotation-type-mismatch  # bind-properties
 
-    return self.user.username
+    return self.user.username  # pytype: disable=attribute-error  # bind-properties

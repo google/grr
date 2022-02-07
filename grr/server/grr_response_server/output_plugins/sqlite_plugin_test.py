@@ -17,9 +17,10 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_server import export
+from grr_response_server.export_converters import file
 from grr_response_server.output_plugins import sqlite_plugin
 from grr_response_server.output_plugins import test_plugins
+from grr.test_lib import export_test_lib
 from grr.test_lib import test_lib
 
 
@@ -156,6 +157,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             "embedded_field.e_double_field": 0.789
         })
 
+  @export_test_lib.WithAllExportConverters
   def testExportedFilenamesAndManifestForValuesOfSameType(self):
     zip_fd, prefix = self.ProcessValuesToZip(
         {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES})
@@ -171,6 +173,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
                          }
                      }})
 
+  @export_test_lib.WithAllExportConverters
   def testExportedTableStructureForValuesOfSameType(self):
     zip_fd, prefix = self.ProcessValuesToZip(
         {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES})
@@ -191,13 +194,14 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     # Ensure all columns in the schema exist in the in-memory table.
     self.db_cursor.execute("PRAGMA table_info('ExportedFile.from_StatEntry');")
     columns = {row[1] for row in self.db_cursor.fetchall()}
-    schema = self.plugin._GetSqliteSchema(export.ExportedFile)
+    schema = self.plugin._GetSqliteSchema(file.ExportedFile)
     column_types = {k: v.sqlite_type for k, v in schema.items()}
     self.assertEqual(columns, set(schema.keys()))
     self.assertEqual(column_types["metadata.client_urn"], "TEXT")
     self.assertEqual(column_types["st_ino"], "INTEGER")
     self.assertEqual(column_types["st_atime"], "INTEGER")
 
+  @export_test_lib.WithAllExportConverters
   def testExportedRowsForValuesOfSameType(self):
     zip_fd, prefix = self.ProcessValuesToZip(
         {rdf_client_fs.StatEntry: self.STAT_ENTRY_RESPONSES})
@@ -242,6 +246,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
       }
       self.assertEqual(results, expected_results)
 
+  @export_test_lib.WithAllExportConverters
   def testExportedFilenamesAndManifestForValuesOfMultipleTypes(self):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client_fs.StatEntry: [
@@ -270,6 +275,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             }
         })
 
+  @export_test_lib.WithAllExportConverters
   def testExportedRowsForValuesOfMultipleTypes(self):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client_fs.StatEntry: [
@@ -313,6 +319,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     # PID
     self.assertEqual(process_results[0][2], 42)
 
+  @export_test_lib.WithAllExportConverters
   def testHandlingOfNonAsciiCharacters(self):
     zip_fd, prefix = self.ProcessValuesToZip({
         rdf_client_fs.StatEntry: [
@@ -335,6 +342,7 @@ class SqliteInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertLen(results, 1)
     self.assertEqual(results[0][0], "aff4:/%s/fs/os/中国新闻网新闻中" % self.client_id)
 
+  @export_test_lib.WithAllExportConverters
   def testHandlingOfMultipleRowBatches(self):
     num_rows = self.__class__.plugin_cls.ROW_BATCH * 2 + 1
 

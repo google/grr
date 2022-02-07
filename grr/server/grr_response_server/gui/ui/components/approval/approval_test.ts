@@ -1,31 +1,24 @@
 import {CdkCopyToClipboard} from '@angular/cdk/clipboard';
 import {OverlayModule} from '@angular/cdk/overlay';
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
-import {initTestEnvironment} from '@app/testing';
 
-import {Client} from '../../lib/models/client';
+import {ClientApproval} from '../../lib/models/client';
 import {newClient} from '../../lib/models/model_test_util';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {initTestEnvironment} from '../../testing';
 
 import {Approval} from './approval';
 import {ApprovalModule} from './module';
 
 
 initTestEnvironment();
-
-function makeClient(args: Partial<Client> = {}): Client {
-  return newClient({
-    clientId: 'C.1234',
-    ...args,
-  });
-}
 
 describe('Approval Component', () => {
   let clientPageGlobalStore: ClientPageGlobalStoreMock;
@@ -53,17 +46,27 @@ describe('Approval Component', () => {
               useFactory: () => configGlobalStore,
             },
             OverlayModule,
-          ]
+          ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
 
-  it('requests approval when form is submitted', () => {
-    const fixture = TestBed.createComponent(Approval);
-    fixture.detectChanges();
 
-    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
+  function createComponent(latestApproval: ClientApproval|null = null):
+      ComponentFixture<Approval> {
+    const fixture = TestBed.createComponent(Approval);
+    fixture.componentInstance.latestApproval = latestApproval;
+    spyOn(fixture.componentInstance.approvalParams, 'emit');
+    fixture.detectChanges();
+    return fixture;
+  }
+
+  it('requests approval when form is submitted', () => {
+    const fixture = createComponent();
+
     configGlobalStore.mockedObservables.approvalConfig$.next({});
+    fixture.detectChanges();
 
     fixture.componentInstance.formRequestedApprovers.add('rick');
     fixture.componentInstance.formRequestedApprovers.add('jerry');
@@ -73,8 +76,7 @@ describe('Approval Component', () => {
         .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(clientPageGlobalStore.requestApproval).toHaveBeenCalledWith({
-      clientId: 'C.1234',
+    expect(fixture.componentInstance.approvalParams.emit).toHaveBeenCalledWith({
       approvers: ['rick', 'jerry'],
       reason: 'sample reason',
       cc: [],
@@ -82,10 +84,8 @@ describe('Approval Component', () => {
   });
 
   it('loads and displays optional cc address for approval', () => {
-    const fixture = TestBed.createComponent(Approval);
+    const fixture = createComponent();
     fixture.detectChanges();
-
-    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
 
     configGlobalStore.mockedObservables.approvalConfig$.next(
         {optionalCcEmail: 'foo@example.org'});
@@ -99,17 +99,14 @@ describe('Approval Component', () => {
     await TestBed.inject(Router).navigate(
         [], {queryParams: {reason: 'foo/t/abcd'}});
 
-    const fixture = TestBed.createComponent(Approval);
+    const fixture = createComponent();
     fixture.detectChanges();
 
     expect(fixture.componentInstance.form.value.reason).toEqual('foo/t/abcd');
   });
 
   it('uses optional cc address for approval by default', () => {
-    const fixture = TestBed.createComponent(Approval);
-    fixture.detectChanges();
-
-    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
+    const fixture = createComponent();
 
     configGlobalStore.mockedObservables.approvalConfig$.next(
         {optionalCcEmail: 'foo@example.org'});
@@ -122,16 +119,13 @@ describe('Approval Component', () => {
         .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(clientPageGlobalStore.requestApproval)
+    expect(fixture.componentInstance.approvalParams.emit)
         .toHaveBeenCalledWith(
             jasmine.objectContaining({cc: ['foo@example.org']}));
   });
 
   it('does not use optional cc if checkbox is unchecked', () => {
-    const fixture = TestBed.createComponent(Approval);
-    fixture.detectChanges();
-
-    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
+    const fixture = createComponent();
 
     configGlobalStore.mockedObservables.approvalConfig$.next(
         {optionalCcEmail: 'foo@example.org'});
@@ -144,17 +138,16 @@ describe('Approval Component', () => {
         .triggerEventHandler('submit', null);
     fixture.detectChanges();
 
-    expect(clientPageGlobalStore.requestApproval)
+    expect(fixture.componentInstance.approvalParams.emit)
         .toHaveBeenCalledWith(jasmine.objectContaining({cc: []}));
   });
 
   it('shows pre-existing approval', () => {
-    const fixture = TestBed.createComponent(Approval);
-    fixture.detectChanges();
-
-    const client = makeClient();
-    clientPageGlobalStore.mockedObservables.selectedClient$.next(client);
-    clientPageGlobalStore.mockedObservables.latestApproval$.next({
+    const client = newClient({
+      clientId: 'C.1234',
+      ...{},
+    });
+    const latestApproval: ClientApproval = {
       approvalId: '1',
       clientId: 'C.1234',
       requestor: 'testuser',
@@ -163,7 +156,8 @@ describe('Approval Component', () => {
       reason: 'sample reason',
       requestedApprovers: ['foo'],
       subject: client,
-    });
+    };
+    const fixture = createComponent(latestApproval);
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -172,12 +166,11 @@ describe('Approval Component', () => {
   });
 
   it('allows copying the approval url', () => {
-    const fixture = TestBed.createComponent(Approval);
-    fixture.detectChanges();
-
-    const client = makeClient();
-    clientPageGlobalStore.mockedObservables.selectedClient$.next(client);
-    clientPageGlobalStore.mockedObservables.latestApproval$.next({
+    const client = newClient({
+      clientId: 'C.1234',
+      ...{},
+    });
+    const latestApproval: ClientApproval = {
       approvalId: '111',
       clientId: 'C.1234',
       requestor: 'testuser',
@@ -186,7 +179,8 @@ describe('Approval Component', () => {
       reason: 'sample reason',
       requestedApprovers: ['foo'],
       subject: client,
-    });
+    };
+    const fixture = createComponent(latestApproval);
     fixture.detectChanges();
 
     const directiveEl =
@@ -200,10 +194,8 @@ describe('Approval Component', () => {
   });
 
   it('displays initial autocomplete suggestions', () => {
-    const fixture = TestBed.createComponent(Approval);
+    const fixture = createComponent();
     fixture.detectChanges();
-
-    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
     configGlobalStore.mockedObservables.approvalConfig$.next({});
 
     expect(clientPageGlobalStore.suggestApprovers).toHaveBeenCalledWith('');
@@ -224,10 +216,9 @@ describe('Approval Component', () => {
   });
 
   it('displays autocomplete suggestions when typing', () => {
-    const fixture = TestBed.createComponent(Approval);
+    const fixture = createComponent();
     fixture.detectChanges();
 
-    clientPageGlobalStore.mockedObservables.selectedClient$.next(makeClient());
     configGlobalStore.mockedObservables.approvalConfig$.next({});
 
     const approversInput =
@@ -248,8 +239,17 @@ describe('Approval Component', () => {
   });
 
   it('shows contents on click when closed', () => {
-    const fixture = TestBed.createComponent(Approval);
-    fixture.detectChanges();
+    const latestApproval: ClientApproval = {
+      approvalId: '1',
+      clientId: 'C.1234',
+      requestor: 'testuser',
+      status: {type: 'pending', reason: 'Need at least 1 more approver.'},
+      approvers: [],
+      reason: 'sample reason',
+      requestedApprovers: ['foo'],
+      subject: newClient({clientId: 'C.1234'}),
+    };
+    const fixture = createComponent(latestApproval);
 
     expect(fixture.componentInstance.hideContent).toBeTrue();
 
@@ -260,8 +260,18 @@ describe('Approval Component', () => {
   });
 
   it('toggles contents on click on toggle button', () => {
-    const fixture = TestBed.createComponent(Approval);
-    const button = fixture.debugElement.query(By.css('h1 button'));
+    const latestApproval: ClientApproval = {
+      approvalId: '1',
+      clientId: 'C.1234',
+      requestor: 'testuser',
+      status: {type: 'pending', reason: 'Need at least 1 more approver.'},
+      approvers: [],
+      reason: 'sample reason',
+      requestedApprovers: ['foo'],
+      subject: newClient({clientId: 'C.1234'}),
+    };
+    const fixture = createComponent(latestApproval);
+    const button = fixture.debugElement.query(By.css('#approval-card-toggle'));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.hideContent).toBeTrue();
@@ -276,8 +286,18 @@ describe('Approval Component', () => {
   });
 
   it('opens contents on click on header', () => {
-    const fixture = TestBed.createComponent(Approval);
-    const header = fixture.debugElement.query(By.css('h1'));
+    const latestApproval: ClientApproval = {
+      approvalId: '1',
+      clientId: 'C.1234',
+      requestor: 'testuser',
+      status: {type: 'pending', reason: 'Need at least 1 more approver.'},
+      approvers: [],
+      reason: 'sample reason',
+      requestedApprovers: ['foo'],
+      subject: newClient({clientId: 'C.1234'}),
+    };
+    const fixture = createComponent(latestApproval);
+    const header = fixture.debugElement.query(By.css('.header'));
     fixture.detectChanges();
 
     expect(fixture.componentInstance.hideContent).toBeTrue();

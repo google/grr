@@ -1,6 +1,7 @@
 
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {DateTimeInput} from '@app/components/form/date_time_input/date_time_input';
+
+import {DateTimeInput} from '../../../components/form/date_time_input/date_time_input';
 
 
 /** mat-form-field for GlobExpression inputs. */

@@ -1,7 +1,7 @@
-import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiScheduledFlow, ArtifactCollectorFlowArgs, ArtifactCollectorFlowProgress as ApiArtifactCollectorFlowProgress, ByteString, ExecuteResponse as ApiExecuteResponse, Hash, PathSpec as ApiPathSpec, PathSpecPathType, StatEntry as ApiStatEntry} from '../api/api_interfaces';
-import {ArtifactCollectorFlowProgress, ArtifactProgress, ExecuteResponse, Flow, FlowDescriptor, FlowResult, FlowState, HexHash, OperatingSystem, RegistryKey, RegistryValue, ScheduledFlow} from '../models/flow';
-import {PathSpec, StatEntry} from '../models/vfs';
-import {assertKeyNonNull, assertNonNull, isNonNull, PreconditionError} from '../preconditions';
+import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiGrrBinary, ApiScheduledFlow, ArtifactCollectorFlowArgs, ArtifactCollectorFlowProgress as ApiArtifactCollectorFlowProgress, ByteString, ExecuteBinaryResponse as ApiExecuteBinaryResponse, ExecuteResponse as ApiExecuteResponse, Hash, PathSpec as ApiPathSpec, PathSpecPathType, StatEntry as ApiStatEntry} from '../api/api_interfaces';
+import {ArtifactCollectorFlowProgress, ArtifactProgress, Binary, BinaryType, ExecuteBinaryResponse, ExecuteResponse, Flow, FlowDescriptor, FlowResult, FlowResultCount, FlowState, HexHash, OperatingSystem, RegistryKey, RegistryValue, ScheduledFlow} from '../models/flow';
+import {PathSpec, PathSpecSegment, StatEntry} from '../models/vfs';
+import {assertEnum, assertKeyNonNull, assertKeyTruthy, assertNonNull, isNonNull, isNull, PreconditionError} from '../preconditions';
 
 import {bytesToHex, createDate, createOptionalBigInt, createOptionalDateSeconds, createUnknownObject, decodeBase64} from './primitive';
 
@@ -42,6 +42,27 @@ export function translateFlow(apiFlow: ApiFlow): Flow {
   assertKeyNonNull(apiFlow, 'name');
   assertKeyNonNull(apiFlow, 'state');
 
+  let resultCounts: ReadonlyArray<FlowResultCount>|undefined;
+
+  // For legacy flows where isMetadataSet is unset, we need to be careful to
+  // differentiate between a flow that has no numResultsPerTypeTag because it
+  // has 0 results and a flow that has results but has numResultsPerTypeTag
+  // unset because it was executed before we added this field. Thus, only set
+  // resultCounts if it contains results OR we are sure that missing
+  // numResultsPerTypeTag really means the flow has 0 results.
+  if (apiFlow.resultMetadata?.isMetadataSet ||
+      apiFlow.resultMetadata?.numResultsPerTypeTag?.length) {
+    resultCounts =
+        (apiFlow.resultMetadata.numResultsPerTypeTag ?? []).map(rc => {
+          assertKeyNonNull(rc, 'type');
+          return {
+            type: rc.type,
+            tag: rc.tag,
+            count: Number(rc.count),
+          };
+        });
+  }
+
   return {
     flowId: apiFlow.flowId,
     clientId: apiFlow.clientId,
@@ -52,7 +73,7 @@ export function translateFlow(apiFlow: ApiFlow): Flow {
     args: createUnknownObject(apiFlow.args),
     progress: createUnknownObject(apiFlow.progress),
     state: translateApiFlowState(apiFlow.state),
-    resultCounts: apiFlow.resultMetadata?.numResultsPerTypeTag,
+    resultCounts,
   };
 }
 
@@ -115,16 +136,16 @@ function translateOperatingSystem(str: string): OperatingSystem {
 }
 
 /** Translates a String to OperatingSystem, returning undefined on error. */
-export function safeTranslateOperatingSystem(str: string|undefined):
-    OperatingSystem|undefined {
-  if (str === undefined) {
-    return undefined;
+export function safeTranslateOperatingSystem(str: string|undefined|
+                                             null): OperatingSystem|null {
+  if (isNull(str)) {
+    return null;
   }
 
   try {
     return translateOperatingSystem(str);
   } catch (e: unknown) {
-    return undefined;
+    return null;
   }
 }
 
@@ -139,6 +160,20 @@ export function translateExecuteResponse(er: ApiExecuteResponse):
       args: er.request.args ?? [],
       timeLimitSeconds: er.request.timeLimit ?? 0,
     },
+    exitStatus: er.exitStatus ?? -1,
+    stdout: atob(er.stdout ?? ''),
+    stderr: atob(er.stderr ?? ''),
+    timeUsedSeconds: (er.timeUsed ?? 0) / 1e6
+  };
+}
+
+/**
+ * Constructs an ExecuteBinaryResponse from the corresponding API data
+ * structure.
+ */
+export function translateExecuteBinaryResponse(er: ApiExecuteBinaryResponse):
+    ExecuteBinaryResponse {
+  return {
     exitStatus: er.exitStatus ?? -1,
     stdout: atob(er.stdout ?? ''),
     stderr: atob(er.stderr ?? ''),
@@ -173,10 +208,30 @@ export function translateArtifactCollectorFlowProgress(flow: Flow):
 
 /** Parses an API PathSpec. */
 export function translatePathSpec(ps: ApiPathSpec): PathSpec {
-  return {
-    path: ps.path,
+  assertEnum(ps.pathtype, PathSpecPathType);
+
+  const pathspec = {
+    path: '',
     pathtype: ps.pathtype,
+    segments: [] as PathSpecSegment[],
   };
+  let currentPathSpec: ApiPathSpec|undefined = ps;
+
+  while (currentPathSpec) {
+    assertEnum(currentPathSpec.pathtype, PathSpecPathType);
+    assertKeyNonNull(currentPathSpec, 'path');
+
+    pathspec.path += currentPathSpec.path;
+    pathspec.pathtype = currentPathSpec.pathtype;
+    pathspec.segments.push({
+      path: currentPathSpec.path,
+      pathtype: currentPathSpec.pathtype,
+    });
+
+    currentPathSpec = currentPathSpec.nestedPath;
+  }
+
+  return pathspec;
 }
 
 /**
@@ -250,4 +305,36 @@ export function isStatEntry(entry: StatEntry|RegistryKey|
 export function isRegistryEntry(entry: StatEntry|RegistryKey|RegistryValue):
     entry is RegistryKey|RegistryValue {
   return isNonNull((entry as RegistryKey).type);
+}
+
+/**
+ * Translates an ApiGrrBinary, raising if hasValidSignature is false or legacy
+ * types are used.
+ */
+export function translateBinary(b: ApiGrrBinary): Binary {
+  assertKeyNonNull(b, 'path');
+  assertKeyNonNull(b, 'size');
+  assertKeyNonNull(b, 'type');
+  assertKeyNonNull(b, 'timestamp');
+  assertEnum(b.type, BinaryType);
+  assertKeyTruthy(b, 'hasValidSignature');
+
+  return {
+    path: b.path,
+    size: BigInt(b.size),
+    type: b.type,
+    timestamp: createDate(b.timestamp),
+  };
+}
+
+/**
+ * Translates an ApiGrrBinary, returning null if hasValidSignature is false or
+ * legacy types are used.
+ */
+export function safeTranslateBinary(b: ApiGrrBinary): Binary|null {
+  try {
+    return translateBinary(b);
+  } catch (e: unknown) {
+    return null;
+  }
 }

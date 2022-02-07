@@ -1,9 +1,9 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, OnInit, Output} from '@angular/core';
 import {ControlContainer, FormControl, FormGroup} from '@angular/forms';
-import {atLeastOneMustBeSet} from '@app/components/form/validators';
 import {combineLatest, Observable, zip} from 'rxjs';
 import {map, shareReplay} from 'rxjs/operators';
 
+import {atLeastOneMustBeSet} from '../../../components/form/validators';
 import {toByteUnit} from '../../form/byte_input/byte_conversion';
 
 // Default max file size is 20 MB.

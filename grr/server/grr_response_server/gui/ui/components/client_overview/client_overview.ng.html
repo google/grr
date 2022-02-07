@@ -1,41 +1,92 @@
-<div *ngIf="client$ | async as client" class="client-header mat-body-1">
+<div class="client-header">
   <div class="fqdn-chips">
     <mat-icon class="computer-icon">computer</mat-icon>
     <div class="fqdn">
-      <h1 class="mat-h1">{{client.knowledgeBase.fqdn}}</h1>
+      <a
+        mat-button
+        [routerLink]="['/clients', (client$ | async)?.clientId]"
+        class="no-padding"
+      >
+        <h1>{{ (client$ | async)?.knowledgeBase?.fqdn }}</h1>
+      </a>
     </div>
 
-    <div class="chips">
+    <div class="chips" *ngIf="client$ | async as client">
       <mat-chip-list>
-        <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
-        <mat-chip *ngFor="let label of client.labels; trackBy: labelsTrackByName" (removed)="removeLabel(label.name)">
-          {{label.name}} <mat-icon matChipRemove aria-label="Remove label">close</mat-icon>
+        <online-chip [lastSeen]="(client$ | async)?.lastSeenAt"></online-chip>
+        <mat-chip
+          *ngIf="(client$ | async)?.fleetspeakEnabled === false"
+          class="red-chip"
+          color="custom"
+          [matTooltip]="'This client uses a deprecated communication protocol. Install a new GRR version that uses Fleetspeak to be able to access this client in the future.'"
+          >
+          <mat-icon>error_outline</mat-icon>
+          Outdated
+          </mat-chip
+        >
+        <app-approval-chip
+          *ngIf="showApprovalChip$ | async"
+          [approval]="approval$ | async"
+        ></app-approval-chip>
+      </mat-chip-list>
+    </div>
+  </div>
+
+  <ng-container *ngIf="!collapsed">
+    <div class="chips labels">
+      <mat-chip-list>
+        <mat-chip
+          *ngFor="let label of (client$ | async)?.labels; trackBy: labelsTrackByName"
+          (removed)="removeLabel(label.name)"
+        >
+          {{label.name}}
+          <mat-icon matChipRemove aria-label="Remove label">close</mat-icon>
         </mat-chip>
       </mat-chip-list>
-      <button mat-button color="primary" class="add_label" (click)="openAddLabelDialog(client.labels)"
-      ><mat-icon>add</mat-icon>Add label</button>
+      <button
+        *ngIf="client$ | async as client"
+        mat-button
+        class="add_label"
+        (click)="openAddLabelDialog(client.labels)"
+      >
+        <mat-icon>add</mat-icon>Add label
+      </button>
     </div>
+
+    <div class="info">
+      <span class="os"> OS: {{ (client$ | async)?.knowledgeBase?.os }} </span>
+
+      <span>
+        ID:
+        <app-copy-button>{{ (client$ | async)?.clientId }}</app-copy-button>
+      </span>
+
+      <span class="users">
+        Users:
+        <span *ngIf="client$ | async as client"
+          >{{ formatUsers(client.users) }}</span
+        >
+      </span>
+
+      <div class="last-seen">
+        Last seen:
+        <app-timestamp
+          [date]="(client$ | async)?.lastSeenAt"
+          relativeTimestamp="visible"
+        ></app-timestamp>
+      </div>
+    </div>
+
+    <a
+      mat-stroked-button
+      class="goto-details"
+      [drawerLink]="['details']"
+      color="primary"
+    >
+      <mat-icon>keyboard_arrow_left</mat-icon>
+      Client details
+    </a>
 
     <ng-content></ng-content>
-  </div>
-
-  <div class="info mat-body-1">
-    <div>
-      <span class="os">
-        {{client.knowledgeBase.os}}
-      </span>
-      <span>{{client.clientId}}
-        <button mat-icon-button
-          class="copy-button"
-          [cdkCopyToClipboard]="client.clientId"
-          aria-label="Copy">
-          <mat-icon aria-label="Copy">content_copy</mat-icon>
-        </button>
-      </span>
-    </div>
-
-    <div class="last-seen">
-      Last seen: <timestamp [date]="client.lastSeenAt" completeFormat="true"></timestamp>
-    </div>
-  </div>
+  </ng-container>
 </div>

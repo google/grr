@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+#!/usr/bin/env python
 """Script to build windows templates."""
 
 import argparse
@@ -124,14 +125,14 @@ def _RmTreePseudoTransactional(path: str) -> None:
     logging.info("Failed to remove %s. Ignoring.", temp_path, exc_info=True)
 
 
-def _VerboseCheckCall(args):
-  logging.info("Running: %s" % (args,))
+def _VerboseCheckCall(params):
+  logging.info("Running: %s", params)
 
   try:
-    subprocess.check_call(args)
-    logging.info("Finished successfully: %s" % (args,))
+    subprocess.check_call(params)
+    logging.info("Finished successfully: %s", params)
   except Exception as e:
-    logging.error("Running %s raised %s", args, e)
+    logging.exception("Running %s raised:", params)
     raise
 
 
@@ -306,7 +307,8 @@ class WindowsTemplateBuilder(object):
           "msiexec",
           "/q",
           "/x",
-          glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop().replace("/", "\\"),
+          glob.glob(os.path.join(args.output_dir,
+                                 "dbg_*_amd64.msi")).pop().replace("/", "\\"),
       ]
       _VerboseCheckCall(msiexec_args)
     else:
@@ -354,7 +356,8 @@ class WindowsTemplateBuilder(object):
           "/norestart",
           "/passive",
           "/i",
-          glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi")).pop().replace("/", "\\"),
+          glob.glob(os.path.join(args.output_dir,
+                                 "dbg_*_amd64.msi")).pop().replace("/", "\\"),
       ]
     else:
       installer_amd64_args = [

@@ -1,14 +1,16 @@
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {FlowFormModule} from '@app/components/flow_form/module';
-import {CollectBrowserHistoryArgsBrowser} from '@app/lib/api/api_interfaces';
-import {ClientPageGlobalStore} from '@app/store/client_page_global_store';
-import {ConfigGlobalStore} from '@app/store/config_global_store';
-import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '@app/store/config_global_store_test_util';
-import {initTestEnvironment} from '@app/testing';
+import {RouterTestingModule} from '@angular/router/testing';
 
+import {FlowFormModule} from '../../components/flow_form/module';
+import {CollectBrowserHistoryArgsBrowser} from '../../lib/api/api_interfaces';
+import {RequestStatusType} from '../../lib/api/track_request';
 import {newClient, newFlowDescriptor} from '../../lib/models/model_test_util';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {initTestEnvironment} from '../../testing';
 
 import {FlowForm} from './flow_form';
 
@@ -31,6 +33,7 @@ describe('FlowForm Component', () => {
         .configureTestingModule({
           imports: [
             NoopAnimationsModule,
+            RouterTestingModule,
             FlowFormModule,
           ],
 
@@ -40,7 +43,8 @@ describe('FlowForm Component', () => {
               provide: ClientPageGlobalStore,
               useFactory: () => clientPageGlobalStore
             },
-          ]
+          ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
@@ -51,8 +55,7 @@ describe('FlowForm Component', () => {
 
     expect(getSubmit(fixture)).toBeNull();
 
-    clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
-        undefined);
+    clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(null);
     expect(getSubmit(fixture)).toBeNull();
   });
 
@@ -119,8 +122,10 @@ describe('FlowForm Component', () => {
     clientPageGlobalStore.mockedObservables.hasAccess$.next(true);
     fixture.detectChanges();
 
-    clientPageGlobalStore.mockedObservables.startFlowState$.next(
-        {state: 'error', error: 'foobazzle rapidly disintegrated'});
+    clientPageGlobalStore.mockedObservables.startFlowStatus$.next({
+      status: RequestStatusType.ERROR,
+      error: 'foobazzle rapidly disintegrated'
+    });
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText)

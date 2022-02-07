@@ -28,14 +28,28 @@ export declare interface Flow {
   readonly args: unknown|undefined;
   readonly progress: unknown|undefined;
   readonly state: FlowState;
+  /**
+   * Counts of flow Results. undefined for legacy flows where we don't know
+   * about result metadata.
+   */
   readonly resultCounts: ReadonlyArray<FlowResultCount>|undefined;
+}
+
+/**
+ * FlowWithDescriptor holds flow and descriptor which are necessary for a flow
+ * card.
+ */
+export interface FlowWithDescriptor {
+  readonly flow: Flow;
+  readonly descriptor?: FlowDescriptor;
+  readonly flowArgType?: string;
 }
 
 /** FlowResultCount proto mapping. */
 export declare interface FlowResultCount {
-  readonly type?: string;
+  readonly type: string;
   readonly tag?: string;
-  readonly count?: number;
+  readonly count: number;
 }
 
 /** FlowResult represents a single flow result. */
@@ -204,6 +218,14 @@ export declare interface ExecuteResponse {
   readonly timeUsedSeconds: number;
 }
 
+/** ExecuteBinaryResponse proto mapping. */
+export declare interface ExecuteBinaryResponse {
+  readonly exitStatus: number;
+  readonly stdout: string;
+  readonly stderr: string;
+  readonly timeUsedSeconds: number;
+}
+
 /** ArtifactProgress proto mapping. */
 export declare interface ArtifactProgress {
   readonly name: string;
@@ -241,4 +263,31 @@ export declare interface RegistryValue {
   readonly path: string;
   readonly type: RegistryType;
   readonly size: BigInt;
+}
+
+const HASH_NAMES: {readonly[key in keyof HexHash]: string} = {
+  'md5': 'MD5',
+  'sha1': 'SHA-1',
+  'sha256': 'SHA-256',
+};
+
+/**
+ * Returns a readable name (e.g. SHA-256) of an internal hash name ("sha256").
+ */
+export const hashName = (hashKey: keyof HexHash|string) => {
+  return HASH_NAMES[hashKey as keyof HexHash] ?? hashKey;
+};
+
+/** Type of executable binaries. */
+export enum BinaryType {
+  PYTHON_HACK = 'PYTHON_HACK',
+  EXECUTABLE = 'EXECUTABLE',
+}
+
+/** Executable files, e.g. Python hacks or uploaded executables. */
+export declare interface Binary {
+  readonly type: BinaryType;
+  readonly path: string;
+  readonly size: bigint;
+  readonly timestamp: Date;
 }

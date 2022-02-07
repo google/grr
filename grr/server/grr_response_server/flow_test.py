@@ -184,31 +184,6 @@ class FlowCreationTest(BasicFlowTest):
           parent=flow.FlowParent.FromHuntID(flow_id),
           client_id=self.client_id)
 
-  def testPendingFlowTermination(self):
-    client_mock = ClientMock()
-
-    flow_id = flow.StartFlow(flow_cls=ParentFlow, client_id=self.client_id)
-    flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
-    self.assertEqual(flow_obj.flow_state, "RUNNING")
-
-    pending_termination = rdf_flow_objects.PendingFlowTermination(
-        reason="testing")
-    data_store.REL_DB.UpdateFlow(
-        self.client_id, flow_id, pending_termination=pending_termination)
-
-    with flow_test_lib.TestWorker() as worker:
-      with test_lib.SuppressLogs():
-        flow_test_lib.RunFlow(
-            self.client_id,
-            flow_id,
-            client_mock=client_mock,
-            worker=worker,
-            check_flow_errors=False)
-
-      flow_obj = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
-      self.assertEqual(flow_obj.flow_state, "ERROR")
-      self.assertEqual(flow_obj.error_message, "testing")
-
   def testChildTermination(self):
     flow_id = flow.StartFlow(
         flow_cls=CallClientParentFlow, client_id=self.client_id)

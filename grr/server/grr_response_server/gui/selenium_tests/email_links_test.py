@@ -26,8 +26,9 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
 
     self.messages_sent = []
 
-    def SendEmailStub(unused_from_user, unused_to_user, unused_subject, message,
+    def SendEmailStub(to_addresses, from_address, subject, message,
                       **unused_kwargs):
+      del to_addresses, from_address, subject  # Unused.
       self.messages_sent.append(message)
 
     email_stubber = utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail",
@@ -92,8 +93,6 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     # displayed.
     self.WaitUntil(self.IsTextPresent, client_id)
     self.WaitUntil(self.IsTextPresent, "Host-0")
-    # Check that the reason is displayed.
-    self.WaitUntil(self.IsTextPresent, self.APPROVAL_REASON)
 
   def testEmailHuntApprovalRequestLinkLeadsToACorrectPage(self):
     hunt_id = self.StartHunt(description="foobar")

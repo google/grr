@@ -48,6 +48,10 @@
 {% endif %}
 <link rel="shortcut icon" href="/static/images/favicon.ico" />
 
+<!-- Now that we expect a high amount of users to try out the new UI, preload
+     the JavaScript bundle for a smooth transition. -->
+<link rel="prefetch" href="/static/dist/v2/app_bundle.js">
+
 <title>GRR</title>
 
 <grr-user-desktop-notifications />
@@ -68,6 +72,11 @@
         </div>
         <div class="pull-right navbar-form">
           <grr-user-notification-button></grr-user-notification-button>
+        </div>
+        <div class="pull-right navbar-form">
+          <a class="btn btn-warning" href="/v2/">
+            Go to the new UI
+          </a>
         </div>
         <div id="search_container" class="pull-right navbar-form">
           <grr-search-box></grr-search-box>

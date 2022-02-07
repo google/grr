@@ -1954,6 +1954,69 @@ message CollectSingleFileProgress {
   optional string error_description = 3;
 }
 
+message CollectFilesByKnownPathArgs {
+  // Path files to be collected.
+  repeated string paths = 1;
+
+  enum CollectionLevel {
+    UNDEFINED = 0;
+
+    // Collect only Stat information about the file (metadata about the file).
+    STAT = 1;
+
+    // Collect both Stat information and the file hash, but not the file itself.
+    HASH = 2;
+
+    // Collect Stat, Hash and File contents. Collects the whole file.
+    CONTENT = 3;
+
+    // TODO: Add partial file collection options.
+  }
+  optional CollectionLevel collection_level = 2;
+
+  // TODO: Add file size/offset option arguments.
+}
+
+message CollectFilesByKnownPathResult {
+  enum Status {
+    UNDEFINED = 0;
+    IN_PROGRESS = 1;
+    COLLECTED = 2;
+    NOT_FOUND = 3;
+    FAILED = 4;
+  }
+
+  // File stat information. Will be present in case of successful collection.
+  optional StatEntry stat = 1;
+
+  // File hash information. Will be present in case of successful collection.
+  optional Hash hash = 2;
+
+  // Status of the file collection. Will always be present.
+  optional Status status = 3;
+
+  // Error description. Will be present in case of failed collection.
+  optional string error = 4;
+}
+
+message CollectFilesByKnownPathProgress {
+  // Number of files being collected (waiting for client to respond).
+  optional uint64 num_in_progress = 1;
+
+  // Number of files with retried collection.
+  //
+  // We first try to collect with the `OS` path type. If that fails, we retry
+  // with the `Server.raw_filesystem_access_pathtype` config option. When that
+  // happens, we increment this number.
+  optional uint64 num_raw_fs_access_retries = 2;
+
+  // Number of files successfully collected (client responded with file).
+  optional uint64 num_collected = 3;
+
+  // Number of files that failed collection (client responded with error).
+  optional uint64 num_failed = 4;
+}
+
 message CollectMultipleFilesArgs {
   repeated string path_expressions = 1 [(sem_type) = {
     type: "GlobExpression",
@@ -2715,6 +2778,8 @@ message ClientActionRequest {
 
 // Next id: 35
 message Flow {
+  reserved 10;
+
   optional string flow_id = 1;
   optional string client_id = 2;
   optional string flow_class_name = 3;
@@ -2726,7 +2791,6 @@ message Flow {
   optional google.protobuf.Any args = 7;
   optional AttributedDict persistent_data = 8;
   optional ClientCrash client_crash_info = 9;
-  optional PendingFlowTermination pending_termination = 10;
   optional string error_message = 11;
   optional string backtrace = 12;
   optional uint64 create_time = 13 [(sem_type) = {
@@ -2838,6 +2902,10 @@ message FlowResultCount {
 
 message FlowResultMetadata {
   repeated FlowResultCount num_results_per_type_tag = 2;
+
+  // Bool to distinguish between the repeated field not being set vs being
+  // empty.
+  optional bool is_metadata_set = 3;
 }
 
 message DefaultFlowProgress {}

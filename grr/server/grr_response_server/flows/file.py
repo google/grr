@@ -1,15 +1,19 @@
 #!/usr/bin/env python
 """Flows to collect file contents and metadata."""
 
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 from grr_response_core import config
+from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import flow_base
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+
+_MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10  # 10 GiB.
 
 
 # Although MultiGetFileLogic is a leaky, complex, and overall problematic Mixin
@@ -95,6 +99,170 @@ class CollectSingleFile(transfer.MultiGetFileLogic, flow_base.FlowBase):
     del username  # Unused.
     return rdf_file_finder.CollectSingleFileArgs(
         path="", max_size_bytes="1 GiB")
+
+
+# Although MultiGetFileLogic is a leaky, complex, and overall problematic Mixin
+# it seems to be best choice to fetch the stat, hashes, and contents of a file.
+# At the time of writing, none of the flows exposed all three to the caller in
+# a sensible way.
+class CollectFilesByKnownPath(transfer.MultiGetFileLogic, flow_base.FlowBase):
+  """Fetches specified absolute path file contents."""
+
+  friendly_name = "File contents by exact path"
+  category = "/Filesystem/"
+  behaviours = flow_base.BEHAVIOUR_DEBUG
+
+  args_type = rdf_file_finder.CollectFilesByKnownPathArgs
+  result_types = (rdf_file_finder.CollectFilesByKnownPathResult,)
+  progress_type = rdf_file_finder.CollectFilesByKnownPathProgress
+
+  def GetProgress(self) -> rdf_file_finder.CollectFilesByKnownPathProgress:
+    return self.state.progress
+
+  def Start(self):
+    super().Start(file_size=_MAX_FILE_SIZE)
+
+    self.state.progress = rdf_file_finder.CollectFilesByKnownPathProgress(
+        num_in_progress=0,
+        num_raw_fs_access_retries=0,
+        num_collected=0,
+        num_failed=0,
+    )
+
+    if self.args.collection_level == rdf_file_finder.CollectFilesByKnownPathArgs.CollectionLevel.STAT:
+      self.state.stop_at_stat = True
+    elif self.args.collection_level == rdf_file_finder.CollectFilesByKnownPathArgs.CollectionLevel.HASH:
+      self.state.stop_at_hash = True
+
+    for path in self.args.paths:
+      pathspec = rdf_paths.PathSpec.OS(path=path)
+      self.StartFileFetch(
+          pathspec, request_data=dict(requested_pathspec=pathspec))
+      self.state.progress.num_in_progress += 1
+
+  def ReceiveFetchedFileStat(self,
+                             stat_entry: rdf_client_fs.StatEntry,
+                             request_data: Optional[Mapping[str, Any]] = None):
+    """This method will be called for each new file stat successfully fetched.
+
+    Args:
+      stat_entry: rdf_client_fs.StatEntry object describing the file.
+      request_data: Arbitrary dictionary that was passed to the corresponding
+        StartFileFetch call.
+    """
+    del request_data  # Unused.
+
+    if self.state.stop_at_stat:
+      status = rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED
+      self.state.progress.num_in_progress -= 1
+      self.state.progress.num_collected += 1
+    else:
+      status = rdf_file_finder.CollectFilesByKnownPathResult.Status.IN_PROGRESS
+
+    result = rdf_file_finder.CollectFilesByKnownPathResult(
+        stat=stat_entry, status=status)
+    self.SendReply(result)
+
+  def ReceiveFetchedFileHash(self,
+                             stat_entry: rdf_client_fs.StatEntry,
+                             file_hash: rdf_crypto.Hash,
+                             request_data: Optional[Mapping[str, Any]] = None):
+    """This method will be called for each new file hash successfully fetched.
+
+    Args:
+      stat_entry: rdf_client_fs.StatEntry object describing the file.
+      file_hash: rdf_crypto.Hash object with file hashes.
+      request_data: Arbitrary dictionary that was passed to the corresponding
+        StartFileFetch call.
+    """
+    del request_data  # Unused.
+
+    if self.state.stop_at_hash:
+      status = rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED
+      self.state.progress.num_in_progress -= 1
+      self.state.progress.num_collected += 1
+    else:
+      status = rdf_file_finder.CollectFilesByKnownPathResult.Status.IN_PROGRESS
+
+    result = rdf_file_finder.CollectFilesByKnownPathResult(
+        stat=stat_entry, hash=file_hash, status=status)
+    self.SendReply(result)
+
+  def ReceiveFetchedFile(self,
+                         stat_entry: rdf_client_fs.StatEntry,
+                         file_hash: rdf_crypto.Hash,
+                         request_data: Optional[Mapping[str, Any]] = None,
+                         is_duplicate: bool = False):
+    """This method will be called for each new file successfully fetched.
+
+    Args:
+      stat_entry: rdf_client_fs.StatEntry object describing the file.
+      file_hash: rdf_crypto.Hash object with file hashes.
+      request_data: Arbitrary dictionary that was passed to the corresponding
+        StartFileFetch call.
+      is_duplicate: If True, the file wasn't actually collected as its hash was
+        found in the filestore.
+    """
+    del request_data, is_duplicate  # Unused.
+
+    result = rdf_file_finder.CollectFilesByKnownPathResult(
+        stat=stat_entry,
+        hash=file_hash,
+        status=rdf_file_finder.CollectFilesByKnownPathResult.Status.COLLECTED)
+    self.SendReply(result)
+
+    self.state.progress.num_in_progress -= 1
+    self.state.progress.num_collected += 1
+
+  def FileFetchFailed(self,
+                      pathspec: rdf_paths.PathSpec,
+                      request_data: Optional[Mapping[str, Any]] = None,
+                      status: Optional[rdf_flow_objects.FlowStatus] = None):
+    """This method will be called when stat or hash requests fail.
+
+    Args:
+      pathspec: Pathspec of a file that failed to be fetched.
+      request_data: Arbitrary dictionary that was passed to the corresponding
+        StartFileFetch call.
+      status: FlowStatus that contains more error details.
+    """
+    requested_pathspec = request_data["requested_pathspec"]
+
+    if (self.client_os == "Windows" and
+        pathspec.pathtype == rdf_paths.PathSpec.PathType.OS):
+      # Retry with raw filesystem access on Windows, the file might be locked
+      # for reads.
+      raw_pathspec = rdf_paths.PathSpec(
+          path=requested_pathspec.path,
+          pathtype=config.CONFIG["Server.raw_filesystem_access_pathtype"])
+      self.StartFileFetch(
+          raw_pathspec, request_data=dict(requested_pathspec=raw_pathspec))
+      self.state.progress.num_raw_fs_access_retries += 1
+    else:
+      if status is not None and status.error_message:
+        error_description = "{} when fetching {} with {}".format(
+            status.error_message, pathspec.path, pathspec.pathtype)
+        # TODO: This is a really bad hack and should be fixed by
+        # passing the 'not found' status in a more structured way.
+        if "File not found" in status.error_message:
+          file_status = rdf_file_finder.CollectFilesByKnownPathResult.Status.NOT_FOUND
+        else:
+          file_status = rdf_file_finder.CollectFilesByKnownPathResult.Status.FAILED
+      else:
+        error_description = (
+            "File {} could not be fetched with {} due to an unknown error. "
+            "Check the flow logs.".format(pathspec.path, pathspec.pathtype))
+        file_status = rdf_file_finder.CollectFilesByKnownPathResult.Status.FAILED
+
+      result = rdf_file_finder.CollectFilesByKnownPathResult(
+          stat=rdf_client_fs.StatEntry(pathspec=requested_pathspec),
+          error=error_description,
+          status=file_status,
+      )
+      self.SendReply(result)
+
+      self.state.progress.num_in_progress -= 1
+      self.state.progress.num_failed += 1
 
 
 class CollectMultipleFiles(transfer.MultiGetFileLogic, flow_base.FlowBase):

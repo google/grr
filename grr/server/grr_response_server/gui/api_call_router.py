@@ -6,9 +6,9 @@ import re
 from typing import Optional
 from typing import Text
 
-from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
+from grr_response_server import access_control
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_value_renderers
@@ -166,7 +166,7 @@ class RouterMethodMetadata(object):
     return result
 
 
-class ApiCallRouter(metaclass=MetaclassRegistry):
+class ApiCallRouter:
   """Routers do ACL checks and route API requests to handlers."""
   __abstract = True  # pylint: disable=g-bad-name
 
@@ -262,6 +262,15 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http("GET", "/api/clients")
   def SearchClients(self, args, context=None):
     """Search for clients using a search query."""
+
+    raise NotImplementedError()
+
+  @Category("Clients")
+  @ArgsType(api_client.ApiStructuredSearchClientsArgs)
+  @ResultType(api_client.ApiStructuredSearchClientsResult)
+  @Http("GET", "/api/clients/st-search")
+  def StructuredSearchClients(self, args, context=None):
+    """Search for clients using a structured search query."""
 
     raise NotImplementedError()
 
@@ -699,8 +708,8 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Flows")
   @ArgsType(api_flow.ApiGetFlowFilesArchiveArgs)
   @ResultBinaryStream()
-  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/results/"
-        "files-archive")
+  @Http("GET",
+        "/api/clients/<client_id>/flows/<path:flow_id>/results/files-archive")
   def GetFlowFilesArchive(self, args, context=None):
     """Get ZIP or TAR.GZ archive with files downloaded by the flow."""
 
@@ -1521,4 +1530,22 @@ class ApiCallRouterStub(ApiCallRouter):
 
 
 class DisabledApiCallRouter(ApiCallRouterStub):
-  pass
+  """Fallback Router if no other Router is matching the user's request."""
+
+  def __init__(self, params=None):
+    super().__init__(params)
+
+    # Construct handlers explicitly to avoid cell-var-from-loop issue.
+    def _MakeAccessForbiddenHandler(method_name):
+
+      def _AccessForbidden(*args, **kwargs):
+        raise access_control.UnauthorizedAccess(
+            f"No authorized route for {method_name}. "
+            "Requestor has no access to GRR or the given API endpoint.")
+
+      return _AccessForbidden
+
+    # Instead of overriding all HTTP hander method manually, list all methods
+    # and override them at construction time.
+    for method_name in self.GetAnnotatedMethods():
+      setattr(self, method_name, _MakeAccessForbiddenHandler(method_name))

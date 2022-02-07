@@ -36,7 +36,7 @@ describe('Client Add Label Dialog', () => {
           declarations: [],
           imports: [
             ClientAddLabelDialogModule,
-            NoopAnimationsModule,  // This makes test faster and more stable.
+            NoopAnimationsModule,
             ReactiveFormsModule,
             MatDialogModule,
           ],
@@ -48,6 +48,7 @@ describe('Client Add Label Dialog', () => {
             }
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
 

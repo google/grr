@@ -2,7 +2,8 @@ import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {initTestEnvironment} from '@app/testing';
+
+import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
 
@@ -44,7 +45,8 @@ describe('ResultAccordion Component', () => {
             TestHostComponent,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

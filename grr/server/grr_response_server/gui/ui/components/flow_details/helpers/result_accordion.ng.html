@@ -1,5 +1,5 @@
 <div class="row">
-  <div class="header" (click)="toggle()">
+  <div class="header" (click)="toggle()" [ngClass]="{'is-open': isOpen}">
     <div class="title">
       <span>{{ title }}</span>
     </div>
@@ -14,7 +14,7 @@
 
     <div class="expansion-indicator">
       <span *ngIf="isOpen || expandable" class="material-icons arrow-icon">
-        {{ isOpen ? 'keyboard_arrow_down' : 'keyboard_arrow_right' }}
+        {{ isOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
       </span>
     </div>
   </div>

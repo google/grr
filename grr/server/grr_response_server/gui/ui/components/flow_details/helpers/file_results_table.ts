@@ -1,9 +1,21 @@
 
 
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
+import{
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  OnDestroy,
+  ViewChild
+} from '@angular/core';
+import {MatSort} from '@angular/material/sort';
 import {ActivatedRoute} from '@angular/router';
-import {combineLatest, Observable, of, ReplaySubject} from 'rxjs';
-import {map} from 'rxjs/operators';
+import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
+import {MatTableDataSource} from '@angular/material/table';
+import {map, startWith, takeUntil} from 'rxjs/operators';
+import {observeOnDestroy} from '../../../lib/reactive';
 
 import {HexHash} from '../../../lib/models/flow';
 import {StatEntry} from '../../../lib/models/vfs';
@@ -15,6 +27,7 @@ import {StatEntry} from '../../../lib/models/vfs';
 export declare interface FlowFileResult {
   readonly statEntry: StatEntry;
   readonly hashes?: HexHash;
+  readonly status?: string;
 }
 
 /**
@@ -23,14 +36,19 @@ export declare interface FlowFileResult {
  * a StatEntry->FlowFileResult conversion function is provided.
  */
 export function flowFileResultFromStatEntry(
-    statEntry: StatEntry, hashes?: HexHash): FlowFileResult {
+    statEntry: StatEntry, hashes?: HexHash, status?: string): FlowFileResult {
   return {
     statEntry,
     hashes,
+    status,
   };
 }
 
-declare interface TableRow {
+/**
+ * TableRow represents a row containing file details to be displayed in the
+ * file results table component.
+ */
+export declare interface TableRow {
   readonly path: string;
   readonly hashes?: HexHash;
   readonly mode?: bigint;
@@ -42,11 +60,12 @@ declare interface TableRow {
   readonly ctime?: Date;
   readonly btime?: Date;
   readonly link: ReadonlyArray<string|undefined>;
+  readonly status?: string;
 }
 
-const COLUMNS: ReadonlyArray<keyof TableRow> = [
+const BASE_COLUMNS: ReadonlyArray<string> = [
+  'ficon',
   'path',
-  'hashes',
   'mode',
   'size',
   'atime',
@@ -65,20 +84,39 @@ const COLUMNS: ReadonlyArray<keyof TableRow> = [
   styleUrls: ['./file_results_table.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class FileResultsTable {
-  private resultsValue?: ReadonlyArray<FlowFileResult>;
-  private totalCountValue?: number;
-
+export class FileResultsTable implements OnDestroy, AfterViewInit {
   /** Subject corresponding to "results" binding. */
-  results$ = new ReplaySubject<ReadonlyArray<FlowFileResult>>(1);
+  readonly results$ = new BehaviorSubject<ReadonlyArray<FlowFileResult>>([]);
 
   /** Subject corresponding to "totalCount" binding. */
-  totalCount$ = new ReplaySubject<number>(1);
+  readonly totalCount$ = new BehaviorSubject<number>(0);
 
-  /**
-   * Subject producting table rows.
-   */
-  rows$: Observable<ReadonlyArray<TableRow>> =
+  /** Subject the current dataSource.data length. */
+  readonly dataLength$ = new BehaviorSubject<number>(0);
+
+  /** Subject corresponding to "displayedColumns" binding. */
+  readonly displayedColumns$ = this.results$.pipe(
+      map(results => {
+        const columns = [...BASE_COLUMNS];
+        if (results.some(
+                result =>
+                    result.hashes && Object.keys(result.hashes).length > 0)) {
+          columns.splice(2, 0, 'hashes');
+        }
+        if (results.some(result => result.status)) {
+          columns.splice(2, 0, 'status');
+        }
+        return columns;
+      }),
+      startWith(BASE_COLUMNS),
+  );
+
+  @ViewChild(MatSort) sort!: MatSort;
+
+  /** dataSource used as input for mat-table. */
+  readonly dataSource = new MatTableDataSource<TableRow>();
+  /** Subject producting table rows data provided to dataSource. */
+  readonly rows$: Observable<ReadonlyArray<TableRow>> =
       this.results$.pipe(map((entries) => {
         return entries.map((e) => {
           return {
@@ -96,11 +134,10 @@ export class FileResultsTable {
               'files', e.statEntry.pathspec?.pathtype?.toLowerCase(),
               e.statEntry.pathspec?.path
             ],
+            status: e.status,
           };
         });
       }));
-
-  displayedColumns$: Observable<ReadonlyArray<string>> = of(COLUMNS);
 
   /**
    * Subject indicating whether a "Load more" button has to be shown.
@@ -111,33 +148,42 @@ export class FileResultsTable {
       ]).pipe(map(([results, count]) => results.length < count));
 
   @Input()
-  set results(value: ReadonlyArray<FlowFileResult>) {
-    this.resultsValue = value;
-    this.results$.next(value);
+  set results(value: ReadonlyArray<FlowFileResult>|null) {
+    this.results$.next(value ?? []);
   }
 
   get results(): ReadonlyArray<FlowFileResult> {
-    return this.resultsValue!;
+    return this.results$.value;
   }
 
   @Input()
-  set totalCount(value: number) {
-    this.totalCountValue = value;
-    this.totalCount$.next(value);
+  set totalCount(value: number|null|undefined) {
+    this.totalCount$.next(value ?? 0);
   }
 
   get totalCount(): number {
-    return this.totalCountValue!;
+    return this.totalCount$.value;
   }
 
   @Output() readonly loadMore = new EventEmitter<void>();
 
-  constructor(readonly activatedRoute: ActivatedRoute) {}
+  readonly ngOnDestroy = observeOnDestroy(this);
+
+  constructor(readonly activatedRoute: ActivatedRoute) {
+    this.rows$.pipe(takeUntil(this.ngOnDestroy.triggered$))
+        .subscribe(results => {
+          this.dataSource.data = results as TableRow[];
+          this.dataLength$.next(this.dataSource.data.length);
+        });
+  }
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+  }
 
   loadMoreClicked() {
     this.loadMore.emit();
   }
-
 
   trackByRowIndex(index: number, item: TableRow) {
     return index;

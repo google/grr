@@ -1,8 +1,11 @@
 import {Component, OnInit, Output} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
-import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
-import {TimelineArgs} from '@app/lib/api/api_interfaces';
-import {shareReplay} from 'rxjs/operators';
+import {Observable} from 'rxjs';
+import {map, shareReplay} from 'rxjs/operators';
+
+import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {TimelineArgs} from '../../lib/api/api_interfaces';
+import {decodeBase64ToString, encodeStringToBase64} from '../../lib/api_translation/primitive';
 
 /**
  * A form that makes it possible to configure the timeline flow.
@@ -14,14 +17,27 @@ import {shareReplay} from 'rxjs/operators';
 })
 export class TimelineForm extends FlowArgumentForm<TimelineArgs> implements
     OnInit {
-  readonly form = new FormGroup({
+  readonly controls = {
     root: new FormControl(),
-  });
+  };
+  readonly form = new FormGroup(this.controls);
 
-  @Output() readonly formValues$ = this.form.valueChanges.pipe(shareReplay(1));
+  @Output()
+  readonly formValues$: Observable<TimelineArgs> = this.form.valueChanges.pipe(
+      map(values => ({
+            ...values,
+            root: encodeStringToBase64(values.root),
+          })),
+      shareReplay(1),
+  );
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
 
   ngOnInit() {
-    this.form.patchValue(this.defaultFlowArgs);
+    this.form.patchValue({
+      ...this.defaultFlowArgs,
+      root: this.defaultFlowArgs.root ?
+          decodeBase64ToString(this.defaultFlowArgs.root) :
+          '',
+    });
   }
 }

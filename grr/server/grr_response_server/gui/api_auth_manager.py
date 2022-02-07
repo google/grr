@@ -12,6 +12,7 @@ from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util.compat import yaml
 from grr_response_server.authorization import auth_manager
 from grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_call_router_registry
 
 
 class Error(Exception):
@@ -66,8 +67,8 @@ class APIAuthorizationManager(object):
   def _CreateRouter(self, router_cls, params=None):
     """Creates a router with a given name and params."""
     if not router_cls.params_type and params:
-      raise ApiCallRouterDoesNotExpectParameters(
-          "%s is not configurable" % router_cls)
+      raise ApiCallRouterDoesNotExpectParameters("%s is not configurable" %
+                                                 router_cls)
 
     rdf_params = None
     if router_cls.params_type:
@@ -101,9 +102,9 @@ class APIAuthorizationManager(object):
         self.auth_manager.AuthorizeUser(user, router_id)
 
   @staticmethod
-  def FromYaml(source: Text,
-               default_router_cls: Type[api_call_router.ApiCallRouter]
-              ) -> "APIAuthorizationManager":
+  def FromYaml(
+      source: Text, default_router_cls: Type[api_call_router.ApiCallRouter]
+  ) -> "APIAuthorizationManager":
     precondition.AssertType(source, Text)
 
     acl_list = APIAuthorization.ParseYAMLAuthorizationsList(source)
@@ -120,8 +121,9 @@ class APIAuthorizationManager(object):
                       username)
         return router
 
-    logging.debug("No router ACL rule match for user %s. Using default "
-                  "router %s", username, self.default_router.__class__.__name__)
+    logging.debug(
+        "No router ACL rule match for user %s. Using default "
+        "router %s", username, self.default_router.__class__.__name__)
     return self.default_router
 
 
@@ -149,7 +151,7 @@ def InitializeApiAuthManager(default_router_cls=None):
 
 def _GetRouterClass(router_name: Text) -> Type[api_call_router.ApiCallRouter]:
   try:
-    return api_call_router.ApiCallRouter.classes[router_name]
+    return api_call_router_registry.GetRouterClass(router_name)
   except KeyError:
     message = "Router '{}' does not exist".format(router_name)
     raise ApiCallRouterNotFoundError(message)

@@ -1,21 +1,32 @@
 <mat-form-field hideRequiredMarker="true" appearance="outline" color="primary">
   <mat-label>Search for a client...</mat-label>
   <mat-icon matPrefix>search</mat-icon>
-  <input #input placeholder="Search for a client..."
-         name="clientSearchBox"
-         matInput
-         [formControl]="inputFormControl"
-         [matAutocomplete]="auto">
-  <mat-autocomplete #auto="matAutocomplete"
-                    (optionSelected)="selectClient($event.option.value)">
+  <input
+    #input
+    placeholder="Search for a client..."
+    name="clientSearchBox"
+    matInput
+    [formControl]="inputFormControl"
+    [matAutocomplete]="auto"
+    autocomplete="off"
+  />
+  <mat-autocomplete
+    #auto="matAutocomplete"
+    (optionSelected)="selectClient($event.option.value)"
+  >
     <div class="search-results">
-      <mat-option *ngFor="let client of clients$ | async; trackBy: trackClient"
-                  [value]="client.clientId">
-        <span>{{ client.knowledgeBase.fqdn }} ({{ client.clientId }})</span>
-        <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
+      <mat-option
+        *ngFor="let client of clients$ | async; trackBy: trackClient"
+        [value]="client.clientId"
+      >
+        <div class="result-row">
+          <span>{{ client.knowledgeBase.fqdn }} ({{ client.clientId }})</span>
+          <mat-chip-list>
+            <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
+          </mat-chip-list>
+        </div>
       </mat-option>
-      <mat-option *ngFor="let label of labels$ | async"
-                  [value]="label">
+      <mat-option *ngFor="let label of labels$ | async" [value]="label">
         <span>{{ label }}</span>
       </mat-option>
     </div>

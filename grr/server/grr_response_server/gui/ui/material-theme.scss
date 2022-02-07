@@ -1,7 +1,7 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
 
 // Angular Material theme definition.
-$primary: mat.define-palette(mat.$blue-palette, 900, 600, 400);
+$primary: mat.define-palette(mat.$blue-palette, 600, 400);
 $accent: mat.define-palette(mat.$green-palette, A700, A400, A200);
 $warn: mat.define-palette(mat.$amber-palette, 900, 600, 400);
 $success: mat.define-palette(mat.$green-palette);
@@ -17,9 +17,12 @@ $_grr-foreground: (
   divider: mat.get-color-from-palette(mat.$grey-palette, 600),
   dividers: mat.get-color-from-palette(mat.$grey-palette, 600),
   success: mat.get-color-from-palette(mat.$green-palette, 700),
+  success-light: #8afab1,
   danger: mat.get-color-from-palette(mat.$red-palette, 700),
+  danger-light: mat.get-color-from-palette(mat.$red-palette, 500),
   in-progress: mat.get-color-from-palette(mat.$yellow-palette, 700),
   icon-grey: mat.get-color-from-palette(mat.$grey-palette, 700),
+  selected: mat.get-color-from-palette(mat.$blue-palette, 100),
 );
 // See https://github.com/angular/components/blob/b6358b2e32d6cbd3646411fc576e46dc55bcf512/src/material/core/theming/_palette.scss#L674
 $_grr-background: (
@@ -29,6 +32,7 @@ $_grr-background: (
   // custom GRR property
   shadow: rgba(0, 0, 0, 0.5),
   // custom GRR property
+  danger-light: mat.get-color-from-palette($danger, 100),
 );
 $_theme: mat.define-light-theme($primary, $accent, $warn);
 $theme: map-merge(
@@ -101,3 +105,20 @@ $custom-typography: mat.define-typography-config(
     mat.define-typography-level(12px, 16px, 400, $roboto-family-str, 0.3px),
 );
 @include mat.all-component-typographies($custom-typography);
+
+$button-horizontal-padding: 16px;
+
+// Padding in major containers, e.g. sidebar drawer.
+$container-padding: 16px;
+
+$card-margin: 20px;
+
+// Vertical spacing between major elements (e.g. cards) on a page.
+$page-spacing: 16px;
+
+.mat-stroked-button:not(.mat-button-disabled),
+.mat-stroked-button.mat-primary:not(.mat-button-disabled) {
+  border-color: mat.get-color-from-palette($foreground, divider-light);
+  color: mat.get-color-from-palette($primary, 600);
+  background: white;
+}

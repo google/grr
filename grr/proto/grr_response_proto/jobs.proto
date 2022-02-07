@@ -571,6 +571,10 @@ message StartupInfo {
     type: "RDFDatetime",
     description: "Time when the machine last rebooted."
   }];
+  optional bool interrogate_requested = 3 [(sem_type) = {
+    description: "Set, if interrogate was requested by the client "
+                 "by creating a temporary file in a predefined location."
+  }];
 }
 
 message ExecuteRequest {
@@ -2060,10 +2064,6 @@ message EndToEndTestResult {
 }
 
 message EmptyMessage {}
-
-message PendingFlowTermination {
-  optional string reason = 1;
-}
 
 message BlobImageChunkDescriptor {
   optional uint64 offset = 1;

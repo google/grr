@@ -271,6 +271,13 @@ config_lib.DEFINE_list(
     help="Commands that the client is allowed to execute. Each command must be "
     "specified in the format that is supported by the Python's `shlex` module.")
 
+config_lib.DEFINE_string(
+    "Client.interrogate_trigger_path",
+    default="",
+    help="When set, the client will check for the presence of this file at "
+    "every startup and, if the file is present, will remove it and trigger "
+    "an interrogate on the server.")
+
 # osquery options.
 
 config_lib.DEFINE_string(

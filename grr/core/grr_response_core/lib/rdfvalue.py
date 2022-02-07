@@ -547,9 +547,13 @@ class RDFDatetime(RDFPrimitive):
     # TODO: Display microseconds if applicable.
     return self.Format("%Y-%m-%d %H:%M:%S")
 
-  def AsDatetime(self):
-    """Return the time as a python datetime object."""
+  def AsDatetime(self) -> datetime.datetime:
+    """Returns the datetime as Python `datetime` without any timezone set."""
     return datetime.datetime.utcfromtimestamp(self._value / self.converter)
+
+  def AsDatetimeUTC(self) -> datetime.datetime:
+    """Returns the datetime as a Python `datetime` with UTC timezone."""
+    return self.AsDatetime().replace(tzinfo=datetime.timezone.utc)
 
   def AsSecondsSinceEpoch(self):
     return self._value // self.converter

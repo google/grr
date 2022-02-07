@@ -10,13 +10,14 @@ import {FlowArgumentForm} from './form_interface';
 })
 export class FallbackFlowArgsForm<T extends {}> extends
     FlowArgumentForm<T> implements OnInit {
-  @Output() readonly formValues$ = new ReplaySubject<T>();
-  @Output()
-  readonly status$ =
-      new ReplaySubject<'VALID'|'INVALID'|'PENDING'|'DISABLED'>();
+  private readonly formValuesSubject = new ReplaySubject<T>(1);
+  private readonly statusSubject = new ReplaySubject<'VALID'>(1);
+
+  @Output() readonly formValues$ = this.formValuesSubject.asObservable();
+  @Output() readonly status$ = this.statusSubject.asObservable();
 
   ngOnInit() {
-    this.formValues$.next(this.defaultFlowArgs);
-    this.status$.next('VALID');
+    this.formValuesSubject.next(this.defaultFlowArgs);
+    this.statusSubject.next('VALID');
   }
 }

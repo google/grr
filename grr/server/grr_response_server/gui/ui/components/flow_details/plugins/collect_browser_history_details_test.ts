@@ -2,14 +2,14 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
-import {CollectBrowserHistoryDetails} from '@app/components/flow_details/plugins/collect_browser_history_details';
-import {BrowserProgressStatus, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectBrowserHistoryProgress, CollectBrowserHistoryResult} from '@app/lib/api/api_interfaces';
-import {FlowState} from '@app/lib/models/flow';
-import {newFlow, newFlowResult} from '@app/lib/models/model_test_util';
-import {initTestEnvironment} from '@app/testing';
 
+import {CollectBrowserHistoryDetails} from '../../../components/flow_details/plugins/collect_browser_history_details';
+import {BrowserProgressStatus, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectBrowserHistoryProgress, CollectBrowserHistoryResult, PathSpecPathType} from '../../../lib/api/api_interfaces';
+import {FlowState} from '../../../lib/models/flow';
+import {newFlow, newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {initTestEnvironment} from '../../../testing';
 
 import {PluginsModule} from './module';
 
@@ -32,109 +32,13 @@ describe('collect-browser-history-details component', () => {
             RouterTestingModule,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .overrideProvider(
             FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})
         .compileComponents();
   }));
-
-  it('does not show "Download all" button on non-finished flow', () => {
-    const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
-    const args: CollectBrowserHistoryArgs = {
-      browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
-    };
-    const progress: CollectBrowserHistoryProgress = {
-      browsers: [{
-        browser: CollectBrowserHistoryArgsBrowser.CHROME,
-        status: BrowserProgressStatus.SUCCESS,
-        numCollectedFiles: 20,
-      }],
-    };
-
-    fixture.componentInstance.flow = newFlow({
-      name: 'CollectBrowserHistory',
-      args,
-      progress,
-      state: FlowState.RUNNING,
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).not.toContain('Total');
-    expect(fixture.nativeElement.innerText).not.toContain('Download all');
-  });
-
-  it('does not show "Download all" button on 0 files found', () => {
-    const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
-    const args: CollectBrowserHistoryArgs = {
-      browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
-    };
-    const progress: CollectBrowserHistoryProgress = {
-      browsers: [{
-        browser: CollectBrowserHistoryArgsBrowser.CHROME,
-        status: BrowserProgressStatus.SUCCESS,
-        numCollectedFiles: 0,
-      }],
-    };
-
-    fixture.componentInstance.flow = newFlow({
-      name: 'CollectBrowserHistory',
-      args,
-      progress,
-      state: FlowState.FINISHED,
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).not.toContain('Total');
-    expect(fixture.nativeElement.innerText).not.toContain('Download all');
-  });
-
-  it('shows "Download all" button on finished flow with >1 results', () => {
-    const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
-    const args: CollectBrowserHistoryArgs = {
-      browsers: [
-        CollectBrowserHistoryArgsBrowser.CHROME,
-        CollectBrowserHistoryArgsBrowser.OPERA,
-        CollectBrowserHistoryArgsBrowser.INTERNET_EXPLORER
-      ],
-    };
-    const progress: CollectBrowserHistoryProgress = {
-      browsers: [
-        {
-          browser: CollectBrowserHistoryArgsBrowser.CHROME,
-          status: BrowserProgressStatus.SUCCESS,
-          numCollectedFiles: 20,
-        },
-        {
-          browser: CollectBrowserHistoryArgsBrowser.OPERA,
-          status: BrowserProgressStatus.SUCCESS,
-          numCollectedFiles: 22,
-        },
-        {
-          browser: CollectBrowserHistoryArgsBrowser.INTERNET_EXPLORER,
-          status: BrowserProgressStatus.ERROR,
-          description: 'Something happened.',
-        },
-      ],
-    };
-
-    fixture.componentInstance.flow = newFlow({
-      name: 'CollectBrowserHistory',
-      args,
-      progress,
-      state: FlowState.FINISHED,
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).toContain('42 files');
-
-    // Check that the download button has a correct href attribute.
-    const downloadButton: HTMLLinkElement =
-        fixture.nativeElement.querySelector('.download a');
-    expect(downloadButton.innerText).toContain('Download all');
-    expect(downloadButton.getAttribute('href'))
-        .toMatch('/api/v2/clients/.+/flows/.+/results/files-archive');
-  });
 
   it('shows per-browser details', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
@@ -259,6 +163,31 @@ describe('collect-browser-history-details component', () => {
         .toBeDefined();
   });
 
+  it('shows error after flow has been cancelled', () => {
+    const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
+    const args: CollectBrowserHistoryArgs = {
+      browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
+    };
+    const progress: CollectBrowserHistoryProgress = {
+      browsers: [{
+        browser: CollectBrowserHistoryArgsBrowser.CHROME,
+        status: BrowserProgressStatus.IN_PROGRESS,
+      }],
+    };
+
+    fixture.componentInstance.flow = newFlow({
+      name: 'CollectBrowserHistory',
+      args,
+      progress,
+      state: FlowState.ERROR,
+    });
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.in-progress'))).toBeNull();
+    expect(fixture.debugElement.query(By.css('.error')).nativeElement)
+        .toBeTruthy();
+  });
+
   it('emits results query on browser title link', () => {
     const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
     const args: CollectBrowserHistoryArgs = {
@@ -321,15 +250,14 @@ describe('collect-browser-history-details component', () => {
         .toHaveBeenCalledOnceWith(fixture.componentInstance.INITIAL_COUNT);
 
     flowResultsLocalStore.mockedObservables.results$.next(
-        [...new Array(100)].map((v, i) => newFlowResult({
-                                  payload: makeBrowserHistoryResult(i),
-                                  tag: 'CHROME',
-                                  payloadType: 'CollectBrowserHistoryResult',
-                                })));
+        Array.from({length: 55}, (v, i) => newFlowResult({
+                                   payload: makeBrowserHistoryResult(i),
+                                   tag: 'CHROME',
+                                   payloadType: 'CollectBrowserHistoryResult',
+                                 })));
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText).toContain('/browser/99.txt');
-
+    expect(fixture.nativeElement.innerText).toContain('/browser/4.txt');
 
     expect(flowResultsLocalStore.queryMore).toHaveBeenCalledTimes(1);
 
@@ -353,6 +281,7 @@ describe('collect-browser-history-details component', () => {
 function makeBrowserHistoryResult(i: number): CollectBrowserHistoryResult {
   return {
     browser: CollectBrowserHistoryArgsBrowser.CHROME,
-    statEntry: {pathspec: {path: `/browser/${i}.txt`}}
+    statEntry:
+        {pathspec: {path: `/browser/${i}.txt`, pathtype: PathSpecPathType.OS}}
   };
 }

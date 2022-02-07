@@ -4,7 +4,7 @@
   (conditionRemoved)="conditionRemoved.emit()"
 >
   <ng-container *ngIf="showLinux$ | async">
-    <h3 class="mat-h3">Linux file flags</h3>
+    <h3>Linux file flags</h3>
     <div class="flags stretch">
       <button
         *ngFor="let flag of linuxFlags"
@@ -23,7 +23,7 @@
   </ng-container>
 
   <ng-container *ngIf="showOsx$ | async">
-    <h3 class="mat-h3 space-top">macOS file flags</h3>
+    <h3 class="space-top">macOS file flags</h3>
     <div class="flags">
       <button
         *ngFor="let flag of osxFlags"

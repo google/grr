@@ -1,8 +1,8 @@
 import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
-import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 import {map, shareReplay} from 'rxjs/operators';
 
+import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser} from '../../lib/api/api_interfaces';
 
 declare interface FormValues {

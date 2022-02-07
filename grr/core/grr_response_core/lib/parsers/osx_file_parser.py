@@ -91,13 +91,8 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
       filedesc: IO[bytes],
   ) -> Iterator[rdf_plist.LaunchdPlist]:
     del knowledge_base  # Unused.
-    del pathspec  # Unused.
 
-    kwargs = {}
-    try:
-      kwargs["aff4path"] = filedesc.urn
-    except AttributeError:
-      pass
+    kwargs = {"path": pathspec.last.path}
 
     direct_copy_items = [
         "Label", "Disabled", "UserName", "GroupName", "Program",
@@ -142,8 +137,8 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
       if plist.get(key):
         kwargs[key] = True
 
-    if plist.get("inetdCompatability") is not None:
-      kwargs["inetdCompatabilityWait"] = plist.get("inetdCompatability").get(
+    if plist.get("inetdCompatibility") is not None:
+      kwargs["inetdCompatibilityWait"] = plist.get("inetdCompatibility").get(
           "Wait")
 
     keepalive = plist.get("KeepAlive")

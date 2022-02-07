@@ -1,9 +1,10 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
-import {newFlow} from '@app/lib/models/model_test_util';
-import {initTestEnvironment} from '@app/testing';
 
+import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
 import {FlowState} from '../../../lib/models/flow';
+import {newFlow} from '../../../lib/models/model_test_util';
+import {initTestEnvironment} from '../../../testing';
 
 import {PluginsModule} from './module';
 
@@ -20,6 +21,7 @@ describe('timeline-details component', () => {
             PluginsModule,
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
@@ -32,7 +34,7 @@ describe('timeline-details component', () => {
       flowId: 'ABCDEF',
       state: FlowState.FINISHED,
       args: {
-        root: '/',
+        root: encodeStringToBase64('/'),
       },
     });
     fixture.detectChanges();
@@ -59,7 +61,7 @@ describe('timeline-details component', () => {
       flowId: 'ABCDEF',
       state: FlowState.FINISHED,
       args: {
-        root: '/',
+        root: encodeStringToBase64('/'),
       },
     });
     fixture.detectChanges();
@@ -90,25 +92,11 @@ describe('timeline-details component', () => {
       name: 'TimelineFlow',
       state: FlowState.RUNNING,
       args: {
-        root: '/foo/bar/baz',
+        root: encodeStringToBase64('/foo/bar/baz'),
       },
     });
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('/foo/bar/baz');
-  });
-
-  it('should display an error message if the flow failed', () => {
-    const fixture = TestBed.createComponent(TimelineDetails);
-    fixture.componentInstance.flow = newFlow({
-      name: 'TimelineFlow',
-      state: FlowState.ERROR,
-      args: {
-        root: '/',
-      },
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).toContain('Failed to collect');
   });
 });

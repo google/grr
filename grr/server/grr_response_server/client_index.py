@@ -6,7 +6,7 @@ An index of client machines, associating likely identifiers to client IDs.
 
 import functools
 import operator
-from typing import Mapping, Iterable, Sequence, Text
+from typing import Mapping, Iterable, Sequence
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
@@ -48,7 +48,7 @@ class ClientIndex(object):
   START_TIME_PREFIX_LEN = len(START_TIME_PREFIX)
 
   def _NormalizeKeyword(self, keyword):
-    return Text(keyword).lower()
+    return str(keyword).lower()
 
   def _AnalyzeKeywords(self, keywords):
     """Extracts a start time from a list of keywords if present."""
@@ -132,8 +132,8 @@ class ClientIndex(object):
     keywords = set(["."])
 
     def TryAppend(prefix, keyword):
-      precondition.AssertType(prefix, Text)
-      precondition.AssertType(keyword, Text)
+      precondition.AssertType(prefix, str)
+      precondition.AssertType(keyword, str)
       if keyword:
         keyword_string = self._NormalizeKeyword(keyword)
         keywords.add(keyword_string)
@@ -150,10 +150,10 @@ class ClientIndex(object):
     def TryAppendIP(ip):
       TryAppend("ip", ip)
       # IP4v?
-      if TryAppendPrefixes("ip", Text(ip), ".") == 4:
+      if TryAppendPrefixes("ip", str(ip), ".") == 4:
         return
       # IP6v?
-      TryAppendPrefixes("ip", Text(ip), ":")
+      TryAppendPrefixes("ip", str(ip), ":")
 
     def TryAppendMac(mac):
       TryAppend("mac", mac)
@@ -195,7 +195,7 @@ class ClientIndex(object):
     client_info = client.startup_info.client_info
     if client_info:
       TryAppend("client", client_info.client_name)
-      TryAppend("client", Text(client_info.client_version))
+      TryAppend("client", str(client_info.client_version))
       if client_info.labels:
         for label in client_info.labels:
           TryAppend("label", label)
@@ -214,7 +214,7 @@ class ClientIndex(object):
     data_store.REL_DB.AddClientKeywords(client.client_id, keywords)
 
   def AddClientLabels(self, client_id: str, labels: Iterable[str]):
-    precondition.AssertIterableType(labels, Text)
+    precondition.AssertIterableType(labels, str)
     keywords = set()
     for label in labels:
       keyword_string = self._NormalizeKeyword(label)

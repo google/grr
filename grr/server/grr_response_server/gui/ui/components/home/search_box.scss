@@ -1,4 +1,4 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
 @use '../../material-theme' as c;
 
 :host {
@@ -14,13 +14,18 @@
 
     mat-icon {
       margin-right: 0.5em;
-      color: mat.get-color-from-palette(c.$foreground, divider);
+      color: mat.get-color-from-palette(c.$foreground, text-light);
     }
   }
 }
 
-.search-results {
+.result-row {
+  display: flex;
+  align-items: center;
+
   online-chip {
     margin-left: 0.5em;
+    /** Prevent online chip from changing cursor and hover effect. */
+    pointer-events: none;
   }
 }

@@ -1,6 +1,6 @@
-import {initTestEnvironment} from '@app/testing';
+import {initTestEnvironment} from '../testing';
 
-import {assertEnum, assertKeyNonNull, assertKeyTruthy, assertNonNull, assertTruthy, isEnum, isNonNull, PreconditionError} from './preconditions';
+import {assertEnum, assertKeyNonNull, assertKeyTruthy, assertNonNull, assertNumber, assertTruthy, isEnum, isNonNull, isNull, PreconditionError} from './preconditions';
 
 initTestEnvironment();
 
@@ -23,6 +23,28 @@ describe('isNonNull', () => {
     expect(isNonNull(5)).toBeTrue();
     expect(isNonNull({})).toBeTrue();
     expect(isNonNull([])).toBeTrue();
+  });
+});
+
+describe('isNull', () => {
+  it('returns true if value is null', () => {
+    expect(isNull(null)).toBeTrue();
+  });
+
+  it('returns true if value is undefined', () => {
+    expect(isNull(undefined)).toBeTrue();
+  });
+
+  it('returns false for falsey values', () => {
+    expect(isNull(0)).toBeFalse();
+    expect(isNull(false)).toBeFalse();
+    expect(isNull('')).toBeFalse();
+  });
+
+  it('returns false for truthy values', () => {
+    expect(isNull(5)).toBeFalse();
+    expect(isNull({})).toBeFalse();
+    expect(isNull([])).toBeFalse();
   });
 });
 
@@ -195,5 +217,18 @@ describe('assertEnum', () => {
     assertEnum('FOO', TestEnum);
     assertEnum('BAR', TestEnum);
     expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
+  });
+});
+
+describe('assertNumber', () => {
+  it('throws if string cannot be converted', () => {
+    expect(() => {
+      assertNumber('foo');
+    }).toThrowError(PreconditionError);
+  });
+
+  it('returns number value when the field is number', () => {
+    assertNumber(100.0);
+    expect(true).toBeTruthy();
   });
 });

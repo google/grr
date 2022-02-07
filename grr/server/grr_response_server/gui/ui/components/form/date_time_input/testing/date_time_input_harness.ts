@@ -1,7 +1,8 @@
 import {BaseHarnessFilters, ComponentHarness, HarnessPredicate} from '@angular/cdk/testing';
 import {MatInputHarness} from '@angular/material/input/testing';
-import {DATE_TIME_FORMAT} from '@app/components/form/date_time_input/date_time_input';
-import {DateTime} from '@app/lib/date_time';
+
+import {DATE_TIME_FORMAT} from '../../../../components/form/date_time_input/date_time_input';
+import {DateTime} from '../../../../lib/date_time';
 
 
 /** Filters used when searching for the harness component. */

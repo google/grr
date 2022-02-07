@@ -18,10 +18,6 @@ from MySQLdb.constants import CR as mysql_conn_errors
 from MySQLdb.constants import ER as general_mysql_errors
 import pkg_resources
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr_response_server import server_plugins
-# pylint: enable=g-bad-import-order,unused-import
-
 from google.protobuf import text_format
 from grr_api_client import errors as api_errors
 from grr_api_client import root as api_root
@@ -907,12 +903,12 @@ def InitializeNoPrompt(
   fs_config = FleetspeakConfig()
   fs_config.use_fleetspeak = use_fleetspeak
   fs_config.external_hostname = external_hostname
-  fs_config.mysql_username = mysql_username
+  fs_config.mysql_username = mysql_username  # pytype: disable=annotation-type-mismatch  # attribute-variable-annotations
   fs_config.mysql_password = mysql_password
-  fs_config.mysql_host = mysql_hostname
+  fs_config.mysql_host = mysql_hostname  # pytype: disable=annotation-type-mismatch  # attribute-variable-annotations
   if mysql_port:
     fs_config.mysql_port = mysql_port
-  fs_config.mysql_database = mysql_fleetspeak_db
+  fs_config.mysql_database = mysql_fleetspeak_db  # pytype: disable=annotation-type-mismatch  # attribute-variable-annotations
   fs_config.Write(config)
 
   FinalizeConfigInit(

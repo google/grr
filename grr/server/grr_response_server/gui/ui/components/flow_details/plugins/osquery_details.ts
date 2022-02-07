@@ -1,13 +1,13 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {OsqueryFlowArgs, OsqueryProgress, OsqueryResult} from '@app/lib/api/api_interfaces';
-import {FlowState} from '@app/lib/models/flow';
-import {isNonNull} from '@app/lib/preconditions';
 import {combineLatest, concat, Observable} from 'rxjs';
 import {filter, map, startWith, takeUntil} from 'rxjs/operators';
 
+import {OsqueryFlowArgs, OsqueryProgress, OsqueryResult} from '../../../lib/api/api_interfaces';
+import {Flow, FlowState} from '../../../lib/models/flow';
+import {isNonNull} from '../../../lib/preconditions';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 
-import {Plugin} from './plugin';
+import {ExportMenuItem, Plugin} from './plugin';
 
 /**
  * Component that displays the details (status, errors, results) for a
@@ -88,40 +88,6 @@ export class OsqueryDetails extends Plugin {
       map(flow => flow.args as OsqueryFlowArgs),
   );
 
-  readonly clientAndFlowId$ = this.flow$.pipe(
-      map(flow => {
-        const {clientId, flowId} = flow;
-
-        if (clientId && flowId) {
-          return {
-            clientId,
-            flowId,
-          };
-        } else {
-          return null;
-        }
-      }),
-      filter(isNonNull),
-  );
-
-  readonly exportCsvLink$ = this.clientAndFlowId$.pipe(
-      map(ids => {
-        return `/api/clients/${ids.clientId}/flows/${
-            ids.flowId}/osquery-results/CSV`;
-      }),
-  );
-
-  readonly collectedFilesLink$ = this.clientAndFlowId$.pipe(
-      map(ids => {
-        return `/api/clients/${ids.clientId}/flows/${
-            ids.flowId}/results/files-archive`;
-      }),
-  );
-
-  readonly numberOfRowsAvailable$ = this.displayTable$.pipe(
-      map(table => table.rows?.length),
-  );
-
   private flagByState(targetState: FlowState): Observable<boolean> {
     return this.flow$.pipe(map(flow => flow.state === targetState));
   }
@@ -137,5 +103,17 @@ export class OsqueryDetails extends Plugin {
   loadCompleteResults() {
     // TODO(user): Fetch more chunks if present
     this.flowResultsLocalStore.queryMore(1);
+  }
+
+  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
+    const results: ExportMenuItem[] = [];
+
+    if ((flow.progress as OsqueryProgress | undefined)?.totalRowCount &&
+        (flow.args as OsqueryFlowArgs).fileCollectionColumns) {
+      results.push(this.getDownloadFilesExportMenuItem(flow));
+    }
+
+    results.push(...super.getExportMenuItems(flow));
+    return results;
   }
 }

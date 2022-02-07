@@ -1,6 +1,6 @@
-<h1 *ngIf="(scheduledFlows$ | async)?.length > 0" class="mat-h1">Scheduled flows</h1>
+<h1 *ngIf="(scheduledFlows$ | async)?.length">Scheduled flows</h1>
 <div *ngFor="let scheduledFlow of scheduledFlows$ | async; trackBy: trackScheduledFlow"
-  class="container mat-body-1 flow-item">
+  class="container flow-item">
   <div class="header-wrapper">
     <div class="header">
       <div class="flow-header">

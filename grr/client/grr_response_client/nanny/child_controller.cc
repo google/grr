@@ -13,9 +13,7 @@ namespace grr {
 // -----------------------------------------------------------------
 ChildProcess::ChildProcess() {}
 ChildProcess::~ChildProcess() {}
-EventLogger *ChildProcess::GetEventLogger() {
-  return NULL;
-}
+EventLogger *ChildProcess::GetEventLogger() { return nullptr; }
 
 // -----------------------------------------------------------------
 // ChildController

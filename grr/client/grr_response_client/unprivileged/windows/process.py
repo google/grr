@@ -42,7 +42,7 @@ from ctypes.wintypes import WORD
 # pylint: enable=g-importing-member
 import os
 import subprocess
-from typing import List, Optional
+from typing import List, Optional, NamedTuple
 
 import win32api
 import win32con
@@ -197,6 +197,11 @@ PROC_THREAD_ATTRIBUTE_HANDLE_LIST = 0x20002
 PROC_THREAD_ATTRIBUTE_SECURITY_CAPABILITIES = 0x20009
 
 
+class CpuTimes(NamedTuple):
+  cpu_time: float
+  sys_time: float
+
+
 class Process:
   """A subprocess.
 
@@ -329,3 +334,9 @@ class Process:
     exit_code = win32process.GetExitCodeProcess(self._handle)
     self._exit_stack.close()
     return exit_code
+
+  def GetCpuTimes(self) -> CpuTimes:
+    times = win32process.GetProcessTimes(self._handle)
+    return CpuTimes(
+        cpu_time=times["UserTime"] / 10000000.0,
+        sys_time=times["KernelTime"] / 10000000.0)

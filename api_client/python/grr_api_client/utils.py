@@ -29,6 +29,7 @@ from grr_response_proto import jobs_pb2
 from grr_response_proto import large_file_pb2
 from grr_response_proto import osquery_pb2
 from grr_response_proto import pipes_pb2
+from grr_response_proto import read_low_level_pb2
 from grr_response_proto import timeline_pb2
 
 from grr_response_proto.api import artifact_pb2
@@ -287,6 +288,7 @@ def RegisterProtoDescriptors(
   db.RegisterFileDescriptor(hunt_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(metadata_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(output_plugin_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(read_low_level_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(reflection_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(stats_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(user_pb2.DESCRIPTOR)

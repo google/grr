@@ -1,6 +1,7 @@
 import {DebugElement} from '@angular/core';
 import {By} from '@angular/platform-browser';
-import {OsqueryTable} from '@app/lib/api/api_interfaces';
+
+import {OsqueryTable} from '../../../lib/api/api_interfaces';
 
 /** Helper data structure to parse an osquery_results_table */
 export class OsqueryResultsTableDOM {
@@ -14,6 +15,10 @@ export class OsqueryResultsTableDOM {
   readonly cellDivs = this.rootElement?.queryAll(By.css('td'));
   readonly cellsText?: ReadonlyArray<string> =
       this.cellDivs?.map(cellDiv => cellDiv.nativeElement.innerText);
+
+  get rowsLength() {
+    return this.rootElement?.queryAll(By.css('tr')).length;
+  }
 
   readonly errorDiv = this.rootElement?.query(By.css('.error'));
   readonly errorText = this.errorDiv?.nativeElement.innerText;

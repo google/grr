@@ -363,8 +363,8 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         "css=tr.diff-changed:contains('Action'):contains('DOWNLOAD')")
     self.WaitUntil(
         self.IsElementPresent,
-        "css=tr.diff-added:contains('Conditions'):contains('Size')"
-        ":contains('42')")
+        "css=tr:not(:contains('Args')):contains('Conditions')"
+        ":has('.diff-added'):contains('Size'):contains('42')")
 
   def testOriginalFlowLinkIsShownIfHuntCreatedFromFlow(self):
     h_id, flow_id = self._CreateHuntFromFlow()

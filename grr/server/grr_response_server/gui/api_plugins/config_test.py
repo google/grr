@@ -196,6 +196,7 @@ class ApiGetUiConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
         "AdminUI.help_url": "test help url",
         "AdminUI.profile_image_url": "test profile image url",
         "Source.version_string": "1.2.3.4",
+        "Hunt.default_client_rate": 123,
     }
 
     with test_lib.ConfigOverrider(input_dict):
@@ -207,6 +208,7 @@ class ApiGetUiConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(result.help_url, "test help url")
     self.assertEqual(result.grr_version, "1.2.3.4")
     self.assertEqual(result.profile_image_url, "test profile image url")
+    self.assertEqual(result.default_hunt_runner_args.client_rate, 123)
 
 
 def main(argv):

@@ -1,5 +1,6 @@
 import {Component, Input} from '@angular/core';
-import {Match, stringWithHighlightsFromMatch, StringWithHighlightsPart,} from '@app/lib/fuzzy_matcher';
+
+import {Match, stringWithHighlightsFromMatch, StringWithHighlightsPart} from '../../../lib/fuzzy_matcher';
 
 import {OsqueryTableSpec} from './osquery_table_specs';
 

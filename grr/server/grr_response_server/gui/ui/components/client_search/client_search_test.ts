@@ -2,12 +2,12 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Router, RouterLink} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
-import {ApiModule} from '@app/lib/api/module';
-import {initTestEnvironment} from '@app/testing';
 
+import {ApiModule} from '../../lib/api/module';
 import {newClient} from '../../lib/models/model_test_util';
 import {ClientSearchGlobalStore} from '../../store/client_search_global_store';
 import {ClientSearchGlobalStoreMock, mockClientSearchGlobalStore} from '../../store/client_search_global_store_test_util';
+import {initTestEnvironment} from '../../testing';
 
 import {ClientSearch} from './client_search';
 import {ClientSearchModule} from './module';
@@ -36,7 +36,7 @@ describe('ClientSearch Component', () => {
     TestBed
         .configureTestingModule({
           imports: [
-            NoopAnimationsModule,  // This makes test faster and more stable.
+            NoopAnimationsModule,
             ApiModule,
             ClientSearchModule,
             RouterTestingModule,
@@ -48,6 +48,7 @@ describe('ClientSearch Component', () => {
             },
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
 
@@ -78,6 +79,7 @@ describe('ClientSearch Component', () => {
         clientId: 'C.1234',
         knowledgeBase: {
           fqdn: 'foo.unknown',
+          users: [{username: 'foouser'}, {username: 'admin'}],
         },
         lastSeenAt: new Date(1571789996678),
       }),
@@ -85,7 +87,11 @@ describe('ClientSearch Component', () => {
         clientId: 'C.5678',
         knowledgeBase: {
           fqdn: 'bar.unknown',
+          users: [{username: 'baruser'}],
         },
+        labels: [
+          {name: 'barlabel', owner: ''},
+        ],
       }),
     ]);
     fixture.detectChanges();
@@ -100,12 +106,26 @@ describe('ClientSearch Component', () => {
     // Check the first data row.
     expect(htmlCollectionToList(rows[1].getElementsByTagName('td'))
                .map((e: Element) => (e as HTMLElement).innerText))
-        .toEqual(['C.1234', 'foo.unknown', '2019-10-23 00:19:56 UTC']);
+        .toEqual([
+          'C.1234',
+          'foo.unknown',
+          'foouser + 1',
+          '',
+          jasmine.stringMatching('Offline'),
+          jasmine.stringMatching('2019-10-23 00:19:56 UTC'),
+        ]);
     expect(rows[1].hasAttribute('ng-reflect-query-params')).toBeFalse();
     // Check the second data row.
     expect(htmlCollectionToList(rows[2].getElementsByTagName('td'))
                .map((e: Element) => (e as HTMLElement).innerText))
-        .toEqual(['C.5678', 'bar.unknown', 'Unknown']);
+        .toEqual([
+          'C.5678',
+          'bar.unknown',
+          'baruser',
+          'barlabel',
+          '',
+          '',
+        ]);
     expect(rows[2].hasAttribute('ng-reflect-query-params')).toBeFalse();
   });
 

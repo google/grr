@@ -1,12 +1,12 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {ConfigService} from '@app/components/config/config';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateScheduledFlow} from '@app/lib/api_translation/flow';
-import {ScheduledFlow} from '@app/lib/models/flow';
 import {Observable, timer} from 'rxjs';
 import {concatMap, exhaustMap, filter, map, mapTo, shareReplay, tap, withLatestFrom} from 'rxjs/operators';
 
+import {ConfigService} from '../components/config/config';
+import {HttpApiService} from '../lib/api/http_api_service';
+import {translateScheduledFlow} from '../lib/api_translation/flow';
+import {ScheduledFlow} from '../lib/models/flow';
 import {poll} from '../lib/polling';
 import {isNonNull} from '../lib/preconditions';
 

@@ -1,77 +1,67 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {ApiSearchClientResult} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateClient} from '@app/lib/api_translation/client';
-import {Client} from '@app/lib/models/client';
-import {Observable, of} from 'rxjs';
-import {map, switchMap, tap} from 'rxjs/operators';
+import {Observable} from 'rxjs';
+import {filter, map, switchMap, tap, withLatestFrom} from 'rxjs/operators';
+
+import {HttpApiService} from '../lib/api/http_api_service';
+import {translateClient} from '../lib/api_translation/client';
+import {Client} from '../lib/models/client';
+import {isNonNull} from '../lib/preconditions';
+import {compareDateNewestFirst} from '../lib/type_utils';
 
 interface ClientSearchState {
-  readonly clients: {readonly [key: string]: Client};
-  readonly clientSequence: ReadonlyArray<string>;
+  readonly clients?: ReadonlyArray<Client>;
+  readonly query?: string;
 }
+
+const NULL_DATE = new Date(0);
 
 /**
  * Store used by the ClientSearchGlobalStore.
  */
-@Injectable({
-  providedIn: 'root',
-})
-export class ClientSearchStore extends ComponentStore<ClientSearchState> {
+class ClientSearchStore extends ComponentStore<ClientSearchState> {
   constructor(private readonly httpApiService: HttpApiService) {
-    super({
-      clients: {},
-      clientSequence: [],
+    super({});
+
+    // Upon search query change, load new search results from the backend.
+    this.query$.subscribe(() => {
+      this.executeSearchClientQuery();
     });
   }
 
-  private readonly updateClients =
-      this.updater<ReadonlyArray<Client>>((state, clients) => {
-        const newClientsMap: {[key: string]: Client} = {};
-        for (const c of clients) {
-          newClientsMap[c.clientId] = c;
-        }
+  /** Updates the query, resetting search results when query changes. */
+  readonly searchClients =
+      this.updater<string>((state, query) => ({
+                             ...state,
+                             query,
+                             clients: query === state.query ? state.clients : undefined,
+                           }));
 
-        const newClientSequence = Object.values(newClientsMap);
-        newClientSequence.sort((a, b) => {
-          const bs = b.lastSeenAt || new Date(0);
-          const as = a.lastSeenAt || new Date(0);
-          return bs.getTime() - as.getTime();
-        });
+  readonly clients$ = this.select((state) => state.clients);
 
-        return {
-          ...state,
-          clients: newClientsMap,
-          clientSequence: newClientSequence.map(c => c.clientId),
-        };
-      });
+  private readonly query$ = this.select(state => state.query);
 
-  /**
-   * An observable emitting the list of fetched Clients on every search.
-   */
-  readonly clients$: Observable<ReadonlyArray<Client>> =
-      this.select((state) => {
-        return state.clientSequence.map(id => state.clients[id]);
-      });
+  private readonly updateClients = this.updater<ReadonlyArray<Client>>(
+      (state, clients) => ({
+        ...state,
+        clients: [...clients].sort(
+            compareDateNewestFirst(c => c.lastSeenAt ?? NULL_DATE)),
+      }));
 
-  /**
-   * Searches for clients using the current search query.
-   */
-  readonly searchClients = this.effect<string>(
-      obs$ => obs$.pipe(
-          switchMap(query => {
-            if (query) {
-              return this.httpApiService.searchClients(
-                  {query, offset: 0, count: 100});
-            } else {
-              return of<ApiSearchClientResult>({items: []});
-            }
-          }),
+  private readonly executeSearchClientQuery = this.effect<void>(
+      trigger$ => trigger$.pipe(
+          withLatestFrom(this.query$),
+          map(([, query]) => query),
+          filter(isNonNull),
+          filter(query => query !== ''),
+          switchMap(
+              (query) => this.httpApiService.searchClients(
+                  {query, offset: 0, count: 100})),
           map(apiResult => apiResult.items?.map(translateClient) ?? []),
           tap(results => {
             this.updateClients(results);
-          })));
+          }),
+          ));
 }
 
 /**
@@ -81,12 +71,17 @@ export class ClientSearchStore extends ComponentStore<ClientSearchState> {
   providedIn: 'root',
 })
 export class ClientSearchGlobalStore {
-  constructor(private readonly store: ClientSearchStore) {}
+  constructor(private readonly httpApiService: HttpApiService) {}
+
+  private readonly store = new ClientSearchStore(this.httpApiService);
 
   /**
-   * An observable emitting the list of fetched Clients on every search.
+   * An observable emitting the list of fetched Clients on every search. The
+   * empty list indicates 0 search results. undefined indicates that results are
+   * being queried.
    */
-  readonly clients$: Observable<ReadonlyArray<Client>> = this.store.clients$;
+  readonly clients$: Observable<ReadonlyArray<Client>|undefined> =
+      this.store.clients$;
 
   /**
    * Searches for clients using the current search query.

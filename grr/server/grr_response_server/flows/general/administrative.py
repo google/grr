@@ -762,25 +762,35 @@ class ClientStartupHandler(message_handlers.MessageHandler):
           index = client_index.ClientIndex()
           index.AddClientLabels(client_id, labels)
 
-        if self._IsInterrogateNeeded(client_id, current_si, new_si):
-          flow.StartFlow(
-              client_id=client_id,
-              flow_cls=discovery.Interrogate,
-              creator="GRRWorker")
-
       except db.UnknownClientError:
         # On first contact with a new client, this write will fail.
         logging.info("Can't write StartupInfo for unknown client %s", client_id)
+
+    # We do the interrogate-needed check even if the startup info hasn't
+    # changed. This is to accommodate for cases when an interrogation is
+    # requested from the client by creating a temporary file.
+    if self._IsInterrogateNeeded(client_id, current_si, new_si):
+      flow.StartFlow(
+          client_id=client_id,
+          flow_cls=discovery.Interrogate,
+          creator="GRRWorker")
 
   def _IsInterrogateNeeded(self, client_id: str,
                            current_si: Optional[rdf_client.StartupInfo],
                            new_si: rdf_client.StartupInfo) -> bool:
     # Interrogate the client immediately after its version has been
-    # updated. Only start an Interrogate here if `current_si` is set, thus
+    # updated or an interrogate was requested on the endpoint (by the user
+    # creating a file in a predefined location).
+    #
+    # Only start an Interrogate here if `current_si` is set, thus
     # the client is not new. New clients are interrogated from a different
     # handler.
-    if (not current_si or current_si.client_info.client_version
-        == new_si.client_info.client_version):
+    if not current_si:
+      return False
+
+    if (current_si.client_info.client_version
+        == new_si.client_info.client_version and
+        (not new_si.interrogate_requested)):
       return False
 
     min_create_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(

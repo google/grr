@@ -190,6 +190,8 @@ message ApiGrrUserInterfaceTraits {
   optional bool start_client_flow_nav_item_enabled = 16;
   optional bool manage_client_flows_nav_item_enabled = 17;
   optional bool modify_client_labels_action_enabled = 18;
+
+  optional bool hunt_approval_required = 19;
 }
 
 message ApiGrrUser {
@@ -455,7 +457,7 @@ message ApiGrantClientApprovalArgs {
   }];
   optional string username = 3 [(sem_type) = {
     description: "Username of the user, whose client approval is being "
-                 "requested."
+                 "granted."
   }];
 }
 

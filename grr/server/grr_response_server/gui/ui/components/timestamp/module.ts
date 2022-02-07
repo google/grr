@@ -4,12 +4,14 @@ import {NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 import {MatTooltipModule} from '@angular/material/tooltip';
+import {Subject} from 'rxjs';
 
-import {RelativeTimestampPipe} from './relative_timestamp_pipe';
-import {Timestamp} from './timestamp';
+import {CopyButtonModule} from '../helpers/copy_button/copy_button_module';
+
+import {Timestamp, TimestampRefreshTimer} from './timestamp';
 
 /**
- * Module for the flow_picker details component.
+ * Module for the Timestamp component.
  */
 @NgModule({
   imports: [
@@ -19,15 +21,29 @@ import {Timestamp} from './timestamp';
     MatIconModule,
     MatButtonModule,
     ClipboardModule,
+    CopyButtonModule,
   ],
   declarations: [
     Timestamp,
-    RelativeTimestampPipe,
   ],
   exports: [
     Timestamp,
-    RelativeTimestampPipe,
   ],
 })
 export class TimestampModule {
+}
+
+/**
+ * Module that mocks the Timestamp's timer to prevent timer problems, e.g.
+ * "Timeout - Async function did not complete within 5000ms".
+ */
+@NgModule({
+  providers: [
+    {
+      provide: TimestampRefreshTimer,
+      useFactory: () => ({timer$: new Subject<void>()}),
+    },
+  ],
+})
+export class TimestampTestingModule {
 }

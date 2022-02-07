@@ -1,7 +1,8 @@
-import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} from '@angular/core';
-import {map} from 'rxjs/operators';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, HostBinding, Input, OnChanges, OnDestroy, OnInit, SimpleChanges} from '@angular/core';
+import {map, takeUntil} from 'rxjs/operators';
 
 import {ScheduledFlow} from '../../lib/models/flow';
+import {observeOnDestroy} from '../../lib/reactive';
 import {ScheduledFlowGlobalStore} from '../../store/scheduled_flow_global_store';
 import {UserGlobalStore} from '../../store/user_global_store';
 
@@ -12,7 +13,7 @@ import {UserGlobalStore} from '../../store/user_global_store';
   styleUrls: ['./scheduled_flow_list.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ScheduledFlowList implements OnChanges {
+export class ScheduledFlowList implements OnInit, OnChanges, OnDestroy {
   @Input() creator?: string;
   @Input() clientId?: string;
 
@@ -22,10 +23,29 @@ export class ScheduledFlowList implements OnChanges {
       map(user => user.name),
   );
 
+  // Use Angular's [hidden] directive to hide this view until scheduled flows
+  // have been loaded. This prevents spaces around the empty view during
+  // loading.
+  @HostBinding('hidden') isHidden = true;
+
+  readonly ngOnDestroy = observeOnDestroy(this);
+
   constructor(
       private readonly store: ScheduledFlowGlobalStore,
       private readonly userGlobalStore: UserGlobalStore,
+      private readonly cdr: ChangeDetectorRef,
   ) {}
+
+  ngOnInit() {
+    this.scheduledFlows$
+        .pipe(
+            takeUntil(this.ngOnDestroy.triggered$),
+            )
+        .subscribe(scheduledFlows => {
+          this.isHidden = scheduledFlows.length === 0;
+          this.cdr.detectChanges();
+        });
+  }
 
   ngOnChanges(changes: SimpleChanges): void {
     this.store.selectSource({creator: this.creator, clientId: this.clientId});

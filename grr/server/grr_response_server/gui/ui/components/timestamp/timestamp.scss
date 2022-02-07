@@ -1,25 +1,6 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
 @use '../../material-theme' as c;
 
-// NOTE: Styles used here are effectively global. Make sure to
-// narrow them enough, so that they don't bleed out unintentionally.
-
-.ts_component_timestamp {
-  display: inline-block;
-}
-
-.ts_component_tooltip {
-  // matTooltip overwrites the margin if !important is not used.
-  // Using !important, however is not allowed.
-  margin-top: 3px;
-  margin-bottom: 3px;
-}
-
 .ts_component_inline_relative {
-  display: inline-block;
   color: mat.get-color-from-palette(c.$foreground, text-light);
-}
-
-.ts_component_copy_button {
-  color: mat.get-color-from-palette(c.$foreground, icon-grey);
 }

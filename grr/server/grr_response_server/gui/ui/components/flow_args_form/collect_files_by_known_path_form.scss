@@ -1,0 +1,24 @@
+@use '@angular/material' as mat;
+@use '../../material-theme' as c;
+
+.w100 {
+  width: 100%;
+}
+
+.tall {
+  height: 80px;
+}
+
+.validation {
+  margin-bottom: 1em;
+}
+
+.advanced-params-button {
+  color: mat.get-color-from-palette(mat.$blue-palette, 600);
+  margin-bottom: 5px;
+  padding-left: 0;
+}
+
+.radio-option {
+  padding: 4px 8px;
+}

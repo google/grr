@@ -1,9 +1,10 @@
-:host {
-  display: block;
-  padding-top: 20px;
-}
+@use "sass:math";
+@use '@angular/material' as mat;
+@use '../../material-theme' as c;
 
-:host.closed {
+$container-padding-minus-header: c.$container-padding - math.div(40 - 24, 2);
+
+:host.closed .wrapper {
   cursor: pointer;
   transition: background-color 200ms cubic-bezier(0.35, 0, 0.25, 1);
 
@@ -12,37 +13,40 @@
   }
 }
 
+.wrapper {
+  border-radius: 8px;
+  border: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
+  background: white;
+  font-family: c.$google-sans-family;
+  padding: $container-padding-minus-header c.$container-padding
+    c.$container-padding;
+  color: mat.get-color-from-palette(mat.$grey-palette, 800);
+}
+
+:host.closed .wrapper {
+  padding-bottom: $container-padding-minus-header;
+}
+
 :host.closed .content {
-  max-height: 0;
-  padding-bottom: 0;
+  display: none;
 }
 
 :host .content {
-  transition: max-height ease 0.4s;
-  overflow: hidden;
-  padding-bottom: 1.75em;
-}
-
-.wrapper {
   display: block;
-  margin: 0 auto;
-  max-width: 1280px;
-  width: 80%;
 }
 
-button {
-  text-transform: uppercase;
+.buttons-row {
+  display: flex;
+  column-gap: math.div(c.$container-padding, 2);
 }
 
 .form-border {
   padding-top: 2em;
-  border-top: 1px solid #d0d0d0;
+  border-top: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
   margin-top: 2em;
 }
 
 form {
-  max-width: 500px;
-
   mat-form-field {
     display: block;
   }
@@ -55,12 +59,23 @@ form {
   }
 
   button {
-    margin-top: 0.25em;
-    height: 4.3em;
+    height: 3em;
+  }
+
+  mat-error {
+    margin-bottom: 1.6em;
   }
 }
 
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
 h1 {
+  margin-bottom: 0;
+
   & > mat-icon {
     display: inline;
     font-size: inherit;
@@ -68,10 +83,8 @@ h1 {
     margin-right: 0.5em;
   }
 
-  mat-chip {
+  app-approval-chip {
     margin-left: 0.75em;
-    min-height: 26px;
-    font-size: 12px;
     pointer-events: none;
   }
 

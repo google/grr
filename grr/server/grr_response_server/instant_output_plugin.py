@@ -10,6 +10,8 @@ from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import collection
 from grr_response_server import data_store
 from grr_response_server import export
+from grr_response_server import export_converters_registry
+from grr_response_server.export_converters import base
 
 
 class InstantOutputPlugin(metaclass=MetaclassRegistry):
@@ -127,7 +129,7 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
         metadata_to_fetch.remove(metadata.client_urn)
 
       for urn in metadata_to_fetch:
-        default_mdata = export.ExportedMetadata(source_urn=self.source_urn)
+        default_mdata = base.ExportedMetadata(source_urn=self.source_urn)
         result[urn] = default_mdata
         self._cached_metadata[urn] = default_mdata
 
@@ -135,7 +137,7 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
 
   def GetExportOptions(self):
     """Rerturns export options to be used by export converter."""
-    return export.ExportOptions()
+    return base.ExportOptions()
 
   def ProcessSingleTypeExportedValues(self, original_type, exported_values):
     """Processes exported values of the same type.
@@ -229,7 +231,8 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
         yield result
 
   def ProcessValues(self, value_type, values_generator_fn):
-    converter_classes = export.ExportConverter.GetConvertersByClass(value_type)
+    converter_classes = export_converters_registry.GetConvertersByClass(
+        value_type)
     if not converter_classes:
       return
     converters = [cls(self.GetExportOptions()) for cls in converter_classes]
@@ -251,7 +254,8 @@ class InstantOutputPluginWithExportConversion(InstantOutputPlugin):
         break
 
 
-def ApplyPluginToMultiTypeCollection(plugin, output_collection,
+def ApplyPluginToMultiTypeCollection(plugin,
+                                     output_collection,
                                      source_urn=None):
   """Applies instant output plugin to a multi-type collection.
 

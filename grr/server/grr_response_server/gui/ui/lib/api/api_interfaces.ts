@@ -340,6 +340,8 @@ export declare interface ApiGrrUserInterfaceTraits {
   startClientFlowNavItemEnabled?: boolean;
   manageClientFlowsNavItemEnabled?: boolean;
   modifyClientLabelsActionEnabled?: boolean;
+
+  huntApprovalRequired?: boolean;
 }
 
 /** ApiGrrUser proto mapping. */
@@ -420,7 +422,7 @@ export declare interface PathSpec {
 
 /** MultiGetFileFlowArgs proto mapping. */
 export declare interface MultiGetFileArgs {
-  readonly pathspecs: PathSpec[];
+  readonly pathspecs: ReadonlyArray<PathSpec>;
   readonly useExternalStores?: boolean;
   readonly fileSize?: DecimalString;
   readonly maximumPendingFiles?: DecimalString;
@@ -449,7 +451,7 @@ export declare interface MultiGetFileProgress {
   numCollected?: number;
   numFailed?: number;
 
-  pathspecsProgress: PathSpecProgress[];
+  pathspecsProgress: ReadonlyArray<PathSpecProgress>;
 }
 
 /** CollectBrowserHistoryResult.Browser proto enum mapping. */
@@ -620,7 +622,7 @@ export declare interface FileFinderAccessTimeCondition {
 /** FileFinderInodeChangeTimeCondition proto mapping. */
 export declare interface FileFinderInodeChangeTimeCondition {
   readonly minLastInodeChangeTime?: DecimalString;
-  readonly maxLastInodeChangeTIme?: DecimalString;
+  readonly maxLastInodeChangeTime?: DecimalString;
 }
 
 /** FileFinderSizeCondition proto mapping. */
@@ -635,6 +637,29 @@ export declare interface FileFinderExtFlagsCondition {
   readonly linuxBitsUnset?: number;
   readonly osxBitsSet?: number;
   readonly osxBitsUnset?: number;
+}
+
+/** FileFinderAction.Action proto mapping. */
+export enum FileFinderActionAction {
+  STAT = 'STAT',
+  HASH = 'HASH',
+  DOWNLOAD = 'DOWNLOAD',
+}
+
+
+/** FileFinderAction proto mapping. */
+export interface FileFinderAction {
+  readonly actionType?: FileFinderActionAction;
+  // Not implemented while unused in UIv2: hash, download, stat.
+}
+
+/** FileFinderArgs proto mapping. */
+export declare interface FileFinderArgs {
+  readonly paths?: ReadonlyArray<string>;
+  readonly pathtype?: PathSpecPathType;
+  readonly action?: FileFinderAction;
+  // Not implemented while unused in UIv2: process_non_regular_files,
+  // follow_links, conditions, xdev, implementation_type.
 }
 
 /** CollectMultipleFilesArgs proto mapping. */
@@ -717,6 +742,7 @@ export declare interface ApiUiConfig {
   readonly helpUrl?: string;
   readonly grrVersion?: string;
   readonly profileImageUrl?: string;
+  readonly defaultHuntRunnerArgs?: HuntRunnerArgs;
 }
 
 /** ApiListApproverSuggestionsResult proto mapping. */
@@ -1181,10 +1207,349 @@ export declare interface ApiGetVfsFileContentUpdateStateResult {
 export declare interface FlowResultCount {
   readonly type?: string;
   readonly tag?: string;
-  readonly count?: number;
+  readonly count?: DecimalString;
 }
 
 /** FlowResultMetadata proto mapping. */
 export declare interface FlowResultMetadata {
   readonly numResultsPerTypeTag?: ReadonlyArray<FlowResultCount>;
+  readonly isMetadataSet?: boolean;
+}
+
+/** ListDirectoryArgs proto mapping. */
+export declare interface ListDirectoryArgs {
+  readonly pathspec?: PathSpec;
+}
+
+/** RecursiveListDirectoryArgs proto mapping. */
+export declare interface RecursiveListDirectoryArgs {
+  readonly pathspec?: PathSpec;
+  readonly maxDepth?: DecimalString;
+}
+
+/** ApiListFilesArgs proto mapping. */
+export declare interface ApiListFilesArgs {
+  readonly clientId?: string;
+  readonly filePath?: string;
+  readonly offset?: DecimalString;
+  readonly count?: DecimalString;
+  readonly filter?: string;
+  readonly directoriesOnly?: boolean;
+  readonly timestamp?: DecimalString;
+}
+
+/** ApiListFilesResult proto mapping. */
+export declare interface ApiListFilesResult {
+  readonly items?: ReadonlyArray<ApiFile>;
+}
+
+/** ApiCreateVfsRefreshOperationArgs proto mapping. */
+export declare interface ApiCreateVfsRefreshOperationArgs {
+  readonly clientId?: string;
+  readonly filePath?: string;
+  readonly maxDepth?: DecimalString;
+  readonly notifyUser?: boolean;
+}
+
+/** ApiCreateVfsRefreshOperationResult proto mapping. */
+export declare interface ApiCreateVfsRefreshOperationResult {
+  readonly operationId?: string;
+}
+
+/** ApiGetVfsRefreshOperationStateArgs proto mapping. */
+export declare interface ApiGetVfsRefreshOperationStateArgs {
+  readonly clientId?: string;
+  readonly operationId?: string;
+}
+
+/** ApiGetVfsRefreshOperationStateResult.State proto mapping. */
+export enum ApiGetVfsRefreshOperationStateResultState {
+  RUNNING = 'RUNNING',
+  FINISHED = 'FINISHED',
+}
+
+/** ApiGetVfsRefreshOperationStateResult proto mapping. */
+export declare interface ApiGetVfsRefreshOperationStateResult {
+  readonly state?: ApiGetVfsRefreshOperationStateResultState;
+}
+
+/** ForemanClientRuleSetMatchMode proto mapping. */
+export enum ForemanClientRuleSetMatchMode {
+  MATCH_ALL = 'MATCH_ALL',
+  MATCH_ANY = 'MATCH_ANY',
+}
+
+/** ForemanClientRuleType proto mapping. */
+export enum ForemanClientRuleType {
+  OS = 'OS',
+  LABEL = 'LABEL',
+  REGEX = 'REGEX',
+  INTEGER = 'INTEGER',
+}
+
+/** ForemanLabelClientRuleMatchMode proto mapping. */
+export enum ForemanLabelClientRuleMatchMode {
+  MATCH_ALL = 'MATCH_ALL',
+  MATCH_ANY = 'MATCH_ANY',
+  DOES_NOT_MATCH_ALL = 'DOES_NOT_MATCH_ALL',
+  DOES_NOT_MATCH_ANY = 'DOES_NOT_MATCH_ANY',
+}
+
+/** ForemanRegexClientRuleForemanStringField proto mapping. */
+export enum ForemanRegexClientRuleForemanStringField {
+  UNSET = 'UNSET',
+  USERNAMES = 'USERNAMES',
+  UNAME = 'UNAME',
+  FQDN = 'FQDN',
+  HOST_IPS = 'HOST_IPS',
+  CLIENT_NAME = 'CLIENT_NAME',
+  CLIENT_DESCRIPTION = 'CLIENT_DESCRIPTION',
+  SYSTEM = 'SYSTEM',
+  MAC_ADDRESSES = 'MAC_ADDRESSES',
+  KERNEL_VERSION = 'KERNEL_VERSION',
+  OS_VERSION = 'OS_VERSION',
+  OS_RELEASE = 'OS_RELEASE',
+  CLIENT_LABELS = 'CLIENT_LABELS',
+}
+
+/** ForemanIntegerClientRuleOperator proto mapping. */
+export enum ForemanIntegerClientRuleOperator {
+  EQUAL = 'EQUAL',
+  LESS_THAN = 'LESS_THAN',
+  GREATER_THAN = 'GREATER_THAN',
+}
+
+/** ApiForemanIntegerClientRuleForemanIntegerField proto mapping. */
+export enum ForemanIntegerClientRuleForemanIntegerField {
+  UNSET = 'UNSET',
+  INSTALL_TIME = 'INSTALL_TIME',
+  CLIENT_VERSION = 'CLIENT_VERSION',
+  LAST_BOOT_TIME = 'LAST_BOOT_TIME',
+  CLIENT_CLOCK = 'CLIENT_CLOCK',
+}
+
+/** ForemanOsClientRule proto mapping. */
+export declare interface ForemanOsClientRule {
+  readonly osWindows?: boolean;
+  readonly osLinux?: boolean;
+  readonly osDarwin?: boolean;
+}
+
+/** ForemanLabelClientRule proto mapping. */
+export declare interface ForemanLabelClientRule {
+  readonly labelNames?: ReadonlyArray<string>;
+  readonly matchMode?: ForemanLabelClientRuleMatchMode;
+}
+
+/** ForemanRegexClientRule proto mapping. */
+export declare interface ForemanRegexClientRule {
+  readonly attributeRegex?: string;
+  readonly field?: ForemanRegexClientRuleForemanStringField;
+}
+
+/** ForemanIntegerClientRule proto mapping. */
+export declare interface ForemanIntegerClientRule {
+  readonly operator?: ForemanIntegerClientRuleOperator;
+  readonly value?: DecimalString;
+  readonly field?: ForemanIntegerClientRuleForemanIntegerField;
+}
+
+/** ForemanClientRule proto mapping. */
+export declare interface ForemanClientRule {
+  readonly ruleType?: ForemanClientRuleType;
+  readonly os?: ForemanOsClientRule;
+  readonly label?: ForemanLabelClientRule;
+  readonly regex?: ForemanRegexClientRule;
+  readonly integer?: ForemanIntegerClientRule;
+}
+
+/** ForemanClientRuleSet proto mapping. */
+export declare interface ForemanClientRuleSet {
+  readonly matchMode?: ForemanClientRuleSetMatchMode;
+  readonly rules?: ReadonlyArray<ForemanClientRule>;
+}
+
+/** HuntRunnerArgs proto mapping. */
+export declare interface HuntRunnerArgs {
+  readonly description?: string;
+  readonly clientRuleSet?: ForemanClientRuleSet;
+  readonly cpuLimit?: DecimalString;
+  readonly networkBytesLimit?: DecimalString;
+  readonly clientRate?: number;
+  readonly crashLimit?: DecimalString;
+  readonly avgResultsPerClientLimit?: DecimalString;
+  readonly avgCpuSecondsPerClientLimit?: DecimalString;
+  readonly avgNetworkBytesPerClientLimit?: DecimalString;
+  readonly expiryTime?: DecimalString;
+  readonly clientLimit?: DecimalString;
+}
+
+/** ApiFlowReference proto mapping. */
+export declare interface ApiFlowReference {
+  readonly clientId?: string;
+  readonly flowId?: string;
+}
+
+/** ApiCreateHuntArgs proto mapping. */
+export declare interface ApiCreateHuntArgs {
+  readonly flowName?: string;
+  readonly flowArgs?: AnyObject;
+  readonly huntRunnerArgs?: HuntRunnerArgs;
+  readonly originalFlow?: ApiFlowReference;
+}
+
+/**
+ * ApiHunt proto mapping. Only keeps huntId because other fields are not in use
+ * for UI.
+ */
+export declare interface ApiHunt {
+  readonly huntId?: string;
+}
+
+/** ApiHuntApproval proto mapping. */
+export declare interface ApiHuntApproval {
+  readonly subject?: ApiHunt;
+  readonly id?: string;
+  readonly requestor?: string;
+  readonly reason?: string;
+  readonly isValid?: boolean;
+  readonly isValidMessage?: string;
+  readonly notifiedUsers?: ReadonlyArray<string>;
+  readonly approvers?: ReadonlyArray<string>;
+  readonly emailCcAddresses?: ReadonlyArray<string>;
+  readonly copiedFromFlow?: ApiFlow;
+}
+
+/** ApiCreateHuntApprovalArgs proto mapping. */
+export declare interface ApiCreateHuntApprovalArgs {
+  readonly huntId?: string;
+  readonly approval?: ApiHuntApproval;
+}
+
+/**
+ * Interface for the `ReadLowLevelArgs` proto message.
+ */
+export declare interface ReadLowLevelArgs {
+  readonly path?: string;
+  readonly length?: DecimalString;
+  readonly offset?: DecimalString;
+  readonly blockSize?: DecimalString;
+}
+
+/**
+ * Interface for the `ReadLowLevelFlowResult` proto message.
+ */
+export declare interface ReadLowLevelFlowResult {
+  readonly path?: string;
+}
+
+/** ApiGrrBinary.Type proto mapping. */
+export enum ApiGrrBinaryType {
+  PYTHON_HACK = 'PYTHON_HACK',
+  EXECUTABLE = 'EXECUTABLE',
+  COMPONENT_DEPRECATED = 'COMPONENT_DEPRECATED',
+}
+
+/** ApiGrrBinary proto mapping. */
+export declare interface ApiGrrBinary {
+  readonly type?: ApiGrrBinaryType;
+  readonly path?: string;
+  readonly size?: DecimalString;
+  readonly timestamp?: DecimalString;
+  readonly hasValidSignature?: boolean;
+}
+
+/** ApiListGrrBinariesResult proto mapping. */
+export declare interface ApiListGrrBinariesResult {
+  readonly items?: ReadonlyArray<ApiGrrBinary>;
+}
+
+/** LaunchBinaryArgs proto mapping. */
+export declare interface LaunchBinaryArgs {
+  readonly binary?: string;
+  readonly commandLine?: string;
+}
+
+/** ExecutePythonHackArgs proto mapping. */
+export declare interface ExecutePythonHackArgs {
+  readonly hackName?: string;
+  readonly pyArgs?: Dict;
+}
+
+/** ExecutePythonHackResult proto mapping. */
+export declare interface ExecutePythonHackResult {
+  readonly resultString?: string;
+}
+
+/** ExecuteBinaryResponse proto mapping. */
+export declare interface ExecuteBinaryResponse {
+  readonly exitStatus?: number;
+  readonly stdout?: ByteString;
+  readonly stderr?: ByteString;
+  readonly timeUsed?: number;
+}
+
+/** CollectFilesByKnownPathArgs.CollectionLevel proto mapping. */
+export enum CollectFilesByKnownPathArgsCollectionLevel {
+  UNDEFINED = 'UNDEFINED',
+  STAT = 'STAT',
+  HASH = 'HASH',
+  CONTENT = 'CONTENT',
+}
+
+/** CollectFilesByKnownPathArgs proto mapping. */
+export declare interface CollectFilesByKnownPathArgs {
+  readonly paths?: ReadonlyArray<string>;
+  readonly collectionLevel?: CollectFilesByKnownPathArgsCollectionLevel;
+}
+
+/** CollectFilesByKnownPathResult.Status proto enum mapping. */
+export enum CollectFilesByKnownPathResultStatus {
+  UNDEFINED = 'UNDEFINED',
+  IN_PROGRESS = 'IN_PROGRESS',
+  COLLECTED = 'COLLECTED',
+  NOT_FOUND = 'NOT_FOUND',
+  FAILED = 'FAILED',
+}
+
+/** CollectFilesByKnownPathResult proto mapping. */
+export declare interface CollectFilesByKnownPathResult {
+  readonly stat: StatEntry;
+  readonly hash?: Hash;
+  readonly status: CollectFilesByKnownPathResultStatus;
+  readonly error?: string;
+}
+
+/** CollectFilesByKnownPathProgress proto mapping. */
+export declare interface CollectFilesByKnownPathProgress {
+  readonly numInProgress?: DecimalString;
+  readonly numRawFsAccessRetries?: DecimalString;
+  readonly numCollected?: DecimalString;
+  readonly numFailed?: DecimalString;
+}
+
+/** ApiListFlowsArgs proto mapping. */
+export declare interface ApiListFlowsArgs {
+  readonly clientId?: string;
+  readonly offset?: DecimalString;
+  readonly count?: DecimalString;
+  readonly topFlowsOnly?: boolean;
+  readonly minStartedAt?: DecimalString;
+  readonly maxStartedAt?: DecimalString;
+}
+
+/** FileFinderResult proto mapping. */
+export declare interface FileFinderResult {
+  readonly statEntry?: StatEntry;
+  readonly matches: ReadonlyArray<BufferReference>;
+  readonly hashEntry?: Hash;
+}
+
+/** BufferReference proto mapping. */
+export declare interface BufferReference {
+  readonly offset?: DecimalString;
+  readonly length?: DecimalString;
+  readonly callback?: string;
+  readonly data?: ByteString;
+  readonly pathspec?: PathSpec;
 }

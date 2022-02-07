@@ -16,7 +16,7 @@ WORK_DIR=/tmp/docker_work_dir
 mkdir "${WORK_DIR}"
 cd "${WORK_DIR}"
 
-mv -v $INITIAL_DIR/_artifacts/grr-server_*.tar.gz .
+mv -v "$INITIAL_DIR"/_artifacts/grr-server_*.tar.gz .
 
 tar xzf grr-server_*.tar.gz
 

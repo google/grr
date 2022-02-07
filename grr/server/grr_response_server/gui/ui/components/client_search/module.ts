@@ -1,8 +1,10 @@
 import {NgModule} from '@angular/core';
+import {MatChipsModule} from '@angular/material/chips';
 import {MatTableModule} from '@angular/material/table';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
+import {OnlineChipModule} from '../online_chip/module';
 import {TimestampModule} from '../timestamp/module';
 
 import {ClientSearch} from './client_search';
@@ -18,11 +20,13 @@ import {ClientSearchRoutingModule} from './routing';
     RouterModule,
 
     // Angular Material modules.
+    MatChipsModule,
     MatTableModule,
 
     // GRR modules.
     ClientSearchRoutingModule,
     TimestampModule,
+    OnlineChipModule,
 
   ],
   declarations: [

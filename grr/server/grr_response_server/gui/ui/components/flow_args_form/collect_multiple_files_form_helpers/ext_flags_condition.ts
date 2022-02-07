@@ -52,8 +52,8 @@ export class ExtFlagsCondition {
       this.OSX_FLAGS.map(flag => ({...flag, condition: MaskCondition.IGNORE}));
 
   private readonly os$ = this.clientPageGlobalStore.selectedClient$.pipe(
-      map(client => safeTranslateOperatingSystem(client.knowledgeBase.os)),
-      startWith(undefined),
+      map(client => safeTranslateOperatingSystem(client?.knowledgeBase.os)),
+      startWith(null),
       distinctUntilChanged(),
   );
 

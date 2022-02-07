@@ -1,5 +1,6 @@
-import {initTestEnvironment} from '@app/testing';
 import {firstValueFrom, Observable, of, ReplaySubject, Subject} from 'rxjs';
+
+import {initTestEnvironment} from '../testing';
 
 import {mockStore} from './store_test_util';
 

@@ -1,0 +1,17 @@
+<div>
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Absolute path</mat-label>
+    <input matInput placeholder="/some/path" [formControl]="controls.path" name="path" class="monospace" autocomplete="off" />
+  </mat-form-field>
+
+  <!-- TODO: Use bytes input for the size field. -->
+  <mat-form-field appearance="outline" class="w100">
+      <mat-label>Length</mat-label>
+      <input matInput placeholder="123 B" [formControl]="controls.length" name="length" class="monospace">
+  </mat-form-field>
+
+  <mat-form-field appearance="outline" class="w100">
+      <mat-label>Offset</mat-label>
+      <input matInput placeholder="123" [formControl]="controls.offset" name="offset" class="monospace">
+  </mat-form-field>
+</div>

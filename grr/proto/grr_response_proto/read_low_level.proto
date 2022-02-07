@@ -1,0 +1,71 @@
+syntax = "proto2";
+
+import "grr_response_proto/jobs.proto";
+import "grr_response_proto/semantic.proto";
+
+package grr;
+
+// Arguments for ReadLowLevel Flow.
+message ReadLowLevelArgs {
+  optional string path = 1 [(sem_type) = {
+    description: "Where to read the data from.",
+  }];
+
+  optional uint64 length = 2 [(sem_type) = {
+    description: "How many bytes to be read (data size).",
+    type: "ByteSize",
+  }];
+
+  optional uint64 offset = 3 [(sem_type) = {
+    description: "The offset from where to start reading the data.",
+  }];
+
+  optional uint64 sector_block_size = 4 [(sem_type) = {
+    description: "The device's sector block size. This is used for aligning "
+                 "sectors and reading the data. Defaults to 512 bytes.",
+  }];
+}
+
+message ReadLowLevelFlowResult {
+  optional string path = 1 [(sem_type) = {
+    description: "Path to the temporary file stored in data store.",
+  }];
+}
+
+// Arguments for ReadLowLevel ClientAction.
+message ReadLowLevelRequest {
+  optional string path = 1 [(sem_type) = {
+    description: "Where to read the data from.",
+  }];
+
+  optional uint64 length = 2 [(sem_type) = {
+    description: "How many bytes to be read (data size).",
+    type: "ByteSize",
+  }];
+
+  optional uint64 offset = 3 [(sem_type) = {
+    description: "The offset from where to start reading the data.",
+  }];
+
+  optional uint64 sector_block_size = 4 [(sem_type) = {
+    description: "The device's sector block size. This is used for aligning "
+                 "sectors and reading the data. Defaults to 512 bytes.",
+  }];
+
+  optional uint64 blob_size = 5 [(sem_type) = {
+    description: "The blob size. This is used for reading and uploading data"
+                 "to blobstore. Defaults to 4 MiB.",
+  }];
+}
+
+// Partial return for ReadLowLevel ClientAction.
+message ReadLowLevelResult {
+  optional BufferReference blob = 1 [(sem_type) = {
+    description: "A reference to the blob that was stored in blobstore.",
+  }];
+
+  optional bytes accumulated_hash = 2 [(sem_type) = {
+    type: "HashDigest",
+    description: "SHA256 binary hash digest. Represents all the blobs read so far."
+  }];
+}

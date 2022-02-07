@@ -3,7 +3,6 @@
 
 import logging
 
-
 from grr_response_core import config
 from grr_response_core.lib import config_lib
 
@@ -15,6 +14,7 @@ from grr_response_proto.api import config_pb2
 from grr_response_server import signed_binary_utils
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
+from grr_response_server.rdfvalues import hunts as rdf_hunts
 
 # TODO(user): sensitivity of config options and sections should
 # probably be defined together with the options themselves. Keeping
@@ -265,6 +265,9 @@ class ApiGetGrrBinaryBlobHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiUiConfig(rdf_structs.RDFProtoStruct):
   protobuf = config_pb2.ApiUiConfig
+  rdf_deps = [
+      rdf_hunts.HuntRunnerArgs,
+  ]
 
 
 class ApiGetUiConfigHandler(api_call_handler_base.ApiCallHandler):
@@ -281,4 +284,5 @@ class ApiGetUiConfigHandler(api_call_handler_base.ApiCallHandler):
         help_url=config.CONFIG["AdminUI.help_url"],
         grr_version=config.CONFIG["Source.version_string"],
         profile_image_url=config.CONFIG["AdminUI.profile_image_url"],
+        default_hunt_runner_args=rdf_hunts.HuntRunnerArgs(),
     )

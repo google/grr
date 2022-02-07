@@ -1,10 +1,11 @@
 import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {ConfigService} from '@app/components/config/config';
-import {ApiScheduledFlow} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ScheduledFlow} from '@app/lib/models/flow';
-import {initTestEnvironment} from '@app/testing';
 import {of, Subject} from 'rxjs';
+
+import {ConfigService} from '../components/config/config';
+import {ApiScheduledFlow} from '../lib/api/api_interfaces';
+import {HttpApiService} from '../lib/api/http_api_service';
+import {ScheduledFlow} from '../lib/models/flow';
+import {initTestEnvironment} from '../testing';
 
 import {ConfigGlobalStore} from './config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from './config_global_store_test_util';
@@ -37,6 +38,7 @@ describe('ScheduledFlowGlobalStore', () => {
             {provide: HttpApiService, useFactory: () => httpApiService},
             {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
 

@@ -48,6 +48,8 @@ class CommunicationTest(absltest.TestCase):
 
     server.Stop()
 
+  @unittest.skipIf(platform.system() == "Windows",
+                   "psutil is not used on Windows.")
   def testTotalServerCpuSysTime_usesPsutilProcess(self):
     _FakeCpuTimes = collections.namedtuple("FakeCpuTimes", ["user", "system"])
 
@@ -60,6 +62,32 @@ class CommunicationTest(absltest.TestCase):
         return _FakeCpuTimes(42.0, 43.0)
 
     with mock.patch.object(psutil, "Process", _FakeProcess):
+      init_cpu_time = communication.TotalServerCpuTime()
+      init_sys_time = communication.TotalServerSysTime()
+
+      with communication.SubprocessServer(_MakeArgs):
+        pass
+
+      self.assertAlmostEqual(communication.TotalServerCpuTime() - init_cpu_time,
+                             42.0)
+      self.assertAlmostEqual(communication.TotalServerSysTime() - init_sys_time,
+                             43.0)
+
+  @unittest.skipIf(platform.system() != "Windows", "Windows only test.")
+  def testTotalServerCpuSysTime_usesWin32Process(self):
+
+    def _MockGetProcessTimes(handle):
+      del handle  # Unused.
+      return {
+          "UserTime": 42 * 10 * 1000 * 1000,
+          "KernelTime": 43 * 10 * 1000 * 1000
+      }
+
+    # pytype: disable=import-error
+    import win32process  # pylint: disable=g-import-not-at-top
+    # pytype: enable=import-error
+    with mock.patch.object(win32process, "GetProcessTimes",
+                           _MockGetProcessTimes):
       init_cpu_time = communication.TotalServerCpuTime()
       init_sys_time = communication.TotalServerSysTime()
 

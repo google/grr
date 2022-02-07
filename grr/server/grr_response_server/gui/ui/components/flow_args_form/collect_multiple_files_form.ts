@@ -1,15 +1,15 @@
 import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
 import {AbstractControl, FormArray, FormControl, FormGroup, ValidationErrors} from '@angular/forms';
-import {ExtFlagsCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/ext_flags_condition';
-import {createLiteralMatchFormGroup} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
-import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
-import {createSizeFormGroup} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/size_condition';
-import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
-import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
-import {isNonNull} from '@app/lib/preconditions';
 import {filter, map, shareReplay} from 'rxjs/operators';
 
-import {CollectMultipleFilesArgs, FileFinderContentsLiteralMatchCondition, FileFinderSizeCondition} from '../../lib/api/api_interfaces';
+import {ExtFlagsCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/ext_flags_condition';
+import {createLiteralMatchFormGroup, formValuesToFileFinderContentsLiteralMatchCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
+import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
+import {createSizeFormGroup} from '../../components/flow_args_form/collect_multiple_files_form_helpers/size_condition';
+import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
+import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {CollectMultipleFilesArgs, FileFinderSizeCondition} from '../../lib/api/api_interfaces';
+import {isNonNull} from '../../lib/preconditions';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 
 
@@ -41,7 +41,8 @@ export class CollectMultipleFilesForm extends
   @Output()
   readonly formValues$ = this.form.valueChanges.pipe(
       filter(isNonNull),
-      map(v => {
+      // tslint:disable-next-line:no-any
+      map((v: Record<keyof CollectMultipleFilesArgs, any>) => {
         const allResults: CollectMultipleFilesArgs = {
           pathExpressions: v.pathExpressions,
           modificationTime: v.modificationTime &&
@@ -51,8 +52,9 @@ export class CollectMultipleFilesForm extends
               formValuesToFileFinderAccessTimeCondition(v.accessTime),
           inodeChangeTime: v.inodeChangeTime &&
               formValuesToFileFinderInodeChangeTimeCondition(v.inodeChangeTime),
-          contentsLiteralMatch: v.contentsLiteralMatch as
-              FileFinderContentsLiteralMatchCondition,
+          contentsLiteralMatch: v.contentsLiteralMatch &&
+              formValuesToFileFinderContentsLiteralMatchCondition(
+                                    v.contentsLiteralMatch),
           contentsRegexMatch: v.contentsRegexMatch &&
               formValuesToFileFinderContentsRegexMatchCondition(
                                   v.contentsRegexMatch),
@@ -73,9 +75,7 @@ export class CollectMultipleFilesForm extends
 
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
 
-  readonly clientId$ = this.clientPageGlobalStore.selectedClient$.pipe(
-      map(client => client?.clientId),
-  );
+  readonly client$ = this.clientPageGlobalStore.selectedClient$;
 
   constructor(
       private readonly clientPageGlobalStore: ClientPageGlobalStore,
@@ -92,7 +92,7 @@ export class CollectMultipleFilesForm extends
       this.addPathExpression();
     });
 
-    this.form.patchValue({pathExpressions});
+    this.form.patchValue(this.defaultFlowArgs);
   }
 
   get pathExpressions(): FormArray {

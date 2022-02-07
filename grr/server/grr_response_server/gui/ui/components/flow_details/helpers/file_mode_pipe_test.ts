@@ -1,7 +1,8 @@
 import {Component} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {initTestEnvironment} from '@app/testing';
+
+import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
 
@@ -26,7 +27,8 @@ describe('FileResultTable render()', () => {
             TestHostComponent,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

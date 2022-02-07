@@ -1,0 +1,34 @@
+<!-- TODO: Stop using formControlName here. -->
+<div [formGroup]="form">
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Binary</mat-label>
+    <input
+      #input
+      name="binary"
+      matInput
+      formControlName="binary"
+      [matAutocomplete]="auto"
+      placeholder=""
+    />
+    <mat-autocomplete
+      #auto="matAutocomplete"
+      (optionSelected)="selectBinary($event.option.value)"
+    >
+      <mat-option
+        *ngFor="let entry of filteredBinaries$ | async; trackBy: trackBinary"
+        [value]="entry.path"
+        class="artifact-option"
+      >
+        {{ entry.path }}
+      </mat-option>
+    </mat-autocomplete>
+    <mat-progress-spinner
+      *ngIf="(binaries$ | async) === null"
+      matSuffix
+      mode="indeterminate"
+      diameter="20"
+      strokeWidth="1"
+      matTooltip="Loading binary suggestions…"
+    ></mat-progress-spinner>
+  </mat-form-field>
+</div>

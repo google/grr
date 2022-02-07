@@ -1,6 +1,16 @@
-<div [formGroup]="form">
+<ng-container>
   <mat-form-field appearance="outline" class="w100">
-      <mat-label>Root directory</mat-label>
-      <input matInput placeholder="/" formControlName="root" class="monospace">
+    <mat-label>Root directory</mat-label>
+    <input
+      matInput
+      placeholder="/"
+      [formControl]="controls.root"
+      name="root"
+      class="monospace"
+      autocomplete="off"
+    />
+    <mat-hint>
+      <app-literal-path-glob-expression-warning [path]="form.value['root']"></app-literal-path-glob-expression-warning>
+    </mat-hint>
   </mat-form-field>
-</div>
+</ng-container>

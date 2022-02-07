@@ -342,7 +342,7 @@ class ThreadPool(object):
     # shutdown process will deadlock.
     stop_messages_needed = 0
     for worker in workers:
-      if worker.isAlive():
+      if worker.is_alive():
         stop_messages_needed += 1
 
     for _ in range(stop_messages_needed):
@@ -354,7 +354,7 @@ class ThreadPool(object):
     # Wait for the threads to all exit now.
     for worker in workers:
       worker.join(join_timeout)
-      if worker.isAlive():
+      if worker.is_alive():
         raise RuntimeError("Threadpool worker did not finish in time.")
 
   def AddTask(self,

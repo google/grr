@@ -10,7 +10,7 @@ export declare interface ClientPageGlobalStoreMock extends
 
 export function mockClientPageGlobalStore() {
   const mock = mockStore(ClientPageGlobalStore);
-  mock.mockedObservables.latestApproval$.next(undefined);
-  mock.mockedObservables.startFlowState$.next({state: 'request_not_sent'});
+  mock.mockedObservables.latestApproval$.next(null);
+  mock.mockedObservables.startFlowStatus$.next(null);
   return mock;
 }

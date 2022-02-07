@@ -1,6 +1,7 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
-import {FlowListItem} from '@app/components/flow_picker/flow_list_item';
 import {BehaviorSubject} from 'rxjs';
+
+import {FlowListItem} from '../../components/flow_picker/flow_list_item';
 
 /**
  * Component that displays available Flows.
@@ -12,26 +13,23 @@ import {BehaviorSubject} from 'rxjs';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlowChips {
-  private flowsInternal: ReadonlyArray<FlowListItem> = [];
-
   @Input()
-  set flows(value: ReadonlyArray<FlowListItem>) {
-    this.flowsInternal = value;
-    this.flows$.next(value);
+  set flows(value: ReadonlyArray<FlowListItem>|null) {
+    this.flows$.next(value ?? []);
   }
 
   get flows(): ReadonlyArray<FlowListItem> {
-    return this.flowsInternal;
+    return this.flows$.value;
   }
 
-  flows$ = new BehaviorSubject<ReadonlyArray<FlowListItem>>(this.flowsInternal);
+  readonly flows$ = new BehaviorSubject<ReadonlyArray<FlowListItem>>([]);
 
   /**
    * Event that is triggered when a flow is selected.
    */
   @Output() flowSelected = new EventEmitter<FlowListItem>();
 
-  trackByFlowName(fli: FlowListItem): string {
+  trackByFlowName(index: number, fli: FlowListItem): string {
     return fli.name;
   }
 }

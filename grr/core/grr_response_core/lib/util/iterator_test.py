@@ -4,6 +4,23 @@ from absl.testing import absltest
 from grr_response_core.lib.util import iterator
 
 
+class AssumeSingleTest(absltest.TestCase):
+
+  def testSingle(self):
+    items = iter([42])
+    self.assertEqual(iterator.AssumeSingle(items), 42)
+
+  def testEmpty(self):
+    items = iter([])
+    with self.assertRaises(iterator.NoYieldsError):
+      iterator.AssumeSingle(items)
+
+  def testMultiple(self):
+    items = iter(["foo", "bar"])
+    with self.assertRaises(iterator.TooManyYieldsError):
+      iterator.AssumeSingle(items)
+
+
 class CountedTest(absltest.TestCase):
 
   def testCountEmpty(self):

@@ -9,18 +9,50 @@
     <td mat-cell *matCellDef="let element">{{ element.fqdn || '-' }}</td>
   </ng-container>
 
+  <ng-container matColumnDef="users">
+    <th mat-header-cell *matHeaderCellDef>Users</th>
+    <td mat-cell *matCellDef="let element">
+      {{ element.users[0] }} {{ element.additionalUserCount ? ('+ ' +
+      element.additionalUserCount) : '' }}
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="labels">
+    <th mat-header-cell *matHeaderCellDef>Labels</th>
+    <td mat-cell *matCellDef="let element">
+      <mat-chip-list>
+        <mat-chip *ngFor="let label of element.labels">{{label}}</mat-chip>
+      </mat-chip-list>
+    </td>
+  </ng-container>
+
   <ng-container matColumnDef="lastSeenAt">
-    <th mat-header-cell *matHeaderCellDef>Last Seen At</th>
+    <th mat-header-cell *matHeaderCellDef>Last seen</th>
     <!-- TODO(user): implement a dedicated pipe or/and a component for
          dates rendering (with changeable timezone stored in the global
          store). -->
     <td mat-cell *matCellDef="let element">
-      <timestamp [date]="element.lastSeenAt"></timestamp>
+      <app-timestamp [date]="element.lastSeenAt"></app-timestamp>
+    </td>
+  </ng-container>
+
+  <ng-container matColumnDef="online">
+    <th mat-header-cell *matHeaderCellDef>Online</th>
+    <td mat-cell *matCellDef="let element">
+      <mat-chip-list>
+        <online-chip
+          *ngIf="element.lastSeenAt"
+          [lastSeen]="element.lastSeenAt"
+        ></online-chip>
+      </mat-chip-list>
     </td>
   </ng-container>
 
   <tr mat-header-row *matHeaderRowDef="columns"></tr>
-  <tr mat-row *matRowDef="let row; columns: columns"
-      [routerLink]="['/clients/', row.clientId]"
-      [queryParams]="reason$ | async"></tr>
+  <tr
+    mat-row
+    *matRowDef="let row; columns: columns"
+    [routerLink]="['/clients/', row.clientId]"
+    [queryParams]="reason$ | async"
+  ></tr>
 </table>

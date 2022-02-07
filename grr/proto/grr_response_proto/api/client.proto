@@ -1,6 +1,7 @@
 syntax = "proto2";
 
 import "google/protobuf/any.proto";
+import "grr_response_proto/api/search.proto";
 import "grr_response_proto/api/stats.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
@@ -98,6 +99,25 @@ message ApiSearchClientsArgs {
 
 message ApiSearchClientsResult {
   repeated ApiClient items = 1;
+}
+
+message ApiStructuredSearchClientsArgs {
+  optional SearchExpression expression = 1
+      [(sem_type) = { description: "Structured search expression" }];
+  optional SearchOrder search_order = 2
+      [(sem_type) = { description: "Structured search order" }];
+  optional bytes continuation_token = 3
+      [(sem_type) = { description: "Continuation token for pagination." }];
+  optional uint64 number_of_results = 4
+      [(sem_type) = { description: "Number of clients to fetch." }];
+}
+
+message ApiStructuredSearchClientsResult {
+  repeated ApiClient items = 1;
+  optional bytes continuation_token = 2;
+  optional uint64 estimated_count = 3 [(sem_type) = {
+    description: "Estimated number of found clients matching query."
+  }];
 }
 
 message ApiVerifyAccessArgs {

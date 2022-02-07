@@ -3,12 +3,12 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {MatMenuHarness} from '@angular/material/menu/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {initTestEnvironment} from '@app/testing';
 
 import {newScheduledFlow} from '../../lib/models/model_test_util';
 import {ScheduledFlowGlobalStore} from '../../store/scheduled_flow_global_store';
 import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
 import {UserGlobalStore} from '../../store/user_global_store';
+import {initTestEnvironment} from '../../testing';
 
 import {ScheduledFlowListModule} from './module';
 
@@ -29,7 +29,8 @@ describe('ScheduledFlowList Component', () => {
 
           providers: [
             ...STORE_PROVIDERS,
-          ]
+          ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
@@ -55,7 +56,9 @@ describe('ScheduledFlowList Component', () => {
     fixture.detectChanges();
 
     injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
-      name: 'testuser'
+      name: 'testuser',
+      canaryMode: false,
+      huntApprovalRequired: false,
     });
 
     const scheduledFlow = newScheduledFlow({creator: 'testuser'});
@@ -78,7 +81,9 @@ describe('ScheduledFlowList Component', () => {
     fixture.detectChanges();
 
     injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
-      name: 'testuser'
+      name: 'testuser',
+      canaryMode: false,
+      huntApprovalRequired: false,
     });
 
     const scheduledFlow = newScheduledFlow({creator: 'differentuser'});

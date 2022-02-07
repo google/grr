@@ -1264,7 +1264,9 @@
         "progress": {
           "@type": "type.googleapis.com/grr.DefaultFlowProgress"
         },
-        "resultMetadata": {},
+        "resultMetadata": {
+          "isMetadataSet": true
+        },
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "Interrogate",
@@ -1278,7 +1280,8 @@
               "key": "_result_metadata",
               "type": "FlowResultMetadata",
               "value": {
-                "@type": "type.googleapis.com/grr.FlowResultMetadata"
+                "@type": "type.googleapis.com/grr.FlowResultMetadata",
+                "isMetadataSet": true
               }
             },
             {
@@ -1332,7 +1335,9 @@
         "progress": {
           "@type": "type.googleapis.com/grr.DefaultFlowProgress"
         },
-        "resultMetadata": {},
+        "resultMetadata": {
+          "isMetadataSet": true
+        },
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "Interrogate",
@@ -1346,7 +1351,8 @@
               "key": "_result_metadata",
               "type": "FlowResultMetadata",
               "value": {
-                "@type": "type.googleapis.com/grr.FlowResultMetadata"
+                "@type": "type.googleapis.com/grr.FlowResultMetadata",
+                "isMetadataSet": true
               }
             },
             {
@@ -2608,6 +2614,7 @@
           "createCronJobActionEnabled": true,
           "createHuntActionEnabled": true,
           "cronJobsNavItemEnabled": true,
+          "huntApprovalRequired": false,
           "huntManagerNavItemEnabled": true,
           "manageBinariesNavItemEnabled": true,
           "manageClientFlowsNavItemEnabled": true,
@@ -2640,6 +2647,7 @@
           "createCronJobActionEnabled": true,
           "createHuntActionEnabled": true,
           "cronJobsNavItemEnabled": true,
+          "huntApprovalRequired": false,
           "huntManagerNavItemEnabled": true,
           "manageBinariesNavItemEnabled": true,
           "manageClientFlowsNavItemEnabled": true,
@@ -4260,7 +4268,9 @@
             "progress": {
               "@type": "type.googleapis.com/grr.DefaultFlowProgress"
             },
-            "resultMetadata": {},
+            "resultMetadata": {
+              "isMetadataSet": true
+            },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "ListProcesses",
@@ -4282,7 +4292,9 @@
             "progress": {
               "@type": "type.googleapis.com/grr.DefaultFlowProgress"
             },
-            "resultMetadata": {},
+            "resultMetadata": {
+              "isMetadataSet": true
+            },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "Interrogate",
@@ -4314,7 +4326,9 @@
             "progress": {
               "@type": "type.googleapis.com/grr.DefaultFlowProgress"
             },
-            "resultMetadata": {},
+            "resultMetadata": {
+              "isMetadataSet": true
+            },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "ListProcesses",
@@ -4346,7 +4360,9 @@
             "progress": {
               "@type": "type.googleapis.com/grr.DefaultFlowProgress"
             },
-            "resultMetadata": {},
+            "resultMetadata": {
+              "isMetadataSet": true
+            },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "Interrogate",

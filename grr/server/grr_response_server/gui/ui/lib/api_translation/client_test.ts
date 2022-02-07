@@ -1,6 +1,5 @@
-import {ApiClient} from '@app/lib/api/api_interfaces';
-import {Client} from '@app/lib/models/client';
-
+import {ApiClient} from '../../lib/api/api_interfaces';
+import {Client} from '../../lib/models/client';
 import {initTestEnvironment} from '../../testing';
 import {newClient} from '../models/model_test_util';
 
@@ -174,12 +173,7 @@ describe('Client API Translation', () => {
     const client: Client = newClient({
       clientId: 'C.1234',
       fleetspeakEnabled: false,
-      knowledgeBase: {
-        fqdn: undefined,
-        os: undefined,
-        osMajorVersion: undefined,
-        osMinorVersion: undefined,
-      },
+      knowledgeBase: {},
       agentInfo: {
         clientName: undefined,
         clientBinaryName: undefined,

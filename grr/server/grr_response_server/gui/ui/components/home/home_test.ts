@@ -3,11 +3,11 @@ import {Component} from '@angular/core';
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
-import {initTestEnvironment} from '@app/testing';
 
 import {newClientApproval} from '../../lib/models/model_test_util';
 import {HomePageGlobalStore} from '../../store/home_page_global_store';
 import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
+import {initTestEnvironment} from '../../testing';
 
 import {Home} from './home';
 import {HomeModule} from './module';
@@ -37,6 +37,7 @@ describe('Home Component', () => {
             ...STORE_PROVIDERS,
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

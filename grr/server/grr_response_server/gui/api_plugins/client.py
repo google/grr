@@ -12,6 +12,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
@@ -237,6 +238,41 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
 
     UpdateClientsFromFleetspeak(api_clients)
     return ApiSearchClientsResult(items=api_clients)
+
+
+class ApiStructuredSearchClientsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiStructuredSearchClientsArgs
+  rdf_deps = [rdf_search.SearchExpression, rdf_search.SearchOrder]
+
+
+class ApiStructuredSearchClientsResult(rdf_structs.RDFProtoStruct):
+  protobuf = client_pb2.ApiStructuredSearchClientsResult
+  rdf_deps = [
+      ApiClient,
+  ]
+
+
+class ApiStructuredSearchClientsHandler(api_call_handler_base.ApiCallHandler):
+  """Renders results of a client structured search."""
+
+  args_type = ApiStructuredSearchClientsArgs
+  result_type = ApiStructuredSearchClientsResult
+
+  def Handle(self, args, context=None):
+    # TODO: Implement this method.
+    raise NotImplementedError()
+
+
+class ApiLabelsRestrictedStructuredSearchClientsHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Renders results of a client structured search."""
+
+  args_type = ApiStructuredSearchClientsArgs
+  result_type = ApiStructuredSearchClientsResult
+
+  def Handle(self, args, context=None):
+    # TODO: Implement this method.
+    raise NotImplementedError()
 
 
 class ApiLabelsRestrictedSearchClientsHandler(

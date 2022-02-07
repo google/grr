@@ -7,6 +7,41 @@ from typing import TypeVar
 _T = TypeVar("_T")
 
 
+class NoYieldsError(ValueError):
+  """An error raised when assuming single item on empty iterators."""
+
+
+class TooManyYieldsError(ValueError):
+  """An error raised when assuming single item on multi-yield iterators."""
+
+
+def AssumeSingle(items: Iterator[_T]) -> _T:
+  """Retrieves a result from a single-yield iterator.
+
+  Args:
+    items: An iterator that is expected to yield a single value.
+
+  Returns:
+    The only value this iterator yields.
+
+  Raises:
+    NoYieldsError: If `iterator` yields no items (instead of one).
+    TooManyYieldsError: If `iterator` yields many items (instead of one).
+  """
+  try:
+    result = next(items)
+  except StopIteration:
+    raise NoYieldsError()
+
+  try:
+    next(items)
+    raise TooManyYieldsError()
+  except StopIteration:
+    pass
+
+  return result
+
+
 class Counted(Iterator[_T]):
   """An iterator wrapper that counts number of iterated items."""
 

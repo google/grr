@@ -41,7 +41,7 @@ export class ResultAccordion {
 
   @Input() status?: Status|null;
 
-  @Input() expandable: boolean = true;
+  @Input() expandable: boolean|null = true;
 
   isOpen: boolean = false;
 

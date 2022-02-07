@@ -68,28 +68,24 @@ def _GetOrderedEntries(data):
   Args:
     data: A raw data dictionary of `RDFProtoStruct`.
 
-  Yields:
+  Returns:
     Entries of the structured in a well-defined order.
   """
 
-  # The raw data dictionary has two kinds of keys: strings (which correspond to
-  # field name) or integers (if the name is unknown). In Python 3 it is not
-  # possible to compare integers and strings to each other, so we first tag each
-  # with either a 0 or 1 (so named fields are going to be serialized first) and
-  # let the lexicographical ordering of the tuples take care of the rest.
-  def Tag(field):
-    """Tags field name with a number to make comparison possible."""
+  # Sort struct entries by their field tag.
+  def Tag(entry):
+    _, wire_format, type_descriptor = entry
+    if type_descriptor is not None:
+      encoded_tag = type_descriptor.encoded_tag
+    elif wire_format is not None:
+      encoded_tag = wire_format[0]
+    else:
+      raise AssertionError("Each entry is expected to have "
+                           "either a type_descriptor or wire_format.")
 
-    if isinstance(field, str):
-      return 0, field
-    if isinstance(field, int):
-      return 1, field
+    return VarintReader(encoded_tag, 0)[0]
 
-    message = "Unexpected field '{}' of type '{}'".format(field, type(field))
-    raise TypeError(message)
-
-  for field in sorted(data.keys(), key=Tag):
-    yield data[field]
+  return sorted(data.values(), key=Tag)
 
 
 def _SerializeEntries(entries):

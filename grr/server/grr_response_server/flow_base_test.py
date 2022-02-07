@@ -104,7 +104,27 @@ class FlowBaseTest(absltest.TestCase):
 
     flow_obj = FlowBaseTest.Flow(flow)
     result_metadata = flow_obj.GetResultMetadata()
+
     self.assertIsInstance(result_metadata, rdf_flow_objects.FlowResultMetadata)
+    self.assertFalse(result_metadata.is_metadata_set)
+    self.assertEmpty(result_metadata.num_results_per_type_tag)
+
+  @db_test_lib.WithDatabase
+  def testReturnsEmptyResultMetadataWithFlagSetForPersistedEmptyFlow(
+      self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+
+    flow = rdf_flow_objects.Flow()
+    flow.client_id = client_id
+    flow.flow_id = self._FLOW_ID
+    db.WriteFlowObject(flow)
+
+    flow_obj = FlowBaseTest.Flow(flow)
+    flow_obj.PersistState()
+    result_metadata = flow_obj.GetResultMetadata()
+
+    self.assertIsInstance(result_metadata, rdf_flow_objects.FlowResultMetadata)
+    self.assertTrue(result_metadata.is_metadata_set)
     self.assertEmpty(result_metadata.num_results_per_type_tag)
 
   @db_test_lib.WithDatabase
@@ -129,6 +149,7 @@ class FlowBaseTest(absltest.TestCase):
     flow_obj_2 = FlowBaseTest.Flow(flow_2)
 
     result_metadata = flow_obj_2.GetResultMetadata()
+    self.assertTrue(result_metadata.is_metadata_set)
     self.assertLen(result_metadata.num_results_per_type_tag, 3)
 
     sorted_counts = sorted(
@@ -164,6 +185,7 @@ class FlowBaseTest(absltest.TestCase):
     result_metadata = flow_obj_2.GetResultMetadata()
 
     self.assertLen(result_metadata.num_results_per_type_tag, 1)
+    self.assertTrue(result_metadata.is_metadata_set)
     self.assertEqual(result_metadata.num_results_per_type_tag[0].type,
                      "ClientInformation")
     self.assertEqual(result_metadata.num_results_per_type_tag[0].tag, "")

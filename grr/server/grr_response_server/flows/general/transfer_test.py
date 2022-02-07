@@ -20,13 +20,13 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
 from grr_response_server import data_store
 from grr_response_server import file_store
+from grr_response_server import flow_base
 from grr_response_server.databases import db
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
-
 
 # pylint:mode=test
 
@@ -651,7 +651,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
     args = transfer.MultiGetFileArgs(pathspecs=[pathspec, pathspec])
     with test_lib.Instrument(transfer.MultiGetFile,
-                             "_StoreStat") as storestat_instrument:
+                             "_ReceiveFileStat") as receivestat_instrument:
       flow_test_lib.TestFlowHelper(
           transfer.MultiGetFile.__name__,
           client_mock,
@@ -661,7 +661,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
 
       # We should only have called StoreStat once because the two paths
       # requested were identical.
-      self.assertLen(storestat_instrument.args, 1)
+      self.assertLen(receivestat_instrument.args, 1)
 
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
@@ -1029,6 +1029,259 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
     self.assertNotEmpty(args[0][hash_id].blob_refs)
     for blob_ref in args[0][hash_id].blob_refs:
       self.assertIsInstance(blob_ref, rdf_objects.BlobReference)
+
+
+class DummyMultiGetFileLogic(transfer.MultiGetFileLogic, flow_base.FlowBase):
+  args_type = rdf_paths.PathSpec
+
+  def Start(self):
+    super().Start()
+    self.StartFileFetch(self.args)
+
+  def ReceiveFileStat(self, stat_entry, request_data=None):
+    pass
+
+  def ReceiveFileHash(self, stat_entry, file_hash, request_data=None):
+    pass
+
+  def ReceiveFetchedFile(self,
+                         stat_entry,
+                         file_hash,
+                         request_data=None,
+                         is_duplicate=False):
+    pass
+
+  def FileFetchFailed(self, pathspec, request_data=None, status=None):
+    pass
+
+
+class DummyMultiGetFileLogicStat(transfer.MultiGetFileLogic,
+                                 flow_base.FlowBase):
+  args_type = rdf_paths.PathSpec
+
+  def Start(self):
+    super().Start()
+    self.state.stop_at_stat = True
+    self.StartFileFetch(self.args)
+
+  def ReceiveFileStat(self, stat_entry, request_data=None):
+    pass
+
+  def ReceiveFileHash(self, stat_entry, file_hash, request_data=None):
+    pass
+
+  def ReceiveFetchedFile(self,
+                         stat_entry,
+                         file_hash,
+                         request_data=None,
+                         is_duplicate=False):
+    pass
+
+  def FileFetchFailed(self, pathspec, request_data=None, status=None):
+    pass
+
+
+class DummyMultiGetFileLogicHash(transfer.MultiGetFileLogic,
+                                 flow_base.FlowBase):
+  args_type = rdf_paths.PathSpec
+
+  def Start(self):
+    super().Start()
+    self.state.stop_at_hash = True
+    self.StartFileFetch(self.args)
+
+  def ReceiveFileStat(self, stat_entry, request_data=None):
+    del stat_entry, request_data  # Unused.
+
+  def ReceiveFileHash(self, stat_entry, file_hash, request_data=None):
+    del stat_entry, file_hash, request_data  # Unused.
+
+  def ReceiveFetchedFile(self,
+                         stat_entry,
+                         file_hash,
+                         request_data=None,
+                         is_duplicate=False):
+    del stat_entry, file_hash, request_data, is_duplicate  # Unused.
+
+  def FileFetchFailed(self, pathspec, request_data=None, status=None):
+    del pathspec, request_data, status  # Unused.
+
+
+class MultiGetFileLogicTest(flow_test_lib.FlowTestsBaseclass):
+  """Test the MultiGetFileLogicTest base class using DummyMultiGetFileLogic."""
+
+  def setUp(self):
+    super().setUp()
+    self.client_id = self.SetupClient(0)
+    self.client_mock = action_mocks.MultiGetFileClientMock()
+
+  def testStatCallsStatReceiveFileStatOnly(self):
+    pathtype = rdf_paths.PathSpec.PathType.OS
+    path = os.path.join(self.base_path, "test_img.dd")
+
+    with mock.patch.object(DummyMultiGetFileLogicStat,
+                           "ReceiveFetchedFileStat") as dummy_fetched_stat:
+      with mock.patch.object(DummyMultiGetFileLogicStat,
+                             "ReceiveFetchedFileHash") as dummy_fetched_hash:
+        with mock.patch.object(DummyMultiGetFileLogicStat,
+                               "ReceiveFetchedFile") as dummy_fetched_file:
+          with mock.patch.object(DummyMultiGetFileLogicStat,
+                                 "FileFetchFailed") as mock_failure:
+            flow_test_lib.TestFlowHelper(
+                DummyMultiGetFileLogicStat.__name__,
+                self.client_mock,
+                creator=self.test_username,
+                client_id=self.client_id,
+                pathtype=pathtype,
+                path=path)
+
+            self.assertTrue(dummy_fetched_stat.called)
+            self.assertEqual(dummy_fetched_stat.call_args[0][0].pathspec.path,
+                             path)
+            self.assertEqual(
+                dummy_fetched_stat.call_args[0][0].pathspec.pathtype, pathtype)
+            self.assertFalse(dummy_fetched_hash.called)
+            self.assertFalse(dummy_fetched_file.called)
+            self.assertFalse(mock_failure.called)
+
+  def testStatCallsFileFetchFailed(self):
+    pathtype = rdf_paths.PathSpec.PathType.OS
+    path = os.path.join(self.base_path, "invalid.dd")
+
+    with mock.patch.object(DummyMultiGetFileLogicStat,
+                           "ReceiveFetchedFileStat") as dummy_fetched_stat:
+      with mock.patch.object(DummyMultiGetFileLogicStat,
+                             "ReceiveFetchedFileHash") as dummy_fetched_hash:
+        with mock.patch.object(DummyMultiGetFileLogicStat,
+                               "ReceiveFetchedFile") as dummy_fetched_file:
+          with mock.patch.object(DummyMultiGetFileLogicStat,
+                                 "FileFetchFailed") as mock_failure:
+            flow_test_lib.TestFlowHelper(
+                DummyMultiGetFileLogicStat.__name__,
+                self.client_mock,
+                creator=self.test_username,
+                client_id=self.client_id,
+                pathtype=pathtype,
+                path=path)
+
+            self.assertFalse(dummy_fetched_stat.called)
+            self.assertFalse(dummy_fetched_hash.called)
+            self.assertFalse(dummy_fetched_file.called)
+            self.assertTrue(mock_failure.called)
+            self.assertEqual(mock_failure.call_args[0][0].path, path)
+            self.assertEqual(mock_failure.call_args[0][0].pathtype, pathtype)
+
+  def testHashCallsReceiveFileHash(self):
+    pathtype = rdf_paths.PathSpec.PathType.OS
+    path = os.path.join(self.base_path, "test_img.dd")
+
+    with mock.patch.object(DummyMultiGetFileLogicHash,
+                           "ReceiveFetchedFileStat") as dummy_fetched_stat:
+      with mock.patch.object(DummyMultiGetFileLogicHash,
+                             "ReceiveFetchedFileHash") as dummy_fetched_hash:
+        with mock.patch.object(DummyMultiGetFileLogicHash,
+                               "ReceiveFetchedFile") as dummy_fetched_file:
+          with mock.patch.object(DummyMultiGetFileLogicHash,
+                                 "FileFetchFailed") as mock_failure:
+            flow_test_lib.TestFlowHelper(
+                DummyMultiGetFileLogicHash.__name__,
+                self.client_mock,
+                creator=self.test_username,
+                client_id=self.client_id,
+                pathtype=pathtype,
+                path=path)
+
+            self.assertTrue(dummy_fetched_stat.called)
+            self.assertTrue(dummy_fetched_hash.called)
+            self.assertEqual(dummy_fetched_hash.call_args[0][0].pathspec.path,
+                             path)
+            self.assertEqual(
+                dummy_fetched_hash.call_args[0][0].pathspec.pathtype, pathtype)
+            self.assertFalse(dummy_fetched_file.called)
+            self.assertFalse(mock_failure.called)
+
+  def testHashCallsFileFetchFailed(self):
+    pathtype = rdf_paths.PathSpec.PathType.OS
+    path = os.path.join(self.base_path, "invalid.dd")
+
+    with mock.patch.object(DummyMultiGetFileLogicHash,
+                           "ReceiveFetchedFileStat") as dummy_fetched_stat:
+      with mock.patch.object(DummyMultiGetFileLogicHash,
+                             "ReceiveFetchedFileHash") as dummy_fetched_hash:
+        with mock.patch.object(DummyMultiGetFileLogicHash,
+                               "ReceiveFetchedFile") as dummy_fetched_file:
+          with mock.patch.object(DummyMultiGetFileLogicHash,
+                                 "FileFetchFailed") as mock_failure:
+            flow_test_lib.TestFlowHelper(
+                DummyMultiGetFileLogicHash.__name__,
+                self.client_mock,
+                creator=self.test_username,
+                client_id=self.client_id,
+                pathtype=pathtype,
+                path=path)
+
+            self.assertFalse(dummy_fetched_stat.called)
+            self.assertFalse(dummy_fetched_hash.called)
+            self.assertFalse(dummy_fetched_file.called)
+            self.assertTrue(mock_failure.called)
+            self.assertEqual(mock_failure.call_args[0][0].path, path)
+            self.assertEqual(mock_failure.call_args[0][0].pathtype, pathtype)
+
+  def testFileCallsReceiveFetchedFile(self):
+    pathtype = rdf_paths.PathSpec.PathType.OS
+    path = os.path.join(self.base_path, "test_img.dd")
+
+    with mock.patch.object(DummyMultiGetFileLogic,
+                           "ReceiveFetchedFileStat") as dummy_fetched_stat:
+      with mock.patch.object(DummyMultiGetFileLogic,
+                             "ReceiveFetchedFileHash") as dummy_fetched_hash:
+        with mock.patch.object(DummyMultiGetFileLogic,
+                               "ReceiveFetchedFile") as dummy_fetched_file:
+          with mock.patch.object(DummyMultiGetFileLogic,
+                                 "FileFetchFailed") as mock_failure:
+            flow_test_lib.TestFlowHelper(
+                DummyMultiGetFileLogic.__name__,
+                self.client_mock,
+                creator=self.test_username,
+                client_id=self.client_id,
+                pathtype=pathtype,
+                path=path)
+
+            self.assertTrue(dummy_fetched_stat.called)
+            self.assertTrue(dummy_fetched_hash.called)
+            self.assertTrue(dummy_fetched_file.called)
+            self.assertEqual(dummy_fetched_file.call_args[0][0].pathspec.path,
+                             path)
+            self.assertEqual(
+                dummy_fetched_file.call_args[0][0].pathspec.pathtype, pathtype)
+            self.assertFalse(mock_failure.called)
+
+  def testFileCallsFileFetchFailed(self):
+    pathtype = rdf_paths.PathSpec.PathType.OS
+    path = os.path.join(self.base_path, "invalid.dd")
+
+    with mock.patch.object(DummyMultiGetFileLogic,
+                           "ReceiveFetchedFileStat") as dummy_fetched_stat:
+      with mock.patch.object(DummyMultiGetFileLogic,
+                             "ReceiveFetchedFileHash") as dummy_fetched_hash:
+        with mock.patch.object(DummyMultiGetFileLogic,
+                               "ReceiveFetchedFile") as dummy_fetched_file:
+          with mock.patch.object(DummyMultiGetFileLogic,
+                                 "FileFetchFailed") as mock_failure:
+            flow_test_lib.TestFlowHelper(
+                DummyMultiGetFileLogic.__name__,
+                self.client_mock,
+                creator=self.test_username,
+                client_id=self.client_id,
+                pathtype=pathtype,
+                path=path)
+
+            self.assertFalse(dummy_fetched_stat.called)
+            self.assertFalse(dummy_fetched_hash.called)
+            self.assertFalse(dummy_fetched_file.called)
+            self.assertTrue(mock_failure.called)
+            self.assertEqual(mock_failure.call_args[0][0].path, path)
+            self.assertEqual(mock_failure.call_args[0][0].pathtype, pathtype)
 
 
 def main(argv):

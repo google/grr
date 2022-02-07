@@ -9,7 +9,6 @@ from absl.flags import argparse_flags
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_server import server_plugins
 # pylint: enable=g-bad-import-order,unused-import
 
 from grr_response_client_builder import repacking

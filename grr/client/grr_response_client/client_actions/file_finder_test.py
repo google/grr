@@ -166,6 +166,50 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
     self.assertIn("a/b/c/helloc.txt", relative_results)
     self.assertIn("a/b/d/hellod.txt", relative_results)
 
+  def testLinksAndContent(self):
+    try:
+      # This sets up a structure as follows:
+      # <file> tmp_dir/lnk_test/lnk_target/contents
+      # <dir>  tmp_dir/lnk_test/lnk_target
+      # <lnk>  tmp_dir/lnk_test/lnk
+
+      # lnk is a symbolic link to lnk_target (a directory).
+
+      test_dir = os.path.join(self.temp_dir, "lnk_test")
+      lnk = os.path.join(test_dir, "lnk")
+      lnk_target = os.path.join(test_dir, "lnk_target")
+      contents = os.path.join(lnk_target, "contents")
+
+      os.mkdir(test_dir)
+      os.mkdir(lnk_target)
+
+      os.symlink(lnk_target, lnk)
+
+      with io.open(contents, "wb") as fd:
+        fd.write(b"sometexttofind")
+
+      paths = [self.temp_dir + "/**"]
+      condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
+          literal=b"sometext")
+
+      results = self._RunFileFinder(
+          paths, self.stat_action, conditions=[condition], follow_links=True)
+      self.assertLen(results, 2)
+      relative_results = self._GetRelativeResults(results, base_path=test_dir)
+      self.assertIn("lnk_target/contents", relative_results)
+      self.assertIn("lnk/contents", relative_results)
+
+      # TODO: This fails currently.
+      # results = self._RunFileFinder(paths, self.stat_action,
+      #                               conditions=[condition],
+      #                               follow_links=False)
+
+    finally:
+      try:
+        shutil.rmtree(test_dir)
+      except OSError:
+        pass
+
   def testFollowLinks(self):
     try:
       # This sets up a structure as follows:

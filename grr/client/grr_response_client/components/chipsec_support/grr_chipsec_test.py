@@ -70,9 +70,7 @@ class GRRChipsecTest(client_test_lib.EmptyActionTest):
         "chipsec.hal": self.chipsec_mock.hal,
     }
 
-    chipsec_patch = mock.patch.dict(sys.modules, mock_modules)
-    chipsec_patch.start()
-    self.addCleanup(chipsec_patch.stop)
+    self.enter_context(mock.patch.dict(sys.modules, mock_modules))
 
     # Import the ClientAction to test with the Chipsec mock in place.
     # pylint: disable=g-import-not-at-top, unused-variable
@@ -90,8 +88,9 @@ class TestChipsecDumpFlashImage(vfs_test_lib.VfsTestCase, GRRChipsecTest):
 
   def setUp(self):
     super().setUp()
-    self.chipsec_mock.hal.spi = mock.MagicMock()
-    self.chipsec_mock.hal.spi.SPI = MockSPI
+    mock_spi = self.chipsec_mock.hal.spi.SPI.return_value
+    mock_spi.get_SPI_region.return_value = [0, 0xffff, 0]
+    mock_spi.read_spi.side_effect = lambda _, size: [0xff] * size
     self.grr_chipsec_module.spi = self.chipsec_mock.hal.spi
 
   def testDumpFlashImage(self):

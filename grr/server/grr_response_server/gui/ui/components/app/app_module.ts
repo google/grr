@@ -2,38 +2,45 @@ import {NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 import {MatSidenavModule} from '@angular/material/sidenav';
+import {MatTabsModule} from '@angular/material/tabs';
 import {MatToolbarModule} from '@angular/material/toolbar';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
-import {ClientPageModule} from '@app/components/client_page/module';
-import {ClientSearchModule} from '@app/components/client_search/module';
-import {HomeModule} from '@app/components/home/module';
-import {UserMenuModule} from '@app/components/user_menu/module';
-import {ApiModule} from '@app/lib/api/module';
 
+import {ClientPageModule} from '../../components/client_page/client_page_module';
+import {ClientSearchModule} from '../../components/client_search/module';
+import {HomeModule} from '../../components/home/module';
+import {HuntPageModule} from '../../components/hunt/hunt_page/module';
+import {NewHuntModule} from '../../components/hunt/new_hunt/module';
+import {UserMenuModule} from '../../components/user_menu/module';
+import {ApiModule} from '../../lib/api/module';
 import {ApprovalPageModule} from '../approval_page/approval_page_module';
 import {FileDetailsModule} from '../file_details/file_details_module';
 
 import {App} from './app';
+import {NotFoundPage} from './not_found_page';
 import {AppRoutingModule} from './routing';
 
 
 const ANGULAR_MATERIAL_MODULES = [
   MatButtonModule,
   MatIconModule,
+  MatSidenavModule,
+  MatTabsModule,
   MatToolbarModule,
   MatTooltipModule,
-  MatSidenavModule,
 ];
 
 const GRR_MODULES = [
   ApiModule,
+  ApprovalPageModule,
   ClientSearchModule,
   ClientPageModule,
   FileDetailsModule,
   HomeModule,
+  NewHuntModule,
   UserMenuModule,
-  ApprovalPageModule,
+  HuntPageModule,
 ];
 
 /**
@@ -42,6 +49,7 @@ const GRR_MODULES = [
 @NgModule({
   declarations: [
     App,
+    NotFoundPage,
   ],
   imports: [
     BrowserAnimationsModule,
@@ -52,7 +60,8 @@ const GRR_MODULES = [
     AppRoutingModule,
   ],
   providers: [],
-  bootstrap: [App]
+  bootstrap: [App],
+  exports: [NotFoundPage]
 })
 export class AppModule {
 }

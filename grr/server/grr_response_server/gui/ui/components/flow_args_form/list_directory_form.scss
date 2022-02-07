@@ -1,0 +1,14 @@
+.form-group {
+  display: flex;
+  flex-direction: column;
+  row-gap: 1rem;
+  padding-bottom: 1rem;
+}
+
+mat-radio-button {
+  padding-right: 16px;
+}
+
+.row {
+  width: 100%;
+}

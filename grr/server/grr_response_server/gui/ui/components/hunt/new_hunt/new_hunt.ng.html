@@ -1,0 +1,30 @@
+<div class="new-hunt-container">
+  <div class="config">
+    <title-editor (changed)="updateTitle($event)"
+                 #titleEditor
+                 class="title">
+      <h1 titleEditable>Create a fleet collection</h1>
+    </title-editor>
+    <flow-details *ngIf="flowWithDescriptor$ | async"
+      [flow]="(flowWithDescriptor$ | async)?.flow"
+      [flowDescriptor]="(flowWithDescriptor$ | async)?.descriptor"
+      [showCreateHunt]="false">
+    </flow-details>
+    <app-clients-form #clientsForm>
+    </app-clients-form>
+    <app-params-form #paramsForm>
+    </app-params-form>
+    <approval #approval
+              *ngIf="huntApprovalRequired$ | async"
+              [showSubmitButton]="false"
+              (approvalParams)="requestHuntApproval($event)">
+    </approval>
+    <button mat-flat-button
+            color="primary"
+            (click)="runHunt()"
+            id="runHunt"
+            aria-label="Start a fleet collection">
+      Run fleet collection
+    </button>
+  </div>
+</div>

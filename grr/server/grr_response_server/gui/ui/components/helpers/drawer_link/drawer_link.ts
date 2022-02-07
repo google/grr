@@ -17,7 +17,9 @@ export class DrawerLink implements OnChanges {
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.drawerLink?.length) {
-      this.routerLink.routerLink = [{outlets: {drawer: this.drawerLink}}];
+      // Outlet name 'drawer' needs to be a literal string to avoid
+      // uglification.
+      this.routerLink.routerLink = [{outlets: {'drawer': this.drawerLink}}];
     } else {
       this.routerLink.routerLink = [];
     }

@@ -65,8 +65,23 @@ const ClientWarningsController = class {
   onClientChange_(newValue) {
     this.warnings = [];
 
-    if (angular.isUndefined(newValue) ||
-        angular.isUndefined(newValue['value']['labels'])) {
+    if(angular.isUndefined(newValue)) {
+      return;
+    }
+
+    if (
+      !angular.isUndefined(newValue['value']['fleetspeak_enabled']) &&
+      newValue['value']['fleetspeak_enabled']['value'] === false
+    ) {
+      this.warnings.push(
+        '**Outdated:** ' +
+          'This client uses a deprecated communication protocol.\n\n' +
+          'Install a new GRR version that uses Fleetspeak to be able to ' +
+          'access this client in the future.'
+      );
+    }
+
+    if (angular.isUndefined(newValue['value']['labels'])) {
       return;
     }
 

@@ -44,6 +44,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def SearchClients(self, args, context=None):
     return api_client.ApiSearchClientsHandler()
 
+  def StructuredSearchClients(self, args, context=None):
+    return api_client.ApiStructuredSearchClientsHandler()
+
   def VerifyAccess(self, args, context=None):
     return api_client.ApiVerifyAccessHandler()
 
@@ -443,8 +446,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
     return api_user.ApiListAndResetUserNotificationsHandler()
 
   def GetGrrUser(self, args, context=None):
-    return api_user.ApiGetOwnGrrUserHandler(
-        interface_traits=api_user.ApiGrrUserInterfaceTraits().EnableAll())
+    interface_traits = api_user.ApiGrrUserInterfaceTraits().EnableAll()
+    interface_traits.hunt_approval_required = False
+    return api_user.ApiGetOwnGrrUserHandler(interface_traits=interface_traits)
 
   def UpdateGrrUser(self, args, context=None):
     return api_user.ApiUpdateGrrUserHandler()

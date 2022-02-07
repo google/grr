@@ -1,9 +1,22 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
 @use '../../../material-theme' as c;
 
 .mat-cell {
   border-color: mat.get-color-from-palette(c.$foreground, divider-light);
   color: mat.get-color-from-palette(c.$foreground, text-light);
+}
+
+.table-controls {
+  display: flex;
+  padding-left: 24px;
+}
+
+.filter-input {
+  flex: 1; // width fills out the space
+}
+
+.top-paginator {
+  margin-left: auto; // aligns to the right
 }
 
 table {
@@ -18,11 +31,16 @@ table {
     font-size: inherit;
   }
 
-  td.mat-cell {
-    vertical-align: top;
+  td.mat-cell, th.mat-header-cell {
+    padding: 0.5em 0.25em;
 
-    padding-top: 0.5em;
-    padding-bottom: 0.5em;
+    &:last-of-type {
+      padding-right: 24px;
+    }
+
+    &:first-of-type {
+      padding-left: 24px;
+    }
   }
 
   tr:last-child td.mat-cell {
@@ -41,15 +59,15 @@ table {
       line-height: 18px !important;
       height: 18px !important;
       width: 18px !important;
-
-      mat-icon {
-        font-size: 16px;
-      }
     }
 
     &:hover .copy-button {
       visibility: visible;
     }
+  }
+
+  td > mat-icon {
+    font-size: 16px;
   }
 
   .number {

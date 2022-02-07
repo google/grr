@@ -1,14 +1,14 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {FlowFileResult, flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
-import {CollectSingleFileArgs, CollectSingleFileProgress, CollectSingleFileProgressStatus, PathSpecPathType} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
 import {EMPTY, Observable, of} from 'rxjs';
 import {filter, map, mergeMap} from 'rxjs/operators';
 
+import {FlowFileResult, flowFileResultFromStatEntry} from '../../../components/flow_details/helpers/file_results_table';
+import {CollectSingleFileArgs, CollectSingleFileProgress, CollectSingleFileProgressStatus, PathSpecPathType} from '../../../lib/api/api_interfaces';
 import {translateHashToHex, translateStatEntry} from '../../../lib/api_translation/flow';
+import {Flow} from '../../../lib/models/flow';
 import {isNonNull} from '../../../lib/preconditions';
 
-import {Plugin} from './plugin';
+import {ExportMenuItem, Plugin} from './plugin';
 
 
 
@@ -22,10 +22,6 @@ import {Plugin} from './plugin';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CollectSingleFileDetails extends Plugin {
-  constructor(private readonly httpApiService: HttpApiService) {
-    super();
-  }
-
   pathSpecPathType = PathSpecPathType;
 
   progress$: Observable<CollectSingleFileProgress|undefined> = this.flow$.pipe(
@@ -64,12 +60,27 @@ export class CollectSingleFileDetails extends Plugin {
       map((flow) => flow.args as CollectSingleFileArgs),
   );
 
-  archiveUrl$: Observable<string> = this.flow$.pipe(map((flow) => {
-    return this.httpApiService.getFlowFilesArchiveUrl(
-        flow.clientId, flow.flowId);
-  }));
+  override getResultDescription(flow: Flow): string|undefined {
+    const progress = flow.progress as CollectSingleFileProgress | undefined;
 
-  archiveFileName$: Observable<string> = this.flow$.pipe(map((flow) => {
-    return flow.clientId.replace('.', '_') + '_' + flow.flowId + '.zip';
-  }));
+    if (progress?.status === CollectSingleFileProgressStatus.NOT_FOUND) {
+      return 'File not found';
+    } else if (progress?.status === CollectSingleFileProgressStatus.FAILED) {
+      return progress.errorDescription!;
+    }
+
+    return super.getResultDescription(flow);
+  }
+
+  override getExportMenuItems(flow: Flow): ReadonlyArray<ExportMenuItem> {
+    const downloadItem = this.getDownloadFilesExportMenuItem(flow);
+    const items = super.getExportMenuItems(flow);
+
+    if (items.find(item => item.url === downloadItem.url)) {
+      return items;
+    }
+
+    // If the menu does not yet contain "Download files", display it.
+    return [downloadItem, ...items];
+  }
 }

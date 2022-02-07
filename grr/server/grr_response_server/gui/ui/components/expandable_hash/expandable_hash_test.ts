@@ -4,10 +4,12 @@ import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatMenuHarness} from '@angular/material/menu/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ExpandableHashModule} from '@app/components/expandable_hash/module';
 
-import {initTestEnvironment} from '@app/testing';
+import {ExpandableHashModule} from '../../components/expandable_hash/module';
+
 import {HexHash} from '../../lib/models/flow';
+import {initTestEnvironment} from '../../testing';
+
 import {ExpandableHash} from './expandable_hash';
 
 
@@ -23,6 +25,7 @@ describe('ExpandableHash component', () => {
             NoopAnimationsModule,
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
@@ -33,10 +36,7 @@ describe('ExpandableHash component', () => {
     expandButton = this.rootFixture.debugElement.query(
         By.css('.button-expand-expandable-hash-class'));
     expandButtonText = this.expandButton?.nativeElement.innerText;
-
-    noHashesSpan = this.rootFixture.debugElement.query(
-        By.css('.no-hashes-expandable-hash-class'));
-    noHashesSpanText = this.noHashesSpan?.nativeElement.innerText;
+    text = this.rootFixture.nativeElement.textContent;
 
     // Load harnesses lazily to prevent errors due to not-yet existing elements.
     get menuHarness() {
@@ -58,29 +58,24 @@ describe('ExpandableHash component', () => {
     return new ExpandableHashDOM(fixture);
   }
 
-  it('should only display an en dash (–) if no hashes are available', () => {
+  it('should be empty if no hashes are available', () => {
     const noHashes = {};
-    const emDash = '–';
 
     const dom = initComponentWithHashes(noHashes);
 
     expect(dom.expandButton).toBeFalsy();
-
-    expect(dom.noHashesSpan).toBeTruthy();
-    expect(dom.noHashesSpanText).toBe(emDash);
+    expect(dom.text).toEqual('');
   });
 
-  it('should only display "Copy value" text if 1 hash is available', () => {
+  it('should show button with first hash name if a hash is available', () => {
     const oneHash = {
-      sha256: 'sha256',
+      sha256: 'testhash',
     };
 
     const dom = initComponentWithHashes(oneHash);
 
-    expect(dom.noHashesSpan).toBeFalsy();
-
     expect(dom.expandButton).toBeTruthy();
-    expect(dom.expandButtonText).toBe('Copy value');
+    expect(dom.expandButtonText).toBe('SHA-256');
   });
 
   it('should display all hashes and copy-all item if all are available',
@@ -91,6 +86,8 @@ describe('ExpandableHash component', () => {
          md5: 'md5value',
        };
        const dom = initComponentWithHashes(all3Hashes);
+
+       expect(dom.expandButtonText).toBe('SHA-256 + 2');
 
        const expandButton = await dom.expandButtonHarness;
        const expandedMenu = await dom.menuHarness;

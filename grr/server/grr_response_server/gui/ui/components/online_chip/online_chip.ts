@@ -1,7 +1,8 @@
 import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} from '@angular/core';
-import {DateTime, Duration} from '@app/lib/date_time';
 import {interval, merge, Subject} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
+
+import {DateTime, Duration} from '../../lib/date_time';
 
 /**
  * Component displaying the status of a Client in a material chip.

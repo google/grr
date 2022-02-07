@@ -1,25 +1,26 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateArtifactDescriptor} from '@app/lib/api_translation/artifact';
-import {translateFlowDescriptor} from '@app/lib/api_translation/flow';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, switchMapTo, tap} from 'rxjs/operators';
 
 import {ApiUiConfig} from '../lib/api/api_interfaces';
+import {HttpApiService} from '../lib/api/http_api_service';
+import {translateArtifactDescriptor} from '../lib/api_translation/artifact';
 import {getApiClientLabelName} from '../lib/api_translation/client';
+import {safeTranslateBinary, translateFlowDescriptor} from '../lib/api_translation/flow';
 import {cacheLatest} from '../lib/cache';
 import {ApprovalConfig} from '../lib/models/client';
-import {ArtifactDescriptor, ArtifactDescriptorMap, FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
+import {ArtifactDescriptor, ArtifactDescriptorMap, Binary, FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
 import {isNonNull} from '../lib/preconditions';
 
 /** The state of the Config. */
 export interface ConfigState {
-  flowDescriptors?: FlowDescriptorMap;
-  artifactDescriptors?: ArtifactDescriptorMap;
-  approvalConfig?: ApprovalConfig;
-  uiConfig?: ApiUiConfig;
-  clientsLabels?: ReadonlyArray<string>;
+  readonly flowDescriptors?: FlowDescriptorMap;
+  readonly artifactDescriptors?: ArtifactDescriptorMap;
+  readonly approvalConfig?: ApprovalConfig;
+  readonly uiConfig?: ApiUiConfig;
+  readonly clientsLabels?: ReadonlyArray<string>;
+  readonly binaries?: ReadonlyArray<Binary>;
 }
 
 /** ComponentStore implementation for the config store. */
@@ -43,7 +44,6 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
           artifactDescriptors: new Map(descriptors.map(ad => [ad.name, ad])),
         };
       });
-
 
   private readonly updateApprovalConfig =
       this.updater<ApprovalConfig>((state, approvalConfig) => {
@@ -73,6 +73,16 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
                   apiDescriptors.map(translateArtifactDescriptor)),
           tap(descriptors => {
             this.updateArtifactDescriptors(descriptors);
+          }),
+          ));
+
+  private readonly listBinaries = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMap(() => this.httpApiService.listBinaries()),
+          map(res =>
+                  (res.items ?? []).map(safeTranslateBinary).filter(isNonNull)),
+          tap(binaries => {
+            this.patchState({binaries});
           }),
           ));
 
@@ -164,6 +174,16 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
       filter(isNonNull),
       shareReplay(1),  // Ensure that the query is done just once.
   );
+
+  readonly binaries$ = of(undefined).pipe(
+      // Ensure that the query is done on subscription.
+      tap(() => {
+        this.listBinaries();
+      }),
+      switchMap(() => this.select(state => state.binaries)),
+      filter(isNonNull),
+      shareReplay(1),  // Ensure that the query is done just once.
+  );
 }
 
 
@@ -192,4 +212,6 @@ export class ConfigGlobalStore {
 
   readonly artifactDescriptors$: Observable<ArtifactDescriptorMap> =
       this.store.artifactDescriptors$;
+
+  readonly binaries$: Observable<ReadonlyArray<Binary>> = this.store.binaries$;
 }

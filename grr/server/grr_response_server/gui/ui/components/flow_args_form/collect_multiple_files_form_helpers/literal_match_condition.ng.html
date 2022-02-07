@@ -1,3 +1,4 @@
+<!-- TODO: Stop using formControlName here. -->
 <condition-panel
   title="Literal match"
   [formGroup]="formGroup"
@@ -5,8 +6,11 @@
 
   <mat-form-field appearance="outline">
     <mat-label>Literal</mat-label>
-    <input matInput formControlName="literal" class="monospace">
-    <mat-error *ngIf="formGroup.controls.literal.hasError('required')">Literal expression is required</mat-error>
+    <input matInput formControlName="literal" class="monospace" autocomplete="off">
+    <!-- TODO: The new compiler flag forbids using a.foo style for
+      this property.  TS4111:
+      Property '%s' comes from an index signature, so it must be accessed with ['%s']. -->
+    <mat-error *ngIf="$any(formGroup.controls).literal.hasError('required')">Literal expression is required</mat-error>
   </mat-form-field>
 
   <mat-form-field appearance="outline">

@@ -6,13 +6,12 @@ import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {FlowArgsFormModule} from '@app/components/flow_args_form/module';
-import {ApiModule} from '@app/lib/api/module';
-import {initTestEnvironment} from '@app/testing';
 import {firstValueFrom, ReplaySubject, Subject} from 'rxjs';
 
-import {ArtifactCollectorFlowArgs, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, GlobComponentExplanation, PipeEndFilter, PipeTypeFilter} from '../../lib/api/api_interfaces';
-import {FlowDescriptor, OperatingSystem, SourceType} from '../../lib/models/flow';
+import {FlowArgsFormModule} from '../../components/flow_args_form/module';
+import {ArtifactCollectorFlowArgs, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectFilesByKnownPathArgsCollectionLevel, ExecutePythonHackArgs, GlobComponentExplanation, LaunchBinaryArgs, PipeEndFilter, PipeTypeFilter, TimelineArgs} from '../../lib/api/api_interfaces';
+import {ApiModule} from '../../lib/api/module';
+import {BinaryType, FlowDescriptor, OperatingSystem, SourceType} from '../../lib/models/flow';
 import {newArtifactDescriptorMap, newClient} from '../../lib/models/model_test_util';
 import {ExplainGlobExpressionService} from '../../lib/service/explain_glob_expression_service/explain_glob_expression_service';
 import {deepFreeze} from '../../lib/type_utils';
@@ -20,6 +19,7 @@ import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
+import {initTestEnvironment} from '../../testing';
 
 import {FlowArgsForm} from './flow_args_form';
 
@@ -43,6 +43,15 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
       browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
     },
   },
+  CollectFilesByKnownPath: {
+    name: 'CollectFilesByKnownPath',
+    friendlyName: 'Collect Files based on their absolute path',
+    category: 'Filesystem',
+    defaultArgs: {
+      collectionLevel: CollectFilesByKnownPathArgsCollectionLevel.CONTENT,
+      paths: [],
+    },
+  },
   CollectSingleFile: {
     name: 'CollectSingleFile',
     friendlyName: 'Collect Single File',
@@ -58,6 +67,14 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     category: 'Filesystem',
     defaultArgs: {
       pathExpressions: [],
+    },
+  },
+  ListDirectory: {
+    name: 'ListDirectory',
+    friendlyName: 'List Directory',
+    category: 'Filesystem',
+    defaultArgs: {
+      pathSpec: {},
     },
   },
   ListNamedPipes: {
@@ -90,14 +107,34 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
       listeningOnly: false,
     },
   },
+  ReadLowLevel: {
+    name: 'ReadLowLevel',
+    friendlyName: 'Read device low level',
+    category: 'Filesystem',
+    defaultArgs: {},
+  },
   TimelineFlow: {
     name: 'TimelineFlow',
     friendlyName: 'Collect path timeline',
     category: 'Filesystem',
+    defaultArgs: {},
+  },
+  ExecutePythonHack: {
+    name: 'ExecutePythonHack',
+    friendlyName: 'Execute Python Hack',
+    category: 'Administrative',
     defaultArgs: {
-      root: '/',
+      hackName: '',
     },
-  }
+  },
+  LaunchBinary: {
+    name: 'LaunchBinary',
+    friendlyName: 'Launch Binary',
+    category: 'Administrative',
+    defaultArgs: {
+      binary: '',
+    },
+  },
 });
 
 
@@ -125,6 +162,7 @@ function setUp() {
         providers: [
           ...STORE_PROVIDERS,
         ],
+        teardown: {destroyAfterEach: false}
       })
       .compileComponents();
 }
@@ -319,6 +357,7 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
               useFactory: () => clientPageGlobalStore
             },
           ],
+          teardown: {destroyAfterEach: false}
         })
         // Override ALL providers, because each path expression input provides
         // its own ExplainGlobExpressionService. The above way only overrides
@@ -479,7 +518,6 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
   });
 });
 
-
 describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
   beforeEach(() => {
     TestBed
@@ -496,6 +534,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
           providers: [
             ...STORE_PROVIDERS,
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   });
@@ -715,9 +754,8 @@ describe(`FlowArgForm ListProcesses`, () => {
         TEST_FLOW_DESCRIPTORS.ListProcesses;
     fixture.detectChanges();
 
-    await setInputValue(
-        fixture, 'input[formControlName="filenameRegex"]', '/foo/');
-    await setInputValue(fixture, 'input[formControlName="pids"]', '123, 456');
+    await setInputValue(fixture, 'input[name=filenameRegex]', '/foo/');
+    await setInputValue(fixture, 'input[name=pids]', '123, 456');
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
@@ -746,8 +784,7 @@ describe(`FlowArgForm ListProcesses`, () => {
         TEST_FLOW_DESCRIPTORS.ListProcesses;
     fixture.detectChanges();
 
-    await setInputValue(
-        fixture, 'input[formControlName="pids"]', '12notnumeric3');
+    await setInputValue(fixture, 'input[name=pids]', '12notnumeric3');
 
     const valid =
         await firstValueFrom(fixture.componentInstance.flowArgsForm.valid$);
@@ -762,3 +799,359 @@ async function setInputValue(
       await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
   await inputHarness.setValue(value);
 }
+
+describe(`FlowArgForm ExecutePythonHackForm`, () => {
+  beforeEach(() => {
+    TestBed
+        .configureTestingModule({
+          imports: [
+            NoopAnimationsModule,
+            ApiModule,
+            FlowArgsFormModule,
+          ],
+          declarations: [
+            TestHostComponent,
+          ],
+
+          providers: [
+            ...STORE_PROVIDERS,
+          ],
+          teardown: {destroyAfterEach: false}
+        })
+        .compileComponents();
+  });
+
+  function prepareFixture() {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.flowDescriptor =
+        TEST_FLOW_DESCRIPTORS.ExecutePythonHack;
+    fixture.detectChanges();
+
+    return {fixture};
+  }
+
+  it('shows initial python hack suggestions', fakeAsync(async () => {
+       const {fixture} = prepareFixture();
+
+       injectMockStore(ConfigGlobalStore).mockedObservables.binaries$.next([
+         {
+           type: BinaryType.PYTHON_HACK,
+           path: 'windows/hello.py',
+           size: BigInt(1),
+           timestamp: new Date(1),
+         },
+         {
+           type: BinaryType.PYTHON_HACK,
+           path: 'linux/foo.py',
+           size: BigInt(1),
+           timestamp: new Date(1),
+         },
+         {
+           type: BinaryType.EXECUTABLE,
+           path: 'windows/executable.exe',
+           size: BigInt(1),
+           timestamp: new Date(1),
+         },
+       ]);
+
+       fixture.detectChanges();
+       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+       const autocompleteHarness =
+           await harnessLoader.getHarness(MatAutocompleteHarness);
+
+       await autocompleteHarness.focus();
+
+       const options = await autocompleteHarness.getOptions();
+       expect(options.length).toEqual(2);
+
+       const texts = await Promise.all(options.map(o => o.getText()));
+       expect(texts[0]).toEqual('linux/foo.py');
+       expect(texts[1]).toEqual('windows/hello.py');
+     }));
+
+
+  it('filters suggestions based on user input', async () => {
+    const {fixture} = prepareFixture();
+
+    injectMockStore(ConfigGlobalStore).mockedObservables.binaries$.next([
+      {
+        type: BinaryType.PYTHON_HACK,
+        path: 'windows/hello.py',
+        size: BigInt(1),
+        timestamp: new Date(1),
+      },
+      {
+        type: BinaryType.PYTHON_HACK,
+        path: 'linux/foo.py',
+        size: BigInt(1),
+        timestamp: new Date(1),
+      },
+    ]);
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const autocompleteHarness =
+        await harnessLoader.getHarness(MatAutocompleteHarness);
+
+    await autocompleteHarness.enterText('fo');
+
+    fixture.detectChanges();
+
+    const options = await autocompleteHarness.getOptions();
+    expect(options.length).toEqual(1);
+
+    const texts = await Promise.all(options.map(o => o.getText()));
+    expect(texts[0]).toEqual('linux/foo.py');
+  });
+
+  it('configures flow args with selected artifact suggestion', async () => {
+    const {fixture} = prepareFixture();
+
+    injectMockStore(ConfigGlobalStore).mockedObservables.binaries$.next([
+      {
+        type: BinaryType.PYTHON_HACK,
+        path: 'windows/hello.py',
+        size: BigInt(1),
+        timestamp: new Date(1),
+      },
+      {
+        type: BinaryType.PYTHON_HACK,
+        path: 'linux/foo.py',
+        size: BigInt(1),
+        timestamp: new Date(1),
+      },
+    ]);
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const autocompleteHarness =
+        await harnessLoader.getHarness(MatAutocompleteHarness);
+
+    await autocompleteHarness.selectOption({text: /foo/});
+
+    const flowArgValues =
+        await firstValueFrom(
+            fixture.componentInstance.flowArgsForm.flowArgValues$) as
+        ExecutePythonHackArgs;
+    expect(flowArgValues.hackName).toEqual('linux/foo.py');
+  });
+});
+
+describe(`FlowArgForm LaunchBinary`, () => {
+  beforeEach(() => {
+    TestBed
+        .configureTestingModule({
+          imports: [
+            NoopAnimationsModule,
+            ApiModule,
+            FlowArgsFormModule,
+          ],
+          declarations: [
+            TestHostComponent,
+          ],
+
+          providers: [
+            ...STORE_PROVIDERS,
+          ],
+          teardown: {destroyAfterEach: false}
+        })
+        .compileComponents();
+  });
+
+  function prepareFixture() {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.flowDescriptor =
+        TEST_FLOW_DESCRIPTORS.LaunchBinary;
+    fixture.detectChanges();
+
+    return {fixture};
+  }
+
+  it('shows initial suggestions', fakeAsync(async () => {
+       const {fixture} = prepareFixture();
+
+       injectMockStore(ConfigGlobalStore).mockedObservables.binaries$.next([
+         {
+           type: BinaryType.EXECUTABLE,
+           path: 'windows/hello.exe',
+           size: BigInt(1),
+           timestamp: new Date(1),
+         },
+         {
+           type: BinaryType.EXECUTABLE,
+           path: 'linux/foo.sh',
+           size: BigInt(1),
+           timestamp: new Date(1),
+         },
+         {
+           type: BinaryType.PYTHON_HACK,
+           path: 'windows/py.py',
+           size: BigInt(1),
+           timestamp: new Date(1),
+         },
+       ]);
+
+       fixture.detectChanges();
+       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+       const autocompleteHarness =
+           await harnessLoader.getHarness(MatAutocompleteHarness);
+
+       await autocompleteHarness.focus();
+
+       const options = await autocompleteHarness.getOptions();
+       expect(options.length).toEqual(2);
+
+       const texts = await Promise.all(options.map(o => o.getText()));
+       expect(texts[0]).toContain('linux/foo.sh');
+       expect(texts[1]).toContain('windows/hello.exe');
+     }));
+
+
+  it('filters suggestions based on user input', async () => {
+    const {fixture} = prepareFixture();
+
+    injectMockStore(ConfigGlobalStore).mockedObservables.binaries$.next([
+      {
+        type: BinaryType.EXECUTABLE,
+        path: 'windows/hello.exe',
+        size: BigInt(1),
+        timestamp: new Date(1),
+      },
+      {
+        type: BinaryType.EXECUTABLE,
+        path: 'linux/foo.sh',
+        size: BigInt(1),
+        timestamp: new Date(1),
+      },
+    ]);
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const autocompleteHarness =
+        await harnessLoader.getHarness(MatAutocompleteHarness);
+
+    await autocompleteHarness.enterText('fo');
+
+    fixture.detectChanges();
+
+    const options = await autocompleteHarness.getOptions();
+    expect(options.length).toEqual(1);
+
+    const texts = await Promise.all(options.map(o => o.getText()));
+    expect(texts[0]).toContain('linux/foo.sh');
+  });
+
+  it('configures flow args with selected suggestion and required aff4 prefix',
+     async () => {
+       const {fixture} = prepareFixture();
+
+       injectMockStore(ConfigGlobalStore).mockedObservables.binaries$.next([
+         {
+           type: BinaryType.EXECUTABLE,
+           path: 'windows/hello.exe',
+           size: BigInt(1),
+           timestamp: new Date(1),
+         },
+         {
+           type: BinaryType.EXECUTABLE,
+           path: 'linux/foo.sh',
+           size: BigInt(1),
+           timestamp: new Date(1),
+         },
+       ]);
+
+       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+       const autocompleteHarness =
+           await harnessLoader.getHarness(MatAutocompleteHarness);
+
+       await autocompleteHarness.selectOption({text: /foo/});
+
+       const flowArgValues =
+           await firstValueFrom(
+               fixture.componentInstance.flowArgsForm.flowArgValues$) as
+           LaunchBinaryArgs;
+       expect(flowArgValues.binary)
+           .toEqual('aff4:/config/executables/linux/foo.sh');
+     });
+});
+
+
+describe(`FlowArgForm TimelineFlow`, () => {
+  beforeEach(() => {
+    TestBed
+        .configureTestingModule({
+          imports: [
+            NoopAnimationsModule,
+            ApiModule,
+            FlowArgsFormModule,
+          ],
+          declarations: [
+            TestHostComponent,
+          ],
+
+          providers: [
+            ...STORE_PROVIDERS,
+          ],
+          teardown: {destroyAfterEach: false}
+        })
+        .compileComponents();
+  });
+
+  function prepareFixture() {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.flowDescriptor =
+        TEST_FLOW_DESCRIPTORS.TimelineFlow;
+    fixture.detectChanges();
+
+    return {fixture};
+  }
+
+  it('converts entered data to base64-bytes', fakeAsync(async () => {
+       const {fixture} = prepareFixture();
+
+       await setInputValue(fixture, 'input[name=root]', '/foo/bar');
+
+       const flowArgValues =
+           await firstValueFrom(
+               fixture.componentInstance.flowArgsForm.flowArgValues$) as
+           TimelineArgs;
+       expect(flowArgValues.root).toEqual('L2Zvby9iYXI=');
+     }));
+
+  it('decodes provided path with base64', fakeAsync(async () => {
+       const fixture = TestBed.createComponent(TestHostComponent);
+       fixture.componentInstance.flowDescriptor = {
+         ...TEST_FLOW_DESCRIPTORS.TimelineFlow,
+         defaultArgs: {root: 'L2Zvby9iYXI='}
+       };
+       fixture.detectChanges();
+
+       expect(fixture.debugElement.query(By.css('input[name=root]'))
+                  .nativeElement.value)
+           .toEqual('/foo/bar');
+
+       const flowArgValues =
+           await firstValueFrom(
+               fixture.componentInstance.flowArgsForm.flowArgValues$) as
+           TimelineArgs;
+       expect(flowArgValues.root).toEqual('L2Zvby9iYXI=');
+     }));
+
+  it('emits the empty string for empty root path', fakeAsync(async () => {
+       const fixture = TestBed.createComponent(TestHostComponent);
+       fixture.componentInstance.flowDescriptor = {
+         ...TEST_FLOW_DESCRIPTORS.TimelineFlow,
+         defaultArgs: {root: ''}
+       };
+       fixture.detectChanges();
+
+       const flowArgValues =
+           await firstValueFrom(
+               fixture.componentInstance.flowArgsForm.flowArgValues$) as
+           TimelineArgs;
+       expect(flowArgValues.root).toEqual('');
+     }));
+});

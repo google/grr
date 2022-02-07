@@ -1,0 +1,31 @@
+<div>
+  <mat-form-field appearance="outline" class="w100">
+    <mat-label>Absolute paths</mat-label>
+    <textarea matInput
+              placeholder="/some/path&#10;/another/path"
+              [formControl]="controls.paths"
+              class="monospace tall"
+              name="paths"
+              autocomplete="off"></textarea>
+    <mat-hint>
+      <app-literal-path-glob-expression-warning [path]="form.value['paths']"></app-literal-path-glob-expression-warning>
+    </mat-hint>
+  </mat-form-field>
+  <div class="validation" [hidden]="!form.controls['paths'].hasError('atLeastOnePathExpected')">
+    <mat-error *ngIf="form.controls['paths'].hasError('atLeastOnePathExpected')">At least one non-empty path expected.</mat-error>
+  </div>
+
+  <mat-radio-group aria-label="Collection level" [formControl]="controls.collectionLevel" [hidden]="hideAdvancedParams">
+    <mat-radio-button *ngFor="let cl of collectionLevels" [value]="cl.value" class="radio-option w100">
+      {{cl.label}}
+    </mat-radio-button>
+  </mat-radio-group>
+  <button mat-flat-button
+            type="button"
+            class="advanced-params-button"
+            (click)="toggleAdvancedParams()"
+            aria-label="View/hide advanced params">
+      <mat-icon>{{hideAdvancedParams ? 'expand_more' : 'expand_less'}}</mat-icon>
+      {{hideAdvancedParams ? 'View settings' : 'Hide settings'}}
+  </button>
+</div>

@@ -1,4 +1,6 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
+import {AfterViewInit, ChangeDetectionStrategy, Component, EventEmitter, Input, Output, ViewChild} from '@angular/core';
+import {MatSort} from '@angular/material/sort';
+import {MatTableDataSource} from '@angular/material/table';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
@@ -25,8 +27,10 @@ function hasRegistryValue(rows: ReadonlyArray<RegistryRow>) {
   styleUrls: ['./registry_results_table.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class RegistryResultsTable {
+export class RegistryResultsTable implements AfterViewInit {
   readonly results$ = new BehaviorSubject<ReadonlyArray<RegistryRow>>([]);
+  readonly dataSource = new MatTableDataSource<RegistryRow>();
+  @ViewChild(MatSort) sort!: MatSort;
 
   readonly totalCount$ = new BehaviorSubject<number|null>(null);
 
@@ -50,8 +54,9 @@ export class RegistryResultsTable {
           );
 
   @Input()
-  set results(value: ReadonlyArray<RegistryRow>) {
-    this.results$.next(value);
+  set results(value: ReadonlyArray<RegistryRow>|null) {
+    this.results$.next(value ?? []);
+    this.dataSource.data = (value ?? []) as RegistryRow[];
   }
 
   @Input()
@@ -60,6 +65,10 @@ export class RegistryResultsTable {
   }
 
   @Output() readonly loadMore = new EventEmitter<void>();
+
+  ngAfterViewInit() {
+    this.dataSource.sort = this.sort;
+  }
 
   loadMoreClicked() {
     this.loadMore.emit();

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The in memory database methods for client handling."""
-
-from typing import Generator, Optional, List, Text
+import sys
+from typing import Iterator, Optional, List, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -392,18 +392,24 @@ class InMemoryDBClientMixin(object):
 
   @utils.Synchronized
   def DeleteOldClientStats(
-      self, yield_after_count: int,
-      retention_time: rdfvalue.RDFDatetime) -> Generator[int, None, None]:
-    """Deletes ClientStats older than a given timestamp."""
+      self,
+      cutoff_time: rdfvalue.RDFDatetime,
+      batch_size: Optional[int] = None,
+  ) -> Iterator[int]:
+    """Deletes client stats older than the specified cutoff time."""
+    if batch_size is None:
+      # Everything is in memory, read as much as we can.
+      batch_size = sys.maxsize
+
     deleted_count = 0
 
     for stats_dict in self.client_stats.values():
       for timestamp in list(stats_dict.keys()):
-        if timestamp < retention_time:
+        if timestamp < cutoff_time:
           del stats_dict[timestamp]
           deleted_count += 1
 
-          if deleted_count >= yield_after_count:
+          if deleted_count >= batch_size:
             yield deleted_count
             deleted_count = 0
 

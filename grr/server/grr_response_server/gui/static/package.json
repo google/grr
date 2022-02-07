@@ -19,6 +19,7 @@
     "jstree": "3.3.10",
     "marked": "^0.7.0",
     "moment": "^2.29.1",
+    "sass": "^1.43.4",
     "split.js": "1.6.2"
   },
   "devDependencies": {
@@ -36,7 +37,7 @@
     "gulp-less": "^4.0.1",
     "gulp-newer": "^1.4.0",
     "gulp-plumber": "^1.2.1",
-    "gulp-sass": "^4.1.0",
+    "gulp-sass": "^5.0.0",
     "gulp-sourcemaps": "^2.6.5",
     "jasmine-core": "^3.5.0",
     "karma": "^4.3.0",

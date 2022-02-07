@@ -1,17 +1,23 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
 @use '../../material-theme' as c;
 
-h1.mat-h1 {
-  font-family: c.$google-sans-display-family;
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 24px;
+:host {
+  display: flex;
+  flex-direction: column;
+  row-gap: c.$page-spacing;
+
+  h1 {
+    margin: 0;
+  }
+
+  &[hidden] {
+    display: none;
+  }
 }
 
 .container {
   position: relative;
   padding: 0;
-  margin: 0 0 1em;
   background-color: mat.get-color-from-palette(c.$background, app-bar);
   border: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
   border-radius: 8px;

@@ -1,23 +1,25 @@
 import {ChangeDetectionStrategy, Component, ViewChild} from '@angular/core';
 import {MatDrawer} from '@angular/material/sidenav';
 import {ActivatedRouteSnapshot, ActivationEnd, Router} from '@angular/router';
-import {filter, map} from 'rxjs/operators';
+import {filter, map, startWith} from 'rxjs/operators';
 
 import {makeLegacyLink, makeLegacyLinkFromRoute} from '../../lib/routing';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {UserGlobalStore} from '../../store/user_global_store';
 
 /** Recursively searches a route and all child routes to fulfill a predicate. */
 function findRouteWith(
     route: ActivatedRouteSnapshot,
     pred: ((route: ActivatedRouteSnapshot) => boolean)): ActivatedRouteSnapshot|
     undefined {
-  if (pred(route)) {
-    return route;
-  }
   for (const child of route.children) {
     const result = findRouteWith(child, pred);
     if (result !== undefined) {
       return result;
     }
+  }
+  if (pred(route)) {
+    return route;
   }
   return undefined;
 }
@@ -51,7 +53,22 @@ export class App {
 
   @ViewChild('drawer') drawer!: MatDrawer;
 
-  constructor(private readonly router: Router) {
+  readonly uiConfig$ = this.configGlobalStore.uiConfig$;
+
+  readonly heading$ = this.configGlobalStore.uiConfig$.pipe(
+      map(config => config.heading),
+  );
+
+  readonly canaryMode$ = this.userGlobalStore.currentUser$.pipe(
+      map(user => user.canaryMode),
+      startWith(false),
+  );
+
+  constructor(
+      private readonly router: Router,
+      private readonly configGlobalStore: ConfigGlobalStore,
+      private readonly userGlobalStore: UserGlobalStore,
+  ) {
     this.router.events
         .pipe(
             filter(
@@ -71,7 +88,7 @@ export class App {
 
   ngAfterViewInit() {
     this.drawer.closedStart.subscribe(() => {
-      this.router.navigate([{outlets: {drawer: null}}], {replaceUrl: true});
+      this.router.navigate([{outlets: {'drawer': null}}], {replaceUrl: true});
     });
   }
 }

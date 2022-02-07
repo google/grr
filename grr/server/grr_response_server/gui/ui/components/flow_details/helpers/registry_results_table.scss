@@ -1,4 +1,4 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
 @use '../../../material-theme' as c;
 
 .mat-cell {
@@ -41,15 +41,15 @@ table {
       line-height: 18px !important;
       height: 18px !important;
       width: 18px !important;
-
-      mat-icon {
-        font-size: 16px;
-      }
     }
 
     &:hover .copy-button {
       visibility: visible;
     }
+  }
+
+  mat-icon {
+    font-size: 16px;
   }
 
   .number {

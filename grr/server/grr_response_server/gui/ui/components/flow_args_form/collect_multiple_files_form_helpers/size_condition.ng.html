@@ -1,14 +1,28 @@
+<!-- TODO: Stop using formControlName here. -->
 <condition-panel title="Size" [formGroup]="formGroup" (conditionRemoved)="conditionRemoved.emit()">
   <mat-form-field appearance="outline" class="w33">
     <mat-label>Minimum file size</mat-label>
-    <input matInput byteInput placeholder="" formControlName="minFileSize" class="monospace" />
+    <input
+      matInput
+      byteInput
+      placeholder=""
+      formControlName="minFileSize"
+      class="monospace"
+      autocomplete="off"
+    />
   </mat-form-field>
   <mat-form-field appearance="outline" class="w33">
     <mat-label>Maximum file size</mat-label>
-    <input matInput byteInput placeholder="" formControlName="maxFileSize" class="monospace" />
+    <input
+      matInput
+      byteInput
+      placeholder=""
+      formControlName="maxFileSize"
+      class="monospace"
+      autocomplete="off"
+    />
 
-    <mat-hint
-      *ngIf="!formGroup.hasError('atLeastOneMustBeSet') && hintFormatting$ | async as hf">
+    <mat-hint *ngIf="!formGroup.hasError('atLeastOneMustBeSet') && (hintFormatting$ | async) as hf">
       <ng-container *ngIf="hf.formattedBytesAtUnit.min && !hf.formattedBytesAtUnit.max">
         Will collect files of size at least {{ hf.formattedBytesAtUnit.min }}
         <a href="https://en.wikipedia.org/wiki/{{ hf.units.min }}" target="_blank">{{
@@ -32,8 +46,7 @@
         <a href="https://en.wikipedia.org/wiki/{{ hf.units.min }}" target="_blank">{{
           hf.units.min
         }}</a>
-        <span *ngIf="hf.formattedRawBytes.min">
-          = {{ hf.formattedRawBytes.min }} bytes</span>
+        <span *ngIf="hf.formattedRawBytes.min"> = {{ hf.formattedRawBytes.min }} bytes</span>
         and at most {{ hf.formattedBytesAtUnit.max }}
         <a href="https://en.wikipedia.org/wiki/{{ hf.units.max }}" target="_blank">{{
           hf.units.max

@@ -14,7 +14,6 @@ import logging
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_proto import deprecated_pb2
 
 SYSTEM_USERS = frozenset([
@@ -49,7 +48,7 @@ class UnauthorizedAccess(Error):  # pylint: disable=g-bad-exception-name
     super().__init__(message)
 
 
-class AccessControlManager(metaclass=MetaclassRegistry):
+class AccessControlManager:
   """A class for managing access to data resources.
 
   This class is responsible for determining which users have access to each

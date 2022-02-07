@@ -429,6 +429,8 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
 
     path_type, components = rdf_objects.ParseCategorizedPath(args.file_path)
 
+    # TODO: This API handler should return a 404 response if the
+    # path is not found. Currently, 500 is returned.
     child_path_infos = data_store.REL_DB.ListChildPathInfos(
         client_id=args.client_id.ToString(),
         path_type=path_type,

@@ -1,4 +1,4 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
 @use '../../../material-theme' as c;
 
 .num-connections {
@@ -10,27 +10,24 @@
   color: mat.get-color-from-palette(c.$foreground, text-light);
 }
 
-.results-container {
-  padding-left: 24px;
-}
-
 table {
   border-color: mat.get-color-from-palette(c.$foreground, divider-light);
   color: mat.get-color-from-palette(c.$foreground, text-light);
   font-size: 14px;
   width: 100%;
+  padding: 0 24px;
 
   th.mat-header-cell {
     border-bottom: none;
     font-weight: 500;
     font-size: inherit;
-    padding: .5em .5em .5em 0;
+    padding: 0.5em 0.5em 0.5em 0;
   }
 
   td.mat-cell {
     border-bottom: none;
     vertical-align: top;
-    padding: .5em .5em .5em 0;
+    padding: 0.5em 0.5em 0.5em 0;
   }
 
   tr:last-child td.mat-cell {

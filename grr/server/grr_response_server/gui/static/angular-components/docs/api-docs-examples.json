@@ -4278,7 +4278,12 @@
           },
           "result_metadata": {
             "type": "FlowResultMetadata",
-            "value": {}
+            "value": {
+              "is_metadata_set": {
+                "type": "bool",
+                "value": true
+              }
+            }
           },
           "runner_args": {
             "type": "FlowRunnerArgs",
@@ -4322,7 +4327,12 @@
                     },
                     "value": {
                       "type": "FlowResultMetadata",
-                      "value": {}
+                      "value": {
+                        "is_metadata_set": {
+                          "type": "bool",
+                          "value": true
+                        }
+                      }
                     }
                   }
                 },
@@ -4404,7 +4414,9 @@
         "last_active_at": 42000000,
         "name": "Interrogate",
         "progress": {},
-        "result_metadata": {},
+        "result_metadata": {
+          "is_metadata_set": true
+        },
         "runner_args": {
           "client_id": "aff4:/C.1000000000000000",
           "flow_name": "Interrogate",
@@ -4414,7 +4426,9 @@
         "state": "RUNNING",
         "state_data": {
           "items": [
-            {},
+            {
+              "is_metadata_set": true
+            },
             {
               "client_id": "C.1000000000000000"
             },
@@ -4514,7 +4528,12 @@
           },
           "result_metadata": {
             "type": "FlowResultMetadata",
-            "value": {}
+            "value": {
+              "is_metadata_set": {
+                "type": "bool",
+                "value": true
+              }
+            }
           },
           "runner_args": {
             "type": "FlowRunnerArgs",
@@ -4558,7 +4577,12 @@
                     },
                     "value": {
                       "type": "FlowResultMetadata",
-                      "value": {}
+                      "value": {
+                        "is_metadata_set": {
+                          "type": "bool",
+                          "value": true
+                        }
+                      }
                     }
                   }
                 },
@@ -4641,7 +4665,9 @@
         "last_active_at": 42000000,
         "name": "Interrogate",
         "progress": {},
-        "result_metadata": {},
+        "result_metadata": {
+          "is_metadata_set": true
+        },
         "runner_args": {
           "client_id": "aff4:/C.1000000000000000",
           "flow_name": "Interrogate",
@@ -4651,7 +4677,9 @@
         "state": "ERROR",
         "state_data": {
           "items": [
-            {},
+            {
+              "is_metadata_set": true
+            },
             {
               "client_id": "C.1000000000000000"
             },
@@ -8581,6 +8609,10 @@
                 "type": "bool",
                 "value": true
               },
+              "hunt_approval_required": {
+                "type": "bool",
+                "value": false
+              },
               "hunt_manager_nav_item_enabled": {
                 "type": "bool",
                 "value": true
@@ -8658,6 +8690,7 @@
           "create_cron_job_action_enabled": true,
           "create_hunt_action_enabled": true,
           "cron_jobs_nav_item_enabled": true,
+          "hunt_approval_required": false,
           "hunt_manager_nav_item_enabled": true,
           "manage_binaries_nav_item_enabled": true,
           "manage_client_flows_nav_item_enabled": true,
@@ -8707,6 +8740,10 @@
               "cron_jobs_nav_item_enabled": {
                 "type": "bool",
                 "value": true
+              },
+              "hunt_approval_required": {
+                "type": "bool",
+                "value": false
               },
               "hunt_manager_nav_item_enabled": {
                 "type": "bool",
@@ -8785,6 +8822,7 @@
           "create_cron_job_action_enabled": true,
           "create_hunt_action_enabled": true,
           "cron_jobs_nav_item_enabled": true,
+          "hunt_approval_required": false,
           "hunt_manager_nav_item_enabled": true,
           "manage_binaries_nav_item_enabled": true,
           "manage_client_flows_nav_item_enabled": true,
@@ -13794,7 +13832,12 @@
               },
               "result_metadata": {
                 "type": "FlowResultMetadata",
-                "value": {}
+                "value": {
+                  "is_metadata_set": {
+                    "type": "bool",
+                    "value": true
+                  }
+                }
               },
               "runner_args": {
                 "type": "FlowRunnerArgs",
@@ -13860,7 +13903,12 @@
               },
               "result_metadata": {
                 "type": "FlowResultMetadata",
-                "value": {}
+                "value": {
+                  "is_metadata_set": {
+                    "type": "bool",
+                    "value": true
+                  }
+                }
               },
               "runner_args": {
                 "type": "FlowRunnerArgs",
@@ -13906,7 +13954,9 @@
             "last_active_at": 44000000,
             "name": "ListProcesses",
             "progress": {},
-            "result_metadata": {},
+            "result_metadata": {
+              "is_metadata_set": true
+            },
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
               "flow_name": "ListProcesses",
@@ -13924,7 +13974,9 @@
             "last_active_at": 43000000,
             "name": "Interrogate",
             "progress": {},
-            "result_metadata": {},
+            "result_metadata": {
+              "is_metadata_set": true
+            },
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
               "flow_name": "Interrogate",
@@ -13976,7 +14028,12 @@
               },
               "result_metadata": {
                 "type": "FlowResultMetadata",
-                "value": {}
+                "value": {
+                  "is_metadata_set": {
+                    "type": "bool",
+                    "value": true
+                  }
+                }
               },
               "runner_args": {
                 "type": "FlowRunnerArgs",
@@ -14022,7 +14079,9 @@
             "last_active_at": 44000000,
             "name": "ListProcesses",
             "progress": {},
-            "result_metadata": {},
+            "result_metadata": {
+              "is_metadata_set": true
+            },
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
               "flow_name": "ListProcesses",
@@ -14074,7 +14133,12 @@
               },
               "result_metadata": {
                 "type": "FlowResultMetadata",
-                "value": {}
+                "value": {
+                  "is_metadata_set": {
+                    "type": "bool",
+                    "value": true
+                  }
+                }
               },
               "runner_args": {
                 "type": "FlowRunnerArgs",
@@ -14120,7 +14184,9 @@
             "last_active_at": 43000000,
             "name": "Interrogate",
             "progress": {},
-            "result_metadata": {},
+            "result_metadata": {
+              "is_metadata_set": true
+            },
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
               "flow_name": "Interrogate",

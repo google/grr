@@ -1,7 +1,9 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
-import {FlowListItem, FlowsByCategory} from '@app/components/flow_picker/flow_list_item';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
+
+import {FlowListItem, FlowsByCategory} from '../../components/flow_picker/flow_list_item';
+import {compareAlphabeticallyBy} from '../../lib/type_utils';
 
 interface FlowOverviewCategory {
   readonly title: string;
@@ -18,35 +20,32 @@ interface FlowOverviewCategory {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlowsOverview {
-  private flowsByCategoryInternal: FlowsByCategory = new Map();
-
   @Input()
-  set flowsByCategory(value: FlowsByCategory) {
-    this.flowsByCategoryInternal = value;
+  set flowsByCategory(value: FlowsByCategory|null) {
     this.flowsByCategory$.next(value);
   }
 
-  get flowsByCategory(): FlowsByCategory {
-    return this.flowsByCategoryInternal;
+  get flowsByCategory(): FlowsByCategory|null {
+    return this.flowsByCategory$.value;
   }
 
   private readonly flowsByCategory$ =
-      new BehaviorSubject<FlowsByCategory>(this.flowsByCategoryInternal);
+      new BehaviorSubject<FlowsByCategory|null>(null);
 
   readonly categories$: Observable<ReadonlyArray<FlowOverviewCategory>> =
       this.flowsByCategory$.pipe(
           map(fbc => {
-            const result =
-                Array.from(fbc.entries()).map(([categoryTitle, items]) => {
-                  const sortedItems = [...items];
-                  sortedItems.sort(
-                      (a, b) => a.friendlyName.localeCompare(b.friendlyName));
-                  return {
-                    title: categoryTitle,
-                    items: sortedItems,
-                  };
-                });
-            result.sort((a, b) => a.title.localeCompare(b.title));
+            const result = Array.from(fbc?.entries() ?? [])
+                               .map(([categoryTitle, items]) => {
+                                 const sortedItems = [...items];
+                                 sortedItems.sort(compareAlphabeticallyBy(
+                                     item => item.friendlyName));
+                                 return {
+                                   title: categoryTitle,
+                                   items: sortedItems,
+                                 };
+                               });
+            result.sort(compareAlphabeticallyBy(cat => cat.title));
             return result;
           }),
       );
@@ -56,11 +55,11 @@ export class FlowsOverview {
    */
   @Output() flowSelected = new EventEmitter<FlowListItem>();
 
-  trackByCategoryTitle(category: FlowOverviewCategory): string {
+  trackByCategoryTitle(index: number, category: FlowOverviewCategory): string {
     return category.title;
   }
 
-  trackByFlowName(fli: FlowListItem): string {
+  trackByFlowName(index: number, fli: FlowListItem): string {
     return fli.name;
   }
 }

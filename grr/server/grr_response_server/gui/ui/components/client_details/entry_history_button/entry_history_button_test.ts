@@ -64,6 +64,7 @@ describe('Entry History Button Component', () => {
           providers: [
             {provide: ClientDetailsGlobalStore, useFactory: () => store},
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

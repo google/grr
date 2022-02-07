@@ -236,9 +236,9 @@ class BaseYaraFlowsTest(flow_test_lib.FlowTestsBaseclass):
       # grr_response_client/unprivileged/communication.py needs a real process.
       if ("unprivileged" in stack_frame.filename and
           "communication.py" in stack_frame.filename):
-        return psutil.Process.old_target(pid=pid)
+        return psutil.Process.old_target(pid=pid)  # pytype: disable=attribute-error
     if not pid:
-      return psutil.Process.old_target()
+      return psutil.Process.old_target()  # pytype: disable=attribute-error
     for p in processes:
       if p.pid == pid:
         return p
@@ -1019,6 +1019,10 @@ class YaraFlowsUnprivilegedTest(YaraFlowsTest):
     self.addCleanup(stack.close)
     stack.enter_context(
         test_lib.ConfigOverrider({"Client.use_memory_sandboxing": True}))
+    # Use smaller batch size to exercise the batching logic.
+    stack.enter_context(
+        mock.patch.object(memory_actions.BatchedUnprivilegedYaraWrapper,
+                          "BATCH_SIZE", 2))
 
   # Tracking of time works differently in unprivileged mode.
   # (There isn't one call to RDFDatetime.Now() per chunk due to batching).

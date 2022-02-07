@@ -8,10 +8,12 @@ import {MatCardModule} from '@angular/material/card';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
+import {MatMenuModule} from '@angular/material/menu';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
-import {FlowsOverview} from '@app/components/flow_picker/flows_overview';
+
+import {FlowsOverview} from '../../components/flow_picker/flows_overview';
 
 import {FlowChips} from './flow_chips';
 import {FlowPicker} from './flow_picker';
@@ -39,6 +41,7 @@ import {FlowPicker} from './flow_picker';
     MatIconModule,
     MatFormFieldModule,
     MatInputModule,
+    MatMenuModule,
     MatTooltipModule,
   ],
   declarations: [

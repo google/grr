@@ -31,7 +31,11 @@ export function mockHttpApiService(): HttpApiServiceMock {
     get: jasmine.createSpy('get').and.callFake(() => new Subject()),
     post: jasmine.createSpy('post').and.callFake(() => new Subject()),
   };
-  const service: any = new HttpApiService(mockHttpClient as any);
+  const mockSnackBar = {
+    openFromComponent: jasmine.createSpy('openFromComponent'),
+  };
+  const service: any =
+      new HttpApiService(mockHttpClient as any, mockSnackBar as any);
   const mockedObservables: any = {};
 
   const properties = Object.getOwnPropertyNames(HttpApiService.prototype)

@@ -1,51 +1,36 @@
 import {TestBed} from '@angular/core/testing';
-import {ApiSearchClientResult} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ClientSearchGlobalStore} from '@app/store/client_search_global_store';
-import {initTestEnvironment} from '@app/testing';
-import {Subject} from 'rxjs';
-import {skip} from 'rxjs/operators';
+import {firstValueFrom, Subject} from 'rxjs';
+
+import {HttpApiService} from '../lib/api/http_api_service';
+import {injectHttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
+import {initTestEnvironment} from '../testing';
+
+import {ClientSearchGlobalStore} from './client_search_global_store';
 
 initTestEnvironment();
 
 describe('ClientSearchGlobalStore', () => {
-  let httpApiService: Partial<HttpApiService>;
-  let clientSearchGlobalStore: ClientSearchGlobalStore;
-  let apiSearchClients$: Subject<ApiSearchClientResult>;
-
   beforeEach(() => {
-    apiSearchClients$ = new Subject();
-
-    httpApiService = {
-      searchClients:
-          jasmine.createSpy('searchClients').and.returnValue(apiSearchClients$),
-    };
-
     TestBed.configureTestingModule({
-      imports: [],
       providers: [
-        ClientSearchGlobalStore,
-        {provide: HttpApiService, useFactory: () => httpApiService},
+        {provide: HttpApiService, useFactory: mockHttpApiService},
       ],
+      teardown: {destroyAfterEach: false}
     });
-
-    clientSearchGlobalStore = TestBed.inject(ClientSearchGlobalStore);
   });
 
   it('fetches new search results from API when "searchClients" is called with a non-empty query, and sorts them by when they were last seen',
-     (done) => {
+     async () => {
+       const clientSearchGlobalStore = TestBed.inject(ClientSearchGlobalStore);
+       const httpApiService = injectHttpApiServiceMock();
+
        clientSearchGlobalStore.searchClients('sample query');
+
        expect(httpApiService.searchClients)
            .toHaveBeenCalledWith(
                {query: 'sample query', offset: 0, count: 100});
 
-       const expectedClientIds = ['C.5678', 'C.1234'];
-       clientSearchGlobalStore.clients$.pipe(skip(1)).subscribe((results) => {
-         expect(results.map(c => c.clientId)).toEqual(expectedClientIds);
-         done();
-       });
-
-       apiSearchClients$.next({
+       httpApiService.mockedObservables.searchClients.next({
          items: [
            {
              clientId: 'C.1234',
@@ -59,49 +44,63 @@ describe('ClientSearchGlobalStore', () => {
            },
          ]
        });
+
+       expect(await firstValueFrom(clientSearchGlobalStore.clients$)).toEqual([
+         jasmine.objectContaining({clientId: 'C.5678'}),
+         jasmine.objectContaining({clientId: 'C.1234'}),
+       ]);
      });
 
   it('does not fetch new search results from the API when "searchClients" is called with an empty query',
-     (done) => {
-       clientSearchGlobalStore.clients$.pipe(skip(1)).subscribe((results) => {
-         expect(results).toEqual([]);
-         done();
-       });
+     async () => {
+       const clientSearchGlobalStore = TestBed.inject(ClientSearchGlobalStore);
+       const httpApiService = injectHttpApiServiceMock();
 
        clientSearchGlobalStore.searchClients('');
+
        expect(httpApiService.searchClients).not.toHaveBeenCalled();
+       expect(await firstValueFrom(clientSearchGlobalStore.clients$))
+           .toBeUndefined();
      });
 
-  it('returns only fresh results after multiple searches', (done) => {
+  it('returns only fresh results after multiple searches', async () => {
+    const clientSearchGlobalStore = TestBed.inject(ClientSearchGlobalStore);
+    const httpApiService = injectHttpApiServiceMock();
+
+    httpApiService.mockedObservables.searchClients = new Subject();
+
     clientSearchGlobalStore.searchClients('sample query');
+
     expect(httpApiService.searchClients)
         .toHaveBeenCalledWith({query: 'sample query', offset: 0, count: 100});
 
-    clientSearchGlobalStore.searchClients('new query');
-    expect(httpApiService.searchClients)
-        .toHaveBeenCalledWith({query: 'new query', offset: 0, count: 100});
-
-    const expectedClientIds = ['C.5678'];
-
-    // Only listen to response from second search query.
-    clientSearchGlobalStore.clients$.pipe(skip(2)).subscribe((results) => {
-      expect(results.map(c => c.clientId)).toEqual(expectedClientIds);
-      done();
-    });
-
-    // First search response (to 'sample query').
-    apiSearchClients$.next({
+    httpApiService.mockedObservables.searchClients.next({
       items: [{
         clientId: 'C.1234',
         age: '0',
       }]
     });
-    // Second search response (to 'new query').
-    apiSearchClients$.next({
+
+    expect(await firstValueFrom(clientSearchGlobalStore.clients$)).toEqual([
+      jasmine.objectContaining({clientId: 'C.1234'})
+    ]);
+
+    httpApiService.mockedObservables.searchClients = new Subject();
+
+    clientSearchGlobalStore.searchClients('new query');
+
+    expect(httpApiService.searchClients)
+        .toHaveBeenCalledWith({query: 'new query', offset: 0, count: 100});
+
+    httpApiService.mockedObservables.searchClients.next({
       items: [{
         clientId: 'C.5678',
         age: '0',
       }]
     });
+
+    expect(await firstValueFrom(clientSearchGlobalStore.clients$)).toEqual([
+      jasmine.objectContaining({clientId: 'C.5678'})
+    ]);
   });
 });

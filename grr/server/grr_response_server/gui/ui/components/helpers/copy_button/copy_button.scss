@@ -1,0 +1,51 @@
+@use '@angular/material' as mat;
+@use '../../../material-theme' as c;
+
+$outline-width: 4px;
+$invisible: rgba(0, 0, 0, 0);
+$background: mat.get-color-from-palette(c.$background, hover);
+$transition-time: 200ms;
+
+:host {
+  // Render background as solid even when text wraps across multiple lines.
+  display: inline-block;
+  position: relative;
+  cursor: pointer;
+  border-radius: $outline-width 0 0 $outline-width;
+  background: $invisible;
+  transition: background-color $transition-time ease,
+    outline-color $transition-time ease;
+  outline: $outline-width solid $invisible;
+
+  .icon-container {
+    display: flex;
+    align-items: center;
+
+    opacity: 0;
+    position: absolute;
+    // Move icon double the outline width to the right, so that the outlines do
+    // not overlap.
+    right: -$outline-width;
+    top: 0;
+    bottom: 0;
+    // Move icon 100% of its own width to the right, so that it appears directly
+    // to the right of the text label.
+    transform: translateX(100%);
+    border-radius: 0 $outline-width $outline-width 0;
+    outline: $outline-width solid $background;
+    background: $background;
+
+    transition: opacity $transition-time ease;
+    pointer-events: none;
+  }
+
+  &:hover {
+    z-index: 1;
+    background-color: $background;
+    outline-color: $background;
+
+    .icon-container {
+      opacity: 1;
+    }
+  }
+}

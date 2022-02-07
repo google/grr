@@ -26,7 +26,6 @@ class CronTabParser(parsers.SingleFileParser[rdf_cronjobs.CronTabFile]):
       filedesc: IO[bytes],
   ) -> Iterator[rdf_cronjobs.CronTabFile]:
     del knowledge_base  # Unused.
-    del pathspec  # Unused.
 
     entries = []
 
@@ -44,9 +43,7 @@ class CronTabParser(parsers.SingleFileParser[rdf_cronjobs.CronTabFile]):
               command=str(job.command),
               comment=str(job.comment)))
 
-    try:
-      source_urn = filedesc.urn
-    except AttributeError:
-      source_urn = None
-
-    yield rdf_cronjobs.CronTabFile(aff4path=source_urn, jobs=entries)
+    yield rdf_cronjobs.CronTabFile(
+        # We're interested in the nominal file path, not the full Pathspec.
+        path=pathspec.last.path,
+        jobs=entries)

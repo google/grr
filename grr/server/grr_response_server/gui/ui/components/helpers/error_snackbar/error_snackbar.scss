@@ -1,0 +1,10 @@
+:host {
+  display: flex;
+  align-items: center;
+
+  div {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}

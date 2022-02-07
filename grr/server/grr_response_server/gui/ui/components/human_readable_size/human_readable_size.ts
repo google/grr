@@ -8,12 +8,12 @@ import {Component, Input} from '@angular/core';
   templateUrl: './human_readable_size.ng.html',
 })
 export class HumanReadableSizeComponent {
-  @Input() size?: number|bigint;
+  @Input() size?: number|bigint|null;
   private static readonly UNITS = ['B', 'KiB', 'MiB', 'GiB', 'TiB', 'PiB'];
 
   getHumanSize(): string {
-    if (this.size === undefined || this.size < 0) {
-      return '-';
+    if (this.size === undefined || this.size === null || this.size < 0) {
+      return '';
     }
 
     if (typeof this.size === 'bigint') {

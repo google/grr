@@ -3,6 +3,7 @@ import {NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
 import {MatIconModule} from '@angular/material/icon';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSidenavModule} from '@angular/material/sidenav';
 
 import {ClientDetailsModule} from '../client_details/module';
@@ -20,6 +21,7 @@ import {ApprovalRoutingModule} from './routing';
     MatButtonModule,
     MatCardModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     MatSidenavModule,
 
     ApprovalRoutingModule,

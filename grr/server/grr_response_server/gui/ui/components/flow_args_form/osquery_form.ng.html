@@ -1,14 +1,18 @@
-<div [formGroup]="form" class="main-container">
+<div class="main-container">
   <div class="query-section">
     <mat-form-field appearance="outline" class="editor-form-field">
       <mat-label>SQL query</mat-label>
-      <code-editor formControlName="query"></code-editor>
+      <code-editor [formControl]="controls.query"></code-editor>
 
       <button
         type="button"
         (click)="browseTablesClicked()"
-        mat-stroked-button color="primary"
-        class="browse-tables-button">Browse available tables and template queries</button>
+        mat-stroked-button
+        color="primary"
+        class="browse-tables-button"
+      >
+        Browse available tables and template queries
+      </button>
     </mat-form-field>
   </div>
 
@@ -18,9 +22,10 @@
       *ngIf="!fileCollectionSettingsShown"
       (click)="openCollection()"
       mat-button
-      color="primary">
+      color="primary"
+    >
       <span>Show file collection settings</span>
-      <mat-icon>keyboard_arrow_right</mat-icon>
+      <mat-icon>keyboard_arrow_down</mat-icon>
     </button>
   </span>
   <div [class]="fileCollectionSettingsShown ? 'collection-container' : 'hide-content'">
@@ -28,13 +33,15 @@
       <mat-chip-list
         #chipList
         aria-label="Columns for file collection"
-        formControlName="fileCollectionColumns">
+        [formControl]="controls.fileCollectionColumns"
+      >
         <mat-chip
           *ngFor="let columnName of fileCollectionColumns"
           [selectable]="false"
           [removable]="true"
-          (removed)="removeFileCollectionColumn(columnName)">
-          {{columnName}}
+          (removed)="removeFileCollectionColumn(columnName)"
+        >
+          {{ columnName }}
           <mat-icon matChipRemove>cancel</mat-icon>
         </mat-chip>
         <input
@@ -42,7 +49,8 @@
           [matChipInputFor]="chipList"
           [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
           [matChipInputAddOnBlur]="true"
-          (matChipInputTokenEnd)="addFileCollectionColumn($event)">
+          (matChipInputTokenEnd)="addFileCollectionColumn($event)"
+        />
       </mat-chip-list>
     </mat-form-field>
   </div>
@@ -53,18 +61,25 @@
       *ngIf="!lowLevelSettingsShown"
       (click)="openSettings()"
       mat-button
-      color="primary">
+      color="primary"
+    >
       <span>Show low-level settings</span>
-      <mat-icon>keyboard_arrow_right</mat-icon>
+      <mat-icon>keyboard_arrow_down</mat-icon>
     </button>
   </span>
   <div [class]="lowLevelSettingsShown ? 'settings-container' : 'hide-content'">
     <mat-form-field class="timeout-form-field">
       <mat-label>Timeout</mat-label>
-      <input type="number" matInput placeholder="" formControlName="timeoutMillis">
+      <input
+        type="number"
+        matInput
+        placeholder=""
+        [formControl]="controls.timeoutMillis"
+        autocomplete="off"
+      />
       <span matSuffix>ms</span>
     </mat-form-field>
 
-    <mat-checkbox formControlName="ignoreStderrErrors">Ignore stderr errors</mat-checkbox>
+    <mat-checkbox [formControl]="controls.ignoreStderrErrors">Ignore stderr errors</mat-checkbox>
   </div>
 </div>

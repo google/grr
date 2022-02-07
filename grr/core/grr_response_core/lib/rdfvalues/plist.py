@@ -67,5 +67,4 @@ class LaunchdPlist(rdf_structs.RDFProtoStruct):
       LaunchdKeepAlive,
       LaunchdStartCalendarIntervalEntry,
       PlistStringDictEntry,
-      rdfvalue.RDFURN,
   ]

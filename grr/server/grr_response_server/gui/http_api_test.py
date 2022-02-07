@@ -13,12 +13,12 @@ from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util.compat import json
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
-
 from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_call_router_registry
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui import http_api
 from grr.test_lib import stats_test_lib
@@ -166,6 +166,18 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 
+    patcher = mock.patch.object(api_call_router_registry,
+                                "_API_CALL_ROUTER_REGISTRY", {})
+    patcher.start()
+    self.addCleanup(patcher.stop)
+    api_call_router_registry.RegisterApiCallRouter("TestHttpApiRouter",
+                                                   TestHttpApiRouter)
+    # pylint: disable=g-long-lambda
+    self.addCleanup(lambda: api_call_router_registry.UnregisterApiCallRouter(
+        "TestHttpApiRouter"))
+    api_call_router_registry.RegisterApiCallRouter("TestHttpApiRouter",
+                                                   TestHttpApiRouter)
+
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.InitializeApiAuthManager()
 
@@ -235,6 +247,19 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     })
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
+
+    patcher = mock.patch.object(api_call_router_registry,
+                                "_API_CALL_ROUTER_REGISTRY", {})
+    patcher.start()
+    self.addCleanup(patcher.stop)
+    api_call_router_registry.RegisterApiCallRouter("TestHttpApiRouter",
+                                                   TestHttpApiRouter)
+    # pylint: disable=g-long-lambda
+    self.addCleanup(lambda: api_call_router_registry.UnregisterApiCallRouter(
+        "TestHttpApiRouter"))
+    api_call_router_registry.RegisterApiCallRouter("TestHttpApiRouter",
+                                                   TestHttpApiRouter)
+
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.InitializeApiAuthManager()
 

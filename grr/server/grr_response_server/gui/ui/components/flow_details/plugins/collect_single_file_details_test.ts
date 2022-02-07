@@ -1,10 +1,11 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
-import {CollectSingleFileDetails} from '@app/components/flow_details/plugins/collect_single_file_details';
-import {CollectSingleFileArgs, CollectSingleFileProgress, CollectSingleFileProgressStatus, PathSpecPathType} from '@app/lib/api/api_interfaces';
-import {newFlow} from '@app/lib/models/model_test_util';
-import {initTestEnvironment} from '@app/testing';
+
+import {CollectSingleFileDetails} from '../../../components/flow_details/plugins/collect_single_file_details';
+import {CollectSingleFileArgs, CollectSingleFileProgress, CollectSingleFileProgressStatus, PathSpecPathType} from '../../../lib/api/api_interfaces';
+import {newFlow} from '../../../lib/models/model_test_util';
+import {initTestEnvironment} from '../../../testing';
 
 import {PluginsModule} from './module';
 
@@ -23,7 +24,8 @@ describe('collect-single-file-details component', () => {
             RouterTestingModule,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
@@ -143,6 +145,7 @@ describe('collect-single-file-details component', () => {
         stat: {
           pathspec: {
             path: '/foo/bar',
+            pathtype: PathSpecPathType.TSK,
           }
         }
       },
@@ -156,7 +159,10 @@ describe('collect-single-file-details component', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText).toContain('Download');
+    expect(fixture.componentInstance.getExportMenuItems(
+               fixture.componentInstance.flow)[0])
+        .toEqual(fixture.componentInstance.getDownloadFilesExportMenuItem(
+            fixture.componentInstance.flow));
   });
 
   it('shows an error message when file is not found', () => {
@@ -173,7 +179,9 @@ describe('collect-single-file-details component', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText).toContain('File not found');
+    expect(fixture.componentInstance.getResultDescription(
+               fixture.componentInstance.flow))
+        .toContain('File not found');
   });
 
   it('shows and error message on failure', () => {
@@ -191,6 +199,8 @@ describe('collect-single-file-details component', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText).toContain('Some error');
+    expect(fixture.componentInstance.getResultDescription(
+               fixture.componentInstance.flow))
+        .toContain('Some error');
   });
 });

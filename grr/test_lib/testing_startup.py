@@ -22,6 +22,7 @@ from grr_response_server import stats_server
 from grr_response_server.authorization import client_approval_auth
 from grr_response_server.check_lib import checks
 from grr_response_server.gui import http_api
+from grr_response_server.gui import registry_init as gui_api_registry_init
 from grr_response_server.gui import webauth
 from grr.test_lib import blob_store_test_lib
 
@@ -91,5 +92,7 @@ def TestInit():
     utils.TimeBasedCache()
   utils.TimeBasedCache.house_keeper_thread.exit = True
   utils.TimeBasedCache.house_keeper_thread.join()
+
+  gui_api_registry_init.RegisterApiCallRouters()
 
   INIT_RAN = True

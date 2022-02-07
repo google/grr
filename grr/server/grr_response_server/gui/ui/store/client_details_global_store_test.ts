@@ -35,6 +35,7 @@ describe('ClientDetailsGlobalStore', () => {
             // useFactory, to make sure the instance is shared.
             {provide: HttpApiService, useFactory: () => httpApiService},
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
 

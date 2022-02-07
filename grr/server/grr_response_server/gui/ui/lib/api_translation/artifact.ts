@@ -1,7 +1,6 @@
-import * as api from '@app/lib/api/api_interfaces';
-import {translateDict} from '@app/lib/api_translation/primitive';
-import {ArtifactDescriptor, ArtifactSource, OperatingSystem, SourceType} from '@app/lib/models/flow';
-
+import * as api from '../../lib/api/api_interfaces';
+import {translateDict} from '../../lib/api_translation/primitive';
+import {ArtifactDescriptor, ArtifactSource, OperatingSystem, SourceType} from '../../lib/models/flow';
 import {assertKeyNonNull, PreconditionError} from '../preconditions';
 
 /**

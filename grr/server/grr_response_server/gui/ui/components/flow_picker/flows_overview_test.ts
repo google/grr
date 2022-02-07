@@ -1,9 +1,10 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {FlowListItem, FlowsByCategory} from '@app/components/flow_picker/flow_list_item';
-import {FlowsOverview} from '@app/components/flow_picker/flows_overview';
-import {initTestEnvironment} from '@app/testing';
+
+import {FlowListItem, FlowsByCategory} from '../../components/flow_picker/flow_list_item';
+import {FlowsOverview} from '../../components/flow_picker/flows_overview';
+import {initTestEnvironment} from '../../testing';
 
 import {FlowPickerModule} from './module';
 
@@ -22,7 +23,8 @@ describe('FlowsOverview component', () => {
             FlowPickerModule,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

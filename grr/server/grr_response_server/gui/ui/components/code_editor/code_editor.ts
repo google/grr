@@ -10,10 +10,10 @@ import {ControlValueAccessor, NG_VALUE_ACCESSOR, NgControl} from '@angular/forms
 import {MatFormFieldControl} from '@angular/material/form-field';
 // tslint:disable-next-line:enforce-name-casing
 import * as CodeMirror from 'codemirror';
-import {isNonNull} from '@app/lib/preconditions';
 import {Subject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
+import {isNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
 
 type OnChangeFn = (textValue: string) => void;
@@ -48,7 +48,7 @@ export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
                                    AfterViewInit, ControlValueAccessor {
   private static uniqueNumber = 0;
 
-  readonly ngOnDestroy = observeOnDestroy(() => {
+  readonly ngOnDestroy = observeOnDestroy(this, () => {
     this.focusMonitor.stopMonitoring(this.rootElement.nativeElement);
   });
 

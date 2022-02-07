@@ -1,3 +1,5 @@
+import {compareAlphabeticallyBy} from './type_utils';
+
 /**
  * Every string that matches a user-input provides a list of ranges
  * corresponding to substrings that triggered the match. MatchRange
@@ -243,9 +245,7 @@ export class FuzzyMatcher {
         lowerInput, new Set(substringMatches.map(m => m.subject)));
 
     const results = [...substringMatches, ...prefixMatches];
-    results.sort((a: Match, b: Match) => {
-      return a.subject.localeCompare(b.subject);
-    });
+    results.sort(compareAlphabeticallyBy(result => result.subject));
 
     return results;
   }

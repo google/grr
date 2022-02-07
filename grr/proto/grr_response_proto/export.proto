@@ -414,3 +414,94 @@ message ExportedSoftwarePackage {
   optional uint64 installed_on = 8;
   optional string installed_by = 9;
 }
+
+message ExportedCronTabEntry {
+  optional ExportedMetadata metadata = 1;
+  optional string cron_file_path = 2;
+  optional string minute = 3;
+  optional string hour = 4;
+  optional string dayofmonth = 5;
+  optional string month = 6;
+  optional string dayofweek = 7;
+  optional string command = 8;
+  optional string comment = 9;
+}
+
+message ExportedLaunchdPlist {
+  optional ExportedMetadata metadata = 1;
+  optional string launchd_file_path = 2;
+
+  optional string label = 3;
+  optional bool disabled = 4;
+  optional string user_name = 5;
+  optional string group_name = 6;
+  optional string program = 7;
+  optional string program_arguments = 8;
+  optional string root_directory = 9;
+  optional string working_directory = 10;
+  optional bool on_demand = 11;
+  optional bool run_at_load = 12;
+  optional string start_calendar_interval = 13;
+  optional string environment_variables = 14;
+  optional string standard_in_path = 15;
+  optional string standard_out_path = 16;
+  optional string standard_error_path = 17;
+  optional string limit_load_to_hosts = 18;
+  optional string limit_load_from_hosts = 19;
+  optional string limit_load_to_session_type = 20;
+  optional bool enable_globbing = 21;
+  optional bool enable_transactions = 22;
+  optional int32 umask = 23;
+  optional int32 time_out = 24;
+  optional int32 exit_time_out = 25;
+  optional int32 throttle_interval = 26;
+  optional bool init_groups = 27;
+  optional string watch_paths = 28;
+  optional string queue_directories = 29;
+  optional bool start_on_mount = 30;
+  optional int32 start_interval = 31;
+  optional bool debug = 32;
+  optional bool wait_for_debugger = 33;
+  optional int32 nice = 34;
+  optional string process_type = 35;
+  optional bool abandon_process_group = 36;
+  optional bool low_priority_io = 37;
+  optional bool launch_only_once = 38;
+  optional bool inetd_compatibility_wait = 39;
+  optional bool soft_resource_limits = 40;
+  optional bool hard_resource_limits = 41;
+  optional bool sockets = 42;
+  optional bool keep_alive = 43;
+  optional bool keep_alive_successful_exit = 44;
+  optional bool keep_alive_network_state = 45;
+  optional string keep_alive_path_state = 46;
+  optional string keep_alive_other_job_enabled = 47;
+}
+
+message ExportedWindowsServiceInformation {
+  optional ExportedMetadata metadata = 1;
+  optional string name = 2;
+  optional string description = 3;
+  optional string state = 5;
+  optional string wmi_information = 6;
+  optional string display_name = 7;
+  optional string driver_package_id = 8;
+  optional WindowsServiceInformation.ErrorControl error_control = 9;
+  optional string image_path = 10;
+  optional string object_name = 11;
+  optional WindowsServiceInformation.ServiceMode startup_type = 12;
+  optional WindowsServiceInformation.ServiceType service_type = 13;
+  optional string group_name = 14;
+  optional string service_dll = 15;
+  optional string registry_key = 16;
+}
+
+message ExportedExecuteResponse {
+  optional ExportedMetadata metadata = 1;
+  optional string cmd = 2;
+  optional string args = 3;
+  optional int32 exit_status = 4;
+  optional bytes stdout = 5;
+  optional bytes stderr = 6;
+  optional uint64 time_used_us = 7;
+}

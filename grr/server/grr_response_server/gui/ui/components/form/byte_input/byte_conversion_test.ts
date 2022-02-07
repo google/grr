@@ -1,4 +1,4 @@
-import {initTestEnvironment} from '@app/testing';
+import {initTestEnvironment} from '../../../testing';
 
 import {parseByteString, toByteString, toByteUnit} from './byte_conversion';
 

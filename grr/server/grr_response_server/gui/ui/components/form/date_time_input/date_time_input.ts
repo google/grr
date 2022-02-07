@@ -4,9 +4,10 @@ import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, forwa
 import {ControlValueAccessor, NgControl} from '@angular/forms';
 import {MatFormFieldControl} from '@angular/material/form-field';
 import {MatMenu, MatMenuTrigger} from '@angular/material/menu';
-import {DateTime} from '@app/lib/date_time';
-import {isNonNull} from '@app/lib/preconditions';
 import {Subject} from 'rxjs';
+
+import {DateTime} from '../../../lib/date_time';
+import {isNonNull} from '../../../lib/preconditions';
 
 
 
@@ -34,7 +35,7 @@ function generateMenuTimes(): ReadonlyArray<string> {
 }
 
 /** DateTime format used in date-time-input controls. */
-export const DATE_TIME_FORMAT = 'yyyy-MM-dd hh:mm:ss';
+export const DATE_TIME_FORMAT = 'yyyy-MM-dd HH:mm:ss';
 
 /** mat-form-field for GlobExpression inputs. */
 @Component({

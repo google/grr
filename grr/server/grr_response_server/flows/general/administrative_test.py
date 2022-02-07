@@ -5,6 +5,7 @@
 import os
 import subprocess
 import sys
+import tempfile
 from unittest import mock
 
 from absl import app
@@ -22,13 +23,13 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
+from grr_response_server import action_registry
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import maintenance_utils
-from grr_response_server import server_stubs
 from grr_response_server import signed_binary_utils
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import administrative
@@ -52,8 +53,7 @@ class ClientActionRunner(flow_base.FlowBase):
 
   def Start(self):
     self.CallClient(
-        server_stubs.ClientActionStub.classes[self.args.action],
-        next_state="End")
+        action_registry.ACTION_STUB_BY_ID[self.args.action], next_state="End")
 
 
 class KeepAliveFlowTest(flow_test_lib.FlowTestsBaseclass):
@@ -649,6 +649,34 @@ magic_return_str = "foo(%s)"
 
     si = data_store.REL_DB.ReadClientStartupInfo(client_id)
     self.assertEqual(si.client_info.client_version, 3001)
+
+    flows = data_store.REL_DB.ReadAllFlowObjects(
+        client_id, include_child_flows=False)
+    interrogates = [
+        f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
+    ]
+    self.assertLen(interrogates, orig_count + 1)
+    self.assertEqual(flows[-1].flow_class_name, discovery.Interrogate.__name__)
+
+  def testStartupTriggersInterrogateWhenExplicitlyRequestedByClient(self):
+    client_id = self.SetupClient(0)
+    self._RunSendStartupInfo(client_id)
+
+    flows = data_store.REL_DB.ReadAllFlowObjects(
+        client_id, include_child_flows=False)
+    orig_count = len([
+        f for f in flows if f.flow_class_name == discovery.Interrogate.__name__
+    ])
+
+    # It's the second StartupInfo call and the version hasn't changed.
+    # The only thing that's changed: a trigger file is created - and
+    # that should trigger an interrogate.
+    with tempfile.NamedTemporaryFile(delete=False) as temp_fd:
+      with test_lib.ConfigOverrider(
+          {"Client.interrogate_trigger_path": temp_fd.name}):
+        with mock.patch.multiple(
+            discovery.Interrogate, Start=mock.DEFAULT, End=mock.DEFAULT):
+          self._RunSendStartupInfo(client_id)
 
     flows = data_store.REL_DB.ReadAllFlowObjects(
         client_id, include_child_flows=False)

@@ -2,18 +2,12 @@
 """Flows for handling the collection for artifacts."""
 
 import logging
-
-from typing import Optional
-from typing import Sequence
-from typing import Text
+from typing import Optional, Sequence, Text
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
-# For file collection artifacts. pylint: disable=unused-import
-from grr_response_core.lib.parsers import registry_init
-# pylint: enable=unused-import
 from grr_response_core.lib.parsers import windows_persistence
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -25,6 +19,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
+from grr_response_server import action_registry
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
@@ -35,6 +30,8 @@ from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
 
+# For file collection artifacts. pylint: disable=unused-import
+# pylint: enable=unused-import
 _MAX_DEBUG_RESPONSES_STRING_LENGTH = 100000
 
 
@@ -117,8 +114,9 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
           "Interrogate", next_state=compatibility.GetName(self.StartCollection))
       return
 
-    elif (self.args.dependencies == rdf_artifacts.ArtifactCollectorFlowArgs
-          .Dependency.USE_CACHED) and (not self.state.knowledge_base):
+    elif (self.args.dependencies
+          == rdf_artifacts.ArtifactCollectorFlowArgs.Dependency.USE_CACHED
+         ) and (not self.state.knowledge_base):
       # If not provided, get a knowledge base from the client.
       try:
         self.state.knowledge_base = _ReadClientKnowledgeBase(self.client_id)
@@ -593,7 +591,7 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
     # Retrieve the correct rdfvalue to use for this client action.
     action_name = source.attributes["client_action"]
     try:
-      action_stub = server_stubs.ClientActionStub.classes[action_name]
+      action_stub = action_registry.ACTION_STUB_BY_ID[action_name]
     except KeyError:
       raise RuntimeError("Client action %s not found." % action_name)
 
@@ -944,7 +942,7 @@ class ClientArtifactCollector(flow_base.FlowBase):
 
   category = "/Collectors/"
   args_type = rdf_artifacts.ArtifactCollectorFlowArgs
-  behaviours = flow_base.BEHAVIOUR_ADVANCED
+  behaviours = flow_base.BEHAVIOUR_DEBUG
 
   def Start(self):
     """Issue the artifact collection request."""

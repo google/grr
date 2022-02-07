@@ -54,7 +54,7 @@
     </tr>
     <tr *ngIf="volume.creationTime">
       <td class="description">Creation time</td>
-      <td class="value"><timestamp [date]="volume.creationTime"></timestamp></td>
+      <td class="value"><app-timestamp [date]="volume.creationTime"></app-timestamp></td>
     </tr>
   </table>
   <br *ngIf="!isLast">

@@ -1,0 +1,187 @@
+<div class="wrapper">
+  <h1 class="header" (click)="showForm($event)">
+      Define Parameters
+    <button mat-icon-button
+            id="param-form-toggle"
+            class="corner-button"
+            (click)="toggleForm($event)"
+            aria-label="View/hide choose param form">
+      <mat-icon>{{hideContent ? 'expand_less' : 'expand_more'}}</mat-icon>
+    </button>
+  </h1>
+
+  <div class="content">
+    <form>
+      <div class="basic-params">
+        <div class="param-container">
+          <div class="param-name">Rollout speed</div>
+            <mat-button-toggle-group class="rollout-speed" [formControl]="controls.clientRate">
+              <mat-button-toggle [value]="0"
+                                 (click)="hideClientRateCustomInput()"
+                                 matTooltip="Expacting total traffic below 10MB per client or less than 1000 results per client">
+                Unlimited
+              </mat-button-toggle>
+              <mat-button-toggle [value]="200"
+                                 (click)="hideClientRateCustomInput()"
+                                 matTooltip="Expacting total traffic above 10MB or more than 1000 results per client">
+                Standard
+              </mat-button-toggle>
+              <mat-button-toggle [value]="-1"
+                                 (click)="showClientRateCustomInput()"
+                                 matTooltip="Set your own rollout speed">
+                Custom
+              </mat-button-toggle>
+            </mat-button-toggle-group>
+            <mat-form-field appearance="outline"
+                            *ngIf="clientRateCustomInput">
+              <mat-label>Client rate</mat-label>
+              <input matInput
+                     [formControl]="controls.clientRate"
+                     type="number"
+                     autocomplete="off">
+            </mat-form-field>
+        </div>
+        <div class="param-container">
+          <div class="param-name">Run on</div>
+            <mat-button-toggle-group [(value)]="clientLimit" class="run-on">
+              <mat-button-toggle [value]="0">All matching clients</mat-button-toggle>
+              <mat-button-toggle [value]="1000">1% of clients</mat-button-toggle>
+              <mat-button-toggle [value]="-1">Custom</mat-button-toggle>
+            </mat-button-toggle-group>
+            <mat-form-field appearance="outline" *ngIf="clientLimit===-1">
+              <mat-label>Number of clients</mat-label>
+              <input matInput
+                     [(ngModel)]="customClientLimit"
+                     [ngModelOptions]="{standalone: true}"
+                     name="customClientLimit"
+                     type="number"
+                     autocomplete="off">
+            </mat-form-field>
+        </div>
+        <mat-form-field appearance="outline">
+          <mat-label>Active for</mat-label>
+          <input matInput
+                 durationInput
+                 [formControl]="controls.expiryTime"
+                 name="activeFor"
+                 autocomplete="off">
+        </mat-form-field>
+      </div>
+      <div class="advanced-params" [hidden]="hideAdvancedParams">
+        <h1 class="params-title">Stop fleet collection if…</h1>
+        <div class="params-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Crash limit</mat-label>
+            <input matInput
+                   [formControl]="controls.crashLimit"
+                   name="crashLimit"
+                   type="number"
+                   autocomplete="off">
+            <span matSuffix class="input-suffix">clients</span>
+          </mat-form-field>
+          <mat-icon matTooltip="Stop the fleet collection when this threshold is reached"
+                    inline
+                    class="info-icon">
+              info_outline
+          </mat-icon>
+          <mat-form-field appearance="outline">
+            <mat-label>Average results per client</mat-label>
+            <input matInput
+                   [formControl]="controls.avgResultsPerClientLimit"
+                   name="avgResultsPerClientLimit"
+                   type="number"
+                   autocomplete="off">
+            <span matSuffix class="input-suffix">results collected</span>
+            <mat-hint align="start">Applicable after 1000 clients</mat-hint>
+          </mat-form-field>
+          <mat-icon matTooltip="After the fleet collection excecuted on 1000 clients
+                                we get an average number of results / client. If this average value
+                                exceeds the defined threshold, the collection stops. This is not a
+                                hard limit applied to every client."
+                    inline
+                    class="info-icon">
+              info_outline
+          </mat-icon>
+        </div>
+        <div class="params-row">
+          <mat-form-field appearance="outline">
+            <mat-label>Average CPU (per client)</mat-label>
+            <input matInput
+                   durationInput
+                   [formControl]="controls.avgCpuSecondsPerClientLimit"
+                   name="aveCPU"
+                   autocomplete="off">
+            <mat-hint align="start">Applicable after 1000 clients</mat-hint>
+          </mat-form-field>
+          <mat-icon matTooltip="After the fleet collection excecuted on 1000 clients we get an average
+                                CPU / client. If this average value exceeds the defined threshold,
+                                the collection stops. This is not a hard limit applied to every client.
+                                X CPU seconds means the flow consumed the equivalent of Xseconds of
+                                one core processing time in the client."
+                    inline
+                    class="info-icon">
+              info_outline
+          </mat-icon>
+          <mat-form-field appearance="outline">
+            <mat-label>Average Network usage (per client)</mat-label>
+            <input matInput
+                   byteInput
+                   [formControl]="controls.avgNetworkBytesPerClientLimit"
+                   name="aveNetwork"
+                   autocomplete="off">
+            <mat-hint align="start">Applicable after 1000 clients</mat-hint>
+          </mat-form-field>
+          <mat-icon matTooltip="After the fleet collection excecuted on 1000 clients we get an average
+                                number of bytes sent back / client. If this average value exceeds the
+                                defined threshold, the collection stops. This is not a hard limit
+                                applied to every client."
+                    inline
+                    class="info-icon">
+              info_outline
+          </mat-icon>
+        </div>
+        <h1 class="params-title">Stop client (flow) collection if…</h1>
+        <div class="params-row">
+          <mat-form-field appearance="outline">
+            <mat-label>CPU limit per client</mat-label>
+            <input matInput
+                   durationInput
+                   [formControl]="controls.cpuLimit"
+                   name="cpuLimit"
+                   autocomplete="off">
+          </mat-form-field>
+          <mat-icon matTooltip="Stop file collection on client if this threshold is exceeded.
+                                If this threshold is meet, the client collection stops, but the fleet collection continues."
+                    inline
+                    class="info-icon">
+              info_outline
+          </mat-icon>
+          <mat-form-field appearance="outline">
+            <mat-label>Network limit per client</mat-label>
+            <input matInput
+                   byteInput
+                   [formControl]="controls.networkBytesLimit"
+                   name="networkLimit"
+                   autocomplete="off">
+          </mat-form-field>
+          <mat-icon matTooltip="Stop file collection on client if this threshold is exceeded.
+                                If this threshold is meet, the client collection stops, but the fleet collection continues."
+                    inline
+                    class="info-icon">
+              info_outline
+          </mat-icon>
+        </div>
+      </div>
+      <button mat-flat-button
+              type="button"
+              id="toggle-advance-params"
+              class="advance-params-button"
+              (click)="toggleAdvancedParams()"
+              aria-label="View/hide advanced params">
+        <mat-icon>{{hideAdvancedParams ? 'expand_more' : 'expand_less'}}</mat-icon>
+        {{hideAdvancedParams ? 'Show safety limits' : 'Hide safety limits'}}
+    </button>
+    </form>
+  </div>
+</div>
+

@@ -1,10 +1,10 @@
 import {Component, DebugElement} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {FormControl} from '@angular/forms';
-import {ReactiveFormsModule} from '@angular/forms';
+import {FormControl, ReactiveFormsModule} from '@angular/forms';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {initTestEnvironment} from '@app/testing';
+
+import {initTestEnvironment} from '../../../testing';
 
 import {ByteValueAccessor} from './byte_value_accessor';
 import {ByteComponentsModule} from './module';
@@ -33,7 +33,8 @@ describe('ByteValueAccessor', () => {
             TestHostComponent,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
 

@@ -1,17 +1,37 @@
-<div [formGroup]="form">
+<div>
   <mat-form-field appearance="outline" class="w100">
     <mat-label>Absolute path</mat-label>
-    <input matInput placeholder="" formControlName="path" class="monospace">
+    <input
+      matInput
+      placeholder=""
+      [formControl]="controls.path"
+      class="monospace"
+      name="path"
+      autocomplete="off"
+    />
+    <mat-hint>
+      <app-literal-path-glob-expression-warning
+        [path]="form.value['path']"
+      ></app-literal-path-glob-expression-warning>
+    </mat-hint>
   </mat-form-field>
 
   <mat-form-field appearance="outline" class="w33">
     <mat-label>Maximum file size</mat-label>
-    <input matInput byteInput placeholder="" formControlName="maxSizeBytes" class="monospace">
+    <input
+      matInput
+      byteInput
+      placeholder=""
+      [formControl]="controls.maxSizeBytes"
+      class="monospace"
+      autocomplete="off"
+    />
 
     <mat-hint>
       Will collect at most {{ formattedBytesAtUnit$ | async }}
-      <a href="https://en.wikipedia.org/wiki/{{ unit$ | async }}"
-        target="_blank">{{ unit$ | async }}</a>
+      <a href="https://en.wikipedia.org/wiki/{{ unit$ | async }}" target="_blank">{{
+        unit$ | async
+      }}</a>
       <span *ngIf="formattedRawBytes$ | async as formattedRawBytes">
         = {{ formattedRawBytes }} bytes
       </span>

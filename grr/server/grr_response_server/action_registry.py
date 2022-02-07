@@ -42,6 +42,7 @@ ACTION_STUB_BY_ID = {
     "ListNamedPipes": server_stubs.ListNamedPipes,
     "ListNetworkConnections": server_stubs.ListNetworkConnections,
     "ListProcesses": server_stubs.ListProcesses,
+    "ReadLowLevel": server_stubs.ReadLowLevel,
     "OSXEnumerateRunningServices": server_stubs.OSXEnumerateRunningServices,
     "Osquery": server_stubs.Osquery,
     "PlistQuery": server_stubs.PlistQuery,

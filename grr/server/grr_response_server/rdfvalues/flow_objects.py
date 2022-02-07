@@ -12,16 +12,10 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
-from grr_response_proto import jobs_pb2
 from grr_response_server import action_registry
 from grr_response_server import output_plugin
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
-
-
-class PendingFlowTermination(rdf_structs.RDFProtoStruct):
-  """Descriptor of a pending flow termination."""
-  protobuf = jobs_pb2.PendingFlowTermination
 
 
 class FlowRequest(rdf_structs.RDFProtoStruct):
@@ -41,6 +35,38 @@ class FlowRequest(rdf_structs.RDFProtoStruct):
 
 class FlowMessage(object):
   """Base class for all messages flows can receive."""
+
+  @property
+  def client_id(self) -> str:
+    return self.Get("client_id")
+
+  @client_id.setter
+  def client_id(self, value: str) -> None:
+    self.Set("client_id", value)
+
+  @property
+  def flow_id(self) -> str:
+    return self.Get("flow_id")
+
+  @flow_id.setter
+  def flow_id(self, value: str) -> None:
+    self.Set("flow_id", value)
+
+  @property
+  def request_id(self) -> int:
+    return self.Get("request_id")
+
+  @request_id.setter
+  def request_id(self, value: int) -> None:
+    self.Set("request_id", value)
+
+  @property
+  def response_id(self) -> int:
+    return self.Get("response_id")
+
+  @response_id.setter
+  def response_id(self, value: int) -> None:
+    self.Set("response_id", value)
 
 
 class FlowResponse(FlowMessage, rdf_structs.RDFProtoStruct):
@@ -155,7 +181,6 @@ class Flow(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       "OutputPluginDescriptor",  # TODO(user): dependency loop.
       rdf_flow_runner.OutputPluginState,
-      PendingFlowTermination,
       rdf_client.ClientCrash,
       rdf_client_stats.CpuSeconds,
       rdf_objects.FlowReference,

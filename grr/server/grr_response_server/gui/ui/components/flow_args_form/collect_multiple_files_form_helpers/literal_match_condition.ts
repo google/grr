@@ -1,6 +1,14 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
 import {ControlContainer, FormControl, FormGroup, Validators} from '@angular/forms';
-import {FileFinderContentsMatchConditionMode} from '@app/lib/api/api_interfaces';
+
+import {FileFinderContentsLiteralMatchCondition, FileFinderContentsMatchConditionMode} from '../../../lib/api/api_interfaces';
+import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
+
+declare interface LiteralMatchRawFormValues {
+  readonly literal: string;
+  readonly mode: FileFinderContentsMatchConditionMode;
+  readonly length: number;
+}
 
 /** Form that configures a literal match condition. */
 @Component({
@@ -27,4 +35,16 @@ export function createLiteralMatchFormGroup(): FormGroup {
     literal: new FormControl(null, Validators.required),
     mode: new FormControl(FileFinderContentsMatchConditionMode.FIRST_HIT),
   });
+}
+
+/**
+ * Converts raw form values to FileFinderContentsLiteralMatchCondition.
+ */
+export function formValuesToFileFinderContentsLiteralMatchCondition(
+    rawFormValues: LiteralMatchRawFormValues):
+    FileFinderContentsLiteralMatchCondition {
+  return {
+    ...rawFormValues,
+    literal: encodeStringToBase64(rawFormValues.literal),
+  };
 }

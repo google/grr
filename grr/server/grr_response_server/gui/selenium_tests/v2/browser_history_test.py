@@ -5,7 +5,10 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.flows.general import webhistory
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import gui_test_lib
+from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -205,9 +208,18 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
                 num_collected_files=1,
             ),
         ])):
-      # The flow details view should get updated automatically.
-      self.WaitUntil(self.IsElementPresent,
-                     "css=a[mat-stroked-button]:contains('Download all')")
+      with flow_test_lib.FlowResultMetadataOverride(
+          webhistory.CollectBrowserHistory,
+          rdf_flow_objects.FlowResultMetadata(
+              is_metadata_set=True,
+              num_results_per_type_tag=[
+                  rdf_flow_objects.FlowResultCount(
+                      type=webhistory.CollectBrowserHistoryResult.__name__,
+                      count=1)
+              ])):
+        # The flow details view should get updated automatically.
+        self.WaitUntil(self.IsElementPresent,
+                       "css=a[mat-stroked-button]:contains('Download')")
 
   def testDisplaysMultipleResultsForSingleBrowser(self):
     flow_args = webhistory.CollectBrowserHistoryArgs(
@@ -238,12 +250,14 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       self.Click("css=.flow-title:contains('Browser History')")
       # Expand the browser.
       self.Click("css=div.title:contains('Chrome')")
+      # Update pagination to display all the results.
+      self.MatSelect("css=.top-paginator mat-select", "100")
       # Check that only first 100 results are visible. First row is the table
       # header, so we start with 1.
       self.WaitUntil(self.IsElementPresent, "css=.results tr:nth(1)")
       self.WaitUntilNot(
           self.IsElementPresent,
-          "css=.results tr:nth(101):contains('/home/foo/chrome-100')")
+          "css=.results tr:nth(101):contains('/home/foo/chrome-99')")
 
       # Check that clicking Load More loads the rest. The button can be hidden
       # under the approval bottom sheet, so for now we workaround by clicking it
@@ -251,6 +265,8 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       self.WaitUntil(self.IsElementPresent, "css=button:contains('Load More')")
       self.driver.execute_script(
           """$("button:contains('Load More')").click();""")
+      # Update pagination to display all the results.
+      self.MatSelect("css=.top-paginator mat-select", "500")
 
       self.WaitUntil(
           self.IsElementPresent,
@@ -342,6 +358,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
       self.Open(f"/v2/clients/{self.client_id}")
       self.Click("css=.flow-title:contains('Browser History')")
 
+      self.ScrollIntoView("css=div.title:contains('Chrome')")
       self.Click("css=div.title:contains('Chrome')")
       self.WaitUntil(self.IsElementPresent,
                      "css=.results tr:contains('/home/foo/chrome-0')")
@@ -374,7 +391,8 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         flow_args=flow_args)
 
     self.Open(f"/v2/clients/{self.client_id}")
-    self.Click("css=.flow-title:contains('Browser History')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.flow-title:contains('Browser History')")
 
     progress_0_results = webhistory.CollectBrowserHistoryProgress(browsers=[
         webhistory.BrowserProgress(
@@ -386,12 +404,33 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     with flow_test_lib.FlowProgressOverride(webhistory.CollectBrowserHistory,
                                             progress_0_results):
       self.WaitUntil(self.IsElementPresent, "css=div.title:contains('Chrome')")
-      self.WaitUntilNot(self.IsElementPresent,
-                        "css=.header:contains('arrow_right')")
+      self.WaitUntilNot(
+          self.IsElementPresent,
+          ("css=collect-browser-history-details result-accordion " +
+           ".header:contains('keyboard_arrow_down')"))
 
     flow_test_lib.AddResultsToFlow(
         self.client_id,
-        flow_id, [_GenResults(webhistory.Browser.CHROME, i) for i in range(10)],
+        flow_id, [_GenResults(webhistory.Browser.CHROME, i) for i in range(9)],
+        tag="CHROME")
+    progress_10_results = webhistory.CollectBrowserHistoryProgress(browsers=[
+        webhistory.BrowserProgress(
+            browser=webhistory.Browser.CHROME,
+            status=webhistory.BrowserProgress.Status.IN_PROGRESS,
+            num_collected_files=9,
+        )
+    ])
+    with flow_test_lib.FlowProgressOverride(webhistory.CollectBrowserHistory,
+                                            progress_10_results):
+      self.WaitUntil(self.IsElementPresent,
+                     ("css=collect-browser-history-details result-accordion " +
+                      ".header:contains('keyboard_arrow_down')"))
+      self.Click("css=div.title:contains('Chrome')")
+      self.WaitUntilEqual(9, self.GetCssCount, "css=tr:contains('/home/foo')")
+
+    flow_test_lib.AddResultsToFlow(
+        self.client_id,
+        flow_id, [_GenResults(webhistory.Browser.CHROME, 10)],
         tag="CHROME")
     progress_10_results = webhistory.CollectBrowserHistoryProgress(browsers=[
         webhistory.BrowserProgress(
@@ -402,25 +441,41 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     ])
     with flow_test_lib.FlowProgressOverride(webhistory.CollectBrowserHistory,
                                             progress_10_results):
-      self.WaitUntil(self.IsElementPresent,
-                     "css=.header:contains('arrow_right')")
-      self.Click("css=div.title:contains('Chrome')")
       self.WaitUntilEqual(10, self.GetCssCount, "css=tr:contains('/home/foo')")
 
-    flow_test_lib.AddResultsToFlow(
-        self.client_id,
-        flow_id, [_GenResults(webhistory.Browser.CHROME, 11)],
-        tag="CHROME")
-    progress_11_results = webhistory.CollectBrowserHistoryProgress(browsers=[
-        webhistory.BrowserProgress(
-            browser=webhistory.Browser.CHROME,
-            status=webhistory.BrowserProgress.Status.IN_PROGRESS,
-            num_collected_files=11,
-        )
-    ])
-    with flow_test_lib.FlowProgressOverride(webhistory.CollectBrowserHistory,
-                                            progress_11_results):
-      self.WaitUntilEqual(11, self.GetCssCount, "css=tr:contains('/home/foo')")
+  def testBrowserHistoryFlowForm(self):
+    self.Open(f"/v2/clients/{self.client_id}")
+
+    self.Click('css=flow-form button:contains("Collect browser history")')
+
+    # Uncheck Firefox, all other browser remain checked per default.
+    self.Click(
+        "css=flow-form mat-checkbox[formcontrolname=collectFirefox] label")
+
+    self.Click('css=flow-form button:contains("Start")')
+
+    def FlowHasBeenStarted():
+      handler = api_flow.ApiListFlowsHandler()
+      flows = handler.Handle(
+          api_flow.ApiListFlowsArgs(
+              client_id=self.client_id, top_flows_only=True),
+          context=api_call_context.ApiCallContext(
+              username=self.test_username)).items
+      self.assertLessEqual(len(flows), 1)
+      return flows[0] if len(flows) == 1 else None
+
+    flow = self.WaitUntil(FlowHasBeenStarted)
+
+    self.assertEqual(flow.name, webhistory.CollectBrowserHistory.__name__)
+    self.assertCountEqual(
+        flow.args.browsers,
+        [
+            webhistory.CollectBrowserHistoryArgs.Browser.CHROME,
+            # Only Firefox has been unchecked, so it should not appear.
+            webhistory.CollectBrowserHistoryArgs.Browser.INTERNET_EXPLORER,
+            webhistory.CollectBrowserHistoryArgs.Browser.SAFARI,
+            webhistory.CollectBrowserHistoryArgs.Browser.OPERA,
+        ])
 
 
 if __name__ == "__main__":

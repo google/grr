@@ -1,9 +1,9 @@
 import {Injectable} from '@angular/core';
-import {HttpApiService} from '@app/lib/api/http_api_service';
 import {Observable, ReplaySubject} from 'rxjs';
 import {concatMap, debounceTime} from 'rxjs/operators';
 
 import {GlobComponentExplanation} from '../../api/api_interfaces';
+import {HttpApiService} from '../../api/http_api_service';
 
 interface ClientGlobExpression {
   clientId: string;

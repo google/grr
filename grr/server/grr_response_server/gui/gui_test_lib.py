@@ -528,8 +528,11 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # We experienced that Selenium sometimes swallows the last character of the
     # text sent. Raising an exception here will just retry in that case.
     if not end_with_enter:
-      if text != self.GetValue(target):
-        raise exceptions.WebDriverException("Send_keys did not work correctly.")
+      actual = self.GetValue(target)
+      if text != actual:
+        raise exceptions.WebDriverException(
+            f"Send_keys did not work correctly: Got '{actual}' but expected " +
+            f"'{text}'.")
 
   @SeleniumAction
   def Click(self, target):
@@ -545,7 +548,19 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     self._WaitForAjaxCompleted()
 
     element = self.WaitUntil(self.GetVisibleElement, target)
-    element.click()
+
+    try:
+      element.click()
+    except exceptions.ElementNotInteractableException:
+      self.driver.execute_script("arguments[0].scrollIntoView();", element)
+      element.click()
+
+  @SeleniumAction
+  def ScrollIntoView(self, target):
+    """Scrolls any container to get the target into view."""
+    self._WaitForAjaxCompleted()
+    element = self.WaitUntil(self.GetVisibleElement, target)
+    self.driver.execute_script("arguments[0].scrollIntoView();", element)
 
   @SeleniumAction
   def MoveMouseTo(self, target):
@@ -555,6 +570,12 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
   @SeleniumAction
   def ScrollToBottom(self):
+    """Scrolls the main window scrollbar to the bottom.
+
+    This might not always bring the desired element into the view, e.g.
+    if the container that requires to be scrolled is not the window, but an
+    element on the page. Use ScrollIntoView() in this case.
+    """
     self.driver.execute_script(
         "window.scrollTo(0, document.body.scrollHeight);")
 
@@ -583,6 +604,23 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
   def GetSelectedLabel(self, target):
     element = self.WaitUntil(self.GetVisibleElement, target)
     return select.Select(element).first_selected_option.text.strip()
+
+  def MatSelect(self, target, label):
+    """Selects the option that displays text matching the argument.
+
+    Args:
+      target: CSS selector for the mat-select element.
+      label: Text representation for the option to be selected.
+
+    Raises:
+      ValueError: An invalid selector was provided - must be CSS.
+    """
+    selector_type, effective_selector = target.split("=", 1)
+    if selector_type != "css":
+      raise ValueError("Only CSS selector is supported for material select.")
+    self.WaitUntil(self.GetVisibleElement, target)
+    self.driver.execute_script(f"$('{effective_selector}').click()")
+    self.Click(f"css=.mat-option-text:contains('{label}')")
 
   def IsChecked(self, target):
     return self.WaitUntil(self.GetVisibleElement, target).is_selected()

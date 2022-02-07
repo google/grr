@@ -162,6 +162,30 @@ describe('grr-client-warnings directive', () => {
     source = markdownElement.scope().$eval(markdownElement.attr('source'));
     expect(source).toBe('blah2');
   });
+
+  it('shows no warning for Fleetspeak clients', () => {
+    const element = renderTestTemplate({}, {
+      type: 'ApiClient',
+      value: {
+        fleetspeak_enabled: {type: "bool", value: true},
+      }
+    });
+    expect(element.find('grr-markdown').length).toBe(0);
+  });
+
+  it('shows a warning for legacy clients', () => {
+    const element = renderTestTemplate({}, {
+      type: 'ApiClient',
+      value: {
+        fleetspeak_enabled: {type: "bool", value: false},
+      }
+    });
+    expect(element.find('grr-markdown').length).toBe(1);
+
+    const markdownElement = element.find('grr-markdown:nth(0)');
+    const source = markdownElement.scope().$eval(markdownElement.attr('source'));
+    expect(source).toContain('Outdated');
+  });
 });
 
 

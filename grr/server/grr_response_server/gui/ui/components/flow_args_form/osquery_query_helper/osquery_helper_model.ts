@@ -1,5 +1,5 @@
-import {Match} from '@app/lib/fuzzy_matcher';
-import {isNonNull} from '@app/lib/preconditions';
+import {Match} from '../../../lib/fuzzy_matcher';
+import {isNonNull} from '../../../lib/preconditions';
 
 import {nameToTable, OsqueryColumnSpec, OsqueryTableSpec} from './osquery_table_specs';
 

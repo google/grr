@@ -8,6 +8,12 @@ function getTypeName(obj: any): string {
   return obj?.constructor?.name ?? typeof obj;
 }
 
+/** Type guard that returns true if the value is either null or undefined. */
+export function isNull<T, U extends T|null|undefined>(value: U):
+    value is(null | undefined)&U {
+  return value === null || value === undefined;
+}
+
 /** Type guard that returns true if the value is neither null nor undefined. */
 export function isNonNull<T>(value: T): value is NonNullable<T> {
   return value !== null && value !== undefined;
@@ -58,8 +64,19 @@ export function isEnum<T extends string>(
  * enum.
  */
 export function assertEnum<T extends string>(
-    value: string, enumType: StringEnum<T>): asserts value is T {
-  if (!isEnum(value, enumType)) {
-    throw new PreconditionError('');
+    value: string|undefined, enumType: StringEnum<T>): asserts value is T {
+  if (value === undefined || !isEnum(value, enumType)) {
+    const values = Object.values(enumType).join(', ');
+    throw new PreconditionError(
+        `Expected "${value}" to be a member of enum ${values}.`);
+  }
+}
+
+/** Throws PreconditionError if the value is not a number. */
+export function assertNumber<T>(value: number|T): asserts value is number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new PreconditionError(
+        `Expected ${value} to be able to convert to number, but got ${
+            JSON.stringify(value)} of type ${getTypeName(value)}.`);
   }
 }

@@ -756,10 +756,9 @@ message LaunchdKeepAlive {
 
 // OSX Launchd plist
 message LaunchdPlist {
-  optional string aff4path = 1 [(sem_type) = {
-    type: "RDFURN",
-    description: "The location of this file in the AFF4 space."
-  }];
+  reserved 1;
+  optional string path = 44;
+
   optional string Label = 2;
   optional bool Disabled = 3;
   optional string UserName = 4;
@@ -798,7 +797,7 @@ message LaunchdPlist {
   optional bool AbandonProcessGroup = 37;
   optional bool LowPriorityIO = 38;
   optional bool LaunchOnlyOnce = 39;
-  optional bool inetdCompatabilityWait = 40;
+  optional bool inetdCompatibilityWait = 40;
   optional bool SoftResourceLimits = 41;
   optional bool HardResourceLimits = 42;
   optional bool Sockets = 43;
@@ -817,10 +816,8 @@ message CronTabEntry {
 
 // CronTab File
 message CronTabFile {
-  optional string aff4path = 1 [(sem_type) = {
-    type: "RDFURN",
-    description: "The location of this file in the AFF4 space."
-  }];
+  reserved 1;
+  optional string path = 3;
   repeated CronTabEntry jobs = 2;
 }
 

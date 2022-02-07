@@ -3,11 +3,11 @@ import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core'
 import {FormControl, FormGroup, Validators} from '@angular/forms';
 import {MatChipInputEvent} from '@angular/material/chips';
 import {MatDialog} from '@angular/material/dialog';
-import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
-import {isNonNull} from '@app/lib/preconditions';
 import {shareReplay} from 'rxjs/operators';
 
+import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {OsqueryFlowArgs} from '../../lib/api/api_interfaces';
+import {isNonNull} from '../../lib/preconditions';
 
 import {OsqueryQueryHelper} from './osquery_query_helper/osquery_query_helper';
 
@@ -23,12 +23,13 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs> implements
     OnInit {
   private readonly defaultQueryDisplayed = 'SELECT * FROM users LIMIT 10;';
 
-  readonly form = new FormGroup({
+  readonly controls = {
     query: new FormControl(this.defaultQueryDisplayed, Validators.required),
     timeoutMillis: new FormControl(null, Validators.required),
     ignoreStderrErrors: new FormControl(null),
     fileCollectionColumns: new FormControl([]),
-  });
+  };
+  readonly form = new FormGroup(this.controls);
 
   fileCollectionSettingsShown = false;
   lowLevelSettingsShown = false;
@@ -77,7 +78,7 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs> implements
   }
 
   addFileCollectionColumn(event: MatChipInputEvent): void {
-    const inputElement = event.input;
+    const inputElement = event.chipInput?.inputElement;
     const value = event.value ?? '';
 
     if (value.trim()) {

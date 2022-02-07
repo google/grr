@@ -1,0 +1,42 @@
+<mat-form-field appearance="outline">
+  <mat-label>Path expression</mat-label>
+  <input
+    matInput
+    #input
+    [formControl]="formControl"
+    [matAutocomplete]="auto"
+    placeholder="Type %% for autocompletion."
+    class="monospace"
+    autocomplete="off"
+  />
+
+  <!-- matSuffix must be instantiated in the same template to take effect, it
+    cannot be instantiated in ng-content. -->
+  <div matSuffix>
+    <ng-content></ng-content>
+  </div>
+
+  <mat-autocomplete
+    #auto="matAutocomplete"
+    (optionSelected)="onChange($event.option.value)"
+  >
+    <mat-option
+      *ngFor="let entry of filteredKnowledgeBaseExamples$ | async; trackBy: trackExample"
+      [value]="entry.value"
+      class="artifact-option"
+    >
+      <div class="two-line-option-title monospace">{{ entry.key }}</div>
+      <div class="two-line-option-subtitle monospace">
+        {{ entry.examples.join(', ')}}
+      </div>
+    </mat-option>
+  </mat-autocomplete>
+
+  <mat-hint>
+    Resolves to:
+    <glob-expression-explanation
+      [clientId]="(client$ | async)?.clientId"
+      [globExpression]="formControl.value"
+    ></glob-expression-explanation>
+  </mat-hint>
+</mat-form-field>

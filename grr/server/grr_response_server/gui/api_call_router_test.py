@@ -6,6 +6,7 @@ from absl import app
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
+from grr_response_server import access_control
 from grr_response_server.gui import api_call_router
 from grr.test_lib import test_lib
 
@@ -25,12 +26,16 @@ class SingleMethodDummyApiCallRouterChild(SingleMethodDummyApiCallRouter):
   pass
 
 
+class EmptyRouter(api_call_router.ApiCallRouterStub):
+  pass
+
+
 class ApiCallRouterTest(test_lib.GRRBaseTest):
   """Tests for ApiCallRouter."""
 
   def testAllAnnotatedMethodsAreNotImplemented(self):
     # We can't initialize ApiCallRouter directly because it's abstract.
-    router = api_call_router.DisabledApiCallRouter()
+    router = EmptyRouter()
 
     for name in api_call_router.ApiCallRouter.GetAnnotatedMethods():
       with self.assertRaises(NotImplementedError):
@@ -73,6 +78,16 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
           len(name), 128,
           "Router method name {} exceeds MySQL length limit of 128.".format(
               name))
+
+
+class DisabledApiCallRouterTest(test_lib.GRRBaseTest):
+  """Tests for ApiCallRouter."""
+
+  def testRaisesUnauthorizedAccess(self):
+    router = api_call_router.DisabledApiCallRouter()
+
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      router.SearchClients(None)
 
 
 class ApiSingleStringArgument(rdf_structs.RDFProtoStruct):

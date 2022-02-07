@@ -28,6 +28,7 @@ from grr_response_proto import output_plugin_pb2
 from grr_response_server import data_store
 from grr_response_server import export
 from grr_response_server import output_plugin
+from grr_response_server.export_converters import base
 from grr_response_server.gui.api_plugins import flow as api_flow
 
 HTTP_EVENT_COLLECTOR_PATH = "services/collector/event"
@@ -112,7 +113,7 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
            "violates OutputPlugin constraints.").format(flow_ids))
     return flow_ids.pop()
 
-  def _GetClientMetadata(self, client_id: Text) -> export.ExportedMetadata:
+  def _GetClientMetadata(self, client_id: Text) -> base.ExportedMetadata:
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
     metadata = export.GetMetadata(client_id, info)
     metadata.timestamp = None  # timestamp is sent outside of metadata.
@@ -124,7 +125,7 @@ class SplunkOutputPlugin(output_plugin.OutputPlugin):
     return api_flow.ApiFlow().InitFromFlowObject(flow_obj)
 
   def _MakeEvent(self, message: rdf_flows.GrrMessage,
-                 client: export.ExportedMetadata,
+                 client: base.ExportedMetadata,
                  flow: api_flow.ApiFlow) -> JsonDict:
 
     if message.timestamp:

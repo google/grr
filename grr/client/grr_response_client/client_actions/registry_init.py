@@ -15,6 +15,7 @@ from grr_response_client.client_actions import memory
 from grr_response_client.client_actions import network
 from grr_response_client.client_actions import osquery
 from grr_response_client.client_actions import plist
+from grr_response_client.client_actions import read_low_level
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
@@ -59,6 +60,7 @@ def RegisterClientActions():
   client_actions.Register("Osquery", osquery.Osquery)
   client_actions.Register("PlistQuery", plist.PlistQuery)
   client_actions.Register("ReadBuffer", standard.ReadBuffer)
+  client_actions.Register("ReadLowLevel", read_low_level.ReadLowLevel)
   client_actions.Register("Segfault", standard.Segfault)
   client_actions.Register("SendFile", standard.SendFile)
   client_actions.Register("SendStartupInfo", admin.SendStartupInfo)

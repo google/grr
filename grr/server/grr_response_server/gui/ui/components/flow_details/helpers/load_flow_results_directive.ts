@@ -35,7 +35,7 @@ export class LoadFlowResultsDirective<R = ReadonlyArray<FlowResult>> implements
     OnDestroy {
   private readonly context: Context<R>;
   private resultMapper?: FlowResultMapFunction<R>;
-  readonly ngOnDestroy = observeOnDestroy();
+  readonly ngOnDestroy = observeOnDestroy(this);
 
   constructor(
       templateRef: TemplateRef<unknown>,

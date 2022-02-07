@@ -1,13 +1,16 @@
+import {HttpErrorResponse} from '@angular/common/http';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute, Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
-import {ApiModule} from '@app/lib/api/module';
 
+import {ApiModule} from '../../lib/api/module';
+import {RequestStatusType} from '../../lib/api/track_request';
 import {newClientApproval} from '../../lib/models/model_test_util';
 import {ApprovalPageGlobalStore} from '../../store/approval_page_global_store';
 import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
+import {UserGlobalStore} from '../../store/user_global_store';
 import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
 
 import {ApprovalPage} from './approval_page';
@@ -34,6 +37,7 @@ describe('ApprovalPage Component', () => {
             {provide: ActivatedRoute, useFactory: getActivatedChildRoute},
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
 
@@ -90,5 +94,124 @@ describe('ApprovalPage Component', () => {
     fixture.debugElement.query(By.css('mat-card-actions button'))
         .triggerEventHandler('click', undefined);
     expect(approvalPageGlobalStore.grantApproval).toHaveBeenCalled();
+  });
+
+  it('shows a progress spinner when the approval request is in flight', () => {
+    const fixture = TestBed.createComponent(ApprovalPage);
+    const approvalPageGlobalStore = injectMockStore(ApprovalPageGlobalStore);
+    approvalPageGlobalStore.mockedObservables.approval$.next(newClientApproval({
+      clientId: 'C.1234',
+      requestor: 'msan',
+      reason: 'foobazzle 42',
+    }));
+    fixture.detectChanges();
+
+
+    expect(fixture.debugElement.query(By.css('button mat-spinner'))).toBeNull();
+
+    approvalPageGlobalStore.mockedObservables.grantRequestStatus$.next(
+        {status: RequestStatusType.SENT});
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('button mat-spinner')))
+        .not.toBeNull();
+
+    approvalPageGlobalStore.mockedObservables.grantRequestStatus$.next({
+      status: RequestStatusType.ERROR,
+      error: new HttpErrorResponse({error: ''})
+    });
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('button mat-spinner'))).toBeNull();
+  });
+
+  it('disables the grant button when a grant request is in flight', () => {
+    const fixture = TestBed.createComponent(ApprovalPage);
+    const approvalPageGlobalStore = injectMockStore(ApprovalPageGlobalStore);
+    approvalPageGlobalStore.mockedObservables.approval$.next(newClientApproval({
+      clientId: 'C.1234',
+      requestor: 'msan',
+      reason: 'foobazzle 42',
+    }));
+    injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
+      name: 'approver',
+      canaryMode: false,
+      huntApprovalRequired: false,
+    });
+    approvalPageGlobalStore.mockedObservables.grantRequestStatus$.next(
+        undefined);
+    fixture.detectChanges();
+
+    const grantButton = fixture.debugElement.query(By.css('.grant-button'));
+
+    expect(grantButton.attributes['disabled']).toBeFalsy();
+
+    approvalPageGlobalStore.mockedObservables.grantRequestStatus$.next(
+        {status: RequestStatusType.SENT});
+    fixture.detectChanges();
+
+    expect(grantButton.attributes['disabled']).toBe('true');
+
+    approvalPageGlobalStore.mockedObservables.grantRequestStatus$.next({
+      status: RequestStatusType.ERROR,
+      error: new HttpErrorResponse({error: ''})
+    });
+    fixture.detectChanges();
+
+    expect(grantButton.attributes['disabled']).toBeFalsy();
+  });
+
+  it('disables the grant button if the current user approved already', () => {
+    const fixture = TestBed.createComponent(ApprovalPage);
+    const approvalPageGlobalStore = injectMockStore(ApprovalPageGlobalStore);
+    approvalPageGlobalStore.mockedObservables.approval$.next(newClientApproval({
+      clientId: 'C.1234',
+      requestor: 'msan',
+      reason: 'foobazzle 42',
+      approvers: ['somebodyelse'],
+    }));
+    injectMockStore(UserGlobalStore)
+        .mockedObservables.currentUser$.next(
+            {name: 'approver', canaryMode: false, huntApprovalRequired: false});
+    approvalPageGlobalStore.mockedObservables.grantRequestStatus$.next(
+        undefined);
+    fixture.detectChanges();
+
+    const grantButton = fixture.debugElement.query(By.css('.grant-button'));
+
+    expect(grantButton.attributes['disabled']).toBeFalsy();
+
+    approvalPageGlobalStore.mockedObservables.approval$.next(newClientApproval({
+      clientId: 'C.1234',
+      requestor: 'msan',
+      reason: 'foobazzle 42',
+      approvers: ['approver'],
+    }));
+    fixture.detectChanges();
+
+    expect(grantButton.attributes['disabled']).toBe('true');
+  });
+
+  it('disables the grant button if the current user is the requestor', () => {
+    const fixture = TestBed.createComponent(ApprovalPage);
+    const approvalPageGlobalStore = injectMockStore(ApprovalPageGlobalStore);
+    approvalPageGlobalStore.mockedObservables.approval$.next(newClientApproval({
+      clientId: 'C.1234',
+      requestor: 'requestor',
+      reason: 'foobazzle 42',
+      approvers: ['somebodyelse'],
+    }));
+    injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
+      name: 'requestor',
+      canaryMode: false,
+      huntApprovalRequired: false,
+    });
+    approvalPageGlobalStore.mockedObservables.grantRequestStatus$.next(
+        undefined);
+    fixture.detectChanges();
+
+    const grantButton = fixture.debugElement.query(By.css('.grant-button'));
+
+    expect(grantButton.attributes['disabled']).toBe('true');
   });
 });

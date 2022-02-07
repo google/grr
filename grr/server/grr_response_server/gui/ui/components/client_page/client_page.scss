@@ -1,6 +1,5 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
 @use '../../material-theme' as c;
-@use '../../main' as main;
 
 $max-width: 1280px;
 $width: 80%;
@@ -9,58 +8,39 @@ $width: 80%;
   display: flex;
   flex-direction: column;
   flex: 1;
+  max-width: 100%;
+  row-gap: c.$page-spacing;
+  padding: c.$page-spacing 0 0;
 }
 
-client-overview {
+client-overview,
+.mat-tab-nav-bar {
   display: block;
   margin-left: auto;
   margin-right: auto;
   max-width: $max-width;
   width: $width;
-
-  .goto-details {
-    margin-left: auto;
-    margin-right: 2em;
-    align-self: flex-end;
-  }
 }
 
-.client-approval {
-  position: fixed;
-  bottom: 0;
-  background-color: white;
-  width: 100%;
-  z-index: 1;
-}
-
-.client-start-flow {
-  border-bottom: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
-  flow-form {
-    margin-left: auto;
-    margin-right: auto;
-    max-width: $max-width;
-    width: $width;
-  }
-  background: mat.get-color-from-palette(c.$background, app-bar);
-}
-
-.client-flows {
-  padding-top: 2em;
-  background-color: mat.get-color-from-palette(c.$background, darker-background);
-  flex: 1 1 auto;
-
-  flow-list,
-  scheduled-flow-list {
-    display: block;
-    margin-left: auto;
-    margin-right: auto;
-    max-width: $max-width;
-    width: $width;
-  }
+.mat-tab-nav-bar {
+  border: none;
 }
 
 mat-chip-list {
   /* mat-chip-list causes slight horizontal scrolling otherwise. */
   display: block;
   overflow: hidden;
+}
+
+.divider {
+  width: 100%;
+  height: 0;
+  border-bottom: 1px solid
+    mat.get-color-from-palette(c.$foreground, divider-light);
+}
+
+// router-outlet does not actually contain the routed page. Hide the element, so
+// that it does not generate row-gaps in flex layout.
+router-outlet {
+  display: none;
 }

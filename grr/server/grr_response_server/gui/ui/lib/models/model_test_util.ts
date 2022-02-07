@@ -1,9 +1,10 @@
 /** Test helpers. */
 // tslint:disable:enforce-comments-on-exported-symbols
 
-import {Client, ClientApproval} from '@app/lib/models/client';
+import {Client, ClientApproval} from '../../lib/models/client';
 
 import {ArtifactDescriptor, ArtifactDescriptorMap, Flow, FlowDescriptor, FlowResult, FlowState, OperatingSystem, ScheduledFlow} from './flow';
+import {File, PathSpec, PathSpecPathType, StatEntry} from './vfs';
 
 
 
@@ -125,4 +126,37 @@ export function newArtifactDescriptorMap(
     descriptors: Array<Partial<ArtifactDescriptor>>): ArtifactDescriptorMap {
   return new Map(
       descriptors.map(newArtifactDescriptor).map(ad => ([ad.name, ad])));
+}
+
+export function newPathSpec(pathSpec: Partial<PathSpec> = {}): PathSpec {
+  return {
+    path: '/foo/bar',
+    pathtype: PathSpecPathType.OS,
+    segments: [
+      {
+        path: pathSpec.path ?? '/foo/bar',
+        pathtype: pathSpec.pathtype ?? PathSpecPathType.OS,
+      },
+    ],
+    ...pathSpec,
+  };
+}
+
+export function newStatEntry(statEntry: Partial<StatEntry> = {}): StatEntry {
+  return {
+    pathspec: newPathSpec(statEntry.pathspec ?? {}),
+    ...statEntry,
+  };
+}
+
+export function newFile(file: Partial<File>): File {
+  return {
+    name: 'bar',
+    isDirectory: false,
+    path: 'fs/os/foo/bar',
+    pathtype: PathSpecPathType.OS,
+    lastMetadataCollected: new Date(123),
+    stat: newStatEntry(file.stat ?? {}),
+    ...file,
+  };
 }

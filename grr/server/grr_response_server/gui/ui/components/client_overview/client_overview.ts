@@ -1,9 +1,10 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {MatSnackBar} from '@angular/material/snack-bar';
-import {takeUntil} from 'rxjs/operators';
+import {filter, takeUntil} from 'rxjs/operators';
 
-import {ClientLabel} from '../../lib/models/client';
+import {ClientLabel, User} from '../../lib/models/client';
+import {isNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
@@ -21,7 +22,14 @@ export class ClientOverview implements OnInit, OnDestroy {
   private static readonly LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
 
   readonly client$ = this.clientPageGlobalStore.selectedClient$;
-  readonly ngOnDestroy = observeOnDestroy();
+
+  readonly showApprovalChip$ = this.clientPageGlobalStore.approvalsEnabled$;
+
+  readonly approval$ = this.clientPageGlobalStore.latestApproval$;
+
+  readonly ngOnDestroy = observeOnDestroy(this);
+
+  @Input() collapsed: boolean = false;
 
   constructor(
       private readonly clientPageGlobalStore: ClientPageGlobalStore,
@@ -31,7 +39,10 @@ export class ClientOverview implements OnInit, OnDestroy {
 
   ngOnInit() {
     this.clientPageGlobalStore.lastRemovedClientLabel$
-        .pipe(takeUntil(this.ngOnDestroy.triggered$))
+        .pipe(
+            takeUntil(this.ngOnDestroy.triggered$),
+            filter(isNonNull),
+            )
         .subscribe(label => {
           this.showLabelRemovedSnackBar(label);
         });
@@ -73,5 +84,22 @@ export class ClientOverview implements OnInit, OnDestroy {
 
   addLabel(label: string) {
     this.clientPageGlobalStore.addClientLabel(label);
+  }
+
+  formatUsers(users: ReadonlyArray<User>) {
+    const DISPLAY_USERS = 3;
+
+    if (!users || !users.length) {
+      return '(None)';
+    }
+
+    const usernames =
+        users.slice(0, DISPLAY_USERS).map(user => user.username).join(', ');
+
+    if (users.length <= DISPLAY_USERS) {
+      return usernames;
+    }
+
+    return `${usernames}, … (${usernames.length} total)`;
   }
 }

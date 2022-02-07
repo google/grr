@@ -305,12 +305,44 @@ class SendStartupInfo(actions.ActionPlugin):
 
   well_known_session_id = rdfvalue.SessionID(flow_name="Startup")
 
+  def _CheckInterrogateTrigger(self) -> bool:
+    interrogate_trigger_path = config.CONFIG["Client.interrogate_trigger_path"]
+    if not interrogate_trigger_path:
+      logging.info(
+          "Client.interrogate_trigger_path not set, skipping the check.")
+      return False
+
+    if not os.path.exists(interrogate_trigger_path):
+      logging.info("Interrogate trigger file (%s) does not exist.",
+                   interrogate_trigger_path)
+      return False
+
+    logging.info("Interrogate trigger file exists: %s",
+                 interrogate_trigger_path)
+
+    # First try to remove the file and return True only if the removal
+    # is successful. This is to prevent a permission error + a crash loop from
+    # trigger infinite amount of interrogations.
+    try:
+      os.remove(interrogate_trigger_path)
+    except (OSError, IOError) as e:
+      logging.exception(
+          "Not triggering interrogate - failed to remove the "
+          "interrogate trigger file (%s): %s", interrogate_trigger_path, e)
+      return False
+
+    return True
+
   def Run(self, unused_arg, ttl=None):
     """Returns the startup information."""
     logging.debug("Sending startup information.")
+
     boot_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(psutil.boot_time())
     response = rdf_client.StartupInfo(
-        boot_time=boot_time, client_info=GetClientInformation())
+        boot_time=boot_time,
+        client_info=GetClientInformation(),
+        interrogate_requested=self._CheckInterrogateTrigger(),
+    )
 
     self.grr_worker.SendReply(
         response,

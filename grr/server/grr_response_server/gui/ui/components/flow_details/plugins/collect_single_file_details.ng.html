@@ -1,13 +1,6 @@
 <div *ngIf="progress$ | async as progress; else noProgress">
-  <div class="download flow-details-summary-actions" *ngIf="(progress$ | async).result !== undefined">
-    <a mat-stroked-button color="primary" [download]="archiveFileName$ | async" [href]="archiveUrl$ | async">Download</a>
-  </div>
-  <div class="error flow-details-summary-actions" *ngIf="errorDescription$ | async as errorDescription">
-    {{ errorDescription }}
-  </div>
-
   <div class="requested-path" *ngIf="!progress.result">
-    {{ (args$ | async).path }}
+    {{ (args$ | async)?.path }}
   </div>
   <div class="collected-result" *ngIf="progress.result">
     <div class="path-type-note" *ngIf="(filePathType$ | async) === pathSpecPathType.TSK">
@@ -29,7 +22,7 @@
   View
   <a href="{{fallbackUrl$ | async}}">
     Flow
-    <span class="monospace">{{ (flow$ | async).flowId }}</span>
+    <span class="monospace">{{ (flow$ | async)?.flowId }}</span>
   </a>
   in legacy UI.
 </div>

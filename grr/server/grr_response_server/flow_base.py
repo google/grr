@@ -624,10 +624,6 @@ class FlowBase(metaclass=FlowRegistry):
     Raises:
       FlowError: Processing time for the flow has expired.
     """
-    if self.rdf_flow.pending_termination:
-      self.Error(error_message=self.rdf_flow.pending_termination.reason)
-      return
-
     client_id = self.rdf_flow.client_id
 
     deadline = self.rdf_flow.processing_deadline
@@ -1008,6 +1004,7 @@ class FlowBase(metaclass=FlowRegistry):
       result_metadata = self.state._result_metadata  # pylint: disable=protected-access
     else:
       result_metadata = rdf_flow_objects.FlowResultMetadata()
+      result_metadata.is_metadata_set = True
 
     for r in result_metadata.num_results_per_type_tag:
       key = (r.type, r.tag)

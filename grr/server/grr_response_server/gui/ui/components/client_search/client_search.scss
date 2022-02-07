@@ -10,3 +10,22 @@
   cursor: pointer;
   background: #f0f0f0;
 }
+
+td mat-chip-list {
+  display: inline-block;
+  /* When clicking on a label/online-indicator, do not intercept the click but
+     pass it through to the row, which links to the client. */
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+table {
+  td {
+    width: 0;
+    padding-right: 2em;
+  }
+
+  td:last-of-type {
+    width: auto;
+  }
+}

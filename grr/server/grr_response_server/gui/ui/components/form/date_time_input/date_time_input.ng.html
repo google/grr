@@ -1,4 +1,4 @@
-<input (blur)="onTouched()" matInput [(ngModel)]="inputString">
+<input (blur)="onTouched()" matInput [(ngModel)]="inputString" autocomplete="off">
 
 <span [matMenuTriggerFor]="calendarMenu" #calendarMenuTrigger="matMenuTrigger"></span>
 <mat-menu #calendarMenu class="calendar-menu">

@@ -10,7 +10,7 @@
     </tr>
     <tr *ngIf="user.lastLogon">
       <td class="description">Last logon</td>
-      <td class="value"><timestamp [date]="user.lastLogon"></timestamp></td>
+      <td class="value"><app-timestamp [date]="user.lastLogon"></app-timestamp></td>
     </tr>
     <tr *ngIf="user.homedir">
       <td class="description">Home directory</td>

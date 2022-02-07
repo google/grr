@@ -1,5 +1,5 @@
-import {ApiGrrUser, ApproverSuggestion} from '@app/lib/api/api_interfaces';
-import {GrrUser} from '@app/lib/models/user';
+import {ApiGrrUser, ApproverSuggestion} from '../../lib/api/api_interfaces';
+import {GrrUser} from '../../lib/models/user';
 import {assertKeyTruthy, isNonNull} from '../preconditions';
 
 /** Translates API ApiGrrUser object into the model's GrrUser. */
@@ -8,6 +8,9 @@ export function translateGrrUser(apiGrrUser: ApiGrrUser): GrrUser {
 
   return {
     name: apiGrrUser.username,
+    canaryMode: apiGrrUser.settings?.canaryMode ?? false,
+    huntApprovalRequired:
+        apiGrrUser.interfaceTraits?.huntApprovalRequired ?? false,
   };
 }
 

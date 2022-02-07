@@ -9,8 +9,8 @@ import abc
 import collections
 import re
 from typing import Dict
-from typing import Generator
 from typing import Iterable
+from typing import Iterator
 from typing import List
 from typing import Optional
 from typing import Sequence
@@ -476,7 +476,7 @@ class ClientPath(object):
 
   @classmethod
   def Temp(cls, client_id, components):
-    path_type = rdf_objects.PathInfo.PathType.Temp
+    path_type = rdf_objects.PathInfo.PathType.TEMP
     return cls(client_id=client_id, path_type=path_type, components=components)
 
   @classmethod
@@ -640,6 +640,7 @@ class Database(metaclass=abc.ABCMeta):
       fleetspeak_validation_info: A dict with validation info from Fleetspeak.
     """
 
+  @abc.abstractmethod
   def DeleteClient(self, client_id):
     """Deletes a client with all associated metadata.
 
@@ -648,10 +649,6 @@ class Database(metaclass=abc.ABCMeta):
     Args:
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
     """
-    # TODO: Cascaded deletion of data is only implemented in MySQL
-    # yet. When the functionality for deleting clients is required, make sure to
-    # delete all associated metadata (history, stats, flows, messages, ...).
-    raise NotImplementedError("Deletetion of Clients is not yet implemented.")
 
   @abc.abstractmethod
   def MultiReadClientMetadata(self, client_ids):
@@ -1049,23 +1046,25 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def DeleteOldClientStats(
       self,
-      yield_after_count: int,
-      retention_time: Optional[rdfvalue.RDFDatetime] = None
-  ) -> Generator[int, None, None]:
-    """Deletes ClientStats older than a given timestamp.
+      cutoff_time: rdfvalue.RDFDatetime,
+      batch_size: Optional[int] = None,
+  ) -> Iterator[int]:
+    """Deletes client stats older than the specified cutoff time.
 
-    This function yields after deleting at most `yield_after_count` ClientStats.
+    This function does not delete all clients at once but does it many batches
+    with one batch being deleted during one iteration cycle. The exact size of
+    the batch can by controlled through a parameter but it is better to leave it
+    up for a specific database implementation.
+
+    After every deleted batch, the function will yield the number of deleted
+    stats. The returned iterator stops once all outdated client stats are gone.
 
     Args:
-      yield_after_count: A positive integer, representing the maximum number of
-        deleted entries, after which this function must yield to allow
-        heartbeats.
-      retention_time: An RDFDateTime representing the oldest create_time of
-        ClientStats that remains after deleting all older entries. If not
-        specified, defaults to Now() - db.CLIENT_STATS_RETENTION.
+      cutoff_time: A point in time before each all stats are to be deleted.
+      batch_size: An (optional) number of stats deleted at a single iteration.
 
     Yields:
-      The number of ClientStats that were deleted since the last yield.
+      The number of client stats that were deleted in the last batch.
     """
 
   @abc.abstractmethod
@@ -1787,7 +1786,10 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def WriteHashBlobReferences(self, references_by_hash):
+  def WriteHashBlobReferences(
+      self, references_by_hash: Dict[rdf_objects.SHA256HashID,
+                                     Iterable[rdf_objects.BlobReference]]
+  ) -> None:
     """Writes blob references for a given set of hashes.
 
     Every file known to GRR has a history of PathInfos. Every PathInfo has a
@@ -1808,7 +1810,10 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def ReadHashBlobReferences(self, hashes):
+  def ReadHashBlobReferences(
+      self, hashes: Iterable[rdf_objects.SHA256HashID]
+  ) -> Dict[rdf_objects.SHA256HashID,
+            Optional[Iterable[rdf_objects.BlobReference]]]:
     """Reads blob references of a given set of hashes.
 
     Every file known to GRR has a history of PathInfos. Every PathInfo has a
@@ -1908,6 +1913,7 @@ class Database(metaclass=abc.ABCMeta):
   def ReadAllFlowObjects(
       self,
       client_id: Optional[Text] = None,
+      parent_flow_id: Optional[str] = None,
       min_create_time: Optional[rdfvalue.RDFDatetime] = None,
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
@@ -1916,16 +1922,16 @@ class Database(metaclass=abc.ABCMeta):
 
     Args:
       client_id: The client id.
+      parent_flow_id: An (optional) identifier of a parent of listed flows.
       min_create_time: the minimum creation time (inclusive)
       max_create_time: the maximum creation time (inclusive)
       include_child_flows: include child flows in the results. If False, only
-        parent flows are returned.
+        parent flows are returned. Must be `True` if the parent flow is given.
 
     Returns:
       A list of rdf_flow_objects.Flow objects.
     """
 
-  @abc.abstractmethod
   def ReadChildFlowObjects(self, client_id, flow_id):
     """Reads flow objects that were started by a given flow from the database.
 
@@ -1936,6 +1942,8 @@ class Database(metaclass=abc.ABCMeta):
     Returns:
       A list of rdf_flow_objects.Flow objects.
     """
+    return self.ReadAllFlowObjects(
+        client_id=client_id, parent_flow_id=flow_id, include_child_flows=True)
 
   @abc.abstractmethod
   def LeaseFlowForProcessing(self, client_id, flow_id, processing_time):
@@ -1980,7 +1988,6 @@ class Database(metaclass=abc.ABCMeta):
                  flow_obj=unchanged,
                  flow_state=unchanged,
                  client_crash_info=unchanged,
-                 pending_termination=unchanged,
                  processing_on=unchanged,
                  processing_since=unchanged,
                  processing_deadline=unchanged):
@@ -1992,23 +1999,10 @@ class Database(metaclass=abc.ABCMeta):
       flow_obj: An updated rdf_flow_objects.Flow object.
       flow_state: An update rdf_flow_objects.Flow.FlowState value.
       client_crash_info: A rdf_client.ClientCrash object to store with the flow.
-      pending_termination: An rdf_flow_objects.PendingFlowTermination object.
-        Indicates that this flow is scheduled for termination.
       processing_on: Worker this flow is currently processed on.
       processing_since: Timestamp when the worker started processing this flow.
       processing_deadline: Time after which this flow will be considered stuck
         if processing hasn't finished.
-    """
-
-  @abc.abstractmethod
-  def UpdateFlows(self, client_id_flow_id_pairs, pending_termination=unchanged):
-    """Updates flow objects in the database.
-
-    Args:
-      client_id_flow_id_pairs: An iterable with tuples of (client_id, flow_id)
-        identifying flows to update.
-      pending_termination: An rdf_flow_objects.PendingFlowTermination object.
-        Indicates that this flow is scheduled for termination.
     """
 
   @abc.abstractmethod
@@ -3231,22 +3225,15 @@ class DatabaseValidationWrapper(Database):
 
   def DeleteOldClientStats(
       self,
-      yield_after_count: int,
-      retention_time: Optional[rdfvalue.RDFDatetime] = None
-  ) -> Generator[int, None, None]:
-    if retention_time is None:
-      retention_time = rdfvalue.RDFDatetime.Now() - CLIENT_STATS_RETENTION
-    else:
-      _ValidateTimestamp(retention_time)
+      cutoff_time: rdfvalue.RDFDatetime,
+      batch_size: Optional[int] = None,
+  ) -> Iterator[int]:
+    precondition.AssertOptionalType(batch_size, int)
+    if batch_size is not None and batch_size < 1:
+      raise ValueError(f"Batch size must be positive (got '{batch_size}')")
 
-    precondition.AssertType(yield_after_count, int)
-    if yield_after_count < 1:
-      raise ValueError("yield_after_count must be >= 1. Got %r" %
-                       (yield_after_count,))
-
-    for deleted_count in self.delegate.DeleteOldClientStats(
-        yield_after_count, retention_time):
-      yield deleted_count
+    return self.delegate.DeleteOldClientStats(
+        cutoff_time, batch_size=batch_size)
 
   def WriteForemanRule(self, rule):
     precondition.AssertType(rule, foreman_rules.ForemanCondition)
@@ -3720,6 +3707,7 @@ class DatabaseValidationWrapper(Database):
   def ReadAllFlowObjects(
       self,
       client_id: Optional[Text] = None,
+      parent_flow_id: Optional[str] = None,
       min_create_time: Optional[rdfvalue.RDFDatetime] = None,
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
@@ -3728,8 +3716,14 @@ class DatabaseValidationWrapper(Database):
       precondition.ValidateClientId(client_id)
     precondition.AssertOptionalType(min_create_time, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(max_create_time, rdfvalue.RDFDatetime)
+
+    if parent_flow_id is not None and not include_child_flows:
+      raise ValueError(f"Parent flow id specified ('{parent_flow_id}') in the "
+                       f"childless mode")
+
     return self.delegate.ReadAllFlowObjects(
         client_id=client_id,
+        parent_flow_id=parent_flow_id,
         min_create_time=min_create_time,
         max_create_time=max_create_time,
         include_child_flows=include_child_flows)
@@ -3756,7 +3750,6 @@ class DatabaseValidationWrapper(Database):
                  flow_obj=Database.unchanged,
                  flow_state=Database.unchanged,
                  client_crash_info=Database.unchanged,
-                 pending_termination=Database.unchanged,
                  processing_on=Database.unchanged,
                  processing_since=Database.unchanged,
                  processing_deadline=Database.unchanged):
@@ -3773,9 +3766,6 @@ class DatabaseValidationWrapper(Database):
       _ValidateEnumType(flow_state, rdf_flow_objects.Flow.FlowState)
     if client_crash_info != Database.unchanged:
       precondition.AssertType(client_crash_info, rdf_client.ClientCrash)
-    if pending_termination != Database.unchanged:
-      precondition.AssertType(pending_termination,
-                              rdf_flow_objects.PendingFlowTermination)
     if processing_since != Database.unchanged:
       if processing_since is not None:
         _ValidateTimestamp(processing_since)
@@ -3788,24 +3778,9 @@ class DatabaseValidationWrapper(Database):
         flow_obj=flow_obj,
         flow_state=flow_state,
         client_crash_info=client_crash_info,
-        pending_termination=pending_termination,
         processing_on=processing_on,
         processing_since=processing_since,
         processing_deadline=processing_deadline)
-
-  def UpdateFlows(self,
-                  client_id_flow_id_pairs,
-                  pending_termination=Database.unchanged):
-    for client_id, flow_id in client_id_flow_id_pairs:
-      precondition.ValidateClientId(client_id)
-      precondition.ValidateFlowId(flow_id)
-
-    if pending_termination != Database.unchanged:
-      precondition.AssertType(pending_termination,
-                              rdf_flow_objects.PendingFlowTermination)
-
-    return self.delegate.UpdateFlows(
-        client_id_flow_id_pairs, pending_termination=pending_termination)
 
   def WriteFlowRequests(self, requests):
     precondition.AssertIterableType(requests, rdf_flow_objects.FlowRequest)

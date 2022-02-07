@@ -3,6 +3,7 @@
 # -*- encoding: utf-8 -*-
 """Tests for BigQuery output plugin."""
 
+import base64
 import gzip
 import os
 from unittest import mock
@@ -19,6 +20,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util.compat import json
 from grr_response_server import bigquery
 from grr_response_server.output_plugins import bigquery_plugin
+from grr.test_lib import export_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -77,6 +79,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(schema_fields, expected_fields)
     self.assertEqual(schema_metadata_fields, expected_metadata_fields)
 
+  @export_test_lib.WithAllExportConverters
   def testBigQueryPluginWithValuesOfSameType(self):
     responses = []
     for i in range(10):
@@ -128,6 +131,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
     self.assertEqual(counter, 10)
 
+  @export_test_lib.WithAllExportConverters
   def testMissingTimestampSerialization(self):
     response = rdf_client_fs.StatEntry()
     response.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
@@ -144,6 +148,43 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
       content = json.Parse(filedesc.read().decode("utf-8"))
 
     self.assertIsNone(content["st_mtime"])
+
+  @export_test_lib.WithAllExportConverters
+  def testBinaryDataExportDisabled(self):
+    response = rdf_client_fs.BlobImageChunkDescriptor()
+    response.digest = b"\x00\xff\x00\xff\x00"
+
+    args = bigquery_plugin.BigQueryOutputPluginArgs()
+    args.base64_bytes_export = False
+
+    output = self.ProcessResponses(plugin_args=args, responses=[response])
+
+    self.assertLen(output, 1)
+    _, filedesc, _, _ = output[0]
+
+    with gzip.GzipFile(mode="r", fileobj=filedesc) as filedesc:
+      content = json.Parse(filedesc.read().decode("utf-8"))
+
+    self.assertNotIn("digest", content)
+
+  @export_test_lib.WithAllExportConverters
+  def testBinaryDataExportEnabled(self):
+    response = rdf_client_fs.BlobImageChunkDescriptor()
+    response.digest = b"\x00\xff\x00"
+
+    args = bigquery_plugin.BigQueryOutputPluginArgs()
+    args.base64_bytes_export = True
+
+    output = self.ProcessResponses(plugin_args=args, responses=[response])
+
+    self.assertLen(output, 1)
+    _, filedesc, _, _ = output[0]
+
+    with gzip.GzipFile(mode="r", fileobj=filedesc) as filedesc:
+      content = json.Parse(filedesc.read().decode("utf-8"))
+
+    self.assertIn("digest", content)
+    self.assertEqual(base64.b64decode(content["digest"]), b"\x00\xff\x00")
 
   def _parseOutput(self, name, stream):
     content_fd = gzip.GzipFile(None, "r", 9, stream)
@@ -175,6 +216,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
     self.assertEqual(counter, 1)
 
+  @export_test_lib.WithAllExportConverters
   def testBigQueryPluginWithValuesOfMultipleTypes(self):
     output = self.ProcessResponses(
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
@@ -195,6 +237,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
       ])
       self._parseOutput(name, stream)
 
+  @export_test_lib.WithAllExportConverters
   def testBigQueryPluginWithEarlyFlush(self):
     responses = []
     for i in range(10):

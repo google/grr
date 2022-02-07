@@ -1,13 +1,14 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
 import {ControlContainer, FormControl, FormGroup} from '@angular/forms';
-import {atLeastOneMustBeSet, timesInOrder} from '@app/components/form/validators';
-import {FileFinderAccessTimeCondition, FileFinderInodeChangeTimeCondition, FileFinderModificationTimeCondition} from '@app/lib/api/api_interfaces';
-import {createOptionalApiTimestamp} from '@app/lib/api_translation/primitive';
-import {DateTime} from '@app/lib/date_time';
+
+import {atLeastOneMustBeSet, timesInOrder} from '../../../components/form/validators';
+import {FileFinderAccessTimeCondition, FileFinderInodeChangeTimeCondition, FileFinderModificationTimeCondition} from '../../../lib/api/api_interfaces';
+import {createOptionalApiTimestamp} from '../../../lib/api_translation/primitive';
+import {DateTime} from '../../../lib/date_time';
 
 
 /** Represents raw values produced by the time range form. */
-export interface RawFormValues {
+export declare interface RawFormValues {
   readonly minTime: DateTime|null;
   readonly maxTime: DateTime|null;
 }
@@ -34,15 +35,10 @@ export function createTimeRangeFormGroup(): FormGroup {
   const minTime = new FormControl(null);
   const maxTime = new FormControl(null);
 
-  return new FormGroup(
-      {
-        minTime,
-        maxTime,
-      },
-      [
-        atLeastOneMustBeSet([minTime, maxTime]),
-        timesInOrder(minTime, maxTime),
-      ]);
+  return new FormGroup({'minTime': minTime, 'maxTime': maxTime}, [
+    atLeastOneMustBeSet([minTime, maxTime]),
+    timesInOrder(minTime, maxTime),
+  ]);
 }
 
 /** Converts raw form values to FileFinderModificationTimeCondition. */
@@ -68,6 +64,6 @@ export function formValuesToFileFinderInodeChangeTimeCondition(
     rawFormValues: RawFormValues): FileFinderInodeChangeTimeCondition {
   return {
     minLastInodeChangeTime: createOptionalApiTimestamp(rawFormValues.minTime),
-    maxLastInodeChangeTIme: createOptionalApiTimestamp(rawFormValues.maxTime),
+    maxLastInodeChangeTime: createOptionalApiTimestamp(rawFormValues.maxTime),
   };
 }

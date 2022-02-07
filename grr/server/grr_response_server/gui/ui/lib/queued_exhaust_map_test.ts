@@ -1,7 +1,9 @@
 import {fakeAsync, tick as angularTick} from '@angular/core/testing';
-import {initTestEnvironment} from '@app/testing';
 import {asyncScheduler, from, Observable, of} from 'rxjs';
 import {delay} from 'rxjs/operators';
+
+import {initTestEnvironment} from '../testing';
+
 import {queuedExhaustMap} from './queued_exhaust_map';
 
 

@@ -1,36 +1,22 @@
 import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {ConfigService} from '@app/components/config/config';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {FlowResultsLocalStore} from '@app/store/flow_results_local_store';
-import {initTestEnvironment} from '@app/testing';
 import {firstValueFrom, Subject} from 'rxjs';
 
-import {ApiFlowResult} from '../lib/api/api_interfaces';
+import {HttpApiService} from '../lib/api/http_api_service';
+import {HttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
+import {initTestEnvironment} from '../testing';
 
-import {ConfigGlobalStore} from './config_global_store';
-import {ConfigGlobalStoreMock, mockConfigGlobalStore} from './config_global_store_test_util';
+import {FlowResultsLocalStore} from './flow_results_local_store';
 
 
 initTestEnvironment();
 
 
 describe('FlowResultsLocalStore', () => {
-  let httpApiService: Partial<HttpApiService>;
+  let httpApiService: HttpApiServiceMock;
   let flowResultsLocalStore: FlowResultsLocalStore;
-  let configService: ConfigService;
-
-  let configGlobalStore: ConfigGlobalStoreMock;
-
-  let apiListResultsForFlow$: Subject<ReadonlyArray<ApiFlowResult>>;
 
   beforeEach(() => {
-    apiListResultsForFlow$ = new Subject();
-    httpApiService = {
-      listResultsForFlow: jasmine.createSpy('listResultsForFlow')
-                              .and.returnValue(apiListResultsForFlow$),
-    };
-
-    configGlobalStore = mockConfigGlobalStore();
+    httpApiService = mockHttpApiService();
 
     TestBed
         .configureTestingModule({
@@ -38,34 +24,93 @@ describe('FlowResultsLocalStore', () => {
           providers: [
             FlowResultsLocalStore,
             {provide: HttpApiService, useFactory: () => httpApiService},
-            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
 
     flowResultsLocalStore = TestBed.inject(FlowResultsLocalStore);
-    configService = TestBed.inject(ConfigService);
   });
 
-  it('polls the API on results$ subscription', fakeAsync(() => {
+  it('calls the API on results$ subscription', fakeAsync(() => {
+       flowResultsLocalStore.results$.subscribe();
+
+       expect(httpApiService.subscribeToResultsForFlow).not.toHaveBeenCalled();
+
        flowResultsLocalStore.query({
-         flow: {clientId: 'C', flowId: '1'},
-         offset: 0,
-         count: 100,
+         flow: {clientId: 'C', flowId: '11'},
        });
 
-       tick(configService.config.flowResultsPollingIntervalMs * 2 + 1);
-       expect(httpApiService.listResultsForFlow).not.toHaveBeenCalled();
+       expect(httpApiService.subscribeToResultsForFlow).not.toHaveBeenCalled();
+
+       flowResultsLocalStore.queryMore(100);
+
+       expect(httpApiService.subscribeToResultsForFlow).toHaveBeenCalled();
 
        flowResultsLocalStore.results$.subscribe();
 
-       tick(configService.config.flowResultsPollingIntervalMs * 2 + 1);
        discardPeriodicTasks();
 
-       // 3 queries from polling, one from the query changed. This could be
-       // optimized to re-start polling with an initial delay after the query
-       // changes.
-       expect(httpApiService.listResultsForFlow).toHaveBeenCalledTimes(4);
+       expect(httpApiService.subscribeToResultsForFlow.calls.count()).toBe(1);
+     }));
+
+  it('replays latest value before new data is polled', fakeAsync(async () => {
+       httpApiService.mockedObservables.subscribeToResultsForFlow =
+           new Subject();
+
+       flowResultsLocalStore.query({
+         flow: {clientId: 'C', flowId: '11'},
+         count: 10,
+       });
+
+       flowResultsLocalStore.results$.subscribe();
+
+       httpApiService.mockedObservables.subscribeToResultsForFlow.next([{
+         payload: {foo: 42},
+         payloadType: 'foobar',
+         tag: '',
+         timestamp: '1',
+       }]);
+
+       // TODO(user): Calling unsubscribe() on the above subscription clears
+       // the cached value -- ideally, FlowResultsLocalStore should cache
+       // indefinitely even when no subscribers are subscribed any longer.
+
+       expect(await firstValueFrom(flowResultsLocalStore.results$)).toEqual([
+         jasmine.objectContaining({
+           payload: {foo: 42},
+           payloadType: 'foobar',
+         })
+       ]);
+     }));
+
+  it('unsubscribes from polling when last observer unsubscribes',
+     fakeAsync(async () => {
+       httpApiService.mockedObservables.subscribeToResultsForFlow =
+           new Subject();
+
+       flowResultsLocalStore.query({
+         flow: {clientId: 'C', flowId: '11'},
+         count: 10,
+       });
+
+       expect(
+           httpApiService.mockedObservables.subscribeToResultsForFlow.observed)
+           .toBeFalse();
+
+       const subscription = flowResultsLocalStore.results$.subscribe();
+
+       expect(
+           httpApiService.mockedObservables.subscribeToResultsForFlow.observed)
+           .toBeTrue();
+
+       subscription.unsubscribe();
+
+       tick();
+
+       expect(
+           httpApiService.mockedObservables.subscribeToResultsForFlow.observed)
+           .toBeFalse();
      }));
 
   it('emits latest results in results$', fakeAsync(async () => {
@@ -76,8 +121,7 @@ describe('FlowResultsLocalStore', () => {
          count: 100,
        });
 
-       tick(configService.config.flowResultsPollingIntervalMs + 1);
-       apiListResultsForFlow$.next([{
+       httpApiService.mockedObservables.subscribeToResultsForFlow.next([{
          payload: {foo: 42},
          payloadType: 'foobar',
          tag: '',
@@ -96,18 +140,16 @@ describe('FlowResultsLocalStore', () => {
        flowResultsLocalStore.query(
            {flow: {clientId: 'C', flowId: '1'}, withTag: 'foo'});
 
-       expect(httpApiService.listResultsForFlow).not.toHaveBeenCalled();
+       expect(httpApiService.subscribeToResultsForFlow).not.toHaveBeenCalled();
 
        flowResultsLocalStore.results$.subscribe();
 
-       tick(configService.config.flowResultsPollingIntervalMs * 2 + 1);
-       discardPeriodicTasks();
-
-       expect(httpApiService.listResultsForFlow)
+       expect(httpApiService.subscribeToResultsForFlow)
            .toHaveBeenCalledWith(jasmine.objectContaining({
              clientId: 'C',
              flowId: '1',
              count: 10,
            }));
+       discardPeriodicTasks();
      }));
 });

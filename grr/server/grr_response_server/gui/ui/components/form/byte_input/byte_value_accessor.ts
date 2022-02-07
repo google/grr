@@ -31,11 +31,14 @@ export class ByteValueAccessor implements ControlValueAccessor {
       private readonly renderer: Renderer2,
       private readonly el: ElementRef<HTMLInputElement>) {}
 
-  writeValue(value: number|null|undefined): void {
+  writeValue(value: unknown): void {
     let byteString = '';
 
     if (value !== null && value !== undefined) {
-      byteString = toByteString(value);
+      const castedValue = Number(value);
+      if (Number.isFinite(castedValue)) {
+        byteString = toByteString(castedValue);
+      }
     }
 
     this.renderer.setProperty(this.el.nativeElement, 'value', byteString);

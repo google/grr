@@ -1,3 +1,4 @@
+<!-- TODO: Stop using formControlName here. -->
 <div [formGroup]="form">
   <mat-form-field appearance="outline" class="w100">
     <mat-label>Artifact</mat-label>
@@ -19,14 +20,14 @@
     </mat-autocomplete>
   </mat-form-field>
 
-  <div *ngIf="selectedArtifact$ | async as selectedArtifact" class="mat-body-1">
+  <div *ngIf="selectedArtifact$ | async as selectedArtifact">
     <mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="sources-tree">
       <!-- This is the tree node template for leaf nodes. -->
       <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle>
         <li>
           <div class="mat-tree-node">
             <!-- Use a disabled button to provide padding for tree leaf. -->
-            <button mat-icon-button disabled></button> {{node.name}}
+            <button mat-icon-button disabled [attr.aria-hidden]="true"></button> {{node.name}}
           </div>
           <ul>
             <li *ngFor="let source of node.values">

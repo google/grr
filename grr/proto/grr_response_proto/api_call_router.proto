@@ -24,6 +24,24 @@ message ApiAuthorization {
   }];
 }
 
+message ApiCallRouterWithApprovalCheckParams {
+  optional bool ignore_admin_user_attribute = 1 [(sem_type) = {
+    description: "If set to false (default), users marked as 'admin' in "
+                 "the DB will be able to launch restricted flows. In other words, each "
+                 "user marked as admin in the DB will be treated as if being listed in "
+                 "'restricted_flow_users' attribute below. If set to true, only "
+                 "'restricted_flow_users|groups' router configuration attribute will "
+                 "be used when making restricted flows ACL decisions."
+  }];
+
+  repeated string restricted_flow_users = 2 [
+    (sem_type) = { description: "Names of users who can run restricted flows." }
+  ];
+  repeated string restricted_flow_groups = 3 [(sem_type) = {
+    description: "Names of groups of users that can run restricted flows."
+  }];
+}
+
 message ApiLabelsRestrictedCallRouterParams {
   repeated string allow_labels = 1;
   repeated string allow_labels_owners = 2;

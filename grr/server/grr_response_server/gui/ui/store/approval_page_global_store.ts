@@ -1,18 +1,17 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {ConfigService} from '@app/components/config/config';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateApproval} from '@app/lib/api_translation/client';
-import {Observable, timer} from 'rxjs';
-import {filter, map, switchMap, switchMapTo, tap} from 'rxjs/operators';
+import {merge, Observable, of} from 'rxjs';
+import {filter, map, switchMap, tap, withLatestFrom} from 'rxjs/operators';
 
+import {HttpApiService} from '../lib/api/http_api_service';
+import {RequestStatus, RequestStatusType, trackRequest} from '../lib/api/track_request';
+import {translateApproval} from '../lib/api_translation/client';
 import {ClientApproval} from '../lib/models/client';
-import {poll} from '../lib/polling';
-import {isNonNull} from '../lib/preconditions';
+import {assertNonNull, isNonNull} from '../lib/preconditions';
 
 interface ApprovalPageState {
   readonly selectedApprovalKey?: ApprovalKey;
-  readonly approval?: ClientApproval;
+  readonly grantRequestStatus?: RequestStatus<ClientApproval>;
 }
 
 interface ApprovalKey {
@@ -22,66 +21,48 @@ interface ApprovalKey {
 }
 
 
-class BaseComponentStore<T extends {}> extends ComponentStore<T> {
-  constructor(state: T) {
-    super(state);
-  }
-
-  protected setter<K extends keyof T>(key: K): (value: T[K]) => void {
-    return this.updater((state, value) => ({...state, [key]: value}));
-  }
-
-  protected selectKey<K extends keyof T>(key: K): Observable<T[K]> {
-    return this.select((state) => state[key]);
-  }
-}
-
 /** ComponentStore implementation used by the ApprovalPageGlobalStore. */
-class ApprovalPageComponentStore extends BaseComponentStore<ApprovalPageState> {
+class ApprovalPageComponentStore extends ComponentStore<ApprovalPageState> {
   constructor(
       private readonly httpApiService: HttpApiService,
-      private readonly configService: ConfigService,
   ) {
     super({});
   }
 
-  private readonly updateApproval = this.setter('approval');
+  readonly grantRequestStatus$ = this.select(state => state.grantRequestStatus);
 
-  readonly selectApproval = this.setter('selectedApprovalKey');
+  readonly selectApproval = this.updater<ApprovalKey>(
+      (state, selectedApprovalKey) => ({selectedApprovalKey}));
 
-  private readonly fetchApproval = this.effect<void>(
-      obs$ => obs$.pipe(
-          switchMapTo(this.selectKey('selectedApprovalKey')),
-          filter(isNonNull),
-          switchMap(({clientId, requestor, approvalId}) => {
-            return this.httpApiService.fetchClientApproval(
-                {clientId, requestor, approvalId});
-          }),
-          map(translateApproval),
-          tap(approval => {
-            this.updateApproval(approval);
-          }),
-          ));
+  private readonly grantedApproval$ = this.grantRequestStatus$.pipe(
+      map(req => req?.status === RequestStatusType.SUCCESS ? req.data : null),
+      filter(isNonNull),
+  );
 
-  /** An observable emitting all ScheduledFlows for the client. */
-  readonly approval$: Observable<ClientApproval> =
-      poll({
-        pollOn: timer(0, this.configService.config.approvalPollingIntervalMs),
-        pollEffect: this.fetchApproval,
-        selector: this.selectKey('approval'),
-      }).pipe(filter(isNonNull));
+  readonly approval$: Observable<ClientApproval|null> = merge(
+      this.grantedApproval$,
+      this.select(state => state.selectedApprovalKey)
+          .pipe(
+              switchMap(
+                  (key) => key ?
+                      this.httpApiService.subscribeToClientApproval(key).pipe(
+                          map(translateApproval)) :
+                      of(null)),
+              ),
+  );
 
   readonly grantApproval = this.effect<void>(
       obs$ => obs$.pipe(
-          switchMapTo(this.selectKey('selectedApprovalKey')),
-          filter(isNonNull),
-          switchMap(({clientId, requestor, approvalId}) => {
-            return this.httpApiService.grantClientApproval(
-                {clientId, requestor, approvalId});
+          withLatestFrom(this.select(state => state.selectedApprovalKey)),
+          switchMap(([, key]) => {
+            assertNonNull(key, 'approval key');
+            return trackRequest(
+                this.httpApiService.grantClientApproval(key).pipe(
+                    map(translateApproval)),
+            );
           }),
-          map(translateApproval),
-          tap(approval => {
-            this.updateApproval(approval);
+          tap((grantRequestStatus) => {
+            this.patchState({grantRequestStatus});
           }),
           ));
 }
@@ -91,14 +72,13 @@ class ApprovalPageComponentStore extends BaseComponentStore<ApprovalPageState> {
   providedIn: 'root',
 })
 export class ApprovalPageGlobalStore {
-  constructor(
-      private readonly httpApiService: HttpApiService,
-      private readonly configService: ConfigService) {}
+  constructor(private readonly httpApiService: HttpApiService) {}
 
-  private readonly store =
-      new ApprovalPageComponentStore(this.httpApiService, this.configService);
+  private readonly store = new ApprovalPageComponentStore(this.httpApiService);
 
-  readonly approval$: Observable<ClientApproval> = this.store.approval$;
+  readonly approval$: Observable<ClientApproval|null> = this.store.approval$;
+
+  readonly grantRequestStatus$ = this.store.grantRequestStatus$;
 
   selectApproval(approvalKey: ApprovalKey): void {
     this.store.selectApproval(approvalKey);

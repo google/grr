@@ -2,10 +2,10 @@ import {Component} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {initTestEnvironment} from '@app/testing';
 
 import {ConfigGlobalStore} from '../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {initTestEnvironment} from '../../testing';
 
 import {UserImageModule} from './module';
 
@@ -36,7 +36,8 @@ describe('UserImage Component', () => {
 
           providers: [
             {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
-          ]
+          ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

@@ -1,11 +1,11 @@
-import {ApiFlow, ApiFlowResult, ApiFlowState, PathSpecPathType, RegistryType as ApiRegistryType, StatEntry as ApiStatEntry} from '@app/lib/api/api_interfaces';
-import {newPathSpec} from '@app/lib/api/api_test_util';
-import {Flow, FlowResult, FlowState, RegistryType} from '@app/lib/models/flow';
-
+import {ApiFlow, ApiFlowResult, ApiFlowState, ApiGrrBinary, ApiGrrBinaryType, PathSpecPathType, RegistryType as ApiRegistryType, StatEntry as ApiStatEntry} from '../../lib/api/api_interfaces';
+import {newPathSpec} from '../../lib/api/api_test_util';
+import {Binary, BinaryType, Flow, FlowResult, FlowState, RegistryType} from '../../lib/models/flow';
 import {initTestEnvironment, removeUndefinedKeys} from '../../testing';
 import {StatEntry} from '../models/vfs';
+import {PreconditionError} from '../preconditions';
 
-import {translateFlow, translateFlowResult, translateHashToHex, translateStatEntry, translateVfsStatEntry} from './flow';
+import {safeTranslateBinary, translateBinary, translateFlow, translateFlowResult, translateHashToHex, translateStatEntry, translateVfsStatEntry} from './flow';
 
 
 
@@ -75,9 +75,9 @@ describe('translateHashToHex', () => {
   });
 
   it('converts base64-encoded bytes to hex', () => {
-    const base64 = encodeBase64([0x12, 0xFE, 0x55]);
+    const base64 = '0h4jIWBHN0HOLBVJnSZhJg==';
     expect(translateHashToHex({md5: base64})).toEqual(jasmine.objectContaining({
-      md5: '12fe55'
+      md5: 'd21e232160473741ce2c15499d266126'
     }));
   });
 
@@ -97,9 +97,13 @@ describe('translateHashToHex', () => {
 describe('translateVfsStatEntry', () => {
   it('returns a StatEntry as fallback', () => {
     expect(removeUndefinedKeys(translateVfsStatEntry({
-      pathspec: {path: 'foo'},
+      pathspec: {path: 'foo', pathtype: 'OS' as PathSpecPathType},
     }))).toEqual({
-      pathspec: {path: 'foo'},
+      pathspec: {
+        path: 'foo',
+        pathtype: PathSpecPathType.OS,
+        segments: [{path: 'foo', pathtype: PathSpecPathType.OS}],
+      },
     });
   });
 
@@ -166,6 +170,10 @@ describe('translateStatEntry', () => {
       pathspec: {
         pathtype: PathSpecPathType.OS,
         path: '/foo/bar/get_rich_quick.sh',
+        segments: [{
+          pathtype: PathSpecPathType.OS,
+          path: '/foo/bar/get_rich_quick.sh',
+        }]
       },
       stFlagsOsx: 0,
       stFlagsLinux: 524288
@@ -184,8 +192,61 @@ describe('translateStatEntry', () => {
       pathspec: {
         pathtype: PathSpecPathType.OS,
         path: '/foo/bar/get_rich_quick.sh',
+        segments: [{
+          pathtype: PathSpecPathType.OS,
+          path: '/foo/bar/get_rich_quick.sh',
+        }],
       },
     };
     expect(removeUndefinedKeys(translateStatEntry(statEntry))).toEqual(result);
+  });
+});
+
+describe('translateBinary', () => {
+  it('converts all fields correctly', () => {
+    const api: ApiGrrBinary = {
+      type: ApiGrrBinaryType.PYTHON_HACK,
+      path: 'windows/test/hello.py',
+      size: '20746',
+      timestamp: '1543574422898113',
+      hasValidSignature: true
+    };
+    const result: Binary = {
+      type: BinaryType.PYTHON_HACK,
+      path: 'windows/test/hello.py',
+      size: BigInt(20746),
+      timestamp: new Date('2018-11-30T10:40:22.898Z'),
+    };
+    expect(safeTranslateBinary(api)).toEqual(result);
+    expect(translateBinary(api)).toEqual(result);
+  });
+
+  it('fails for legacy types', () => {
+    const api: ApiGrrBinary = {
+      type: ApiGrrBinaryType.COMPONENT_DEPRECATED,
+      path: 'windows/test/hello.py',
+      size: '20746',
+      timestamp: '1543574422898113',
+      hasValidSignature: true
+    };
+    expect(safeTranslateBinary(api)).toBeNull();
+    expect(() => translateBinary(api))
+        .toThrowError(
+            PreconditionError,
+            /Expected .*COMPONENT_DEPRECATED.* to be a member of enum.*PYTHON_HACK/);
+  });
+
+  it('fails for invalid signatures', () => {
+    const api: ApiGrrBinary = {
+      type: ApiGrrBinaryType.PYTHON_HACK,
+      path: 'windows/test/hello.py',
+      size: '20746',
+      timestamp: '1543574422898113',
+      hasValidSignature: false,
+    };
+    expect(safeTranslateBinary(api)).toBeNull();
+    expect(() => translateBinary(api))
+        .toThrowError(
+            PreconditionError, /Expected key hasValidSignature to be truthy/);
   });
 });

@@ -1,0 +1,31 @@
+<ng-container [formGroup]="form">
+  <div class="form-group">
+    <mat-label>Collection Method</mat-label>
+    <mat-radio-group
+      aria-label="Collection method"
+      [formControl]="controls.collectionMethod"
+      class="collection-method-input"
+    >
+      <mat-radio-button *ngFor="let cm of collectionMethods" [value]="cm" [checked]="cm === 'OS'">
+        {{ cm }}
+      </mat-radio-button>
+    </mat-radio-group>
+  </div>
+
+  <mat-form-field appearance="outline" class="row">
+    <mat-label>Path</mat-label>
+    <input
+      matInput
+      type="text"
+      placeholder="E.g.: /usr/me"
+      [formControl]="controls.path"
+      class="monospace path-input"
+      autocomplete="off"
+    />
+    <mat-hint>
+      <app-literal-path-glob-expression-warning
+        [path]="form.value['path']"
+      ></app-literal-path-glob-expression-warning>
+    </mat-hint>
+  </mat-form-field>
+</ng-container>

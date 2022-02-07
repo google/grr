@@ -9,10 +9,7 @@ import logging
 import jinja2
 
 from grr_response_core import config
-
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
-
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -421,7 +418,11 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
 
   @property
   def subject_url_path(self):
-    return "/clients/%s" % str(self.subject.client_id)
+    return f"/v2/clients/{self.subject.client_id}"
+
+  @property
+  def subject_url_path_legacy(self):
+    return f"#/clients/{self.subject.client_id}"
 
   def ObjectReference(self):
     at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
@@ -480,6 +481,8 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
   @property
   def review_url_path(self):
+    # TODO: Set to new UI after implementing approval view for
+    # hunts.
     return self.review_url_path_legacy
 
   @property
@@ -489,7 +492,11 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
   @property
   def subject_url_path(self):
-    return "/hunts/%s" % str(self.subject.hunt_id)
+    return self.subject_url_path_legacy
+
+  @property
+  def subject_url_path_legacy(self):
+    return f"#/hunts/{self.subject.hunt_id}"
 
   def ObjectReference(self):
     at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
@@ -536,7 +543,11 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
 
   @property
   def subject_url_path(self):
-    return "/crons/%s" % str(self.subject.cron_job_id)
+    return self.subject_url_path_legacy
+
+  @property
+  def subject_url_path_legacy(self):
+    return f"#/crons/{self.subject.cron_job_id}"
 
   def ObjectReference(self):
     at = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
@@ -549,7 +560,7 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
             requestor_username=self.requestor))
 
 
-_APPROVAL_TEMPLATE = """
+_EMAIL_HEADER = """
   <!doctype html>
   <html>
     <head>
@@ -567,37 +578,43 @@ _APPROVAL_TEMPLATE = """
       </style>
     </head>
     <body>
-      <p>
-        You have been asked to review and grant the following approval in GRR
-        Rapid Response:
-      </p>
+"""
 
-      <table>
-        <tr>
-          <td><strong>Requested by:</strong></td>
-          <td>{{ requestor }}</td>
-        </tr>
-        <tr>
-          <td><strong>Subject:</strong></td>
-          <td><a href="{{ approval_url}}">{{ subject_title }}</a></td>
-        </tr>
-        <tr>
-          <td><strong>Reason:</strong></td>
-          <td>{{ reason }}</td>
-        </tr>
-      </table>
-
-      <p>
-        <a href="{{ approval_url }}" class="button">Review approval request</a>
-        (or <a href="{{ legacy_approval_url }}">review in legacy UI</a>)
-      </p>
-
+_EMAIL_FOOTER = """
       <p>Thanks,</p>
-      <p>{{ signature }}</p>
-      <p>{{ image|safe }}</p>
+      <p>{{ text_signature }}</p>
+      <p>{{ html_signature|safe }}</p>
     </body>
   </html>
 """
+
+_APPROVAL_REQUESTED_TEMPLATE = _EMAIL_HEADER + """
+  <p>
+    You have been asked to review and grant the following approval in GRR
+    Rapid Response:
+  </p>
+
+  <table>
+    <tr>
+      <td><strong>Requested by:</strong></td>
+      <td>{{ requestor }}</td>
+    </tr>
+    <tr>
+      <td><strong>Subject:</strong></td>
+      <td><a href="{{ approval_url}}">{{ subject_title }}</a></td>
+    </tr>
+    <tr>
+      <td><strong>Reason:</strong></td>
+      <td>{{ reason }}</td>
+    </tr>
+  </table>
+  <p>
+    <a href="{{ approval_url }}" class="button">Review approval request</a>
+    {% if legacy_approval_url %}
+    (or <a href="{{ legacy_approval_url }}">review in legacy UI</a>)
+    {% endif %}
+  </p>
+""" + _EMAIL_FOOTER
 
 
 class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
@@ -615,20 +632,27 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
     subject = subject_template.render(
         user=approval.requestor, subject=approval.subject_title)
 
-    template = jinja2.Template(_APPROVAL_TEMPLATE, autoescape=True)
-
+    template = jinja2.Template(_APPROVAL_REQUESTED_TEMPLATE, autoescape=True)
     base_url = config.CONFIG["AdminUI.url"].rstrip("/") + "/"
+    legacy_approval_url = base_url + approval.review_url_path_legacy.lstrip("/")
+    approval_url = base_url + approval.review_url_path.lstrip("/")
+
+    if approval_url == legacy_approval_url:
+      # In case the new UI does not yet support approval reviews for the given
+      # subject type (client, hunt, cronjob), hide the fallback link to the
+      # old UI in the email template. Instead, clicking the main button will
+      # link the user to the old UI.
+      legacy_approval_url = None
 
     body = template.render(
         requestor=approval.requestor,
         reason=approval.reason,
-        legacy_approval_url=base_url +
-        approval.review_url_path_legacy.lstrip("/"),
-        approval_url=base_url + approval.review_url_path.lstrip("/"),
+        legacy_approval_url=legacy_approval_url,
+        approval_url=approval_url,
         subject_title=approval.subject_title,
         # If you feel like it, add a cute dog picture here :)
-        image=config.CONFIG["Email.approval_signature"],
-        signature=config.CONFIG["Email.signature"])
+        html_signature=config.CONFIG["Email.approval_signature"],
+        text_signature=config.CONFIG["Email.signature"])
 
     requestor_email = data_store.REL_DB.ReadGRRUser(
         approval.requestor).GetEmail()
@@ -638,10 +662,10 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
     ]
 
     email_alerts.EMAIL_ALERTER.SendEmail(
-        ",".join(notified_emails),
-        requestor_email,
-        subject,
-        body,
+        to_addresses=",".join(notified_emails),
+        from_address=requestor_email,
+        subject=subject,
+        message=body,
         is_html=True,
         cc_addresses=",".join(approval.email_cc_addresses),
         message_id=approval.email_message_id)
@@ -733,6 +757,39 @@ class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
     return self.__class__.result_type().InitFromDatabaseObject(approval_obj)
 
 
+_APPROVAL_GRANTED_TEMPLATE = _EMAIL_HEADER + """
+  <p>
+    Access has been granted:
+  </p>
+
+  <table>
+    <tr>
+      <td><strong>Requested by:</strong></td>
+      <td>{{ requestor }}</td>
+    </tr>
+    <tr>
+      <td><strong>Subject:</strong></td>
+      <td><a href="{{ subject_url}}">{{ subject_title }}</a></td>
+    </tr>
+    <tr>
+      <td><strong>Reason:</strong></td>
+      <td>{{ reason }}</td>
+    </tr>
+    <tr>
+      <td><strong>Granted by:</strong></td>
+      <td>{{ grantor }}</td>
+    </tr>
+  </table>
+
+  <p>
+    <a href="{{ subject_url }}" class="button">Go to {{ subject_title }}</a>
+    {% if legacy_subject_url %}
+    (or <a href="{{ legacy_subject_url }}">view in legacy UI</a>)
+    {% endif %}
+  </p>
+""" + _EMAIL_FOOTER
+
+
 class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
   """Base class reused by all client approval handlers."""
 
@@ -749,32 +806,29 @@ class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
     subject_template = jinja2.Template(
         "Approval for {{ user }} to access {{ subject }}.", autoescape=True)
     subject = subject_template.render(
-        user=utils.SmartUnicode(approval.requestor),
-        subject=utils.SmartUnicode(approval.subject_title))
+        user=approval.requestor, subject=approval.subject_title)
 
-    template = jinja2.Template(
-        """
-<html><body><h1>Access to
-<a href='{{ admin_ui }}/#/{{ subject_url }}'>{{ subject_title }}</a>
-granted.</h1>
+    template = jinja2.Template(_APPROVAL_GRANTED_TEMPLATE, autoescape=True)
+    base_url = config.CONFIG["AdminUI.url"].rstrip("/") + "/"
+    subject_url = base_url + approval.subject_url_path.lstrip("/")
+    legacy_subject_url = base_url + approval.subject_url_path_legacy.lstrip("/")
 
-The user {{ username }} has granted access to
-<a href='{{ admin_ui }}/#/{{ subject_url }}'>{{ subject_title }}</a> for the
-purpose of <em>{{ reason }}</em>.
+    if subject_url == legacy_subject_url:
+      # In case the new UI does not yet support showing the given subject type
+      # (client, hunt, cronjob), hide the fallback link to the old UI in the
+      # email template. Instead, clicking the main button will link the user to
+      # the old UI.
+      legacy_subject_url = None
 
-Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
-
-<p>Thanks,</p>
-<p>{{ signature }}</p>
-</body></html>""",
-        autoescape=True)
     body = template.render(
-        subject_title=utils.SmartUnicode(approval.subject_title),
-        username=utils.SmartUnicode(context.username),
-        reason=utils.SmartUnicode(approval.reason),
-        admin_ui=utils.SmartUnicode(config.CONFIG["AdminUI.url"].strip("/")),
-        subject_url=utils.SmartUnicode(approval.subject_url_path.strip("/")),
-        signature=utils.SmartUnicode(config.CONFIG["Email.signature"]))
+        grantor=context.username,
+        requestor=approval.requestor,
+        reason=approval.reason,
+        legacy_subject_url=legacy_subject_url,
+        subject_url=subject_url,
+        subject_title=approval.subject_title,
+        html_signature=config.CONFIG["Email.approval_signature"],
+        text_signature=config.CONFIG["Email.signature"])
 
     # Email subject should match approval request, and we add message id
     # references so they are grouped together in a thread by gmail.
@@ -788,10 +842,10 @@ Please click <a href='{{ admin_ui }}/#/{{ subject_url }}'>here</a> to access it.
     username_email = data_store.REL_DB.ReadGRRUser(context.username).GetEmail()
 
     email_alerts.EMAIL_ALERTER.SendEmail(
-        requestor_email,
-        username_email,
-        subject,
-        body,
+        to_addresses=requestor_email,
+        from_address=username_email,
+        subject=subject,
+        message=body,
         is_html=True,
         cc_addresses=",".join(approval.email_cc_addresses),
         headers=headers)
@@ -1342,7 +1396,7 @@ class ApiListAndResetUserNotificationsHandler(
   def Handle(self, args, context=None):
     """Fetches the user notifications."""
     back_timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
-        180, rdfvalue.DAYS)
+        2 * 52, rdfvalue.WEEKS)
     ns = data_store.REL_DB.ReadUserNotifications(
         context.username, timerange=(back_timestamp, None))
 

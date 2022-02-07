@@ -16,7 +16,7 @@ import {SelectedClientGlobalStore} from '../../store/selected_client_global_stor
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ClientDetails implements OnDestroy {
-  readonly ngOnDestroy = observeOnDestroy();
+  readonly ngOnDestroy = observeOnDestroy(this);
 
   // Not static & private because is referenced in the template
   readonly INITIAL_NUM_USERS_SHOWN = 1;

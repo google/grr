@@ -1,12 +1,11 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {FlowFileResult, flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
-import {BrowserProgress, BrowserProgressStatus, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectBrowserHistoryProgress, CollectBrowserHistoryResult} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {Flow, FlowResult, FlowState} from '@app/lib/models/flow';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
+import {FlowFileResult, flowFileResultFromStatEntry} from '../../../components/flow_details/helpers/file_results_table';
+import {BrowserProgress, BrowserProgressStatus, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectBrowserHistoryProgress, CollectBrowserHistoryResult} from '../../../lib/api/api_interfaces';
 import {translateStatEntry} from '../../../lib/api_translation/flow';
+import {Flow, FlowResult, FlowState} from '../../../lib/models/flow';
 import {assertNonNull} from '../../../lib/preconditions';
 import {FlowResultsQueryWithAdapter} from '../helpers/load_flow_results_directive';
 import {Status as ResultAccordionStatus} from '../helpers/result_accordion';
@@ -39,12 +38,6 @@ export class CollectBrowserHistoryDetails extends Plugin {
   readonly INITIAL_COUNT = 100;
   readonly LOAD_STEP = 100;
 
-  readonly FINISHED = FlowState.FINISHED;
-
-  constructor(private readonly httpApiService: HttpApiService) {
-    super();
-  }
-
   trackByRowName(index: number, item: BrowserRow) {
     return item.name;
   }
@@ -72,15 +65,6 @@ export class CollectBrowserHistoryDetails extends Plugin {
     return (p.browsers ?? []).map(bp => this.createBrowserRow(flow, bp));
   }));
 
-  archiveUrl$: Observable<string> = this.flow$.pipe(map((flow) => {
-    return this.httpApiService.getFlowFilesArchiveUrl(
-        flow.clientId, flow.flowId);
-  }));
-
-  archiveFileName$: Observable<string> = this.flow$.pipe(map((flow) => {
-    return flow.clientId.replace('.', '_') + '_' + flow.flowId + '.zip';
-  }));
-
   private capitalize(v: string): string {
     return v[0].toUpperCase() + v.slice(1);
   }
@@ -97,12 +81,7 @@ export class CollectBrowserHistoryDetails extends Plugin {
     let status = ResultAccordionStatus.NONE;
     let description = '';
 
-    if (progress.status === BrowserProgressStatus.ERROR) {
-      status = ResultAccordionStatus.ERROR;
-      description = progress.description ?? '';
-    } else if (progress.status === BrowserProgressStatus.IN_PROGRESS) {
-      status = ResultAccordionStatus.IN_PROGRESS;
-    } else if (progress.status === BrowserProgressStatus.SUCCESS) {
+    if (progress.status === BrowserProgressStatus.SUCCESS) {
       if (!progress.numCollectedFiles) {
         status = ResultAccordionStatus.WARNING;
         description = 'No files collected';
@@ -113,6 +92,15 @@ export class CollectBrowserHistoryDetails extends Plugin {
         status = ResultAccordionStatus.SUCCESS;
         description = `${progress.numCollectedFiles} files`;
       }
+    } else if (
+        progress.status === BrowserProgressStatus.ERROR ||
+        flow.state === FlowState.ERROR) {
+      status = ResultAccordionStatus.ERROR;
+      description = progress.description ?? '';
+    } else if (
+        progress.status === BrowserProgressStatus.IN_PROGRESS &&
+        flow.state === FlowState.RUNNING) {
+      status = ResultAccordionStatus.IN_PROGRESS;
     }
 
     return {

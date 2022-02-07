@@ -1,12 +1,32 @@
-<h1 *ngIf="(entries$ | async)?.length > 0" class="mat-h1">All flows</h1>
+<h1 *ngIf="(entries$ | async)?.length">All flows</h1>
 <!-- trackBy is needed, since otherwise ngFor will recreate inner components
   on every change. -->
-<div *ngFor="let entry of entries$ | async; trackBy: entryTrackByFunction">
-  <div class="flow-item">
-    <flow-details
-      [flow]="entry.flow"
-      [flowDescriptor]="entry.descriptor"
-      (menuActionTriggered)="triggerFlowAction(entry, $event)">
-    </flow-details>
-  </div>
-</div>
+<flow-details
+  *ngFor="let entry of entries$ | async; trackBy: entryTrackByFunction"
+  [id]="'flow-' + entry.flow.flowId"
+  [flow]="entry.flow"
+  [flowDescriptor]="entry.descriptor"
+  (menuActionTriggered)="triggerFlowAction(entry, $event)"
+  [class.highlight]="scrollTarget === entry.flow.flowId"
+>
+</flow-details>
+
+<footer #footer [ngSwitch]="loadMoreState$ | async" class="footer">
+  <mat-spinner
+    *ngSwitchCase="LoadMoreState.LOADING"
+    diameter="24"
+  ></mat-spinner>
+
+  <button
+    *ngSwitchCase="LoadMoreState.HAS_MORE"
+    mat-button
+    (click)="loadMore()"
+    class="load-more"
+  >
+    Load older flows
+  </button>
+
+  <aside *ngSwitchCase="LoadMoreState.ALL_LOADED">
+    No older flows to show.
+  </aside>
+</footer>

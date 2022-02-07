@@ -1,10 +1,11 @@
 import {COMMA, ENTER, SPACE} from '@angular/cdk/keycodes';
 import {Component, ElementRef, OnInit, Output, ViewChild} from '@angular/core';
 import {FormControl, FormGroup, ValidatorFn} from '@angular/forms';
-import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
-import {ListProcessesArgs, NetworkConnectionState} from '@app/lib/api/api_interfaces';
 import {combineLatest} from 'rxjs';
 import {map, shareReplay, startWith} from 'rxjs/operators';
+
+import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {ListProcessesArgs, NetworkConnectionState} from '../../lib/api/api_interfaces';
 
 /** A form that configures the ListProcesses flow. */
 @Component({
@@ -18,12 +19,13 @@ export class ListProcessesForm extends
 
   readonly connectionStateAutocompleteControl = new FormControl();
 
-  readonly form = new FormGroup({
+  readonly controls = {
     pids: new FormControl([], integerArrayValidator()),
     filenameRegex: new FormControl(),
     connectionStates: new FormControl([]),
     fetchBinaries: new FormControl(),
-  });
+  };
+  readonly form = new FormGroup(this.controls);
 
   @Output()
   readonly formValues$ = this.form.valueChanges.pipe(

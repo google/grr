@@ -1,43 +1,21 @@
 import {TestBed} from '@angular/core/testing';
-import * as api from '@app/lib/api/api_interfaces';
-import {ApiClientLabel, ApiFlowDescriptor, ApiUiConfig} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ConfigGlobalStore} from '@app/store/config_global_store';
-import {initTestEnvironment} from '@app/testing';
-import {ReplaySubject, Subject} from 'rxjs';
+import {firstValueFrom} from 'rxjs';
+
+import * as api from '../lib/api/api_interfaces';
+import {HttpApiService} from '../lib/api/http_api_service';
+import {HttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
+import {initTestEnvironment} from '../testing';
+
+import {ConfigGlobalStore} from './config_global_store';
 
 initTestEnvironment();
 
 describe('ConfigGlobalStore', () => {
-  let httpApiService: Partial<HttpApiService>;
+  let httpApiService: HttpApiServiceMock;
   let configGlobalStore: ConfigGlobalStore;
-  let apiListFlowDescriptors$: Subject<ReadonlyArray<ApiFlowDescriptor>>;
-  let apiListArtifactDescriptors$:
-      Subject<ReadonlyArray<api.ArtifactDescriptor>>;
-  let apiFetchApprovalConfig$: Subject<ReadonlyArray<ApiFlowDescriptor>>;
-  let apiFetchUiConfig$: Subject<ApiUiConfig>;
-  let apiFetchAllClientsLabels$: Subject<ReadonlyArray<ApiClientLabel>>;
 
   beforeEach(() => {
-    apiListFlowDescriptors$ = new ReplaySubject(1);
-    apiListArtifactDescriptors$ = new Subject();
-    apiFetchApprovalConfig$ = new Subject();
-    apiFetchUiConfig$ = new Subject();
-    apiFetchAllClientsLabels$ = new ReplaySubject(1);
-
-    httpApiService = {
-      listFlowDescriptors: jasmine.createSpy('listFlowDescriptors')
-                               .and.returnValue(apiListFlowDescriptors$),
-      listArtifactDescriptors:
-          jasmine.createSpy('listArtifactDescriptors')
-              .and.returnValue(apiListArtifactDescriptors$),
-      fetchApprovalConfig: jasmine.createSpy('fetchApprovalConfig')
-                               .and.returnValue(apiFetchApprovalConfig$),
-      fetchUiConfig:
-          jasmine.createSpy('fetchUiConfig').and.returnValue(apiFetchUiConfig$),
-      fetchAllClientsLabels: jasmine.createSpy('fetchAllClientsLabels')
-                                 .and.returnValue(apiFetchAllClientsLabels$),
-    };
+    httpApiService = mockHttpApiService();
 
     TestBed.configureTestingModule({
       imports: [],
@@ -45,6 +23,7 @@ describe('ConfigGlobalStore', () => {
         ConfigGlobalStore,
         {provide: HttpApiService, useFactory: () => httpApiService},
       ],
+      teardown: {destroyAfterEach: false}
     });
 
     configGlobalStore = TestBed.inject(ConfigGlobalStore);
@@ -80,7 +59,7 @@ describe('ConfigGlobalStore', () => {
       done();
     });
 
-    apiListFlowDescriptors$.next([
+    httpApiService.mockedObservables.listFlowDescriptors.next([
       {
         name: 'ClientSideFileFinder',
         friendlyName: 'Get a file',
@@ -108,7 +87,7 @@ describe('ConfigGlobalStore', () => {
       done();
     });
 
-    apiListArtifactDescriptors$.next([
+    httpApiService.mockedObservables.listArtifactDescriptors.next([
       {
         artifact: {
           name: 'TestArtifact',
@@ -124,7 +103,7 @@ describe('ConfigGlobalStore', () => {
   });
 
   it('correctly emits the API results in uiConfig$', (done) => {
-    const expected: ApiUiConfig = {
+    const expected: api.ApiUiConfig = {
       profileImageUrl: 'https://foo',
     };
 
@@ -133,7 +112,7 @@ describe('ConfigGlobalStore', () => {
       done();
     });
 
-    apiFetchUiConfig$.next({
+    httpApiService.mockedObservables.fetchUiConfig.next({
       profileImageUrl: 'https://foo',
     });
   });
@@ -154,7 +133,7 @@ describe('ConfigGlobalStore', () => {
       done();
     });
 
-    apiFetchAllClientsLabels$.next([
+    httpApiService.mockedObservables.fetchAllClientsLabels.next([
       {
         owner: 'first_owner',
         name: 'first_label',
@@ -164,5 +143,31 @@ describe('ConfigGlobalStore', () => {
         name: 'second_label',
       },
     ]);
+  });
+
+  it('calls the API on subscription to binaries$', () => {
+    expect(httpApiService.listBinaries).not.toHaveBeenCalled();
+    configGlobalStore.binaries$.subscribe();
+    expect(httpApiService.listBinaries).toHaveBeenCalled();
+  });
+
+  it('correctly emits the API results in binaries$', async () => {
+    const promise = firstValueFrom(configGlobalStore.binaries$);
+
+    httpApiService.mockedObservables.listBinaries.next({
+      items: [
+        {
+          type: api.ApiGrrBinaryType.PYTHON_HACK,
+          path: 'windows/test/hello.py',
+          size: '1',
+          timestamp: '1',
+          hasValidSignature: true
+        },
+      ]
+    });
+
+    expect(await promise).toEqual([jasmine.objectContaining({
+      path: 'windows/test/hello.py',
+    })]);
   });
 });

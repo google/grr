@@ -366,3 +366,7 @@ message ACLToken {
 
   reserved 8;
 }
+
+message PendingFlowTermination {
+  reserved 1;
+}

@@ -10,8 +10,9 @@ import {MatSelectModule} from '@angular/material/select';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
-import {ByteComponentsModule} from '@app/components/form/byte_input/module';
-import {DateTimeInputModule} from '@app/components/form/date_time_input/module';
+
+import {ByteComponentsModule} from '../../../components/form/byte_input/module';
+import {DateTimeInputModule} from '../../../components/form/date_time_input/module';
 
 import {ConditionPanel} from './condition_panel';
 import {ExtFlagsCondition} from './ext_flags_condition';

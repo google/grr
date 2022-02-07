@@ -5,7 +5,8 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute, Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
-import {initTestEnvironment} from '@app/testing';
+
+import {initTestEnvironment} from '../../../testing';
 
 import {DrawerLink} from './drawer_link';
 import {DrawerLinkModule} from './drawer_link_module';
@@ -34,6 +35,7 @@ describe('DrawerLink', () => {
             TestHostComponent,
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

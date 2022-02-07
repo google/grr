@@ -7,6 +7,7 @@ the full GRR server stack (web server + API client library).
 """
 
 import logging
+from unittest import mock
 
 import portpicker
 
@@ -17,6 +18,7 @@ from grr_response_core.lib.util import compatibility
 from grr_response_server.flows.general import registry_init  # pylint: disable=unused-import
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_context
+from grr_response_server.gui import api_call_router_registry
 from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp_testlib
@@ -95,6 +97,15 @@ class RootApiIntegrationTest(ApiIntegrationTest):
         {"API.DefaultRouter": compatibility.GetName(default_router)})
     root_api_config_overrider.Start()
     self.addCleanup(root_api_config_overrider.Stop)
+
+    patcher = mock.patch.object(api_call_router_registry,
+                                "_API_CALL_ROUTER_REGISTRY", {})
+    patcher.start()
+    self.addCleanup(patcher.stop)
+    api_call_router_registry.RegisterApiCallRouter(
+        "RootApiBinaryManagementTestRouter", RootApiBinaryManagementTestRouter)
+    self.addCleanup(lambda: api_call_router_registry.UnregisterApiCallRouter(  # pylint:disable=g-long-lambda
+        "RootApiBinaryManagementTestRouter"))
 
     # Force creation of new APIAuthorizationManager, so that configuration
     # changes are picked up.

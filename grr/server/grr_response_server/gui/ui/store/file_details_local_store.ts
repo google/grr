@@ -1,13 +1,13 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {HttpApiService} from '@app/lib/api/http_api_service';
 import {combineLatest, Observable, of} from 'rxjs';
-import {map, switchMap, tap, withLatestFrom} from 'rxjs/operators';
+import {filter, map, switchMap, tap, withLatestFrom} from 'rxjs/operators';
 
-import {ApiGetFileTextArgsEncoding, PathSpecPathType} from '../lib/api/api_interfaces';
+import {ApiGetFileTextArgsEncoding} from '../lib/api/api_interfaces';
+import {HttpApiService} from '../lib/api/http_api_service';
 import {translateFile} from '../lib/api_translation/vfs';
-import {File} from '../lib/models/vfs';
-import {assertKeyNonNull} from '../lib/preconditions';
+import {File, FileIdentifier} from '../lib/models/vfs';
+import {assertKeyNonNull, isNonNull} from '../lib/preconditions';
 
 interface State {
   readonly mode?: ContentFetchMode;
@@ -19,13 +19,6 @@ interface State {
   readonly details?: File;
   readonly isRecollecting?: boolean;
 }
-
-interface FileIdentifier {
-  readonly clientId: string;
-  readonly pathType: PathSpecPathType;
-  readonly path: string;
-}
-
 
 /** Mode to define whether to load text or blob file contents. */
 export enum ContentFetchMode {
@@ -48,7 +41,9 @@ export class FileDetailsLocalStore {
 
   private readonly store = new FileDetailsComponentStore(this.httpApiService);
 
-  selectFile(file: FileIdentifier|Observable<FileIdentifier>) {
+  static readonly DEFAULT_PAGE_SIZE = BigInt(10000);
+
+  selectFile(file: FileIdentifier|undefined) {
     this.store.selectFile(file);
   }
 
@@ -59,6 +54,10 @@ export class FileDetailsLocalStore {
   setMode(mode: ContentFetchMode) {
     this.store.setMode(mode);
   }
+
+  readonly file$ = this.store.file$;
+
+  readonly mode$ = this.store.mode$;
 
   readonly details$ = this.store.details$;
 
@@ -87,7 +86,8 @@ class FileDetailsComponentStore extends ComponentStore<State> {
   }
 
   // Clear whole state when selecting a new file.
-  readonly selectFile = this.updater<FileIdentifier>((state, file) => ({file}));
+  readonly selectFile =
+      this.updater<FileIdentifier|undefined>((state, file) => ({file}));
 
   readonly setMode = this.updater<ContentFetchMode>((state, mode) => {
     if (state.mode === mode) {
@@ -103,6 +103,13 @@ class FileDetailsComponentStore extends ComponentStore<State> {
       };
     }
   });
+
+  readonly file$ = this.select(state => state.file);
+
+  readonly mode$ = this.select(state => state.mode)
+                       .pipe(
+                           map(mode => mode ?? ContentFetchMode.TEXT),
+                       );
 
   readonly details$ = this.select(state => state.details);
 
@@ -137,7 +144,7 @@ class FileDetailsComponentStore extends ComponentStore<State> {
           }),
           map(translateFile),
           tap(file => {
-            this.updateDetails(file);
+            this.updateDetails(file as File);
           }),
           ));
 
@@ -147,7 +154,7 @@ class FileDetailsComponentStore extends ComponentStore<State> {
     offset: bigint,
     length: bigint,
     totalLength?: bigint
-  }): Observable<FetchResult> {
+  }): Observable<FetchResult|null> {
     if (mode === ContentFetchMode.BLOB) {
       const totalLength$ = totalLength !== undefined ?
           of(totalLength) :
@@ -161,8 +168,12 @@ class FileDetailsComponentStore extends ComponentStore<State> {
           });
 
       return combineLatest([totalLength$, blobContent$])
-          .pipe(map(
-              ([totalLength, blobContent]) => ({blobContent, totalLength})));
+          .pipe(
+              map(([totalLength, blobContent]) =>
+                      (isNonNull(totalLength) && isNonNull(blobContent)) ?
+                      {blobContent, totalLength} :
+                      null),
+          );
 
     } else {
       return this.httpApiService
@@ -171,10 +182,12 @@ class FileDetailsComponentStore extends ComponentStore<State> {
             offset,
             length,
           })
-          .pipe(map(response => ({
-                      totalLength: BigInt(response.totalSize ?? 0),
-                      textContent: response.content ?? '',
-                    })));
+          .pipe(
+              map(response => response ? {
+                totalLength: BigInt(response.totalSize ?? 0),
+                textContent: response.content ?? '',
+              } :
+                                         null));
     }
   }
 
@@ -198,11 +211,14 @@ class FileDetailsComponentStore extends ComponentStore<State> {
                   length: fetchLength,
                   totalLength: state.totalLength,
                 })
-                .pipe(tap((result) => {
-                  this.updateTotalLength(result.totalLength);
-                  this.appendBlobContent(result.blobContent);
-                  this.appendTextContent(result.textContent);
-                }));
+                .pipe(
+                    filter(isNonNull),
+                    tap((result) => {
+                      this.updateTotalLength(result.totalLength);
+                      this.appendBlobContent(result.blobContent);
+                      this.appendTextContent(result.textContent);
+                    }),
+                );
           }),
           ));
 
@@ -250,7 +266,7 @@ class FileDetailsComponentStore extends ComponentStore<State> {
           }),
           tap(({details, content}) => {
             this.setIsRecollecting(false);
-            this.updateDetails(translateFile(details));
+            this.updateDetails(translateFile(details) as File);
             this.updateTotalLength(content?.totalLength);
             this.setTextContent(content?.textContent);
             this.setBlobContent(content?.blobContent);

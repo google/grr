@@ -4,10 +4,11 @@ import {combineLatest, Observable} from 'rxjs';
 import {map, shareReplay, startWith} from 'rxjs/operators';
 
 import {TimelineArgs} from '../../../lib/api/api_interfaces';
-import {HttpApiService} from '../../../lib/api/http_api_service';
-import {FlowState} from '../../../lib/models/flow';
+import {getTimelineBodyFileUrl} from '../../../lib/api/http_api_service';
+import {decodeBase64ToString} from '../../../lib/api_translation/primitive';
+import {Flow, FlowState} from '../../../lib/models/flow';
 
-import {Plugin} from './plugin';
+import {ExportMenuItem, Plugin} from './plugin';
 
 /**
  * Options for customizing the output of exporting timeline in the body format.
@@ -34,17 +35,14 @@ declare interface BodyOpts {
 export class TimelineDetails extends Plugin {
   readonly FlowState: typeof FlowState = FlowState;
 
-  readonly bodyOptsForm = new FormGroup({
+  readonly controls = {
     timestampSubsecondPrecision: new FormControl(true),
     inodeNtfsFileReferenceFormat: new FormControl(false),
     backslashEscape: new FormControl(true),
     carriageReturnEscape: new FormControl(false),
     nonPrintableEscape: new FormControl(false),
-  });
-
-  constructor(private readonly httpApiService: HttpApiService) {
-    super();
-  }
+  };
+  readonly bodyOptsForm = new FormGroup(this.controls);
 
   /**
    * Observable with form inputs of the body export options.
@@ -66,16 +64,19 @@ export class TimelineDetails extends Plugin {
   readonly args$: Observable<TimelineArgs> =
       this.flow$.pipe(map(flow => flow.args as TimelineArgs));
 
+  readonly root$ = this.args$.pipe(
+      map(args => args.root ? decodeBase64ToString(args.root) : null),
+  );
+
   /**
    * Observable with URL to download the collected timeline in the body format.
    */
-  readonly bodyFileUrl$: Observable<URL> = combineLatest([
-                                             this.flow$, this.bodyOpts$
-                                           ]).pipe(map(([flow, bodyOpts]) => {
+  readonly bodyFileUrl$ = combineLatest([
+                            this.flow$, this.bodyOpts$
+                          ]).pipe(map(([flow, bodyOpts]) => {
     const clientId = flow.clientId;
     const flowId = flow.flowId;
-    return this.httpApiService.getTimelineBodyFileUrl(
-        clientId, flowId, bodyOpts);
+    return getTimelineBodyFileUrl(clientId, flowId, bodyOpts);
   }));
 
   /**
@@ -91,4 +92,9 @@ export class TimelineDetails extends Plugin {
      */
     return `timeline_${clientId}_${flowId}.body`;
   }));
+
+  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
+    // We render a custom menu with checkboxes. Hide the standard menu.
+    return [];
+  }
 }

@@ -1,12 +1,12 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {FlowState} from '@app/lib/models/flow';
-import {newFlow, newFlowResult} from '@app/lib/models/model_test_util';
-import {initTestEnvironment} from '@app/testing';
 
+import {FlowState} from '../../../lib/models/flow';
+import {newFlow, newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {initTestEnvironment} from '../../../testing';
 import {ResultAccordionHarness} from '../helpers/testing/result_accordion_harness';
 
 import {ListProcessesDetails} from './list_processes_details';
@@ -29,7 +29,8 @@ describe('ListProcessesDetails component', () => {
             PluginsModule,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .overrideProvider(
             FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})

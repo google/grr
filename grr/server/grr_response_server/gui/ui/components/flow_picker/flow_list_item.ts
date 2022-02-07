@@ -1,5 +1,5 @@
 import {Injectable} from '@angular/core';
-import {from, Observable} from 'rxjs';
+import {Observable, of} from 'rxjs';
 
 /**
  * FlowListItem encapsulates flow-related information used by the
@@ -29,6 +29,8 @@ export type FlowsByCategory = ReadonlyMap<string, FlowListItem[]>;
  * Flows, split by category, to be displayed by the flow picker.
  */
 const FLOWS_BY_CATEGORY: FlowsByCategory = new Map(Object.entries({
+  // TODO: Commented out flows do not have a proper flow form yet.
+  // Hide them, to not show users an option that they cannot use.
   'Collectors': [
     fli('ArtifactCollectorFlow', 'Collect forensic artifacts'),
     fli('OsqueryFlow', 'Osquery', 'Execute a query using osquery'),
@@ -47,41 +49,48 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map(Object.entries({
     fli('GetMBR', 'Dump MBR', 'Dump the Master Boot Record on Windows'),
   ],
   'Filesystem': [
-    fli('CollectMultipleFiles', 'Collect multiple files',
+    fli('CollectFilesByKnownPath', 'Collect files from exact paths',
+        'Collect one or more files based on their absolute paths'),
+    fli('CollectMultipleFiles', 'Collect files by search criteria',
         'Search for and collect files based on their path, content or stat'),
-    fli('CollectSingleFile', 'Collect file',
-        'Collect a single file from a well-defined path'),
     fli('ListDirectory', 'List directory',
         'Lists and stats all immediate files in directory'),
-    fli('ListVolumeShadowCopies', 'List volume shadow copies'),
-    fli('RecursiveListDirectory', 'List directory recursively',
-        'Lists and stats all files in directory and its subdirectories'),
-    fli('SendFile', 'Send file over network'),
+    // TODO:
+    // fli('ListVolumeShadowCopies', 'List volume shadow copies'),
+    // fli('RecursiveListDirectory', 'List directory recursively',
+    // 'Lists and stats all files in directory and its subdirectories'),
+    // fli('SendFile', 'Send file over network'),
     fli('TimelineFlow', 'Collect path timeline',
         'Collect metadata information for all files under the specified directory'),
+    fli('ReadLowLevel', 'Read raw bytes from device',
+        'Read raw data from a device - e.g. from a particular disk sector'),
   ],
-  'Memory': [
-    fli('DumpProcessMemory', 'Dump process memory',
-        'Dump the process memory of one ore more processes'),
-    fli('YaraProcessScan', 'Scan process memory with YARA',
-        'Scan and optionally dump process memory using Yara'),
-  ],
+  // TODO: Uncomment when launching memory forensics in UIv2.
+  // 'Memory': [
+  //   fli('DumpProcessMemory', 'Dump process memory',
+  //       'Dump the process memory of one ore more processes'),
+  //   fli('YaraProcessScan', 'Scan process memory with YARA',
+  //       'Scan and optionally dump process memory using Yara'),
+  // ],
   'Administrative': [
     fli('ExecutePythonHack', 'Execute Python hack',
         'Execute a one-off Python script'),
     fli('Interrogate', 'Interrogate',
         'Collect general metadata about the client (e.g. operating system details, users, ...)'),
-    fli('GetClientStats', 'Collect GRR statistics',
-        'Collect agent statistics including processor, memory, and network usage'),
+    // TODO:
+    // fli('GetClientStats', 'Collect GRR statistics',
+    //     'Collect agent statistics including processor, memory, and network
+    //     usage'),
     fli('Kill', 'Kill GRR process'),
     fli('LaunchBinary', 'Execute binary hack',
         'Executes a binary from an allowlisted path'),
-    fli('OnlineNotification', 'Notify when online',
-        'Send an email notification when the GRR agent comes online'),
-    fli('Uninstall', 'Uninstall GRR',
-        'Permanently uninstall GRR from the host'),
-    fli('UpdateClient', 'Update GRR client',
-        'Update GRR on the host to the latest version'),
+    // TODO:
+    // fli('OnlineNotification', 'Notify when online',
+    //     'Send an email notification when the GRR agent comes online'),
+    // fli('Uninstall', 'Uninstall GRR',
+    //     'Permanently uninstall GRR from the host'),
+    // fli('UpdateClient', 'Update GRR client',
+    //     'Update GRR on the host to the latest version'),
   ],
   'Processes': [
     fli('ListProcesses', 'List processes',
@@ -92,9 +101,10 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map(Object.entries({
   'Network': [
     fli('Netstat', 'Netstat', 'Enumerate all open network connections'),
   ],
-  'Registry': [
-    fli('RegistryFinder', 'Find registry keys/values'),
-  ],
+  // TODO:
+  // 'Registry': [
+  //   fli('RegistryFinder', 'Find registry keys/values'),
+  // ],
 }));
 
 /**
@@ -103,14 +113,17 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map(Object.entries({
 const COMMON_FLOW_NAMES: ReadonlyArray<string> = [
   'ArtifactCollectorFlow',
   'CollectBrowserHistory',
-  'CollectMultipleFiles',
-  'CollectSingleFile',
   'Interrogate',
   'OsqueryFlow',
   'TimelineFlow',
-  'YaraProcessScan',
 ];
 
+const COMMON_FILE_FLOWS: ReadonlyArray<FlowListItem> = [
+  fli('CollectFilesByKnownPath', 'Collect files from exact paths',
+      'Collect one or more files based on their absolute paths'),
+  fli('CollectMultipleFiles', 'Collect files by search criteria',
+      'Search for and collect files based on their path, content or stat'),
+];
 
 /**
  * Singleton providing access to global configuration settings.
@@ -120,7 +133,9 @@ const COMMON_FLOW_NAMES: ReadonlyArray<string> = [
 })
 export class FlowListItemService {
   readonly flowsByCategory$: Observable<FlowsByCategory> =
-      from([FLOWS_BY_CATEGORY]);
+      of(FLOWS_BY_CATEGORY);
   readonly commonFlowNames$: Observable<ReadonlyArray<string>> =
-      from([COMMON_FLOW_NAMES]);
+      of(COMMON_FLOW_NAMES);
+  readonly commonFileFlows$: Observable<ReadonlyArray<FlowListItem>> =
+      of(COMMON_FILE_FLOWS);
 }

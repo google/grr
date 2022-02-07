@@ -1,10 +1,10 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateApproval} from '@app/lib/api_translation/client';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, tap} from 'rxjs/operators';
 
+import {HttpApiService} from '../lib/api/http_api_service';
+import {translateApproval} from '../lib/api_translation/client';
 import {ClientApproval} from '../lib/models/client';
 import {isNonNull} from '../lib/preconditions';
 

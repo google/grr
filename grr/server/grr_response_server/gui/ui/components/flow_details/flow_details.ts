@@ -1,9 +1,11 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentFactoryResolver, ComponentRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
-import {Plugin as FlowDetailsPlugin} from '@app/components/flow_details/plugins/plugin';
-import {Flow, FlowDescriptor, FlowState} from '@app/lib/models/flow';
+import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
+import {map, startWith} from 'rxjs/operators';
 
-import {assertNonNull} from '../../lib/preconditions';
+import {ExportMenuItem, Plugin as FlowDetailsPlugin} from '../../components/flow_details/plugins/plugin';
+import {Flow, FlowDescriptor, FlowState} from '../../lib/models/flow';
+import {isNonNull} from '../../lib/preconditions';
 import {FlowResultsLocalStore} from '../../store/flow_results_local_store';
+import {UserGlobalStore} from '../../store/user_global_store';
 
 import {FLOW_DETAILS_DEFAULT_PLUGIN, FLOW_DETAILS_PLUGIN_REGISTRY} from './plugin_registry';
 
@@ -37,12 +39,18 @@ export class FlowDetails implements OnChanges {
   /**
    * Flow list entry to display.
    */
-  @Input() flow!: Flow;
+  @Input() flow: Flow|null|undefined;
+
   /**
    * Flow descriptor of the flow to display. May be undefined (for example,
    * if a flow got renamed on the backend).
    */
-  @Input() flowDescriptor!: FlowDescriptor;
+  @Input() flowDescriptor: FlowDescriptor|null|undefined;
+
+  /**
+   * Whether show "Create a hunt" in the menu.
+   */
+  @Input() showCreateHunt = true;
 
   /**
    * Event that is triggered when a flow context menu action is selected.
@@ -52,21 +60,32 @@ export class FlowDetails implements OnChanges {
   @ViewChild('detailsContainer', {read: ViewContainerRef, static: true})
   detailsContainer!: ViewContainerRef;
 
-  constructor(
-      private readonly componentFactoryResolver: ComponentFactoryResolver,
-  ) {}
+  readonly canaryMode$ = this.userGlobalStore.currentUser$.pipe(
+      map(user => user.canaryMode),
+      startWith(false),
+  );
+
+  constructor(private readonly userGlobalStore: UserGlobalStore) {}
 
   ngOnChanges(changes: SimpleChanges) {
-    assertNonNull(this.flow, '@Input() flow');
+    if (!this.flow) {
+      this.detailsContainer.clear();
+      return;
+    }
 
-    const componentClass = FLOW_DETAILS_PLUGIN_REGISTRY[this.flow.name] ||
-        FLOW_DETAILS_DEFAULT_PLUGIN;
+    let componentClass = FLOW_DETAILS_PLUGIN_REGISTRY[this.flow.name];
+
+    // As fallback for flows without details plugin and flows that do not report
+    // resultCount metadata, show a default view that links to the old UI.
+    if (!componentClass || this.flow.resultCounts === undefined) {
+      componentClass = FLOW_DETAILS_DEFAULT_PLUGIN;
+    }
+
     // Only recreate the component if the component class has changed.
     if (componentClass !== this.detailsComponent?.instance.constructor) {
-      const factory =
-          this.componentFactoryResolver.resolveComponentFactory(componentClass);
       this.detailsContainer.clear();
-      this.detailsComponent = this.detailsContainer.createComponent(factory);
+      this.detailsComponent =
+          this.detailsContainer.createComponent(componentClass);
     }
 
     if (!this.detailsComponent) {
@@ -96,5 +115,25 @@ export class FlowDetails implements OnChanges {
 
   triggerMenuEvent(action: FlowMenuAction) {
     this.menuActionTriggered.emit(action);
+  }
+
+  get resultDescription() {
+    return this.flow ?
+        this.detailsComponent?.instance?.getResultDescription(this.flow) :
+        undefined;
+  }
+
+  get exportMenuItems() {
+    return (this.flow?.state === FlowState.FINISHED) ?
+        this.detailsComponent?.instance?.getExportMenuItems(this.flow) :
+        undefined;
+  }
+
+  get hasResults() {
+    return isNonNull(this.flow?.resultCounts?.find(rc => rc.count > 0));
+  }
+
+  trackExportMenuItem(index: number, entry: ExportMenuItem) {
+    return entry.title;
   }
 }

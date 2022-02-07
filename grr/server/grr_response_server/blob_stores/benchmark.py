@@ -8,10 +8,6 @@ from absl import app
 from absl import flags
 import numpy as np
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr_response_server import server_plugins
-# pylint: enable=unused-import,g-bad-import-order
-
 from grr_response_core.lib import rdfvalue
 from grr_response_server import blob_store
 from grr_response_server import server_startup

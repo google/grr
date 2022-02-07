@@ -3,13 +3,13 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {ControlContainer, FormGroup} from '@angular/forms';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {FileFinderExtFlagsCondition} from '@app/lib/api/api_interfaces';
-import {initTestEnvironment} from '@app/testing';
 
+import {FileFinderExtFlagsCondition} from '../../../lib/api/api_interfaces';
 import {newClient} from '../../../lib/models/model_test_util';
 import {getLinuxFlagMaskByNames, getOsxFlagMaskByNames} from '../../../lib/models/os_extended_flags';
 import {ClientPageGlobalStore} from '../../../store/client_page_global_store';
 import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../../store/client_page_global_store_test_util';
+import {initTestEnvironment} from '../../../testing';
 
 import {ExtFlagsCondition} from './ext_flags_condition';
 import {HelpersModule} from './module';
@@ -42,6 +42,7 @@ describe('ExtFlagsCondition component', () => {
               useFactory: () => clientPageGlobalStore,
             },
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

@@ -4,8 +4,9 @@ import {ControlContainer, FormGroup} from '@angular/forms';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {FileFinderSizeCondition} from '@app/lib/api/api_interfaces';
-import {initTestEnvironment} from '@app/testing';
+
+import {FileFinderSizeCondition} from '../../../lib/api/api_interfaces';
+import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
 
@@ -34,6 +35,7 @@ describe('SizeCondition component', () => {
               useFactory: () => controlContainer,
             },
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

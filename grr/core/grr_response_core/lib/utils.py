@@ -633,15 +633,6 @@ def Join(*parts):
   return "/".join(parts)
 
 
-# Regex chars that should not be in a regex
-disallowed_chars = re.compile(r"[[\](){}+*?.$^\\]")
-
-
-def EscapeRegex(string):
-  return re.sub(disallowed_chars, lambda x: "\\" + x.group(0),
-                SmartUnicode(string))
-
-
 def GeneratePassphrase(length=20):
   """Create a 20 char passphrase with easily typeable chars."""
   valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"

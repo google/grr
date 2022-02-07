@@ -1,9 +1,11 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
 import {ControlContainer, FormControl, FormGroup, Validators} from '@angular/forms';
-import {FileFinderContentsMatchConditionMode, FileFinderContentsRegexMatchCondition} from '@app/lib/api/api_interfaces';
+
+import {FileFinderContentsMatchConditionMode, FileFinderContentsRegexMatchCondition} from '../../../lib/api/api_interfaces';
+import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
 
 /** Represents raw values produced by the time range form. */
-export interface RegexMatchRawFormValues {
+export declare interface RegexMatchRawFormValues {
   readonly regex: string;
   readonly mode: FileFinderContentsMatchConditionMode;
   readonly length: number;
@@ -50,6 +52,7 @@ export function formValuesToFileFinderContentsRegexMatchCondition(
     FileFinderContentsRegexMatchCondition {
   return {
     ...rawFormValues,
+    regex: encodeStringToBase64(rawFormValues.regex),
     length: Math.floor(rawFormValues.length),
   };
 }

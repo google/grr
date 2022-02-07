@@ -8,8 +8,11 @@ import {MatInputHarness} from '@angular/material/input/testing';
 import {MatMenuItemHarness} from '@angular/material/menu/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {DateTime} from '@app/lib/date_time';
-import {initTestEnvironment} from '@app/testing';
+
+import {DateTime} from '../../../lib/date_time';
+import {initTestEnvironment} from '../../../testing';
+
+import {DATE_TIME_FORMAT} from './date_time_input';
 import {DateTimeInputModule} from './module';
 
 
@@ -43,7 +46,8 @@ describe('DateTimeInput Component', () => {
             TestHostComponent,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
@@ -71,7 +75,7 @@ describe('DateTimeInput Component', () => {
 
     expect(fixture.componentInstance.formControl.errors).toEqual({
       invalidDateTime:
-          'The input "invalid" can\'t be parsed as format yyyy-MM-dd hh:mm:ss'
+          `The input "invalid" can't be parsed as format ${DATE_TIME_FORMAT}`
     });
   });
 

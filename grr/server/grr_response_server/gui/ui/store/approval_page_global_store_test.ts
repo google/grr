@@ -1,34 +1,24 @@
 import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {ConfigService} from '@app/components/config/config';
-import {ApiClientApproval} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ApprovalPageGlobalStore} from '@app/store/approval_page_global_store';
-import {initTestEnvironment} from '@app/testing';
-import {Subject} from 'rxjs';
+import {firstValueFrom} from 'rxjs';
 
+import {HttpApiService} from '../lib/api/http_api_service';
+import {HttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
+import {RequestStatusType} from '../lib/api/track_request';
 import {ClientApproval} from '../lib/models/client';
 import {newClient} from '../lib/models/model_test_util';
-import {removeUndefinedKeys} from '../testing';
+import {initTestEnvironment, removeUndefinedKeys} from '../testing';
+
+import {ApprovalPageGlobalStore} from './approval_page_global_store';
 
 
 initTestEnvironment();
 
 describe('ApprovalPageGlobalStore', () => {
-  let httpApiService: Partial<HttpApiService>;
+  let httpApiService: HttpApiServiceMock;
   let approvalPageGlobalStore: ApprovalPageGlobalStore;
-  let configService: ConfigService;
-  let apiFetchClientApproval$: Subject<ApiClientApproval>;
-  let apiGrantClientApproval$: Subject<ApiClientApproval>;
 
   beforeEach(() => {
-    apiFetchClientApproval$ = new Subject();
-    apiGrantClientApproval$ = new Subject();
-    httpApiService = {
-      fetchClientApproval: jasmine.createSpy('fetchClientApproval')
-                               .and.returnValue(apiFetchClientApproval$),
-      grantClientApproval: jasmine.createSpy('grantClientApproval')
-                               .and.returnValue(apiGrantClientApproval$),
-    };
+    httpApiService = mockHttpApiService();
 
     TestBed
         .configureTestingModule({
@@ -39,11 +29,11 @@ describe('ApprovalPageGlobalStore', () => {
             // useFactory, to make sure the instance is shared.
             {provide: HttpApiService, useFactory: () => httpApiService},
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
 
     approvalPageGlobalStore = TestBed.inject(ApprovalPageGlobalStore);
-    configService = TestBed.inject(ConfigService);
   });
 
 
@@ -77,7 +67,7 @@ describe('ApprovalPageGlobalStore', () => {
        discardPeriodicTasks();
 
 
-       apiFetchClientApproval$.next({
+       httpApiService.mockedObservables.subscribeToClientApproval.next({
          subject: {
            clientId: 'C.1234',
            fleetspeakEnabled: false,
@@ -93,11 +83,11 @@ describe('ApprovalPageGlobalStore', () => {
          approvers: ['testuser'],
          notifiedUsers: ['b', 'c'],
        });
-       apiFetchClientApproval$.complete();
+       httpApiService.mockedObservables.subscribeToClientApproval.complete();
        expect(numCalls).toBe(1);
      }));
 
-  it('calls the fetchClientApproval API on approval$ subscription',
+  it('calls the subscribeToClientApproval API on approval$ subscription',
      fakeAsync(() => {
        approvalPageGlobalStore.selectApproval(
            {clientId: 'C.1234', requestor: 'testuser', approvalId: '123'});
@@ -109,12 +99,12 @@ describe('ApprovalPageGlobalStore', () => {
        tick(1);
        discardPeriodicTasks();
 
-       expect(httpApiService.fetchClientApproval)
+       expect(httpApiService.subscribeToClientApproval)
            .toHaveBeenCalledWith(
                {clientId: 'C.1234', requestor: 'testuser', approvalId: '123'});
      }));
 
-  it('calls the API on grantApproval()', () => {
+  it('calls the API on grantApproval()', async () => {
     approvalPageGlobalStore.selectApproval(
         {clientId: 'C.1234', requestor: 'testuser', approvalId: '123'});
     approvalPageGlobalStore.grantApproval();
@@ -122,6 +112,8 @@ describe('ApprovalPageGlobalStore', () => {
     expect(httpApiService.grantClientApproval)
         .toHaveBeenCalledWith(
             {clientId: 'C.1234', requestor: 'testuser', approvalId: '123'});
+    expect(await firstValueFrom(approvalPageGlobalStore.grantRequestStatus$))
+        .toEqual({status: RequestStatusType.SENT});
   });
 
   it('updates approval$ after grantApproval()', fakeAsync(() => {
@@ -154,7 +146,7 @@ describe('ApprovalPageGlobalStore', () => {
        tick(1);
        discardPeriodicTasks();
 
-       apiGrantClientApproval$.next({
+       httpApiService.mockedObservables.grantClientApproval.next({
          subject: {
            clientId: 'C.1234',
            fleetspeakEnabled: false,
@@ -170,7 +162,7 @@ describe('ApprovalPageGlobalStore', () => {
          approvers: ['testuser', 'b'],
          notifiedUsers: ['b', 'c'],
        });
-       apiGrantClientApproval$.complete();
+       httpApiService.mockedObservables.grantClientApproval.complete();
        expect(numCalls).toBe(1);
      }));
 });

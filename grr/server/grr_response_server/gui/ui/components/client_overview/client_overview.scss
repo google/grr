@@ -1,4 +1,4 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
 @use '../../material-theme' as c;
 @use '../../main' as main;
 
@@ -6,12 +6,14 @@ $max-width: 1280px;
 $width: 80%;
 
 .client-header {
-  padding: 15px 0 10px;
-  border-bottom: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 
   .fqdn-chips {
     display: flex;
     align-items: center;
+    margin-left: -36px;
 
     .computer-icon {
       margin-right: 10px;
@@ -22,30 +24,42 @@ $width: 80%;
     }
 
     .chips {
-      margin-left: 1em;
-      display: flex;
-      flex-wrap: wrap;
+      margin-left: 10px;
+    }
+  }
 
-      mat-chip {
-        min-height: 26px;
-        font-size: 13px;
-        border: 1px solid mat.get-color-from-palette(c.$foreground, divider);
-        background-color: mat.get-color-from-palette(c.$background, app-bar);
-      }
+  .chips {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
 
-      .add_label {
-        margin-left: 0.5em;
-        border-radius: 2em;
-        padding-left: 8px;
-        min-height: 26px;
-        line-height: 16px;
-        font-family: c.$google-sans-family;
+    &.labels {
+      margin-top: 10px;
+      margin-bottom: 5px;
+    }
+
+    mat-chip {
+      min-height: 26px;
+      font-size: 13px;
+
+      &:first-child {
+        margin-left: 0;
       }
+    }
+
+    .add_label {
+      margin-left: 0.5em;
+      border-radius: 2em;
+      padding-left: 8px;
+      min-height: 26px;
+      line-height: 16px;
+      font-family: c.$google-sans-family;
     }
   }
 
   .info {
-    margin-left: 35px;
+    display: flex;
+    flex-direction: column;
 
     .copy-button {
       color: mat.get-color-from-palette(c.$foreground, icon-grey);
@@ -55,4 +69,12 @@ $width: 80%;
       margin-right: 10px;
     }
   }
+}
+
+.no-padding {
+  padding: 0;
+}
+
+.goto-details {
+  margin-top: 1em;
 }

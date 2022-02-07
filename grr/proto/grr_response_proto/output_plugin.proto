@@ -71,6 +71,12 @@ message BigQueryOutputPluginArgs {
     },
     default = true
   ];
+  // Whether to export fields of type `bytes` using base64-encoding.
+  //
+  // By default, all binary data is omitted in the export results to avoid
+  // issues with UTF-8 encoding. If this option is enabled, the binary data is
+  // going to be exported as a base64-encoded string value.
+  optional bool base64_bytes_export = 4;
 }
 
 message SplunkOutputPluginArgs {

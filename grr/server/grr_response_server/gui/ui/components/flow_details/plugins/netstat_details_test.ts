@@ -1,14 +1,15 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-// import {MatInput} from '@angular/material/input';
+import {MatPaginatorHarness} from '@angular/material/paginator/testing';
+import {MatSortHarness} from '@angular/material/sort/testing';
 import {By} from '@angular/platform-browser';
-import {FlowState} from '@app/lib/models/flow';
-import {newFlow, newFlowResult} from '@app/lib/models/model_test_util';
-import {initTestEnvironment} from '@app/testing';
 
-import {FlowResultCount, NetstatArgs, NetworkConnectionFamily, NetworkConnectionState, NetworkConnectionType} from '../../../lib/api/api_interfaces';
+import {NetstatArgs, NetworkConnectionFamily, NetworkConnectionState, NetworkConnectionType} from '../../../lib/api/api_interfaces';
+import {FlowState} from '../../../lib/models/flow';
+import {newFlow, newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {initTestEnvironment} from '../../../testing';
 import {ResultAccordionHarness} from '../helpers/testing/result_accordion_harness';
 
 import {PluginsModule} from './module';
@@ -30,7 +31,8 @@ describe('NetstatDetails component', () => {
             PluginsModule,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .overrideProvider(
             FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})
@@ -61,70 +63,6 @@ describe('NetstatDetails component', () => {
 
        expect(fixture.nativeElement.innerText).toContain('All connections');
      });
-
-  it('does NOT display progress when flow is not finished', () => {
-    const resultCounts: ReadonlyArray<FlowResultCount> =
-        [{type: 'NetworkConnection', count: 1}];
-    const fixture = TestBed.createComponent(NetstatDetails);
-    fixture.componentInstance.flow = newFlow({
-      state: FlowState.RUNNING,
-      args: {},
-      resultCounts,
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).not.toContain('1 connection');
-  });
-
-  it('displays progress based on flow metadata (single connection)', () => {
-    const resultCounts: ReadonlyArray<FlowResultCount> =
-        [{type: 'NetworkConnection', count: 1}];
-    const fixture = TestBed.createComponent(NetstatDetails);
-    fixture.componentInstance.flow = newFlow({
-      state: FlowState.FINISHED,
-      args: {},
-      resultCounts,
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).toContain('1 connection');
-  });
-
-  it('displays progress based on flow metadata (multiple connections)', () => {
-    const resultCounts: ReadonlyArray<FlowResultCount> =
-        [{type: 'NetworkConnection', count: 42}];
-    const fixture = TestBed.createComponent(NetstatDetails);
-    fixture.componentInstance.flow = newFlow({
-      state: FlowState.FINISHED,
-      args: {},
-      resultCounts,
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).toContain('42 connections');
-  });
-
-  it('does NOT display download button when flow is NOT finished', () => {
-    const fixture = TestBed.createComponent(NetstatDetails);
-    fixture.componentInstance.flow = newFlow({
-      state: FlowState.RUNNING,
-      args: {},
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).not.toContain('Download');
-  });
-
-  it('displays download button when flow is finished', () => {
-    const fixture = TestBed.createComponent(NetstatDetails);
-    fixture.componentInstance.flow = newFlow({
-      state: FlowState.FINISHED,
-      args: {},
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).toContain('Download');
-  });
 
   it('displays netstat results', async () => {
     const fixture = TestBed.createComponent(NetstatDetails);
@@ -217,7 +155,8 @@ describe('NetstatDetails component', () => {
             port: 13,
           },
         }
-      })
+      }),
+      ...generateResults(9),
     ]);
     fixture.detectChanges();
 
@@ -250,8 +189,7 @@ describe('NetstatDetails component', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.innerText).not.toContain('1234');
     expect(fixture.nativeElement.innerText).not.toContain('5678');
-    expect(fixture.nativeElement.innerText)
-        .toContain('No data matching the filter "invalid"');
+    expect(fixture.nativeElement.innerText).toContain('No data');
 
     // Filter is cleared, all rows are showed again.
     filterInput.nativeElement.value = '';
@@ -261,4 +199,160 @@ describe('NetstatDetails component', () => {
     expect(fixture.nativeElement.innerText).toContain('1234');
     expect(fixture.nativeElement.innerText).toContain('5678');
   });
+
+  it('sorts results', async () => {
+    const fixture = TestBed.createComponent(NetstatDetails);
+    fixture.componentInstance.flow = newFlow({
+      state: FlowState.FINISHED,
+      args: {},
+    });
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const resultAccordionHarness =
+        await harnessLoader.getHarness(ResultAccordionHarness);
+    await resultAccordionHarness.toggle();
+
+    flowResultsLocalStore.mockedObservables.results$.next([
+      newFlowResult({
+        payloadType: 'NetworkConnection',
+        payload: {
+          processName: 'foo',
+        }
+      }),
+      newFlowResult({
+        payloadType: 'NetworkConnection',
+        payload: {
+          processName: 'bar',
+        }
+      })
+    ]);
+    fixture.detectChanges();
+
+    function getProcessNames() {
+      const p1 = fixture.debugElement.query(
+          By.css('tbody tr:nth-child(1) td:nth-child(2)'));
+      const p2 = fixture.debugElement.query(
+          By.css('tbody tr:nth-child(2) td:nth-child(2)'));
+      return [p1.nativeElement.innerText, p2.nativeElement.innerText];
+    }
+
+    expect(getProcessNames()).toEqual([
+      jasmine.stringMatching('foo'), jasmine.stringMatching('bar')
+    ]);
+
+    // Sort by processName.
+    const sort = await harnessLoader.getHarness(MatSortHarness);
+    const headers = await sort.getSortHeaders({sortDirection: ''});
+    await headers[1].click();
+
+    expect(getProcessNames()).toEqual([
+      jasmine.stringMatching('bar'), jasmine.stringMatching('foo')
+    ]);
+  });
+
+  it('default pagination works', async () => {
+    const fixture = TestBed.createComponent(NetstatDetails);
+    fixture.componentInstance.flow = newFlow({
+      state: FlowState.FINISHED,
+      args: {},
+    });
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const resultAccordionHarness =
+        await harnessLoader.getHarness(ResultAccordionHarness);
+    await resultAccordionHarness.toggle();
+
+    flowResultsLocalStore.mockedObservables.results$.next(generateResults(200));
+    fixture.detectChanges();
+
+    const paginatorTop = await harnessLoader.getHarness(
+        MatPaginatorHarness.with({selector: '.top-paginator'}));
+    const paginatorBottom = await harnessLoader.getHarness(
+        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+
+    // Paginators start with default values, process0-9 are shown, but 10 isn't.
+    expect(await paginatorTop.getPageSize()).toBe(10);
+    expect(await paginatorBottom.getPageSize()).toBe(10);
+    expect(fixture.nativeElement.innerText).toContain('process0');
+    expect(fixture.nativeElement.innerText).toContain('process9');
+    expect(fixture.nativeElement.innerText).not.toContain('process10');
+  });
+
+  it('clicking TOP paginator updates bottom paginator state (page size)',
+     async () => {
+       const fixture = TestBed.createComponent(NetstatDetails);
+       fixture.componentInstance.flow = newFlow({
+         state: FlowState.FINISHED,
+         args: {},
+       });
+
+       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+       const resultAccordionHarness =
+           await harnessLoader.getHarness(ResultAccordionHarness);
+       await resultAccordionHarness.toggle();
+
+       flowResultsLocalStore.mockedObservables.results$.next(
+           generateResults(200));
+       fixture.detectChanges();
+       const paginatorTop = await harnessLoader.getHarness(
+
+           MatPaginatorHarness.with({selector: '.top-paginator'}));
+       const paginatorBottom = await harnessLoader.getHarness(
+           MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+
+       // Change page size on top paginator should update the bottom paginator.
+       await paginatorTop.setPageSize(50);
+       expect(await paginatorTop.getPageSize()).toBe(50);
+       expect(await paginatorBottom.getPageSize()).toBe(50);
+       expect(await paginatorTop.getRangeLabel()).toBe('1 – 50 of 200');
+       expect(await paginatorBottom.getRangeLabel()).toBe('1 – 50 of 200');
+       expect(fixture.nativeElement.innerText).toContain('process0');
+       expect(fixture.nativeElement.innerText).toContain('process49');
+     });
+
+  it('clicking BOTTOM paginator updates top paginator state (page size)',
+     async () => {
+       const fixture = TestBed.createComponent(NetstatDetails);
+       fixture.componentInstance.flow = newFlow({
+         state: FlowState.FINISHED,
+         args: {},
+       });
+
+       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+       const resultAccordionHarness =
+           await harnessLoader.getHarness(ResultAccordionHarness);
+       await resultAccordionHarness.toggle();
+
+       flowResultsLocalStore.mockedObservables.results$.next(
+           generateResults(200));
+       fixture.detectChanges();
+       const paginatorTop = await harnessLoader.getHarness(
+
+           MatPaginatorHarness.with({selector: '.top-paginator'}));
+       const paginatorBottom = await harnessLoader.getHarness(
+           MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+
+       // Change page size on bottom paginator should update the top paginator.
+       await paginatorBottom.setPageSize(50);
+       expect(await paginatorTop.getPageSize()).toBe(50);
+       expect(await paginatorBottom.getPageSize()).toBe(50);
+       expect(await paginatorTop.getRangeLabel()).toBe('1 – 50 of 200');
+       expect(await paginatorBottom.getRangeLabel()).toBe('1 – 50 of 200');
+       expect(fixture.nativeElement.innerText).toContain('process0');
+       expect(fixture.nativeElement.innerText).toContain('process49');
+     });
 });
+
+function generateResult(n: number) {
+  return newFlowResult({
+    payloadType: 'NetworkConnection',
+    payload: {
+      pid: n,
+      processName: `process${n}`,
+    }
+  });
+}
+
+function generateResults(count: number) {
+  return [...Array.from({length: count}).keys()].map(generateResult);
+}

@@ -1,8 +1,8 @@
 <div class="search-container">
-  <search-box (querySubmitted)="onQuerySubmitted($event)"></search-box>
+  <search-box (querySubmitted)="onQuerySubmitted($event)" [autofocus]="true"></search-box>
 </div>
 
-<div class="clients-container mat-typography" *ngIf="(recentClients$ | async)?.length > 0">
+<div class="clients-container" *ngIf="(recentClients$ | async)?.length">
   <h1>Recently accessed clients</h1>
   <div *ngFor="let client of recentClients$ | async; trackBy: trackClient">
     <a [routerLink]="['/clients', client.clientId]" mat-button>

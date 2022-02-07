@@ -1,12 +1,13 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild} from '@angular/core';
 import {FormControl} from '@angular/forms';
 import {MatAutocompleteTrigger} from '@angular/material/autocomplete';
-import {FuzzyMatcher, StringWithHighlights, stringWithHighlightsFromMatch} from '@app/lib/fuzzy_matcher';
-import {isNonNull} from '@app/lib/preconditions';
 import {BehaviorSubject, fromEvent, merge, Observable, Subject} from 'rxjs';
 import {debounceTime, filter, map, mapTo, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
+import {FuzzyMatcher, StringWithHighlights, stringWithHighlightsFromMatch} from '../../lib/fuzzy_matcher';
+import {isNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
+import {compareAlphabeticallyBy} from '../../lib/type_utils';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 
 import {FlowListItem, FlowListItemService, FlowsByCategory} from './flow_list_item';
@@ -51,7 +52,7 @@ enum InputToShow {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlowPicker implements AfterViewInit, OnDestroy {
-  readonly ngOnDestroy = observeOnDestroy();
+  readonly ngOnDestroy = observeOnDestroy(this);
 
   readonly flowsByCategory$ = this.flowListItemService.flowsByCategory$;
 
@@ -88,10 +89,12 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
             const result = Array.from(flowsByCategory.values())
                                .flat()
                                .filter(fli => fNames.includes(fli.name));
-            result.sort((a, b) => a.friendlyName.localeCompare(b.friendlyName));
+            result.sort(compareAlphabeticallyBy(f => f.friendlyName));
             return result;
           }),
       );
+
+  readonly commonFileFlows$ = this.flowListItemService.commonFileFlows$;
 
   @ViewChild(MatAutocompleteTrigger, {static: false})
   autocompleteTrigger!: MatAutocompleteTrigger;
@@ -160,7 +163,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
       // If the overlay is being forcibly hidden, pass-through the false
       // value.
       this.overviewOverlayForceHidden$.pipe(
-          mapTo(true),
+          mapTo(false),
           ),
   );
 
@@ -209,7 +212,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
         }
 
         if (acOptions.length > 0) {
-          acOptions.sort((a, b) => a.title.value.localeCompare(b.title.value));
+          acOptions.sort(compareAlphabeticallyBy(option => option.title.value));
           acCategories.push({
             title: categoryMatch !== undefined ?
                 stringWithHighlightsFromMatch(categoryMatch) :
@@ -220,7 +223,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
       }
     }
 
-    acCategories.sort((a, b) => a.title.value.localeCompare(b.title.value));
+    acCategories.sort(compareAlphabeticallyBy(cat => cat.title.value));
     return acCategories;
   }
 
@@ -257,7 +260,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
   }
 
   selectFlow(fli: FlowListItem) {
-    if (this.selectedFlow$.value === fli) {
+    if (this.selectedFlow$.value?.name === fli.name) {
       return;
     }
     this.textInput.setValue(fli.friendlyName);

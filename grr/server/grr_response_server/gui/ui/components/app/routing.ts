@@ -1,9 +1,13 @@
 import {NgModule} from '@angular/core';
 import {RouterModule, Routes} from '@angular/router';
 
+import {NotFoundPage} from './not_found_page';
+
 const routes: Routes = [
-  // TODO(user): Change to error page.
-  // {path: '**', redirectTo: '/'},
+  {
+    path: '**',
+    component: NotFoundPage,
+  },
 ];
 
 @NgModule({

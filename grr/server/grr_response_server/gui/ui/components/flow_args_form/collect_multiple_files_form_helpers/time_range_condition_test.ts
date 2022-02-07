@@ -5,12 +5,14 @@ import {FormGroup, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition, RawFormValues} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
-import {DateTimeInputHarness} from '@app/components/form/date_time_input/testing/date_time_input_harness';
-import {FileFinderAccessTimeCondition, FileFinderInodeChangeTimeCondition, FileFinderModificationTimeCondition} from '@app/lib/api/api_interfaces';
-import {DateTime} from '@app/lib/date_time';
-import {dateTimeEqualityTester, initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
+
+import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition, RawFormValues} from '../../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
+import {DateTimeInputHarness} from '../../../components/form/date_time_input/testing/date_time_input_harness';
+import {FileFinderAccessTimeCondition, FileFinderInodeChangeTimeCondition, FileFinderModificationTimeCondition} from '../../../lib/api/api_interfaces';
+import {DateTime} from '../../../lib/date_time';
+import {dateTimeEqualityTester, initTestEnvironment} from '../../../testing';
+
 import {HelpersModule} from './module';
 
 
@@ -54,7 +56,8 @@ describe('TimeRangeCondition component', () => {
           ],
           declarations: [TestHostComponent],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
@@ -212,7 +215,7 @@ describe('formValuesToFileFinderInodeChangeTimeCondition()', () => {
     };
     const expected: FileFinderInodeChangeTimeCondition = {
       minLastInodeChangeTime: undefined,
-      maxLastInodeChangeTIme: undefined,
+      maxLastInodeChangeTime: undefined,
     };
     expect(formValuesToFileFinderInodeChangeTimeCondition(source))
         .toEqual(expected);
@@ -225,7 +228,7 @@ describe('formValuesToFileFinderInodeChangeTimeCondition()', () => {
     };
     const expected: FileFinderInodeChangeTimeCondition = {
       minLastInodeChangeTime: '4242000000',
-      maxLastInodeChangeTIme: '4243000000',
+      maxLastInodeChangeTime: '4243000000',
     };
     expect(formValuesToFileFinderInodeChangeTimeCondition(source))
         .toEqual(expected);

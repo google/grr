@@ -2,12 +2,12 @@ import {Component, Input} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {initTestEnvironment} from '@app/testing';
 
 import {FlowResult} from '../../../lib/models/flow';
 import {newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {initTestEnvironment} from '../../../testing';
 
 import {LoadFlowResultsDirective} from './load_flow_results_directive';
 import {HelpersModule} from './module';
@@ -46,7 +46,8 @@ describe('LoadFlowResultsDirective', () => {
             TestHostComponent,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .overrideProvider(
             FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})

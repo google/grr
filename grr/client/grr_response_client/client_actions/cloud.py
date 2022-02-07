@@ -37,6 +37,12 @@ class GetCloudVMMetadata(actions.ActionPlugin):
       "all",
   ]
 
+  AMAZON_TOKEN_URL = "http://169.254.169.254/latest/api/token"
+  AMAZON_TOKEN_REQUEST_HEADERS = {
+      "X-aws-ec2-metadata-token-ttl-seconds": "21600",
+  }
+  AMAZON_TOKEN_HEADER = "X-aws-ec2-metadata-token"
+
   def IsCloud(self, request, bios_version, services):
     """Test to see if we're on a cloud machine."""
     if request.bios_version_regex and bios_version:
@@ -78,6 +84,21 @@ class GetCloudVMMetadata(actions.ActionPlugin):
     return rdf_cloud.CloudMetadataResponse(
         label=request.label or request.url, text=result.text)
 
+  def GetAWSMetadataToken(self) -> str:
+    """Get the session token for IMDSv2."""
+    result = requests.put(
+        self.AMAZON_TOKEN_URL,
+        headers=self.AMAZON_TOKEN_REQUEST_HEADERS,
+        timeout=1.0)
+    result.raise_for_status()
+
+    # Requests does not always raise an exception when an incorrect response
+    # is received. This fixes that behaviour.
+    if not result.ok:
+      raise requests.RequestException(response=result)
+
+    return result.text
+
   def Run(self, args: rdf_cloud.CloudMetadataRequests):
     bios_version = None
     services = None
@@ -99,9 +120,14 @@ class GetCloudVMMetadata(actions.ActionPlugin):
 
     result_list = []
     instance_type = None
+    aws_metadata_token = ""
     for request in args.requests:
       if self.IsCloud(request, bios_version, services):
         instance_type = request.instance_type
+        if instance_type == rdf_cloud.CloudInstance.InstanceType.AMAZON:
+          if not aws_metadata_token:
+            aws_metadata_token = self.GetAWSMetadataToken()
+          request.headers[self.AMAZON_TOKEN_HEADER] = aws_metadata_token
         result_list.append(self.GetMetaData(request))
     if result_list:
       self.SendReply(

@@ -1,0 +1,109 @@
+syntax = "proto2";
+
+package grr;
+
+import "grr_response_proto/semantic.proto";
+
+// Condition to match on OS.
+message OSCondition {
+  // Enum defining how the condition can be matched.
+  enum ComparisonType {
+    UNKNOWN = 0 [(description) = "Unknown"];
+    EQUALS = 1 [(description) = "Equals"];
+    NOT_EQUALS = 2 [(description) = "Not Equals"];
+    CONTAINS = 3 [(description) = "Substring"];
+  }
+  // How to match the supplied OS string.
+  optional ComparisonType comparison_type = 1;
+
+  // OS string to match.
+  optional string os = 2;
+}
+
+// Condition expression.
+message ConditionExpression {
+  option (semantic) = {
+    union_field: "condition_type"
+  };
+
+  // Enum for all the operators and conditions.
+  enum ConditionType {
+    UNKNOWN = 0 [(description) = "Unknown"];
+    OS = 1 [(description) = "OS condition"];
+  }
+
+  // Type of the condition.
+  optional ConditionType condition_type = 1;
+
+  // OS condition.
+  optional OSCondition os_condition = 2;
+}
+
+// Negation of the containing expression.
+message NotExpression {
+  // Expression to negate.
+  optional SearchExpression expression = 1;
+}
+
+// Conjunction of two expressions.
+message AndExpression {
+  // First operand.
+  optional SearchExpression left_operand = 1;
+  // Second operand.
+  optional SearchExpression right_operand = 2;
+}
+
+// Disjunction of two expressions.
+message OrExpression {
+  // First operand.
+  optional SearchExpression left_operand = 1;
+  // Second operand.
+  optional SearchExpression right_operand = 2;
+}
+
+// Structured search expression.
+message SearchExpression {
+  option (semantic) = {
+    union_field: "expression_type"
+  };
+
+  // Enum for all the operators and conditions.
+  enum ExpressionType {
+    UNKNOWN = 0 [(description) = "Unknown"];
+    NEGATION = 1 [(description) = "Negation expression"];
+    AND = 2 [(description) = "AND expression"];
+    OR = 3 [(description) = "OR expression"];
+    CONDITION = 4 [(description) = "Condition expression"];
+  }
+
+  // Type of the expression.
+  optional ExpressionType expression_type = 1;
+  // Negation expression.
+  optional NotExpression not_expression = 2;
+  // Conjunction expression.
+  optional AndExpression and_expression = 3;
+  // Disjunction expression.
+  optional OrExpression or_expression = 4;
+  // Condition expression.
+  optional ConditionExpression condition_expression = 5;
+}
+
+message SearchOrder {
+  enum OrderBy {
+    UNKNOWN = 0 [(description) = "Unknown"];
+    SNAPSHOT_CREATION_TIME = 1
+        [(description) = "Order by when the snapshot was created"];
+  }
+
+  // What to order the results by.
+  optional OrderBy order_by = 1;
+
+  enum Order {
+    UNKNOWN_ORDER = 0 [(description) = "Unknown order"];
+    ASCENDING = 1 [(description) = "Ascending order"];
+    DESCENDING = 2 [(description) = "Descending order"];
+  }
+
+  // In what order the results should be in.
+  optional Order order = 2;
+}

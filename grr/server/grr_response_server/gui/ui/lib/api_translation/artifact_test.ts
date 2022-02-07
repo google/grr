@@ -1,6 +1,5 @@
-import * as api from '@app/lib/api/api_interfaces';
-import {ArtifactDescriptor, OperatingSystem, SourceType} from '@app/lib/models/flow';
-
+import * as api from '../../lib/api/api_interfaces';
+import {ArtifactDescriptor, OperatingSystem, SourceType} from '../../lib/models/flow';
 import {initTestEnvironment} from '../../testing';
 
 import {translateArtifactDescriptor} from './artifact';

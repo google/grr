@@ -347,6 +347,23 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
   CONDITION_TESTS_ACTIONS = sorted(
       set(rdf_file_finder.FileFinderAction.Action.enum_dict.values()))
 
+  def testLiteralMatchConditionWithEmptyLiteral(self):
+    match = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
+        mode=rdf_file_finder.FileFinderContentsLiteralMatchCondition.Mode
+        .ALL_HITS,
+        bytes_before=10,
+        bytes_after=10)  # No `literal=` provided.
+    literal_condition = rdf_file_finder.FileFinderCondition(
+        condition_type=rdf_file_finder.FileFinderCondition.Type
+        .CONTENTS_LITERAL_MATCH,
+        contents_literal_match=match)
+
+    for action in self.CONDITION_TESTS_ACTIONS:
+      # Flow arguments validation should fail with an empty literal.
+      with self.assertRaises(ValueError):
+        self.RunFlowAndCheckResults(
+            action=action, conditions=[literal_condition])
+
   def testLiteralMatchConditionWithDifferentActions(self):
     expected_files = ["auth.log"]
     non_expected_files = ["dpkg.log", "dpkg_false.log"]
@@ -916,6 +933,47 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
       self.assertEqual(results[0].stat_entry.st_ino,
                        results[1].stat_entry.st_ino)
 
+  def testLinksAndContent(self):
+    with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
+      # This sets up a structure as follows:
+      # <dir>  tempdir/dir
+      # <file> tempdir/foo
+      # <lnk>  tempdir/foo_lnk
+      # <lnk>  tempdir/dir_lnk
+
+      # foo_lnk is a symbolic link to foo (a file).
+      # dir_lnk is a symbolic link to dir (a directory).
+
+      path = os.path.join(tempdir, "foo")
+      with io.open(path, "w") as fd:
+        fd.write("some content")
+
+      dir_path = os.path.join(tempdir, "dir")
+      os.mkdir(dir_path)
+
+      lnk_path = os.path.join(tempdir, "foo_lnk")
+      os.symlink(path, lnk_path)
+
+      dir_lnk_path = os.path.join(tempdir, "dir_lnk")
+      os.symlink(dir_path, dir_lnk_path)
+
+      path_glob = os.path.join(tempdir, "**3")
+      condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
+          literal=b"some")
+      results = self.RunFlow(
+          action=rdf_file_finder.FileFinderAction.Stat(resolve_links=False),
+          conditions=[condition],
+          paths=[path_glob])
+
+      self.assertLen(results, 2)
+
+      results = self.RunFlow(
+          action=rdf_file_finder.FileFinderAction.Stat(resolve_links=True),
+          conditions=[condition],
+          paths=[path_glob])
+
+      self.assertLen(results, 2)
+
 
 class TestFileFinderFlowWithImplementationType(TestFileFinderFlow):
 
@@ -952,7 +1010,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     super().setUp()
     self.client_id = self.SetupClient(0)
 
-  def _RunCFF(self, paths, action):
+  def _RunCFF(self, paths, action, conditions=None):
     flow_id = flow_test_lib.TestFlowHelper(
         file_finder.ClientFileFinder.__name__,
         action_mocks.ClientFileFinderClientMock(),
@@ -960,6 +1018,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         paths=paths,
         pathtype=rdf_paths.PathSpec.PathType.OS,
         action=rdf_file_finder.FileFinderAction(action_type=action),
+        conditions=conditions,
         process_non_regular_files=True,
         creator=self.test_username)
 
@@ -1195,6 +1254,41 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     with io.open(filepath, "wb"):
       pass
+
+  def testLinksAndContent(self):
+    with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
+      # This sets up a structure as follows:
+      # <dir>  tempdir/dir
+      # <file> tempdir/foo
+      # <lnk>  tempdir/foo_lnk
+      # <lnk>  tempdir/dir_lnk
+
+      # foo_lnk is a symbolic link to foo (a file).
+      # dir_lnk is a symbolic link to dir (a directory).
+
+      path = os.path.join(tempdir, "foo")
+      with io.open(path, "w") as fd:
+        fd.write("some content")
+
+      dir_path = os.path.join(tempdir, "dir")
+      os.mkdir(dir_path)
+
+      lnk_path = os.path.join(tempdir, "foo_lnk")
+      os.symlink(path, lnk_path)
+
+      dir_lnk_path = os.path.join(tempdir, "dir_lnk")
+      os.symlink(dir_path, dir_lnk_path)
+
+      path_glob = os.path.join(tempdir, "**3")
+      action = rdf_file_finder.FileFinderAction.Action.STAT
+      condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
+          literal=b"some")
+
+      # TODO: This fails currently.
+      del path_glob, action, condition
+      # results, _ = self._RunCFF([path_glob], action, conditions=[condition])
+
+      # self.assertLen(results, 2)
 
 
 def main(argv):

@@ -47,13 +47,14 @@ describe('Entry History Dialog', () => {
           declarations: [EntryHistoryDialog],
           imports: [
             EntryHistoryDialogModule,
-            NoopAnimationsModule,  // This makes test faster and more stable.
+            NoopAnimationsModule,
             MatDialogModule,
           ],
           providers: [
             {provide: MAT_DIALOG_DATA, useFactory: () => providedData},
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
     inject([OverlayContainer], (oc: OverlayContainer) => {
@@ -168,7 +169,8 @@ describe('Entry History Dialog', () => {
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    const timestampComponent = fixture.debugElement.query(By.css('timestamp'));
+    const timestampComponent =
+        fixture.debugElement.query(By.css('app-timestamp'));
     expect(timestampComponent).toBeTruthy();
   });
 

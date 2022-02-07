@@ -89,9 +89,7 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   args_type = api_flow.ApiCreateFlowArgs
   result_type = api_flow.ApiFlow
 
-  def __init__(self,
-               override_flow_name=None,
-               override_flow_args=None):
+  def __init__(self, override_flow_name=None, override_flow_args=None):
     super().__init__()
 
     self.override_flow_name = override_flow_name
@@ -187,6 +185,13 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouterStub):
           "SearchClients is not allowed by the configuration.")
 
     return api_client.ApiSearchClientsHandler()
+
+  def StructuredSearchClients(self, args, context=None):
+    if not self.params.search_clients.enabled:
+      raise access_control.UnauthorizedAccess(
+          "StructuredSearchClients is not allowed by the configuration.")
+
+    return api_client.ApiStructuredSearchClientsHandler()
 
   def _CheckFileFinderArgs(self, flow_args, context=None):
     ffparams = self.params.file_finder_flow

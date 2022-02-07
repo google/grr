@@ -1,6 +1,7 @@
 import {Component, Type} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {initTestEnvironment} from '@app/testing';
+
+import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
 
@@ -30,7 +31,8 @@ describe('Network Connection Pipes', () => {
             TestTypeComponent,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

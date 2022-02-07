@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from grr_response_core.lib import rdfvalue
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
@@ -69,7 +68,13 @@ class DatabaseTestEventsMixin(object):
     self.assertCountEqual(entries, [entry1, entry2])
 
   def testReadEntriesOrder(self):
-    status_codes = list(range(200, 210))
+    status_codes = [
+        rdf_objects.APIAuditEntry.Code.OK,
+        rdf_objects.APIAuditEntry.Code.ERROR,
+        rdf_objects.APIAuditEntry.Code.FORBIDDEN,
+        rdf_objects.APIAuditEntry.Code.NOT_FOUND,
+        rdf_objects.APIAuditEntry.Code.NOT_IMPLEMENTED,
+    ]
 
     for status_code in status_codes:
       self.db.WriteAPIAuditEntry(self._MakeEntry(response_code=status_code))

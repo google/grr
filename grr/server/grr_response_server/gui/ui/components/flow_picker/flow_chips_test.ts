@@ -1,9 +1,11 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {FlowChips} from '@app/components/flow_picker/flow_chips';
-import {FlowListItem} from '@app/components/flow_picker/flow_list_item';
-import {initTestEnvironment} from '@app/testing';
+
+import {FlowChips} from '../../components/flow_picker/flow_chips';
+import {FlowListItem} from '../../components/flow_picker/flow_list_item';
+import {initTestEnvironment} from '../../testing';
+
 import {FlowPickerModule} from './module';
 
 
@@ -21,7 +23,8 @@ describe('FlowChips component', () => {
             FlowPickerModule,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

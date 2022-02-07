@@ -32,7 +32,7 @@ describe('Status Chip Component', () => {
           ],
           declarations: [OnlineChip, TestHostComponent],
 
-
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
@@ -53,19 +53,19 @@ describe('Status Chip Component', () => {
 
        componentInstance.lastSeen = new Date('2020-07-01T12:59:45');
        fixture.detectChanges();
-       expect(fixture.nativeElement.innerText).toEqual(STATUS_ONLINE);
+       expect(fixture.nativeElement.innerText).toContain(STATUS_ONLINE);
 
        componentInstance.lastSeen = new Date('2020-07-01T12:50:45');
        fixture.detectChanges();
-       expect(fixture.nativeElement.innerText).toEqual(STATUS_ONLINE);
+       expect(fixture.nativeElement.innerText).toContain(STATUS_ONLINE);
 
        componentInstance.lastSeen = new Date('2020-07-01T12:45:00.001');
        fixture.detectChanges();
-       expect(fixture.nativeElement.innerText).toEqual(STATUS_ONLINE);
+       expect(fixture.nativeElement.innerText).toContain(STATUS_ONLINE);
 
        componentInstance.lastSeen = new Date('2020-07-01T12:45:00.000');
        fixture.detectChanges();
-       expect(fixture.nativeElement.innerText).not.toEqual(STATUS_ONLINE);
+       expect(fixture.nativeElement.innerText).not.toContain(STATUS_ONLINE);
 
        discardPeriodicTasks();
      }));
@@ -81,15 +81,15 @@ describe('Status Chip Component', () => {
 
        componentInstance.lastSeen = new Date('2020-07-01T12:45:00.000');
        fixture.detectChanges();
-       expect(fixture.nativeElement.innerText).toEqual(STATUS_OFFLINE);
+       expect(fixture.nativeElement.innerText).toContain(STATUS_OFFLINE);
 
        componentInstance.lastSeen = new Date('2020-07-01T12:40:15');
        fixture.detectChanges();
-       expect(fixture.nativeElement.innerText).toEqual(STATUS_OFFLINE);
+       expect(fixture.nativeElement.innerText).toContain(STATUS_OFFLINE);
 
        componentInstance.lastSeen = new Date('1623-07-01T12:59:00.001');
        fixture.detectChanges();
-       expect(fixture.nativeElement.innerText).toEqual(STATUS_OFFLINE);
+       expect(fixture.nativeElement.innerText).toContain(STATUS_OFFLINE);
 
        discardPeriodicTasks();
      }));
@@ -105,13 +105,13 @@ describe('Status Chip Component', () => {
 
        componentInstance.lastSeen = new Date('2020-07-01T12:45:01.000');
        fixture.detectChanges();
-       expect(fixture.nativeElement.innerText).toEqual(STATUS_ONLINE);
+       expect(fixture.nativeElement.innerText).toContain(STATUS_ONLINE);
 
        jasmine.clock().mockDate(
            new Date('2020-07-01T13:00:01.000'));  // July 1, 2020, 13:00:00
        tick(1000);
        fixture.detectChanges();
-       expect(fixture.nativeElement.innerText).toEqual(STATUS_OFFLINE);
+       expect(fixture.nativeElement.innerText).toContain(STATUS_OFFLINE);
        discardPeriodicTasks();
      }));
 
@@ -126,11 +126,11 @@ describe('Status Chip Component', () => {
 
        componentInstance.lastSeen = new Date('2020-07-01T12:00:00.000');
        fixture.detectChanges();
-       expect(fixture.nativeElement.innerText).toEqual(STATUS_OFFLINE);
+       expect(fixture.nativeElement.innerText).toContain(STATUS_OFFLINE);
 
        componentInstance.lastSeen = new Date('2020-07-01T13:00:00');
        fixture.detectChanges();
-       expect(fixture.nativeElement.innerText).toEqual(STATUS_ONLINE);
+       expect(fixture.nativeElement.innerText).toContain(STATUS_ONLINE);
 
        discardPeriodicTasks();
      }));

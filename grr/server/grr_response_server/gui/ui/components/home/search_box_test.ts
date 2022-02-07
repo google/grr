@@ -2,14 +2,14 @@ import {OverlayContainer} from '@angular/cdk/overlay';
 import {discardPeriodicTasks, fakeAsync, inject, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ApiClient, ApiSearchClientResult} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ApiModule} from '@app/lib/api/module';
-import {initTestEnvironment} from '@app/testing';
 import {of} from 'rxjs';
 
+import {ApiClient, ApiSearchClientResult} from '../../lib/api/api_interfaces';
+import {HttpApiService} from '../../lib/api/http_api_service';
+import {ApiModule} from '../../lib/api/module';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
+import {initTestEnvironment} from '../../testing';
 
 import {HomeModule} from './module';
 
@@ -64,7 +64,7 @@ describe('SearchBox Component', () => {
     TestBed
         .configureTestingModule({
           imports: [
-            NoopAnimationsModule,  // This makes test faster and more stable.
+            NoopAnimationsModule,
             HomeModule,
             ApiModule,
           ],
@@ -73,6 +73,7 @@ describe('SearchBox Component', () => {
             {provide: ConfigGlobalStore, useFactory: () => configGlobalStore}
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
 

@@ -1,10 +1,24 @@
-import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
+import {ChangeDetectionStrategy, Component, OnDestroy} from '@angular/core';
 import {ActivatedRoute, Params} from '@angular/router';
-import {ClientSearchGlobalStore} from '@app/store/client_search_global_store';
 import {Observable} from 'rxjs';
-import {filter, map, skip} from 'rxjs/operators';
+import {filter, map, takeUntil} from 'rxjs/operators';
 
+import {Client} from '../../lib/models/client';
 import {isNonNull} from '../../lib/preconditions';
+import {observeOnDestroy} from '../../lib/reactive';
+import {ClientSearchGlobalStore} from '../../store/client_search_global_store';
+
+function toRow(c: Client) {
+  return {
+    clientId: c.clientId,
+    fqdn: c.knowledgeBase.fqdn,
+    labels: c.labels.map(label => label.name),
+    lastSeenAt: c.lastSeenAt,
+    users: c.knowledgeBase.users?.map(user => user.username) ?? [],
+    additionalUserCount:
+        c.knowledgeBase.users?.length ? c.knowledgeBase.users.length - 1 : 0,
+  };
+}
 
 /**
  * Component displaying the client search results.
@@ -14,12 +28,16 @@ import {isNonNull} from '../../lib/preconditions';
   styleUrls: ['./client_search.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ClientSearch implements OnInit {
+export class ClientSearch implements OnDestroy {
+  readonly ngOnDestroy = observeOnDestroy(this);
+
   private readonly query$ = this.route.queryParamMap.pipe(
+      takeUntil(this.ngOnDestroy.triggered$),
       map(params => params.get('q') ?? ''),
   );
 
   readonly reason$: Observable<Params> = this.route.queryParamMap.pipe(
+      takeUntil(this.ngOnDestroy.triggered$),
       map(params => params.get('reason')),
       filter(isNonNull),
       map((reason) => ({'reason': reason})),
@@ -29,25 +47,18 @@ export class ClientSearch implements OnInit {
    * Table rows for the MatTable component.
    */
   readonly rows$ = this.clientSearchGlobalStore.clients$.pipe(
-      skip(1),
-      map(clients => clients.map((c) => ({
-                                   clientId: c.clientId,
-                                   fqdn: c.knowledgeBase.fqdn,
-                                   lastSeenAt: c.lastSeenAt,
-                                 }))),
-  );
+      map(clients => clients?.map(toRow) ?? []));
 
   /**
    * Table columns for the MatTable component.
    */
-  readonly columns = ['clientId', 'fqdn', 'lastSeenAt'];
+  readonly columns =
+      ['clientId', 'fqdn', 'users', 'labels', 'online', 'lastSeenAt'];
 
   constructor(
       private readonly route: ActivatedRoute,
       private readonly clientSearchGlobalStore: ClientSearchGlobalStore,
-  ) {}
-
-  ngOnInit() {
+  ) {
     this.query$.subscribe(query => {
       this.clientSearchGlobalStore.searchClients(query);
     });

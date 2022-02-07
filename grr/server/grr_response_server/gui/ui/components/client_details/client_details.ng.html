@@ -1,7 +1,7 @@
-<div class="details-container mat-body-1" *ngIf="clientVersions$ | async as clientVersions">
+<div class="details-container " *ngIf="clientVersions$ | async as clientVersions">
   <div class="timeline">
     <div class="heading-since">
-      <div class="mat-h1 heading">Change logs</div>
+      <h1 class="heading">Change logs</h1>
       <div class="since">Since {{clientVersions[clientVersions.length - 1].client.age | date:'dd-MM-yyyy'}}</div>
     </div>
     <mat-selection-list #timeline [multiple]="false" disableRipple>
@@ -12,7 +12,7 @@
 
         <div>
           <mat-icon inline class="bullet-icon">stop_circle</mat-icon>
-          <timestamp [date]="version.client.age" [tooltipEnabled]="false" class="timestamp"></timestamp>
+          <app-timestamp [date]="version.client.age" relativeTimestamp="hidden" class="timestamp"></app-timestamp>
         </div>
         <div class="change-list mat-body-2">
           <div *ngFor="let change of version.changes">
@@ -24,7 +24,7 @@
   </div>
 
   <div *ngIf="timeline.selectedOptions.selected[0]?.value as client" class="info">
-    <div class="section-title mat-h3">OS Info</div>
+    <h3 class="section-title">OS Info</h3>
     <table class="section">
       <tr *ngIf="client.osInfo.system">
         <td class="description">System</td>
@@ -65,16 +65,16 @@
       <tr *ngIf="client.osInfo.installDate">
         <td class="description">Install date</td>
         <td class="value">
-          <timestamp [date]="client.osInfo.installDate"></timestamp>
+          <app-timestamp [date]="client.osInfo.installDate"></app-timestamp>
           <entry-history-button path="osInfo.installDate" type="timestamp"></entry-history-button>
         </td>
       </tr>
     </table>
 
     <br>
-    <div class="section-title mat-h3">Users
+    <h3 class="section-title">Users
       <entry-history-button path="users" type="user-list"></entry-history-button>
-    </div>
+    </h3>
     <users-details [users]="client.users.slice(0, currentNumUsersShown)"></users-details>
     <button
       *ngIf="getAccordionButtonState(client.users.length, currentNumUsersShown, INITIAL_NUM_USERS_SHOWN) === 'show-more'"
@@ -88,7 +88,7 @@
     </button>
 
     <br>
-    <div class="section-title mat-h3">CPU & Memory</div>
+    <h3 class="section-title">CPU & Memory</h3>
     <table class="section">
       <tr *ngIf="client.osInfo.machine">
         <td class="description">CPU architecture</td>
@@ -106,9 +106,9 @@
     </table>
 
     <br>
-    <div class="section-title mat-h3">Network Interfaces
+    <h3 class="section-title">Network Interfaces
       <entry-history-button path="networkInterfaces" type="interface-list"></entry-history-button>
-    </div>
+    </h3>
     <interfaces-details [interfaces]="client.networkInterfaces.slice(0, currentNumInterfacesShown)"></interfaces-details>
     <button
       *ngIf="getAccordionButtonState(client.networkInterfaces.length, currentNumInterfacesShown, INITIAL_NUM_INTERFACES_SHOWN) === 'show-more'"
@@ -122,9 +122,9 @@
     </button>
 
     <br>
-    <div class="section-title mat-h3">Storage Volumes
+    <h3 class="section-title">Storage Volumes
       <entry-history-button path="volumes" type="volume-list"></entry-history-button>
-    </div>
+    </h3>
     <volumes-details [volumes]="client.volumes.slice(0, currentNumVolumesShown)"></volumes-details>
     <button
       *ngIf="getAccordionButtonState(client.volumes.length, currentNumVolumesShown, INITIAL_NUM_VOLUMES_SHOWN) === 'show-more'"
@@ -138,7 +138,7 @@
     </button>
 
     <br>
-    <div class="section-title mat-h3">Agent Info</div>
+    <h3 class="section-title">Agent Info</h3>
     <table class="section">
       <tr *ngIf="client.agentInfo.clientName">
         <td class="description">Client name</td>

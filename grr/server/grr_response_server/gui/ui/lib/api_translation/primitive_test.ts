@@ -1,4 +1,5 @@
 import {initTestEnvironment} from '../../testing';
+import {addToMapSetInPlace, camelToSnakeCase} from '../type_utils';
 
 import {bytesToHex, createDate, createIpv4Address, createIpv6Address, createMacAddress, createOptionalDate, createOptionalDateSeconds, decodeBase64, leastSignificantByteToHex} from './primitive';
 
@@ -189,5 +190,28 @@ describe('createMacAddress', () => {
         .toEqual('00:00:00:00:00:00');
     expect(createMacAddress(new Uint8Array([-1, -1, -1, -1, -1, -1])))
         .toEqual('FF:FF:FF:FF:FF:FF');
+  });
+});
+
+describe('camelToSnakeCase', () => {
+  it('converts lowerCamelCase to snake_case', () => {
+    expect(camelToSnakeCase('')).toEqual('');
+    expect(camelToSnakeCase('foo')).toEqual('foo');
+    expect(camelToSnakeCase('fooBarQuux')).toEqual('foo_bar_quux');
+  });
+});
+
+describe('addToMapSetInPlace', () => {
+  it('adds the value to the existing Set, if found', () => {
+    const map = new Map([
+      ['foo', new Set(['bar'])],
+      ['other', new Set(['unused'])],
+    ]);
+    addToMapSetInPlace(map, 'foo', 'bar2');
+
+    expect(map).toEqual(new Map([
+      ['foo', new Set(['bar', 'bar2'])],
+      ['other', new Set(['unused'])],
+    ]));
   });
 });

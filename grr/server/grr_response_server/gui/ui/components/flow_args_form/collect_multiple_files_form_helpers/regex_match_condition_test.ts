@@ -5,8 +5,9 @@ import {MatInputHarness} from '@angular/material/input/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {FileFinderContentsMatchConditionMode, FileFinderContentsRegexMatchCondition} from '@app/lib/api/api_interfaces';
-import {initTestEnvironment} from '@app/testing';
+
+import {FileFinderContentsMatchConditionMode, FileFinderContentsRegexMatchCondition} from '../../../lib/api/api_interfaces';
+import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
 
@@ -35,6 +36,7 @@ describe('RegexMatchCondition component', () => {
               }
             },
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
@@ -85,7 +87,7 @@ describe('formValuesToFileFinderContentsRegexMatchCondition()', () => {
       length: 20000000.999,
     };
     const expected: FileFinderContentsRegexMatchCondition = {
-      regex: 'test',
+      regex: btoa('test'),
       mode: FileFinderContentsMatchConditionMode.ALL_HITS,
       length: 20000000,
     };

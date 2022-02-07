@@ -1,7 +1,8 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
-import {fromEvent, Subject} from 'rxjs';
+import {BehaviorSubject, combineLatest, fromEvent} from 'rxjs';
 import {map, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
+import {RequestStatusType} from '../../lib/api/track_request';
 import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {FlowArgsForm} from '../flow_args_form/flow_args_form';
@@ -16,7 +17,7 @@ import {FlowArgsForm} from '../flow_args_form/flow_args_form';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
-  readonly ngOnDestroy = observeOnDestroy();
+  readonly ngOnDestroy = observeOnDestroy(this);
 
   readonly selectedFD$ = this.clientPageGlobalStore.selectedFlowDescriptor$;
 
@@ -24,10 +25,27 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
 
   @ViewChild(FlowArgsForm) flowArgsForm!: FlowArgsForm;
 
-  readonly disabled$ = new Subject<boolean>();
+  private readonly flowArgsFormValid$ = new BehaviorSubject<boolean>(true);
 
-  readonly error$ = this.clientPageGlobalStore.startFlowState$.pipe(
-      map(state => state.state === 'error' ? state.error : undefined));
+  readonly disabled$ =
+      combineLatest([
+        this.flowArgsFormValid$,
+        this.clientPageGlobalStore.startFlowStatus$,
+      ])
+          .pipe(
+              map(([valid, startFlowStatus]) => !valid ||
+                      startFlowStatus?.status === RequestStatusType.SENT),
+              startWith(false),
+          );
+
+  readonly requestInProgress$ =
+      this.clientPageGlobalStore.startFlowStatus$.pipe(
+          map(status => status?.status === RequestStatusType.SENT),
+      );
+
+  readonly error$ = this.clientPageGlobalStore.startFlowStatus$.pipe(
+      map(status => status?.status === RequestStatusType.ERROR ? status.error :
+                                                                 undefined));
 
   readonly hasAccess$ =
       this.clientPageGlobalStore.hasAccess$.pipe(startWith(false));
@@ -55,8 +73,6 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
         });
 
     this.flowArgsForm.valid$.pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(valid => {
-          this.disabled$.next(!valid);
-        });
+        .subscribe(this.flowArgsFormValid$);
   }
 }

@@ -1,4 +1,4 @@
-<div *ngIf="approval$ | async as approval">
+<ng-container *ngIf="approval$ | async as approval">
   <div class="wrapper">
     <mat-card>
       <mat-card-header>
@@ -57,9 +57,14 @@
         <button
           mat-flat-button
           color="primary"
-          [disabled]="(canGrant$ | async) !== true"
+          [disabled]="disabled$ | async"
           (click)="grantApproval()"
+          class="grant-button progress-spinner-button"
         >
+          <mat-spinner
+            *ngIf="requestInProgress$ | async"
+            diameter="24"
+          ></mat-spinner>
           Grant full access
         </button>
         <div class="explanation">
@@ -69,18 +74,11 @@
       </mat-card-actions>
     </mat-card>
   </div>
-  <client-overview>
-    <a
-      mat-button
-      class="goto-details"
-      [drawerLink]="['details']"
-    >
-      Client details
-      <mat-icon>keyboard_arrow_left</mat-icon>
-    </a>
-  </client-overview>
+
+  <client-overview></client-overview>
+
   <scheduled-flow-list
     [creator]="approval.requestor"
     [clientId]="approval.subject.clientId"
   ></scheduled-flow-list>
-</div>
+</ng-container>

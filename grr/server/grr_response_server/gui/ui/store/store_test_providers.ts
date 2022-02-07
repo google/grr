@@ -1,4 +1,4 @@
-import {Provider} from '@angular/core';
+import {DebugElement, Provider} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 
 import {ApprovalPageGlobalStore} from './approval_page_global_store';
@@ -17,6 +17,8 @@ import {FlowResultsLocalStore} from './flow_results_local_store';
 import {mockFlowResultsLocalStore} from './flow_results_local_store_test_util';
 import {HomePageGlobalStore} from './home_page_global_store';
 import {mockHomePageGlobalStore} from './home_page_global_store_test_util';
+import {NewHuntLocalStore} from './new_hunt_local_store';
+import {mockNewHuntLocalStore} from './new_hunt_local_store_test_util';
 import {ScheduledFlowGlobalStore} from './scheduled_flow_global_store';
 import {mockScheduledFlowGlobalStore} from './scheduled_flow_global_store_test_util';
 import {SelectedClientGlobalStore} from './selected_client_global_store';
@@ -24,6 +26,8 @@ import {mockSelectedClientGlobalStore} from './selected_client_global_store_test
 import {MockStore} from './store_test_util';
 import {UserGlobalStore} from './user_global_store';
 import {mockUserGlobalStore} from './user_global_store_test_util';
+import {VfsViewLocalStore} from './vfs_view_local_store';
+import {mockVfsViewLocalStore} from './vfs_view_local_store_test_util';
 
 /** MockStore providers for Stores. */
 export const STORE_PROVIDERS: Provider[] = [
@@ -36,20 +40,29 @@ export const STORE_PROVIDERS: Provider[] = [
   {provide: FlowResultsLocalStore, useFactory: mockFlowResultsLocalStore},
   {provide: HomePageGlobalStore, useFactory: mockHomePageGlobalStore},
   {provide: ScheduledFlowGlobalStore, useFactory: mockScheduledFlowGlobalStore},
+  {provide: VfsViewLocalStore, useFactory: mockVfsViewLocalStore},
   {
     provide: SelectedClientGlobalStore,
     useFactory: mockSelectedClientGlobalStore
   },
   {provide: UserGlobalStore, useFactory: mockUserGlobalStore},
+  {provide: NewHuntLocalStore, useFactory: mockNewHuntLocalStore},
 ];
 
 interface Constructor<ClassType> {
   new(...args: never[]): ClassType;
 }
 
+
 /** Injects the MockStore for the given Store class. */
-export function injectMockStore<T>(cls: Constructor<T>): MockStore<T> {
-  const mockStore = TestBed.inject(cls) as MockStore<T>;
+export function injectMockStore<T>(
+    cls: Constructor<T>, scope?: TestBed|DebugElement): MockStore<T> {
+  let mockStore: MockStore<T>;
+  if (scope && (scope as DebugElement).injector) {
+    mockStore = (scope as DebugElement).injector.get(cls) as MockStore<T>;
+  } else {
+    mockStore = ((scope as TestBed) ?? TestBed).inject(cls) as MockStore<T>;
+  }
 
   if (!mockStore.mockedObservables) {
     const val = JSON.stringify(mockStore).slice(0, 100);

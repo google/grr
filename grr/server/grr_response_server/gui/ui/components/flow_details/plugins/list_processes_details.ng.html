@@ -4,7 +4,7 @@
     <mat-tree-node *matTreeNodeDef="let node" matTreeNodeToggle>
       <li class="mat-tree-node">
         <!-- Use a disabled button to provide padding for tree leaf. -->
-        <button mat-icon-button disabled aria-label=""></button>
+        <button mat-icon-button disabled [attr.aria-hidden]="true"></button>
         <ng-template *ngTemplateOutlet="process; context: {$implicit: node}"></ng-template>
       </li>
     </mat-tree-node>
@@ -31,6 +31,6 @@
     <span class="text-pid">{{node.pid}}</span>
     <span class="text-cmdline monospace">{{(node.cmdline || []).join(' ')}}</span>
     <span class="text-user">{{node.username}}</span>
-    <span class="text-ctime"><timestamp [date]="node.date" [forceDisableUnderlining]="true"></timestamp></span>
+    <span class="text-ctime"><app-timestamp [date]="node.date"></app-timestamp></span>
   </ng-template>
 </result-accordion>

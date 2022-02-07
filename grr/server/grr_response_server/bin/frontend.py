@@ -14,10 +14,6 @@ from urllib import parse as urlparse
 from absl import app
 from absl import flags
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr_response_server import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
 from grr_response_core import config
 from grr_response_core.config import server as config_server
 from grr_response_core.lib import rdfvalue

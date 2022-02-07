@@ -1,39 +1,89 @@
-<h3 class="mat-h3">File details</h3>
+<div class="header-row">
+  <h3>
+    File details:
+    <!--
+      Navigating the main outlet to a different page from a link shown in the
+      drawer outlet, is V.E.R.Y hard. The best way I found after >1h is to
+      navigate to '' while setting both primary and auxiliary outlet,
+      https://github.com/angular/angular/issues/13523#issuecomment-382385514.
+    -->
+    <a
+      *ngIf="fileId$ | async as fileId"
+      [routerLink]="['', {outlets: {
+        'primary': ['clients', fileId.clientId, 'files', fileId.path],
+        'drawer': null}}]"
+      >{{(details$ | async)?.name}}</a
+    >
+  </h3>
 
-<table class="details mat-body-1">
-  <tr>
-    <td>Path:</td>
-    <td class="monospace">{{(details$ | async)?.stat?.pathspec?.path}}</td>
-  </tr>
-  <tr>
-    <td>Collected:</td>
-    <td><timestamp [date]="(details$ | async)?.lastCollected?.timestamp"></timestamp></td>
-  </tr>
-  <tr>
-    <td>Size:</td>
-    <td><human-readable-size [size]="(details$ | async)?.lastCollected?.size"></human-readable-size></td>
-  </tr>
-</table>
+  <div class="spacer"></div>
 
-<button mat-stroked-button (click)="recollect()" [disabled]="isRecollecting$ | async" class="recollect">
-  <mat-spinner *ngIf="isRecollecting$ | async; else enabledIcon" diameter="24"></mat-spinner>
-  <ng-template #enabledIcon><mat-icon>refresh</mat-icon></ng-template>
-  Recollect from client
-</button>
+  <button
+    mat-stroked-button
+    (click)="recollect()"
+    [disabled]="isRecollecting$ | async"
+    class="recollect progress-spinner-button"
+  >
+    <mat-spinner
+      *ngIf="isRecollecting$ | async; else enabledIcon"
+      diameter="24"
+    ></mat-spinner>
+    <ng-template #enabledIcon><mat-icon>refresh</mat-icon></ng-template>
+    Recollect from client
+  </button>
 
-<pre
-  class="monospace"
-><span *ngFor="let line of textContent$ | async; last as isLast">{{
-  line}}{{ isLast ? '' : '\n'}}</span
-  ><div class="more-indicator" matTooltip="Click on 'Show more' to show truncated content." *ngIf="hasMore$ | async"
-  >…</div></pre>
+  <a
+    mat-stroked-button
+    [href]="downloadUrl$ | async"
+    [download]="(details$ | async)?.name"
+  >
+    <mat-icon>download</mat-icon>
+    Download
+  </a>
+</div>
 
-<button
-  class="load-more"
-  mat-button
-  (click)="loadMore()"
-  *ngIf="hasMore$ | async"
->
-  Show more
-  <mat-icon>keyboard_arrow_down</mat-icon>
-</button>
+<nav mat-tab-nav-bar>
+  <a
+    mat-tab-link
+    [routerLink]="['./stat']"
+    [replaceUrl]="true"
+    routerLinkActive
+    #statActive="routerLinkActive"
+    [active]="statActive.isActive"
+    >Stat</a
+  >
+  <a
+    [disabled]="!(hasContents$ | async)"
+    mat-tab-link
+    [routerLink]="['./text']"
+    [replaceUrl]="true"
+    routerLinkActive
+    #textActive="routerLinkActive"
+    [active]="textActive.isActive"
+    >Text content</a
+  >
+  <a
+    [disabled]="!(hasContents$ | async)"
+    mat-tab-link
+    [routerLink]="['./blob']"
+    [replaceUrl]="true"
+    routerLinkActive
+    #blobActive="routerLinkActive"
+    [active]="blobActive.isActive"
+    >Binary content</a
+  >
+</nav>
+
+<div class="scroll-container">
+  <router-outlet></router-outlet>
+
+  <button
+    class="load-more"
+    mat-button
+    (click)="loadMore()"
+    *ngIf="!statActive.isActive && (hasMore$ | async)"
+  >
+    Show more
+    <mat-icon>keyboard_arrow_down</mat-icon>
+  </button>
+</div>

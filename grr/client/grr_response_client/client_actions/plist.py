@@ -36,23 +36,19 @@ class PlistQuery(actions.ActionPlugin):
   MAX_PLIST_SIZE = 1024 * 1024 * 100  # 100 MB
 
   def Run(self, args):
-    # TODO(hanuszczak): Why are these an instance variables?
-    self.context = args.context
-    self.filter_query = args.query
-
     with vfs.VFSOpen(args.pathspec, progress_callback=self.Progress) as fd:
       data = fd.Read(self.MAX_PLIST_SIZE)
       plist = plistlib.load(io.BytesIO(data))
 
       # Create the query parser
-      parser = plist_lib.PlistFilterParser(str(self.filter_query)).Parse()
+      parser = plist_lib.PlistFilterParser(str(args.query)).Parse()
       filter_imp = plist_lib.PlistFilterImplementation
       matcher = parser.Compile(filter_imp)
 
-      if self.context:
+      if args.context:
         # Obtain the values for the context using the value expander
         value_expander = filter_imp.FILTERS["ValueExpander"]
-        iterator = value_expander().Expand(plist, self.context)
+        iterator = value_expander().Expand(plist, args.context)
       else:
         # If we didn't get a context, the context is the whole plist
         iterator = [plist]

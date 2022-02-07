@@ -1,7 +1,8 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {UserGlobalStore} from '@app/store/user_global_store';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
+
+import {UserGlobalStore} from '../../store/user_global_store';
 
 /** Component that displays executed Flows on the currently selected Client. */
 @Component({

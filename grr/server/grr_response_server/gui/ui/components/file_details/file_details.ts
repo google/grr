@@ -1,68 +1,54 @@
-import {Component, OnDestroy} from '@angular/core';
-import {ActivatedRoute} from '@angular/router';
-import {combineLatest} from 'rxjs';
-import {map, takeUntil} from 'rxjs/operators';
+import {ChangeDetectionStrategy, Component, Input, OnDestroy} from '@angular/core';
+import {Router} from '@angular/router';
+import {map} from 'rxjs/operators';
 
-import {PathSpecPathType} from '../../lib/api/api_interfaces';
-import {assertEnum, assertNonNull} from '../../lib/preconditions';
+import {getFileBlobUrl} from '../../lib/api/http_api_service';
+import {FileIdentifier} from '../../lib/models/vfs';
+import {isNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
 import {FileDetailsLocalStore} from '../../store/file_details_local_store';
-import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
 
 /** Component to show file contents and metadata. */
 @Component({
+  'selector': 'app-file-details',
   templateUrl: './file_details.ng.html',
   styleUrls: ['./file_details.scss'],
   providers: [FileDetailsLocalStore],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileDetails implements OnDestroy {
   readonly DEFAULT_PAGE_LENGTH = BigInt(10000);
 
-  readonly ngOnDestroy = observeOnDestroy();
-
-  readonly textContent$ = this.fileDetailsLocalStore.textContent$.pipe(
-      map(textContent => textContent?.split('\n')),
-  );
+  readonly ngOnDestroy = observeOnDestroy(this);
 
   readonly hasMore$ = this.fileDetailsLocalStore.hasMore$;
 
   readonly details$ = this.fileDetailsLocalStore.details$;
 
-  readonly fileId$ =
-      combineLatest(
-          [this.selectedClientGlobalStore.clientId$, this.route.paramMap])
-          .pipe(
-              map(([clientId, params]) => {
-                assertNonNull(clientId);
+  readonly fileId$ = this.fileDetailsLocalStore.file$;
 
-                const pathType = params.get('pathType')?.toUpperCase();
-                assertNonNull(pathType);
-                assertEnum(pathType, PathSpecPathType);
+  readonly downloadUrl$ = this.fileDetailsLocalStore.file$.pipe(
+      map((f) => f ? getFileBlobUrl(f.clientId, f.pathType, f.path) : null));
 
-                const path = params.get('path');
-                assertNonNull(path);
+  readonly hasContents$ = this.fileDetailsLocalStore.details$.pipe(
+      map(details => !!details?.lastContentCollected?.timestamp));
 
-                return {clientId, pathType, path};
-              }),
-          );
+  @Input()
+  set file(file: FileIdentifier|null|undefined) {
+    this.fileDetailsLocalStore.selectFile(file ?? undefined);
+
+    if (isNonNull(file)) {
+      this.fileDetailsLocalStore.fetchDetails();
+      this.fileDetailsLocalStore.fetchMoreContent(this.DEFAULT_PAGE_LENGTH);
+    }
+  }
 
   readonly isRecollecting$ = this.fileDetailsLocalStore.isRecollecting$;
 
   constructor(
-      private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
       private readonly fileDetailsLocalStore: FileDetailsLocalStore,
-      private readonly route: ActivatedRoute,
-  ) {
-    this.fileId$
-        .pipe(
-            takeUntil(this.ngOnDestroy.triggered$),
-            )
-        .subscribe(fileId => {
-          this.fileDetailsLocalStore.selectFile(fileId);
-          this.fileDetailsLocalStore.fetchDetails();
-          this.fileDetailsLocalStore.fetchMoreContent(this.DEFAULT_PAGE_LENGTH);
-        });
-  }
+      readonly router: Router,
+  ) {}
 
   loadMore() {
     this.fileDetailsLocalStore.fetchMoreContent(this.DEFAULT_PAGE_LENGTH);

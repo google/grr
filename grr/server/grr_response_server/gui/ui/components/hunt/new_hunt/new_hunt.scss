@@ -1,0 +1,33 @@
+@use '@angular/material' as mat;
+@use '../../../material-theme' as c;
+
+$horizontal-margin: 19px;
+
+:host {
+  background-color: mat.get-color-from-palette(
+    c.$background,
+    darker-background
+  );
+  width: 100%;
+}
+
+.new-hunt-container {
+  max-width: 1280px;
+  margin: 35px $horizontal-margin;
+
+  .config {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  }
+
+  button {
+    margin-top: c.$card-margin;
+    width: fit-content;
+    font-size: 16px;
+  }
+
+  approval {
+    margin-top: c.$card-margin;
+  }
+}

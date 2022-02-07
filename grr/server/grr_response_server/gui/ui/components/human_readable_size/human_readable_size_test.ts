@@ -19,6 +19,7 @@ describe('HumanReadableSizeComponent', () => {
             HumanReadableSizeModule,
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
@@ -29,17 +30,17 @@ describe('HumanReadableSizeComponent', () => {
     expect(componentInstance).toBeTruthy();
   });
 
-  it('shows "-" when no size provided', () => {
+  it('is blank when no size provided', () => {
     const fixture = TestBed.createComponent(HumanReadableSizeComponent);
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual('-');
+    expect(fixture.nativeElement.innerText).toEqual('');
   });
 
-  it('shows "-" when the provided size is smaller than 0', () => {
+  it('is blank when the provided size is smaller than 0', () => {
     const fixture = TestBed.createComponent(HumanReadableSizeComponent);
     fixture.componentInstance.size = -1024;
     fixture.detectChanges();
-    expect(fixture.nativeElement.innerText).toEqual('-');
+    expect(fixture.nativeElement.innerText).toEqual('');
   });
 
   it('shows the provided size in a human readable format', () => {

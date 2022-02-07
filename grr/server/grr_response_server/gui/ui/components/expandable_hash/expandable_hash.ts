@@ -1,6 +1,11 @@
 import {Component, Input, ViewEncapsulation} from '@angular/core';
-import {HexHash} from '../../lib/models/flow';
 
+import {hashName, HexHash} from '../../lib/models/flow';
+
+interface HashEntry {
+  readonly name: string;
+  readonly hash: string;
+}
 
 /**
  * Displays a default text. When the text is hovered, a menu appears
@@ -21,31 +26,28 @@ export class ExpandableHash {
   @Input() hashes?: HexHash;
 
   get hashesAvailable(): number {
-    if (this.hashes === undefined) {
-      return 0;
-    }
+    return this.hashesWithNames.length;
+  }
 
-    return [this.hashes.sha256, this.hashes.sha1, this.hashes.md5]
-        .map(hash => hash ? 1 : 0 as number)
-        .reduce((total, current) => total + current);
+  get hashesWithNames(): ReadonlyArray<HashEntry> {
+    // Return hashes in order of most usage:
+    return [
+      {name: hashName('sha256'), hash: this.hashes?.sha256 ?? ''},
+      {name: hashName('sha1'), hash: this.hashes?.sha1 ?? ''},
+      {name: hashName('md5'), hash: this.hashes?.md5 ?? ''},
+    ].filter(({name, hash}) => !!hash);
   }
 
   get completeHashInformation(): string {
-    if (this.hashes === undefined) {
-      return '';
-    }
+    return this.hashesWithNames.map(({name, hash}) => `${name}: ${hash}`)
+        .join('\n');
+  }
 
-    const hashLines: string[] = [];
-    if (this.hashes.sha256) {
-      hashLines.push(`SHA-256: ${this.hashes.sha256}`);
-    }
-    if (this.hashes.sha1) {
-      hashLines.push(`SHA-1: ${this.hashes.sha1}`);
-    }
-    if (this.hashes.md5) {
-      hashLines.push(`MD5: ${this.hashes.md5}`);
-    }
+  get firstHashName() {
+    return this.hashesWithNames[0]?.name ?? '';
+  }
 
-    return hashLines.join('\n');
+  trackByName(index: number, entry: HashEntry) {
+    return entry.name;
   }
 }

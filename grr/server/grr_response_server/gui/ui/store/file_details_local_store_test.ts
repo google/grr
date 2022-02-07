@@ -1,17 +1,17 @@
 import {fakeAsync, TestBed} from '@angular/core/testing';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ContentFetchMode, FileDetailsLocalStore} from '@app/store/file_details_local_store';
-import {initTestEnvironment} from '@app/testing';
 import {firstValueFrom, Subject} from 'rxjs';
 
 import {PathSpecPathType} from '../lib/api/api_interfaces';
+import {HttpApiService} from '../lib/api/http_api_service';
 import {injectHttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
+import {arrayBufferOf} from '../lib/type_utils';
+import {initTestEnvironment} from '../testing';
+
+import {ContentFetchMode, FileDetailsLocalStore} from './file_details_local_store';
 
 
 
 initTestEnvironment();
-
-const arrayBufferOf = (bytes: number[]) => new Uint8Array(bytes).buffer;
 
 describe('FileDetailsLocalStore', () => {
   beforeEach(() => {
@@ -22,6 +22,7 @@ describe('FileDetailsLocalStore', () => {
             FileDetailsLocalStore,
             {provide: HttpApiService, useFactory: mockHttpApiService},
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   });
@@ -42,8 +43,14 @@ describe('FileDetailsLocalStore', () => {
        expect(httpApiService.updateVfsFileContent)
            .toHaveBeenCalledOnceWith('C.1234', PathSpecPathType.OS, '/foo/bar');
 
-       httpApiService.mockedObservables.updateVfsFileContent.next(
-           {stat: {pathspec: {path: '/foo/bar'}}});
+       httpApiService.mockedObservables.updateVfsFileContent.next({
+         isDirectory: false,
+         name: 'bar',
+         path: 'fs/os/foo/bar',
+         stat: {pathspec: {path: '/foo/bar', pathtype: PathSpecPathType.OS}},
+         age: 123,
+       });
+       httpApiService.mockedObservables.updateVfsFileContent.complete();
 
        expect(await firstValueFrom(fileDetailsLocalStore.isRecollecting$))
            .toBeFalse();
@@ -63,8 +70,14 @@ describe('FileDetailsLocalStore', () => {
        expect(httpApiService.updateVfsFileContent)
            .toHaveBeenCalledOnceWith('C.1234', PathSpecPathType.OS, '/foo/bar');
 
-       httpApiService.mockedObservables.updateVfsFileContent.next(
-           {name: 'BAR', stat: {pathspec: {path: '/foo/bar'}}});
+       httpApiService.mockedObservables.updateVfsFileContent.next({
+         isDirectory: false,
+         name: 'BAR',
+         path: 'fs/os/foo/bar',
+         stat: {pathspec: {path: '/foo/bar', pathtype: PathSpecPathType.OS}},
+         age: 123,
+       });
+       httpApiService.mockedObservables.updateVfsFileContent.complete();
 
        expect(await firstValueFrom(fileDetailsLocalStore.details$))
            .toEqual(jasmine.objectContaining({name: 'BAR'}));
@@ -92,8 +105,13 @@ describe('FileDetailsLocalStore', () => {
 
        httpApiService.mockedObservables.getFileText = new Subject();
        fileDetailsLocalStore.recollectFile();
-       httpApiService.mockedObservables.updateVfsFileContent.next(
-           {name: 'BAR', stat: {pathspec: {path: '/foo/bar'}}});
+       httpApiService.mockedObservables.updateVfsFileContent.next({
+         isDirectory: false,
+         path: 'fs/os/foo/bar',
+         name: 'BAR',
+         stat: {pathspec: {path: '/foo/bar', pathtype: PathSpecPathType.OS}},
+         age: 123,
+       });
        httpApiService.mockedObservables.getFileText.next(
            {content: 'abcdefg', totalSize: 12});
 
@@ -129,8 +147,13 @@ describe('FileDetailsLocalStore', () => {
 
        httpApiService.mockedObservables.getFileBlob = new Subject();
        fileDetailsLocalStore.recollectFile();
-       httpApiService.mockedObservables.updateVfsFileContent.next(
-           {name: 'BAR', stat: {pathspec: {path: '/foo/bar'}}});
+       httpApiService.mockedObservables.updateVfsFileContent.next({
+         isDirectory: false,
+         path: 'fs/os/foo/bar',
+         name: 'BAR',
+         stat: {pathspec: {path: '/foo/bar', pathtype: PathSpecPathType.OS}},
+         age: 123,
+       });
        const NEW_LENGTH = BigInt(12);
        httpApiService.mockedObservables.getFileBlobLength.next(NEW_LENGTH);
        httpApiService.mockedObservables.getFileBlob.next(

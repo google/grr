@@ -118,9 +118,13 @@ class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
         WINDOWS_SERVICES_COMMAND=[
             "cmd.exe", "/C", "echo SERVICE_NAME: AWSLiteAgent"
         ]):
-      with mock.patch.object(requests, "request") as mock_requests:
-        mock_requests.side_effect = [ami]
-        results = self.RunAction(cloud.GetCloudVMMetadata, arg=arg)
+      with mock.patch.object(
+          cloud.GetCloudVMMetadata,
+          "GetAWSMetadataToken",
+          return_value="testtoken"):
+        with mock.patch.object(requests, "request") as mock_requests:
+          mock_requests.side_effect = [ami]
+          results = self.RunAction(cloud.GetCloudVMMetadata, arg=arg)
 
     result_responses = list(results[0].responses)
     self.assertLen(result_responses, 1)
@@ -171,6 +175,33 @@ class GetCloudVMMetadataTest(client_test_lib.EmptyActionTest):
           self.assertEqual(response.text, project.text)
         else:
           self.fail("Bad response.label: %s" % response.label)
+
+  def testAWSRequestWithMetadataResponse(self):
+    instanceid = mock.Mock(text="i-001d78bb6472d9d3b")
+    arg = rdf_cloud.CloudMetadataRequests(requests=[
+        rdf_cloud.CloudMetadataRequest(
+            bios_version_regex=".*amazon",
+            service_name_regex="SERVICE_NAME: AWSLiteAgent",
+            instance_type="AMAZON",
+            url="http://169.254.169.254/latest/meta-data/instance-id",
+            label="instance-id")
+    ])
+
+    with mock.patch.multiple(
+        cloud.GetCloudVMMetadata,
+        LINUX_BIOS_VERSION_COMMAND=["/bin/echo", "4.2.amazon"],
+        WINDOWS_SERVICES_COMMAND=[
+            "cmd.exe", "/C", "echo SERVICE_NAME: AWSLiteAgent"
+        ],
+        GetAWSMetadataToken=mock.Mock(return_value="metadataaccesstoken"),
+    ):
+      with mock.patch.object(requests, "request") as mock_requests:
+        mock_requests.side_effect = [instanceid]
+        results = self.RunAction(cloud.GetCloudVMMetadata, arg=arg)
+
+    result_responses = list(results[0].responses)
+    self.assertLen(result_responses, 1)
+    self.assertEqual(results[0].instance_type, "AMAZON")
 
   @responses.activate
   def testNonUnicodeOutput(self):

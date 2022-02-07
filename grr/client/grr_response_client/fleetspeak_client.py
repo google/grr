@@ -49,6 +49,10 @@ class FatalError(Exception):
   pass
 
 
+class BrokenFSConnectionError(Exception):
+  pass
+
+
 class GRRFleetspeakClient(object):
   """A Fleetspeak enabled client implementation."""
 
@@ -101,9 +105,14 @@ class GRRFleetspeakClient(object):
     return thread
 
   def _RunInLoop(self, loop_op):
+    """Runs the loop_op function in an endless loop."""
     while True:
       try:
         loop_op()
+      except BrokenFSConnectionError as e:
+        # This happens during Fleetspeak shutdown and was already logged in the
+        # receiver thread so we skip the additional stack trace here.
+        raise e
       except Exception as e:
         logging.critical("Fatal error occurred:", exc_info=True)
         if flags.FLAGS.pdb_post_mortem:
@@ -122,7 +131,7 @@ class GRRFleetspeakClient(object):
 
     while True:
       dead_threads = [
-          tn for (tn, t) in self._threads.items() if not t.isAlive()
+          tn for (tn, t) in self._threads.items() if not t.is_alive()
       ]
       if dead_threads:
         raise FatalError(
@@ -205,9 +214,9 @@ class GRRFleetspeakClient(object):
     """Receives a single message through Fleetspeak."""
     try:
       fs_msg, received_bytes = self._fs.Recv()
-    except (IOError, struct.error):
+    except (IOError, struct.error) as e:
       logging.critical("Broken local Fleetspeak connection (read end).")
-      raise
+      raise BrokenFSConnectionError() from e
 
     received_type = fs_msg.data.TypeName()
     if not received_type.endswith("GrrMessage"):

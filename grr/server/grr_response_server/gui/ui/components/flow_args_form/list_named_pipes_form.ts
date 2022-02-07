@@ -1,8 +1,9 @@
 import {Component, OnInit, Output} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
-import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
-import {ListNamedPipesFlowArgs, PipeEndFilter, PipeTypeFilter} from '@app/lib/api/api_interfaces';
 import {shareReplay} from 'rxjs/operators';
+
+import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {ListNamedPipesFlowArgs, PipeEndFilter, PipeTypeFilter} from '../../lib/api/api_interfaces';
 
 /** A form that customizes the behaviour of named pipe collection flow. */
 @Component({
@@ -15,12 +16,13 @@ export class ListNamedPipesForm extends
   readonly PipeTypeFilter = PipeTypeFilter;
   readonly PipeEndFilter = PipeEndFilter;
 
-  readonly form = new FormGroup({
+  readonly controls = {
     pipeNameRegex: new FormControl(),
     procExeRegex: new FormControl(),
     pipeTypeFilter: new FormControl(PipeTypeFilter.ANY_TYPE),
     pipeEndFilter: new FormControl(PipeEndFilter.ANY_END),
-  });
+  };
+  readonly form = new FormGroup(this.controls);
 
   @Output() readonly formValues$ = this.form.valueChanges.pipe(shareReplay(1));
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));

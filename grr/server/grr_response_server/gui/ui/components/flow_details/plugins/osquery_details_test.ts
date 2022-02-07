@@ -1,13 +1,13 @@
 import {DebugElement} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
-import {newOsqueryTable, OsqueryResultsTableDOM} from '@app/components/flow_details/helpers/osquery_test_util';
-import {Flow, FlowState} from '@app/lib/models/flow';
-import {newFlow, newFlowResult} from '@app/lib/models/model_test_util';
-import {initTestEnvironment} from '@app/testing';
 
+import {newOsqueryTable, OsqueryResultsTableDOM} from '../../../components/flow_details/helpers/osquery_test_util';
+import {Flow, FlowState} from '../../../lib/models/flow';
+import {newFlow, newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {initTestEnvironment} from '../../../testing';
 
 import {PluginsModule} from './module';
 
@@ -34,19 +34,6 @@ class OsqueryDetailsDOM {
                            new OsqueryResultsTableDOM(this.displayedTableRoot) :
                            null;
 
-  readonly exportCsvButton? = this.findElementsWithSelectorAndText(
-      '.export-button-holder a', 'Download results as CSV')[0];
-  readonly exportCsvButtonText? = this.exportCsvButton?.nativeElement.innerText;
-  readonly exportCsvButtonLink? =
-      this.exportCsvButton?.nativeElement.attributes.href?.value;
-
-  readonly downloadFilesButton? = this.findElementsWithSelectorAndText(
-      '.export-button-holder a', 'Download collected files')[0];
-  readonly downloadFilesButtonText? =
-      this.downloadFilesButton?.nativeElement.innerText;
-  readonly downloadFilesButtonLink? =
-      this.downloadFilesButton?.nativeElement.attributes.href?.value;
-
   readonly showAdditionalDiv? =
       this.rootElement.query(By.css('.show-additional'));
   readonly showAdditionalButton? =
@@ -55,12 +42,6 @@ class OsqueryDetailsDOM {
       this.showAdditionalButton?.nativeElement.textContent;
 
   constructor(private readonly rootElement: DebugElement) {}
-
-  private findElementsWithSelectorAndText(selector: string, text: string):
-      DebugElement[] {
-    return this.rootElement.queryAll(By.css(selector))
-        .filter(element => element.nativeElement.textContent === text);
-  }
 }
 
 /**
@@ -88,6 +69,7 @@ describe('osquery-details component', () => {
           ],
 
           providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .overrideProvider(
             FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})
@@ -289,82 +271,6 @@ describe('osquery-details component', () => {
        expect(parsedElements.showAdditionalDiv).toBeFalsy();
      });
 
-  it('shouldn\'t display the export button if flow is still running', () => {
-    const testFlowListEntry = newFlow({
-      state: FlowState.RUNNING,
-      args: {
-        query: 'random',
-      },
-    });
-
-    const fixture = createFixtureFrom(testFlowListEntry);
-    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
-
-    expect(parsedElements.exportCsvButton).toBeFalsy();
-  });
-
-  it('shouldn\'t display the export button if the flow encountered an error',
-     () => {
-       const testFlowListEntry = newFlow({
-         state: FlowState.ERROR,
-         args: {
-           query: 'Some query',
-         },
-       });
-
-       const fixture = createFixtureFrom(testFlowListEntry);
-       const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
-
-       expect(parsedElements.exportCsvButton).toBeFalsy();
-     });
-
-  it('shouldn\'t display the export button if the table is empty', () => {
-    const testFlowListEntry = newFlow({
-      state: FlowState.FINISHED,
-      flowId: 'flowId',
-      clientId: 'clientId',
-    });
-
-    const fixture = createFixtureFrom(testFlowListEntry);
-
-    flowResultsLocalStore.mockedObservables.results$.next([newFlowResult({
-      payload: {
-        table: newOsqueryTable('doesnt matter', ['c1', 'c2'], []),
-      }
-    })]);
-
-    const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
-
-    expect(parsedElements.exportCsvButton).toBeFalsy();
-  });
-
-  it('should display the export button with correct href if the table is not empty',
-     () => {
-       const testFlowListEntry = newFlow({
-         state: FlowState.FINISHED,
-         clientId: 'someClient123',
-         flowId: 'someFlow321',
-       });
-
-       const fixture = createFixtureFrom(testFlowListEntry);
-
-       flowResultsLocalStore.mockedObservables.results$.next([newFlowResult({
-         payload: {
-           table: newOsqueryTable('doesnt matter', ['column'], [['cell']]),
-         }
-       })]);
-       fixture.detectChanges();
-
-       const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
-
-       expect(parsedElements.exportCsvButton).toBeTruthy();
-       expect(parsedElements.exportCsvButtonText)
-           .toBe('Download results as CSV');
-       expect(parsedElements.exportCsvButtonLink)
-           .toBe(
-               '/api/clients/someClient123/flows/someFlow321/osquery-results/CSV');
-     });
-
   it('shouldn\'t display the download collected file button if no columns for collection are present',
      () => {
        const testFlowListEntry = newFlow({
@@ -381,9 +287,11 @@ describe('osquery-details component', () => {
          }
        })]);
 
-       const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
-
-       expect(parsedElements.downloadFilesButton).toBeFalsy();
+       expect(fixture.componentInstance.getExportMenuItems(
+                  fixture.componentInstance.flow)[0])
+           .not.toEqual(
+               fixture.componentInstance.getDownloadFilesExportMenuItem(
+                   fixture.componentInstance.flow));
      });
 
   it('should display the download collected file button if columns for collection are present',
@@ -396,6 +304,9 @@ describe('osquery-details component', () => {
            // Columns for file collection are present
            fileCollectionColumns: ['column'],
          },
+         progress: {
+           totalRowCount: 1,
+         }
        });
 
        const fixture = createFixtureFrom(testFlowListEntry);
@@ -407,13 +318,9 @@ describe('osquery-details component', () => {
        })]);
        fixture.detectChanges();
 
-       const parsedElements = new OsqueryDetailsDOM(fixture.debugElement);
-
-       expect(parsedElements.downloadFilesButton).toBeTruthy();
-       expect(parsedElements.downloadFilesButtonText)
-           .toBe('Download collected files');
-       expect(parsedElements.downloadFilesButtonLink)
-           .toBe(
-               '/api/clients/someClient123/flows/someFlow321/results/files-archive');
+       expect(fixture.componentInstance.getExportMenuItems(
+                  fixture.componentInstance.flow)[0])
+           .toEqual(fixture.componentInstance.getDownloadFilesExportMenuItem(
+               fixture.componentInstance.flow));
      });
 });

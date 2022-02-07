@@ -1,23 +1,12 @@
-<div class="download flow-details-summary-actions" *ngIf="(flowState$ | async) === FINISHED">
-  <!-- TODO(user): Precompute result count on backend. -->
-  <span class="num-files" *ngIf="totalResultsRequested$ | async">
-    {{ totalResults$ | async | i18nPlural: {'=1': '1 result', 'other': '# results'} }}
-  </span>
-  <a mat-stroked-button color="primary" *ngIf="((totalResults$ | async) ?? 0) > 0" [download]="archiveFileName$ | async"
-    [href]="archiveUrl$ | async">
-    Download all
-  </a>
-</div>
-
-<result-accordion [title]="(flowArgs$ | async)?.artifactList[0] ?? ''"
+<result-accordion [title]="(flowArgs$ | async)?.artifactList?.[0] ?? ''"
   [description]="description$ | async"
   [expandable]="expandable$ | async"
   [status]="status$ | async"
   (firstOpened)="loadMoreResults()">
-  <file-results-table *ngIf="(totalFileResults$ | async) > 0" [results]="fileResults$ | async">
+  <file-results-table *ngIf="totalFileResults$ | async" [results]="fileResults$ | async">
   </file-results-table>
 
-  <registry-results-table *ngIf="(totalRegistryResults$ | async) > 0" [results]="registryResults$ | async">
+  <registry-results-table *ngIf="totalRegistryResults$ | async" [results]="registryResults$ | async">
   </registry-results-table>
 
   <div *ngFor="let response of executeResponseResults$ | async" class="result">

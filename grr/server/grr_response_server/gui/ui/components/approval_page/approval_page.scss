@@ -1,9 +1,11 @@
 @use '../../main' as main;
+@use '../../material-theme' as c;
 
 :host {
   display: flex;
   flex-direction: column;
   flex: 1;
+  row-gap: c.$page-spacing;
 }
 
 .wrapper {
@@ -46,15 +48,5 @@ scheduled-flow-list,
 .wrapper mat-card {
   max-width: 1280px;
   width: 80%;
-  display: block;
   margin: 0 auto;
-}
-
-scheduled-flow-list {
-  margin-top: 2em;
-}
-
-client-overview .goto-details {
-  margin-left: auto;
-  align-self: flex-end;
 }

@@ -200,7 +200,7 @@ class DirectYaraWrapper(YaraWrapper):
 
 
 class UnprivilegedYaraWrapper(YaraWrapper):
-  """Wrapper for the sandobxed YARA library."""
+  """Wrapper for the sandboxed YARA library."""
 
   def __init__(self, rules_str: str, psutil_processes: List[psutil.Process]):
     """Constructor.
@@ -216,6 +216,7 @@ class UnprivilegedYaraWrapper(YaraWrapper):
     self._rules_str = rules_str
     self._rules_uploaded = False
     self._psutil_processes = psutil_processes
+    self._pids = {p.pid for p in psutil_processes}
 
   def Open(self) -> None:
     with contextlib.ExitStack() as stack:
@@ -240,6 +241,9 @@ class UnprivilegedYaraWrapper(YaraWrapper):
   def Close(self) -> None:
     if self._server is not None:
       self._server.Stop()
+
+  def ContainsPid(self, pid: int) -> bool:
+    return pid in self._pids
 
   def Match(self, process, chunks: Iterable[streaming.Chunk],
             deadline: rdfvalue.RDFDatetime,
@@ -308,6 +312,60 @@ class UnprivilegedYaraWrapper(YaraWrapper):
     if string_match.HasField("data"):
       result.data = string_match.data
     return result
+
+
+class BatchedUnprivilegedYaraWrapper(YaraWrapper):
+  """Wrapper for the sandboxed YARA library with scans processes in batches.
+
+  This is a wrapper for `UnprivilegedYaraWrapper` which scans processes in
+  batches. The purpose is to avoid exceeding the maximal number of open file
+  descriptors when using `UnprivilegedYaraWrapper`.
+  """
+
+  # Linux has a file descriptor limit of 1024 per process, use half of it.
+  # Windows has a limit of 10k handles per process.
+  BATCH_SIZE = 512
+
+  def __init__(self, rules_str: str, psutil_processes: List[psutil.Process]):
+    """Constructor.
+
+    Args:
+      rules_str: The YARA rules represented as string.
+      psutil_processes: List of processes that can be scanned using `Match`.
+    """
+
+    self._batches: List[UnprivilegedYaraWrapper] = []
+
+    for i in range(0, len(psutil_processes), self.BATCH_SIZE):
+      process_batch = psutil_processes[i:i + self.BATCH_SIZE]
+      self._batches.append(UnprivilegedYaraWrapper(rules_str, process_batch))
+
+    self._current_batch = self._batches.pop(0)
+
+  def Match(self, process, chunks: Iterable[streaming.Chunk],
+            deadline: rdfvalue.RDFDatetime,
+            progress: Callable[[], None]) -> Iterator[rdf_memory.YaraMatch]:
+    if not self._current_batch.ContainsPid(process.pid):
+      while True:
+        if not self._batches:
+          raise ValueError(
+              "`_batches` is empty. "
+              "Processes must be passed to `Match` in the same order as they "
+              "appear in `psutil_processes`.")
+        if self._batches[0].ContainsPid(process.pid):
+          break
+        self._batches.pop(0)
+      self._current_batch.Close()
+      self._current_batch = self._batches.pop(0)
+      self._current_batch.Open()
+
+    yield from self._current_batch.Match(process, chunks, deadline, progress)
+
+  def Open(self) -> None:
+    self._current_batch.Open()
+
+  def Close(self) -> None:
+    self._current_batch.Close()
 
 
 class YaraProcessScan(actions.ActionPlugin):
@@ -475,7 +533,7 @@ class YaraProcessScan(actions.ActionPlugin):
                         scan_request.ignore_grr_process, scan_response.errors))
 
     if self._UseSandboxing(args):
-      self._yara_wrapper: YaraWrapper = UnprivilegedYaraWrapper(
+      self._yara_wrapper: YaraWrapper = BatchedUnprivilegedYaraWrapper(
           str(scan_request.yara_signature), processes)
     else:
       self._yara_wrapper: YaraWrapper = DirectYaraWrapper(

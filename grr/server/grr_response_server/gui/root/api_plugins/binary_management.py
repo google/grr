@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 """Root-access-level API handlers for binary management."""
 
+from grr_response_core import config
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api.root import binary_management_pb2
+from grr_response_server import access_control
 from grr_response_server import signed_binary_utils
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import config as api_config
@@ -11,6 +13,14 @@ from grr_response_server.gui.api_plugins import config as api_config
 
 class GrrBinaryNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a flow is not found."""
+
+
+class GrrBinaryIsNotOverwritableError(access_control.UnauthorizedAccess):
+  """Raised when one tries to overwrite an existing GRR binary."""
+
+
+class GrrBinaryIsNotDeletableError(access_control.UnauthorizedAccess):
+  """Raised when one tries to delete an existing GRR binary."""
 
 
 class ApiUploadGrrBinaryArgs(rdf_structs.RDFProtoStruct):
@@ -44,8 +54,20 @@ class ApiUploadGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("Invalid binary path: %s" % args.path)
 
     root_urn = _GetBinaryRootUrn(args.type)
-    signed_binary_utils.WriteSignedBinaryBlobs(
-        root_urn.Add(args.path), list(args.blobs))
+    urn = root_urn.Add(args.path)
+
+    # If GRR binaries are readonly, check if a binary with the given
+    # name and type exists and raise if it does.
+    if config.CONFIG["Server.grr_binaries_readonly"]:
+      try:
+        signed_binary_utils.FetchBlobsForSignedBinaryByURN(urn)
+        raise GrrBinaryIsNotOverwritableError(
+            f"GRR binary ({args.path}, {args.type}) can't be overwritten: "
+            "all binaries are read-only.")
+      except signed_binary_utils.SignedBinaryNotFoundError:
+        pass
+
+    signed_binary_utils.WriteSignedBinaryBlobs(urn, list(args.blobs))
 
 
 class ApiDeleteGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
@@ -56,6 +78,13 @@ class ApiDeleteGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     if not args.path:
       raise ValueError("Invalid binary path: %s" % args.path)
+
+    # We do not allow deleting GRR binaries if the readonly configuration
+    # flag is set.
+    if config.CONFIG["Server.grr_binaries_readonly"]:
+      raise GrrBinaryIsNotDeletableError(
+          f"GRR binary ({args.path}, {args.type}) can't be deleted: "
+          "all binaries are read-only.")
 
     root_urn = _GetBinaryRootUrn(args.type)
     try:

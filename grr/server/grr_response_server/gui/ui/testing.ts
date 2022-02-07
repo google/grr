@@ -1,7 +1,8 @@
 import {TestBed} from '@angular/core/testing';
 import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
 import {ActivatedRoute, Router} from '@angular/router';
-import {DateTime} from '@app/lib/date_time';
+
+import {DateTime} from './lib/date_time';
 
 
 /** Implements an equality tester for luxon's DateTime objects. */
@@ -18,7 +19,8 @@ export function dateTimeEqualityTester(
 export function initTestEnvironment() {
   try {
     TestBed.initTestEnvironment(
-        BrowserDynamicTestingModule, platformBrowserDynamicTesting());
+        BrowserDynamicTestingModule, platformBrowserDynamicTesting(),
+        {teardown: {destroyAfterEach: false}});
   } catch (e) {
     // Ignore exceptions when calling it multiple times.
   }

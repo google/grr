@@ -1,12 +1,12 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, EventEmitter, OnDestroy, Output, ViewChild} from '@angular/core';
+import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild} from '@angular/core';
 import {FormControl} from '@angular/forms';
-import {ApiSearchClientResult} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateClient} from '@app/lib/api_translation/client';
-import {Client} from '@app/lib/models/client';
 import {BehaviorSubject, fromEvent, Observable, of} from 'rxjs';
 import {debounceTime, distinctUntilChanged, filter, map, switchMap, takeUntil, withLatestFrom} from 'rxjs/operators';
 
+import {ApiSearchClientResult} from '../../lib/api/api_interfaces';
+import {HttpApiService} from '../../lib/api/http_api_service';
+import {translateClient} from '../../lib/api_translation/client';
+import {Client} from '../../lib/models/client';
 import {observeOnDestroy} from '../../lib/reactive';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 
@@ -37,7 +37,7 @@ export class SearchBox implements AfterViewInit, OnDestroy {
    * A reference to a child input element. Guaranteed not to be null: it's
    * bound by Angular on component's initialization.
    */
-  @ViewChild('input', {static: false}) input!: ElementRef;
+  @ViewChild('input') input!: ElementRef<HTMLInputElement>;
 
   /**
    * An event that is triggered every time when a user presses Enter. Emits the
@@ -45,7 +45,9 @@ export class SearchBox implements AfterViewInit, OnDestroy {
    */
   @Output() querySubmitted = new EventEmitter<string>();
 
-  readonly ngOnDestroy = observeOnDestroy();
+  @Input() autofocus: boolean = false;
+
+  readonly ngOnDestroy = observeOnDestroy(this);
 
   private readonly formattedClientsLabels$ =
       this.configGlobalStore.clientsLabels$.pipe(
@@ -84,6 +86,10 @@ export class SearchBox implements AfterViewInit, OnDestroy {
             withLatestFrom(this.formattedClientsLabels$),
             map(([query, allLabels]) => this.filterLabels(query, allLabels)))
         .subscribe(this.labels$);
+
+    if (this.autofocus) {
+      this.input.nativeElement.focus();
+    }
   }
 
 

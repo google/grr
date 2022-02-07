@@ -1,9 +1,11 @@
 import {TestBed} from '@angular/core/testing';
-import {ApiClientApproval} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {HomePageGlobalStore} from '@app/store/home_page_global_store';
-import {initTestEnvironment} from '@app/testing';
 import {Subject} from 'rxjs';
+
+import {ApiClientApproval} from '../lib/api/api_interfaces';
+import {HttpApiService} from '../lib/api/http_api_service';
+import {initTestEnvironment} from '../testing';
+
+import {HomePageGlobalStore} from './home_page_global_store';
 
 initTestEnvironment();
 
@@ -26,6 +28,7 @@ describe('HomePageGlobalStore', () => {
         HomePageGlobalStore,
         {provide: HttpApiService, useFactory: () => httpApiService},
       ],
+      teardown: {destroyAfterEach: false}
     });
 
     store = TestBed.inject(HomePageGlobalStore);

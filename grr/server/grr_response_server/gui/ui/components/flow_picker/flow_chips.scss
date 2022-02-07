@@ -1,14 +1,7 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
 @use '../../material-theme' as c;
 
-.flow-chips {
+:host {
   display: flex;
-  flex-wrap: wrap;
-
-  button {
-    border-color: mat.get-color-from-palette(c.$foreground, divider-light);
-    color: mat.get-color-from-palette(c.$foreground, text-light);
-    margin-bottom: 8px;
-    margin-right: 12px;
-  }
+  column-gap: 12px;
 }

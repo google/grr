@@ -2,7 +2,9 @@
 """These flows are designed for high performance transfers."""
 
 import stat
-from typing import Any, Optional
+from typing import Any
+from typing import Mapping
+from typing import Optional
 import zlib
 
 from grr_response_core.lib import constants
@@ -118,8 +120,9 @@ class GetFile(flow_base.FlowBase):
     if not file_size_known:
       if not self.state.target_pathspec.HasField(
           "file_size_override") and not self.args.read_length:
-        raise ValueError("The file couldn't be stat-ed. Either read_length or "
-                         "pathspec.file_size_override has to be provided.")
+        raise ValueError("The file couldn't be stat-ed. Its size is not known."
+                         " Either read_length or pathspec.file_size_override"
+                         " has to be provided.")
 
       # This is not a regular file and the size is 0. Let's use read_length or
       # file_size_override as a best guess for the file size.
@@ -276,6 +279,7 @@ class GetFile(flow_base.FlowBase):
     super().End(responses)
 
 
+# TODO: Improve typing and testing situation.
 class MultiGetFileLogic(object):
   """A flow mixin to efficiently retrieve a number of files.
 
@@ -309,8 +313,19 @@ class MultiGetFileLogic(object):
     self.state.files_skipped = 0
     self.state.files_failed = 0
 
+    # Controls how far to go on the collection: stat, hash and collect contents.
+    # By default we go through the whole process (collecting file contents), but
+    # we can stop when we finish getting the stat or hash.
+    self.state.stop_at_stat = False
+    self.state.stop_at_hash = False
+
     # Counter to batch up hash checking in the filestore
     self.state.files_hashed_since_check = 0
+
+    # A dict of file trackers which are waiting to be stat'd.
+    # Keys are vfs urns and values are FileTrack instances.  Values are
+    # copied to pending_hashes for download if not present in FileStore.
+    self.state.pending_stats: Mapping[int, Mapping[str, Any]] = {}
 
     # A dict of file trackers which are waiting to be checked by the file
     # store.  Keys are vfs urns and values are FileTrack instances.  Values are
@@ -350,11 +365,8 @@ class MultiGetFileLogic(object):
   def _TryToStartNextPathspec(self):
     """Try to schedule the next pathspec if there is enough capacity."""
 
-    # Nothing to do here.
-    if self.state.maximum_pending_files <= len(self.state.pending_files):
-      return
-
-    if self.state.maximum_pending_files <= len(self.state.pending_hashes):
+    # If there's no capacity, there's nothing to do here.
+    if not self._HasEnoughCapacity():
       return
 
     try:
@@ -365,11 +377,38 @@ class MultiGetFileLogic(object):
       # We did all the pathspecs, nothing left to do here.
       return
 
-    # Add the file tracker to the pending hashes list where it waits until the
-    # hash comes back.
-    self.state.pending_hashes[index] = {"index": index}
+    # First stat the file, then hash the file if needed.
+    self._ScheduleStatFile(index, pathspec)
+    if getattr(self.state, "stop_at_stat", False):
+      return
 
-    # First state the file, then hash the file.
+    self._ScheduleHashFile(index, pathspec)
+
+  def _HasEnoughCapacity(self) -> bool:
+    """Checks whether there is enough capacity to schedule next pathspec."""
+
+    if self.state.maximum_pending_files <= len(self.state.pending_files):
+      return False
+
+    if self.state.maximum_pending_files <= len(self.state.pending_hashes):
+      return False
+
+    if self.state.maximum_pending_files <= len(self.state.pending_stats):
+      return False
+
+    return True
+
+  def _ScheduleStatFile(self, index: int, pathspec: rdf_paths.PathSpec) -> None:
+    """Schedules the appropriate Stat File Client Action.
+
+    Args:
+      index: Index of the current file to get Stat for.
+      pathspec: Pathspec of the current file to get Stat for.
+    """
+
+    # Add the file tracker to the pending stats list where it waits until the
+    # stat comes back.
+    self.state.pending_stats[index] = {"index": index}
 
     # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
     # This conditional should be removed after that date.
@@ -386,8 +425,20 @@ class MultiGetFileLogic(object):
     self.CallClient(
         stub,
         request,
-        next_state=compatibility.GetName(self._StoreStat),
+        next_state=compatibility.GetName(self._ReceiveFileStat),
         request_data=dict(index=index, request_name=request_name))
+
+  def _ScheduleHashFile(self, index: int, pathspec: rdf_paths.PathSpec) -> None:
+    """Schedules the HashFile Client Action.
+
+    Args:
+      index: Index of the current file to be hashed.
+      pathspec: Pathspec of the current file to be hashed.
+    """
+
+    # Add the file tracker to the pending hashes list where it waits until the
+    # hash comes back.
+    self.state.pending_hashes[index] = {"index": index}
 
     request = rdf_client_action.FingerprintRequest(
         pathspec=pathspec, max_filesize=self.state.file_size)
@@ -412,6 +463,7 @@ class MultiGetFileLogic(object):
 
     self.state.indexed_pathspecs[index] = None
     self.state.request_data_list[index] = None
+    self.state.pending_stats.pop(index, None)
     self.state.pending_hashes.pop(index, None)
     self.state.pending_files.pop(index, None)
 
@@ -476,20 +528,49 @@ class MultiGetFileLogic(object):
       status: FlowStatus that contains more error details.
     """
 
-  def _StoreStat(self, responses):
+  def _ReceiveFileStat(self, responses):
     """Stores stat entry in the flow's state."""
+
     index = responses.request_data["index"]
     if not responses.success:
       self.Log("Failed to stat file: %s", responses.status)
+      self.state.pending_stats.pop(index, None)
       # Report failure.
       self._FileFetchFailed(index, status=responses.status)
       return
 
-    tracker = self.state.pending_hashes[index]
-    tracker["stat_entry"] = responses.First()
+    stat_entry = responses.First()
+
+    # This stat is no longer pending, so we free the tracker.
+    self.state.pending_stats.pop(index, None)
+
+    request_data = self.state.request_data_list[index]
+    self.ReceiveFetchedFileStat(stat_entry, request_data)
+
+    if getattr(self.state, "stop_at_stat", False):
+      self._RemoveCompletedPathspec(index)
+      return
+
+    # Propagate stat information to hash queue (same index is used across).
+    hash_tracker = self.state.pending_hashes[index]
+    hash_tracker["stat_entry"] = stat_entry
+
+  def ReceiveFetchedFileStat(
+      self,
+      stat_entry: rdf_client_fs.StatEntry,
+      request_data: Optional[Mapping[str, Any]] = None) -> None:
+    """This method will be called for each new file stat successfully fetched.
+
+    Args:
+      stat_entry: rdf_client_fs.StatEntry object describing the file.
+      request_data: Arbitrary dictionary that was passed to the corresponding
+        StartFileFetch call.
+    """
+    pass
 
   def _ReceiveFileHash(self, responses):
     """Add hash digest to tracker and check with filestore."""
+
     index = responses.request_data["index"]
     if not responses.success:
       self.Log("Failed to hash file: %s", responses.status)
@@ -532,9 +613,32 @@ class MultiGetFileLogic(object):
     tracker["hash_obj"] = hash_obj
     tracker["bytes_read"] = response.bytes_read
 
+    stat_entry = tracker["stat_entry"]
+    request_data = self.state.request_data_list[index]
+    self.ReceiveFetchedFileHash(stat_entry, hash_obj, request_data)
+
+    if getattr(self.state, "stop_at_hash", False):
+      self._RemoveCompletedPathspec(index)
+      return
+
     self.state.files_hashed_since_check += 1
     if self.state.files_hashed_since_check >= self.MIN_CALL_TO_FILE_STORE:
       self._CheckHashesWithFileStore()
+
+  def ReceiveFetchedFileHash(
+      self,
+      stat_entry: rdf_client_fs.StatEntry,
+      file_hash: rdf_crypto.Hash,
+      request_data: Optional[Mapping[str, Any]] = None) -> None:
+    """This method will be called for each new file hash successfully fetched.
+
+    Args:
+      stat_entry: rdf_client_fs.StatEntry object describing the file.
+      file_hash: rdf_crypto.Hash object with file hashes.
+      request_data: Arbitrary dictionary that was passed to the corresponding
+        StartFileFetch call.
+    """
+    pass
 
   def _CheckHashesWithFileStore(self):
     """Check all queued up hashes for existence in file store.

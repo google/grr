@@ -1,23 +1,55 @@
 import {ApiFile} from '../api/api_interfaces';
-import {File} from '../models/vfs';
-import {assertKeyNonNull} from '../preconditions';
+import {Directory, File, PathSpecPathType} from '../models/vfs';
+import {assertEnum, assertKeyNonNull, assertNonNull} from '../preconditions';
 
 import {isStatEntry, translateHashToHex, translateStatEntry} from './flow';
 import {createDate} from './primitive';
 
-/** Constructs a File from the corresponding API data structure */
-export function translateFile(file: ApiFile): File {
-  let lastCollected: File['lastCollected'];
+const VFS_PATH_RE = /^(\/*fs\/+)?([a-z]+)(.*)$/;
+
+/** Splits a VFS path "fs/os/foo" into PathType "OS" and path "/foo". */
+export function parseVfsPath(vfsPath: string):
+    {pathtype: PathSpecPathType, path: string} {
+  const match = VFS_PATH_RE.exec(vfsPath);
+  assertNonNull(match, 'match');
+
+  const pathtype = match[2].toUpperCase();
+  assertEnum(pathtype, PathSpecPathType);
+
+  return {pathtype, path: match[3]};
+}
+
+/** Constructs a File or Directory from the corresponding API data structure */
+export function translateFile(file: ApiFile): File|Directory {
+  assertKeyNonNull(file, 'isDirectory');
+  assertKeyNonNull(file, 'name');
+  assertKeyNonNull(file, 'path');
+
+  const {path, pathtype} = parseVfsPath(file.path);
+
+  const base = {
+    name: file.name,
+    path,
+    pathtype,
+    isDirectory: file.isDirectory,
+  };
+
+  if (base.isDirectory) {
+    return base as Directory;
+  }
+
+  let lastContentCollected: File['lastContentCollected'];
 
   if (file.lastCollected) {
     assertKeyNonNull(file, 'lastCollectedSize');
 
-    lastCollected = {
+    lastContentCollected = {
       timestamp: createDate(file.lastCollected),
       size: BigInt(file.lastCollectedSize),
     };
   }
 
+  assertKeyNonNull(file, 'age');
   assertKeyNonNull(file, 'stat');
   const stat = translateStatEntry(file.stat);
 
@@ -26,12 +58,11 @@ export function translateFile(file: ApiFile): File {
   }
 
   return {
-    name: file.name,
-    path: file.path,
+    ...base,
     type: file.type,
     stat,
-    isDirectory: file.isDirectory,
     hash: file.hash ? translateHashToHex(file.hash) : undefined,
-    lastCollected,
+    lastContentCollected,
+    lastMetadataCollected: createDate(file.age),
   };
 }

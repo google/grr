@@ -79,10 +79,21 @@ class Foreman(object):
 
   def _GetLastForemanRunTime(self, client_id):
     md = data_store.REL_DB.ReadClientMetadata(client_id)
-    return md.last_foreman_time or rdfvalue.RDFDatetime(0)
+    # TODO: we shouldn't care about
+    # last_fleetspeak_validation_info here. The WriteClientMetadata method
+    # should have a more predictable behavior and not nullify
+    # last_fleetspeak_validation_info if it's passed as None.
+    lfvi = None
+    if md.HasField("last_fleetspeak_validation_info"):
+      lfvi = md.last_fleetspeak_validation_info.ToStringDict()
+    return md.last_foreman_time or rdfvalue.RDFDatetime(0), lfvi
 
-  def _SetLastForemanRunTime(self, client_id, latest_rule):
-    data_store.REL_DB.WriteClientMetadata(client_id, last_foreman=latest_rule)
+  def _SetLastForemanRunTime(self, client_id, latest_rule,
+                             fleetspeak_validation_info):
+    data_store.REL_DB.WriteClientMetadata(
+        client_id,
+        last_foreman=latest_rule,
+        fleetspeak_validation_info=fleetspeak_validation_info)
 
   def AssignTasksToClient(self, client_id):
     """Examines our rules and starts up flows based on the client.
@@ -97,7 +108,8 @@ class Foreman(object):
     if not rules:
       return 0
 
-    last_foreman_run = self._GetLastForemanRunTime(client_id)
+    last_foreman_run, fleetspeak_validation_info = self._GetLastForemanRunTime(
+        client_id)
 
     latest_rule_creation_time = max(rule.creation_time for rule in rules)
 
@@ -105,7 +117,8 @@ class Foreman(object):
       return 0
 
     # Update the latest checked rule on the client.
-    self._SetLastForemanRunTime(client_id, latest_rule_creation_time)
+    self._SetLastForemanRunTime(client_id, latest_rule_creation_time,
+                                fleetspeak_validation_info)
 
     relevant_rules = []
     expired_rules = False

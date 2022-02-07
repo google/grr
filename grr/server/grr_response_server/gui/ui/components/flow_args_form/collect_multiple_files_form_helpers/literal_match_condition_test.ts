@@ -5,8 +5,9 @@ import {MatInputHarness} from '@angular/material/input/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {FileFinderContentsLiteralMatchCondition, FileFinderContentsMatchConditionMode} from '@app/lib/api/api_interfaces';
-import {initTestEnvironment} from '@app/testing';
+
+import {FileFinderContentsLiteralMatchCondition, FileFinderContentsMatchConditionMode} from '../../../lib/api/api_interfaces';
+import {initTestEnvironment} from '../../../testing';
 
 import {createLiteralMatchFormGroup, LiteralMatchCondition} from './literal_match_condition';
 import {HelpersModule} from './module';
@@ -35,6 +36,7 @@ describe('LiteralMatchCondition component', () => {
               }
             },
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

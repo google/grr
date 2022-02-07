@@ -1,10 +1,10 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {UserGlobalStore} from '@app/store/user_global_store';
-import {initTestEnvironment} from '@app/testing';
 
 import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
+import {UserGlobalStore} from '../../store/user_global_store';
+import {initTestEnvironment} from '../../testing';
 
 import {UserMenuModule} from './module';
 
@@ -26,6 +26,7 @@ describe('UserMenu Component', () => {
           providers: [
             ...STORE_PROVIDERS,
           ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
@@ -33,7 +34,9 @@ describe('UserMenu Component', () => {
   it('displays the current user image', () => {
     const fixture = TestBed.createComponent(UserMenu);
     injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
-      name: 'test'
+      name: 'test',
+      canaryMode: false,
+      huntApprovalRequired: false,
     });
     fixture.detectChanges();
 

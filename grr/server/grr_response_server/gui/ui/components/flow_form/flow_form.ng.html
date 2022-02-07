@@ -1,4 +1,4 @@
-<h1 class="mat-h1">Collection</h1>
+<h1>Collection</h1>
 
 <flow-picker></flow-picker>
 
@@ -13,7 +13,12 @@
       color="primary"
       type="submit"
       [disabled]="disabled$ | async"
+      class="progress-spinner-button"
     >
+      <mat-spinner
+        *ngIf="requestInProgress$ | async"
+        diameter="24"
+      ></mat-spinner>
       {{ (hasAccess$ | async) ? "Start" : "Schedule" }}
     </button>
     <span *ngIf="(hasAccess$ | async) !== true" class="mat-small">

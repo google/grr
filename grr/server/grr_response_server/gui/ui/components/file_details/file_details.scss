@@ -1,41 +1,25 @@
+@use '../../material-theme' as c;
+
 :host {
   display: flex;
   flex-direction: column;
-  row-gap: 1em;
+  overflow: hidden;
+  height: 100%;
   min-width: 30vw;
-  padding: 1em 0;
 }
 
-.mat-h3 {
-  padding: 0 1em;
-  margin: 0;
-}
+.header-row {
+  padding: c.$container-padding c.$container-padding 0;
+  display: flex;
+  column-gap: c.$container-padding;
 
-pre {
-  background: rgba(0, 0, 0, 0.04);
-  counter-reset: line;
-  max-width: 100ch;
-  overflow-x: auto;
-  padding: 1em;
-  margin: 0;
-}
+  h3 {
+    margin: 0;
+  }
 
-pre span {
-  display: inline;
-  line-height: 1.5rem;
-}
-
-pre span:before {
-  border-right: 1px solid #ddd;
-  color: #888;
-  content: counter(line);
-  counter-increment: line;
-  display: inline-block;
-  margin-right: 0.5em;
-  min-width: 4ch;
-  padding: 0 0.5em 0 0;
-  text-align: end;
-  user-select: none;
+  .spacer {
+    flex: 1;
+  }
 }
 
 .load-more {
@@ -44,22 +28,16 @@ pre span:before {
 
 .recollect {
   align-self: start;
-  margin-left: 1em;
-
-  mat-spinner {
-    display: inline-block;
-  }
+  margin-left: c.$container-padding;
 }
 
-.more-indicator {
-  display: inline;
-  background: rgba(0, 0, 0, 0.04);
-  padding: 0 1ch;
-  border-radius: 4px;
-  user-select: none;
-  cursor: default;
+.buttons {
+  display: flex;
+  flex-direction: row;
+  column-gap: c.$container-padding;
 }
 
-.details {
-  padding: 0 1em;
+.scroll-container {
+  overflow: auto;
+  flex-grow: 1;
 }

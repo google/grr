@@ -1,9 +1,10 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {CollectMultipleFilesArgs, CollectMultipleFilesProgress} from '@app/lib/api/api_interfaces';
-import {FlowState} from '@app/lib/models/flow';
-import {newFlow} from '@app/lib/models/model_test_util';
-import {initTestEnvironment} from '@app/testing';
+
+import {CollectMultipleFilesArgs, CollectMultipleFilesProgress} from '../../../lib/api/api_interfaces';
+import {FlowState} from '../../../lib/models/flow';
+import {newFlow} from '../../../lib/models/model_test_util';
+import {initTestEnvironment} from '../../../testing';
 
 import {CollectMultipleFilesDetails} from './collect_multiple_files_details';
 import {PluginsModule} from './module';
@@ -21,52 +22,14 @@ describe('collect-multiple-files-details component', () => {
             PluginsModule,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
 
 
-  it('does not show "Download all" button on non-finished flow', () => {
-    const fixture = TestBed.createComponent(CollectMultipleFilesDetails);
-    const args: CollectMultipleFilesArgs = {pathExpressions: ['/foo/**']};
-    const progress: CollectMultipleFilesProgress = {
-      numCollected: '0',
-      numFound: '1',
-      numInProgress: '1',
-    };
-
-    fixture.componentInstance.flow = newFlow({
-      name: 'CollectMultipleFiles',
-      args,
-      progress,
-      state: FlowState.RUNNING,
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).not.toContain('Download all');
-  });
-
-  it('does not show "Download all" button on 0 files found', () => {
-    const fixture = TestBed.createComponent(CollectMultipleFilesDetails);
-    const args: CollectMultipleFilesArgs = {pathExpressions: ['/foo/**']};
-    const progress: CollectMultipleFilesProgress = {
-      numCollected: '0',
-    };
-
-    fixture.componentInstance.flow = newFlow({
-      name: 'CollectMultipleFiles',
-      args,
-      progress,
-      state: FlowState.FINISHED,
-    });
-    fixture.detectChanges();
-
-    expect(fixture.nativeElement.innerText).toContain('0 files');
-    expect(fixture.nativeElement.innerText).not.toContain('Download all');
-  });
-
-  it('shows "Download all" button on finished flow with >1 results', () => {
+  it('shows file download button', () => {
     const fixture = TestBed.createComponent(CollectMultipleFilesDetails);
     const args: CollectMultipleFilesArgs = {pathExpressions: ['/foo/**']};
     const progress: CollectMultipleFilesProgress = {
@@ -81,13 +44,12 @@ describe('collect-multiple-files-details component', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText).toContain('42 files');
-
-    // Check that the download button has a correct href attribute.
-    const downloadButton: HTMLLinkElement =
-        fixture.nativeElement.querySelector('.download a');
-    expect(downloadButton.innerText).toContain('Download all');
-    expect(downloadButton.getAttribute('href'))
+    const menuItems = fixture.componentInstance.getExportMenuItems(
+        fixture.componentInstance.flow);
+    expect(menuItems[0])
+        .toEqual(fixture.componentInstance.getDownloadFilesExportMenuItem(
+            fixture.componentInstance.flow));
+    expect(menuItems[0].url)
         .toMatch('/api/v2/clients/.+/flows/.+/results/files-archive');
   });
 });

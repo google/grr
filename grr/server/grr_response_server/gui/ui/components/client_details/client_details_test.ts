@@ -63,6 +63,7 @@ describe('Client Details Component', () => {
             {provide: ClientDetailsGlobalStore, useFactory: () => store},
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

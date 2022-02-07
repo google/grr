@@ -1,19 +1,12 @@
-<div *ngIf="date !== undefined; else dateUndefined"
+<span
+  *ngIf="date"
   class="ts_component_timestamp"
-  [matTooltip]="date | relativeTimestamp"
-  matTooltipPosition="below"
-  matTooltipClass="ts_component_tooltip"
-  [matTooltipDisabled]="completeFormat || !tooltipEnabled"
-  [style.border-bottom]="(completeFormat || !tooltipEnabled || forceDisableUnderlining) ? 'none' : '1px dotted rgb(126, 126, 126)'">
-  {{date | date:'yyyy-MM-dd HH:mm:ss':timezone}} {{timezone}}
+  [matTooltip]="relativeTimestamp === 'tooltip' ? ((relativeTimestampString$ | async) ?? '') : ''"
+  [matTooltipDisabled]="relativeTimestamp !== 'tooltip'">
 
-  <div class="ts_component_inline_relative" *ngIf="completeFormat">
-    {{date | relativeTimestamp}}
-    <button mat-icon-button class="ts_component_copy_button"
-      [cdkCopyToClipboard]="(date | date:'yyyy-MM-dd HH:mm:ss':timezone) + ' ' + timezone"
-      aria-label="Copy">
-      <mat-icon aria-label="Copy">content_copy</mat-icon>
-    </button>
-  </div>
-</div>
-<ng-template #dateUndefined><span>Unknown</span></ng-template>
+  <app-copy-button>{{date | date:'yyyy-MM-dd HH:mm:ss':timezone}} {{timezone}}</app-copy-button>
+
+  <span class="ts_component_inline_relative" *ngIf="relativeTimestamp === 'visible'">
+    {{ relativeTimestampString$ | async }}
+  </span>
+</span>

@@ -91,9 +91,14 @@ class DatabaseTestClientsMixin(object):
 
     d.RemoveClientKeyword(client_id, "test")
 
+  # TODO(hanuszczak): Write tests that check whether labels respect foreign key
+  # constraints on the `Users` table.
+
   def testLabelWriteToUnknownClient(self):
     d = self.db
     client_id = "C.fc413187fefa1dcf"
+
+    self.db.WriteGRRUser("testowner")
 
     with self.assertRaises(db.UnknownClientError) as context:
       d.AddClientLabels(client_id, "testowner", ["label"])
@@ -107,6 +112,8 @@ class DatabaseTestClientsMixin(object):
     # iterable. DB implementation has to respect this assumption.
     d = self.db
     client_id = "C.fc413187fefa1dcf"
+
+    self.db.WriteGRRUser("testowner")
 
     with self.assertRaises(db.UnknownClientError) as context:
       d.AddClientLabels(client_id, "testowner", ("label",))
@@ -859,6 +866,9 @@ class DatabaseTestClientsMixin(object):
 
   def testClientLabels(self):
     d = self.db
+
+    self.db.WriteGRRUser("owner1")
+    self.db.WriteGRRUser("owner2")
     client_id = db_test_utils.InitializeClient(self.db)
 
     self.assertEqual(d.ReadClientLabels(client_id), [])
@@ -895,6 +905,9 @@ class DatabaseTestClientsMixin(object):
 
   def testClientLabelsUnicode(self):
     d = self.db
+
+    self.db.WriteGRRUser("owner1")
+    self.db.WriteGRRUser("owner2")
     client_id = db_test_utils.InitializeClient(self.db)
 
     self.assertEqual(d.ReadClientLabels(client_id), [])
@@ -928,6 +941,7 @@ class DatabaseTestClientsMixin(object):
   def testLongClientLabelCanBeSaved(self):
     label = "x" + "🚀" * (db.MAX_LABEL_LENGTH - 2) + "x"
     d = self.db
+    self.db.WriteGRRUser("owner1")
     client_id = db_test_utils.InitializeClient(self.db)
     d.AddClientLabels(client_id, "owner1", [label])
     self.assertEqual(
@@ -938,6 +952,7 @@ class DatabaseTestClientsMixin(object):
   def testTooLongClientLabelRaises(self):
     label = "a" * (db.MAX_LABEL_LENGTH + 1)
     d = self.db
+    self.db.WriteGRRUser("owner1")
     client_id = db_test_utils.InitializeClient(self.db)
     with self.assertRaises(ValueError):
       d.AddClientLabels(client_id, "owner1", [label])
@@ -945,6 +960,7 @@ class DatabaseTestClientsMixin(object):
   def testReadAllLabelsReturnsLabelsFromSingleClient(self):
     d = self.db
 
+    self.db.WriteGRRUser("owner1🚀")
     client_id = db_test_utils.InitializeClient(self.db)
 
     d.AddClientLabels(client_id, "owner1🚀", ["foo🚀"])
@@ -956,6 +972,8 @@ class DatabaseTestClientsMixin(object):
   def testReadAllLabelsReturnsLabelsFromMultipleClients(self):
     d = self.db
 
+    self.db.WriteGRRUser("owner1")
+    self.db.WriteGRRUser("owner2")
     client_id_1 = db_test_utils.InitializeClient(self.db)
     client_id_2 = db_test_utils.InitializeClient(self.db)
 
@@ -1172,6 +1190,7 @@ class DatabaseTestClientsMixin(object):
   def testReadClientFullInfoReturnsCorrectResult(self):
     d = self.db
 
+    self.db.WriteGRRUser("test_owner")
     client_id = db_test_utils.InitializeClient(self.db)
 
     cl = rdf_objects.ClientSnapshot(
@@ -1193,6 +1212,8 @@ class DatabaseTestClientsMixin(object):
         [rdf_objects.ClientLabel(owner="test_owner", name="test_label")])
 
   def _SetupFullInfoClients(self):
+    self.db.WriteGRRUser("test_owner")
+
     for i in range(10):
       client_id = db_test_utils.InitializeClient(self.db,
                                                  "C.000000005000000%d" % i)
@@ -1337,149 +1358,143 @@ class DatabaseTestClientsMixin(object):
 
     return now
 
-  def testReadEmptyClientStats(self):
-    client_id_1 = db_test_utils.InitializeClient(self.db)
-    client_id_2 = db_test_utils.InitializeClient(self.db)
-
-    self.assertEmpty(self.db.ReadClientStats(client_id_1))
-    self.assertEmpty(self.db.ReadClientStats(client_id_2))
-
-    self.db.WriteClientStats(client_id_2, rdf_client_stats.ClientStats())
-
-    self.assertEmpty(self.db.ReadClientStats(client_id_1))
-    self.assertNotEmpty(self.db.ReadClientStats(client_id_2))
-
-  def testReadClientStats(self):
-    client_id_1 = db_test_utils.InitializeClient(self.db)
-    client_id_2 = db_test_utils.InitializeClient(self.db)
-
-    self.db.WriteClientStats(
-        client_id_1,
-        rdf_client_stats.ClientStats(
-            RSS_size=1,
-            VMS_size=5,
-            timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5)))
-    self.db.WriteClientStats(
-        client_id_1, rdf_client_stats.ClientStats(RSS_size=2, VMS_size=6))
-
-    self.db.WriteClientStats(
-        client_id_2, rdf_client_stats.ClientStats(RSS_size=3, VMS_size=7))
-    self.db.WriteClientStats(
-        client_id_2, rdf_client_stats.ClientStats(RSS_size=4, VMS_size=8))
-
-    stats = self.db.ReadClientStats(
-        client_id=client_id_1,
-        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
-    self.assertEqual(stats[0].RSS_size, 1)
-    self.assertEqual(stats[0].VMS_size, 5)
-    self.assertEqual(stats[0].timestamp,
-                     rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5))
-    self.assertEqual(stats[1].RSS_size, 2)
-    self.assertEqual(stats[1].VMS_size, 6)
-
-    stats = self.db.ReadClientStats(
-        client_id=client_id_2,
-        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
-    self.assertEqual(stats[0].RSS_size, 3)
-    self.assertEqual(stats[0].VMS_size, 7)
-    self.assertEqual(stats[1].RSS_size, 4)
-    self.assertEqual(stats[1].VMS_size, 8)
-
-  def testReadClientStatsReturnsOrderedList(self):
+  def testReadClientStats_Empty(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
-    sorted_stats = [rdf_client_stats.ClientStats(RSS_size=i) for i in range(10)]
+    self.assertEmpty(self.db.ReadClientStats(client_id))
 
-    for stats in sorted_stats:
+  def testReadClientStats_NotEmpty(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    self.db.WriteClientStats(
+        client_id, rdf_client_stats.ClientStats(RSS_size=0xF00, VMS_size=0xB42))
+
+    stats = self.db.ReadClientStats(client_id)
+    self.assertLen(stats, 1)
+    self.assertEqual(stats[0].RSS_size, 0xF00)
+    self.assertEqual(stats[0].VMS_size, 0xB42)
+
+  def testReadClientStats_ManyClients(self):
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    self.db.WriteClientStats(client_id_1, rdf_client_stats.ClientStats())
+    self.db.WriteClientStats(client_id_2, rdf_client_stats.ClientStats())
+    self.db.WriteClientStats(client_id_2, rdf_client_stats.ClientStats())
+
+    self.assertLen(self.db.ReadClientStats(client_id_1), 1)
+    self.assertLen(self.db.ReadClientStats(client_id_2), 2)
+
+  def testReadClientStats_Ordered(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    for idx in range(10):
+      stats = rdf_client_stats.ClientStats(RSS_size=idx)
       self.db.WriteClientStats(client_id, stats)
 
-    self.assertEqual(self.db.ReadClientStats(client_id=client_id), sorted_stats)
+    for idx, stats in enumerate(self.db.ReadClientStats(client_id)):
+      self.assertEqual(stats.RSS_size, idx)
 
-  def testReadClientStatsAfterRetention(self):
-    now = self._SetupClientStats()
-    with test_lib.FakeTime(now):
-      stats = self.db.ReadClientStats("C.0000000000000001")
-      self.assertCountEqual([0, 1, 2], [st.RSS_size for st in stats])
+  def testReadClientStats_MinTime(self):
+    client_id = db_test_utils.InitializeClient(self.db)
 
-      stats = self.db.ReadClientStats("C.0000000000000002")
-      self.assertCountEqual([0, 1, 2], [st.RSS_size for st in stats])
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0xF00))
+    timestamp = self.db.Now()
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0xB42))
 
-  def testWriteInvalidClientStats(self):
+    stats = self.db.ReadClientStats(client_id, min_timestamp=timestamp)
+    self.assertLen(stats, 1)
+    self.assertEqual(stats[0].RSS_size, 0xB42)
+
+  def testReadClientStats_MaxTime(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0xF00))
+    timestamp = self.db.Now()
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0xB42))
+
+    stats = self.db.ReadClientStats(client_id, max_timestamp=timestamp)
+    self.assertLen(stats, 1)
+    self.assertEqual(stats[0].RSS_size, 0xF00)
+
+  def testReadClientStats_MinMaxTime(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0xF00))
+    min_timestamp = self.db.Now()
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0xB42))
+    max_timestamp = self.db.Now()
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0x00F))
+
+    stats = self.db.ReadClientStats(
+        client_id, min_timestamp=min_timestamp, max_timestamp=max_timestamp)
+    self.assertLen(stats, 1)
+    self.assertEqual(stats[0].RSS_size, 0xB42)
+
+  def testDeleteOldClientStats_Empty(self):
+    cutoff_time = self.db.Now()
+
+    self.assertEmpty(list(self.db.DeleteOldClientStats(cutoff_time)))
+
+  def testDeleteOldClientStats_NotEmpty(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    self.db.WriteClientStats(client_id, rdf_client_stats.ClientStats())
+    self.db.WriteClientStats(client_id, rdf_client_stats.ClientStats())
+    self.db.WriteClientStats(client_id, rdf_client_stats.ClientStats())
+    cutoff_time = self.db.Now()
+
+    self.assertEqual(sum(self.db.DeleteOldClientStats(cutoff_time)), 3)
+
+    self.assertEmpty(list(self.db.ReadClientStats(client_id)))
+
+  def testDeleteOldClientStats_CutoffTime(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0xF00))
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0xB42))
+    cutoff_time = self.db.Now()
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0x00F))
+
+    self.assertEqual(sum(self.db.DeleteOldClientStats(cutoff_time)), 2)
+
+    stats = self.db.ReadClientStats(client_id)
+    self.assertLen(stats, 1)
+    self.assertEqual(stats[0].RSS_size, 0x00F)
+
+  def testDeleteOldClientStats_BatchSize(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0xF00))
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0xB42))
+    self.db.WriteClientStats(client_id,
+                             rdf_client_stats.ClientStats(RSS_size=0x00F))
+    cutoff_time = self.db.Now()
+
+    results = list(self.db.DeleteOldClientStats(cutoff_time, batch_size=1))
+    self.assertEqual(results, [1, 1, 1])
+
+  def testDeleteOldClientStats_BatchSizeNegative(self):
     with self.assertRaises(ValueError):
-      self.db.WriteClientStats("C.000000000000000xx",
-                               rdf_client_stats.ClientStats())
-
-    with self.assertRaises(TypeError):
-      self.db.WriteClientStats("C.0000000000000001", None)
-
-    with self.assertRaises(TypeError):
-      self.db.WriteClientStats("C.0000000000000001", {"RSS_size": 0})
+      self.db.DeleteOldClientStats(cutoff_time=self.db.Now(), batch_size=-42)
 
   def testWriteClientStatsForNonExistingClient(self):
     with self.assertRaises(db.UnknownClientError) as context:
       self.db.WriteClientStats("C.0000000000000005",
                                rdf_client_stats.ClientStats())
     self.assertEqual(context.exception.client_id, "C.0000000000000005")
-
-  def testDeleteOldClientStats(self):
-    now = self._SetupClientStats()
-    with test_lib.FakeTime(now):
-      deleted = list(self.db.DeleteOldClientStats(yield_after_count=100))
-      self.assertEqual([2], deleted)
-
-      stats = self.db.ReadClientStats(
-          client_id="C.0000000000000001",
-          # MySQL TIMESTAMP's valid range starts from 1970-01-01 00:00:01,
-          # hence we have to specify the minimal min_timestamp as
-          # 1 seconds from epoch.
-          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
-      self.assertCountEqual([0, 1, 2], [st.RSS_size for st in stats])
-
-      stats = self.db.ReadClientStats(
-          client_id="C.0000000000000002",
-          min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
-      self.assertCountEqual([0, 1, 2], [st.RSS_size for st in stats])
-
-  def _TestDeleteOldClientStatsYields(self, total, yield_after_count,
-                                      yields_expected):
-    db_test_utils.InitializeClient(self.db, "C.0000000000000001")
-    now = rdfvalue.RDFDatetime.Now()
-    for i in range(1, total + 1):
-      with test_lib.FakeTime(now - db.CLIENT_STATS_RETENTION -
-                             rdfvalue.Duration.From(i, rdfvalue.SECONDS)):
-        self.db.WriteClientStats("C.0000000000000001",
-                                 rdf_client_stats.ClientStats())
-
-    yields = []
-    with test_lib.FakeTime(now):
-      for deleted in self.db.DeleteOldClientStats(
-          yield_after_count=yield_after_count):
-        yields.append(deleted)
-    self.assertEqual(yields, yields_expected)
-
-    stats = self.db.ReadClientStats(
-        client_id="C.0000000000000001",
-        # MySQL TIMESTAMP's valid range starts from 1970-01-01 00:00:01,
-        # hence we have to specify the minimal min_timestamp as
-        # 1 seconds from epoch.
-        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
-    self.assertEmpty(stats)
-
-  def testDeleteOldClientStatsDoesNotYieldIfEmpty(self):
-    self._TestDeleteOldClientStatsYields(
-        total=0, yield_after_count=10, yields_expected=[])
-
-  def testDeleteOldClientStatsYieldsExactMatch(self):
-    self._TestDeleteOldClientStatsYields(
-        total=10, yield_after_count=5, yields_expected=[5, 5])
-
-  def testDeleteOldClientStatsYieldsAtLeastOnce(self):
-    self._TestDeleteOldClientStatsYields(
-        total=10, yield_after_count=20, yields_expected=[10])
-
-  def testDeleteOldClientStatsYieldsUnexactMatch(self):
-    self._TestDeleteOldClientStatsYields(
-        total=10, yield_after_count=4, yields_expected=[4, 4, 2])
 
   def _WriteTestClientsWithData(self,
                                 client_indices,
@@ -1504,6 +1519,7 @@ class DatabaseTestClientsMixin(object):
               os_release=os_release,
               os_version=os_version))
       for owner, labels in labels_dict.items():
+        self.db.WriteGRRUser(owner)
         self.db.AddClientLabels(client_id, owner=owner, labels=labels)
 
   def _WriteTestDataForFleetStatsTesting(self):
@@ -1733,6 +1749,7 @@ class DatabaseTestClientsMixin(object):
 
   def _AddClientKeyedData(self, client_id):
     # Client labels.
+    self.db.WriteGRRUser("testowner")
     self.db.AddClientLabels(client_id, "testowner", ["label"])
 
     # Client snapshot including client startup info.

@@ -6,10 +6,6 @@ import time
 
 from absl import app
 
-# pylint: disable=unused-import,g-bad-import-order
-from grr_response_server import server_plugins
-# pylint: enable=unused-import, g-bad-import-order
-
 from grr_response_core import config
 from grr_response_server import fleetspeak_connector
 from grr_response_server import server_startup

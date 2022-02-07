@@ -1,9 +1,9 @@
 import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
 import {FormControl, FormGroup, Validators} from '@angular/forms';
-import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 import {Observable} from 'rxjs';
 import {filter, map, shareReplay, withLatestFrom} from 'rxjs/operators';
 
+import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {CollectSingleFileArgs} from '../../lib/api/api_interfaces';
 import {toByteUnit} from '../form/byte_input/byte_conversion';
 
@@ -16,10 +16,11 @@ import {toByteUnit} from '../form/byte_input/byte_conversion';
 })
 export class CollectSingleFileForm extends
     FlowArgumentForm<CollectSingleFileArgs> implements OnInit {
-  readonly form = new FormGroup({
+  readonly controls = {
     path: new FormControl(),
     maxSizeBytes: new FormControl(null, Validators.required),
-  });
+  };
+  readonly form = new FormGroup(this.controls);
 
   @Output() readonly formValues$ = this.form.valueChanges.pipe(shareReplay(1));
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));

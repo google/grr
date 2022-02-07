@@ -92,7 +92,7 @@ class MySQLDBFlowMixin(object):
     if self.handler_thread:
       self.handler_stop = True
       self.handler_thread.join(timeout)
-      if self.handler_thread.isAlive():
+      if self.handler_thread.is_alive():
         raise RuntimeError("Message handler thread did not join in time.")
       self.handler_thread = None
 
@@ -271,12 +271,12 @@ class MySQLDBFlowMixin(object):
     query = """
     INSERT INTO flows (client_id, flow_id, long_flow_id, parent_flow_id,
                        parent_hunt_id, name, creator, flow, flow_state,
-                       next_request_to_process, pending_termination, timestamp,
+                       next_request_to_process, timestamp,
                        network_bytes_sent, user_cpu_time_used_micros,
                        system_cpu_time_used_micros, num_replies_sent, last_update)
     VALUES (%(client_id)s, %(flow_id)s, %(long_flow_id)s, %(parent_flow_id)s,
             %(parent_hunt_id)s, %(name)s, %(creator)s, %(flow)s, %(flow_state)s,
-            %(next_request_to_process)s, %(pending_termination)s,
+            %(next_request_to_process)s,
             FROM_UNIXTIME(%(timestamp)s),
             %(network_bytes_sent)s, %(user_cpu_time_used_micros)s,
             %(system_cpu_time_used_micros)s, %(num_replies_sent)s, NOW(6))"""
@@ -330,12 +330,6 @@ class MySQLDBFlowMixin(object):
     else:
       args["parent_hunt_id"] = None
 
-    if flow_obj.HasField("pending_termination"):
-      serialized_termination = flow_obj.pending_termination.SerializeToBytes()
-      args["pending_termination"] = serialized_termination
-    else:
-      args["pending_termination"] = None
-
     try:
       cursor.execute(query, args)
     except MySQLdb.IntegrityError as e:
@@ -354,7 +348,6 @@ class MySQLDBFlowMixin(object):
      name, creator,
      flow, flow_state,
      client_crash_info,
-     pending_termination,
      next_request_to_process,
      processing_deadline, processing_on, processing_since,
      user_cpu_time, system_cpu_time, network_bytes_sent, num_replies_sent,
@@ -381,9 +374,6 @@ class MySQLDBFlowMixin(object):
     if client_crash_info is not None:
       deserialize = rdf_client.ClientCrash.FromSerializedBytes
       flow_obj.client_crash_info = deserialize(client_crash_info)
-    if pending_termination is not None:
-      deserialize = rdf_flow_objects.PendingFlowTermination.FromSerializedBytes
-      flow_obj.pending_termination = deserialize(pending_termination)
     if next_request_to_process:
       flow_obj.next_request_to_process = next_request_to_process
     if processing_deadline is not None:
@@ -418,7 +408,6 @@ class MySQLDBFlowMixin(object):
       "flow",
       "flow_state",
       "client_crash_info",
-      "pending_termination",
       "next_request_to_process",
       "UNIX_TIMESTAMP(processing_deadline)",
       "processing_on",
@@ -449,6 +438,7 @@ class MySQLDBFlowMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAllFlowObjects(self,
                          client_id: Optional[Text] = None,
+                         parent_flow_id: Optional[str] = None,
                          min_create_time: Optional[rdfvalue.RDFDatetime] = None,
                          max_create_time: Optional[rdfvalue.RDFDatetime] = None,
                          include_child_flows: bool = True,
@@ -460,6 +450,10 @@ class MySQLDBFlowMixin(object):
     if client_id is not None:
       conditions.append("client_id = %s")
       args.append(db_utils.ClientIDToInt(client_id))
+
+    if parent_flow_id is not None:
+      conditions.append("parent_flow_id = %s")
+      args.append(db_utils.FlowIDToInt(parent_flow_id))
 
     if min_create_time is not None:
       conditions.append("timestamp >= FROM_UNIXTIME(%s)")
@@ -477,17 +471,6 @@ class MySQLDBFlowMixin(object):
       query += " WHERE " + " AND ".join(conditions)
 
     cursor.execute(query, args)
-    return [self._FlowObjectFromRow(row) for row in cursor.fetchall()]
-
-  @mysql_utils.WithTransaction(readonly=True)
-  def ReadChildFlowObjects(self, client_id, flow_id, cursor=None):
-    """Reads flows that were started by a given flow from the database."""
-    query = (f"SELECT {self.FLOW_DB_FIELDS} "
-             f"FROM flows WHERE client_id=%s AND parent_flow_id=%s")
-    cursor.execute(
-        query,
-        [db_utils.ClientIDToInt(client_id),
-         db_utils.FlowIDToInt(flow_id)])
     return [self._FlowObjectFromRow(row) for row in cursor.fetchall()]
 
   @mysql_utils.WithTransaction()
@@ -558,7 +541,6 @@ class MySQLDBFlowMixin(object):
                  flow_obj=db.Database.unchanged,
                  flow_state=db.Database.unchanged,
                  client_crash_info=db.Database.unchanged,
-                 pending_termination=db.Database.unchanged,
                  processing_on=db.Database.unchanged,
                  processing_since=db.Database.unchanged,
                  processing_deadline=db.Database.unchanged,
@@ -588,9 +570,6 @@ class MySQLDBFlowMixin(object):
     if client_crash_info != db.Database.unchanged:
       updates.append("client_crash_info=%s")
       args.append(client_crash_info.SerializeToBytes())
-    if pending_termination != db.Database.unchanged:
-      updates.append("pending_termination=%s")
-      args.append(pending_termination.SerializeToBytes())
     if processing_on != db.Database.unchanged:
       updates.append("processing_on=%s")
       args.append(processing_on)
@@ -613,26 +592,6 @@ class MySQLDBFlowMixin(object):
     updated = cursor.execute(query, args)
     if updated == 0:
       raise db.UnknownFlowError(client_id, flow_id)
-
-  @mysql_utils.WithTransaction()
-  def UpdateFlows(self,
-                  client_id_flow_id_pairs,
-                  pending_termination=db.Database.unchanged,
-                  cursor=None):
-    """Updates flow objects in the database."""
-
-    if pending_termination == db.Database.unchanged:
-      return
-
-    serialized_termination = pending_termination.SerializeToBytes()
-    query = "UPDATE flows SET pending_termination=%s WHERE "
-    args = [serialized_termination]
-    for index, (client_id, flow_id) in enumerate(client_id_flow_id_pairs):
-      query += ("" if index == 0 else " OR ") + " client_id=%s AND flow_id=%s"
-      args.extend(
-          [db_utils.ClientIDToInt(client_id),
-           db_utils.FlowIDToInt(flow_id)])
-    cursor.execute(query, args)
 
   def _WriteFlowProcessingRequests(self, requests, cursor):
     """Returns a (query, args) tuple that inserts the given requests."""
@@ -1352,7 +1311,7 @@ class MySQLDBFlowMixin(object):
     if self.flow_processing_request_handler_thread:
       self.flow_processing_request_handler_stop = True
       self.flow_processing_request_handler_thread.join(timeout)
-      if self.flow_processing_request_handler_thread.isAlive():
+      if self.flow_processing_request_handler_thread.is_alive():
         raise RuntimeError("Flow processing handler did not join in time.")
       self.flow_processing_request_handler_thread = None
 

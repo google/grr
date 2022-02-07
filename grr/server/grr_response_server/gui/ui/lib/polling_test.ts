@@ -1,6 +1,7 @@
 import {fakeAsync, tick} from '@angular/core/testing';
-import {initTestEnvironment} from '@app/testing';
 import {firstValueFrom, NEVER, Subject, timer} from 'rxjs';
+
+import {initTestEnvironment} from '../testing';
 
 import {poll} from './polling';
 

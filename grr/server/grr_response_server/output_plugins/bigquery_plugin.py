@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 # Lint as: python3
 """BigQuery output plugin."""
-
+import base64
 import gzip
 import logging
 import os
 import tempfile
-
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -17,6 +16,7 @@ from grr_response_proto import output_plugin_pb2
 from grr_response_server import bigquery
 from grr_response_server import export
 from grr_response_server import output_plugin
+from grr_response_server.export_converters import base
 
 
 class TempOutputTracker(object):
@@ -51,7 +51,7 @@ class TempOutputTracker(object):
 class BigQueryOutputPluginArgs(rdf_structs.RDFProtoStruct):
   protobuf = output_plugin_pb2.BigQueryOutputPluginArgs
   rdf_deps = [
-      export.ExportOptions,
+      base.ExportOptions,
   ]
 
 
@@ -93,16 +93,14 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     state.failure_count += self.failure_count
 
   def ProcessResponses(self, state, responses):
-    default_metadata = export.ExportedMetadata(
+    default_metadata = base.ExportedMetadata(
         annotations=u",".join(self.args.export_options.annotations),
         source_urn=self.source_urn)
 
     if self.args.convert_values:
       # This is thread-safe - we just convert the values.
       converted_responses = export.ConvertValues(
-          default_metadata,
-          responses,
-          options=self.args.export_options)
+          default_metadata, responses, options=self.args.export_options)
     else:
       converted_responses = responses
 
@@ -113,15 +111,17 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     """Turn Exported* protos with embedded metadata into a nested dict."""
     row = {}
     for type_info in value.__class__.type_infos:
-      # TODO: Add support for serializing binary data.
-      #
-      # JSON files have to be UTF-8 encoded and dumping arbitrary binary strings
-      # is not possible. One viable solution would be to use e.g. base64.
       if isinstance(type_info, rdf_structs.ProtoBinary):
-        continue
-
+        # JSON files have to be UTF-8 encoded and dumping arbitrary binary
+        # strings is not possible. We offer optional export of such fields
+        # through base64 encoding.
+        if self.args.base64_bytes_export:
+          field = base64.b64encode(value.Get(type_info.name)).decode("ascii")
+          row[type_info.name] = field
+        else:
+          continue
       # We only expect the metadata proto to be included as ProtoEmbedded.
-      if isinstance(type_info, rdf_structs.ProtoEmbedded):
+      elif isinstance(type_info, rdf_structs.ProtoEmbedded):
         row[type_info.name] = self._GetNestedDict(value.Get(type_info.name))
       else:
         field = value.Get(type_info.name)

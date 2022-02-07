@@ -3,15 +3,18 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ComponentFixture, inject, TestBed, waitForAsync} from '@angular/core/testing';
 import {MatAutocomplete, MatAutocompleteSelectedEvent} from '@angular/material/autocomplete';
 import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
+import {MatMenuHarness} from '@angular/material/menu/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {FlowChips} from '@app/components/flow_picker/flow_chips';
-import {FlowListItem, FlowListItemService} from '@app/components/flow_picker/flow_list_item';
-import {assertNonNull} from '@app/lib/preconditions';
-import {ClientPageGlobalStore} from '@app/store/client_page_global_store';
-import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '@app/store/client_page_global_store_test_util';
-import {initTestEnvironment} from '@app/testing';
-import {from} from 'rxjs';
+import {RouterTestingModule} from '@angular/router/testing';
+import {of} from 'rxjs';
+
+import {FlowChips} from '../../components/flow_picker/flow_chips';
+import {FlowListItem, FlowListItemService} from '../../components/flow_picker/flow_list_item';
+import {assertNonNull} from '../../lib/preconditions';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
+import {initTestEnvironment} from '../../testing';
 
 import {FlowPicker} from './flow_picker';
 import {FlowPickerModule} from './module';
@@ -26,6 +29,18 @@ function getAutocompleteHarness(fixture: ComponentFixture<FlowPicker>) {
       MatAutocompleteHarness);
 }
 
+const COMMON_FILE_FLOWS: ReadonlyArray<FlowListItem> = [
+  {
+    name: 'CollectMultipleFiles',
+    friendlyName: 'Collect multiple files',
+    description: 'by search criteria',
+  },
+  {
+    name: 'CollectSingleFile',
+    friendlyName: 'Collect single file',
+    description: 'by well-known path',
+  },
+];
 
 describe('FlowPicker Component', () => {
   let flowListItemService: Partial<FlowListItemService>;
@@ -37,7 +52,7 @@ describe('FlowPicker Component', () => {
     clientPageGlobalStore = mockClientPageGlobalStore();
 
     flowListItemService = {
-      flowsByCategory$: from([new Map([
+      flowsByCategory$: of(new Map([
         [
           'Collectors',
           [
@@ -63,8 +78,9 @@ describe('FlowPicker Component', () => {
             },
           ]
         ],
-      ])]),
-      commonFlowNames$: from([['Osquery']]),
+      ])),
+      commonFlowNames$: of(['Osquery']),
+      commonFileFlows$: of(COMMON_FILE_FLOWS),
     };
 
     TestBed
@@ -72,6 +88,7 @@ describe('FlowPicker Component', () => {
           imports: [
             NoopAnimationsModule,
             FlowPickerModule,
+            RouterTestingModule,
           ],
 
           providers: [
@@ -83,7 +100,8 @@ describe('FlowPicker Component', () => {
               provide: ClientPageGlobalStore,
               useFactory: () => clientPageGlobalStore
             },
-          ]
+          ],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
 
@@ -135,6 +153,24 @@ describe('FlowPicker Component', () => {
         .toBe(1);
 
     await autocompleteHarness.enterText('arti');
+
+    expect(overlayContainerElement.querySelectorAll('flows-overview').length)
+        .toBe(0);
+  });
+
+  it('hides an overview panel on outside click', async () => {
+    const fixture = TestBed.createComponent(FlowPicker);
+    fixture.detectChanges();
+    await fixture.whenRenderingDone();
+
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
+
+    expect(overlayContainerElement.querySelectorAll('flows-overview').length)
+        .toBe(1);
+
+    fixture.componentInstance.overlayOutsideClick(new MouseEvent('click'));
+    fixture.detectChanges();
 
     expect(overlayContainerElement.querySelectorAll('flows-overview').length)
         .toBe(0);
@@ -329,7 +365,7 @@ describe('FlowPicker Component', () => {
            .toHaveBeenCalledWith('CollectBrowserHistory');
 
        clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
-           undefined);
+           null);
        fixture.detectChanges();
 
        expect(fixture.componentInstance.textInput.value).toBe('');
@@ -373,5 +409,28 @@ describe('FlowPicker Component', () => {
 
     flowChips = fixture.debugElement.query(By.directive(FlowChips));
     expect(flowChips).toBeNull();
+  });
+
+  it('shows a dropdown menu for common file flows', async () => {
+    const fixture = TestBed.createComponent(FlowPicker);
+    fixture.detectChanges();
+
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const menu = await loader.getHarness(
+        MatMenuHarness.with({triggerText: /Collect files/}));
+    await menu.open();
+    const renderedMenuItems = await menu.getItems();
+    expect(renderedMenuItems.length).toEqual(COMMON_FILE_FLOWS.length + 1);
+    expect(await renderedMenuItems[0].getText())
+        .toEqual(COMMON_FILE_FLOWS[0].friendlyName);
+    expect(await renderedMenuItems[1].getText())
+        .toEqual(COMMON_FILE_FLOWS[1].friendlyName);
+
+    expect(clientPageGlobalStore.startFlowConfiguration).not.toHaveBeenCalled();
+
+    await renderedMenuItems[1].click();
+
+    expect(clientPageGlobalStore.startFlowConfiguration)
+        .toHaveBeenCalledWith(COMMON_FILE_FLOWS[1].name);
   });
 });

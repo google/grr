@@ -1,6 +1,7 @@
 import {AbstractControl, ValidationErrors, ValidatorFn} from '@angular/forms';
-import {DateTime} from '@app/lib/date_time';
-import {isNonNull} from '@app/lib/preconditions';
+
+import {DateTime} from '../../lib/date_time';
+import {isNonNull} from '../../lib/preconditions';
 
 
 /** Checks that at least one of the given controls has a non-null value set. */

@@ -355,11 +355,15 @@ class SubprocessServer(Server):
 
   @property
   def cpu_time(self) -> float:
-    return self._psutil_process.cpu_times().user
+    if self._process_win is not None:
+      return self._process_win.GetCpuTimes().cpu_time
+    return self._psutil_process.cpu_times().user  # pytype: disable=wrong-arg-count  # bind-properties
 
   @property
   def sys_time(self) -> float:
-    return self._psutil_process.cpu_times().system
+    if self._process_win is not None:
+      return self._process_win.GetCpuTimes().sys_time
+    return self._psutil_process.cpu_times().system  # pytype: disable=wrong-arg-count  # bind-properties
 
   @property
   def _psutil_process(self) -> psutil.Process:

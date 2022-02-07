@@ -389,11 +389,17 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
         self.router.DeleteCronJob, "CheckCronJobAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
+      "CreateHunt",
       "ModifyHunt",
       "DeleteHunt",
       "GetHuntFilesArchive",
       "GetHuntFile",
   ])
+
+  def testCreatingHuntIsAccessChecked(self):
+    args = api_hunt.ApiCreateHuntArgs(flow_name=osquery.OsqueryFlow.__name__)
+    self.CheckMethodIsAccessChecked(
+        self.router.CreateHunt, "CheckIfCanStartClientFlow", args=args)
 
   def testModifyHuntIsAccessChecked(self):
     args = api_hunt.ApiModifyHuntArgs(hunt_id="H:123456")
@@ -440,15 +446,15 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   def testListGrrBinariesIsAccessChecked(self):
     self.CheckMethodIsAccessChecked(self.router.ListGrrBinaries,
-                                    "CheckIfUserIsAdmin")
+                                    "CheckIfHasAccessToRestrictedFlows")
 
   def testGetGrrBinaryIsAccessChecked(self):
     self.CheckMethodIsAccessChecked(self.router.GetGrrBinary,
-                                    "CheckIfUserIsAdmin")
+                                    "CheckIfHasAccessToRestrictedFlows")
 
   def testGetGrrBinaryBlobIsAccessChecked(self):
     self.CheckMethodIsAccessChecked(self.router.GetGrrBinary,
-                                    "CheckIfUserIsAdmin")
+                                    "CheckIfHasAccessToRestrictedFlows")
 
   ACCESS_CHECKED_METHODS.extend([
       "ListFlowDescriptors",
@@ -464,15 +470,16 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
       "GetGrrUser",
   ])
 
-  def testGetGrrUserReturnsFullTraitsForAdminUser(self):
+  def testGetGrrUserReturnsFullTraitsForWhenWithRestrictedFlowsAccess(self):
     handler = self.router.GetGrrUser(None, context=self.context)
 
     self.assertEqual(handler.interface_traits,
                      api_user.ApiGrrUserInterfaceTraits().EnableAll())
 
-  def testGetGrrUserReturnsRestrictedTraitsForNonAdminUser(self):
+  def testGetGrrUserReturnsRestrictedTraitsWhenWithoutRestrictedFlowsAccess(
+      self):
     error = access_control.UnauthorizedAccess("some error")
-    self.access_checker_mock.CheckIfUserIsAdmin.side_effect = error
+    self.access_checker_mock.CheckIfHasAccessToRestrictedFlows.side_effect = error
     handler = self.router.GetGrrUser(None, context=self.context)
 
     self.assertNotEqual(handler.interface_traits,

@@ -4,7 +4,7 @@
 
 import collections
 import itertools
-from typing import Generator, List, Optional, Text
+from typing import Iterator, List, Optional, Text
 
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
@@ -800,33 +800,35 @@ class MySQLDBClientMixin(object):
   # DeleteOldClientStats does not use a single transaction, since it runs for
   # a long time. Instead, it uses multiple transactions internally.
   def DeleteOldClientStats(
-      self, yield_after_count: int,
-      retention_time: rdfvalue.RDFDatetime) -> Generator[int, None, None]:
-    """Deletes ClientStats older than a given timestamp."""
+      self,
+      cutoff_time: rdfvalue.RDFDatetime,
+      batch_size: Optional[int] = None,
+  ) -> Iterator[int]:
+    """Deletes client stats older than the specified cutoff time."""
+    if batch_size is None:
+      batch_size = db.CLIENT_IDS_BATCH_SIZE
 
     while True:
-      deleted_count = self._DeleteClientStats(
-          limit=yield_after_count, retention_time=retention_time)
+      deleted_count = self._DeleteClientStatsBatch(cutoff_time, batch_size)
 
       # Do not yield a trailing 0 which occurs when an exact multiple of
       # `yield_after_count` rows were in the table.
       if deleted_count > 0:
         yield deleted_count
-
-      # Return, when no more rows can be deleted, indicated by a transaction
-      # that does not reach the deletion limit.
-      if deleted_count < yield_after_count:
-        return
+      else:
+        break
 
   @mysql_utils.WithTransaction()
-  def _DeleteClientStats(self,
-                         limit: int,
-                         retention_time: rdfvalue.RDFDatetime,
-                         cursor=None) -> int:
+  def _DeleteClientStatsBatch(
+      self,
+      cutoff_time: rdfvalue.RDFDatetime,
+      batch_size: int,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> int:
     """Deletes up to `limit` ClientStats older than `retention_time`."""
     cursor.execute(
         "DELETE FROM client_stats WHERE timestamp < FROM_UNIXTIME(%s) LIMIT %s",
-        [mysql_utils.RDFDatetimeToTimestamp(retention_time), limit])
+        [mysql_utils.RDFDatetimeToTimestamp(cutoff_time), batch_size])
     return cursor.rowcount
 
   @mysql_utils.WithTransaction(readonly=True)
@@ -946,3 +948,9 @@ class MySQLDBClientMixin(object):
 
     cursor.execute("DELETE FROM clients WHERE client_id = %s",
                    [db_utils.ClientIDToInt(client_id)])
+
+
+# We use the same value as other database implementations that we have some
+# measures for. However, MySQL has different performance characteristics and it
+# could be fine-tuned if possible.
+_DEFAULT_CLIENT_STATS_BATCH_SIZE = 10_000

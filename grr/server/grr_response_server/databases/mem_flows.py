@@ -82,7 +82,7 @@ class InMemoryDBFlowMixin(object):
     if self.handler_thread:
       self.handler_stop = True
       self.handler_thread.join(timeout)
-      if self.handler_thread.isAlive():
+      if self.handler_thread.is_alive():
         raise RuntimeError("Message handler thread did not join in time.")
       self.handler_thread = None
 
@@ -247,6 +247,7 @@ class InMemoryDBFlowMixin(object):
   def ReadAllFlowObjects(
       self,
       client_id: Optional[Text] = None,
+      parent_flow_id: Optional[str] = None,
       min_create_time: Optional[rdfvalue.RDFDatetime] = None,
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
@@ -255,19 +256,11 @@ class InMemoryDBFlowMixin(object):
     res = []
     for flow in self.flows.values():
       if ((client_id is None or flow.client_id == client_id) and
+          (parent_flow_id is None or flow.parent_flow_id == parent_flow_id) and
           (min_create_time is None or flow.create_time >= min_create_time) and
           (max_create_time is None or flow.create_time <= max_create_time) and
           (include_child_flows or not flow.parent_flow_id)):
         res.append(flow.Copy())
-    return res
-
-  @utils.Synchronized
-  def ReadChildFlowObjects(self, client_id, flow_id):
-    """Reads flows that were started by a given flow from the database."""
-    res = []
-    for flow in self.flows.values():
-      if flow.client_id == client_id and flow.parent_flow_id == flow_id:
-        res.append(flow)
     return res
 
   @utils.Synchronized
@@ -306,7 +299,6 @@ class InMemoryDBFlowMixin(object):
                  flow_obj=db.Database.unchanged,
                  flow_state=db.Database.unchanged,
                  client_crash_info=db.Database.unchanged,
-                 pending_termination=db.Database.unchanged,
                  processing_on=db.Database.unchanged,
                  processing_since=db.Database.unchanged,
                  processing_deadline=db.Database.unchanged):
@@ -336,8 +328,6 @@ class InMemoryDBFlowMixin(object):
       flow.flow_state = flow_state
     if client_crash_info != db.Database.unchanged:
       flow.client_crash_info = client_crash_info
-    if pending_termination != db.Database.unchanged:
-      flow.pending_termination = pending_termination
     if processing_on != db.Database.unchanged:
       flow.processing_on = processing_on
     if processing_since != db.Database.unchanged:
@@ -345,18 +335,6 @@ class InMemoryDBFlowMixin(object):
     if processing_deadline != db.Database.unchanged:
       flow.processing_deadline = processing_deadline
     flow.last_update_time = rdfvalue.RDFDatetime.Now()
-
-  @utils.Synchronized
-  def UpdateFlows(self,
-                  client_id_flow_id_pairs,
-                  pending_termination=db.Database.unchanged):
-    """Updates flow objects in the database."""
-    for client_id, flow_id in client_id_flow_id_pairs:
-      try:
-        self.UpdateFlow(
-            client_id, flow_id, pending_termination=pending_termination)
-      except db.UnknownFlowError:
-        pass
 
   @utils.Synchronized
   def WriteFlowRequests(self, requests):
@@ -699,7 +677,7 @@ class InMemoryDBFlowMixin(object):
     if self.flow_handler_thread:
       self.flow_handler_stop = True
       self.flow_handler_thread.join(timeout)
-      if self.flow_handler_thread.isAlive():
+      if self.flow_handler_thread.is_alive():
         raise RuntimeError("Flow processing handler did not join in time.")
       self.flow_handler_thread = None
 
@@ -732,7 +710,7 @@ class InMemoryDBFlowMixin(object):
         # If the thread is dead, or there are no requests
         # to be processed/being processed, we stop waiting
         # and return from the function.
-        if (not t.isAlive() or
+        if (not t.is_alive() or
             (not self._GetFlowRequestsReadyForProcessing() and
              not self.flow_handler_num_being_processed)):
           return

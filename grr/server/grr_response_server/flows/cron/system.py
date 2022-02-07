@@ -265,7 +265,7 @@ class PurgeClientStatsCronJob(cronjobs.SystemCronJobBase):
 
     total_deleted_count = 0
     for deleted_count in data_store.REL_DB.DeleteOldClientStats(
-        yield_after_count=_STATS_DELETION_BATCH_SIZE, retention_time=end):
+        cutoff_time=end):
       self.HeartBeat()
       total_deleted_count += deleted_count
       self.Log("Deleted %d ClientStats that expired before %s",

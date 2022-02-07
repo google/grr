@@ -10,7 +10,7 @@ const gulpInsert = require('gulp-insert');
 const gulpLess = require('gulp-less');
 const gulpNewer = require('gulp-newer');
 const gulpPlumber = require('gulp-plumber');
-const gulpSass = require('gulp-sass');
+const gulpSass = require('gulp-sass')(require('sass'));
 const karma = require('karma');
 
 const {series, parallel} = gulp;

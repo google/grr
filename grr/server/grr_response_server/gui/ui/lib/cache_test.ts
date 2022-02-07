@@ -1,5 +1,6 @@
-import {initTestEnvironment} from '@app/testing';
 import {firstValueFrom, lastValueFrom, NEVER, of} from 'rxjs';
+
+import {initTestEnvironment} from '../testing';
 
 import {cacheLatest, StorageCache} from './cache';
 

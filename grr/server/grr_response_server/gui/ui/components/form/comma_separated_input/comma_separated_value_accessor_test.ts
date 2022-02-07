@@ -3,7 +3,8 @@ import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {FormControl, ReactiveFormsModule} from '@angular/forms';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {initTestEnvironment} from '@app/testing';
+
+import {initTestEnvironment} from '../../../testing';
 
 import {CommaSeparatedValueAccessor} from './comma_separated_value_accessor';
 import {CommaSeparatedInputModule} from './module';
@@ -33,7 +34,8 @@ describe('ByteValueAccessor', () => {
             TestHostComponent,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
 

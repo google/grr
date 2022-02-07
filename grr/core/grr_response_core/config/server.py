@@ -345,3 +345,7 @@ config_lib.DEFINE_integer(
     "Server.fleetspeak_send_retry_sleep_time_secs", 0,
     "Time in seconds to sleep between retries to send a fleetspeak message "
     "to a client.")
+
+config_lib.DEFINE_boolean(
+    "Server.grr_binaries_readonly", False,
+    "When set to True, uploaded GRR binaries can't be deleted or overwritten.")

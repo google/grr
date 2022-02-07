@@ -1,17 +1,19 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {translateGrrUser} from '@app/lib/api_translation/user';
-import {GrrUser} from '@app/lib/models/user';
 import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, tap} from 'rxjs/operators';
 
+import {HttpApiService} from '../lib/api/http_api_service';
+import {translateGrrUser} from '../lib/api_translation/user';
+import {GrrUser} from '../lib/models/user';
 import {isNonNull} from '../lib/preconditions';
 
 
 interface UserState {
   readonly currentUserName: string|undefined;
-  readonly users: {readonly [key: string]: GrrUser};
+  readonly users: {
+    readonly [key: string]: GrrUser,
+  };
 }
 
 /** ComponentStore implementation for the user store. */

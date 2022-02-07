@@ -1,28 +1,7 @@
-<div *ngIf="!hasProgress" class="fallback">
-  View
-  <a href="{{fallbackUrl$ | async}}">
-    Flow
-    <span class="monospace">{{ (flow$ | async).flowId }}</span>
-  </a>
-  in legacy UI.
-</div>
-
-<div *ngIf="hasProgress">
-  <div class="overall-status">
-    Processed {{ progress.numSkipped +
-      progress.numCollected +
-      progress.numFailed }} out of {{ args.pathspecs.length }}
-  </div>
-  <div class="detailed-numbers">
-    <div class="item">Successfully collected: {{ progress.numCollected }}</div>
-    <div class="item">Skipped: {{ progress.numSkipped }}</div>
-    <div class="item">Failed: {{ progress.numFailed }}</div>
-  </div>
-
-  <div>
-    <div *ngFor="let pathStatus of progress.pathspecsProgress">
-      <div class="path">{{ pathSpecToPath(pathStatus.pathspec) }}</div>
-      <div class="status">{{ pathStatus.status }}</div>
-    </div>
-  </div>
-</div>
+<result-accordion
+  [title]="description$ | async"
+  [expandable]="!!(totalFiles$ | async)"
+  (firstOpened)="flowResultsLocalStore.queryMore(QUERY_MORE_COUNT)">
+  <file-results-table *ngIf="results$" [results]="results$ | async" [totalCount]="totalFiles$ | async" (loadMore)="flowResultsLocalStore.queryMore(QUERY_MORE_COUNT)">
+  </file-results-table>
+</result-accordion>

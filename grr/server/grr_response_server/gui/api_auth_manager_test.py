@@ -9,6 +9,7 @@ from grr_response_proto import tests_pb2
 from grr_response_server.authorization import groups
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router
+from grr_response_server.gui import api_test_lib
 from grr.test_lib import test_lib
 
 
@@ -28,8 +29,8 @@ class DefaultDummyAuthManagerTestApiRouter(api_call_router.ApiCallRouter):
   pass
 
 
-class DummyAuthManagerTestConfigurableApiRouterParams(
-    rdf_structs.RDFProtoStruct):
+class DummyAuthManagerTestConfigurableApiRouterParams(rdf_structs.RDFProtoStruct
+                                                     ):
   protobuf = tests_pb2.DummyAuthManagerTestConfigurableApiRouterParams
 
 
@@ -78,6 +79,8 @@ class APIAuthorizationManagerTest(test_lib.GRRBaseTest):
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter",
+                                  DummyAuthManagerTestApiRouter)
   def testMatchesIfOneOfUsersIsMatching(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
@@ -93,6 +96,8 @@ users:
     router = auth_mgr.GetRouterForUser("u2")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter",
+                                  DummyAuthManagerTestApiRouter)
   def testReturnsDefaultOnNoMatchByUser(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
@@ -105,6 +110,10 @@ users:
     router = auth_mgr.GetRouterForUser("u4")
     self.assertEqual(router.__class__, DefaultDummyAuthManagerTestApiRouter)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter",
+                                  DummyAuthManagerTestApiRouter)
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter2",
+                                  DummyAuthManagerTestApiRouter2)
   def testMatchesFirstRouterIfMultipleRoutersMatchByUser(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
@@ -122,6 +131,12 @@ users:
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter",
+                                  DummyAuthManagerTestApiRouter)
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter2",
+                                  DummyAuthManagerTestApiRouter2)
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter3",
+                                  DummyAuthManagerTestApiRouter3)
   def testReturnsFirstRouterWhenMatchingByUser(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
@@ -147,6 +162,8 @@ users:
     router = auth_mgr.GetRouterForUser("u4")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter3)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter2",
+                                  DummyAuthManagerTestApiRouter2)
   def testMatchingByGroupWorks(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
@@ -158,6 +175,10 @@ groups:
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter2)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter",
+                                  DummyAuthManagerTestApiRouter)
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter2",
+                                  DummyAuthManagerTestApiRouter2)
   def testMatchingByUserHasPriorityOverMatchingByGroup(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
@@ -173,6 +194,10 @@ groups:
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter",
+                                  DummyAuthManagerTestApiRouter)
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter2",
+                                  DummyAuthManagerTestApiRouter2)
   def testReturnsFirstRouterWhenMultipleMatchByGroup(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
@@ -188,6 +213,10 @@ groups:
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter",
+                                  DummyAuthManagerTestApiRouter)
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter2",
+                                  DummyAuthManagerTestApiRouter2)
   def testReturnsFirstMatchingRouterWhenItMatchesByGroupAndOtherByUser(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
@@ -203,6 +232,10 @@ users:
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DummyAuthManagerTestApiRouter)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter",
+                                  DummyAuthManagerTestApiRouter)
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter2",
+                                  DummyAuthManagerTestApiRouter2)
   def testReturnsDefaultRouterWhenNothingMatchesByGroup(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
@@ -225,6 +258,8 @@ groups:
     router = auth_mgr.GetRouterForUser("u1")
     self.assertEqual(router.__class__, DefaultDummyAuthManagerTestApiRouter)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestApiRouter",
+                                  DummyAuthManagerTestApiRouter)
   def testRaisesWhenNonConfigurableRouterInitializedWithParams(self):
     exception = api_auth_manager.ApiCallRouterDoesNotExpectParameters
     with self.assertRaises(exception):
@@ -238,6 +273,8 @@ users:
 - "u1"
 """, DefaultDummyAuthManagerTestApiRouter)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestConfigurableApiRouter",
+                                  DummyAuthManagerTestConfigurableApiRouter)
   def testConfigurableRouterIsInitializedWithoutParameters(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """
@@ -250,6 +287,8 @@ users:
     self.assertEqual(router.params.foo, "")
     self.assertEqual(router.params.bar, 0)
 
+  @api_test_lib.WithApiCallRouter("DummyAuthManagerTestConfigurableApiRouter",
+                                  DummyAuthManagerTestConfigurableApiRouter)
   def testConfigurableRouterIsInitializedWithParameters(self):
     auth_mgr = api_auth_manager.APIAuthorizationManager.FromYaml(
         """

@@ -1,25 +1,45 @@
 <div *ngIf="(state$ | async) === FlowState.FINISHED">
-  <div class="download flow-details-summary-actions">
-    <a mat-stroked-button color="primary" [href]="(bodyFileUrl$ | async).toString()" [download]="bodyFileName$ | async">Download body</a>
-    <button mat-button [matMenuTriggerFor]="menu">
-      <mat-icon>keyboard_arrow_down</mat-icon>
+  <div class="download flow-details-summary-actions button-group">
+    <a
+      mat-stroked-button
+      color="primary"
+      [href]="bodyFileUrl$ | async"
+      [download]="bodyFileName$ | async"
+      >Download body</a
+    >
+    <button
+      mat-stroked-button
+      color="primary"
+      [matMenuTriggerFor]="menu"
+      class="dropdown-button"
+    >
+      <mat-icon>arrow_drop_down</mat-icon>
     </button>
-    <mat-menu #menu="matMenu" [formGroup]="bodyOptsForm">
-      <mat-checkbox class="mat-menu-item" formControlName="timestampSubsecondPrecision">Timestamp subsecond precision</mat-checkbox>
-      <mat-checkbox class="mat-menu-item" formControlName="inodeNtfsFileReferenceFormat">NTFS file reference format</mat-checkbox>
-      <mat-checkbox class="mat-menu-item" formControlName="backslashEscape">Backslash escape</mat-checkbox>
-      <mat-checkbox class="mat-menu-item" formControlName="carriageReturnEscape">Carriage return escape</mat-checkbox>
-      <mat-checkbox class="mat-menu-item" formControlName="nonPrintableEscape">Non-printable escape</mat-checkbox>
-    </mat-menu>
   </div>
+  <mat-menu #menu="matMenu">
+    <mat-checkbox
+      class="mat-menu-item"
+      [formControl]="controls.timestampSubsecondPrecision"
+      >Timestamp subsecond precision</mat-checkbox
+    >
+    <mat-checkbox
+      class="mat-menu-item"
+      [formControl]="controls.inodeNtfsFileReferenceFormat"
+      >NTFS file reference format</mat-checkbox
+    >
+    <mat-checkbox class="mat-menu-item" [formControl]="controls.backslashEscape"
+      >Backslash escape</mat-checkbox
+    >
+    <mat-checkbox class="mat-menu-item" [formControl]="controls.carriageReturnEscape"
+      >Carriage return escape</mat-checkbox
+    >
+    <mat-checkbox class="mat-menu-item" [formControl]="controls.nonPrintableEscape"
+      >Non-printable escape</mat-checkbox
+    >
+  </mat-menu>
 </div>
 
-<div *ngIf="(state$ | async) === FlowState.RUNNING">
-  <span>Timelining '{{ (args$ | async).root }}'...</span>
-  <!-- TODO(hanuszczak): Display first 10 rows of the timeline once available. -->
-</div>
-
-<div *ngIf="(state$ | async) == FlowState.ERROR">
-  <span>Failed to collect the timeline.</span>
-  <!-- TODO(hanuszczak): Add details about timeline collection errors. -->
-</div>
+<result-accordion [title]="root$ | async" [expandable]="false">
+</result-accordion>
+<!-- TODO(hanuszczak): Display first 10 rows of the timeline once available. -->
+<!-- TODO(hanuszczak): Add details about timeline collection errors. -->

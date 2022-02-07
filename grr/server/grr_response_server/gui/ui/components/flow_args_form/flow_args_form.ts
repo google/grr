@@ -1,8 +1,8 @@
 import {AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentFactoryResolver, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
-import {DEFAULT_FORM, FORMS} from '@app/components/flow_args_form/sub_forms';
 import {Observable, ReplaySubject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
+import {DEFAULT_FORM, FORMS} from '../../components/flow_args_form/sub_forms';
 import {FlowDescriptor} from '../../lib/models/flow';
 import {observeOnDestroy} from '../../lib/reactive';
 
@@ -13,16 +13,21 @@ import {observeOnDestroy} from '../../lib/reactive';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
-  readonly ngOnDestroy = observeOnDestroy();
+  readonly ngOnDestroy = observeOnDestroy(this, () => {
+    this.flowArgValuesSubject.complete();
+    this.validSubject.complete();
+  });
 
-  @Input() flowDescriptor?: FlowDescriptor;
+  @Input() flowDescriptor?: FlowDescriptor|null;
 
   private readonly flowArgValuesSubject = new ReplaySubject<unknown>(1);
   @Output()
-  readonly flowArgValues$: Observable<unknown> = this.flowArgValuesSubject;
+  readonly flowArgValues$: Observable<unknown> =
+      this.flowArgValuesSubject.asObservable();
 
   private readonly validSubject = new ReplaySubject<boolean>(1);
-  @Output() readonly valid$: Observable<boolean> = this.validSubject;
+  @Output()
+  readonly valid$: Observable<boolean> = this.validSubject.asObservable();
 
   @ViewChild('formContainer', {read: ViewContainerRef, static: true})
   formContainer!: ViewContainerRef;

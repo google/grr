@@ -7,8 +7,13 @@ import {MatDialogModule} from '@angular/material/dialog';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
+import {MatTooltipModule} from '@angular/material/tooltip';
+import {RouterModule} from '@angular/router';
 
+import {ApprovalChipModule} from '../client/approval_chip/approval_chip_module';
 import {ClientAddLabelDialogModule} from '../client_add_label_dialog/module';
+import {CopyButtonModule} from '../helpers/copy_button/copy_button_module';
+import {DrawerLinkModule} from '../helpers/drawer_link/drawer_link_module';
 import {OnlineChipModule} from '../online_chip/module';
 import {TimestampModule} from '../timestamp/module';
 
@@ -19,17 +24,24 @@ import {ClientOverview} from './client_overview';
  */
 @NgModule({
   imports: [
+    ClipboardModule,
     CommonModule,
-    MatIconModule,
-    TimestampModule,
-    MatDividerModule,
-    MatChipsModule,
+    RouterModule,
+
     MatButtonModule,
+    MatChipsModule,
+    MatDialogModule,
+    MatDividerModule,
+    MatIconModule,
+    MatSnackBarModule,
+    MatTooltipModule,
+
+    ApprovalChipModule,
+    CopyButtonModule,
+    DrawerLinkModule,
     ClientAddLabelDialogModule,
     OnlineChipModule,
-    MatSnackBarModule,
-    MatDialogModule,
-    ClipboardModule,
+    TimestampModule,
   ],
   declarations: [
     ClientOverview,

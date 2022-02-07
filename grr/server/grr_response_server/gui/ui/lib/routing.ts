@@ -11,9 +11,17 @@ export type RoutesWithLegacyLinks = RouteWithLegacyLink[];
 /** Constructs a link to the old UI by parsing a Route's data.legacyLink. */
 export function makeLegacyLinkFromRoute(route: ActivatedRouteSnapshot): string {
   let legacyLink: string = route.data['legacyLink'] ?? '';
+  let currentSnapshot: ActivatedRouteSnapshot|null = route;
 
-  for (const [key, value] of Object.entries(route.params)) {
-    legacyLink = legacyLink.replace(`:${key}`, value);
+  // First, replace placeholders like :clientId from the route's path
+  // parameters. Start at the current route and then traverse to all parent
+  // routes to have the parameters of child routes override parameters of parent
+  // routes.
+  while (currentSnapshot) {
+    for (const [key, value] of Object.entries(currentSnapshot.params)) {
+      legacyLink = legacyLink.replace(`:${key}`, value);
+    }
+    currentSnapshot = currentSnapshot.parent;
   }
 
   for (const [key, value] of Object.entries(route.queryParams)) {

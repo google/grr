@@ -1,7 +1,11 @@
 import {NgModule} from '@angular/core';
 import {RouterModule, Routes} from '@angular/router';
 
-import {FileDetails} from './file_details';
+import {HexView} from '../data_renderers/hex_view/hex_view';
+import {StatView} from '../data_renderers/stat_view/stat_view';
+import {TextView} from '../data_renderers/text_view/text_view';
+
+import {FileDetailsPage} from './file_details_page';
 
 /** File details sidebar route. */
 export const FILE_DETAILS_ROUTES: Routes = [
@@ -10,8 +14,14 @@ export const FILE_DETAILS_ROUTES: Routes = [
     // nicer to use real slashes in the URL, but Angular's wildcard matching is
     // hard.
     path: 'files/:pathType/:path',
-    component: FileDetails,
+    component: FileDetailsPage,
     outlet: 'drawer',
+    children: [
+      {path: '', redirectTo: 'stat', pathMatch: 'full'},
+      {path: 'stat', component: StatView},
+      {path: 'text', component: TextView},
+      {path: 'blob', component: HexView},
+    ]
   },
 ];
 

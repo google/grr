@@ -21,6 +21,33 @@ class ForemanTests(test_lib.GRRBaseTest):
     # Keep a record of all the clients
     self.clients_started.append((hunt_id, client_id))
 
+  def testAssigningTasksToClientDoesNotEraseFleetspeakValidationInfo(self):
+    client_id = self.SetupClient(0)
+    data_store.REL_DB.WriteClientMetadata(
+        client_id, fleetspeak_validation_info={
+            "foo": "bar",
+            "12": "34"
+        })
+
+    # Setup the rules so that AssignTasksToClient have to apply them
+    # and update the foreman check timestamp (otherwise it will exit
+    # doing nothing).
+    now = rdfvalue.RDFDatetime.Now()
+    expiration_time = now + rdfvalue.Duration.From(1, rdfvalue.HOURS)
+    # Make a new rule
+    rule = foreman_rules.ForemanCondition(
+        creation_time=now,
+        expiration_time=expiration_time,
+        description="Test rule",
+        hunt_id="11111111")
+    data_store.REL_DB.WriteForemanRule(rule)
+
+    foreman_obj = foreman.Foreman()
+    foreman_obj.AssignTasksToClient(client_id)
+
+    client_metadata = data_store.REL_DB.ReadClientMetadata(client_id)
+    self.assertTrue(client_metadata.HasField("last_fleetspeak_validation_info"))
+
   def testOperatingSystemSelection(self):
     """Tests that we can distinguish based on operating system."""
     self.SetupClient(1, system="Windows XP")

@@ -1,7 +1,6 @@
-import {AnyObject, DataBlob, DecimalString, Dict, KeyValue} from '@app/lib/api/api_interfaces';
-import {DateTime} from '@app/lib/date_time';
-import {isNonNull} from '@app/lib/preconditions';
-
+import {AnyObject, DataBlob, DecimalString, Dict, KeyValue} from '../../lib/api/api_interfaces';
+import {DateTime} from '../../lib/date_time';
+import {isNonNull} from '../../lib/preconditions';
 import {assertTruthy} from '../preconditions';
 
 
@@ -117,6 +116,16 @@ export function decodeBase64(encodedString?: string): Uint8Array {
   }
 
   return byteArray;
+}
+
+/** Encodes a Unicode string with base64. */
+export function encodeStringToBase64(str: string): string {
+  return btoa(str);
+}
+
+/** Decodes base64 data and returns a string. */
+export function decodeBase64ToString(data: string): string {
+  return atob(data);
 }
 
 /**

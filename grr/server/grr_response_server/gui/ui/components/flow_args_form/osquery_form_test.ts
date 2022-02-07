@@ -6,9 +6,11 @@ import {MatChipListHarness} from '@angular/material/chips/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {FlowArgsFormModule} from '@app/components/flow_args_form/module';
-import {OsqueryFlowArgs} from '@app/lib/api/api_interfaces';
-import {initTestEnvironment} from '@app/testing';
+
+import {FlowArgsFormModule} from '../../components/flow_args_form/module';
+import {OsqueryFlowArgs} from '../../lib/api/api_interfaces';
+import {initTestEnvironment} from '../../testing';
+
 import {OsqueryForm} from './osquery_form';
 
 
@@ -25,6 +27,7 @@ describe('OsqueryForm', () => {
             FlowArgsFormModule,
           ],
 
+          teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));

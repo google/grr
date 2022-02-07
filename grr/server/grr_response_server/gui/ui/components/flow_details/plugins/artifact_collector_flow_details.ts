@@ -1,12 +1,11 @@
 import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
-import {flowFileResultFromStatEntry} from '@app/components/flow_details/helpers/file_results_table';
-import {ArtifactCollectorFlowArgs, ExecuteResponse, StatEntry} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {ArtifactCollectorFlowProgress, FlowResult, FlowState} from '@app/lib/models/flow';
 import {combineLatest, Observable} from 'rxjs';
 import {map, take} from 'rxjs/operators';
 
+import {flowFileResultFromStatEntry} from '../../../components/flow_details/helpers/file_results_table';
+import {ArtifactCollectorFlowArgs, ExecuteResponse, StatEntry} from '../../../lib/api/api_interfaces';
 import {isRegistryEntry, isStatEntry, translateArtifactCollectorFlowProgress, translateExecuteResponse, translateVfsStatEntry} from '../../../lib/api_translation/flow';
+import {ArtifactCollectorFlowProgress, FlowResult, FlowState} from '../../../lib/models/flow';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {fromFlowState} from '../helpers/result_accordion';
 
@@ -44,16 +43,6 @@ export class ArtifactCollectorFlowDetails extends Plugin implements OnInit {
 
   readonly progress$: Observable<ArtifactCollectorFlowProgress> =
       this.flow$.pipe(map(translateArtifactCollectorFlowProgress));
-
-  readonly archiveUrl$: Observable<string> = this.flow$.pipe(map((flow) => {
-    return this.httpApiService.getFlowFilesArchiveUrl(
-        flow.clientId, flow.flowId);
-  }));
-
-  readonly archiveFileName$: Observable<string> =
-      this.flow$.pipe(map((flow) => {
-        return flow.clientId.replace('.', '_') + '_' + flow.flowId + '.zip';
-      }));
 
   private readonly results$ = this.flowResultGlobalStore.results$.pipe(
       map(rs => rs?.map(item => item.payload) ?? []));
@@ -133,9 +122,7 @@ export class ArtifactCollectorFlowDetails extends Plugin implements OnInit {
   readonly flowArgs$: Observable<ArtifactCollectorFlowArgs> =
       this.flow$.pipe(map(flow => flow.args as ArtifactCollectorFlowArgs));
 
-  constructor(
-      private readonly httpApiService: HttpApiService,
-      private readonly flowResultGlobalStore: FlowResultsLocalStore) {
+  constructor(private readonly flowResultGlobalStore: FlowResultsLocalStore) {
     super();
   }
 

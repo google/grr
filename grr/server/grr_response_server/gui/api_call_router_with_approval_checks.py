@@ -1,16 +1,19 @@
 #!/usr/bin/env python
 """Implementation of a router class that has approvals-based ACL checks."""
 
-from typing import Optional
-from typing import Text
+from typing import Optional, Text
 
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
+from grr_response_proto import api_call_router_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
+from grr_response_server.authorization import groups
 from grr_response_server.databases import db
+from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import osquery
 from grr_response_server.flows.general import timeline
 from grr_response_server.gui import api_call_context
@@ -28,9 +31,21 @@ from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import yara as api_yara
 from grr_response_server.rdfvalues import objects as rdf_objects
 
-
 APPROVAL_SEARCHES = metrics.Counter(
     "approval_searches", fields=[("reason_presence", str), ("source", str)])
+
+RESTRICTED_FLOWS = [
+    administrative.ExecuteCommand,
+    administrative.ExecutePythonHack,
+    administrative.LaunchBinary,
+    administrative.Uninstall,
+    administrative.UpdateClient,
+    administrative.UpdateConfiguration,
+]
+
+
+class ApiCallRouterWithApprovalCheckParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_call_router_pb2.ApiCallRouterWithApprovalCheckParams
 
 
 class AccessChecker(object):
@@ -38,7 +53,15 @@ class AccessChecker(object):
 
   APPROVAL_CACHE_TIME = 60
 
-  def __init__(self):
+  _AUTH_SUBJECT = "restricted-flow"
+
+  def __init__(self, params: ApiCallRouterWithApprovalCheckParams):
+    self._params = params
+
+    self._restricted_flow_group_manager = groups.CreateGroupAccessManager()
+    for g in params.restricted_flow_groups:
+      self._restricted_flow_group_manager.AuthorizeGroup(g, self._AUTH_SUBJECT)
+
     self.acl_cache = utils.AgeBasedCache(
         max_size=10000, max_age=self.APPROVAL_CACHE_TIME)
 
@@ -94,8 +117,6 @@ class AccessChecker(object):
 
   def CheckIfCanStartClientFlow(self, username, flow_name):
     """Checks whether a given user can start a given flow."""
-    del username  # Unused.
-
     flow_cls = registry.FlowRegistry.FLOW_REGISTRY.get(flow_name)
 
     if flow_cls is None or not hasattr(flow_cls,
@@ -103,38 +124,60 @@ class AccessChecker(object):
       raise access_control.UnauthorizedAccess(
           "Flow %s can't be started via the API." % flow_name)
 
-  def CheckIfUserIsAdmin(self, username):
-    """Checks whether the user is an admin."""
+    if flow_cls in RESTRICTED_FLOWS:
+      try:
+        self.CheckIfHasAccessToRestrictedFlows(username)
+      except access_control.UnauthorizedAccess as e:
+        raise access_control.UnauthorizedAccess(
+            "Not enough permissions to access restricted "
+            f"flow {flow_name}") from e
 
-    user_obj = data_store.REL_DB.ReadGRRUser(username)
-    if user_obj.user_type != user_obj.UserType.USER_TYPE_ADMIN:
-      raise access_control.UnauthorizedAccess("User %s is not an admin." %
-                                              username)
+  def CheckIfHasAccessToRestrictedFlows(self, username):
+    """Checks whether a given user can access restricted (sensitive) flows."""
+    if not self._params.ignore_admin_user_attribute:
+      user_obj = data_store.REL_DB.ReadGRRUser(username)
+      if user_obj.user_type == user_obj.UserType.USER_TYPE_ADMIN:
+        return
+
+    if username in self._params.restricted_flow_users:
+      return
+
+    if self._restricted_flow_group_manager.MemberOfAuthorizedGroup(
+        username, self._AUTH_SUBJECT):
+      return
+
+    raise access_control.UnauthorizedAccess(
+        "Not enough permissions to access restricted flows.")
 
 
 class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   """Router that uses approvals-based ACL checks."""
 
-  access_checker = None
+  params_type = ApiCallRouterWithApprovalCheckParams
+
+  cached_access_checker = None
 
   @staticmethod
   def ClearCache():
     cls = ApiCallRouterWithApprovalChecks
-    cls.access_checker = None
+    cls.cached_access_checker = None
 
-  def _GetAccessChecker(self):
+  def _GetAccessChecker(self, params: ApiCallRouterWithApprovalCheckParams):
     cls = ApiCallRouterWithApprovalChecks
 
-    if cls.access_checker is None:
-      cls.access_checker = AccessChecker()
+    if cls.cached_access_checker is None:
+      cls.cached_access_checker = AccessChecker(params)
 
-    return cls.access_checker
+    return cls.cached_access_checker
 
-  def __init__(self, params=None, access_checker=None, delegate=None):
+  def __init__(self,
+               params: Optional[ApiCallRouterWithApprovalCheckParams] = None,
+               access_checker: Optional[AccessChecker] = None,
+               delegate: Optional[api_call_router.ApiCallRouter] = None):
     super().__init__(params=params)
 
     if not access_checker:
-      access_checker = self._GetAccessChecker()
+      access_checker = self._GetAccessChecker(params)
     self.access_checker = access_checker
 
     if not delegate:
@@ -167,6 +210,11 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.SearchClients(args, context=context)
 
+  def StructuredSearchClients(self, args, context=None):
+    # Everybody is allowed to search clients.
+
+    return self.delegate.StructuredSearchClients(args, context=context)
+
   def VerifyAccess(self, args, context=None):
     self.access_checker.CheckClientAccess(context, args.client_id)
 
@@ -194,7 +242,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
   def GetInterrogateOperationState(self, args, context=None):
     # No ACL checks are required here, since the user can only check
-    # operations started by him- or herself.
+    # operations started by themselves.
 
     return self.delegate.GetInterrogateOperationState(args, context=context)
 
@@ -303,7 +351,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
   def GetVfsRefreshOperationState(self, args, context=None):
     # No ACL checks are required here, since the user can only check
-    # operations started by him- or herself.
+    # operations started by themselves.
 
     return self.delegate.GetVfsRefreshOperationState(args, context=context)
 
@@ -324,7 +372,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
   def GetVfsFileContentUpdateState(self, args, context=None):
     # No ACL checks are required here, since the user can only check
-    # operations started by him- or herself.
+    # operations started by themselves.
 
     return self.delegate.GetVfsFileContentUpdateState(args, context=context)
 
@@ -641,7 +689,16 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetHuntContext(args, context=context)
 
   def CreateHunt(self, args, context=None):
-    # Everybody can create a hunt.
+    # One can create a hunt if one can create a flow of the same type.
+    #
+    # If the user doesn't have access to restricted flows, the user
+    # shouldn't be able to create hunts involving such flows.
+    #
+    # Note: after the hunt is created, even if it involved restricted flows,
+    # normal approval ACL checks apply. Namely: another user can start
+    # such a hunt, if such user gets a valid hunt approval.
+    self.access_checker.CheckIfCanStartClientFlow(context.username,
+                                                  args.flow_name)
 
     return self.delegate.CreateHunt(args, context=context)
 
@@ -729,7 +786,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # approval request becomes fulfilled right away. Calling this method
     # adds the caller to the approval's approvers list. Then it depends
     # on a particular approval if this list is sufficient or not.
-    # Typical case: user can grant his own approval, but this won't make
+    # Typical case: user can grant their own approval, but this won't make
     # the approval valid.
 
     return self.delegate.GrantClientApproval(args, context=context)
@@ -758,7 +815,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # approval request becomes fulfilled right away. Calling this method
     # adds the caller to the approval's approvers list. Then it depends
     # on a particular approval if this list is sufficient or not.
-    # Typical case: user can grant his own approval, but this won't make
+    # Typical case: user can grant their own approval, but this won't make
     # the approval valid.
 
     return self.delegate.GrantHuntApproval(args, context=context)
@@ -787,7 +844,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # approval request becomes fulfilled right away. Calling this method
     # adds the caller to the approval's approvers list. Then it depends
     # on a particular approval if this list is sufficient or not.
-    # Typical case: user can grant his own approval, but this won't make
+    # Typical case: user can grant their own approval, but this won't make
     # the approval valid.
 
     return self.delegate.GrantCronJobApproval(args, context=context)
@@ -830,7 +887,9 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     interface_traits = api_user.ApiGrrUserInterfaceTraits().EnableAll()
     try:
-      self.access_checker.CheckIfUserIsAdmin(context.username)
+      # Without access to restricted flows, one can not launch Python hacks and
+      # binaries. Hence, we don't display the "Manage binaries" page.
+      self.access_checker.CheckIfHasAccessToRestrictedFlows(context.username)
     except access_control.UnauthorizedAccess:
       interface_traits.manage_binaries_nav_item_enabled = False
 
@@ -855,17 +914,17 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.GetConfigOption(args, context=context)
 
   def ListGrrBinaries(self, args, context=None):
-    self.access_checker.CheckIfUserIsAdmin(context.username)
+    self.access_checker.CheckIfHasAccessToRestrictedFlows(context.username)
 
     return self.delegate.ListGrrBinaries(args, context=context)
 
   def GetGrrBinary(self, args, context=None):
-    self.access_checker.CheckIfUserIsAdmin(context.username)
+    self.access_checker.CheckIfHasAccessToRestrictedFlows(context.username)
 
     return self.delegate.GetGrrBinary(args, context=context)
 
   def GetGrrBinaryBlob(self, args, context=None):
-    self.access_checker.CheckIfUserIsAdmin(context.username)
+    self.access_checker.CheckIfHasAccessToRestrictedFlows(context.username)
 
     return self.delegate.GetGrrBinaryBlob(args, context=context)
 

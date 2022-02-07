@@ -4,7 +4,7 @@
 
 import logging
 import sys
-from typing import ContextManager, Iterable, Optional, Text, Type
+from typing import ContextManager, Iterable, Optional, Text, Type, List
 from unittest import mock
 
 from grr_response_client.client_actions import standard
@@ -16,6 +16,7 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_proto import tests_pb2
+from grr_response_server import action_registry
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import fleetspeak_connector
@@ -62,21 +63,21 @@ class CPULimitFlow(flow_base.FlowBase):
 
   def Start(self):
     self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
+        action_registry.ACTION_STUB_BY_ID["Store"],
         string="Hey!",
         next_state="State1")
 
   def State1(self, responses):
     del responses
     self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
+        action_registry.ACTION_STUB_BY_ID["Store"],
         string="Hey!",
         next_state="State2")
 
   def State2(self, responses):
     del responses
     self.CallClient(
-        server_stubs.ClientActionStub.classes["Store"],
+        action_registry.ACTION_STUB_BY_ID["Store"],
         string="Hey!",
         next_state="Done")
 
@@ -587,6 +588,16 @@ def FlowProgressOverride(
   return mock.patch.object(flow_cls, "GetProgress", return_value=value)
 
 
+def FlowResultMetadataOverride(
+    flow_cls: Type[flow_base.FlowBase],
+    value: rdf_flow_objects.FlowResultMetadata) -> ContextManager[None]:
+  """Returns a context manager overriding flow class's result metadata."""
+  return mock.patch.object(
+      flow_cls,
+      flow_base.FlowBase.GetResultMetadata.__name__,
+      return_value=value)
+
+
 def MarkFlowAsFinished(client_id: str, flow_id: str) -> None:
   """Marks the given flow as finished without executing it."""
   flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -603,3 +614,8 @@ def MarkFlowAsFailed(client_id: str,
   if error_message is not None:
     flow_obj.error_message = error_message
   data_store.REL_DB.WriteFlowObject(flow_obj)
+
+
+def ListAllFlows(client_id: str) -> List[rdf_flow_objects.Flow]:
+  """Returns all flows in the given client."""
+  return data_store.REL_DB.ReadAllFlowObjects(client_id=client_id)

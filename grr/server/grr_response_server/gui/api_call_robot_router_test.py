@@ -485,6 +485,7 @@ class ApiCallRobotRouterTest(acl_test_lib.AclTestMixin, test_lib.GRRBaseTest):
 
   IMPLEMENTED_METHODS = [
       "SearchClients",
+      "StructuredSearchClients",
       "CreateFlow",
       "GetFlow",
       "ListFlowResults",

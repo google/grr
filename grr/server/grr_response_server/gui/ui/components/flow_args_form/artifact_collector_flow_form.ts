@@ -2,13 +2,14 @@ import {NestedTreeControl} from '@angular/cdk/tree';
 import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, Output} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
 import {MatTreeNestedDataSource} from '@angular/material/tree';
-import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 import {combineLatest} from 'rxjs';
 import {distinctUntilChanged, map, shareReplay, startWith, takeUntil} from 'rxjs/operators';
 
+import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {ArtifactCollectorFlowArgs} from '../../lib/api/api_interfaces';
 import {safeTranslateOperatingSystem} from '../../lib/api_translation/flow';
 import {ArtifactDescriptor, ArtifactSource, OperatingSystem, SourceType} from '../../lib/models/flow';
+import {isNonNull, isNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ConfigGlobalStore} from '../../store/config_global_store';
@@ -96,11 +97,12 @@ function getReadableSources(source: ArtifactSource): ReadonlyArray<string> {
 }
 
 function createListEntry(
-    ad: ArtifactDescriptor, clientOs?: OperatingSystem): ArtifactListEntry {
+    ad: ArtifactDescriptor,
+    clientOs?: OperatingSystem|null): ArtifactListEntry {
   const readableSources = new Map<SourceType, string[]>();
 
   for (const source of ad.sources) {
-    if (clientOs !== undefined && source.supportedOs.size > 0 &&
+    if (isNonNull(clientOs) && source.supportedOs.size > 0 &&
         !source.supportedOs.has(clientOs)) {
       // Skip sources that explicitly state they don't support the current OS.
       continue;
@@ -123,8 +125,7 @@ function createListEntry(
   const totalSources = Array.from(readableSources.values())
                            .reduce((acc, cur) => acc + cur.length, 0);
 
-  const availableOnClient =
-      clientOs === undefined || ad.supportedOs.has(clientOs);
+  const availableOnClient = isNull(clientOs) || ad.supportedOs.has(clientOs);
 
   const searchStrings =
       [
@@ -210,8 +211,8 @@ export class ArtifactCollectorFlowForm extends
   @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
 
   private readonly clientOs$ = this.clientPageGlobalStore.selectedClient$.pipe(
-      map(client => safeTranslateOperatingSystem(client.knowledgeBase.os)),
-      startWith(undefined),
+      map(client => safeTranslateOperatingSystem(client?.knowledgeBase.os)),
+      startWith(null),
       distinctUntilChanged(),
   );
 
@@ -262,7 +263,7 @@ export class ArtifactCollectorFlowForm extends
 
   readonly dataSource = new MatTreeNestedDataSource<SourceNode>();
 
-  readonly ngOnDestroy = observeOnDestroy();
+  readonly ngOnDestroy = observeOnDestroy(this);
 
   constructor(
       private readonly configGlobalStore: ConfigGlobalStore,
@@ -290,7 +291,7 @@ export class ArtifactCollectorFlowForm extends
     });
   }
 
-  trackArtifactDescriptor(ad: ArtifactDescriptor) {
+  trackArtifactDescriptor(index: number, ad: ArtifactDescriptor) {
     return ad.name;
   }
 

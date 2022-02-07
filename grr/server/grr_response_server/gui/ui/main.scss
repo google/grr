@@ -1,4 +1,6 @@
-@use '~@angular/material' as mat;
+@use '@angular/material' as mat;
+@use './material-theme' as c;
+
 @import 'material-theme';
 
 // Initialize Angular material theme.
@@ -39,7 +41,10 @@ html {
 // to be defined globally.
 .flow-search-results {
   .mat-optgroup-label {
-    background-color: mat.get-color-from-palette($background, darker-background);
+    background-color: mat.get-color-from-palette(
+      $background,
+      darker-background
+    );
     line-height: 24px;
     height: 24px;
   }
@@ -53,4 +58,115 @@ html {
 
 .mat-error {
   font-family: $google-sans-display-family;
+}
+
+.progress-spinner-button .mat-progress-spinner,
+.progress-spinner-button mat-spinner {
+  display: inline-block;
+  margin-right: $button-horizontal-padding;
+}
+
+.clickable {
+  cursor: pointer;
+
+  &:hover {
+    background-color: mat.get-color-from-palette(c.$primary, 100, 0.15);
+  }
+}
+
+.mat-card.mat-card-outlined {
+  border: 1px solid #d8dade;
+  box-shadow: none;
+  border-radius: 8px;
+}
+
+a:any-link {
+  color: inherit;
+}
+
+.button-group > .mat-stroked-button,
+.button-group > .mat-button-base {
+  &:first-child:not(:last-child) {
+    border-top-right-radius: 0;
+    border-bottom-right-radius: 0;
+  }
+
+  &:not(:first-child) {
+    border-left: none;
+    border-top-left-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  &.dropdown-button {
+    padding-left: 0;
+    padding-right: 0;
+    min-width: 24px;
+  }
+}
+
+.mat-chip,
+.mat-chip.mat-standard-chip {
+  min-height: 26px;
+  font-size: 13px;
+  line-height: 15px;
+  font-weight: 500;
+
+  mat-icon {
+    font-size: 14px;
+    height: 14px;
+    width: 14px;
+    margin-right: 0.3em;
+  }
+}
+
+.green-chip,
+.mat-chip.green-chip {
+  background-color: mat.get-color-from-palette(c.$foreground, success-light);
+  color: mat.get-color-from-palette(c.$foreground, text);
+}
+
+.red-chip,
+.mat-chip.red-chip {
+  background-color: mat.get-color-from-palette(c.$foreground, danger-light);
+  color: white;
+}
+
+.dark-chip,
+.mat-chip.dark-chip {
+  background-color: mat.get-color-from-palette(c.$foreground, divider);
+  color: white;
+}
+
+mat-option {
+  .two-line-option-title {
+    font-size: 14px;
+    line-height: 1.2;
+  }
+
+  .two-line-option-subtitle {
+    font-size: 11px;
+    line-height: 1;
+    color: mat.get-color-from-palette(c.$foreground, text-light);
+  }
+}
+
+// Stretch checkboxes in mat-menu to the full width.
+.mat-menu-content mat-checkbox {
+  box-sizing: border-box;
+  width: 100%;
+}
+
+[hidden] {
+  display: none !important;
+}
+
+.inline-chip {
+  align-items: center;
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 16px;
+  box-sizing: border-box;
+  display: inline-flex;
+  padding: 0 8px;
+  white-space: nowrap;
+  user-select: none;
 }

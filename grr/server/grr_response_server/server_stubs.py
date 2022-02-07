@@ -25,11 +25,11 @@ from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import plist as rdf_plist
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_core.lib.rdfvalues import read_low_level as rdf_read_low_level
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
-from grr_response_core.lib.registry import MetaclassRegistry
 
 
-class ClientActionStub(metaclass=MetaclassRegistry):
+class ClientActionStub:
   """Stub for a client action. To be used in server code."""
 
   in_rdfvalue = None
@@ -442,3 +442,10 @@ class EficheckCollectHashes(ClientActionStub):
 
   in_rdfvalue = rdf_apple_firmware.EficheckConfig
   out_rdfvalues = [rdf_apple_firmware.CollectEfiHashesResponse]
+
+
+class ReadLowLevel(ClientActionStub):
+  """Reads `length` bytes from `path` starting at `offset` and returns it."""
+
+  in_rdfvalue = rdf_read_low_level.ReadLowLevelRequest
+  out_rdfvalues = [rdf_read_low_level.ReadLowLevelResult]

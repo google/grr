@@ -1,23 +1,20 @@
 import {TestBed} from '@angular/core/testing';
-import {ApiGrrUser} from '@app/lib/api/api_interfaces';
-import {HttpApiService} from '@app/lib/api/http_api_service';
-import {UserGlobalStore} from '@app/store/user_global_store';
-import {initTestEnvironment} from '@app/testing';
-import {Subject} from 'rxjs';
+import {firstValueFrom} from 'rxjs';
+
+import {HttpApiService} from '../lib/api/http_api_service';
+import {HttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
+import {initTestEnvironment} from '../testing';
+
+import {UserGlobalStore} from './user_global_store';
 
 initTestEnvironment();
 
 describe('UserGlobalStore', () => {
-  let httpApiService: Partial<HttpApiService>;
+  let httpApiService: HttpApiServiceMock;
   let userGlobalStore: UserGlobalStore;
-  let apiFetchCurrentUser$: Subject<ApiGrrUser>;
 
   beforeEach(() => {
-    apiFetchCurrentUser$ = new Subject();
-    httpApiService = {
-      fetchCurrentUser: jasmine.createSpy('fetchCurrentUser')
-                            .and.returnValue(apiFetchCurrentUser$),
-    };
+    httpApiService = mockHttpApiService();
 
     TestBed.configureTestingModule({
       imports: [],
@@ -25,6 +22,7 @@ describe('UserGlobalStore', () => {
         UserGlobalStore,
         {provide: HttpApiService, useFactory: () => httpApiService},
       ],
+      teardown: {destroyAfterEach: false}
     });
 
     userGlobalStore = TestBed.inject(UserGlobalStore);
@@ -45,15 +43,15 @@ describe('UserGlobalStore', () => {
     expect(httpApiService.fetchCurrentUser).toHaveBeenCalledTimes(1);
   });
 
-  it('correctly emits the API result in currentUser$', (done) => {
-    userGlobalStore.currentUser$.subscribe((user) => {
-      expect(user).toEqual({
-        name: 'test',
-      });
-      done();
-    });
-    apiFetchCurrentUser$.next({
+  it('correctly emits the API result in currentUser$', async () => {
+    const promise = firstValueFrom(userGlobalStore.currentUser$);
+    httpApiService.mockedObservables.fetchCurrentUser.next({
       username: 'test',
+    });
+    expect(await promise).toEqual({
+      name: 'test',
+      canaryMode: false,
+      huntApprovalRequired: false,
     });
   });
 });

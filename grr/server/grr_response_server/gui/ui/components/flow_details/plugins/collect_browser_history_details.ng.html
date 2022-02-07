@@ -1,32 +1,31 @@
-<div *ngIf="hasProgress$ | async">
-  <div class="download flow-details-summary-actions" *ngIf="(flowState$ | async) === FINISHED && (totalFiles$ | async) > 0">
-    <span class="num-files">{{ totalFiles$ | async | i18nPlural: {'=1': '1 file', 'other': '# files'} }}</span>
-    <a mat-stroked-button color="primary" [download]="archiveFileName$ | async" [href]="archiveUrl$ | async">Download all</a>
-  </div>
-
-  <div class="row-list">
-    <!-- Note: without trackBy, ngFor would recreate DOM for each row every time
+<div class="row-list" *ngIf="hasProgress$ | async">
+  <!-- Note: without trackBy, ngFor would recreate DOM for each row every time
          the flow list is updated. Given periodical updates, this would not
          only be a waste of CPU, but would also lead to visible artifacts:
          a progress spinner will be restarting every time the flow list update
          is done. -->
 
-    <ng-container *ngFor="let row of browserRows$ | async; trackBy: trackByRowName">
-      <result-accordion
-        *loadFlowResults="row.resultQuery; let results=results; let queryMore=queryMore"
-        [title]="row.friendlyName" (firstOpened)="queryMore(INITIAL_COUNT)"
-        [status]="row.status" [description]="row.description"
-        [expandable]="!!row.progress.numCollectedFiles"
-        >
-          <file-results-table
-            *ngIf="results"
-            [results]="results"
-            [totalCount]="row.progress.numCollectedFiles || 0"
-            (loadMore)="queryMore(LOAD_STEP)">
-          </file-results-table>
-          <div *ngIf="!results" class="results-in-progress">
-            <mat-progress-bar mode="buffer"></mat-progress-bar>
-          </div>
+  <ng-container
+    *ngFor="let row of browserRows$ | async; trackBy: trackByRowName"
+  >
+    <result-accordion
+      *loadFlowResults="row.resultQuery; let results=results; let queryMore=queryMore"
+      [title]="row.friendlyName"
+      (firstOpened)="queryMore(INITIAL_COUNT)"
+      [status]="row.status"
+      [description]="row.description"
+      [expandable]="!!row.progress.numCollectedFiles"
+    >
+      <file-results-table
+        *ngIf="results"
+        [results]="results"
+        [totalCount]="row.progress.numCollectedFiles"
+        (loadMore)="queryMore(LOAD_STEP)"
+      >
+      </file-results-table>
+      <div *ngIf="!results" class="results-in-progress">
+        <mat-progress-bar mode="buffer"></mat-progress-bar>
+      </div>
     </result-accordion>
   </ng-container>
 </div>

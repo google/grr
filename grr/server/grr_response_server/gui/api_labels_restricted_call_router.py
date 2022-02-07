@@ -55,7 +55,9 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
     self.allow_labels_owners = set(params.allow_labels_owners or ["GRR"])
 
     if not access_checker:
-      access_checker = api_call_router_with_approval_checks.AccessChecker()
+      access_checker = api_call_router_with_approval_checks.AccessChecker(
+          api_call_router_with_approval_checks
+          .ApiCallRouterWithApprovalCheckParams())
     self.access_checker = access_checker
 
     if not delegate:
@@ -90,6 +92,11 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
   #
   def SearchClients(self, args, context=None):
     return api_client.ApiLabelsRestrictedSearchClientsHandler(
+        allow_labels=self.allow_labels,
+        allow_labels_owners=self.allow_labels_owners)
+
+  def StructuredSearchClients(self, args, context=None):
+    return api_client.ApiLabelsRestrictedStructuredSearchClientsHandler(
         allow_labels=self.allow_labels,
         allow_labels_owners=self.allow_labels_owners)
 
@@ -157,7 +164,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
     self.CheckVfsAccessAllowed()
 
     # No ACL checks are required at this stage, since the user can only check
-    # operations started by him- or herself.
+    # operations started by themselves.
     return self.delegate.GetVfsRefreshOperationState(args, context=context)
 
   def GetVfsTimeline(self, args, context=None):

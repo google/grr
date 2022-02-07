@@ -46,6 +46,21 @@ class NetworkAddress(rdf_structs.RDFProtoStruct):
   """
   protobuf = jobs_pb2.NetworkAddress
 
+  @classmethod
+  def FromPackedBytes(cls, ip: bytes) -> "NetworkAddress":
+    result = cls()
+    result.packed_bytes = ip
+
+    if len(ip) * 8 == 32:
+      result.address_type = jobs_pb2.NetworkAddress.INET
+    elif len(ip) * 8 == 128:
+      result.address_type = jobs_pb2.NetworkAddress.INET6
+    else:
+      message = f"Unexpected IP address length: {len(ip)}"
+      raise ValueError(message)
+
+    return result
+
   @property
   def human_readable_address(self) -> Text:
     addr = self.AsIPAddr()

@@ -1,7 +1,7 @@
 import {CdkTreeModule} from '@angular/cdk/tree';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {ReactiveFormsModule} from '@angular/forms';
+import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCheckboxModule} from '@angular/material/checkbox';
@@ -10,43 +10,50 @@ import {MatDialogModule} from '@angular/material/dialog';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatRadioModule} from '@angular/material/radio';
 import {MatSelectModule} from '@angular/material/select';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {MatTreeModule} from '@angular/material/tree';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
-import {ArtifactCollectorFlowForm} from '@app/components/flow_args_form/artifact_collector_flow_form';
-import {CollectBrowserHistoryForm} from '@app/components/flow_args_form/collect_browser_history_form';
-import {CollectMultipleFilesForm} from '@app/components/flow_args_form/collect_multiple_files_form';
-import {HelpersModule} from '@app/components/flow_args_form/collect_multiple_files_form_helpers/module';
-import {CollectSingleFileForm} from '@app/components/flow_args_form/collect_single_file_form';
-import {ByteComponentsModule} from '@app/components/form/byte_input/module';
-import {DateTimeInputModule} from '@app/components/form/date_time_input/module';
-import {GlobExpressionExplanationModule} from '@app/components/form/glob_expression_form_field/module';
 
+import {ArtifactCollectorFlowForm} from '../../components/flow_args_form/artifact_collector_flow_form';
+import {CollectBrowserHistoryForm} from '../../components/flow_args_form/collect_browser_history_form';
+import {CollectMultipleFilesForm} from '../../components/flow_args_form/collect_multiple_files_form';
+import {HelpersModule} from '../../components/flow_args_form/collect_multiple_files_form_helpers/module';
+import {CollectSingleFileForm} from '../../components/flow_args_form/collect_single_file_form';
+import {ByteComponentsModule} from '../../components/form/byte_input/module';
+import {DateTimeInputModule} from '../../components/form/date_time_input/module';
+import {GlobExpressionExplanationModule} from '../../components/form/glob_expression_form_field/module';
 import {CodeEditorModule} from '../code_editor/module';
 import {CommaSeparatedInputModule} from '../form/comma_separated_input/module';
 
+import {CollectFilesByKnownPathForm} from './collect_files_by_known_path_form';
+import {ExecutePythonHackForm} from './execute_python_hack_form';
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
 import {FlowArgsForm} from './flow_args_form';
+import {LaunchBinaryForm} from './launch_binary_form';
+import {ListDirectoryForm} from './list_directory_form';
 import {ListNamedPipesForm} from './list_named_pipes_form';
 import {ListProcessesForm} from './list_processes_form';
 import {NetstatForm} from './netstat_form';
 import {OsqueryForm} from './osquery_form';
 import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
+import {ReadLowLevelForm} from './read_low_level_form';
 import {TimelineForm} from './timeline_form';
+import {ValidationModule} from './validation/validation_module';
 
 /** Module for the FlowArgsForm component. */
 @NgModule({
   imports: [
     BrowserAnimationsModule,
-    ByteComponentsModule,
-    CdkTreeModule,
-    CodeEditorModule,
-    CommaSeparatedInputModule,
     CommonModule,
-    DateTimeInputModule,
-    GlobExpressionExplanationModule,
-    HelpersModule,
+    FormsModule,
+    ReactiveFormsModule,
+    RouterModule,
+
+    CdkTreeModule,
     MatAutocompleteModule,
     MatButtonModule,
     MatCheckboxModule,
@@ -55,36 +62,56 @@ import {TimelineForm} from './timeline_form';
     MatFormFieldModule,
     MatIconModule,
     MatInputModule,
+    MatProgressSpinnerModule,
+    MatRadioModule,
     MatSelectModule,
     MatTreeModule,
+    MatTooltipModule,
+
+    CodeEditorModule,
+
+    ByteComponentsModule,
+    CommaSeparatedInputModule,
+    DateTimeInputModule,
+    GlobExpressionExplanationModule,
+    HelpersModule,
     OsqueryQueryHelperModule,
-    ReactiveFormsModule,
-    RouterModule,
+    ValidationModule,
   ],
   declarations: [
-    FlowArgsForm,
     ArtifactCollectorFlowForm,
     CollectBrowserHistoryForm,
-    CollectSingleFileForm,
+    CollectFilesByKnownPathForm,
     CollectMultipleFilesForm,
+    CollectSingleFileForm,
+    ExecutePythonHackForm,
+    FallbackFlowArgsForm,
+    FlowArgsForm,
+    LaunchBinaryForm,
+    ListDirectoryForm,
     ListNamedPipesForm,
     ListProcessesForm,
     NetstatForm,
     OsqueryForm,
+    ReadLowLevelForm,
     TimelineForm,
-    FallbackFlowArgsForm,
   ],
   entryComponents: [
     ArtifactCollectorFlowForm,
+    ReadLowLevelForm,
     CollectBrowserHistoryForm,
-    CollectSingleFileForm,
+    CollectFilesByKnownPathForm,
     CollectMultipleFilesForm,
+    CollectSingleFileForm,
+    ExecutePythonHackForm,
+    FallbackFlowArgsForm,
+    LaunchBinaryForm,
+    ListDirectoryForm,
     ListNamedPipesForm,
     ListProcessesForm,
     NetstatForm,
     OsqueryForm,
     TimelineForm,
-    FallbackFlowArgsForm,
   ],
   exports: [
     FlowArgsForm,

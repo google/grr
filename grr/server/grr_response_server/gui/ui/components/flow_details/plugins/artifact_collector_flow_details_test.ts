@@ -3,13 +3,13 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
-import {FlowState} from '@app/lib/models/flow';
-import {newFlow, newFlowResult} from '@app/lib/models/model_test_util';
-import {initTestEnvironment} from '@app/testing';
 
 import {ExecuteResponse, PathSpecPathType, RegistryType, StatEntry} from '../../../lib/api/api_interfaces';
+import {FlowState} from '../../../lib/models/flow';
+import {newFlow, newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {initTestEnvironment} from '../../../testing';
 import {ResultAccordion, Status} from '../helpers/result_accordion';
 import {ResultAccordionHarness} from '../helpers/testing/result_accordion_harness';
 
@@ -34,7 +34,8 @@ describe('artifact-collector-flow-details component', () => {
             RouterTestingModule,
           ],
 
-          providers: []
+          providers: [],
+          teardown: {destroyAfterEach: false}
         })
         // Override ALL providers to mock the GlobalStore that is provided by
         // each component.
@@ -51,7 +52,10 @@ describe('artifact-collector-flow-details component', () => {
     });
     flowResultsLocalStore.mockedObservables.results$.next([newFlowResult({
       payloadType: 'StatEntry',
-      payload: {stSize: '123', pathspec: {path: '/foo'}},
+      payload: {
+        stSize: '123',
+        pathspec: {path: '/foo', pathtype: PathSpecPathType.OS},
+      },
     })]);
     fixture.detectChanges();
 
@@ -156,23 +160,6 @@ describe('artifact-collector-flow-details component', () => {
     await resultAccordionHarness.toggle();
 
     expect(fixture.nativeElement.innerText).toContain('old UI');
-  });
-
-  it('displays progress result count', async () => {
-    const fixture = TestBed.createComponent(ArtifactCollectorFlowDetails);
-    fixture.componentInstance.flow = newFlow({
-      state: FlowState.FINISHED,
-      args: {artifactList: ['foobar']},
-      progress: {artifacts: [{name: 'foobar', numResults: 3}]},
-    });
-    fixture.detectChanges();
-
-    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
-    await resultAccordionHarness.toggle();
-
-    expect(fixture.nativeElement.innerText).toContain('3 results');
   });
 
   it('displays flow state', async () => {

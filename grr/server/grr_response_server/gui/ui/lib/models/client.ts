@@ -2,20 +2,72 @@
  * @fileoverview The module provides client-related data model entities.
  */
 
+import {addToMapSetInPlace, camelToSnakeCase} from '../type_utils';
+
 
 
 
 /**
  * Client's knowledge base data.
  */
-export interface KnowledgeBase {
+// ApiKnowledgeBase is translated 1-to-1 to the internal KnowledgeBase (see
+// translateClient()). `declare` this interface to prevent mapping errors in
+// Closure compilation.
+export declare interface KnowledgeBase {
   /** Client's FQDN. */
   readonly fqdn?: string;
   readonly os?: string;
   readonly osMajorVersion?: number;
   readonly osMinorVersion?: number;
+  readonly users?: ReadonlyArray<User>;
+  // Other fields will be present at runtime but are unused for now.
 }
 
+// ApiKnowledgeBase is translated 1-to-1 to the internal KnowledgeBase (see
+// translateClient()). `declare` this interface to prevent mapping errors in
+// Closure compilation.
+/** Client OS user information in the KnowledgeBase. */
+export declare interface User {
+  readonly username?: string;
+  // Other fields will be present at runtime but are unused for now.
+}
+
+/** A KnowledgeBase key (e.g. `users.internet_cache`) with example values. */
+export interface KnowledgeBaseExample {
+  readonly key: string;
+  readonly examples: ReadonlyArray<string>;
+}
+
+/**
+ * Returns glob expression keys and substitution examples for KnowledgeBase
+ * entries like %%users.homedir%%.
+ */
+export function getKnowledgeBaseExpressionExamples(kb: KnowledgeBase) {
+  const examples = new Map<string, Set<string>>();
+  compileExamples(kb, '', examples);
+  return Array.from(examples.entries())
+      .map(([key, values]) => ({key, examples: Array.from(values)}));
+}
+
+type KbValue =
+    KnowledgeBase|KnowledgeBase[keyof KnowledgeBase]|User[keyof User];
+
+function compileExamples(
+    obj: KbValue, prefix: string, examples: Map<string, Set<string>>) {
+  if (Array.isArray(obj)) {
+    for (const value of obj) {
+      compileExamples(value, prefix, examples);
+    }
+  } else if (typeof obj === 'object') {
+    for (const [camelKey, value] of Object.entries(obj)) {
+      const key = camelToSnakeCase(camelKey);
+      const subPrefix = prefix ? `${prefix}.${key}` : key;
+      compileExamples(value, subPrefix, examples);
+    }
+  } else {
+    addToMapSetInPlace(examples, `%%${prefix}%%`, `${obj}`);
+  }
+}
 
 /**
  * Windows specific volume details.
@@ -165,7 +217,9 @@ export interface ApprovalConfig {
   readonly optionalCcEmail?: string;
 }
 
-/** Indicates that a ClientApproval has been granted and is currently valid. */
+/**
+ * Indicates that a ClientApproval has been granted and is currently valid.
+ */
 export interface Valid {
   readonly type: 'valid';
 }

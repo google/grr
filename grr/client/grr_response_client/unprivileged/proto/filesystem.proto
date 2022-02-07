@@ -41,7 +41,7 @@ message InitResponse {}
 // The filesystem RPC interface consists of one giant streaming RPC (Invoke).
 // The main reason is that this enables us to keep state (open files, cached
 // data) in the context of a single long running RPC. If multiple clients
-// invoke the RPC, each client sees his own, isolated state.
+// invoke the RPC, each client sees their own, isolated state.
 //
 // The second reason is simplification of the threading model: all
 // requests/responses are serialized and there is no concurrent access to a

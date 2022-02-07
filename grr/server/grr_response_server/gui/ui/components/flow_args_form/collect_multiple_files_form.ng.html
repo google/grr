@@ -1,25 +1,26 @@
+<!-- TODO: Stop using formControlName and formGroupName here. -->
 <div [formGroup]="form">
   <div formArrayName="pathExpressions">
-    <mat-form-field
+    <app-glob-expression-input
       *ngFor="let pe of pathExpressions.controls; index as i"
-      appearance="outline" style="width: 100%; margin-bottom: 1em;">
-      <mat-label>Path expression</mat-label>
-      <input matInput placeholder="" [formControlName]="i" class="monospace">
-      <button mat-icon-button matSuffix type="button" (click)="removePathExpression(i)"
-      aria-label="Remove">
+      [client]="client$ | async"
+      [formControlName]="i"
+      style="width: 100%; margin-bottom: 1em"
+    >
+      <button
+        mat-icon-button
+        matSuffix
+        type="button"
+        (click)="removePathExpression(i)"
+        aria-label="Remove"
+      >
         <mat-icon>remove</mat-icon>
       </button>
-      <mat-hint>
-        Resolves to:
-        <glob-expression-explanation
-        [clientId]="clientId$ | async"
-        [globExpression]="form.value.pathExpressions[i]"></glob-expression-explanation>
-      </mat-hint>
-    </mat-form-field>
+    </app-glob-expression-input>
 
     <div class="add-path-row">
       <div class="error">
-        <mat-error *ngIf="form.controls.pathExpressions.hasError('atLeastOnePathExpressionExpected')">At least one non-empty path expression expected.</mat-error>
+        <mat-error *ngIf="form.controls['pathExpressions'].hasError('atLeastOnePathExpressionExpected')">At least one non-empty path expression expected.</mat-error>
       </div>
 
       <button mat-stroked-button type="button" (click)="addPathExpression()" id="button-add-path-expression">
@@ -32,26 +33,26 @@
     <div class="title">Filter by file content</div>
 
     <div class="buttons">
-      <button mat-button color="primary" type="button"
+      <button mat-stroked-button color="primary" type="button"
         name="literalMatch"
-        *ngIf="(formValues$ | async).contentsLiteralMatch === undefined"
+        *ngIf="!(formValues$ | async)?.contentsLiteralMatch"
         (click)="addLiteralMatchCondition()">Literal match</button>
-      <button mat-button color="primary" type="button"
+      <button mat-stroked-button color="primary" type="button"
         name="regexMatch"
-        *ngIf="(formValues$ | async).contentsRegexMatch === undefined"
+        *ngIf="!(formValues$ | async)?.contentsRegexMatch"
         (click)="addRegexMatchCondition()">Regex match</button>
     </div>
 
     <literal-match-condition
       formGroupName="contentsLiteralMatch"
       (conditionRemoved)="removeLiteralMatchCondition()"
-      *ngIf="(formValues$ | async).contentsLiteralMatch !== undefined">
+      *ngIf="(formValues$ | async)?.contentsLiteralMatch">
     </literal-match-condition>
 
     <regex-match-condition
       formGroupName="contentsRegexMatch"
       (conditionRemoved)="removeRegexMatchCondition()"
-      *ngIf="(formValues$ | async).contentsRegexMatch !== undefined">
+      *ngIf="(formValues$ | async)?.contentsRegexMatch">
     </regex-match-condition>
 
   </div>
@@ -60,25 +61,25 @@
     <div class="title">Filter by file attributes</div>
 
     <div class="buttons">
-      <button mat-button color="primary" type="button"
+      <button mat-stroked-button color="primary" type="button"
         name="modificationTime"
-        *ngIf="(formValues$ | async).modificationTime === undefined"
+        *ngIf="!(formValues$ | async)?.modificationTime"
         (click)="addModificationTimeCondition()">Modification time</button>
-      <button mat-button color="primary" type="button"
+      <button mat-stroked-button color="primary" type="button"
         name="accessTime"
-        *ngIf="(formValues$ | async).accessTime === undefined"
+        *ngIf="!(formValues$ | async)?.accessTime"
         (click)="addAccessTimeCondition()">Access time</button>
-      <button mat-button color="primary" type="button"
+      <button mat-stroked-button color="primary" type="button"
         name="inodeChangeTime"
-        *ngIf="(formValues$ | async).inodeChangeTime === undefined"
+        *ngIf="!(formValues$ | async)?.inodeChangeTime"
         (click)="addInodeChangeTimeCondition()">Inode change time</button>
-      <button mat-button color="primary" type="button"
+      <button mat-stroked-button color="primary" type="button"
         name="size"
-        *ngIf="(formValues$ | async).size === undefined"
+        *ngIf="!(formValues$ | async)?.size"
         (click)="addSizeCondition()">File size</button>
-      <button mat-button color="primary" type="button"
+      <button mat-stroked-button color="primary" type="button"
         name="extFlags"
-        *ngIf="(formValues$ | async).extFlags === undefined"
+        *ngIf="!(formValues$ | async)?.extFlags"
         (click)="addExtFlagsCondition()">Extended file flags</button>
     </div>
 
@@ -86,33 +87,33 @@
       formGroupName="modificationTime"
       title="modification"
       (conditionRemoved)="removeModificationTimeCondition()"
-      *ngIf="(formValues$ | async).modificationTime !== undefined">
+      *ngIf="(formValues$ | async)?.modificationTime">
     </time-range-condition>
 
     <time-range-condition
       formGroupName="accessTime"
       title="access"
       (conditionRemoved)="removeAccessTimeCondition()"
-      *ngIf="(formValues$ | async).accessTime !== undefined">
+      *ngIf="(formValues$ | async)?.accessTime">
     </time-range-condition>
 
     <time-range-condition
       formGroupName="inodeChangeTime"
       title="inode change"
       (conditionRemoved)="removeInodeChangeTimeCondition()"
-      *ngIf="(formValues$ | async).inodeChangeTime !== undefined">
+      *ngIf="(formValues$ | async)?.inodeChangeTime">
     </time-range-condition>
 
     <size-condition
       formGroupName="size"
       (conditionRemoved)="removeSizeCondition()"
-      *ngIf="(formValues$ | async).size !== undefined">
+      *ngIf="(formValues$ | async)?.size">
     </size-condition>
 
     <ext-flags-condition
       formGroupName="extFlags"
       (conditionRemoved)="removeExtFlagsCondition()"
-      *ngIf="(formValues$ | async).extFlags !== undefined"
+      *ngIf="(formValues$ | async)?.extFlags"
       >
     </ext-flags-condition>
 

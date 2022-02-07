@@ -1,10 +1,10 @@
 import {Component, OnDestroy, ViewEncapsulation} from '@angular/core';
 import {FormControl} from '@angular/forms';
-import {FuzzyMatcher, Match} from '@app/lib/fuzzy_matcher';
-import {isNonNull} from '@app/lib/preconditions';
 import {Observable} from 'rxjs';
 import {debounceTime, distinctUntilChanged, filter, map, shareReplay, startWith, takeUntil,} from 'rxjs/operators';
 
+import {FuzzyMatcher, Match} from '../../../lib/fuzzy_matcher';
+import {isNonNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 
 import {TableCategory, tableCategoryFromNames, tableCategoryFromSpecs, TableCategoryWithMatchMap,} from './osquery_helper_model';
@@ -29,7 +29,7 @@ export class OsqueryQueryHelper implements OnDestroy {
   private static readonly INPUT_DEBOUNCE_TIME_MS = 50;
   readonly minCharactersToSearch = 2;
 
-  readonly ngOnDestroy = observeOnDestroy();
+  readonly ngOnDestroy = observeOnDestroy(this);
 
   readonly searchControl = new FormControl('');
 

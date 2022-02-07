@@ -10,12 +10,7 @@ import {assertKeyTruthy} from '../preconditions';
 import {createDate, createIpv4Address, createIpv6Address, createMacAddress, createOptionalDate, decodeBase64} from './primitive';
 
 function createKnowledgeBase(kb: ApiKnowledgeBase): KnowledgeBase {
-  return {
-    os: kb.os,
-    fqdn: kb.fqdn,
-    osMajorVersion: kb.osMajorVersion,
-    osMinorVersion: kb.osMinorVersion,
-  };
+  return {...kb};
 }
 
 /**
@@ -193,6 +188,11 @@ export function translateClient(client: ApiClient): Client {
     fleetspeakEnabled: client.fleetspeakEnabled ?? false,
     agentInfo: createAgentInfo(client.agentInfo ?? {}),
     labels: (client.labels ?? []).map(createClientLabel),
+    // TODO(user): KnowledgeBase is a huge Protobuf message with no underlying
+    // semantics - it's basically a dictionary. It's field names carry meaning -
+    // they are used in glob expression substitutions. We should come up with a
+    // sensible way of using API interfaces throughout the code base without
+    // requiring a manual, 1-to-1 mapping that does not change anything.
     knowledgeBase: createKnowledgeBase(client.knowledgeBase ?? {}),
     osInfo: createOsInfo(client.osInfo ?? {}),
     users: (client.users ?? []).map(createUser),

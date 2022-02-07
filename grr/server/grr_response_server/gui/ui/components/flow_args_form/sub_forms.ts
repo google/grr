@@ -1,27 +1,38 @@
 import {Type} from '@angular/core';
-import {ArtifactCollectorFlowForm} from '@app/components/flow_args_form/artifact_collector_flow_form';
-import {CollectBrowserHistoryForm} from '@app/components/flow_args_form/collect_browser_history_form';
-import {CollectMultipleFilesForm} from '@app/components/flow_args_form/collect_multiple_files_form';
-import {CollectSingleFileForm} from '@app/components/flow_args_form/collect_single_file_form';
-import {FlowArgumentForm} from '@app/components/flow_args_form/form_interface';
 
+import {ArtifactCollectorFlowForm} from '../../components/flow_args_form/artifact_collector_flow_form';
+import {CollectBrowserHistoryForm} from '../../components/flow_args_form/collect_browser_history_form';
+import {CollectMultipleFilesForm} from '../../components/flow_args_form/collect_multiple_files_form';
+import {CollectSingleFileForm} from '../../components/flow_args_form/collect_single_file_form';
+import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+
+import {CollectFilesByKnownPathForm} from './collect_files_by_known_path_form';
+import {ExecutePythonHackForm} from './execute_python_hack_form';
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
+import {LaunchBinaryForm} from './launch_binary_form';
+import {ListDirectoryForm} from './list_directory_form';
 import {ListNamedPipesForm} from './list_named_pipes_form';
 import {ListProcessesForm} from './list_processes_form';
 import {NetstatForm} from './netstat_form';
 import {OsqueryForm} from './osquery_form';
+import {ReadLowLevelForm} from './read_low_level_form';
 import {TimelineForm} from './timeline_form';
 
 /** Mapping from flow name to Component class to configure the Flow. */
 export const FORMS: {[key: string]: Type<FlowArgumentForm<unknown>>} = {
   'ArtifactCollectorFlow': ArtifactCollectorFlowForm,
   'CollectBrowserHistory': CollectBrowserHistoryForm,
+  'CollectFilesByKnownPath': CollectFilesByKnownPathForm,
   'CollectMultipleFiles': CollectMultipleFilesForm,
   'CollectSingleFile': CollectSingleFileForm,
+  'ExecutePythonHack': ExecutePythonHackForm,
+  'LaunchBinary': LaunchBinaryForm,
+  'ListDirectory': ListDirectoryForm,
   'ListNamedPipesFlow': ListNamedPipesForm,
   'ListProcesses': ListProcessesForm,
   'Netstat': NetstatForm,
   'OsqueryFlow': OsqueryForm,
+  'ReadLowLevel': ReadLowLevelForm,
   'TimelineFlow': TimelineForm,
 
   // Show empty form as fallback for flows that typically do not require

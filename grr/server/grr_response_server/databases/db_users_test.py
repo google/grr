@@ -1,14 +1,17 @@
 #!/usr/bin/env python
 # -*- encoding: utf-8 -*-
 
-
 from grr_response_core.lib import rdfvalue
+from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Username with UTF-8 characters and maximum length.
 EXAMPLE_NAME = "x" + "🧙" * (db.MAX_USERNAME_LENGTH - 2) + "x"
 EXAMPLE_EMAIL = "foo@bar.org"
+
+ApprovalRequest = objects_pb2.ApprovalRequest
+ApprovalType = objects_pb2.ApprovalRequest.ApprovalType
 
 
 class DatabaseTestUsersMixin(object):
@@ -187,12 +190,19 @@ class DatabaseTestUsersMixin(object):
     approval_request.timestamp = read_request.timestamp
     self.assertEqual(approval_request, read_request)
 
+  # TODO(hanuszczak): Write tests (and fix database implementations) that ensure
+  # that notified users also exist in the database.
+
   def testReadWriteApprovalRequestsWithFilledInUsersEmailsAndGrants(self):
     d = self.db
 
     d.WriteGRRUser("user_bar")
     d.WriteGRRUser("user_foo")
     d.WriteGRRUser("requestor")
+
+    d.WriteGRRUser("user1")
+    d.WriteGRRUser("user2")
+    d.WriteGRRUser("user3")
 
     client_id = "C.0000000050000001"
     approval_request = rdf_objects.ApprovalRequest(
@@ -348,6 +358,51 @@ class DatabaseTestUsersMixin(object):
 
     self.assertLen(approvals, 10)
     self.assertEqual(set(a.approval_id for a in approvals), approval_ids)
+
+  def testWriteApprovalRequestSubject(self):
+    self.db.WriteGRRUser("requestor")
+
+    day = rdfvalue.Duration.From(1, rdfvalue.DAYS)
+    tomorrow = rdfvalue.RDFDatetime.Now() + day
+
+    subject_ids = {
+        ApprovalRequest.APPROVAL_TYPE_CLIENT: "C.0123456789abcdef",
+        ApprovalRequest.APPROVAL_TYPE_HUNT: "ABCDEF42",
+        ApprovalRequest.APPROVAL_TYPE_CRON_JOB: "GetFile_ABCDEF",
+    }
+
+    # We iterate over all possible approval types. This will make the test fail
+    # if a new approval type is added in the future but no subject is specified
+    # for it.
+    approval_types = set(_.number for _ in ApprovalType.DESCRIPTOR.values)
+    approval_types.remove(ApprovalType.APPROVAL_TYPE_NONE)
+
+    for approval_type in approval_types:
+      subject_id = subject_ids[approval_type]
+
+      request = rdf_objects.ApprovalRequest()
+      request.requestor_username = "requestor"
+      request.approval_type = approval_type
+      request.subject_id = subject_id
+      request.expiration_time = tomorrow
+
+      request_id = self.db.WriteApprovalRequest(request)
+
+      with self.subTest(case="Read single", type=approval_type):
+        request = self.db.ReadApprovalRequest("requestor", request_id)
+        self.assertEqual(request.subject_id, subject_id)
+
+      with self.subTest(case="Read many", type=approval_type):
+        requests = self.db.ReadApprovalRequests("requestor", approval_type)
+        self.assertLen(requests, 1)
+        self.assertEqual(requests[0].subject_id, subject_id)
+
+      with self.subTest(case="Read many with subject", type=approval_type):
+        requests = self.db.ReadApprovalRequests(
+            "requestor", approval_type, subject_id=subject_id)
+
+        self.assertLen(requests, 1)
+        self.assertEqual(requests[0].subject_id, subject_id)
 
   def testReadApprovalRequestsIncludesGrantsIntoSingleApproval(self):
     client_id = "C.0000000050000001"
@@ -1033,11 +1088,18 @@ class DatabaseTestUsersMixin(object):
     with self.assertRaises(db.UnknownApprovalRequestError):
       d.ReadApprovalRequest("requestor", approval_id)
 
+  # TODO(hanuszczak): Write tests (and fix database implementations) that ensure
+  # that notified users also exist in the database.
+
   def testDeleteUserDeletesApprovalGrantsForGrantor(self):
     d = self.db
     d.WriteGRRUser("requestor")
     d.WriteGRRUser("grantor")
     d.WriteGRRUser("grantor2")
+
+    d.WriteGRRUser("user1")
+    d.WriteGRRUser("user2")
+    d.WriteGRRUser("user3")
 
     client_id = "C.0000000050000001"
     approval_request = rdf_objects.ApprovalRequest(
@@ -1097,5 +1159,20 @@ class DatabaseTestUsersMixin(object):
     d = self.db
     with self.assertRaises(ValueError):
       d.WriteGRRUser(EXAMPLE_NAME, email="invalid")
+
+  def testCountGRRUsersNone(self):
+    self.assertEqual(self.db.CountGRRUsers(), 0)
+
+  def testCountGRRUsersSingle(self):
+    self.db.WriteGRRUser("foo")
+
+    self.assertEqual(self.db.CountGRRUsers(), 1)
+
+  def testCountGRRUsersMultiple(self):
+    self.db.WriteGRRUser("foo")
+    self.db.WriteGRRUser("bar")
+    self.db.WriteGRRUser("baz")
+
+    self.assertEqual(self.db.CountGRRUsers(), 3)
 
 # This file is a test library and thus does not require a __main__ block.

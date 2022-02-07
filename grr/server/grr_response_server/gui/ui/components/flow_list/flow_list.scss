@@ -1,12 +1,42 @@
+@use '@angular/material' as mat;
 @use '../../material-theme' as c;
 
-h1.mat-h1 {
-  font-family: c.$google-sans-display-family;
-  font-size: 18px;
-  font-weight: 500;
-  line-height: 24px;
-}
+:host {
+  display: flex;
+  flex-direction: column;
+  row-gap: 1em;
 
-.flow-item {
-  margin-bottom: 1em;
+  h1 {
+    font-family: c.$google-sans-display-family;
+    font-size: 18px;
+    font-weight: 500;
+    line-height: 24px;
+    margin: 0;
+  }
+
+  flow-details {
+    display: block;
+    border-radius: 8px;
+
+    &.highlight {
+      outline: 5px solid mat.get-color-from-palette(c.$primary, 100);
+    }
+  }
+
+  .footer {
+    display: flex;
+    flex-direction: column;
+
+    mat-spinner {
+      align-self: center;
+    }
+
+    button {
+      justify-self: center;
+    }
+
+    aside {
+      text-align: center;
+    }
+  }
 }

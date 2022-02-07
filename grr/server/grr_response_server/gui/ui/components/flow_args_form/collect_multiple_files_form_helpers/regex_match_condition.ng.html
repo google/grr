@@ -1,3 +1,4 @@
+<!-- TODO: Stop using formControlName here. -->
 <condition-panel
   title="Regex match"
   [formGroup]="formGroup"
@@ -6,7 +7,10 @@
   <mat-form-field appearance="outline">
     <mat-label>Regex</mat-label>
     <input matInput formControlName="regex" class="monospace">
-    <mat-error *ngIf="formGroup.controls.regex.hasError('required')">Regex expression is required</mat-error>
+    <!-- TODO: The new compiler flag forbids using a.foo style for
+      this property.  TS4111:
+      Property '%s' comes from an index signature, so it must be accessed with ['%s']. -->
+    <mat-error *ngIf="$any(formGroup.controls).regex.hasError('required')">Regex expression is required</mat-error>
   </mat-form-field>
 
   <mat-form-field appearance="outline">
@@ -23,9 +27,15 @@
 
   <mat-form-field appearance="outline">
     <mat-label>Length</mat-label>
-    <input matInput formControlName="length" class="monospace" type="number">
-    <mat-error *ngIf="formGroup.controls.length.hasError('required')">Length is required</mat-error>
-    <mat-error *ngIf="formGroup.controls.length.hasError('min')">Length must be a positive integer</mat-error>
+    <input matInput formControlName="length" class="monospace" type="number" autocomplete="off">
+    <!-- TODO: The new compiler flag forbids using a.foo style for
+      this property.  TS4111:
+      Property '%s' comes from an index signature, so it must be accessed with ['%s']. -->
+    <mat-error *ngIf="$any(formGroup.controls).length.hasError('required')">Length is required</mat-error>
+    <!-- TODO: The new compiler flag forbids using a.foo style for
+      this property.  TS4111:
+      Property '%s' comes from an index signature, so it must be accessed with ['%s']. -->
+    <mat-error *ngIf="$any(formGroup.controls).length.hasError('min')">Length must be a positive integer</mat-error>
   </mat-form-field>
 
 </condition-panel>

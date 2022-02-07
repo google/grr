@@ -25,11 +25,13 @@ grr-host-info {
     }
   }
 
-  div.no-approval {
+  div.no-approval,
+  div.new-ui-info {
     margin: 20px;
     height: auto !important;
 
-    button {
+    button,
+    .btn {
       float: right;
       margin-top: -23px;
     }

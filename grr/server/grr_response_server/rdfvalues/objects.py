@@ -13,7 +13,6 @@ import os
 import stat
 from typing import Text
 
-
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -365,6 +364,10 @@ class PathInfo(rdf_structs.RDFProtoStruct):
   @classmethod
   def NTFS(cls, *args, **kwargs):
     return cls(*args, path_type=cls.PathType.NTFS, **kwargs)
+
+  @classmethod
+  def Temp(cls, *args, **kwargs):
+    return cls(*args, path_type=cls.PathType.TEMP, **kwargs)
 
   @classmethod
   def PathTypeFromPathspecPathType(cls, ps_path_type):

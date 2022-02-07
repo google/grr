@@ -222,10 +222,6 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
 
       if flow_obj.client_crash_info:
         self.state = "CLIENT_CRASHED"
-      elif flow_obj.pending_termination:
-        self.state = "ERROR"
-        self.status = ("Pending termination: %s" %
-                       flow_obj.pending_termination.reason)
       else:
         context_state_map = {1: "RUNNING", 2: "TERMINATED", 3: "ERROR"}
         self.state = context_state_map[int(flow_obj.flow_state)]

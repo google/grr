@@ -38,6 +38,8 @@ class ProcessTest(absltest.TestCase):
         input_w.write(b"foo")
         result = output_r.read(6)
         self.assertEqual(result, b"foo123")
+        self.assertGreater(p.GetCpuTimes().cpu_time, 0.0)
+        self.assertGreater(p.GetCpuTimes().sys_time, 0.0)
         p.Stop()
 
 

@@ -1,32 +1,33 @@
-<client-overview>
-  <a
-    mat-button
-    class="goto-details"
-    [drawerLink]="['details']"
-  >
-    Client details
-    <mat-icon>keyboard_arrow_left</mat-icon>
-  </a>
-</client-overview>
+<client-overview [collapsed]="filesActive.isActive"></client-overview>
 
-<div class="client-start-flow">
-  <flow-form></flow-form>
-</div>
-<div class="client-flows">
-  <scheduled-flow-list
-    [creator]="currentUser$ | async"
-    [clientId]="id$ | async"
-  ></scheduled-flow-list>
-  <flow-list></flow-list>
-  <div [style.height.px]="approvalHeight">
-    <!-- Placeholder behind Approval bottom sheet to allow scrolling to the
-             bottom of the flows list. -->
-  </div>
+<div>
+  <!-- Wrapper <div> to prevent row-gap between nav and divider. -->
+  <nav mat-tab-nav-bar>
+    <a
+      mat-tab-link
+      [routerLink]="['flows']"
+      routerLinkActive
+      #flowsActive="routerLinkActive"
+      [active]="flowsActive.isActive"
+      [disabled]="!(hasAccess$ | async)"
+    >
+      All flows
+    </a>
+
+    <a
+      class="collected-files-tab"
+      mat-tab-link
+      [routerLink]="['files']"
+      routerLinkActive
+      #filesActive="routerLinkActive"
+      [active]="filesActive.isActive"
+      [disabled]="!(hasAccess$ | async)"
+    >
+      Collected files
+    </a>
+  </nav>
+
+  <div class="divider"></div>
 </div>
 
-<div
-  class="client-approval mat-elevation-z5"
-  [style.display]="(this.showApprovalView$ | async) ? 'block' : 'none'"
->
-  <approval></approval>
-</div>
+<router-outlet></router-outlet>

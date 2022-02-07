@@ -1,0 +1,18 @@
+<mat-icon>list_alt</mat-icon>
+<mat-icon>chevron_right</mat-icon>
+<div class="wrapper"
+     [class.editing]= "editing"
+     [attr.tabindex]="disabled || editing ? null: 0"
+     role="input"
+     (focus)="startEdit()">
+  <ng-content></ng-content>
+</div>
+<button *ngIf="!disabled && !editing"
+        mat-icon-button
+        name="edit"
+        title="Edit"
+        aria-label="Edit"
+        i18n-aria-label="Edit"
+        (click)="startEdit()">
+  <mat-icon>edit</mat-icon>
+</button>
