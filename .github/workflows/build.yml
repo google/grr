@@ -252,7 +252,6 @@ jobs:
         run: |
           sudo -EH ./appveyor/e2e_tests/run_e2e_tests.sh
           sudo -EH ./appveyor/e2e_tests/test_repack.sh
-          ./appveyor/e2e_tests/upload_e2e_artifacts.sh
       - name: Upload logs and configs to GitHub artifacts
         uses: actions/upload-artifact@v2
         with:
