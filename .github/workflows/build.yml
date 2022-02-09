@@ -288,11 +288,7 @@ jobs:
       - if: ${{ github.event_name == 'push' }}
         name: Push to ${{ env.DOCKER_REPOSITORY }}
         run: |
-          if [[ "${BRANCH}" == 'master' ]]; then
-            docker push ${{ env.DOCKER_REPOSITORY }}:latest
-          else
-            docker push ${{ env.DOCKER_REPOSITORY }}:${BRANCH}
-          fi
+          docker push -a ${{ env.DOCKER_REPOSITORY }}
   upload:
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-18.04
