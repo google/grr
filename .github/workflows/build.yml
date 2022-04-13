@@ -29,7 +29,9 @@ jobs:
       - name: Test
         run: |
           source "${HOME}/INSTALL/bin/activate"
-          pip install pytest-xdist==2.2.1
+          # pytest 7.X broke our tests, so pinning it to a workable version.
+          # markupsafe version 2.1.X breaks jinja, so it's pinned to 2.0.X.
+          pip install pytest-xdist==2.2.1 pytest==6.2.5 markupsafe==2.0.1
           # We have 4 vCPUs available, but only use 3 here to avoid timeouts like
           # https://ci.appveyor.com/project/grr/grr-ia94e/builds/20483467/messages ,
           # which happen when tests stall.
