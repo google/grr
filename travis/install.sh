@@ -5,7 +5,7 @@
 set -ex
 
 source "${HOME}/INSTALL/bin/activate"
-pip install --upgrade pip wheel six setuptools nodeenv
+pip install --upgrade pip wheel six setuptools nodeenv markupsafe==2.0.1
 
 # Install the latest version of nodejs. Some packages
 # may not be compatible with the version.
