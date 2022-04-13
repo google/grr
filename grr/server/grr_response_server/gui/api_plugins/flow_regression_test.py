@@ -197,7 +197,7 @@ class ApiListFlowLogsHandlerRegressionTest(
   def _AddLogToFlow(self, client_id, flow_id, log_string):
     entry = rdf_flow_objects.FlowLogEntry(
         client_id=client_id, flow_id=flow_id, message=log_string)
-    data_store.REL_DB.WriteFlowLogEntries([entry])
+    data_store.REL_DB.WriteFlowLogEntry(entry)
 
   def Run(self):
     client_id = self.SetupClient(0)

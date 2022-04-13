@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Output plugins used for testing."""
 
 import os

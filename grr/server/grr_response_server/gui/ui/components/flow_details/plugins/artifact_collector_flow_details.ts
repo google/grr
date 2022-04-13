@@ -1,19 +1,15 @@
-import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
-import {combineLatest, Observable} from 'rxjs';
-import {map, take} from 'rxjs/operators';
+import {ChangeDetectionStrategy, Component, TrackByFunction} from '@angular/core';
+import {map} from 'rxjs/operators';
 
-import {flowFileResultFromStatEntry} from '../../../components/flow_details/helpers/file_results_table';
-import {ArtifactCollectorFlowArgs, ExecuteResponse, StatEntry} from '../../../lib/api/api_interfaces';
+import {FlowFileResult, flowFileResultFromStatEntry} from '../../../components/flow_details/helpers/file_results_table';
+import {ExecuteResponse, StatEntry} from '../../../lib/api/api_interfaces';
 import {isRegistryEntry, isStatEntry, translateArtifactCollectorFlowProgress, translateExecuteResponse, translateVfsStatEntry} from '../../../lib/api_translation/flow';
-import {ArtifactCollectorFlowProgress, FlowResult, FlowState} from '../../../lib/models/flow';
-import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
-import {fromFlowState} from '../helpers/result_accordion';
+import {ArtifactProgress, Flow, FlowResult, RegistryKey, RegistryValue} from '../../../lib/models/flow';
+import {isNull} from '../../../lib/preconditions';
+import {Writable} from '../../../lib/type_utils';
+import {FlowResultMapFunction, FlowResultsQueryWithAdapter} from '../helpers/load_flow_results_directive';
 
 import {Plugin} from './plugin';
-
-
-const LOAD_RESULT_COUNT = 100;
-
 
 function getResults(results: ReadonlyArray<FlowResult>, typeName: 'StatEntry'):
     ReadonlyArray<StatEntry>;
@@ -26,114 +22,77 @@ function getResults(
       .map(item => item.payload as {});
 }
 
+declare interface ArtifactRow {
+  readonly name: string;
+  readonly numResults?: number;
+  readonly description: string;
+  readonly resultQuery: FlowResultsQueryWithAdapter<ArtifactResults>;
+}
+
+function toRow(flow: Flow, artifact: ArtifactProgress): ArtifactRow {
+  let description: string;
+  if (isNull(artifact.numResults)) {
+    description = '';
+  } else if (artifact.numResults === 1) {
+    description = '1 result';
+  } else {
+    description = `${artifact.numResults} results`;
+  }
+
+  return {
+    name: artifact.name,
+    numResults: artifact.numResults,
+    description,
+    resultQuery: {
+      flow,
+      withTag: `artifact:${artifact.name}`,
+      resultMapper: mapFlowResults,
+    },
+  };
+}
+
+interface ArtifactResults {
+  readonly fileResults: ReadonlyArray<FlowFileResult>;
+  readonly registryResults: ReadonlyArray<RegistryKey|RegistryValue>;
+  readonly executeResponseResults: ReadonlyArray<ExecuteResponse>;
+  readonly unknownResultCount: number;
+}
+
+const mapFlowResults: FlowResultMapFunction<ArtifactResults> = (rawResults) => {
+  const statEntryResults =
+      getResults(rawResults ?? [], 'StatEntry').map(translateVfsStatEntry);
+
+  const results: Writable<ArtifactResults> = {
+    fileResults: statEntryResults.filter(isStatEntry)
+                     .map(stat => flowFileResultFromStatEntry(stat)),
+    registryResults: statEntryResults.filter(isRegistryEntry),
+    executeResponseResults: getResults(rawResults ?? [], 'ExecuteResponse')
+                                .map(translateExecuteResponse),
+    unknownResultCount: rawResults?.length ?? 0,
+  };
+
+  results.unknownResultCount -= results.fileResults.length +
+      results.registryResults.length + results.executeResponseResults.length;
+
+  return results;
+};
+
 /** Component that displays flow results. */
 @Component({
-  selector: 'artifact-collector-flow-details',
+  selector: 'app-artifact-collector-flow-details',
   templateUrl: './artifact_collector_flow_details.ng.html',
   styleUrls: ['./artifact_collector_flow_details.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [FlowResultsLocalStore],
 })
-export class ArtifactCollectorFlowDetails extends Plugin implements OnInit {
-  readonly FINISHED = FlowState.FINISHED;
+export class ArtifactCollectorFlowDetails extends Plugin {
+  readonly INITIAL_COUNT = 100;
 
-  readonly flowState$: Observable<FlowState> = this.flow$.pipe(
-      map((flow) => flow.state),
-  );
+  readonly artifactRows$ = this.flow$.pipe(
+      map((flow) => Array
+                        .from(translateArtifactCollectorFlowProgress(flow)
+                                  .artifacts.values())
+                        .map(a => toRow(flow, a))));
 
-  readonly progress$: Observable<ArtifactCollectorFlowProgress> =
-      this.flow$.pipe(map(translateArtifactCollectorFlowProgress));
-
-  private readonly results$ = this.flowResultGlobalStore.results$.pipe(
-      map(rs => rs?.map(item => item.payload) ?? []));
-
-  readonly totalResults$: Observable<number|undefined> =
-      this.progress$.pipe(map(progress => {
-        if (progress.artifacts.size === 0) {
-          return undefined;
-        }
-
-        return Array.from(progress.artifacts.values())
-            .reduce<number|undefined>((totalResults, {numResults}) => {
-              if (numResults === undefined || totalResults === undefined) {
-                return undefined;
-              } else {
-                return totalResults + numResults;
-              }
-            }, 0);
-      }));
-
-  readonly totalLoadedResults$ =
-      this.results$.pipe(map(results => results.length));
-
-  private readonly statEntryResults$ = this.flowResultGlobalStore.results$.pipe(
-      map((results) => getResults(results ?? [], 'StatEntry')
-                           .map(translateVfsStatEntry)));
-
-  readonly fileResults$ = this.statEntryResults$.pipe(
-      map((results) => results.filter(isStatEntry)
-                           .map(stat => flowFileResultFromStatEntry(stat))),
-  );
-
-  readonly totalFileResults$ =
-      this.fileResults$.pipe(map(results => results.length));
-
-  readonly registryResults$ = this.statEntryResults$.pipe(
-      map((results) => results.filter(isRegistryEntry)),
-  );
-
-  readonly totalRegistryResults$ =
-      this.registryResults$.pipe(map(results => results.length));
-
-  readonly executeResponseResults$ = this.flowResultGlobalStore.results$.pipe(
-      map((results) => getResults(results ?? [], 'ExecuteResponse')
-                           .map(translateExecuteResponse)),
-  );
-
-  readonly totalExecuteResponseResults$ =
-      this.executeResponseResults$.pipe(map(results => results.length));
-
-  readonly totalResultsRequested$ =
-      this.flowResultGlobalStore.query$.pipe(map(query => query?.count ?? 0));
-
-  readonly expandable$ = this.totalResults$.pipe(
-      map(totalResults => totalResults === undefined || totalResults > 0),
-  );
-
-  readonly description$ = this.totalResults$.pipe(map(totalResults => {
-    if (totalResults === undefined) {
-      return '';
-    } else if (totalResults === 1) {
-      return '1 result';
-    } else {
-      return `${totalResults} results`;
-    }
-  }));
-
-  readonly status$ = this.flow$.pipe(map(flow => fromFlowState(flow.state)));
-
-  readonly totalUnknownResults$ =
-      combineLatest([
-        this.totalLoadedResults$,
-        this.totalFileResults$,
-        this.totalExecuteResponseResults$,
-      ]).pipe(map(([total, file, execute]) => total - file - execute));
-
-  readonly flowArgs$: Observable<ArtifactCollectorFlowArgs> =
-      this.flow$.pipe(map(flow => flow.args as ArtifactCollectorFlowArgs));
-
-  constructor(private readonly flowResultGlobalStore: FlowResultsLocalStore) {
-    super();
-  }
-
-  ngOnInit() {
-    this.flowResultGlobalStore.query(this.flow$.pipe(
-        take(1),
-        map(flow => ({flow})),
-        ));
-  }
-
-  loadMoreResults() {
-    this.flowResultGlobalStore.queryMore(LOAD_RESULT_COUNT);
-  }
+  readonly trackArtifactByName: TrackByFunction<ArtifactRow> =
+      (index, artifact) => artifact.name;
 }

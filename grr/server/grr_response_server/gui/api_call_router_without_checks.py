@@ -118,6 +118,13 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def ListFiles(self, args, context=None):
     return api_vfs.ApiListFilesHandler()
 
+  def BrowseFilesystem(
+      self,
+      args: api_vfs.ApiBrowseFilesystemArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_vfs.ApiBrowseFilesystemHandler:
+    return api_vfs.ApiBrowseFilesystemHandler()
+
   def GetVfsFilesArchive(self, args, context=None):
     return api_vfs.ApiGetVfsFilesArchiveHandler()
 

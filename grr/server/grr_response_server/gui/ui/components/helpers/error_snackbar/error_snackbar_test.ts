@@ -13,7 +13,6 @@ import {DeepPartial} from '../../../lib/type_utils';
 import {ErrorSnackbar, WINDOW} from './error_snackbar';
 import {ErrorSnackbarModule} from './error_snackbar_module';
 
-
 @Component({})
 class TestHostComponent {
   constructor(public viewContainerRef: ViewContainerRef) {}
@@ -42,7 +41,6 @@ describe('ErrorSnackbar Component', () => {
             NoopAnimationsModule,  // This makes test faster and more stable.
           ],
           declarations: [TestHostComponent],
-
           providers: [
             {
               provide: OverlayContainer,

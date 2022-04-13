@@ -1,15 +1,14 @@
-import {HttpErrorResponse} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {forkJoin, Observable, of, throwError} from 'rxjs';
-import {catchError, map, switchMap, tap, withLatestFrom} from 'rxjs/operators';
+import {forkJoin, NEVER, Observable, of} from 'rxjs';
+import {map, switchMap, tap, withLatestFrom} from 'rxjs/operators';
 
 import {PathSpecPathType} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
-import {translateFile} from '../lib/api_translation/vfs';
+import {translateBrowseFilesytemResult} from '../lib/api_translation/vfs';
 import {Directory, File, isSubDirectory, pathDepth, scanPath} from '../lib/models/vfs';
 import {assertNonNull, isNonNull} from '../lib/preconditions';
-import {addToMap, deepFreeze, mergeMaps, toMap} from '../lib/type_utils';
+import {addToMap, deepFreeze, mergeMaps, toMap, transformMapValues} from '../lib/type_utils';
 
 /**
  * A hierarchy of directories with children.
@@ -115,13 +114,22 @@ class VfsViewComponentStore extends ComponentStore<State> {
 
     this.path$
         .pipe(
-            withLatestFrom(this.clientId$),
+            withLatestFrom(this.state$),
+            switchMap(([path, state]) => {
+              if (!path || !state.clientId) {
+                return NEVER;
+              }
+
+              const segments = scanPath(path);
+              const parent = segments[segments.length - 2];
+              if (parent && state.children.has(parent)) {
+                return this.fetchListingForPath(state.clientId, path);
+              } else {
+                return this.fetchDirectoryTreeForPath(state.clientId, path);
+              }
+            }),
             )
-        .subscribe(([path, clientId]) => {
-          if (path && clientId) {
-            this.fetchPathHierarchy({clientId, path});
-          }
-        });
+        .subscribe();
   }
 
   private readonly clientId$ = this.select(state => state.clientId);
@@ -191,10 +199,11 @@ class VfsViewComponentStore extends ComponentStore<State> {
 
   readonly listCurrentDirectory = this.effect<{maxDepth?: number}|undefined>(
       obs$ => obs$.pipe(
-          withLatestFrom(this.clientId$, this.path$),
-          switchMap(([opts, clientId, path]) => {
+          withLatestFrom(this.clientId$, this.currentDirectory$),
+          switchMap(([opts, clientId, directory]) => {
             assertNonNull(clientId, 'clientId');
-            assertNonNull(path, 'path');
+            assertNonNull(directory, 'directory');
+            const {pathtype, path} = directory;
 
             return of(null).pipe(
                 tap(() => {
@@ -203,10 +212,10 @@ class VfsViewComponentStore extends ComponentStore<State> {
                 }),
                 switchMap(
                     () => this.httpApiService.refreshVfsFolder(
-                        clientId, PathSpecPathType.OS, path, opts)),
-                map(res => res.items?.map(translateFile) ?? []),
-                tap(children => {
-                  this.saveListingForPath({path, children});
+                        clientId, pathtype, path, opts)),
+                map(translateBrowseFilesytemResult),
+                tap(result => {
+                  this.saveListingForPaths(result);
                   this.setListingCurrentDirectory(false);
                 }),
                 withLatestFrom(this.state$),
@@ -261,45 +270,31 @@ class VfsViewComponentStore extends ComponentStore<State> {
   readonly isListingCurrentDirectory$ =
       this.select(state => state.isListingCurrentDirectory);
 
-  private readonly saveListingForPath =
-      this.updater<{path: string, children: ReadonlyArray<File|Directory>}>(
-          (state, {path, children}) => {
+  private readonly saveListingForPaths =
+      this.updater<Map<string, ReadonlyArray<File|Directory>>>(
+          (state, entries) => {
+            const allChildren = Array.from(entries.values()).flatMap(e => e);
             const newState = {
               ...state,
-              entries: mergeMaps(state.entries, toPathMap(children)),
-              children:
-                  addToMap(state.children, path, children.map(c => c.path)),
-              isLoadingDirectory:
-                  addToMap(state.isLoadingDirectory, path, false),
+              entries: mergeMaps(state.entries, toPathMap(allChildren)),
+              children: mergeMaps(
+                  state.children,
+                  transformMapValues(
+                      entries, children => children.map(e => e.path))),
+              isLoadingDirectory: mergeMaps(
+                  state.isLoadingDirectory,
+                  transformMapValues(entries, () => false))
             };
             return newState;
           });
 
-  private listFiles(
-      clientId: string, pathType: PathSpecPathType, path: string) {
-    return this.httpApiService.listFiles(clientId, pathType, path)
-        .pipe(map(res => res.items?.map(translateFile) ?? []));
-  }
-
-  private listFilesAllPathTypes(clientId: string, path: string) {
-    return forkJoin([
-             this.listFiles(clientId, PathSpecPathType.OS, path),
-             this.listFiles(clientId, PathSpecPathType.TSK, path),
-             this.listFiles(clientId, PathSpecPathType.NTFS, path),
-           ])
-        .pipe(map(listings => {
-          const allChildren = ([] as Array<File|Directory>).concat(...listings);
-          const mergedChildren = new Map<string, File|Directory>();
-          for (const entry of allChildren) {
-            const existing = mergedChildren.get(entry.path);
-            if (existing && !existing.isDirectory && !entry.isDirectory &&
-                existing.lastMetadataCollected > entry.lastMetadataCollected) {
-              continue;
-            }
-            mergedChildren.set(entry.path, entry);
-          }
-          return Array.from(mergedChildren.values());
-        }));
+  private listFilesAllPathTypes(
+      clientId: string, path: string, includeDirectoryTree: boolean) {
+    return this.httpApiService
+        .browseFilesystem(clientId, path, {includeDirectoryTree})
+        .pipe(
+            map(translateBrowseFilesytemResult),
+        );
   }
 
   private fetchListingForPath(clientId: string, path: string) {
@@ -307,37 +302,42 @@ class VfsViewComponentStore extends ComponentStore<State> {
         tap(() => {
           this.markLoading({path, loading: true});
         }),
-        switchMap(() => this.listFilesAllPathTypes(clientId, path)),
+        switchMap(() => this.listFilesAllPathTypes(clientId, path, false)),
         tap({
-          next: (children) => {
-            this.saveListingForPath({path, children});
+          next: (results) => {
+            this.saveListingForPaths(results);
           },
           error: () => {
             this.markLoading(({path, loading: false}));
           },
         }),
-        // The last path segment could be a File - `listFiles` will fail
-        // for the file. Until we know more specific use cases and refine
-        // the behavior for the VFS, ignore errors.
-        catchError(
-            (err: HttpErrorResponse) =>
-                err.status === 500 ? of(null) : throwError(err)),
     );
   }
 
-  // TODO: Handle the case where the selected path points to a
-  // file.
-  /** Concurrently lists all directories in the current hierarchy. */
-  private readonly fetchPathHierarchy =
-      this.effect<{clientId: string, path: string}>(
-          obs$ => obs$.pipe(
-              switchMap(
-                  ({clientId, path}) => forkJoin(
-                      scanPath(path).map(
-                          segment =>
-                              this.fetchListingForPath(clientId, segment)),
-                      )),
-              ));
+  private fetchDirectoryTreeForPath(clientId: string, path: string) {
+    return of(null).pipe(
+        tap(() => {
+          this.patchState(state => ({
+                            isLoadingDirectory: mergeMaps(
+                                state.isLoadingDirectory,
+                                toMap(scanPath(path), (p) => p, () => true))
+                          }));
+        }),
+        switchMap(() => this.listFilesAllPathTypes(clientId, path, true)),
+        tap({
+          next: (results) => {
+            this.saveListingForPaths(results);
+          },
+          error: () => {
+            this.patchState(state => ({
+                              isLoadingDirectory: mergeMaps(
+                                  state.isLoadingDirectory,
+                                  toMap(scanPath(path), (p) => p, () => false))
+                            }));
+          },
+        }),
+    );
+  }
 }
 
 /** Store for managing virtual filesystem state. */

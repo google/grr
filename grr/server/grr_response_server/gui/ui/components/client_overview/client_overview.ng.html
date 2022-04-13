@@ -3,27 +3,33 @@
     <mat-icon class="computer-icon">computer</mat-icon>
     <div class="fqdn">
       <a
-        mat-button
         [routerLink]="['/clients', (client$ | async)?.clientId]"
-        class="no-padding"
+        class="text-link-hover"
       >
-        <h1>{{ (client$ | async)?.knowledgeBase?.fqdn }}</h1>
+        <h1>
+          <ng-container *ngIf="(client$ | async) as client">
+            {{ client.knowledgeBase?.fqdn || client.clientId }}
+          </ng-container>
+        </h1>
       </a>
     </div>
 
-    <div class="chips" *ngIf="client$ | async as client">
-      <mat-chip-list>
-        <online-chip [lastSeen]="(client$ | async)?.lastSeenAt"></online-chip>
+    <div class="chips">
+      <mat-chip-list [selectable]="false" [tabIndex]="-1">
+        <online-chip
+          *ngIf="(client$ | async) as client"
+          [lastSeen]="client.lastSeenAt"
+        ></online-chip>
         <mat-chip
           *ngIf="(client$ | async)?.fleetspeakEnabled === false"
           class="red-chip"
           color="custom"
           [matTooltip]="'This client uses a deprecated communication protocol. Install a new GRR version that uses Fleetspeak to be able to access this client in the future.'"
-          >
+          disabled
+        >
           <mat-icon>error_outline</mat-icon>
           Outdated
-          </mat-chip
-        >
+        </mat-chip>
         <app-approval-chip
           *ngIf="showApprovalChip$ | async"
           [approval]="approval$ | async"
@@ -35,13 +41,20 @@
   <ng-container *ngIf="!collapsed">
     <div class="chips labels">
       <mat-chip-list>
-        <mat-chip
+        <a
           *ngFor="let label of (client$ | async)?.labels; trackBy: labelsTrackByName"
-          (removed)="removeLabel(label.name)"
+          [routerLink]="['/clients']"
+          [queryParams]="{'q': 'label:' + label.name}"
+          ><mat-chip (removed)="removeLabel(label.name)">
+            {{label.name}}
+            <mat-icon
+              matChipRemove
+              [matTooltip]="'Remove label from this client'"
+              (click)="$event.preventDefault()"
+              >close</mat-icon
+            >
+          </mat-chip></a
         >
-          {{label.name}}
-          <mat-icon matChipRemove aria-label="Remove label">close</mat-icon>
-        </mat-chip>
       </mat-chip-list>
       <button
         *ngIf="client$ | async as client"
@@ -54,39 +67,98 @@
     </div>
 
     <div class="info">
-      <span class="os"> OS: {{ (client$ | async)?.knowledgeBase?.os }} </span>
+      <table class="column">
+        <tr>
+          <td>ID:</td>
+          <td>
+            <app-copy-button
+              ><span>{{ (client$ | async)?.clientId }}</span></app-copy-button
+            >
+          </td>
+        </tr>
+        <tr>
+          <td>FQDN:</td>
+          <td>
+            <app-copy-button>
+              <span>{{ (client$ | async)?.knowledgeBase?.fqdn }}</span>
+            </app-copy-button>
+          </td>
+        </tr>
+        <tr class="os">
+          <td>OS:</td>
+          <td>
+            <app-copy-button
+              ><span>
+                {{ (client$ | async)?.osInfo?.system }} {{ (client$ |
+                async)?.osInfo?.version }} {{ (client$ | async)?.osInfo?.kernel
+                }}
+              </span>
+            </app-copy-button>
+          </td>
+        </tr>
+        <tr class="users">
+          <td>Users:</td>
+          <td>
+            <app-copy-button *ngIf="client$ | async as client"
+              ><span>{{ formatUsers(client.users) }}</span></app-copy-button
+            >
+          </td>
+        </tr>
+      </table>
 
-      <span>
-        ID:
-        <app-copy-button>{{ (client$ | async)?.clientId }}</app-copy-button>
-      </span>
-
-      <span class="users">
-        Users:
-        <span *ngIf="client$ | async as client"
-          >{{ formatUsers(client.users) }}</span
-        >
-      </span>
-
-      <div class="last-seen">
-        Last seen:
-        <app-timestamp
-          [date]="(client$ | async)?.lastSeenAt"
-          relativeTimestamp="visible"
-        ></app-timestamp>
-      </div>
+      <table class="column">
+        <tr class="users">
+          <td>Agent:</td>
+          <td>
+            <app-copy-button
+              ><span>
+                {{ (client$ | async)?.agentInfo?.clientDescription }} {{
+                (client$ | async)?.agentInfo?.clientVersion }}</span
+              >
+            </app-copy-button>
+          </td>
+        </tr>
+        <tr class="last-seen">
+          <td>Agent built:</td>
+          <td>
+            <app-timestamp
+              [date]="(client$ | async)?.agentInfo?.buildTime"
+              relativeTimestamp="visible"
+            ></app-timestamp>
+          </td>
+        </tr>
+        <tr class="last-seen">
+          <td>First seen:</td>
+          <td>
+            <app-timestamp
+              [date]="(client$ | async)?.firstSeenAt"
+              relativeTimestamp="visible"
+            ></app-timestamp>
+          </td>
+        </tr>
+        <tr class="last-seen">
+          <td>Last seen:</td>
+          <td>
+            <app-timestamp
+              [date]="(client$ | async)?.lastSeenAt"
+              relativeTimestamp="visible"
+            ></app-timestamp>
+          </td>
+        </tr>
+      </table>
     </div>
 
-    <a
-      mat-stroked-button
-      class="goto-details"
-      [drawerLink]="['details']"
-      color="primary"
-    >
-      <mat-icon>keyboard_arrow_left</mat-icon>
-      Client details
-    </a>
-
-    <ng-content></ng-content>
+    <div class="buttons">
+      <a
+        mat-stroked-button
+        class="goto-details"
+        [drawerLink]="['details']"
+        color="primary"
+      >
+        <mat-icon>menu_open</mat-icon>
+        View details
+      </a>
+      <ng-content></ng-content>
+    </div>
   </ng-container>
 </div>

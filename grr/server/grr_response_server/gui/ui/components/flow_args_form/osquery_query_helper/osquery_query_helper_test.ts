@@ -2,7 +2,6 @@ import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {take} from 'rxjs/operators';
 
-
 import {isNonNull} from '../../../lib/preconditions';
 import {initTestEnvironment} from '../../../testing';
 
@@ -20,7 +19,6 @@ describe('OsqueryQueryHelper component', () => {
             OsqueryQueryHelperModule,
             NoopAnimationsModule,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

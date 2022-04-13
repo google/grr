@@ -107,12 +107,16 @@ class ApiClient(rdf_structs.RDFProtoStruct):
       rdf_client_fs.Volume,
   ]
 
-  def InitFromClientObject(self, client_obj):
+  def InitFromClientObject(
+      self, client_obj: rdf_objects.ClientSnapshot) -> "ApiClient":
 
     # TODO(amoser): Deprecate all urns.
     self.urn = client_obj.client_id
 
     self.client_id = client_obj.client_id
+
+    if client_obj.metadata and client_obj.metadata.source_flow_id:
+      self.source_flow_id = client_obj.metadata.source_flow_id
 
     self.agent_info = client_obj.startup_info.client_info
     self.hardware_info = client_obj.hardware_info
@@ -159,7 +163,8 @@ class ApiClient(rdf_structs.RDFProtoStruct):
 
     return self
 
-  def InitFromClientInfo(self, client_info):
+  def InitFromClientInfo(
+      self, client_info: rdf_objects.ClientFullInfo) -> "ApiClient":
     self.InitFromClientObject(client_info.last_snapshot)
 
     # If we have it, use the boot_time / agent info from the startup
@@ -242,7 +247,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
 
 class ApiStructuredSearchClientsArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiStructuredSearchClientsArgs
-  rdf_deps = [rdf_search.SearchExpression, rdf_search.SearchOrder]
+  rdf_deps = [rdf_search.SearchExpression, rdf_search.SortOrder]
 
 
 class ApiStructuredSearchClientsResult(rdf_structs.RDFProtoStruct):
@@ -679,7 +684,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     labels = data_store.REL_DB.ReadAllClientLabels()
 
     label_objects = []
-    for name in set(l.name for l in labels):
+    for name in labels:
       label_objects.append(rdf_objects.ClientLabel(name=name))
 
     return ApiListClientsLabelsResult(

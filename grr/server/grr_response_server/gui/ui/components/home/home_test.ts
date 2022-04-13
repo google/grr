@@ -13,7 +13,6 @@ import {Home} from './home';
 import {HomeModule} from './module';
 
 
-
 initTestEnvironment();
 
 @Component({template: ''})
@@ -36,7 +35,6 @@ describe('Home Component', () => {
           providers: [
             ...STORE_PROVIDERS,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

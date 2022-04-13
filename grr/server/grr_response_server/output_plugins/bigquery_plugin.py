@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """BigQuery output plugin."""
 import base64
 import gzip

@@ -1,8 +1,7 @@
-import {Component, OnInit, Output} from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
-import {shareReplay} from 'rxjs/operators';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {UntypedFormControl} from '@angular/forms';
 
-import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {ListNamedPipesFlowArgs, PipeEndFilter, PipeTypeFilter} from '../../lib/api/api_interfaces';
 
 /** A form that customizes the behaviour of named pipe collection flow. */
@@ -10,24 +9,30 @@ import {ListNamedPipesFlowArgs, PipeEndFilter, PipeTypeFilter} from '../../lib/a
   selector: 'list-named-pipes-form',
   templateUrl: './list_named_pipes_form.ng.html',
   styleUrls: ['./list_named_pipes_form.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+
 })
 export class ListNamedPipesForm extends
-    FlowArgumentForm<ListNamedPipesFlowArgs> implements OnInit {
+    FlowArgumentForm<ListNamedPipesFlowArgs> {
   readonly PipeTypeFilter = PipeTypeFilter;
   readonly PipeEndFilter = PipeEndFilter;
 
-  readonly controls = {
-    pipeNameRegex: new FormControl(),
-    procExeRegex: new FormControl(),
-    pipeTypeFilter: new FormControl(PipeTypeFilter.ANY_TYPE),
-    pipeEndFilter: new FormControl(PipeEndFilter.ANY_END),
-  };
-  readonly form = new FormGroup(this.controls);
+  override makeControls(): Controls<ListNamedPipesFlowArgs> {
+    return {
+      pipeNameRegex: new UntypedFormControl(),
+      procExeRegex: new UntypedFormControl(),
+      pipeTypeFilter: new UntypedFormControl(PipeTypeFilter.ANY_TYPE),
+      pipeEndFilter: new UntypedFormControl(PipeEndFilter.ANY_END),
+    };
+  }
 
-  @Output() readonly formValues$ = this.form.valueChanges.pipe(shareReplay(1));
-  @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
+  override convertFlowArgsToFormState(flowArgs: ListNamedPipesFlowArgs):
+      ListNamedPipesFlowArgs {
+    return flowArgs;
+  }
 
-  ngOnInit() {
-    this.form.patchValue(this.defaultFlowArgs);
+  override convertFormStateToFlowArgs(formState: ListNamedPipesFlowArgs):
+      ListNamedPipesFlowArgs {
+    return formState;
   }
 }

@@ -11,7 +11,6 @@ import {initTestEnvironment} from '../../../testing';
 import {DrawerLink} from './drawer_link';
 import {DrawerLinkModule} from './drawer_link_module';
 
-
 initTestEnvironment();
 
 @Component({template: '<a [drawerLink]="drawerLink"></a>'})
@@ -34,7 +33,6 @@ describe('DrawerLink', () => {
           declarations: [
             TestHostComponent,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

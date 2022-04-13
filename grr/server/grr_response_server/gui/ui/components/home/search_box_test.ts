@@ -12,7 +12,6 @@ import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_g
 import {initTestEnvironment} from '../../testing';
 
 import {HomeModule} from './module';
-
 import {SearchBox} from './search_box';
 
 
@@ -72,7 +71,6 @@ describe('SearchBox Component', () => {
             {provide: HttpApiService, useValue: httpApiService},
             {provide: ConfigGlobalStore, useFactory: () => configGlobalStore}
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();
@@ -102,9 +100,9 @@ describe('SearchBox Component', () => {
     const emitSpy = spyOn(componentInstance.querySubmitted, 'emit');
 
     componentInstance.inputFormControl.setValue('foo');
-    const debugElement = fixture.debugElement.query(By.css('input'));
-    (debugElement.nativeElement as HTMLInputElement)
-        .dispatchEvent(new KeyboardEvent('keyup', {key: 'Enter'}));
+    fixture.debugElement.query(By.css('form'))
+        .nativeElement.dispatchEvent(
+            new KeyboardEvent('keypress', {key: 'Enter'}));
     fixture.detectChanges();
 
     expect(emitSpy).toHaveBeenCalledWith('foo');
@@ -118,9 +116,9 @@ describe('SearchBox Component', () => {
     const componentInstance = fixture.componentInstance;
     const emitSpy = spyOn(componentInstance.querySubmitted, 'emit');
 
-    const debugElement = fixture.debugElement.query(By.css('input'));
-    (debugElement.nativeElement as HTMLInputElement)
-        .dispatchEvent(new KeyboardEvent('keyup', {key: 'Enter'}));
+    fixture.debugElement.query(By.css('form'))
+        .nativeElement.dispatchEvent(
+            new KeyboardEvent('keypress', {key: 'Enter'}));
     fixture.detectChanges();
 
     expect(emitSpy).not.toHaveBeenCalled();

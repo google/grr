@@ -7,6 +7,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.util import collection
 from grr_response_server import fleet_utils
 from grr_response_server.databases import db
@@ -279,13 +280,11 @@ class InMemoryDBClientMixin(object):
   @utils.Synchronized
   def ReadAllClientLabels(self):
     """Lists all client labels known to the system."""
-    results = {}
+    results = set()
     for labels_dict in self.labels.values():
-      for owner, names in labels_dict.items():
-        for name in names:
-          results[(owner, name)] = rdf_objects.ClientLabel(
-              owner=owner, name=name)
-    return list(results.values())
+      for labels in labels_dict.values():
+        results.update(labels)
+    return results
 
   @utils.Synchronized
   def WriteClientStartupInfo(self, client_id, startup_info):
@@ -495,3 +494,11 @@ class InMemoryDBClientMixin(object):
 
     for kw in self.keywords:
       self.keywords[kw].pop(client_id, None)
+
+  def StructuredSearchClients(self, expression: rdf_search.SearchExpression,
+                              sort_order: rdf_search.SortOrder,
+                              continuation_token: bytes,
+                              number_of_results: int) -> db.SearchClientsResult:
+    # Unused arguments
+    del self, expression, sort_order, continuation_token, number_of_results
+    raise NotImplementedError

@@ -11,7 +11,6 @@ import {PluginsModule} from './module';
 
 
 
-
 initTestEnvironment();
 
 describe('collect-single-file-details component', () => {
@@ -23,7 +22,6 @@ describe('collect-single-file-details component', () => {
             PluginsModule,
             RouterTestingModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

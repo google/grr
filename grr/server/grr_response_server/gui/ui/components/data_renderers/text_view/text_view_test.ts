@@ -9,7 +9,6 @@ import {initTestEnvironment} from '../../../testing';
 import {TextView} from './text_view';
 import {TextViewModule} from './text_view_module';
 
-
 initTestEnvironment();
 
 describe('TextView Component', () => {
@@ -24,7 +23,6 @@ describe('TextView Component', () => {
             TextViewModule,
           ],
           providers: [],
-
           teardown: {destroyAfterEach: false}
         })
         .overrideProvider(

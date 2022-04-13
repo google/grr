@@ -27,6 +27,7 @@
   </button>
 
   <aside *ngSwitchCase="LoadMoreState.ALL_LOADED">
-    No older flows to show.
+    No older flows to show. Client was first seen
+    <app-timestamp [date]="(client$ | async)?.firstSeenAt"></app-timestamp>.
   </aside>
 </footer>

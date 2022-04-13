@@ -10,7 +10,6 @@ import {OsqueryTable} from '../../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
-
 import {OsqueryResultsTable} from './osquery_results_table';
 import {newOsqueryTable, OsqueryResultsTableDOM} from './osquery_test_util';
 
@@ -26,7 +25,6 @@ describe('OsqueryResultsTable Component', () => {
             NoopAnimationsModule,
             HelpersModule,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

@@ -13,7 +13,6 @@ import {initTestEnvironment} from '../../testing';
 import {ClientAddLabelDialog} from './client_add_label_dialog';
 import {ClientAddLabelDialogModule} from './module';
 
-
 initTestEnvironment();
 
 describe('Client Add Label Dialog', () => {
@@ -47,7 +46,6 @@ describe('Client Add Label Dialog', () => {
               useFactory: () => configGlobalStoreMock
             }
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();
@@ -97,9 +95,9 @@ describe('Client Add Label Dialog', () => {
   it('closes and returns a string with the added label when on Enter event',
      () => {
        component.labelInputControl.setValue('newlabel');
-       const inputForm = fixture.debugElement.query(By.css('input'));
-       (inputForm.nativeElement as HTMLInputElement)
-           .dispatchEvent(new KeyboardEvent('keyup', {key: 'Enter'}));
+       const inputForm = fixture.debugElement.query(By.css('form'));
+       inputForm.nativeElement.dispatchEvent(
+           new KeyboardEvent('keydown', {key: 'Enter', metaKey: true}));
        fixture.detectChanges();
        expect(dialogCloseSpy).toHaveBeenCalledWith('newlabel');
      });
@@ -111,9 +109,9 @@ describe('Client Add Label Dialog', () => {
     fixture.detectChanges();
     expect(dialogCloseSpy).not.toHaveBeenCalled();
 
-    const inputForm = fixture.debugElement.query(By.css('input'));
-    (inputForm.nativeElement as HTMLInputElement)
-        .dispatchEvent(new KeyboardEvent('keyup', {key: 'Enter'}));
+    const inputForm = fixture.debugElement.query(By.css('form'));
+    inputForm.nativeElement.dispatchEvent(
+        new KeyboardEvent('keydown', {key: 'Enter', metaKey: true}));
     fixture.detectChanges();
     expect(dialogCloseSpy).not.toHaveBeenCalled();
   });

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A simple thread pool for the Google Response Rig.
 
 This file defines a simple thread pool that is used throughout this

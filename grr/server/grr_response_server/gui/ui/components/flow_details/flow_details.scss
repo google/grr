@@ -11,6 +11,7 @@
   background-color: mat.get-color-from-palette(c.$background, app-bar);
   border: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
   border-radius: 8px;
+  overflow: hidden;
 
   .header {
     padding: 18px 0 18px 24px;
@@ -22,18 +23,7 @@
     }
 
     .flow-title {
-      font-family: c.$google-sans-display-family;
       font-size: 105%;
-      color: mat.get-color-from-palette(c.$foreground, text);
-      text-decoration: none;
-
-      mat-icon {
-        visibility: hidden;
-      }
-
-      &:hover mat-icon {
-        visibility: visible;
-      }
     }
 
     .col-left {
@@ -45,6 +35,10 @@
     .flow-id {
       font-size: 10px;
       color: mat.get-color-from-palette(c.$foreground, text-light);
+    }
+
+    app-timestamp {
+      white-space: nowrap;
     }
 
     .export-button,
@@ -88,5 +82,16 @@
         left: -5.5px;
       }
     }
+  }
+
+  .flow-args {
+    padding: 18px 24px;
+  }
+
+  .error-description-container {
+    color: mat.get-color-from-palette(c.$foreground, danger-light);
+    padding: 0 c.$card-margin;
+    white-space: break-spaces;
+    overflow-wrap: break-word;
   }
 }

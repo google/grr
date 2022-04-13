@@ -24,7 +24,7 @@
   </div>
 
   <div class="content">
-    <div *ngIf="latestApproval" [ngSwitch]="latestApproval.status.type">
+    <div *ngIf="latestApproval" [ngSwitch]="latestApproval.status.type" class="latest-approval">
       <table *ngSwitchCase="'pending'">
         <tr>
           <td><strong>Request sent to: </strong></td>
@@ -83,7 +83,8 @@
 
     <form
       *ngIf="!latestApproval || showForm || (latestApproval.status.type!=='pending' && latestApproval.status.type!=='valid')"
-      (submit)="submitRequest()"
+      [appSubmitOnMetaEnter]="true"
+      (submit)="submitRequest($event)"
       [formGroup]="form"
       [class.form-border]="!!latestApproval"
       autocomplete="off"
@@ -154,6 +155,7 @@
         type="submit"
         [disabled]="submitDisabled$ | async"
         class="progress-spinner-button"
+        [matTooltip]="'CTRL/⌘ + ENTER'"
       >
       <mat-spinner
         *ngIf="requestInProgress$ | async"

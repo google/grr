@@ -249,7 +249,9 @@ class Artifact(rdf_structs.RDFProtoStruct):
       "urls",
       # List of strings that describe knowledge_base entries that this artifact
       # can supply.
-      "provides"
+      "provides",
+      # List of alternate names.
+      "aliases"
   ]
 
   # These labels represent the full set of labels that an Artifact can have.
@@ -262,27 +264,32 @@ class Artifact(rdf_structs.RDFProtoStruct):
       "Authentication": "Authentication artifacts.",
       "Browser": "Web Browser artifacts.",
       "Cloud": "Cloud applications artifacts.",
-      "Cloud Storage": "Cloud Storage artifacts.",
+      "Cloud Storage": "Cloud storage artifacts.",
       "Configuration Files": "Configuration files artifacts.",
+      "Containerd": "Containerd artifacts",
       "Docker": "Docker artifacts.",
       "Execution": "Contain execution events.",
-      "ExternalAccount": ("Information about any users\' account, e.g."
-                          " username, account ID, etc."),
-      "External Media": "Contain external media data / events e.g. USB drives.",
+      "ExternalAccount": ("Information about any user accounts e.g. username, "
+                          "account ID, etc."),
+      "External Media":
+          ("Contain external media data or events e.g. USB drives."),
       "Hadoop": "Hadoop artifacts.",
-      "History Files": "History files artifacts e.g. .bash_history.",
       "IM": "Instant Messaging / Chat applications artifacts.",
       "iOS": "Artifacts related to iOS devices connected to the system.",
-      "KnowledgeBase": "Artifacts used in knowledgebase generation.",
+      "History Files": "History files artifacts e.g. .bash_history.",
+      "KnowledgeBase": "Artifacts used in knowledge base generation.",
+      "Kubernetes": "Kubernetes artifacts",
       "Logs": "Contain log files.",
       "Mail": "Mail client applications artifacts.",
-      "Memory": "Artifacts retrieved from Memory.",
+      "Memory": "Artifacts retrieved from memory.",
       "Network": "Describe networking state.",
+      "Plist": "Artifact that is a plist.",
       "Processes": "Describe running processes.",
-      "Software": "Installed software.",
-      "System": "Core system artifacts.",
-      "Users": "Information about users.",
       "Rekall": "Artifacts using the Rekall memory forensics framework.",
+      "Software": "Installed software.",
+      "SQLiteDB": "Artifact that is a SQLite database.",
+      "System": "Core system artifacts.",
+      "Users": "Information about users."
   }
 
   SUPPORTED_OS_LIST = ["Windows", "Linux", "Darwin"]

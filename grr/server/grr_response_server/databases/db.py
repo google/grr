@@ -8,10 +8,12 @@ a logical relational database model.
 import abc
 import collections
 import re
+from typing import Collection
 from typing import Dict
 from typing import Iterable
 from typing import Iterator
 from typing import List
+from typing import NamedTuple
 from typing import Optional
 from typing import Sequence
 from typing import Set
@@ -27,6 +29,7 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
@@ -435,6 +438,19 @@ FlowStateAndTimestamps = collections.namedtuple("FlowStateAndTimestamps", [
     "create_time",
     "last_update_time",
 ])
+
+
+class SearchClientsResult(NamedTuple):
+  """The result of a structured search."""
+
+  clients: Sequence[str]
+  """Sequence of clients."""
+
+  continuation_token: bytes
+  """The continuation token for the search."""
+
+  num_remaining_results: int
+  """Estimated number of remaining results."""
 
 
 class ClientPath(object):
@@ -998,11 +1014,11 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def ReadAllClientLabels(self) -> List[rdf_objects.ClientLabel]:
+  def ReadAllClientLabels(self) -> Collection[str]:
     """Lists all client labels known to the system.
 
     Returns:
-      A list of rdfvalue.objects.ClientLabel values.
+      A collection of labels in the system.
     """
 
   @abc.abstractmethod
@@ -1405,15 +1421,6 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def MultiWritePathInfos(self, path_infos):
-    """Writes a collection of path info records for specified clients.
-
-    Args:
-      path_infos: A dictionary mapping client ids to `rdf_objects.PathInfo`
-        instances.
-    """
-
-  @abc.abstractmethod
   def ReadPathInfosHistories(
       self,
       client_id: Text,
@@ -1609,8 +1616,8 @@ class Database(metaclass=abc.ABCMeta):
     Args:
       handler: Method, which will be called repeatedly with lists of leased
         objects.MessageHandlerRequest. Required.
-      lease_time: rdfvalue.Duration indicating how long the lease should
-        be valid. Required.
+      lease_time: rdfvalue.Duration indicating how long the lease should be
+        valid. Required.
       limit: Limit for the number of leased requests to give one execution of
         handler.
     """
@@ -1724,8 +1731,8 @@ class Database(metaclass=abc.ABCMeta):
     Args:
       cronjob_ids: A list of cronjob ids that should be leased. If None, all
         available cronjobs will be leased.
-      lease_time: rdfvalue.Duration indicating how long the lease should
-        be valid.
+      lease_time: rdfvalue.Duration indicating how long the lease should be
+        valid.
 
     Returns:
       A list of cronjobs.CronJob objects that were leased.
@@ -1855,8 +1862,8 @@ class Database(metaclass=abc.ABCMeta):
 
     Args:
       client_id: The client for which the requests should be leased.
-      lease_time: rdfvalue.Duration indicating how long the lease should
-        be valid.
+      lease_time: rdfvalue.Duration indicating how long the lease should be
+        valid.
       limit: Lease at most <limit> requests. If set, must be less than 10000.
         Default is 5000.
 
@@ -2301,11 +2308,14 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def WriteFlowLogEntries(self, entries):
-    """Writes flow log entries for a given flow.
+  def WriteFlowLogEntry(self, entry: rdf_flow_objects.FlowLogEntry) -> None:
+    """Writes a single flow log entry to the database.
 
     Args:
-      entries: An iterable of FlowLogEntry values.
+      entry: A log entry to write.
+
+    Returns:
+      Nothing.
     """
 
   @abc.abstractmethod
@@ -2346,11 +2356,14 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def WriteFlowOutputPluginLogEntries(self, entries):
-    """Writes flow output plugin log entries for a given flow.
+  def WriteFlowOutputPluginLogEntry(
+      self,
+      entry: rdf_flow_objects.FlowOutputPluginLogEntry,
+  ) -> None:
+    """Writes a single output plugin log entry to the database.
 
     Args:
-      entries: An iterable of FlowOutputPluginLogEntry values.
+      entry: An output plugin flow entry to write.
     """
 
   @abc.abstractmethod
@@ -2935,6 +2948,24 @@ class Database(metaclass=abc.ABCMeta):
       creator: str) -> Sequence[rdf_flow_objects.ScheduledFlow]:
     """Lists all ScheduledFlows for the client and creator."""
 
+  @abc.abstractmethod
+  def StructuredSearchClients(self, expression: rdf_search.SearchExpression,
+                              sort_order: rdf_search.SortOrder,
+                              continuation_token: bytes,
+                              number_of_results: int) -> SearchClientsResult:
+    """Perform a search for clients.
+
+    Args:
+      expression: The search expression to use for the search.
+      sort_order: The sorting order to return the results in.
+      continuation_token: The continuation token, if any.
+      number_of_results: The number of clients to return at most.
+
+    Returns:
+      A tuple containing a sequence of client IDs, a continuation token and the
+      number of remaining results.
+    """
+
 
 class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
@@ -3190,9 +3221,9 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.RemoveClientLabels(client_id, owner, labels)
 
-  def ReadAllClientLabels(self) -> List[rdf_objects.ClientLabel]:
+  def ReadAllClientLabels(self) -> Collection[str]:
     result = self.delegate.ReadAllClientLabels()
-    precondition.AssertIterableType(result, rdf_objects.ClientLabel)
+    precondition.AssertIterableType(result, str)
     return result
 
   def WriteClientStats(self, client_id: Text,
@@ -3428,14 +3459,6 @@ class DatabaseValidationWrapper(Database):
     precondition.ValidateClientId(client_id)
     _ValidatePathInfos(path_infos)
     return self.delegate.WritePathInfos(client_id, path_infos)
-
-  def MultiWritePathInfos(self, path_infos):
-    precondition.AssertType(path_infos, dict)
-    for client_id, client_path_infos in path_infos.items():
-      precondition.ValidateClientId(client_id)
-      _ValidatePathInfos(client_path_infos)
-
-    return self.delegate.MultiWritePathInfos(path_infos)
 
   def InitPathInfos(self, client_id, path_infos):
     precondition.ValidateClientId(client_id)
@@ -3955,15 +3978,13 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.CountFlowErrors(
         client_id, flow_id, with_tag=with_tag, with_type=with_type)
 
-  def WriteFlowLogEntries(self, entries):
-    for e in entries:
-      precondition.ValidateClientId(e.client_id)
-      precondition.ValidateFlowId(e.flow_id)
-      if e.HasField("hunt_id") and e.hunt_id:
-        _ValidateHuntId(e.hunt_id)
-    precondition.AssertIterableType(entries, rdf_flow_objects.FlowLogEntry)
+  def WriteFlowLogEntry(self, entry: rdf_flow_objects.FlowLogEntry) -> None:
+    precondition.ValidateClientId(entry.client_id)
+    precondition.ValidateFlowId(entry.flow_id)
+    if entry.HasField("hunt_id") and entry.hunt_id:
+      _ValidateHuntId(entry.hunt_id)
 
-    return self.delegate.WriteFlowLogEntries(entries)
+    return self.delegate.WriteFlowLogEntry(entry)
 
   def ReadFlowLogEntries(self,
                          client_id,
@@ -3984,16 +4005,18 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.CountFlowLogEntries(client_id, flow_id)
 
-  def WriteFlowOutputPluginLogEntries(self, entries):
-    for e in entries:
-      precondition.AssertType(e, rdf_flow_objects.FlowOutputPluginLogEntry)
+  def WriteFlowOutputPluginLogEntry(
+      self,
+      entry: rdf_flow_objects.FlowOutputPluginLogEntry,
+  ) -> None:
+    """Writes a single output plugin log entry to the database."""
+    precondition.AssertType(entry, rdf_flow_objects.FlowOutputPluginLogEntry)
+    precondition.ValidateClientId(entry.client_id)
+    precondition.ValidateFlowId(entry.flow_id)
+    if entry.hunt_id:
+      _ValidateHuntId(entry.hunt_id)
 
-      precondition.ValidateClientId(e.client_id)
-      precondition.ValidateFlowId(e.flow_id)
-      if e.hunt_id:
-        _ValidateHuntId(e.hunt_id)
-
-    return self.delegate.WriteFlowOutputPluginLogEntries(entries)
+    return self.delegate.WriteFlowOutputPluginLogEntry(entry)
 
   def ReadFlowOutputPluginLogEntries(self,
                                      client_id,
@@ -4276,8 +4299,8 @@ class DatabaseValidationWrapper(Database):
                                time_range=None):
     _ValidateLabel(client_label)
     if (report_type == rdf_stats.ClientGraphSeries.ReportType.UNKNOWN or
-        str(report_type) not in rdf_stats.ClientGraphSeries.ReportType.enum_dict
-       ):
+        str(report_type)
+        not in rdf_stats.ClientGraphSeries.ReportType.enum_dict):
       raise ValueError("Invalid report type given: %s" % report_type)
     precondition.AssertOptionalType(time_range, time_utils.TimeRange)
     return self.delegate.ReadAllClientGraphSeries(
@@ -4286,8 +4309,8 @@ class DatabaseValidationWrapper(Database):
   def ReadMostRecentClientGraphSeries(self, client_label, report_type):
     _ValidateLabel(client_label)
     if (report_type == rdf_stats.ClientGraphSeries.ReportType.UNKNOWN or
-        str(report_type) not in rdf_stats.ClientGraphSeries.ReportType.enum_dict
-       ):
+        str(report_type)
+        not in rdf_stats.ClientGraphSeries.ReportType.enum_dict):
       raise ValueError("Invalid report type given: %s" % report_type)
     return self.delegate.ReadMostRecentClientGraphSeries(
         client_label, report_type)
@@ -4329,6 +4352,11 @@ class DatabaseValidationWrapper(Database):
     precondition.ValidateClientId(client_id)
     _ValidateUsername(creator)
     return self.delegate.ListScheduledFlows(client_id, creator)
+
+  def StructuredSearchClients(self, expression: rdf_search.SearchExpression,
+                              continuation_token: bytes,
+                              number_of_results: int) -> SearchClientsResult:
+    return self.delegate.StructuredSearchClient(expression, continuation_token)
 
 
 def _ValidateEnumType(value, expected_enum_type):

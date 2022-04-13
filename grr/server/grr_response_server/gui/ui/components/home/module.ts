@@ -12,6 +12,7 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {ApiModule} from '../../lib/api/module';
+import {SubmitOnMetaEnterModule} from '../form/submit_on_meta_enter/submit_on_meta_enter_module';
 import {OnlineChipModule} from '../online_chip/module';
 import {TimestampModule} from '../timestamp/module';
 
@@ -42,10 +43,11 @@ import {SearchBox} from './search_box';
     MatToolbarModule,
 
     // GRR modules.
-    HomeRoutingModule,
     ApiModule,
-    TimestampModule,
+    HomeRoutingModule,
     OnlineChipModule,
+    SubmitOnMetaEnterModule,
+    TimestampModule,
   ],
   declarations: [Home, SearchBox],
 })

@@ -14,7 +14,6 @@ import {ClientSearchModule} from './module';
 
 
 
-
 initTestEnvironment();
 
 function htmlCollectionToList(c: HTMLCollection): Element[] {
@@ -47,7 +46,6 @@ describe('ClientSearch Component', () => {
               useFactory: () => store,
             },
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

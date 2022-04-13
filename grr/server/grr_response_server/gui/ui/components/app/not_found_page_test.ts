@@ -5,7 +5,6 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {STORE_PROVIDERS} from '../../store/store_test_providers';
 
 import {AppModule} from './app_module';
-
 import {NotFoundPage} from './not_found_page';
 
 describe('NotFoundPage Component', () => {
@@ -16,7 +15,6 @@ describe('NotFoundPage Component', () => {
             AppModule, RouterTestingModule,
             NoopAnimationsModule,  // This makes test faster and more stable.
           ],
-
           providers: [
             ...STORE_PROVIDERS,
           ],

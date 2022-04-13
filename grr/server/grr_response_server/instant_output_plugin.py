@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Instant output plugins used by the API for on-the-fly conversion."""
 
 import functools

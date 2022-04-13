@@ -12,7 +12,6 @@ import {EntryHistoryDialog, EntryHistoryDialogParams} from './entry_history_dial
 import {EntryHistoryDialogModule} from './module';
 
 
-
 initTestEnvironment();
 
 describe('Entry History Dialog', () => {
@@ -53,7 +52,6 @@ describe('Entry History Dialog', () => {
           providers: [
             {provide: MAT_DIALOG_DATA, useFactory: () => providedData},
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

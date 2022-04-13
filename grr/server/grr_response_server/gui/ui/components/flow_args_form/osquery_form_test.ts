@@ -6,7 +6,6 @@ import {MatChipListHarness} from '@angular/material/chips/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-
 import {FlowArgsFormModule} from '../../components/flow_args_form/module';
 import {OsqueryFlowArgs} from '../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../testing';
@@ -26,7 +25,6 @@ describe('OsqueryForm', () => {
             ReactiveFormsModule,
             FlowArgsFormModule,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();
@@ -34,7 +32,8 @@ describe('OsqueryForm', () => {
 
   function constructFixture(defaultFlowArgs: OsqueryFlowArgs = {}) {
     const fixture = TestBed.createComponent(OsqueryForm);
-    fixture.componentInstance.defaultFlowArgs = defaultFlowArgs;
+    fixture.detectChanges();
+    fixture.componentInstance.resetFlowArgs(defaultFlowArgs);
     fixture.detectChanges();
     return fixture;
   }
@@ -133,7 +132,7 @@ describe('OsqueryForm', () => {
 
     const chips = await collectionListHarness.getChips();
     const valuesInForm =
-        fixture.componentInstance.form.get('fileCollectionColumns')?.value;
+        fixture.componentInstance.controls.fileCollectionColumns.value;
 
     expect(chips.length).toBe(1);
     expect(valuesInForm).toEqual(['column1']);

@@ -459,6 +459,22 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertEqual(snapshot.edr_agents[0].name, "echo")
     self.assertEqual(snapshot.edr_agents[0].agent_id, "1337")
 
+  @parser_test_lib.WithAllParsers
+  def testSourceFlowIdIsSet(self):
+    client_id = self._SetupMinimalClient()
+    client_mock = action_mocks.InterrogatedClient()
+    client_mock.InitializeClient()
+    with test_lib.SuppressLogs():
+      flow_id = flow_test_lib.TestFlowHelper(
+          discovery.Interrogate.__name__,
+          client_mock,
+          creator=self.test_username,
+          client_id=client_id)
+
+    client = self._OpenClient(client_id)
+    self.assertNotEmpty(client.metadata.source_flow_id)
+    self.assertEqual(client.metadata.source_flow_id, flow_id)
+
 
 def main(argv):
   # Run the full test suite

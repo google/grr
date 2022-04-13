@@ -78,6 +78,9 @@ export declare interface ApiClientInformation {
   readonly clientBinaryName?: string;
   readonly clientDescription?: string;
   readonly labels?: ReadonlyArray<string>;
+  readonly timelineBtimeSupport?: boolean;
+  readonly sandboxSupport?: boolean;
+  readonly hardwareInfo?: HardwareInfo;
 }
 
 /** ApiWindowsVolume proto mapping. */
@@ -132,6 +135,55 @@ export declare interface ApiUname {
   readonly pep425tag?: string;
 }
 
+/** GoogleCloudInstance proto mapping. */
+export declare interface GoogleCloudInstance {
+  readonly uniqueId?: string;
+  readonly zone?: string;
+  readonly projectId?: string;
+  readonly instanceId?: string;
+  readonly hostname?: string;
+  readonly machineType?: string;
+}
+
+/** AmazonCloudInstance proto mapping. */
+export declare interface AmazonCloudInstance {
+  readonly instanceId?: string;
+  readonly amiId?: string;
+  readonly hostname?: string;
+  readonly publicHostname?: string;
+  readonly instanceType?: string;
+}
+
+/** CloudInstance.InstanceType proto mapping. */
+export enum CloudInstanceInstanceType {
+  UNSET = 'UNSET',
+  AMAZON = 'AMAZON',
+  GOOGLE = 'GOOGLE',
+}
+
+/** CloudInstance proto mapping. */
+export declare interface CloudInstance {
+  readonly cloudType?: CloudInstanceInstanceType;
+  readonly google?: GoogleCloudInstance;
+  readonly amazon?: AmazonCloudInstance;
+}
+
+/** HardwareInfo proto mapping. */
+export declare interface HardwareInfo {
+  readonly serialNumber?: string;
+  readonly systemManufacturer?: string;
+  readonly systemProductName?: string;
+  readonly systemUuid?: string;
+  readonly systemSkuNumber?: string;
+  readonly systemFamily?: string;
+  readonly biosVendor?: string;
+  readonly biosVersion?: string;
+  readonly biosReleaseDate?: string;
+  readonly biosRomSize?: string;
+  readonly biosRevision?: string;
+  readonly systemAssettag?: string;
+}
+
 /**
  * ApiListClientsLabelsResult proto mapping.
  */
@@ -158,6 +210,7 @@ export declare interface ApiRemoveClientsLabelsArgs {
  */
 export declare interface ApiClient {
   readonly clientId?: string;
+  readonly sourceFlowId?: string;
   readonly urn?: string;
 
   readonly fleetspeakEnabled?: boolean;
@@ -176,6 +229,8 @@ export declare interface ApiClient {
   readonly lastClock?: string;
   readonly labels?: ReadonlyArray<ApiClientLabel>;
   readonly age?: string;
+  readonly cloudInstance?: CloudInstance;
+  readonly hardwareInfo?: HardwareInfo;
 }
 
 /**
@@ -258,6 +313,7 @@ export declare interface ApiFlow {
   readonly args?: AnyObject;
   readonly progress?: AnyObject;
   readonly state?: ApiFlowState;
+  readonly errorDescription?: string;
   readonly resultMetadata?: FlowResultMetadata;
 }
 
@@ -1243,6 +1299,17 @@ export declare interface ApiListFilesResult {
   readonly items?: ReadonlyArray<ApiFile>;
 }
 
+/** ApiBrowseFilesystemEntry proto mapping. */
+export declare interface ApiBrowseFilesystemEntry {
+  readonly path?: string;
+  readonly children?: ReadonlyArray<ApiFile>;
+}
+
+/** ApiBrowseFilesystemResult proto mapping. */
+export declare interface ApiBrowseFilesystemResult {
+  readonly items?: ReadonlyArray<ApiBrowseFilesystemEntry>;
+}
+
 /** ApiCreateVfsRefreshOperationArgs proto mapping. */
 export declare interface ApiCreateVfsRefreshOperationArgs {
   readonly clientId?: string;
@@ -1399,8 +1466,8 @@ export declare interface ApiCreateHuntArgs {
 }
 
 /**
- * ApiHunt proto mapping. Only keeps huntId because other fields are not in use
- * for UI.
+ * ApiHunt proto mapping. Only keeps huntId because other fields are not in
+ * use for UI.
  */
 export declare interface ApiHunt {
   readonly huntId?: string;
@@ -1552,4 +1619,9 @@ export declare interface BufferReference {
   readonly callback?: string;
   readonly data?: ByteString;
   readonly pathspec?: PathSpec;
+}
+
+/** OnlineNotificationArgs proto mapping. */
+export declare interface OnlineNotificationArgs {
+  readonly email?: string;
 }

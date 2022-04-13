@@ -240,8 +240,7 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=.flow-title:contains('ListDirectory')")
 
-    self.Click("css=button[aria-label='Flow menu']")
-    self.Click("css=button:contains('View arguments')")
+    self.Click("css=result-accordion .title:contains('Flow arguments')")
 
     self.WaitUntil(self.IsElementPresent, "css=input.path-input")
     path_input = self.GetElement("css=input.path-input")

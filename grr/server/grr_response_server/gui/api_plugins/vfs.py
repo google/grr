@@ -4,8 +4,13 @@
 import itertools
 import os
 import re
+from typing import Collection
+from typing import Dict
+from typing import Iterator
+from typing import Optional
+from typing import Set
+from typing import Tuple
 import zipfile
-
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -27,6 +32,7 @@ from grr_response_server import notification
 from grr_response_server.databases import db
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import client
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -355,6 +361,41 @@ class ApiListFilesResult(rdf_structs.RDFProtoStruct):
   ]
 
 
+def _PathInfoToApiFile(path_info: rdf_objects.PathInfo) -> ApiFile:
+  """Converts a PathInfo to an ApiFile."""
+  if path_info.path_type == rdf_objects.PathInfo.PathType.OS:
+    prefix = "fs/os/"
+  elif path_info.path_type == rdf_objects.PathInfo.PathType.TSK:
+    prefix = "fs/tsk/"
+  elif path_info.path_type == rdf_objects.PathInfo.PathType.NTFS:
+    prefix = "fs/ntfs/"
+  elif path_info.path_type == rdf_objects.PathInfo.PathType.REGISTRY:
+    prefix = "registry/"
+  elif path_info.path_type == rdf_objects.PathInfo.PathType.TEMP:
+    prefix = "temp/"
+  else:
+    raise ValueError(f"Unknown PathType {path_info.path_type}")
+
+  api_file = ApiFile(
+      name=path_info.basename,
+      path=prefix + "/".join(path_info.components),
+      # TODO(hanuszczak): `PathInfo#directory` tells us whether given path has
+      # ever been observed as a directory. Is this what we want here or should
+      # we use `st_mode` information instead?
+      is_directory=path_info.directory,
+      age=path_info.timestamp,
+  )
+
+  if path_info.stat_entry:
+    api_file.stat = path_info.stat_entry
+
+  if path_info.last_hash_entry_timestamp:
+    api_file.last_collected = path_info.last_hash_entry_timestamp
+    api_file.last_collected_size = path_info.hash_entry.num_bytes
+
+  return api_file
+
+
 class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the child files for a given file."""
 
@@ -443,35 +484,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
       if args.directories_only and not child_path_info.directory:
         continue
 
-      child_item = ApiFile()
-      child_item.name = child_path_info.basename
-
-      if path_type == rdf_objects.PathInfo.PathType.OS:
-        prefix = "fs/os/"
-      elif path_type == rdf_objects.PathInfo.PathType.TSK:
-        prefix = "fs/tsk/"
-      elif path_type == rdf_objects.PathInfo.PathType.NTFS:
-        prefix = "fs/ntfs/"
-      elif path_type == rdf_objects.PathInfo.PathType.REGISTRY:
-        prefix = "registry/"
-      elif path_type == rdf_objects.PathInfo.PathType.TEMP:
-        prefix = "temp/"
-
-      child_item.path = prefix + "/".join(child_path_info.components)
-
-      # TODO(hanuszczak): `PathInfo#directory` tells us whether given path has
-      # ever been observed as a directory. Is this what we want here or should
-      # we use `st_mode` information instead?
-      child_item.is_directory = child_path_info.directory
-      if child_path_info.stat_entry:
-        child_item.stat = child_path_info.stat_entry
-      child_item.age = child_path_info.timestamp
-
-      if child_path_info.last_hash_entry_timestamp:
-        child_item.last_collected = child_path_info.last_hash_entry_timestamp
-        child_item.last_collected_size = child_path_info.hash_entry.num_bytes
-
-      items.append(child_item)
+      items.append(_PathInfoToApiFile(child_path_info))
 
     # TODO(hanuszczak): Instead of getting the whole list from the database and
     # then filtering the results we should do the filtering directly in the
@@ -489,6 +502,120 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
       items = items[args.offset:]
 
     return ApiListFilesResult(items=items)
+
+
+class ApiBrowseFilesystemArgs(rdf_structs.RDFProtoStruct):
+  protobuf = vfs_pb2.ApiBrowseFilesystemArgs
+  rdf_deps = [
+      client.ApiClientId,
+      rdfvalue.RDFDatetime,
+  ]
+
+
+class ApiBrowseFilesystemEntry(rdf_structs.RDFProtoStruct):
+  protobuf = vfs_pb2.ApiBrowseFilesystemEntry
+  rdf_deps = [
+      ApiFile,
+  ]
+
+
+class ApiBrowseFilesystemResult(rdf_structs.RDFProtoStruct):
+  protobuf = vfs_pb2.ApiBrowseFilesystemResult
+  rdf_deps = [
+      ApiBrowseFilesystemEntry,
+  ]
+
+
+class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
+  """List OS, TSK, NTFS files & directories in a given VFS directory."""
+
+  args_type = ApiBrowseFilesystemArgs
+  result_type = ApiBrowseFilesystemResult
+
+  def Handle(
+      self,
+      args: ApiBrowseFilesystemArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> ApiBrowseFilesystemResult:
+    del context  # Unused.
+    last_components = rdf_objects.ParsePath(args.path)
+    client_id = args.client_id.ToString()
+    results = []
+
+    path_types_to_query = {
+        rdf_objects.PathInfo.PathType.OS,
+        rdf_objects.PathInfo.PathType.TSK,
+        rdf_objects.PathInfo.PathType.NTFS,
+    }
+
+    if args.include_directory_tree:
+      all_components = self._GetDirectoryTree(last_components)
+    else:
+      all_components = [last_components]
+
+    for cur_components in all_components:
+      path_types_to_query, children = self._ListDirectory(
+          client_id, path_types_to_query, cur_components, args.timestamp)
+
+      if children is None:
+        # When the current directory was not found, stop querying because
+        # no transitive children can possibly exist.
+        break
+
+      results.append(
+          ApiBrowseFilesystemEntry(
+              path="/" + "/".join(cur_components), children=children))
+
+    return ApiBrowseFilesystemResult(items=results)
+
+  def _GetDirectoryTree(
+      self, components: Collection[str]) -> Iterator[Collection[str]]:
+    yield []  # First, yield the root folder "/".
+    for i in range(len(components)):
+      yield components[:i + 1]
+
+  def _MergePathInfos(self, path_infos: Dict[str, rdf_objects.PathInfo],
+                      cur_path_infos: Collection[rdf_objects.PathInfo]) -> None:
+    """Merges PathInfos from different PathTypes (OS, TSK, NTFS)."""
+
+    for pi in cur_path_infos:
+      existing = path_infos.get(pi.basename)
+      # If the VFS has the same file in two PathTypes, use the latest collected
+      # version.
+      if existing is None or existing.timestamp < pi.timestamp:
+        path_infos[pi.basename] = pi
+
+  def _ListDirectory(
+      self, client_id: str,
+      path_types: Collection["rdf_objects.PathInfo.PathType"],
+      components: Collection[str], timestamp: rdfvalue.RDFDatetime
+  ) -> Tuple[Set["rdf_objects.PathInfo.PathType"],
+             Optional[Collection[ApiFile]]]:
+    path_infos = {}
+    existing_path_types = set(path_types)
+
+    for path_type in path_types:
+      try:
+        cur_path_infos = data_store.REL_DB.ListChildPathInfos(
+            client_id=client_id,
+            path_type=path_type,
+            components=components,
+            timestamp=timestamp)
+      except (db.UnknownPathError, db.NotDirectoryPathError):
+        # Whenever a directory cannot be found with a given PathType, we remove
+        # this PathType from the list of existing PathTypes to not wastefully
+        # try to load children of a folder whose parent is known to not exist.
+        existing_path_types.remove(path_type)
+        continue
+
+      self._MergePathInfos(path_infos, cur_path_infos)
+
+    if existing_path_types:
+      api_files = [_PathInfoToApiFile(pi) for pi in path_infos.values()]
+      api_files.sort(key=lambda api_file: api_file.name)
+      return existing_path_types, api_files
+    else:
+      return existing_path_types, None
 
 
 class ApiGetFileTextArgs(rdf_structs.RDFProtoStruct):

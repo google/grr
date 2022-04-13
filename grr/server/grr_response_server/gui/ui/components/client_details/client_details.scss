@@ -1,14 +1,14 @@
-@use '@angular/material' as mat;
-@use '../../material-theme' as c;
-@use '../../main' as main;
+@use "@angular/material" as mat;
+@use "../../material-theme" as c;
+@use "../../main" as main;
 
 .details-container {
   display: flex;
-  height: calc(100vh - #{main.$toolbar-height});
-  width: 1200px;
+  height: 100%;
 
   .timeline {
-    border-right: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
+    border-right: 1px solid
+      mat.get-color-from-palette(c.$foreground, divider-light);
     padding-right: 1em;
     overflow: auto;
 
@@ -36,17 +36,23 @@
       height: auto;
       border-radius: 0 14px 14px 0;
 
+      .bullet-row {
+        display: flex;
+        font-size: 11px;
+      }
+
       .timestamp {
         margin-left: 20px;
         font-weight: 500;
-        font-size: 11px;
-        line-height: 16px;
-        letter-spacing: 0.8px;
+
+        pointer-events: none;
+        white-space: nowrap;
       }
 
       .change-list {
-        margin-left: 7px;
-        border-left: 1px solid mat.get-color-from-palette(c.$foreground, divider);
+        margin-left: 5px;
+        border-left: 1px solid
+          mat.get-color-from-palette(c.$foreground, divider);
         padding-left: 27px;
       }
     }
@@ -58,16 +64,36 @@
   }
 
   .info {
-    padding: 20px 150px;
-    text-align: center;
+    box-sizing: border-box;
+    padding: 20px clamp(10px, 5vw, 150px);
     overflow: auto;
     flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    row-gap: c.$container-padding;
+
+    & > * {
+      // padding-right of the parent .info is somehow not respected by texts in
+      // table cells.
+      margin-right: clamp(10px, 5vw, 150px);
+    }
 
     .section-title {
       display: flex;
       font-weight: bold;
-      text-align: left;
-      border-bottom: 1px solid mat.get-color-from-palette(c.$foreground, divider);
+      border-bottom: 1px solid
+        mat.get-color-from-palette(c.$foreground, divider);
+      margin-bottom: 0;
+
+      &.client-title {
+        position: relative;
+
+        mat-icon {
+          position: absolute;
+          left: -8px;
+          transform: translateX(-100%);
+        }
+      }
 
       entry-history-button {
         height: 16px;
@@ -76,10 +102,13 @@
       }
     }
 
-    .section {
-      font-family: c.$google-sans-family;
-      text-align: left;
+    interfaces-details,
+    users-details,
+    volumes-details {
+      display: contents;
+    }
 
+    .section {
       .description {
         min-width: 10em;
         vertical-align: top;
@@ -87,13 +116,13 @@
 
       .value {
         font-weight: 500;
-      }
-    }
+        width: 100%;
 
-    .empty-section {
-      font-family: c.$google-sans-family;
-      text-align: left;
-      font-weight: 300;
+        mat-chip-list {
+          display: inline-block;
+          vertical-align: middle;
+        }
+      }
     }
   }
 }

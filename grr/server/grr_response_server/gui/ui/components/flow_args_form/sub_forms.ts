@@ -14,12 +14,13 @@ import {ListDirectoryForm} from './list_directory_form';
 import {ListNamedPipesForm} from './list_named_pipes_form';
 import {ListProcessesForm} from './list_processes_form';
 import {NetstatForm} from './netstat_form';
+import {OnlineNotificationForm} from './online_notification_form';
 import {OsqueryForm} from './osquery_form';
 import {ReadLowLevelForm} from './read_low_level_form';
 import {TimelineForm} from './timeline_form';
 
 /** Mapping from flow name to Component class to configure the Flow. */
-export const FORMS: {[key: string]: Type<FlowArgumentForm<unknown>>} = {
+export const FORMS: {[key: string]: Type<FlowArgumentForm<{}>>} = {
   'ArtifactCollectorFlow': ArtifactCollectorFlowForm,
   'CollectBrowserHistory': CollectBrowserHistoryForm,
   'CollectFilesByKnownPath': CollectFilesByKnownPathForm,
@@ -31,6 +32,7 @@ export const FORMS: {[key: string]: Type<FlowArgumentForm<unknown>>} = {
   'ListNamedPipesFlow': ListNamedPipesForm,
   'ListProcesses': ListProcessesForm,
   'Netstat': NetstatForm,
+  'OnlineNotification': OnlineNotificationForm,
   'OsqueryFlow': OsqueryForm,
   'ReadLowLevel': ReadLowLevelForm,
   'TimelineFlow': TimelineForm,

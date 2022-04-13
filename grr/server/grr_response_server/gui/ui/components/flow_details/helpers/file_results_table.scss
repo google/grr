@@ -31,7 +31,8 @@ table {
     font-size: inherit;
   }
 
-  td.mat-cell, th.mat-header-cell {
+  td.mat-cell,
+  th.mat-header-cell {
     padding: 0.5em 0.25em;
 
     &:last-of-type {
@@ -72,14 +73,15 @@ table {
 
   .number {
     white-space: nowrap;
+    width: 10%;
   }
 
   .timestamp {
     width: 10%;
   }
 
-  .number {
-    width: 10%;
+  .centralized {
+    text-align: center;
   }
 }
 

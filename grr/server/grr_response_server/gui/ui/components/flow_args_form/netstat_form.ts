@@ -1,8 +1,7 @@
-import {Component, OnInit, Output} from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
-import {shareReplay} from 'rxjs/operators';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {UntypedFormControl} from '@angular/forms';
 
-import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {NetstatArgs} from '../../lib/api/api_interfaces';
 
 /**
@@ -12,18 +11,19 @@ import {NetstatArgs} from '../../lib/api/api_interfaces';
   selector: 'netstat-form',
   templateUrl: './netstat_form.ng.html',
   styleUrls: ['./netstat_form.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+
 })
-export class NetstatForm extends FlowArgumentForm<NetstatArgs> implements
-    OnInit {
-  readonly controls = {
-    listeningOnly: new FormControl(),
-  };
-  readonly form = new FormGroup(this.controls);
-
-  @Output() readonly formValues$ = this.form.valueChanges.pipe(shareReplay(1));
-  @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
-
-  ngOnInit() {
-    this.form.patchValue(this.defaultFlowArgs);
+export class NetstatForm extends FlowArgumentForm<NetstatArgs> {
+  override makeControls(): Controls<NetstatArgs> {
+    return {
+      listeningOnly: new UntypedFormControl(),
+    };
+  }
+  override convertFlowArgsToFormState(flowArgs: NetstatArgs): NetstatArgs {
+    return flowArgs;
+  }
+  override convertFormStateToFlowArgs(formState: NetstatArgs): NetstatArgs {
+    return formState;
   }
 }

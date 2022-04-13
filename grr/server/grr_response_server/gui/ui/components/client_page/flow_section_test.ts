@@ -13,7 +13,6 @@ import {Approval} from '../approval/approval';
 import {ClientDetailsModule} from '../client_details/module';
 
 import {ClientPageModule} from './client_page_module';
-
 import {FlowSection} from './flow_section';
 import {CLIENT_PAGE_ROUTES} from './routing';
 
@@ -35,7 +34,6 @@ describe('FlowSection', () => {
             ...STORE_PROVIDERS,
             {provide: ActivatedRoute, useFactory: getActivatedChildRoute},
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

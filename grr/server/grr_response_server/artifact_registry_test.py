@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import textwrap
 from unittest import mock
 
 from absl import app
@@ -131,29 +131,14 @@ class ArtifactTest(absltest.TestCase):
         name="Quux",
         doc="This is Quux.",
         provides=["os"],
-        labels=["Cloud", "Logs"],
         supported_os=["Solaris"])
 
     with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError, "'Solaris'"):
       ar.ValidateSyntax(artifact)
 
-  def testValidateSyntaxInvalidLabel(self):
-    artifact = rdf_artifacts.Artifact(
-        name="Norf",
-        doc="This is Norf.",
-        provides=["domain"],
-        labels=["Mail", "Browser", "Reddit"],
-        supported_os=["Darwin"])
-
-    with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError, "'Reddit'"):
-      ar.ValidateSyntax(artifact)
-
   def testValidateSyntaxBrokenProvides(self):
     artifact = rdf_artifacts.Artifact(
-        name="Thud",
-        doc="This is Thud.",
-        provides=["fqdn", "garbage"],
-        labels=["Network"])
+        name="Thud", doc="This is Thud.", provides=["fqdn", "garbage"])
 
     with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError, "'garbage'"):
       ar.ValidateSyntax(artifact)
@@ -168,7 +153,6 @@ class ArtifactTest(absltest.TestCase):
         name="Barf",
         doc="This is Barf.",
         provides=["os"],
-        labels=["Logs", "Memory"],
         sources=[source])
 
     with self.assertRaisesRegex(rdf_artifacts.ArtifactSyntaxError,
@@ -255,6 +239,35 @@ class ArtifactSourceTest(absltest.TestCase):
 
 
 class ArtifactRegistryTest(absltest.TestCase):
+
+  def testArtifactsFromYamlIgnoresDeprecatedFields(self):
+    registry = ar.ArtifactRegistry()
+
+    yaml = textwrap.dedent("""\
+    name: Foo
+    doc: Lorem ipsum.
+    labels: ['bar', 'baz']
+    sources:
+      - type: PATH
+        attributes:
+          paths: ['/bar', '/baz']
+    ---
+    name: Quux
+    doc: Lorem ipsum.
+    labels: ['norf', 'thud']
+    sources:
+      - type: PATH
+        attributes:
+          paths: ['/norf', '/thud']
+    """)
+    artifacts = registry.ArtifactsFromYaml(yaml)
+    artifacts.sort(key=lambda artifact: artifact.name)
+
+    self.assertLen(artifacts, 2)
+    self.assertEqual(artifacts[0].name, "Foo")
+    self.assertFalse(artifacts[0].HasField("labels"))
+    self.assertEqual(artifacts[1].name, "Quux")
+    self.assertFalse(artifacts[1].HasField("labels"))
 
   def testDatabaseArtifactsAreLoadedEvenIfNoDatastoreIsRegistered(self):
     rel_db = data_store.REL_DB

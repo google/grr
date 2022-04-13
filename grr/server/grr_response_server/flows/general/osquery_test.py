@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-
 import hashlib
 import io
 import json
 import os
 import time
+from typing import Sequence
 from unittest import mock
 
 from absl import app
@@ -16,10 +16,12 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.util import temp
 from grr_response_core.lib.util import text
+from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
 from grr_response_server.databases import db
 from grr_response_server.flows.general import osquery as osquery_flow
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import osquery_test_lib
@@ -166,7 +168,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         query="<<<FAKE OSQUERY FLOW QUERY PLACEHOLDER>>>",
         **kwargs)
 
-  def _RunFlow(self, **kwargs) -> str:
+  def _RunFlow(self, **kwargs) -> Sequence[rdf_osquery.OsqueryResult]:
     flow_id = self._InitializeFlow(**kwargs)
     return flow_test_lib.GetFlowResults(self.client_id, flow_id)
 
@@ -192,10 +194,24 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(list(table.Column("baz")), ["thud", "ztesch"])
 
   def testFailure(self):
-    stderr = "Error: near '*': syntax error"
+    stderr = "Error: query syntax error"
+
     with osquery_test_lib.FakeOsqueryiOutput(stdout="", stderr=stderr):
+      flow_id = flow_test_lib.StartFlow(
+          flow_cls=osquery_flow.OsqueryFlow,
+          client_id=self.client_id,
+          creator=self.test_username,
+          query="<<<FAKE OSQUERY FLOW QUERY PLACEHOLDER>>>")
+
       with self.assertRaises(RuntimeError):
-        self._RunFlow()
+        flow_test_lib.RunFlow(
+            client_id=self.client_id,
+            flow_id=flow_id,
+            client_mock=action_mocks.OsqueryClientMock())
+
+    flow = data_store.REL_DB.ReadFlowObject(self.client_id, flow_id)
+    self.assertEqual(flow.flow_state, rdf_flow_objects.Flow.FlowState.ERROR)
+    self.assertIn(stderr, flow.error_message)
 
   def testSmallerTruncationLimit(self):
     two_row_table = """
@@ -525,7 +541,7 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
         flow_test_lib.GetFlowObj(self.client_id, flow_id))
     results = flow_test_lib.GetRawFlowResults(self.client_id, flow_id)
 
-    mappings = list(flow.GetFilesArchiveMappings(results))
+    mappings = list(flow.GetFilesArchiveMappings(iter(results)))
     self.assertCountEqual(mappings, [
         flow_base.ClientPathArchiveMapping(
             db.ClientPath.OS(self.client_id,
@@ -556,12 +572,12 @@ class FakeOsqueryFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     flow = flow_base.FlowBase.CreateFlowInstance(
         flow_test_lib.GetFlowObj(self.client_id, flow_id))
-    results = flow_test_lib.GetRawFlowResults(self.client_id, flow_id)
+    results = list(flow_test_lib.GetRawFlowResults(self.client_id, flow_id))
 
     # This is how we emulate duplicate filenames in the results
     duplicated_results = results + results + results
 
-    mappings = list(flow.GetFilesArchiveMappings(duplicated_results))
+    mappings = list(flow.GetFilesArchiveMappings(iter(duplicated_results)))
     self.assertCountEqual(mappings, [
         flow_base.ClientPathArchiveMapping(
             db.ClientPath.OS(self.client_id,

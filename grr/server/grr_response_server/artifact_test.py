@@ -803,7 +803,6 @@ class GrrKbLinuxTest(GrrKbTest):
         doc="Foo bar baz.",
         sources=[foo_artifact_source],
         provides=["os"],
-        labels=["System"],
         supported_os=["Linux"])
 
     with artifact_test_lib.PatchCleanArtifactRegistry():

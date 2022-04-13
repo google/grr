@@ -3,7 +3,7 @@
 
 import logging
 import threading
-
+import warnings
 
 import MySQLdb
 
@@ -134,6 +134,12 @@ class _ConnectionProxy(object):
   def cursor(self):
     return _CursorProxy(self, self.con.cursor())
 
+  def warning_count(self):
+    return self.con.warning_count()
+
+  def show_warnings(self):
+    return self.con.show_warnings()
+
 
 class _CursorProxy(object):
   """A proxy/wrapper of an underlying database cursor object.
@@ -190,7 +196,13 @@ class _CursorProxy(object):
           "cursor.execute() can execute a single SQL statement only")
 
     try:
-      return self._forward(self.cursor.execute, query, args=args)
+      result = self._forward(self.cursor.execute, query, args=args)
+      if MySQLdb.version_info >= (1, 4, 0) and self.con.warning_count():
+        # Newer MySQLdb versions do not automatically turn MySQL warnings into
+        # Python warnings, so this behavior must be implemented explicitly.
+        for warning in self.con.show_warnings():
+          warnings.warn(MySQLdb.Warning(*warning[1:3]), stacklevel=3)
+      return result
     except Warning as e:
       # TODO: check if newer versions of mysqlclient report
       # integrity errors as MySQLdb.IntegrityError exceptions and

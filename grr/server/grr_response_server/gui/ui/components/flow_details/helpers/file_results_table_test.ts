@@ -7,7 +7,7 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
-import {FlowFileResult, flowFileResultFromStatEntry} from '../../../components/flow_details/helpers/file_results_table';
+import {FlowFileResult, flowFileResultFromStatEntry, StatusIcon} from '../../../components/flow_details/helpers/file_results_table';
 import {newPathSpec} from '../../../lib/api/api_test_util';
 import {translateStatEntry} from '../../../lib/api_translation/flow';
 import {StatEntry} from '../../../lib/models/vfs';
@@ -15,7 +15,6 @@ import {initTestEnvironment} from '../../../testing';
 import {TimestampTestingModule} from '../../timestamp/module';
 
 import {HelpersModule} from './module';
-
 
 
 
@@ -54,7 +53,6 @@ describe('FileResultsTable Component', () => {
           declarations: [
             TestHostComponent,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();
@@ -160,20 +158,21 @@ describe('FileResultsTable Component', () => {
     const fixture = createComponent(
         [
           flowFileResultFromStatEntry(
-              createStatEntry(0), undefined, 'in progress'),
-          flowFileResultFromStatEntry(createStatEntry(1), {}, 'done'),
+              createStatEntry(0), undefined, {icon: StatusIcon.IN_PROGRESS}),
+          flowFileResultFromStatEntry(
+              createStatEntry(1), {}, {icon: StatusIcon.CHECK}),
         ],
         2,
     );
     enum CellIndexOf {
       PATH = 1,
-      STATUS,
       MODE,
       SIZE,
       ATIME,
       MTIME,
       CTIME,
       BTIME,
+      STATUS,
     }
 
     const rows = fixture.nativeElement.querySelectorAll('tr');
@@ -183,7 +182,6 @@ describe('FileResultsTable Component', () => {
     let cells = rows[1].querySelectorAll('td');
     expect(cells[CellIndexOf.PATH].innerText.trim())
         .toContain('/home/foo/bar/0');
-    expect(cells[CellIndexOf.STATUS].innerText).toContain('in progress');
     expect(cells[CellIndexOf.MODE].innerText).toContain('-rw-r--r--');
     expect(cells[CellIndexOf.SIZE].innerText).toContain('142 B');
     expect(cells[CellIndexOf.ATIME].innerText)
@@ -194,11 +192,13 @@ describe('FileResultsTable Component', () => {
         .toContain('1970-06-12 00:53:20 UTC');
     expect(cells[CellIndexOf.BTIME].innerText)
         .toContain('1974-06-09 08:53:20 UTC');
+    expect(cells[CellIndexOf.STATUS].querySelector('mat-progress-spinner'))
+        .not.toBe(null);
+    expect(cells[CellIndexOf.STATUS].querySelector('mat-icon')).toBe(null);
 
     cells = rows[2].querySelectorAll('td');
     expect(cells[CellIndexOf.PATH].innerText.trim())
         .toContain('/home/foo/bar/1');
-    expect(cells[CellIndexOf.STATUS].innerText).toContain('done');
     expect(cells[CellIndexOf.MODE].innerText).toContain('-rw-r--r--');
     expect(cells[CellIndexOf.SIZE].innerText).toContain('242 B');
     expect(cells[CellIndexOf.ATIME].innerText)
@@ -209,6 +209,10 @@ describe('FileResultsTable Component', () => {
         .toContain('1970-10-05 18:40:00 UTC');
     expect(cells[CellIndexOf.BTIME].innerText)
         .toContain('1977-08-09 18:40:00 UTC');
+    expect(cells[CellIndexOf.STATUS].innerText).toContain('check');
+    expect(cells[CellIndexOf.STATUS].querySelector('mat-progress-spinner'))
+        .toBe(null);
+    expect(cells[CellIndexOf.STATUS].querySelector('mat-icon')).not.toBe(null);
   });
 
 

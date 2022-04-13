@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Module containing code for user notifications reading/writing."""
 
 from grr_response_server import access_control

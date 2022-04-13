@@ -9,7 +9,6 @@ import {initTestEnvironment} from '../../../testing';
 import {HexView} from './hex_view';
 import {HexViewModule} from './hex_view_module';
 
-
 initTestEnvironment();
 
 describe('HexView Component', () => {
@@ -24,7 +23,6 @@ describe('HexView Component', () => {
             HexViewModule,
           ],
           providers: [],
-
           teardown: {destroyAfterEach: false}
         })
         .overrideProvider(

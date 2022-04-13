@@ -21,7 +21,6 @@ import {FlowPickerModule} from './module';
 
 
 
-
 initTestEnvironment();
 
 function getAutocompleteHarness(fixture: ComponentFixture<FlowPicker>) {
@@ -34,11 +33,13 @@ const COMMON_FILE_FLOWS: ReadonlyArray<FlowListItem> = [
     name: 'CollectMultipleFiles',
     friendlyName: 'Collect multiple files',
     description: 'by search criteria',
+    enabled: true,
   },
   {
     name: 'CollectSingleFile',
     friendlyName: 'Collect single file',
     description: 'by well-known path',
+    enabled: true,
   },
 ];
 
@@ -59,12 +60,14 @@ describe('FlowPicker Component', () => {
             {
               name: 'ArtifactCollectorFlow',
               friendlyName: 'Forensic artifacts',
-              description: 'Foo'
+              description: 'Foo',
+              enabled: true,
             },
             {
               name: 'OsqueryFlow',
               friendlyName: 'Osquery',
               description: 'Bar',
+              enabled: true,
             },
           ]
         ],
@@ -75,6 +78,18 @@ describe('FlowPicker Component', () => {
               name: 'CollectBrowserHistory',
               friendlyName: 'Collect browser history',
               description: 'Something',
+              enabled: true,
+            },
+          ]
+        ],
+        [
+          'Administrative',
+          [
+            {
+              name: 'LaunchBinary',
+              friendlyName: 'Launch Binary',
+              description: 'Something',
+              enabled: false,
             },
           ]
         ],
@@ -90,7 +105,6 @@ describe('FlowPicker Component', () => {
             FlowPickerModule,
             RouterTestingModule,
           ],
-
           providers: [
             {
               provide: FlowListItemService,
@@ -291,6 +305,7 @@ describe('FlowPicker Component', () => {
       name: 'CollectBrowserHistory',
       friendlyName: 'Collect browser history',
       description: '',
+      enabled: true,
     };
     const matAutocomplete: MatAutocomplete =
         fixture.debugElement.query(By.directive(MatAutocomplete))
@@ -302,6 +317,18 @@ describe('FlowPicker Component', () => {
 
     expect(clientPageGlobalStore.startFlowConfiguration)
         .toHaveBeenCalledWith('CollectBrowserHistory');
+  });
+
+  it('disables restricted flow list entries', async () => {
+    const fixture = TestBed.createComponent(FlowPicker);
+    fixture.detectChanges();
+    await fixture.whenRenderingDone();
+
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
+    await autocompleteHarness.enterText('binary');
+    const options = await autocompleteHarness.getOptions();
+    expect(await options[0].isDisabled()).toBeTrue();
   });
 
   it('deselects the Flow on X button click', async () => {
@@ -317,6 +344,7 @@ describe('FlowPicker Component', () => {
       name: 'CollectBrowserHistory',
       friendlyName: 'Collect browser history',
       description: '',
+      enabled: true,
     };
     const matAutocomplete: MatAutocomplete =
         fixture.debugElement.query(By.directive(MatAutocomplete))
@@ -352,6 +380,7 @@ describe('FlowPicker Component', () => {
          name: 'CollectBrowserHistory',
          friendlyName: 'Collect browser history',
          description: '',
+         enabled: true,
        };
        const matAutocomplete: MatAutocomplete =
            fixture.debugElement.query(By.directive(MatAutocomplete))
@@ -381,7 +410,8 @@ describe('FlowPicker Component', () => {
     flowChips.flowSelected.emit({
       name: 'ArtifactCollectorFlow',
       friendlyName: 'Forensic artifacts',
-      description: 'Foo'
+      description: 'Foo',
+      enabled: true,
     });
     fixture.detectChanges();
 

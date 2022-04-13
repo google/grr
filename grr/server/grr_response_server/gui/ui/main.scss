@@ -1,5 +1,5 @@
-@use '@angular/material' as mat;
-@use './material-theme' as c;
+@use "@angular/material" as mat;
+@use "./material-theme" as c;
 
 @import 'material-theme';
 
@@ -25,11 +25,6 @@ html {
   right: 86px;
   top: 1.6em;
   height: 3em;
-}
-
-.flow-details-summary-aligned {
-  position: absolute;
-  right: 86px;
 }
 
 .monospace,
@@ -82,25 +77,37 @@ html {
 
 a:any-link {
   color: inherit;
+  text-decoration: none;
 }
 
-.button-group > .mat-stroked-button,
-.button-group > .mat-button-base {
-  &:first-child:not(:last-child) {
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
-  }
+a.text-link:any-link,
+a.text-link-hover:hover {
+  color: mat.get-color-from-palette(c.$foreground, link);
+  text-decoration: underline;
+}
 
-  &:not(:first-child) {
-    border-left: none;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
-  }
+.button-group {
+  white-space: nowrap;
+  display: flex;
 
-  &.dropdown-button {
-    padding-left: 0;
-    padding-right: 0;
-    min-width: 24px;
+  & > .mat-stroked-button,
+  & > .mat-button-base {
+    &:first-child:not(:last-child) {
+      border-top-right-radius: 0;
+      border-bottom-right-radius: 0;
+    }
+
+    &:not(:first-child) {
+      border-left: none;
+      border-top-left-radius: 0;
+      border-bottom-left-radius: 0;
+    }
+
+    &.dropdown-button {
+      padding-left: 0;
+      padding-right: 0;
+      min-width: 24px;
+    }
   }
 }
 
@@ -119,6 +126,11 @@ a:any-link {
   }
 }
 
+a:any-link .mat-chip,
+a:any-link .mat-standard-chip {
+  cursor: inherit;
+}
+
 .green-chip,
 .mat-chip.green-chip {
   background-color: mat.get-color-from-palette(c.$foreground, success-light);
@@ -135,6 +147,10 @@ a:any-link {
 .mat-chip.dark-chip {
   background-color: mat.get-color-from-palette(c.$foreground, divider);
   color: white;
+}
+
+.mat-chip.mat-standard-chip.mat-chip-disabled {
+  opacity: initial;
 }
 
 mat-option {
@@ -160,6 +176,10 @@ mat-option {
   display: none !important;
 }
 
+.viz-hidden {
+  visibility: hidden;
+}
+
 .inline-chip {
   align-items: center;
   background: rgba(0, 0, 0, 0.1);
@@ -169,4 +189,40 @@ mat-option {
   padding: 0 8px;
   white-space: nowrap;
   user-select: none;
+}
+
+.material-icons {
+  user-select: none;
+}
+
+.key-value-table {
+  tr > td:first-of-type {
+    min-width: 10em;
+    vertical-align: top;
+  }
+
+  tr > td:last-of-type {
+    width: 100%;
+    font-weight: 500;
+  }
+}
+
+flow-details app-flow-args-view {
+  button,
+  .mat-button,
+  .mat-icon-button,
+  .mat-stroked-button,
+  .mat-flat-button
+    .mat-form-field:not(.mat-form-field-appearance-legacy)
+    .mat-form-field-prefix
+    .mat-icon-button,
+  .mat-form-field:not(.mat-form-field-appearance-legacy)
+    .mat-form-field-suffix
+    .mat-icon-button {
+    display: none;
+  }
+}
+
+.mat-tree {
+  background: none;
 }

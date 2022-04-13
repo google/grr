@@ -2,7 +2,7 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {combineLatest, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {FlowFileResult} from '../../../components/flow_details/helpers/file_results_table';
+import {FlowFileResult, statusFromPathSpecProgressStatus} from '../../../components/flow_details/helpers/file_results_table';
 import {MultiGetFileArgs, MultiGetFileProgress} from '../../../lib/api/api_interfaces';
 import {StatEntry} from '../../../lib/models/vfs';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
@@ -48,7 +48,10 @@ export class MultiGetFileDetails extends Plugin {
         // in the table or not.
         return results?.map((result): FlowFileResult => {
           const fileStatus = fileProgress.get(result?.pathspec?.path);
-          return {statEntry: result, status: fileStatus?.status?.toString()};
+          return {
+            statEntry: result,
+            status: statusFromPathSpecProgressStatus(fileStatus?.status)
+          };
         });
       }));
 

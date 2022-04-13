@@ -1,23 +1,24 @@
-import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
-import {ReplaySubject} from 'rxjs';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
 
-import {FlowArgumentForm} from './form_interface';
+import {Controls, FlowArgumentForm} from './form_interface';
 
 /** Fallback to display when no form is configured for a Flow. */
 @Component({
   template: '',
   changeDetection: ChangeDetectionStrategy.OnPush,
+
 })
 export class FallbackFlowArgsForm<T extends {}> extends
-    FlowArgumentForm<T> implements OnInit {
-  private readonly formValuesSubject = new ReplaySubject<T>(1);
-  private readonly statusSubject = new ReplaySubject<'VALID'>(1);
+    FlowArgumentForm<T, {}> {
+  override makeControls(): Controls<{}> {
+    return {};
+  }
 
-  @Output() readonly formValues$ = this.formValuesSubject.asObservable();
-  @Output() readonly status$ = this.statusSubject.asObservable();
+  override convertFlowArgsToFormState(flowArgs: T): T {
+    return flowArgs;
+  }
 
-  ngOnInit() {
-    this.formValuesSubject.next(this.defaultFlowArgs);
-    this.statusSubject.next('VALID');
+  override convertFormStateToFlowArgs(formState: {}): T {
+    return formState as T;
   }
 }

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """E2E tests for the timeline flow."""
 import csv
 import io

@@ -397,13 +397,12 @@ class DatabaseTestHuntMixin(object):
 
     client_id, flow_id = self._SetupHuntClientAndFlow(
         client_id="C.12345678901234aa", hunt_id=hunt_obj.hunt_id)
-    self.db.WriteFlowLogEntries([
+    self.db.WriteFlowLogEntry(
         rdf_flow_objects.FlowLogEntry(
             client_id=client_id,
             flow_id=flow_id,
             hunt_id=hunt_obj.hunt_id,
-            message="blah")
-    ])
+            message="blah"))
 
     hunt_log_entries = self.db.ReadHuntLogEntries(hunt_obj.hunt_id, 0, 10)
     self.assertLen(hunt_log_entries, 1)
@@ -415,19 +414,19 @@ class DatabaseTestHuntMixin(object):
 
   def _WriteNestedAndNonNestedLogEntries(self, hunt_obj):
     client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_obj.hunt_id)
-    self.db.WriteFlowLogEntries([
-        # Top-level hunt-induced flows should have the hunt's ID.
+    # Top-level hunt-induced flows should have the hunt's ID.
+    self.db.WriteFlowLogEntry(
         rdf_flow_objects.FlowLogEntry(
             client_id=client_id,
             flow_id=flow_id,
             hunt_id=hunt_obj.hunt_id,
-            message="blah_a"),
+            message="blah_a"))
+    self.db.WriteFlowLogEntry(
         rdf_flow_objects.FlowLogEntry(
             client_id=client_id,
             flow_id=flow_id,
             hunt_id=hunt_obj.hunt_id,
-            message="blah_b")
-    ])
+            message="blah_b"))
 
     for i in range(10):
       _, nested_flow_id = self._SetupHuntClientAndFlow(
@@ -435,18 +434,18 @@ class DatabaseTestHuntMixin(object):
           parent_flow_id=flow_id,
           hunt_id=hunt_obj.hunt_id,
           flow_id=flow.RandomFlowId())
-      self.db.WriteFlowLogEntries([
+      self.db.WriteFlowLogEntry(
           rdf_flow_objects.FlowLogEntry(
               client_id=client_id,
               flow_id=nested_flow_id,
               hunt_id=hunt_obj.hunt_id,
-              message="blah_a_%d" % i),
+              message="blah_a_%d" % i))
+      self.db.WriteFlowLogEntry(
           rdf_flow_objects.FlowLogEntry(
               client_id=client_id,
               flow_id=nested_flow_id,
               hunt_id=hunt_obj.hunt_id,
-              message="blah_b_%d" % i)
-      ])
+              message="blah_b_%d" % i))
 
   def testReadHuntLogEntriesIgnoresNestedFlows(self):
     hunt_obj = rdf_hunt_objects.Hunt(description="foo")
@@ -475,13 +474,12 @@ class DatabaseTestHuntMixin(object):
     for i in range(10):
       client_id, flow_id = self._SetupHuntClientAndFlow(
           client_id="C.12345678901234a%d" % i, hunt_id=hunt_obj.hunt_id)
-      self.db.WriteFlowLogEntries([
+      self.db.WriteFlowLogEntry(
           rdf_flow_objects.FlowLogEntry(
               client_id=client_id,
               flow_id=flow_id,
               hunt_id=hunt_obj.hunt_id,
-              message="%s%d" % (msg, i))
-      ])
+              message="%s%d" % (msg, i)))
 
     return hunt_obj
 
@@ -1441,14 +1439,13 @@ class DatabaseTestHuntMixin(object):
     output_plugin_id = "1"
     client_id, flow_id = self._SetupHuntClientAndFlow(
         client_id="C.12345678901234aa", hunt_id=hunt_obj.hunt_id)
-    self.db.WriteFlowOutputPluginLogEntries([
+    self.db.WriteFlowOutputPluginLogEntry(
         rdf_flow_objects.FlowOutputPluginLogEntry(
             client_id=client_id,
             flow_id=flow_id,
             output_plugin_id=output_plugin_id,
             hunt_id=hunt_obj.hunt_id,
-            message="blah")
-    ])
+            message="blah"))
 
     hunt_op_log_entries = self.db.ReadHuntOutputPluginLogEntries(
         hunt_obj.hunt_id, output_plugin_id, 0, 10)
@@ -1473,15 +1470,14 @@ class DatabaseTestHuntMixin(object):
         log_entry_type = enum.ERROR
       else:
         log_entry_type = enum.LOG
-      self.db.WriteFlowOutputPluginLogEntries([
+      self.db.WriteFlowOutputPluginLogEntry(
           rdf_flow_objects.FlowOutputPluginLogEntry(
               client_id=client_id,
               flow_id=flow_id,
               hunt_id=hunt_obj.hunt_id,
               output_plugin_id=output_plugin_id,
               log_entry_type=log_entry_type,
-              message="blah%d" % i)
-      ])
+              message="blah%d" % i))
 
     return hunt_obj
 

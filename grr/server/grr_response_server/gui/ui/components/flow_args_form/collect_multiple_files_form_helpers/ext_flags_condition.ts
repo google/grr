@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
-import {ControlContainer, FormControl, FormGroup} from '@angular/forms';
+import {ControlContainer, UntypedFormControl, UntypedFormGroup} from '@angular/forms';
 import {distinctUntilChanged, map, startWith} from 'rxjs/operators';
 
 import {safeTranslateOperatingSystem} from '../../../lib/api_translation/flow';
@@ -64,16 +64,16 @@ export class ExtFlagsCondition {
   readonly showLinux$ = this.os$.pipe(map(os => os !== OperatingSystem.DARWIN));
   readonly showOsx$ = this.os$.pipe(map(os => os !== OperatingSystem.LINUX));
 
-  get formGroup(): FormGroup {
-    return this.controlContainer.control as FormGroup;
+  get formGroup(): UntypedFormGroup {
+    return this.controlContainer.control as UntypedFormGroup;
   }
 
-  static createFormGroup(): FormGroup {
-    return new FormGroup({
-      linuxBitsSet: new FormControl(0),
-      linuxBitsUnset: new FormControl(0),
-      osxBitsSet: new FormControl(0),
-      osxBitsUnset: new FormControl(0),
+  static createFormGroup(): UntypedFormGroup {
+    return new UntypedFormGroup({
+      linuxBitsSet: new UntypedFormControl(0),
+      linuxBitsUnset: new UntypedFormControl(0),
+      osxBitsSet: new UntypedFormControl(0),
+      osxBitsUnset: new UntypedFormControl(0),
     });
   }
 

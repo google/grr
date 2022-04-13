@@ -21,7 +21,7 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
 
   readonly selectedFD$ = this.clientPageGlobalStore.selectedFlowDescriptor$;
 
-  @ViewChild('form') form!: ElementRef<HTMLFormElement>;
+  @ViewChild('form') formElement!: ElementRef<HTMLFormElement>;
 
   @ViewChild(FlowArgsForm) flowArgsForm!: FlowArgsForm;
 
@@ -57,15 +57,21 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
   ngOnInit() {}
 
   ngAfterViewInit() {
-    fromEvent(this.form.nativeElement, 'submit')
+    fromEvent(this.formElement.nativeElement, 'submit')
         .pipe(
             takeUntil(this.ngOnDestroy.triggered$),
-            withLatestFrom(this.flowArgsForm.flowArgValues$, this.hasAccess$),
+            withLatestFrom(
+                this.flowArgsForm.flowArgValues$,
+                this.hasAccess$,
+                this.disabled$,
+                ),
             )
-        .subscribe(([e, flowArgs, hasApproval]) => {
+        .subscribe(([e, flowArgs, hasApproval, disabled]) => {
           e.preventDefault();
 
-          if (hasApproval) {
+          if (disabled) {
+            return;
+          } else if (hasApproval) {
             this.clientPageGlobalStore.startFlow(flowArgs);
           } else {
             this.clientPageGlobalStore.scheduleFlow(flowArgs);
@@ -73,6 +79,8 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
         });
 
     this.flowArgsForm.valid$.pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(this.flowArgsFormValid$);
+        .subscribe(valid => {
+          this.flowArgsFormValid$.next(valid);
+        });
   }
 }

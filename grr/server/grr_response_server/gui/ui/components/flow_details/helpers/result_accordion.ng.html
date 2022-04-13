@@ -1,21 +1,41 @@
-<div class="row">
-  <div class="header" (click)="toggle()" [ngClass]="{'is-open': isOpen}">
-    <div class="title">
-      <span>{{ title }}</span>
-    </div>
-
-    <div *ngIf="status || description" [class]="rowClass">
-      <mat-progress-spinner *ngIf="status === IN_PROGRESS" mode="indeterminate" diameter="20" strokeWidth="1"></mat-progress-spinner>
-      <div class="flow-details-summary-aligned" *ngIf="status !== IN_PROGRESS && description">
-        <span class="row-text">{{ description }}</span>
+<div class="row" [class]="colorSchemeClass">
+  <div
+    class="header"
+    (click)="toggle()"
+    [ngClass]="{'is-open': isOpen, 'expandable': isOpen || expandable}"
+  >
+    <div class="left-aligned">
+      <div *ngIf="title" class="title">
+        <span>{{ title }}</span>
       </div>
-      <span *ngIf="icon" class="material-icons">{{icon}}</span>
+
+      <div *ngIf="preview" class="preview" [class]="colorSchemeClass">
+        {{ preview }}
+      </div>
     </div>
 
-    <div class="expansion-indicator">
-      <span *ngIf="isOpen || expandable" class="material-icons arrow-icon">
-        {{ isOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
-      </span>
+    <div class="right-aligned">
+      <div *ngIf="status || description" [class]="rowClass">
+        <mat-progress-spinner
+          *ngIf="status === IN_PROGRESS"
+          mode="indeterminate"
+          diameter="20"
+          strokeWidth="1"
+        ></mat-progress-spinner>
+        <div
+          class="flow-details-summary-aligned"
+          *ngIf="status !== IN_PROGRESS && description"
+        >
+          <span class="description">{{ description }}</span>
+        </div>
+        <span *ngIf="icon" class="material-icons">{{icon}}</span>
+      </div>
+
+      <div class="expansion-indicator">
+        <span *ngIf="isOpen || expandable" class="material-icons arrow-icon">
+          {{ isOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
+        </span>
+      </div>
     </div>
   </div>
 

@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, OnInit, Output} from '@angular/core';
-import {ControlContainer, FormControl, FormGroup} from '@angular/forms';
+import {ControlContainer, UntypedFormControl, UntypedFormGroup} from '@angular/forms';
 import {combineLatest, Observable, zip} from 'rxjs';
 import {map, shareReplay} from 'rxjs/operators';
 
@@ -38,8 +38,8 @@ export class SizeCondition implements OnInit {
 
   @Output() conditionRemoved = new EventEmitter<void>();
 
-  get formGroup(): FormGroup {
-    return this.controlContainer.control as FormGroup;
+  get formGroup(): UntypedFormGroup {
+    return this.controlContainer.control as UntypedFormGroup;
   }
 
   ngOnInit() {
@@ -122,11 +122,11 @@ function getFormattedRawBytes(
 }
 
 /** Initializes a form group corresponding to the size condition. */
-export function createSizeFormGroup(): FormGroup {
-  const minFileSize = new FormControl();
-  const maxFileSize = new FormControl(DEFAULT_MAX_FILE_SIZE);
+export function createSizeFormGroup(): UntypedFormGroup {
+  const minFileSize = new UntypedFormControl();
+  const maxFileSize = new UntypedFormControl(DEFAULT_MAX_FILE_SIZE);
 
-  return new FormGroup(
+  return new UntypedFormGroup(
       {
         minFileSize,
         maxFileSize,

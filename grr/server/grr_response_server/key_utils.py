@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This file abstracts the loading of the private key."""
 
 from cryptography import x509

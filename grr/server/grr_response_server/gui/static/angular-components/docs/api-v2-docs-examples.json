@@ -9,6 +9,7 @@
         },
         "clientId": "C.1000000000000000",
         "creator": "",
+        "errorDescription": "Cancelled in GUI",
         "flowId": "W:ABCDEF",
         "lastActiveAt": "4242000000",
         "name": "ListProcesses",
@@ -1289,7 +1290,10 @@
               "type": "ClientSnapshot",
               "value": {
                 "@type": "type.googleapis.com/grr.ClientSnapshot",
-                "clientId": "C.1000000000000000"
+                "clientId": "C.1000000000000000",
+                "metadata": {
+                  "sourceFlowId": "F:ABCDEF12"
+                }
               }
             },
             {
@@ -1329,6 +1333,7 @@
           "status": "Pending termination: Some reason"
         },
         "creator": "api_test_user",
+        "errorDescription": "Pending termination: Some reason",
         "flowId": "F:ABCDEF13",
         "lastActiveAt": "42000000",
         "name": "Interrogate",
@@ -1360,7 +1365,10 @@
               "type": "ClientSnapshot",
               "value": {
                 "@type": "type.googleapis.com/grr.ClientSnapshot",
-                "clientId": "C.1000000000000000"
+                "clientId": "C.1000000000000000",
+                "metadata": {
+                  "sourceFlowId": "F:ABCDEF13"
+                }
               }
             },
             {
@@ -2824,6 +2832,19 @@
             "type": "EnumNamedValue"
           },
           {
+            "default": {
+              "@type": "type.googleapis.com/google.protobuf.StringValue",
+              "value": ""
+            },
+            "doc": "Describes the error that happened while executing the flow, truncated if over 4 KB.",
+            "dynamic": false,
+            "friendlyName": "Error description",
+            "index": 18,
+            "name": "error_description",
+            "repeated": false,
+            "type": "RDFString"
+          },
+          {
             "doc": "When flow was created.",
             "dynamic": false,
             "friendlyName": "Started at",
@@ -3432,9 +3453,6 @@
                 "os_major_version >= 6"
               ],
               "doc": "Extract the installed drivers on Windows via WMI.",
-              "labels": [
-                "Software"
-              ],
               "name": "TestDrivers",
               "sources": [
                 {

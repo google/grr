@@ -6,6 +6,7 @@ import {filter, map, mergeMap, switchMapTo, tap} from 'rxjs/operators';
 import {HttpApiService} from '../lib/api/http_api_service';
 import {translateClient} from '../lib/api_translation/client';
 import {Client} from '../lib/models/client';
+import {isNonNull} from '../lib/preconditions';
 
 import {ClientVersion, getClientEntriesChanged, getClientVersions} from './client_details_diff';
 
@@ -84,11 +85,7 @@ class ClientDetailsComponentStore extends ComponentStore<ClientDetailsState> {
 
   /** An observable emitting the client versions of the selected client */
   readonly selectedClientVersions$ =
-      this.select(store => store.clientVersions)
-          .pipe(filter(
-              (clientVersions):
-                  clientVersions is ReadonlyArray<ClientVersion> =>
-                      clientVersions !== undefined));
+      this.select(store => store.clientVersions).pipe(filter(isNonNull));
 
   /**
    * An observable emitting the client changed entries of the selected client

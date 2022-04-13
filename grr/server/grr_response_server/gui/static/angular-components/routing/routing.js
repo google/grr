@@ -1,6 +1,7 @@
 goog.module('grrUi.routing.routing');
 goog.module.declareLegacyNamespace();
 
+const {NewUiButtonDirective} = goog.require('grrUi.routing.newUiButtonDirective');
 const {RoutingService} = goog.require('grrUi.routing.routingService');
 const {encodeUrlPath} = goog.require('grrUi.core.apiService');
 const {rewriteUrl} = goog.require('grrUi.routing.rewriteUrl');
@@ -63,7 +64,9 @@ exports.routingModule
               } else {
                 return 'Client List';
               }
-            }
+            },
+            newUiUrl: (params) =>
+                '/v2/clients?q=' + encodeURIComponent(params['q']),
           })
           .state('apiDocs', {
             url: '/api-docs',
@@ -79,7 +82,11 @@ exports.routingModule
             template: '<grr-client-approval-view />',
             title: function(params) {
               return ['Approvals', params['username'], params['clientId']];
-            }
+            },
+            newUiUrl: (params) => '/v2/clients/' +
+                encodeURIComponent(params['clientId']) + '/users/' +
+                encodeURIComponent(params['username']) + '/approvals/' +
+                encodeURIComponent(params['approvalId']),
           })
           .state('huntApproval', {
             url: '/users/:username/approvals/hunt/:huntId/:approvalId',
@@ -170,24 +177,37 @@ exports.routingModule
             template: '<div ui-view></div>',
             title: function(params) {
               return params['clientId'];
-            }
+            },
+            newUiUrl: (params) =>
+                '/v2/clients/' + encodeURIComponent(params['clientId']),
           })
           .state('client.hostInfo', {
             url: '/host-info?reason',
             template: '<grr-host-info />',
-            title: 'Host Information'
+            title: 'Host Information',
+            newUiUrl: (params) =>
+                '/v2/clients/' + encodeURIComponent(params['clientId']),
           })
           .state('client.launchFlows', {
             url: '/launch-flow',
             template: '<grr-start-flow-view />',
-            title: 'Launch Flows'
+            title: 'Launch Flows',
+            newUiUrl: (params) =>
+                '/v2/clients/' + encodeURIComponent(params['clientId']),
           })
           .state('client.vfs', {
             url: '/vfs/{path:pathWithUnescapedSlashes}?version&mode&tab',
             template: '<grr-file-view />',
             title: function(params) {
               return '/' + (params['path'] || '');
-            }
+            },
+            newUiUrl: (params) => {
+              const pathMatch =
+                  (params['path'] || '').match(/\/?fs\/\w+(\/.*)/);
+              const path = pathMatch ? pathMatch[1] : '';
+              return '/v2/clients/' + encodeURIComponent(params['clientId']) +
+                  '/files/' + encodeURIComponent(path);
+            },
           })
           .state('client.flows', {
             url: '/flows/:flowId/:tab',
@@ -202,22 +222,31 @@ exports.routingModule
               } else {
                 return 'Flows';
               }
-            }
+            },
+            newUiUrl: (params) => '/v2/clients/' +
+                encodeURIComponent(params['clientId']) + '/flows/' +
+                encodeURIComponent(params['flowId'] || ''),
           })
           .state('client.crashes', {
             url: '/crashes',
             template: '<grr-client-crashes />',
-            title: 'Crashes'
+            title: 'Crashes',
+            newUiUrl: (params) =>
+                '/v2/clients/' + encodeURIComponent(params['clientId']),
           })
           .state('client.debugRequests', {
             url: '/debug-requests',
             template: '<grr-debug-requests-view />',
-            title: 'Debug Requests'
+            title: 'Debug Requests',
+            newUiUrl: (params) =>
+                '/v2/clients/' + encodeURIComponent(params['clientId']),
           })
           .state('client.loadStats', {
             url: '/load-stats',
             template: '<grr-client-load-view />',
-            title: 'Load Stats'
+            title: 'Load Stats',
+            newUiUrl: (params) =>
+                '/v2/clients/' + encodeURIComponent(params['clientId']),
           });
     })
     .run(function($rootScope, $location, $state, $urlRouter, $document) {
@@ -283,3 +312,6 @@ exports.routingModule
       // Configures $urlRouter's listener *after* your custom listener
       $urlRouter.listen();
     });
+
+exports.routingModule.directive(
+    NewUiButtonDirective.directive_name, NewUiButtonDirective);

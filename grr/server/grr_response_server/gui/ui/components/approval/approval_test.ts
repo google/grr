@@ -17,7 +17,6 @@ import {initTestEnvironment} from '../../testing';
 import {Approval} from './approval';
 import {ApprovalModule} from './module';
 
-
 initTestEnvironment();
 
 describe('Approval Component', () => {
@@ -35,7 +34,6 @@ describe('Approval Component', () => {
             RouterTestingModule,
             ApprovalModule,
           ],
-
           providers: [
             {
               provide: ClientPageGlobalStore,
@@ -243,7 +241,7 @@ describe('Approval Component', () => {
       approvalId: '1',
       clientId: 'C.1234',
       requestor: 'testuser',
-      status: {type: 'pending', reason: 'Need at least 1 more approver.'},
+      status: {type: 'valid'},
       approvers: [],
       reason: 'sample reason',
       requestedApprovers: ['foo'],
@@ -264,7 +262,7 @@ describe('Approval Component', () => {
       approvalId: '1',
       clientId: 'C.1234',
       requestor: 'testuser',
-      status: {type: 'pending', reason: 'Need at least 1 more approver.'},
+      status: {type: 'valid'},
       approvers: [],
       reason: 'sample reason',
       requestedApprovers: ['foo'],
@@ -290,7 +288,7 @@ describe('Approval Component', () => {
       approvalId: '1',
       clientId: 'C.1234',
       requestor: 'testuser',
-      status: {type: 'pending', reason: 'Need at least 1 more approver.'},
+      status: {type: 'valid'},
       approvers: [],
       reason: 'sample reason',
       requestedApprovers: ['foo'],

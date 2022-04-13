@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, HostBinding, HostListener} from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
+import {UntypedFormControl, UntypedFormGroup} from '@angular/forms';
 import {Observable} from 'rxjs';
 
 import {SafetyLimits} from '../../../../lib/models/hunt';
@@ -22,16 +22,16 @@ export class ParamsForm {
       this.newHuntLocalStore.safetyLimits$;
 
   readonly controls = {
-    clientRate: new FormControl(''),
-    expiryTime: new FormControl(''),
-    crashLimit: new FormControl(''),
-    avgResultsPerClientLimit: new FormControl(''),
-    avgCpuSecondsPerClientLimit: new FormControl(''),
-    avgNetworkBytesPerClientLimit: new FormControl(''),
-    cpuLimit: new FormControl(''),
-    networkBytesLimit: new FormControl(''),
+    clientRate: new UntypedFormControl(''),
+    expiryTime: new UntypedFormControl(''),
+    crashLimit: new UntypedFormControl(''),
+    avgResultsPerClientLimit: new UntypedFormControl(''),
+    avgCpuSecondsPerClientLimit: new UntypedFormControl(''),
+    avgNetworkBytesPerClientLimit: new UntypedFormControl(''),
+    cpuLimit: new UntypedFormControl(''),
+    networkBytesLimit: new UntypedFormControl(''),
   };
-  readonly form = new FormGroup(this.controls);
+  readonly form = new UntypedFormGroup(this.controls);
 
   clientLimit = 1000;
   customClientLimit = 0;

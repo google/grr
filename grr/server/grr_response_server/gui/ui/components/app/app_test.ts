@@ -12,7 +12,6 @@ import {App} from './app';
 import {AppModule} from './app_module';
 
 
-
 describe('App Component', () => {
   let routerEvents: Subject<ActivationEnd>;
 
@@ -24,7 +23,6 @@ describe('App Component', () => {
             NoopAnimationsModule,
             RouterTestingModule,
           ],
-
           providers: [
             ...STORE_PROVIDERS,
           ],

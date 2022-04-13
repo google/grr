@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for grr.lib.throttle."""
 
 from absl import app

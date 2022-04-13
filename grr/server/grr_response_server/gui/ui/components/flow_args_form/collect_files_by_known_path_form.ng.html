@@ -8,11 +8,11 @@
               name="paths"
               autocomplete="off"></textarea>
     <mat-hint>
-      <app-literal-path-glob-expression-warning [path]="form.value['paths']"></app-literal-path-glob-expression-warning>
+      <app-literal-path-glob-expression-warning [path]="controls.paths.value"></app-literal-path-glob-expression-warning>
     </mat-hint>
   </mat-form-field>
-  <div class="validation" [hidden]="!form.controls['paths'].hasError('atLeastOnePathExpected')">
-    <mat-error *ngIf="form.controls['paths'].hasError('atLeastOnePathExpected')">At least one non-empty path expected.</mat-error>
+  <div class="validation" [hidden]="!controls.paths.hasError('atLeastOnePathExpected')">
+    <mat-error *ngIf="controls.paths.hasError('atLeastOnePathExpected')">At least one non-empty path expected.</mat-error>
   </div>
 
   <mat-radio-group aria-label="Collection level" [formControl]="controls.collectionLevel" [hidden]="hideAdvancedParams">

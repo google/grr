@@ -232,10 +232,10 @@ elif platform.system() == "Darwin":
     stat_obj = os.lstat(path)
     # Nanosecond-precision birthtime is not available, with approximate it with
     # the float-precision one.
-    st_birthtime_ns = int(stat_obj.st_birthtime * 10**9)
+    st_birthtime_ns = int(stat_obj.st_birthtime * 10**9)  # pytype: disable=attribute-error
 
     return Result(
-        attributes=stat_obj.st_flags,
+        attributes=stat_obj.st_flags,  # pytype: disable=attribute-error
         nlink=stat_obj.st_nlink,
         uid=stat_obj.st_uid,
         gid=stat_obj.st_gid,

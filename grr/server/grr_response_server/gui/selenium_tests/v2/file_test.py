@@ -2,6 +2,7 @@
 import binascii
 
 from absl import app
+from selenium.webdriver.common import keys
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
@@ -9,7 +10,9 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.flows import file
 from grr_response_server.flows.general import transfer
+from grr_response_server.gui import api_call_context
 from grr_response_server.gui import gui_test_lib
+from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import fixture_test_lib
 from grr.test_lib import flow_test_lib
@@ -409,12 +412,41 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=.flow-title:contains('File contents by exact path')")
 
-    self.Click("css=button[aria-label='Flow menu']")
-    self.Click("css=button:contains('View arguments')")
+    self.Click("css=result-accordion .title:contains('Flow arguments')")
 
     self.WaitUntil(self.IsElementPresent, "css=textarea[name=paths]")
     path_input = self.GetElement("css=textarea[name=paths]")
     self.assertEqual("/file0\n/file1", path_input.get_attribute("value"))
+
+  def testFlowArgumentForm(self):
+    self.Open(f"/v2/clients/{self.client_id}")
+
+    self.Click('css=flow-form button:contains("Collect files")')
+    self.Click(
+        'css=.mat-menu-panel button:contains("Collect files from exact paths")')
+
+    element = self.WaitUntil(self.GetVisibleElement,
+                             "css=flow-args-form textarea[name=paths]")
+    element.send_keys("/foo/firstpath")
+    element.send_keys(keys.Keys.ENTER)
+    element.send_keys("/bar/secondpath")
+
+    self.Click('css=flow-form button:contains("Start")')
+
+    def FlowHasBeenStarted():
+      handler = api_flow.ApiListFlowsHandler()
+      flows = handler.Handle(
+          api_flow.ApiListFlowsArgs(
+              client_id=self.client_id, top_flows_only=True),
+          context=api_call_context.ApiCallContext(
+              username=self.test_username)).items
+      return flows[0] if len(flows) == 1 else None
+
+    flow = self.WaitUntil(FlowHasBeenStarted)
+
+    self.assertEqual(flow.name, file.CollectFilesByKnownPath.__name__)
+    self.assertCountEqual(flow.args.paths,
+                          ["/foo/firstpath", "/bar/secondpath"])
 
 
 class VfsFileViewTest(gui_test_lib.GRRSeleniumTest):

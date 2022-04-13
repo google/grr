@@ -1,5 +1,5 @@
 import {Component, Inject} from '@angular/core';
-import {FormControl, ValidatorFn} from '@angular/forms';
+import {UntypedFormControl, ValidatorFn} from '@angular/forms';
 import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {Observable} from 'rxjs';
 import {filter, map, withLatestFrom} from 'rxjs/operators';
@@ -21,7 +21,8 @@ export class ClientAddLabelDialog {
           ReadonlyArray<ClientLabel>,
       private readonly configGlobalStore: ConfigGlobalStore) {}
 
-  readonly labelInputControl = new FormControl('', this.labelValidator());
+  readonly labelInputControl =
+      new UntypedFormControl('', this.labelValidator());
   private readonly allClientsLabels$ = this.configGlobalStore.clientsLabels$;
 
   /**
@@ -86,7 +87,9 @@ export class ClientAddLabelDialog {
     this.dialogRef.close(undefined);
   }
 
-  onAddClick(): void {
+  onAddClick(event?: Event): void {
+    event?.preventDefault();
+
     if (this.labelInputControl.valid) {
       this.dialogRef.close(this.labelInputControl.value.trim());
     }

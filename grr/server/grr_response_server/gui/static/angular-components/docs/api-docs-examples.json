@@ -10,6 +10,7 @@
         },
         "client_id": "C.1000000000000000",
         "creator": "",
+        "error_description": "Cancelled in GUI",
         "flow_id": "W:ABCDEF",
         "last_active_at": 4242000000,
         "name": "ListProcesses",
@@ -39,6 +40,7 @@
         "args": {},
         "client_id": "C.1000000000000000",
         "creator": "",
+        "error_description": "Cancelled in GUI",
         "flow_id": "W:ABCDEF",
         "last_active_at": 4242000000,
         "name": "ListProcesses",
@@ -4353,6 +4355,15 @@
                         "client_id": {
                           "type": "unicode",
                           "value": "C.1000000000000000"
+                        },
+                        "metadata": {
+                          "type": "ClientSnapshotMetadata",
+                          "value": {
+                            "source_flow_id": {
+                              "type": "unicode",
+                              "value": "F:ABCDEF12"
+                            }
+                          }
                         }
                       }
                     }
@@ -4430,7 +4441,10 @@
               "is_metadata_set": true
             },
             {
-              "client_id": "C.1000000000000000"
+              "client_id": "C.1000000000000000",
+              "metadata": {
+                "source_flow_id": "F:ABCDEF12"
+              }
             },
             {
               "invalid": true,
@@ -4509,6 +4523,10 @@
           "creator": {
             "type": "unicode",
             "value": "api_test_user"
+          },
+          "error_description": {
+            "type": "unicode",
+            "value": "Pending termination: Some reason"
           },
           "flow_id": {
             "type": "ApiFlowId",
@@ -4603,6 +4621,15 @@
                         "client_id": {
                           "type": "unicode",
                           "value": "C.1000000000000000"
+                        },
+                        "metadata": {
+                          "type": "ClientSnapshotMetadata",
+                          "value": {
+                            "source_flow_id": {
+                              "type": "unicode",
+                              "value": "F:ABCDEF13"
+                            }
+                          }
                         }
                       }
                     }
@@ -4661,6 +4688,7 @@
           "status": "Pending termination: Some reason"
         },
         "creator": "api_test_user",
+        "error_description": "Pending termination: Some reason",
         "flow_id": "F:ABCDEF13",
         "last_active_at": 42000000,
         "name": "Interrogate",
@@ -4681,7 +4709,10 @@
               "is_metadata_set": true
             },
             {
-              "client_id": "C.1000000000000000"
+              "client_id": "C.1000000000000000",
+              "metadata": {
+                "source_flow_id": "F:ABCDEF13"
+              }
             },
             {
               "invalid": true,
@@ -9016,6 +9047,19 @@
             "type": "EnumNamedValue"
           },
           {
+            "default": {
+              "type": "RDFString",
+              "value": ""
+            },
+            "doc": "Describes the error that happened while executing the flow, truncated if over 4 KB.",
+            "dynamic": false,
+            "friendly_name": "Error description",
+            "index": 18,
+            "name": "error_description",
+            "repeated": false,
+            "type": "RDFString"
+          },
+          {
             "doc": "When flow was created.",
             "dynamic": false,
             "friendly_name": "Started at",
@@ -9220,6 +9264,16 @@
             "name": "state",
             "repeated": false,
             "type": "EnumNamedValue"
+          },
+          {
+            "default": "",
+            "doc": "Describes the error that happened while executing the flow, truncated if over 4 KB.",
+            "dynamic": false,
+            "friendly_name": "Error description",
+            "index": 18,
+            "name": "error_description",
+            "repeated": false,
+            "type": "RDFString"
           },
           {
             "doc": "When flow was created.",
@@ -10860,12 +10914,6 @@
                     "type": "unicode",
                     "value": "Extract the installed drivers on Windows via WMI."
                   },
-                  "labels": [
-                    {
-                      "type": "unicode",
-                      "value": "Software"
-                    }
-                  ],
                   "name": {
                     "type": "ArtifactName",
                     "value": "TestDrivers"
@@ -10931,9 +10979,6 @@
                 "os_major_version >= 6"
               ],
               "doc": "Extract the installed drivers on Windows via WMI.",
-              "labels": [
-                "Software"
-              ],
               "name": "TestDrivers",
               "provides": [],
               "sources": [

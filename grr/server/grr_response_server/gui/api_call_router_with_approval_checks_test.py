@@ -122,6 +122,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   ACCESS_CHECKED_METHODS.extend([
       "VerifyAccess",
       "ListFiles",
+      "BrowseFilesystem",
       "GetVfsFilesArchive",
       "GetFileDetails",
       "GetFileText",
@@ -145,6 +146,10 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     args = api_vfs.ApiListFilesArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
         self.router.ListFiles, "CheckClientAccess", args=args)
+
+    args = api_vfs.ApiBrowseFilesystemArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(
+        self.router.BrowseFilesystem, "CheckClientAccess", args=args)
 
     args = api_vfs.ApiGetVfsFilesArchiveArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(

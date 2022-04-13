@@ -6,7 +6,7 @@
       [formControl]="controls.collectionMethod"
       class="collection-method-input"
     >
-      <mat-radio-button *ngFor="let cm of collectionMethods" [value]="cm" [checked]="cm === 'OS'">
+      <mat-radio-button *ngFor="let cm of collectionMethods" [value]="cm">
         {{ cm }}
       </mat-radio-button>
     </mat-radio-group>
@@ -24,7 +24,7 @@
     />
     <mat-hint>
       <app-literal-path-glob-expression-warning
-        [path]="form.value['path']"
+        [path]="controls.path.value"
       ></app-literal-path-glob-expression-warning>
     </mat-hint>
   </mat-form-field>

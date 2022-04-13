@@ -15,7 +15,6 @@ import {LaunchBinaryDetails} from './launch_binary_details';
 import {PluginsModule} from './module';
 
 
-
 initTestEnvironment();
 
 describe('LaunchBinaryDetails component', () => {
@@ -31,7 +30,6 @@ describe('LaunchBinaryDetails component', () => {
             PluginsModule,
             RouterTestingModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

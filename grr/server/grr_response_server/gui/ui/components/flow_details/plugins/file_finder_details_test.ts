@@ -10,7 +10,6 @@ import {FileFinderDetails} from './file_finder_details';
 import {PluginsModule} from './module';
 
 
-
 initTestEnvironment();
 
 describe('file-finder-details component', () => {
@@ -21,7 +20,6 @@ describe('file-finder-details component', () => {
             NoopAnimationsModule,
             PluginsModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

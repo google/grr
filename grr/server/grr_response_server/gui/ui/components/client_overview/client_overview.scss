@@ -9,6 +9,7 @@ $width: 80%;
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  row-gap: c.$container-padding;
 
   .fqdn-chips {
     display: flex;
@@ -32,11 +33,7 @@ $width: 80%;
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-
-    &.labels {
-      margin-top: 10px;
-      margin-bottom: 5px;
-    }
+    min-height: 26px;
 
     mat-chip {
       min-height: 26px;
@@ -59,22 +56,42 @@ $width: 80%;
 
   .info {
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    column-gap: c.$container-padding;
 
-    .copy-button {
-      color: mat.get-color-from-palette(c.$foreground, icon-grey);
-    }
+    table td {
+      white-space: nowrap;
 
-    .os {
-      margin-right: 10px;
+      &:first-of-type {
+        color: mat.get-color-from-palette(c.$foreground, text-light);
+      }
+
+      &:last-of-type {
+        min-width: 150px;
+        max-width: 250px;
+
+        app-copy-button {
+          max-width: 100%;
+
+          span {
+            display: inline-block;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            max-width: 100%;
+            overflow: hidden;
+            vertical-align: middle;
+          }
+        }
+      }
     }
+  }
+
+  .buttons {
+    display: flex;
+    column-gap: c.$container-padding;
   }
 }
 
 .no-padding {
   padding: 0;
-}
-
-.goto-details {
-  margin-top: 1em;
 }

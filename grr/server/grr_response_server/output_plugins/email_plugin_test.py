@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for email output plugin."""
 
 from absl import app

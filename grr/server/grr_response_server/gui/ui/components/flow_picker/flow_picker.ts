@@ -1,5 +1,5 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild} from '@angular/core';
-import {FormControl} from '@angular/forms';
+import {UntypedFormControl} from '@angular/forms';
 import {MatAutocompleteTrigger} from '@angular/material/autocomplete';
 import {BehaviorSubject, fromEvent, merge, Observable, Subject} from 'rxjs';
 import {debounceTime, filter, map, mapTo, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
@@ -76,7 +76,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
   readonly selectedFlow$ =
       new BehaviorSubject<FlowListItem|undefined>(undefined);
 
-  readonly textInput = new FormControl('');
+  readonly textInput = new UntypedFormControl('');
   readonly textInputWidth$ = new Subject<number>();
 
 
@@ -242,7 +242,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
             this.selectedFlow$.next(undefined);
             this.clearInput();
           } else {
-            this.selectFlow(flowListItem);
+            this.markFlowAsSelected(flowListItem);
           }
         });
   }
@@ -260,11 +260,15 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
   }
 
   selectFlow(fli: FlowListItem) {
-    if (this.selectedFlow$.value?.name === fli.name) {
+    if (this.selectedFlow$.value?.name === fli.name || !fli.enabled) {
       return;
     }
-    this.textInput.setValue(fli.friendlyName);
     this.clientPageGlobalStore.startFlowConfiguration(fli.name);
+    this.markFlowAsSelected(fli);
+  }
+
+  private markFlowAsSelected(fli: FlowListItem) {
+    this.textInput.setValue(fli.friendlyName);
     this.autocompleteTrigger.closePanel();
     this.selectedFlow$.next(fli);
   }

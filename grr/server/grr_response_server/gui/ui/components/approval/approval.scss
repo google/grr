@@ -35,6 +35,14 @@ $container-padding-minus-header: c.$container-padding - math.div(40 - 24, 2);
   display: block;
 }
 
+.latest-approval {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  row-gap: c.$container-padding;
+  padding-top: math.div(c.$container-padding, 2);
+}
+
 .buttons-row {
   display: flex;
   column-gap: math.div(c.$container-padding, 2);

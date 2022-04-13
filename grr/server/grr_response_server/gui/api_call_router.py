@@ -433,6 +433,40 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Vfs")
+  @ArgsType(api_vfs.ApiBrowseFilesystemArgs)
+  @ResultType(api_vfs.ApiBrowseFilesystemResult)
+  @Http("GET", "/api/clients/<client_id>/filesystem/")
+  @Http("GET", "/api/clients/<client_id>/filesystem/<path:path>")
+  def BrowseFilesystem(
+      self,
+      args: api_vfs.ApiBrowseFilesystemArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_vfs.ApiBrowseFilesystemHandler:
+    """List OS, TSK, NTFS files & directories in a given VFS directory.
+
+    In difference to ListFiles, this method lists all filesystem PathTypes
+    (OS, TSK, NTFS) at the same time. VFS specific prefixes like /fs/os can not
+    be specified - only actual paths like /etc/.
+
+    This method also allows querying the whole directory tree at once. This
+    allows quick loading of useful VFS data when deep-linking to a folder.
+
+    This method does not raise if a path is not found or points to a file
+    instead of a directory. Instead, no results are returned for this path. This
+    prevents alerts from firing when clients frequently access non-existent
+    paths.
+
+    Args:
+      args: The request arguments.
+      context: The API call context.
+    """
+
+    # This method can be called with or without file_path argument and returns
+    # the root files for the given client in the latter case.
+    # To allow optional url arguments, two url patterns need to be specified.
+    raise NotImplementedError()
+
+  @Category("Vfs")
   @ArgsType(api_vfs.ApiGetVfsFilesArchiveArgs)
   @ResultBinaryStream()
   @Http("GET", "/api/clients/<client_id>/vfs-files-archive/")
@@ -801,6 +835,7 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Flows")
   @ArgsType(api_flow.ApiListScheduledFlowsArgs)
   @ResultType(api_flow.ApiListScheduledFlowsResult)
+  # TODO: Remove trailing slash once redirect protocol is fixed.
   @Http("GET", "/api/clients/<client_id>/scheduled-flows/<creator>/")
   def ListScheduledFlows(
       self,
@@ -813,8 +848,9 @@ class ApiCallRouterStub(ApiCallRouter):
   @Category("Flows")
   @ArgsType(api_flow.ApiUnscheduleFlowArgs)
   @ResultType(api_flow.ApiUnscheduleFlowResult)
+  # TODO: Remove trailing slash once redirect protocol is fixed.
   @Http("DELETE",
-        "/api/clients/<client_id>/scheduled-flows/<scheduled_flow_id>")
+        "/api/clients/<client_id>/scheduled-flows/<scheduled_flow_id>/")
   def UnscheduleFlow(
       self,
       args: api_flow.ApiUnscheduleFlowArgs,

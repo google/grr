@@ -1,5 +1,5 @@
 import {Component, OnDestroy, ViewEncapsulation} from '@angular/core';
-import {FormControl} from '@angular/forms';
+import {UntypedFormControl} from '@angular/forms';
 import {Observable} from 'rxjs';
 import {debounceTime, distinctUntilChanged, filter, map, shareReplay, startWith, takeUntil,} from 'rxjs/operators';
 
@@ -31,7 +31,7 @@ export class OsqueryQueryHelper implements OnDestroy {
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  readonly searchControl = new FormControl('');
+  readonly searchControl = new UntypedFormControl('');
 
   readonly searchValues$ = this.searchControl.valueChanges.pipe(
       filter(isNonNull),

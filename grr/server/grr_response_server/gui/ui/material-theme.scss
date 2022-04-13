@@ -23,6 +23,7 @@ $_grr-foreground: (
   in-progress: mat.get-color-from-palette(mat.$yellow-palette, 700),
   icon-grey: mat.get-color-from-palette(mat.$grey-palette, 700),
   selected: mat.get-color-from-palette(mat.$blue-palette, 100),
+  link: mat.get-color-from-palette(mat.$blue-palette, 600),
 );
 // See https://github.com/angular/components/blob/b6358b2e32d6cbd3646411fc576e46dc55bcf512/src/material/core/theming/_palette.scss#L674
 $_grr-background: (
@@ -116,9 +117,19 @@ $card-margin: 20px;
 // Vertical spacing between major elements (e.g. cards) on a page.
 $page-spacing: 16px;
 
-.mat-stroked-button:not(.mat-button-disabled),
-.mat-stroked-button.mat-primary:not(.mat-button-disabled) {
-  border-color: mat.get-color-from-palette($foreground, divider-light);
-  color: mat.get-color-from-palette($primary, 600);
-  background: white;
+.mat-stroked-button {
+  overflow: hidden;
+
+  &,
+  &.mat-primary,
+  &.mat-button-disabled {
+    border-color: mat.get-color-from-palette($foreground, divider-light);
+  }
+
+  &:not(.mat-button-disabled),
+  &.mat-primary:not(.mat-button-disabled) {
+    border-color: mat.get-color-from-palette($foreground, divider-light);
+    color: mat.get-color-from-palette($primary, 600);
+    background: white;
+  }
 }

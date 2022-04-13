@@ -69,9 +69,9 @@ def _ConvertStatEntry(entry: filesystem_pb2.StatEntry,
 
     flags = entry.ntfs.flags
     st.st_mode |= stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH
-    if (flags & stat.FILE_ATTRIBUTE_READONLY) == 0:
+    if (flags & stat.FILE_ATTRIBUTE_READONLY) == 0:  # pytype: disable=module-attr
       st.st_mode |= stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH
-    if (flags & stat.FILE_ATTRIBUTE_HIDDEN) == 0:
+    if (flags & stat.FILE_ATTRIBUTE_HIDDEN) == 0:  # pytype: disable=module-attr
       st.st_mode |= stat.S_IRUSR | stat.S_IRGRP | stat.S_IROTH
 
   return st

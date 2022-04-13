@@ -311,11 +311,6 @@ class InMemoryDBPathMixin(object):
       parent_path_record.AddChild(path_info)
 
   @utils.Synchronized
-  def MultiWritePathInfos(self, path_infos):
-    for client_id, client_path_infos in path_infos.items():
-      self.WritePathInfos(client_id, client_path_infos)
-
-  @utils.Synchronized
   def WritePathInfos(self, client_id, path_infos):
     for path_info in path_infos:
       self._WritePathInfo(client_id, path_info)

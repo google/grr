@@ -7,7 +7,6 @@ import {newFlow} from '../../../lib/models/model_test_util';
 import {initTestEnvironment} from '../../../testing';
 
 import {PluginsModule} from './module';
-
 import {TimelineDetails} from './timeline_details';
 
 
@@ -20,7 +19,6 @@ describe('timeline-details component', () => {
           imports: [
             PluginsModule,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

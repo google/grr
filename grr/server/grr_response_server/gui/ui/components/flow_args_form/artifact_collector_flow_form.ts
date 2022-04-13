@@ -1,21 +1,17 @@
 import {NestedTreeControl} from '@angular/cdk/tree';
-import {ChangeDetectionStrategy, Component, OnDestroy, OnInit, Output} from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {UntypedFormControl} from '@angular/forms';
 import {MatTreeNestedDataSource} from '@angular/material/tree';
 import {combineLatest} from 'rxjs';
-import {distinctUntilChanged, map, shareReplay, startWith, takeUntil} from 'rxjs/operators';
+import {distinctUntilChanged, map, startWith, takeUntil} from 'rxjs/operators';
 
-import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {ArtifactCollectorFlowArgs} from '../../lib/api/api_interfaces';
 import {safeTranslateOperatingSystem} from '../../lib/api_translation/flow';
 import {ArtifactDescriptor, ArtifactSource, OperatingSystem, SourceType} from '../../lib/models/flow';
 import {isNonNull, isNull} from '../../lib/preconditions';
-import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ConfigGlobalStore} from '../../store/config_global_store';
-
-
-const ARTIFACT_NAME = 'artifactName';
 
 const MAX_AUTOCOMPLETE_RESULTS = 50;
 
@@ -183,6 +179,10 @@ function artifactToNodes(
   }
 }
 
+declare interface FormState {
+  artifactName: string;
+}
+
 /** Form that configures a ArtifactCollectorFlow. */
 @Component({
   selector: 'artifact-collector-flow-form',
@@ -191,24 +191,30 @@ function artifactToNodes(
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArtifactCollectorFlowForm extends
-    FlowArgumentForm<ArtifactCollectorFlowArgs> implements OnInit, OnDestroy {
+    FlowArgumentForm<ArtifactCollectorFlowArgs, FormState> {
   readonly SourceType = SourceType;
   readonly readableSourceName = READABLE_SOURCE_NAME;
 
-  readonly form = new FormGroup({
-    [ARTIFACT_NAME]: new FormControl(),
-  });
+  override makeControls(): Controls<FormState> {
+    return {
+      artifactName: new UntypedFormControl(),
+    };
+  }
 
-  @Output()
-  readonly formValues$ = this.form.valueChanges.pipe(
-      map(values => ({
-            ...this.defaultFlowArgs,
-            artifactList: [values[ARTIFACT_NAME]],
-            applyParsers: false,
-          })),
-      shareReplay(1),
-  );
-  @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
+  override convertFlowArgsToFormState(flowArgs: ArtifactCollectorFlowArgs):
+      FormState {
+    return {
+      artifactName: flowArgs.artifactList?.[0] ?? '',
+    };
+  }
+
+  override convertFormStateToFlowArgs(formState: FormState):
+      ArtifactCollectorFlowArgs {
+    return {
+      artifactList: [formState.artifactName],
+      applyParsers: false,
+    };
+  }
 
   private readonly clientOs$ = this.clientPageGlobalStore.selectedClient$.pipe(
       map(client => safeTranslateOperatingSystem(client?.knowledgeBase.os)),
@@ -232,11 +238,11 @@ export class ArtifactCollectorFlowForm extends
   readonly filteredArtifactDescriptors$ =
       combineLatest([
         this.artifactListEntries$,
-        this.form.controls[ARTIFACT_NAME].valueChanges.pipe(startWith('')),
+        this.controls.artifactName.valueChanges.pipe(startWith('')),
       ])
           .pipe(
               map(([entries, searchString]) => {
-                searchString = searchString.toLowerCase();
+                searchString = searchString?.toLowerCase() ?? '';
                 return entries.filter(ad => matches(ad, searchString))
                     .slice(0, MAX_AUTOCOMPLETE_RESULTS);
               }),
@@ -245,7 +251,7 @@ export class ArtifactCollectorFlowForm extends
   readonly selectedArtifact$ =
       combineLatest([
         this.artifactListEntries$,
-        this.form.controls[ARTIFACT_NAME].valueChanges,
+        this.controls.artifactName.valueChanges,
       ])
           .pipe(
               map(([entries, searchString]) =>
@@ -263,15 +269,11 @@ export class ArtifactCollectorFlowForm extends
 
   readonly dataSource = new MatTreeNestedDataSource<SourceNode>();
 
-  readonly ngOnDestroy = observeOnDestroy(this);
-
   constructor(
       private readonly configGlobalStore: ConfigGlobalStore,
       private readonly clientPageGlobalStore: ClientPageGlobalStore) {
     super();
-  }
 
-  ngOnInit() {
     combineLatest([
       this.selectedArtifact$,
       this.artifactListEntries$.pipe(
@@ -285,10 +287,6 @@ export class ArtifactCollectorFlowForm extends
             this.dataSource.data = artifactToNodes(entries, artifact.name);
           }
         });
-
-    this.form.patchValue({
-      [ARTIFACT_NAME]: this.defaultFlowArgs.artifactList?.[0] ?? '',
-    });
   }
 
   trackArtifactDescriptor(index: number, ad: ArtifactDescriptor) {
@@ -296,9 +294,7 @@ export class ArtifactCollectorFlowForm extends
   }
 
   selectArtifact(artifactName: string) {
-    this.form.patchValue({
-      [ARTIFACT_NAME]: artifactName,
-    });
+    this.controls.artifactName.setValue(artifactName);
   }
 
   printOs(artifact: ArtifactListEntry): string {

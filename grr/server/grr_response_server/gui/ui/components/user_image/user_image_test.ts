@@ -10,7 +10,6 @@ import {initTestEnvironment} from '../../testing';
 import {UserImageModule} from './module';
 
 
-
 initTestEnvironment();
 
 @Component({template: `<user-image [username]="username"></user-image>`})
@@ -33,7 +32,6 @@ describe('UserImage Component', () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [
             {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
           ],

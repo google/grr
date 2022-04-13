@@ -1,4 +1,4 @@
-<span #copyContents><ng-content></ng-content></span>
 <span class="icon-container">
   <mat-icon aria-hidden="true" [inline]="true">{{ copied ? 'check' : 'content_copy' }}</mat-icon>
 </span>
+<span #copyContents class="contents"><ng-content></ng-content></span>

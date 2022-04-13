@@ -141,9 +141,13 @@ export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
         });
   }
 
+  focus() {
+    this.editor?.focus();
+  }
+
   onContainerClick(event: MouseEvent): void {
     if (this.focusOnContainerClick) {
-      this.editor?.focus();
+      this.focus();
     }
   }
 

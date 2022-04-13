@@ -8,7 +8,6 @@ import {ApprovalChip} from './approval_chip';
 import {ApprovalChipModule} from './approval_chip_module';
 
 
-
 @Component({
   template: `<app-approval-chip [approval]="approval"></app-approval-chip>`,
 })
@@ -27,7 +26,6 @@ describe('ApprovalChip', () => {
           declarations: [
             TestHostComponent,
           ],
-
         })
         .compileComponents();
   }));

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """RDFValue implementations for hunts."""
 
 from grr_response_core import config

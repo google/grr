@@ -11,10 +11,12 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {ApprovalChipModule} from '../client/approval_chip/approval_chip_module';
+import {SubmitOnMetaEnterModule} from '../form/submit_on_meta_enter/submit_on_meta_enter_module';
 import {UserImageModule} from '../user_image/module';
 
 import {Approval} from './approval';
@@ -40,9 +42,11 @@ import {Approval} from './approval';
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
 
     ApprovalChipModule,
     UserImageModule,
+    SubmitOnMetaEnterModule,
   ],
   declarations: [
     Approval,

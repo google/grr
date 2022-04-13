@@ -30,9 +30,9 @@ CHINESE_FILE_FILE_REF = 844424930132045
 
 # Default StatEntry.ntfs values for files and directories
 S_DEFAULT_FILE = filesystem_pb2.StatEntry.Ntfs(
-    is_directory=False, flags=stat.FILE_ATTRIBUTE_ARCHIVE)
+    is_directory=False, flags=stat.FILE_ATTRIBUTE_ARCHIVE)  # pytype: disable=module-attr
 S_DEFAULT_DIR = filesystem_pb2.StatEntry.Ntfs(
-    is_directory=True, flags=stat.FILE_ATTRIBUTE_ARCHIVE)
+    is_directory=True, flags=stat.FILE_ATTRIBUTE_ARCHIVE)  # pytype: disable=module-attr
 
 S_MODE_ALL = stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO
 S_MODE_DIR = stat.S_IFDIR | S_MODE_ALL
@@ -200,8 +200,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_ctime=_ParseTimestamp("2020-04-08 20:15:07.835354"),
                   ntfs=filesystem_pb2.StatEntry.Ntfs(
                       is_directory=False,
-                      flags=stat.FILE_ATTRIBUTE_ARCHIVE
-                      | stat.FILE_ATTRIBUTE_HIDDEN),
+                      flags=stat.FILE_ATTRIBUTE_ARCHIVE  # pytype: disable=module-attr
+                      | stat.FILE_ATTRIBUTE_HIDDEN),  # pytype: disable=module-attr
                   st_size=0,
                   st_gid=0,
                   st_uid=48,
@@ -233,8 +233,8 @@ class NtfsImageTest(absltest.TestCase, abc.ABC):
                   st_ctime=_ParseTimestamp("2020-04-08 20:14:55.254657"),
                   ntfs=filesystem_pb2.StatEntry.Ntfs(
                       is_directory=False,
-                      flags=stat.FILE_ATTRIBUTE_ARCHIVE
-                      | stat.FILE_ATTRIBUTE_READONLY),
+                      flags=stat.FILE_ATTRIBUTE_ARCHIVE  # pytype: disable=module-attr
+                      | stat.FILE_ATTRIBUTE_READONLY),  # pytype: disable=module-attr
                   st_size=0,
                   st_gid=0,
                   st_uid=48,

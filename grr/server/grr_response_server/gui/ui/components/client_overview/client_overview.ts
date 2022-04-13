@@ -87,19 +87,9 @@ export class ClientOverview implements OnInit, OnDestroy {
   }
 
   formatUsers(users: ReadonlyArray<User>) {
-    const DISPLAY_USERS = 3;
-
     if (!users || !users.length) {
       return '(None)';
     }
-
-    const usernames =
-        users.slice(0, DISPLAY_USERS).map(user => user.username).join(', ');
-
-    if (users.length <= DISPLAY_USERS) {
-      return usernames;
-    }
-
-    return `${usernames}, … (${usernames.length} total)`;
+    return users.map(user => user.username).join(', ');
   }
 }

@@ -2,6 +2,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, Input, ViewChild} from '@angular/core';
 import {ComponentFixture, fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
+import {MatButtonHarness} from '@angular/material/button/testing';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
@@ -22,7 +23,6 @@ import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers
 import {initTestEnvironment} from '../../testing';
 
 import {FlowArgsForm} from './flow_args_form';
-
 
 initTestEnvironment();
 
@@ -134,6 +134,14 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     defaultArgs: {
       binary: '',
     },
+    OnlineNotification: {
+      name: 'OnlineNotification',
+      friendlyName: 'Online Notification',
+      category: 'Administrative',
+      defaultArgs: {
+        email: 'foo@bar.com',
+      },
+    },
   },
 });
 
@@ -158,7 +166,6 @@ function setUp() {
         declarations: [
           TestHostComponent,
         ],
-
         providers: [
           ...STORE_PROVIDERS,
         ],
@@ -187,30 +194,20 @@ describe('FlowArgsForm Component', () => {
     expect(fixture.nativeElement.innerText).toContain('Chrome');
   });
 
-  it('emits form value changes', (done) => {
+  it('emits form value changes', async () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
-
-    let counter = 0;
-
-    fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe((value) => {
-      const args = value as CollectBrowserHistoryArgs;
-      if (counter === 0) {
-        expect((args.browsers ??
-                []).indexOf(CollectBrowserHistoryArgsBrowser.CHROME))
-            .not.toBe(-1);
-        counter++;
-      } else {
-        expect((args.browsers ??
-                []).indexOf(CollectBrowserHistoryArgsBrowser.CHROME))
-            .toBe(-1);
-        done();
-      }
-    });
 
     fixture.componentInstance.flowDescriptor =
         TEST_FLOW_DESCRIPTORS.CollectBrowserHistory;
     fixture.detectChanges();
+
+    const initialArgs =
+        await firstValueFrom(
+            fixture.componentInstance.flowArgsForm.flowArgValues$) as
+        CollectBrowserHistoryArgs;
+    expect(initialArgs.browsers ?? [])
+        .toContain(CollectBrowserHistoryArgsBrowser.CHROME);
 
     // This test assumes that the first label in the CollectBrowserHistoryForm
     // is Chrome, which is not ideal, but an effective workaround.
@@ -218,6 +215,12 @@ describe('FlowArgsForm Component', () => {
     expect(label.innerText).toContain('Chrome');
     label.click();
     fixture.detectChanges();
+
+    const args = await firstValueFrom(
+                     fixture.componentInstance.flowArgsForm.flowArgValues$) as
+        CollectBrowserHistoryArgs;
+    expect(args.browsers ?? [])
+        .not.toContain(CollectBrowserHistoryArgsBrowser.CHROME);
   });
 
   it('is empty after flow unselection', () => {
@@ -234,24 +237,7 @@ describe('FlowArgsForm Component', () => {
     expect(fixture.nativeElement.innerText.trim()).toEqual('');
   });
 
-  it('fallback form emits defaultArgs', (done) => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-
-    fixture.componentInstance.flowDescriptor = {
-      name: 'FlowWithoutForm',
-      friendlyName: '---',
-      category: 'Misc',
-      defaultArgs: {foo: 42},
-    };
-    fixture.detectChanges();
-
-    fixture.componentInstance.flowArgsForm.flowArgValues$.subscribe(values => {
-      expect(values).toEqual({foo: 42});
-      done();
-    });
-  });
-
-  it('emits valid:false when form input is invalid', (done) => {
+  it('emits INVALID when form input is invalid', async () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
@@ -264,15 +250,13 @@ describe('FlowArgsForm Component', () => {
     byteInput.triggerEventHandler('change', {target: byteInput.nativeElement});
     fixture.detectChanges();
 
-    fixture.componentInstance.flowArgsForm.valid$.subscribe((valid) => {
-      expect(valid).toBeFalse();
-      done();
-    });
+    expect(await firstValueFrom(fixture.componentInstance.flowArgsForm.valid$))
+        .toBeFalse();
   });
 });
 
 
-Object.values(TEST_FLOW_DESCRIPTORS).forEach(fd => {
+for (const fd of Object.values(TEST_FLOW_DESCRIPTORS)) {
   describe(`FlowArgForm ${fd.name}`, () => {
     beforeEach(setUp);
 
@@ -299,13 +283,37 @@ Object.values(TEST_FLOW_DESCRIPTORS).forEach(fd => {
       fixture.componentInstance.flowDescriptor = fd;
       fixture.detectChanges();
     });
+
+    it('focusses a child element when autofocus is set ', () => {
+      const fixture = TestBed.createComponent(TestHostComponent);
+      fixture.detectChanges();
+      fixture.componentInstance.flowDescriptor = fd;
+      fixture.componentInstance.flowArgsForm.autofocus = true;
+      fixture.detectChanges();
+
+      const focussedElement = document.activeElement;
+      expect(focussedElement).not.toBeNull();
+      expect(fixture.debugElement.nativeElement.contains(focussedElement))
+          .toBeTrue();
+    });
+
+    it('does NOT focus a child element when autofocus is unset', () => {
+      const fixture = TestBed.createComponent(TestHostComponent);
+      fixture.detectChanges();
+      fixture.componentInstance.flowDescriptor = fd;
+      fixture.detectChanges();
+
+      expect(
+          fixture.debugElement.nativeElement.contains(document.activeElement))
+          .toBeFalse();
+    });
   });
-});
+}
 
 describe(`FlowArgForm CollectSingleFile`, () => {
   beforeEach(setUp);
 
-  it('explains the byte input size', () => {
+  it('explains the byte input size', async () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
@@ -317,10 +325,7 @@ describe(`FlowArgForm CollectSingleFile`, () => {
     let text = fixture.debugElement.nativeElement.innerText;
     expect(text).toContain('1,024 bytes');
 
-    const byteInput = fixture.debugElement.query(By.css('input[byteInput]'));
-    byteInput.nativeElement.value = '2 kib';
-    byteInput.triggerEventHandler('change', {target: byteInput.nativeElement});
-    fixture.detectChanges();
+    await setInputValue(fixture, 'input[byteInput]', '2 kib');
 
     text = fixture.debugElement.nativeElement.innerText;
     expect(text).toContain('2 kibibytes ');
@@ -350,7 +355,6 @@ describe(`FlowArgForm CollectMultipleFiles`, () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [
             {
               provide: ClientPageGlobalStore,
@@ -530,7 +534,6 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [
             ...STORE_PROVIDERS,
           ],
@@ -786,9 +789,8 @@ describe(`FlowArgForm ListProcesses`, () => {
 
     await setInputValue(fixture, 'input[name=pids]', '12notnumeric3');
 
-    const valid =
-        await firstValueFrom(fixture.componentInstance.flowArgsForm.valid$);
-    expect(valid).toBeFalse();
+    expect(await firstValueFrom(fixture.componentInstance.flowArgsForm.valid$))
+        .toBeFalse();
   });
 });
 
@@ -812,7 +814,6 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [
             ...STORE_PROVIDERS,
           ],
@@ -905,7 +906,7 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
     expect(texts[0]).toEqual('linux/foo.py');
   });
 
-  it('configures flow args with selected artifact suggestion', async () => {
+  it('configures flow args with selected hack suggestion', async () => {
     const {fixture} = prepareFixture();
 
     injectMockStore(ConfigGlobalStore).mockedObservables.binaries$.next([
@@ -935,6 +936,68 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
         ExecutePythonHackArgs;
     expect(flowArgValues.hackName).toEqual('linux/foo.py');
   });
+
+  it('allows adding arguments', async () => {
+    const {fixture} = prepareFixture();
+
+    const getArgs = () =>
+        firstValueFrom(fixture.componentInstance.flowArgsForm.flowArgValues$) as
+        Promise<ExecutePythonHackArgs>;
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const buttonHarness = await harnessLoader.getHarness(
+        MatButtonHarness.with({text: 'Add argument'}));
+
+    expect((await getArgs()).pyArgs ?? {}).toEqual({});
+
+    await buttonHarness.click();
+    await buttonHarness.click();
+
+    const inputs = await harnessLoader.getAllHarnesses(
+        MatInputHarness.with({ancestor: '.key-value-group'}));
+    await inputs[0].setValue('key1');
+    await inputs[1].setValue('val1');
+    await inputs[2].setValue('key2');
+    await inputs[3].setValue('val2');
+
+    expect((await getArgs()).pyArgs).toEqual({
+      dat: [
+        {k: {string: 'key1'}, v: {string: 'val1'}},
+        {k: {string: 'key2'}, v: {string: 'val2'}},
+      ]
+    });
+  });
+
+
+  it('allows removing arguments', async () => {
+    const {fixture} = prepareFixture();
+
+    const getArgs = () =>
+        firstValueFrom(fixture.componentInstance.flowArgsForm.flowArgValues$) as
+        Promise<ExecutePythonHackArgs>;
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const buttonHarness = await harnessLoader.getHarness(
+        MatButtonHarness.with({text: 'Add argument'}));
+
+    await buttonHarness.click();
+    await buttonHarness.click();
+
+    const inputs = await harnessLoader.getAllHarnesses(
+        MatInputHarness.with({ancestor: '.key-value-group'}));
+    await inputs[0].setValue('key1');
+    await inputs[1].setValue('val1');
+    await inputs[2].setValue('key2');
+    await inputs[3].setValue('val2');
+
+    const removeButton = await harnessLoader.getHarness(
+        MatButtonHarness.with({selector: '.remove-button'}));
+    await removeButton.click();
+
+    expect((await getArgs()).pyArgs).toEqual({
+      dat: [{k: {string: 'key2'}, v: {string: 'val2'}}]
+    });
+  });
 });
 
 describe(`FlowArgForm LaunchBinary`, () => {
@@ -949,7 +1012,6 @@ describe(`FlowArgForm LaunchBinary`, () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [
             ...STORE_PROVIDERS,
           ],
@@ -1089,7 +1151,6 @@ describe(`FlowArgForm TimelineFlow`, () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [
             ...STORE_PROVIDERS,
           ],

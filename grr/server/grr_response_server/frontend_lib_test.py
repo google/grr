@@ -860,7 +860,7 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
         char = field_data[offset]
         modified_data[offset] = char % 250 + 1
         setattr(self.client_communication, self.corruptor_field,
-                modified_data.tostring())
+                modified_data.tobytes())
 
         # Make sure we actually changed the data.
         self.assertNotEqual(field_data, modified_data)

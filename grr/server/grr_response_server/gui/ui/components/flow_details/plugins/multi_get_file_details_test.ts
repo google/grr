@@ -14,7 +14,6 @@ import {PluginsModule} from './module';
 
 
 
-
 initTestEnvironment();
 
 describe('multi-get-file-details component', () => {
@@ -30,7 +29,6 @@ describe('multi-get-file-details component', () => {
             PluginsModule,
             RouterTestingModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

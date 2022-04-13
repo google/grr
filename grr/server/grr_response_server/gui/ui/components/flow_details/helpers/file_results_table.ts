@@ -1,24 +1,16 @@
 
 
-import{
-  AfterViewInit,
-  ChangeDetectionStrategy,
-  Component,
-  EventEmitter,
-  Input,
-  Output,
-  OnDestroy,
-  ViewChild
-} from '@angular/core';
+import {AfterViewInit, ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, Output, ViewChild} from '@angular/core';
 import {MatSort} from '@angular/material/sort';
+import {MatTableDataSource} from '@angular/material/table';
 import {ActivatedRoute} from '@angular/router';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
-import {MatTableDataSource} from '@angular/material/table';
 import {map, startWith, takeUntil} from 'rxjs/operators';
-import {observeOnDestroy} from '../../../lib/reactive';
 
+import {PathSpecPathType, PathSpecProgressStatus} from '../../../lib/api/api_interfaces';
 import {HexHash} from '../../../lib/models/flow';
 import {StatEntry} from '../../../lib/models/vfs';
+import {observeOnDestroy} from '../../../lib/reactive';
 
 /**
  * FlowFileResult represents a single result to be displayed in the file
@@ -27,7 +19,68 @@ import {StatEntry} from '../../../lib/models/vfs';
 export declare interface FlowFileResult {
   readonly statEntry: StatEntry;
   readonly hashes?: HexHash;
-  readonly status?: string;
+  readonly status?: Status;
+}
+
+/**
+ * StatusIcon represents the status of a file.
+ */
+export enum StatusIcon {
+  UNKNOWN = 'question_mark',
+  IN_PROGRESS = 'hourglass_empty',
+  CHECK = 'check',
+  WARNING = 'priority_high',
+  ERROR = 'clear',
+}
+
+/**
+ * Status represents the status of a file.
+ */
+export declare interface Status {
+  readonly icon: StatusIcon;
+  readonly tooltip?: string;
+}
+
+/**
+ * statusFromPathSpecProgressStatus returns a Status that represents the
+ * provided PathSpecProgressStatus.
+ */
+export function statusFromPathSpecProgressStatus(
+    pathspecStatus: PathSpecProgressStatus|undefined): Status {
+  switch (pathspecStatus) {
+    case PathSpecProgressStatus.IN_PROGRESS:
+      return {icon: StatusIcon.IN_PROGRESS, tooltip: 'In progress'};
+    case PathSpecProgressStatus.SKIPPED:
+      return {icon: StatusIcon.WARNING, tooltip: 'Skipped'};
+    case PathSpecProgressStatus.COLLECTED:
+      return {icon: StatusIcon.CHECK, tooltip: 'Collected'};
+    case PathSpecProgressStatus.FAILED:
+      return {icon: StatusIcon.ERROR, tooltip: 'Failed'};
+    default:
+      return {icon: StatusIcon.UNKNOWN, tooltip: 'Unknown'};
+  }
+}
+
+/**
+ * statusFromPathType returns a Status that represents the
+ * provided PathSpecPathType.
+ */
+export function statusFromPathType(pathspecType: PathSpecPathType|
+                                   undefined): Status {
+  switch (pathspecType) {
+    case PathSpecPathType.TSK:
+      return {
+        icon: StatusIcon.WARNING,
+        tooltip: 'Collected from raw disk with libtsk'
+      };
+    case PathSpecPathType.NTFS:
+      return {
+        icon: StatusIcon.WARNING,
+        tooltip: 'Collected from raw disk with libfsntfs'
+      };
+    default:
+      return {icon: StatusIcon.CHECK, tooltip: 'Collected'};
+  }
 }
 
 /**
@@ -36,7 +89,7 @@ export declare interface FlowFileResult {
  * a StatEntry->FlowFileResult conversion function is provided.
  */
 export function flowFileResultFromStatEntry(
-    statEntry: StatEntry, hashes?: HexHash, status?: string): FlowFileResult {
+    statEntry: StatEntry, hashes?: HexHash, status?: Status): FlowFileResult {
   return {
     statEntry,
     hashes,
@@ -60,7 +113,7 @@ export declare interface TableRow {
   readonly ctime?: Date;
   readonly btime?: Date;
   readonly link: ReadonlyArray<string|undefined>;
-  readonly status?: string;
+  readonly status?: Status;
 }
 
 const BASE_COLUMNS: ReadonlyArray<string> = [
@@ -85,6 +138,8 @@ const BASE_COLUMNS: ReadonlyArray<string> = [
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FileResultsTable implements OnDestroy, AfterViewInit {
+  readonly IN_PROGRESS = StatusIcon.IN_PROGRESS;
+
   /** Subject corresponding to "results" binding. */
   readonly results$ = new BehaviorSubject<ReadonlyArray<FlowFileResult>>([]);
 
@@ -104,7 +159,7 @@ export class FileResultsTable implements OnDestroy, AfterViewInit {
           columns.splice(2, 0, 'hashes');
         }
         if (results.some(result => result.status)) {
-          columns.splice(2, 0, 'status');
+          columns.splice(columns.length - 1, 0, 'status');
         }
         return columns;
       }),
@@ -131,7 +186,7 @@ export class FileResultsTable implements OnDestroy, AfterViewInit {
             ctime: e.statEntry.stCtime,
             btime: e.statEntry.stBtime,
             link: [
-              'files', e.statEntry.pathspec?.pathtype?.toLowerCase(),
+              'files', e.statEntry.pathspec?.pathtype.toLowerCase(),
               e.statEntry.pathspec?.path
             ],
             status: e.status,

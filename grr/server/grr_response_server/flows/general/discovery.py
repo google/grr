@@ -51,6 +51,7 @@ class Interrogate(flow_base.FlowBase):
   def Start(self):
     """Start off all the tests."""
     self.state.client = rdf_objects.ClientSnapshot(client_id=self.client_id)
+    self.state.client.metadata.source_flow_id = self.rdf_flow.flow_id
     self.state.fqdn = None
     self.state.os = None
 

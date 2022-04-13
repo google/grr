@@ -10,7 +10,6 @@ import {CollectMultipleFilesDetails} from './collect_multiple_files_details';
 import {PluginsModule} from './module';
 
 
-
 initTestEnvironment();
 
 describe('collect-multiple-files-details component', () => {
@@ -21,7 +20,6 @@ describe('collect-multiple-files-details component', () => {
             NoopAnimationsModule,
             PluginsModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

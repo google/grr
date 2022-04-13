@@ -7,7 +7,6 @@ import {initTestEnvironment} from '../../../testing';
 import {HelpersModule} from './module';
 
 
-
 @Component({template: '{{ value | fileMode }}'})
 class TestHostComponent {
   value: string|undefined;
@@ -26,7 +25,6 @@ describe('FileResultTable render()', () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

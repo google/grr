@@ -1,6 +1,6 @@
 import {Component} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {FormControl, ReactiveFormsModule} from '@angular/forms';
+import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -9,7 +9,6 @@ import {initTestEnvironment} from '../../testing';
 
 import {CodeEditor} from './code_editor';
 import {CodeEditorModule} from './module';
-
 
 initTestEnvironment();
 
@@ -27,7 +26,7 @@ initTestEnvironment();
       </mat-form-field>`,
 })
 class TestHostComponent {
-  readonly query = new FormControl();
+  readonly query = new UntypedFormControl();
 }
 
 describe('CodeEditor Component', () => {
@@ -43,7 +42,6 @@ describe('CodeEditor Component', () => {
           declarations: [
             TestHostComponent,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

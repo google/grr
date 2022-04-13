@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """CSV single-pass output plugin."""
 
 import os

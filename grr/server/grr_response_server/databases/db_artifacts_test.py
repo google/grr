@@ -18,7 +18,6 @@ class DatabaseTestArtifactsMixin(object):
     artifact = rdf_artifacts.Artifact(
         name="Foo",
         doc="Lorem ipsum dolor sit amet.",
-        labels=["foo", "bar", "baz"],
         urls=["http://example.com/foo"])
 
     self.db.WriteArtifact(artifact)
@@ -26,7 +25,6 @@ class DatabaseTestArtifactsMixin(object):
     result = self.db.ReadArtifact("Foo")
     self.assertEqual(result.name, "Foo")
     self.assertEqual(result.doc, "Lorem ipsum dolor sit amet.")
-    self.assertEqual(result.labels, ["foo", "bar", "baz"])
     self.assertEqual(result.urls, ["http://example.com/foo"])
 
   def testReadArtifactReadsCopy(self):
@@ -76,7 +74,6 @@ class DatabaseTestArtifactsMixin(object):
     artifact = rdf_artifacts.Artifact(
         name="Foo",
         sources=[file_source, registry_key_source],
-        labels=["quux"],
         supported_os=["Windows", "Linux"],
         urls=["http://foobar.com/"])
 

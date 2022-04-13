@@ -14,7 +14,6 @@ import {initTestEnvironment} from '../../testing';
 
 import {FlowForm} from './flow_form';
 
-
 initTestEnvironment();
 
 function getSubmit<T>(fixture: ComponentFixture<T>) {
@@ -36,7 +35,6 @@ describe('FlowForm Component', () => {
             RouterTestingModule,
             FlowFormModule,
           ],
-
           providers: [
             {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
             {

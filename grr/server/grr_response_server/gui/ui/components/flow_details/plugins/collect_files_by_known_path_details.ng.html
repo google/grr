@@ -2,7 +2,6 @@
   [title]="description$ | async"
   (firstOpened)="queryMore()">
 
-  <!-- TODO: Display this information by file in the table (e.g. warning badge if needed). -->
   <div class="path-type-note" *ngIf="retriesTotal$ | async as count">
     {{ retriesLabel$ | async }}
   </div>

@@ -966,8 +966,7 @@ class DatabaseTestClientsMixin(object):
     d.AddClientLabels(client_id, "owner1🚀", ["foo🚀"])
 
     all_labels = d.ReadAllClientLabels()
-    self.assertEqual(all_labels,
-                     [rdf_objects.ClientLabel(name="foo🚀", owner="owner1🚀")])
+    self.assertCountEqual(all_labels, ["foo🚀"])
 
   def testReadAllLabelsReturnsLabelsFromMultipleClients(self):
     d = self.db
@@ -982,11 +981,7 @@ class DatabaseTestClientsMixin(object):
     d.AddClientLabels(client_id_1, "owner2", ["bar"])
     d.AddClientLabels(client_id_2, "owner2", ["bar"])
 
-    all_labels = sorted(d.ReadAllClientLabels(), key=lambda l: l.name)
-    self.assertEqual(all_labels, [
-        rdf_objects.ClientLabel(name="bar", owner="owner2"),
-        rdf_objects.ClientLabel(name="foo", owner="owner1")
-    ])
+    self.assertCountEqual(d.ReadAllClientLabels(), ["foo", "bar"])
 
   def testReadClientStartupInfo(self):
     d = self.db
@@ -1035,19 +1030,19 @@ class DatabaseTestClientsMixin(object):
 
     self.client_id = db_test_utils.InitializeClient(self.db)
 
-    timestamps = [rdfvalue.RDFDatetime.Now()]
+    timestamps = [self.db.Now()]
 
     si = rdf_client.StartupInfo(boot_time=1)
     d.WriteClientStartupInfo(self.client_id, si)
     timestamps.append(d.ReadClientStartupInfo(self.client_id).timestamp)
 
-    timestamps.append(rdfvalue.RDFDatetime.Now())
+    timestamps.append(self.db.Now())
 
     si = rdf_client.StartupInfo(boot_time=2)
     d.WriteClientStartupInfo(self.client_id, si)
     timestamps.append(d.ReadClientStartupInfo(self.client_id).timestamp)
 
-    timestamps.append(rdfvalue.RDFDatetime.Now())
+    timestamps.append(self.db.Now())
 
     return timestamps
 
@@ -1289,7 +1284,7 @@ class DatabaseTestClientsMixin(object):
   def testMultiReadClientsFullInfoFiltersClientsByLastPingTime(self):
     d = self.db
 
-    base_time = rdfvalue.RDFDatetime.Now()
+    base_time = self.db.Now()
     cutoff_time = base_time - rdfvalue.Duration.From(1, rdfvalue.SECONDS)
     client_ids_to_ping = self._SetupLastPingClients(base_time)
 

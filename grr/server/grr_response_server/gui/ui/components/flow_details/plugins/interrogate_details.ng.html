@@ -1,0 +1,10 @@
+<a
+  class="header"
+  [drawerLink]="['details', {'sourceFlowId': (flow$ | async)?.flowId}]"
+  *ngIf="(flow$ | async)?.state === flowState.FINISHED"
+>
+  <div class="title">Client metadata</div>
+  <div class="right-aligned">
+    <mat-icon>menu_open</mat-icon>
+  </div>
+</a>

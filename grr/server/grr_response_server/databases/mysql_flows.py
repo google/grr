@@ -1548,30 +1548,32 @@ class MySQLDBFlowMixin(object):
                                                 flow_id)
 
   @mysql_utils.WithTransaction()
-  def WriteFlowLogEntries(self, entries, cursor=None):
-    """Writes flow log entries for a given flow."""
-    query = ("INSERT INTO flow_log_entries "
-             "(client_id, flow_id, hunt_id, message) "
-             "VALUES ")
-    templates = []
-    args = []
-    for entry in entries:
-      templates.append("(%s, %s, %s, %s)")
-      args.append(db_utils.ClientIDToInt(entry.client_id))
-      args.append(db_utils.FlowIDToInt(entry.flow_id))
-      if entry.hunt_id:
-        args.append(db_utils.HuntIDToInt(entry.hunt_id))
-      else:
-        args.append(0)
-      args.append(entry.message)
+  def WriteFlowLogEntry(
+      self,
+      entry: rdf_flow_objects.FlowLogEntry,
+      cursor: Optional[cursors.Cursor] = None,
+  ) -> None:
+    """Writes a single flow log entry to the database."""
+    query = """
+    INSERT INTO flow_log_entries
+                (client_id, flow_id, hunt_id, message)
+         VALUES (%(client_id)s, %(flow_id)s, %(hunt_id)s, %(message)s)
+    """
+    args = {
+        "client_id": db_utils.ClientIDToInt(entry.client_id),
+        "flow_id": db_utils.FlowIDToInt(entry.flow_id),
+        "message": entry.message
+    }
 
-    query += ",".join(templates)
+    if entry.hunt_id:
+      args["hunt_id"] = db_utils.HuntIDToInt(entry.hunt_id)
+    else:
+      args["hunt_id"] = 0
 
     try:
       cursor.execute(query, args)
-    except MySQLdb.IntegrityError as e:
-      raise db.AtLeastOneUnknownFlowError(
-          [(entry.client_id, entry.flow_id) for entry in entries], cause=e)
+    except MySQLdb.IntegrityError as error:
+      raise db.UnknownFlowError(entry.client_id, entry.flow_id) from error
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadFlowLogEntries(self,
@@ -1622,33 +1624,41 @@ class MySQLDBFlowMixin(object):
     return cursor.fetchone()[0]
 
   @mysql_utils.WithTransaction()
-  def WriteFlowOutputPluginLogEntries(self, entries, cursor=None):
-    """Writes flow output plugin log entries for a given flow."""
-    query = ("INSERT INTO flow_output_plugin_log_entries "
-             "(client_id, flow_id, hunt_id, output_plugin_id, "
-             "log_entry_type, message) "
-             "VALUES ")
-    templates = []
-    args = []
-    for entry in entries:
-      templates.append("(%s, %s, %s, %s, %s, %s)")
-      args.append(db_utils.ClientIDToInt(entry.client_id))
-      args.append(db_utils.FlowIDToInt(entry.flow_id))
-      if entry.hunt_id:
-        args.append(db_utils.HuntIDToInt(entry.hunt_id))
-      else:
-        args.append(0)
-      args.append(db_utils.OutputPluginIDToInt(entry.output_plugin_id))
-      args.append(int(entry.log_entry_type))
-      args.append(entry.message)
+  def WriteFlowOutputPluginLogEntry(
+      self,
+      entry: rdf_flow_objects.FlowOutputPluginLogEntry,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
+    """Writes a single output plugin log entry to the database."""
+    query = """
+    INSERT INTO flow_output_plugin_log_entries
+                (client_id, flow_id, hunt_id, output_plugin_id,
+                 log_entry_type, message)
+         VALUES (%(client_id)s, %(flow_id)s, %(hunt_id)s, %(output_plugin_id)s,
+                 %(type)s, %(message)s)
+    """
+    args = {
+        "client_id":
+            db_utils.ClientIDToInt(entry.client_id),
+        "flow_id":
+            db_utils.FlowIDToInt(entry.flow_id),
+        "output_plugin_id":
+            db_utils.OutputPluginIDToInt(entry.output_plugin_id),
+        "type":
+            int(entry.log_entry_type),
+        "message":
+            entry.message,
+    }
 
-    query += ",".join(templates)
+    if entry.hunt_id:
+      args["hunt_id"] = db_utils.HuntIDToInt(entry.hunt_id)
+    else:
+      args["hunt_id"] = None
 
     try:
       cursor.execute(query, args)
-    except MySQLdb.IntegrityError as e:
-      raise db.AtLeastOneUnknownFlowError(
-          [(entry.client_id, entry.flow_id) for entry in entries], cause=e)
+    except MySQLdb.IntegrityError as error:
+      raise db.UnknownFlowError(entry.client_id, entry.flow_id) from error
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadFlowOutputPluginLogEntries(self,

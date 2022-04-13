@@ -77,6 +77,7 @@
         <mat-option
           *ngFor="let option of category.options; trackBy: trackOption"
           [value]="option.flowListItem"
+          [disabled]="!option.flowListItem.enabled"
         >
           <div class="flow-title">
             <span
@@ -87,6 +88,7 @@
           </div>
           <div class="flow-description">
             {{ option.flowListItem.description }}
+            {{ option.flowListItem.enabled ? '' : ' (restricted)' }}
           </div>
         </mat-option>
       </mat-optgroup>
@@ -98,7 +100,14 @@
   <h3>Common flows</h3>
 
   <div class="row">
-    <button mat-stroked-button color="primary" [matMenuTriggerFor]="menu">
+    <!-- matMenuTriggerRestoreFocus is disabled to allow flow-args-form to
+      focus the first input field. -->
+    <button
+      mat-stroked-button
+      color="primary"
+      [matMenuTriggerFor]="menu"
+      [matMenuTriggerRestoreFocus]="false"
+    >
       Collect files <mat-icon>arrow_drop_down</mat-icon>
     </button>
     <mat-menu #menu="matMenu">

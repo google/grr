@@ -11,6 +11,7 @@ import {MatPaginatorModule} from '@angular/material/paginator';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSortModule} from '@angular/material/sort';
 import {MatTableModule} from '@angular/material/table';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -48,8 +49,9 @@ import {ResultAccordion} from './result_accordion';
     MatIconModule,
     MatInputModule,
     MatProgressSpinnerModule,
-    MatTableModule,
     MatSortModule,
+    MatTableModule,
+    MatTooltipModule,
     MatPaginatorModule,
 
     CopyButtonModule,

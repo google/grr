@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Tests for server stubs for client actions."""
 
 from absl import app

@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, HostBinding, HostListener} from '@angular/core';
-import {FormArray, FormBuilder, FormControl, FormGroup} from '@angular/forms';
+import {UntypedFormArray, UntypedFormBuilder, UntypedFormControl, UntypedFormGroup} from '@angular/forms';
 
 import {ForemanClientRule, ForemanClientRuleSet, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRule, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../../../lib/api/api_interfaces';
 import {ConfigGlobalStore} from '../../../../store/config_global_store';
@@ -20,8 +20,8 @@ export class ClientsForm {
     'Darwin',
     'Linux',
   ];
-  readonly fb = new FormBuilder();
-  readonly clientForm: FormGroup = this.fb.group({
+  readonly fb = new UntypedFormBuilder();
+  readonly clientForm: UntypedFormGroup = this.fb.group({
     'rulesMatchMode': ['Match All (and)'],
     'conditions': this.fb.array([this.newOsForm('Operating System')]),
   });
@@ -59,28 +59,29 @@ export class ClientsForm {
 
   constructor(private readonly configGlobalStore: ConfigGlobalStore) {}
 
-  conditions(): FormArray {
-    return this.clientForm.get('conditions') as FormArray;
+  conditions(): UntypedFormArray {
+    return this.clientForm.get('conditions') as UntypedFormArray;
   }
 
-  labelNames(conditionIndex: number): FormArray {
-    return this.conditions().at(conditionIndex).get('names') as FormArray;
+  labelNames(conditionIndex: number): UntypedFormArray {
+    return this.conditions().at(conditionIndex).get('names') as
+        UntypedFormArray;
   }
 
   addLabelName(conditionIndex: number) {
-    this.labelNames(conditionIndex).push(new FormControl(''));
+    this.labelNames(conditionIndex).push(new UntypedFormControl(''));
   }
 
-  newLabelForm(name: string): FormGroup {
+  newLabelForm(name: string): UntypedFormGroup {
     return this.fb.group({
       'type': [ForemanClientRuleType.LABEL],
       'name': [name],
       'matchMode': [this.matchMode.MATCH_ALL],
-      'names': this.fb.array([new FormControl('')]),
+      'names': this.fb.array([new UntypedFormControl('')]),
     });
   }
 
-  newOsForm(name: string): FormGroup {
+  newOsForm(name: string): UntypedFormGroup {
     const operatingSystemsAsForm = this.operatingSystems.reduce(
         (operatingSystemsAsForm, operatingSystems) =>
             ({...operatingSystemsAsForm, [operatingSystems]: false}),
@@ -95,7 +96,7 @@ export class ClientsForm {
   newIntegerForm(
       name: string,
       enumValue: ForemanIntegerClientRuleForemanIntegerField|
-      ForemanRegexClientRuleForemanStringField|undefined): FormGroup {
+      ForemanRegexClientRuleForemanStringField|undefined): UntypedFormGroup {
     return this.fb.group({
       'type': [ForemanClientRuleType.INTEGER],
       'name': [name],
@@ -108,7 +109,7 @@ export class ClientsForm {
   newRegexForm(
       name: string,
       enumValue: ForemanIntegerClientRuleForemanIntegerField|
-      ForemanRegexClientRuleForemanStringField|undefined): FormGroup {
+      ForemanRegexClientRuleForemanStringField|undefined): UntypedFormGroup {
     return this.fb.group({
       'type': [ForemanClientRuleType.REGEX],
       'name': [name],
@@ -158,7 +159,7 @@ export class ClientsForm {
     for (const control of conditions.controls) {
       switch (control.get('type')!.value) {
         case ForemanClientRuleType.LABEL: {
-          const namesFormArray = control.get('names') as FormArray;
+          const namesFormArray = control.get('names') as UntypedFormArray;
           const labelNames =
               namesFormArray.controls.map(formCtrl => formCtrl.value);
           const labelRule: ForemanLabelClientRule = {

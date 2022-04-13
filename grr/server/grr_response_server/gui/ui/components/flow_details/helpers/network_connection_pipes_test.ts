@@ -6,7 +6,6 @@ import {initTestEnvironment} from '../../../testing';
 import {HelpersModule} from './module';
 
 
-
 @Component({template: '{{ value | networkConnectionFamily }}'})
 class TestFamilyComponent {
   value: string|undefined;
@@ -30,7 +29,6 @@ describe('Network Connection Pipes', () => {
             TestFamilyComponent,
             TestTypeComponent,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

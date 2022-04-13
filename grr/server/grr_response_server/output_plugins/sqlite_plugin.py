@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Plugin that exports results as SQLite db scripts."""
 
 import collections

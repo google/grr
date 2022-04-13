@@ -1,6 +1,6 @@
 import {Component, DebugElement} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {FormControl, ReactiveFormsModule} from '@angular/forms';
+import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -9,12 +9,11 @@ import {initTestEnvironment} from '../../../testing';
 import {ByteValueAccessor} from './byte_value_accessor';
 import {ByteComponentsModule} from './module';
 
-
 initTestEnvironment();
 
 @Component({template: '<input byteInput [formControl]="formControl">'})
 class TestHostComponent {
-  readonly formControl = new FormControl();
+  readonly formControl = new UntypedFormControl();
 }
 
 describe('ByteValueAccessor', () => {
@@ -32,7 +31,6 @@ describe('ByteValueAccessor', () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

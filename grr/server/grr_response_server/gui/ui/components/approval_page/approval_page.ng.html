@@ -75,7 +75,15 @@
     </mat-card>
   </div>
 
-  <client-overview></client-overview>
+  <client-overview>
+    <a
+      mat-stroked-button
+      [routerLink]="['/clients', approval.subject.clientId]"
+      color="primary"
+    >
+      Go to client
+    </a>
+  </client-overview>
 
   <scheduled-flow-list
     [creator]="approval.requestor"

@@ -33,6 +33,7 @@ describe('Flow API Translation', () => {
       args: undefined,
       progress: undefined,
       state: FlowState.FINISHED,
+      errorDescription: undefined,
       resultCounts: undefined,
     };
 

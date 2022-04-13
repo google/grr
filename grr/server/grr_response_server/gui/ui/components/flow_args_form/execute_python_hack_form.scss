@@ -1,3 +1,17 @@
 .w100 {
   width: 100%;
 }
+
+.key-value-group {
+  display: flex;
+  column-gap: 0.5em;
+  align-items: baseline;
+
+  .key-input {
+    width: 33%;
+  }
+
+  .value-input {
+    flex: 1;
+  }
+}

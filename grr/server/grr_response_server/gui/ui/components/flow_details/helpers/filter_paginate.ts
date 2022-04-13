@@ -1,5 +1,5 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, Input, OnDestroy, ViewChild} from '@angular/core';
-import {FormControl} from '@angular/forms';
+import {UntypedFormControl} from '@angular/forms';
 import {MatPaginator, PageEvent} from '@angular/material/paginator';
 import {MatTableDataSource} from '@angular/material/table';
 
@@ -19,7 +19,7 @@ const DEFAULT_PAGE_OPTIONS = [10, 25, 50, 100, 250, 500, 1000];
 export class FilterPaginate<T> implements OnDestroy, AfterViewInit {
   @ViewChild('paginatorTop') topPaginator!: MatPaginator;
 
-  readonly searchStringControl = new FormControl('');
+  readonly searchStringControl = new UntypedFormControl('');
 
   /** dataSource used as input for mat-table. */
   dataSourceValue: MatTableDataSource<T>|null = null;

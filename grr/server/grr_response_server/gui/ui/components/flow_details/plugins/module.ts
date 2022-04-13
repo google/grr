@@ -23,6 +23,7 @@ import {RouterModule} from '@angular/router';
 
 import {ApiModule} from '../../../lib/api/module';
 import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';
+import {DrawerLinkModule} from '../../helpers/drawer_link/drawer_link_module';
 import {TimestampModule} from '../../timestamp/module';
 import {HelpersModule} from '../helpers/module';
 
@@ -34,11 +35,13 @@ import {CollectSingleFileDetails} from './collect_single_file_details';
 import {DefaultDetails} from './default_details';
 import {ExecutePythonHackDetails} from './execute_python_hack_details';
 import {FileFinderDetails} from './file_finder_details';
+import {InterrogateDetails} from './interrogate_details';
 import {LaunchBinaryDetails} from './launch_binary_details';
 import {ListDirectoryDetails} from './list_directory_details';
 import {ListProcessesDetails} from './list_processes_details';
 import {MultiGetFileDetails} from './multi_get_file_details';
 import {NetstatDetails} from './netstat_details';
+import {OnlineNotificationDetails} from './online_notification_details';
 import {OsqueryDetails} from './osquery_details';
 import {ReadLowLevelDetails} from './read_low_level_details';
 import {TimelineDetails} from './timeline_details';
@@ -53,11 +56,13 @@ const COMPONENTS = [
   DefaultDetails,
   ExecutePythonHackDetails,
   FileFinderDetails,
+  InterrogateDetails,
   LaunchBinaryDetails,
   ListDirectoryDetails,
   ListProcessesDetails,
   MultiGetFileDetails,
   NetstatDetails,
+  OnlineNotificationDetails,
   OsqueryDetails,
   ReadLowLevelDetails,
   TimelineDetails,
@@ -95,6 +100,7 @@ const COMPONENTS = [
     MatTreeModule,
 
     CopyButtonModule,
+    DrawerLinkModule,
     HelpersModule,
     TimestampModule,
   ],

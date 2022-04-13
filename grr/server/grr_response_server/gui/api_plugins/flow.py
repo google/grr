@@ -6,7 +6,6 @@ import itertools
 import re
 from typing import DefaultDict, Iterable, List, Mapping, Optional, Tuple, Type
 
-
 from grr_response_core import config
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
@@ -225,6 +224,13 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       else:
         context_state_map = {1: "RUNNING", 2: "TERMINATED", 3: "ERROR"}
         self.state = context_state_map[int(flow_obj.flow_state)]
+
+      if flow_obj.error_message or flow_obj.backtrace:
+        err_desc = flow_obj.error_message or flow_obj.backtrace
+
+        max_len = 4000
+        self.error_description = (err_desc[:max_len - 1] +
+                                  "…") if len(err_desc) > max_len else err_desc
 
       if with_state_and_context:
         outstanding_requests = (
@@ -711,8 +717,8 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     """Constructor.
 
     Args:
-      exclude_path_globs: List of paths.GlobExpression values. Exclusion will
-        be applied before include_only_path_globs.
+      exclude_path_globs: List of paths.GlobExpression values. Exclusion will be
+        applied before include_only_path_globs.
       include_only_path_globs: List of paths.GlobExpression values. Inclusion
         will be applied after the exclude_path_globs.
 

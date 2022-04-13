@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """A module with utilities for working with the Sleuthkit's body format."""
+import enum
 import io
 import stat
 
@@ -30,9 +31,26 @@ class Opts:
     non_printable_escape: An (optional) flag that controls whether non-printable
       ASCII characters should be escaped.
   """
+
+  @enum.unique
+  class InodeFormat(enum.Enum):
+    """An enum class describing formatting of inode values."""
+
+    # Raw integer value.
+    RAW_INT = enum.auto()
+
+    # NTFS file reference format [1].
+    #
+    # The NTFS file reference is a pair of the file record number in the MFT and
+    # its sequence number. A textual representation of it is a dash-delimited
+    # string of these two values (e.g. `1337-42`).
+    #
+    # [1]: https://flatcap.org/linux-ntfs/ntfs/concepts/file_reference.html
+    NTFS_FILE_REFERENCE = enum.auto()
+
   chunk_size: int = DEFAULT_CHUNK_SIZE
   timestamp_subsecond_precision: bool = False
-  inode_ntfs_file_reference_format: bool = False
+  inode_format: InodeFormat = InodeFormat.RAW_INT
   backslash_escape: bool = False
   carriage_return_escape: bool = False
   non_printable_escape: bool = False
@@ -59,10 +77,10 @@ def Stream(
   else:
     timestamp_fmt = lambda ns: str(ns // 10**9)
 
-  if opts.inode_ntfs_file_reference_format:
-    inode_fmt = _NtfsFileReference
-  else:
-    inode_fmt = str
+  inode_fmt = {
+      Opts.InodeFormat.RAW_INT: str,
+      Opts.InodeFormat.NTFS_FILE_REFERENCE: _NtfsFileReference,
+  }[opts.inode_format]
 
   body_path_escape_table = dict(_BODY_PATH_ESCAPE_BASE_TABLE)
   if opts.carriage_return_escape:

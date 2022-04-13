@@ -22,7 +22,6 @@ import {UserGlobalStore} from '../../../store/user_global_store';
 import {getActivatedChildRoute, initTestEnvironment} from '../../../testing';
 
 import {NewHuntModule} from './module';
-
 import {NewHunt} from './new_hunt';
 
 initTestEnvironment();
@@ -59,7 +58,6 @@ describe('new hunt test', () => {
               useFactory: () => clientPageGlobalStore
             },
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .overrideProvider(

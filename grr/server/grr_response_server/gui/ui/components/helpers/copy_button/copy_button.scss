@@ -1,9 +1,9 @@
-@use '@angular/material' as mat;
-@use '../../../material-theme' as c;
+@use "@angular/material" as mat;
+@use "../../../material-theme" as c;
 
 $outline-width: 4px;
-$invisible: rgba(0, 0, 0, 0);
 $background: mat.get-color-from-palette(c.$background, hover);
+$invisible: transparentize($background, 1);
 $transition-time: 200ms;
 
 :host {
@@ -17,26 +17,28 @@ $transition-time: 200ms;
     outline-color $transition-time ease;
   outline: $outline-width solid $invisible;
 
+  .contents {
+    // Show .contents over .icon-container to prevent .icon-container outline
+    // from overlapping the right side of the contents.
+    position: relative;
+  }
+
   .icon-container {
     display: flex;
     align-items: center;
 
+    padding-left: $outline-width;
     opacity: 0;
     position: absolute;
-    // Move icon double the outline width to the right, so that the outlines do
-    // not overlap.
-    right: -$outline-width;
+    right: 0;
     top: 0;
     bottom: 0;
-    // Move icon 100% of its own width to the right, so that it appears directly
-    // to the right of the text label.
-    transform: translateX(100%);
+
     border-radius: 0 $outline-width $outline-width 0;
     outline: $outline-width solid $background;
     background: $background;
 
-    transition: opacity $transition-time ease;
-    pointer-events: none;
+    transition: opacity $transition-time ease, transform $transition-time ease;
   }
 
   &:hover {
@@ -45,6 +47,9 @@ $transition-time: 200ms;
     outline-color: $background;
 
     .icon-container {
+      // Move icon 100% of its own width to the right, so that it appears directly
+      // to the right of the text label.
+      transform: translateX(100%);
       opacity: 1;
     }
   }

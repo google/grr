@@ -1,10 +1,12 @@
-import {AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentFactoryResolver, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
+import {AfterViewInit, ChangeDetectionStrategy, Component, Input, OnChanges, OnDestroy, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
 import {Observable, ReplaySubject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
 import {DEFAULT_FORM, FORMS} from '../../components/flow_args_form/sub_forms';
 import {FlowDescriptor} from '../../lib/models/flow';
 import {observeOnDestroy} from '../../lib/reactive';
+
+import {FlowArgumentForm} from './form_interface';
 
 /** Component that allows configuring Flow arguments. */
 @Component({
@@ -20,6 +22,12 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
 
   @Input() flowDescriptor?: FlowDescriptor|null;
 
+  /**
+   * Automatically focus on the first input after the respective
+   * FlowArgumentForm is loaded.
+   */
+  @Input() autofocus?: boolean;
+
   private readonly flowArgValuesSubject = new ReplaySubject<unknown>(1);
   @Output()
   readonly flowArgValues$: Observable<unknown> =
@@ -32,10 +40,7 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
   @ViewChild('formContainer', {read: ViewContainerRef, static: true})
   formContainer!: ViewContainerRef;
 
-  constructor(
-      private readonly resolver: ComponentFactoryResolver,
-      private readonly cdr: ChangeDetectorRef,
-  ) {}
+  private formComponent?: FlowArgumentForm<{}>;
 
   ngAfterViewInit() {
     this.update();
@@ -46,32 +51,39 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
   }
 
   private update() {
-    if (!this.formContainer) {
+    if (!this.formContainer || !this.flowDescriptor) {
+      this.formContainer?.clear();
+      this.formComponent = undefined;
+      return;
+    }
+
+    const componentClass = FORMS[this.flowDescriptor.name] || DEFAULT_FORM;
+
+    if (this.formComponent instanceof componentClass) {
       return;
     }
 
     this.formContainer.clear();
 
-    if (!this.flowDescriptor) {
-      return;
-    }
+    const componentRef = this.formContainer.createComponent(componentClass);
+    const component = componentRef.instance;
+    this.formComponent = componentRef.instance;
 
-    const componentClass = FORMS[this.flowDescriptor.name] || DEFAULT_FORM;
-    const factory = this.resolver.resolveComponentFactory(componentClass);
-    const component = this.formContainer.createComponent(factory);
-    component.instance.defaultFlowArgs = this.flowDescriptor.defaultArgs;
-    // As it's not clear whether formValues$ observable is supposed to
-    // complete when component.instance is destroyed, we should make sure
-    // we don't have a hanging subscription left. Hence - takeUntil() pattern.
-    component.instance.formValues$.pipe(takeUntil(this.ngOnDestroy.triggered$))
+    component.flowArgs$.pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe(values => {
           this.flowArgValuesSubject.next(values);
         });
-    component.instance.status$.pipe(takeUntil(this.ngOnDestroy.triggered$))
+
+    component.form.statusChanges.pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe(status => {
           this.validSubject.next(status === 'VALID');
         });
 
-    this.cdr.detectChanges();
+    componentRef.changeDetectorRef.detectChanges();
+    component.resetFlowArgs(this.flowDescriptor.defaultArgs as {});
+
+    if (this.autofocus) {
+      component.focus(componentRef.location.nativeElement);
+    }
   }
 }

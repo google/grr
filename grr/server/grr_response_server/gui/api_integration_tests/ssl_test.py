@@ -236,7 +236,7 @@ class ApiSslProxyTest(ApiSslServerTestBase):
     # TODO: Enable version validation.
     api = grr_api.InitHttp(
         api_endpoint=self.__class__.ssl_endpoint,
-        proxies={"https": "localhost:%d" % self.proxy_port},
+        proxies={"https": "http://localhost:%d" % self.proxy_port},
         validate_version=False)
     with self.assertRaises(requests.exceptions.ConnectionError):
       api.Client(client_id=client_id).Get()

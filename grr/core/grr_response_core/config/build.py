@@ -130,11 +130,15 @@ if platform.system\(\).lower\(\) == 'linux':
   # code seem pretty fragile and somewhat horrible.
   CHIPSEC_IMPORTS = ["chipsec.helper.oshelper", "chipsec.helper.linux.linuxhelper"]
 
+WINDOWS_IMPORTS = []
+if platform.system\(\).lower\(\) == 'windows':
+  WINDOWS_IMPORTS = ["win32process", "win32timezone"]
+
 a = Analysis\(
     [client_path],
     # TODO\(https://github.com/pypa/setuptools/issues/1963\): py2_warn is
     # a workaround. Revisit in the future, whether this is needed.
-    hiddenimports=CHIPSEC_IMPORTS + ["pkg_resources.py2_warn"],
+    hiddenimports=CHIPSEC_IMPORTS + WINDOWS_IMPORTS + ["pkg_resources.py2_warn"],
     hookspath=None\)
 
 # Remove some optional libraries that would be packed but serve no purpose.

@@ -11,7 +11,6 @@ import {initTestEnvironment} from '../../../testing';
 import {HelpersModule} from './module';
 
 
-
 initTestEnvironment();
 
 declare interface DummyRow {
@@ -49,7 +48,6 @@ describe('FilterPaginate Component', () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: []
         })
         .compileComponents();

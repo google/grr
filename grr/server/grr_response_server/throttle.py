@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Throttle user calls to flows."""
 
 from grr_response_core.lib import rdfvalue

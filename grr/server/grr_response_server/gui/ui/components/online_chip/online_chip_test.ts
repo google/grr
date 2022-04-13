@@ -5,7 +5,6 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {initTestEnvironment} from '../../testing';
 
 import {OnlineChipModule} from './module';
-
 import {OnlineChip} from './online_chip';
 
 // TestHostComponent is needed in order to trigger change detection in the
@@ -31,7 +30,6 @@ describe('Status Chip Component', () => {
             NoopAnimationsModule,  // This makes test faster and more stable.
           ],
           declarations: [OnlineChip, TestHostComponent],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

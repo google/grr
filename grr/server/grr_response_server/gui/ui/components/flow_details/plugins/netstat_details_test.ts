@@ -13,7 +13,6 @@ import {initTestEnvironment} from '../../../testing';
 import {ResultAccordionHarness} from '../helpers/testing/result_accordion_harness';
 
 import {PluginsModule} from './module';
-
 import {NetstatDetails} from './netstat_details';
 
 
@@ -30,7 +29,6 @@ describe('NetstatDetails component', () => {
           imports: [
             PluginsModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

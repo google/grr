@@ -15,7 +15,7 @@ package grr;
 // Entities.
 //
 
-// Next id: 21
+// Next id: 22
 message ApiClient {
   optional string client_id = 18
       [(sem_type) = { type: "ApiClientId", description: "Client id." }];
@@ -59,6 +59,9 @@ message ApiClient {
     description: "Age of the client information."
   }];
   optional CloudInstance cloud_instance = 19;
+  optional string source_flow_id = 21 [(sem_type) = {
+    description: "The Flow ID that collected the underlying client data.",
+  }];
 }
 
 message ApiClientActionRequest {
@@ -104,7 +107,7 @@ message ApiSearchClientsResult {
 message ApiStructuredSearchClientsArgs {
   optional SearchExpression expression = 1
       [(sem_type) = { description: "Structured search expression" }];
-  optional SearchOrder search_order = 2
+  optional SortOrder sort_order = 2
       [(sem_type) = { description: "Structured search order" }];
   optional bytes continuation_token = 3
       [(sem_type) = { description: "Continuation token for pagination." }];

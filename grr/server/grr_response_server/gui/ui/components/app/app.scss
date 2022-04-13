@@ -1,6 +1,6 @@
-@use '@angular/material' as mat;
-@use '../../material-theme' as c;
-@use '../../main' as main;
+@use "@angular/material" as mat;
+@use "../../material-theme" as c;
+@use "../../main" as main;
 
 :host {
   display: flex;
@@ -80,6 +80,6 @@ mat-drawer-container {
   }
 
   ::ng-deep .mat-drawer {
-    max-width: 80vw;
+    max-width: 90vw;
   }
 }

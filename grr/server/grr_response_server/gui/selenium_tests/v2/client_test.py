@@ -18,7 +18,7 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "mylabel")
     self.WaitUntil(self.IsTextPresent, "foobar")
 
-    self.Click("css=:contains('mylabel') > [aria-label='Remove label']")
+    self.Click("css=:contains('mylabel') > [matchipremove]")
     self.WaitUntilNot(self.IsTextPresent, "mylabel")
 
     self.assertEqual(
@@ -26,25 +26,25 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
         [l.name for l in data_store.REL_DB.ReadClientLabels(client_id)])
 
   def testClientTimelineOpensInDrawer(self):
-    version = "foobazzle3000"
-    client_id = self.SetupClient(0, os_version=version, fqdn="foo.bar")
+    mem_size = "1.00 KiB"
+    client_id = self.SetupClient(0, fqdn="foo.bar", memory_size=1024)
 
     self.Open(f"/v2/clients/{client_id}")
     self.WaitUntil(self.IsTextPresent, "foo.bar")
-    # Test that version only shows up after opening the details drawer. If
-    # the version is every moved to the client summary shown on the client page,
+    # Test that data only shows up after opening the details drawer. If
+    # the data is every moved to the client summary shown on the client page,
     # use a different field for testing.
-    self.WaitUntilNot(self.IsTextPresent, version)
+    self.WaitUntilNot(self.IsTextPresent, mem_size)
 
     element = self.WaitUntil(self.GetVisibleElement,
-                             "css=a:contains('Client details')")
+                             "css=a:contains('View details')")
     self.assertEndsWith(
         element.get_attribute("href"),
         "/v2/clients/C.1000000000000000/flows/(drawer:details)")
     element.click()
 
     self.WaitUntilContains("drawer", self.GetCurrentUrlPath)
-    self.WaitUntil(self.IsTextPresent, version)
+    self.WaitUntil(self.IsTextPresent, mem_size)
 
 
 if __name__ == "__main__":

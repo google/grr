@@ -4,10 +4,11 @@
   *ngIf="(status$ | async) === 'online'; else offlineChip"
   class="green-chip"
   color="custom"
+  disabled
 >
   <mat-icon>sensors</mat-icon>
   Online
 </mat-chip>
 <ng-template #offlineChip>
-  <mat-chip class="red-chip" color="custom"><mat-icon>sensors_off</mat-icon>Offline</mat-chip>
+  <mat-chip class="red-chip" color="custom" disabled><mat-icon>sensors_off</mat-icon>Offline</mat-chip>
 </ng-template>

@@ -31,6 +31,19 @@ message TimelineResult {
   // result, not the total number of entries the action execution accumulated so
   // far.
   optional uint64 entry_count = 2;
+
+  // A string representing filesystem type the results belong to.
+  //
+  // There is no predefined set of values this field can be set to (otherwise,
+  // using an enum would be much better fit). Instead, it will contain whatever
+  // name the operating system uses to represent the filesystem. In particular,
+  // an NTFS filesystem can be represented by uppercase `NTFS` string on Windows
+  // but lowercase `ntfs` string on Linux.
+  //
+  // This value is not set if it was not possible to determine the filesystem
+  // type (which should not happen in general, but operating systems can behave
+  // is unexpected ways).
+  optional string filesystem_type = 3;
 }
 
 // A message describing single entry of the timeline for particular file. It

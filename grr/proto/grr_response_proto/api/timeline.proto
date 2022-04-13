@@ -74,6 +74,9 @@ message ApiTimelineBodyOpts {
   // its sequence number [1]. A textual representation of it is a dash-delimited
   // string of these two values (e.g. `1337-42`).
   //
+  // TODO: Deprecate this field as we are able to automatically
+  // detect the filesystem now.
+  //
   // [1]: https://flatcap.org/linux-ntfs/ntfs/concepts/file_reference.html
   optional bool inode_ntfs_file_reference_format = 2;
 

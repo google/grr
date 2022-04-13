@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Helper for running end-to-end tests."""
 
 import collections

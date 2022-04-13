@@ -7,7 +7,6 @@ import {Subject} from 'rxjs';
 import {initTestEnvironment} from '../../testing';
 
 import {TimestampModule} from './module';
-
 import {Timestamp, TimestampRefreshTimer} from './timestamp';
 
 initTestEnvironment();
@@ -35,7 +34,6 @@ describe('Timestamp Component', () => {
               useFactory: (): TimestampRefreshTimer => ({timer$}),
             },
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

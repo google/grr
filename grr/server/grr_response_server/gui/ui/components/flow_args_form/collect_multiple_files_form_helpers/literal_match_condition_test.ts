@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {ControlContainer, FormGroup} from '@angular/forms';
+import {ControlContainer, UntypedFormGroup} from '@angular/forms';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
@@ -12,11 +12,10 @@ import {initTestEnvironment} from '../../../testing';
 import {createLiteralMatchFormGroup, LiteralMatchCondition} from './literal_match_condition';
 import {HelpersModule} from './module';
 
-
 initTestEnvironment();
 
 describe('LiteralMatchCondition component', () => {
-  let control: FormGroup;
+  let control: UntypedFormGroup;
 
   beforeEach(waitForAsync(() => {
     control = createLiteralMatchFormGroup();
@@ -27,7 +26,6 @@ describe('LiteralMatchCondition component', () => {
             NoopAnimationsModule,
             HelpersModule,
           ],
-
           providers: [
             {
               provide: ControlContainer,

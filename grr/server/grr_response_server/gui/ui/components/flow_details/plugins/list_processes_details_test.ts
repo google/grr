@@ -13,7 +13,6 @@ import {ListProcessesDetails} from './list_processes_details';
 import {PluginsModule} from './module';
 
 
-
 initTestEnvironment();
 
 describe('ListProcessesDetails component', () => {
@@ -28,7 +27,6 @@ describe('ListProcessesDetails component', () => {
             NoopAnimationsModule,
             PluginsModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

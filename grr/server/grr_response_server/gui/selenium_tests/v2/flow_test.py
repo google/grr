@@ -6,7 +6,11 @@ from absl import app
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_server import artifact_registry
+from grr_response_server import data_store
+from grr_response_server import maintenance_utils
+from grr_response_server import signed_binary_utils
 from grr_response_server.flows import file
+from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import collectors
 # Required for ApiListFlowDescriptorsHandler() to truly return all flow
 # descriptors during testing.
@@ -16,6 +20,7 @@ from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 
@@ -92,12 +97,12 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilContains('Pending approval', self.GetText,
                            'css=scheduled-flow-list')
 
-    def FlowHasBeenScheduled():
+    def GetFirstScheduledFlow():
       scheduled_flows = _ListScheduledFlows(self.client_id, self.test_username)
       self.assertLessEqual(len(scheduled_flows), 1)
       return scheduled_flows[0] if len(scheduled_flows) == 1 else None
 
-    scheduled_flow = self.WaitUntil(FlowHasBeenScheduled)
+    scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
 
     self.assertEqual(scheduled_flow.client_id, self.client_id)
     self.assertEqual(scheduled_flow.creator, self.test_username)
@@ -162,6 +167,40 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.assertEmpty(_ListScheduledFlows(self.client_id, self.test_username))
     self.assertLen(_ListFlows(self.client_id, self.test_username), 1)
 
+  def testCanDuplicateFlow(self):
+    self.Open(f'/v2/clients/{self.client_id}')
+    self.WaitUntilContains('No access', self.GetText, 'css=client-overview')
+
+    approval = self._RequestApproval(
+        reason='examplereason', approver='approvername')
+    self.GrantClientApproval(
+        client_id=self.client_id,
+        requestor=self.test_username,
+        approval_id=approval.id,
+        approver='approvername')
+
+    self.WaitUntilContains('Access granted', self.GetText,
+                           'css=client-overview')
+
+    self.Click('css=flow-form button:contains("Collect files")')
+    self.Click(
+        'css=.mat-menu-panel button:contains("Collect files by search criteria")'
+    )
+    self.Type('css=flow-args-form [formarrayname=pathExpressions] input',
+              '/foo/test')
+    self.Click('css=flow-form button:contains("Start")')
+
+    self.WaitUntilContains('/foo/test', self.GetText, 'css=flow-details')
+
+    self.Click('css=flow-details button[aria-label="Flow menu"]')
+    self.Click('css=.mat-menu-panel button:contains("Duplicate flow")')
+    self.Click('css=flow-form button:contains("Start")')
+
+    self.WaitUntilContains('/foo/test', self.GetText,
+                           'css=flow-details:nth-of-type(1)')
+    self.WaitUntilContains('/foo/test', self.GetText,
+                           'css=flow-details:nth-of-type(2)')
+
   def testScheduleTimelineFlow(self):
     self.Open(f'/v2/clients/{self.client_id}')
     self.WaitUntilContains('No access', self.GetText, 'css=client-overview')
@@ -172,11 +211,11 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
 
     self.Click('css=flow-form button:contains("Schedule")')
 
-    def FlowHasBeenScheduled():
+    def GetFirstScheduledFlow():
       scheduled_flows = _ListScheduledFlows(self.client_id, self.test_username)
       return scheduled_flows[0] if len(scheduled_flows) == 1 else None
 
-    scheduled_flow = self.WaitUntil(FlowHasBeenScheduled)
+    scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
 
     self.assertEqual(scheduled_flow.flow_name, timeline.TimelineFlow.__name__)
     self.assertEqual(scheduled_flow.flow_args.root, b'/foo/test')
@@ -249,11 +288,11 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
 
     self.Click('css=flow-form button:contains("Schedule")')
 
-    def FlowHasBeenScheduled():
+    def GetFirstScheduledFlow():
       scheduled_flows = _ListScheduledFlows(self.client_id, self.test_username)
       return scheduled_flows[0] if len(scheduled_flows) == 1 else None
 
-    scheduled_flow = self.WaitUntil(FlowHasBeenScheduled)
+    scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
     args = scheduled_flow.flow_args
 
     self.assertEqual(scheduled_flow.flow_name,
@@ -300,8 +339,7 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.Click('css=flow-form button:contains("Collect forensic artifacts")')
 
     # Type whole artifact name except last letter into autocomplete.
-    self.Type('css=flow-args-form input[formcontrolname=artifactName]',
-              'FakeFileArtifac')
+    self.Type('css=flow-args-form input[name=artifactName]', 'FakeFileArtifac')
 
     self.Click('css=.mat-option:contains("FakeFileArtifact")')
 
@@ -312,16 +350,96 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
 
     self.Click('css=flow-form button:contains("Schedule")')
 
-    def FlowHasBeenScheduled():
+    def GetFirstScheduledFlow():
       scheduled_flows = _ListScheduledFlows(self.client_id, self.test_username)
       return scheduled_flows[0] if len(scheduled_flows) == 1 else None
 
-    scheduled_flow = self.WaitUntil(FlowHasBeenScheduled)
+    scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
 
     self.assertEqual(scheduled_flow.flow_name,
                      collectors.ArtifactCollectorFlow.__name__)
     self.assertEqual(scheduled_flow.flow_args.artifact_list,
                      ['FakeFileArtifact'])
+
+  def _SetUpAdminUser(self):
+    data_store.REL_DB.WriteGRRUser(
+        self.test_username,
+        user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
+
+  def testScheduleLaunchBinaryFlow(self):
+    self._SetUpAdminUser()
+    maintenance_utils.UploadSignedConfigBlob(
+        b'foo',
+        aff4_path=signed_binary_utils.GetAFF4ExecutablesRoot().Add(
+            'windows/a.exe'))
+    maintenance_utils.UploadSignedConfigBlob(
+        b'foo',
+        aff4_path=signed_binary_utils.GetAFF4ExecutablesRoot().Add(
+            'windows/test.exe'))
+
+    self.Open(f'/v2/clients/{self.client_id}')
+    self.WaitUntilContains('No access', self.GetText, 'css=client-overview')
+
+    self.Type(
+        'css=flow-form input[name=flowSearchBox]',
+        'binary',
+        end_with_enter=True)
+    self.Type(
+        'css=flow-args-form input[name=binary]', 'test', end_with_enter=True)
+    self.Type('css=flow-args-form input[name=commandLine]', '--foo --bar')
+
+    self.Click('css=flow-form button:contains("Schedule")')
+
+    def GetFirstScheduledFlow():
+      scheduled_flows = _ListScheduledFlows(self.client_id, self.test_username)
+      return scheduled_flows[0] if len(scheduled_flows) == 1 else None
+
+    scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
+
+    self.assertEqual(scheduled_flow.flow_name,
+                     administrative.LaunchBinary.__name__)
+    self.assertEqual(scheduled_flow.flow_args.binary,
+                     'aff4:/config/executables/windows/test.exe')
+    self.assertEqual(scheduled_flow.flow_args.command_line, '--foo --bar')
+
+  def testScheduleLaunchExecutePythonHackFlow(self):
+    self._SetUpAdminUser()
+    maintenance_utils.UploadSignedConfigBlob(
+        b'foo',
+        aff4_path=signed_binary_utils.GetAFF4PythonHackRoot().Add(
+            'windows/a.py'))
+    maintenance_utils.UploadSignedConfigBlob(
+        b'foo',
+        aff4_path=signed_binary_utils.GetAFF4PythonHackRoot().Add(
+            'windows/test.py'))
+
+    self.Open(f'/v2/clients/{self.client_id}')
+    self.WaitUntilContains('No access', self.GetText, 'css=client-overview')
+
+    self.Type(
+        'css=flow-form input[name=flowSearchBox]',
+        'python',
+        end_with_enter=True)
+    self.Type(
+        'css=flow-args-form input[name=hackName]', 'test', end_with_enter=True)
+
+    self.Click('css=flow-args-form button:contains("Add argument")')
+
+    self.Type('css=flow-args-form .key-input input', 'fookey')
+    self.Type('css=flow-args-form .value-input input', 'foovalue')
+
+    self.Click('css=flow-form button:contains("Schedule")')
+
+    def GetFirstScheduledFlow():
+      scheduled_flows = _ListScheduledFlows(self.client_id, self.test_username)
+      return scheduled_flows[0] if len(scheduled_flows) == 1 else None
+
+    scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
+
+    self.assertEqual(scheduled_flow.flow_name,
+                     administrative.ExecutePythonHack.__name__)
+    self.assertEqual(scheduled_flow.flow_args.hack_name, 'windows/test.py')
+    self.assertEqual(scheduled_flow.flow_args.py_args['fookey'], 'foovalue')
 
 
 class FlowCreationTestWithApprovalsDisabled(gui_test_lib.GRRSeleniumTest):

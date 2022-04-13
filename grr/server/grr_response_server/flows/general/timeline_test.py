@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 import stat as stat_mode
 from typing import Iterator
@@ -7,11 +6,13 @@ from typing import Iterator
 from absl.testing import absltest
 
 from grr_response_client.client_actions import timeline as timeline_action
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import temp
 from grr_response_proto import timeline_pb2
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.flows.general import timeline as timeline_flow
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
@@ -197,6 +198,47 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.FinishAllFlowsOnClient(self.client_id)
 
     return timeline_flow.ProtoEntries(client_id=self.client_id, flow_id=flow_id)
+
+
+class FilesystemTypeTest(absltest.TestCase):
+
+  @db_test_lib.WithDatabase
+  def testFlowWithNoResult(self, db: abstract_db.Database) -> None:
+    client_id = "C.1234567890123456"
+    flow_id = "ABCDEF92"
+
+    db.WriteClientMetadata(client_id, last_ping=rdfvalue.RDFDatetime.Now())
+
+    flow_obj = rdf_flow_objects.Flow()
+    flow_obj.client_id = client_id
+    flow_obj.flow_id = flow_id
+    flow_obj.flow_class_name = timeline_flow.TimelineFlow.__name__
+    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
+    db.WriteFlowObject(flow_obj)
+
+    self.assertIsNone(timeline_flow.FilesystemType(client_id, flow_id))
+
+  @db_test_lib.WithDatabase
+  def testFlowWithResult(self, db: abstract_db.Database) -> None:
+    client_id = "C.1234567890123456"
+    flow_id = "ABCDEF92"
+
+    db.WriteClientMetadata(client_id, last_ping=rdfvalue.RDFDatetime.Now())
+
+    flow_obj = rdf_flow_objects.Flow()
+    flow_obj.client_id = client_id
+    flow_obj.flow_id = flow_id
+    flow_obj.flow_class_name = timeline_flow.TimelineFlow.__name__
+    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
+    db.WriteFlowObject(flow_obj)
+
+    flow_result = rdf_flow_objects.FlowResult()
+    flow_result.client_id = client_id
+    flow_result.flow_id = flow_id
+    flow_result.payload = rdf_timeline.TimelineResult(filesystem_type="ntfs")
+    db.WriteFlowResults([flow_result])
+
+    self.assertEqual(timeline_flow.FilesystemType(client_id, flow_id), "ntfs")
 
 
 if __name__ == "__main__":

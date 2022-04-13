@@ -60,7 +60,9 @@ class ReadLowLevel(actions.ActionPlugin):
     # and _continue_ to be aligned.
     # An alternative is to _always_ align (each blob read).
     blob_size = args.blob_size or _DEFAULT_BLOB_SIZE
-    aligned_args = self._AlignArgsAndAdjustPadding(args)
+    pre_padding = GetPrePadding(args)
+    self._pre_padding = pre_padding
+    aligned_args = AlignArgs(args, pre_padding)
 
     bytes_left_to_read = aligned_args.length
     is_first_chunk = True
@@ -92,46 +94,6 @@ class ReadLowLevel(actions.ActionPlugin):
         bytes_left_to_read -= read_size
 
         self.Progress()
-
-  # TODO: Refactor to return structured results.
-  def _AlignArgsAndAdjustPadding(
-      self, args: rdf_read_low_level.ReadLowLevelRequest
-  ) -> rdf_read_low_level.ReadLowLevelRequest:
-    """Aligns the reading offset, updates the reading length and `pre_padding`.
-
-    It returns a copy of the flow arguments with the aligned offset value,
-    updated length. It also updates the class `pre_padding`, used later on to
-    discard extra data.
-
-    The alignment means more data than requested can be read.
-
-    From a software architecture point of view, this logic should be
-    platform-specific than a shared client action. Thus clients in platforms
-    that require the alignment would have this, and others would not. However,
-    for simplicity we're going with the same implementation in all platforms.
-
-    - Linux does not require sector alignment for reads.
-    - Windows requires sector alignment for raw device access.
-    - Mac raw disk devices are not seekable to the end and have no size, so the
-      alignment logic helps.
-
-    Args:
-      args: Original ReadLowLevelRequest sent to this ClientAction.
-
-    Returns:
-      A copy of the flow args with the aligned offset.
-    """
-
-    block_size = args.sector_block_size or _DEFAULT_SECTOR_BLOCK_SIZE
-    original_offset = args.offset
-    self._pre_padding = original_offset % block_size
-
-    # Due to alignment we will read some more data than we need to.
-    aligned_params = args.Copy()
-    aligned_params.offset = original_offset - self._pre_padding
-    aligned_params.length = args.length + self._pre_padding
-
-    return aligned_params
 
   def _StoreDataAndHash(self, data: AnyStr, offset: int) -> None:
     """Uploads data as blob and replies hash to flow.
@@ -166,3 +128,52 @@ class ReadLowLevel(actions.ActionPlugin):
     self.SendReply(
         rdf_read_low_level.ReadLowLevelResult(
             blob=buffer_reference, accumulated_hash=partial_file_hash))
+
+
+def GetPrePadding(args: rdf_read_low_level.ReadLowLevelRequest) -> int:
+  """Calculates the amount of pre_padding to be added when reading data.
+
+  Args:
+    args: Original ReadLowLevelRequest sent to this ClientAction.
+
+  Returns:
+    The pre padding to be added to the offset (for alignment).
+  """
+
+  block_size = args.sector_block_size or _DEFAULT_SECTOR_BLOCK_SIZE
+  return args.offset % block_size
+
+
+def AlignArgs(args: rdf_read_low_level.ReadLowLevelRequest,
+              pre_padding: int) -> rdf_read_low_level.ReadLowLevelRequest:
+  """Aligns the offset and updates the length according to the pre_padding.
+
+  It returns a copy of the flow arguments with the aligned offset value,
+  updated length.
+
+  The alignment means more data than requested can be read.
+
+  From a software architecture point of view, this logic should be
+  platform-specific than a shared client action. Thus clients in platforms
+  that require the alignment would have this, and others would not. However,
+  for simplicity we're going with the same implementation in all platforms.
+
+  - Linux does not require sector alignment for reads.
+  - Windows requires sector alignment for raw device access.
+  - Mac raw disk devices are not seekable to the end and have no size, so the
+    alignment logic helps.
+
+  Args:
+    args: Original ReadLowLevelRequest sent to this ClientAction.
+    pre_padding: Bytes to remove from the offset and add to the length.
+
+  Returns:
+    A copy of the flow args with the aligned offset and length.
+  """
+
+  # Due to alignment we will read some more data than we need to.
+  aligned_params = args.Copy()
+  aligned_params.offset = args.offset - pre_padding
+  aligned_params.length = args.length + pre_padding
+
+  return aligned_params

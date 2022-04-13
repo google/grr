@@ -2,8 +2,11 @@
 
 <flow-picker></flow-picker>
 
-<form autocomplete="off" spellcheck="false" #form>
-  <flow-args-form [flowDescriptor]="selectedFD$ | async"></flow-args-form>
+<form autocomplete="off" spellcheck="false" #form [appSubmitOnMetaEnter]="true">
+  <flow-args-form
+    [flowDescriptor]="selectedFD$ | async"
+    [autofocus]="true"
+  ></flow-args-form>
 
   <mat-error *ngIf="error$ | async as error">{{error}}</mat-error>
 
@@ -14,6 +17,7 @@
       type="submit"
       [disabled]="disabled$ | async"
       class="progress-spinner-button"
+      [matTooltip]="'CTRL/⌘ + ENTER'"
     >
       <mat-spinner
         *ngIf="requestInProgress$ | async"

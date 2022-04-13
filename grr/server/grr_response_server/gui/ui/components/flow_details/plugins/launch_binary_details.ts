@@ -30,7 +30,8 @@ export class LaunchBinaryDetails extends Plugin {
       map((flow) => flow.args as LaunchBinaryArgs),
   );
 
-  readonly title$ = this.args$.pipe(map(args => args.binary ?? ''));
+  readonly title$ =
+      this.args$.pipe(map(args => `${args.binary} ${args.commandLine}`));
 
   readonly result$ = this.flowResultsLocalStore.results$.pipe(
       map(results => results[0]?.payload as ExecuteBinaryResponse | undefined),

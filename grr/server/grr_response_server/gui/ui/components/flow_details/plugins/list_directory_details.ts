@@ -3,14 +3,15 @@ import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {FlowFileResult, flowFileResultFromStatEntry} from '../../../components/flow_details/helpers/file_results_table';
-import {ListDirectoryArgs, RecursiveListDirectoryArgs} from '../../../lib/api/api_interfaces';
-import {StatEntry} from '../../../lib/models/vfs';
+import {ListDirectoryArgs, RecursiveListDirectoryArgs, StatEntry as ApiStatEntry} from '../../../lib/api/api_interfaces';
+import {translateStatEntry} from '../../../lib/api_translation/flow';
 import {FlowResultMapFunction, FlowResultsQueryWithAdapter} from '../helpers/load_flow_results_directive';
 
 import {Plugin} from './plugin';
 
 const ADAPTER: FlowResultMapFunction<ReadonlyArray<FlowFileResult>|undefined> =
-    (results) => results?.map(item => item.payload as StatEntry)
+    (results) => results?.map(item => item.payload as ApiStatEntry)
+                     .map(translateStatEntry)
                      .map(res => flowFileResultFromStatEntry(res, {}));
 
 /**

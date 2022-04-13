@@ -2,6 +2,7 @@
 """A module that defines the timeline flow."""
 
 from typing import Iterator
+from typing import Optional
 from typing import Text
 
 from grr_response_core.lib import rdfvalue
@@ -137,6 +138,29 @@ def Blobs(
         raise AssertionError(message)
 
       yield blob
+
+
+def FilesystemType(client_id: str, flow_id: str) -> Optional[str]:
+  """Retrieves a filesystem type information of the specified timeline flow.
+
+  Args:
+    client_id: An identifier of a client of the flow.
+    flow_id: An identifier of the flow.
+
+  Returns:
+    A string representing filesystem type if available.
+  """
+  results = data_store.REL_DB.ReadFlowResults(
+      client_id=client_id, flow_id=flow_id, offset=0, count=1)
+
+  if not results:
+    return None
+
+  result = results[0].payload
+  if not isinstance(result, rdf_timeline.TimelineResult):
+    raise TypeError(f"Unexpected timeline result of type '{type(result)}'")
+
+  return result.filesystem_type
 
 
 # Number of results should never be big, usually no more than 2 or 3 results

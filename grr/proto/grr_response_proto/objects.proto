@@ -20,7 +20,13 @@ message StringMapEntry {
   optional string value = 2;
 }
 
-// Next field: 19
+message ClientSnapshotMetadata {
+  optional string source_flow_id = 1 [(sem_type) = {
+    description: "The Flow ID that created this ClientSnapshot.",
+  }];
+}
+
+// Next field: 20
 message ClientSnapshot {
   optional string client_id = 1 [(sem_type) = {
     description: "The client id of this client.",
@@ -77,6 +83,8 @@ message ClientSnapshot {
   repeated EdrAgent edr_agents = 17;
 
   optional FleetspeakValidationInfo fleetspeak_validation_info = 18;
+
+  optional ClientSnapshotMetadata metadata = 19;
 }
 
 message ClientMetadata {

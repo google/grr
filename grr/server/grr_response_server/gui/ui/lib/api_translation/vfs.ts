@@ -1,6 +1,7 @@
-import {ApiFile} from '../api/api_interfaces';
+import {ApiBrowseFilesystemResult, ApiFile} from '../api/api_interfaces';
 import {Directory, File, PathSpecPathType} from '../models/vfs';
 import {assertEnum, assertKeyNonNull, assertNonNull} from '../preconditions';
+import {toMap} from '../type_utils';
 
 import {isStatEntry, translateHashToHex, translateStatEntry} from './flow';
 import {createDate} from './primitive';
@@ -65,4 +66,14 @@ export function translateFile(file: ApiFile): File|Directory {
     lastContentCollected,
     lastMetadataCollected: createDate(file.age),
   };
+}
+
+/** Constructs a Map from paths to child entries. */
+export function translateBrowseFilesytemResult(
+    result: ApiBrowseFilesystemResult):
+    Map<string, ReadonlyArray<File|Directory>> {
+  return toMap(result.items ?? [], (entry) => {
+    assertKeyNonNull(entry, 'path');
+    return entry.path;
+  }, (entry) => (entry.children ?? []).map(translateFile));
 }

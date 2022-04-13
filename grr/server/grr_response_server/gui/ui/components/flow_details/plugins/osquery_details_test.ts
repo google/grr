@@ -10,7 +10,6 @@ import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../sto
 import {initTestEnvironment} from '../../../testing';
 
 import {PluginsModule} from './module';
-
 import {OsqueryDetails} from './osquery_details';
 
 
@@ -67,7 +66,6 @@ describe('osquery-details component', () => {
           imports: [
             PluginsModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

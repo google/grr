@@ -8,7 +8,6 @@ import {getActivatedChildRoute, initTestEnvironment} from '../../../testing';
 
 import {HuntPage} from './hunt_page';
 import {HuntPageModule} from './module';
-
 import {HUNT_PAGE_ROUTES} from './routing';
 
 initTestEnvironment();
@@ -25,7 +24,6 @@ describe('hunt view test', () => {
           ...STORE_PROVIDERS,
           {provide: ActivatedRoute, useFactory: getActivatedChildRoute},
         ],
-
         teardown: {destroyAfterEach: false}
       })
       .compileComponents();

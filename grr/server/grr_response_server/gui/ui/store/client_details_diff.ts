@@ -177,7 +177,7 @@ function aggregateDiffs(differences?: ReadonlyArray<Diff<Client>>):
 function getSnapshotChanges(
     current: Client, old?: Client): ReadonlyArray<string> {
   if (old === undefined) {
-    return ['Client created'];
+    return ['Client first seen'];
   }
 
   const diffDescriptions = aggregateDiffs(diff(old, current));
@@ -202,12 +202,10 @@ export function getClientVersions(clientSnapshots: ReadonlyArray<Client>):
   for (let i = 0; i < clientSnapshots.length; i++) {
     const clientChange =
         getSnapshotChanges(clientSnapshots[i], clientSnapshots[i + 1]);
-    if (clientChange.length !== 0) {
-      clientChanges.push({
-        client: clientSnapshots[i],
-        changes: clientChange,
-      });
-    }
+    clientChanges.push({
+      client: clientSnapshots[i],
+      changes: clientChange,
+    });
   }
 
   return clientChanges;

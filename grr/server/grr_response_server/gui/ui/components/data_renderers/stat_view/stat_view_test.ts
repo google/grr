@@ -9,7 +9,6 @@ import {initTestEnvironment} from '../../../testing';
 import {StatView} from './stat_view';
 import {StatViewModule} from './stat_view_module';
 
-
 initTestEnvironment();
 
 describe('StatView Component', () => {
@@ -24,7 +23,6 @@ describe('StatView Component', () => {
             StatViewModule,
           ],
           providers: [],
-
           teardown: {destroyAfterEach: false}
         })
         .overrideProvider(

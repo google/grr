@@ -118,18 +118,18 @@ class ApiClientLibHuntTest(
     client_ids = self.SetupClients(2)
     self.AssignTasksToClients(client_ids)
 
-    data_store.REL_DB.WriteFlowLogEntries([
+    data_store.REL_DB.WriteFlowLogEntry(
         rdf_flow_objects.FlowLogEntry(
             client_id=client_ids[0],
             flow_id=hunt_id,
             hunt_id=hunt_id,
-            message="Sample message: foo."),
+            message="Sample message: foo."))
+    data_store.REL_DB.WriteFlowLogEntry(
         rdf_flow_objects.FlowLogEntry(
             client_id=client_ids[1],
             flow_id=hunt_id,
             hunt_id=hunt_id,
-            message="Sample message: bar.")
-    ])
+            message="Sample message: bar."))
 
     logs = list(self.api.Hunt(hunt_id).ListLogs())
     self.assertLen(logs, 2)

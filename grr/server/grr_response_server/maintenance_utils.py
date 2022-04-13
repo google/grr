@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """This file contains utility classes related to maintenance used by GRR."""
 
 import logging

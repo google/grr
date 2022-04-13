@@ -6,7 +6,6 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {ExpandableHashModule} from '../../components/expandable_hash/module';
-
 import {HexHash} from '../../lib/models/flow';
 import {initTestEnvironment} from '../../testing';
 
@@ -24,7 +23,6 @@ describe('ExpandableHash component', () => {
             ExpandableHashModule,
             NoopAnimationsModule,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

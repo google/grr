@@ -6,7 +6,6 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {initTestEnvironment} from '../../../testing';
 
 import {TitleEditorModule} from './module';
-
 import {TitleEditorContent} from './title_editor';
 
 initTestEnvironment();
@@ -33,7 +32,6 @@ describe('params form test', () => {
           declarations: [
             TestHostComponent,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

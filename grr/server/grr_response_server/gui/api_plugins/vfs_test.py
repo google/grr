@@ -187,7 +187,7 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     self.client_id = self.SetupClient(0)
     self.file_path = "fs/os/etc"
 
-  def testDoesNotRaiseIfFirstCompomentIsEmpty(self):
+  def testDoesNotRaiseIfFirstComponentIsEmpty(self):
     args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="")
     self.handler.Handle(args, context=self.context)
 
@@ -268,6 +268,159 @@ class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
     self.assertSameElements([(item.name, item.path) for item in result.items],
                             [("os", "fs/os"), ("tsk", "fs/tsk"),
                              ("ntfs", "fs/ntfs")])
+
+
+class ApiBrowseFilesystemHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                     VfsTestMixin):
+  """Test for ApiBrowseFilesystemHandler."""
+
+  def setUp(self):
+    super().setUp()
+    self.handler = vfs_plugin.ApiBrowseFilesystemHandler()
+    self.client_id = self.SetupClient(0)
+
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)):
+      vfs_test_lib.CreateFile(
+          db.ClientPath.NTFS(self.client_id, ["mixeddir", "ntfs-then-os"]),
+          b"NTFS")
+      vfs_test_lib.CreateFile(
+          db.ClientPath.OS(self.client_id, ["mixeddir", "os-then-ntfs"]), b"OS")
+      vfs_test_lib.CreateFile(
+          db.ClientPath.TSK(self.client_id, ["mixeddir", "tsk-only"]), b"TSK")
+
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2)):
+      vfs_test_lib.CreateFile(
+          db.ClientPath.OS(self.client_id, ["mixeddir", "ntfs-then-os"]), b"OS")
+      vfs_test_lib.CreateFile(
+          db.ClientPath.NTFS(self.client_id, ["mixeddir", "os-then-ntfs"]),
+          b"NTFS")
+      vfs_test_lib.CreateFile(
+          db.ClientPath.OS(self.client_id, ["mixeddir", "os-only"]), b"OS")
+
+  def testQueriesRootPathForEmptyPath(self):
+    args = vfs_plugin.ApiBrowseFilesystemArgs(client_id=self.client_id, path="")
+    results = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(results.items, 1)
+    self.assertEqual(results.items[0].path, "/")
+    self.assertLen(results.items[0].children, 1)
+
+  def testQueriesRootPathForSingleSlashPath(self):
+    args = vfs_plugin.ApiBrowseFilesystemArgs(
+        client_id=self.client_id, path="/")
+    results = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(results.items, 1)
+    self.assertEqual(results.items[0].path, "/")
+    self.assertLen(results.items[0].children, 1)
+
+  def testHandlerListsFilesAndDirectories(self):
+    args = vfs_plugin.ApiBrowseFilesystemArgs(
+        client_id=self.client_id, path="/mixeddir")
+    results = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(results.items, 1)
+    self.assertEqual(results.items[0].path, "/mixeddir")
+    self.assertLen(results.items[0].children, 4)
+    for item in results.items[0].children:
+      self.assertIn("/mixeddir", item.path)
+
+  def testHandlerCanListDirectoryTree(self):
+    args = vfs_plugin.ApiBrowseFilesystemArgs(
+        client_id=self.client_id, path="/mixeddir", include_directory_tree=True)
+    results = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(results.items, 2)
+
+    self.assertEqual(results.items[0].path, "/")
+    self.assertLen(results.items[0].children, 1)
+    self.assertEqual("mixeddir", results.items[0].children[0].name)
+
+    self.assertEqual(results.items[1].path, "/mixeddir")
+    self.assertLen(results.items[1].children, 4)
+    self.assertEqual(["ntfs-then-os", "os-only", "os-then-ntfs", "tsk-only"],
+                     [f.name for f in results.items[1].children])
+
+  def testHandlerCanListDirectoryTreeWhenPointingToFile(self):
+    args = vfs_plugin.ApiBrowseFilesystemArgs(
+        client_id=self.client_id,
+        path="/mixeddir/os-only",
+        include_directory_tree=True)
+    results = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(results.items, 2)
+
+    self.assertEqual(results.items[0].path, "/")
+    self.assertLen(results.items[0].children, 1)
+    self.assertIn("mixeddir", [f.name for f in results.items[0].children])
+
+    self.assertEqual(results.items[1].path, "/mixeddir")
+    self.assertLen(results.items[1].children, 4)
+    self.assertEqual(results.items[1].children[1].name, "os-only")
+
+  def testHandlerMergesFilesOfDifferentPathSpecs(self):
+    args = vfs_plugin.ApiBrowseFilesystemArgs(
+        client_id=self.client_id, path="/mixeddir")
+    results = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(results.items, 1)
+
+    self.assertEqual(results.items[0].path, "/mixeddir")
+    self.assertLen(results.items[0].children, 4)
+
+    children = [(f.name, f.stat.pathspec.pathtype, f.last_collected_size)
+                for f in results.items[0].children]
+
+    self.assertEqual(children, [
+        ("ntfs-then-os", rdf_paths.PathSpec.PathType.OS, len("OS")),
+        ("os-only", rdf_paths.PathSpec.PathType.OS, len("OS")),
+        ("os-then-ntfs", rdf_paths.PathSpec.PathType.NTFS, len("NTFS")),
+        ("tsk-only", rdf_paths.PathSpec.PathType.TSK, len("TSK")),
+    ])
+
+  def testHandlerRespectsTimestamp(self):
+    args = vfs_plugin.ApiBrowseFilesystemArgs(
+        client_id=self.client_id,
+        path="/mixeddir",
+        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+    results = self.handler.Handle(args, context=self.context)
+    self.assertEmpty(results.items[0].children)
+
+    args = vfs_plugin.ApiBrowseFilesystemArgs(
+        client_id=self.client_id,
+        path="/mixeddir",
+        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
+    results = self.handler.Handle(args, context=self.context)
+    self.assertLen(results.items, 1)
+    self.assertLen(results.items[0].children, 3)
+    self.assertEqual(results.items[0].children[0].last_collected_size,
+                     len("NTFS"))
+    self.assertEqual(results.items[0].children[0].stat.pathspec.pathtype,
+                     rdf_paths.PathSpec.PathType.NTFS)
+
+    args = vfs_plugin.ApiBrowseFilesystemArgs(
+        client_id=self.client_id,
+        path="/mixeddir",
+        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2))
+    results = self.handler.Handle(args, context=self.context)
+    self.assertLen(results.items, 1)
+    self.assertLen(results.items[0].children, 4)
+    self.assertEqual(results.items[0].children[0].last_collected_size,
+                     len("OS"))
+    self.assertEqual(results.items[0].children[0].stat.pathspec.pathtype,
+                     rdf_paths.PathSpec.PathType.OS)
+
+    args = vfs_plugin.ApiBrowseFilesystemArgs(
+        client_id=self.client_id,
+        path="/mixeddir",
+        timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(10))
+    results = self.handler.Handle(args, context=self.context)
+    self.assertLen(results.items, 1)
+    self.assertLen(results.items[0].children, 4)
+    self.assertEqual(results.items[0].children[0].last_collected_size,
+                     len("OS"))
+    self.assertEqual(results.items[0].children[0].stat.pathspec.pathtype,
+                     rdf_paths.PathSpec.PathType.OS)
 
 
 class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Operations on a series of points, indexed by time.
 """
 

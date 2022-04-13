@@ -34,7 +34,7 @@ message ApiFlowDescriptor {
       [(sem_type) = { description: "Flow behaviours." }];
 }
 
-// Next id: 18
+// Next id: 19
 message ApiFlow {
   // Enum values here correspond to Flow.State values.
   enum State {
@@ -69,6 +69,10 @@ message ApiFlow {
       [(sem_type) = { description: "Flow runner arguments." }];
   optional State state = 5
       [(sem_type) = { description: "Current flow state." }];
+  optional string error_description = 18 [(sem_type) = {
+    description: "Describes the error that happened while executing the flow, "
+                 "truncated if over 4 KB."
+  }];
   optional uint64 started_at = 6 [
     (sem_type) = { type: "RDFDatetime", description: "When flow was created." }
   ];

@@ -110,7 +110,7 @@ class StreamTest(absltest.TestCase):
     entry.ino = 1688849860339456
 
     opts = body.Opts()
-    opts.inode_ntfs_file_reference_format = True
+    opts.inode_format = body.Opts.InodeFormat.NTFS_FILE_REFERENCE
 
     stream = body.Stream(iter([entry]), opts=opts)
     content = b"".join(stream).decode("utf-8")

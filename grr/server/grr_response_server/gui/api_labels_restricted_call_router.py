@@ -18,6 +18,7 @@ from grr_response_server.gui import api_call_router_without_checks
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server.gui.api_plugins import vfs as api_vfs
 
 
 def CheckClientLabels(client_id, allow_labels=None, allow_labels_owners=None):
@@ -123,6 +124,16 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouterStub):
     self.CheckClientApproval(args.client_id, context=context)
 
     return self.delegate.ListFiles(args, context=context)
+
+  def BrowseFilesystem(
+      self,
+      args: api_vfs.ApiBrowseFilesystemArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_vfs.ApiBrowseFilesystemHandler:
+    self.CheckVfsAccessAllowed()
+    self.CheckClientApproval(args.client_id, context=context)
+
+    return self.delegate.BrowseFilesystem(args, context=context)
 
   def GetFileDetails(self, args, context=None):
     self.CheckVfsAccessAllowed()

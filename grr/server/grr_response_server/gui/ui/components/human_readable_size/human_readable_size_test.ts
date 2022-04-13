@@ -7,7 +7,6 @@ import {HumanReadableSizeComponent} from './human_readable_size';
 import {HumanReadableSizeModule} from './module';
 
 
-
 initTestEnvironment();
 
 describe('HumanReadableSizeComponent', () => {
@@ -18,7 +17,6 @@ describe('HumanReadableSizeComponent', () => {
             NoopAnimationsModule,
             HumanReadableSizeModule,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

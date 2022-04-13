@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Base classes and routines used by all end to end tests."""
 
 import abc

@@ -15,7 +15,6 @@ import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
 
 import {ApprovalPage} from './approval_page';
 import {ApprovalPageModule} from './approval_page_module';
-
 import {APPROVAL_ROUTES} from './routing';
 
 
@@ -36,7 +35,6 @@ describe('ApprovalPage Component', () => {
             ...STORE_PROVIDERS,
             {provide: ActivatedRoute, useFactory: getActivatedChildRoute},
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

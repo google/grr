@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Prometheus-based statistics collection."""
 
 

@@ -11,7 +11,6 @@ import {UserGlobalStore} from '../../store/user_global_store';
 import {initTestEnvironment} from '../../testing';
 
 import {ScheduledFlowListModule} from './module';
-
 import {ScheduledFlowList} from './scheduled_flow_list';
 
 
@@ -26,7 +25,6 @@ describe('ScheduledFlowList Component', () => {
             NoopAnimationsModule,
             ScheduledFlowListModule,
           ],
-
           providers: [
             ...STORE_PROVIDERS,
           ],

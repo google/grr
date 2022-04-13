@@ -66,9 +66,13 @@ class ReadLowLevel(flow_base.FlowBase):
               blob_id=rdf_objects.BlobID.FromSerializedBytes(
                   response.blob.data)))
 
-    if file_size != self.args.length:
-      raise self.Log(f"Mismatch between requested ({self.args.length}) and "
-                     f"read ({file_size}) data")
+    if file_size < self.args.length:
+      self.Log(f"Read less bytes than requested ({file_size} < "
+               f"{self.args.length}). The file is probably smaller than "
+               "requested read length.")
+    elif file_size > self.args.length:
+      raise flow_base.FlowError(f"Read more bytes than requested ({file_size} >"
+                                f" {self.args.length}).")
 
     # This raw data is not necessarily a file, but any data from the device.
     # We artificially create a filename to refer to it on our file store.

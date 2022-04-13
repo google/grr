@@ -1,19 +1,16 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {Observable, timer} from 'rxjs';
-import {concatMap, exhaustMap, filter, map, mapTo, shareReplay, tap, withLatestFrom} from 'rxjs/operators';
+import {Observable, of} from 'rxjs';
+import {concatMap, filter, map, mapTo, shareReplay, startWith, switchMap, withLatestFrom} from 'rxjs/operators';
 
-import {ConfigService} from '../components/config/config';
 import {HttpApiService} from '../lib/api/http_api_service';
 import {translateScheduledFlow} from '../lib/api_translation/flow';
 import {ScheduledFlow} from '../lib/models/flow';
-import {poll} from '../lib/polling';
 import {isNonNull} from '../lib/preconditions';
 
 interface State {
   readonly creator?: string;
   readonly clientId?: string;
-  readonly scheduledFlows?: ScheduledFlow[];
 }
 
 /** Global store for showing scheduled flows. */
@@ -21,12 +18,9 @@ interface State {
   providedIn: 'root',
 })
 export class ScheduledFlowGlobalStore {
-  constructor(
-      private readonly httpApiService: HttpApiService,
-      private readonly configService: ConfigService) {}
+  constructor(private readonly httpApiService: HttpApiService) {}
 
-  private readonly store =
-      new ScheduledFlowComponentStore(this.httpApiService, this.configService);
+  private readonly store = new ScheduledFlowComponentStore(this.httpApiService);
 
   selectSource(source: {creator?: string, clientId?: string}) {
     this.store.selectSource(source);
@@ -43,7 +37,6 @@ export class ScheduledFlowGlobalStore {
 class ScheduledFlowComponentStore extends ComponentStore<State> {
   constructor(
       private readonly httpApiService: HttpApiService,
-      private readonly configService: ConfigService,
   ) {
     super({});
   }
@@ -56,32 +49,17 @@ class ScheduledFlowComponentStore extends ComponentStore<State> {
         };
       });
 
-  private readonly listScheduledFlows = this.effect<void>(
-      obs$ => obs$.pipe(
-          withLatestFrom(this.state$),
-          map(([, {clientId, creator}]) => ({clientId, creator})),
-          filter(
-              (args): args is {clientId: string, creator: string} =>
-                  isNonNull(args.clientId) && isNonNull(args.creator)),
-          exhaustMap(
-              ({creator, clientId}) =>
-                  this.httpApiService.listScheduledFlows(clientId, creator)),
-          map(apiScheduledFlows =>
-                  apiScheduledFlows.map(translateScheduledFlow)),
-          tap(scheduledFlows => {
-            this.updateScheduledFlows(scheduledFlows);
-          }),
-          ));
-
-  /** An observable emitting all ScheduledFlows for the client. */
-  readonly scheduledFlows$: Observable<ReadonlyArray<ScheduledFlow>> =
-      poll({
-        pollOn: timer(0, this.configService.config.flowListPollingIntervalMs),
-        pollEffect: this.listScheduledFlows,
-        selector: this.select(state => state.scheduledFlows),
-      })
+  readonly scheduledFlows$ =
+      this.select(({clientId, creator}) => ({clientId, creator}))
           .pipe(
-              filter(isNonNull),
+              switchMap(
+                  ({clientId, creator}) => (clientId && creator) ?
+                      this.httpApiService.subscribeToScheduledFlowsForClient(
+                          clientId, creator) :
+                      of([])),
+              startWith([]),
+              map(apiScheduledFlows =>
+                      apiScheduledFlows.map(translateScheduledFlow)),
               shareReplay({bufferSize: 1, refCount: true}),
           );
 
@@ -94,23 +72,5 @@ class ScheduledFlowComponentStore extends ComponentStore<State> {
               ([scheduledFlowId, clientId]) =>
                   this.httpApiService.unscheduleFlow(clientId, scheduledFlowId)
                       .pipe(mapTo(scheduledFlowId))),
-          tap((scheduledFlowId) => {
-            this.deleteScheduledFlow(scheduledFlowId);
-          }),
           ));
-
-  private readonly updateScheduledFlows =
-      this.updater<ScheduledFlow[]>((state, scheduledFlows) => ({
-                                      ...state,
-                                      scheduledFlows,
-                                    }));
-
-  private readonly deleteScheduledFlow =
-      this.updater<string>((state, scheduledFlowId) => {
-        return {
-          ...state,
-          scheduledFlows: state.scheduledFlows?.filter(
-              sf => sf.scheduledFlowId !== scheduledFlowId)
-        };
-      });
 }

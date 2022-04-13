@@ -1,5 +1,5 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild} from '@angular/core';
-import {FormControl} from '@angular/forms';
+import {UntypedFormControl} from '@angular/forms';
 import {BehaviorSubject, fromEvent, Observable, of} from 'rxjs';
 import {debounceTime, distinctUntilChanged, filter, map, switchMap, takeUntil, withLatestFrom} from 'rxjs/operators';
 
@@ -31,13 +31,15 @@ export class SearchBox implements AfterViewInit, OnDestroy {
       private readonly httpApiService: HttpApiService) {}
 
   /** A binding for a reactive forms input element. */
-  inputFormControl = new FormControl('');
+  readonly inputFormControl = new UntypedFormControl('');
 
   /**
    * A reference to a child input element. Guaranteed not to be null: it's
    * bound by Angular on component's initialization.
    */
   @ViewChild('input') input!: ElementRef<HTMLInputElement>;
+
+  @ViewChild('form') form!: ElementRef<HTMLFormElement>;
 
   /**
    * An event that is triggered every time when a user presses Enter. Emits the
@@ -47,7 +49,9 @@ export class SearchBox implements AfterViewInit, OnDestroy {
 
   @Input() autofocus: boolean = false;
 
-  readonly ngOnDestroy = observeOnDestroy(this);
+  readonly ngOnDestroy = observeOnDestroy(this, () => {
+    this.querySubmitted.complete();
+  });
 
   private readonly formattedClientsLabels$ =
       this.configGlobalStore.clientsLabels$.pipe(
@@ -57,26 +61,25 @@ export class SearchBox implements AfterViewInit, OnDestroy {
   readonly labels$ = new BehaviorSubject<string[]>([]);
 
   ngAfterViewInit() {
-    // We can't initialize enterPressed$ as a class attribute, since it
+    // We can't initialize fromEvent as a class attribute, since it
     // depends on the ViewChild("input") which gets initialized after the
     // component is constructed.
-    const enterPressed$ =
-        fromEvent<KeyboardEvent>(this.input.nativeElement, 'keyup')
-            .pipe(
-                filter(e => e.key === 'Enter'),
-                distinctUntilChanged(),
-                withLatestFrom(this.inputFormControl.valueChanges),
-                map(([, query]) => query),
-                filter(query => query !== ''),
-            );
-    enterPressed$.pipe(takeUntil(this.ngOnDestroy.triggered$))
+    fromEvent<SubmitEvent>(this.form.nativeElement, 'submit', {capture: true})
+        .pipe(
+            takeUntil(this.ngOnDestroy.triggered$),
+            withLatestFrom(this.inputFormControl.valueChanges),
+            map(([, query]) => query),
+            filter(query => query !== ''),
+            )
         .subscribe(query => {
           this.querySubmitted.emit(query);
         });
 
     const valueChanged$ = this.inputFormControl.valueChanges.pipe(
-        takeUntil(this.ngOnDestroy.triggered$), debounceTime(300),
-        distinctUntilChanged());
+        takeUntil(this.ngOnDestroy.triggered$),
+        debounceTime(300),
+        distinctUntilChanged(),
+    );
 
     valueChanged$.pipe(switchMap((query: string) => this.searchClients(query)))
         .subscribe(this.clients$);

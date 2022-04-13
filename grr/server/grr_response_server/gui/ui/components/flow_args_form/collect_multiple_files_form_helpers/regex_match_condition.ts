@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
-import {ControlContainer, FormControl, FormGroup, Validators} from '@angular/forms';
+import {ControlContainer, UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
 
 import {FileFinderContentsMatchConditionMode, FileFinderContentsRegexMatchCondition} from '../../../lib/api/api_interfaces';
 import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
@@ -25,20 +25,21 @@ export class RegexMatchCondition {
 
   @Output() conditionRemoved = new EventEmitter<void>();
 
-  get formGroup(): FormGroup {
-    return this.controlContainer.control as FormGroup;
+  get formGroup(): UntypedFormGroup {
+    return this.controlContainer.control as UntypedFormGroup;
   }
 }
 
 /** Initializes a form group corresponding to the regex match condition. */
-export function createRegexMatchFormGroup(): FormGroup {
+export function createRegexMatchFormGroup(): UntypedFormGroup {
   // Default length (for how far into the file to search) is 20 MB.
   const DEFAULT_LENGTH = 20_000_000;
 
-  return new FormGroup({
-    regex: new FormControl(null, Validators.required),
-    mode: new FormControl(FileFinderContentsMatchConditionMode.FIRST_HIT),
-    length: new FormControl(
+  return new UntypedFormGroup({
+    regex: new UntypedFormControl(null, Validators.required),
+    mode:
+        new UntypedFormControl(FileFinderContentsMatchConditionMode.FIRST_HIT),
+    length: new UntypedFormControl(
         DEFAULT_LENGTH, [Validators.required, Validators.min(0)]),
   });
 }

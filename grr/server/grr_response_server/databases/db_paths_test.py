@@ -461,48 +461,6 @@ class DatabaseTestPathsMixin(object):
     self.assertEqual(result_2.stat_entry.st_size, 42)
     self.assertEqual(result_2.hash_entry.sha256, b"bar")
 
-  def testMultiWritePathInfos(self):
-    client_a_id = db_test_utils.InitializeClient(self.db)
-    client_b_id = db_test_utils.InitializeClient(self.db)
-
-    path_info_a_1 = rdf_objects.PathInfo.OS(components=["foo", "bar"])
-    path_info_a_1.stat_entry.st_size = 42
-
-    path_info_a_2 = rdf_objects.PathInfo.OS(components=["foo", "baz"])
-    path_info_a_2.hash_entry.md5 = b"aaa"
-    path_info_a_2.hash_entry.sha256 = b"ccc"
-
-    path_info_b_1 = rdf_objects.PathInfo.TSK(components=["norf", "thud"])
-    path_info_b_1.hash_entry.sha1 = b"ddd"
-    path_info_b_1.hash_entry.sha256 = b"bbb"
-
-    path_info_b_2 = rdf_objects.PathInfo.TSK(components=["quux", "blargh"])
-    path_info_b_2.stat_entry.st_mode = 1337
-
-    path_infos = {
-        client_a_id: [path_info_a_1, path_info_a_2],
-        client_b_id: [path_info_b_1, path_info_b_2],
-    }
-    self.db.MultiWritePathInfos(path_infos)
-
-    path_infos_a = self.db.ReadPathInfos(client_a_id,
-                                         rdf_objects.PathInfo.PathType.OS, [
-                                             ("foo", "bar"),
-                                             ("foo", "baz"),
-                                         ])
-    self.assertEqual(path_infos_a[("foo", "bar")].stat_entry.st_size, 42)
-    self.assertEqual(path_infos_a[("foo", "baz")].hash_entry.md5, b"aaa")
-    self.assertEqual(path_infos_a[("foo", "baz")].hash_entry.sha256, b"ccc")
-
-    path_infos_b = self.db.ReadPathInfos(client_b_id,
-                                         rdf_objects.PathInfo.PathType.TSK, [
-                                             ("norf", "thud"),
-                                             ("quux", "blargh"),
-                                         ])
-    self.assertEqual(path_infos_b[("norf", "thud")].hash_entry.sha1, b"ddd")
-    self.assertEqual(path_infos_b[("norf", "thud")].hash_entry.sha256, b"bbb")
-    self.assertEqual(path_infos_b[("quux", "blargh")].stat_entry.st_mode, 1337)
-
   def testReadPathInfosEmptyComponentsList(self):
     client_id = db_test_utils.InitializeClient(self.db)
     results = self.db.ReadPathInfos(client_id, rdf_objects.PathInfo.PathType.OS,

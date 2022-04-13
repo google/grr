@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A registry of all new style well known flows."""
 
 from grr_response_server import foreman

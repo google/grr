@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {ControlContainer, FormGroup} from '@angular/forms';
+import {ControlContainer, UntypedFormGroup} from '@angular/forms';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
@@ -10,13 +10,12 @@ import {FileFinderContentsMatchConditionMode, FileFinderContentsRegexMatchCondit
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
-
 import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition, RegexMatchCondition, RegexMatchRawFormValues} from './regex_match_condition';
 
 initTestEnvironment();
 
 describe('RegexMatchCondition component', () => {
-  let control: FormGroup;
+  let control: UntypedFormGroup;
 
   beforeEach(waitForAsync(() => {
     control = createRegexMatchFormGroup();
@@ -27,7 +26,6 @@ describe('RegexMatchCondition component', () => {
             NoopAnimationsModule,
             HelpersModule,
           ],
-
           providers: [
             {
               provide: ControlContainer,

@@ -1,8 +1,7 @@
-import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
-import {map, shareReplay} from 'rxjs/operators';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {UntypedFormControl} from '@angular/forms';
 
-import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser} from '../../lib/api/api_interfaces';
 
 declare interface FormValues {
@@ -21,53 +20,49 @@ declare interface FormValues {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CollectBrowserHistoryForm extends
-    FlowArgumentForm<CollectBrowserHistoryArgs> implements OnInit {
-  readonly form = new FormGroup({
-    collectChrome: new FormControl(),
-    collectFirefox: new FormControl(),
-    collectInternetExplorer: new FormControl(),
-    collectOpera: new FormControl(),
-    collectSafari: new FormControl(),
-  });
-
-  @Output()
-  readonly formValues$ = this.form.valueChanges.pipe(
-      map((values: FormValues): CollectBrowserHistoryArgs => {
-        const browsers = [];
-        if (values.collectChrome) {
-          browsers.push(CollectBrowserHistoryArgsBrowser.CHROME);
-        }
-        if (values.collectFirefox) {
-          browsers.push(CollectBrowserHistoryArgsBrowser.FIREFOX);
-        }
-        if (values.collectInternetExplorer) {
-          browsers.push(CollectBrowserHistoryArgsBrowser.INTERNET_EXPLORER);
-        }
-        if (values.collectOpera) {
-          browsers.push(CollectBrowserHistoryArgsBrowser.OPERA);
-        }
-        if (values.collectSafari) {
-          browsers.push(CollectBrowserHistoryArgsBrowser.SAFARI);
-        }
-        return {browsers};
-      }), shareReplay(1));
-  @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
-
-  ngOnInit() {
-    const browsers = this.defaultFlowArgs.browsers ?? [];
-    const fv: FormValues = {
-      collectChrome:
-          browsers.indexOf(CollectBrowserHistoryArgsBrowser.CHROME) !== -1,
-      collectFirefox:
-          browsers.indexOf(CollectBrowserHistoryArgsBrowser.FIREFOX) !== -1,
-      collectInternetExplorer:
-          browsers.indexOf(
-              CollectBrowserHistoryArgsBrowser.INTERNET_EXPLORER) !== -1,
-      collectOpera:
-          browsers.indexOf(CollectBrowserHistoryArgsBrowser.OPERA) !== -1,
-      collectSafari:
-          browsers.indexOf(CollectBrowserHistoryArgsBrowser.SAFARI) !== -1,
+    FlowArgumentForm<CollectBrowserHistoryArgs, FormValues> {
+  override makeControls(): Controls<FormValues> {
+    return {
+      collectChrome: new UntypedFormControl(),
+      collectFirefox: new UntypedFormControl(),
+      collectInternetExplorer: new UntypedFormControl(),
+      collectOpera: new UntypedFormControl(),
+      collectSafari: new UntypedFormControl(),
     };
-    this.form.patchValue(fv);
+  }
+
+  override convertFlowArgsToFormState(flowArgs: CollectBrowserHistoryArgs):
+      FormValues {
+    const browsers = flowArgs.browsers ?? [];
+    return {
+      collectChrome: browsers.includes(CollectBrowserHistoryArgsBrowser.CHROME),
+      collectFirefox:
+          browsers.includes(CollectBrowserHistoryArgsBrowser.FIREFOX),
+      collectInternetExplorer:
+          browsers.includes(CollectBrowserHistoryArgsBrowser.INTERNET_EXPLORER),
+      collectOpera: browsers.includes(CollectBrowserHistoryArgsBrowser.OPERA),
+      collectSafari: browsers.includes(CollectBrowserHistoryArgsBrowser.SAFARI),
+    };
+  }
+
+  override convertFormStateToFlowArgs(formState: FormValues):
+      CollectBrowserHistoryArgs {
+    const browsers = [];
+    if (formState.collectChrome) {
+      browsers.push(CollectBrowserHistoryArgsBrowser.CHROME);
+    }
+    if (formState.collectFirefox) {
+      browsers.push(CollectBrowserHistoryArgsBrowser.FIREFOX);
+    }
+    if (formState.collectInternetExplorer) {
+      browsers.push(CollectBrowserHistoryArgsBrowser.INTERNET_EXPLORER);
+    }
+    if (formState.collectOpera) {
+      browsers.push(CollectBrowserHistoryArgsBrowser.OPERA);
+    }
+    if (formState.collectSafari) {
+      browsers.push(CollectBrowserHistoryArgsBrowser.SAFARI);
+    }
+    return {browsers};
   }
 }

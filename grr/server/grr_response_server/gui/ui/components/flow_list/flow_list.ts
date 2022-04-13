@@ -1,17 +1,14 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild, ViewContainerRef} from '@angular/core';
-import {MatDialog} from '@angular/material/dialog';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {ActivatedRoute, Router} from '@angular/router';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
-import {filter, map, takeUntil} from 'rxjs/operators';
+import {map, takeUntil} from 'rxjs/operators';
 
 import {Flow, FlowDescriptorMap, FlowWithDescriptor} from '../../lib/models/flow';
-import {isNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 import {FlowResultsLocalStore} from '../../store/flow_results_local_store';
-import {FlowArgsDialog, FlowArgsDialogData} from '../flow_args_dialog/flow_args_dialog';
 import {FlowMenuAction} from '../flow_details/flow_details';
 import {ErrorSnackbar} from '../helpers/error_snackbar/error_snackbar';
 
@@ -63,7 +60,6 @@ export class FlowList implements AfterViewInit, OnDestroy {
 
   readonly selectedFlowId$ = this.activatedRoute.params.pipe(
       map(params => params['flowId'] as string | null),
-      filter(isNonNull),
   );
 
   scrollTarget: string|null = null;
@@ -79,10 +75,11 @@ export class FlowList implements AfterViewInit, OnDestroy {
     this.triggerLoadMoreThroughScroll$.complete();
   });
 
+  readonly client$ = this.clientPageGlobalStore.selectedClient$;
+
   constructor(
       private readonly configGlobalStore: ConfigGlobalStore,
       private readonly clientPageGlobalStore: ClientPageGlobalStore,
-      private readonly dialog: MatDialog,
       private readonly router: Router,
       private readonly activatedRoute: ActivatedRoute,
       viewRef: ViewContainerRef,
@@ -123,6 +120,7 @@ export class FlowList implements AfterViewInit, OnDestroy {
         .subscribe(([{flows, isLoading, hasMore}, selectedFlowId]) => {
           if (flows === undefined || !selectedFlowId || isLoading ||
               selectedFlowId === this.scrollTarget) {
+            this.scrollTarget = selectedFlowId;
             return;
           }
 
@@ -182,15 +180,6 @@ export class FlowList implements AfterViewInit, OnDestroy {
       window.scrollTo({top: 0, behavior: 'smooth'});
     } else if (event === FlowMenuAction.CANCEL) {
       this.clientPageGlobalStore.cancelFlow(entry.flow.flowId);
-    } else if (event === FlowMenuAction.VIEW_ARGS) {
-      if (!entry.descriptor) {
-        throw new Error('Cannot show flow args without flow descriptor.');
-      }
-      const data: FlowArgsDialogData = {
-        flowArgs: entry.flow.args as {},
-        flowDescriptor: entry.descriptor,
-      };
-      this.dialog.open(FlowArgsDialog, {data});
     } else if (event === FlowMenuAction.CREATE_HUNT) {
       this.router.navigate(['/new-hunt'], {
         queryParams:

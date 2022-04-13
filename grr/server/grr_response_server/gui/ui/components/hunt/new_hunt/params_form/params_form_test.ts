@@ -10,7 +10,6 @@ import {injectMockStore, STORE_PROVIDERS} from '../../../../store/store_test_pro
 import {initTestEnvironment} from '../../../../testing';
 
 import {ParamsFormModule} from './module';
-
 import {ParamsForm} from './params_form';
 
 initTestEnvironment();
@@ -26,7 +25,6 @@ describe('params form test', () => {
           providers: [
             ...STORE_PROVIDERS,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .overrideProvider(

@@ -57,7 +57,6 @@ class ApiListArtifactsHandlerTest(flow_test_lib.FlowTestsBaseclass):
     self.assertFalse(fake_artifact.is_custom)
 
     self.assertTrue(fake_artifact.artifact.doc)
-    self.assertTrue(fake_artifact.artifact.labels)
     self.assertTrue(fake_artifact.artifact.supported_os)
 
 

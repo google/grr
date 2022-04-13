@@ -15,7 +15,6 @@ import {ExecutePythonHackDetails} from './execute_python_hack_details';
 import {PluginsModule} from './module';
 
 
-
 initTestEnvironment();
 
 describe('ExecutePythonHackDetails component', () => {
@@ -31,7 +30,6 @@ describe('ExecutePythonHackDetails component', () => {
             PluginsModule,
             RouterTestingModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

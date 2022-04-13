@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {ControlContainer, FormGroup} from '@angular/forms';
+import {ControlContainer, UntypedFormGroup} from '@angular/forms';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -9,13 +9,12 @@ import {FileFinderSizeCondition} from '../../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
-
 import {createSizeFormGroup, SizeCondition} from './size_condition';
 
 initTestEnvironment();
 
 describe('SizeCondition component', () => {
-  let control: FormGroup;
+  let control: UntypedFormGroup;
   let controlContainer: Partial<ControlContainer>;
 
   beforeEach(waitForAsync(() => {
@@ -28,7 +27,6 @@ describe('SizeCondition component', () => {
             NoopAnimationsModule,
             HelpersModule,
           ],
-
           providers: [
             {
               provide: ControlContainer,

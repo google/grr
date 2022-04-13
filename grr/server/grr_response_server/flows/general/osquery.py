@@ -27,8 +27,7 @@ FILE_COLLECTION_MAX_SINGLE_FILE_BYTES = 2**30 // 2  # 1/2 GiB
 FILE_COLLECTION_MAX_TOTAL_BYTES = 2**30  # 1 GiB
 
 
-def _GetTotalRowCount(
-    responses: flow_responses.Responses[rdf_osquery.OsqueryResult],) -> int:
+def _GetTotalRowCount(responses: Iterable[rdf_osquery.OsqueryResult]) -> int:
   get_row_lengths = lambda response: len(response.table.rows)
   row_lengths = map(get_row_lengths, responses)
   return sum(row_lengths)
@@ -241,8 +240,12 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
       responses: flow_responses.Responses[rdf_osquery.OsqueryResult],
   ) -> None:
     if not responses.success:
-      self._UpdateProgressWithError(responses.status)
-      raise flow_base.FlowError(responses.status)
+      status = responses.status
+
+      message = f"{status.error_message}: {status.backtrace}"
+      self._UpdateProgressWithError(message)
+
+      raise flow_base.FlowError(status)
 
     self._UpdateProgress(responses)
 

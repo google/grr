@@ -6,6 +6,7 @@ import {MatChipsModule} from '@angular/material/chips';
 import {MatDialogModule} from '@angular/material/dialog';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {RouterModule} from '@angular/router';
@@ -33,6 +34,7 @@ import {ClientOverview} from './client_overview';
     MatDialogModule,
     MatDividerModule,
     MatIconModule,
+    MatProgressSpinnerModule,
     MatSnackBarModule,
     MatTooltipModule,
 

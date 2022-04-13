@@ -9,8 +9,8 @@ import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
-import {FlowArgsDialogModule} from '../flow_args_dialog/module';
 import {FlowDetailsModule} from '../flow_details/module';
+import {TimestampModule} from '../timestamp/module';
 
 import {FlowList} from './flow_list';
 
@@ -35,8 +35,8 @@ import {FlowList} from './flow_list';
     MatProgressSpinnerModule,
 
     // GRR modules.
-    FlowArgsDialogModule,
     FlowDetailsModule,
+    TimestampModule,
   ],
   declarations: [
     FlowList,

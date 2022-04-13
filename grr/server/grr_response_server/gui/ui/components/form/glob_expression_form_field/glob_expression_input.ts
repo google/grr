@@ -1,5 +1,5 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, forwardRef, Input, ViewChild} from '@angular/core';
-import {ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR} from '@angular/forms';
+import {ControlValueAccessor, NG_VALUE_ACCESSOR, UntypedFormControl} from '@angular/forms';
 import {BehaviorSubject, combineLatest} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
@@ -41,7 +41,7 @@ export class GlobExpressionInput implements ControlValueAccessor,
 
   readonly client$ = new BehaviorSubject<Client|null>(null);
 
-  readonly formControl = new FormControl('');
+  readonly formControl = new UntypedFormControl('');
 
   @Input()
   set client(client: Client|null) {
@@ -90,11 +90,11 @@ export class GlobExpressionInput implements ControlValueAccessor,
     });
   }
 
-  writeValue(obj: string) {
-    this.formControl.setValue(obj);
+  writeValue(obj: string|undefined|null) {
+    this.formControl.setValue(obj ?? '');
     // Allow early calls to writeValue before views have been initialized.
     if (this.input?.nativeElement) {
-      this.input.nativeElement.value = obj;
+      this.input.nativeElement.value = obj ?? '';
     }
   }
 

@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
-import {ControlContainer, FormControl, FormGroup} from '@angular/forms';
+import {ControlContainer, UntypedFormControl, UntypedFormGroup} from '@angular/forms';
 
 import {atLeastOneMustBeSet, timesInOrder} from '../../../components/form/validators';
 import {FileFinderAccessTimeCondition, FileFinderInodeChangeTimeCondition, FileFinderModificationTimeCondition} from '../../../lib/api/api_interfaces';
@@ -25,17 +25,17 @@ export class TimeRangeCondition {
   @Input() title: string = '';
   @Output() conditionRemoved = new EventEmitter<void>();
 
-  get formGroup(): FormGroup {
-    return this.controlContainer.control as FormGroup;
+  get formGroup(): UntypedFormGroup {
+    return this.controlContainer.control as UntypedFormGroup;
   }
 }
 
 /** Initializes a form group corresponding to the time range condition. */
-export function createTimeRangeFormGroup(): FormGroup {
-  const minTime = new FormControl(null);
-  const maxTime = new FormControl(null);
+export function createTimeRangeFormGroup(): UntypedFormGroup {
+  const minTime = new UntypedFormControl(null);
+  const maxTime = new UntypedFormControl(null);
 
-  return new FormGroup({'minTime': minTime, 'maxTime': maxTime}, [
+  return new UntypedFormGroup({'minTime': minTime, 'maxTime': maxTime}, [
     atLeastOneMustBeSet([minTime, maxTime]),
     timesInOrder(minTime, maxTime),
   ]);

@@ -36,7 +36,7 @@
         [formControl]="controls.fileCollectionColumns"
       >
         <mat-chip
-          *ngFor="let columnName of fileCollectionColumns"
+          *ngFor="let columnName of controls.fileCollectionColumns.value"
           [selectable]="false"
           [removable]="true"
           (removed)="removeFileCollectionColumn(columnName)"

@@ -4,6 +4,7 @@
 import {Client, ClientApproval} from '../../lib/models/client';
 
 import {ArtifactDescriptor, ArtifactDescriptorMap, Flow, FlowDescriptor, FlowResult, FlowState, OperatingSystem, ScheduledFlow} from './flow';
+import {GrrUser} from './user';
 import {File, PathSpec, PathSpecPathType, StatEntry} from './vfs';
 
 
@@ -43,6 +44,7 @@ export function newFlow(args: Partial<Flow> = {}): Flow {
     args: undefined,
     progress: undefined,
     state: args.state || FlowState.UNSET,
+    errorDescription: args.errorDescription ?? undefined,
     resultCounts: args.resultCounts ?? undefined,
     ...args,
   };
@@ -158,5 +160,14 @@ export function newFile(file: Partial<File>): File {
     lastMetadataCollected: new Date(123),
     stat: newStatEntry(file.stat ?? {}),
     ...file,
+  };
+}
+
+export function newGrrUser(user: Partial<GrrUser>): GrrUser {
+  return {
+    name: 'currentuser',
+    huntApprovalRequired: true,
+    canaryMode: false,
+    ...user,
   };
 }

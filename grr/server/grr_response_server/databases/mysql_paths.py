@@ -184,25 +184,17 @@ class MySQLDBPathMixin(object):
 
     return path_infos
 
-  def WritePathInfos(self, client_id, path_infos):
-    """Writes a collection of path_info records for a client."""
-    try:
-      self._MultiWritePathInfos({client_id: path_infos})
-    except MySQLdb.IntegrityError as error:
-      raise db.UnknownClientError(client_id=client_id, cause=error)
-
-  def MultiWritePathInfos(self, path_infos):
-    """Writes a collection of path info records for specified clients."""
-    try:
-      self._MultiWritePathInfos(path_infos)
-    except MySQLdb.IntegrityError as error:
-      client_ids = list(path_infos.keys())
-      raise db.AtLeastOneUnknownClientError(client_ids=client_ids, cause=error)
-
   @mysql_utils.WithTransaction()
-  def _MultiWritePathInfos(self, path_infos, cursor=None):
-    """Writes a collection of path info records for specified clients."""
+  def WritePathInfos(
+      self,
+      client_id: str,
+      path_infos: Sequence[rdf_objects.PathInfo],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
+    """Writes a collection of path_info records for a client."""
     now = rdfvalue.RDFDatetime.Now()
+
+    int_client_id = db_utils.ClientIDToInt(client_id)
 
     path_info_values = []
     parent_path_info_values = []
@@ -213,44 +205,42 @@ class MySQLDBPathMixin(object):
     hash_entry_keys = []
     hash_entry_values = []
 
-    for client_id, client_path_infos in path_infos.items():
-      for path_info in client_path_infos:
-        path = mysql_utils.ComponentsToPath(path_info.components)
+    for path_info in path_infos:
+      path = mysql_utils.ComponentsToPath(path_info.components)
 
-        key = (
-            db_utils.ClientIDToInt(client_id),
-            int(path_info.path_type),
-            path_info.GetPathID().AsBytes(),
-        )
+      key = (
+          int_client_id,
+          int(path_info.path_type),
+          path_info.GetPathID().AsBytes(),
+      )
 
-        path_info_values.append(key + (mysql_utils.RDFDatetimeToTimestamp(now),
-                                       path, bool(path_info.directory),
-                                       len(path_info.components)))
+      path_info_values.append(key + (mysql_utils.RDFDatetimeToTimestamp(now),
+                                     path, bool(path_info.directory),
+                                     len(path_info.components)))
 
-        if path_info.HasField("stat_entry"):
-          stat_entry_keys.extend(key)
-          stat_entry_values.append(key +
-                                   (mysql_utils.RDFDatetimeToTimestamp(now),
-                                    path_info.stat_entry.SerializeToBytes()))
+      if path_info.HasField("stat_entry"):
+        stat_entry_keys.extend(key)
+        stat_entry_values.append(key +
+                                 (mysql_utils.RDFDatetimeToTimestamp(now),
+                                  path_info.stat_entry.SerializeToBytes()))
 
-        if path_info.HasField("hash_entry"):
-          hash_entry_keys.extend(key)
-          hash_entry_values.append(key +
-                                   (mysql_utils.RDFDatetimeToTimestamp(now),
-                                    path_info.hash_entry.SerializeToBytes(),
-                                    path_info.hash_entry.sha256.AsBytes()))
+      if path_info.HasField("hash_entry"):
+        hash_entry_keys.extend(key)
+        hash_entry_values.append(key + (mysql_utils.RDFDatetimeToTimestamp(now),
+                                        path_info.hash_entry.SerializeToBytes(),
+                                        path_info.hash_entry.sha256.AsBytes()))
 
-        # TODO(hanuszczak): Implement a trie in order to avoid inserting
-        # duplicated records.
-        for parent_path_info in path_info.GetAncestors():
-          path = mysql_utils.ComponentsToPath(parent_path_info.components)
-          parent_path_info_values.append((
-              db_utils.ClientIDToInt(client_id),
-              int(parent_path_info.path_type),
-              parent_path_info.GetPathID().AsBytes(),
-              path,
-              len(parent_path_info.components),
-          ))
+      # TODO(hanuszczak): Implement a trie in order to avoid inserting
+      # duplicated records.
+      for parent_path_info in path_info.GetAncestors():
+        path = mysql_utils.ComponentsToPath(parent_path_info.components)
+        parent_path_info_values.append((
+            int_client_id,
+            int(parent_path_info.path_type),
+            parent_path_info.GetPathID().AsBytes(),
+            path,
+            len(parent_path_info.components),
+        ))
 
     if path_info_values:
       query = """
@@ -262,7 +252,11 @@ class MySQLDBPathMixin(object):
           timestamp = VALUES(timestamp),
           directory = directory OR VALUES(directory)
       """
-      cursor.executemany(query, path_info_values)
+
+      try:
+        cursor.executemany(query, path_info_values)
+      except MySQLdb.IntegrityError as error:
+        raise db.UnknownClientError(client_id=client_id, cause=error)
 
     if parent_path_info_values:
       query = """

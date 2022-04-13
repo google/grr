@@ -10,7 +10,6 @@ import {FlowPickerModule} from './module';
 
 
 
-
 initTestEnvironment();
 
 
@@ -22,7 +21,6 @@ describe('FlowsOverview component', () => {
             NoopAnimationsModule,
             FlowPickerModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })
@@ -36,12 +34,14 @@ describe('FlowsOverview component', () => {
         {
           name: 'ArtifactCollectorFlow',
           friendlyName: 'Forensic artifacts',
-          description: 'Foo'
+          description: 'Foo',
+          enabled: true,
         },
         {
           name: 'OsqueryFlow',
           friendlyName: 'Osquery',
           description: 'Bar',
+          enabled: true,
         },
       ]
     ],
@@ -52,6 +52,7 @@ describe('FlowsOverview component', () => {
           name: 'CollectBrowserHistory',
           friendlyName: 'Collect browser history',
           description: 'Something',
+          enabled: true,
         },
       ]
     ],

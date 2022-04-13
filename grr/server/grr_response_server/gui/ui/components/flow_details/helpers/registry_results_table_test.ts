@@ -15,7 +15,6 @@ import {initTestEnvironment} from '../../../testing';
 import {HelpersModule} from './module';
 
 
-
 initTestEnvironment();
 
 @Component({
@@ -45,7 +44,6 @@ describe('RegistryResultsTable Component', () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

@@ -1,9 +1,10 @@
 import {TestBed} from '@angular/core/testing';
 import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
 import {ActivatedRoute, Router} from '@angular/router';
+import {NEVER} from 'rxjs';
 
+import {TimestampRefreshTimer} from './components/timestamp/timestamp';
 import {DateTime} from './lib/date_time';
-
 
 /** Implements an equality tester for luxon's DateTime objects. */
 export function dateTimeEqualityTester(
@@ -60,3 +61,19 @@ export function getActivatedChildRoute(): ActivatedRoute {
   const router = TestBed.inject(Router);
   return router.routerState.root.firstChild ?? router.routerState.root;
 }
+
+/**
+ * Returns a timer that never emits.
+ *
+ * Sometimes tests of components that include <app-timestamp /> fail with errors
+ * like:
+ * - "Error: 1 periodic timer(s) still in the queue."
+ * - "Error: Timeout - Async function did not complete within 5000ms"
+ *
+ * In these cases, try disabling the timer by adding this provider to the
+ * TestBed module configuration.
+ */
+export const DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER = {
+  provide: TimestampRefreshTimer,
+  useFactory: () => ({timer$: NEVER}),
+} as const;

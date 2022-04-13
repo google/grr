@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Message handlers."""
 
 from grr_response_core.lib import rdfvalue

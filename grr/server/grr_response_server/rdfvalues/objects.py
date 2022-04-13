@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Top level datastore objects.
 
 This package contains the rdfvalue wrappers around the top level datastore
@@ -11,6 +10,7 @@ import hashlib
 import itertools
 import os
 import stat
+from typing import Collection
 from typing import Text
 
 from grr_response_core import config
@@ -39,6 +39,10 @@ class StringMapEntry(rdf_structs.RDFProtoStruct):
   protobuf = objects_pb2.StringMapEntry
 
 
+class ClientSnapshotMetadata(rdf_structs.RDFProtoStruct):
+  protobuf = objects_pb2.ClientSnapshotMetadata
+
+
 class ClientSnapshot(rdf_structs.RDFProtoStruct):
   """The client object.
 
@@ -51,6 +55,7 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
 
   rdf_deps = [
       StringMapEntry,
+      ClientSnapshotMetadata,
       rdf_cloud.CloudInstance,
       rdf_client.EdrAgent,
       rdf_client_fs.Filesystem,
@@ -385,6 +390,22 @@ class PathInfo(rdf_structs.RDFProtoStruct):
       raise ValueError("Unexpected path type: %s" % ps_path_type)
 
   @classmethod
+  def PathTypeToPathspecPathType(
+      cls, pathtype: "PathInfo.PathType") -> "rdf_paths.PathSpec.PathType":
+    if pathtype == cls.PathType.OS:
+      return rdf_paths.PathSpec.PathType.OS
+    elif pathtype == cls.PathType.TSK:
+      return rdf_paths.PathSpec.PathType.TSK
+    elif pathtype == cls.PathType.REGISTRY:
+      return rdf_paths.PathSpec.PathType.REGISTRY
+    elif pathtype == cls.PathType.TEMP:
+      return rdf_paths.PathSpec.PathType.TMPFILE
+    elif pathtype == cls.PathType.NTFS:
+      return rdf_paths.PathSpec.PathType.NTFS
+    else:
+      raise ValueError(f"Unexpected path type: {pathtype}")
+
+  @classmethod
   def FromPathSpec(cls, pathspec):
     # Note that since PathSpec objects may contain more information than what is
     # stored in a PathInfo object, we can only create a PathInfo object from a
@@ -524,6 +545,11 @@ def _ValidatePathComponents(components):
     raise ValueError(message % (components, error))
 
 
+def ParsePath(path: str) -> Collection[str]:
+  """Splits a path at / separators into path components."""
+  return [component for component in path.split("/") if component]
+
+
 # TODO(hanuszczak): Instead of these two functions for categorized paths we
 # should create an RDF value that wraps a string and provides these two as
 # methods.
@@ -531,7 +557,7 @@ def _ValidatePathComponents(components):
 
 def ParseCategorizedPath(path):
   """Parses a categorized path string into type and list of components."""
-  components = tuple(component for component in path.split("/") if component)
+  components = tuple(ParsePath(path))
   if components[0:2] == ("fs", "os"):
     return PathInfo.PathType.OS, components[2:]
   elif components[0:2] == ("fs", "tsk"):

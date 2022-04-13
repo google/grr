@@ -12,14 +12,12 @@ import {getExportedResultsCsvUrl} from '../../lib/api/http_api_service';
 import {Flow, FlowDescriptor, FlowState} from '../../lib/models/flow';
 import {newFlow} from '../../lib/models/model_test_util';
 import {STORE_PROVIDERS} from '../../store/store_test_providers';
-import {initTestEnvironment} from '../../testing';
+import {DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER, initTestEnvironment} from '../../testing';
 
 import {FlowDetails} from './flow_details';
 import {FlowDetailsModule} from './module';
-
 import {FLOW_DETAILS_PLUGIN_REGISTRY} from './plugin_registry';
 import {Plugin} from './plugins/plugin';
-
 
 initTestEnvironment();
 
@@ -52,9 +50,9 @@ describe('FlowDetails Component', () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [
             ...STORE_PROVIDERS,
+            DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER,
           ],
           teardown: {destroyAfterEach: false}
         })
@@ -92,7 +90,7 @@ describe('FlowDetails Component', () => {
 
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('SampleFlow');
-    expect(text).toContain('Aug 23, 2019');
+    expect(text).toContain('2019');
     expect(text).toContain('testuser');
   });
 
@@ -147,6 +145,21 @@ describe('FlowDetails Component', () => {
 
     expect(fixture.debugElement.query(By.directive(DefaultDetails)))
         .not.toBeNull();
+  });
+
+  it('does NOT display flow arguments if flow descriptor is not set', () => {
+    const fixture = createComponent(SAMPLE_FLOW_LIST_ENTRY);
+
+    const text = fixture.debugElement.nativeElement.textContent;
+    expect(text).not.toContain('Flow arguments');
+  });
+
+  it('displays flow arguments if flow descriptor is set', () => {
+    const fixture =
+        createComponent(SAMPLE_FLOW_LIST_ENTRY, SAMPLE_FLOW_DESCRIPTOR);
+
+    const text = fixture.debugElement.nativeElement.textContent;
+    expect(text).toContain('Flow arguments');
   });
 
   it('does NOT display download button when flow is NOT finished', () => {

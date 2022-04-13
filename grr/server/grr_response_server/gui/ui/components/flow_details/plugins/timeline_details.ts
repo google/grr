@@ -1,5 +1,5 @@
 import {Component} from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
+import {UntypedFormControl, UntypedFormGroup} from '@angular/forms';
 import {combineLatest, Observable} from 'rxjs';
 import {map, shareReplay, startWith} from 'rxjs/operators';
 
@@ -36,13 +36,13 @@ export class TimelineDetails extends Plugin {
   readonly FlowState: typeof FlowState = FlowState;
 
   readonly controls = {
-    timestampSubsecondPrecision: new FormControl(true),
-    inodeNtfsFileReferenceFormat: new FormControl(false),
-    backslashEscape: new FormControl(true),
-    carriageReturnEscape: new FormControl(false),
-    nonPrintableEscape: new FormControl(false),
+    timestampSubsecondPrecision: new UntypedFormControl(true),
+    inodeNtfsFileReferenceFormat: new UntypedFormControl(false),
+    backslashEscape: new UntypedFormControl(true),
+    carriageReturnEscape: new UntypedFormControl(false),
+    nonPrintableEscape: new UntypedFormControl(false),
   };
-  readonly bodyOptsForm = new FormGroup(this.controls);
+  readonly bodyOptsForm = new UntypedFormGroup(this.controls);
 
   /**
    * Observable with form inputs of the body export options.

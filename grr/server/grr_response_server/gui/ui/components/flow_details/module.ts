@@ -12,7 +12,9 @@ import {MatMenuModule} from '@angular/material/menu';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
+import {FlowArgsViewModule} from '../flow_args_view/module';
 import {CopyButtonModule} from '../helpers/copy_button/copy_button_module';
+import {TimestampModule} from '../timestamp/module';
 import {UserImageModule} from '../user_image/module';
 
 import {FlowDetails} from './flow_details';
@@ -31,9 +33,9 @@ import {PluginsModule} from './plugins/module';
     CommonModule,
     FormsModule,
     HelpersModule,
+    FlowArgsViewModule,
     ReactiveFormsModule,
     RouterModule,
-
     MatButtonModule,
     MatCardModule,
     MatChipsModule,
@@ -41,10 +43,10 @@ import {PluginsModule} from './plugins/module';
     MatIconModule,
     MatInputModule,
     MatMenuModule,
-
     PluginsModule,
     UserImageModule,
     CopyButtonModule,
+    TimestampModule,
   ],
   declarations: [
     FlowDetails,

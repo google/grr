@@ -129,6 +129,14 @@ exports.RoutingService = class {
       callback(state.name, params);
     }.bind(this));
   }
+
+  getNewUiUrl() {
+    if (this.state_.current.newUiUrl) {
+      return this.state_.current.newUiUrl(this.state_.params);
+    } else {
+      return '/v2/';
+    }
+  }
 };
 var RoutingService = exports.RoutingService;
 

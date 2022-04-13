@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Plugins that produce results in YAML."""
 
 import io

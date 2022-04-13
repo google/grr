@@ -7,7 +7,6 @@ import {UserGlobalStore} from '../../store/user_global_store';
 import {initTestEnvironment} from '../../testing';
 
 import {UserMenuModule} from './module';
-
 import {UserMenu} from './user_menu';
 
 
@@ -22,7 +21,6 @@ describe('UserMenu Component', () => {
             NoopAnimationsModule,
             UserMenuModule,
           ],
-
           providers: [
             ...STORE_PROVIDERS,
           ],

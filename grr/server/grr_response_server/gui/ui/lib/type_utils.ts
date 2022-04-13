@@ -109,6 +109,15 @@ export function addToMapSetInPlace<K, V>(
   values.add(value);
 }
 
+/** Returns a new Map with identical keys and transformed values. */
+export function transformMapValues<K, V1, V2>(
+    map: ReadonlyMap<K, V1>,
+    mapper: ((value: V1, key: K) => V2)): ReadonlyMap<K, V2> {
+  return new Map(
+      Array.from(map.entries()).map(([key,
+                                      value]) => [key, mapper(value, key)]));
+}
+
 /** Returns a CompareFn that compares two strings alphabetically. */
 export function compareAlphabeticallyBy<T>(mapper: (value: T) => string):
     ((a: T, b: T) => number) {
@@ -133,3 +142,9 @@ export function camelToSnakeCase(str: string) {
   // leading uppercase is NOT handled by special cases for now.
   return str.replace(/[A-Z]/g, char => `_${char.toLowerCase()}`);
 }
+
+/** Callback for `ControlValueAccessor.registerOnChange`. */
+export type OnChangeFn<T> = (value: T) => void;
+
+/** Callback for `ControlValueAccessor.registerOnTouched`. */
+export type OnTouchedFn = () => void;

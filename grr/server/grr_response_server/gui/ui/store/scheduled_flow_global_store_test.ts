@@ -1,9 +1,7 @@
 import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {of, Subject} from 'rxjs';
 
-import {ConfigService} from '../components/config/config';
-import {ApiScheduledFlow} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
+import {HttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
 import {ScheduledFlow} from '../lib/models/flow';
 import {initTestEnvironment} from '../testing';
 
@@ -15,19 +13,12 @@ initTestEnvironment();
 
 
 describe('ScheduledFlowGlobalStore', () => {
-  let httpApiService: Partial<HttpApiService>;
+  let httpApiService: HttpApiServiceMock;
   let scheduledFlowGlobalStore: ScheduledFlowGlobalStore;
-  let configService: ConfigService;
-  let apiListScheduledFlows$: Subject<ReadonlyArray<ApiScheduledFlow>>;
   let configGlobalStore: ConfigGlobalStoreMock;
 
   beforeEach(() => {
-    apiListScheduledFlows$ = new Subject();
-    httpApiService = {
-      listScheduledFlows: jasmine.createSpy('listScheduledFlows')
-                              .and.returnValue(apiListScheduledFlows$),
-    };
-
+    httpApiService = mockHttpApiService();
     configGlobalStore = mockConfigGlobalStore();
 
     TestBed
@@ -43,7 +34,6 @@ describe('ScheduledFlowGlobalStore', () => {
         .compileComponents();
 
     scheduledFlowGlobalStore = TestBed.inject(ScheduledFlowGlobalStore);
-    configService = TestBed.inject(ConfigService);
   });
 
   it('calls the listScheduledFlows API on scheduledFlows$ subscription',
@@ -51,14 +41,7 @@ describe('ScheduledFlowGlobalStore', () => {
        scheduledFlowGlobalStore.selectSource(
            {clientId: 'C.1234', creator: 'testuser'});
        scheduledFlowGlobalStore.scheduledFlows$.subscribe();
-
-       // This is needed since flow list entries are updated in a timer loop
-       // and the first call is scheduled after 0 milliseconds (meaning it
-       // will happen right after it was scheduled, but still asynchronously).
-       tick(1);
-       discardPeriodicTasks();
-
-       expect(httpApiService.listScheduledFlows)
+       expect(httpApiService.subscribeToScheduledFlowsForClient)
            .toHaveBeenCalledWith('C.1234', 'testuser');
      }));
 
@@ -94,42 +77,26 @@ describe('ScheduledFlowGlobalStore', () => {
        tick(1);
        discardPeriodicTasks();
 
-       apiListScheduledFlows$.next([
-         {
-           scheduledFlowId: '1',
-           clientId: 'C.1234',
-           creator: 'testuser',
-           createTime: '999000',
-           flowName: 'ListProcesses',
-           flowArgs: {foobar: 9000},
-         },
-         {
-           scheduledFlowId: '2',
-           clientId: 'C.1234',
-           creator: 'testuser',
-           createTime: '999000',
-           flowName: 'GetFile',
-           flowArgs: {foobar: 5},
-           error: 'foobazzle invalid',
-         },
-       ]);
-       apiListScheduledFlows$.complete();
+       httpApiService.mockedObservables.subscribeToScheduledFlowsForClient.next(
+           [
+             {
+               scheduledFlowId: '1',
+               clientId: 'C.1234',
+               creator: 'testuser',
+               createTime: '999000',
+               flowName: 'ListProcesses',
+               flowArgs: {foobar: 9000},
+             },
+             {
+               scheduledFlowId: '2',
+               clientId: 'C.1234',
+               creator: 'testuser',
+               createTime: '999000',
+               flowName: 'GetFile',
+               flowArgs: {foobar: 5},
+               error: 'foobazzle invalid',
+             },
+           ]);
        expect(results).toEqual(expected);
-     }));
-
-  it('polls and updates scheduledFlows$ periodically', fakeAsync(() => {
-       httpApiService.listScheduledFlows =
-           jasmine.createSpy('listScheduledFlows').and.callFake(() => of([]));
-
-       scheduledFlowGlobalStore.selectSource(
-           {clientId: 'C.1234', creator: 'testuser'});
-       scheduledFlowGlobalStore.scheduledFlows$.subscribe();
-
-       tick(configService.config.flowListPollingIntervalMs * 2 + 1);
-       discardPeriodicTasks();
-
-       // First call happens at 0, next one at flowListPollingIntervalMs
-       // and the next one at flowListPollingIntervalMs * 2.
-       expect(httpApiService.listScheduledFlows).toHaveBeenCalledTimes(3);
      }));
 });

@@ -14,6 +14,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.util import collection
 from grr_response_server import fleet_utils
 from grr_response_server.databases import db
@@ -677,13 +678,12 @@ class MySQLDBClientMixin(object):
   def ReadAllClientLabels(self, cursor=None):
     """Reads the user labels for a list of clients."""
 
-    cursor.execute("SELECT DISTINCT owner_username, label FROM client_labels")
+    cursor.execute("SELECT DISTINCT label FROM client_labels")
 
     result = []
-    for owner, label in cursor.fetchall():
-      result.append(rdf_objects.ClientLabel(name=label, owner=owner))
+    for (label,) in cursor.fetchall():
+      result.append(label)
 
-    result.sort(key=lambda label: (label.owner, label.name))
     return result
 
   @mysql_utils.WithTransaction()
@@ -948,6 +948,14 @@ class MySQLDBClientMixin(object):
 
     cursor.execute("DELETE FROM clients WHERE client_id = %s",
                    [db_utils.ClientIDToInt(client_id)])
+
+  def StructuredSearchClients(self, expression: rdf_search.SearchExpression,
+                              sort_order: rdf_search.SortOrder,
+                              continuation_token: bytes,
+                              number_of_results: int) -> db.SearchClientsResult:
+    # Unused arguments
+    del self, expression, sort_order, continuation_token, number_of_results
+    raise NotImplementedError
 
 
 # We use the same value as other database implementations that we have some

@@ -36,12 +36,6 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     for artifact in registry.GetArtifacts():
       ar.Validate(artifact)
 
-    art_obj = registry.GetArtifact("TestCmdArtifact")
-    art_obj.labels.append("BadLabel")
-
-    self.assertRaises(rdf_artifacts.ArtifactDefinitionError, ar.Validate,
-                      art_obj)
-
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testAddFileSource(self, registry):
     registry.AddFileSource(self.test_artifacts_file)

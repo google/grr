@@ -332,13 +332,12 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
   def AddLogToHunt(self, hunt_id, client_id, message):
     flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
-    data_store.REL_DB.WriteFlowLogEntries([
+    data_store.REL_DB.WriteFlowLogEntry(
         rdf_flow_objects.FlowLogEntry(
             client_id=client_id,
             flow_id=flow_id,
             hunt_id=hunt_id,
-            message=message)
-    ])
+            message=message))
 
   def AddErrorToHunt(self, hunt_id, client_id, message, backtrace):
     flow_id = self._EnsureClientHasHunt(client_id, hunt_id)

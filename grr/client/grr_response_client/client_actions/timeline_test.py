@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import ctypes
 import hashlib
 import io
@@ -71,6 +70,10 @@ class TimelineTest(client_test_lib.EmptyActionTest):
       # of the entry for the root folder.
       total_entry_count = sum(result.entry_count for result in results)
       self.assertEqual(total_entry_count, file_count + 1)
+
+      for result in results:
+        # The filesystem type should be the same for every result.
+        self.assertEqual(result.filesystem_type, results[0].filesystem_type)
 
 
 class WalkTest(absltest.TestCase):
@@ -246,6 +249,40 @@ class WalkTest(absltest.TestCase):
       self.assertLen(paths, 2)
       self.assertEqual(paths[0], os.path.join(dirpath, "foo"))
       self.assertEqual(paths[1], os.path.join(dirpath, "foo", "bar"))
+
+
+class GetFilesystemType(absltest.TestCase):
+
+  def testReturnsForExistingPath(self):
+    with temp.AutoTempFilePath() as path:
+      fstype = timeline.GetFilesystemType(path.encode("utf-8"))
+
+    # Some filesystem type should be returned for all supported platforms.
+    self.assertTrue(fstype)
+
+  @absltest.skipUnless(platform.system() == "Linux", "Linux-only test.")
+  def testReturnsForExistingPathLinux(self):
+    with temp.AutoTempFilePath() as path:
+      fstype = timeline.GetFilesystemType(path.encode("utf-8"))
+
+    # `/proc/filesystem` lists all filesystems supported by the kernel.
+    with open("/proc/filesystems", mode="r", encoding="utf-8") as proc_fs:
+      supported_fstypes = set(proc_fs.read().split())
+
+    self.assertIn(fstype, supported_fstypes)
+
+  @absltest.skipUnless(platform.system() == "Windows", "Windows-only test.")
+  def testReturnsForExistingPathWindows(self):
+    with temp.AutoTempFilePath() as path:
+      fstype = timeline.GetFilesystemType(path.encode("utf-8"))
+
+    # As far as we know these are the only filesystems supported by Windows.
+    self.assertIn(fstype.lower(), ["ntfs", "fat32", "exfat", "refs"])
+
+  def testRaisesForNonExistingPath(self):
+    with temp.AutoTempDirPath() as path:
+      with self.assertRaises(IOError):
+        timeline.GetFilesystemType(os.path.join(path, "foobar"))
 
 
 def _Touch(filepath: Text, content: bytes = b"") -> None:

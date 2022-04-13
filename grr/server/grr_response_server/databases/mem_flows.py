@@ -884,18 +884,17 @@ class InMemoryDBFlowMixin(object):
     return result
 
   @utils.Synchronized
-  def WriteFlowLogEntries(self, entries):
-    """Writes flow output plugin log entries for a given flow."""
-    flow_ids = [(e.client_id, e.flow_id) for e in entries]
-    for f in flow_ids:
-      if f not in self.flows:
-        raise db.AtLeastOneUnknownFlowError(flow_ids)
+  def WriteFlowLogEntry(self, entry: rdf_flow_objects.FlowLogEntry) -> None:
+    """Writes a single flow log entry to the database."""
+    key = (entry.client_id, entry.flow_id)
 
-    for e in entries:
-      dest = self.flow_log_entries.setdefault((e.client_id, e.flow_id), [])
-      to_write = e.Copy()
-      to_write.timestamp = rdfvalue.RDFDatetime.Now()
-      dest.append(to_write)
+    if key not in self.flows:
+      raise db.UnknownFlowError(entry.client_id, entry.flow_id)
+
+    entry = entry.Copy()
+    entry.timestamp = rdfvalue.RDFDatetime.Now()
+
+    self.flow_log_entries.setdefault(key, []).append(entry)
 
   @utils.Synchronized
   def ReadFlowLogEntries(self,
@@ -920,19 +919,20 @@ class InMemoryDBFlowMixin(object):
     return len(self.ReadFlowLogEntries(client_id, flow_id, 0, sys.maxsize))
 
   @utils.Synchronized
-  def WriteFlowOutputPluginLogEntries(self, entries):
-    """Writes flow output plugin log entries."""
-    flow_ids = [(e.client_id, e.flow_id) for e in entries]
-    for f in flow_ids:
-      if f not in self.flows:
-        raise db.AtLeastOneUnknownFlowError(flow_ids)
+  def WriteFlowOutputPluginLogEntry(
+      self,
+      entry: rdf_flow_objects.FlowOutputPluginLogEntry,
+  ) -> None:
+    """Writes a single output plugin log entry to the database."""
+    key = (entry.client_id, entry.flow_id)
 
-    for e in entries:
-      dest = self.flow_output_plugin_log_entries.setdefault(
-          (e.client_id, e.flow_id), [])
-      to_write = e.Copy()
-      to_write.timestamp = rdfvalue.RDFDatetime.Now()
-      dest.append(to_write)
+    if key not in self.flows:
+      raise db.UnknownFlowError(entry.client_id, entry.flow_id)
+
+    entry = entry.Copy()
+    entry.timestamp = rdfvalue.RDFDatetime.Now()
+
+    self.flow_output_plugin_log_entries.setdefault(key, []).append(entry)
 
   @utils.Synchronized
   def ReadFlowOutputPluginLogEntries(self,

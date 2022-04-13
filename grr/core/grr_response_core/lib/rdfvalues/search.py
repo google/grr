@@ -41,5 +41,5 @@ class SearchExpression(rdf_structs.RDFProtoStruct):
   rdf_deps = [NotExpression, AndExpression, OrExpression, ConditionExpression]
 
 
-class SearchOrder(rdf_structs.RDFProtoStruct):
-  protobuf = search_pb2.SearchOrder
+class SortOrder(rdf_structs.RDFProtoStruct):
+  protobuf = search_pb2.SortOrder

@@ -16,7 +16,6 @@ import {CollectFilesByKnownPathDetails} from './collect_files_by_known_path_deta
 import {PluginsModule} from './module';
 
 
-
 initTestEnvironment();
 
 describe('CollectFilesByKnownPathDetails component', () => {
@@ -31,7 +30,6 @@ describe('CollectFilesByKnownPathDetails component', () => {
             PluginsModule,
             RouterTestingModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })
@@ -45,7 +43,7 @@ describe('CollectFilesByKnownPathDetails component', () => {
     const fixture = TestBed.createComponent(CollectFilesByKnownPathDetails);
     const args: CollectFilesByKnownPathArgs = {paths: ['/foo', '/bar']};
     const progress: CollectFilesByKnownPathProgress = {
-      numCollected: '1',
+      numCollected: '2',
       numRawFsAccessRetries: '1',
       numFailed: '2',
     };
@@ -68,6 +66,16 @@ describe('CollectFilesByKnownPathDetails component', () => {
         payloadType: 'CollectFilesByKnownPathResult',
         payload: {
           stat: {pathspec: {path: '/foo', pathtype: PathSpecPathType.OS}},
+          hash: {
+            sha256: 'testhash',
+          },
+          status: CollectFilesByKnownPathResultStatus.COLLECTED,
+        }
+      }),
+      newFlowResult({
+        payloadType: 'CollectFilesByKnownPathResult',
+        payload: {
+          stat: {pathspec: {path: '/retried', pathtype: PathSpecPathType.NTFS}},
           hash: {
             sha256: 'testhash',
           },
@@ -102,10 +110,14 @@ describe('CollectFilesByKnownPathDetails component', () => {
     expect(tabsHarness.length).toEqual(2);
 
     const successTab = tabsHarness[0];
-    expect(await successTab.getLabel()).toBe('1 successful file collection');
+    expect(await successTab.getLabel()).toBe('2 successful file collections');
     expect(await successTab.isSelected()).toBeTrue();
     expect(fixture.nativeElement.textContent).toContain('/foo');
     expect(fixture.nativeElement.textContent).toContain('SHA-256');
+    expect(fixture.nativeElement.textContent).toContain('check');
+    expect(fixture.nativeElement.textContent).toContain('/retried');
+    expect(fixture.nativeElement.textContent).toContain('SHA-256');
+    expect(fixture.nativeElement.textContent).toContain('priority_high');
 
     const errorTab = tabsHarness[1];
     expect(await errorTab.getLabel()).toBe('2 errors');
@@ -159,6 +171,7 @@ describe('CollectFilesByKnownPathDetails component', () => {
     expect(await successTab.getLabel()).toBe('1 successful file collection');
     expect(await successTab.isSelected()).toBeTrue();
     expect(fixture.nativeElement.textContent).toContain('/foo');
+    expect(fixture.nativeElement.textContent).toContain('check');
   });
 
   it('success tab not shown when no success', async () => {
@@ -279,5 +292,29 @@ describe('CollectFilesByKnownPathDetails component', () => {
 
     const errorTab = tabsHarness[1];
     expect(await errorTab.getLabel()).toBe('1 error');
+  });
+
+  it('shows file download button', () => {
+    const fixture = TestBed.createComponent(CollectFilesByKnownPathDetails);
+    const args: CollectFilesByKnownPathArgs = {paths: ['/foo/**']};
+    const progress: CollectFilesByKnownPathProgress = {
+      numCollected: '42',
+    };
+
+    fixture.componentInstance.flow = newFlow({
+      name: 'CollectFilesByKnownPath',
+      args,
+      progress,
+      state: FlowState.FINISHED,
+    });
+    fixture.detectChanges();
+
+    const menuItems = fixture.componentInstance.getExportMenuItems(
+        fixture.componentInstance.flow);
+    expect(menuItems[0])
+        .toEqual(fixture.componentInstance.getDownloadFilesExportMenuItem(
+            fixture.componentInstance.flow));
+    expect(menuItems[0].url)
+        .toMatch('/api/v2/clients/.+/flows/.+/results/files-archive');
   });
 });

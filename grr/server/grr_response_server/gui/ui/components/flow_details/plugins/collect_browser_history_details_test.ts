@@ -15,7 +15,6 @@ import {PluginsModule} from './module';
 
 
 
-
 initTestEnvironment();
 
 describe('collect-browser-history-details component', () => {
@@ -31,7 +30,6 @@ describe('collect-browser-history-details component', () => {
             PluginsModule,
             RouterTestingModule,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

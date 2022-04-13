@@ -1,5 +1,8 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+
+import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';
+
 import {InterfacesDetails} from './interfaces_details';
 
 /**
@@ -8,6 +11,7 @@ import {InterfacesDetails} from './interfaces_details';
 @NgModule({
   imports: [
     CommonModule,
+    CopyButtonModule,
   ],
   declarations: [
     InterfacesDetails,

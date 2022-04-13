@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, fakeAsync, TestBed, waitForAsync} from '@angular/core/testing';
-import {FormControl, ReactiveFormsModule} from '@angular/forms';
+import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
 import {MatCalendarHarness} from '@angular/material/datepicker/testing';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatInputHarness} from '@angular/material/input/testing';
@@ -17,7 +17,6 @@ import {DateTimeInputModule} from './module';
 
 
 
-
 initTestEnvironment();
 
 @Component({
@@ -29,7 +28,7 @@ initTestEnvironment();
 `
 })
 class TestHostComponent {
-  readonly formControl = new FormControl();
+  readonly formControl = new UntypedFormControl();
 }
 
 describe('DateTimeInput Component', () => {
@@ -45,7 +44,6 @@ describe('DateTimeInput Component', () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A resolver for ip addresses to hostnames."""
 
 import ipaddress

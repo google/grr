@@ -129,6 +129,30 @@ message ApiListFilesResult {
       [(sem_type) = { description: "The list of files." }];
 }
 
+message ApiBrowseFilesystemArgs {
+  optional string client_id = 1
+      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
+  optional string path = 2 [(sem_type) = {
+    description: "File path without VFS-specific prefixes like /fs/os/."
+  }];
+  optional bool include_directory_tree = 3 [(sem_type) = {
+    description: "If true, returns all directories that are contained in parent directories."
+  }];
+  optional uint64 timestamp = 4 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "The age specifying which version to retrieve."
+  }];
+}
+
+message ApiBrowseFilesystemResult {
+  repeated ApiBrowseFilesystemEntry items = 1;
+}
+
+message ApiBrowseFilesystemEntry {
+  optional string path = 1;
+  repeated ApiFile children = 2;
+}
+
 message ApiGetVfsFilesArchiveArgs {
   optional string client_id = 1
       [(sem_type) = { type: "ApiClientId", description: "Client id." }];

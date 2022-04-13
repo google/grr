@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Dummy end-to-end test classes for testing the E2ETestRunner."""
 
 import abc

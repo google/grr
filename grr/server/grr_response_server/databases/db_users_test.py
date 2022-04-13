@@ -886,7 +886,7 @@ class DatabaseTestUsersMixin(object):
 
     ts = []
 
-    ts.append(rdfvalue.RDFDatetime.Now())
+    ts.append(self.db.Now())
 
     n = rdf_objects.UserNotification(
         username=username,
@@ -896,7 +896,7 @@ class DatabaseTestUsersMixin(object):
         message="n0")
     d.WriteUserNotification(n)
 
-    ts.append(rdfvalue.RDFDatetime.Now())
+    ts.append(self.db.Now())
 
     n = rdf_objects.UserNotification(
         username=username,
@@ -906,7 +906,7 @@ class DatabaseTestUsersMixin(object):
         message="n1")
     d.WriteUserNotification(n)
 
-    ts.append(rdfvalue.RDFDatetime.Now())
+    ts.append(self.db.Now())
 
     return ts
 

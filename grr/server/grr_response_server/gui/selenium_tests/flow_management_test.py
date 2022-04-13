@@ -496,7 +496,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
   def _AddLogToFlow(self, flow_id, log_string):
     entry = rdf_flow_objects.FlowLogEntry(
         client_id=self.client_id, flow_id=flow_id, message=log_string)
-    data_store.REL_DB.WriteFlowLogEntries([entry])
+    data_store.REL_DB.WriteFlowLogEntry(entry)
 
   def testFlowLogsTabGetsUpdatedWhenNewLogsAreAdded(self):
     flow_id = flow_test_lib.StartFlow(

@@ -18,6 +18,13 @@ from grr_response_core.lib.util.compat import yaml
 from grr_response_server import data_store
 
 
+# Names of fields that should no longer be used but might occur in old artifact
+# files.
+DEPRECATED_ARTIFACT_FIELDS = frozenset([
+    "labels",
+])
+
+
 class ArtifactRegistrySources(object):
   """Represents sources of the artifact registry used for getting artifacts."""
 
@@ -154,6 +161,8 @@ class ArtifactRegistry(object):
           loaded_artifacts.remove(artifact_obj)
           revalidate = True
 
+  # TODO(hanuszczak): This method should be a stand-alone function as it doesn't
+  # use the `self` parameter at all.
   @utils.Synchronized
   def ArtifactsFromYaml(self, yaml_content):
     """Get a list of Artifacts from yaml."""
@@ -170,6 +179,12 @@ class ArtifactRegistry(object):
     # Convert json into artifact and validate.
     valid_artifacts = []
     for artifact_dict in raw_list:
+      # Old artifacts might still use deprecated fields, so we have to ignore
+      # such. Here, we simply delete keys from the dictionary as otherwise the
+      # RDF value constructor would raise on unknown fields.
+      for field in DEPRECATED_ARTIFACT_FIELDS:
+        artifact_dict.pop(field, None)
+
       # In this case we are feeding parameters directly from potentially
       # untrusted yaml/json to our RDFValue class. However, safe_load ensures
       # these are all primitive types as long as there is no other
@@ -526,11 +541,6 @@ def ValidateSyntax(rdf_artifact):
     except rdf_artifacts.ConditionError as e:
       detail = "invalid condition '%s'" % condition
       raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail, e)
-
-  for label in rdf_artifact.labels:
-    if label not in rdf_artifact.ARTIFACT_LABELS:
-      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact,
-                                              "invalid label '%s'" % label)
 
   # Anything listed in provides must be defined in the KnowledgeBase
   valid_provides = rdf_client.KnowledgeBase().GetKbFieldNames()

@@ -1,4 +1,4 @@
-import {ApiClient} from '../../lib/api/api_interfaces';
+import {ApiClient, CloudInstanceInstanceType} from '../../lib/api/api_interfaces';
 import {Client} from '../../lib/models/client';
 import {initTestEnvironment} from '../../testing';
 import {newClient} from '../models/model_test_util';
@@ -38,6 +38,8 @@ describe('Client API Translation', () => {
         clientVersion: 100,
         buildTime: 'Unknown',
         revision: '9',
+        timelineBtimeSupport: true,
+        sandboxSupport: true,
       },
       volumes: [{
         name: 'A',
@@ -72,6 +74,38 @@ describe('Client API Translation', () => {
         gid: 234,
         shell: '/bin/bash',
       }],
+      cloudInstance: {
+        cloudType: 'GOOGLE' as CloudInstanceInstanceType,
+        google: {
+          hostname: 'hostname',
+          instanceId: '123',
+          machineType: 'm1',
+          projectId: 'p1',
+          uniqueId: 'uniq1',
+          zone: 'z1',
+        },
+        amazon: {
+          amiId: 'ami1',
+          hostname: 'hostname',
+          instanceId: 'instance1',
+          instanceType: 'm1',
+          publicHostname: 'publichostname',
+        },
+      },
+      hardwareInfo: {
+        serialNumber: 'serialNumber1',
+        systemManufacturer: 'systemManufacturer1',
+        systemProductName: 'systemProductName1',
+        systemUuid: 'systemUuid1',
+        systemSkuNumber: 'systemSkuNumber1',
+        systemFamily: 'systemFamily1',
+        biosVendor: 'biosVendor1',
+        biosVersion: 'biosVersion1',
+        biosReleaseDate: 'biosReleaseDate1',
+        biosRomSize: 'biosRomSize1',
+        biosRevision: 'biosRevision1',
+        systemAssettag: 'systemAssettag1',
+      },
       memorySize: '1234',
       firstSeenAt: '1571789996678000',
       lastSeenAt: '1571789996679000',
@@ -82,6 +116,7 @@ describe('Client API Translation', () => {
         {name: 'b', owner: 'bo'},
       ],
       age: '1571789996678000',
+      sourceFlowId: 'f123',
     };
     const client: Client = newClient({
       clientId: 'C.1234',
@@ -97,8 +132,10 @@ describe('Client API Translation', () => {
         clientBinaryName: 'bar',
         clientDescription: 'awesome client',
         clientVersion: 100,
-        buildTime: 'Unknown',
         revision: BigInt(9),
+        buildTime: undefined,
+        timelineBtimeSupport: true,
+        sandboxSupport: true,
       },
       osInfo: {
         system: 'Linux',
@@ -150,6 +187,38 @@ describe('Client API Translation', () => {
           driveType: 'root',
         },
       }],
+      cloudInstance: {
+        cloudType: CloudInstanceInstanceType.GOOGLE,
+        google: {
+          hostname: 'hostname',
+          instanceId: '123',
+          machineType: 'm1',
+          projectId: 'p1',
+          uniqueId: 'uniq1',
+          zone: 'z1',
+        },
+        amazon: {
+          amiId: 'ami1',
+          hostname: 'hostname',
+          instanceId: 'instance1',
+          instanceType: 'm1',
+          publicHostname: 'publichostname',
+        },
+      },
+      hardwareInfo: {
+        serialNumber: 'serialNumber1',
+        systemManufacturer: 'systemManufacturer1',
+        systemProductName: 'systemProductName1',
+        systemUuid: 'systemUuid1',
+        systemSkuNumber: 'systemSkuNumber1',
+        systemFamily: 'systemFamily1',
+        biosVendor: 'biosVendor1',
+        biosVersion: 'biosVersion1',
+        biosReleaseDate: 'biosReleaseDate1',
+        biosRomSize: 'biosRomSize1',
+        biosRevision: 'biosRevision1',
+        systemAssettag: 'systemAssettag1',
+      },
       memorySize: BigInt(1234),
       firstSeenAt: new Date(1571789996678),
       lastSeenAt: new Date(1571789996679),
@@ -160,6 +229,7 @@ describe('Client API Translation', () => {
         {name: 'b', owner: 'bo'},
       ],
       age: new Date(1571789996678),
+      sourceFlowId: 'f123',
     });
     expect(translateClient(apiClient)).toEqual(client);
   });
@@ -181,6 +251,8 @@ describe('Client API Translation', () => {
         clientVersion: undefined,
         buildTime: undefined,
         revision: undefined,
+        sandboxSupport: undefined,
+        timelineBtimeSupport: undefined,
       },
       osInfo: {
         system: undefined,
@@ -197,6 +269,8 @@ describe('Client API Translation', () => {
       users: [],
       networkInterfaces: [],
       volumes: [],
+      cloudInstance: undefined,
+      hardwareInfo: undefined,
       memorySize: undefined,
       firstSeenAt: undefined,
       lastSeenAt: undefined,
@@ -204,6 +278,7 @@ describe('Client API Translation', () => {
       lastClock: undefined,
       labels: [],
       age: new Date(1571789996679),
+      sourceFlowId: undefined,
     });
     expect(client).toEqual(translateClient(apiClient));
   });

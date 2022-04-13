@@ -14,11 +14,10 @@ import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/
 import {ConfigGlobalStore} from '../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 import {STORE_PROVIDERS} from '../../store/store_test_providers';
-import {initTestEnvironment} from '../../testing';
+import {DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER, initTestEnvironment} from '../../testing';
 import {ErrorSnackbar} from '../helpers/error_snackbar/error_snackbar';
 
 import {FlowList} from './flow_list';
-
 
 @Component({template: `<router-outlet></router-outlet>`})
 class TestHostComponent {
@@ -46,7 +45,6 @@ describe('FlowList Component', () => {
             ]),
           ],
           declarations: [TestHostComponent],
-
           providers: [
             ...STORE_PROVIDERS,
             {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
@@ -55,6 +53,7 @@ describe('FlowList Component', () => {
               useFactory: () => clientPageGlobalStore,
             },
             {provide: MatSnackBar, useFactory: () => snackbar},
+            DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER,
           ],
           teardown: {destroyAfterEach: false}
         })
@@ -429,5 +428,7 @@ describe('FlowList Component', () => {
        expect(clientPageGlobalStore.loadMoreFlows).toHaveBeenCalledOnceWith();
 
        window.IntersectionObserver = originalIntersectionObserver;
+
+       fixture.destroy();
      }));
 });

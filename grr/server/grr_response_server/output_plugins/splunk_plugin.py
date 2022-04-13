@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """OutputPlugin that sends Flow results to Splunk Http Event Collector.
 
 Configuration values for this plugin can be found in

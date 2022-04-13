@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Helper script for running end-to-end tests."""
 
 import sys

@@ -1,7 +1,7 @@
 import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpParamsOptions, HttpRequest} from '@angular/common/http';
 import {Injectable} from '@angular/core';
 import {MatSnackBar} from '@angular/material/snack-bar';
-import {Observable, of, throwError, timer} from 'rxjs';
+import {merge, Observable, of, Subject, throwError, timer} from 'rxjs';
 import {catchError, exhaustMap, map, mapTo, shareReplay, switchMap, take, takeLast, takeWhile, tap} from 'rxjs/operators';
 
 import {ErrorSnackbar} from '../../components/helpers/error_snackbar/error_snackbar';
@@ -10,7 +10,7 @@ import {FlowWithDescriptor} from '../../lib/models/flow';
 import {SafetyLimits} from '../../lib/models/hunt';
 import {assertNonNull, isNonNull} from '../preconditions';
 
-import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiCreateHuntApprovalArgs, ApiCreateHuntArgs, ApiCreateVfsRefreshOperationArgs, ApiCreateVfsRefreshOperationResult, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFile, ApiFlow, ApiFlowDescriptor, ApiFlowReference, ApiFlowResult, ApiGetClientVersionsResult, ApiGetFileDetailsResult, ApiGetFileTextArgs, ApiGetFileTextArgsEncoding, ApiGetFileTextResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGetVfsRefreshOperationStateResult, ApiGetVfsRefreshOperationStateResultState, ApiGrrUser, ApiHunt, ApiHuntApproval, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFilesArgs, ApiListFilesResult, ApiListFlowResultsResult, ApiListFlowsArgs, ApiListFlowsResult, ApiListGrrBinariesResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApiUpdateVfsFileContentArgs, ApiUpdateVfsFileContentResult, ApproverSuggestion, ArtifactDescriptor, DecimalString, ForemanClientRuleSet, GlobComponentExplanation, HuntRunnerArgs, PathSpecPathType} from './api_interfaces';
+import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiBrowseFilesystemResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiCreateHuntApprovalArgs, ApiCreateHuntArgs, ApiCreateVfsRefreshOperationArgs, ApiCreateVfsRefreshOperationResult, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFile, ApiFlow, ApiFlowDescriptor, ApiFlowReference, ApiFlowResult, ApiGetClientVersionsResult, ApiGetFileDetailsResult, ApiGetFileTextArgs, ApiGetFileTextArgsEncoding, ApiGetFileTextResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGetVfsRefreshOperationStateResult, ApiGetVfsRefreshOperationStateResultState, ApiGrrUser, ApiHunt, ApiHuntApproval, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsArgs, ApiListFlowsResult, ApiListGrrBinariesResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApiUpdateVfsFileContentArgs, ApiUpdateVfsFileContentResult, ApproverSuggestion, ArtifactDescriptor, DecimalString, ForemanClientRuleSet, GlobComponentExplanation, HuntRunnerArgs, PathSpecPathType} from './api_interfaces';
 
 
 /**
@@ -135,6 +135,10 @@ export class HttpApiService {
     },
   };
 
+  private readonly triggerApprovalPoll$ = new Subject<void>();
+  private readonly triggerListScheduledFlowsPoll$ = new Subject<void>();
+  private readonly triggerListFlowsPoll$ = new Subject<void>();
+
   constructor(
       private readonly http: HttpClient,
       private readonly snackBar: MatSnackBar) {}
@@ -179,8 +183,14 @@ export class HttpApiService {
       },
     };
 
-    return this.http.post<ApiClientApproval>(
-        `${URL_PREFIX}/users/me/approvals/client/${args.clientId}`, request);
+    return this.http
+        .post<ApiClientApproval>(
+            `${URL_PREFIX}/users/me/approvals/client/${args.clientId}`, request)
+        .pipe(
+            tap(() => {
+              this.triggerApprovalPoll$.next();
+            }),
+        );
   }
 
   fetchApprovalConfig(): Observable<ApprovalConfig> {
@@ -208,7 +218,7 @@ export class HttpApiService {
   }
 
   subscribeToListApprovals(clientId: string) {
-    return timer(0, this.POLLING_INTERVAL)
+    return merge(timer(0, this.POLLING_INTERVAL), this.triggerApprovalPoll$)
         .pipe(
             exhaustMap(() => this.listApprovals(clientId)),
             tap(this.showErrors),
@@ -371,18 +381,32 @@ export class HttpApiService {
   /** Lists the latest Flows for the given Client. */
   subscribeToFlowsForClient(args: ApiListFlowsArgs):
       Observable<ReadonlyArray<ApiFlow>> {
-    return timer(0, this.POLLING_INTERVAL)
+    return merge(timer(0, this.POLLING_INTERVAL), this.triggerListFlowsPoll$)
         .pipe(
             exhaustMap(() => this.listFlowsForClient(args)),
             tap(this.showErrors),
         );
   }
 
+  subscribeToScheduledFlowsForClient(clientId: string, creator: string):
+      Observable<ReadonlyArray<ApiScheduledFlow>> {
+    return merge(
+               timer(0, this.POLLING_INTERVAL),
+               this.triggerListScheduledFlowsPoll$)
+        .pipe(
+            exhaustMap(() => this.listScheduledFlows(clientId, creator)),
+            tap(this.showErrors),
+        );
+  }
+
+
   /** Lists all scheduled flows for the given client and user. */
-  listScheduledFlows(clientId: string, creator: string):
+  private listScheduledFlows(clientId: string, creator: string):
       Observable<ReadonlyArray<ApiScheduledFlow>> {
     return this.http
         .get<ApiListScheduledFlowsResult>(
+            // TODO: Remove trailing slash once redirect protocol
+            // is fixed.
             `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${creator}/`)
         .pipe(
             map(res => res.scheduledFlows ?? []),
@@ -455,6 +479,9 @@ export class HttpApiService {
           return this.http
               .post<ApiFlow>(`${URL_PREFIX}/clients/${clientId}/flows`, request)
               .pipe(
+                  tap(() => {
+                    this.triggerListFlowsPoll$.next();
+                  }),
                   tap(this.showErrors),
                   catchError(
                       (e: HttpErrorResponse) =>
@@ -487,6 +514,9 @@ export class HttpApiService {
               .post<ApiFlow>(
                   `${URL_PREFIX}/clients/${clientId}/scheduled-flows`, request)
               .pipe(
+                  tap(() => {
+                    this.triggerListScheduledFlowsPoll$.next();
+                  }),
                   tap(this.showErrors),
                   catchError(
                       (e: HttpErrorResponse) =>
@@ -501,15 +531,22 @@ export class HttpApiService {
     const url =
         `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/actions/cancel`;
     return this.http.post<ApiFlow>(url, {}).pipe(
+        tap(() => {
+          this.triggerListFlowsPoll$.next();
+        }),
         tap(this.showErrors),
     );
   }
 
   /** Unschedules a previously scheduled flow. */
   unscheduleFlow(clientId: string, scheduledFlowId: string): Observable<{}> {
+    // TODO: Remove trailing slash once redirect protocol is fixed.
     const url =
-        `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${scheduledFlowId}`;
+        `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${scheduledFlowId}/`;
     return this.http.delete<{}>(url, {}).pipe(
+        tap(() => {
+          this.triggerListScheduledFlowsPoll$.next();
+        }),
         tap(this.showErrors),
     );
   }
@@ -623,7 +660,7 @@ export class HttpApiService {
       opts?: {timestamp?: Date},
       ): Observable<ApiFile> {
     const params = objectToHttpParams({timestamp: opts?.timestamp?.getDate()});
-    const vfsPath = toVFSPath(pathType, path);
+    const vfsPath = toVFSPath(pathType, path, {urlEncode: true});
     return this.http
         .get<ApiGetFileDetailsResult>(
             `${URL_PREFIX}/clients/${clientId}/vfs-details${vfsPath}`, {params})
@@ -646,7 +683,7 @@ export class HttpApiService {
       timestamp: opts?.timestamp?.getTime(),
     };
 
-    const vfsPath = toVFSPath(pathType, path);
+    const vfsPath = toVFSPath(pathType, path, {urlEncode: true});
     return this.http
         .get<ApiGetFileTextResult>(
             `${URL_PREFIX}/clients/${clientId}/vfs-text${vfsPath}`,
@@ -710,30 +747,24 @@ export class HttpApiService {
         );
   }
 
-  listFiles(
+  browseFilesystem(
       clientId: string,
-      pathType: PathSpecPathType,
       path: string,
-      args?: ApiListFilesArgs,
-      ): Observable<ApiListFilesResult> {
-    const vfsPath = toVFSPath(pathType, path);
+      opts: {includeDirectoryTree: boolean},
+      ): Observable<ApiBrowseFilesystemResult> {
+    path = urlEncodePathSegments(path);
+
+    if (!path.startsWith('/')) {
+      path = '/' + path;
+    }
 
     return this.http
-        .get<ApiListFilesResult>(
-            `${URL_PREFIX}/clients/${clientId}/vfs-index${vfsPath}`, {
-              params: objectToHttpParams((args ?? {}) as HttpParamObject),
+        .get<ApiBrowseFilesystemResult>(
+            `${URL_PREFIX}/clients/${clientId}/filesystem${path}`, {
+              params: objectToHttpParams(
+                  {'include_directory_tree': opts.includeDirectoryTree}),
             })
         .pipe(
-            catchError(error404To({})),
-            catchError(
-                // TODO: ApiListFilesHandler should reply with
-                // status 404 when the path is not found.
-                (err: HttpErrorResponse) =>
-                    (err.status === 500 &&
-                     (err.error.message.endsWith('does not exist') ||
-                      err.error.message.endsWith('is not a directory'))) ?
-                    of({}) :
-                    throwError(err)),
             tap(this.showErrors),
         );
   }
@@ -747,8 +778,9 @@ export class HttpApiService {
       pathType: PathSpecPathType,
       path: string,
       ): Observable<ApiFile> {
-    const data:
-        ApiUpdateVfsFileContentArgs = {filePath: toVFSPath(pathType, path)};
+    const data: ApiUpdateVfsFileContentArgs = {
+      filePath: toVFSPath(pathType, path, {urlEncode: false}),
+    };
     return this.http
         .post<ApiUpdateVfsFileContentResult>(
             `${URL_PREFIX}/clients/${clientId}/vfs-update`, data)
@@ -799,9 +831,9 @@ export class HttpApiService {
       pathType: PathSpecPathType,
       path: string,
       opts?: ApiCreateVfsRefreshOperationArgs,
-      ): Observable<ApiListFilesResult> {
+      ): Observable<ApiBrowseFilesystemResult> {
     const data: ApiCreateVfsRefreshOperationArgs = {
-      filePath: toVFSPath(pathType, path),
+      filePath: toVFSPath(pathType, path, {urlEncode: false}),
       ...opts,
     };
     return this.http
@@ -813,7 +845,9 @@ export class HttpApiService {
                     clientId, response.operationId!)),
             tap(this.showErrors),
             takeLast(1),
-            switchMap(() => this.listFiles(clientId, pathType, path)),
+            switchMap(
+                () => this.browseFilesystem(
+                    clientId, path, {includeDirectoryTree: false})),
         );
   }
 
@@ -851,14 +885,37 @@ export class HttpApiService {
   }
 }
 
-function toVFSPath(pathType: PathSpecPathType, path: string): string {
+const VFS_PATH_PREFIXES: {[key in PathSpecPathType]: string} = {
+  [PathSpecPathType.UNSET]: '',
+  [PathSpecPathType.NTFS]: 'fs/ntfs',
+  [PathSpecPathType.OS]: 'fs/os',
+  [PathSpecPathType.REGISTRY]: 'registry',
+  [PathSpecPathType.TMPFILE]: 'temp',
+  [PathSpecPathType.TSK]: 'fs/tsk',
+} as const;
+
+function toVFSPath(
+    pathType: PathSpecPathType, path: string,
+    args: {urlEncode: boolean}): string {
+  if (args?.urlEncode) {
+    path = urlEncodePathSegments(path);
+  }
+
+  // Prefix Windows paths ("C:/foo") with a slash to normalize it.
+  if (!path.startsWith('/')) {
+    path = '/' + path;
+  }
+
+  return '/' + VFS_PATH_PREFIXES[pathType] + path;
+}
+
+function urlEncodePathSegments(path: string): string {
   // Encode backslashes, question marks and other characters that break URLs.
-  path = path.split('/').map(encodeURIComponent).join('/');
-  return '/fs/' + pathType.toLowerCase() + path;
+  return path.split('/').map(encodeURIComponent).join('/');
 }
 
 interface HttpParamObject {
-  [key: string]: string|number|undefined|null;
+  [key: string]: string|number|boolean|undefined|null;
 }
 
 function objectToHttpParams(obj: HttpParamObject): HttpParams {
@@ -912,7 +969,7 @@ export function getExportedResultsSqliteUrl(clientId: string, flowId: string) {
 /** Returns the URL to download the raw VFS file contents. */
 export function getFileBlobUrl(
     clientId: string, pathType: PathSpecPathType, path: string) {
-  const vfsPath = toVFSPath(pathType, path);
+  const vfsPath = toVFSPath(pathType, path, {urlEncode: true});
   return `${URL_PREFIX}/clients/${clientId}/vfs-blob${vfsPath}`;
 }
 

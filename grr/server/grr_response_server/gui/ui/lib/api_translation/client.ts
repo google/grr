@@ -35,13 +35,22 @@ function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
     revision = BigInt(apiAgentInfo.revision);
   }
 
+  // TODO: Remove this workarond once build_time is a proper Date.
+  let buildTime: number = NaN;
+  if (apiAgentInfo.buildTime) {
+    buildTime = Date.parse(`${apiAgentInfo.buildTime} UTC`) ||
+        Date.parse(apiAgentInfo.buildTime);
+  }
+
   return {
     clientName: apiAgentInfo.clientName,
     clientVersion: apiAgentInfo.clientVersion,
     revision,
-    buildTime: apiAgentInfo.buildTime,
+    buildTime: buildTime ? new Date(buildTime) : undefined,
     clientBinaryName: apiAgentInfo.clientBinaryName,
     clientDescription: apiAgentInfo.clientDescription,
+    timelineBtimeSupport: apiAgentInfo.timelineBtimeSupport,
+    sandboxSupport: apiAgentInfo.sandboxSupport,
   };
 }
 
@@ -204,6 +213,9 @@ export function translateClient(client: ApiClient): Client {
     lastBootedAt: createOptionalDate(client.lastBootedAt),
     lastClock: createOptionalDate(client.lastClock),
     age: createDate(client.age),
+    cloudInstance: client.cloudInstance,
+    hardwareInfo: client.hardwareInfo,
+    sourceFlowId: client.sourceFlowId,
   };
 }
 

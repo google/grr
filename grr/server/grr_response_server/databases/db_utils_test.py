@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import logging
 from unittest import mock
 
@@ -12,6 +11,86 @@ from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
+
+
+class BatchPlannerTest(absltest.TestCase):
+  """Test class for OperatioBatcher."""
+
+  def testSingleOperationLowerThanLimit(self):
+    batch_planner = db_utils.BatchPlanner(10)
+    batch_planner.PlanOperation("a", 9)
+
+    self.assertEqual(batch_planner.batches, [
+        [("a", 0, 9)],
+    ])
+
+  def testMultipleOperationsLowerThanLimitInTotal(self):
+    batch_planner = db_utils.BatchPlanner(10)
+    batch_planner.PlanOperation("a", 3)
+    batch_planner.PlanOperation("b", 3)
+    batch_planner.PlanOperation("c", 3)
+
+    self.assertEqual(batch_planner.batches, [
+        [("a", 0, 3), ("b", 0, 3), ("c", 0, 3)],
+    ])
+
+  def testSingleOperationBiggerThanLimit(self):
+    batch_planner = db_utils.BatchPlanner(10)
+    batch_planner.PlanOperation("a", 12)
+
+    self.assertEqual(batch_planner.batches, [
+        [("a", 0, 10)],
+        [("a", 10, 2)],
+    ])
+
+  def testSingleOperationMoreThanTwiceBiggerThanLimit(self):
+    batch_planner = db_utils.BatchPlanner(10)
+    batch_planner.PlanOperation("a", 22)
+
+    self.assertEqual(batch_planner.batches, [
+        [("a", 0, 10)],
+        [("a", 10, 10)],
+        [("a", 20, 2)],
+    ])
+
+  def testMultipleOperationsBiggerThanLimitInTotal(self):
+    batch_planner = db_utils.BatchPlanner(10)
+    batch_planner.PlanOperation("a", 3)
+    batch_planner.PlanOperation("b", 3)
+    batch_planner.PlanOperation("c", 3)
+    batch_planner.PlanOperation("d", 3)
+
+    self.assertEqual(batch_planner.batches, [
+        [("a", 0, 3), ("b", 0, 3), ("c", 0, 3), ("d", 0, 1)],
+        [("d", 1, 2)],
+    ])
+
+  def testMultipleOperationsTwiceBiggerThanLimitInTotal(self):
+    batch_planner = db_utils.BatchPlanner(10)
+    batch_planner.PlanOperation("a", 3)
+    batch_planner.PlanOperation("b", 3)
+    batch_planner.PlanOperation("c", 3)
+    batch_planner.PlanOperation("d", 3)
+    batch_planner.PlanOperation("e", 3)
+    batch_planner.PlanOperation("f", 3)
+    batch_planner.PlanOperation("g", 3)
+
+    self.assertEqual(batch_planner.batches, [
+        [("a", 0, 3), ("b", 0, 3), ("c", 0, 3), ("d", 0, 1)],
+        [("d", 1, 2), ("e", 0, 3), ("f", 0, 3), ("g", 0, 2)],
+        [("g", 2, 1)],
+    ])
+
+  def testMultipleOperationsEachBiggerThanLimit(self):
+    batch_planner = db_utils.BatchPlanner(10)
+    batch_planner.PlanOperation("a", 12)
+    batch_planner.PlanOperation("b", 12)
+
+    self.assertEqual(batch_planner.batches, [
+        [("a", 0, 10)],
+        [("a", 10, 2), ("b", 0, 8)],
+        [("b", 8, 4)],
+    ])
 
 
 class CallLoggedAndAccountedTest(stats_test_lib.StatsTestMixin,

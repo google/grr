@@ -12,7 +12,6 @@ import {initTestEnvironment} from '../../../testing';
 import {LoadFlowResultsDirective} from './load_flow_results_directive';
 import {HelpersModule} from './module';
 
-
 @Component({selector: 'test-inner', template: ''})
 class InnerComponent {
   @Input() results!: ReadonlyArray<FlowResult>;
@@ -45,7 +44,6 @@ describe('LoadFlowResultsDirective', () => {
             InnerComponent,
             TestHostComponent,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

@@ -15,7 +15,6 @@ import {ClientOverview} from './client_overview';
 import {ClientOverviewModule} from './module';
 
 
-
 @Component({
   template: `<client-overview [collapsed]="collapsed"></client-overview>`,
 })
@@ -44,7 +43,6 @@ describe('Client Overview', () => {
             provide: ClientPageGlobalStore,
             useFactory: () => store,
           }],
-
         })
         .compileComponents();
   }));

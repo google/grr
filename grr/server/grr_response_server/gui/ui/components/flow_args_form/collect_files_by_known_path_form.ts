@@ -1,10 +1,9 @@
-import {Component, OnInit, Output} from '@angular/core';
-import {AbstractControl, FormControl, FormGroup, ValidationErrors} from '@angular/forms';
-import {filter, map, shareReplay} from 'rxjs/operators';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {AbstractControl, UntypedFormControl, ValidationErrors} from '@angular/forms';
 
-import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {CollectFilesByKnownPathArgs, CollectFilesByKnownPathArgsCollectionLevel} from '../../lib/api/api_interfaces';
-import {isNonNull} from '../../lib/preconditions';
+
 
 interface CollectionLevel {
   readonly value: CollectFilesByKnownPathArgsCollectionLevel;
@@ -34,6 +33,11 @@ function atLeastOnePath(control: AbstractControl): ValidationErrors {
   };
 }
 
+declare interface FormState {
+  paths: string;
+  collectionLevel: CollectFilesByKnownPathArgsCollectionLevel;
+}
+
 /**
  * A form that makes it possible to configure the CollectFilesByKnownPath
  * flow.
@@ -42,49 +46,40 @@ function atLeastOnePath(control: AbstractControl): ValidationErrors {
   selector: 'collect-files-by-known-path-form',
   templateUrl: './collect_files_by_known_path_form.ng.html',
   styleUrls: ['./collect_files_by_known_path_form.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+
 })
 export class CollectFilesByKnownPathForm extends
-    FlowArgumentForm<CollectFilesByKnownPathArgs> implements OnInit {
+    FlowArgumentForm<CollectFilesByKnownPathArgs, FormState> {
   readonly collectionLevels = COLLECTION_LEVELS;
 
   hideAdvancedParams = true;
 
-  readonly controls = {
-    paths: new FormControl('', atLeastOnePath),
-    collectionLevel:
-        new FormControl(CollectFilesByKnownPathArgsCollectionLevel.CONTENT),
-  };
-  readonly form = new FormGroup(this.controls);
+  override makeControls(): Controls<FormState> {
+    return {
+      paths: new UntypedFormControl('', atLeastOnePath),
+      collectionLevel: new UntypedFormControl(
+          CollectFilesByKnownPathArgsCollectionLevel.CONTENT),
+    };
+  }
 
-  @Output()
-  readonly formValues$ = this.form.valueChanges.pipe(
-      filter(isNonNull),
-      map(v => {
-        const allPaths: string[] = v.paths.split('\n');
-        const trimmedPaths: string[] = [];
-        for (const path of allPaths) {
-          if ((path ?? '').trim() !== '') {
-            trimmedPaths.push(path.trim());
-          }
-        }
-        const args: CollectFilesByKnownPathArgs = {
-          paths: trimmedPaths,
-          collectionLevel: v.collectionLevel
-        };
-        return args;
-      }),
-      shareReplay({bufferSize: 1, refCount: true}),
-  );
 
-  @Output()
-  readonly status$ = this.form.statusChanges.pipe(
-      shareReplay({bufferSize: 1, refCount: true}));
+  override convertFormStateToFlowArgs(formState: FormState) {
+    return {
+      paths: formState.paths?.split('\n')
+                 .map(path => path.trim())
+                 .filter(path => path !== ''),
+      collectionLevel: formState.collectionLevel,
+    };
+  }
 
-  ngOnInit() {
-    this.form.patchValue({
-      paths: this.defaultFlowArgs?.paths?.join('\n') ?? '',
-      collectionLevel: CollectFilesByKnownPathArgsCollectionLevel.CONTENT
-    });
+  override convertFlowArgsToFormState(flowArgs: CollectFilesByKnownPathArgs):
+      FormState {
+    return {
+      paths: flowArgs.paths?.join('\n') ?? '',
+      collectionLevel: flowArgs.collectionLevel ??
+          CollectFilesByKnownPathArgsCollectionLevel.CONTENT
+    };
   }
 
   toggleAdvancedParams() {

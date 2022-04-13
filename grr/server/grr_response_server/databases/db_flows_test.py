@@ -2792,10 +2792,9 @@ class DatabaseTestFlowMixin(object):
     client_id, flow_id = self._SetupClientAndFlow()
     message = "blah: ٩(͡๏̯͡๏)۶"
 
-    self.db.WriteFlowLogEntries([
+    self.db.WriteFlowLogEntry(
         rdf_flow_objects.FlowLogEntry(
-            client_id=client_id, flow_id=flow_id, message=message)
-    ])
+            client_id=client_id, flow_id=flow_id, message=message))
 
     entries = self.db.ReadFlowLogEntries(client_id, flow_id, 0, 100)
     self.assertLen(entries, 1)
@@ -2804,10 +2803,9 @@ class DatabaseTestFlowMixin(object):
   def _WriteFlowLogEntries(self, client_id, flow_id):
     messages = ["blah_%d" % i for i in range(10)]
     for message in messages:
-      self.db.WriteFlowLogEntries([
+      self.db.WriteFlowLogEntry(
           rdf_flow_objects.FlowLogEntry(
-              client_id=client_id, flow_id=flow_id, message=message)
-      ])
+              client_id=client_id, flow_id=flow_id, message=message))
 
     return messages
 
@@ -2871,11 +2869,13 @@ class DatabaseTestFlowMixin(object):
     flow_id = flow.RandomFlowId()
     self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
 
-    with self.assertRaises(db.AtLeastOneUnknownFlowError):
-      self.db.WriteFlowLogEntries([
+    with self.assertRaises(db.UnknownFlowError) as context:
+      self.db.WriteFlowLogEntry(
           rdf_flow_objects.FlowLogEntry(
-              client_id=client_id, flow_id=flow_id, message="test")
-      ])
+              client_id=client_id, flow_id=flow_id, message="test"))
+
+    self.assertEqual(context.exception.client_id, client_id)
+    self.assertEqual(context.exception.flow_id, flow_id)
 
   def _WriteFlowOutputPluginLogEntries(self, client_id, flow_id,
                                        output_plugin_id):
@@ -2896,9 +2896,25 @@ class DatabaseTestFlowMixin(object):
           log_entry_type=log_entry_type)
       entries.append(entry)
 
-      self.db.WriteFlowOutputPluginLogEntries([entry])
+      self.db.WriteFlowOutputPluginLogEntry(entry)
 
     return entries
+
+  def testWriteFlowOutputPluginLogEntryRaisesOnUnknownFlow(self):
+    client_id = self._SetupClient()
+    flow_id = "ABCDEF48"
+
+    entry = rdf_flow_objects.FlowOutputPluginLogEntry()
+    entry.client_id = client_id
+    entry.flow_id = flow_id
+    entry.output_plugin_id = "F00"
+    entry.message = "Lorem ipsum."
+
+    with self.assertRaises(db.UnknownFlowError) as context:
+      self.db.WriteFlowOutputPluginLogEntry(entry)
+
+    self.assertEqual(context.exception.client_id, client_id)
+    self.assertEqual(context.exception.flow_id, flow_id)
 
   def testFlowOutputPluginLogEntriesCanBeWrittenAndThenRead(self):
     client_id, flow_id = self._SetupClientAndFlow()
@@ -2925,7 +2941,7 @@ class DatabaseTestFlowMixin(object):
         log_entry_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType
         .LOG)
 
-    self.db.WriteFlowOutputPluginLogEntries([entry])
+    self.db.WriteFlowOutputPluginLogEntry(entry)
     read_entries = self.db.ReadFlowOutputPluginLogEntries(
         client_id, flow_id, output_plugin_id, 0, 100)
 

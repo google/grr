@@ -606,7 +606,7 @@ class FlowBase(metaclass=FlowRegistry):
         flow_id=self.rdf_flow.flow_id,
         hunt_id=self.rdf_flow.parent_hunt_id,
         message=message)
-    data_store.REL_DB.WriteFlowLogEntries([log_entry])
+    data_store.REL_DB.WriteFlowLogEntry(log_entry)
 
   def RunStateMethod(
       self,
@@ -897,7 +897,7 @@ class FlowBase(metaclass=FlowRegistry):
         output_plugin.Flush(output_plugin_state.plugin_state)
         output_plugin.UpdateState(output_plugin_state.plugin_state)
 
-        data_store.REL_DB.WriteFlowOutputPluginLogEntries([
+        data_store.REL_DB.WriteFlowOutputPluginLogEntry(
             rdf_flow_objects.FlowOutputPluginLogEntry(
                 client_id=self.rdf_flow.client_id,
                 flow_id=self.rdf_flow.flow_id,
@@ -905,8 +905,7 @@ class FlowBase(metaclass=FlowRegistry):
                 output_plugin_id="%d" % index,
                 log_entry_type=rdf_flow_objects.FlowOutputPluginLogEntry
                 .LogEntryType.LOG,
-                message="Processed %d replies." % len(replies))
-        ])
+                message="Processed %d replies." % len(replies)))
 
         self.Log("Plugin %s successfully processed %d flow replies.",
                  plugin_descriptor, len(replies))
@@ -917,7 +916,7 @@ class FlowBase(metaclass=FlowRegistry):
                           plugin_descriptor, len(replies))
         created_output_plugins.append(None)
 
-        data_store.REL_DB.WriteFlowOutputPluginLogEntries([
+        data_store.REL_DB.WriteFlowOutputPluginLogEntry(
             rdf_flow_objects.FlowOutputPluginLogEntry(
                 client_id=self.rdf_flow.client_id,
                 flow_id=self.rdf_flow.flow_id,
@@ -926,8 +925,7 @@ class FlowBase(metaclass=FlowRegistry):
                 log_entry_type=rdf_flow_objects.FlowOutputPluginLogEntry
                 .LogEntryType.ERROR,
                 message="Error while processing %d replies: %s" %
-                (len(replies), str(e)))
-        ])
+                (len(replies), str(e))))
 
         self.Log("Plugin %s failed to process %d replies due to: %s",
                  plugin_descriptor, len(replies), e)

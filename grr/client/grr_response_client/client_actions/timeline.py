@@ -6,6 +6,9 @@ import os
 import stat as stat_mode
 
 from typing import Iterator
+from typing import Optional
+
+import psutil
 
 from grr_response_client import actions
 from grr_response_core.lib import rdfvalue
@@ -29,6 +32,7 @@ class Timeline(actions.ActionPlugin):
 
   def Run(self, args: rdf_timeline.TimelineArgs) -> None:
     """Executes the client action."""
+    fstype = GetFilesystemType(args.root)
     entries = iterator.Counted(Walk(args.root))
     for entry_batch in rdf_timeline.TimelineEntry.SerializeStream(entries):
       entry_batch_blob = rdf_protodict.DataBlob(data=entry_batch)
@@ -39,6 +43,7 @@ class Timeline(actions.ActionPlugin):
       result = rdf_timeline.TimelineResult()
       result.entry_batch_blob_ids.append(entry_batch_blob_id)
       result.entry_count = entries.count
+      result.filesystem_type = fstype
       self.SendReply(result)
 
       # Each result should contain information only about the number of entries
@@ -105,3 +110,37 @@ def Walk(root: bytes) -> Iterator[rdf_timeline.TimelineEntry]:
         yield entry
 
   return Recurse(root)
+
+
+def GetFilesystemType(root: bytes) -> Optional[str]:
+  """Retrieves the type of a filesystem the given path belongs to.
+
+  Note that the exact set of values that can be returned from this function is
+  not specified and depends on how the operating system represents filesystem
+  names. For example, an NTFS filesystem can be represented by uppercase `NTFS`
+  string on Windows but lowercase `ntfs` string on Linux.
+
+  Args:
+    root: A path to check the filesystem for.
+
+  Returns:
+    A string representing the type of the filesystem or `None` if the filesystem
+    type could not be determined.
+  """
+  # While we want to ignore errors when stating individual partitions (since we
+  # might lack permission to do so in some cases), we don't do it for the root
+  # path itself as root path has to be accessible for the action to provide any
+  # meaningful result. If it is not, we want to fail loudly so that the flow is
+  # notified about the problem.
+  root_dev = os.lstat(root).st_dev
+
+  for part in psutil.disk_partitions():
+    try:
+      part_dev = os.lstat(part.mountpoint).st_dev
+    except IOError:
+      continue
+
+    if root_dev == part_dev:
+      return part.fstype
+
+  return None

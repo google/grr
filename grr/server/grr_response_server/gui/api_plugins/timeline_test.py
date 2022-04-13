@@ -179,6 +179,47 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(rows[0][1], "/foo/bar/baz")
     self.assertEqual(rows[0][2], "75520-6")
 
+  def testNtfsFileReferenceFormatInference(self):
+    entry = rdf_timeline.TimelineEntry()
+    entry.path = "/foo/bar/baz".encode("utf-8")
+    entry.ino = 1688849860339456
+
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+    flow_id = "F00BA542"
+
+    flow_obj = rdf_flow_objects.Flow()
+    flow_obj.client_id = client_id
+    flow_obj.flow_id = flow_id
+    flow_obj.flow_class_name = timeline.TimelineFlow.__name__
+    flow_obj.create_time = rdfvalue.RDFDatetime.Now()
+    data_store.REL_DB.WriteFlowObject(flow_obj)
+
+    blobs = list(rdf_timeline.TimelineEntry.SerializeStream(iter([entry])))
+    blob_ids = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
+
+    result = rdf_timeline.TimelineResult()
+    result.entry_batch_blob_ids = [blob_id.AsBytes() for blob_id in blob_ids]
+    result.filesystem_type = "NTFS"
+
+    flow_result = rdf_flow_objects.FlowResult()
+    flow_result.client_id = client_id
+    flow_result.flow_id = flow_id
+    flow_result.payload = result
+    data_store.REL_DB.WriteFlowResults([flow_result])
+
+    args = api_timeline.ApiGetCollectedTimelineArgs()
+    args.client_id = client_id
+    args.flow_id = flow_id
+    args.format = api_timeline.ApiGetCollectedTimelineArgs.Format.BODY
+
+    result = self.handler.Handle(args)
+    content = b"".join(result.GenerateContent()).decode("utf-8")
+
+    rows = list(csv.reader(io.StringIO(content), delimiter="|"))
+    self.assertLen(rows, 1)
+    self.assertEqual(rows[0][1], "/foo/bar/baz")
+    self.assertEqual(rows[0][2], "75520-6")
+
   def testBackslashEscape(self):
     entry = rdf_timeline.TimelineEntry()
     entry.path = "C:\\Windows\\system32\\notepad.exe".encode("utf-8")

@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {FormControl, ReactiveFormsModule} from '@angular/forms';
+import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
 import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -16,7 +16,6 @@ import {initTestEnvironment} from '../../../testing';
 
 import {GlobExpressionExplanationModule} from './module';
 
-
 initTestEnvironment();
 
 @Component({
@@ -26,7 +25,7 @@ initTestEnvironment();
 })
 class TestHostComponent {
   client: Client|null = null;
-  readonly formControl = new FormControl('');
+  readonly formControl = new UntypedFormControl('');
 }
 
 describe('app-glob-expression-input', () => {
@@ -51,7 +50,6 @@ describe('app-glob-expression-input', () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [
             ...STORE_PROVIDERS,
           ],
@@ -100,14 +98,12 @@ describe('app-glob-expression-input', () => {
        const harness = await loader.getHarness(MatAutocompleteHarness);
 
        await harness.enterText('/prefix/%');
-
-       let options = await harness.getOptions();
-       expect(options.length).toEqual(0);
+       expect(await harness.isOpen()).toBeFalse();
 
        await harness.enterText('/prefix/%%');
-
-       options = await harness.getOptions();
+       const options = await harness.getOptions();
        expect(options.length).toEqual(3);
+
        expect(await options[0].getText()).toContain('%%fqdn%%');
        expect(await options[0].getText()).toContain('foo.bar');
        expect(await options[1].getText()).toContain('%%os_major_version%%');

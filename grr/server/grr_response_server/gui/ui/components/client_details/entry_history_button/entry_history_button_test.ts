@@ -13,7 +13,6 @@ import {EntryHistoryButton} from './entry_history_button';
 import {EntryHistoryButtonModule} from './module';
 
 
-
 initTestEnvironment();
 
 describe('Entry History Button Component', () => {
@@ -60,7 +59,6 @@ describe('Entry History Button Component', () => {
             NoopAnimationsModule,
             EntryHistoryButtonModule,
           ],
-
           providers: [
             {provide: ClientDetailsGlobalStore, useFactory: () => store},
           ],

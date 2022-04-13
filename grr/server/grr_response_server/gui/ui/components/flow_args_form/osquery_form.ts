@@ -1,13 +1,13 @@
 import {COMMA, ENTER} from '@angular/cdk/keycodes';
-import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
-import {FormControl, FormGroup, Validators} from '@angular/forms';
+import {ChangeDetectionStrategy, Component, ViewChild} from '@angular/core';
+import {UntypedFormControl, Validators} from '@angular/forms';
 import {MatChipInputEvent} from '@angular/material/chips';
 import {MatDialog} from '@angular/material/dialog';
-import {shareReplay} from 'rxjs/operators';
 
-import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {OsqueryFlowArgs} from '../../lib/api/api_interfaces';
 import {isNonNull} from '../../lib/preconditions';
+import {CodeEditor} from '../code_editor/code_editor';
 
 import {OsqueryQueryHelper} from './osquery_query_helper/osquery_query_helper';
 
@@ -18,18 +18,20 @@ import {OsqueryQueryHelper} from './osquery_query_helper/osquery_query_helper';
   templateUrl: './osquery_form.ng.html',
   styleUrls: ['./osquery_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+
 })
-export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs> implements
-    OnInit {
+export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs> {
   private readonly defaultQueryDisplayed = 'SELECT * FROM users LIMIT 10;';
 
-  readonly controls = {
-    query: new FormControl(this.defaultQueryDisplayed, Validators.required),
-    timeoutMillis: new FormControl(null, Validators.required),
-    ignoreStderrErrors: new FormControl(null),
-    fileCollectionColumns: new FormControl([]),
-  };
-  readonly form = new FormGroup(this.controls);
+  override makeControls(): Controls<OsqueryFlowArgs> {
+    return {
+      query: new UntypedFormControl(
+          this.defaultQueryDisplayed, Validators.required),
+      timeoutMillis: new UntypedFormControl(null, Validators.required),
+      ignoreStderrErrors: new UntypedFormControl(null),
+      fileCollectionColumns: new UntypedFormControl([]),
+    };
+  }
 
   fileCollectionSettingsShown = false;
   lowLevelSettingsShown = false;
@@ -43,11 +45,14 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs> implements
    */
   readonly fileCollectionColumns: string[] = [];
 
-  @Output() readonly formValues$ = this.form.valueChanges.pipe(shareReplay(1));
-  @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
+  @ViewChild(CodeEditor) codeEditor?: CodeEditor;
 
   constructor(private readonly dialog: MatDialog) {
     super();
+  }
+
+  override focus(container: HTMLElement): void {
+    this.codeEditor?.focus();
   }
 
   browseTablesClicked(): void {
@@ -55,18 +60,26 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs> implements
 
     openedDialog.afterClosed().subscribe(newQueryReceived => {
       if (isNonNull(newQueryReceived)) {
-        this.overwriteQuery(newQueryReceived);
+        this.controls.query.setValue(newQueryReceived);
       }
     });  // No need to unsubscribe as it completes when the dialog is closed.
   }
 
-  ngOnInit(): void {
-    if (this.defaultFlowArgs.fileCollectionColumns &&
-        this.defaultFlowArgs.fileCollectionColumns.length > 0) {
+  override convertFlowArgsToFormState(flowArgs: OsqueryFlowArgs):
+      OsqueryFlowArgs {
+    return {query: '', ...flowArgs};
+  }
+
+  override convertFormStateToFlowArgs(formState: OsqueryFlowArgs):
+      OsqueryFlowArgs {
+    return formState;
+  }
+
+  override resetFlowArgs(flowArgs: OsqueryFlowArgs): void {
+    if (flowArgs.fileCollectionColumns?.length) {
       this.fileCollectionSettingsShown = true;
     }
-
-    this.form.patchValue(this.defaultFlowArgs);
+    super.resetFlowArgs(flowArgs);
   }
 
   openCollection() {
@@ -98,12 +111,6 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs> implements
       this.fileCollectionColumns.splice(index, 1);
       this.syncFormWithCollectionColumns();
     }
-  }
-
-  private overwriteQuery(newValue: string): void {
-    this.form.patchValue({
-      query: newValue,
-    });
   }
 
   private syncFormWithCollectionColumns() {

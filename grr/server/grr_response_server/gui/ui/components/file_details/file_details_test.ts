@@ -16,7 +16,6 @@ import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
 
 import {FileDetails} from './file_details';
 import {FileDetailsModule} from './file_details_module';
-
 import {FileDetailsPage} from './file_details_page';
 import {FILE_DETAILS_ROUTES} from './routing';
 
@@ -44,7 +43,6 @@ describe('FileDetails Component', () => {
               useFactory: () => selectedClientGlobalStore,
             },
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .overrideProvider(

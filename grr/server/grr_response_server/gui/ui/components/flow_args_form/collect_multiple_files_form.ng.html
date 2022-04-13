@@ -2,7 +2,7 @@
 <div [formGroup]="form">
   <div formArrayName="pathExpressions">
     <app-glob-expression-input
-      *ngFor="let pe of pathExpressions.controls; index as i"
+      *ngFor="let pe of controls.pathExpressions.controls; index as i"
       [client]="client$ | async"
       [formControlName]="i"
       style="width: 100%; margin-bottom: 1em"
@@ -20,7 +20,7 @@
 
     <div class="add-path-row">
       <div class="error">
-        <mat-error *ngIf="form.controls['pathExpressions'].hasError('atLeastOnePathExpressionExpected')">At least one non-empty path expression expected.</mat-error>
+        <mat-error *ngIf="controls.pathExpressions.hasError('atLeastOnePathExpressionExpected')">At least one non-empty path expression expected.</mat-error>
       </div>
 
       <button mat-stroked-button type="button" (click)="addPathExpression()" id="button-add-path-expression">
@@ -35,24 +35,24 @@
     <div class="buttons">
       <button mat-stroked-button color="primary" type="button"
         name="literalMatch"
-        *ngIf="!(formValues$ | async)?.contentsLiteralMatch"
+        *ngIf="!fullControls.contentsLiteralMatch"
         (click)="addLiteralMatchCondition()">Literal match</button>
       <button mat-stroked-button color="primary" type="button"
         name="regexMatch"
-        *ngIf="!(formValues$ | async)?.contentsRegexMatch"
+        *ngIf="!fullControls.contentsRegexMatch"
         (click)="addRegexMatchCondition()">Regex match</button>
     </div>
 
     <literal-match-condition
       formGroupName="contentsLiteralMatch"
       (conditionRemoved)="removeLiteralMatchCondition()"
-      *ngIf="(formValues$ | async)?.contentsLiteralMatch">
+      *ngIf="fullControls.contentsLiteralMatch">
     </literal-match-condition>
 
     <regex-match-condition
       formGroupName="contentsRegexMatch"
       (conditionRemoved)="removeRegexMatchCondition()"
-      *ngIf="(formValues$ | async)?.contentsRegexMatch">
+      *ngIf="fullControls.contentsRegexMatch">
     </regex-match-condition>
 
   </div>
@@ -63,23 +63,23 @@
     <div class="buttons">
       <button mat-stroked-button color="primary" type="button"
         name="modificationTime"
-        *ngIf="!(formValues$ | async)?.modificationTime"
+        *ngIf="!fullControls.modificationTime"
         (click)="addModificationTimeCondition()">Modification time</button>
       <button mat-stroked-button color="primary" type="button"
         name="accessTime"
-        *ngIf="!(formValues$ | async)?.accessTime"
+        *ngIf="!fullControls.accessTime"
         (click)="addAccessTimeCondition()">Access time</button>
       <button mat-stroked-button color="primary" type="button"
         name="inodeChangeTime"
-        *ngIf="!(formValues$ | async)?.inodeChangeTime"
+        *ngIf="!fullControls.inodeChangeTime"
         (click)="addInodeChangeTimeCondition()">Inode change time</button>
       <button mat-stroked-button color="primary" type="button"
         name="size"
-        *ngIf="!(formValues$ | async)?.size"
+        *ngIf="!fullControls.size"
         (click)="addSizeCondition()">File size</button>
       <button mat-stroked-button color="primary" type="button"
         name="extFlags"
-        *ngIf="!(formValues$ | async)?.extFlags"
+        *ngIf="!fullControls.extFlags"
         (click)="addExtFlagsCondition()">Extended file flags</button>
     </div>
 
@@ -87,33 +87,33 @@
       formGroupName="modificationTime"
       title="modification"
       (conditionRemoved)="removeModificationTimeCondition()"
-      *ngIf="(formValues$ | async)?.modificationTime">
+      *ngIf="fullControls.modificationTime">
     </time-range-condition>
 
     <time-range-condition
       formGroupName="accessTime"
       title="access"
       (conditionRemoved)="removeAccessTimeCondition()"
-      *ngIf="(formValues$ | async)?.accessTime">
+      *ngIf="fullControls.accessTime">
     </time-range-condition>
 
     <time-range-condition
       formGroupName="inodeChangeTime"
       title="inode change"
       (conditionRemoved)="removeInodeChangeTimeCondition()"
-      *ngIf="(formValues$ | async)?.inodeChangeTime">
+      *ngIf="fullControls.inodeChangeTime">
     </time-range-condition>
 
     <size-condition
       formGroupName="size"
       (conditionRemoved)="removeSizeCondition()"
-      *ngIf="(formValues$ | async)?.size">
+      *ngIf="fullControls.size">
     </size-condition>
 
     <ext-flags-condition
       formGroupName="extFlags"
       (conditionRemoved)="removeExtFlagsCondition()"
-      *ngIf="(formValues$ | async)?.extFlags"
+      *ngIf="fullControls.extFlags"
       >
     </ext-flags-condition>
 

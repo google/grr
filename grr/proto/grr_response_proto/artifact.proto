@@ -72,9 +72,8 @@ message Artifact {
     description: "Doc string for the artifact.",
   }];
 
-  repeated string labels = 4 [(sem_type) = {
-    description: "A list of labels the artifact belongs to.",
-  }];
+  reserved 4;
+  reserved "labels";
 
   repeated string supported_os = 5 [(sem_type) = {
     description: "A list of operating systems the artifact supports.",
@@ -101,6 +100,10 @@ message Artifact {
   // artifact definition.
   optional string error_message = 10 [(sem_type) = {
     description: "The error message for artifacts that failed validation."
+  }];
+
+  repeated string aliases = 11 [(sem_type) = {
+    description: "A list of alternate names.",
   }];
 }
 

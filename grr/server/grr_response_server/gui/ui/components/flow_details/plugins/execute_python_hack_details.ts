@@ -3,6 +3,7 @@ import {Observable} from 'rxjs';
 import {filter, map} from 'rxjs/operators';
 
 import {ExecutePythonHackArgs, ExecutePythonHackResult} from '../../../lib/api/api_interfaces';
+import {translateDict} from '../../../lib/api_translation/primitive';
 import {isNonNull} from '../../../lib/preconditions';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 
@@ -29,7 +30,12 @@ export class ExecutePythonHackDetails extends Plugin {
       map((flow) => flow.args as ExecutePythonHackArgs),
   );
 
-  readonly title$ = this.args$.pipe(map(args => args.hackName ?? ''));
+  readonly title$ = this.args$.pipe(map(args => {
+    const pyArgs = Array.from(translateDict(args.pyArgs ?? {}).entries())
+                       .map(([k, v]) => `${k}=${v}`)
+                       .join(' ');
+    return `${args.hackName} ${pyArgs}`;
+  }));
 
   readonly textContent$ = this.flowResultsLocalStore.results$.pipe(
       map(results =>

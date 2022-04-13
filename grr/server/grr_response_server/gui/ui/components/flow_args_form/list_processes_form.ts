@@ -1,42 +1,58 @@
 import {COMMA, ENTER, SPACE} from '@angular/cdk/keycodes';
-import {Component, ElementRef, OnInit, Output, ViewChild} from '@angular/core';
-import {FormControl, FormGroup, ValidatorFn} from '@angular/forms';
+import {ChangeDetectionStrategy, Component, ElementRef, ViewChild} from '@angular/core';
+import {UntypedFormControl, ValidatorFn} from '@angular/forms';
 import {combineLatest} from 'rxjs';
-import {map, shareReplay, startWith} from 'rxjs/operators';
+import {map, startWith} from 'rxjs/operators';
 
-import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {ListProcessesArgs, NetworkConnectionState} from '../../lib/api/api_interfaces';
+
+declare interface FormState {
+  readonly filenameRegex: string;
+  readonly fetchBinaries: boolean;
+  readonly connectionStates: ReadonlyArray<NetworkConnectionState>;
+  readonly pids: ReadonlyArray<string>;
+}
 
 /** A form that configures the ListProcesses flow. */
 @Component({
+  selector: 'app-list-processes-form',
   templateUrl: './list_processes_form.ng.html',
   styleUrls: ['./list_processes_form.scss'],
+  changeDetection: ChangeDetectionStrategy.OnPush,
+
 })
 export class ListProcessesForm extends
-    FlowArgumentForm<ListProcessesArgs> implements OnInit {
+    FlowArgumentForm<ListProcessesArgs, FormState> {
   readonly CONNECTION_STATES = Object.values(NetworkConnectionState).sort();
   readonly SEPARATOR_KEY_CODES = [ENTER, COMMA, SPACE];
 
-  readonly connectionStateAutocompleteControl = new FormControl();
+  readonly connectionStateAutocompleteControl = new UntypedFormControl();
 
-  readonly controls = {
-    pids: new FormControl([], integerArrayValidator()),
-    filenameRegex: new FormControl(),
-    connectionStates: new FormControl([]),
-    fetchBinaries: new FormControl(),
-  };
-  readonly form = new FormGroup(this.controls);
+  override makeControls(): Controls<ListProcessesArgs> {
+    return {
+      pids: new UntypedFormControl([], integerArrayValidator()),
+      connectionStates: new UntypedFormControl([]),
+      filenameRegex: new UntypedFormControl(),
+      fetchBinaries: new UntypedFormControl(),
+    };
+  }
 
-  @Output()
-  readonly formValues$ = this.form.valueChanges.pipe(
-      map(values => ({
-            ...values,
-            pids: values.pids.map((pid: string) => Number(pid)),
-          })),
-      shareReplay(1),
-  );
+  override convertFlowArgsToFormState(flowArgs: ListProcessesArgs): FormState {
+    return {
+      connectionStates: flowArgs.connectionStates ?? [],
+      fetchBinaries: flowArgs.fetchBinaries ?? false,
+      filenameRegex: flowArgs.filenameRegex ?? '',
+      pids: flowArgs.pids?.map(pid => String(pid)) ?? [],
+    };
+  }
 
-  @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
+  override convertFormStateToFlowArgs(formState: FormState): ListProcessesArgs {
+    return {
+      ...formState,
+      pids: formState.pids?.map((pid) => Number(pid)) ?? [],
+    };
+  }
 
   @ViewChild('connectionStateInputEl')
   connectionStateInputEl!: ElementRef<HTMLInputElement>;
@@ -47,22 +63,18 @@ export class ListProcessesForm extends
             startWith('')),
         // Update autocomplete to re-show connection state that was removed from
         // chips.
-        this.form.get('connectionStates')!.valueChanges.pipe(startWith(null)),
+        this.controls.connectionStates.valueChanges.pipe(startWith(null)),
       ]).pipe(map(([q]) => this.filterStates(q)));
 
-  ngOnInit() {
-    this.form.patchValue(this.defaultFlowArgs);
-  }
-
   removeConnectionState(state: NetworkConnectionState) {
-    const formInput = this.form.get('connectionStates')!;
-    const states = formInput.value as NetworkConnectionState[];
-    formInput.setValue(states.filter(st => st !== state));
+    const states =
+        this.controls.connectionStates.value as NetworkConnectionState[];
+    this.controls.connectionStates.setValue(states.filter(st => st !== state));
   }
 
   addConnectionState(state: NetworkConnectionState) {
-    const formInput = this.form.get('connectionStates')!;
-    formInput.setValue([...formInput.value, state]);
+    this.controls.connectionStates.setValue(
+        [...this.controls.connectionStates.value, state]);
     this.connectionStateAutocompleteControl.setValue('');
     this.connectionStateInputEl.nativeElement.value = '';
   }
@@ -86,7 +98,7 @@ export class ListProcessesForm extends
     const normalizedQuery = (query ?? '').toUpperCase();
     return this.CONNECTION_STATES.filter(
         state => state.includes(normalizedQuery) &&
-            !this.form.get('connectionStates')!.value.includes(state));
+            !this.controls.connectionStates.value?.includes(state));
   }
 }
 

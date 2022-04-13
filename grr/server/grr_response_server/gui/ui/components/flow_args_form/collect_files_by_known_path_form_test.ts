@@ -7,7 +7,6 @@ import {MatRadioButtonHarness} from '@angular/material/radio/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-
 import {FlowArgsFormModule} from '../../components/flow_args_form/module';
 import {CollectFilesByKnownPathArgs, CollectFilesByKnownPathArgsCollectionLevel} from '../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../testing';
@@ -25,7 +24,6 @@ describe('CollectFilesByKnownPathForm', () => {
             ReactiveFormsModule,
             FlowArgsFormModule,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();
@@ -68,7 +66,7 @@ describe('CollectFilesByKnownPathForm', () => {
 
     let latestValue: CollectFilesByKnownPathArgs = {};
 
-    fixture.componentInstance.formValues$.subscribe((input) => {
+    fixture.componentInstance.flowArgs$.subscribe((input) => {
       latestValue = input;
     });
 
@@ -89,7 +87,7 @@ describe('CollectFilesByKnownPathForm', () => {
 
     let latestValue: CollectFilesByKnownPathArgs = {};
 
-    fixture.componentInstance.formValues$.subscribe((input) => {
+    fixture.componentInstance.flowArgs$.subscribe((input) => {
       latestValue = input;
     });
 
@@ -126,7 +124,7 @@ describe('CollectFilesByKnownPathForm', () => {
 
        let latestValue: CollectFilesByKnownPathArgs = {};
 
-       fixture.componentInstance.formValues$.subscribe((input) => {
+       fixture.componentInstance.flowArgs$.subscribe((input) => {
          latestValue = input;
        });
 

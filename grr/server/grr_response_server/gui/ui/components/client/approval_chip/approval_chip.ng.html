@@ -1,17 +1,17 @@
 <!-- For known color values, mat-chip overrides styling. We assign the unknown
   string "custom" to be able to override the color in CSS. -->
 <span [ngSwitch]="(status$ | async)">
-  <mat-chip *ngSwitchCase="'pending'" class="dark-chip" color="custom">
+  <mat-chip *ngSwitchCase="'pending'" class="dark-chip" color="custom" disabled>
     <mat-icon>schedule</mat-icon>
     Request sent, waiting
   </mat-chip>
 
-  <mat-chip *ngSwitchCase="'valid'" class="green-chip" color="custom">
+  <mat-chip *ngSwitchCase="'valid'" class="green-chip" color="custom" disabled>
     <mat-icon>vpn_key</mat-icon>
     Access granted
   </mat-chip>
 
-  <mat-chip *ngSwitchDefault class="red-chip" color="custom">
+  <mat-chip *ngSwitchDefault class="red-chip" color="custom" disabled>
     <mat-icon>lock_outline</mat-icon>
     No access
   </mat-chip>

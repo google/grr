@@ -73,6 +73,7 @@ export function translateFlow(apiFlow: ApiFlow): Flow {
     args: createUnknownObject(apiFlow.args),
     progress: createUnknownObject(apiFlow.progress),
     state: translateApiFlowState(apiFlow.state),
+    errorDescription: apiFlow.errorDescription ?? undefined,
     resultCounts,
   };
 }

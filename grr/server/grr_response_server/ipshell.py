@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """A compatibility layer for the IPython shell."""
 
 

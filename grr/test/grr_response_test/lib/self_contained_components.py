@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Functions to run individual GRR components during self-contained testing."""
 
 import atexit

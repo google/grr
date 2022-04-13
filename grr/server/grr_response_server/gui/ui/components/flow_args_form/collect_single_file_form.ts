@@ -1,11 +1,17 @@
-import {ChangeDetectionStrategy, Component, OnInit, Output} from '@angular/core';
-import {FormControl, FormGroup, Validators} from '@angular/forms';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {UntypedFormControl, Validators} from '@angular/forms';
 import {Observable} from 'rxjs';
 import {filter, map, shareReplay, withLatestFrom} from 'rxjs/operators';
 
-import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {CollectSingleFileArgs} from '../../lib/api/api_interfaces';
+import {isNonNull} from '../../lib/preconditions';
 import {toByteUnit} from '../form/byte_input/byte_conversion';
+
+declare interface FormState {
+  path: string;
+  maxSizeBytes?: number;
+}
 
 /** Form that configures a CollectSingleFile flow. */
 @Component({
@@ -13,22 +19,20 @@ import {toByteUnit} from '../form/byte_input/byte_conversion';
   templateUrl: './collect_single_file_form.ng.html',
   styleUrls: ['./collect_single_file_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+
 })
 export class CollectSingleFileForm extends
-    FlowArgumentForm<CollectSingleFileArgs> implements OnInit {
-  readonly controls = {
-    path: new FormControl(),
-    maxSizeBytes: new FormControl(null, Validators.required),
-  };
-  readonly form = new FormGroup(this.controls);
+    FlowArgumentForm<CollectSingleFileArgs, FormState> {
+  override makeControls(): Controls<FormState> {
+    return {
+      path: new UntypedFormControl(),
+      maxSizeBytes: new UntypedFormControl(null, Validators.required),
+    };
+  }
 
-  @Output() readonly formValues$ = this.form.valueChanges.pipe(shareReplay(1));
-  @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
-
-  private readonly rawBytes$: Observable<number> = this.formValues$.pipe(
-      map(values => values.maxSizeBytes),
-      filter(size => size !== undefined && size !== null),
-  );
+  private readonly rawBytes$: Observable<number> =
+      this.controls.maxSizeBytes.valueChanges.pipe(
+          filter(isNonNull), shareReplay(1));
 
   private readonly bytesAndUnit$ =
       this.rawBytes$.pipe(map(rawBytes => toByteUnit(rawBytes, 'long')));
@@ -56,12 +60,17 @@ export class CollectSingleFileForm extends
       }),
   );
 
-  ngOnInit() {
-    this.form.patchValue({
-      path: this.defaultFlowArgs.path,
-      maxSizeBytes: this.defaultFlowArgs.maxSizeBytes ?
-          Number(this.defaultFlowArgs.maxSizeBytes) :
-          undefined,
-    });
+  override convertFlowArgsToFormState(flowArgs: CollectSingleFileArgs):
+      FormState {
+    return {
+      path: flowArgs.path ?? '',
+      maxSizeBytes: flowArgs.maxSizeBytes ? Number(flowArgs.maxSizeBytes) :
+                                            undefined,
+    };
+  }
+
+  override convertFormStateToFlowArgs(formState: FormState):
+      CollectSingleFileArgs {
+    return formState;
   }
 }

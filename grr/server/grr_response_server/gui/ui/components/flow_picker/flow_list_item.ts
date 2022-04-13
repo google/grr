@@ -1,5 +1,9 @@
 import {Injectable} from '@angular/core';
-import {Observable, of} from 'rxjs';
+import {Observable} from 'rxjs';
+import {map} from 'rxjs/operators';
+
+import {transformMapValues} from '../../lib/type_utils';
+import {ConfigGlobalStore} from '../../store/config_global_store';
 
 /**
  * FlowListItem encapsulates flow-related information used by the
@@ -9,6 +13,7 @@ export interface FlowListItem {
   readonly name: string;
   readonly friendlyName: string;
   readonly description: string;
+  readonly enabled: boolean;
 }
 
 function fli(name: string, friendlyName: string, description: string = ''):
@@ -17,6 +22,7 @@ function fli(name: string, friendlyName: string, description: string = ''):
     name,
     friendlyName,
     description,
+    enabled: true,
   };
 }
 
@@ -73,6 +79,8 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map(Object.entries({
   //       'Scan and optionally dump process memory using Yara'),
   // ],
   'Administrative': [
+    fli('OnlineNotification', 'Online notification',
+        'Notify via email when the client comes online'),
     fli('ExecutePythonHack', 'Execute Python hack',
         'Execute a one-off Python script'),
     fli('Interrogate', 'Interrogate',
@@ -132,10 +140,30 @@ const COMMON_FILE_FLOWS: ReadonlyArray<FlowListItem> = [
   providedIn: 'root',
 })
 export class FlowListItemService {
+  constructor(private readonly configGlobalStore: ConfigGlobalStore) {}
+
+  // TODO: Update the way "allowed flows" are computed,
+  // once all FlowDescriptors, including restricted, are always returned from
+  // ListFlowDescriptors API endpoint.
+  readonly allowedFlowDescriptorNames$: Observable<ReadonlySet<string>> =
+      this.configGlobalStore.flowDescriptors$.pipe(
+          map(fds => new Set(Array.from(fds.values()).map(fd => fd.name))));
+
   readonly flowsByCategory$: Observable<FlowsByCategory> =
-      of(FLOWS_BY_CATEGORY);
+      this.allowedFlowDescriptorNames$.pipe(
+          map(allowedNames => transformMapValues(
+                  FLOWS_BY_CATEGORY,
+                  entries => entries.map(
+                      fli => ({...fli, enabled: allowedNames.has(fli.name)})))),
+      );
+
   readonly commonFlowNames$: Observable<ReadonlyArray<string>> =
-      of(COMMON_FLOW_NAMES);
+      this.allowedFlowDescriptorNames$.pipe(
+          map(allowedNames =>
+                  COMMON_FLOW_NAMES.filter(name => allowedNames.has(name))));
+
   readonly commonFileFlows$: Observable<ReadonlyArray<FlowListItem>> =
-      of(COMMON_FILE_FLOWS);
+      this.allowedFlowDescriptorNames$.pipe(
+          map(allowedNames =>
+                  COMMON_FILE_FLOWS.filter(fli => allowedNames.has(fli.name))));
 }

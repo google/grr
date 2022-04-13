@@ -11,6 +11,13 @@ export enum Status {
   ERROR,
 }
 
+/** Flow status (e.g. success, error) to indicate to the user. */
+export enum ColorScheme {
+  DEFAULT,
+  FLOW_ARGS,
+  ERROR,
+}
+
 const STATUS_ICONS: {[key in Status]: string|null} = {
   [Status.NONE]: null,
   [Status.IN_PROGRESS]: null,
@@ -27,6 +34,12 @@ const STATUS_CLASSES: {[key in Status]: string|null} = {
   [Status.WARNING]: 'warning',
 };
 
+const COLOR_SCHEME_CLASSES: {[key in ColorScheme]: string|null} = {
+  [ColorScheme.DEFAULT]: 'default',
+  [ColorScheme.FLOW_ARGS]: 'flow-args-scheme',
+  [ColorScheme.ERROR]: 'error-scheme',
+};
+
 /** Component that displays an expendable flow result row. */
 @Component({
   selector: 'result-accordion',
@@ -39,9 +52,13 @@ export class ResultAccordion {
 
   @Input() description?: string|null;
 
+  @Input() preview?: string|null;
+
   @Input() status?: Status|null;
 
   @Input() expandable: boolean|null = true;
+
+  @Input() colorScheme?: ColorScheme|null;
 
   isOpen: boolean = false;
 
@@ -83,6 +100,10 @@ export class ResultAccordion {
 
   get rowClass() {
     return STATUS_CLASSES[this.status ?? Status.NONE];
+  }
+
+  get colorSchemeClass() {
+    return COLOR_SCHEME_CLASSES[this.colorScheme ?? ColorScheme.DEFAULT];
   }
 }
 

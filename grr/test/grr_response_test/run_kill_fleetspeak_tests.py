@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Runs an end-to-end test of the kill fleetspeak feature."""
 
 import sys

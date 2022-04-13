@@ -19,7 +19,6 @@ import {ClientDetailsModule} from '../client_details/module';
 import {FileDetails} from '../file_details/file_details';
 
 import {ClientPageModule} from './client_page_module';
-
 import {CLIENT_PAGE_ROUTES} from './routing';
 import {VfsSection} from './vfs_section';
 
@@ -41,7 +40,6 @@ describe('VfsSection', () => {
             ...STORE_PROVIDERS,
             {provide: ActivatedRoute, useFactory: getActivatedChildRoute},
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .overrideProvider(

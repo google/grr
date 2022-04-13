@@ -9,9 +9,8 @@ $header-left-padding: 24px;
     color: inherit;
 
     cursor: pointer;
-
     position: relative;
-    bottom: -2px;
+
     &:hover {
       background-color: mat.get-color-from-palette(c.$primary, 100, 0.15);
     }

@@ -1,7 +1,7 @@
 import {COMMA, ENTER, SPACE} from '@angular/cdk/keycodes';
 import {Location} from '@angular/common';
 import {ChangeDetectionStrategy, Component, ElementRef, EventEmitter, HostBinding, HostListener, Input, OnDestroy, Output, ViewChild} from '@angular/core';
-import {FormControl, FormGroup} from '@angular/forms';
+import {UntypedFormControl, UntypedFormGroup} from '@angular/forms';
 import {ActivatedRoute, Router} from '@angular/router';
 import {BehaviorSubject, Subject} from 'rxjs';
 import {filter, map, take, takeUntil, withLatestFrom} from 'rxjs/operators';
@@ -55,14 +55,14 @@ export class Approval implements OnDestroy {
   );
 
   readonly controls = {
-    reason: new FormControl(''),
-    ccEnabled: new FormControl(true),
+    reason: new UntypedFormControl(''),
+    ccEnabled: new UntypedFormControl(true),
   };
-  readonly form = new FormGroup(this.controls);
+  readonly form = new UntypedFormGroup(this.controls);
 
   @ViewChild('approversInput') approversInputEl!: ElementRef<HTMLInputElement>;
   @Output() readonly approvalParams = new EventEmitter<ApprovalParams>();
-  readonly approversInputControl = new FormControl('');
+  readonly approversInputControl = new UntypedFormControl('');
 
   readonly formRequestedApprovers = new Set<string>();
 
@@ -155,9 +155,10 @@ export class Approval implements OnDestroy {
         .pipe(
             takeUntil(this.ngOnDestroy.triggered$),
             filter(isNonNull),
+            filter(approval => approval.status.type === 'valid'),
             take(1),
             )
-        .subscribe(() => {
+        .subscribe((approval) => {
           this.hideContent = true;
         });
 
@@ -168,7 +169,6 @@ export class Approval implements OnDestroy {
             )
         .subscribe(() => {
           this.showForm = false;
-          this.hideContent = true;
         });
   }
 
@@ -199,7 +199,8 @@ export class Approval implements OnDestroy {
     this.formRequestedApprovers.delete(username);
   }
 
-  submitRequest() {
+  submitRequest(event?: Event) {
+    event?.preventDefault();
     this.submit$.next();
   }
 }

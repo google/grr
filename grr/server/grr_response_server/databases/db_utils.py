@@ -1,16 +1,23 @@
 #!/usr/bin/env python
 """Utility functions/decorators for DB implementations."""
-
 import functools
 import logging
 import time
 
+from typing import Generic
+from typing import List
+from typing import Sequence
 from typing import Text
+from typing import Tuple
+from typing import TypeVar
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
 from grr_response_server.databases import db
+
+
+_T = TypeVar("_T")
 
 
 DB_REQUEST_LATENCY = metrics.Event(
@@ -188,3 +195,113 @@ def SecondsToMicros(seconds):
 
 def MicrosToSeconds(ms):
   return ms / 1e6
+
+
+class BatchPlanner(Generic[_T]):
+  """Helper class to batch operations based on affected rows limit.
+
+  Typical example: batching delete operations. Database backends
+  often have limits on number of rows to be modified within
+  a single transaction. These can be hard limits imposed by the DB
+  design or practical limits that have to be respected for optimal
+  performance. In order to work around such a limit, we want
+  to batch multiple delete operations (each affecting a certain number
+  of rows) into batches in such a way so that every batch will
+  affect less total rows than the limit.
+  """
+
+  # TODO: as soon as GRR is fully Python 3.7, this should
+  # be replaced with a generic NamedTuple. Unfortunately, Python 3.6
+  # has issues with NamedTuples and generics. See:
+  # https://stackoverflow.com/questions/50530959/generic-namedtuple-in-python-3-6
+  BatchPart = Tuple[_T, int, int]  # pylint: disable=invalid-name
+  Batch = Sequence[BatchPart]  # pylint: disable=invalid-name
+
+  def __init__(self, limit: int):
+    """Constructor.
+
+    Args:
+      limit: Maximum limit of rows that an operation can be performed on in a
+        single batch.
+    """
+    self._limit = limit
+
+    self._current_batch: List[BatchPlanner[_T].BatchPart] = []
+    self._current_batch_size = 0
+
+    self._batches: List[BatchPlanner[_T].Batch] = []
+
+  def _PlanOperation(self, key: _T, offset: int, count: int) -> int:
+    """An utility method to plan a single operation.
+
+    Args:
+      key: Any value identifying a group of rows that an operation should be be
+        performed on.
+      offset: How many entities were previously planned for this operation.
+      count: Total number of entities that will be planend for this operation.
+
+    Returns:
+      offset + [number of newly planned] entities.
+    """
+
+    # _current_batch is used as a rolling buffer.
+    #
+    # If the operation is going to overflow the _current_batch, we effectively
+    # split the operation in two, finalize the _current_batch and add it to the
+    # list of planned batches.
+    #
+    # What's left from the operation will then be passed to _PlanOperation
+    # again by the PlanOperation() code.
+    if self._current_batch_size + count > self._limit:
+      delta = self._limit - self._current_batch_size
+      self._current_batch.append((key, offset, delta))
+
+      self._batches.append(self._current_batch)
+      self._current_batch = []
+      self._current_batch_size = 0
+
+      return offset + delta
+    else:
+      # If the _current_batch has capacity for all the elements in the
+      # operation, add it to _current_batch.
+      self._current_batch.append((key, offset, count))
+      self._current_batch_size += count
+      return offset + count
+
+  def PlanOperation(self, key: _T, count: int) -> None:
+    """Plans an operation on a given number of entities identified by a key.
+
+    After all operations are planned, "batches" property can be used to
+    get a sequence of batches of operations where every batch would be
+    within the limit passed to the contstructor.
+
+    Args:
+      key: Any value identifying a group of rows that an operation should be be
+        performed on. For example, when deleting responses, a key may be
+        (client_id, flow_id, request_id).
+      count: Number of entities that the operation should be performed on.
+    """
+    offset = 0
+    while offset < count:
+      offset = self._PlanOperation(key, offset, count - offset)
+
+  @property
+  def batches(self) -> Sequence[Batch]:
+    """Returns a list of batches built to stay within the operation limit.
+
+    Each batch is made of tuples (key, offset, count) where key identifies
+    the group of rows for an operation to be performed on and matches
+    a key passed via one of PlanOperation() calls. Offset and count
+    identify the range of items corresponding to the key to be
+    affected by the operation.
+
+    Total number of rows in a single batch is guaranteed to be less
+    than a limit (passed as a constructor argument).
+    """
+
+    if self._current_batch:
+      result = self._batches[:]
+      result.append(self._current_batch)
+      return result
+
+    return self._batches

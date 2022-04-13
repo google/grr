@@ -1,4 +1,5 @@
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
+import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
 import {ExportMenuItem, Plugin as FlowDetailsPlugin} from '../../components/flow_details/plugins/plugin';
@@ -6,7 +7,9 @@ import {Flow, FlowDescriptor, FlowState} from '../../lib/models/flow';
 import {isNonNull} from '../../lib/preconditions';
 import {FlowResultsLocalStore} from '../../store/flow_results_local_store';
 import {UserGlobalStore} from '../../store/user_global_store';
+import {FlowArgsViewData} from '../flow_args_view/flow_args_view';
 
+import {ColorScheme} from './helpers/result_accordion';
 import {FLOW_DETAILS_DEFAULT_PLUGIN, FLOW_DETAILS_PLUGIN_REGISTRY} from './plugin_registry';
 
 /** Enum of Actions that can be triggered in the Flow Context Menu. */
@@ -17,7 +20,6 @@ export enum FlowMenuAction {
   CREATE_HUNT,
   START_VIA_API,
   DEBUG,
-  VIEW_ARGS,
 }
 
 /**
@@ -31,21 +33,54 @@ export enum FlowMenuAction {
   providers: [FlowResultsLocalStore],
 })
 export class FlowDetails implements OnChanges {
+  readonly colorScheme = ColorScheme;
+
   private detailsComponent: ComponentRef<FlowDetailsPlugin>|undefined;
 
   flowState = FlowState;
   flowMenuAction = FlowMenuAction;
 
+  private readonly flow$ = new BehaviorSubject<Flow|null>(null);
+  private readonly flowDescriptor$ =
+      new BehaviorSubject<FlowDescriptor|null>(null);
+  readonly flowArgsViewData$: Observable<FlowArgsViewData|null> =
+      combineLatest([this.flow$, this.flowDescriptor$])
+          .pipe(
+              map(([flow, flowDescriptor]) => {
+                if (!flow || !flowDescriptor) {
+                  return null;
+                }
+                return {
+                  flowDescriptor,
+                  flowArgs: this.flow!.args as {},
+                };
+              }),
+              startWith(null));
+
   /**
    * Flow list entry to display.
    */
-  @Input() flow: Flow|null|undefined;
+  @Input()
+  set flow(flow: Flow|null|undefined) {
+    this.flow$.next(flow ?? null);
+  }
+
+  get flow() {
+    return this.flow$.value;
+  }
 
   /**
-   * Flow descriptor of the flow to display. May be undefined (for example,
-   * if a flow got renamed on the backend).
+   * Flow descriptor of the flow to display. May be undefined if user is not
+   * allowed to start this flow or flow class has been deprecated/removed.
    */
-  @Input() flowDescriptor: FlowDescriptor|null|undefined;
+  @Input()
+  set flowDescriptor(desc: FlowDescriptor|null|undefined) {
+    this.flowDescriptor$.next(desc ?? null);
+  }
+
+  get flowDescriptor() {
+    return this.flowDescriptor$.value;
+  }
 
   /**
    * Whether show "Create a hunt" in the menu.

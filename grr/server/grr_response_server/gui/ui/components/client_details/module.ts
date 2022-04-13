@@ -8,6 +8,7 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatListModule} from '@angular/material/list';
 import {RouterModule} from '@angular/router';
 
+import {CopyButtonModule} from '../helpers/copy_button/copy_button_module';
 import {HumanReadableSizeModule} from '../human_readable_size/module';
 import {TimestampModule} from '../timestamp/module';
 
@@ -36,6 +37,7 @@ import {VolumesDetailsModule} from './volumes_details/module';
     MatListModule,
 
     ClientDetailsRoutingModule,
+    CopyButtonModule,
     EntryHistoryButtonModule,
     EntryHistoryDialogModule,
     HumanReadableSizeModule,

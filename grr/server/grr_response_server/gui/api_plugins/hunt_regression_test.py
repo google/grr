@@ -196,22 +196,20 @@ class ApiListHuntLogsHandlerRegressionTest(
         parent=flow.FlowParent.FromHuntID(hunt_id))
 
     with test_lib.FakeTime(52):
-      data_store.REL_DB.WriteFlowLogEntries([
+      data_store.REL_DB.WriteFlowLogEntry(
           rdf_flow_objects.FlowLogEntry(
               client_id=client_id,
               flow_id=flow_id,
               hunt_id=hunt_id,
-              message="Sample message: foo")
-      ])
+              message="Sample message: foo"))
 
     with test_lib.FakeTime(55):
-      data_store.REL_DB.WriteFlowLogEntries([
+      data_store.REL_DB.WriteFlowLogEntry(
           rdf_flow_objects.FlowLogEntry(
               client_id=client_id,
               flow_id=flow_id,
               hunt_id=hunt_id,
-              message="Sample message: bar")
-      ])
+              message="Sample message: bar"))
 
     self.Check(
         "ListHuntLogs",

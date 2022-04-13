@@ -82,10 +82,19 @@ class ApiGetCollectedTimelineHandler(api_call_handler_base.ApiCallHandler):
 
     opts = body.Opts()
     opts.timestamp_subsecond_precision = args.body_opts.timestamp_subsecond_precision
-    opts.inode_ntfs_file_reference_format = args.body_opts.inode_ntfs_file_reference_format
     opts.backslash_escape = args.body_opts.backslash_escape
     opts.carriage_return_escape = args.body_opts.carriage_return_escape
     opts.non_printable_escape = args.body_opts.non_printable_escape
+
+    if args.body_opts.HasField("inode_ntfs_file_reference_format"):
+      # If the field is set explicitly, we respect the choice no matter what
+      # filesystem we detected.
+      if args.body_opts.inode_ntfs_file_reference_format:
+        opts.inode_format = body.Opts.InodeFormat.NTFS_FILE_REFERENCE
+    else:
+      fstype = timeline.FilesystemType(client_id=client_id, flow_id=flow_id)
+      if fstype is not None and fstype.lower() == "ntfs":
+        opts.inode_format = body.Opts.InodeFormat.NTFS_FILE_REFERENCE
 
     entries = timeline.ProtoEntries(client_id=client_id, flow_id=flow_id)
     content = body.Stream(entries, opts=opts)

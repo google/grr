@@ -7,7 +7,6 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {CopyButtonModule} from './copy_button_module';
 
-
 @Component({
   template:
       '<app-copy-button [overrideCopyText]="overrideCopyText">{{ text }}</app-copy-button>'
@@ -41,7 +40,6 @@ describe('CopyButton component', () => {
           ],
           declarations:
               [TestComponentWithTextNode, TestComponentWithElementNode],
-
           providers: [
 
             {

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Stubs of client actions.
 
 Client actions shouldn't be used on the server, stubs should be used instead.

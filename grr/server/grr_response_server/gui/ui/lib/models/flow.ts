@@ -28,6 +28,7 @@ export declare interface Flow {
   readonly args: unknown|undefined;
   readonly progress: unknown|undefined;
   readonly state: FlowState;
+  readonly errorDescription: string|undefined;
   /**
    * Counts of flow Results. undefined for legacy flows where we don't know
    * about result metadata.

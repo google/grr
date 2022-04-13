@@ -6,7 +6,6 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
-
 import {Status} from './result_accordion';
 
 
@@ -20,6 +19,7 @@ initTestEnvironment();
     [title]="title"
     [expandable]="expandable"
     [description]="description"
+    [preview]="preview"
     [status]="status"
     (firstOpened)="firstOpenedTriggered()">
     contenttext
@@ -28,6 +28,7 @@ initTestEnvironment();
 class TestHostComponent {
   title?: string;
   description?: string;
+  preview?: string;
   status?: Status;
   expandable: boolean = true;
   firstOpenedTriggered = jasmine.createSpy('firstOpenedTriggered');
@@ -44,7 +45,6 @@ describe('ResultAccordion Component', () => {
           declarations: [
             TestHostComponent,
           ],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })
@@ -56,6 +56,7 @@ describe('ResultAccordion Component', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.componentInstance.title = args.title;
     fixture.componentInstance.description = args.description;
+    fixture.componentInstance.preview = args.preview;
     fixture.componentInstance.status = args.status;
     fixture.componentInstance.expandable = args.expandable ?? true;
     fixture.detectChanges();
@@ -92,6 +93,12 @@ describe('ResultAccordion Component', () => {
     const fixture = createComponent({description: 'foobar-description'});
     expect(fixture.debugElement.nativeElement.textContent)
         .toContain('foobar-description');
+  });
+
+  it('shows preview', () => {
+    const fixture = createComponent({preview: 'foobar-preview'});
+    expect(fixture.debugElement.nativeElement.textContent)
+        .toContain('foobar-preview');
   });
 
   it('shows status icon and styling', () => {

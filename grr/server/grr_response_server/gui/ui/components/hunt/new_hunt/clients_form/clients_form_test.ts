@@ -11,7 +11,6 @@ import {initTestEnvironment} from '../../../../testing';
 import {ClientsForm} from './clients_form';
 import {ClientsFormModule} from './module';
 
-
 initTestEnvironment();
 
 describe('clients form test', () => {
@@ -28,7 +27,6 @@ describe('clients form test', () => {
             provide: ConfigGlobalStore,
             useFactory: () => configGlobalStoreMock
           }],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

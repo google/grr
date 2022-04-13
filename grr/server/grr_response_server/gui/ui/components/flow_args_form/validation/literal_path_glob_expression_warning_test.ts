@@ -6,7 +6,6 @@ import {initTestEnvironment} from '../../../testing';
 import {LiteralPathGlobExpressionWarning} from './literal_path_glob_expression_warning';
 import {ValidationModule} from './validation_module';
 
-
 initTestEnvironment();
 
 describe('app-literal-path-glob-expression-warning', () => {
@@ -15,7 +14,6 @@ describe('app-literal-path-glob-expression-warning', () => {
         .configureTestingModule({
           imports: [ValidationModule, NoopAnimationsModule],
           providers: [],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();

@@ -1,7 +1,6 @@
 import {TestBed} from '@angular/core/testing';
 import {Subject} from 'rxjs';
 
-import {ConfigService} from '../components/config/config';
 import {ApiClient} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
 import {newClient} from '../lib/models/model_test_util';
@@ -16,7 +15,6 @@ initTestEnvironment();
 describe('ClientDetailsGlobalStore', () => {
   let httpApiService: Partial<HttpApiService>;
   let clientDetailsGlobalStore: ClientDetailsGlobalStore;
-  let configService: ConfigService;
   let apiFetchClientVersions$: Subject<ReadonlyArray<ApiClient>>;
 
   beforeEach(() => {
@@ -40,8 +38,6 @@ describe('ClientDetailsGlobalStore', () => {
         .compileComponents();
 
     clientDetailsGlobalStore = TestBed.inject(ClientDetailsGlobalStore);
-    configService = TestBed.inject(ConfigService);
-
     clientDetailsGlobalStore.selectClient('C.1234');
   });
 
@@ -97,7 +93,7 @@ describe('ClientDetailsGlobalStore', () => {
   it('getClientVersions() correctly translates snapshots into client changes',
      () => {
        const snapshots = [
-         // Client created
+         // Client first seen
          newClient({
            clientId: 'C.1234',
            age: new Date(2020, 1, 1),
@@ -205,7 +201,7 @@ describe('ClientDetailsGlobalStore', () => {
        const expectedClientChanges = [
          {
            client: snapshots[0],
-           changes: ['Client created'],
+           changes: ['Client first seen'],
          },
          {
            client: snapshots[1],
@@ -224,7 +220,10 @@ describe('ClientDetailsGlobalStore', () => {
            client: snapshots[4],
            changes: ['4 User entries deleted'],
          },
-         // Next snapshot is identical to the one before, so it is skipped
+         {
+           client: snapshots[5],
+           changes: [],
+         },
          {
            client: snapshots[6],
            changes: ['Network interface added'],
@@ -248,29 +247,32 @@ describe('ClientDetailsGlobalStore', () => {
                    [expectedChange.client, expectedChange.changes.sort()]));
      });
 
-  it('getClientVersions() reduces sequences of identical snapshots to the oldest snapshot',
-     () => {
-       const snapshots = [
-         newClient({
-           clientId: 'C.1234',
-           fleetspeakEnabled: true,
-           age: new Date(2020, 2, 2),
-         }),
-         newClient({
-           clientId: 'C.1234',
-           fleetspeakEnabled: true,
-           age: new Date(2020, 1, 1),
-         })
-       ];
+  it('getClientVersions() includes snapshots without changes', () => {
+    const snapshots = [
+      newClient({
+        clientId: 'C.1234',
+        fleetspeakEnabled: true,
+        age: new Date(2020, 2, 2),
+      }),
+      newClient({
+        clientId: 'C.1234',
+        fleetspeakEnabled: true,
+        age: new Date(2020, 1, 1),
+      })
+    ];
 
-       const expectedClientChanges = [
-         {
-           client: snapshots[1],
-           changes: ['Client created'],
-         },
-       ];
+    const expectedClientChanges = [
+      {
+        client: snapshots[0],
+        changes: [],
+      },
+      {
+        client: snapshots[1],
+        changes: ['Client first seen'],
+      },
+    ];
 
-       const clientChanges = getClientVersions(snapshots);
-       expect(clientChanges).toEqual(expectedClientChanges);
-     });
+    const clientChanges = getClientVersions(snapshots);
+    expect(clientChanges).toEqual(expectedClientChanges);
+  });
 });

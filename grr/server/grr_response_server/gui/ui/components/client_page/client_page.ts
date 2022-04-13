@@ -1,12 +1,14 @@
 import {ChangeDetectionStrategy, Component, OnDestroy} from '@angular/core';
 import {Title} from '@angular/platform-browser';
 import {ActivatedRoute} from '@angular/router';
-import {filter, map, takeUntil} from 'rxjs/operators';
+import {filter, map, takeUntil, withLatestFrom} from 'rxjs/operators';
 
+import {FlowState} from '../../lib/models/flow';
 import {isNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
+import {UserGlobalStore} from '../../store/user_global_store';
 
 
 /**
@@ -22,9 +24,30 @@ export class ClientPage implements OnDestroy {
 
   readonly hasAccess$ = this.clientPageGlobalStore.hasAccess$;
 
+
+  readonly interrogateInProgress$ =
+      this.clientPageGlobalStore.flowListEntries$.pipe(map(
+          data => data.flows?.find(
+              f => f.name === 'Interrogate' && f.state === FlowState.RUNNING)));
+
+  // If GetGrrUser() would expose the email, we could show an online
+  // notification in progress if any user selects to notify the email of the
+  // current user. Since the email is not exposed, we show the flow as in
+  // progress if the current user started it.
+  readonly onlineNotificationInProgress$ =
+      this.clientPageGlobalStore.flowListEntries$.pipe(
+          withLatestFrom(this.userGlobalStore.currentUser$),
+          map(([data, user]) => data.flows?.find(
+                  f => f.name === 'OnlineNotification' &&
+                      f.creator === user.name &&
+                      f.state === FlowState.RUNNING)));
+
+
+
   constructor(
       private readonly route: ActivatedRoute,
       private readonly clientPageGlobalStore: ClientPageGlobalStore,
+      private readonly userGlobalStore: UserGlobalStore,
       private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
       private readonly title: Title,
   ) {
@@ -59,5 +82,13 @@ export class ClientPage implements OnDestroy {
             this.title.setTitle('GRR');
           }
         });
+  }
+
+  triggerOnlineNotification() {
+    this.clientPageGlobalStore.startFlowConfiguration('OnlineNotification');
+  }
+
+  triggerInterrogate() {
+    this.clientPageGlobalStore.startFlowConfiguration('Interrogate');
   }
 }

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Test utilities for working with time."""
 import sys
 import time

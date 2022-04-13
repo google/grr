@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {FormGroup, FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {FormsModule, ReactiveFormsModule, UntypedFormGroup} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -14,7 +14,6 @@ import {DateTime} from '../../../lib/date_time';
 import {dateTimeEqualityTester, initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
-
 
 
 
@@ -33,7 +32,7 @@ initTestEnvironment();
 `
 })
 class TestHostComponent {
-  readonly form = new FormGroup({
+  readonly form = new UntypedFormGroup({
     condition: createTimeRangeFormGroup(),
   });
 
@@ -55,7 +54,6 @@ describe('TimeRangeCondition component', () => {
             HelpersModule,
           ],
           declarations: [TestHostComponent],
-
           providers: [],
           teardown: {destroyAfterEach: false}
         })

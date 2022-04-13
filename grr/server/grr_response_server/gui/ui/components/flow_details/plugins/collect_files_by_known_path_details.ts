@@ -2,13 +2,13 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {map, takeUntil} from 'rxjs/operators';
 
-import {FlowFileResult, flowFileResultFromStatEntry} from '../../../components/flow_details/helpers/file_results_table';
+import {FlowFileResult, flowFileResultFromStatEntry, statusFromPathType} from '../../../components/flow_details/helpers/file_results_table';
 import {CollectFilesByKnownPathArgs, CollectFilesByKnownPathProgress, CollectFilesByKnownPathResult, CollectFilesByKnownPathResultStatus} from '../../../lib/api/api_interfaces';
 import {translateHashToHex, translateStatEntry} from '../../../lib/api_translation/flow';
 import {Flow} from '../../../lib/models/flow';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 
-import {Plugin} from './plugin';
+import {ExportMenuItem, Plugin} from './plugin';
 
 interface FailedFileResult {
   readonly path?: string;
@@ -131,7 +131,8 @@ export class CollectFilesByKnownPathDetails extends Plugin {
                   .map(
                       res => flowFileResultFromStatEntry(
                           translateStatEntry(res.stat!),
-                          translateHashToHex(res.hash ?? {}))));
+                          translateHashToHex(res.hash ?? {}),
+                          statusFromPathType(res?.stat?.pathspec?.pathtype))));
 
           this.errorFiles$.next(results.filter(res => isError(res.status))
                                     .map(res => failedResult(res)));
@@ -158,5 +159,15 @@ export class CollectFilesByKnownPathDetails extends Plugin {
     return super.getResultDescription(flow);
   }
 
-  // TODO: Override download button to get the files directly.
+  override getExportMenuItems(flow: Flow): ReadonlyArray<ExportMenuItem> {
+    const downloadItem = this.getDownloadFilesExportMenuItem(flow);
+    const items = super.getExportMenuItems(flow);
+
+    if (items.find(item => item.url === downloadItem.url)) {
+      return items;
+    }
+
+    // If the menu does not yet contain "Download files", display it.
+    return [downloadItem, ...items];
+  }
 }

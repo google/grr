@@ -154,9 +154,11 @@ export interface AgentInfo {
   readonly clientName?: string;
   readonly clientVersion?: number;
   readonly revision?: bigint;
-  readonly buildTime?: string;
+  readonly buildTime?: Date;
   readonly clientBinaryName?: string;
   readonly clientDescription?: string;
+  readonly timelineBtimeSupport?: boolean;
+  readonly sandboxSupport?: boolean;
 }
 
 /**
@@ -165,6 +167,55 @@ export interface AgentInfo {
 export interface ClientLabel {
   readonly owner: string;
   readonly name: string;
+}
+
+/** GoogleCloudInstance proto mapping. */
+export declare interface GoogleCloudInstance {
+  readonly uniqueId?: string;
+  readonly zone?: string;
+  readonly projectId?: string;
+  readonly instanceId?: string;
+  readonly hostname?: string;
+  readonly machineType?: string;
+}
+
+/** AmazonCloudInstance proto mapping. */
+export declare interface AmazonCloudInstance {
+  readonly instanceId?: string;
+  readonly amiId?: string;
+  readonly hostname?: string;
+  readonly publicHostname?: string;
+  readonly instanceType?: string;
+}
+
+/** CloudInstance.InstanceType proto mapping. */
+export enum CloudInstanceInstanceType {
+  UNSET = 'UNSET',
+  AMAZON = 'AMAZON',
+  GOOGLE = 'GOOGLE',
+}
+
+/** CloudInstance proto mapping. */
+export declare interface CloudInstance {
+  readonly cloudType?: CloudInstanceInstanceType;
+  readonly google?: GoogleCloudInstance;
+  readonly amazon?: AmazonCloudInstance;
+}
+
+/** HardwareInfo proto mapping. */
+export declare interface HardwareInfo {
+  readonly serialNumber?: string;
+  readonly systemManufacturer?: string;
+  readonly systemProductName?: string;
+  readonly systemUuid?: string;
+  readonly systemSkuNumber?: string;
+  readonly systemFamily?: string;
+  readonly biosVendor?: string;
+  readonly biosVersion?: string;
+  readonly biosReleaseDate?: string;
+  readonly biosRomSize?: string;
+  readonly biosRevision?: string;
+  readonly systemAssettag?: string;
 }
 
 /**
@@ -202,6 +253,9 @@ export interface Client {
   readonly labels: ReadonlyArray<ClientLabel>;
   /** The time when this client info was born */
   readonly age: Date;
+  readonly cloudInstance?: CloudInstance;
+  readonly hardwareInfo?: HardwareInfo;
+  readonly sourceFlowId?: string;
 }
 
 /** Approval Request. */

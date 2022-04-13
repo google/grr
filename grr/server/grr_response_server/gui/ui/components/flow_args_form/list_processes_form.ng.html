@@ -34,10 +34,7 @@
       If set, only list processes that match a comma-separated list of process
       IDs
     </mat-hint>
-    <!-- TODO: The new compiler flag forbids using a.foo style for
-      this property.  TS4111:
-      Property '%s' comes from an index signature, so it must be accessed with ['%s']. -->
-    <mat-error *ngIf="$any(form.get('pids')?.errors)?.invalidIntegerEntry as error">
+    <mat-error *ngIf="controls.pids.errors?.['invalidIntegerEntry'] as error">
       PIDs must be non-negative integers. Invalid: {{error.value}}
     </mat-error>
   </mat-form-field>
@@ -46,7 +43,7 @@
     <mat-label>Connection state</mat-label>
     <mat-chip-list #chipList aria-label="Connection state">
       <mat-chip
-        *ngFor="let state of form.get('connectionStates')?.value"
+        *ngFor="let state of controls.connectionStates.value"
         (removed)="removeConnectionState(state)"
       >
         {{state}}

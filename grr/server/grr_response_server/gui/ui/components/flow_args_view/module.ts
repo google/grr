@@ -8,7 +8,7 @@ import {MatInputModule} from '@angular/material/input';
 
 import {FlowArgsFormModule} from '../flow_args_form/module';
 
-import {FlowArgsDialog} from './flow_args_dialog';
+import {FlowArgsView} from './flow_args_view';
 
 /** Angular Module. */
 @NgModule({
@@ -23,14 +23,14 @@ import {FlowArgsDialog} from './flow_args_dialog';
     FormsModule,
   ],
   declarations: [
-    FlowArgsDialog,
+    FlowArgsView,
   ],
   entryComponents: [
-    FlowArgsDialog,
+    FlowArgsView,
   ],
   exports: [
-    FlowArgsDialog,
+    FlowArgsView,
   ],
 })
-export class FlowArgsDialogModule {
+export class FlowArgsViewModule {
 }

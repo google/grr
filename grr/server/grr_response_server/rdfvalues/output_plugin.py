@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Lint as: python3
 """Output_plugin related rdf values."""
 
 import logging

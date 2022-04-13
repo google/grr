@@ -88,7 +88,7 @@ message SearchExpression {
   optional ConditionExpression condition_expression = 5;
 }
 
-message SearchOrder {
+message SortOrder {
   enum OrderBy {
     UNKNOWN = 0 [(description) = "Unknown"];
     SNAPSHOT_CREATION_TIME = 1

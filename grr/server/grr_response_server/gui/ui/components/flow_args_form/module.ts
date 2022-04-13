@@ -28,6 +28,7 @@ import {DateTimeInputModule} from '../../components/form/date_time_input/module'
 import {GlobExpressionExplanationModule} from '../../components/form/glob_expression_form_field/module';
 import {CodeEditorModule} from '../code_editor/module';
 import {CommaSeparatedInputModule} from '../form/comma_separated_input/module';
+import {TimestampModule} from '../timestamp/module';
 
 import {CollectFilesByKnownPathForm} from './collect_files_by_known_path_form';
 import {ExecutePythonHackForm} from './execute_python_hack_form';
@@ -38,6 +39,7 @@ import {ListDirectoryForm} from './list_directory_form';
 import {ListNamedPipesForm} from './list_named_pipes_form';
 import {ListProcessesForm} from './list_processes_form';
 import {NetstatForm} from './netstat_form';
+import {OnlineNotificationForm} from './online_notification_form';
 import {OsqueryForm} from './osquery_form';
 import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
 import {ReadLowLevelForm} from './read_low_level_form';
@@ -76,6 +78,7 @@ import {ValidationModule} from './validation/validation_module';
     GlobExpressionExplanationModule,
     HelpersModule,
     OsqueryQueryHelperModule,
+    TimestampModule,
     ValidationModule,
   ],
   declarations: [
@@ -92,6 +95,7 @@ import {ValidationModule} from './validation/validation_module';
     ListNamedPipesForm,
     ListProcessesForm,
     NetstatForm,
+    OnlineNotificationForm,
     OsqueryForm,
     ReadLowLevelForm,
     TimelineForm,
@@ -110,6 +114,7 @@ import {ValidationModule} from './validation/validation_module';
     ListNamedPipesForm,
     ListProcessesForm,
     NetstatForm,
+    OnlineNotificationForm,
     OsqueryForm,
     TimelineForm,
   ],

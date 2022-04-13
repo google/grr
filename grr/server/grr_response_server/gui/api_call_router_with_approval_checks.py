@@ -28,6 +28,7 @@ from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
+from grr_response_server.gui.api_plugins import vfs as api_vfs
 from grr_response_server.gui.api_plugins import yara as api_yara
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -313,6 +314,15 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     self.access_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.ListFiles(args, context=context)
+
+  def BrowseFilesystem(
+      self,
+      args: api_vfs.ApiBrowseFilesystemArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> api_vfs.ApiBrowseFilesystemHandler:
+    self.access_checker.CheckClientAccess(context, args.client_id)
+
+    return self.delegate.BrowseFilesystem(args, context=context)
 
   def GetVfsFilesArchive(self, args, context=None):
     self.access_checker.CheckClientAccess(context, args.client_id)

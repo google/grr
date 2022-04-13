@@ -1,7 +1,9 @@
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {ActivatedRoute, Params} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
+import {ReplaySubject} from 'rxjs';
 
 import {ApiModule} from '../../lib/api/module';
 import {newClient} from '../../lib/models/model_test_util';
@@ -11,11 +13,10 @@ import {ClientDetailsGlobalStoreMock, mockClientDetailsGlobalStore} from '../../
 import {ConfigGlobalStore} from '../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
-import {initTestEnvironment} from '../../testing';
+import {DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER, initTestEnvironment} from '../../testing';
 
 import {ClientDetails} from './client_details';
 import {ClientDetailsModule} from './module';
-
 import {CLIENT_DETAILS_ROUTES} from './routing';
 
 
@@ -24,6 +25,8 @@ initTestEnvironment();
 describe('Client Details Component', () => {
   let store: ClientDetailsGlobalStoreMock;
   let configGlobalStore: ConfigGlobalStoreMock;
+  let activatedRoute: Partial<ActivatedRoute>&{params: ReplaySubject<Params>};
+
   const clientVersionsMock = [
     newClient({
       clientId: 'C.1234',
@@ -43,12 +46,16 @@ describe('Client Details Component', () => {
         fqdn: 'foo.unknown-first',
       },
       age: new Date(2020, 1, 1),
+      sourceFlowId: '123',
     }),
   ];
 
   beforeEach(waitForAsync(() => {
     configGlobalStore = mockConfigGlobalStore();
     store = mockClientDetailsGlobalStore();
+    activatedRoute = {
+      params: new ReplaySubject<Params>(),
+    };
 
     TestBed
         .configureTestingModule({
@@ -61,8 +68,9 @@ describe('Client Details Component', () => {
           providers: [
             {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
             {provide: ClientDetailsGlobalStore, useFactory: () => store},
+            {provide: ActivatedRoute, useFactory: () => activatedRoute},
+            DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER,
           ],
-
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();
@@ -76,7 +84,6 @@ describe('Client Details Component', () => {
     expect(store.selectClient).toHaveBeenCalledWith('C.1222');
   });
 
-
   it('selects the first option in the timeline by default', () => {
     const fixture = TestBed.createComponent(ClientDetails);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
@@ -88,6 +95,59 @@ describe('Client Details Component', () => {
 
     expect(firstOption.componentInstance.selected).toBe(true);
   });
+
+  it('selects the entry specified in sourceFlowId route param', () => {
+    const fixture = TestBed.createComponent(ClientDetails);
+    fixture.detectChanges();  // Ensure ngOnInit hook completes.
+
+    activatedRoute.params.next({sourceFlowId: '123'});
+    store.mockedObservables.selectedClientVersions$.next(
+        getClientVersions(clientVersionsMock));
+    fixture.detectChanges();
+    const secondOption =
+        fixture.debugElement.queryAll(By.css('mat-list-option'))[1];
+
+    expect(secondOption.componentInstance.selected).toBe(true);
+  });
+
+  it('shows client fields', fakeAsync(() => {
+       const fixture = TestBed.createComponent(ClientDetails);
+       fixture.detectChanges();
+
+       store.mockedObservables.selectedClientVersions$.next(getClientVersions([
+         newClient({
+           clientId: 'C.1234',
+           users: [
+             {username: 'foouser'},
+           ],
+           osInfo: {
+             fqdn: 'foo.f.q.d.n',
+           },
+           agentInfo: {
+             sandboxSupport: true,
+             clientBinaryName: 'grr',
+           },
+           hardwareInfo: {
+             systemManufacturer: 'GRR Corp',
+           },
+           fleetspeakEnabled: true,
+           age: new Date(2020, 2, 1),
+           sourceFlowId: '123sourceflowid',
+         }),
+       ]));
+       fixture.detectChanges();
+       tick();
+       fixture.detectChanges();
+
+       expect(fixture.nativeElement.innerText).toContain('foo.f.q.d.n');
+       expect(fixture.nativeElement.innerText).toContain('foouser');
+       expect(fixture.nativeElement.innerText).toContain('Fleetspeak');
+       expect(fixture.nativeElement.innerText).toContain('grr');
+       expect(fixture.nativeElement.innerText).toContain('Sandboxing');
+       expect(fixture.nativeElement.innerText).toContain('GRR Corp');
+       expect(fixture.nativeElement.innerText).toContain('123sourceflowid');
+     }));
+
 
   it('getAccordionButtonState() returns the expected state', () => {
     const component = TestBed.createComponent(ClientDetails).componentInstance;
@@ -226,13 +286,15 @@ describe('Client Details Component', () => {
        let text = fixture.debugElement.nativeElement.textContent;
        expect(text).not.toContain('hidden-username');
 
-       const expandButton = fixture.debugElement.query(By.css('button'));
+       const expandButton = fixture.debugElement.query(
+           By.css('button[name="toggle-users-details"]'));
        expandButton.triggerEventHandler('click', null);
        fixture.detectChanges();
        text = fixture.debugElement.nativeElement.textContent;
        expect(text).toContain('hidden-username');
 
-       const collapseButton = fixture.debugElement.query(By.css('button'));
+       const collapseButton = fixture.debugElement.query(
+           By.css('button[name="toggle-users-details"]'));
        collapseButton.triggerEventHandler('click', null);
        fixture.detectChanges();
        text = fixture.debugElement.nativeElement.textContent;
