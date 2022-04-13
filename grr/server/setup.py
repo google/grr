@@ -185,6 +185,7 @@ setup_args = dict(
         VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "Jinja2==2.11.3",
+        "MarkupSafe==2.0.1",
         "pexpect==4.8.0",
         "portpicker==1.3.1",
         "prometheus_client==0.8.0",
