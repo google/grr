@@ -29,7 +29,7 @@ jobs:
       - name: Test
         run: |
           source "${HOME}/INSTALL/bin/activate"
-          pip install pytest-xdist==2.2.1
+          pip install pytest-xdist==2.2.1 pytest==6.2.5
           # We have 4 vCPUs available, but only use 3 here to avoid timeouts like
           # https://ci.appveyor.com/project/grr/grr-ia94e/builds/20483467/messages ,
           # which happen when tests stall.

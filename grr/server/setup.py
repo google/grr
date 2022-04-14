@@ -184,6 +184,11 @@ setup_args = dict(
         VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "Jinja2==2.11.3",
+        # TODO: This should be 2.1
+        # If the version of MarkupSafe with Jinja2 dependency is greater than 2.0.1 an issue occurs.
+        # Therefore, we are currently fixing the version to 2.0.1,
+        # but it will be fixed later when the issue is resolved.
+        "MarkupSafe==2.0.1",
         "pexpect==4.8.0",
         "portpicker==1.3.1",
         "prometheus_client==0.8.0",
