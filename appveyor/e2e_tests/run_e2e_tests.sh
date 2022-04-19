@@ -26,6 +26,7 @@ function fatal() {
 # tests that rely on the presence of user profiles in the knowledge-base, we
 # generate a dummy wtmp entry for the 'appveyor' user, which is the role used
 # for running tests. This is obviously a hack.
+useradd -m appveyor
 echo "[7] [01234] [ts/3] [appveyor] [pts/3       ] [100.100.10.10       ] [100.100.10.10  ] [Thu Jan 01 00:00:00 1970 UTC]" > wtmp.txt
 utmpdump /var/log/wtmp >> wtmp.txt
 utmpdump --reverse < wtmp.txt > /var/log/wtmp
