@@ -139,6 +139,10 @@ a = Analysis\(
     # TODO\(https://github.com/pypa/setuptools/issues/1963\): py2_warn is
     # a workaround. Revisit in the future, whether this is needed.
     hiddenimports=CHIPSEC_IMPORTS + WINDOWS_IMPORTS + ["pkg_resources.py2_warn"],
+    # TODO: Remove this binary once PyInstaller version is updated.
+    # The binary below is needed in machines that do not have VC installed.
+    # This was patched by them in: https://github.com/pyinstaller/pyinstaller/pull/5770/files
+    binaries=[\("C:\\\\Windows\\\\System32\\\\VCRUNTIME140_1.dll", "."\)],
     hookspath=None\)
 
 # Remove some optional libraries that would be packed but serve no purpose.
