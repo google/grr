@@ -131,8 +131,10 @@ if platform.system\(\).lower\(\) == 'linux':
   CHIPSEC_IMPORTS = ["chipsec.helper.oshelper", "chipsec.helper.linux.linuxhelper"]
 
 WINDOWS_IMPORTS = []
+WINDOWS_BINARIES = []
 if platform.system\(\).lower\(\) == 'windows':
   WINDOWS_IMPORTS = ["win32process", "win32timezone"]
+  WINDOWS_BINARIES = [\("C:\\\\Windows\\\\System32\\\\VCRUNTIME140_1.dll", "."\)]
 
 a = Analysis\(
     [client_path],
@@ -142,7 +144,7 @@ a = Analysis\(
     # TODO: Remove this binary once PyInstaller version is updated.
     # The binary below is needed in machines that do not have VC installed.
     # This was patched by them in: https://github.com/pyinstaller/pyinstaller/pull/5770/files
-    binaries=[\("C:\\\\Windows\\\\System32\\\\VCRUNTIME140_1.dll", "."\)],
+    binaries=WINDOWS_BINARIES,
     hookspath=None\)
 
 # Remove some optional libraries that would be packed but serve no purpose.
