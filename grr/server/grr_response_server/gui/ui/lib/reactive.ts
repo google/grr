@@ -1,5 +1,5 @@
 import {OnDestroy} from '@angular/core';
-import {Observable, Subject} from 'rxjs';
+import {Observable, Subject, Subscription} from 'rxjs';
 
 /** ngOnDestroy callback that emits and completes an Observable. */
 export interface OnDestroyObserver {
@@ -58,4 +58,37 @@ export function allValuesFrom<T>(obs: Observable<T>):
       },
     });
   });
+}
+
+const NO_VALUE = Symbol();
+
+class LatestValueFromHandler<T> {
+  private internalLatestValue: T|typeof NO_VALUE = NO_VALUE;
+  private readonly subscription: Subscription;
+
+  constructor(obs: Observable<T>) {
+    this.subscription = obs.subscribe(value => {
+      this.internalLatestValue = value;
+    });
+  }
+
+  /**
+   * Returns the latest emitted value, or throws if none has been emitted yet.
+   */
+  get(): T {
+    if (this.internalLatestValue === NO_VALUE) {
+      throw new Error('Observable has not yet emitted a value.');
+    } else {
+      return this.internalLatestValue;
+    }
+  }
+
+  unsubscribe() {
+    this.subscription.unsubscribe();
+  }
+}
+
+/** Subscribes to the Observable, giving access to the latest emitted value. */
+export function latestValueFrom<T>(obs: Observable<T>) {
+  return new LatestValueFromHandler(obs);
 }

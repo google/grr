@@ -1,17 +1,19 @@
 import {NestedTreeControl} from '@angular/cdk/tree';
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {UntypedFormControl} from '@angular/forms';
+import {FormControl} from '@angular/forms';
 import {MatTreeNestedDataSource} from '@angular/material/tree';
 import {combineLatest} from 'rxjs';
 import {distinctUntilChanged, map, startWith, takeUntil} from 'rxjs/operators';
 
-import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {ArtifactCollectorFlowArgs} from '../../lib/api/api_interfaces';
 import {safeTranslateOperatingSystem} from '../../lib/api_translation/flow';
 import {ArtifactDescriptor, ArtifactSource, OperatingSystem, SourceType} from '../../lib/models/flow';
 import {isNonNull, isNull} from '../../lib/preconditions';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ConfigGlobalStore} from '../../store/config_global_store';
+
+import {ControlValues} from './form_interface';
 
 const MAX_AUTOCOMPLETE_RESULTS = 50;
 
@@ -179,9 +181,13 @@ function artifactToNodes(
   }
 }
 
-declare interface FormState {
-  artifactName: string;
+function makeControls() {
+  return {
+    artifactName: new FormControl<string>('', {nonNullable: true}),
+  };
 }
+
+type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures a ArtifactCollectorFlow. */
 @Component({
@@ -191,27 +197,24 @@ declare interface FormState {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ArtifactCollectorFlowForm extends
-    FlowArgumentForm<ArtifactCollectorFlowArgs, FormState> {
+    FlowArgumentForm<ArtifactCollectorFlowArgs, Controls> {
   readonly SourceType = SourceType;
   readonly readableSourceName = READABLE_SOURCE_NAME;
 
-  override makeControls(): Controls<FormState> {
+  override makeControls() {
+    return makeControls();
+  }
+
+  override convertFlowArgsToFormState(flowArgs: ArtifactCollectorFlowArgs) {
     return {
-      artifactName: new UntypedFormControl(),
+      artifactName:
+          flowArgs.artifactList?.[0] ?? this.controls.artifactName.defaultValue,
     };
   }
 
-  override convertFlowArgsToFormState(flowArgs: ArtifactCollectorFlowArgs):
-      FormState {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return {
-      artifactName: flowArgs.artifactList?.[0] ?? '',
-    };
-  }
-
-  override convertFormStateToFlowArgs(formState: FormState):
-      ArtifactCollectorFlowArgs {
-    return {
-      artifactList: [formState.artifactName],
+      artifactList: formState.artifactName ? [formState.artifactName] : [],
       applyParsers: false,
     };
   }
@@ -242,8 +245,8 @@ export class ArtifactCollectorFlowForm extends
       ])
           .pipe(
               map(([entries, searchString]) => {
-                searchString = searchString?.toLowerCase() ?? '';
-                return entries.filter(ad => matches(ad, searchString))
+                const str = searchString?.toLowerCase() ?? '';
+                return entries.filter(ad => matches(ad, str))
                     .slice(0, MAX_AUTOCOMPLETE_RESULTS);
               }),
           );

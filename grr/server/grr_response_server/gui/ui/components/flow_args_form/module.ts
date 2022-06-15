@@ -4,6 +4,7 @@ import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatAutocompleteModule} from '@angular/material/autocomplete';
 import {MatButtonModule} from '@angular/material/button';
+import {MatButtonToggleModule} from '@angular/material/button-toggle';
 import {MatCheckboxModule} from '@angular/material/checkbox';
 import {MatChipsModule} from '@angular/material/chips';
 import {MatDialogModule} from '@angular/material/dialog';
@@ -23,6 +24,7 @@ import {CollectBrowserHistoryForm} from '../../components/flow_args_form/collect
 import {CollectMultipleFilesForm} from '../../components/flow_args_form/collect_multiple_files_form';
 import {HelpersModule} from '../../components/flow_args_form/collect_multiple_files_form_helpers/module';
 import {CollectSingleFileForm} from '../../components/flow_args_form/collect_single_file_form';
+import {DumpProcessMemoryForm} from '../../components/flow_args_form/dump_process_memory_form';
 import {ByteComponentsModule} from '../../components/form/byte_input/module';
 import {DateTimeInputModule} from '../../components/form/date_time_input/module';
 import {GlobExpressionExplanationModule} from '../../components/form/glob_expression_form_field/module';
@@ -45,6 +47,29 @@ import {OsqueryQueryHelperModule} from './osquery_query_helper/module';
 import {ReadLowLevelForm} from './read_low_level_form';
 import {TimelineForm} from './timeline_form';
 import {ValidationModule} from './validation/validation_module';
+import {YaraProcessScanForm} from './yara_process_scan_form';
+
+const FORMS = [
+  ArtifactCollectorFlowForm,
+  CollectBrowserHistoryForm,
+  CollectFilesByKnownPathForm,
+  CollectMultipleFilesForm,
+  CollectSingleFileForm,
+  DumpProcessMemoryForm,
+  ExecutePythonHackForm,
+  FallbackFlowArgsForm,
+  FlowArgsForm,
+  LaunchBinaryForm,
+  ListDirectoryForm,
+  ListNamedPipesForm,
+  ListProcessesForm,
+  NetstatForm,
+  OnlineNotificationForm,
+  OsqueryForm,
+  ReadLowLevelForm,
+  TimelineForm,
+  YaraProcessScanForm,
+];
 
 /** Module for the FlowArgsForm component. */
 @NgModule({
@@ -58,6 +83,7 @@ import {ValidationModule} from './validation/validation_module';
     CdkTreeModule,
     MatAutocompleteModule,
     MatButtonModule,
+    MatButtonToggleModule,
     MatCheckboxModule,
     MatChipsModule,
     MatDialogModule,
@@ -81,43 +107,8 @@ import {ValidationModule} from './validation/validation_module';
     TimestampModule,
     ValidationModule,
   ],
-  declarations: [
-    ArtifactCollectorFlowForm,
-    CollectBrowserHistoryForm,
-    CollectFilesByKnownPathForm,
-    CollectMultipleFilesForm,
-    CollectSingleFileForm,
-    ExecutePythonHackForm,
-    FallbackFlowArgsForm,
-    FlowArgsForm,
-    LaunchBinaryForm,
-    ListDirectoryForm,
-    ListNamedPipesForm,
-    ListProcessesForm,
-    NetstatForm,
-    OnlineNotificationForm,
-    OsqueryForm,
-    ReadLowLevelForm,
-    TimelineForm,
-  ],
-  entryComponents: [
-    ArtifactCollectorFlowForm,
-    ReadLowLevelForm,
-    CollectBrowserHistoryForm,
-    CollectFilesByKnownPathForm,
-    CollectMultipleFilesForm,
-    CollectSingleFileForm,
-    ExecutePythonHackForm,
-    FallbackFlowArgsForm,
-    LaunchBinaryForm,
-    ListDirectoryForm,
-    ListNamedPipesForm,
-    ListProcessesForm,
-    NetstatForm,
-    OnlineNotificationForm,
-    OsqueryForm,
-    TimelineForm,
-  ],
+  declarations: FORMS,
+  entryComponents: FORMS,
   exports: [
     FlowArgsForm,
   ],

@@ -1,18 +1,25 @@
 import {COMMA, ENTER, SPACE} from '@angular/cdk/keycodes';
 import {ChangeDetectionStrategy, Component, ElementRef, ViewChild} from '@angular/core';
-import {UntypedFormControl, ValidatorFn} from '@angular/forms';
+import {FormControl, ValidatorFn} from '@angular/forms';
 import {combineLatest} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
-import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {ListProcessesArgs, NetworkConnectionState} from '../../lib/api/api_interfaces';
 
-declare interface FormState {
-  readonly filenameRegex: string;
-  readonly fetchBinaries: boolean;
-  readonly connectionStates: ReadonlyArray<NetworkConnectionState>;
-  readonly pids: ReadonlyArray<string>;
+function makeControls() {
+  return {
+    pids: new FormControl<ReadonlyArray<number>>(
+        [], {nonNullable: true, validators: [integerArrayValidator()]}),
+    connectionStates: new FormControl<ReadonlyArray<NetworkConnectionState>>(
+        [], {nonNullable: true}),
+    filenameRegex: new FormControl('', {nonNullable: true}),
+    fetchBinaries: new FormControl(false, {nonNullable: true}),
+  };
 }
+
+type Controls = ReturnType<typeof makeControls>;
+
 
 /** A form that configures the ListProcesses flow. */
 @Component({
@@ -23,35 +30,30 @@ declare interface FormState {
 
 })
 export class ListProcessesForm extends
-    FlowArgumentForm<ListProcessesArgs, FormState> {
+    FlowArgumentForm<ListProcessesArgs, Controls> {
   readonly CONNECTION_STATES = Object.values(NetworkConnectionState).sort();
   readonly SEPARATOR_KEY_CODES = [ENTER, COMMA, SPACE];
 
-  readonly connectionStateAutocompleteControl = new UntypedFormControl();
+  readonly connectionStateAutocompleteControl = new FormControl();
 
-  override makeControls(): Controls<ListProcessesArgs> {
+  override makeControls() {
+    return makeControls();
+  }
+
+  override convertFlowArgsToFormState(flowArgs: ListProcessesArgs) {
     return {
-      pids: new UntypedFormControl([], integerArrayValidator()),
-      connectionStates: new UntypedFormControl([]),
-      filenameRegex: new UntypedFormControl(),
-      fetchBinaries: new UntypedFormControl(),
+      connectionStates: flowArgs.connectionStates ??
+          this.controls.connectionStates.defaultValue,
+      fetchBinaries:
+          flowArgs.fetchBinaries ?? this.controls.fetchBinaries.defaultValue,
+      filenameRegex:
+          flowArgs.filenameRegex ?? this.controls.filenameRegex.defaultValue,
+      pids: flowArgs.pids ?? this.controls.pids.defaultValue,
     };
   }
 
-  override convertFlowArgsToFormState(flowArgs: ListProcessesArgs): FormState {
-    return {
-      connectionStates: flowArgs.connectionStates ?? [],
-      fetchBinaries: flowArgs.fetchBinaries ?? false,
-      filenameRegex: flowArgs.filenameRegex ?? '',
-      pids: flowArgs.pids?.map(pid => String(pid)) ?? [],
-    };
-  }
-
-  override convertFormStateToFlowArgs(formState: FormState): ListProcessesArgs {
-    return {
-      ...formState,
-      pids: formState.pids?.map((pid) => Number(pid)) ?? [],
-    };
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
+    return formState;
   }
 
   @ViewChild('connectionStateInputEl')

@@ -34,23 +34,19 @@
 <div class="key-value-groups">
   <div
     class="key-value-group"
-    *ngFor="let formGroup of pyArgsFormGroups; let i = index"
+    *ngFor="let formGroup of controls.pyArgs.controls; let i = index"
     [formGroup]="formGroup"
   >
     <mat-form-field appearance="outline" class="key-input">
       <mat-label>Key</mat-label>
-      <input
-        matInput
-        [formControl]="getKeyValueControls(formGroup).key"
-        placeholder=""
-      />
+      <input matInput [formControl]="formGroup.controls.key" placeholder="" />
     </mat-form-field>
     =
     <mat-form-field appearance="outline" class="value-input">
       <mat-label>Value</mat-label>
       <input
         matInput
-        [formControl]="getKeyValueControls(formGroup).value"
+        [formControl]="formGroup.controls.value"
         placeholder=""
       />
       <button

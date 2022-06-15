@@ -188,10 +188,9 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
     """Check we can run WMI based artifacts."""
     with self.MockClientRawDevWithImage():
 
-      fd = self.RunCollectorAndGetCollection(
-          [webhistory.ChromeHistory.__name__],
-          client_mock=self.client_mock,
-          use_raw_filesystem_access=True)
+      fd = self.RunCollectorAndGetCollection(["ChromiumBasedBrowsersHistory"],
+                                             client_mock=self.client_mock,
+                                             use_raw_filesystem_access=True)
 
     self.assertLen(fd, 71)
     self.assertIn("/home/john/Downloads/funcats_scr.exe",
@@ -277,7 +276,7 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
 
     self.assertLen(results, 1)
     self.assertEqual(results[0].browser, webhistory.Browser.CHROME)
-    self.assertEqual(["/home/foo/ChromeHistory"],
+    self.assertEqual(["/home/foo/ChromiumBasedBrowsersHistory"],
                      [r.stat_entry.pathspec.path for r in results])
     self.assertEqual(
         list(flow_test_lib.GetFlowResultsByTag(self.client_id, flow_id).keys()),
@@ -302,9 +301,10 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
     # collection. Hence, by looking at results we can make sure that
     # all artifacts were scheduled for collection.
     pathspecs = [r.stat_entry.pathspec for r in results]
-    self.assertCountEqual(
-        ["ChromeHistory", "InternetExplorerHistory", "SafariHistory"],
-        [p.Basename() for p in pathspecs])
+    self.assertCountEqual([
+        "ChromiumBasedBrowsersHistory", "InternetExplorerHistory",
+        "SafariHistory"
+    ], [p.Basename() for p in pathspecs])
     # Check that tags for all browsers are present in the results set.
     self.assertCountEqual(
         flow_test_lib.GetFlowResultsByTag(self.client_id, flow_id).keys(),
@@ -334,8 +334,9 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
 
     self.assertCountEqual(mappings, [
         flow_base.ClientPathArchiveMapping(
-            db.ClientPath.OS(self.client_id, ("home", "foo", "ChromeHistory")),
-            "chrome/ChromeHistory",
+            db.ClientPath.OS(self.client_id,
+                             ("home", "foo", "ChromiumBasedBrowsersHistory")),
+            "chrome/ChromiumBasedBrowsersHistory",
         ),
         flow_base.ClientPathArchiveMapping(
             db.ClientPath.OS(self.client_id, ("home", "foo", "SafariHistory")),
@@ -359,14 +360,16 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
 
     self.assertCountEqual(mappings, [
         flow_base.ClientPathArchiveMapping(
-            db.ClientPath.OS(self.client_id,
-                             ("home", "foo", "ChromeHistory.tmp")),
-            "chrome/ChromeHistory.tmp",
+            db.ClientPath.OS(
+                self.client_id,
+                ("home", "foo", "ChromiumBasedBrowsersHistory.tmp")),
+            "chrome/ChromiumBasedBrowsersHistory.tmp",
         ),
         flow_base.ClientPathArchiveMapping(
-            db.ClientPath.OS(self.client_id,
-                             ("home", "bar", "ChromeHistory.tmp")),
-            "chrome/ChromeHistory_1.tmp",
+            db.ClientPath.OS(
+                self.client_id,
+                ("home", "bar", "ChromiumBasedBrowsersHistory.tmp")),
+            "chrome/ChromiumBasedBrowsersHistory_1.tmp",
         ),
         flow_base.ClientPathArchiveMapping(
             db.ClientPath.OS(self.client_id,

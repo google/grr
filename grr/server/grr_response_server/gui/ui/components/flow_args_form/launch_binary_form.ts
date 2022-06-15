@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {UntypedFormControl} from '@angular/forms';
+import {FormControl} from '@angular/forms';
 import {combineLatest} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
@@ -8,15 +8,19 @@ import {Binary, BinaryType} from '../../lib/models/flow';
 import {compareAlphabeticallyBy} from '../../lib/type_utils';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 
-import {Controls, FlowArgumentForm} from './form_interface';
+import {ControlValues, FlowArgumentForm} from './form_interface';
 
 
 const REQUIRED_BINARY_PREFIX = 'aff4:/config/executables/';
 
-declare interface FormState {
-  binary: string;
-  commandLine: string;
+function makeControls() {
+  return {
+    binary: new FormControl('', {nonNullable: true}),
+    commandLine: new FormControl('', {nonNullable: true}),
+  };
 }
+
+type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures a LaunchBinary flow. */
 @Component({
@@ -25,7 +29,7 @@ declare interface FormState {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LaunchBinaryForm extends
-    FlowArgumentForm<LaunchBinaryArgs, FormState> {
+    FlowArgumentForm<LaunchBinaryArgs, Controls> {
   // TODO: As future UX improvement, we could highlight binaries
   // that match the current client OS, since binaries are "bound" to one OS on
   // upload.
@@ -53,21 +57,19 @@ export class LaunchBinaryForm extends
     super();
   }
 
-  override makeControls(): Controls<FormState> {
+  override makeControls() {
+    return makeControls();
+  }
+
+  override convertFlowArgsToFormState(flowArgs: LaunchBinaryArgs) {
     return {
-      binary: new UntypedFormControl(''),
-      commandLine: new UntypedFormControl(''),
+      binary: flowArgs.binary ?? this.controls.binary.defaultValue,
+      commandLine:
+          flowArgs.commandLine ?? this.controls.commandLine.defaultValue,
     };
   }
 
-  override convertFlowArgsToFormState(flowArgs: LaunchBinaryArgs): FormState {
-    return {
-      binary: flowArgs.binary ?? '',
-      commandLine: flowArgs.commandLine ?? '',
-    };
-  }
-
-  override convertFormStateToFlowArgs(formState: FormState): LaunchBinaryArgs {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return formState;
   }
 

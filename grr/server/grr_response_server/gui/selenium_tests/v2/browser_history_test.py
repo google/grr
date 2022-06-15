@@ -449,8 +449,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
     self.Click('css=flow-form button:contains("Collect browser history")')
 
     # Uncheck Firefox, all other browser remain checked per default.
-    self.Click(
-        "css=flow-form mat-checkbox[formcontrolname=collectFirefox] label")
+    self.Click("css=flow-form mat-checkbox[name=collectFirefox] label")
 
     self.Click('css=flow-form button:contains("Start")')
 

@@ -1,0 +1,16 @@
+@use "@angular/material" as mat;
+@use "../../material-theme" as c;
+
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
+.w100 {
+  width: 100%;
+}
+
+.row {
+  display: flex;
+  gap: c.$container-padding;
+}

@@ -23,6 +23,8 @@
 #define GRR_CLIENT_NANNY_CHILD_CONTROLLER_H_
 
 #include <ctime>
+#include <string>
+
 #include "grr_response_client/nanny/event_logger.h"
 
 #ifdef WIN32

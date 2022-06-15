@@ -89,18 +89,26 @@ class Hunt(rdf_structs.RDFProtoStruct):
     if not self.HasField("client_limit"):
       self.client_limit = 100
 
-    if not self.HasField("crash_limit"):
+    # TODO: We use default values only if the config has been
+    # initialized and leave them blank if it has not been. Protobuf defaults
+    # depending on the config initialization is a *very* questionable design
+    # choice and likely should be revised.
+
+    if not self.HasField("crash_limit") and config.CONFIG.initialized:
       self.crash_limit = config.CONFIG["Hunt.default_crash_limit"]
 
-    if not self.HasField("avg_results_per_client_limit"):
+    if (not self.HasField("avg_results_per_client_limit") and
+        config.CONFIG.initialized):
       self.avg_results_per_client_limit = config.CONFIG[
           "Hunt.default_avg_results_per_client_limit"]
 
-    if not self.HasField("avg_cpu_seconds_per_client_limit"):
+    if (not self.HasField("avg_cpu_seconds_per_client_limit") and
+        config.CONFIG.initialized):
       self.avg_cpu_seconds_per_client_limit = config.CONFIG[
           "Hunt.default_avg_cpu_seconds_per_client_limit"]
 
-    if not self.HasField("avg_network_bytes_per_client_limit"):
+    if (not self.HasField("avg_network_bytes_per_client_limit") and
+        config.CONFIG.initialized):
       self.avg_network_bytes_per_client_limit = config.CONFIG[
           "Hunt.default_avg_network_bytes_per_client_limit"]
 

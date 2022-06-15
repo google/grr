@@ -1,17 +1,24 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {UntypedFormControl, Validators} from '@angular/forms';
+import {FormControl, Validators} from '@angular/forms';
 import {Observable} from 'rxjs';
 import {filter, map, shareReplay, withLatestFrom} from 'rxjs/operators';
 
-import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {CollectSingleFileArgs} from '../../lib/api/api_interfaces';
 import {isNonNull} from '../../lib/preconditions';
 import {toByteUnit} from '../form/byte_input/byte_conversion';
 
-declare interface FormState {
-  path: string;
-  maxSizeBytes?: number;
+function makeControls() {
+  return {
+    path: new FormControl('', {nonNullable: true}),
+    maxSizeBytes: new FormControl<number|undefined>(undefined, {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+  };
 }
+
+type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures a CollectSingleFile flow. */
 @Component({
@@ -22,12 +29,9 @@ declare interface FormState {
 
 })
 export class CollectSingleFileForm extends
-    FlowArgumentForm<CollectSingleFileArgs, FormState> {
-  override makeControls(): Controls<FormState> {
-    return {
-      path: new UntypedFormControl(),
-      maxSizeBytes: new UntypedFormControl(null, Validators.required),
-    };
+    FlowArgumentForm<CollectSingleFileArgs, Controls> {
+  override makeControls() {
+    return makeControls();
   }
 
   private readonly rawBytes$: Observable<number> =
@@ -60,8 +64,7 @@ export class CollectSingleFileForm extends
       }),
   );
 
-  override convertFlowArgsToFormState(flowArgs: CollectSingleFileArgs):
-      FormState {
+  override convertFlowArgsToFormState(flowArgs: CollectSingleFileArgs) {
     return {
       path: flowArgs.path ?? '',
       maxSizeBytes: flowArgs.maxSizeBytes ? Number(flowArgs.maxSizeBytes) :
@@ -69,8 +72,7 @@ export class CollectSingleFileForm extends
     };
   }
 
-  override convertFormStateToFlowArgs(formState: FormState):
-      CollectSingleFileArgs {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return formState;
   }
 }

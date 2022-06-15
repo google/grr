@@ -292,3 +292,21 @@ export declare interface Binary {
   readonly size: bigint;
   readonly timestamp: Date;
 }
+
+/** Counts flow results matching a type and/or tag. */
+export function countFlowResults(
+    resultCounts: ReadonlyArray<FlowResultCount>,
+    match: {type?: string, tag?: string}) {
+  let count = 0;
+
+  for (const rc of resultCounts) {
+    if ((match.tag && rc.tag !== match.tag) ||
+        (match.type && rc.type !== match.type)) {
+      continue;
+    }
+
+    count += rc.count;
+  }
+
+  return count;
+}

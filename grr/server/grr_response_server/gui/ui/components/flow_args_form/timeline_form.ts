@@ -1,9 +1,17 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {UntypedFormControl} from '@angular/forms';
+import {FormControl} from '@angular/forms';
 
-import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {TimelineArgs} from '../../lib/api/api_interfaces';
 import {decodeBase64ToString, encodeStringToBase64} from '../../lib/api_translation/primitive';
+
+function makeControls() {
+  return {
+    root: new FormControl<string>('', {nonNullable: true}),
+  };
+}
+
+type Controls = ReturnType<typeof makeControls>;
 
 /**
  * A form that makes it possible to configure the timeline flow.
@@ -13,24 +21,22 @@ import {decodeBase64ToString, encodeStringToBase64} from '../../lib/api_translat
   templateUrl: './timeline_form.ng.html',
   styleUrls: ['./timeline_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
-export class TimelineForm extends FlowArgumentForm<TimelineArgs> {
-  override makeControls(): Controls<TimelineArgs> {
+export class TimelineForm extends FlowArgumentForm<TimelineArgs, Controls> {
+  override makeControls() {
+    return makeControls();
+  }
+
+  override convertFlowArgsToFormState(flowArgs: TimelineArgs) {
     return {
-      root: new UntypedFormControl(),
+      root: flowArgs.root ? decodeBase64ToString(flowArgs.root) :
+                            this.controls.root.defaultValue,
     };
   }
 
-  override convertFlowArgsToFormState(flowArgs: TimelineArgs): TimelineArgs {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return {
-      root: flowArgs.root ? decodeBase64ToString(flowArgs.root) : '',
-    };
-  }
-
-  override convertFormStateToFlowArgs(formState: TimelineArgs): TimelineArgs {
-    return {
-      root: encodeStringToBase64(formState.root ?? ''),
+      root: encodeStringToBase64(formState.root),
     };
   }
 }

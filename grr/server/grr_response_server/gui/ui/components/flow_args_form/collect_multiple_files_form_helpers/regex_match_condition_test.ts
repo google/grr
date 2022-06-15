@@ -1,21 +1,21 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {ControlContainer, UntypedFormGroup} from '@angular/forms';
+import {ControlContainer} from '@angular/forms';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {FileFinderContentsMatchConditionMode, FileFinderContentsRegexMatchCondition} from '../../../lib/api/api_interfaces';
+import {FileFinderContentsMatchConditionMode} from '../../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
-import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition, RegexMatchCondition, RegexMatchRawFormValues} from './regex_match_condition';
+import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition, RegexMatchCondition} from './regex_match_condition';
 
 initTestEnvironment();
 
 describe('RegexMatchCondition component', () => {
-  let control: UntypedFormGroup;
+  let control: ReturnType<typeof createRegexMatchFormGroup>;
 
   beforeEach(waitForAsync(() => {
     control = createRegexMatchFormGroup();
@@ -60,36 +60,33 @@ describe('RegexMatchCondition component', () => {
     fixture.detectChanges();
 
     const regexFieldHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[formControlName="regex"]'}));
+        MatInputHarness.with({selector: '[name="regex"]'}));
     await regexFieldHarness.setValue('test');
     const modeFieldHarness = await loader.getHarness(MatSelectHarness);
     await modeFieldHarness.clickOptions({text: 'All Hits'});
     const lengthFieldHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[formControlName="length"]'}));
+        MatInputHarness.with({selector: '[name="length"]'}));
     await lengthFieldHarness.setValue('30000000');
 
-    const expected: FileFinderContentsRegexMatchCondition = {
+    expect(control.value).toEqual({
       regex: 'test',
       mode: FileFinderContentsMatchConditionMode.ALL_HITS,
       length: 30000000,
-    };
-    expect(control.value).toEqual(expected);
+    });
   });
 });
 
 describe('formValuesToFileFinderContentsRegexMatchCondition()', () => {
   it('correctly converts form value with decimal length', () => {
-    const source: RegexMatchRawFormValues = {
+    const source = {
       regex: 'test',
       mode: FileFinderContentsMatchConditionMode.ALL_HITS,
       length: 20000000.999,
     };
-    const expected: FileFinderContentsRegexMatchCondition = {
+    expect(formValuesToFileFinderContentsRegexMatchCondition(source)).toEqual({
       regex: btoa('test'),
       mode: FileFinderContentsMatchConditionMode.ALL_HITS,
       length: 20000000,
-    };
-    expect(formValuesToFileFinderContentsRegexMatchCondition(source))
-        .toEqual(expected);
+    });
   });
 });

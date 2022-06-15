@@ -1,121 +1,171 @@
-<!-- TODO: Stop using formControlName and formGroupName here. -->
-<div [formGroup]="form">
-  <div formArrayName="pathExpressions">
-    <app-glob-expression-input
-      *ngFor="let pe of controls.pathExpressions.controls; index as i"
-      [client]="client$ | async"
-      [formControlName]="i"
-      style="width: 100%; margin-bottom: 1em"
+<app-glob-expression-input
+  *ngFor="let pe of controls.pathExpressions.controls; index as i"
+  [client]="client$ | async"
+  [formControl]="controls.pathExpressions.controls[i]"
+  style="width: 100%; margin-bottom: 1em"
+>
+  <button
+    mat-icon-button
+    matSuffix
+    type="button"
+    (click)="removePathExpression(i)"
+    aria-label="Remove"
+  >
+    <mat-icon>remove</mat-icon>
+  </button>
+</app-glob-expression-input>
+
+<div class="add-path-row">
+  <div class="error">
+    <mat-error
+      *ngIf="controls.pathExpressions.hasError('atLeastOnePathExpressionExpected')"
     >
-      <button
-        mat-icon-button
-        matSuffix
-        type="button"
-        (click)="removePathExpression(i)"
-        aria-label="Remove"
-      >
-        <mat-icon>remove</mat-icon>
-      </button>
-    </app-glob-expression-input>
-
-    <div class="add-path-row">
-      <div class="error">
-        <mat-error *ngIf="controls.pathExpressions.hasError('atLeastOnePathExpressionExpected')">At least one non-empty path expression expected.</mat-error>
-      </div>
-
-      <button mat-stroked-button type="button" (click)="addPathExpression()" id="button-add-path-expression">
-        Add path expression
-      </button>
-    </div>
+      At least one non-empty path expression expected.
+    </mat-error>
   </div>
 
-  <div class="conditions">
-    <div class="title">Filter by file content</div>
+  <button
+    mat-stroked-button
+    type="button"
+    (click)="addPathExpression()"
+    id="button-add-path-expression"
+  >
+    Add path expression
+  </button>
+</div>
 
-    <div class="buttons">
-      <button mat-stroked-button color="primary" type="button"
-        name="literalMatch"
-        *ngIf="!fullControls.contentsLiteralMatch"
-        (click)="addLiteralMatchCondition()">Literal match</button>
-      <button mat-stroked-button color="primary" type="button"
-        name="regexMatch"
-        *ngIf="!fullControls.contentsRegexMatch"
-        (click)="addRegexMatchCondition()">Regex match</button>
-    </div>
+<div class="conditions">
+  <div class="title">Filter by file content</div>
 
-    <literal-match-condition
-      formGroupName="contentsLiteralMatch"
-      (conditionRemoved)="removeLiteralMatchCondition()"
-      *ngIf="fullControls.contentsLiteralMatch">
-    </literal-match-condition>
-
-    <regex-match-condition
-      formGroupName="contentsRegexMatch"
-      (conditionRemoved)="removeRegexMatchCondition()"
-      *ngIf="fullControls.contentsRegexMatch">
-    </regex-match-condition>
-
+  <div class="buttons">
+    <button
+      mat-stroked-button
+      color="primary"
+      type="button"
+      name="literalMatch"
+      *ngIf="!controls.contentsLiteralMatch"
+      (click)="addLiteralMatchCondition()"
+    >
+      Literal match
+    </button>
+    <button
+      mat-stroked-button
+      color="primary"
+      type="button"
+      name="regexMatch"
+      *ngIf="!controls.contentsRegexMatch"
+      (click)="addRegexMatchCondition()"
+    >
+      Regex match
+    </button>
   </div>
 
-  <div class="conditions">
-    <div class="title">Filter by file attributes</div>
+  <literal-match-condition
+    [formGroup]="controls.contentsLiteralMatch"
+    (conditionRemoved)="removeLiteralMatchCondition()"
+    *ngIf="controls.contentsLiteralMatch"
+  >
+  </literal-match-condition>
 
-    <div class="buttons">
-      <button mat-stroked-button color="primary" type="button"
-        name="modificationTime"
-        *ngIf="!fullControls.modificationTime"
-        (click)="addModificationTimeCondition()">Modification time</button>
-      <button mat-stroked-button color="primary" type="button"
-        name="accessTime"
-        *ngIf="!fullControls.accessTime"
-        (click)="addAccessTimeCondition()">Access time</button>
-      <button mat-stroked-button color="primary" type="button"
-        name="inodeChangeTime"
-        *ngIf="!fullControls.inodeChangeTime"
-        (click)="addInodeChangeTimeCondition()">Inode change time</button>
-      <button mat-stroked-button color="primary" type="button"
-        name="size"
-        *ngIf="!fullControls.size"
-        (click)="addSizeCondition()">File size</button>
-      <button mat-stroked-button color="primary" type="button"
-        name="extFlags"
-        *ngIf="!fullControls.extFlags"
-        (click)="addExtFlagsCondition()">Extended file flags</button>
-    </div>
+  <regex-match-condition
+    [formGroup]="controls.contentsRegexMatch"
+    (conditionRemoved)="removeRegexMatchCondition()"
+    *ngIf="controls.contentsRegexMatch"
+  >
+  </regex-match-condition>
+</div>
 
-    <time-range-condition
-      formGroupName="modificationTime"
-      title="modification"
-      (conditionRemoved)="removeModificationTimeCondition()"
-      *ngIf="fullControls.modificationTime">
-    </time-range-condition>
+<div class="conditions">
+  <div class="title">Filter by file attributes</div>
 
-    <time-range-condition
-      formGroupName="accessTime"
-      title="access"
-      (conditionRemoved)="removeAccessTimeCondition()"
-      *ngIf="fullControls.accessTime">
-    </time-range-condition>
-
-    <time-range-condition
-      formGroupName="inodeChangeTime"
-      title="inode change"
-      (conditionRemoved)="removeInodeChangeTimeCondition()"
-      *ngIf="fullControls.inodeChangeTime">
-    </time-range-condition>
-
-    <size-condition
-      formGroupName="size"
-      (conditionRemoved)="removeSizeCondition()"
-      *ngIf="fullControls.size">
-    </size-condition>
-
-    <ext-flags-condition
-      formGroupName="extFlags"
-      (conditionRemoved)="removeExtFlagsCondition()"
-      *ngIf="fullControls.extFlags"
-      >
-    </ext-flags-condition>
-
+  <div class="buttons">
+    <button
+      mat-stroked-button
+      color="primary"
+      type="button"
+      name="modificationTime"
+      *ngIf="!controls.modificationTime"
+      (click)="addModificationTimeCondition()"
+    >
+      Modification time
+    </button>
+    <button
+      mat-stroked-button
+      color="primary"
+      type="button"
+      name="accessTime"
+      *ngIf="!controls.accessTime"
+      (click)="addAccessTimeCondition()"
+    >
+      Access time
+    </button>
+    <button
+      mat-stroked-button
+      color="primary"
+      type="button"
+      name="inodeChangeTime"
+      *ngIf="!controls.inodeChangeTime"
+      (click)="addInodeChangeTimeCondition()"
+    >
+      Inode change time
+    </button>
+    <button
+      mat-stroked-button
+      color="primary"
+      type="button"
+      name="size"
+      *ngIf="!controls.size"
+      (click)="addSizeCondition()"
+    >
+      File size
+    </button>
+    <button
+      mat-stroked-button
+      color="primary"
+      type="button"
+      name="extFlags"
+      *ngIf="!controls.extFlags"
+      (click)="addExtFlagsCondition()"
+    >
+      Extended file flags
+    </button>
   </div>
+
+  <time-range-condition
+    [formGroup]="controls.modificationTime"
+    title="modification"
+    (conditionRemoved)="removeModificationTimeCondition()"
+    *ngIf="controls.modificationTime"
+  >
+  </time-range-condition>
+
+  <time-range-condition
+    [formGroup]="controls.accessTime"
+    title="access"
+    (conditionRemoved)="removeAccessTimeCondition()"
+    *ngIf="controls.accessTime"
+  >
+  </time-range-condition>
+
+  <time-range-condition
+    [formGroup]="controls.inodeChangeTime"
+    title="inode change"
+    (conditionRemoved)="removeInodeChangeTimeCondition()"
+    *ngIf="controls.inodeChangeTime"
+  >
+  </time-range-condition>
+
+  <size-condition
+    [formGroup]="controls.size"
+    (conditionRemoved)="removeSizeCondition()"
+    *ngIf="controls.size"
+  >
+  </size-condition>
+
+  <ext-flags-condition
+    [formGroup]="controls.extFlags"
+    (conditionRemoved)="removeExtFlagsCondition()"
+    *ngIf="controls.extFlags"
+  >
+  </ext-flags-condition>
 </div>

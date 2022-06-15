@@ -14,7 +14,7 @@ config_lib.DEFINE_list(
     "Artifacts.knowledge_base", [
         "LinuxReleaseInfo",
         "LinuxUserProfiles",
-        "MacOSUsers",
+        "UsersDirectory",
         "WindowsCodePage",
         "WindowsDomainName",
         "WindowsEnvironmentVariableAllUsersAppData",

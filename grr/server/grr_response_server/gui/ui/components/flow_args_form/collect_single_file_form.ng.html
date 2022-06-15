@@ -29,14 +29,16 @@
 
     <mat-hint>
       Will collect at most {{ formattedBytesAtUnit$ | async }}
-      <a href="https://en.wikipedia.org/wiki/{{ unit$ | async }}" target="_blank">{{
-        unit$ | async
-      }}</a>
+      <a
+        href="https://en.wikipedia.org/wiki/{{ unit$ | async }}"
+        target="_blank"
+        >{{ unit$ | async }}</a
+      >
       <span *ngIf="formattedRawBytes$ | async as formattedRawBytes">
         = {{ formattedRawBytes }} bytes
       </span>
     </mat-hint>
-    <mat-error *ngIf="form.get('maxSizeBytes')?.hasError('required')">
+    <mat-error *ngIf="controls.maxSizeBytes.hasError('required')">
       Valid byte size is required, e.g. 512 MiB, 10 GB
     </mat-error>
   </mat-form-field>

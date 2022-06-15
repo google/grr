@@ -1,0 +1,23 @@
+<div class="header" (click)="showContent($event)">
+  Export Data
+  <button
+    id="output-plugins-form-toggle"
+    mat-icon-button
+    class="corner-button"
+    (click)="toggleContent($event)"
+    aria-label="View/hide export data form (output plugins)"
+  >
+    <mat-icon>{{ hideContent ? "expand_less" : "expand_more" }}</mat-icon>
+  </button>
+</div>
+
+<div class="content">
+  <form autocomplete="off" spellcheck="false" [formGroup]="outputPluginsForm">
+    <div class="plugins-container">
+      <div class="plugin-content">
+        <!-- TODO: Implement dynamic output plugins UI. -->
+
+      </div>
+    </div>
+  </form>
+</div>

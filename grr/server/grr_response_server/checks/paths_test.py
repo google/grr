@@ -59,7 +59,7 @@ class PathsCheckTests(checks_test_lib.HostCheckTest):
     host_data = self.GenFileData("AllShellConfigs", paths, self.parser, modes)
     host_data.update(
         self.GenFileData(
-            "GlobalShellConfigs",
+            "ShellConfigurationFile",
             paths,
             self.parser,
             modes,

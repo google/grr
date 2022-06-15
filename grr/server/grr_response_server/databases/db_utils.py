@@ -11,10 +11,13 @@ from typing import Text
 from typing import Tuple
 from typing import TypeVar
 
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
 from grr_response_server.databases import db
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 _T = TypeVar("_T")
@@ -195,6 +198,28 @@ def SecondsToMicros(seconds):
 
 def MicrosToSeconds(ms):
   return ms / 1e6
+
+
+def ParseAndUnpackAny(payload_type: str,
+                      payload_bytes: bytes) -> rdf_structs.RDFProtoStruct:
+  """Parses a google.protobuf.Any payload and unpack it into RDFProtoStruct.
+
+  Args:
+    payload_type: RDF type of the value to unpack.
+    payload_bytes: serialized google.protobuf.Any proto.
+
+  Returns:
+    An instance of RDFProtoStruct unpacked from the given payload or,
+    if payload type is not recognized, an instance of
+    SerializedValueOfUnrecognizedType.
+  """
+
+  payload_any = rdf_structs.AnyValue.FromSerializedBytes(payload_bytes)
+  if payload_type in rdfvalue.RDFValue.classes:
+    return payload_any.Unpack(rdfvalue.RDFValue.classes[payload_type])
+  else:
+    return rdf_objects.SerializedValueOfUnrecognizedType(
+        type_name=payload_type, value=payload_any.value)
 
 
 class BatchPlanner(Generic[_T]):

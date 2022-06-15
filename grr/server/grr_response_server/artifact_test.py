@@ -829,7 +829,8 @@ class GrrKbDarwinTest(GrrKbTest):
   @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalDarwin(self):
     """Check we can retrieve a Darwin kb."""
-    with test_lib.ConfigOverrider({"Artifacts.knowledge_base": ["MacOSUsers"]}):
+    with test_lib.ConfigOverrider(
+        {"Artifacts.knowledge_base": ["UsersDirectory"]}):
       with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                      vfs_test_lib.ClientVFSHandlerFixture):
         kb = self._RunKBI()

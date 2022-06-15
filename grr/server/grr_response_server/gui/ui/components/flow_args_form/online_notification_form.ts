@@ -1,9 +1,18 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {UntypedFormControl} from '@angular/forms';
+import {FormControl} from '@angular/forms';
 
-import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {OnlineNotificationArgs} from '../../lib/api/api_interfaces';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+
+function makeControls() {
+  return {
+    email: new FormControl('', {nonNullable: true}),
+  };
+}
+
+type Controls = ReturnType<typeof makeControls>;
+
 
 /**
  * A form that makes it possible to configure the OnlineNotification flow.
@@ -16,29 +25,24 @@ import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 
 })
 export class OnlineNotificationForm extends
-    FlowArgumentForm<OnlineNotificationArgs> {
+    FlowArgumentForm<OnlineNotificationArgs, Controls> {
   constructor(private readonly clientPageGlobalStore: ClientPageGlobalStore) {
     super();
   }
 
   readonly client$ = this.clientPageGlobalStore.selectedClient$;
 
-  override makeControls(): Controls<OnlineNotificationArgs> {
+  override makeControls() {
+    return makeControls();
+  }
+
+  override convertFlowArgsToFormState(flowArgs: OnlineNotificationArgs) {
     return {
-      email: new UntypedFormControl(''),
+      email: flowArgs.email ?? this.controls.email.defaultValue,
     };
   }
 
-  override convertFlowArgsToFormState(flowArgs: OnlineNotificationArgs):
-      OnlineNotificationArgs {
-    return {
-      email: '',
-      ...flowArgs,
-    };
-  }
-
-  override convertFormStateToFlowArgs(formState: OnlineNotificationArgs):
-      OnlineNotificationArgs {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return formState;
   }
 }

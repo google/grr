@@ -5,9 +5,7 @@
     [ngClass]="{'is-open': isOpen, 'expandable': isOpen || expandable}"
   >
     <div class="left-aligned">
-      <div *ngIf="title" class="title">
-        <span>{{ title }}</span>
-      </div>
+      <div *ngIf="title" class="title">{{ title }}</div>
 
       <div *ngIf="preview" class="preview" [class]="colorSchemeClass">
         {{ preview }}
@@ -28,13 +26,13 @@
         >
           <span class="description">{{ description }}</span>
         </div>
-        <span *ngIf="icon" class="material-icons">{{icon}}</span>
+        <mat-icon *ngIf="icon">{{icon}}</mat-icon>
       </div>
 
       <div class="expansion-indicator">
-        <span *ngIf="isOpen || expandable" class="material-icons arrow-icon">
+        <mat-icon *ngIf="isOpen || expandable" class="arrow-icon">
           {{ isOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down' }}
-        </span>
+        </mat-icon>
       </div>
     </div>
   </div>

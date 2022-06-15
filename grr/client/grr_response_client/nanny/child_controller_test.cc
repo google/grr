@@ -3,6 +3,8 @@
 
 #include "grr_response_client/nanny/child_controller.h"
 
+#include <string>
+
 #include "testing/base/public/gmock.h"
 #include "testing/base/public/gunit.h"
 

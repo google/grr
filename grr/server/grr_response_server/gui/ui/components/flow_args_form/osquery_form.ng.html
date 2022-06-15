@@ -2,7 +2,10 @@
   <div class="query-section">
     <mat-form-field appearance="outline" class="editor-form-field">
       <mat-label>SQL query</mat-label>
-      <code-editor [formControl]="controls.query"></code-editor>
+      <app-code-editor
+        [formControl]="controls.query"
+        [highlight]="HighlightMode.OSQUERY"
+      ></app-code-editor>
 
       <button
         type="button"
@@ -28,7 +31,9 @@
       <mat-icon>keyboard_arrow_down</mat-icon>
     </button>
   </span>
-  <div [class]="fileCollectionSettingsShown ? 'collection-container' : 'hide-content'">
+  <div
+    [class]="fileCollectionSettingsShown ? 'collection-container' : 'hide-content'"
+  >
     <mat-form-field>
       <mat-chip-list
         #chipList
@@ -80,6 +85,8 @@
       <span matSuffix>ms</span>
     </mat-form-field>
 
-    <mat-checkbox [formControl]="controls.ignoreStderrErrors">Ignore stderr errors</mat-checkbox>
+    <mat-checkbox [formControl]="controls.ignoreStderrErrors"
+      >Ignore stderr errors</mat-checkbox
+    >
   </div>
 </div>

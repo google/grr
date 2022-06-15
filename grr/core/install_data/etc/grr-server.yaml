@@ -22,9 +22,6 @@ Logging.engines: "stderr,file"
 
 Logging.verbose: False
 
-Server.fleetspeak_send_retry_attempts: 5
-Server.fleetspeak_send_retry_sleep_time_secs: 10
-
 # These must be in the domain specified above as Logging.domain.
 # Monitoring.emergency_access_email: grr-emergency-access@example.com
 # Monitoring.alert_email: grr-monitoring@example.com

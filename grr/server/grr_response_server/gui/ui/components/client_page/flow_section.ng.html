@@ -5,11 +5,14 @@
   <scheduled-flow-list
     [creator]="(currentUser$ | async)?.name"
     [clientId]="(client$ | async)?.clientId"
+    class="centered-content"
   ></scheduled-flow-list>
 
   <approval *ngIf="showApprovalView$ | async"
             [latestApproval]="latestApproval$ | async"
-            (approvalParams)="requestApproval($event)"></approval>
+            (approvalParams)="requestApproval($event)"
+            class="centered-content"></approval>
 
-  <flow-list *ngIf="hasAccess$ | async"></flow-list>
+  <flow-list *ngIf="hasAccess$ | async"
+             class="centered-content"></flow-list>
 </div>

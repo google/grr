@@ -213,7 +213,7 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
     mock_conn = conn_patcher.start()
     self.addCleanup(conn_patcher.stop)
     mock_conn.outgoing.InsertMessage.side_effect = (
-        fleetspeak_test_lib.StoreMessage)
+        lambda msg, **_: fleetspeak_test_lib.StoreMessage(msg))
 
 
 class CrashClientMock(action_mocks.ActionMock):

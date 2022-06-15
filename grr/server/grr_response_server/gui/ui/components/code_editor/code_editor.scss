@@ -18,12 +18,11 @@
 
   // Without explicitly setting the z-index, the editor was displayed on top of the "Access approval" panel.
   z-index: 0;
-}
 
-.cm-s-neo .CodeMirror-cursor {
-  width: 1px;
-  border: 0;
-  background: black;
-
-  z-index: 1;
+  &.cm-s-neo .CodeMirror-cursor {
+    width: 1px;
+    border: 0;
+    background: black;
+    z-index: 1;
+  }
 }

@@ -35,10 +35,15 @@ class ReadLowLevel(flow_base.FlowBase):
     if self.args.HasField("sector_block_size"):
       request.sector_block_size = self.args.sector_block_size
 
-    self.CallClient(
-        server_stubs.ReadLowLevel,
-        request,
-        next_state=compatibility.GetName(self.StoreBlobsAsTmpFile))
+    if not self.client_version or self.client_version >= 3459:
+      self.CallClient(
+          server_stubs.ReadLowLevel,
+          request,
+          next_state=compatibility.GetName(self.StoreBlobsAsTmpFile))
+    else:
+      raise flow_base.FlowError("ReadLowLevel Flow is only supported on "
+                                "client version 3459 or higher (target client "
+                                f"version is {self.client_version}).")
 
   def StoreBlobsAsTmpFile(self, responses):
     """Stores bytes retrieved from client in the VFS tmp folder."""

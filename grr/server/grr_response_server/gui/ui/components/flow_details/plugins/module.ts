@@ -33,6 +33,7 @@ import {CollectFilesByKnownPathDetails} from './collect_files_by_known_path_deta
 import {CollectMultipleFilesDetails} from './collect_multiple_files_details';
 import {CollectSingleFileDetails} from './collect_single_file_details';
 import {DefaultDetails} from './default_details';
+import {DumpProcessMemoryDetails} from './dump_process_memory_details';
 import {ExecutePythonHackDetails} from './execute_python_hack_details';
 import {FileFinderDetails} from './file_finder_details';
 import {InterrogateDetails} from './interrogate_details';
@@ -45,6 +46,7 @@ import {OnlineNotificationDetails} from './online_notification_details';
 import {OsqueryDetails} from './osquery_details';
 import {ReadLowLevelDetails} from './read_low_level_details';
 import {TimelineDetails} from './timeline_details';
+import {YaraProcessScanDetails} from './yara_process_scan_details';
 
 
 const COMPONENTS = [
@@ -54,6 +56,7 @@ const COMPONENTS = [
   CollectMultipleFilesDetails,
   CollectSingleFileDetails,
   DefaultDetails,
+  DumpProcessMemoryDetails,
   ExecutePythonHackDetails,
   FileFinderDetails,
   InterrogateDetails,
@@ -66,6 +69,7 @@ const COMPONENTS = [
   OsqueryDetails,
   ReadLowLevelDetails,
   TimelineDetails,
+  YaraProcessScanDetails,
 ];
 
 /**

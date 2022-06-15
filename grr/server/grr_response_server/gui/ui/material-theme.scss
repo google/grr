@@ -1,4 +1,4 @@
-@use '@angular/material' as mat;
+@use "@angular/material" as mat;
 
 // Angular Material theme definition.
 $primary: mat.define-palette(mat.$blue-palette, 600, 400);
@@ -114,6 +114,9 @@ $container-padding: 16px;
 
 $card-margin: 20px;
 
+$centered-content-max-width: 1280px;
+$centered-content-width: 80%;
+
 // Vertical spacing between major elements (e.g. cards) on a page.
 $page-spacing: 16px;
 
@@ -131,5 +134,23 @@ $page-spacing: 16px;
     border-color: mat.get-color-from-palette($foreground, divider-light);
     color: mat.get-color-from-palette($primary, 600);
     background: white;
+  }
+}
+
+body .mat-button-toggle-group,
+body .mat-button-toggle-group:not([class*='mat-elevation-z']),
+body mat-button-toggle-group.mat-button-toggle-group {
+  border-radius: 4px;
+  box-shadow: none;
+
+  .mat-button-toggle {
+    border: 0.5px solid mat.get-color-from-palette(mat.$grey-palette, 300);
+    background-color: mat.get-color-from-palette(mat.$grey-palette, 300);
+    color: mat.get-color-from-palette(mat.$blue-palette, 700);
+  }
+
+  .mat-button-toggle-checked {
+    background-color: mat.get-color-from-palette(mat.$grey-palette, 700);
+    color: white;
   }
 }

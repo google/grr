@@ -1,12 +1,12 @@
-<!-- TODO: Stop using formControlName here. -->
-<condition-panel title="Size" [formGroup]="formGroup" (conditionRemoved)="conditionRemoved.emit()">
+<condition-panel title="Size" (conditionRemoved)="conditionRemoved.emit()">
   <mat-form-field appearance="outline" class="w33">
     <mat-label>Minimum file size</mat-label>
     <input
       matInput
       byteInput
       placeholder=""
-      formControlName="minFileSize"
+      [formControl]="formGroup.controls.minFileSize"
+      name="minFileSize"
       class="monospace"
       autocomplete="off"
     />
@@ -17,40 +17,59 @@
       matInput
       byteInput
       placeholder=""
-      formControlName="maxFileSize"
+      [formControl]="formGroup.controls.maxFileSize"
+      name="maxFileSize"
       class="monospace"
       autocomplete="off"
     />
 
-    <mat-hint *ngIf="!formGroup.hasError('atLeastOneMustBeSet') && (hintFormatting$ | async) as hf">
-      <ng-container *ngIf="hf.formattedBytesAtUnit.min && !hf.formattedBytesAtUnit.max">
+    <mat-hint
+      *ngIf="!formGroup.hasError('atLeastOneMustBeSet') && (hintFormatting$ | async) as hf"
+    >
+      <ng-container
+        *ngIf="hf.formattedBytesAtUnit.min && !hf.formattedBytesAtUnit.max"
+      >
         Will collect files of size at least {{ hf.formattedBytesAtUnit.min }}
-        <a href="https://en.wikipedia.org/wiki/{{ hf.units.min }}" target="_blank">{{
-          hf.units.min
-        }}</a>
+        <a
+          href="https://en.wikipedia.org/wiki/{{ hf.units.min }}"
+          target="_blank"
+          >{{ hf.units.min }}</a
+        >
         <span *ngIf="hf.formattedRawBytes.min">
           = {{ hf.formattedRawBytes.min }} bytes, inclusive
         </span>
       </ng-container>
-      <ng-container *ngIf="!hf.formattedBytesAtUnit.min && hf.formattedBytesAtUnit.max">
+      <ng-container
+        *ngIf="!hf.formattedBytesAtUnit.min && hf.formattedBytesAtUnit.max"
+      >
         Will collect files of size at most {{ hf.formattedBytesAtUnit.max }}
-        <a href="https://en.wikipedia.org/wiki/{{ hf.units.max }}" target="_blank">{{
-          hf.units.max
-        }}</a>
+        <a
+          href="https://en.wikipedia.org/wiki/{{ hf.units.max }}"
+          target="_blank"
+          >{{ hf.units.max }}</a
+        >
         <span *ngIf="hf.formattedRawBytes.max">
           = {{ hf.formattedRawBytes.max }} bytes, inclusive
         </span>
       </ng-container>
-      <ng-container *ngIf="hf.formattedBytesAtUnit.min && hf.formattedBytesAtUnit.max">
+      <ng-container
+        *ngIf="hf.formattedBytesAtUnit.min && hf.formattedBytesAtUnit.max"
+      >
         Will collect files of size at least {{ hf.formattedBytesAtUnit.min }}
-        <a href="https://en.wikipedia.org/wiki/{{ hf.units.min }}" target="_blank">{{
-          hf.units.min
-        }}</a>
-        <span *ngIf="hf.formattedRawBytes.min"> = {{ hf.formattedRawBytes.min }} bytes</span>
+        <a
+          href="https://en.wikipedia.org/wiki/{{ hf.units.min }}"
+          target="_blank"
+          >{{ hf.units.min }}</a
+        >
+        <span *ngIf="hf.formattedRawBytes.min">
+          = {{ hf.formattedRawBytes.min }} bytes</span
+        >
         and at most {{ hf.formattedBytesAtUnit.max }}
-        <a href="https://en.wikipedia.org/wiki/{{ hf.units.max }}" target="_blank">{{
-          hf.units.max
-        }}</a>
+        <a
+          href="https://en.wikipedia.org/wiki/{{ hf.units.max }}"
+          target="_blank"
+          >{{ hf.units.max }}</a
+        >
         <span *ngIf="hf.formattedRawBytes.max">
           = {{ hf.formattedRawBytes.max }} bytes, inclusive
         </span>

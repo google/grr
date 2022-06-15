@@ -1,34 +1,28 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {UntypedFormArray, UntypedFormControl, UntypedFormGroup} from '@angular/forms';
+import {FormArray, FormControl, FormGroup} from '@angular/forms';
 import {combineLatest} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
-import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {ExecutePythonHackArgs} from '../../lib/api/api_interfaces';
 import {translateDict} from '../../lib/api_translation/primitive';
 import {Binary, BinaryType} from '../../lib/models/flow';
 import {compareAlphabeticallyBy} from '../../lib/type_utils';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 
-declare interface Arg {
-  key: string;
-  value: string;
-}
-
-declare interface FormState {
-  hackName: string;
-  pyArgs: ReadonlyArray<Arg>;
-}
-
 declare interface ArgControl {
-  key: UntypedFormControl;
-  value: UntypedFormControl;
+  key: FormControl<string>;
+  value: FormControl<string>;
 }
 
-declare interface Controls {
-  hackName: UntypedFormControl;
-  pyArgs: UntypedFormArray;
+function makeControls() {
+  return {
+    hackName: new FormControl('', {nonNullable: true}),
+    pyArgs: new FormArray<FormGroup<ArgControl>>([]),
+  };
 }
+
+type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures a ExecutePythonHack flow. */
 @Component({
@@ -38,33 +32,20 @@ declare interface Controls {
 
 })
 export class ExecutePythonHackForm extends
-    FlowArgumentForm<ExecutePythonHackArgs, FormState, Controls> {
-  override makeControls(): Controls {
+    FlowArgumentForm<ExecutePythonHackArgs, Controls> {
+  override makeControls() {
+    return makeControls();
+  }
+
+  override convertFlowArgsToFormState(flowArgs: ExecutePythonHackArgs) {
     return {
-      hackName: new UntypedFormControl(),
-      pyArgs: new UntypedFormArray([]),
-    };
-  }
-
-  get pyArgsFormGroups(): UntypedFormGroup[] {
-    return this.controls.pyArgs.controls as UntypedFormGroup[];
-  }
-
-  getKeyValueControls(formGroup: UntypedFormGroup): ArgControl {
-    return formGroup.controls as unknown as ArgControl;
-  }
-
-  override convertFlowArgsToFormState(flowArgs: ExecutePythonHackArgs):
-      FormState {
-    return {
-      hackName: flowArgs.hackName ?? '',
+      hackName: flowArgs.hackName ?? this.controls.hackName.defaultValue,
       pyArgs: Array.from(translateDict(flowArgs.pyArgs ?? {}).entries())
                   .map(([k, v]) => ({key: String(k), value: String(v)})),
     };
   }
 
-  override convertFormStateToFlowArgs(formState: FormState):
-      ExecutePythonHackArgs {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return {
       hackName: formState.hackName,
       pyArgs: formState.pyArgs.length ? {
@@ -130,11 +111,10 @@ export class ExecutePythonHackForm extends
   }
 
   addKeyValueFormControl() {
-    const argControl: ArgControl = {
-      key: new UntypedFormControl(''),
-      value: new UntypedFormControl(''),
-    };
-    this.controls.pyArgs.push(new UntypedFormGroup({...argControl}));
+    this.controls.pyArgs.push(new FormGroup({
+      key: new FormControl('', {nonNullable: true}),
+      value: new FormControl('', {nonNullable: true}),
+    }));
   }
 
   removeKeyValueFormControl(i: number) {

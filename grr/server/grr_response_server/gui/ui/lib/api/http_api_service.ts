@@ -10,7 +10,7 @@ import {FlowWithDescriptor} from '../../lib/models/flow';
 import {SafetyLimits} from '../../lib/models/hunt';
 import {assertNonNull, isNonNull} from '../preconditions';
 
-import {AnyObject, ApiAddClientsLabelsArgs, ApiApprovalOptionalCcAddressResult, ApiBrowseFilesystemResult, ApiClient, ApiClientApproval, ApiClientLabel, ApiCreateClientApprovalArgs, ApiCreateFlowArgs, ApiCreateHuntApprovalArgs, ApiCreateHuntArgs, ApiCreateVfsRefreshOperationArgs, ApiCreateVfsRefreshOperationResult, ApiExplainGlobExpressionArgs, ApiExplainGlobExpressionResult, ApiFile, ApiFlow, ApiFlowDescriptor, ApiFlowReference, ApiFlowResult, ApiGetClientVersionsResult, ApiGetFileDetailsResult, ApiGetFileTextArgs, ApiGetFileTextArgsEncoding, ApiGetFileTextResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGetVfsRefreshOperationStateResult, ApiGetVfsRefreshOperationStateResultState, ApiGrrUser, ApiHunt, ApiHuntApproval, ApiListApproverSuggestionsResult, ApiListArtifactsResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListClientsLabelsResult, ApiListFlowResultsResult, ApiListFlowsArgs, ApiListFlowsResult, ApiListGrrBinariesResult, ApiListScheduledFlowsResult, ApiRemoveClientsLabelsArgs, ApiScheduledFlow, ApiSearchClientResult, ApiSearchClientsArgs, ApiUiConfig, ApiUpdateVfsFileContentArgs, ApiUpdateVfsFileContentResult, ApproverSuggestion, ArtifactDescriptor, DecimalString, ForemanClientRuleSet, GlobComponentExplanation, HuntRunnerArgs, PathSpecPathType} from './api_interfaces';
+import * as apiInterfaces from './api_interfaces';
 
 
 /**
@@ -30,7 +30,7 @@ export interface FlowResultsParams {
  */
 export interface FlowResultsWithSourceParams {
   readonly params: FlowResultsParams;
-  readonly results: ReadonlyArray<ApiFlowResult>;
+  readonly results: ReadonlyArray<apiInterfaces.ApiFlowResult>;
 }
 
 /**
@@ -64,16 +64,16 @@ export class WithCredentialsInterceptor implements HttpInterceptor {
 
 /** Arguments of GetFileText API call. */
 export interface GetFileTextOptions {
-  readonly offset?: DecimalString;
-  readonly length?: DecimalString;
+  readonly offset?: apiInterfaces.DecimalString;
+  readonly length?: apiInterfaces.DecimalString;
   readonly timestamp?: Date;
-  readonly encoding?: ApiGetFileTextArgsEncoding;
+  readonly encoding?: apiInterfaces.ApiGetFileTextArgsEncoding;
 }
 
 /** Arguments of GetFileBlob API call. */
 export interface GetFileBlobOptions {
-  readonly offset?: DecimalString;
-  readonly length?: DecimalString;
+  readonly offset?: apiInterfaces.DecimalString;
+  readonly length?: apiInterfaces.DecimalString;
   readonly timestamp?: Date;
 }
 
@@ -146,7 +146,8 @@ export class HttpApiService {
   /**
    * Searches for clients using given API arguments.
    */
-  searchClients(args: ApiSearchClientsArgs): Observable<ApiSearchClientResult> {
+  searchClients(args: apiInterfaces.ApiSearchClientsArgs):
+      Observable<apiInterfaces.ApiSearchClientResult> {
     const params = new HttpParams().set('query', args.query || '');
     if (args.offset) {
       params.set('offset', args.offset.toString());
@@ -155,17 +156,17 @@ export class HttpApiService {
       params.set('count', args.count.toString());
     }
 
-    return this.http.get<ApiSearchClientResult>(
+    return this.http.get<apiInterfaces.ApiSearchClientResult>(
         `${URL_PREFIX}/clients`, {params});
   }
 
-  private fetchClient(id: string): Observable<ApiClient> {
-    return this.http.get<ApiClient>(`${URL_PREFIX}/clients/${id}`)
+  private fetchClient(id: string): Observable<apiInterfaces.ApiClient> {
+    return this.http.get<apiInterfaces.ApiClient>(`${URL_PREFIX}/clients/${id}`)
         .pipe(tap(this.showErrors));
   }
 
   /** Fetches a client by its ID. */
-  subscribeToClient(clientId: string): Observable<ApiClient> {
+  subscribeToClient(clientId: string): Observable<apiInterfaces.ApiClient> {
     return timer(0, this.POLLING_INTERVAL)
         .pipe(
             exhaustMap(() => this.fetchClient(clientId)),
@@ -174,8 +175,9 @@ export class HttpApiService {
   }
 
   /** Requests approval to give the current user access to a client. */
-  requestApproval(args: ApprovalRequest): Observable<ApiClientApproval> {
-    const request: ApiCreateClientApprovalArgs = {
+  requestApproval(args: ApprovalRequest):
+      Observable<apiInterfaces.ApiClientApproval> {
+    const request: apiInterfaces.ApiCreateClientApprovalArgs = {
       approval: {
         reason: args.reason,
         notifiedUsers: args.approvers,
@@ -184,7 +186,7 @@ export class HttpApiService {
     };
 
     return this.http
-        .post<ApiClientApproval>(
+        .post<apiInterfaces.ApiClientApproval>(
             `${URL_PREFIX}/users/me/approvals/client/${args.clientId}`, request)
         .pipe(
             tap(() => {
@@ -195,7 +197,7 @@ export class HttpApiService {
 
   fetchApprovalConfig(): Observable<ApprovalConfig> {
     return this.http
-        .get<ApiApprovalOptionalCcAddressResult>(
+        .get<apiInterfaces.ApiApprovalOptionalCcAddressResult>(
             `${URL_PREFIX}/config/Email.approval_optional_cc_address`)
         .pipe(
             // Replace empty string (protobuf default) with undefined.
@@ -207,9 +209,9 @@ export class HttpApiService {
 
   /** Lists ClientApprovals in reversed chronological order. */
   private listApprovals(clientId: string):
-      Observable<ReadonlyArray<ApiClientApproval>> {
+      Observable<ReadonlyArray<apiInterfaces.ApiClientApproval>> {
     return this.http
-        .get<ApiListClientApprovalsResult>(
+        .get<apiInterfaces.ApiListClientApprovalsResult>(
             `${URL_PREFIX}/users/me/approvals/client/${clientId}`)
         .pipe(
             map(res => res.items ?? []),
@@ -252,9 +254,9 @@ export class HttpApiService {
   /** Fetches a ClientApproval. */
   private fetchClientApproval({clientId, requestor, approvalId}:
                                   ClientApprovalKey):
-      Observable<ApiClientApproval> {
+      Observable<apiInterfaces.ApiClientApproval> {
     return this.http
-        .get<ApiClientApproval>(`${URL_PREFIX}/users/${
+        .get<apiInterfaces.ApiClientApproval>(`${URL_PREFIX}/users/${
             requestor}/approvals/client/${clientId}/${approvalId}`)
         .pipe(
             tap(this.showErrors),
@@ -262,9 +264,11 @@ export class HttpApiService {
   }
 
   /** Fetches a Flow. */
-  fetchFlow(clientId: string, flowId: string): Observable<ApiFlow> {
+  fetchFlow(clientId: string, flowId: string):
+      Observable<apiInterfaces.ApiFlow> {
     return this.http
-        .get<ApiFlow>(`${URL_PREFIX}/clients/${clientId}/flows/${flowId}`)
+        .get<apiInterfaces.ApiFlow>(
+            `${URL_PREFIX}/clients/${clientId}/flows/${flowId}`)
         .pipe(
             tap(this.showErrors),
         );
@@ -272,19 +276,21 @@ export class HttpApiService {
 
   createHunt(
       description: string, flowWithDescriptors: FlowWithDescriptor,
-      safetyLimits: SafetyLimits,
-      rules: ForemanClientRuleSet): Observable<ApiHunt> {
-    const huntRunnerArgs: HuntRunnerArgs = {
+      safetyLimits: SafetyLimits, rules: apiInterfaces.ForemanClientRuleSet,
+      outputPlugins: ReadonlyArray<apiInterfaces.OutputPluginDescriptor>):
+      Observable<apiInterfaces.ApiHunt> {
+    const huntRunnerArgs: apiInterfaces.HuntRunnerArgs = {
       description,
       ...safetyLimits,
+      outputPlugins,
       clientRuleSet: rules,
     };
-    const originalFlow: ApiFlowReference = {
+    const originalFlow: apiInterfaces.ApiFlowReference = {
       flowId: flowWithDescriptors.flow.flowId,
       clientId: flowWithDescriptors.flow.clientId,
     };
-    const args = flowWithDescriptors.flow.args as AnyObject;
-    const request: ApiCreateHuntArgs = {
+    const args = flowWithDescriptors.flow.args as apiInterfaces.AnyObject;
+    const request: apiInterfaces.ApiCreateHuntArgs = {
       flowName: flowWithDescriptors.flow.name,
       flowArgs: {
         '@type': flowWithDescriptors.flowArgType,
@@ -293,21 +299,101 @@ export class HttpApiService {
       huntRunnerArgs,
       originalFlow,
     };
-    return this.http.post<ApiHunt>(`${URL_PREFIX}/hunts`, toJson(request));
+    return this.http.post<apiInterfaces.ApiHunt>(
+        `${URL_PREFIX}/hunts`, toJson(request));
   }
 
-  requestHuntApproval(huntId: string, approvalArgs: ApiHuntApproval):
-      Observable<ApiHuntApproval> {
-    const request: ApiCreateHuntApprovalArgs = {
+  requestHuntApproval(
+      huntId: string, approvalArgs: apiInterfaces.ApiHuntApproval):
+      Observable<apiInterfaces.ApiHuntApproval> {
+    const request: apiInterfaces.ApiCreateHuntApprovalArgs = {
       huntId,
       approval: approvalArgs,
     };
-    return this.http.post<ApiHuntApproval>(
+    return this.http.post<apiInterfaces.ApiHuntApproval>(
         `${URL_PREFIX}/users/me/approvals/hunt/${huntId}`, request);
   }
 
+  private fetchHunt(id: string): Observable<apiInterfaces.ApiHunt> {
+    return this.http.get<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts/${id}`)
+        .pipe(tap(this.showErrors));
+  }
+
+  subscribeToHunt(huntId: string): Observable<apiInterfaces.ApiHunt> {
+    return timer(0, this.POLLING_INTERVAL)
+        .pipe(
+            exhaustMap(() => this.fetchHunt(huntId)),
+            tap(this.showErrors),
+        );
+  }
+
+  /** Lists results of the given hunt. */
+  listResultsForHunt(params: apiInterfaces.ApiListHuntResultsArgs):
+      Observable<ReadonlyArray<apiInterfaces.ApiHuntResult>> {
+    const huntId = params.huntId;
+    assertNonNull(huntId);
+
+    const options: {[key: string]: number} = {};
+    if (params.count) {
+      options['count'] = params.count;
+    }
+
+    const httpParams = new HttpParams({
+      fromObject: {
+        'huntId': huntId,
+        ...options,
+      }
+    });
+
+    return this.http
+        .get<apiInterfaces.ApiListHuntResultsResult>(
+            `${URL_PREFIX}/hunts/${params.huntId}/results`,
+            {params: httpParams})
+        .pipe(
+            catchError((err: HttpErrorResponse) => {
+              if (err.status === 403) {
+                return throwError(new MissingApprovalError(err));
+              } else {
+                return throwError(err);
+              }
+            }),
+            map(res => res.items ?? []),
+            tap(this.showErrors),
+        );
+  }
+
+  subscribeToResultsForHunt(params: apiInterfaces.ApiListHuntResultsArgs):
+      Observable<ReadonlyArray<apiInterfaces.ApiHuntResult>> {
+    return timer(0, this.POLLING_INTERVAL)
+        .pipe(
+            exhaustMap(() => this.listResultsForHunt(params)),
+            tap(this.showErrors),
+        );
+  }
+
+  // TODO: GET parameters require snake_case not camelCase
+  // parameters. Do not allow createdBy and other camelCase parameters until
+  // fixed.
+  private listHunts(args:
+                        Pick<apiInterfaces.ApiListHuntsArgs, 'offset'|'count'>):
+      Observable<apiInterfaces.ApiListHuntsResult> {
+    const params = toHttpParams(args);
+    return this.http
+        .get<apiInterfaces.ApiListHuntsResult>(`${URL_PREFIX}/hunts`, {params})
+        .pipe(tap(this.showErrors));
+  }
+
+  subscribeToListHunts(
+      args: Pick<apiInterfaces.ApiListHuntsArgs, 'offset'|'count'>):
+      Observable<apiInterfaces.ApiListHuntsResult> {
+    return timer(0, this.POLLING_INTERVAL)
+        .pipe(
+            exhaustMap(() => this.listHunts(args)),
+        );
+  }
+
   subscribeToClientApproval(key: ClientApprovalKey):
-      Observable<ApiClientApproval> {
+      Observable<apiInterfaces.ApiClientApproval> {
     return timer(0, this.POLLING_INTERVAL)
         .pipe(
             exhaustMap(() => this.fetchClientApproval(key)),
@@ -318,8 +404,8 @@ export class HttpApiService {
 
   /** Grants a ClientApproval. */
   grantClientApproval({clientId, requestor, approvalId}: ClientApprovalKey):
-      Observable<ApiClientApproval> {
-    return this.http.post<ApiClientApproval>(
+      Observable<apiInterfaces.ApiClientApproval> {
+    return this.http.post<apiInterfaces.ApiClientApproval>(
         `${URL_PREFIX}/users/${requestor}/approvals/client/${clientId}/${
             approvalId}/actions/grant`,
         {});
@@ -327,7 +413,7 @@ export class HttpApiService {
 
   private readonly flowDescriptors$ =
       this.http
-          .get<ApiListClientFlowDescriptorsResult>(
+          .get<apiInterfaces.ApiListClientFlowDescriptorsResult>(
               `${URL_PREFIX}/flows/descriptors`)
           .pipe(
               map(res => res.items ?? []),
@@ -335,20 +421,23 @@ export class HttpApiService {
               shareReplay(1),  // Cache latest FlowDescriptors.
           );
 
-  listFlowDescriptors(): Observable<ReadonlyArray<ApiFlowDescriptor>> {
+  listFlowDescriptors():
+      Observable<ReadonlyArray<apiInterfaces.ApiFlowDescriptor>> {
     return this.flowDescriptors$;
   }
 
-  listArtifactDescriptors(): Observable<ReadonlyArray<ArtifactDescriptor>> {
-    return this.http.get<ApiListArtifactsResult>(`${URL_PREFIX}/artifacts`)
+  listArtifactDescriptors():
+      Observable<ReadonlyArray<apiInterfaces.ArtifactDescriptor>> {
+    return this.http
+        .get<apiInterfaces.ApiListArtifactsResult>(`${URL_PREFIX}/artifacts`)
         .pipe(
             map(res => res.items ?? []),
             tap(this.showErrors),
         );
   }
 
-  private listFlowsForClient(args: ApiListFlowsArgs):
-      Observable<ReadonlyArray<ApiFlow>> {
+  private listFlowsForClient(args: apiInterfaces.ApiListFlowsArgs):
+      Observable<ReadonlyArray<apiInterfaces.ApiFlow>> {
     const clientId = args.clientId;
     assertNonNull(clientId);
 
@@ -363,7 +452,7 @@ export class HttpApiService {
     });
 
     return this.http
-        .get<ApiListFlowsResult>(
+        .get<apiInterfaces.ApiListFlowsResult>(
             `${URL_PREFIX}/clients/${clientId}/flows`, {params})
         .pipe(
             catchError((err: HttpErrorResponse) => {
@@ -379,8 +468,8 @@ export class HttpApiService {
   }
 
   /** Lists the latest Flows for the given Client. */
-  subscribeToFlowsForClient(args: ApiListFlowsArgs):
-      Observable<ReadonlyArray<ApiFlow>> {
+  subscribeToFlowsForClient(args: apiInterfaces.ApiListFlowsArgs):
+      Observable<ReadonlyArray<apiInterfaces.ApiFlow>> {
     return merge(timer(0, this.POLLING_INTERVAL), this.triggerListFlowsPoll$)
         .pipe(
             exhaustMap(() => this.listFlowsForClient(args)),
@@ -389,7 +478,7 @@ export class HttpApiService {
   }
 
   subscribeToScheduledFlowsForClient(clientId: string, creator: string):
-      Observable<ReadonlyArray<ApiScheduledFlow>> {
+      Observable<ReadonlyArray<apiInterfaces.ApiScheduledFlow>> {
     return merge(
                timer(0, this.POLLING_INTERVAL),
                this.triggerListScheduledFlowsPoll$)
@@ -402,9 +491,9 @@ export class HttpApiService {
 
   /** Lists all scheduled flows for the given client and user. */
   private listScheduledFlows(clientId: string, creator: string):
-      Observable<ReadonlyArray<ApiScheduledFlow>> {
+      Observable<ReadonlyArray<apiInterfaces.ApiScheduledFlow>> {
     return this.http
-        .get<ApiListScheduledFlowsResult>(
+        .get<apiInterfaces.ApiListScheduledFlowsResult>(
             // TODO: Remove trailing slash once redirect protocol
             // is fixed.
             `${URL_PREFIX}/clients/${clientId}/scheduled-flows/${creator}/`)
@@ -417,7 +506,7 @@ export class HttpApiService {
 
   /** Lists results of the given flow. */
   listResultsForFlow(params: FlowResultsParams):
-      Observable<ReadonlyArray<ApiFlowResult>> {
+      Observable<ReadonlyArray<apiInterfaces.ApiFlowResult>> {
     const options: {[key: string]: string} = {};
     if (params.withTag) {
       options['with_tag'] = params.withTag;
@@ -435,7 +524,7 @@ export class HttpApiService {
     });
 
     return this.http
-        .get<ApiListFlowResultsResult>(
+        .get<apiInterfaces.ApiListFlowResultsResult>(
             `${URL_PREFIX}/clients/${params.clientId}/flows/${
                 params.flowId}/results`,
             {params: httpParams})
@@ -449,7 +538,7 @@ export class HttpApiService {
   // been completed. This logic is now in the Store.
   /** Continuously lists results for the given flow, e.g. by polling. */
   subscribeToResultsForFlow(params: FlowResultsParams):
-      Observable<ReadonlyArray<ApiFlowResult>> {
+      Observable<ReadonlyArray<apiInterfaces.ApiFlowResult>> {
     return timer(0, this.POLLING_INTERVAL)
         .pipe(
             exhaustMap(() => this.listResultsForFlow(params)),
@@ -458,8 +547,9 @@ export class HttpApiService {
   }
 
   /** Starts a Flow on the given Client. */
-  startFlow(clientId: string, flowName: string, flowArgs: AnyObject):
-      Observable<ApiFlow> {
+  startFlow(
+      clientId: string, flowName: string,
+      flowArgs: apiInterfaces.AnyObject): Observable<apiInterfaces.ApiFlow> {
     return this.listFlowDescriptors().pipe(
         // Take FlowDescriptors at most once, so that Flows are not started
         // repeatedly if FlowDescriptors are ever updated.
@@ -475,9 +565,10 @@ export class HttpApiService {
                 },
               }
             })),
-        switchMap((request: ApiCreateFlowArgs) => {
+        switchMap((request: apiInterfaces.ApiCreateFlowArgs) => {
           return this.http
-              .post<ApiFlow>(`${URL_PREFIX}/clients/${clientId}/flows`, request)
+              .post<apiInterfaces.ApiFlow>(
+                  `${URL_PREFIX}/clients/${clientId}/flows`, request)
               .pipe(
                   tap(() => {
                     this.triggerListFlowsPoll$.next();
@@ -492,8 +583,9 @@ export class HttpApiService {
   }
 
   /** Schedules a Flow on the given Client. */
-  scheduleFlow(clientId: string, flowName: string, flowArgs: AnyObject):
-      Observable<ApiScheduledFlow> {
+  scheduleFlow(
+      clientId: string, flowName: string, flowArgs: apiInterfaces.AnyObject):
+      Observable<apiInterfaces.ApiScheduledFlow> {
     return this.listFlowDescriptors().pipe(
         // Take FlowDescriptors at most once, so that Flows are not scheduled
         // repeatedly if FlowDescriptors are ever updated.
@@ -509,9 +601,9 @@ export class HttpApiService {
                 },
               }
             })),
-        switchMap((request: ApiCreateFlowArgs) => {
+        switchMap((request: apiInterfaces.ApiCreateFlowArgs) => {
           return this.http
-              .post<ApiFlow>(
+              .post<apiInterfaces.ApiFlow>(
                   `${URL_PREFIX}/clients/${clientId}/scheduled-flows`, request)
               .pipe(
                   tap(() => {
@@ -527,10 +619,11 @@ export class HttpApiService {
   }
 
   /** Cancels the given Flow. */
-  cancelFlow(clientId: string, flowId: string): Observable<ApiFlow> {
+  cancelFlow(clientId: string, flowId: string):
+      Observable<apiInterfaces.ApiFlow> {
     const url =
         `${URL_PREFIX}/clients/${clientId}/flows/${flowId}/actions/cancel`;
-    return this.http.post<ApiFlow>(url, {}).pipe(
+    return this.http.post<apiInterfaces.ApiFlow>(url, {}).pipe(
         tap(() => {
           this.triggerListFlowsPoll$.next();
         }),
@@ -552,8 +645,8 @@ export class HttpApiService {
   }
 
   /** Fetches the current user. */
-  fetchCurrentUser(): Observable<ApiGrrUser> {
-    return this.http.get<ApiGrrUser>(`${URL_PREFIX}/users/me`)
+  fetchCurrentUser(): Observable<apiInterfaces.ApiGrrUser> {
+    return this.http.get<apiInterfaces.ApiGrrUser>(`${URL_PREFIX}/users/me`)
         .pipe(
             tap(this.showErrors),
         );
@@ -563,17 +656,22 @@ export class HttpApiService {
   explainGlobExpression(
       clientId: string, globExpression: string,
       {exampleCount}: {exampleCount: number}):
-      Observable<ReadonlyArray<GlobComponentExplanation>> {
+      Observable<ReadonlyArray<apiInterfaces.GlobComponentExplanation>> {
     const url = `${URL_PREFIX}/clients/${clientId}/glob-expressions:explain`;
-    const args: ApiExplainGlobExpressionArgs = {globExpression, exampleCount};
-    return this.http.post<ApiExplainGlobExpressionResult>(url, args).pipe(
-        map(result => result.components ?? []),
-        tap(this.showErrors),
-    );
+    const args: apiInterfaces.ApiExplainGlobExpressionArgs = {
+      globExpression,
+      exampleCount
+    };
+    return this.http
+        .post<apiInterfaces.ApiExplainGlobExpressionResult>(url, args)
+        .pipe(
+            map(result => result.components ?? []),
+            tap(this.showErrors),
+        );
   }
 
-  fetchUiConfig(): Observable<ApiUiConfig> {
-    return this.http.get<ApiUiConfig>(`${URL_PREFIX}/config/ui`)
+  fetchUiConfig(): Observable<apiInterfaces.ApiUiConfig> {
+    return this.http.get<apiInterfaces.ApiUiConfig>(`${URL_PREFIX}/config/ui`)
         .pipe(
             tap(this.showErrors),
         );
@@ -582,8 +680,10 @@ export class HttpApiService {
 
   addClientLabel(clientId: string, label: string): Observable<{}> {
     const url = `${URL_PREFIX}/clients/labels/add`;
-    const body:
-        ApiAddClientsLabelsArgs = {clientIds: [clientId], labels: [label]};
+    const body: apiInterfaces.ApiAddClientsLabelsArgs = {
+      clientIds: [clientId],
+      labels: [label]
+    };
     return this.http.post<{}>(url, body).pipe(
         tap(this.showErrors),
     );
@@ -591,8 +691,10 @@ export class HttpApiService {
 
   removeClientLabel(clientId: string, label: string): Observable<string> {
     const url = `${URL_PREFIX}/clients/labels/remove`;
-    const body:
-        ApiRemoveClientsLabelsArgs = {clientIds: [clientId], labels: [label]};
+    const body: apiInterfaces.ApiRemoveClientsLabelsArgs = {
+      clientIds: [clientId],
+      labels: [label]
+    };
     return this.http.post<{}>(url, body).pipe(
         mapTo(label),
         tap(this.showErrors),
@@ -602,16 +704,17 @@ export class HttpApiService {
     );
   }
 
-  fetchAllClientsLabels(): Observable<ReadonlyArray<ApiClientLabel>> {
+  fetchAllClientsLabels():
+      Observable<ReadonlyArray<apiInterfaces.ApiClientLabel>> {
     const url = `${URL_PREFIX}/clients/labels`;
-    return this.http.get<ApiListClientsLabelsResult>(url).pipe(
+    return this.http.get<apiInterfaces.ApiListClientsLabelsResult>(url).pipe(
         map(clientsLabels => clientsLabels.items ?? []),
         tap(this.showErrors),
     );
   }
 
   fetchClientVersions(clientId: string, start?: Date, end?: Date):
-      Observable<ReadonlyArray<ApiClient>> {
+      Observable<ReadonlyArray<apiInterfaces.ApiClient>> {
     const url = `${URL_PREFIX}/clients/${clientId}/versions`;
 
     const params = new HttpParams({
@@ -622,7 +725,8 @@ export class HttpApiService {
       }
     });
 
-    return this.http.get<ApiGetClientVersionsResult>(url, {params})
+    return this.http
+        .get<apiInterfaces.ApiGetClientVersionsResult>(url, {params})
         .pipe(
             map(clientVersions => clientVersions.items ?? []),
             tap(this.showErrors),
@@ -630,10 +734,10 @@ export class HttpApiService {
   }
 
   suggestApprovers(usernameQuery: string):
-      Observable<ReadonlyArray<ApproverSuggestion>> {
+      Observable<ReadonlyArray<apiInterfaces.ApproverSuggestion>> {
     const params = new HttpParams().set('username_query', usernameQuery);
     return this.http
-        .get<ApiListApproverSuggestionsResult>(
+        .get<apiInterfaces.ApiListApproverSuggestionsResult>(
             `${URL_PREFIX}/users/approver-suggestions`, {params})
         .pipe(
             map(result => result.suggestions ?? []),
@@ -642,9 +746,9 @@ export class HttpApiService {
   }
 
   listRecentClientApprovals(parameters: {count?: number}):
-      Observable<ReadonlyArray<ApiClientApproval>> {
+      Observable<ReadonlyArray<apiInterfaces.ApiClientApproval>> {
     return this.http
-        .get<ApiListClientApprovalsResult>(
+        .get<apiInterfaces.ApiListClientApprovalsResult>(
             `${URL_PREFIX}/users/me/approvals/client`,
             {params: objectToHttpParams(parameters)})
         .pipe(
@@ -655,14 +759,14 @@ export class HttpApiService {
 
   getFileDetails(
       clientId: string,
-      pathType: PathSpecPathType,
+      pathType: apiInterfaces.PathSpecPathType,
       path: string,
       opts?: {timestamp?: Date},
-      ): Observable<ApiFile> {
+      ): Observable<apiInterfaces.ApiFile> {
     const params = objectToHttpParams({timestamp: opts?.timestamp?.getDate()});
     const vfsPath = toVFSPath(pathType, path, {urlEncode: true});
     return this.http
-        .get<ApiGetFileDetailsResult>(
+        .get<apiInterfaces.ApiGetFileDetailsResult>(
             `${URL_PREFIX}/clients/${clientId}/vfs-details${vfsPath}`, {params})
         .pipe(
             map(response => response.file ?? {}),
@@ -672,12 +776,12 @@ export class HttpApiService {
 
   getFileText(
       clientId: string,
-      pathType: PathSpecPathType,
+      pathType: apiInterfaces.PathSpecPathType,
       path: string,
       opts?: GetFileTextOptions,
-      ): Observable<ApiGetFileTextResult|null> {
-    const queryArgs: ApiGetFileTextArgs = {
-      encoding: ApiGetFileTextArgsEncoding.UTF_8,
+      ): Observable<apiInterfaces.ApiGetFileTextResult|null> {
+    const queryArgs: apiInterfaces.ApiGetFileTextArgs = {
+      encoding: apiInterfaces.ApiGetFileTextArgsEncoding.UTF_8,
       offset: 0,
       ...opts,
       timestamp: opts?.timestamp?.getTime(),
@@ -685,7 +789,7 @@ export class HttpApiService {
 
     const vfsPath = toVFSPath(pathType, path, {urlEncode: true});
     return this.http
-        .get<ApiGetFileTextResult>(
+        .get<apiInterfaces.ApiGetFileTextResult>(
             `${URL_PREFIX}/clients/${clientId}/vfs-text${vfsPath}`,
             {params: objectToHttpParams(queryArgs as HttpParamObject)})
         .pipe(
@@ -697,11 +801,11 @@ export class HttpApiService {
   /** Queries the length of the given VFS file. */
   getFileBlobLength(
       clientId: string,
-      pathType: PathSpecPathType,
+      pathType: apiInterfaces.PathSpecPathType,
       path: string,
       opts?: GetFileBlobOptions,
       ): Observable<bigint|null> {
-    const queryArgs: ApiGetFileTextArgs = {
+    const queryArgs: apiInterfaces.ApiGetFileTextArgs = {
       ...opts,
       timestamp: opts?.timestamp?.getTime(),
     };
@@ -725,12 +829,12 @@ export class HttpApiService {
   /** Queries the raw, binary contents of a VFS file. */
   getFileBlob(
       clientId: string,
-      pathType: PathSpecPathType,
+      pathType: apiInterfaces.PathSpecPathType,
       path: string,
       opts?: GetFileBlobOptions,
       ): Observable<ArrayBuffer|null> {
-    const queryArgs: ApiGetFileTextArgs = {
-      encoding: ApiGetFileTextArgsEncoding.UTF_8,
+    const queryArgs: apiInterfaces.ApiGetFileTextArgs = {
+      encoding: apiInterfaces.ApiGetFileTextArgsEncoding.UTF_8,
       offset: 0,
       ...opts,
       timestamp: opts?.timestamp?.getTime(),
@@ -751,7 +855,7 @@ export class HttpApiService {
       clientId: string,
       path: string,
       opts: {includeDirectoryTree: boolean},
-      ): Observable<ApiBrowseFilesystemResult> {
+      ): Observable<apiInterfaces.ApiBrowseFilesystemResult> {
     path = urlEncodePathSegments(path);
 
     if (!path.startsWith('/')) {
@@ -759,7 +863,7 @@ export class HttpApiService {
     }
 
     return this.http
-        .get<ApiBrowseFilesystemResult>(
+        .get<apiInterfaces.ApiBrowseFilesystemResult>(
             `${URL_PREFIX}/clients/${clientId}/filesystem${path}`, {
               params: objectToHttpParams(
                   {'include_directory_tree': opts.includeDirectoryTree}),
@@ -775,14 +879,14 @@ export class HttpApiService {
    */
   updateVfsFileContent(
       clientId: string,
-      pathType: PathSpecPathType,
+      pathType: apiInterfaces.PathSpecPathType,
       path: string,
-      ): Observable<ApiFile> {
-    const data: ApiUpdateVfsFileContentArgs = {
+      ): Observable<apiInterfaces.ApiFile> {
+    const data: apiInterfaces.ApiUpdateVfsFileContentArgs = {
       filePath: toVFSPath(pathType, path, {urlEncode: false}),
     };
     return this.http
-        .post<ApiUpdateVfsFileContentResult>(
+        .post<apiInterfaces.ApiUpdateVfsFileContentResult>(
             `${URL_PREFIX}/clients/${clientId}/vfs-update`, data)
         .pipe(
             switchMap(
@@ -797,9 +901,9 @@ export class HttpApiService {
   private getVfsFileContentUpdateState(
       clientId: string,
       operationId: string,
-      ): Observable<ApiGetVfsFileContentUpdateStateResult> {
+      ): Observable<apiInterfaces.ApiGetVfsFileContentUpdateStateResult> {
     return this.http
-        .get<ApiGetVfsFileContentUpdateStateResult>(
+        .get<apiInterfaces.ApiGetVfsFileContentUpdateStateResult>(
             `${URL_PREFIX}/clients/${clientId}/vfs-update/${operationId}`)
         .pipe(
             tap(this.showErrors),
@@ -809,14 +913,15 @@ export class HttpApiService {
   private pollVfsFileContentUpdateState(
       clientId: string,
       operationId: string,
-      ): Observable<ApiGetVfsFileContentUpdateStateResult> {
+      ): Observable<apiInterfaces.ApiGetVfsFileContentUpdateStateResult> {
     return timer(0, this.POLLING_INTERVAL)
         .pipe(
             switchMap(
                 () => this.getVfsFileContentUpdateState(clientId, operationId)),
             takeWhile(
                 (response) => response.state ===
-                    ApiGetVfsFileContentUpdateStateResultState.RUNNING,
+                    apiInterfaces.ApiGetVfsFileContentUpdateStateResultState
+                        .RUNNING,
                 true),
             tap(this.showErrors),
         );
@@ -828,16 +933,16 @@ export class HttpApiService {
    */
   refreshVfsFolder(
       clientId: string,
-      pathType: PathSpecPathType,
+      pathType: apiInterfaces.PathSpecPathType,
       path: string,
-      opts?: ApiCreateVfsRefreshOperationArgs,
-      ): Observable<ApiBrowseFilesystemResult> {
-    const data: ApiCreateVfsRefreshOperationArgs = {
+      opts?: apiInterfaces.ApiCreateVfsRefreshOperationArgs,
+      ): Observable<apiInterfaces.ApiBrowseFilesystemResult> {
+    const data: apiInterfaces.ApiCreateVfsRefreshOperationArgs = {
       filePath: toVFSPath(pathType, path, {urlEncode: false}),
       ...opts,
     };
     return this.http
-        .post<ApiCreateVfsRefreshOperationResult>(
+        .post<apiInterfaces.ApiCreateVfsRefreshOperationResult>(
             `${URL_PREFIX}/clients/${clientId}/vfs-refresh-operations`, data)
         .pipe(
             switchMap(
@@ -854,10 +959,11 @@ export class HttpApiService {
   private getVfsRefreshOperationState(
       clientId: string,
       operationId: string,
-      ): Observable<ApiGetVfsRefreshOperationStateResult> {
+      ): Observable<apiInterfaces.ApiGetVfsRefreshOperationStateResult> {
     return this.http
-        .get<ApiGetVfsRefreshOperationStateResult>(`${URL_PREFIX}/clients/${
-            clientId}/vfs-refresh-operations/${operationId}`)
+        .get<apiInterfaces.ApiGetVfsRefreshOperationStateResult>(
+            `${URL_PREFIX}/clients/${clientId}/vfs-refresh-operations/${
+                operationId}`)
         .pipe(
             tap(this.showErrors),
         );
@@ -866,36 +972,37 @@ export class HttpApiService {
   private pollVfsRefreshOperationState(
       clientId: string,
       operationId: string,
-      ): Observable<ApiGetVfsRefreshOperationStateResult> {
+      ): Observable<apiInterfaces.ApiGetVfsRefreshOperationStateResult> {
     return timer(0, this.POLLING_INTERVAL)
         .pipe(
             switchMap(
                 () => this.getVfsRefreshOperationState(clientId, operationId)),
             takeWhile(
                 (response) => response.state ===
-                    ApiGetVfsRefreshOperationStateResultState.RUNNING,
+                    apiInterfaces.ApiGetVfsRefreshOperationStateResultState
+                        .RUNNING,
                 true),
             tap(this.showErrors),
         );
   }
 
   listBinaries() {
-    return this.http.get<ApiListGrrBinariesResult>(
+    return this.http.get<apiInterfaces.ApiListGrrBinariesResult>(
         `${URL_PREFIX}/config/binaries`);
   }
 }
 
-const VFS_PATH_PREFIXES: {[key in PathSpecPathType]: string} = {
-  [PathSpecPathType.UNSET]: '',
-  [PathSpecPathType.NTFS]: 'fs/ntfs',
-  [PathSpecPathType.OS]: 'fs/os',
-  [PathSpecPathType.REGISTRY]: 'registry',
-  [PathSpecPathType.TMPFILE]: 'temp',
-  [PathSpecPathType.TSK]: 'fs/tsk',
+const VFS_PATH_PREFIXES: {[key in apiInterfaces.PathSpecPathType]: string} = {
+  [apiInterfaces.PathSpecPathType.UNSET]: '',
+  [apiInterfaces.PathSpecPathType.NTFS]: 'fs/ntfs',
+  [apiInterfaces.PathSpecPathType.OS]: 'fs/os',
+  [apiInterfaces.PathSpecPathType.REGISTRY]: 'registry',
+  [apiInterfaces.PathSpecPathType.TMPFILE]: 'temp',
+  [apiInterfaces.PathSpecPathType.TSK]: 'fs/tsk',
 } as const;
 
 function toVFSPath(
-    pathType: PathSpecPathType, path: string,
+    pathType: apiInterfaces.PathSpecPathType, path: string,
     args: {urlEncode: boolean}): string {
   if (args?.urlEncode) {
     path = urlEncodePathSegments(path);
@@ -929,7 +1036,8 @@ function objectToHttpParams(obj: HttpParamObject): HttpParams {
 }
 
 function findFlowDescriptor(flowName: string):
-    (fds: ReadonlyArray<ApiFlowDescriptor>) => ApiFlowDescriptor {
+    (fds: ReadonlyArray<apiInterfaces.ApiFlowDescriptor>) =>
+        apiInterfaces.ApiFlowDescriptor {
   return fds => {
     const fd = fds.find(fd => fd.name === flowName);
     if (!fd) throw new Error(`FlowDescriptors do not contain ${flowName}.`);
@@ -968,7 +1076,7 @@ export function getExportedResultsSqliteUrl(clientId: string, flowId: string) {
 
 /** Returns the URL to download the raw VFS file contents. */
 export function getFileBlobUrl(
-    clientId: string, pathType: PathSpecPathType, path: string) {
+    clientId: string, pathType: apiInterfaces.PathSpecPathType, path: string) {
   const vfsPath = toVFSPath(pathType, path, {urlEncode: true});
   return `${URL_PREFIX}/clients/${clientId}/vfs-blob${vfsPath}`;
 }

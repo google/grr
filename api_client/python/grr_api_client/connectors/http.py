@@ -102,7 +102,10 @@ class VersionTuple(NamedTuple):
         major=int(match[1]),
         minor=int(match[2]),
         revision=int(match[3]),
-        release=int(match[4].lstrip("post")))
+        # TODO(hanuszczak): Replace with `str.removeprefix` once we support only
+        # Python 3.9+.
+        release=int(match[4][len("post"):] if match[4]
+                    .startswith("post") else match[4]))
 
 
 class Error(Exception):

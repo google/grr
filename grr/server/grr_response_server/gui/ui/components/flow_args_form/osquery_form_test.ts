@@ -41,7 +41,7 @@ describe('OsqueryForm', () => {
   it('should display a code-editor,', () => {
     const fixture = constructFixture();
 
-    const codeEditor = fixture.debugElement.query(By.css('code-editor'));
+    const codeEditor = fixture.debugElement.query(By.css('app-code-editor'));
     expect(codeEditor).toBeTruthy();
 
     const browseSpecsButton =
@@ -163,7 +163,7 @@ describe('OsqueryForm', () => {
     await chips[0].remove();
     const chipsAfterRemoval = await collectionListHarness.getChips();
     const valuesInFormAfterRemoval =
-        fixture.componentInstance.form.get('fileCollectionColumns')?.value;
+        fixture.componentInstance.form.controls.fileCollectionColumns.value;
 
     expect(chipsAfterRemoval.length).toBe(0);
     expect(valuesInFormAfterRemoval.length).toBe(0);

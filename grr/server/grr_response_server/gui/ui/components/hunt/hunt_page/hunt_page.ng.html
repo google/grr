@@ -1,3 +1,27 @@
-<div class="hunt-page-container">
-  I am a placeholder!
+<div class="hunt-overview centered-content">
+  <title-editor [disabled]=true class="title">
+    <h1 titleEditable>{{(hunt$ | async)?.description}}</h1>
+  </title-editor>
+
+  <div class="info">
+    <table class="key-value-table">
+      <tr>
+        <td>ID:</td>
+        <td>
+          <app-copy-button><span>{{ (hunt$ | async)?.huntId }}</span></app-copy-button>
+        </td>
+      </tr>
+      <tr>
+        <td>Creator:</td>
+        <td>
+          <app-copy-button><span>{{ (hunt$ | async)?.creator }}</span></app-copy-button>
+        </td>
+      </tr>
+    </table>
+  </div>
 </div>
+
+
+<!-- TODO: Add chart -->
+
+<app-hunt-results class="centered-content"></app-hunt-results>

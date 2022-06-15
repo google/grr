@@ -152,10 +152,14 @@ class ArtifactCollector(actions.ActionPlugin):
 
   def _ParseSourceType(self, source):
     """Calls the correct processing function for the given source."""
+    # TODO(hanuszczak): `DIRECTORY` is deprecated [1], it should be removed.
+    #
+    # [1]: https://github.com/ForensicArtifacts/artifacts/pull/475
     type_name = rdf_artifacts.ArtifactSource.SourceType
     switch = {
         type_name.COMMAND: self._ProcessCommandSource,
         type_name.DIRECTORY: self._ProcessFileSource,
+        type_name.PATH: self._ProcessFileSource,
         type_name.FILE: self._ProcessFileSource,
         type_name.GREP: self._ProcessGrepSource,
         type_name.REGISTRY_KEY: self._ProcessRegistryKeySource,

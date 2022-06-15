@@ -1,7 +1,7 @@
 import {NgModule} from '@angular/core';
-import {RouterModule, Routes} from '@angular/router';
+import {RouterModule} from '@angular/router';
 
-import {RoutesWithLegacyLinks} from '../../lib/routing';
+import {RoutesWithCustomData} from '../../lib/routing';
 import {HexView} from '../data_renderers/hex_view/hex_view';
 import {StatView} from '../data_renderers/stat_view/stat_view';
 import {TextView} from '../data_renderers/text_view/text_view';
@@ -18,30 +18,42 @@ export interface CollapseClientHeader {
 /**
  * Client details page route.
  */
-export const CLIENT_PAGE_ROUTES: Routes&RoutesWithLegacyLinks = [
+export const CLIENT_PAGE_ROUTES: RoutesWithCustomData = [
   {
     path: 'clients/:id',
     component: ClientPage,
-    data: {legacyLink: '#/clients/:id'},
+    data: {'legacyLink': '#/clients/:id'},
     children: [
       {
         path: '',
         pathMatch: 'full',
-        redirectTo: 'flows/',
+        redirectTo: 'flows',
       },
+      // A trailing slash breaks navigation when the URL contains an
+      // auxiliary route upon page load. E.g. refreshing the browser on
+      // /clients/x/flows/(drawer:details) is not routed correctly - Angular
+      // shows the error page. One hypothesis is that Angular assumes that
+      // the auxiliary route should belong to /flows/ and not the root /.
+      // We fix this by preventing the trailing slash and redirecting
+      // /flows/ to /flows.
+      {path: 'flows/', pathMatch: 'full', redirectTo: 'flows'},
       {
         path: 'flows',
-        // When loading /flows, redirect to /flows/ to trigger the next route,
-        // with flowId = ''. Otherwise, when clicking a direct link to a flow,
-        // e.g. /flows/123, Angular observes a Route change and replaces the
-        // FlowList component with a new FlowList component, effectively
-        // scrolling to the top and losing UI state.
-        redirectTo: 'flows/',
+        component: FlowSection,
+        data: {
+          'legacyLink': '#/clients/:id/flows/',
+          // Reuse FlowSection component when switching between /flows and
+          // /flows/:id to preserve UI state, e.g. open panels.
+          'reuseComponent': true
+        },
       },
       {
         path: 'flows/:flowId',
         component: FlowSection,
-        data: {legacyLink: '#/clients/:id/flows/:flowId'},
+        data: {
+          'legacyLink': '#/clients/:id/flows/:flowId',
+          'reuseComponent': true
+        },
       },
       {
         path: 'files',
@@ -54,8 +66,8 @@ export const CLIENT_PAGE_ROUTES: Routes&RoutesWithLegacyLinks = [
         path: 'files/:path',
         component: VfsSection,
         data: {
-          legacyLink: '#/clients/:id/vfs/fs/os:path',
-          collapseClientHeader: true,
+          'legacyLink': '#/clients/:id/vfs/fs/os:path',
+          'collapseClientHeader': true,
         },
         children: [
           {path: '', redirectTo: 'stat', pathMatch: 'full'},

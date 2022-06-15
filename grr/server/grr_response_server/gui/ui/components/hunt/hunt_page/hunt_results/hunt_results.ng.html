@@ -1,0 +1,33 @@
+<div class="card">
+  <div class="header">Results</div>
+
+  <div class="content" *ngIf="resultsMap$ | async as results">
+    <mat-tab-group>
+      <mat-tab *ngFor="let result of results | keyvalue; trackBy: trackByIndex">
+        <ng-template mat-tab-label>{{ result.value.tabName }}</ng-template>
+
+        <mat-table [dataSource]="result.value.dataSource" [trackBy]="trackByIndex">
+          <ng-container
+            *ngFor="let colDesc of result.value.columns | keyvalue; trackBy: trackByIndex"
+            [matColumnDef]="colDesc.key"
+          >
+            <mat-header-cell *matHeaderCellDef>{{ colDesc.value.title }}</mat-header-cell>
+
+            <mat-cell *matCellDef="let element" [ngSwitch]="colDesc.value.component">
+              <app-timestamp
+                *ngSwitchCase="CellComponent.TIMESTAMP"
+                [date]="element[colDesc.key]"
+                relativeTimestamp="visible"
+              ></app-timestamp>
+
+              <ng-container *ngSwitchDefault>{{ element[colDesc.key] }}</ng-container>
+            </mat-cell>
+          </ng-container>
+
+          <mat-header-row *matHeaderRowDef="result.value.displayedColumns"></mat-header-row>
+          <mat-row *matRowDef="let row; columns: result.value.displayedColumns"></mat-row>
+        </mat-table>
+      </mat-tab>
+    </mat-tab-group>
+  </div>
+</div>

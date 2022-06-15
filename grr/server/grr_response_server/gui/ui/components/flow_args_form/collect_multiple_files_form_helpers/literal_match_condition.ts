@@ -1,15 +1,8 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
-import {ControlContainer, UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
+import {ControlContainer, FormControl, FormGroup, Validators} from '@angular/forms';
 
 import {FileFinderContentsLiteralMatchCondition, FileFinderContentsMatchConditionMode} from '../../../lib/api/api_interfaces';
 import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
-
-/** Form state of LiteralMatchCondition. */
-export declare interface LiteralMatchRawFormValues {
-  readonly literal: string;
-  readonly mode: FileFinderContentsMatchConditionMode;
-  readonly length: number;
-}
 
 /** Form that configures a literal match condition. */
 @Component({
@@ -25,17 +18,21 @@ export class LiteralMatchCondition {
 
   @Output() conditionRemoved = new EventEmitter<void>();
 
-  get formGroup(): UntypedFormGroup {
-    return this.controlContainer.control as UntypedFormGroup;
+  get formGroup() {
+    return this.controlContainer.control as
+        ReturnType<typeof createLiteralMatchFormGroup>;
   }
 }
 
 /** Initializes a form group corresponding to the literal match condition. */
-export function createLiteralMatchFormGroup(): UntypedFormGroup {
-  return new UntypedFormGroup({
-    literal: new UntypedFormControl(null, Validators.required),
-    mode:
-        new UntypedFormControl(FileFinderContentsMatchConditionMode.FIRST_HIT),
+export function createLiteralMatchFormGroup() {
+  return new FormGroup({
+    // TODO: Writing existing values does not work - they need to
+    // be base64 decoded?
+    literal: new FormControl(
+        '', {nonNullable: true, validators: Validators.required}),
+    mode: new FormControl(
+        FileFinderContentsMatchConditionMode.FIRST_HIT, {nonNullable: true}),
   });
 }
 
@@ -43,10 +40,10 @@ export function createLiteralMatchFormGroup(): UntypedFormGroup {
  * Converts raw form values to FileFinderContentsLiteralMatchCondition.
  */
 export function formValuesToFileFinderContentsLiteralMatchCondition(
-    rawFormValues: LiteralMatchRawFormValues):
+    rawFormValues: ReturnType<typeof createLiteralMatchFormGroup>['value']):
     FileFinderContentsLiteralMatchCondition {
   return {
     ...rawFormValues,
-    literal: encodeStringToBase64(rawFormValues.literal),
+    literal: encodeStringToBase64(rawFormValues.literal ?? ''),
   };
 }

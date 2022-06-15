@@ -1,0 +1,25 @@
+@use '@angular/material' as mat;
+@use '../../../material-theme' as c;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  max-width: 100%;
+  row-gap: c.$page-spacing;
+  padding: c.$page-spacing 0 0;
+}
+
+.hunt-overview {
+  .info {
+    display: flex;
+    flex-direction: row;
+    column-gap: c.$container-padding;
+
+    .key-value-table {
+      td:first-of-type {
+        min-width: 5em;
+      }
+    }
+  }
+}

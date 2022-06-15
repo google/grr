@@ -7,6 +7,7 @@ import {CollectSingleFileDetails} from '../../components/flow_details/plugins/co
 
 import {ArtifactCollectorFlowDetails} from './plugins/artifact_collector_flow_details';
 import {DefaultDetails} from './plugins/default_details';
+import {DumpProcessMemoryDetails} from './plugins/dump_process_memory_details';
 import {ExecutePythonHackDetails} from './plugins/execute_python_hack_details';
 import {FileFinderDetails} from './plugins/file_finder_details';
 import {InterrogateDetails} from './plugins/interrogate_details';
@@ -20,6 +21,7 @@ import {OsqueryDetails} from './plugins/osquery_details';
 import {Plugin} from './plugins/plugin';
 import {ReadLowLevelDetails} from './plugins/read_low_level_details';
 import {TimelineDetails} from './plugins/timeline_details';
+import {YaraProcessScanDetails} from './plugins/yara_process_scan_details';
 
 /**
  * Default details plugin to be used when no appropriate plugin is found.
@@ -36,6 +38,7 @@ export const FLOW_DETAILS_PLUGIN_REGISTRY: {[key: string]: Type<Plugin>} = {
   'CollectFilesByKnownPath': CollectFilesByKnownPathDetails,
   'CollectMultipleFiles': CollectMultipleFilesDetails,
   'CollectSingleFile': CollectSingleFileDetails,
+  'DumpProcessMemory': DumpProcessMemoryDetails,
   'ExecutePythonHack': ExecutePythonHackDetails,
   'FileFinder': FileFinderDetails,
   'Interrogate': InterrogateDetails,
@@ -49,4 +52,5 @@ export const FLOW_DETAILS_PLUGIN_REGISTRY: {[key: string]: Type<Plugin>} = {
   'ReadLowLevel': ReadLowLevelDetails,
   'RecursiveListDirectory': ListDirectoryDetails,
   'TimelineFlow': TimelineDetails,
+  'YaraProcessScan': YaraProcessScanDetails,
 };

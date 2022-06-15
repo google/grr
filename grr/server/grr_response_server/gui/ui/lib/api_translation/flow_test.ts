@@ -236,18 +236,4 @@ describe('translateBinary', () => {
             PreconditionError,
             /Expected .*COMPONENT_DEPRECATED.* to be a member of enum.*PYTHON_HACK/);
   });
-
-  it('fails for invalid signatures', () => {
-    const api: ApiGrrBinary = {
-      type: ApiGrrBinaryType.PYTHON_HACK,
-      path: 'windows/test/hello.py',
-      size: '20746',
-      timestamp: '1543574422898113',
-      hasValidSignature: false,
-    };
-    expect(safeTranslateBinary(api)).toBeNull();
-    expect(() => translateBinary(api))
-        .toThrowError(
-            PreconditionError, /Expected key hasValidSignature to be truthy/);
-  });
 });

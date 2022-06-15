@@ -9,7 +9,6 @@ from setuptools import find_packages
 from setuptools import setup
 from setuptools.command.sdist import sdist
 
-
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
 # If you run setup.py from the root GRR dir you get very different results since

@@ -1,5 +1,5 @@
-@use '@angular/material' as mat;
-@use '../../../../material-theme' as c;
+@use "@angular/material" as mat;
+@use "../../../../material-theme" as c;
 
 $container-padding: 30px;
 $row-padding: 1.5em;
@@ -60,19 +60,6 @@ $row-padding: 1.5em;
   mat-button-toggle-group {
     margin-bottom: 1.25em;
     margin-right: 2em;
-    border-radius: 4px;
-    box-shadow: none;
-  }
-
-  .mat-button-toggle {
-    border: 0.5px solid mat.get-color-from-palette(mat.$grey-palette, 300);
-    background-color: mat.get-color-from-palette(mat.$grey-palette, 300);
-    color: mat.get-color-from-palette(mat.$blue-palette, 700);
-  }
-
-  .mat-button-toggle-checked {
-    background-color: mat.get-color-from-palette(mat.$grey-palette, 700);
-    color: white;
   }
 
   mat-form-field {

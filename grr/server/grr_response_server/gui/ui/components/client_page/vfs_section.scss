@@ -1,8 +1,8 @@
 @use "sass:math";
-@use '@angular/material' as mat;
-@use '../../material-theme' as c;
+@use "@angular/material" as mat;
+@use "../../material-theme" as c;
 
-$expansion-icon-size: 24px;
+$icon-size: 24px;
 $tree-row-height: 24px;
 
 :host {
@@ -49,7 +49,7 @@ mat-tree {
     display: block;
 
     mat-nested-tree-node {
-      margin-left: math.div($expansion-icon-size, 2) - 0.5px;
+      margin-left: math.div($icon-size, 2) - 0.5px;
       border-left: 1px solid
         mat.get-color-from-palette(c.$foreground, divider-light);
     }
@@ -67,6 +67,19 @@ mat-tree {
     flex: 1;
     text-align: left;
     line-height: $tree-row-height;
+  }
+}
+
+.directory-table {
+  td.icon,
+  th.icon {
+    width: calc($icon-size * 1.5);
+    max-width: calc($icon-size * 1.5);
+    min-width: $icon-size;
+
+    mat-icon {
+      display: flex; // Center icons vertically correctly.
+    }
   }
 }
 

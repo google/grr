@@ -1,6 +1,6 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 
-import {Controls, FlowArgumentForm} from './form_interface';
+import {FlowArgumentForm} from './form_interface';
 
 /** Fallback to display when no form is configured for a Flow. */
 @Component({
@@ -10,7 +10,7 @@ import {Controls, FlowArgumentForm} from './form_interface';
 })
 export class FallbackFlowArgsForm<T extends {}> extends
     FlowArgumentForm<T, {}> {
-  override makeControls(): Controls<{}> {
+  override makeControls() {
     return {};
   }
 

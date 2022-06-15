@@ -15,7 +15,6 @@ from setuptools.command.develop import develop
 from setuptools.command.install import install
 from setuptools.command.sdist import sdist
 
-
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 os.chdir(THIS_DIRECTORY)
 
@@ -134,11 +133,10 @@ setup_args = dict(
     },
     install_requires=[
         "cryptography==3.3.2",
-        "distro==1.5.0",
-        "fleetspeak==0.1.9",
+        "distro==1.7.0",
+        "fleetspeak==0.1.11",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
         "ipaddr==2.2.0",
-        "ipython==7.15.0",
         "pexpect==4.8.0",
         "pip>=21.0.1",
         "psutil==5.8.0",

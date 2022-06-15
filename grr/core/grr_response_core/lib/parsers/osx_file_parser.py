@@ -25,7 +25,7 @@ class OSXUsersParser(parsers.MultiResponseParser[rdf_client.User]):
   """Parser for Glob of /Users/*."""
 
   output_types = [rdf_client.User]
-  supported_artifacts = ["MacOSUsers"]
+  supported_artifacts = ["UsersDirectory"]
 
   _ignore_users = ["Shared"]
 
@@ -81,7 +81,7 @@ class OSXLaunchdPlistParser(parsers.SingleFileParser[rdf_plist.LaunchdPlist]):
 
   output_types = [rdf_plist.LaunchdPlist]
   supported_artifacts = [
-      "MacOSLaunchAgentsPlistFiles", "MacOSLaunchDaemonsPlistFiles"
+      "MacOSLaunchAgentsPlistFile", "MacOSLaunchDaemonsPlistFile"
   ]
 
   def ParseFile(

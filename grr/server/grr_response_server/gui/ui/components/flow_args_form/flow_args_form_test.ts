@@ -134,14 +134,26 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     defaultArgs: {
       binary: '',
     },
-    OnlineNotification: {
-      name: 'OnlineNotification',
-      friendlyName: 'Online Notification',
-      category: 'Administrative',
-      defaultArgs: {
-        email: 'foo@bar.com',
-      },
+  },
+  OnlineNotification: {
+    name: 'OnlineNotification',
+    friendlyName: 'Online Notification',
+    category: 'Administrative',
+    defaultArgs: {
+      email: 'foo@bar.com',
     },
+  },
+  DumpProcessMemory: {
+    name: 'DumpProcessMemory',
+    friendlyName: 'Dump Process Memory',
+    category: 'Memory',
+    defaultArgs: {},
+  },
+  YaraProcessScan: {
+    name: 'YaraProcessScan',
+    friendlyName: 'Yara Process Scan',
+    category: 'Memory',
+    defaultArgs: {},
   },
 });
 

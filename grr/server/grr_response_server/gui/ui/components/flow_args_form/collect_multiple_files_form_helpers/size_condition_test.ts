@@ -1,11 +1,10 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {ControlContainer, UntypedFormGroup} from '@angular/forms';
+import {ControlContainer} from '@angular/forms';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {FileFinderSizeCondition} from '../../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
@@ -14,7 +13,7 @@ import {createSizeFormGroup, SizeCondition} from './size_condition';
 initTestEnvironment();
 
 describe('SizeCondition component', () => {
-  let control: UntypedFormGroup;
+  let control: ReturnType<typeof createSizeFormGroup>;
   let controlContainer: Partial<ControlContainer>;
 
   beforeEach(waitForAsync(() => {
@@ -56,17 +55,15 @@ describe('SizeCondition component', () => {
        fixture.detectChanges();
 
        const minFileSizeHarness = await loader.getHarness(
-           MatInputHarness.with({selector: '[formControlName="minFileSize"]'}));
+           MatInputHarness.with({selector: '[name="minFileSize"]'}));
        const maxFileSizeHarness = await loader.getHarness(
-           MatInputHarness.with({selector: '[formControlName="maxFileSize"]'}));
+           MatInputHarness.with({selector: '[name="maxFileSize"]'}));
        await minFileSizeHarness.setValue('10 MB');
        await maxFileSizeHarness.setValue('');
 
-       const expected: FileFinderSizeCondition = {
-         minFileSize: 10_000_000,
-         maxFileSize: undefined,
-       };
-       expect(control.value).toEqual(expected);
+       expect(control.value).toEqual(jasmine.objectContaining({
+         minFileSize: 10_000_000
+       }));
 
        const matHintField = fixture.debugElement.query(By.css('mat-hint'));
        expect(matHintField.nativeElement.textContent.trim())
@@ -82,17 +79,16 @@ describe('SizeCondition component', () => {
        fixture.detectChanges();
 
        const minFileSizeHarness = await loader.getHarness(
-           MatInputHarness.with({selector: '[formControlName="minFileSize"]'}));
+           MatInputHarness.with({selector: '[name="minFileSize"]'}));
        const maxFileSizeHarness = await loader.getHarness(
-           MatInputHarness.with({selector: '[formControlName="maxFileSize"]'}));
+           MatInputHarness.with({selector: '[name="maxFileSize"]'}));
        await minFileSizeHarness.setValue('10 MB');
        await maxFileSizeHarness.setValue('10 GiB');
 
-       const expected: FileFinderSizeCondition = {
+       expect(control.value).toEqual({
          minFileSize: 10_000_000,
          maxFileSize: 10_737_418_240,
-       };
-       expect(control.value).toEqual(expected);
+       });
 
        const matHintField = fixture.debugElement.query(By.css('mat-hint'));
        expect(matHintField.nativeElement.textContent.trim())
@@ -108,17 +104,16 @@ describe('SizeCondition component', () => {
     fixture.detectChanges();
 
     const minFileSizeHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[formControlName="minFileSize"]'}));
+        MatInputHarness.with({selector: '[name="minFileSize"]'}));
     const maxFileSizeHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[formControlName="maxFileSize"]'}));
+        MatInputHarness.with({selector: '[name="maxFileSize"]'}));
     await minFileSizeHarness.setValue('0');
     await maxFileSizeHarness.setValue('2 GiB');
 
-    const expected: FileFinderSizeCondition = {
+    expect(control.value).toEqual({
       minFileSize: 0,
       maxFileSize: 2_147_483_648,
-    };
-    expect(control.value).toEqual(expected);
+    });
 
     const matHintField = fixture.debugElement.query(By.css('mat-hint'));
     expect(matHintField.nativeElement.textContent.trim())
@@ -133,9 +128,9 @@ describe('SizeCondition component', () => {
     fixture.detectChanges();
 
     const minFileSizeHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[formControlName="minFileSize"]'}));
+        MatInputHarness.with({selector: '[name="minFileSize"]'}));
     const maxFileSizeHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[formControlName="maxFileSize"]'}));
+        MatInputHarness.with({selector: '[name="maxFileSize"]'}));
     await minFileSizeHarness.setValue('');
     await maxFileSizeHarness.setValue('');
 

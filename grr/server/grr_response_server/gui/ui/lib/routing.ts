@@ -1,12 +1,45 @@
-import {ActivatedRouteSnapshot} from '@angular/router';
+import {Injectable} from '@angular/core';
+import {ActivatedRouteSnapshot, BaseRouteReuseStrategy, Routes} from '@angular/router';
+
 
 /** A Route with a template string ('#/clients/:id') to link to the old UI. */
 export declare interface RouteWithLegacyLink {
-  data: {legacyLink: string;};
+  data?: {legacyLink: string;};
 }
 
 /** Routes with `data.legacyLink` that link to the old UI. */
 export type RoutesWithLegacyLinks = RouteWithLegacyLink[];
+
+/**
+ * A Route that can specify to reuse its component if the next Route would use
+ * the same.
+ */
+export declare interface RouteWithReuseComponent {
+  data?: {reuseComponent?: boolean};
+}
+
+/** Routes with `data.legacyLink` that link to the old UI. */
+export type RoutesWithReuseComponent = RouteWithReuseComponent[];
+
+/** Routes with custom data to specify legacy links & reusing components. */
+export type RoutesWithCustomData =
+    Routes&RoutesWithLegacyLinks&RoutesWithReuseComponent;
+
+/**
+ * Strategy to reuse Components if two Routes declare the same component and
+ * specify reuseComponent.
+ */
+@Injectable({providedIn: 'root'})
+export class SameComponentRouteReuseStrategy extends BaseRouteReuseStrategy {
+  override shouldReuseRoute(
+      future: ActivatedRouteSnapshot, curr: ActivatedRouteSnapshot): boolean {
+    const reuseCurr = curr.data['reuseComponent'] ?? false;
+    const reuseFuture = future.data['reuseComponent'] ?? false;
+    const sameComponent = future.component === curr.component;
+    return (reuseCurr && reuseFuture && sameComponent) ||
+        super.shouldReuseRoute(future, curr);
+  }
+}
 
 /** Constructs a link to the old UI by parsing a Route's data.legacyLink. */
 export function makeLegacyLinkFromRoute(route: ActivatedRouteSnapshot): string {

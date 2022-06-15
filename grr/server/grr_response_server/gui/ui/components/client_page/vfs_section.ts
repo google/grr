@@ -35,6 +35,7 @@ class DirectoryDataSource implements DataSource<DirectoryNode> {
 }
 
 declare interface DirectoryTableRow {
+  readonly isDirectory: boolean;
   readonly path: string;
   readonly name: string;
   readonly size?: bigint;
@@ -45,6 +46,7 @@ declare interface DirectoryTableRow {
 }
 
 const DIRECTORY_TABLE_COLUMNS: ReadonlyArray<keyof DirectoryTableRow> = [
+  'isDirectory',
   'name',
   'size',
   'atime',
@@ -56,6 +58,7 @@ const DIRECTORY_TABLE_COLUMNS: ReadonlyArray<keyof DirectoryTableRow> = [
 const toRow: (entry: File|Directory) => DirectoryTableRow = (entry) => {
   const statEntry = entry.isDirectory ? null : entry.stat;
   return {
+    isDirectory: entry.isDirectory,
     path: entry.path,
     name: entry.name,
     size: statEntry?.stSize,

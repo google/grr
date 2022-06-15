@@ -39,7 +39,7 @@ hint:
 method:
   - target: {os: ['Linux']}
     probe:
-      - artifact: 'GlobalShellConfigs'
+      - artifact: 'ShellConfigurationFile'
         result_context: 'RAW'
         mode: PARALLEL
         filters:
