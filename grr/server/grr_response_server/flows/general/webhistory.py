@@ -403,7 +403,7 @@ class CollectBrowserHistory(flow_base.FlowBase):
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   BROWSER_TO_ARTIFACTS_MAP = {
-      Browser.CHROME: ["ChromeHistory"],
+      Browser.CHROME: ["ChromiumBasedBrowsersHistory"],
       Browser.FIREFOX: ["FirefoxHistory"],
       Browser.INTERNET_EXPLORER: ["InternetExplorerHistory"],
       Browser.OPERA: ["OperaHistory"],

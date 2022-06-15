@@ -71,13 +71,6 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map(Object.entries({
     fli('ReadLowLevel', 'Read raw bytes from device',
         'Read raw data from a device - e.g. from a particular disk sector'),
   ],
-  // TODO: Uncomment when launching memory forensics in UIv2.
-  // 'Memory': [
-  //   fli('DumpProcessMemory', 'Dump process memory',
-  //       'Dump the process memory of one ore more processes'),
-  //   fli('YaraProcessScan', 'Scan process memory with YARA',
-  //       'Scan and optionally dump process memory using Yara'),
-  // ],
   'Administrative': [
     fli('OnlineNotification', 'Online notification',
         'Notify via email when the client comes online'),
@@ -105,6 +98,10 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map(Object.entries({
         'Collects metadata about running processes'),
     fli('ListNamedPipesFlow', 'List named pipes',
         'Collects metadata about named pipes open on the system'),
+    fli('DumpProcessMemory', 'Dump process memory',
+        'Dump the process memory of one ore more processes'),
+    fli('YaraProcessScan', 'Scan process memory with YARA',
+        'Scan and optionally dump process memory using Yara'),
   ],
   'Network': [
     fli('Netstat', 'Netstat', 'Enumerate all open network connections'),

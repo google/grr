@@ -18,13 +18,19 @@ import {observeOnDestroy} from '../../lib/reactive';
 
 type OnChangeFn = (textValue: string) => void;
 
+/** Language/mode to syntax highlight in the code editor. */
+export enum HighlightMode {
+  PLAIN = 'text/plain',
+  OSQUERY = 'text/x-sqlite',
+}
+
 /**
  * Displays a code editor.
  * It can be used as an Angular form field, and it can be put inside
  * <mat-form-field></mat-form-field> tags.
  */
 @Component({
-  selector: 'code-editor',
+  selector: 'app-code-editor',
   templateUrl: './code_editor.ng.html',
   styleUrls: [
     './code_editor.scss',
@@ -53,6 +59,8 @@ export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
   });
 
   readonly controlType = 'code-editor';
+
+  @Input() highlight: HighlightMode = HighlightMode.PLAIN;
 
   /**
    * ID to associate all labels and hints of the enclosing mat-form-field with.
@@ -100,7 +108,7 @@ export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
   private initializeEditor(): void {
     this.editor = CodeMirror.fromTextArea(this.editorTarget.nativeElement, {
       value: '',
-      mode: 'text/x-sqlite',
+      mode: this.highlight,
       theme: 'neo',
       extraKeys: {'Ctrl-Space': 'autocomplete'},
       lineNumbers: true,

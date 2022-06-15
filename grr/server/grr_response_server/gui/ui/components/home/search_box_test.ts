@@ -1,11 +1,12 @@
 import {OverlayContainer} from '@angular/cdk/overlay';
-import {discardPeriodicTasks, fakeAsync, inject, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {discardPeriodicTasks, fakeAsync, inject, TestBed, tick} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {of} from 'rxjs';
 
 import {ApiClient, ApiSearchClientResult} from '../../lib/api/api_interfaces';
 import {HttpApiService} from '../../lib/api/http_api_service';
+import {HttpApiServiceMock, mockHttpApiService} from '../../lib/api/http_api_service_test_util';
 import {ApiModule} from '../../lib/api/module';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
@@ -51,13 +52,13 @@ const apiClients: ReadonlyArray<ApiClient> = [
 ];
 
 describe('SearchBox Component', () => {
-  let httpApiService: jasmine.SpyObj<HttpApiService>;
+  let httpApiService: HttpApiServiceMock;
   let overlayContainer: OverlayContainer;
   let overlayContainerElement: HTMLElement;
   let configGlobalStore: ConfigGlobalStoreMock;
 
-  beforeEach(waitForAsync(() => {
-    httpApiService = jasmine.createSpyObj('HttpApiService', ['searchClients']);
+  beforeEach(() => {
+    httpApiService = mockHttpApiService();
     configGlobalStore = mockConfigGlobalStore();
 
     TestBed
@@ -79,7 +80,7 @@ describe('SearchBox Component', () => {
       overlayContainer = oc;
       overlayContainerElement = oc.getContainerElement();
     })();
-  }));
+  });
 
   afterEach(() => {
     overlayContainer.ngOnDestroy();

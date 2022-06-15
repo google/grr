@@ -164,7 +164,7 @@ class ArtifactSourceTest(absltest.TestCase):
 
   def testValidateDirectory(self):
     source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.DIRECTORY,
+        type=rdf_artifacts.ArtifactSource.SourceType.PATH,
         attributes={
             "paths": ["/home", "/usr"],
         })

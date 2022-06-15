@@ -30,30 +30,10 @@ class DatabaseTestFlowMixin(object):
   This mixin adds methods to test the handling of flows.
   """
 
-  def _SetupClient(self, client_id=None):
-    client_id = client_id or u"C.1234567890123456"
-    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
-    return client_id
-
-  def _SetupClientAndFlow(self, client_id=None, **additional_flow_args):
-    client_id = self._SetupClient(client_id)
-    flow_id = flow.RandomFlowId()
-
-    rdf_flow = rdf_flow_objects.Flow(
-        client_id=client_id,
-        flow_id=flow_id,
-        create_time=rdfvalue.RDFDatetime.Now(),
-        **additional_flow_args)
-    self.db.WriteFlowObject(rdf_flow)
-
-    return client_id, flow_id
-
-  def _SetupUser(self, username="foo"):
-    self.db.WriteGRRUser(username)
-    return username
-
   def testClientActionRequestStorage(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     self.db.WriteFlowRequests([
         rdf_flow_objects.FlowRequest(
             client_id=client_id, flow_id=flow_id, request_id=1)
@@ -85,7 +65,9 @@ class DatabaseTestFlowMixin(object):
       self.db.WriteClientActionRequests([req])
 
   def testClientActionRequestUpdate(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     req = rdf_flows.ClientActionRequest(
         client_id=client_id, flow_id=flow_id, request_id=1)
     self.db.WriteFlowRequests([
@@ -104,8 +86,9 @@ class DatabaseTestFlowMixin(object):
       self.assertEqual(req, read_reqs[0])
 
   def testClientActionRequestLeasing(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    client_id, flow_id = self._SetupClientAndFlow()
     flow_requests = []
     client_requests = []
     for i in range(10):
@@ -176,7 +159,9 @@ class DatabaseTestFlowMixin(object):
       self.assertLen(leased, 10)
 
   def testClientActionRequestsTTL(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     flow_requests = []
     client_requests = []
     for i in range(10):
@@ -389,23 +374,28 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(flow_obj.long_flow_id, f"{client_id}/{flow_id}")
 
   def testFlowParentMetadataUnchangable(self):
-    client_id = "C.0123456789012345"
+    client_id = db_test_utils.InitializeClient(self.db)
     flow_id = "0F00B430"
 
-    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
-
     flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
-    flow_obj.parent_flow_id = "0B43F000"
-    flow_obj.parent_hunt_id = "48151623"
+
+    parent_flow_id_1 = db_test_utils.InitializeFlow(self.db, client_id)
+    parent_hunt_id_1 = db_test_utils.InitializeHunt(self.db)
+
+    flow_obj.parent_flow_id = parent_flow_id_1
+    flow_obj.parent_hunt_id = parent_hunt_id_1
     self.db.WriteFlowObject(flow_obj)
 
-    flow_obj.parent_flow_id = "08133780"
-    flow_obj.parent_hunt_id = "01081080"
+    parent_flow_id_2 = db_test_utils.InitializeFlow(self.db, client_id)
+    parent_hunt_id_2 = db_test_utils.InitializeHunt(self.db)
+
+    flow_obj.parent_flow_id = parent_flow_id_2
+    flow_obj.parent_hunt_id = parent_hunt_id_2
     self.db.UpdateFlow(client_id=client_id, flow_id=flow_id, flow_obj=flow_obj)
 
     flow_obj = self.db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
-    self.assertEqual(flow_obj.parent_flow_id, "0B43F000")
-    self.assertEqual(flow_obj.parent_hunt_id, "48151623")
+    self.assertEqual(flow_obj.parent_flow_id, parent_flow_id_1)
+    self.assertEqual(flow_obj.parent_hunt_id, parent_hunt_id_1)
 
   def testFlowNameUnchangable(self):
     client_id = "C.0123456789012345"
@@ -658,7 +648,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual([f.flow_id for f in flows], ["0000000A"])
 
   def testUpdateUnknownFlow(self):
-    _, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     crash_info = rdf_client.ClientCrash(crash_message="oh no")
     with self.assertRaises(db.UnknownFlowError):
@@ -666,7 +657,8 @@ class DatabaseTestFlowMixin(object):
           u"C.1234567890AAAAAA", flow_id, client_crash_info=crash_info)
 
   def testFlowUpdateChangesAllFields(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     flow_obj = self.db.ReadFlowObject(client_id, flow_id)
 
@@ -686,7 +678,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(read_flow, flow_obj)
 
   def testFlowStateUpdate(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     # Check that just updating flow_state works fine.
     self.db.UpdateFlow(
@@ -706,7 +699,8 @@ class DatabaseTestFlowMixin(object):
                      rdf_flow_objects.Flow.FlowState.RUNNING)
 
   def testUpdatingFlowObjAndFlowStateInSingleUpdateRaises(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     read_flow = self.db.ReadFlowObject(client_id, flow_id)
     with self.assertRaises(db.ConflictingUpdateFlowArgumentsError):
@@ -717,7 +711,8 @@ class DatabaseTestFlowMixin(object):
           flow_state=rdf_flow_objects.Flow.FlowState.CRASHED)
 
   def testCrashInfoUpdate(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     crash_info = rdf_client.ClientCrash(crash_message="oh no")
     self.db.UpdateFlow(client_id, flow_id, client_crash_info=crash_info)
@@ -725,7 +720,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(read_flow.client_crash_info, crash_info)
 
   def testProcessingInformationUpdate(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     now = rdfvalue.RDFDatetime.Now()
     deadline = now + rdfvalue.Duration.From(6, rdfvalue.HOURS)
@@ -799,8 +795,8 @@ class DatabaseTestFlowMixin(object):
     self.db.RegisterFlowProcessingHandler(req_func)
     self.addCleanup(self.db.UnregisterFlowProcessingHandler)
 
-    _, marked_flow_id = self._SetupClientAndFlow(
-        client_id=client_id, next_request_to_process=3)
+    marked_flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=3)
 
     # We write 2 requests, one after another:
     # First request is the request provided by the user. Second is
@@ -852,28 +848,36 @@ class DatabaseTestFlowMixin(object):
         self.fail("Flow request was not processed in time.")
 
   def testRequestWritingHighIDDoesntTriggerFlowProcessing(self):
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=3)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=3)
 
     requests_triggered = self._WriteRequestForProcessing(client_id, flow_id, 4)
     # Not the expected request.
     self.assertEqual(requests_triggered, 0)
 
   def testRequestWritingLowIDDoesntTriggerFlowProcessing(self):
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=3)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=3)
 
     requests_triggered = self._WriteRequestForProcessing(client_id, flow_id, 2)
     # Not the expected request.
     self.assertEqual(requests_triggered, 0)
 
   def testRequestWritingExpectedIDTriggersFlowProcessing(self):
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=3)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=3)
 
     requests_triggered = self._WriteRequestForProcessing(client_id, flow_id, 3)
     # This one is.
     self.assertEqual(requests_triggered, 1)
 
   def testFlowRequestsWithStartTimeAreCorrectlyDelayed(self):
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=3)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=3)
 
     req_func = mock.Mock()
     self.db.RegisterFlowProcessingHandler(req_func)
@@ -900,7 +904,8 @@ class DatabaseTestFlowMixin(object):
                             rdfvalue.Duration.From(2, rdfvalue.SECONDS))
 
   def testDeleteFlowRequests(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     requests = []
     responses = []
@@ -950,7 +955,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(read, [])
 
   def testResponsesForUnknownRequest(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     request = rdf_flow_objects.FlowRequest(
         client_id=client_id, flow_id=flow_id, request_id=1)
@@ -973,7 +979,8 @@ class DatabaseTestFlowMixin(object):
     self.assertLen(responses, 1)
 
   def testStatusForUnknownRequest(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     request = rdf_flow_objects.FlowRequest(
         client_id=client_id, flow_id=flow_id, request_id=1)
@@ -999,7 +1006,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(request.nr_responses_expected, 1)
 
   def testResponseWriting(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     request = rdf_flow_objects.FlowRequest(
         client_id=client_id,
@@ -1027,7 +1035,8 @@ class DatabaseTestFlowMixin(object):
       self.assertEqual(response.response_id, response_id)
 
   def testResponseWritingForDuplicateResponses(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     request = rdf_flow_objects.FlowRequest(
         client_id=client_id,
@@ -1056,7 +1065,8 @@ class DatabaseTestFlowMixin(object):
       self.assertEqual(response.response_id, response_id)
 
   def testCompletingMultipleRequests(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     requests = []
     responses = []
@@ -1088,7 +1098,8 @@ class DatabaseTestFlowMixin(object):
       self.assertTrue(req.needs_processing)
 
   def testStatusMessagesCanBeWrittenAndRead(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     request = rdf_flow_objects.FlowRequest(
         client_id=client_id,
@@ -1182,7 +1193,9 @@ class DatabaseTestFlowMixin(object):
 
   def testResponsesForEarlierRequestDontTriggerFlowProcessing(self):
     # Write a flow that is waiting for request #2.
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
     requests_triggered = self._WriteRequestAndCompleteResponses(
         client_id, flow_id, request_id=1, num_responses=3)
 
@@ -1191,7 +1204,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(requests_triggered, 0)
 
   def testResponsesForEarlierIncrementalRequestDontTriggerFlowProcessing(self):
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
     request_id = 1
 
     request = rdf_flow_objects.FlowRequest(
@@ -1210,7 +1225,9 @@ class DatabaseTestFlowMixin(object):
 
   def testResponsesForLaterRequestDontTriggerFlowProcessing(self):
     # Write a flow that is waiting for request #2.
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
     requests_triggered = self._WriteRequestAndCompleteResponses(
         client_id, flow_id, request_id=3, num_responses=7)
 
@@ -1220,7 +1237,9 @@ class DatabaseTestFlowMixin(object):
 
   def testResponsesForLaterIncrementalRequestDoNotTriggerIncrementalProcessing(
       self):
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
     request_id = 3
 
     request = rdf_flow_objects.FlowRequest(
@@ -1239,7 +1258,9 @@ class DatabaseTestFlowMixin(object):
 
   def testResponsesForExpectedRequestTriggerFlowProcessing(self):
     # Write a flow that is waiting for request #2.
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
     requests_triggered = self._WriteRequestAndCompleteResponses(
         client_id, flow_id, request_id=2, num_responses=5)
 
@@ -1249,8 +1270,9 @@ class DatabaseTestFlowMixin(object):
   def testResponsesForExpectedIncrementalRequestTriggerIncrementalProcessing(
       self):
     request_id = 2
-    client_id, flow_id = self._SetupClientAndFlow(
-        next_request_to_process=request_id)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=request_id)
 
     request = rdf_flow_objects.FlowRequest(
         client_id=client_id,
@@ -1271,9 +1293,13 @@ class DatabaseTestFlowMixin(object):
 
   def testRewritingResponsesForRequestDoesNotTriggerAdditionalProcessing(self):
     # Write a flow that is waiting for request #2.
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
-    marked_client_id, marked_flow_id = self._SetupClientAndFlow(
-        next_request_to_process=2)
+    client_id = db_test_utils.InitializeClient(self.db)
+    marked_client_id = db_test_utils.InitializeClient(self.db)
+
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
+    marked_flow_id = db_test_utils.InitializeFlow(
+        self.db, marked_client_id, next_request_to_process=2)
 
     request = rdf_flow_objects.FlowRequest(
         client_id=client_id, flow_id=flow_id, request_id=2)
@@ -1344,8 +1370,9 @@ class DatabaseTestFlowMixin(object):
 
   def testRewritingResponsesForIncrementalRequestsTriggersMoreProcessing(self):
     request_id = 2
-    client_id, flow_id = self._SetupClientAndFlow(
-        next_request_to_process=request_id)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=request_id)
 
     request = rdf_flow_objects.FlowRequest(
         client_id=client_id,
@@ -1372,7 +1399,10 @@ class DatabaseTestFlowMixin(object):
 
   def testResponsesAnyRequestTriggerClientActionRequestDeletion(self):
     # Write a flow that is waiting for request #2.
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
+
     for i in range(5):
       self.db.WriteFlowRequests([
           rdf_flow_objects.FlowRequest(
@@ -1390,123 +1420,34 @@ class DatabaseTestFlowMixin(object):
 
     self.assertFalse(self.db.ReadAllClientActionRequests(client_id))
 
-  def _WriteResponses(self, num):
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
-
-    request = rdf_flow_objects.FlowRequest(
-        client_id=client_id, flow_id=flow_id, request_id=2)
-    self.db.WriteFlowRequests([request])
-
-    # Generate responses together with a status message.
-    responses = self._ResponsesAndStatus(client_id, flow_id, 2, num)
-
-    # Write responses. This should trigger flow request processing.
-    self.db.WriteFlowResponses(responses)
-
-    return request, responses
-
-  def test40001RequestsCanBeWrittenAndRead(self):
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
-
-    requests = [
-        rdf_flow_objects.FlowRequest(
-            client_id=client_id, flow_id=flow_id, request_id=i)
-        for i in range(40001)
-    ]
-    self.db.WriteFlowRequests(requests)
-
-    self.assertLen(
-        self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id), 40001)
-
-  def test40001ResponsesCanBeWrittenAndRead(self):
-    request, responses = self._WriteResponses(40001)
-
-    expected_request = rdf_flow_objects.FlowRequest(
-        client_id=request.client_id,
-        flow_id=request.flow_id,
-        request_id=request.request_id,
-        needs_processing=True,
-        nr_responses_expected=40002)
-
-    rrp = self.db.ReadFlowRequestsReadyForProcessing(
-        request.client_id,
-        request.flow_id,
-        next_needed_request=request.request_id)
-    self.assertLen(rrp, 1)
-    fetched_request, fetched_responses = rrp[request.request_id]
-    self.assertEqual(fetched_request, expected_request)
-    self.assertEqual(fetched_responses, responses)
-
-    arrp = self.db.ReadAllFlowRequestsAndResponses(request.client_id,
-                                                   request.flow_id)
-    self.assertLen(arrp, 1)
-    fetched_request, fetched_responses = arrp[0]
-    self.assertEqual(fetched_request, expected_request)
-    self.assertEqual([r for _, r in sorted(fetched_responses.items())],
-                     responses)
-
-  def testDeleteAllFlowRequestsAndResponsesHandles11000Responses(self):
-    request, _ = self._WriteResponses(11000)
-
-    self.db.DeleteAllFlowRequestsAndResponses(request.client_id,
-                                              request.flow_id)
-    arrp = self.db.ReadAllFlowRequestsAndResponses(request.client_id,
-                                                   request.flow_id)
-    self.assertEmpty(arrp)
-
-  def testDeleteFlowRequestsHandles11000Responses(self):
-    request, _ = self._WriteResponses(11000)
-
-    self.db.DeleteFlowRequests([request])
-    arrp = self.db.ReadAllFlowRequestsAndResponses(request.client_id,
-                                                   request.flow_id)
-    self.assertEmpty(arrp)
-
-  def testDeleteFlowRequestsHandles11000Requests(self):
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=2)
-
-    requests = [
-        rdf_flow_objects.FlowRequest(
-            client_id=client_id, flow_id=flow_id, request_id=i)
-        for i in range(2, 11002)
-    ]
-    self.db.WriteFlowRequests(requests)
-
-    self.assertLen(
-        self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id), 11000)
-
-    self.db.DeleteFlowRequests(requests)
-
-    self.assertEmpty(
-        self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id))
-
   def testLeaseFlowForProcessingRaisesIfParentHuntIsStoppedOrCompleted(self):
-    hunt_obj = rdf_hunt_objects.Hunt()
-    self.db.WriteHuntObject(hunt_obj)
+    hunt_id = db_test_utils.InitializeHunt(self.db)
     self.db.UpdateHuntObject(
-        hunt_obj.hunt_id, hunt_state=rdf_hunt_objects.Hunt.HuntState.STOPPED)
+        hunt_id, hunt_state=rdf_hunt_objects.Hunt.HuntState.STOPPED)
 
-    client_id, flow_id = self._SetupClientAndFlow(
-        parent_hunt_id=hunt_obj.hunt_id)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, parent_hunt_id=hunt_id)
     processing_time = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
 
     with self.assertRaises(db.ParentHuntIsNotRunningError):
       self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
     self.db.UpdateHuntObject(
-        hunt_obj.hunt_id, hunt_state=rdf_hunt_objects.Hunt.HuntState.COMPLETED)
+        hunt_id, hunt_state=rdf_hunt_objects.Hunt.HuntState.COMPLETED)
 
     with self.assertRaises(db.ParentHuntIsNotRunningError):
       self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
     self.db.UpdateHuntObject(
-        hunt_obj.hunt_id, hunt_state=rdf_hunt_objects.Hunt.HuntState.STARTED)
+        hunt_id, hunt_state=rdf_hunt_objects.Hunt.HuntState.STARTED)
 
     # Should work again.
     self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
   def testLeaseFlowForProcessingThatIsAlreadyBeingProcessed(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     processing_time = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
 
     flow_for_processing = self.db.LeaseFlowForProcessing(
@@ -1522,7 +1463,8 @@ class DatabaseTestFlowMixin(object):
     self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
   def testLeaseFlowForProcessingAfterProcessingTimeExpiration(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     processing_time = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
     now = rdfvalue.RDFDatetime.Now()
 
@@ -1540,13 +1482,14 @@ class DatabaseTestFlowMixin(object):
       self.db.LeaseFlowForProcessing(client_id, flow_id, processing_time)
 
   def testLeaseFlowForProcessingUpdatesHuntCounters(self):
-    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
-    self.db.WriteHuntObject(hunt_obj)
-    hunt_id = hunt_obj.hunt_id
+    hunt_id = db_test_utils.InitializeHunt(self.db)
 
     processing_time = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
 
-    client_id, flow_id = self._SetupClientAndFlow(parent_hunt_id=hunt_id)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, flow_id=hunt_id, parent_hunt_id=hunt_id)
+
     flow_for_processing = self.db.LeaseFlowForProcessing(
         client_id, flow_id, processing_time)
     flow_for_processing.num_replies_sent = 10
@@ -1566,7 +1509,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(counters.num_results, 10)
 
   def testLeaseFlowForProcessingUpdatesFlowObjects(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     now = rdfvalue.RDFDatetime.Now()
     processing_time = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
@@ -1577,14 +1521,20 @@ class DatabaseTestFlowMixin(object):
           client_id, flow_id, processing_time)
 
     self.assertEqual(flow_for_processing.processing_on, utils.ProcessIdString())
-    self.assertEqual(flow_for_processing.processing_since, now)
+    # Using assertGreaterEqual and assertLess, as processing_since might come
+    # from the commit timestamp and thus not be influenced by test_lib.FakeTime.
+    self.assertGreaterEqual(flow_for_processing.processing_since, now)
+    self.assertLess(flow_for_processing.processing_since,
+                    now + rdfvalue.Duration("5s"))
     self.assertEqual(flow_for_processing.processing_deadline,
                      processing_deadline)
 
     read_flow = self.db.ReadFlowObject(client_id, flow_id)
-    self.assertEqual(read_flow.processing_on, utils.ProcessIdString())
-    self.assertEqual(read_flow.processing_since, now)
-    self.assertEqual(read_flow.processing_deadline, processing_deadline)
+    self.assertEqual(read_flow.processing_on, flow_for_processing.processing_on)
+    self.assertEqual(flow_for_processing.processing_since,
+                     flow_for_processing.processing_since)
+    self.assertEqual(read_flow.processing_deadline,
+                     flow_for_processing.processing_deadline)
     self.assertEqual(read_flow.num_replies_sent, 0)
 
     flow_for_processing.next_request_to_process = 5
@@ -1592,9 +1542,11 @@ class DatabaseTestFlowMixin(object):
 
     self.assertTrue(self.db.ReleaseProcessedFlow(flow_for_processing))
     # Check that returning the flow doesn't change the flow object.
-    self.assertEqual(read_flow.processing_on, utils.ProcessIdString())
-    self.assertEqual(read_flow.processing_since, now)
-    self.assertEqual(read_flow.processing_deadline, processing_deadline)
+    self.assertEqual(read_flow.processing_on, flow_for_processing.processing_on)
+    self.assertEqual(flow_for_processing.processing_since,
+                     flow_for_processing.processing_since)
+    self.assertEqual(read_flow.processing_deadline,
+                     flow_for_processing.processing_deadline)
 
     read_flow = self.db.ReadFlowObject(client_id, flow_id)
     self.assertFalse(read_flow.processing_on)
@@ -1607,7 +1559,8 @@ class DatabaseTestFlowMixin(object):
     processing_time = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
 
     t0 = rdfvalue.RDFDatetime.Now()
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     t1 = rdfvalue.RDFDatetime.Now()
 
     read_flow = self.db.ReadFlowObject(client_id, flow_id)
@@ -1626,7 +1579,9 @@ class DatabaseTestFlowMixin(object):
     self.assertBetween(read_flow.last_update_time, t2, t3)
 
   def testReleaseProcessedFlow(self):
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=1)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
 
     processing_time = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
 
@@ -1805,7 +1760,9 @@ class DatabaseTestFlowMixin(object):
         client_id, flow_id, next_needed_request=1)
     self.assertEqual(requests_for_processing, {})
 
-    client_id, flow_id = self._SetupClientAndFlow(next_request_to_process=3)
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
 
     for request_id in [1, 3, 4, 5, 7]:
       request = rdf_flow_objects.FlowRequest(
@@ -1839,7 +1796,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(requests_for_processing[4][1], responses)
 
   def testReadFlowRequestsReadyForProcessingHandlesIncrementalResponses(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     for request_id in [1, 3, 4, 5, 7]:
       request = rdf_flow_objects.FlowRequest(
@@ -1879,7 +1837,8 @@ class DatabaseTestFlowMixin(object):
 
   def testReadFlowRequestsReadyForProcessingWithUnorderedIncrementalResponses(
       self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     request = rdf_flow_objects.FlowRequest(
         client_id=client_id,
@@ -1913,7 +1872,8 @@ class DatabaseTestFlowMixin(object):
     self.assertListEqual(fetched_responses, [responses[2], responses[3]])
 
   def testUpdateIncrementalFlowRequests(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     requests = []
     for request_id in range(10):
@@ -1934,9 +1894,11 @@ class DatabaseTestFlowMixin(object):
       self.assertEqual(r.next_response_id, request_id * 2)
 
   def testFlowProcessingRequestsQueue(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
     flow_ids = []
     for _ in range(5):
-      client_id, flow_id = self._SetupClientAndFlow()
+      flow_id = db_test_utils.InitializeFlow(self.db, client_id)
       flow_ids.append(flow_id)
 
     request_queue = queue.Queue()
@@ -1967,9 +1929,11 @@ class DatabaseTestFlowMixin(object):
     self.assertCountEqual(requests, got)
 
   def testFlowProcessingRequestsQueueWithDelay(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
     flow_ids = []
     for _ in range(5):
-      client_id, flow_id = self._SetupClientAndFlow()
+      flow_id = db_test_utils.InitializeFlow(self.db, client_id)
       flow_ids.append(flow_id)
 
     request_queue = queue.Queue()
@@ -2012,9 +1976,11 @@ class DatabaseTestFlowMixin(object):
     pass
 
   def testAcknowledgingFlowProcessingRequestsWorks(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
     flow_ids = []
     for _ in range(5):
-      client_id, flow_id = self._SetupClientAndFlow()
+      flow_id = db_test_utils.InitializeFlow(self.db, client_id)
       flow_ids.append(flow_id)
     flow_ids.sort()
 
@@ -2079,22 +2045,10 @@ class DatabaseTestFlowMixin(object):
 
     return sample_results
 
-  def testWritesAndCounts40001FlowResults(self):
-    client_id, flow_id = self._SetupClientAndFlow()
-    sample_results = [
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientSummary(client_id=client_id))
-    ] * 40001
-
-    self.db.WriteFlowResults(sample_results)
-
-    result_count = self.db.CountFlowResults(client_id, flow_id)
-    self.assertEqual(result_count, 40001)
-
   def testWritesAndReadsSingleFlowResultOfSingleType(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_result = rdf_flow_objects.FlowResult(
         client_id=client_id,
         flow_id=flow_id,
@@ -2109,7 +2063,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(results[0].timestamp.AsSecondsSinceEpoch(), 42)
 
   def testReadResultsRestoresAllFlowResultsFields(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_result = rdf_flow_objects.FlowResult(
         client_id=client_id,
         flow_id=flow_id,
@@ -2128,7 +2084,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(results[0].timestamp.AsSecondsSinceEpoch(), 42)
 
   def testWritesAndReadsMultipleFlowResultsOfSingleType(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_results = self._WriteFlowResults(
         self._SampleResults(client_id, flow_id))
 
@@ -2144,7 +2102,9 @@ class DatabaseTestFlowMixin(object):
     )
 
   def testWritesAndReadsMultipleFlowResultsWithDifferentTimestamps(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_results = self._WriteFlowResults(
         self._SampleResults(client_id, flow_id), multiple_timestamps=True)
 
@@ -2159,7 +2119,8 @@ class DatabaseTestFlowMixin(object):
     )
 
   def testWritesAndReadsMultipleFlowResultsOfMultipleTypes(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     sample_results = self._WriteFlowResults(sample_results=[
         rdf_flow_objects.FlowResult(
@@ -2200,7 +2161,9 @@ class DatabaseTestFlowMixin(object):
     )
 
   def testReadFlowResultsCorrectlyAppliesOffsetAndCountFilters(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_results = self._WriteFlowResults(
         self._SampleResults(client_id, flow_id), multiple_timestamps=True)
 
@@ -2217,7 +2180,9 @@ class DatabaseTestFlowMixin(object):
             (i, l, result_payloads, expected_payloads))
 
   def testReadFlowResultsCorrectlyAppliesWithTagFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_results = self._WriteFlowResults(
         self._SampleResults(client_id, flow_id), multiple_timestamps=True)
 
@@ -2234,7 +2199,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual([i.payload for i in results], [sample_results[1].payload])
 
   def testReadFlowResultsCorrectlyAppliesWithTypeFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_results = self._WriteFlowResults(sample_results=[
         rdf_flow_objects.FlowResult(
             client_id=client_id,
@@ -2277,7 +2244,9 @@ class DatabaseTestFlowMixin(object):
     )
 
   def testReadFlowResultsCorrectlyAppliesWithSubstringFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_results = self._WriteFlowResults(
         self._SampleResults(client_id, flow_id), multiple_timestamps=True)
 
@@ -2297,7 +2266,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual([i.payload for i in results], [sample_results[1].payload])
 
   def testReadFlowResultsCorrectlyAppliesVariousCombinationsOfFilters(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_results = self._WriteFlowResults(
         self._SampleResults(client_id, flow_id), multiple_timestamps=True)
 
@@ -2337,7 +2308,9 @@ class DatabaseTestFlowMixin(object):
               (tag_value, type_value, substring_value, expected, results))
 
   def testReadFlowResultsReturnsPayloadWithMissingTypeAsSpecialValue(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_results = self._WriteFlowResults(
         self._SampleResults(client_id, flow_id), multiple_timestamps=True)
 
@@ -2356,7 +2329,9 @@ class DatabaseTestFlowMixin(object):
       self.assertEqual(r.payload.type_name, type_name)
 
   def testCountFlowResultsReturnsCorrectResultsCount(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_results = self._WriteFlowResults(
         self._SampleResults(client_id, flow_id), multiple_timestamps=True)
 
@@ -2364,7 +2339,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(num_results, len(sample_results))
 
   def testCountFlowResultsCorrectlyAppliesWithTagFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     self._WriteFlowResults(
         self._SampleResults(client_id, flow_id), multiple_timestamps=True)
 
@@ -2375,7 +2352,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(num_results, 1)
 
   def testCountFlowResultsCorrectlyAppliesWithTypeFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     self._WriteFlowResults(sample_results=[
         rdf_flow_objects.FlowResult(
             client_id=client_id,
@@ -2410,7 +2389,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(num_results, 10)
 
   def testCountFlowResultsCorrectlyAppliesWithTagAndWithTypeFilters(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     self._WriteFlowResults(
         self._SampleResults(client_id, flow_id), multiple_timestamps=True)
 
@@ -2422,7 +2403,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(num_results, 1)
 
   def testCountFlowResultsByTypeReturnsCorrectNumbers(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_results = self._WriteFlowResults(sample_results=[
         rdf_flow_objects.FlowResult(
             client_id=client_id,
@@ -2473,22 +2456,10 @@ class DatabaseTestFlowMixin(object):
 
     return sample_errors
 
-  def testWritesAndCounts40001FlowErrors(self):
-    client_id, flow_id = self._SetupClientAndFlow()
-    sample_errors = [
-        rdf_flow_objects.FlowError(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client.ClientSummary(client_id=client_id))
-    ] * 40001
-
-    self.db.WriteFlowErrors(sample_errors)
-
-    error_count = self.db.CountFlowErrors(client_id, flow_id)
-    self.assertEqual(error_count, 40001)
-
   def testWritesAndReadsSingleFlowErrorOfSingleType(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_error = rdf_flow_objects.FlowError(
         client_id=client_id,
         flow_id=flow_id,
@@ -2503,7 +2474,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(errors[0].timestamp.AsSecondsSinceEpoch(), 42)
 
   def testWritesAndReadsMultipleFlowErrorsOfSingleType(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_errors = self._WriteFlowErrors(
         self._CreateErrors(client_id, flow_id))
 
@@ -2519,7 +2492,9 @@ class DatabaseTestFlowMixin(object):
     )
 
   def testWritesAndReadsMultipleFlowErrorsWithDifferentTimestamps(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_errors = self._WriteFlowErrors(
         self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
 
@@ -2534,7 +2509,8 @@ class DatabaseTestFlowMixin(object):
     )
 
   def testWritesAndReadsMultipleFlowErrorsOfMultipleTypes(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     def SampleClientSummaryError(i):
       return rdf_flow_objects.FlowError(
@@ -2578,7 +2554,9 @@ class DatabaseTestFlowMixin(object):
     )
 
   def testReadFlowErrorsCorrectlyAppliesOffsetAndCountFilters(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_errors = self._WriteFlowErrors(
         self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
 
@@ -2595,7 +2573,9 @@ class DatabaseTestFlowMixin(object):
             (i, l, error_payloads, expected_payloads))
 
   def testReadFlowErrorsCorrectlyAppliesWithTagFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_errors = self._WriteFlowErrors(
         self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
 
@@ -2610,7 +2590,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual([i.payload for i in errors], [sample_errors[1].payload])
 
   def testReadFlowErrorsCorrectlyAppliesWithTypeFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     def SampleClientSummaryError(i):
       return rdf_flow_objects.FlowError(
@@ -2655,7 +2636,9 @@ class DatabaseTestFlowMixin(object):
     )
 
   def testReadFlowErrorsCorrectlyAppliesVariousCombinationsOfFilters(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_errors = self._WriteFlowErrors(
         self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
 
@@ -2684,7 +2667,9 @@ class DatabaseTestFlowMixin(object):
                               (tag_value, type_value, expected, errors))
 
   def testReadFlowErrorsReturnsPayloadWithMissingTypeAsSpecialValue(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_errors = self._WriteFlowErrors(
         self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
 
@@ -2703,7 +2688,9 @@ class DatabaseTestFlowMixin(object):
       self.assertEqual(r.payload.type_name, type_name)
 
   def testCountFlowErrorsReturnsCorrectErrorsCount(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_errors = self._WriteFlowErrors(
         self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
 
@@ -2711,7 +2698,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(num_errors, len(sample_errors))
 
   def testCountFlowErrorsCorrectlyAppliesWithTagFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     self._WriteFlowErrors(
         self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
 
@@ -2722,7 +2711,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(num_errors, 1)
 
   def testCountFlowErrorsCorrectlyAppliesWithTypeFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     self._WriteFlowErrors(sample_errors=[
         rdf_flow_objects.FlowError(
             client_id=client_id,
@@ -2755,7 +2746,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(num_errors, 10)
 
   def testCountFlowErrorsCorrectlyAppliesWithTagAndWithTypeFilters(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     self._WriteFlowErrors(
         self._CreateErrors(client_id, flow_id), multiple_timestamps=True)
 
@@ -2767,7 +2760,9 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(num_errors, 1)
 
   def testCountFlowErrorsByTypeReturnsCorrectNumbers(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
     sample_errors = self._WriteFlowErrors(sample_errors=[
         rdf_flow_objects.FlowError(
             client_id=client_id,
@@ -2789,7 +2784,8 @@ class DatabaseTestFlowMixin(object):
     })
 
   def testWritesAndReadsSingleFlowLogEntry(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     message = "blah: ٩(͡๏̯͡๏)۶"
 
     self.db.WriteFlowLogEntry(
@@ -2810,14 +2806,16 @@ class DatabaseTestFlowMixin(object):
     return messages
 
   def testWritesAndReadsMultipleFlowLogEntries(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     messages = self._WriteFlowLogEntries(client_id, flow_id)
 
     entries = self.db.ReadFlowLogEntries(client_id, flow_id, 0, 100)
     self.assertEqual([e.message for e in entries], messages)
 
   def testReadFlowLogEntriesCorrectlyAppliesOffsetAndCountFilters(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     messages = self._WriteFlowLogEntries(client_id, flow_id)
 
     for i in range(10):
@@ -2826,7 +2824,8 @@ class DatabaseTestFlowMixin(object):
         self.assertEqual([e.message for e in entries], messages[i:i + size])
 
   def testReadFlowLogEntriesCorrectlyAppliesWithSubstringFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     messages = self._WriteFlowLogEntries(client_id, flow_id)
 
     entries = self.db.ReadFlowLogEntries(
@@ -2842,7 +2841,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual([e.message for e in entries], [messages[1]])
 
   def testReadFlowLogEntriesCorrectlyAppliesVariousCombinationsOfFilters(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     messages = self._WriteFlowLogEntries(client_id, flow_id)
 
     entries = self.db.ReadFlowLogEntries(
@@ -2858,16 +2858,16 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual([e.message for e in entries], [messages[1]])
 
   def testCountFlowLogEntriesReturnsCorrectFlowLogEntriesCount(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     messages = self._WriteFlowLogEntries(client_id, flow_id)
 
     num_entries = self.db.CountFlowLogEntries(client_id, flow_id)
     self.assertEqual(num_entries, len(messages))
 
   def testFlowLogsAndErrorsForUnknownFlowsRaise(self):
-    client_id = u"C.1234567890123456"
+    client_id = db_test_utils.InitializeClient(self.db)
     flow_id = flow.RandomFlowId()
-    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
 
     with self.assertRaises(db.UnknownFlowError) as context:
       self.db.WriteFlowLogEntry(
@@ -2901,7 +2901,7 @@ class DatabaseTestFlowMixin(object):
     return entries
 
   def testWriteFlowOutputPluginLogEntryRaisesOnUnknownFlow(self):
-    client_id = self._SetupClient()
+    client_id = db_test_utils.InitializeClient(self.db)
     flow_id = "ABCDEF48"
 
     entry = rdf_flow_objects.FlowOutputPluginLogEntry()
@@ -2917,7 +2917,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(context.exception.flow_id, flow_id)
 
   def testFlowOutputPluginLogEntriesCanBeWrittenAndThenRead(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     output_plugin_id = "1"
 
     written_entries = self._WriteFlowOutputPluginLogEntries(
@@ -2930,7 +2931,8 @@ class DatabaseTestFlowMixin(object):
                      [e.message for e in read_entries])
 
   def testFlowOutputPluginLogEntryWith1MbMessageCanBeWrittenAndThenRead(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     output_plugin_id = "1"
 
     entry = rdf_flow_objects.FlowOutputPluginLogEntry(
@@ -2949,7 +2951,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(read_entries[0].message, entry.message)
 
   def testFlowOutputPluginLogEntriesCanBeReadWithTypeFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     output_plugin_id = "1"
 
     self._WriteFlowOutputPluginLogEntries(client_id, flow_id, output_plugin_id)
@@ -2973,7 +2976,8 @@ class DatabaseTestFlowMixin(object):
     self.assertLen(read_entries, 6)
 
   def testReadFlowOutputPluginLogEntriesCorrectlyAppliesOffsetCounter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     output_plugin_id = "1"
 
     entries = self._WriteFlowOutputPluginLogEntries(client_id, flow_id,
@@ -2993,7 +2997,8 @@ class DatabaseTestFlowMixin(object):
             (i, l, result_messages, expected_messages))
 
   def testReadFlowOutputPluginLogEntriesAppliesOffsetCounterWithType(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     output_plugin_id = "1"
 
     entries = self._WriteFlowOutputPluginLogEntries(client_id, flow_id,
@@ -3018,8 +3023,8 @@ class DatabaseTestFlowMixin(object):
               (i, l, result_messages, expected_messages))
 
   def testFlowOutputPluginLogEntriesCanBeCountedPerPlugin(self):
-    client_id, flow_id = self._SetupClientAndFlow()
-
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
     output_plugin_id_1 = "1"
     self._WriteFlowOutputPluginLogEntries(client_id, flow_id,
                                           output_plugin_id_1)
@@ -3036,7 +3041,8 @@ class DatabaseTestFlowMixin(object):
                                                 output_plugin_id_2), 10)
 
   def testCountFlowOutputPluginLogEntriesRespectsWithTypeFilter(self):
-    client_id, flow_id = self._SetupClientAndFlow()
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
     output_plugin_id = "1"
     self._WriteFlowOutputPluginLogEntries(client_id, flow_id, output_plugin_id)
@@ -3082,13 +3088,13 @@ class DatabaseTestFlowMixin(object):
     return sf
 
   def testListScheduledFlowsInitiallyEmpty(self):
-    client_id = self._SetupClient()
-    username = self._SetupUser()
+    client_id = db_test_utils.InitializeClient(self.db)
+    username = db_test_utils.InitializeUser(self.db)
     self.assertEmpty(self.db.ListScheduledFlows(client_id, username))
 
   def testWriteScheduledFlowPersistsAllFields(self):
-    client_id = self._SetupClient()
-    username = self._SetupUser()
+    client_id = db_test_utils.InitializeClient(self.db)
+    username = db_test_utils.InitializeUser(self.db)
 
     sf = self._SetupScheduledFlow(
         client_id=client_id,
@@ -3115,8 +3121,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual(result.error, "foobazzle disintegrated")
 
   def testWriteMultipleScheduledFlows(self):
-    client_id = self._SetupClient()
-    username = self._SetupUser()
+    client_id = db_test_utils.InitializeClient(self.db)
+    username = db_test_utils.InitializeUser(self.db)
 
     sf1 = self._SetupScheduledFlow(client_id=client_id, creator=username)
     sf2 = self._SetupScheduledFlow(client_id=client_id, creator=username)
@@ -3125,8 +3131,8 @@ class DatabaseTestFlowMixin(object):
                           self.db.ListScheduledFlows(client_id, username))
 
   def testWriteScheduledFlowUpdatesExistingEntry(self):
-    client_id = self._SetupClient()
-    username = self._SetupUser()
+    client_id = db_test_utils.InitializeClient(self.db)
+    username = db_test_utils.InitializeUser(self.db)
 
     sf = self._SetupScheduledFlow(client_id=client_id, creator=username)
     sf = self._SetupScheduledFlow(
@@ -3138,13 +3144,13 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual([sf], self.db.ListScheduledFlows(client_id, username))
 
   def testListScheduledFlowsFiltersCorrectly(self):
-    client_id1 = self._SetupClient("C.0000000000000001")
-    client_id2 = self._SetupClient("C.0000000000000002")
-    client_id3 = self._SetupClient("C.0000000000000003")
+    client_id1 = db_test_utils.InitializeClient(self.db, "C.0000000000000001")
+    client_id2 = db_test_utils.InitializeClient(self.db, "C.0000000000000002")
+    client_id3 = db_test_utils.InitializeClient(self.db, "C.0000000000000003")
 
-    username1 = self._SetupUser("u1")
-    username2 = self._SetupUser("u2")
-    username3 = self._SetupUser("u3")
+    username1 = db_test_utils.InitializeUser(self.db)
+    username2 = db_test_utils.InitializeUser(self.db)
+    username3 = db_test_utils.InitializeUser(self.db)
 
     sf11a = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
     sf11b = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
@@ -3167,8 +3173,7 @@ class DatabaseTestFlowMixin(object):
     self.assertEmpty(self.db.ListScheduledFlows(client_id1, username3))
 
   def testWriteScheduledFlowRaisesForUnknownClient(self):
-    self._SetupClient()
-    username = self._SetupUser()
+    username = db_test_utils.InitializeUser(self.db)
 
     with self.assertRaises(db.UnknownClientError):
       self._SetupScheduledFlow(client_id="C.1234123412341234", creator=username)
@@ -3176,8 +3181,7 @@ class DatabaseTestFlowMixin(object):
     self.assertEmpty(self.db.ListScheduledFlows("C.1234123412341234", username))
 
   def testWriteScheduledFlowRaisesForUnknownUser(self):
-    client_id = self._SetupClient()
-    self._SetupUser()
+    client_id = db_test_utils.InitializeClient(self.db)
 
     with self.assertRaises(db.UnknownGRRUserError):
       self._SetupScheduledFlow(client_id=client_id, creator="nonexistent")
@@ -3185,8 +3189,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEmpty(self.db.ListScheduledFlows(client_id, "nonexistent"))
 
   def testDeleteScheduledFlowRemovesScheduledFlow(self):
-    client_id = self._SetupClient()
-    username = self._SetupUser()
+    client_id = db_test_utils.InitializeClient(self.db)
+    username = db_test_utils.InitializeUser(self.db)
 
     sf = self._SetupScheduledFlow(client_id=client_id, creator=username)
 
@@ -3195,10 +3199,10 @@ class DatabaseTestFlowMixin(object):
     self.assertEmpty(self.db.ListScheduledFlows(client_id, username))
 
   def testDeleteScheduledFlowDoesNotRemoveUnrelatedEntries(self):
-    client_id1 = self._SetupClient("C.0000000000000001")
-    client_id2 = self._SetupClient("C.0000000000000002")
-    username1 = self._SetupUser("u1")
-    username2 = self._SetupUser("u2")
+    client_id1 = db_test_utils.InitializeClient(self.db)
+    client_id2 = db_test_utils.InitializeClient(self.db)
+    username1 = db_test_utils.InitializeUser(self.db)
+    username2 = db_test_utils.InitializeUser(self.db)
 
     sf111 = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
     sf112 = self._SetupScheduledFlow(client_id=client_id1, creator=username1)
@@ -3218,8 +3222,8 @@ class DatabaseTestFlowMixin(object):
     self.assertEqual([sf121], self.db.ListScheduledFlows(client_id1, username2))
 
   def testDeleteScheduledFlowRaisesForUnknownScheduledFlow(self):
-    client_id = self._SetupClient()
-    username = self._SetupUser()
+    client_id = db_test_utils.InitializeClient(self.db)
+    username = db_test_utils.InitializeUser(self.db)
 
     self._SetupScheduledFlow(
         scheduled_flow_id="1", client_id=client_id, creator=username)
@@ -3238,10 +3242,10 @@ class DatabaseTestFlowMixin(object):
       self.db.DeleteScheduledFlow("C.1234123412341234", username, "1")
 
   def testDeleteUserDeletesScheduledFlows(self):
-    client_id = self._SetupClient()
-    client_id2 = self._SetupClient()
-    username1 = self._SetupUser("u1")
-    username2 = self._SetupUser("u2")
+    client_id = db_test_utils.InitializeClient(self.db)
+    client_id2 = db_test_utils.InitializeClient(self.db)
+    username1 = db_test_utils.InitializeUser(self.db)
+    username2 = db_test_utils.InitializeUser(self.db)
 
     self._SetupScheduledFlow(client_id=client_id, creator=username1)
     self._SetupScheduledFlow(client_id=client_id, creator=username1)
@@ -3253,6 +3257,163 @@ class DatabaseTestFlowMixin(object):
     self.assertEmpty(self.db.ListScheduledFlows(client_id, username1))
     self.assertEmpty(self.db.ListScheduledFlows(client_id2, username1))
     self.assertEqual([sf2], self.db.ListScheduledFlows(client_id, username2))
+
+
+class DatabaseLargeTestFlowMixin(object):
+  """An abstract class for large tests of database flow methods."""
+
+  # TODO(hanuszczak): Remove code duplication in the three methods below shared
+  # with the `DatabaseTestFlowMixin` class.
+
+  def _Responses(self, client_id, flow_id, request_id, num_responses):
+    # TODO(hanuszczak): Fix this lint properly.
+    # pylint: disable=g-complex-comprehension
+    return [
+        rdf_flow_objects.FlowResponse(
+            client_id=client_id,
+            flow_id=flow_id,
+            request_id=request_id,
+            response_id=i) for i in range(1, num_responses + 1)
+    ]
+
+  # pylint: enable=g-complex-comprehension
+
+  def _ResponsesAndStatus(self, client_id, flow_id, request_id, num_responses):
+    return self._Responses(client_id, flow_id, request_id, num_responses) + [
+        rdf_flow_objects.FlowStatus(
+            client_id=client_id,
+            flow_id=flow_id,
+            request_id=request_id,
+            response_id=num_responses + 1)
+    ]
+
+  def _WriteResponses(self, num):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
+
+    request = rdf_flow_objects.FlowRequest(
+        client_id=client_id, flow_id=flow_id, request_id=2)
+    self.db.WriteFlowRequests([request])
+
+    # Generate responses together with a status message.
+    responses = self._ResponsesAndStatus(client_id, flow_id, 2, num)
+
+    # Write responses. This should trigger flow request processing.
+    self.db.WriteFlowResponses(responses)
+
+    return request, responses
+
+  def test40001RequestsCanBeWrittenAndRead(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
+
+    requests = [
+        rdf_flow_objects.FlowRequest(
+            client_id=client_id, flow_id=flow_id, request_id=i)
+        for i in range(40001)
+    ]
+    self.db.WriteFlowRequests(requests)
+
+    self.assertLen(
+        self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id), 40001)
+
+  def test40001ResponsesCanBeWrittenAndRead(self):
+    request, responses = self._WriteResponses(40001)
+
+    expected_request = rdf_flow_objects.FlowRequest(
+        client_id=request.client_id,
+        flow_id=request.flow_id,
+        request_id=request.request_id,
+        needs_processing=True,
+        nr_responses_expected=40002)
+
+    rrp = self.db.ReadFlowRequestsReadyForProcessing(
+        request.client_id,
+        request.flow_id,
+        next_needed_request=request.request_id)
+    self.assertLen(rrp, 1)
+    fetched_request, fetched_responses = rrp[request.request_id]
+    self.assertEqual(fetched_request, expected_request)
+    self.assertEqual(fetched_responses, responses)
+
+    arrp = self.db.ReadAllFlowRequestsAndResponses(request.client_id,
+                                                   request.flow_id)
+    self.assertLen(arrp, 1)
+    fetched_request, fetched_responses = arrp[0]
+    self.assertEqual(fetched_request, expected_request)
+    self.assertEqual([r for _, r in sorted(fetched_responses.items())],
+                     responses)
+
+  def testDeleteAllFlowRequestsAndResponsesHandles11000Responses(self):
+    request, _ = self._WriteResponses(11000)
+
+    self.db.DeleteAllFlowRequestsAndResponses(request.client_id,
+                                              request.flow_id)
+    arrp = self.db.ReadAllFlowRequestsAndResponses(request.client_id,
+                                                   request.flow_id)
+    self.assertEmpty(arrp)
+
+  def testDeleteFlowRequestsHandles11000Responses(self):
+    request, _ = self._WriteResponses(11000)
+
+    self.db.DeleteFlowRequests([request])
+    arrp = self.db.ReadAllFlowRequestsAndResponses(request.client_id,
+                                                   request.flow_id)
+    self.assertEmpty(arrp)
+
+  def testDeleteFlowRequestsHandles11000Requests(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(
+        self.db, client_id, next_request_to_process=2)
+
+    requests = [
+        rdf_flow_objects.FlowRequest(
+            client_id=client_id, flow_id=flow_id, request_id=i)
+        for i in range(2, 11002)
+    ]
+    self.db.WriteFlowRequests(requests)
+
+    self.assertLen(
+        self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id), 11000)
+
+    self.db.DeleteFlowRequests(requests)
+
+    self.assertEmpty(
+        self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id))
+
+  def testWritesAndCounts40001FlowResults(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
+    sample_results = [
+        rdf_flow_objects.FlowResult(
+            client_id=client_id,
+            flow_id=flow_id,
+            payload=rdf_client.ClientSummary(client_id=client_id))
+    ] * 40001
+
+    self.db.WriteFlowResults(sample_results)
+
+    result_count = self.db.CountFlowResults(client_id, flow_id)
+    self.assertEqual(result_count, 40001)
+
+  def testWritesAndCounts40001FlowErrors(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
+    sample_errors = [
+        rdf_flow_objects.FlowError(
+            client_id=client_id,
+            flow_id=flow_id,
+            payload=rdf_client.ClientSummary(client_id=client_id))
+    ] * 40001
+
+    self.db.WriteFlowErrors(sample_errors)
+
+    error_count = self.db.CountFlowErrors(client_id, flow_id)
+    self.assertEqual(error_count, 40001)
 
 
 # This file is a test library and thus does not require a __main__ block.

@@ -1,8 +1,16 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {UntypedFormControl} from '@angular/forms';
+import {FormControl} from '@angular/forms';
 
-import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {NetstatArgs} from '../../lib/api/api_interfaces';
+
+function makeControls() {
+  return {
+    listeningOnly: new FormControl(false, {nonNullable: true}),
+  };
+}
+
+type Controls = ReturnType<typeof makeControls>;
 
 /**
  * A form that makes it possible to configure the netstat flow.
@@ -14,16 +22,19 @@ import {NetstatArgs} from '../../lib/api/api_interfaces';
   changeDetection: ChangeDetectionStrategy.OnPush,
 
 })
-export class NetstatForm extends FlowArgumentForm<NetstatArgs> {
-  override makeControls(): Controls<NetstatArgs> {
+export class NetstatForm extends FlowArgumentForm<NetstatArgs, Controls> {
+  override makeControls() {
+    return makeControls();
+  }
+
+  override convertFlowArgsToFormState(flowArgs: NetstatArgs) {
     return {
-      listeningOnly: new UntypedFormControl(),
+      listeningOnly:
+          flowArgs.listeningOnly ?? this.controls.listeningOnly.defaultValue,
     };
   }
-  override convertFlowArgsToFormState(flowArgs: NetstatArgs): NetstatArgs {
-    return flowArgs;
-  }
-  override convertFormStateToFlowArgs(formState: NetstatArgs): NetstatArgs {
+
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return formState;
   }
 }

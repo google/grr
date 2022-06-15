@@ -10,7 +10,7 @@ import {assertNonNull} from '../../../lib/preconditions';
 import {FlowResultsQueryWithAdapter} from '../helpers/load_flow_results_directive';
 import {Status as ResultAccordionStatus} from '../helpers/result_accordion';
 
-import {Plugin} from './plugin';
+import {ExportMenuItem, Plugin} from './plugin';
 
 
 declare interface BrowserRow {
@@ -115,6 +115,19 @@ export class CollectBrowserHistoryDetails extends Plugin {
         resultMapper: mapFlowResults,
       },
     };
+  }
+
+  override getExportMenuItems(flow: Flow): ReadonlyArray<ExportMenuItem> {
+    const items = super.getExportMenuItems(flow);
+    const downloadItem = this.getDownloadFilesExportMenuItem(flow);
+
+    if (flow.resultCounts?.find(
+            rc => rc.type === 'CollectBrowserHistoryResult' && rc.count) &&
+        !items.find(item => item.url === downloadItem.url)) {
+      return [downloadItem, ...items];
+    } else {
+      return items;
+    }
   }
 }
 

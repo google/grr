@@ -102,6 +102,9 @@ class ArtifactSource(rdf_structs.RDFProtoStruct):
           "required_attributes": ["paths", "content_regex_list"],
           "output_type": "BufferReference"
       },
+      # TODO(hanuszczak): `DIRECTORY` is deprecated [1], it should be removed.
+      #
+      # [1]: https://github.com/ForensicArtifacts/artifacts/pull/475
       artifact_pb2.ArtifactSource.DIRECTORY: {
           "required_attributes": ["paths"],
           "output_type": "StatEntry"

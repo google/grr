@@ -1,5 +1,5 @@
 import {Component, OnDestroy} from '@angular/core';
-import {AbstractControl, UntypedFormControl, UntypedFormGroup} from '@angular/forms';
+import {AbstractControl, FormGroup} from '@angular/forms';
 import {map} from 'rxjs/operators';
 
 import {observeOnDestroy} from '../../lib/reactive';
@@ -10,54 +10,85 @@ export type OnChangeFn<T> = (value: T) => void;
 /** ControlValueAccessor's onTouched callback function. */
 export type OnTouchedFn = () => void;
 
-/** Controls of a FlowArgumentForm. */
-export type Controls<T extends {}> = {
-  [key in keyof T] -?: UntypedFormControl
-};
-
-/** An object of AbstractControls (e.g. FormControl). */
-export type AbstractControls<T extends {}> = {
-  [key in keyof T] -?: AbstractControl
+/**
+ * The raw values of a Record of AbstractControls, e.g.:
+ *
+ * Example 1: when `makeControls()` returns:
+ *
+ * ```
+ * { key: new FormControl('', {nonNullable: true}) }
+ * ```
+ *
+ * `ControlValues<ReturnType<typeof makeControls>>` yields:
+ *
+ * ```
+ * { key: string }
+ * ```
+ *
+ * Example 2: when `makeControls()` returns the type:
+ *
+ * ```
+ * { key?: FormControl<string> }
+ * ```
+ *
+ * `ControlValues<ReturnType<typeof makeControls>>` yields:
+ *
+ * ```
+ * { key: string|undefined }
+ * ```
+ */
+export declare type ControlValues<
+    T extends {[K in keyof T]: AbstractControl | undefined}> = {
+  [K in keyof T]: T[K] extends AbstractControl ?
+      // For basic {key: FormControl<X>()} mappings, the type is {key: X}.
+      T[K]['value'] :
+      T[K] extends undefined | infer C extends AbstractControl ?
+      // For optional {key?: FormControl<X>()} mappings, the type is
+      // {key: X|undefined}.
+      C['value'] | undefined :
+      never
 };
 
 /** Form component to configure arguments for a Flow. */
 @Component({template: ''})
 export abstract class FlowArgumentForm<
     FlowArgs extends {},
-    FormState extends {} = FlowArgs,
-    C extends AbstractControls<FormState> = Controls<FormState>,> implements
-    OnDestroy {
+                     Controls extends {[K in keyof Controls]: AbstractControl}>
+    implements OnDestroy {
   // Only ControlValueAccessor is not enough because it does not handle
   // validation.
   /**
-   * Returns an Object mapping from FormState keys to FormControls.
+   * Returns an object of FormControls.
    *
    * ```
    * return {
-   *   filename: new FormControl(),
-   *   maxSize: new FormControl(),
+   *   filename: new FormControl(''),
+   *   maxSize: new FormControl(0),
    * };
    * ```
    */
-  abstract makeControls(): C;
+  abstract makeControls(): Controls;
 
-  readonly controls = this.makeControls();
+  readonly controls: Controls = this.makeControls();
 
-  readonly form = new UntypedFormGroup(this.controls, {updateOn: 'change'});
+  readonly form = new FormGroup<Controls>(this.controls, {updateOn: 'change'});
 
-  readonly flowArgs$ =
-      this.form.valueChanges.pipe(map(this.convertFormStateToFlowArgs));
+  readonly flowArgs$ = this.form.valueChanges.pipe(map(
+      (values) =>
+          this.convertFormStateToFlowArgs(values as ControlValues<Controls>)));
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  /** Returns the internal FormState by converting API FlowArgs. */
-  abstract convertFlowArgsToFormState(flowArgs: FlowArgs): FormState;
+  /** Returns the internal form state by converting API FlowArgs. */
+  abstract convertFlowArgsToFormState(flowArgs: FlowArgs):
+      ControlValues<Controls>;
 
   /**
    * Returns the FlowArgs to be passed to the API by converting internal
-   * FormState.
+   * form state.
    */
-  abstract convertFormStateToFlowArgs(formState: FormState): FlowArgs;
+  abstract convertFormStateToFlowArgs(formState: ControlValues<Controls>):
+      FlowArgs;
 
   /**
    * Resets the form with the given values and marks it as pristine.

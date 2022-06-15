@@ -1,4 +1,4 @@
-<div class="new-hunt-container">
+<div class="new-hunt-container centered-content">
   <div class="config">
     <title-editor (changed)="updateTitle($event)"
                  #titleEditor
@@ -14,6 +14,8 @@
     </app-clients-form>
     <app-params-form #paramsForm>
     </app-params-form>
+    <app-output-plugins-form #outputPluginsForm>
+    </app-output-plugins-form>
     <approval #approval
               *ngIf="huntApprovalRequired$ | async"
               [showSubmitButton]="false"

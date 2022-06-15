@@ -40,10 +40,35 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
                              "css=a:contains('View details')")
     self.assertEndsWith(
         element.get_attribute("href"),
-        "/v2/clients/C.1000000000000000/flows/(drawer:details)")
+        "/v2/clients/C.1000000000000000/flows(drawer:details)")
     element.click()
 
     self.WaitUntilContains("drawer", self.GetCurrentUrlPath)
+    self.WaitUntil(self.IsTextPresent, mem_size)
+
+  def testDeepLinkToClientTimelineOpensInDrawer(self):
+    mem_size = "1.00 KiB"
+    client_id = self.SetupClient(0, fqdn="foo.bar", memory_size=1024)
+
+    self.Open(f"/v2/clients/{client_id}")
+    self.WaitUntil(self.IsTextPresent, "foo.bar")
+    # Test that data only shows up after opening the details drawer. If
+    # the data is every moved to the client summary shown on the client page,
+    # use a different field for testing.
+    self.WaitUntilNot(self.IsTextPresent, mem_size)
+
+    element = self.WaitUntil(self.GetVisibleElement,
+                             "css=a:contains('View details')")
+    self.assertEndsWith(
+        element.get_attribute("href"),
+        "/v2/clients/C.1000000000000000/flows(drawer:details)")
+    element.click()
+
+    self.WaitUntilContains("drawer", self.GetCurrentUrlPath)
+    self.WaitUntil(self.IsTextPresent, mem_size)
+
+    # Reload the web page to simulate a deep link directly to the drawer.
+    self.Open(self.GetCurrentUrlPath())
     self.WaitUntil(self.IsTextPresent, mem_size)
 
 

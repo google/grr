@@ -274,6 +274,28 @@ describe('collect-browser-history-details component', () => {
                                   payloadType: 'CollectBrowserHistoryResult',
                                 })));
   });
+
+
+  it('displays download options in menu when flow has results', async () => {
+    const fixture = TestBed.createComponent(CollectBrowserHistoryDetails);
+    const args: CollectBrowserHistoryArgs = {
+      browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
+    };
+    fixture.componentInstance.flow = newFlow({
+      clientId: 'C.1',
+      flowId: '12',
+      name: 'CollectBrowserHistory',
+      args,
+      resultCounts: [{type: 'CollectBrowserHistoryResult', count: 1}],
+      state: FlowState.FINISHED,
+    });
+
+    const menuItems = fixture.componentInstance.getExportMenuItems(
+        fixture.componentInstance.flow);
+    expect(menuItems[0])
+        .toEqual(fixture.componentInstance.getDownloadFilesExportMenuItem(
+            fixture.componentInstance.flow));
+  });
 });
 
 function makeBrowserHistoryResult(i: number): CollectBrowserHistoryResult {

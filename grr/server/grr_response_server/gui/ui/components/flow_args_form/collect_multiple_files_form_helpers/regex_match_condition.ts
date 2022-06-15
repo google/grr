@@ -1,15 +1,8 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
-import {ControlContainer, UntypedFormControl, UntypedFormGroup, Validators} from '@angular/forms';
+import {ControlContainer, FormControl, FormGroup, Validators} from '@angular/forms';
 
 import {FileFinderContentsMatchConditionMode, FileFinderContentsRegexMatchCondition} from '../../../lib/api/api_interfaces';
 import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
-
-/** Represents raw values produced by the time range form. */
-export declare interface RegexMatchRawFormValues {
-  readonly regex: string;
-  readonly mode: FileFinderContentsMatchConditionMode;
-  readonly length: number;
-}
 
 /** Form that configures a regex match condition. */
 @Component({
@@ -25,22 +18,25 @@ export class RegexMatchCondition {
 
   @Output() conditionRemoved = new EventEmitter<void>();
 
-  get formGroup(): UntypedFormGroup {
-    return this.controlContainer.control as UntypedFormGroup;
+  get formGroup() {
+    return this.controlContainer.control as
+        ReturnType<typeof createRegexMatchFormGroup>;
   }
 }
 
 /** Initializes a form group corresponding to the regex match condition. */
-export function createRegexMatchFormGroup(): UntypedFormGroup {
-  // Default length (for how far into the file to search) is 20 MB.
-  const DEFAULT_LENGTH = 20_000_000;
-
-  return new UntypedFormGroup({
-    regex: new UntypedFormControl(null, Validators.required),
-    mode:
-        new UntypedFormControl(FileFinderContentsMatchConditionMode.FIRST_HIT),
-    length: new UntypedFormControl(
-        DEFAULT_LENGTH, [Validators.required, Validators.min(0)]),
+export function createRegexMatchFormGroup() {
+  return new FormGroup({
+    // TODO: Writing existing values does not work - they need to
+    // be base64 decoded?
+    regex: new FormControl(
+        '', {nonNullable: true, validators: [Validators.required]}),
+    mode: new FormControl(
+        FileFinderContentsMatchConditionMode.FIRST_HIT, {nonNullable: true}),
+    length: new FormControl(20_000_000, {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(0)]
+    }),
   });
 }
 
@@ -49,11 +45,11 @@ export function createRegexMatchFormGroup(): UntypedFormGroup {
  * length to an integer.
  */
 export function formValuesToFileFinderContentsRegexMatchCondition(
-    rawFormValues: RegexMatchRawFormValues):
+    rawFormValues: ReturnType<typeof createRegexMatchFormGroup>['value']):
     FileFinderContentsRegexMatchCondition {
   return {
     ...rawFormValues,
-    regex: encodeStringToBase64(rawFormValues.regex),
-    length: Math.floor(rawFormValues.length),
+    regex: encodeStringToBase64(rawFormValues.regex ?? ''),
+    length: Math.floor(rawFormValues.length ?? 0),
   };
 }

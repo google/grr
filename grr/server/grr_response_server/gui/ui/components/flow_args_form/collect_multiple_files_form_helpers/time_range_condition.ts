@@ -1,17 +1,10 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
-import {ControlContainer, UntypedFormControl, UntypedFormGroup} from '@angular/forms';
+import {ControlContainer, FormControl, FormGroup} from '@angular/forms';
 
 import {atLeastOneMustBeSet, timesInOrder} from '../../../components/form/validators';
 import {FileFinderAccessTimeCondition, FileFinderInodeChangeTimeCondition, FileFinderModificationTimeCondition} from '../../../lib/api/api_interfaces';
 import {createOptionalApiTimestamp} from '../../../lib/api_translation/primitive';
 import {DateTime} from '../../../lib/date_time';
-
-
-/** Represents raw values produced by the time range form. */
-export declare interface RawFormValues {
-  readonly minTime: DateTime|null;
-  readonly maxTime: DateTime|null;
-}
 
 /** Form that configures a modification time condition. */
 @Component({
@@ -25,21 +18,26 @@ export class TimeRangeCondition {
   @Input() title: string = '';
   @Output() conditionRemoved = new EventEmitter<void>();
 
-  get formGroup(): UntypedFormGroup {
-    return this.controlContainer.control as UntypedFormGroup;
+  get formGroup() {
+    return this.controlContainer.control as
+        ReturnType<typeof createTimeRangeFormGroup>;
   }
 }
 
 /** Initializes a form group corresponding to the time range condition. */
-export function createTimeRangeFormGroup(): UntypedFormGroup {
-  const minTime = new UntypedFormControl(null);
-  const maxTime = new UntypedFormControl(null);
+export function createTimeRangeFormGroup() {
+  const minTime = new FormControl<DateTime|null|undefined>(null);
+  const maxTime = new FormControl<DateTime|null|undefined>(null);
 
-  return new UntypedFormGroup({'minTime': minTime, 'maxTime': maxTime}, [
-    atLeastOneMustBeSet([minTime, maxTime]),
-    timesInOrder(minTime, maxTime),
-  ]);
+  return new FormGroup({'minTime': minTime, 'maxTime': maxTime}, {
+    validators: [
+      atLeastOneMustBeSet([minTime, maxTime]),
+      timesInOrder(minTime, maxTime),
+    ]
+  });
 }
+
+type RawFormValues = ReturnType<typeof createTimeRangeFormGroup>['value'];
 
 /** Converts raw form values to FileFinderModificationTimeCondition. */
 export function formValuesToFileFinderModificationTimeCondition(

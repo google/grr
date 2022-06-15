@@ -2279,112 +2279,76 @@ message YaraProcessScanRequest {
         [(description) = "All errors, except privilege issues when reading "
                          "process memory."];
   }
-  optional ErrorPolicy include_errors_in_results = 14 [
-    (sem_type) = {
-      description: "Include processes that we failed to scan into returned "
-                   "results."
-      label: ADVANCED,
-    },
-    default = NO_ERRORS
-  ];
-  optional bool include_misses_in_results = 15 [
-    (sem_type) = {
-      description: "Include processes that came back without matches into "
-                   "returned results."
-      label: ADVANCED,
-    },
-    default = false
-  ];
-  optional bool ignore_grr_process = 4 [
-    default = true,
-    (sem_type) = {
-      description: "By default, the GRR process is not scanned. Clear this "
-                   "flag to change this behavior.",
-      label: ADVANCED,
-    }
-  ];
+  optional ErrorPolicy include_errors_in_results = 14 [(sem_type) = {
+    description: "Include processes that we failed to scan into returned "
+                 "results."
+    label: ADVANCED,
+  }];
+  optional bool include_misses_in_results = 15 [(sem_type) = {
+    description: "Include processes that came back without matches into "
+                 "returned results."
+    label: ADVANCED,
+  }];
+  optional bool ignore_grr_process = 4 [(sem_type) = {
+    description: "By default, the GRR process is not scanned. Clear this "
+                 "flag to change this behavior.",
+    label: ADVANCED,
+  }];
   optional uint32 per_process_timeout = 5 [(sem_type) = {
     description: "A timeout in seconds that is applied while scanning; "
                  "applies to each scan individually.",
   }];
-  optional uint64 chunk_size = 6 [
-    (sem_type) = {
-      description: "The chunk size to use when scanning large memory regions.",
-      label: ADVANCED,
-    },
-    default = 104857600  // 100 MB
-  ];
-  optional uint64 overlap_size = 7 [
-    (sem_type) = {
-      description: "The overlap size to use when scanning large memory "
-                   "regions.",
-      label: ADVANCED,
-    },
-    default = 10485760  // 10 MB
-  ];
-  optional bool skip_special_regions = 8 [
-    (sem_type) = {
-      description: "Set this flag to avoid scanning device backed regions and "
-                   "guard pages. Applies to Windows only.",
-      label: ADVANCED,
-    },
-    default = false
-  ];
-  optional bool skip_mapped_files = 9 [
-    (sem_type) = {
-      description: "Set this flag to avoid scanning mapped files. Applies to "
-                   "Linux only.",
-      label: ADVANCED,
-    },
-    default = true
-  ];
-  optional bool skip_shared_regions = 10 [
-    (sem_type) = {
-      description: "Set this flag to avoid scanning shared regions. Applies to "
-                   "Linux and macOS.",
-      label: ADVANCED,
-    },
-    default = false
-  ];
-  optional bool skip_executable_regions = 11 [
-    (sem_type) = {
-      description: "Set this flag to avoid scanning executable regions. "
-                   "Applies to Linux and macOS.",
-      label: ADVANCED,
-    },
-    default = false
-  ];
-  optional bool skip_readonly_regions = 12 [
-    (sem_type) = {
-      description: "Set this flag to avoid scanning readonly regions. Applies "
-                   "to Linux and macOS.",
-      label: ADVANCED,
-    },
-    default = false
-  ];
-  optional bool dump_process_on_match = 13 [
-    (sem_type) = {
-      description: "Set this flag to schedule a process memory dump on every "
-                   "signature match.",
-      label: ADVANCED,
-    },
-    default = false
-  ];
+  optional uint64 chunk_size = 6 [(sem_type) = {
+    description: "The chunk size to use when scanning large memory regions.",
+    label: ADVANCED,
+  }];
+  optional uint64 overlap_size = 7 [(sem_type) = {
+    description: "The overlap size to use when scanning large memory "
+                 "regions.",
+    label: ADVANCED,
+  }];
+  optional bool skip_special_regions = 8 [(sem_type) = {
+    description: "Set this flag to avoid scanning device backed regions and "
+                 "guard pages. Applies to Windows only.",
+    label: ADVANCED,
+  }];
+  optional bool skip_mapped_files = 9 [(sem_type) = {
+    description: "Set this flag to avoid scanning mapped files. Applies to "
+                 "Linux only.",
+    label: ADVANCED,
+  }];
+  optional bool skip_shared_regions = 10 [(sem_type) = {
+    description: "Set this flag to avoid scanning shared regions. Applies to "
+                 "Linux and macOS.",
+    label: ADVANCED,
+  }];
+  optional bool skip_executable_regions = 11 [(sem_type) = {
+    description: "Set this flag to avoid scanning executable regions. "
+                 "Applies to Linux and macOS.",
+    label: ADVANCED,
+  }];
+  optional bool skip_readonly_regions = 12 [(sem_type) = {
+    description: "Set this flag to avoid scanning readonly regions. Applies "
+                 "to Linux and macOS.",
+    label: ADVANCED,
+  }];
+  optional bool dump_process_on_match = 13 [(sem_type) = {
+    description: "Set this flag to schedule a process memory dump on every "
+                 "signature match.",
+    label: ADVANCED,
+  }];
   optional uint32 max_results_per_process = 16 [(sem_type) = {
     description: "Set this to limit the number of matches returned for "
                  "each process scanned.",
     label: ADVANCED,
   }];
-  optional uint64 process_dump_size_limit = 19 [
-    (sem_type) = {
-      description: "Maximum amount of raw process memory to dump. The first "
-                   "memory block going over the limit will not be written "
-                   "anymore. 0 indicates no limit.",
-      type: "ByteSize",
-      label: ADVANCED,
-    },
-    default = 0
-  ];
+  optional uint64 process_dump_size_limit = 19 [(sem_type) = {
+    description: "Maximum amount of raw process memory to dump. The first "
+                 "memory block going over the limit will not be written "
+                 "anymore. 0 indicates no limit.",
+    type: "ByteSize",
+    label: ADVANCED,
+  }];
   optional uint64 scan_runtime_limit_us = 21 [(sem_type) = {
     description: "Runtime limit for the whole scan including all processes "
                  "in microseconds. This limit is for the scan only and is not "
@@ -2485,78 +2449,51 @@ message YaraProcessDumpArgs {
     description: "A regex to match against the process name. Only matching "
                  "names will be dumped.",
   }];
-  optional bool ignore_grr_process = 3 [
-    default = true,
-    (sem_type) = {
-      description: "By default, the GRR process is not dumped. Clear this "
-                   "flag to change this behavior.",
-      label: ADVANCED,
-    }
-  ];
-  optional bool dump_all_processes = 4 [
-    default = false,
-    (sem_type) = {
-      description: "This dumps all processes. Might return lots of data, "
-                   "use with care.",
-      label: ADVANCED,
-    }
-  ];
-  optional uint64 size_limit = 5 [
-    (sem_type) = {
-      description: "Maximum amount of raw process memory to dump. Applies to "
-                   "all requested processes together. The first memory region "
-                   "exceeding the limit will be dumped partially. No "
-                   "following regions will be dumped. 0 indicates no limit.",
-      type: "ByteSize",
-      label: ADVANCED,
-    },
-    default = 0
-  ];
-  optional uint64 chunk_size = 6 [
-    (sem_type) = {
-      description: "The chunk size to use when reading large memory regions.",
-      label: ADVANCED,
-    },
-    default = 104857600  // 100 MB
-  ];
-  optional bool skip_special_regions = 7 [
-    (sem_type) = {
-      description: "Set this flag to avoid dumping device backed regions and "
-                   "guard pages. Applies to Windows only.",
-      label: ADVANCED,
-    },
-    default = false
-  ];
-  optional bool skip_mapped_files = 8 [
-    (sem_type) = {
-      description: "Set this flag to avoid dumping mapped files. Applies to "
-                   "Linux only.",
-      label: ADVANCED,
-    },
-    default = true
-  ];
-  optional bool skip_shared_regions = 9 [
-    (sem_type) = {
-      description: "Set this flag to avoid dumping shared regions. Applies to "
-                   "Linux and macOS.",
-      label: ADVANCED,
-    },
-    default = false
-  ];
-  optional bool skip_executable_regions = 10 [
-    (sem_type) = {
-      description: "Set this flag to avoid dumping executable regions.",
-      label: ADVANCED,
-    },
-    default = false
-  ];
-  optional bool skip_readonly_regions = 11 [
-    (sem_type) = {
-      description: "Set this flag to avoid dumping readonly regions.",
-      label: ADVANCED,
-    },
-    default = false
-  ];
+  optional bool ignore_grr_process = 3 [(sem_type) = {
+    description: "By default, the GRR process is not dumped. Clear this "
+                 "flag to change this behavior.",
+    label: ADVANCED,
+  }];
+  optional bool dump_all_processes = 4 [(sem_type) = {
+    description: "This dumps all processes. Might return lots of data, "
+                 "use with care.",
+    label: ADVANCED,
+  }];
+  optional uint64 size_limit = 5 [(sem_type) = {
+    description: "Maximum amount of raw process memory to dump. Applies to "
+                 "all requested processes together. The first memory region "
+                 "exceeding the limit will be dumped partially. No "
+                 "following regions will be dumped. 0 indicates no limit.",
+    type: "ByteSize",
+    label: ADVANCED,
+  }];
+  optional uint64 chunk_size = 6 [(sem_type) = {
+    description: "The chunk size to use when reading large memory regions.",
+    label: ADVANCED,
+  }];
+  optional bool skip_special_regions = 7 [(sem_type) = {
+    description: "Set this flag to avoid dumping device backed regions and "
+                 "guard pages. Applies to Windows only.",
+    label: ADVANCED,
+  }];
+  optional bool skip_mapped_files = 8 [(sem_type) = {
+    description: "Set this flag to avoid dumping mapped files. Applies to "
+                 "Linux only.",
+    label: ADVANCED,
+  }];
+  optional bool skip_shared_regions = 9 [(sem_type) = {
+    description: "Set this flag to avoid dumping shared regions. Applies to "
+                 "Linux and macOS.",
+    label: ADVANCED,
+  }];
+  optional bool skip_executable_regions = 10 [(sem_type) = {
+    description: "Set this flag to avoid dumping executable regions.",
+    label: ADVANCED,
+  }];
+  optional bool skip_readonly_regions = 11 [(sem_type) = {
+    description: "Set this flag to avoid dumping readonly regions.",
+    label: ADVANCED,
+  }];
   repeated uint64 prioritize_offsets = 12 [(sem_type) = {
     description: "Offsets to prioritize when the process memory size is "
                  "larger than size_limit. First, memory pages containing the "

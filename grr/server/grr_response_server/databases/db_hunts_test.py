@@ -983,7 +983,8 @@ class DatabaseTestHuntMixin(object):
     self.assertEqual(num_results, 10)
 
   def testCountHuntResultsCorrectlyAppliesWithTagAndWithTypeFilters(self):
-    hunt_obj = rdf_hunt_objects.Hunt(description="foo")
+    self.db.WriteGRRUser("user")
+    hunt_obj = rdf_hunt_objects.Hunt(description="foo", creator="user")
     self.db.WriteHuntObject(hunt_obj)
 
     sample_results = []
@@ -1147,33 +1148,36 @@ class DatabaseTestHuntMixin(object):
     self.db.WriteHuntObject(hunt_obj)
     hunt_id = hunt_obj.hunt_id
 
-    _, flow_id = self._SetupHuntClientAndFlow(
+    client_id, flow_id = self._SetupHuntClientAndFlow(
         hunt_id=hunt_id, flow_state=rdf_flow_objects.Flow.FlowState.RUNNING)
 
     # Whatever state the subflow is in, it should be ignored.
     self._SetupHuntClientAndFlow(
+        client_id=client_id,
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
         flow_state=rdf_flow_objects.Flow.FlowState.ERROR)
     self._SetupHuntClientAndFlow(
+        client_id=client_id,
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
         flow_state=rdf_flow_objects.Flow.FlowState.FINISHED)
     self._SetupHuntClientAndFlow(
+        client_id=client_id,
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
         flow_state=rdf_flow_objects.Flow.FlowState.RUNNING)
 
-    for state, expceted_results in [
+    for state, expected_results in [
         (db.HuntFlowsCondition.COMPLETED_FLOWS_ONLY, 0),
         (db.HuntFlowsCondition.SUCCEEDED_FLOWS_ONLY, 0),
         (db.HuntFlowsCondition.FLOWS_IN_PROGRESS_ONLY, 1)
     ]:
       results = self.db.ReadHuntFlows(hunt_id, 0, 10, filter_condition=state)
-      self.assertLen(results, expceted_results)
+      self.assertLen(results, expected_results)
 
   def testCountHuntFlowsIgnoresSubflows(self):
     self.db.WriteGRRUser("user")
@@ -1181,21 +1185,24 @@ class DatabaseTestHuntMixin(object):
     self.db.WriteHuntObject(hunt_obj)
     hunt_id = hunt_obj.hunt_id
 
-    _, flow_id = self._SetupHuntClientAndFlow(
+    client_id, flow_id = self._SetupHuntClientAndFlow(
         hunt_id=hunt_id, flow_state=rdf_flow_objects.Flow.FlowState.RUNNING)
 
     # Whatever state the subflow is in, it should be ignored.
     self._SetupHuntClientAndFlow(
+        client_id=client_id,
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
         flow_state=rdf_flow_objects.Flow.FlowState.ERROR)
     self._SetupHuntClientAndFlow(
+        client_id=client_id,
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
         flow_state=rdf_flow_objects.Flow.FlowState.FINISHED)
     self._SetupHuntClientAndFlow(
+        client_id=client_id,
         hunt_id=hunt_id,
         flow_id=flow.RandomFlowId(),
         parent_flow_id=flow_id,
@@ -1469,7 +1476,10 @@ class DatabaseTestHuntMixin(object):
 
     client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_obj.hunt_id)
     self._SetupHuntClientAndFlow(
-        hunt_id=hunt_obj.hunt_id, parent_flow_id=flow_id)
+        hunt_id=hunt_obj.hunt_id,
+        client_id=client_id,
+        flow_id=flow.RandomFlowId(),
+        parent_flow_id=flow_id)
 
     state_and_times = self.db.ReadHuntFlowsStatesAndTimestamps(hunt_obj.hunt_id)
     self.assertLen(state_and_times, 1)

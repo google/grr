@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
-import {ControlContainer, UntypedFormControl, UntypedFormGroup} from '@angular/forms';
+import {ControlContainer, FormControl, FormGroup} from '@angular/forms';
 import {distinctUntilChanged, map, startWith} from 'rxjs/operators';
 
 import {safeTranslateOperatingSystem} from '../../../lib/api_translation/flow';
@@ -22,6 +22,17 @@ const TOGGLE_ORDER: {[key in MaskCondition]: MaskCondition} = {
   [MaskCondition.REQUIRE_SET]: MaskCondition.REQUIRE_UNSET,
   [MaskCondition.REQUIRE_UNSET]: MaskCondition.IGNORE,
 };
+
+function makeControls() {
+  return new FormGroup({
+    linuxBitsSet: new FormControl(0, {nonNullable: true}),
+    linuxBitsUnset: new FormControl(0, {nonNullable: true}),
+    osxBitsSet: new FormControl(0, {nonNullable: true}),
+    osxBitsUnset: new FormControl(0, {nonNullable: true}),
+  });
+}
+
+type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures an ext flags condition. */
 @Component({
@@ -64,17 +75,12 @@ export class ExtFlagsCondition {
   readonly showLinux$ = this.os$.pipe(map(os => os !== OperatingSystem.DARWIN));
   readonly showOsx$ = this.os$.pipe(map(os => os !== OperatingSystem.LINUX));
 
-  get formGroup(): UntypedFormGroup {
-    return this.controlContainer.control as UntypedFormGroup;
+  get formGroup(): Controls {
+    return this.controlContainer.control as Controls;
   }
 
-  static createFormGroup(): UntypedFormGroup {
-    return new UntypedFormGroup({
-      linuxBitsSet: new UntypedFormControl(0),
-      linuxBitsUnset: new UntypedFormControl(0),
-      osxBitsSet: new UntypedFormControl(0),
-      osxBitsUnset: new UntypedFormControl(0),
-    });
+  static createFormGroup() {
+    return makeControls();
   }
 
   toggleFlag(flag: FlagWithCondition) {

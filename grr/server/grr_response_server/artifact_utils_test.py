@@ -115,7 +115,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     results_names = registry.GetArtifactNames(
         os_name="Darwin", provides=["users.username"])
-    self.assertIn("MacOSUsers", results_names)
+    self.assertIn("UsersDirectory", results_names)
 
   @artifact_test_lib.PatchCleanArtifactRegistry
   def testSearchDependencies(self, registry):

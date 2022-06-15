@@ -1,10 +1,10 @@
-import {ChangeDetectionStrategy, Component, Output} from '@angular/core';
-import {UntypedFormControl, Validators} from '@angular/forms';
+import {ChangeDetectionStrategy, Component} from '@angular/core';
+import {FormControl, Validators} from '@angular/forms';
 import {Observable} from 'rxjs';
-import {filter, map, shareReplay, withLatestFrom} from 'rxjs/operators';
+import {filter, map, withLatestFrom} from 'rxjs/operators';
 
-import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
-import {ReadLowLevelArgs} from '../../lib/api/api_interfaces';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {DecimalString, ReadLowLevelArgs} from '../../lib/api/api_interfaces';
 import {isNonNull} from '../../lib/preconditions';
 import {toByteUnit} from '../form/byte_input/byte_conversion';
 
@@ -17,7 +17,21 @@ function formatRawBytes(formattedBytesAtUnit: string, rawBytes: number) {
   }
 }
 
-type FormState = Omit<ReadLowLevelArgs, 'blockSize'>;
+function makeControls() {
+  return {
+    path: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required],
+    }),
+    length: new FormControl<DecimalString>('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.min(1)],
+    }),
+    offset: new FormControl<DecimalString>('', {nonNullable: true}),
+  };
+}
+
+type Controls = ReturnType<typeof makeControls>;
 
 /**
  * A form that makes it possible to configure the read_low_level flow.
@@ -30,23 +44,15 @@ type FormState = Omit<ReadLowLevelArgs, 'blockSize'>;
 
 })
 export class ReadLowLevelForm extends
-    FlowArgumentForm<ReadLowLevelArgs, FormState> {
-  override makeControls(): Controls<FormState> {
-    return {
-      path: new UntypedFormControl(null, Validators.required),
-      length: new UntypedFormControl(
-          null, [Validators.required, Validators.min(1)]),
-      offset: new UntypedFormControl(),
-    };
+    FlowArgumentForm<ReadLowLevelArgs, Controls> {
+  override makeControls() {
+    return makeControls();
   }
 
-  @Output() readonly status$ = this.form.statusChanges.pipe(shareReplay(1));
-
-  override convertFormStateToFlowArgs(formState: FormState): ReadLowLevelArgs {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return {
+      ...formState,
       path: formState.path?.trim(),
-      length: formState.length ?? undefined,
-      offset: formState.offset ?? undefined,
     };
   }
 
@@ -93,7 +99,11 @@ export class ReadLowLevelForm extends
               formatRawBytes(formattedBytesAtUnit, rawBytes)),
   );
 
-  override convertFlowArgsToFormState(flowArgs: ReadLowLevelArgs): FormState {
-    return flowArgs;
+  override convertFlowArgsToFormState(flowArgs: ReadLowLevelArgs) {
+    return {
+      path: flowArgs.path ?? this.controls.path.defaultValue,
+      length: flowArgs.length ?? this.controls.length.defaultValue,
+      offset: flowArgs.offset ?? this.controls.offset.defaultValue,
+    };
   }
 }

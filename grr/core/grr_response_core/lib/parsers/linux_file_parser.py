@@ -99,7 +99,7 @@ class PasswdParser(parsers.SingleFileParser[rdf_client.User]):
   """Parser for passwd files. Yields User semantic values."""
 
   output_types = [rdf_client.User]
-  supported_artifacts = ["UnixPasswd"]
+  supported_artifacts = ["UnixPasswdFile"]
 
   @classmethod
   def ParseLine(cls, index, line) -> Optional[rdf_client.User]:
@@ -761,9 +761,7 @@ class PathParser(parsers.SingleFileParser[rdf_protodict.AttributedDict]):
   output_types = [rdf_protodict.AttributedDict]
   # TODO(user): Modify once a decision is made on contextual selection of
   # parsed results for artifact data.
-  supported_artifacts = [
-      "GlobalShellConfigs", "RootUserShellConfigs", "UsersShellConfigs"
-  ]
+  supported_artifacts = ["RootUserShellConfigs", "ShellConfigurationFile"]
 
   # https://cwe.mitre.org/data/definitions/426.html
   _TARGETS = ("CLASSPATH", "LD_AOUT_LIBRARY_PATH", "LD_AOUT_PRELOAD",

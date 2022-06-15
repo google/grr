@@ -3,7 +3,7 @@ import {ComponentStore} from '@ngrx/component-store';
 import {combineLatest, NEVER, Observable, of} from 'rxjs';
 import {filter, map, switchMap, tap, withLatestFrom} from 'rxjs/operators';
 
-import {ApiHuntApproval, ForemanClientRuleSet} from '../lib/api/api_interfaces';
+import {ApiHuntApproval, ForemanClientRuleSet, OutputPluginDescriptor} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
 import {extractErrorMessage, RequestStatus, trackRequest} from '../lib/api/track_request';
 import {translateFlow} from '../lib/api_translation/flow';
@@ -52,10 +52,13 @@ class NewHuntComponentStore extends ComponentStore<NewHuntState> {
                         .pipe(
                             map(apiFlow => {
                               if (apiFlow) {
+                                const type = apiFlow.args?.['@type'];
                                 return {
                                   flow: translateFlow(apiFlow),
                                   descriptor: fds.get(apiFlow.name ?? ''),
-                                  flowArgType: apiFlow.args?.['@type'],
+                                  flowArgType: typeof type === 'string' ?
+                                      type :
+                                      undefined,
                                 };
                               }
                               return undefined;
@@ -76,7 +79,8 @@ class NewHuntComponentStore extends ComponentStore<NewHuntState> {
   readonly runHunt = this.effect<{
     description: string,
     safetyLimits: SafetyLimits,
-    rules: ForemanClientRuleSet
+    rules: ForemanClientRuleSet,
+    outputPlugins: ReadonlyArray<OutputPluginDescriptor>
   }>(obs$ =>
          obs$.pipe(
              withLatestFrom(this.flowWithDescriptor$),
@@ -84,7 +88,7 @@ class NewHuntComponentStore extends ComponentStore<NewHuntState> {
                  ([opts, flowWithDescriptors]) => flowWithDescriptors ?
                      this.httpApiService.createHunt(
                          opts.description, flowWithDescriptors,
-                         opts.safetyLimits, opts.rules) :
+                         opts.safetyLimits, opts.rules, opts.outputPlugins) :
                      NEVER),
              tap(hunt => {
                this.updateHuntId(hunt?.huntId);
@@ -139,8 +143,9 @@ export class NewHuntLocalStore {
 
   runHunt(
       description: string, safetyLimits: SafetyLimits,
-      rules: ForemanClientRuleSet): void {
-    this.store.runHunt({description, safetyLimits, rules});
+      rules: ForemanClientRuleSet,
+      outputPlugins: ReadonlyArray<OutputPluginDescriptor>): void {
+    this.store.runHunt({description, safetyLimits, rules, outputPlugins});
   }
 
   requestHuntApproval(huntId: string, approvalArgs: ApiHuntApproval) {

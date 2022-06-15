@@ -12,7 +12,7 @@ describe('translateArtifactDescriptor', () => {
   it('correctly translates API data', () => {
     const apiResponse: api.ArtifactDescriptor = {
       'artifact': {
-        'name': 'ChromeHistory',
+        'name': 'ChromiumBasedBrowsersHistory',
         'doc': 'Chrome browser history.',
         'labels': ['Browser'],
         'supportedOs': ['Windows', 'Linux'],
@@ -62,7 +62,7 @@ describe('translateArtifactDescriptor', () => {
     };
 
     const descriptor: ArtifactDescriptor = {
-      name: 'ChromeHistory',
+      name: 'ChromiumBasedBrowsersHistory',
       doc: 'Chrome browser history.',
       labels: ['Browser'],
       supportedOs: new Set([OperatingSystem.WINDOWS, OperatingSystem.LINUX]),

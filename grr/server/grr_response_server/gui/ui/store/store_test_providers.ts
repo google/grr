@@ -17,13 +17,14 @@ import {FlowResultsLocalStore} from './flow_results_local_store';
 import {mockFlowResultsLocalStore} from './flow_results_local_store_test_util';
 import {HomePageGlobalStore} from './home_page_global_store';
 import {mockHomePageGlobalStore} from './home_page_global_store_test_util';
+import {HuntOverviewPageLocalStore} from './hunt_overview_page_local_store';
 import {NewHuntLocalStore} from './new_hunt_local_store';
 import {mockNewHuntLocalStore} from './new_hunt_local_store_test_util';
 import {ScheduledFlowGlobalStore} from './scheduled_flow_global_store';
 import {mockScheduledFlowGlobalStore} from './scheduled_flow_global_store_test_util';
 import {SelectedClientGlobalStore} from './selected_client_global_store';
 import {mockSelectedClientGlobalStore} from './selected_client_global_store_test_util';
-import {MockStore} from './store_test_util';
+import {mockStore, MockStore} from './store_test_util';
 import {UserGlobalStore} from './user_global_store';
 import {mockUserGlobalStore} from './user_global_store_test_util';
 import {VfsViewLocalStore} from './vfs_view_local_store';
@@ -47,12 +48,15 @@ export const STORE_PROVIDERS: Provider[] = [
   },
   {provide: UserGlobalStore, useFactory: mockUserGlobalStore},
   {provide: NewHuntLocalStore, useFactory: mockNewHuntLocalStore},
+  {
+    provide: HuntOverviewPageLocalStore,
+    useFactory: mockHuntOverviewPageLocalStore,
+  },
 ];
 
 interface Constructor<ClassType> {
   new(...args: never[]): ClassType;
 }
-
 
 /** Injects the MockStore for the given Store class. */
 export function injectMockStore<T>(
@@ -74,4 +78,9 @@ export function injectMockStore<T>(
   }
 
   return mockStore;
+}
+
+/** Mocks a HuntOverviewPageLocalStore. */
+export function mockHuntOverviewPageLocalStore() {
+  return mockStore(HuntOverviewPageLocalStore);
 }

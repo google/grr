@@ -103,8 +103,7 @@ describe('ResultAccordion Component', () => {
 
   it('shows status icon and styling', () => {
     const fixture = createComponent({status: Status.WARNING});
-    const iconEl =
-        fixture.debugElement.query(By.css('.warning .material-icons'));
+    const iconEl = fixture.debugElement.query(By.css('.warning .mat-icon'));
     expect(iconEl.nativeElement.textContent).toContain('warning');
   });
 });

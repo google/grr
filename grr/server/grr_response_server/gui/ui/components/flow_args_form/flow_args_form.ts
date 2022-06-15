@@ -40,7 +40,8 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
   @ViewChild('formContainer', {read: ViewContainerRef, static: true})
   formContainer!: ViewContainerRef;
 
-  private formComponent?: FlowArgumentForm<{}>;
+  // tslint:disable:no-any Generic type is dynamic at runtime.
+  private formComponent?: FlowArgumentForm<{}, any>;
 
   ngAfterViewInit() {
     this.update();

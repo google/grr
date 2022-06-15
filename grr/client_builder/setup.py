@@ -64,7 +64,7 @@ setup_args = dict(
     include_package_data=True,
     python_requires=">=3.6",
     install_requires=[
-        "distro==1.5.0",
+        "distro==1.7.0",
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "PyInstaller==3.6",

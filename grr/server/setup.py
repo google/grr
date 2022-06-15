@@ -183,6 +183,7 @@ setup_args = dict(
         "grr-response-client-builder==%s" %
         VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
+        "ipython==7.15.0",
         "Jinja2==2.11.3",
         # TODO: This should be 2.1
         # If the version of MarkupSafe with Jinja2 dependency is greater than

@@ -7,6 +7,7 @@ import {CollectSingleFileForm} from '../../components/flow_args_form/collect_sin
 import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 
 import {CollectFilesByKnownPathForm} from './collect_files_by_known_path_form';
+import {DumpProcessMemoryForm} from './dump_process_memory_form';
 import {ExecutePythonHackForm} from './execute_python_hack_form';
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
 import {LaunchBinaryForm} from './launch_binary_form';
@@ -18,14 +19,17 @@ import {OnlineNotificationForm} from './online_notification_form';
 import {OsqueryForm} from './osquery_form';
 import {ReadLowLevelForm} from './read_low_level_form';
 import {TimelineForm} from './timeline_form';
+import {YaraProcessScanForm} from './yara_process_scan_form';
 
 /** Mapping from flow name to Component class to configure the Flow. */
-export const FORMS: {[key: string]: Type<FlowArgumentForm<{}>>} = {
+// tslint:disable-next-line:no-any Cannot specify a more precise generic type!
+export const FORMS: {[key: string]: Type<FlowArgumentForm<{}, any>>} = {
   'ArtifactCollectorFlow': ArtifactCollectorFlowForm,
   'CollectBrowserHistory': CollectBrowserHistoryForm,
   'CollectFilesByKnownPath': CollectFilesByKnownPathForm,
   'CollectMultipleFiles': CollectMultipleFilesForm,
   'CollectSingleFile': CollectSingleFileForm,
+  'DumpProcessMemory': DumpProcessMemoryForm,
   'ExecutePythonHack': ExecutePythonHackForm,
   'LaunchBinary': LaunchBinaryForm,
   'ListDirectory': ListDirectoryForm,
@@ -36,6 +40,7 @@ export const FORMS: {[key: string]: Type<FlowArgumentForm<{}>>} = {
   'OsqueryFlow': OsqueryForm,
   'ReadLowLevel': ReadLowLevelForm,
   'TimelineFlow': TimelineForm,
+  'YaraProcessScan': YaraProcessScanForm,
 
   // Show empty form as fallback for flows that typically do not require
   // configuration.

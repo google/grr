@@ -12,6 +12,7 @@ from grr_response_server import signed_binary_utils
 from grr_response_server.flows import file
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import collectors
+from grr_response_server.flows.general import memory
 # Required for ApiListFlowDescriptorsHandler() to truly return all flow
 # descriptors during testing.
 from grr_response_server.flows.general import registry_init  # pylint: disable=unused-import
@@ -85,8 +86,7 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
         'css=.mat-menu-panel button:contains("Collect files by search criteria")'
     )
 
-    self.Type('css=flow-args-form [formarrayname=pathExpressions] input',
-              '/foo/test')
+    self.Type('css=flow-args-form app-glob-expression-input input', '/foo/test')
 
     self.assertEmpty(_ListScheduledFlows(self.client_id, self.test_username))
 
@@ -152,8 +152,7 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
         'css=.mat-menu-panel button:contains("Collect files by search criteria")'
     )
 
-    self.Type('css=flow-args-form [formarrayname=pathExpressions] input',
-              '/foo/test')
+    self.Type('css=flow-args-form app-glob-expression-input input', '/foo/test')
 
     self.assertEmpty(_ListScheduledFlows(self.client_id, self.test_username))
 
@@ -186,8 +185,7 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.Click(
         'css=.mat-menu-panel button:contains("Collect files by search criteria")'
     )
-    self.Type('css=flow-args-form [formarrayname=pathExpressions] input',
-              '/foo/test')
+    self.Type('css=flow-args-form app-glob-expression-input input', '/foo/test')
     self.Click('css=flow-form button:contains("Start")')
 
     self.WaitUntilContains('/foo/test', self.GetText, 'css=flow-details')
@@ -230,61 +228,51 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     )
 
     self.Type(
-        'css=flow-args-form [formarrayname=pathExpressions] ' +
+        'css=flow-args-form ' +
         'app-glob-expression-input:nth-of-type(1) input', '/foo/firstpath')
 
     self.Click('css=flow-form button:contains("Add path expression")')
     self.Type(
-        'css=flow-args-form [formarrayname=pathExpressions] ' +
+        'css=flow-args-form ' +
         'app-glob-expression-input:nth-of-type(2) input', '/foo/secondpath')
 
     self.Click('css=flow-form button:contains("Literal match")')
-    self.Type('css=flow-args-form input[formcontrolname=literal]',
-              'literalinput')
+    self.Type('css=flow-args-form input[name=literal]', 'literalinput')
 
     self.Click('css=flow-form button:contains("Regex match")')
-    self.Type('css=flow-args-form input[formcontrolname=regex]', 'regexinput')
+    self.Type('css=flow-args-form input[name=regex]', 'regexinput')
 
     self.Click('css=flow-form button:contains("Modification time")')
-    self.Type(
-        'css=flow-args-form [formgroupname=modificationTime] [formcontrolname=minTime] input',
-        '2000-01-01 11:00:00')
-    self.Type(
-        'css=flow-args-form [formgroupname=modificationTime] [formcontrolname=maxTime] input',
-        '2000-01-02 22:00:00')
+    self.Type('css=flow-args-form [title="modification"] [name=minTime] input',
+              '2000-01-01 11:00:00')
+    self.Type('css=flow-args-form [title="modification"] [name=maxTime] input',
+              '2000-01-02 22:00:00')
 
     self.Click('css=flow-form button:contains("Access time")')
-    self.Type(
-        'css=flow-args-form [formgroupname=accessTime] [formcontrolname=minTime] input',
-        '2000-02-01 11:00:00')
-    self.Type(
-        'css=flow-args-form [formgroupname=accessTime] [formcontrolname=maxTime] input',
-        '2000-02-02 22:00:00')
+    self.Type('css=flow-args-form [title=access] [name=minTime] input',
+              '2000-02-01 11:00:00')
+    self.Type('css=flow-args-form [title=access] [name=maxTime] input',
+              '2000-02-02 22:00:00')
 
     self.Click('css=flow-form button:contains("Inode change time")')
-    self.Type(
-        'css=flow-args-form [formgroupname=inodeChangeTime] [formcontrolname=minTime] input',
-        '2000-03-01 11:00:00')
-    self.Type(
-        'css=flow-args-form [formgroupname=inodeChangeTime] [formcontrolname=maxTime] input',
-        '2000-03-02 22:00:00')
+    self.Type('css=flow-args-form [title="inode change"] [name=minTime] input',
+              '2000-03-01 11:00:00')
+    self.Type('css=flow-args-form [title="inode change"] [name=maxTime] input',
+              '2000-03-02 22:00:00')
 
     self.Click('css=flow-form button:contains("File size")')
-    self.Type('css=flow-args-form input[formcontrolname=minFileSize]', '1 KiB')
-    self.Type('css=flow-args-form input[formcontrolname=maxFileSize]', '2 KiB')
+    self.Type('css=flow-args-form input[name=minFileSize]', '1 KiB')
+    self.Type('css=flow-args-form input[name=maxFileSize]', '2 KiB')
 
     self.Click('css=flow-form button:contains("Extended file flags")')
     # Press 'X' once to only include files with flag FS_NOCOMP_FL.
     self.Click(
-        'css=flow-form [formgroupname=extFlags] button .identifier:contains("X")'
-    )
+        'css=flow-form ext-flags-condition button .identifier:contains("X")')
     # Press 'u' twice to exclude files with flag FS_UNRM_FL.
     self.Click(
-        'css=flow-form [formgroupname=extFlags] button .identifier:contains("u")'
-    )
+        'css=flow-form ext-flags-condition button .identifier:contains("u")')
     self.Click(
-        'css=flow-form [formgroupname=extFlags] button .identifier:contains("u")'
-    )
+        'css=flow-form ext-flags-condition button .identifier:contains("u")')
 
     self.Click('css=flow-form button:contains("Schedule")')
 
@@ -441,6 +429,62 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(scheduled_flow.flow_args.hack_name, 'windows/test.py')
     self.assertEqual(scheduled_flow.flow_args.py_args['fookey'], 'foovalue')
 
+  def testDumpProcessMemoryFlow(self):
+    self.Open(f'/v2/clients/{self.client_id}')
+    self.WaitUntilContains('No access', self.GetText, 'css=client-overview')
+
+    self.Type(
+        'css=flow-form input[name=flowSearchBox]',
+        'dump process',
+        end_with_enter=True)
+
+    self.Click('css=flow-form mat-button-toggle:contains("Name")')
+
+    self.Type('css=flow-args-form input[name=processRegex]', 'python\\d')
+
+    self.Click('css=flow-form mat-checkbox label:contains("shared")')
+
+    self.Click('css=flow-form button:contains("Schedule")')
+
+    def GetFirstScheduledFlow():
+      scheduled_flows = _ListScheduledFlows(self.client_id, self.test_username)
+      return scheduled_flows[0] if len(scheduled_flows) == 1 else None
+
+    scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
+
+    self.assertEqual(scheduled_flow.flow_name,
+                     memory.DumpProcessMemory.__name__)
+    self.assertEqual(scheduled_flow.flow_args.process_regex, 'python\\d')
+    self.assertTrue(scheduled_flow.flow_args.skip_shared_regions)
+
+  def testYaraProcessScanFlow(self):
+    self.Open(f'/v2/clients/{self.client_id}')
+    self.WaitUntilContains('No access', self.GetText, 'css=client-overview')
+
+    self.Type(
+        'css=flow-form input[name=flowSearchBox]', 'yara', end_with_enter=True)
+
+    # ScrollIntoView fixes a mischievous Heisenbug, where Click() would succeed
+    # but not actually trigger the toggle.
+    self.ScrollIntoView('css=flow-form mat-button-toggle:contains("Name")')
+    self.Click('css=flow-form mat-button-toggle:contains("Name")')
+
+    self.Type('css=flow-args-form input[name=processRegex]', 'python\\d')
+
+    self.Click('css=flow-form mat-checkbox label:contains("shared")')
+
+    self.Click('css=flow-form button:contains("Schedule")')
+
+    def GetFirstScheduledFlow():
+      scheduled_flows = _ListScheduledFlows(self.client_id, self.test_username)
+      return scheduled_flows[0] if len(scheduled_flows) == 1 else None
+
+    scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
+
+    self.assertEqual(scheduled_flow.flow_name, memory.YaraProcessScan.__name__)
+    self.assertEqual(scheduled_flow.flow_args.process_regex, 'python\\d')
+    self.assertTrue(scheduled_flow.flow_args.skip_shared_regions)
+
 
 class FlowCreationTestWithApprovalsDisabled(gui_test_lib.GRRSeleniumTest):
   """Tests the generic flow creation when approvals are disabled."""
@@ -466,8 +510,7 @@ class FlowCreationTestWithApprovalsDisabled(gui_test_lib.GRRSeleniumTest):
         'css=.mat-menu-panel button:contains("Collect files by search criteria")'
     )
 
-    self.Type('css=flow-args-form [formarrayname=pathExpressions] input',
-              '/foo/test')
+    self.Type('css=flow-args-form app-glob-expression-input input', '/foo/test')
 
     self.assertEmpty(_ListFlows(self.client_id, self.test_username))
 

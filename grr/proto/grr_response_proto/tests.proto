@@ -32,6 +32,10 @@ message DummyCronHuntOutputPluginArgs {
   optional string collection_name = 2;
 }
 
+message TestOutputPluginArgs {
+  optional string test_message = 1;
+}
+
 message RecursiveTestFlowArgs {
   optional uint64 depth = 1;
 }

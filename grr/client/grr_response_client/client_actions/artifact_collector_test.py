@@ -247,8 +247,8 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
         collected_artifact = self.RunArtifactCollector(request)
         self.assertEmpty(collected_artifact.action_results)
 
-  def testDirectoryArtifact(self):
-    """Test the source type `DIRECTORY`."""
+  def testPathArtifact(self):
+    """Test the source type `PATH`."""
 
     paths = [
         os.path.join(self.base_path, "%%Users.username%%*"),
@@ -265,7 +265,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
         os.path.join(self.base_path, "VFSFixture", "var", "log", "wtmp"),
     ]
     source = rdf_artifact.ArtifactSource(
-        type=self.source_type.DIRECTORY, attributes={"paths": paths})
+        type=self.source_type.PATH, attributes={"paths": paths})
     knowledge_base = rdf_client.KnowledgeBase(users=[
         rdf_client.User(username="test"),
         rdf_client.User(username="syslog")

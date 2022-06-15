@@ -21,9 +21,10 @@ initTestEnvironment();
  * I couldn't figure out why.
  */
 @Component({
-  template: `<mat-form-field>
-        <code-editor [formControl]=query></code-editor>
-      </mat-form-field>`,
+  template: `
+    <mat-form-field>
+      <app-code-editor [formControl]="query"></app-code-editor>
+    </mat-form-field>`,
 })
 class TestHostComponent {
   readonly query = new UntypedFormControl();
@@ -58,7 +59,8 @@ describe('CodeEditor Component', () => {
   it('initializes', () => {
     const fixture = constructFixture('');
 
-    const codeEditorElement = fixture.debugElement.query(By.css('code-editor'));
+    const codeEditorElement =
+        fixture.debugElement.query(By.directive(CodeEditor));
     expect(codeEditorElement).toBeTruthy();
   });
 
@@ -84,7 +86,7 @@ describe('CodeEditor Component', () => {
     fixture.detectChanges();
 
     const codeEditor: CodeEditor =
-        fixture.debugElement.query(By.css('code-editor')).componentInstance;
+        fixture.debugElement.query(By.directive(CodeEditor)).componentInstance;
     expect(codeEditor.editorValue).toBe('Hello this is the form control.');
   });
 
@@ -92,7 +94,7 @@ describe('CodeEditor Component', () => {
     const fixture = constructFixture('');
 
     const codeEditor: CodeEditor =
-        fixture.debugElement.query(By.css('code-editor')).componentInstance;
+        fixture.debugElement.query(By.directive(CodeEditor)).componentInstance;
     codeEditor.editorValue = 'Hello yes this is code editor.';
     fixture.detectChanges();
 

@@ -1,16 +1,31 @@
 import {COMMA, ENTER} from '@angular/cdk/keycodes';
 import {ChangeDetectionStrategy, Component, ViewChild} from '@angular/core';
-import {UntypedFormControl, Validators} from '@angular/forms';
+import {FormControl, Validators} from '@angular/forms';
 import {MatChipInputEvent} from '@angular/material/chips';
 import {MatDialog} from '@angular/material/dialog';
 
-import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
-import {OsqueryFlowArgs} from '../../lib/api/api_interfaces';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {DecimalString, OsqueryFlowArgs} from '../../lib/api/api_interfaces';
 import {isNonNull} from '../../lib/preconditions';
-import {CodeEditor} from '../code_editor/code_editor';
+import {CodeEditor, HighlightMode} from '../code_editor/code_editor';
 
 import {OsqueryQueryHelper} from './osquery_query_helper/osquery_query_helper';
 
+const DEFAULT_QUERY = 'SELECT * FROM users LIMIT 10;';
+
+function makeControls() {
+  return {
+    query: new FormControl(
+        DEFAULT_QUERY, {nonNullable: true, validators: [Validators.required]}),
+    timeoutMillis: new FormControl<DecimalString>(
+        '', {nonNullable: true, validators: [Validators.required]}),
+    ignoreStderrErrors: new FormControl(false, {nonNullable: true}),
+    fileCollectionColumns:
+        new FormControl<ReadonlyArray<string>>([], {nonNullable: true}),
+  };
+}
+
+type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures an Osquery flow. */
 @Component({
@@ -18,19 +33,12 @@ import {OsqueryQueryHelper} from './osquery_query_helper/osquery_query_helper';
   templateUrl: './osquery_form.ng.html',
   styleUrls: ['./osquery_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
-export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs> {
-  private readonly defaultQueryDisplayed = 'SELECT * FROM users LIMIT 10;';
+export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs, Controls> {
+  readonly HighlightMode = HighlightMode;
 
-  override makeControls(): Controls<OsqueryFlowArgs> {
-    return {
-      query: new UntypedFormControl(
-          this.defaultQueryDisplayed, Validators.required),
-      timeoutMillis: new UntypedFormControl(null, Validators.required),
-      ignoreStderrErrors: new UntypedFormControl(null),
-      fileCollectionColumns: new UntypedFormControl([]),
-    };
+  override makeControls() {
+    return makeControls();
   }
 
   fileCollectionSettingsShown = false;
@@ -65,13 +73,19 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs> {
     });  // No need to unsubscribe as it completes when the dialog is closed.
   }
 
-  override convertFlowArgsToFormState(flowArgs: OsqueryFlowArgs):
-      OsqueryFlowArgs {
-    return {query: '', ...flowArgs};
+  override convertFlowArgsToFormState(flowArgs: OsqueryFlowArgs) {
+    return {
+      fileCollectionColumns: flowArgs.fileCollectionColumns ??
+          this.controls.fileCollectionColumns.defaultValue,
+      ignoreStderrErrors: flowArgs.ignoreStderrErrors ??
+          this.controls.ignoreStderrErrors.defaultValue,
+      timeoutMillis:
+          flowArgs.timeoutMillis ?? this.controls.timeoutMillis.defaultValue,
+      query: flowArgs.query ?? this.controls.query.defaultValue,
+    };
   }
 
-  override convertFormStateToFlowArgs(formState: OsqueryFlowArgs):
-      OsqueryFlowArgs {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return formState;
   }
 

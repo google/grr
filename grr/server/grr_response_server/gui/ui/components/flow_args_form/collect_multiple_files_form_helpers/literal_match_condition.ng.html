@@ -1,28 +1,34 @@
-<!-- TODO: Stop using formControlName here. -->
 <condition-panel
   title="Literal match"
   [formGroup]="formGroup"
-  (conditionRemoved)="conditionRemoved.emit()">
-
+  (conditionRemoved)="conditionRemoved.emit()"
+>
   <mat-form-field appearance="outline">
     <mat-label>Literal</mat-label>
-    <input matInput formControlName="literal" class="monospace" autocomplete="off">
+    <input
+      matInput
+      [formControl]="formGroup.controls.literal"
+      name="literal"
+      class="monospace"
+      autocomplete="off"
+    />
     <!-- TODO: The new compiler flag forbids using a.foo style for
       this property.  TS4111:
       Property '%s' comes from an index signature, so it must be accessed with ['%s']. -->
-    <mat-error *ngIf="$any(formGroup.controls).literal.hasError('required')">Literal expression is required</mat-error>
+    <mat-error *ngIf="$any(formGroup.controls).literal.hasError('required')"
+      >Literal expression is required</mat-error
+    >
   </mat-form-field>
 
   <mat-form-field appearance="outline">
     <mat-label>Mode</mat-label>
-    <mat-select formControlName="mode">
-       <mat-option [value]="FileFinderContentsMatchConditionMode.ALL_HITS">
-         All Hits
-       </mat-option>
+    <mat-select [formControl]="formGroup.controls.mode">
+      <mat-option [value]="FileFinderContentsMatchConditionMode.ALL_HITS">
+        All Hits
+      </mat-option>
       <mat-option [value]="FileFinderContentsMatchConditionMode.FIRST_HIT">
-         First Hit
-       </mat-option>
-     </mat-select>
+        First Hit
+      </mat-option>
+    </mat-select>
   </mat-form-field>
-
 </condition-panel>

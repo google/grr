@@ -1,29 +1,37 @@
-<!-- TODO: Stop using formControlName here. -->
 <condition-panel
   [title]="title[0]?.toUpperCase() + title.slice(1) + ' time'"
-  [formGroup]="formGroup"
-  (conditionRemoved)="conditionRemoved.emit()">
-
+  (conditionRemoved)="conditionRemoved.emit()"
+>
   <mat-form-field appearance="outline">
     <mat-label>Min last {{ title }} time</mat-label>
-    <date-time-input #minTime formControlName="minTime"></date-time-input>
+    <date-time-input
+      #minTime
+      [formControl]="formGroup.controls.minTime"
+      name="minTime"
+    ></date-time-input>
     <date-time-input-toggle [for]="minTime" matSuffix></date-time-input-toggle>
-    <!-- TODO: The new compiler flag forbids using a.foo style for
-      this property.  TS4111:
-      Property '%s' comes from an index signature, so it must be accessed with ['%s']. -->
-    <mat-error *ngIf="$any(formGroup.controls).minTime.hasError('invalidDateTime')">{{ $any(formGroup.controls).minTime.getError('invalidDateTime') }}</mat-error>
+    <mat-error *ngIf="formGroup.controls.minTime.hasError('invalidDateTime')">
+      {{ formGroup.controls.minTime.getError('invalidDateTime') }}
+    </mat-error>
   </mat-form-field>
 
   <mat-form-field appearance="outline">
     <mat-label>Max last {{ title }} time</mat-label>
-    <date-time-input #maxTime formControlName="maxTime"></date-time-input>
+    <date-time-input
+      #maxTime
+      [formControl]="formGroup.controls.maxTime"
+      name="maxTime"
+    ></date-time-input>
     <date-time-input-toggle [for]="maxTime" matSuffix></date-time-input-toggle>
-    <!-- TODO: The new compiler flag forbids using a.foo style for
-      this property.  TS4111:
-      Property '%s' comes from an index signature, so it must be accessed with ['%s']. -->
-    <mat-error *ngIf="$any(formGroup.controls).maxTime.hasError('invalidDateTime')">{{ $any(formGroup.controls).maxTime.getError('invalidDateTime') }}</mat-error>
+    <mat-error *ngIf="formGroup.controls.maxTime.hasError('invalidDateTime')">
+      {{ formGroup.controls.maxTime.getError('invalidDateTime') }}
+    </mat-error>
   </mat-form-field>
 
-  <mat-error *ngIf="formGroup.hasError('atLeastOneMustBeSet')">Either one or both times have to be set.</mat-error>
-  <mat-error *ngIf="formGroup.hasError('timesNotInOrder')">Min timestamp has to be strictly before the max timestamp.</mat-error>
+  <mat-error *ngIf="formGroup.hasError('atLeastOneMustBeSet')"
+    >Either one or both times have to be set.</mat-error
+  >
+  <mat-error *ngIf="formGroup.hasError('timesNotInOrder')"
+    >Min timestamp has to be strictly before the max timestamp.</mat-error
+  >
 </condition-panel>

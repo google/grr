@@ -429,7 +429,7 @@ class Context(Operator):
     if len(arguments) != 2:
       raise InvalidNumberOfOperands("Context accepts only 2 operands.")
     super().__init__(arguments=arguments, **kwargs)
-    self.context, self.condition = self.args
+    self.context, self.condition = self.args  # pytype: disable=bad-unpacking
 
   def Matches(self, obj):
     for object_list in self.value_expander.Expand(obj, self.context):

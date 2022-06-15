@@ -1,7 +1,7 @@
 import {ApiFlow, ApiFlowDescriptor, ApiFlowResult, ApiFlowState, ApiGrrBinary, ApiScheduledFlow, ArtifactCollectorFlowArgs, ArtifactCollectorFlowProgress as ApiArtifactCollectorFlowProgress, ByteString, ExecuteBinaryResponse as ApiExecuteBinaryResponse, ExecuteResponse as ApiExecuteResponse, Hash, PathSpec as ApiPathSpec, PathSpecPathType, StatEntry as ApiStatEntry} from '../api/api_interfaces';
 import {ArtifactCollectorFlowProgress, ArtifactProgress, Binary, BinaryType, ExecuteBinaryResponse, ExecuteResponse, Flow, FlowDescriptor, FlowResult, FlowResultCount, FlowState, HexHash, OperatingSystem, RegistryKey, RegistryValue, ScheduledFlow} from '../models/flow';
 import {PathSpec, PathSpecSegment, StatEntry} from '../models/vfs';
-import {assertEnum, assertKeyNonNull, assertKeyTruthy, assertNonNull, isNonNull, isNull, PreconditionError} from '../preconditions';
+import {assertEnum, assertKeyNonNull, assertNonNull, isNonNull, isNull, PreconditionError} from '../preconditions';
 
 import {bytesToHex, createDate, createOptionalBigInt, createOptionalDateSeconds, createUnknownObject, decodeBase64} from './primitive';
 
@@ -308,17 +308,13 @@ export function isRegistryEntry(entry: StatEntry|RegistryKey|RegistryValue):
   return isNonNull((entry as RegistryKey).type);
 }
 
-/**
- * Translates an ApiGrrBinary, raising if hasValidSignature is false or legacy
- * types are used.
- */
+/** Translates an ApiGrrBinary, raising if legacy types are used. */
 export function translateBinary(b: ApiGrrBinary): Binary {
   assertKeyNonNull(b, 'path');
   assertKeyNonNull(b, 'size');
   assertKeyNonNull(b, 'type');
   assertKeyNonNull(b, 'timestamp');
   assertEnum(b.type, BinaryType);
-  assertKeyTruthy(b, 'hasValidSignature');
 
   return {
     path: b.path,
@@ -328,10 +324,7 @@ export function translateBinary(b: ApiGrrBinary): Binary {
   };
 }
 
-/**
- * Translates an ApiGrrBinary, returning null if hasValidSignature is false or
- * legacy types are used.
- */
+/** Translates an ApiGrrBinary, returning null if legacy types are used. */
 export function safeTranslateBinary(b: ApiGrrBinary): Binary|null {
   try {
     return translateBinary(b);

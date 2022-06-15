@@ -4,6 +4,7 @@
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
+from grr_response_server.databases import db_test_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 # Username with UTF-8 characters and maximum length.
@@ -164,7 +165,7 @@ class DatabaseTestUsersMixin(object):
 
     d.WriteGRRUser("requestor")
 
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     approval_request = rdf_objects.ApprovalRequest(
         approval_type=rdf_objects.ApprovalRequest.ApprovalType
         .APPROVAL_TYPE_CLIENT,
@@ -204,7 +205,7 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("user2")
     d.WriteGRRUser("user3")
 
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     approval_request = rdf_objects.ApprovalRequest(
         approval_type=rdf_objects.ApprovalRequest.ApprovalType
         .APPROVAL_TYPE_CLIENT,
@@ -241,7 +242,7 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("grantor")
     d.WriteGRRUser("requestor")
 
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     approval_request = rdf_objects.ApprovalRequest(
         approval_type=rdf_objects.ApprovalRequest.ApprovalType
         .APPROVAL_TYPE_CLIENT,
@@ -265,7 +266,7 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("grantor")
     d.WriteGRRUser("requestor")
 
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     approval_request = rdf_objects.ApprovalRequest(
         approval_type=rdf_objects.ApprovalRequest.ApprovalType
         .APPROVAL_TYPE_CLIENT,
@@ -295,7 +296,7 @@ class DatabaseTestUsersMixin(object):
     self.assertFalse(approvals)
 
   def testReadApprovalRequestsReturnsSingleApproval(self):
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     d = self.db
 
     d.WriteGRRUser("requestor")
@@ -341,11 +342,13 @@ class DatabaseTestUsersMixin(object):
         1, rdfvalue.DAYS)
 
     approval_ids = set()
-    for i in range(10):
+    for _ in range(10):
+      client_id = db_test_utils.InitializeClient(self.db)
+
       approval_request = rdf_objects.ApprovalRequest(
           approval_type=rdf_objects.ApprovalRequest.ApprovalType
           .APPROVAL_TYPE_CLIENT,
-          subject_id="C.000000005000000%d" % i,
+          subject_id=client_id,
           requestor_username="requestor",
           reason="some test reason",
           expiration_time=expiration_time)
@@ -365,10 +368,14 @@ class DatabaseTestUsersMixin(object):
     day = rdfvalue.Duration.From(1, rdfvalue.DAYS)
     tomorrow = rdfvalue.RDFDatetime.Now() + day
 
+    client_id = db_test_utils.InitializeClient(self.db)
+    hunt_id = db_test_utils.InitializeHunt(self.db)
+    cron_job_id = db_test_utils.InitializeCronJob(self.db)
+
     subject_ids = {
-        ApprovalRequest.APPROVAL_TYPE_CLIENT: "C.0123456789abcdef",
-        ApprovalRequest.APPROVAL_TYPE_HUNT: "ABCDEF42",
-        ApprovalRequest.APPROVAL_TYPE_CRON_JOB: "GetFile_ABCDEF",
+        ApprovalRequest.APPROVAL_TYPE_CLIENT: client_id,
+        ApprovalRequest.APPROVAL_TYPE_HUNT: hunt_id,
+        ApprovalRequest.APPROVAL_TYPE_CRON_JOB: cron_job_id,
     }
 
     # We iterate over all possible approval types. This will make the test fail
@@ -405,7 +412,7 @@ class DatabaseTestUsersMixin(object):
         self.assertEqual(requests[0].subject_id, subject_id)
 
   def testReadApprovalRequestsIncludesGrantsIntoSingleApproval(self):
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     d = self.db
 
     d.WriteGRRUser("grantor1")
@@ -448,12 +455,13 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
 
     for i in range(10):
+      client_id = db_test_utils.InitializeClient(self.db)
       d.WriteGRRUser("grantor_%d_1" % i)
       d.WriteGRRUser("grantor_%d_2" % i)
       approval_request = rdf_objects.ApprovalRequest(
           approval_type=rdf_objects.ApprovalRequest.ApprovalType
           .APPROVAL_TYPE_CLIENT,
-          subject_id="C.00000000000000%d" % i,
+          subject_id=client_id,
           requestor_username="requestor",
           reason="some test reason %d" % i,
           expiration_time=rdfvalue.RDFDatetime.Now() +
@@ -494,10 +502,12 @@ class DatabaseTestUsersMixin(object):
 
     non_expired_approval_ids = set()
     for i in range(10):
+      client_id = db_test_utils.InitializeClient(self.db)
+
       approval_request = rdf_objects.ApprovalRequest(
           approval_type=rdf_objects.ApprovalRequest.ApprovalType
           .APPROVAL_TYPE_CLIENT,
-          subject_id="C.000000005000000%d" % i,
+          subject_id=client_id,
           requestor_username="requestor",
           reason="some test reason",
           expiration_time=(time_future if i % 2 == 0 else time_past))
@@ -527,10 +537,12 @@ class DatabaseTestUsersMixin(object):
 
     approval_ids = set()
     for i in range(10):
+      client_id = db_test_utils.InitializeClient(self.db)
+
       approval_request = rdf_objects.ApprovalRequest(
           approval_type=rdf_objects.ApprovalRequest.ApprovalType
           .APPROVAL_TYPE_CLIENT,
-          subject_id="C.000000005000000%d" % i,
+          subject_id=client_id,
           requestor_username="requestor",
           reason="some test reason",
           expiration_time=(time_future if i % 2 == 0 else time_past))
@@ -547,7 +559,7 @@ class DatabaseTestUsersMixin(object):
     self.assertEqual(set(a.approval_id for a in approvals), approval_ids)
 
   def testReadApprovalRequestsForSubjectReturnsNothingWhenNoApprovals(self):
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     d = self.db
 
     d.WriteGRRUser("requestor")
@@ -560,7 +572,7 @@ class DatabaseTestUsersMixin(object):
     self.assertFalse(approvals)
 
   def testReadApprovalRequestsForSubjectReturnsSingleNonExpiredApproval(self):
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     d = self.db
 
     d.WriteGRRUser("requestor")
@@ -597,7 +609,7 @@ class DatabaseTestUsersMixin(object):
     self.assertEqual(approval_request, approvals[0])
 
   def testReadApprovalRequestsForSubjectReturnsManyNonExpiredApproval(self):
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     d = self.db
 
     d.WriteGRRUser("requestor")
@@ -626,7 +638,7 @@ class DatabaseTestUsersMixin(object):
     self.assertEqual(set(a.approval_id for a in approvals), approval_ids)
 
   def testReadApprovalRequestsForSubjectIncludesGrantsIntoSingleResult(self):
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     d = self.db
 
     d.WriteGRRUser("grantor1")
@@ -665,7 +677,7 @@ class DatabaseTestUsersMixin(object):
                           ["grantor1", "grantor2"])
 
   def testReadApprovalRequestsForSubjectIncludesGrantsIntoMultipleResults(self):
-    client_id = "C.000000000000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     d = self.db
 
     d.WriteGRRUser("requestor")
@@ -707,7 +719,7 @@ class DatabaseTestUsersMixin(object):
           ["grantor_%d_1" % i, "grantor_%d_2" % i])
 
   def testReadApprovalRequestsForSubjectFiltersOutExpiredApprovals(self):
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     d = self.db
 
     d.WriteGRRUser("requestor")
@@ -742,7 +754,7 @@ class DatabaseTestUsersMixin(object):
         set(a.approval_id for a in approvals), non_expired_approval_ids)
 
   def testReadApprovalRequestsForSubjectKeepsExpiredApprovalsWhenAsked(self):
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     d = self.db
 
     d.WriteGRRUser("requestor")
@@ -1070,7 +1082,7 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("requestor")
     d.WriteGRRUser("grantor")
 
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
     approval_request = rdf_objects.ApprovalRequest(
         approval_type=rdf_objects.ApprovalRequest.ApprovalType
         .APPROVAL_TYPE_CLIENT,
@@ -1101,7 +1113,8 @@ class DatabaseTestUsersMixin(object):
     d.WriteGRRUser("user2")
     d.WriteGRRUser("user3")
 
-    client_id = "C.0000000050000001"
+    client_id = db_test_utils.InitializeClient(self.db)
+
     approval_request = rdf_objects.ApprovalRequest(
         approval_type=rdf_objects.ApprovalRequest.ApprovalType
         .APPROVAL_TYPE_CLIENT,

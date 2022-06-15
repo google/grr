@@ -1,7 +1,7 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {AbstractControl, UntypedFormControl, ValidationErrors} from '@angular/forms';
+import {AbstractControl, FormControl, ValidationErrors} from '@angular/forms';
 
-import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {CollectFilesByKnownPathArgs, CollectFilesByKnownPathArgsCollectionLevel} from '../../lib/api/api_interfaces';
 
 
@@ -33,10 +33,17 @@ function atLeastOnePath(control: AbstractControl): ValidationErrors {
   };
 }
 
-declare interface FormState {
-  paths: string;
-  collectionLevel: CollectFilesByKnownPathArgsCollectionLevel;
+function makeControls() {
+  return {
+    paths:
+        new FormControl('', {nonNullable: true, validators: [atLeastOnePath]}),
+    collectionLevel: new FormControl(
+        CollectFilesByKnownPathArgsCollectionLevel.CONTENT,
+        {nonNullable: true}),
+  };
 }
+
+type Controls = ReturnType<typeof makeControls>;
 
 /**
  * A form that makes it possible to configure the CollectFilesByKnownPath
@@ -50,21 +57,16 @@ declare interface FormState {
 
 })
 export class CollectFilesByKnownPathForm extends
-    FlowArgumentForm<CollectFilesByKnownPathArgs, FormState> {
+    FlowArgumentForm<CollectFilesByKnownPathArgs, Controls> {
   readonly collectionLevels = COLLECTION_LEVELS;
 
   hideAdvancedParams = true;
 
-  override makeControls(): Controls<FormState> {
-    return {
-      paths: new UntypedFormControl('', atLeastOnePath),
-      collectionLevel: new UntypedFormControl(
-          CollectFilesByKnownPathArgsCollectionLevel.CONTENT),
-    };
+  override makeControls() {
+    return makeControls();
   }
 
-
-  override convertFormStateToFlowArgs(formState: FormState) {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return {
       paths: formState.paths?.split('\n')
                  .map(path => path.trim())
@@ -73,12 +75,11 @@ export class CollectFilesByKnownPathForm extends
     };
   }
 
-  override convertFlowArgsToFormState(flowArgs: CollectFilesByKnownPathArgs):
-      FormState {
+  override convertFlowArgsToFormState(flowArgs: CollectFilesByKnownPathArgs) {
     return {
-      paths: flowArgs.paths?.join('\n') ?? '',
+      paths: flowArgs.paths?.join('\n') ?? this.controls.paths.defaultValue,
       collectionLevel: flowArgs.collectionLevel ??
-          CollectFilesByKnownPathArgsCollectionLevel.CONTENT
+          this.controls.collectionLevel.defaultValue,
     };
   }
 

@@ -1,16 +1,20 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {UntypedFormControl} from '@angular/forms';
+import {FormControl} from '@angular/forms';
 
-import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser} from '../../lib/api/api_interfaces';
 
-declare interface FormValues {
-  collectChrome: boolean;
-  collectFirefox: boolean;
-  collectInternetExplorer: boolean;
-  collectOpera: boolean;
-  collectSafari: boolean;
+function makeControls() {
+  return {
+    collectChrome: new FormControl(true, {nonNullable: true}),
+    collectFirefox: new FormControl(true, {nonNullable: true}),
+    collectInternetExplorer: new FormControl(true, {nonNullable: true}),
+    collectOpera: new FormControl(true, {nonNullable: true}),
+    collectSafari: new FormControl(true, {nonNullable: true}),
+  };
 }
+
+type Controls = ReturnType<typeof makeControls>;
 
 /** Form that configures CollectBrowserHistory. */
 @Component({
@@ -20,19 +24,12 @@ declare interface FormValues {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CollectBrowserHistoryForm extends
-    FlowArgumentForm<CollectBrowserHistoryArgs, FormValues> {
-  override makeControls(): Controls<FormValues> {
-    return {
-      collectChrome: new UntypedFormControl(),
-      collectFirefox: new UntypedFormControl(),
-      collectInternetExplorer: new UntypedFormControl(),
-      collectOpera: new UntypedFormControl(),
-      collectSafari: new UntypedFormControl(),
-    };
+    FlowArgumentForm<CollectBrowserHistoryArgs, Controls> {
+  override makeControls() {
+    return makeControls();
   }
 
-  override convertFlowArgsToFormState(flowArgs: CollectBrowserHistoryArgs):
-      FormValues {
+  override convertFlowArgsToFormState(flowArgs: CollectBrowserHistoryArgs) {
     const browsers = flowArgs.browsers ?? [];
     return {
       collectChrome: browsers.includes(CollectBrowserHistoryArgsBrowser.CHROME),
@@ -45,8 +42,7 @@ export class CollectBrowserHistoryForm extends
     };
   }
 
-  override convertFormStateToFlowArgs(formState: FormValues):
-      CollectBrowserHistoryArgs {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     const browsers = [];
     if (formState.collectChrome) {
       browsers.push(CollectBrowserHistoryArgsBrowser.CHROME);

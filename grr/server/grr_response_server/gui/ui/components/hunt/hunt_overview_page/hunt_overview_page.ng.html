@@ -1,0 +1,11 @@
+<div class="content-list">
+  <h2>All fleet collections</h2>
+
+  <mat-card
+    *ngFor="let hunt of hunts$ | async; trackBy: trackHuntById"
+    class="clickable mat-card-outlined"
+    [routerLink]="['/hunts', hunt.huntId]"
+  >
+    <mat-card-title> {{ hunt.description }}</mat-card-title>
+  </mat-card>
+</div>

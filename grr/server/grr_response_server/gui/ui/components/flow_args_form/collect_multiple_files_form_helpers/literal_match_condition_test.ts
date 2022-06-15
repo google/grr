@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {ControlContainer, UntypedFormGroup} from '@angular/forms';
+import {ControlContainer} from '@angular/forms';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
@@ -15,7 +15,7 @@ import {HelpersModule} from './module';
 initTestEnvironment();
 
 describe('LiteralMatchCondition component', () => {
-  let control: UntypedFormGroup;
+  let control: ReturnType<typeof createLiteralMatchFormGroup>;
 
   beforeEach(waitForAsync(() => {
     control = createLiteralMatchFormGroup();

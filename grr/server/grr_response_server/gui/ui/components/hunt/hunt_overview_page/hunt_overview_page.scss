@@ -1,0 +1,8 @@
+@use "@angular/material" as mat;
+@use "../../../material-theme" as c;
+@use "../../../main" as main;
+
+:host {
+  @extend .centered-content;
+  padding: c.$page-spacing 0;
+}

@@ -205,7 +205,11 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         self.current_artifact_name = artifact_name
         if type_name == source_type.COMMAND:
           self.RunCommand(source)
-        elif type_name == source_type.DIRECTORY:
+        # TODO(hanuszczak): `DIRECTORY` is deprecated [1], it should be removed.
+        #
+        # [1]: https://github.com/ForensicArtifacts/artifacts/pull/475
+        elif (type_name == source_type.DIRECTORY or
+              type_name == source_type.PATH):
           self.Glob(source, _GetPathType(self.args, self.client_os),
                     _GetImplementationType(self.args))
         elif type_name == source_type.FILE:
@@ -215,12 +219,6 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         elif type_name == source_type.GREP:
           self.Grep(source, _GetPathType(self.args, self.client_os),
                     _GetImplementationType(self.args))
-        elif type_name == source_type.PATH:
-          # TODO(user): GRR currently ignores PATH types, they are currently
-          # only useful to plaso during bootstrapping when the registry is
-          # unavailable. The intention is to remove this type in favor of a
-          # default fallback mechanism.
-          pass
         elif type_name == source_type.REGISTRY_KEY:
           self.GetRegistryKey(source)
         elif type_name == source_type.REGISTRY_VALUE:

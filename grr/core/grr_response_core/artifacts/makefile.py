@@ -14,7 +14,7 @@ def main():
   # The future direction is to depend on code in the artifact repo to replace
   # the artifact registry and validation inside GRR. We will then move to
   # depending on pypi releases rather than just importing the yaml as we do now.
-  url = "https://github.com/ForensicArtifacts/artifacts/archive/refs/tags/20220219.zip"
+  url = "https://github.com/ForensicArtifacts/artifacts/archive/refs/tags/20220429.zip"
   data = urlrequest.urlopen(url).read()
 
   zip_obj = zipfile.ZipFile(io.BytesIO(data))

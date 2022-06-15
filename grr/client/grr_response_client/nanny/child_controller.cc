@@ -5,6 +5,7 @@
 #include "grr_response_client/nanny/child_controller.h"
 
 #include <algorithm>
+#include <string>
 
 namespace grr {
 

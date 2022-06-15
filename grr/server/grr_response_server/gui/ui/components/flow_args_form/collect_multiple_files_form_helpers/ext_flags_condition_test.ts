@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {ControlContainer, UntypedFormGroup} from '@angular/forms';
+import {ControlContainer} from '@angular/forms';
 import {MatButtonHarness} from '@angular/material/button/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -17,7 +17,7 @@ import {HelpersModule} from './module';
 initTestEnvironment();
 
 describe('ExtFlagsCondition component', () => {
-  let control: UntypedFormGroup;
+  let control: ReturnType<typeof ExtFlagsCondition['createFormGroup']>;
   let clientPageGlobalStore: ClientPageGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {

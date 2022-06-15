@@ -1,27 +1,30 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <title>GRR</title>
-  <base href="/v2/">
+  <head>
+    <meta charset="utf-8" />
+    <title>GRR</title>
+    <base href="/v2/" />
 
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <link rel="stylesheet" href="/static/dist/v2/styles.css" >
-  <link rel="shortcut icon" href="/static/images/favicon.ico" />
+    <link rel="stylesheet" href="/static/dist/v2/styles.css" />
+    <link rel="shortcut icon" href="/static/images/favicon.ico" />
 
-  <!-- Needed for Material icons -->
-  <link href="https://fonts.googleapis.com/icon?family=Material+Icons&display=block" rel="stylesheet">
-</head>
-<body>
-  <script>
-    window.__IS_GRR_TEST = {{ 'true' if is_test else 'false' }};
-    window.__IS_GRR_DEVELOPMENT = {{ 'true' if is_development else 'false' }};
-  </script>
-  <app-root></app-root>
-  <script src="/static/dist/v2/runtime.js" type="module"></script>
-  <script src="/static/dist/v2/polyfills.js" type="module"></script>
-  <script src="/static/dist/v2/vendor.js" type="module"></script>
-  <script src="/static/dist/v2/main.js" type="module"></script>
-</body>
+    <!-- Needed for Material icons -->
+    <link
+      href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined&display=block"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <script>
+      window.__IS_GRR_TEST = {{ 'true' if is_test else 'false' }};
+      window.__IS_GRR_DEVELOPMENT = {{ 'true' if is_development else 'false' }};
+    </script>
+    <app-root></app-root>
+    <script src="/static/dist/v2/runtime.js" type="module"></script>
+    <script src="/static/dist/v2/polyfills.js" type="module"></script>
+    <script src="/static/dist/v2/vendor.js" type="module"></script>
+    <script src="/static/dist/v2/main.js" type="module"></script>
+  </body>
 </html>

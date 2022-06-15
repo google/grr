@@ -566,7 +566,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
     client_mock = action_mocks.GlobClientMock()
     with temp.AutoTempDirPath() as temp_dir_path:
       coll1 = rdf_artifacts.ArtifactSource(
-          type=rdf_artifacts.ArtifactSource.SourceType.DIRECTORY,
+          type=rdf_artifacts.ArtifactSource.SourceType.PATH,
           attributes={"paths": [temp_dir_path]})
       self.fakeartifact.sources.append(coll1)
       results = self._RunClientActionArtifact(
@@ -693,7 +693,7 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
           doc="Lorem ipsum.",
           sources=[
               rdf_artifacts.ArtifactSource(
-                  type=rdf_artifacts.ArtifactSource.SourceType.DIRECTORY,
+                  type=rdf_artifacts.ArtifactSource.SourceType.PATH,
                   attributes={
                       "paths": [path],
                   }),
@@ -748,7 +748,7 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
           doc="Lorem ipsum.",
           sources=[
               rdf_artifacts.ArtifactSource(
-                  type=rdf_artifacts.ArtifactSource.SourceType.DIRECTORY,
+                  type=rdf_artifacts.ArtifactSource.SourceType.PATH,
                   attributes={
                       "paths": [os.path.join(dirpath, "%%os_release%%", "*")],
                   }),

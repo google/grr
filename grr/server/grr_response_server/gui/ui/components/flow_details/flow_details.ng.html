@@ -73,7 +73,7 @@
         <mat-icon class="in-progress">watch_later</mat-icon>
       </span>
       <span *ngIf="flow?.state === flowState.ERROR">
-        <mat-icon class="error">error</mat-icon>
+        <mat-icon class="error">error_outline</mat-icon>
       </span>
       <span *ngIf="flow?.state === flowState.FINISHED">
         <mat-icon class="success">check_circle</mat-icon>
@@ -97,7 +97,8 @@
       >
         <span>Cancel flow</span>
       </button>
-      {{ '' // TODO: Update once restricted FlowDescriptors are returned. }}
+      {{ '' // TODO: Update once restricted FlowDescriptors are
+      returned. }}
       <button
         *ngIf="flowDescriptor"
         mat-menu-item

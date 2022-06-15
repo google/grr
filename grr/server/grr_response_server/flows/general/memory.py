@@ -42,18 +42,20 @@ class YaraProcessScan(flow_base.FlowBase):
       message = ("`yara_signature` can't be used together with "
                  "`yara_signature_blob_id")
       raise flow_base.FlowError(message)
-
-    if self.args.yara_signature:
+    elif self.args.yara_signature:
       rules = self.args.yara_signature.GetRules()
       if not list(rules):
         raise flow_base.FlowError(
             "No rules found in the signature specification.")
-
-    if self.args.yara_signature_blob_id:
+    elif self.args.yara_signature_blob_id:
       blob_id = rdf_objects.BlobID(self.args.yara_signature_blob_id)
       if not data_store.REL_DB.VerifyYaraSignatureReference(blob_id):
         message = "Incorrect YARA signature reference: {}".format(blob_id)
         raise flow_base.FlowError(message)
+    else:
+      raise flow_base.FlowError(
+          "Flow args contain neither yara_signature nor yara_signature_blob_id."
+          " Provide a yara_signature for scanning.")
 
     if self.args.process_regex and self.args.cmdline_regex:
       raise flow_base.FlowError(

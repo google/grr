@@ -7,6 +7,7 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {FlowArgsFormModule} from '../../components/flow_args_form/module';
 import {ReadLowLevelArgs} from '../../lib/api/api_interfaces';
+import {latestValueFrom} from '../../lib/reactive';
 import {initTestEnvironment} from '../../testing';
 
 import {ReadLowLevelForm} from './read_low_level_form';
@@ -146,18 +147,15 @@ describe('ReadLowLevelForm', () => {
     const fixture = TestBed.createComponent(ReadLowLevelForm);
     fixture.detectChanges();
 
-    let latestValue: ReadLowLevelArgs = {};
-
-    fixture.componentInstance.flowArgs$.subscribe((input) => {
-      latestValue = input;
-    });
+    const latestValue = latestValueFrom(fixture.componentInstance.flowArgs$);
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const pathInputHarness = await harnessLoader.getHarness(
         MatInputHarness.with({selector: 'input[name=path]'}));
     await pathInputHarness.setValue('   /spaces\n\t');
 
-    expect(latestValue)
-        .toEqual({path: '/spaces', length: undefined, offset: undefined});
+    expect(latestValue.get()).toEqual(jasmine.objectContaining({
+      path: '/spaces'
+    }));
   });
 });

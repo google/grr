@@ -1,19 +1,19 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {AbstractControl, UntypedFormArray, UntypedFormControl, UntypedFormGroup, ValidationErrors} from '@angular/forms';
+import {AbstractControl, FormArray, FormControl, ValidationErrors} from '@angular/forms';
 
 import {ExtFlagsCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/ext_flags_condition';
-import {createLiteralMatchFormGroup, formValuesToFileFinderContentsLiteralMatchCondition, LiteralMatchRawFormValues} from '../../components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
-import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition, RegexMatchRawFormValues} from '../../components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
+import {createLiteralMatchFormGroup, formValuesToFileFinderContentsLiteralMatchCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
+import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
 import {createSizeFormGroup} from '../../components/flow_args_form/collect_multiple_files_form_helpers/size_condition';
-import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition, RawFormValues} from '../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
-import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {CollectMultipleFilesArgs, FileFinderSizeCondition} from '../../lib/api/api_interfaces';
 import {isNonNull} from '../../lib/preconditions';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 
 
 function atLeastOnePathExpression(control: AbstractControl): ValidationErrors {
-  for (const c of (control as UntypedFormArray).controls) {
+  for (const c of (control as FormArray).controls) {
     if (isNonNull(c.value) && c.value.trim() !== '') {
       return {};
     }
@@ -24,32 +24,23 @@ function atLeastOnePathExpression(control: AbstractControl): ValidationErrors {
   };
 }
 
-declare interface MinFormState {
-  pathExpressions: ReadonlyArray<string>;
+declare interface Controls {
+  pathExpressions: FormArray<FormControl<string>>;
+  modificationTime?: ReturnType<typeof createTimeRangeFormGroup>;
+  accessTime?: ReturnType<typeof createTimeRangeFormGroup>;
+  inodeChangeTime?: ReturnType<typeof createTimeRangeFormGroup>;
+  contentsLiteralMatch?: ReturnType<typeof createLiteralMatchFormGroup>;
+  contentsRegexMatch?: ReturnType<typeof createRegexMatchFormGroup>;
+  size?: ReturnType<typeof createSizeFormGroup>;
+  extFlags?: ReturnType<typeof ExtFlagsCondition['createFormGroup']>;
 }
 
-declare interface FullFormState extends MinFormState {
-  modificationTime?: RawFormValues;
-  accessTime?: RawFormValues;
-  inodeChangeTime?: RawFormValues;
-  contentsLiteralMatch?: LiteralMatchRawFormValues;
-  contentsRegexMatch?: RegexMatchRawFormValues;
-  size?: FileFinderSizeCondition;
-  extFlags?: {};
-}
-
-declare interface MinControls {
-  pathExpressions: UntypedFormArray;
-}
-
-declare interface FullControls extends MinControls {
-  modificationTime?: UntypedFormGroup;
-  accessTime?: UntypedFormGroup;
-  inodeChangeTime?: UntypedFormGroup;
-  contentsLiteralMatch?: UntypedFormGroup;
-  contentsRegexMatch?: UntypedFormGroup;
-  size?: UntypedFormGroup;
-  extFlags?: UntypedFormGroup;
+function makeControls(): Controls {
+  return {
+    pathExpressions: new FormArray(
+        [new FormControl('', {nonNullable: true})],
+        {validators: [atLeastOnePathExpression]}),
+  };
 }
 
 /** Form that configures a CollectMultipleFiles flow. */
@@ -61,20 +52,12 @@ declare interface FullControls extends MinControls {
 
 })
 export class CollectMultipleFilesForm extends
-    FlowArgumentForm<CollectMultipleFilesArgs, MinFormState, MinControls> {
-  override makeControls(): MinControls {
-    return {
-      pathExpressions: new UntypedFormArray(
-          [new UntypedFormControl()], atLeastOnePathExpression),
-    };
+    FlowArgumentForm<CollectMultipleFilesArgs, Controls> {
+  override makeControls() {
+    return makeControls();
   }
 
-  get fullControls() {
-    return this.controls as FullControls;
-  }
-
-  override convertFormStateToFlowArgs(formState: FullFormState):
-      CollectMultipleFilesArgs {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     const allResults: CollectMultipleFilesArgs = {
       pathExpressions: formState.pathExpressions,
       modificationTime: formState.modificationTime &&
@@ -121,19 +104,17 @@ export class CollectMultipleFilesForm extends
     // TODO: Add flow condition controls if present.
   }
 
-  override convertFlowArgsToFormState(flowArgs: CollectMultipleFilesArgs):
-      FullFormState {
-    const pathExpressions =
-        flowArgs.pathExpressions?.length ? flowArgs.pathExpressions : [''];
-
+  override convertFlowArgsToFormState(flowArgs: CollectMultipleFilesArgs) {
     return {
       // TODO: Add flow condition controls if present.
-      pathExpressions,
+      pathExpressions: flowArgs.pathExpressions?.length ?
+          [...flowArgs.pathExpressions] :
+          ['']
     };
   }
 
   addPathExpression() {
-    this.controls.pathExpressions.push(new UntypedFormControl());
+    this.controls.pathExpressions.push(new FormControl());
   }
 
   removePathExpression(index: number) {

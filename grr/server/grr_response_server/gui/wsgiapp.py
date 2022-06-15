@@ -27,6 +27,7 @@ from grr_response_core.config import contexts
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
 from grr_response_server import server_logging
+from grr_response_server.gui import csp
 from grr_response_server.gui import http_api
 from grr_response_server.gui import http_response
 from grr_response_server.gui import webauth
@@ -365,9 +366,11 @@ window.location = '%s' + friendly_hash;
     # SharedDataMiddleware may fail early while trying to convert the
     # URL into the file path and not dispatch the call further to our own
     # WSGI handler.
-    return DispatcherMiddleware(self, {
+    dm = DispatcherMiddleware(self, {
         "/static": sdm,
     })
+    # Add Content Security Policy headers to the Admin UI pages.
+    return csp.CspMiddleware(dm)
 
 
 class SingleThreadedServerInet6(simple_server.WSGIServer):

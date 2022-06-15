@@ -3,14 +3,21 @@
 
 import itertools
 import random
+import string
 
 from typing import Any, Callable, Dict, Iterable, Optional, Text
 
-from grr_response_server.databases import db
+from grr_response_server.databases import db as abstract_db
+from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 
 
 class QueryTestHelpersMixin(object):
   """Mixin containing helper methods for list/query methods tests."""
+
+  # Pytype does not work well with mixins.
+  # pytype: disable=attribute-error
 
   def DoOffsetAndCountTest(self,
                            fetch_all_fn: Callable[[], Iterable[Any]],
@@ -32,7 +39,7 @@ class QueryTestHelpersMixin(object):
       error_desc: Optional string to be used in error messages. May be useful to
         identify errors from a particular test.
     """
-    all_objects = fetch_all_fn()
+    all_objects = list(fetch_all_fn())
     self.assertNotEmpty(all_objects,
                         "Fetched objects can't be empty (%s)." % error_desc)
 
@@ -107,7 +114,7 @@ class QueryTestHelpersMixin(object):
 
     This test methods works in 2 steps:
     1. It tests that different conditions combinations work fine when offset
-    and count are 0 and db.MAX_COUNT respectively.
+    and count are 0 and abstract_db.MAX_COUNT respectively.
     2. For every condition combination it tests all possible offset and count
     combinations to make sure correct subsets of results are returned.
 
@@ -123,7 +130,7 @@ class QueryTestHelpersMixin(object):
         identify errors from a particular test.
     """
     self.DoFilterCombinationsTest(
-        lambda **kw_args: fetch_fn(0, db.MAX_COUNT, **kw_args),
+        lambda **kw_args: fetch_fn(0, abstract_db.MAX_COUNT, **kw_args),
         conditions,
         error_desc=error_desc)
 
@@ -144,17 +151,22 @@ class QueryTestHelpersMixin(object):
       kw_args_str = ", ".join(
           "%r: %r" % (k, kw_args[k]) for k in sorted(kw_args))
       self.DoOffsetAndCountTest(
-          lambda: fetch_fn(0, db.MAX_COUNT, **kw_args),  # pylint: disable=cell-var-from-loop
+          lambda: fetch_fn(0, abstract_db.MAX_COUNT, **kw_args),  # pylint: disable=cell-var-from-loop
           lambda offset, count: fetch_fn(offset, count, **kw_args),  # pylint: disable=cell-var-from-loop
           error_desc="{%s}%s" %
           (kw_args_str, ", " + error_desc) if error_desc else "")
 
+  # pytype: enable=attribute-error
 
-def InitializeClient(db_obj, client_id=None):
+
+def InitializeClient(
+    db: abstract_db.Database,
+    client_id: Optional[str] = None,
+) -> str:
   """Initializes a test client.
 
   Args:
-    db_obj: A database object.
+    db: A database object.
     client_id: A specific client id to use for initialized client. If none is
       provided a randomly generated one is used.
 
@@ -166,5 +178,112 @@ def InitializeClient(db_obj, client_id=None):
     for _ in range(16):
       client_id += random.choice("0123456789abcdef")
 
-  db_obj.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+  db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
   return client_id
+
+
+def InitializeUser(
+    db: abstract_db.Database,
+    username: Optional[str] = None,
+) -> str:
+  """Initializes a test user.
+
+  Args:
+    db: A database object.
+    username: A specific username to use for the initialized user. If none is
+      provided a randomly generated one is used.
+
+  Returns:
+    A username of the initialized user.
+  """
+  if username is None:
+    username = "".join(random.choice(string.ascii_lowercase) for _ in range(16))
+
+  db.WriteGRRUser(username)
+  return username
+
+
+def InitializeFlow(
+    db: abstract_db.Database,
+    client_id: str,
+    flow_id: Optional[str] = None,
+    **kwargs,
+) -> str:
+  """Initializes a test flow.
+
+  Args:
+    db: A database object.
+    client_id: A client id of the client to run the flow on.
+    flow_id: A specific flow id to use for initialized flow. If none is provided
+      a randomly generated one is used.
+    **kwargs: Parameters to initialize the flow object with.
+
+  Returns:
+    A flow id of the initialized flow.
+  """
+  if flow_id is None:
+    random_digit = lambda: random.choice(string.hexdigits).upper()
+    flow_id = "".join(random_digit() for _ in range(16))
+
+  flow_obj = rdf_flow_objects.Flow(**kwargs)
+  flow_obj.client_id = client_id
+  flow_obj.flow_id = flow_id
+  db.WriteFlowObject(flow_obj)
+
+  return flow_id
+
+
+def InitializeHunt(
+    db: abstract_db.Database,
+    hunt_id: Optional[str] = None,
+    creator: Optional[str] = None,
+) -> str:
+  """Initializes a test user.
+
+  Args:
+    db: A database object.
+    hunt_id: A specific hunt id to use for initialized hunt. If none is provided
+      a randomly generated one is used.
+    creator: A username of the hunt creator. If none is provided a randomly
+      generated one is used (and initialized).
+
+  Returns:
+    A hunt id of the initialized hunt.
+  """
+  if hunt_id is None:
+    random_digit = lambda: random.choice(string.hexdigits).upper()
+    hunt_id = "".join(random_digit() for _ in range(8))
+  if creator is None:
+    creator = InitializeUser(db)
+
+  hunt_obj = rdf_hunt_objects.Hunt()
+  hunt_obj.hunt_id = hunt_id
+  hunt_obj.creator = creator
+  db.WriteHuntObject(hunt_obj)
+
+  return hunt_id
+
+
+def InitializeCronJob(
+    db: abstract_db.Database,
+    cron_job_id: Optional[str] = None,
+) -> str:
+  """Initializes a test cron job.
+
+  Args:
+    db: A database object.
+    cron_job_id: A specific job id to use for initialized job. If none is
+      provided a randomly generated one is used.
+
+  Returns:
+    A cron job id of the initialized cron job.
+  """
+  if cron_job_id is None:
+    random_char = lambda: random.choice(string.ascii_uppercase)
+    cron_job_id = "".join(random_char() for _ in range(8))
+
+  cron_job = rdf_cronjobs.CronJob()
+  cron_job.cron_job_id = cron_job_id
+  db.WriteCronJob(cron_job)
+
+  return cron_job_id

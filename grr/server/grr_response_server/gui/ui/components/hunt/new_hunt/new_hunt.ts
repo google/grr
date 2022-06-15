@@ -12,6 +12,7 @@ import {UserGlobalStore} from '../../../store/user_global_store';
 import {Approval, ApprovalParams} from '../../approval/approval';
 
 import {ClientsForm} from './clients_form/clients_form';
+import {OutputPluginsForm} from './output_plugins_form/output_plugins_form';
 import {ParamsForm} from './params_form/params_form';
 
 /**
@@ -26,6 +27,8 @@ import {ParamsForm} from './params_form/params_form';
 export class NewHunt {
   @ViewChild('clientsForm', {static: false}) clientsForm!: ClientsForm;
   @ViewChild('paramsForm', {static: false}) paramsForm!: ParamsForm;
+  @ViewChild('outputPluginsForm', {static: false})
+  outputPluginsForm!: OutputPluginsForm;
   @ViewChild('approval', {static: false}) approval?: Approval;
   readonly flowWithDescriptor$: Observable<FlowWithDescriptor|undefined> =
       this.newHuntLocalStore.flowWithDescriptor$;
@@ -95,7 +98,9 @@ export class NewHunt {
   runHunt() {
     const safetyLimits = this.paramsForm.buildSafetyLimits();
     const rules = this.clientsForm.buildRules();
-    this.newHuntLocalStore.runHunt(this.huntName, safetyLimits, rules);
+    const outputPlugins = this.outputPluginsForm.buildOutputPlugins();
+    this.newHuntLocalStore.runHunt(
+        this.huntName, safetyLimits, rules, outputPlugins);
     // approval's submitRequest() method will trigger an emits of parameters
     // needed for request approval to new_hunt component. This is handled in
     // requestHuntApproval() method in new_hunt.

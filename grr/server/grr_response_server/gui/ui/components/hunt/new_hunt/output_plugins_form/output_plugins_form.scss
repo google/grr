@@ -1,0 +1,45 @@
+@use '@angular/material' as mat;
+@use '../../../../material-theme' as c;
+
+:host.closed .content {
+  display: none;
+}
+
+:host {
+  border-radius: 8px;
+  border: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
+  background: white;
+  margin-top: c.$card-margin;
+  padding: 10px 5px 10px 30px;
+  color: mat.get-color-from-palette(mat.$grey-palette, 800);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 18px;
+  line-height: 24px;
+}
+
+.plugins-container {
+  margin-right: 140px;
+  margin-top: 12px;
+  margin-bottom: 10px;
+
+  .plugin-content {
+    display: flex;
+    flex-direction: row;
+    font-size: 14px;
+    align-items: baseline;
+
+    .annotation-input {
+      width: 70%;
+    }
+
+    mat-icon {
+      font-size: 20px;
+      margin-left: 10px;
+    }
+  }
+}

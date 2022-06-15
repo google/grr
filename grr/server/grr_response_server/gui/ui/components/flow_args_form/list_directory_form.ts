@@ -1,16 +1,21 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {UntypedFormControl} from '@angular/forms';
+import {FormControl} from '@angular/forms';
 
-import {Controls, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {ListDirectoryArgs, PathSpecPathType} from '../../lib/api/api_interfaces';
 
 const COLLECTION_METHODS: ReadonlyArray<PathSpecPathType> =
     [PathSpecPathType.OS, PathSpecPathType.TSK, PathSpecPathType.NTFS];
 
-declare interface FormState {
-  path: string;
-  collectionMethod: PathSpecPathType;
+function makeControls() {
+  return {
+    collectionMethod: new FormControl(PathSpecPathType.OS, {nonNullable: true}),
+    path: new FormControl('', {nonNullable: true}),
+  };
 }
+
+type Controls = ReturnType<typeof makeControls>;
+
 
 /**
  * A form that makes it possible to configure the list directory flow.
@@ -23,24 +28,22 @@ declare interface FormState {
 
 })
 export class ListDirectoryForm extends
-    FlowArgumentForm<ListDirectoryArgs, FormState> {
+    FlowArgumentForm<ListDirectoryArgs, Controls> {
   readonly collectionMethods = COLLECTION_METHODS;
 
-  override makeControls(): Controls<FormState> {
+  override makeControls() {
+    return makeControls();
+  }
+
+  override convertFlowArgsToFormState(flowArgs: ListDirectoryArgs) {
     return {
-      collectionMethod: new UntypedFormControl(),
-      path: new UntypedFormControl(),
+      collectionMethod: flowArgs.pathspec?.pathtype ??
+          this.controls.collectionMethod.defaultValue,
+      path: flowArgs.pathspec?.path ?? this.controls.path.defaultValue,
     };
   }
 
-  override convertFlowArgsToFormState(flowArgs: ListDirectoryArgs): FormState {
-    return {
-      collectionMethod: flowArgs.pathspec?.pathtype ?? PathSpecPathType.OS,
-      path: flowArgs.pathspec?.path ?? '',
-    };
-  }
-
-  override convertFormStateToFlowArgs(formState: FormState): ListDirectoryArgs {
+  override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return {
       pathspec: {
         pathtype: formState.collectionMethod,

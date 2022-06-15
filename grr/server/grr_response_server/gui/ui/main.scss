@@ -1,7 +1,7 @@
 @use "@angular/material" as mat;
 @use "./material-theme" as c;
 
-@import 'material-theme';
+@import "material-theme";
 
 // Initialize Angular material theme.
 // Include non-theme styles for core.
@@ -29,7 +29,7 @@ html {
 
 .monospace,
 .mat-input-element.monospace {
-  font-family: 'Roboto Mono', monospace;
+  font-family: "Roboto Mono", monospace;
 }
 
 // Flow search results appear on a CDK overlay layer, so their styling has
@@ -191,19 +191,38 @@ mat-option {
   user-select: none;
 }
 
-.material-icons {
+.material-icons,
+.material-icons-outlined {
   user-select: none;
 }
 
 .key-value-table {
-  tr > td:first-of-type {
+  td:first-of-type {
     min-width: 10em;
     vertical-align: top;
+    color: mat.get-color-from-palette(c.$foreground, text-light);
   }
 
-  tr > td:last-of-type {
+  td:last-of-type {
     width: 100%;
     font-weight: 500;
+
+    app-copy-button {
+      max-width: 100%;
+
+      span {
+        display: inline-block;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 100%;
+        overflow: hidden;
+        vertical-align: middle;
+      }
+    }
+  }
+
+  td {
+    white-space: nowrap;
   }
 }
 
@@ -225,4 +244,42 @@ flow-details app-flow-args-view {
 
 .mat-tree {
   background: none;
+}
+
+.card {
+  border-radius: 8px;
+  border: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
+  background: white;
+  margin-top: c.$card-margin;
+  padding: 14px 30px;
+  color: mat.get-color-from-palette(mat.$grey-palette, 800);
+
+  .header {
+    display: flex;
+    font-size: 18px;
+    line-height: 24px;
+  }
+}
+
+.centered-content {
+  margin-left: auto;
+  margin-right: auto;
+  max-width: c.$centered-content-max-width;
+  width: c.$centered-content-width;
+}
+
+/** List of items with vertical spacing and horizontally centered. */
+.content-list {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  row-gap: c.$page-spacing;
+  align-items: center;
+
+  & > * {
+    /* Prevent child padding overlapping outside of 100% width. */
+    box-sizing: border-box;
+    width: 100%;
+    margin: 0;
+  }
 }

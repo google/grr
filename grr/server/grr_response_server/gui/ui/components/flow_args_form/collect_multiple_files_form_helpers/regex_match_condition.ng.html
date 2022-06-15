@@ -1,41 +1,50 @@
-<!-- TODO: Stop using formControlName here. -->
 <condition-panel
   title="Regex match"
-  [formGroup]="formGroup"
-  (conditionRemoved)="conditionRemoved.emit()">
-
+  (conditionRemoved)="conditionRemoved.emit()"
+>
   <mat-form-field appearance="outline">
     <mat-label>Regex</mat-label>
-    <input matInput formControlName="regex" class="monospace">
+    <input
+      matInput
+      [formControl]="formGroup.controls.regex"
+      name="regex"
+      class="monospace"
+    />
     <!-- TODO: The new compiler flag forbids using a.foo style for
       this property.  TS4111:
       Property '%s' comes from an index signature, so it must be accessed with ['%s']. -->
-    <mat-error *ngIf="$any(formGroup.controls).regex.hasError('required')">Regex expression is required</mat-error>
+    <mat-error *ngIf="$any(formGroup.controls).regex.hasError('required')"
+      >Regex expression is required</mat-error
+    >
   </mat-form-field>
 
   <mat-form-field appearance="outline">
     <mat-label>Mode</mat-label>
-    <mat-select formControlName="mode">
-       <mat-option [value]="FileFinderContentsMatchConditionMode.ALL_HITS">
-         All Hits
-       </mat-option>
+    <mat-select [formControl]="formGroup.controls.mode" name="mode">
+      <mat-option [value]="FileFinderContentsMatchConditionMode.ALL_HITS">
+        All Hits
+      </mat-option>
       <mat-option [value]="FileFinderContentsMatchConditionMode.FIRST_HIT">
-         First Hit
-       </mat-option>
-     </mat-select>
+        First Hit
+      </mat-option>
+    </mat-select>
   </mat-form-field>
 
   <mat-form-field appearance="outline">
     <mat-label>Length</mat-label>
-    <input matInput formControlName="length" class="monospace" type="number" autocomplete="off">
-    <!-- TODO: The new compiler flag forbids using a.foo style for
-      this property.  TS4111:
-      Property '%s' comes from an index signature, so it must be accessed with ['%s']. -->
-    <mat-error *ngIf="$any(formGroup.controls).length.hasError('required')">Length is required</mat-error>
-    <!-- TODO: The new compiler flag forbids using a.foo style for
-      this property.  TS4111:
-      Property '%s' comes from an index signature, so it must be accessed with ['%s']. -->
-    <mat-error *ngIf="$any(formGroup.controls).length.hasError('min')">Length must be a positive integer</mat-error>
+    <input
+      matInput
+      [formControl]="formGroup.controls.length"
+      name="length"
+      class="monospace"
+      type="number"
+      autocomplete="off"
+    />
+    <mat-error *ngIf="formGroup.controls.length.hasError('required')">
+      Length is required
+    </mat-error>
+    <mat-error *ngIf="formGroup.controls.length.hasError('min')">
+      Length must be a positive integer
+    </mat-error>
   </mat-form-field>
-
 </condition-panel>

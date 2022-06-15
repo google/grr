@@ -9,12 +9,10 @@ $horizontal-margin: 19px;
     darker-background
   );
   width: 100%;
+  padding: c.$page-spacing 0 0;
 }
 
 .new-hunt-container {
-  max-width: 1280px;
-  margin: 35px $horizontal-margin;
-
   .config {
     width: 100%;
     display: flex;

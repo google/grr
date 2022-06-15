@@ -1,6 +1,11 @@
 @use '@angular/material' as mat;
 @use '../../../material-theme' as c;
 
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
 .controls-top {
   display: flex;
   border-top: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);

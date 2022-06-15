@@ -40,13 +40,13 @@ export function assertTruthy<T>(
 /** Throws PreconditionError if the value's key is null or undefined. */
 export function assertKeyNonNull<T, K extends keyof T>(
     value: T, key: K): asserts value is NonNullableKey<T, K> {
-  assertNonNull(value[key], `key ${key}`);
+  assertNonNull(value[key], `key ${String(key)}`);
 }
 
 /** Throws PreconditionError if the value's key evaluates to false. */
 export function assertKeyTruthy<T, K extends keyof T>(
     value: T, key: K): asserts value is TruthyKey<T, K> {
-  assertTruthy(value[key], `key ${key}`);
+  assertTruthy(value[key], `key ${String(key)}`);
 }
 
 interface StringEnum<T> {

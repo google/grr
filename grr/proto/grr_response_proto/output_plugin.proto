@@ -3,6 +3,7 @@
 
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
 import "grr_response_proto/export.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/semantic.proto";
@@ -13,10 +14,19 @@ message OutputPluginDescriptor {
   optional string plugin_name = 1
       [(sem_type) = { description: "The name of the output plugin." }];
 
+  // TODO: Rename this field and add DEPRECATED prefix.
+  // DEPRECATED. Please use `args` instead.
   optional bytes plugin_args = 2 [(sem_type) = {
     dynamic_type: "GetPluginArgsClass",
-    description: "The parameters for this plugin. Must be an instance "
-                 "of the named plugin's args_type."
+    description: "DEPRECATED. Please use `args` instead. The parameters for "
+                 "this plugin. Must be an instance of the named plugin's "
+                 "args_type."
+  }];
+
+  optional google.protobuf.Any args = 3 [(sem_type) = {
+    no_dynamic_type_lookup: true,
+    description: "This is a helper field used by ApiCreateHuntHandler. It must "
+                 "be an instance of the named plugin's args_type."
   }];
 }
 

@@ -6,7 +6,7 @@ import {lastValueFrom} from 'rxjs';
 import {ErrorSnackbar} from '../../components/helpers/error_snackbar/error_snackbar';
 import {initTestEnvironment} from '../../testing';
 
-import {ApiBrowseFilesystemResult, ApiClientApproval, ApiFlow, ApiFlowResult, ApiGetFileDetailsResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGetVfsRefreshOperationStateResult, ApiGetVfsRefreshOperationStateResultState, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiUpdateVfsFileContentResult, PathSpecPathType} from './api_interfaces';
+import {ApiBrowseFilesystemResult, ApiClientApproval, ApiFlow, ApiFlowResult, ApiGetFileDetailsResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGetVfsRefreshOperationStateResult, ApiGetVfsRefreshOperationStateResultState, ApiHuntResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListHuntResultsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiUpdateVfsFileContentResult, PathSpecPathType} from './api_interfaces';
 import {HttpApiService, URL_PREFIX} from './http_api_service';
 import {ApiModule} from './module';
 
@@ -218,6 +218,78 @@ describe('HttpApiService', () => {
        req1.flush(resp1);
        expect(values.length).toEqual(1);
        expect(values).toEqual([[{tag: 'foo'}]]);
+
+       sub.unsubscribe();
+     }));
+
+  it('subscribeToResultsForHunt polls listResultsForHunt', fakeAsync(() => {
+       const values: Array<ReadonlyArray<ApiHuntResult>> = [];
+       const sub =
+           httpApiService.subscribeToResultsForHunt({huntId: '1234', count: 10})
+               .subscribe(result => {
+                 values.push(result);
+               });
+
+       tick();
+
+       const req1 = httpMock.expectOne({
+         method: 'GET',
+         url: `${URL_PREFIX}/hunts/1234/results?huntId=1234&count=10`,
+       });
+       const resp1: ApiListHuntResultsResult = {
+         items: [{clientId: 'C.1', payloadType: 'foo'}]
+       };
+       req1.flush(resp1);
+
+       expect(values.length).toEqual(1);
+       expect(values).toEqual([[{clientId: 'C.1', payloadType: 'foo'}]]);
+
+       tick(httpApiService.POLLING_INTERVAL);
+
+       const req2 = httpMock.expectOne({
+         method: 'GET',
+         url: `${URL_PREFIX}/hunts/1234/results?huntId=1234&count=10`
+       });
+       const resp2: ApiListHuntResultsResult = {
+         items: [{clientId: 'C.2', payloadType: 'bar'}]
+       };
+       req2.flush(resp2);
+
+       expect(values.length).toEqual(2);
+       expect(values[1]).toEqual([{clientId: 'C.2', payloadType: 'bar'}]);
+
+       sub.unsubscribe();
+
+       tick(httpApiService.POLLING_INTERVAL * 2);
+       // afterEach() verifies that no further request was launched.
+     }));
+
+  it('subscribeToResultsForHunt waits for result before re-polling',
+     fakeAsync(() => {
+       const values: Array<ReadonlyArray<ApiHuntResult>> = [];
+       const sub =
+           httpApiService.subscribeToResultsForHunt({huntId: '1234', count: 10})
+               .subscribe(result => {
+                 values.push(result);
+               });
+
+       tick();
+
+       const req1 = httpMock.expectOne({
+         method: 'GET',
+         url: `${URL_PREFIX}/hunts/1234/results?huntId=1234&count=10`,
+       });
+
+       tick(httpApiService.POLLING_INTERVAL * 2);
+
+       httpMock.verify();
+
+       const resp1: ApiListHuntResultsResult = {
+         items: [{clientId: 'C.1', payloadType: 'foo'}]
+       };
+       req1.flush(resp1);
+       expect(values.length).toEqual(1);
+       expect(values).toEqual([[{clientId: 'C.1', payloadType: 'foo'}]]);
 
        sub.unsubscribe();
      }));

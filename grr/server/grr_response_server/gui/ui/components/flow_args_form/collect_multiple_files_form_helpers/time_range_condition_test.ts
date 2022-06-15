@@ -1,13 +1,13 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {FormsModule, ReactiveFormsModule, UntypedFormGroup} from '@angular/forms';
+import {FormGroup, FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Subject} from 'rxjs';
 
-import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition, RawFormValues} from '../../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
+import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '../../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
 import {DateTimeInputHarness} from '../../../components/form/date_time_input/testing/date_time_input_harness';
 import {FileFinderAccessTimeCondition, FileFinderInodeChangeTimeCondition, FileFinderModificationTimeCondition} from '../../../lib/api/api_interfaces';
 import {DateTime} from '../../../lib/date_time';
@@ -23,16 +23,13 @@ initTestEnvironment();
 // injecting ControlContainer into the date-time-input.
 @Component({
   template: `
-<div [formGroup]="form">
-  <time-range-condition
-    formGroupName="condition"
-    (conditionRemoved)="conditionRemoved$.next()">
-  </time-range-condition>
-</div>
-`
+    <time-range-condition
+      [formGroup]="form.controls.condition"
+      (conditionRemoved)="conditionRemoved$.next()">
+    </time-range-condition>`
 })
 class TestHostComponent {
-  readonly form = new UntypedFormGroup({
+  readonly form = new FormGroup({
     condition: createTimeRangeFormGroup(),
   });
 
@@ -81,7 +78,7 @@ describe('TimeRangeCondition component', () => {
 
     const time = DateTime.fromSeconds(4242);
     const input = await loader.getHarness<DateTimeInputHarness>(
-        DateTimeInputHarness.with({selector: '[formControlName="minTime"]'}));
+        DateTimeInputHarness.with({selector: '[name="minTime"]'}));
     await input.setValue(time);
 
     const error = fixture.debugElement.query(By.css('mat-error'));
@@ -94,11 +91,11 @@ describe('TimeRangeCondition component', () => {
 
     const time = DateTime.fromSeconds(4242);
     const minInput = await loader.getHarness<DateTimeInputHarness>(
-        DateTimeInputHarness.with({selector: '[formControlName="minTime"]'}));
+        DateTimeInputHarness.with({selector: '[name="minTime"]'}));
     await minInput.setValue(time);
 
     const maxInput = await loader.getHarness<DateTimeInputHarness>(
-        DateTimeInputHarness.with({selector: '[formControlName="maxTime"]'}));
+        DateTimeInputHarness.with({selector: '[name="maxTime"]'}));
     await maxInput.setValue(time);
 
     const error = fixture.debugElement.query(By.css('mat-error'));
@@ -114,13 +111,11 @@ describe('TimeRangeCondition component', () => {
        const time1 = DateTime.fromSeconds(4242);
        const time2 = DateTime.fromSeconds(4241);
        const minInput = await loader.getHarness<DateTimeInputHarness>(
-           DateTimeInputHarness.with(
-               {selector: '[formControlName="minTime"]'}));
+           DateTimeInputHarness.with({selector: '[name="minTime"]'}));
        await minInput.setValue(time1);
 
        const maxInput = await loader.getHarness<DateTimeInputHarness>(
-           DateTimeInputHarness.with(
-               {selector: '[formControlName="maxTime"]'}));
+           DateTimeInputHarness.with({selector: '[name="maxTime"]'}));
        await maxInput.setValue(time2);
 
        const error = fixture.debugElement.query(By.css('mat-error'));
@@ -135,28 +130,22 @@ describe('TimeRangeCondition component', () => {
 
     const minTime = DateTime.fromSeconds(4242);
     const minInput = await loader.getHarness<DateTimeInputHarness>(
-        DateTimeInputHarness.with({selector: '[formControlName="minTime"]'}));
+        DateTimeInputHarness.with({selector: '[name="minTime"]'}));
     await minInput.setValue(minTime);
 
     const maxTime = DateTime.fromSeconds(4243);
     const maxInput = await loader.getHarness<DateTimeInputHarness>(
-        DateTimeInputHarness.with({selector: '[formControlName="maxTime"]'}));
+        DateTimeInputHarness.with({selector: '[name="maxTime"]'}));
     await maxInput.setValue(maxTime);
 
-    const expected: RawFormValues = {
-      minTime,
-      maxTime,
-    };
-    expect(fixture.componentInstance.form.value.condition).toEqual(expected);
+    expect(fixture.componentInstance.form.value.condition)
+        .toEqual({minTime, maxTime});
   });
 });
 
 describe('formValuesToFileFinderModificationTimeCondition()', () => {
   it('correctly converts empty form value', () => {
-    const source: RawFormValues = {
-      minTime: null,
-      maxTime: null,
-    };
+    const source = {minTime: null, maxTime: null};
     const expected: FileFinderModificationTimeCondition = {
       minLastModifiedTime: undefined,
       maxLastModifiedTime: undefined,
@@ -166,7 +155,7 @@ describe('formValuesToFileFinderModificationTimeCondition()', () => {
   });
 
   it('correctly converts filled out form value', () => {
-    const source: RawFormValues = {
+    const source = {
       minTime: DateTime.fromSeconds(4242),
       maxTime: DateTime.fromSeconds(4243),
     };
@@ -181,7 +170,7 @@ describe('formValuesToFileFinderModificationTimeCondition()', () => {
 
 describe('formValuesToFileFinderAccessTimeCondition()', () => {
   it('correctly converts empty form value', () => {
-    const source: RawFormValues = {
+    const source = {
       minTime: null,
       maxTime: null,
     };
@@ -193,7 +182,7 @@ describe('formValuesToFileFinderAccessTimeCondition()', () => {
   });
 
   it('correctly converts filled out form value', () => {
-    const source: RawFormValues = {
+    const source = {
       minTime: DateTime.fromSeconds(4242),
       maxTime: DateTime.fromSeconds(4243),
     };
@@ -207,7 +196,7 @@ describe('formValuesToFileFinderAccessTimeCondition()', () => {
 
 describe('formValuesToFileFinderInodeChangeTimeCondition()', () => {
   it('correctly converts empty form value', () => {
-    const source: RawFormValues = {
+    const source = {
       minTime: null,
       maxTime: null,
     };
@@ -220,7 +209,7 @@ describe('formValuesToFileFinderInodeChangeTimeCondition()', () => {
   });
 
   it('correctly converts filled out form value', () => {
-    const source: RawFormValues = {
+    const source = {
       minTime: DateTime.fromSeconds(4242),
       maxTime: DateTime.fromSeconds(4243),
     };

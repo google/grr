@@ -2,7 +2,7 @@ import {fakeAsync, TestBed} from '@angular/core/testing';
 import {firstValueFrom} from 'rxjs';
 import {filter} from 'rxjs/operators';
 
-import {ApiFlowState, ApiHuntApproval, ForemanClientRuleSet, ForemanClientRuleSetMatchMode} from '../lib/api/api_interfaces';
+import {ApiFlowState, ApiHuntApproval, ForemanClientRuleSet, ForemanClientRuleSetMatchMode, OutputPluginDescriptor} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
 import {HttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
 import {Flow, FlowState, FlowWithDescriptor} from '../lib/models/flow';
@@ -155,6 +155,11 @@ describe('NewHuntLocalStore', () => {
        const rules: ForemanClientRuleSet = {
          matchMode: ForemanClientRuleSetMatchMode.MATCH_ALL
        };
+
+       const outputPlugins: ReadonlyArray<OutputPluginDescriptor> = [{
+         pluginName: 'some plugin',
+       }];
+
        newHuntLocalStore.selectOriginalFlow('C.1234', 'abcd');
        const sub = newHuntLocalStore.flowWithDescriptor$.subscribe();
        configGlobalStore.mockedObservables.flowDescriptors$.next(
@@ -177,7 +182,8 @@ describe('NewHuntLocalStore', () => {
          state: ApiFlowState.RUNNING,
        });
 
-       newHuntLocalStore.runHunt('new hunt', safetyLimits, rules);
+       newHuntLocalStore.runHunt(
+           'new hunt', safetyLimits, rules, outputPlugins);
        expect(httpApiService.createHunt).toHaveBeenCalled();
        sub.unsubscribe();
      }));

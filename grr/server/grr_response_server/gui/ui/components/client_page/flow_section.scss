@@ -1,9 +1,6 @@
 @use '@angular/material' as mat;
 @use '../../material-theme' as c;
 
-$max-width: 1280px;
-$width: 80%;
-
 :host {
   display: flex;
   flex-direction: column;
@@ -13,8 +10,8 @@ $width: 80%;
 
 .client-start-flow {
   margin: 0 auto;
-  max-width: $max-width;
-  width: $width;
+  max-width: c.$centered-content-max-width;
+  width: c.$centered-content-width;
   box-sizing: border-box;
 }
 
@@ -23,13 +20,4 @@ $width: 80%;
   display: flex;
   flex-direction: column;
   row-gap: c.$page-spacing;
-
-  flow-list,
-  scheduled-flow-list,
-  approval {
-    margin-left: auto;
-    margin-right: auto;
-    max-width: $max-width;
-    width: $width;
-  }
 }

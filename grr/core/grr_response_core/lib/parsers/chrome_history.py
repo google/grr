@@ -22,7 +22,7 @@ class ChromeHistoryParser(
   """Parse Chrome history files into BrowserHistoryItem objects."""
 
   output_types = [rdf_webhistory.BrowserHistoryItem]
-  supported_artifacts = ["ChromeHistory"]
+  supported_artifacts = ["ChromiumBasedBrowsersHistory"]
 
   def ParseFile(
       self,

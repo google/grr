@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, OnInit, Output} from '@angular/core';
-import {ControlContainer, UntypedFormControl, UntypedFormGroup} from '@angular/forms';
+import {ControlContainer, FormControl, FormGroup} from '@angular/forms';
 import {combineLatest, Observable, zip} from 'rxjs';
 import {map, shareReplay} from 'rxjs/operators';
 
@@ -8,11 +8,6 @@ import {toByteUnit} from '../../form/byte_input/byte_conversion';
 
 // Default max file size is 20 MB.
 const DEFAULT_MAX_FILE_SIZE = 20_000_000;
-
-declare interface FormValues {
-  readonly minFileSize?: number;
-  readonly maxFileSize?: number;
-}
 
 declare interface FormattedFormValues {
   readonly min?: string;
@@ -38,8 +33,9 @@ export class SizeCondition implements OnInit {
 
   @Output() conditionRemoved = new EventEmitter<void>();
 
-  get formGroup(): UntypedFormGroup {
-    return this.controlContainer.control as UntypedFormGroup;
+  get formGroup() {
+    return this.controlContainer.control as
+        ReturnType<typeof createSizeFormGroup>;
   }
 
   ngOnInit() {
@@ -48,8 +44,8 @@ export class SizeCondition implements OnInit {
 
     const bytesAndUnit$ = formValues$.pipe(map(values => {
       return {
-        min: getByteUnit(values.minFileSize),
-        max: getByteUnit(values.maxFileSize),
+        min: getByteUnit(values.minFileSize ?? undefined),
+        max: getByteUnit(values.maxFileSize ?? undefined),
       };
     }));
 
@@ -67,18 +63,19 @@ export class SizeCondition implements OnInit {
       };
     }));
 
-    const formattedRawBytes$ =
-        zip(formValues$, formattedBytesAtUnit$)
-            .pipe(
-                map(([values, formattedBytesAtUnit]) => {
-                  return {
-                    min: getFormattedRawBytes(
-                        formattedBytesAtUnit.min, values.minFileSize),
-                    max: getFormattedRawBytes(
-                        formattedBytesAtUnit.max, values.maxFileSize),
-                  };
-                }),
-            );
+    const formattedRawBytes$ = zip(formValues$, formattedBytesAtUnit$)
+                                   .pipe(
+                                       map(([values, formattedBytesAtUnit]) => {
+                                         return {
+                                           min: getFormattedRawBytes(
+                                               formattedBytesAtUnit.min,
+                                               values.minFileSize ?? undefined),
+                                           max: getFormattedRawBytes(
+                                               formattedBytesAtUnit.max,
+                                               values.maxFileSize ?? undefined),
+                                         };
+                                       }),
+                                   );
 
     this.hintFormatting$ =
         combineLatest([formattedBytesAtUnit$, units$, formattedRawBytes$])
@@ -122,11 +119,11 @@ function getFormattedRawBytes(
 }
 
 /** Initializes a form group corresponding to the size condition. */
-export function createSizeFormGroup(): UntypedFormGroup {
-  const minFileSize = new UntypedFormControl();
-  const maxFileSize = new UntypedFormControl(DEFAULT_MAX_FILE_SIZE);
+export function createSizeFormGroup() {
+  const minFileSize = new FormControl<number|null>(null);
+  const maxFileSize = new FormControl<number|null>(DEFAULT_MAX_FILE_SIZE);
 
-  return new UntypedFormGroup(
+  return new FormGroup(
       {
         minFileSize,
         maxFileSize,

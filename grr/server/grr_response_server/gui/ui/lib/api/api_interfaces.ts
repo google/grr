@@ -233,6 +233,12 @@ export declare interface ApiClient {
   readonly hardwareInfo?: HardwareInfo;
 }
 
+/** ClientSummary proto mapping. */
+export declare interface ClientSummary {
+  readonly systemInfo?: ApiUname;
+  readonly users?: ReadonlyArray<ApiUser>;
+}
+
 /**
  * ApiGetClientVersionsResult proto mapping.
  */
@@ -1436,6 +1442,12 @@ export declare interface ForemanClientRuleSet {
   readonly rules?: ReadonlyArray<ForemanClientRule>;
 }
 
+/** OutputPluginDescriptor proto mapping. */
+export declare interface OutputPluginDescriptor {
+  readonly pluginName?: string;
+  readonly args?: AnyObject;
+}
+
 /** HuntRunnerArgs proto mapping. */
 export declare interface HuntRunnerArgs {
   readonly description?: string;
@@ -1449,6 +1461,7 @@ export declare interface HuntRunnerArgs {
   readonly avgNetworkBytesPerClientLimit?: DecimalString;
   readonly expiryTime?: DecimalString;
   readonly clientLimit?: DecimalString;
+  readonly outputPlugins?: ReadonlyArray<OutputPluginDescriptor>;
 }
 
 /** ApiFlowReference proto mapping. */
@@ -1465,12 +1478,11 @@ export declare interface ApiCreateHuntArgs {
   readonly originalFlow?: ApiFlowReference;
 }
 
-/**
- * ApiHunt proto mapping. Only keeps huntId because other fields are not in
- * use for UI.
- */
+/** ApiHunt proto mapping. */
 export declare interface ApiHunt {
   readonly huntId?: string;
+  readonly description?: string;
+  readonly creator?: string;
 }
 
 /** ApiHuntApproval proto mapping. */
@@ -1624,4 +1636,156 @@ export declare interface BufferReference {
 /** OnlineNotificationArgs proto mapping. */
 export declare interface OnlineNotificationArgs {
   readonly email?: string;
+}
+
+/** YaraProcessDumpArgs proto mapping. */
+export declare interface YaraProcessDumpArgs {
+  readonly pids?: ReadonlyArray<DecimalString>;
+  readonly processRegex?: string;
+  readonly ignoreGrrProcess?: boolean;
+  readonly dumpAllProcesses?: boolean;
+  readonly sizeLimit?: DecimalString;
+  readonly chunkSize?: DecimalString;
+  readonly skipSpecialRegions?: boolean;
+  readonly skipMappedFiles?: boolean;
+  readonly skipSharedRegions?: boolean;
+  readonly skipExecutableRegions?: boolean;
+  readonly skipReadonlyRegions?: boolean;
+  readonly prioritizeOffsets?: ReadonlyArray<DecimalString>;
+}
+
+
+/** ProcessMemoryRegion proto mapping. */
+export declare interface ProcessMemoryRegion {
+  readonly start?: DecimalString;
+  readonly size?: DecimalString;
+  readonly file?: PathSpec;
+  readonly isExecutable?: boolean;
+  readonly isWritable?: boolean;
+  readonly isReadable?: boolean;
+  readonly dumpedSize?: DecimalString;
+}
+
+/** YaraProcessDumpInformation proto mapping. */
+export declare interface YaraProcessDumpInformation {
+  readonly process?: Process;
+  readonly dumpFiles?: ReadonlyArray<PathSpec>;
+  readonly error?: string;
+  readonly dumpTimeUs?: DecimalString;
+  readonly memoryRegions?: ReadonlyArray<ProcessMemoryRegion>;
+}
+
+/** YaraProcessDumpResponse proto mapping. */
+export declare interface YaraProcessDumpResponse {
+  readonly dumpedProcesses?: ReadonlyArray<YaraProcessDumpInformation>;
+  readonly errors?: ReadonlyArray<ProcessMemoryError>;
+}
+
+/** ProcessMemoryError proto mapping. */
+export declare interface ProcessMemoryError {
+  readonly process?: Process;
+  readonly error?: string;
+}
+
+/** YaraProcessScanRequest.ErrorPolicy proto mapping. */
+export enum YaraProcessScanRequestErrorPolicy {
+  NO_ERRORS = 'NO_ERRORS',
+  ALL_ERRORS = 'ALL_ERRORS',
+  CRITICAL_ERRORS = 'CRITICAL_ERRORS',
+}
+
+/** YaraProcessScanRequest.ImplementationType proto mapping. */
+enum YaraProcessScanRequestImplementationType {
+  DEFAULT = 'DEFAULT',
+  DIRECT = 'DIRECT',
+  SANDBOX = 'SANDBOX',
+}
+
+/** YaraSignatureShard proto mapping. */
+export declare interface YaraSignatureShard {
+  readonly index?: number;
+  readonly payload?: ByteString;
+}
+
+/** YaraProcessScanRequest proto mapping. */
+export declare interface YaraProcessScanRequest {
+  readonly yaraSignature?: string;
+  readonly yaraSignatureBlobId?: ByteString;
+  readonly signatureShard?: YaraSignatureShard;
+  readonly numSignatureShards?: number;
+  readonly pids?: ReadonlyArray<DecimalString>;
+  readonly processRegex?: string;
+  readonly cmdlineRegex?: string;
+  readonly includeErrorsInResults?: YaraProcessScanRequestErrorPolicy;
+  readonly includeMissesInResults?: boolean;
+  readonly ignoreGrrProcess?: boolean;
+  readonly perProcessTimeout?: number;
+  readonly overlapSize?: DecimalString;
+  readonly skipSpecialRegions?: boolean;
+  readonly skipMappedFiles?: boolean;
+  readonly skipSharedRegions?: boolean;
+  readonly skipExecutableRegions?: boolean;
+  readonly skipReadonlyRegions?: boolean;
+  readonly dumpProcessOnMatch?: boolean;
+  readonly maxResultsPerProcess?: number;
+  readonly processDumpSizeLimit?: DecimalString;
+  readonly scanRuntimeLimitUs?: DecimalString;
+  readonly implementationType?: YaraProcessScanRequestImplementationType;
+}
+
+/** ApiListHuntResultsArgs proto mapping. */
+export declare interface ApiListHuntResultsArgs {
+  readonly huntId?: string;
+  readonly count?: number;
+}
+
+/** ApiHuntResult proto mapping. */
+export declare interface ApiHuntResult {
+  readonly clientId?: string;
+  readonly payload?: AnyObject;
+  readonly payloadType?: string;
+  readonly timestamp?: string;
+}
+
+/** ApiListHuntResultsResult proto mapping. */
+export declare interface ApiListHuntResultsResult {
+  readonly items?: ReadonlyArray<ApiHuntResult>;
+  readonly totalCount?: number;
+  readonly count?: number;
+  readonly filter?: string;
+}
+
+/** ApiListHuntsArgs proto mapping. */
+export declare interface ApiListHuntsArgs {
+  readonly offset?: DecimalString;
+  readonly count?: DecimalString;
+  readonly createdBy?: string;
+  readonly descriptionContains?: string;
+  readonly activeWithin?: DecimalString;
+}
+
+/** ApiListHuntsResult proto mapping. */
+export declare interface ApiListHuntsResult {
+  readonly items?: ReadonlyArray<ApiHunt>;
+  readonly totalCount?: DecimalString;
+}
+
+/** YaraStringMatch proto mapping. */
+export declare interface YaraStringMatch {
+  readonly stringId?: string;
+  readonly offset?: DecimalString;
+  readonly data?: ByteString;
+}
+
+/** YaraMatch proto mapping. */
+export declare interface YaraMatch {
+  readonly ruleName?: string;
+  readonly stringMatches?: ReadonlyArray<YaraStringMatch>;
+}
+
+/** YaraProcessScanMatch proto mapping. */
+export declare interface YaraProcessScanMatch {
+  readonly process?: Process;
+  readonly match?: ReadonlyArray<YaraMatch>;
+  readonly scanTimeUs?: DecimalString;
 }

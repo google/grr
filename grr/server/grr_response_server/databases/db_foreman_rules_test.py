@@ -3,6 +3,7 @@
 
 from grr_response_core.lib import rdfvalue
 from grr_response_server import foreman_rules
+from grr_response_server.databases import db_test_utils
 
 
 class DatabaseTestForemanRulesMixin(object):
@@ -31,7 +32,8 @@ class DatabaseTestForemanRulesMixin(object):
     return rule
 
   def testForemanRuleWrite(self):
-    rule = self._GetTestRule()
+    hunt_id = db_test_utils.InitializeHunt(self.db)
+    rule = self._GetTestRule(hunt_id)
     self.db.WriteForemanRule(rule)
 
     read = self.db.ReadAllForemanRules()
@@ -39,12 +41,15 @@ class DatabaseTestForemanRulesMixin(object):
     self.assertEqual(read[0], rule)
 
   def testForemanRuleRemove(self):
+    db_test_utils.InitializeHunt(self.db, "H:123456")
     rule1 = self._GetTestRule("H:123456")
     self.db.WriteForemanRule(rule1)
 
+    db_test_utils.InitializeHunt(self.db, "H:654321")
     rule2 = self._GetTestRule("H:654321")
     self.db.WriteForemanRule(rule2)
 
+    db_test_utils.InitializeHunt(self.db, "H:ABCDEF")
     rule3 = self._GetTestRule("H:ABCDEF")
     self.db.WriteForemanRule(rule3)
 
@@ -63,11 +68,15 @@ class DatabaseTestForemanRulesMixin(object):
 
   def testForemanRuleExpire(self):
     for i in range(3):
+      db_test_utils.InitializeHunt(self.db, f"00000{i}")
+
       expires = self.db.Now() - rdfvalue.Duration("1s")
       rule = self._GetTestRule(f"00000{i}", expires=expires)
       self.db.WriteForemanRule(rule)
 
     for i in range(3, 5):
+      db_test_utils.InitializeHunt(self.db, f"00000{i}")
+
       expires = self.db.Now() + rdfvalue.Duration("100s")
       rule = self._GetTestRule(f"00000{i}", expires=expires)
       self.db.WriteForemanRule(rule)
