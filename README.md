@@ -26,6 +26,6 @@ Contact Us
 
 Screenshots
 -----------
-[<img src="https://github.com/google/grr/blob/gh-pages/screenshots/endpoint-overview.png" width="330" />](https://github.com/google/grr/blob/gh-pages/screenshots/endpoint-overview.png)
-[<img src="https://github.com/google/grr/blob/gh-pages/screenshots/filesystem-overview.png" width="330" />](https://github.com/google/grr/blob/gh-pages/screenshots/filesystem-overview.png)
-[<img src="https://github.com/google/grr/blob/gh-pages/screenshots/workflow-results.png" width="330" />](https://github.com/google/grr/blob/gh-pages/screenshots/workflow-results.png)
+[<img src="https://github.com/google/grr/blob/gh-pages/screenshots/endpoint-overview.png" width="330">](https://github.com/google/grr/blob/gh-pages/screenshots/endpoint-overview.png)
+[<img src="https://github.com/google/grr/blob/gh-pages/screenshots/filesystem-overview.png" width="330">](https://github.com/google/grr/blob/gh-pages/screenshots/filesystem-overview.png)
+[<img src="https://github.com/google/grr/blob/gh-pages/screenshots/workflow-results.png" width="330">](https://github.com/google/grr/blob/gh-pages/screenshots/workflow-results.png)
