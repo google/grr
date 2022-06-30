@@ -62,6 +62,6 @@ setup(
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
         "humanize==2.4.0",
         "ipython==%s" % ("5.0.0" if sys.version_info < (3, 0) else "7.15.0"),
-        "numpy==1.18.5",
-        "pandas==1.0.4",
+        "numpy==1.23.0",
+        "pandas==1.4.3",
     ])

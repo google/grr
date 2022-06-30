@@ -40,7 +40,7 @@ def make_ui_files():
   subprocess.check_call(
       "npm ci", shell=True, cwd="grr_response_server/gui/static")
   subprocess.check_call(
-      "npm run gulp compile", shell=True, cwd="grr_response_server/gui/static")
+      "npx gulp compile", shell=True, cwd="grr_response_server/gui/static")
   # Compile UI v2.
   subprocess.check_call("npm ci", shell=True, cwd="grr_response_server/gui/ui")
   subprocess.check_call(
@@ -194,7 +194,7 @@ setup_args = dict(
         "portpicker==1.3.1",
         "prometheus_client==0.8.0",
         "pyjwt==1.7.1",
-        "pyOpenSSL==19.1.0",  # https://github.com/google/grr/issues/704
+        "pyOpenSSL==20.0.0",  # https://github.com/google/grr/issues/704
         "python-crontab==2.5.1",
         "python-debian==0.1.37",
         "Werkzeug==1.0.1",

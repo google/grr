@@ -132,7 +132,7 @@ setup_args = dict(
     include_package_data=True,
     python_requires=">=3.6",
     install_requires=[
-        "absl-py==0.9.0",
+        "absl-py==1.1.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "PyInstaller==3.6",
         PYTSK3,
@@ -144,7 +144,7 @@ setup_args = dict(
         # The following requirements are needed in Windows.
         ':sys_platform=="win32"': [
             "WMI==1.5.1",
-            "pywin32==228",
+            "pywin32==304",
         ],
     },
 )

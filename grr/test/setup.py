@@ -59,7 +59,7 @@ setup_args = dict(
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
     install_requires=[
-        "absl-py==0.9.0",
+        "absl-py==1.1.0",
         "flaky==3.6.1",
         "pytest==6.2.2",
         "responses==0.12.1",
