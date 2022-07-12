@@ -146,7 +146,7 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
     data = "\n".join([
         "{}\n{}".format(index_command, json.Dump(event, indent=None))
         for event in events
-    ])
+    ]) + "\n"
 
     response = requests.post(
         url=self._url, verify=self._verify_https, data=data, headers=headers)
