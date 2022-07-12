@@ -135,9 +135,9 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
     # https://www.elastic.co/guide/en/elasticsearch/reference/7.1/docs-bulk.html
 
     if self._token:
-      headers = {"Authorization": "Basic {}".format(self._token)}
+      headers = {"Authorization": "Basic {}".format(self._token), "Content-Type": "application/json"}
     else:
-      headers = {}
+      headers = {"Content-Type": "application/json"}
 
     index_command = json.Dump({"index": {"_index": self._index}}, indent=None)
 
