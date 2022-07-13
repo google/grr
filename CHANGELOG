@@ -7,6 +7,9 @@
   or deleted.
 * Added configuration option Monitoring.http_address to specify server address
   of stats server. Default value will remain 127.0.0.1.
+* Updates elasticsearch output plugin post request to _bulk in the
+  elasticsearch api. Adds a terminating \n and content type headers for
+  application/json.
 
 ## 3.4.3.1
 
