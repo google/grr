@@ -5,6 +5,9 @@
 * Introduced Server.grr_binaries_readonly configuration option (set to False
   by default). When set to True, binaries and python hacks can't be overriden
   or deleted.
+* Updates elasticsearch output plugin post request to _bulk in the
+  elasticsearch api. Adds a terminating \n and content type headers for
+  application/json.
 
 ## 3.4.3.1
 
