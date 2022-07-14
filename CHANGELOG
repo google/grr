@@ -5,6 +5,8 @@
 * Introduced Server.grr_binaries_readonly configuration option (set to False
   by default). When set to True, binaries and python hacks can't be overriden
   or deleted.
+* Allow stats server to be TCP bound rather than the loopback device for
+  metrics export.
 
 ## 3.4.3.1
 

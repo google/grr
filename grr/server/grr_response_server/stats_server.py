@@ -44,7 +44,7 @@ class StatsServer(base_stats_server.BaseStatsServer):
   def Start(self):
     """Start HTTPServer."""
     try:
-      self._http_server = IPv6HTTPServer(("::1", self.port), StatsServerHandler)
+      self._http_server = IPv6HTTPServer(("::", self.port), StatsServerHandler)
     except socket.error as e:
       if e.errno == errno.EADDRINUSE:
         raise base_stats_server.PortInUseError(self.port)
