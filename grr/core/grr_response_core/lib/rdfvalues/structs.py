@@ -1082,7 +1082,7 @@ class ProtoAnyValue(ProtoType):
     return (self.encoded_tag, VarintEncode(len(data)), data)
 
 
-class RepeatedFieldHelper(collections.Sequence, object):
+class RepeatedFieldHelper(collections.abc.Sequence, object):
   """A helper for the RDFProto to handle repeated fields.
 
   This helper is intended to only be constructed from the RDFProto class.

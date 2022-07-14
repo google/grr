@@ -57,7 +57,7 @@ def AssertIterableType(iterable, expected_item_type):
     message %= iterable
     raise TypeError(message)
 
-  AssertType(iterable, collections.Iterable)
+  AssertType(iterable, collections.abc.Iterable)
   for item in iterable:
     AssertType(item, expected_item_type)
 
