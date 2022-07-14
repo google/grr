@@ -153,6 +153,10 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     self.assertFalse(mock_post.call_args[KWARGS]['verify'])
     self.assertEqual(mock_post.call_args[KWARGS]['headers']['Authorization'],
                      'Basic b')
+    self.assertTrue(
+        mock_post.call_args[KWARGS]['headers']['Content-Type'] == 'application/json' or
+        mock_post.call_args[KWARGS]['headers']['Content-Type'] == 'application/x-ndjson'
+    )
 
     bulk_pairs = self._ParseEvents(mock_post)
     self.assertEqual(bulk_pairs[0][0]['index']['_index'], 'e')
