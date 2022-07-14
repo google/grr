@@ -153,6 +153,12 @@ def thread_leak_check(request):
       "ApiSslServerTest",
       "GRRHTTPServerTestThread",
       "SharedMemDBTestThread",
+
+      # These threads seem to need to be allowed to run tests. Sample
+      # %contentroot%/grr/server/grr_response_server/output_plugins/elasticsearch_plugin_test.py --no-header --no-summary -q in %contentroot%\grr\server\grr_response_server\output_plugins
+      'pydevd.Writer',
+      'pydevd.Reader',
+      'pydevd.CommandThread',
   ]
 
   # Remove up to one instance of each allowed thread name.
