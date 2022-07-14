@@ -66,12 +66,20 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
   def _ParseEvents(self, patched):
     request = patched.call_args[KWARGS]['data']
-
     # Elasticsearch bulk requests are line-deliminated pairs, where the first
     # line is the index command and the second is the actual document to index
-    split_requests = [json.Parse(line) for line in request.split('\n')]
-    update_pairs = [(split_requests[i], split_requests[i + 1])
-                    for i in range(0, len(split_requests), 2)]
+    split_requests = []
+    splitRequest = request.split('\n')
+    for line in splitRequest:
+        # Skip terminating newlines - which crashes json.Parse
+        if not line:
+            continue
+        split_requests.append(json.Parse(line))
+    #update_pairs = [(split_requests[i], split_requests[i + 1])
+    #                for i in range(0, len(split_requests), 2)]
+    update_pairs = []
+    for i in range(0, len(split_requests), 2):
+        update_pairs.append([split_requests[i], split_requests[i + 1]])
 
     return update_pairs
 
