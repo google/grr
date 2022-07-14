@@ -199,6 +199,15 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
             responses=[rdf_client.Process(pid=42)],
             patcher=mock.patch.object(requests, 'post', post))
 
+  def testPostDataTerminatingNewline(self):
+      with test_lib.ConfigOverrider({
+          'Elasticsearch.url': 'http://a',
+          'Elasticsearch.token': 'b',
+      }):
+          mock_post = self._CallPlugin(
+              plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(),
+              responses=[rdf_client.Process(pid=42)])
+      self.assertTrue(mock_post.call_args[KWARGS]['data'].endswith('\n'))
 
 if __name__ == '__main__':
   app.run(test_lib.main)
