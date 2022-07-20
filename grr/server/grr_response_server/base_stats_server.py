@@ -28,12 +28,14 @@ class BaseStatsServer(metaclass=abc.ABCMeta):
     port: The TCP port that the server should listen to.
   """
 
-  def __init__(self, port):
+  def __init__(self, address, port):
     """Instantiates a new BaseStatsServer.
 
     Args:
+      address: The IP address of the server to bind.
       port: The TCP port that the server should listen to.
     """
+    self.address = address
     self.port = port
 
   @abc.abstractmethod

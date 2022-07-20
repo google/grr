@@ -31,20 +31,21 @@ class IPv6HTTPServer(http_server.HTTPServer):
 class StatsServer(base_stats_server.BaseStatsServer):
   """A statistics server that exposes a minimal, custom /varz route."""
 
-  def __init__(self, port):
+  def __init__(self, address, port):
     """Instantiates a new StatsServer.
 
     Args:
+      address: The IP address of the server to bind.
       port: The TCP port that the server should listen to.
     """
-    super().__init__(port)
+    super().__init__(address, port)
     self._http_server = None
     self._server_thread = None
 
   def Start(self):
     """Start HTTPServer."""
     try:
-      self._http_server = IPv6HTTPServer(("::", self.port), StatsServerHandler)
+      self._http_server = IPv6HTTPServer((self.address, self.port), StatsServerHandler)
     except socket.error as e:
       if e.errno == errno.EADDRINUSE:
         raise base_stats_server.PortInUseError(self.port)
@@ -71,6 +72,8 @@ def InitializeStatsServerOnce():
   grr.local.stats_server.StatsServer implementation will be used instead of
   a default one.
   """
+
+  address = config.CONFIG["Monitoring.http_address"]
 
   # Figure out which port to use.
   port = config.CONFIG["Monitoring.http_port"]
@@ -99,8 +102,8 @@ def InitializeStatsServerOnce():
 
   for port in range(port, max_port + 1):
     try:
-      logging.info("Starting monitoring server on port %d.", port)
-      server_obj = server_cls(port)
+      logging.info("Starting monitoring server on address %s and port %d.", address, port)
+      server_obj = server_cls(address, port)
       server_obj.Start()
       return
     except base_stats_server.PortInUseError as e:
