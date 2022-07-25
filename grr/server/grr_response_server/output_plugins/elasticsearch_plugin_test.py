@@ -69,8 +69,8 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     # Elasticsearch bulk requests are line-deliminated pairs, where the first
     # line is the index command and the second is the actual document to index
     split_requests = []
-    splitRequest = request.split('\n')
-    for line in splitRequest:
+    split_request = request.split('\n')
+    for line in split_request:
         # Skip terminating newlines - which crashes json.Parse
         if not line:
             continue
