@@ -75,8 +75,6 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
         if not line:
             continue
         split_requests.append(json.Parse(line))
-    #update_pairs = [(split_requests[i], split_requests[i + 1])
-    #                for i in range(0, len(split_requests), 2)]
     update_pairs = []
     for i in range(0, len(split_requests), 2):
         update_pairs.append([split_requests[i], split_requests[i + 1]])
