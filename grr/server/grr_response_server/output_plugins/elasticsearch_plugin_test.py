@@ -161,7 +161,7 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
                      'Basic b')
     self.assertIn(
         mock_post.call_args[KWARGS]['headers']['Content-Type'],
-        ['application/json', 'application/x-ndjson']
+        ('application/json', 'application/x-ndjson')
     )
 
     bulk_pairs = self._ParseEvents(mock_post)
