@@ -23,7 +23,7 @@ class StatsServerTest(base_stats_server_test.StatsServerTestMixin,
                       test_lib.GRRBaseTest):
 
   def setUpStatsServer(self, port):
-    return stats_server.StatsServer(port)
+    return stats_server.StatsServer("::1", port)
 
   def testPrometheusIntegration(self):
     registry = prometheus_client.CollectorRegistry(auto_describe=True)
@@ -38,7 +38,7 @@ class StatsServerTest(base_stats_server_test.StatsServerTestMixin,
 
     with mock.patch.object(stats_server.StatsServerHandler, "registry",
                            registry):
-      server = stats_server.StatsServer(port)
+      server = stats_server.StatsServer("::1", port)
       server.Start()
       self.addCleanup(server.Stop)
       res = requests.get("http://[::1]:{}/metrics".format(port))
