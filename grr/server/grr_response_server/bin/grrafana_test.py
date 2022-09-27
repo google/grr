@@ -9,6 +9,8 @@ from werkzeug import test as werkzeug_test
 
 from google.protobuf import timestamp_pb2
 
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server.bin import grrafana
@@ -138,6 +140,21 @@ _TEST_CLIENT_BREAKDOWN_STATS = FleetStats(
             "foo-os": 3
         }
     })
+_TEST_LAST_ACTIVE_STATS = {
+    rdfvalue.RDFDatetime.FromHumanReadable('2020-11-25 12:29:49'): rdf_stats.ClientGraphSeries(
+        graphs=[rdf_stats.Graph(
+            data=[rdf_stats.Sample(x_value=86400000000, y_value=1),
+                  rdf_stats.Sample(x_value=172800000000, y_value=1),
+                  rdf_stats.Sample(x_value=259200000000, y_value=1),
+                  rdf_stats.Sample(x_value=604800000000, y_value=1),
+                  rdf_stats.Sample(x_value=1209600000000, y_value=1),
+                  rdf_stats.Sample(x_value=2592000000000, y_value=1),
+                  rdf_stats.Sample(x_value=5184000000000, y_value=1),
+            ]
+        )],
+        report_type=rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE
+    )
+}
 _TEST_VALID_RUD_QUERY = {
     "app": "dashboard",
     "requestId": "Q119",
@@ -233,6 +250,51 @@ _TEST_VALID_CLIENT_STATS_QUERY = {
     "adhocFilters": [],
     "endTime": 1603276176858
 }
+_TEST_VALID_LAST_ACTIVE_QUERY = {
+  "app": "dashboard",
+  "requestId": "Q43206",
+  "timezone": "browser",
+  "panelId": 23763571993,
+  "dashboardId": 1,
+  "range": {
+    "from": "2020-10-02T13:36:28.519Z",
+    "to": "2020-12-01T13:36:28.519Z",
+    "raw": {
+      "from": "now-60d",
+      "to": "now"
+    }
+  },
+  "timeInfo": "",
+  "interval": "1h",
+  "intervalMs": 3600000,
+  "targets": [
+    {
+      "refId": "A",
+      "data": "",
+      "target": "Client Last Active - 3 days active",
+      "type": "timeseries",
+      "datasource": "grrafana"
+    }
+  ],
+  "maxDataPoints": 1825,
+  "scopedVars": {
+   "__interval": {
+     "text": "1h",
+     "value": "1h"
+    },
+   "__interval_ms": {
+      "text": "3600000",
+      "value": 3600000
+    }
+  },
+  "startTime": 1606829788519,
+  "rangeRaw": {
+    "from": "now-60d",
+    "to": "now"
+  },
+  "adhocFilters": [],
+  "endTime": 1606829788548
+}
 _TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_RUD_QUERY)
 _TEST_INVALID_TARGET_QUERY["targets"][0]["target"] = "unavailable_metric"
 
@@ -263,6 +325,12 @@ def _MockDatastoreReturningPlatformFleetStats(client_fleet_stats):
   client_fleet_stats.Validate()
   rel_db = mock.MagicMock()
   rel_db.CountClientPlatformsByLabel.return_value = client_fleet_stats
+  return rel_db
+
+
+def _MockDatastoreReturningAllGraphSeries(graph_series_with_timestamps):
+  rel_db = mock.MagicMock()
+  rel_db.ReadAllClientGraphSeries.return_value = graph_series_with_timestamps
   return rel_db
 
 
@@ -302,6 +370,10 @@ class GrrafanaTest(absltest.TestCase):
     expected_res.extend([
         f"Client Version Strings - {n_days} Day Active"
         for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS
+    ])
+    expected_res.extend([
+        f"Client Last Active - {n_days} days active"
+        for n_days in grrafana._LAST_ACTIVE_DAY_BUCKETS
     ])
     self.assertListEqual(response.json, expected_res)
 
@@ -352,6 +424,19 @@ class GrrafanaTest(absltest.TestCase):
           "rows": [["bar-os", 11], ["baz-os", 5], ["foo-os", 2]],
           "type": "table"
       }]
+      self.assertEqual(valid_response.json, expected_res)
+
+  def testLastActiveMetric(self):
+    rel_db = _MockDatastoreReturningAllGraphSeries(
+      _TEST_LAST_ACTIVE_STATS)
+    with mock.patch.object(data_store, "REL_DB", rel_db):
+      valid_response = self.client.post(
+          "/query", json=_TEST_VALID_LAST_ACTIVE_QUERY)
+      self.assertEqual(200, valid_response.status_code)
+      expected_res = [
+         {"target": "Client Last Active - 3 days active",
+          "datapoints": [[1, 1606307389000]]}
+      ]
       self.assertEqual(valid_response.json, expected_res)
 
 

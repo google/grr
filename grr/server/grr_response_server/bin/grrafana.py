@@ -18,6 +18,9 @@ from google.protobuf import timestamp_pb2
 from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.config import server as config_server
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_server import client_report_utils
 from grr_response_server import data_store
 from grr_response_server import fleet_utils
 from grr_response_server import fleetspeak_connector
@@ -28,6 +31,7 @@ from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 
 JSON_MIME_TYPE = "application/json"
 _FLEET_BREAKDOWN_DAY_BUCKETS = frozenset([1, 7, 14, 30])
+_LAST_ACTIVE_DAY_BUCKETS = frozenset([1, 3, 7, 30, 60])
 
 flags.DEFINE_bool(
     "version",
@@ -99,9 +103,9 @@ class ClientResourceUsageMetric(Metric):
     self._record_values_extract_fn = record_values_extract_fn
 
   # Note: return type error issues at python/mypy#3915, python/typing#431
-  def ProcessQuery(
+  def ProcessQuery(  # type: ignore[override]
       self,
-      req: JSONRequest) -> _TargetWithDatapoints:  # type: ignore[override]
+      req: JSONRequest) -> _TargetWithDatapoints:
     client_id = req["scopedVars"]["ClientID"]["value"]
     start_range_ts = TimeToProtoTimestamp(req["range"]["from"])
     end_range_ts = TimeToProtoTimestamp(req["range"]["to"])
@@ -132,8 +136,8 @@ class ClientsStatisticsMetric(Metric):
     self._days_active = days_active
 
   # Note: return type error issues at python/mypy#3915, python/typing#431
-  def ProcessQuery(
-      self, req: JSONRequest) -> _TableQueryResult:  # type: ignore[override]
+  def ProcessQuery(  # type: ignore[override]
+                   self, req: JSONRequest) -> _TableQueryResult:
     fleet_stats = self._get_fleet_stats_fn(_FLEET_BREAKDOWN_DAY_BUCKETS)
     totals = fleet_stats.GetTotalsForDay(self._days_active)
     return _TableQueryResult(
@@ -146,6 +150,39 @@ class ClientsStatisticsMetric(Metric):
         }],
         rows=[[l, v] for l, v in totals.items()],
         type="table")
+
+
+class LastActiveMetric(Metric):
+  """A metric that represents the breakdown of client count based on the
+  last activity time of the client."""
+
+  def __init__(self,
+               name: str,
+               days_active: int) -> None:
+    super().__init__(name)
+    self._days_active = days_active
+
+  # TODO: Return type error issues at python/mypy#3915, python/typing#431
+  # TODO: This function is not clean and "translates" legacy graph data
+  # from the graphs datastore to Grafana-readable datapoints.
+  # We should aim to replace this once this datastore is deprecated.
+  # The current implementation is a modified version of LastActiveReportPlugin
+  # in grr/server/grr_response_server/gui/api_plugins/report_plugins/client_report_plugins.py
+  def ProcessQuery(self, req: JSONRequest) -> _TargetWithDatapoints: # type: ignore[override]
+    series_with_timestamps = client_report_utils.FetchAllGraphSeries(
+        label="All",
+        report_type=rdf_stats.ClientGraphSeries.ReportType.N_DAY_ACTIVE,
+        period=rdfvalue.Duration.From(180, rdfvalue.DAYS))
+    datapoints = []
+    for timestamp, graph_series in sorted(series_with_timestamps.items()):
+      for sample in graph_series.graphs[0]:
+        # Provide the time in js timestamps (milliseconds since the epoch).
+        days = sample.x_value // 1000000 // 24 // 60 // 60
+        if days == self._days_active:
+          timestamp_millis = timestamp.AsMicrosecondsSinceEpoch() // 1000
+          datapoints.append(_Datapoint(value=timestamp_millis,
+                                       nanos=sample.y_value))
+    return _TargetWithDatapoints(target=self._name, datapoints=datapoints)
 
 
 AVAILABLE_METRICS_LIST: List[Metric]
@@ -177,12 +214,21 @@ client_statistics_names_fns = [
     (lambda n_days: f"Client Version Strings - {n_days} Day Active",
      lambda bs: data_store.REL_DB.CountClientVersionStringsByLabel(bs))
 ]
+last_active_statistics_name_fn = (
+  lambda n_days: f"Client Last Active - {n_days} days active"
+)
 # pylint: enable=unnecessary-lambda
 for metric_name_fn, metric_extract_fn in client_statistics_names_fns:
   for n_days in _FLEET_BREAKDOWN_DAY_BUCKETS:
     AVAILABLE_METRICS_LIST.append(
         ClientsStatisticsMetric(
             metric_name_fn(n_days), metric_extract_fn, n_days))
+for n_days in _LAST_ACTIVE_DAY_BUCKETS:
+  AVAILABLE_METRICS_LIST.append(
+    LastActiveMetric(
+        last_active_statistics_name_fn(n_days), n_days
+      )
+  )
 AVAILABLE_METRICS_BY_NAME = {
     metric.name: metric for metric in AVAILABLE_METRICS_LIST
 }
