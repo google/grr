@@ -1,10 +1,10 @@
 name: Build
 on: [push, pull_request]
 env:
-  GCS_BUCKET: autobuilds.grr-response.com
-  GCS_BUCKET_OPENAPI: autobuilds-grr-openapi
+  GCS_BUCKET: grr
+  GCS_BUCKET_OPENAPI: grr-openapi
   GCS_LATEST_PATH: _latest_server_deb
-  DOCKER_REPOSITORY: grrdocker/grr
+  DOCKER_REPOSITORY: ${{ secrets.ACR_SERVER }}
 jobs:
 
   test-ubuntu:
@@ -281,14 +281,16 @@ jobs:
           ./appveyor/docker_build/build_docker_image.sh
       - if: ${{ github.event_name == 'push' }} 
         name: Log in to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2.1.0
         with:
-          username: ${{ secrets.DOCKER_USERNAME }}
-          password: ${{ secrets.DOCKER_PASSWORD }}
+          registry: ${{ secrets.ACR_SERVER }}
+          username: ${{ secrets.ACR_USERNAME }}
+          password: ${{ secrets.ACR_PASSWORD }}
       - if: ${{ github.event_name == 'push' }}
-        name: Push to ${{ env.DOCKER_REPOSITORY }}
+        name: Push to ${{ secrets.ACR_SERVER }}
         run: |
-          docker push -a ${{ env.DOCKER_REPOSITORY }}
+          docker push -a ${{ secrets.ACR_SERVER }}
+
   upload:
     if: ${{ github.event_name == 'push' }}
     runs-on: ubuntu-18.04
@@ -322,27 +324,45 @@ jobs:
 
           mkdir -p $OUTPUT_DIR/server_deb/
           mv -v _artifacts/server-deb/* $OUTPUT_DIR/server_deb
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.1
+      #- name: Set up Cloud SDK
+      #  uses: google-github-actions/setup-gcloud@v0.2.1
+      #  with:
+      #    project_id: ${{ secrets.GCP_PROJECT_ID }}
+      #    service_account_key: ${{ secrets.GCP_SA_KEY }}
+      #    export_default_credentials: true
+      - uses: azure/login@v1
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          export_default_credentials: true
-      - name: Upload installers to GCS
-        uses: google-github-actions/upload-cloud-storage@main
+          creds: ${{ secrets.AZURE_CREDENTIALS }} # See the [create spn file.](Collectors/Create-GithubWorkFlowSPN.ps1)
+      - name: Upload installers to blob storage
+        uses: azure/CLI@v1
         with:
-          path: gcs_upload_dir/
-          destination: ${{ env.GCS_BUCKET }}
-          # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
-          parent: false
-      - name: Replace ${{ env.GCS_LATEST_PATH }} folder in GCS
+          inlineScript: |
+            az storage blob upload-batch --account-name sairbaboonpoc --auth-mode key -d ${{ env.GCS_BUCKET }} -s gcs_upload_dir/ --overwrite
+      #- name: Upload installers to GCS
+      #  uses: google-github-actions/upload-cloud-storage@main
+      #  with:
+      #    path: gcs_upload_dir/
+      #    destination: ${{ env.GCS_BUCKET }}
+      #    # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
+      #    parent: false
+      #- name: Replace ${{ env.GCS_LATEST_PATH }} folder in GCS
+      #  run: |
+      #    gsutil rm gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/** || true
+      #    gsutil cp -r $OUTPUT_DIR/server_deb/* gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/
+      - name: Upload OpenAPI to blob storage
+        uses: azure/CLI@v1
+        with:
+          inlineScript: |
+            az storage blob upload-batch --account-name sairbaboonpoc --auth-mode key -d ${{ env.GCS_BUCKET_OPENAPI }} -s _artifacts/openapi/ --overwrite
+      #- name: Upload OpenAPI to GCS
+      #  uses: google-github-actions/upload-cloud-storage@main
+      #  with:
+      #    path: _artifacts/openapi/
+      #    destination: ${{ env.GCS_BUCKET_OPENAPI }}
+      #    # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
+      #    parent: false
+
+      - name: logout
         run: |
-          gsutil rm gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/** || true
-          gsutil cp -r $OUTPUT_DIR/server_deb/* gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/
-      - name: Upload OpenAPI to GCS
-        uses: google-github-actions/upload-cloud-storage@main
-        with:
-          path: _artifacts/openapi/
-          destination: ${{ env.GCS_BUCKET_OPENAPI }}
-          # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
-          parent: false
+          az logout
+        if: always()
