@@ -1200,6 +1200,9 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     network_bytes_limit = None
     if runner_args.HasField("network_bytes_limit"):
       network_bytes_limit = runner_args.network_bytes_limit
+    start_time = None
+    if runner_args.HasField("start_time"):
+      start_time = runner_args.start_time
 
     flow_id = flow.StartFlow(
         client_id=str(args.client_id),
@@ -1210,6 +1213,7 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
         network_bytes_limit=network_bytes_limit,
         original_flow=runner_args.original_flow,
         output_plugins=runner_args.output_plugins,
+        start_at=start_time,
     )
     flow_obj = data_store.REL_DB.ReadFlowObject(str(args.client_id), flow_id)
 
