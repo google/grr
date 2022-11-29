@@ -14,18 +14,21 @@ from grr_api_client import flow as api_flow
 from grr_response_test.lib import api_helpers
 from grr_response_test.lib import self_contained_components
 
-flags.DEFINE_string("mysql_database", "grr_test_db",
-                    "MySQL database name to use.")
+_MYSQL_DATABASE = flags.DEFINE_string("mysql_database", "grr_test_db",
+                                      "MySQL database name to use.")
 
-flags.DEFINE_string("fleetspeak_mysql_database", "fleetspeak_test_db",
-                    "MySQL database name to use for Fleetspeak.")
+_FLEETSPEAK_MYSQL_DATABASE = flags.DEFINE_string(
+    "fleetspeak_mysql_database", "fleetspeak_test_db",
+    "MySQL database name to use for Fleetspeak.")
 
-flags.DEFINE_string("mysql_username", None, "MySQL username to use.")
+_MYSQL_USERNAME = flags.DEFINE_string("mysql_username", None,
+                                      "MySQL username to use.")
 
-flags.DEFINE_string("mysql_password", None, "MySQL password to use.")
+_MYSQL_PASSWORD = flags.DEFINE_string("mysql_password", None,
+                                      "MySQL password to use.")
 
-flags.DEFINE_string("logging_path", None,
-                    "Base logging path for server components to use.")
+_LOGGING_PATH = flags.DEFINE_string(
+    "logging_path", None, "Base logging path for server components to use.")
 
 
 def FindGrrClientProcess(config_path: Text) -> psutil.Process:
@@ -60,17 +63,17 @@ def RunInterrogate(grr_api: api.GrrApi, client_id: Text) -> api_flow.Flow:
 
 def main(argv):
   grr_configs = self_contained_components.InitGRRConfigs(
-      flags.FLAGS.mysql_database,
-      mysql_username=flags.FLAGS.mysql_username,
-      mysql_password=flags.FLAGS.mysql_password,
-      logging_path=flags.FLAGS.logging_path,
+      _MYSQL_DATABASE.value,
+      mysql_username=_MYSQL_USERNAME.value,
+      mysql_password=_MYSQL_PASSWORD.value,
+      logging_path=_LOGGING_PATH.value,
       with_fleetspeak=True)
 
   fleetspeak_configs = self_contained_components.InitFleetspeakConfigs(
       grr_configs,
-      flags.FLAGS.fleetspeak_mysql_database,
-      mysql_username=flags.FLAGS.mysql_username,
-      mysql_password=flags.FLAGS.mysql_password)
+      _FLEETSPEAK_MYSQL_DATABASE.value,
+      mysql_username=_MYSQL_USERNAME.value,
+      mysql_password=_MYSQL_PASSWORD.value)
 
   server_processes = self_contained_components.StartServerProcesses(
       grr_configs=grr_configs, fleetspeak_configs=fleetspeak_configs)

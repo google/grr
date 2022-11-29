@@ -33,6 +33,12 @@
     font-size: 14px;
     align-items: baseline;
 
+    .plugin-title {
+      color: mat.get-color-from-palette(mat.$grey-palette, 900);
+      margin-right: 20px;
+      padding-bottom: 1.25em;
+    }
+
     .annotation-input {
       width: 70%;
     }

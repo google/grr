@@ -1,4 +1,4 @@
-import {ApiClient, CloudInstanceInstanceType} from '../../lib/api/api_interfaces';
+import {ApiClient, CloudInstanceInstanceType, NetworkAddressFamily, WindowsVolumeWindowsDriveTypeEnum, WindowsVolumeWindowsVolumeAttributeEnum} from '../../lib/api/api_interfaces';
 import {Client} from '../../lib/models/client';
 import {initTestEnvironment} from '../../testing';
 import {newClient} from '../models/model_test_util';
@@ -52,17 +52,20 @@ describe('Client API Translation', () => {
         creationTime: '1571789496679000',
         unixvolume: {mountPoint: '/', options: 'readonly'},
         windowsvolume: {
-          attributesList: ['readonly'],
+          attributesList: [WindowsVolumeWindowsVolumeAttributeEnum.READONLY],
           driveLetter: 'D',
-          driveType: 'root',
+          driveType: WindowsVolumeWindowsDriveTypeEnum.DRIVE_CDROM,
         },
       }],
       interfaces: [{
         macAddress: 'qqusra6v',
         ifname: 'lo',
         addresses: [
-          {addressType: 'INET', packedBytes: 'gAAAAQ=='},
-          {addressType: 'INET6', packedBytes: '8AAAAAAAAAAAAAAAAAAAAQ=='},
+          {addressType: NetworkAddressFamily.INET, packedBytes: 'gAAAAQ=='},
+          {
+            addressType: NetworkAddressFamily.INET6,
+            packedBytes: '8AAAAAAAAAAAAAAAAAAAAQ=='
+          },
         ],
       }],
       users: [{
@@ -182,9 +185,9 @@ describe('Client API Translation', () => {
         creationTime: new Date(1571789496679),
         unixDetails: {mountPoint: '/', mountOptions: 'readonly'},
         windowsDetails: {
-          attributes: ['readonly'],
+          attributes: ['READONLY'],
           driveLetter: 'D',
-          driveType: 'root',
+          driveType: 'DRIVE_CDROM',
         },
       }],
       cloudInstance: {
@@ -238,7 +241,6 @@ describe('Client API Translation', () => {
     const apiClient: ApiClient = {
       clientId: 'C.1234',
       labels: [],
-      age: '1571789996679000',
     };
     const client: Client = newClient({
       clientId: 'C.1234',
@@ -277,7 +279,7 @@ describe('Client API Translation', () => {
       lastBootedAt: undefined,
       lastClock: undefined,
       labels: [],
-      age: new Date(1571789996679),
+      age: undefined,
       sourceFlowId: undefined,
     });
     expect(client).toEqual(translateClient(apiClient));

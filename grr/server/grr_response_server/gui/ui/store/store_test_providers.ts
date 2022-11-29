@@ -7,8 +7,8 @@ import {ClientDetailsGlobalStore} from './client_details_global_store';
 import {mockClientDetailsGlobalStore} from './client_details_global_store_test_util';
 import {ClientPageGlobalStore} from './client_page_global_store';
 import {mockClientPageGlobalStore} from './client_page_global_store_test_util';
-import {ClientSearchGlobalStore} from './client_search_global_store';
-import {mockClientSearchGlobalStore} from './client_search_global_store_test_util';
+import {ClientSearchLocalStore} from './client_search_local_store';
+import {mockClientSearchLocalStore} from './client_search_local_store_test_util';
 import {ConfigGlobalStore} from './config_global_store';
 import {mockConfigGlobalStore} from './config_global_store_test_util';
 import {FileDetailsLocalStore} from './file_details_local_store';
@@ -17,9 +17,13 @@ import {FlowResultsLocalStore} from './flow_results_local_store';
 import {mockFlowResultsLocalStore} from './flow_results_local_store_test_util';
 import {HomePageGlobalStore} from './home_page_global_store';
 import {mockHomePageGlobalStore} from './home_page_global_store_test_util';
+import {HuntApprovalPageGlobalStore} from './hunt_approval_page_global_store';
+import {mockHuntApprovalPageGlobalStore} from './hunt_approval_page_global_store_test_util';
 import {HuntOverviewPageLocalStore} from './hunt_overview_page_local_store';
 import {NewHuntLocalStore} from './new_hunt_local_store';
 import {mockNewHuntLocalStore} from './new_hunt_local_store_test_util';
+import {RecentClientFlowsLocalStore} from './recent_client_flows_local_store';
+import {mockRecentClientFlowsLocalStore} from './recent_client_flows_local_store_test_util';
 import {ScheduledFlowGlobalStore} from './scheduled_flow_global_store';
 import {mockScheduledFlowGlobalStore} from './scheduled_flow_global_store_test_util';
 import {SelectedClientGlobalStore} from './selected_client_global_store';
@@ -33,9 +37,17 @@ import {mockVfsViewLocalStore} from './vfs_view_local_store_test_util';
 /** MockStore providers for Stores. */
 export const STORE_PROVIDERS: Provider[] = [
   {provide: ApprovalPageGlobalStore, useFactory: mockApprovalPageGlobalStore},
+  {
+    provide: HuntApprovalPageGlobalStore,
+    useFactory: mockHuntApprovalPageGlobalStore
+  },
   {provide: ClientDetailsGlobalStore, useFactory: mockClientDetailsGlobalStore},
   {provide: ClientPageGlobalStore, useFactory: mockClientPageGlobalStore},
-  {provide: ClientSearchGlobalStore, useFactory: mockClientSearchGlobalStore},
+  {provide: ClientSearchLocalStore, useFactory: mockClientSearchLocalStore},
+  {
+    provide: RecentClientFlowsLocalStore,
+    useFactory: mockRecentClientFlowsLocalStore
+  },
   {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore},
   {provide: FileDetailsLocalStore, useFactory: mockFileDetailsLocalStore},
   {provide: FlowResultsLocalStore, useFactory: mockFlowResultsLocalStore},
@@ -69,7 +81,14 @@ export function injectMockStore<T>(
   }
 
   if (!mockStore.mockedObservables) {
-    const val = JSON.stringify(mockStore).slice(0, 100);
+    let val: string;
+
+    try {
+      val = JSON.stringify(mockStore).slice(0, 100);
+    } catch (e) {
+      val = String(mockStore);
+    }
+
     const type = mockStore?.constructor?.name ?? typeof mockStore;
 
     throw new Error(`TestBed.inject(${cls.name}) returned ${val} of type ${

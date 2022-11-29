@@ -1,0 +1,27 @@
+@use "@angular/material" as mat;
+@use "../../../../material-theme" as c;
+
+.mat-cell {
+  border-color: mat.get-color-from-palette(c.$foreground, divider-light);
+  color: mat.get-color-from-palette(c.$foreground, text-light);
+}
+
+.header {
+  align-items: center;
+}
+
+.subtitle {
+  margin: 0 20px;
+  font-size: 14px;
+}
+
+.icon-align {
+  mat-spinner,
+  mat-icon {
+    vertical-align: inherit;
+  }
+}
+
+.no-data {
+  margin-top: 10px;
+}

@@ -409,7 +409,7 @@ describe('semantic proto form directive', () => {
     });
 
     const icon =
-        ((element, iconName) => element.find(`i.glyphicon-${iconName}`));
+        ((element, iconName) => element.find(`i.fa-${iconName}`));
 
     const expectIcon = ((element, iconName) => {
       expect(icon(element, iconName).length).toBe(1);

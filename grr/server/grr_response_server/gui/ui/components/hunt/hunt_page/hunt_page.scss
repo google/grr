@@ -11,15 +11,34 @@
 }
 
 .hunt-overview {
+  .title-chips {
+    display: flex;
+    margin-left: -36px;
+
+    .computer-icon {
+      margin-right: 10px;
+    }
+
+    .chips {
+      margin-left: 10px;
+    }
+  }
+
   .info {
     display: flex;
     flex-direction: row;
     column-gap: c.$container-padding;
+    margin-bottom: c.$card-margin;
 
     .key-value-table {
       td:first-of-type {
         min-width: 5em;
       }
     }
+  }
+
+  .actions {
+    display: flex;
+    column-gap: c.$container-padding;
   }
 }

@@ -1,4 +1,4 @@
-import {ApiFlow, ApiFlowResult, ApiFlowState, ApiGrrBinary, ApiGrrBinaryType, PathSpecPathType, RegistryType as ApiRegistryType, StatEntry as ApiStatEntry} from '../../lib/api/api_interfaces';
+import {ApiFlow, ApiFlowResult, ApiFlowState, ApiGrrBinary, ApiGrrBinaryType, PathSpecPathType, StatEntry as ApiStatEntry, StatEntryRegistryType as ApiRegistryType} from '../../lib/api/api_interfaces';
 import {newPathSpec} from '../../lib/api/api_test_util';
 import {Binary, BinaryType, Flow, FlowResult, FlowState, RegistryType} from '../../lib/models/flow';
 import {initTestEnvironment, removeUndefinedKeys} from '../../testing';
@@ -21,6 +21,7 @@ describe('Flow API Translation', () => {
       lastActiveAt: '1571789996681000',  // 2019-10-23T00:19:56.681Z
       startedAt: '1571789996679000',     // 2019-10-23T00:19:56.679Z
       state: ApiFlowState.TERMINATED,
+      isRobot: false,
     };
 
     const flow: Flow = {
@@ -35,9 +36,27 @@ describe('Flow API Translation', () => {
       state: FlowState.FINISHED,
       errorDescription: undefined,
       resultCounts: undefined,
+      isRobot: false,
     };
 
     expect(translateFlow(apiFlow)).toEqual(flow);
+  });
+
+  it('converts CLIENT_TERMINATED status to ERROR', () => {
+    const apiFlow: ApiFlow = {
+      flowId: '1234',
+      clientId: 'C.4567',
+      name: 'KeepAlive',
+      creator: 'morty',
+      lastActiveAt: '1571789996681000',  // 2019-10-23T00:19:56.681Z
+      startedAt: '1571789996679000',     // 2019-10-23T00:19:56.679Z
+      state: ApiFlowState.CLIENT_CRASHED,
+      isRobot: false,
+    };
+
+    expect(translateFlow(apiFlow)).toEqual(jasmine.objectContaining({
+      state: FlowState.ERROR
+    }));
   });
 });
 

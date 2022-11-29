@@ -74,8 +74,7 @@ class ApprovalTest(gui_test_lib.GRRSeleniumTest):
     self.Open(
         f"/v2/clients/{client_id}/users/requestrick/approvals/{approval_id}")
 
-    # TODO(user): Change to pretty display name as soon as ScheduledFlowList
-    #  uses these.
+    # Change to pretty display name as soon as ScheduledFlowList uses these.
     self.WaitUntil(self.IsTextPresent, "CollectSingleFile")
 
   def testBackButtonNavigatesToOldUi(self):

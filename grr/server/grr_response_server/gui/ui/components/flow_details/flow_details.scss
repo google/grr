@@ -63,13 +63,29 @@
     }
 
     .flow-status {
-      padding-left: c.$container-padding;
+      padding-left: 50px;
+      width: 180px;
 
-      .in-progress {
-        color: mat.get-color-from-palette(c.$foreground, in-progress);
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        padding-right: 10px;
       }
 
-      .success {
+      mat-spinner {
+        padding-right: 10px;
+      }
+
+      .mat-progress-spinner::ng-deep circle {
+        stroke: mat.get-color-from-palette(c.$foreground, success);
+      }
+
+      .flow-status-span {
+        display: inline-flex;
+      }
+
+      .success,
+      .in-progress {
         color: mat.get-color-from-palette(c.$foreground, success);
       }
     }

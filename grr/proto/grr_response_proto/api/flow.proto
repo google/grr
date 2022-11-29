@@ -34,7 +34,7 @@ message ApiFlowDescriptor {
       [(sem_type) = { description: "Flow behaviours." }];
 }
 
-// Next id: 19
+// Next id: 20
 message ApiFlow {
   // Enum values here correspond to Flow.State values.
   enum State {
@@ -82,6 +82,9 @@ message ApiFlow {
   }];
   optional string creator = 8
       [(sem_type) = { description: "Who started the flow." }];
+  optional bool is_robot = 19 [
+    (sem_type) = { description: "Whether the flow was created by a GRRWorker." }
+  ];
 
   optional ApiDataObject state_data = 10
       [(sem_type) = { description: "Current flow state data." }];
@@ -197,17 +200,23 @@ message ApiListFlowResultsArgs {
   optional string filter = 5 [(sem_type) = {
     description: "Return only results whose string representation "
                  "contains given substring."
+                 "TODO: total_count is unset if a filter is set. "
   }];
   optional string with_tag = 6 [(sem_type) = {
     description: "Return only results that have a matching tag."
+  }];
+  optional string with_type = 7 [(sem_type) = {
+    description: "Return only results that match the given type name."
   }];
 }
 
 message ApiListFlowResultsResult {
   repeated ApiFlowResult items = 1
       [(sem_type) = { description: "The flow results." }];
-  optional int64 total_count = 2
-      [(sem_type) = { description: "Total count of items." }];
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+                 "TODO: Unset if a filter is set."
+  }];
 }
 
 // Arguments for the API method that parses results of the artifact collection
@@ -420,6 +429,10 @@ message ApiListFlowsArgs {
     type: "RDFDatetime",
     description: "Only return flows that were created before the given "
                  "timestamp (inclusive)."
+  }];
+  optional bool human_flows_only = 7 [(sem_type) = {
+    description: "If set, only flows created by humans will be fetched, robot "
+                 "flows will be ignored."
   }];
 }
 

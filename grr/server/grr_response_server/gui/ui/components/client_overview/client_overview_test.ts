@@ -6,9 +6,10 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
 import {ApiModule} from '../../lib/api/module';
-import {newClient, newClientApproval} from '../../lib/models/model_test_util';
+import {newClient, newClientApproval, newFlowDescriptor} from '../../lib/models/model_test_util';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
+import {STORE_PROVIDERS} from '../../store/store_test_providers';
 import {ApprovalChip} from '../client/approval_chip/approval_chip';
 
 import {ClientOverview} from './client_overview';
@@ -39,10 +40,13 @@ describe('Client Overview', () => {
           declarations: [
             TestHostComponent,
           ],
-          providers: [{
-            provide: ClientPageGlobalStore,
-            useFactory: () => store,
-          }],
+          providers: [
+            ...STORE_PROVIDERS,
+            {
+              provide: ClientPageGlobalStore,
+              useFactory: () => store,
+            },
+          ],
         })
         .compileComponents();
   }));
@@ -212,4 +216,37 @@ describe('Client Overview', () => {
     expect(fixture.debugElement.nativeElement.textContent)
         .not.toContain('Outdated');
   });
+
+  it('shows a button to trigger online notification', fakeAsync(() => {
+       const fixture = TestBed.createComponent(ClientOverview);
+       fixture.detectChanges();  // Ensure ngOnInit hook completes.
+
+       store.mockedObservables.selectedClient$.next(newClient({
+         clientId: 'C.1234',
+         fleetspeakEnabled: false,
+         lastSeenAt: new Date(2000, 1, 1),
+       }));
+       store.mockedObservables.hasAccess$.next(true);
+       fixture.detectChanges();
+
+       const button = fixture.debugElement.query(
+           By.css('button[name=online-notification]'));
+       button.triggerEventHandler('click', null);
+
+       expect(store.startFlowConfiguration)
+           .toHaveBeenCalledOnceWith('OnlineNotification');
+
+       store.mockedObservables.selectedFlowDescriptor$.next(newFlowDescriptor({
+         name: 'OnlineNotification',
+         defaultArgs: {email: 'foo@example.com'}
+       }));
+
+       tick();
+
+       expect(store.startFlow).toHaveBeenCalledOnceWith({
+         email: 'foo@example.com'
+       });
+
+       discardPeriodicTasks();
+     }));
 });

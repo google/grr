@@ -15,14 +15,14 @@ const {upperCaseToTitleCase} = goog.require('grrUi.core.utils');
  * @return {!Array} The report listing in a jsTree-compatible structure.
  */
 exports.parseStatsReportsApiResponse = function(reports) {
-  var ret = [];
-  var reportsByType = {};
+  const ret = [];
+  const reportsByType = {};
 
   angular.forEach(reports, function(report) {
-    var desc = report['desc'];
+    const desc = report['desc'];
 
-    var reportType = desc['type'];
-    var typeReportListing;
+    const reportType = desc['type'];
+    let typeReportListing;
 
     if (angular.isUndefined(reportsByType[reportType])) {
       typeReportListing = [];
@@ -37,14 +37,14 @@ exports.parseStatsReportsApiResponse = function(reports) {
       typeReportListing = reportsByType[reportType];
     }
 
-    var leaf = {id: desc['name'], text: desc['title'], desc: desc};
+    const leaf = {id: desc['name'], text: desc['title'], desc: desc};
 
     typeReportListing.push(leaf);
   });
 
   return ret;
 };
-var parseStatsReportsApiResponse = exports.parseStatsReportsApiResponse;
+const parseStatsReportsApiResponse = exports.parseStatsReportsApiResponse;
 
 
 /**
@@ -119,7 +119,7 @@ const ReportListingController = class {
     }.bind(this));
 
     this.treeElement_.on('select_node.jstree', function(event, data) {
-      var desc = data['node']['original']['desc'];
+      const desc = data['node']['original']['desc'];
       this.selectionName_ = desc['name'];
     }.bind(this));
   }

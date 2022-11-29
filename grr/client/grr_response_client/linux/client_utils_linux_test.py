@@ -2,7 +2,6 @@
 """Tests for client_utils_linux.py."""
 
 import contextlib
-import os
 import platform
 import tempfile
 import unittest
@@ -12,9 +11,6 @@ from absl import app
 from absl.testing import absltest
 
 from grr_response_client import client_utils_linux
-from grr_response_client import client_utils_osx_linux
-from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.util import temp
@@ -70,32 +66,6 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
         self.assertEqual(expected_device, raw_pathspec.path)
         self.assertEqual(device_type, raw_pathspec.pathtype)
         self.assertEqual(expected_path, path)
-
-  def testLinuxNanny(self):
-    """Tests the linux nanny."""
-
-    def MockExit(unused_value):
-      raise RuntimeError("Exit was called.")
-
-    now = rdfvalue.RDFDatetime.Now()
-
-    with utils.Stubber(os, "_exit", MockExit):
-      nanny = client_utils_osx_linux.NannyThread(unresponsive_kill_period=5)
-      with test_lib.FakeTime(now):
-        nanny.Heartbeat()
-
-      for i in range(10):
-        with test_lib.FakeTime(now +
-                               rdfvalue.Duration.From(i, rdfvalue.SECONDS)):
-          nanny._CheckHeartbeatDeadline(nanny.last_heart_beat_time +
-                                        nanny.unresponsive_kill_period)
-          nanny.Heartbeat()
-
-      with test_lib.FakeTime(now +
-                             rdfvalue.Duration.From(15, rdfvalue.SECONDS)):
-        with self.assertRaises(RuntimeError):
-          nanny._CheckHeartbeatDeadline(nanny.last_heart_beat_time +
-                                        nanny.unresponsive_kill_period)
 
   def testLinuxTransactionLog(self):
     """Tests the linux transaction log."""

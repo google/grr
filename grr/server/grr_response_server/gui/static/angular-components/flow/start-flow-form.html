@@ -1,35 +1,35 @@
 <div ng-if="!controller.requestSent">
-
-<div class="context-help">
-  <a href="/help/investigating-with-grr/flows/index.html" target="_blank">
-    <i class="glyphicon glyphicon-question-sign"></i>
-  </a>
-</div>
-
-<div class="padded" ng-if="!descriptor">
-Please Select a flow to launch from the tree on the left.
-</div>
-
-<div class="padded" ng-if="descriptor">
-
-  <grr-flow-form flow-args="controller.flowArguments"
-                 flow-runner-args="controller.flowRunnerArguments"
-                 with-output-plugins="clientId"
-                 has-errors="controller.flowFormHasErrors">
-  </grr-flow-form>
-
-  <div class="form-group">
-    <div class="col-sm-offset-2 col-sm-3 padded">
-      <button class="btn btn-success Launch"
-              ng-disabled="controller.flowFormHasErrors"
-              ng-click="controller.startClientFlow()">
-        Launch
-      </button>
-    </div>
+  <div class="context-help">
+    <a href="/help/investigating-with-grr/flows/index.html" target="_blank">
+      <i class="fa fa-question-circle"></i>
+    </a>
   </div>
 
-</div>
+  <div class="padded" ng-if="!descriptor">
+    Please Select a flow to launch from the tree on the left.
+  </div>
 
+  <div class="padded" ng-if="descriptor">
+    <grr-flow-form
+      flow-args="controller.flowArguments"
+      flow-runner-args="controller.flowRunnerArguments"
+      with-output-plugins="clientId"
+      has-errors="controller.flowFormHasErrors"
+    >
+    </grr-flow-form>
+
+    <div class="form-group">
+      <div class="col-sm-offset-2 col-sm-3 padded">
+        <button
+          class="btn btn-success Launch"
+          ng-disabled="controller.flowFormHasErrors"
+          ng-click="controller.startClientFlow()"
+        >
+          Launch
+        </button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="padded" ng-if="controller.requestSent">
@@ -41,11 +41,11 @@ Please Select a flow to launch from the tree on the left.
 
   <div class="panel panel-default" ng-if="controller.responseData">
     <div class="panel-body">
+      <p>Launched Flow {$ descriptor['value']['name']['value'] $}:</p>
       <p>
-        Launched Flow {$ descriptor['value']['name']['value'] $}:
-      </p>
-      <p>
-        <grr-semantic-value value="controller.responseData"></grr-semantic-value>
+        <grr-semantic-value
+          value="controller.responseData"
+        ></grr-semantic-value>
       </p>
     </div>
   </div>

@@ -4,7 +4,7 @@ import {Observable} from 'rxjs';
 import {filter, map, withLatestFrom} from 'rxjs/operators';
 
 import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
-import {DecimalString, ReadLowLevelArgs} from '../../lib/api/api_interfaces';
+import {ReadLowLevelArgs} from '../../lib/api/api_interfaces';
 import {isNonNull} from '../../lib/preconditions';
 import {toByteUnit} from '../form/byte_input/byte_conversion';
 
@@ -23,11 +23,11 @@ function makeControls() {
       nonNullable: true,
       validators: [Validators.required],
     }),
-    length: new FormControl<DecimalString>('', {
-      nonNullable: true,
+    // ByteValueAccessor inputs can be null when input is invalid.
+    length: new FormControl<number|null>(null, {
       validators: [Validators.required, Validators.min(1)],
     }),
-    offset: new FormControl<DecimalString>('', {nonNullable: true}),
+    offset: new FormControl<number|null>(null),
   };
 }
 
@@ -51,7 +51,8 @@ export class ReadLowLevelForm extends
 
   override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return {
-      ...formState,
+      length: formState.length?.toString(),
+      offset: formState.offset?.toString(),
       path: formState.path?.trim(),
     };
   }
@@ -102,8 +103,8 @@ export class ReadLowLevelForm extends
   override convertFlowArgsToFormState(flowArgs: ReadLowLevelArgs) {
     return {
       path: flowArgs.path ?? this.controls.path.defaultValue,
-      length: flowArgs.length ?? this.controls.length.defaultValue,
-      offset: flowArgs.offset ?? this.controls.offset.defaultValue,
+      length: Number(flowArgs.length ?? this.controls.length.defaultValue),
+      offset: Number(flowArgs.offset ?? this.controls.offset.defaultValue),
     };
   }
 }

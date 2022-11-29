@@ -9,6 +9,9 @@
   <mat-chip *ngSwitchCase="'valid'" class="green-chip" color="custom" disabled>
     <mat-icon>vpn_key</mat-icon>
     Access granted
+    <span class="subtitle">
+      {{ timeUntilExpiry }}
+    </span>
   </mat-chip>
 
   <mat-chip *ngSwitchDefault class="red-chip" color="custom" disabled>
@@ -16,4 +19,3 @@
     No access
   </mat-chip>
 </span>
-

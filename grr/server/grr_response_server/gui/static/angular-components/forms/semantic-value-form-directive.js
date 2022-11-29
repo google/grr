@@ -78,7 +78,7 @@ exports.SemanticValueFormController = class {
       return;
     }
 
-    var updateElement = function(tmpl) {
+    const updateElement = function(tmpl) {
       if (angular.isDefined(tmpl)) {
         // Create a separate scope for the element so that we have a
         // fine-grained control over whether element's watchers are fired are
@@ -93,8 +93,8 @@ exports.SemanticValueFormController = class {
       }
     }.bind(this);
 
-    var value = this.scope_.value;
-    var template = templatesCache[value['type']];
+    const value = this.scope_.value;
+    const template = templatesCache[value['type']];
     if (angular.isUndefined(template)) {
       this.compileSingleTypedValueTemplate_(value).then(function(template) {
         templatesCache[value['type']] = template;
@@ -124,8 +124,8 @@ exports.SemanticValueFormController = class {
    * @private
    */
   compileSingleTypedValueTemplate_(value) {
-    var successHandler = function success(directive) {
-      var element = angular.element('<span />');
+    const successHandler = function success(directive) {
+      const element = angular.element('<span />');
 
       element.html(
           '<' + this.camelCaseToDashDelimited(directive.directive_name) +
@@ -133,8 +133,8 @@ exports.SemanticValueFormController = class {
       return this.compile_(element);
     }.bind(this);
 
-    var failureHandler = function failure() {
-      var element = angular.element('<span />');
+    const failureHandler = function failure() {
+      const element = angular.element('<span />');
 
       element.html(
           '<p class="form-control-static">No directive ' +
@@ -147,7 +147,7 @@ exports.SemanticValueFormController = class {
         .then(successHandler, failureHandler);
   }
 };
-var SemanticValueFormController = exports.SemanticValueFormController;
+const SemanticValueFormController = exports.SemanticValueFormController;
 
 
 

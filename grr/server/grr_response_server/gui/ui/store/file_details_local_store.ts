@@ -163,8 +163,8 @@ class FileDetailsComponentStore extends ComponentStore<State> {
 
       const blobContent$ = this.httpApiService.getFileBlob(
           file.clientId, file.pathType, file.path, {
-            offset,
-            length,
+            offset: offset.toString(),
+            length: length.toString(),
           });
 
       return combineLatest([totalLength$, blobContent$])
@@ -179,8 +179,8 @@ class FileDetailsComponentStore extends ComponentStore<State> {
       return this.httpApiService
           .getFileText(file.clientId, file.pathType, file.path, {
             encoding: ENCODING,
-            offset,
-            length,
+            offset: offset.toString(),
+            length: length.toString(),
           })
           .pipe(
               map(response => response ? {

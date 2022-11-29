@@ -53,47 +53,6 @@ def _CopyFleetspeakDpkgFiles(package_dir, context=None):
       fleetspeak_dir)
 
 
-def _CopyNonFleetspeakDpkgFiles(dist_dir, package_dir):
-  """Copies non-Fleetspeak-enabled DPKG files to template directory."""
-
-  # Copy the nanny binary.
-  shutil.copy(
-      package.ResourcePath("grr-response-core",
-                           "install_data/debian/dpkg_client/nanny.sh.in"),
-      dist_dir)
-
-  # Copy the wrapper script.
-  shutil.copy(
-      package.ResourcePath("grr-response-core", "install_data/wrapper.sh.in"),
-      dist_dir)
-
-  # Copy files needed for dpkg-buildpackage.
-  shutil.copytree(
-      config_lib.Resource().Filter("install_data/debian/dpkg_client/debian"),
-      os.path.join(package_dir, "debian/legacy-debian.in"))
-
-  # Copy upstart files
-  outdir = os.path.join(package_dir, "debian/upstart.in")
-  utils.EnsureDirExists(outdir)
-  shutil.copy(
-      config_lib.Resource().Filter(
-          "install_data/debian/dpkg_client/upstart/grr-client.conf"), outdir)
-
-  # Copy init files
-  outdir = os.path.join(package_dir, "debian/initd.in")
-  utils.EnsureDirExists(outdir)
-  shutil.copy(
-      config_lib.Resource().Filter(
-          "install_data/debian/dpkg_client/initd/grr-client"), outdir)
-
-  # Copy systemd unit file
-  outdir = os.path.join(package_dir, "debian/systemd.in")
-  utils.EnsureDirExists(outdir)
-  shutil.copy(
-      config_lib.Resource().Filter(
-          "install_data/systemd/client/grr-client.service"), outdir)
-
-
 def _CopyBundledFleetspeakFiles(src_dir, package_dir):
   """Copies the bundled fleetspeak installation into the package dir."""
   files = [
@@ -165,7 +124,6 @@ class DebianClientBuilder(build.ClientBuilder):
     _StripLibraries(output_dir)
 
     _CopyFleetspeakDpkgFiles(self.package_dir, context=self.context)
-    _CopyNonFleetspeakDpkgFiles(output_dir, self.package_dir)
     _CopyBundledFleetspeakFiles(self.fleetspeak_install_dir, self.package_dir)
 
     _MakeZip(self.package_dir, output_file)
@@ -210,23 +168,6 @@ def _CopyFleetspeakRpmFiles(package_dir, context=None):
       fleetspeak_dir)
 
 
-def _CopyNonFleetspeakRpmFiles(package_dir):
-  """Copies non-Fleetspeak-enabled RPM files into the template folder."""
-
-  utils.EnsureDirExists(os.path.join(package_dir, "legacy/rpmbuild"))
-
-  shutil.copy(
-      config_lib.Resource().Filter("install_data/centos/grr-client.initd.in"),
-      os.path.join(package_dir, "legacy/rpmbuild/grr-client.initd.in"))
-  shutil.copy(
-      config_lib.Resource().Filter(
-          "install_data/systemd/client/grr-client.service"),
-      os.path.join(package_dir, "legacy/rpmbuild/grr-client.service.in"))
-
-  shutil.copy(config_lib.Resource().Filter("install_data/centos/grr.spec.in"),
-              os.path.join(package_dir, "legacy/rpmbuild/grr.spec.in"))
-
-
 class CentosClientBuilder(build.ClientBuilder):
   """A builder class that produces a client for RPM based distros."""
 
@@ -249,7 +190,6 @@ class CentosClientBuilder(build.ClientBuilder):
     _StripLibraries(output_dir)
     _CopyCommonRpmFiles(self.package_dir, output_dir)
     _CopyFleetspeakRpmFiles(self.package_dir, context=self.context)
-    _CopyNonFleetspeakRpmFiles(self.package_dir)
     _CopyBundledFleetspeakFiles(self.fleetspeak_install_dir, self.package_dir)
 
     _MakeZip(self.package_dir, output_file)

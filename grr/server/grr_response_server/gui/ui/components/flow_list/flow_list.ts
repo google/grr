@@ -1,30 +1,28 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild, ViewContainerRef} from '@angular/core';
-import {MatSnackBar} from '@angular/material/snack-bar';
+import {ChangeDetectionStrategy, Component, OnDestroy, ViewContainerRef} from '@angular/core';
+import {FormControl} from '@angular/forms';
 import {ActivatedRoute, Router} from '@angular/router';
-import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
-import {map, takeUntil} from 'rxjs/operators';
+import {combineLatest, Observable} from 'rxjs';
+import {map, startWith, takeUntil} from 'rxjs/operators';
 
-import {Flow, FlowDescriptorMap, FlowWithDescriptor} from '../../lib/models/flow';
+import {FlowWithDescriptor, withDescriptor} from '../../lib/models/flow';
 import {observeOnDestroy} from '../../lib/reactive';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 import {FlowResultsLocalStore} from '../../store/flow_results_local_store';
 import {FlowMenuAction} from '../flow_details/flow_details';
-import {ErrorSnackbar} from '../helpers/error_snackbar/error_snackbar';
-
-/** Adds the corresponding FlowDescriptor to a Flow, if existent. */
-function withDescriptor(fds: FlowDescriptorMap):
-    ((flow: Flow) => FlowWithDescriptor) {
-  return flow => ({
-           flow,
-           descriptor: fds.get(flow.name),
-         });
-}
+import {SnackBarErrorHandler} from '../helpers/error_snackbar/error_handler';
 
 enum LoadMoreState {
   LOADING,
   HAS_MORE,
   ALL_LOADED,
+}
+
+/** Flow filter enum used for classifying the flows. */
+export enum FlowFilter {
+  ALL_HUMAN_FLOWS = 'All human flows',
+  ALL_ROBOT_FLOWS = 'All robot flows',
+  ALL_FLOWS = 'All flows',
 }
 
 /** Component that displays executed Flows on the currently selected Client. */
@@ -35,8 +33,11 @@ enum LoadMoreState {
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [FlowResultsLocalStore],
 })
-export class FlowList implements AfterViewInit, OnDestroy {
+export class FlowList implements OnDestroy {
   readonly LoadMoreState = LoadMoreState;
+  readonly FlowFilter = FlowFilter;
+
+  readonly flowFiltersForm = new FormControl(FlowFilter.ALL_HUMAN_FLOWS);
 
   readonly entries$: Observable<ReadonlyArray<FlowWithDescriptor>> =
       combineLatest([
@@ -46,6 +47,22 @@ export class FlowList implements AfterViewInit, OnDestroy {
           .pipe(
               map(([{flows}, fds]) => flows?.map(withDescriptor(fds)) ?? []),
           );
+
+  readonly filteredEntries$: Observable<readonly FlowWithDescriptor[]> =
+      combineLatest([
+        this.entries$,
+        this.flowFiltersForm.valueChanges.pipe(
+            startWith(FlowFilter.ALL_HUMAN_FLOWS)),
+      ]).pipe(map(([entries, filterType]) => entries.filter((entry) => {
+        switch (filterType) {
+          case FlowFilter.ALL_HUMAN_FLOWS:
+            return entry.flow.isRobot === false;
+          case FlowFilter.ALL_ROBOT_FLOWS:
+            return entry.flow.isRobot === true;
+          default:
+            return true;
+        }
+      })));
 
   readonly loadMoreState$ = this.clientPageGlobalStore.flowListEntries$.pipe(
       map(({isLoading, hasMore}) => {
@@ -66,14 +83,7 @@ export class FlowList implements AfterViewInit, OnDestroy {
 
   private scrollOperationId: ReturnType<typeof setTimeout>|undefined;
 
-  @ViewChild('footer') footer!: ElementRef<HTMLElement>;
-
-  private readonly triggerLoadMoreThroughScroll$ =
-      new BehaviorSubject<boolean>(false);
-
-  readonly ngOnDestroy = observeOnDestroy(this, () => {
-    this.triggerLoadMoreThroughScroll$.complete();
-  });
+  readonly ngOnDestroy = observeOnDestroy(this);
 
   readonly client$ = this.clientPageGlobalStore.selectedClient$;
 
@@ -82,8 +92,8 @@ export class FlowList implements AfterViewInit, OnDestroy {
       private readonly clientPageGlobalStore: ClientPageGlobalStore,
       private readonly router: Router,
       private readonly activatedRoute: ActivatedRoute,
+      private readonly errorHandler: SnackBarErrorHandler,
       viewRef: ViewContainerRef,
-      snackBar: MatSnackBar,
   ) {
     const scrollIntoView = (selectedFlowId: string, timeout: number = 0) => {
       if (this.scrollOperationId) {
@@ -140,37 +150,11 @@ export class FlowList implements AfterViewInit, OnDestroy {
             // been found. Mark it as active scroll target to prevent repeated
             // SnackBars when flow list is re-polled.
             this.scrollTarget = selectedFlowId;
-            snackBar.openFromComponent(
-                ErrorSnackbar, {data: `Did not find flow ${selectedFlowId}.`});
+
+            this.errorHandler.handleError(
+                `Did not find flow ${selectedFlowId}.`);
           }
         });
-
-    combineLatest([this.triggerLoadMoreThroughScroll$, this.loadMoreState$])
-        .pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(([footerVisible, loadMoreState]) => {
-          if (footerVisible && loadMoreState === LoadMoreState.HAS_MORE) {
-            // After loading new flows, there can be a short period where
-            // loadMoreState = HAS_MORE but the footer is still in view,
-            // because the new flow cards will only be rendered in the next
-            // tick. To prevent always calling loadMore twice, set the trigger
-            // flag to false. This requires the view to move out of view and
-            // into again to re-trigger loading more.
-            this.triggerLoadMoreThroughScroll$.next(false);
-            this.loadMore();
-          }
-        });
-  }
-
-  ngAfterViewInit() {
-    const observer = new IntersectionObserver((entries) => {
-      if (entries.length > 0) {
-        this.triggerLoadMoreThroughScroll$.next(entries[0].isIntersecting);
-      }
-    });
-
-    if (this.footer.nativeElement) {
-      observer.observe(this.footer.nativeElement);
-    }
   }
 
   triggerFlowAction(entry: FlowWithDescriptor, event: FlowMenuAction) {

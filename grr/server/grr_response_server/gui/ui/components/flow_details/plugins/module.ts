@@ -24,6 +24,7 @@ import {RouterModule} from '@angular/router';
 import {ApiModule} from '../../../lib/api/module';
 import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';
 import {DrawerLinkModule} from '../../helpers/drawer_link/drawer_link_module';
+import {FilterPaginate} from '../../helpers/filter_paginate/filter_paginate';
 import {TimestampModule} from '../../timestamp/module';
 import {HelpersModule} from '../helpers/module';
 
@@ -39,13 +40,11 @@ import {FileFinderDetails} from './file_finder_details';
 import {InterrogateDetails} from './interrogate_details';
 import {LaunchBinaryDetails} from './launch_binary_details';
 import {ListDirectoryDetails} from './list_directory_details';
-import {ListProcessesDetails} from './list_processes_details';
 import {MultiGetFileDetails} from './multi_get_file_details';
 import {NetstatDetails} from './netstat_details';
 import {OnlineNotificationDetails} from './online_notification_details';
 import {OsqueryDetails} from './osquery_details';
 import {ReadLowLevelDetails} from './read_low_level_details';
-import {TimelineDetails} from './timeline_details';
 import {YaraProcessScanDetails} from './yara_process_scan_details';
 
 
@@ -62,13 +61,11 @@ const COMPONENTS = [
   InterrogateDetails,
   LaunchBinaryDetails,
   ListDirectoryDetails,
-  ListProcessesDetails,
   MultiGetFileDetails,
   NetstatDetails,
   OnlineNotificationDetails,
   OsqueryDetails,
   ReadLowLevelDetails,
-  TimelineDetails,
   YaraProcessScanDetails,
 ];
 
@@ -107,6 +104,7 @@ const COMPONENTS = [
     DrawerLinkModule,
     HelpersModule,
     TimestampModule,
+    FilterPaginate,
   ],
   declarations: COMPONENTS,
   exports: COMPONENTS,

@@ -2,35 +2,13 @@
  * @fileoverview The module provides client-related data model entities.
  */
 
+import {DateTime, Duration} from '../../lib/date_time';
+import {KnowledgeBase} from '../api/api_interfaces';
 import {addToMapSetInPlace, camelToSnakeCase} from '../type_utils';
 
+import {ApprovalStatus} from './user';
 
 
-
-/**
- * Client's knowledge base data.
- */
-// ApiKnowledgeBase is translated 1-to-1 to the internal KnowledgeBase (see
-// translateClient()). `declare` this interface to prevent mapping errors in
-// Closure compilation.
-export declare interface KnowledgeBase {
-  /** Client's FQDN. */
-  readonly fqdn?: string;
-  readonly os?: string;
-  readonly osMajorVersion?: number;
-  readonly osMinorVersion?: number;
-  readonly users?: ReadonlyArray<User>;
-  // Other fields will be present at runtime but are unused for now.
-}
-
-// ApiKnowledgeBase is translated 1-to-1 to the internal KnowledgeBase (see
-// translateClient()). `declare` this interface to prevent mapping errors in
-// Closure compilation.
-/** Client OS user information in the KnowledgeBase. */
-export declare interface User {
-  readonly username?: string;
-  // Other fields will be present at runtime but are unused for now.
-}
 
 /** A KnowledgeBase key (e.g. `users.internet_cache`) with example values. */
 export interface KnowledgeBaseExample {
@@ -240,7 +218,6 @@ export interface Client {
   readonly volumes: ReadonlyArray<StorageVolume>;
   /** Memory available to this client */
   readonly memorySize?: bigint;
-  // TODO(user): Replace `Date` type with immutable date type.
   /** When the client was first seen. */
   readonly firstSeenAt?: Date;
   /** When the client was last seen. */
@@ -252,7 +229,7 @@ export interface Client {
   /** List of ClientLabels */
   readonly labels: ReadonlyArray<ClientLabel>;
   /** The time when this client info was born */
-  readonly age: Date;
+  readonly age?: Date;
   readonly cloudInstance?: CloudInstance;
   readonly hardwareInfo?: HardwareInfo;
   readonly sourceFlowId?: string;
@@ -271,42 +248,30 @@ export interface ApprovalConfig {
   readonly optionalCcEmail?: string;
 }
 
-/**
- * Indicates that a ClientApproval has been granted and is currently valid.
- */
-export interface Valid {
-  readonly type: 'valid';
-}
-
-/** Indicates that a ClientApproval is pending approval from an approver. */
-export interface Pending {
-  readonly type: 'pending';
-  readonly reason: string;
-}
-
-/** Indicates that a ClientApproval had been granted, but is expired. */
-export interface Expired {
-  readonly type: 'expired';
-  readonly reason: string;
-}
-
-/** Indicates that a ClientApproval is invalid for other reasons. */
-export interface Invalid {
-  readonly type: 'invalid';
-  readonly reason: string;
-}
-
-/** Status of a ClientApproval. */
-export type ClientApprovalStatus = Valid|Pending|Expired|Invalid;
-
 /** Approval for Client access. */
 export interface ClientApproval {
   readonly approvalId: string;
   readonly clientId: string;
   readonly requestor: string;
   readonly reason: string;
-  readonly status: ClientApprovalStatus;
+  readonly status: ApprovalStatus;
   readonly requestedApprovers: ReadonlyArray<string>;
   readonly approvers: ReadonlyArray<string>;
   readonly subject: Client;
+  readonly expirationTime?: Date;
+}
+
+const ONLINE_THRESHOLD = Duration.fromObject({minutes: 15});
+
+/** Returns true if `lastSeen` is considered to be online. */
+export function isClientOnline(lastSeen: Date) {
+  const lastSeenLuxon = DateTime.fromJSDate(lastSeen);
+  return lastSeenLuxon.diffNow().negate() < ONLINE_THRESHOLD;
+}
+
+const CLIENT_ID_RE = /^[C]\.[0-9A-F]{16}$/i;
+
+/** Returns true if the string matches a client id like "C.1e0384f90ac7c7eb". */
+export function isClientId(str: string) {
+  return str.match(CLIENT_ID_RE) !== null;
 }

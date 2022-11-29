@@ -38,8 +38,19 @@ class ProcessTest(absltest.TestCase):
         input_w.write(b"foo")
         result = output_r.read(6)
         self.assertEqual(result, b"foo123")
-        self.assertGreater(p.GetCpuTimes().cpu_time, 0.0)
-        self.assertGreater(p.GetCpuTimes().sys_time, 0.0)
+        # Commenting out the following checks that were previously here,
+        # as they're not reliable and depend on the performance of
+        # the machine that the tests run on:
+        # self.assertGreater(p.GetCpuTimes().cpu_time, 0.0)
+        # self.assertGreater(p.GetCpuTimes().sys_time, 0.0)
+        #
+        # Reason:
+        # 'Windows time interval is 16ms by default. It uses this value for
+        # its internal timers and thread time quantum, which
+        # effectively means you won't see any changes until they have
+        # added up to a min of 16ms.'
+        # Link: https://groups.google.com/g/golang-nuts/c/idD2Z8wYeiE
+
         p.Stop()
 
 

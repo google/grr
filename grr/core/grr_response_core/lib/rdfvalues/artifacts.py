@@ -4,7 +4,6 @@
 import collections
 from typing import Type
 
-
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -297,6 +296,9 @@ class Artifact(rdf_structs.RDFProtoStruct):
 
   SUPPORTED_OS_LIST = ["Windows", "Linux", "Darwin"]
 
+  # GRR does not support ESXi.
+  IGNORE_OS_LIST = ("ESXi",)
+
   def ToJson(self):
     artifact_dict = self.ToPrimitiveDict()
     return json.Dump(artifact_dict)
@@ -357,8 +359,8 @@ class ArtifactProcessorDescriptor(rdf_structs.RDFProtoStruct):
   protobuf = artifact_pb2.ArtifactProcessorDescriptor
 
   @classmethod
-  def FromParser(cls, parser_cls: Type[parsers.Parser]
-                ) -> "ArtifactProcessorDescriptor":
+  def FromParser(
+      cls, parser_cls: Type[parsers.Parser]) -> "ArtifactProcessorDescriptor":
     """Creates a descriptor corresponding to the given parser.
 
     Args:

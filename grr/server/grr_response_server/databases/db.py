@@ -7,6 +7,7 @@ a logical relational database model.
 
 import abc
 import collections
+import dataclasses
 import re
 from typing import Collection
 from typing import Dict
@@ -570,6 +571,23 @@ class ClientPathHistory(object):
     self.hash_entries[timestamp] = hash_entry
 
 
+@dataclasses.dataclass(frozen=True)
+class EncryptionKey:
+  """A database abstraction for keys used to encrypt and decrypt data.
+
+  Attributes:
+    key_id: The identifier of the key.
+    nonce: A 96-bit initialization vector used for encryption.
+  """
+  key_id: str
+  nonce: bytes
+
+  def __post_init__(self):
+    if 8 * len(self.nonce) != 96:
+      raise ValueError(f"Invalid nonce length: "
+                       f"(expected 96, got {8 * len(self.nonce)})")
+
+
 class Database(metaclass=abc.ABCMeta):
   """The GRR relational database abstraction."""
 
@@ -839,7 +857,7 @@ class Database(metaclass=abc.ABCMeta):
         record up to 'to'", to==None means all records from 'from'). If both
         "to" and "from" are None or the timerange itself is None, all history
         items are fetched. Note: "from" and "to" are inclusive: i.e. a from <=
-          time <= to condition is applied.
+        time <= to condition is applied.
 
     Returns:
       A list of rdfvalues.objects.ClientSnapshot, newest snapshot first.
@@ -881,7 +899,7 @@ class Database(metaclass=abc.ABCMeta):
         record up to 'to'", to==None means all records from 'from'). If both
         "to" and "from" are None or the timerange itself is None, all history
         items are fetched. Note: "from" and "to" are inclusive: i.e. a from <=
-          time <= to condition is applied.
+        time <= to condition is applied.
 
     Returns:
       A list of rdfvalues.client.StartupInfo objects sorted by timestamp,
@@ -1513,7 +1531,7 @@ class Database(metaclass=abc.ABCMeta):
         record up to 'to'", to==None means all records from 'from'). If both
         "to" and "from" are None or the timerange itself is None, all
         notifications are fetched. Note: "from" and "to" are inclusive: i.e. a
-          from <= time <= to condition is applied.
+        from <= time <= to condition is applied.
 
     Returns:
       List of objects.UserNotification objects.
@@ -1924,6 +1942,7 @@ class Database(metaclass=abc.ABCMeta):
       min_create_time: Optional[rdfvalue.RDFDatetime] = None,
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
+      not_created_by: Optional[Iterable[str]] = None,
   ) -> List[rdf_flow_objects.Flow]:
     """Returns all flow objects.
 
@@ -1934,6 +1953,7 @@ class Database(metaclass=abc.ABCMeta):
       max_create_time: the maximum creation time (inclusive)
       include_child_flows: include child flows in the results. If False, only
         parent flows are returned. Must be `True` if the parent flow is given.
+      not_created_by: exclude flows created by any of the users in this list.
 
     Returns:
       A list of rdf_flow_objects.Flow objects.
@@ -2966,6 +2986,31 @@ class Database(metaclass=abc.ABCMeta):
       number of remaining results.
     """
 
+  @abc.abstractmethod
+  def WriteBlobEncryptionKeys(
+      self,
+      keys: Dict[rdf_objects.BlobID, EncryptionKey],
+  ) -> None:
+    """Associates the specified blobs with the given encryption keys.
+
+    Args:
+      keys: A mapping from blobs to keys to associate.
+    """
+
+  @abc.abstractmethod
+  def ReadBlobEncryptionKeys(
+      self,
+      blob_ids: Collection[rdf_objects.BlobID],
+  ) -> Dict[rdf_objects.BlobID, Optional[EncryptionKey]]:
+    """Retrieves encryption keys associated with blobs.
+
+    Args:
+      blob_ids: A collection of blob identifiers to retrieve the keys for.
+
+    Returns:
+      An mapping from blob to a key associated with it (if available).
+    """
+
 
 class DatabaseValidationWrapper(Database):
   """Database wrapper that validates the arguments."""
@@ -3447,13 +3492,13 @@ class DatabaseValidationWrapper(Database):
     if timestamp is not None:
       _ValidateTimestamp(timestamp)
 
-    return self.delegate.FindPathInfoByPathID(
+    return self.delegate.FindPathInfoByPathID(  # pytype: disable=attribute-error
         client_id, path_type, path_id, timestamp=timestamp)
 
   def FindPathInfosByPathIDs(self, client_id, path_type, path_ids):
     precondition.ValidateClientId(client_id)
 
-    return self.delegate.FindPathInfosByPathIDs(client_id, path_type, path_ids)
+    return self.delegate.FindPathInfosByPathIDs(client_id, path_type, path_ids)  # pytype: disable=attribute-error
 
   def WritePathInfos(self, client_id, path_infos):
     precondition.ValidateClientId(client_id)
@@ -3463,7 +3508,7 @@ class DatabaseValidationWrapper(Database):
   def InitPathInfos(self, client_id, path_infos):
     precondition.ValidateClientId(client_id)
     _ValidatePathInfos(path_infos)
-    return self.delegate.InitPathInfos(client_id, path_infos)
+    return self.delegate.InitPathInfos(client_id, path_infos)  # pytype: disable=attribute-error
 
   def MultiInitPathInfos(self, path_infos):
     precondition.AssertType(path_infos, dict)
@@ -3471,13 +3516,13 @@ class DatabaseValidationWrapper(Database):
       precondition.ValidateClientId(client_id)
       _ValidatePathInfos(client_path_infos)
 
-    return self.delegate.MultiInitPathInfos(path_infos)
+    return self.delegate.MultiInitPathInfos(path_infos)  # pytype: disable=attribute-error
 
   def ClearPathHistory(self, client_id, path_infos):
     precondition.ValidateClientId(client_id)
     _ValidatePathInfos(path_infos)
 
-    return self.delegate.ClearPathHistory(client_id, path_infos)
+    return self.delegate.ClearPathHistory(client_id, path_infos)  # pytype: disable=attribute-error
 
   def MultiClearPathHistory(self, path_infos):
     precondition.AssertType(path_infos, dict)
@@ -3485,7 +3530,7 @@ class DatabaseValidationWrapper(Database):
       precondition.ValidateClientId(client_id)
       _ValidatePathInfos(client_path_infos)
 
-    return self.delegate.MultiClearPathHistory(path_infos)
+    return self.delegate.MultiClearPathHistory(path_infos)  # pytype: disable=attribute-error
 
   def MultiWritePathHistory(self, client_path_histories):
     precondition.AssertType(client_path_histories, dict)
@@ -3493,7 +3538,7 @@ class DatabaseValidationWrapper(Database):
       precondition.AssertType(client_path, ClientPath)
       precondition.AssertType(client_path_history, ClientPathHistory)
 
-    self.delegate.MultiWritePathHistory(client_path_histories)
+    self.delegate.MultiWritePathHistory(client_path_histories)  # pytype: disable=attribute-error
 
   def FindDescendentPathIDs(self,
                             client_id,
@@ -3502,7 +3547,7 @@ class DatabaseValidationWrapper(Database):
                             max_depth=None):
     precondition.ValidateClientId(client_id)
 
-    return self.delegate.FindDescendentPathIDs(
+    return self.delegate.FindDescendentPathIDs(  # pytype: disable=attribute-error
         client_id, path_type, path_id, max_depth=max_depth)
 
   def WriteUserNotification(self, notification):
@@ -3720,6 +3765,10 @@ class DatabaseValidationWrapper(Database):
   def WriteFlowObject(self, flow_obj, allow_update=True):
     precondition.AssertType(flow_obj, rdf_flow_objects.Flow)
     precondition.AssertType(allow_update, bool)
+
+    if flow_obj.HasField("creation_time"):
+      raise ValueError(f"Creation time set on the flow object: {flow_obj}")
+
     return self.delegate.WriteFlowObject(flow_obj, allow_update=allow_update)
 
   def ReadFlowObject(self, client_id, flow_id):
@@ -3734,6 +3783,7 @@ class DatabaseValidationWrapper(Database):
       min_create_time: Optional[rdfvalue.RDFDatetime] = None,
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
+      not_created_by: Optional[Iterable[str]] = None,
   ) -> List[rdf_flow_objects.Flow]:
     if client_id is not None:
       precondition.ValidateClientId(client_id)
@@ -3744,12 +3794,16 @@ class DatabaseValidationWrapper(Database):
       raise ValueError(f"Parent flow id specified ('{parent_flow_id}') in the "
                        f"childless mode")
 
+    if not_created_by is not None:
+      precondition.AssertIterableType(not_created_by, str)
+
     return self.delegate.ReadAllFlowObjects(
         client_id=client_id,
         parent_flow_id=parent_flow_id,
         min_create_time=min_create_time,
         max_create_time=max_create_time,
-        include_child_flows=include_child_flows)
+        include_child_flows=include_child_flows,
+        not_created_by=not_created_by)
 
   def ReadChildFlowObjects(self, client_id, flow_id):
     precondition.ValidateClientId(client_id)
@@ -4356,7 +4410,25 @@ class DatabaseValidationWrapper(Database):
   def StructuredSearchClients(self, expression: rdf_search.SearchExpression,
                               continuation_token: bytes,
                               number_of_results: int) -> SearchClientsResult:
-    return self.delegate.StructuredSearchClient(expression, continuation_token)
+    return self.delegate.StructuredSearchClient(expression, continuation_token)  # pytype: disable=attribute-error
+
+  def WriteBlobEncryptionKeys(
+      self,
+      keys: Dict[rdf_objects.BlobID, EncryptionKey],
+  ) -> None:
+    for blob_id in keys.keys():
+      _ValidateBlobID(blob_id)
+
+    return self.delegate.WriteBlobEncryptionKeys(keys)
+
+  def ReadBlobEncryptionKeys(
+      self,
+      blob_ids: Collection[rdf_objects.BlobID],
+  ) -> Dict[rdf_objects.BlobID, Optional[EncryptionKey]]:
+    for blob_id in blob_ids:
+      _ValidateBlobID(blob_id)
+
+    return self.delegate.ReadBlobEncryptionKeys(blob_ids)
 
 
 def _ValidateEnumType(value, expected_enum_type):

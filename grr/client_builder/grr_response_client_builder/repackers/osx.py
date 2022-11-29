@@ -18,26 +18,10 @@ from grr_response_core.lib import utils
 class DarwinClientRepacker(build.ClientRepacker):
   """Repackage OSX clients."""
 
-  def _MakeDeployableBinaryV1(self, template_path, output_path):
-    """This will add the config to the client template."""
-
+  def MakeDeployableBinary(self, template_path, output_path):
     context = self.context + ["Client Context"]
     utils.EnsureDirExists(os.path.dirname(output_path))
 
-    client_config_data = build_helpers.GetClientConfig(context)
-    shutil.copyfile(template_path, output_path)
-    zip_file = zipfile.ZipFile(output_path, mode="a")
-    zip_info = zipfile.ZipInfo(filename="config.yaml")
-    zip_file.writestr(zip_info, client_config_data)
-    zip_file.close()
-    return output_path
-
-  def _MakeDeployableBinaryV2(self, template_path, output_path):
-    context = self.context + ["Client Context"]
-    utils.EnsureDirExists(os.path.dirname(output_path))
-
-    fleetspeak_enabled = config.CONFIG.Get(
-        "Client.fleetspeak_enabled", context=self.context)
     fleetspeak_bundled = config.CONFIG.Get(
         "ClientBuilder.fleetspeak_bundled", context=self.context)
 
@@ -47,10 +31,8 @@ class DarwinClientRepacker(build.ClientRepacker):
 
       if fleetspeak_bundled:
         variant = "fleetspeak-bundled"
-      elif fleetspeak_enabled:
-        variant = "fleetspeak-enabled"
       else:
-        variant = "legacy"
+        variant = "fleetspeak-enabled"
 
       pkg_utils.JoinPkg(
           os.path.join(tmp_dir, variant), os.path.join(tmp_dir, "blocks"),
@@ -71,11 +53,3 @@ class DarwinClientRepacker(build.ClientRepacker):
           zf.writestr("client.config", fleetspeak_client_config_file.read())
 
     return output_path
-
-  def MakeDeployableBinary(self, template_path, output_path):
-    with open(template_path, "rb") as template:
-      is_v1 = (template.read(4) == b"xar!")
-    if is_v1:
-      return self._MakeDeployableBinaryV1(template_path, output_path)
-    else:
-      return self._MakeDeployableBinaryV2(template_path, output_path)

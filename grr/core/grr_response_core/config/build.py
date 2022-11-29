@@ -158,6 +158,7 @@ exe = EXE\(
     debug=False,
     strip=False,
     upx=False,
+    embed_manifest=False,
     console=True,
     version=os.path.join\(r"%(PyInstaller.build_dir)", "version.txt"\),
     icon=os.path.join\(r"%(PyInstaller.build_dir)", "grr.ico"\)\)
@@ -253,17 +254,17 @@ config_lib.DEFINE_bool(
 config_lib.DEFINE_option(
     PathTypeInfo(
         name="ClientBuilder.nanny_source_dir",
-        must_exist=True,
+        must_exist=False,
         default=("%(grr_response_client|"
                  "module_path)/nanny/"),
-        description="Path to the windows nanny VS solution file."))
+        description="DEPRECATED: Path to the windows nanny VS solution file."))
 
 config_lib.DEFINE_option(
     PathTypeInfo(
         name="ClientBuilder.nanny_prebuilt_binaries",
         must_exist=False,
         default="%(ClientBuilder.executables_dir)/%(Client.platform)/",
-        description="Path to the pre-build GRRNanny executables (This will be "
+        description="DEPRECATED: Path to the pre-build GRRNanny executables (This will be "
         "used if there are no VS compilers available)."))
 
 config_lib.DEFINE_choice(
@@ -418,7 +419,7 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(
     "ClientBuilder.vs_dir",
-    default=r"%{C:\Program Files (x86)\Microsoft Visual Studio 12.0}",
+    default=r"%{C:\Program Files (x86)\Microsoft Visual Studio 14.0}",
     help="Path to visual studio installation dir.")
 
 config_lib.DEFINE_string(
@@ -545,7 +546,7 @@ config_lib.DEFINE_bool(
 config_lib.DEFINE_bool(
     "ClientBuilder.use_prebuilt_nanny",
     default=False,
-    help="If true, the prebuilt Nanny binary is used.")
+    help="DEPRECATED: If true, the prebuilt Nanny binary is used.")
 
 config_lib.DEFINE_string(
     name="ClientRepacker.output_basename",

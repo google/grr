@@ -3,7 +3,8 @@
 
 import abc
 import json
-from typing import Any, Callable, Dict, FrozenSet, List, NamedTuple
+import types
+from typing import Any, Callable, Dict, FrozenSet, Iterable, List, NamedTuple, Type
 
 from absl import app
 from absl import flags
@@ -11,7 +12,6 @@ from dateutil import parser
 from werkzeug import routing as werkzeug_routing
 from werkzeug import serving as werkzeug_serving
 from werkzeug import wrappers as werkzeug_wrappers
-from werkzeug.wrappers import json as werkzeug_wrappers_json  # type: ignore
 
 from google.protobuf import timestamp_pb2
 
@@ -29,7 +29,7 @@ from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
 JSON_MIME_TYPE = "application/json"
 _FLEET_BREAKDOWN_DAY_BUCKETS = frozenset([1, 7, 14, 30])
 
-flags.DEFINE_bool(
+_VERSION = flags.DEFINE_bool(
     "version",
     default=False,
     allow_override=True,
@@ -61,15 +61,6 @@ class _TableQueryResult(NamedTuple):
   type: str
 
 
-class JSONRequest(werkzeug_wrappers_json.JSONMixin, werkzeug_wrappers.Request):
-  pass
-
-
-class JSONResponse(werkzeug_wrappers_json.JSONMixin,
-                   werkzeug_wrappers.Response):
-  pass
-
-
 class Metric(abc.ABC):
   """A single metric from a Fleetspeak-based GRR deployment."""
 
@@ -83,7 +74,7 @@ class Metric(abc.ABC):
     return self._name
 
   @abc.abstractmethod
-  def ProcessQuery(self, req: JSONRequest) -> NamedTuple:
+  def ProcessQuery(self, req: werkzeug_wrappers.Request) -> NamedTuple:
     """Processes the request JSON data into Grafana-recognisable format."""
     pass
 
@@ -101,10 +92,14 @@ class ClientResourceUsageMetric(Metric):
   # Note: return type error issues at python/mypy#3915, python/typing#431
   def ProcessQuery(
       self,
-      req: JSONRequest) -> _TargetWithDatapoints:  # type: ignore[override]
-    client_id = req["scopedVars"]["ClientID"]["value"]
-    start_range_ts = TimeToProtoTimestamp(req["range"]["from"])
-    end_range_ts = TimeToProtoTimestamp(req["range"]["to"])
+      req: werkzeug_wrappers.Request,
+  ) -> _TargetWithDatapoints:  # type: ignore[override]
+    req_json = req.get_json()
+
+    client_id = req_json["scopedVars"]["ClientID"]["value"]
+    start_range_ts = TimeToProtoTimestamp(req_json["range"]["from"])
+    end_range_ts = TimeToProtoTimestamp(req_json["range"]["to"])
+
     records_list = fleetspeak_utils.FetchClientResourceUsageRecords(
         client_id, start_range_ts, end_range_ts)
     record_values = self._record_values_extract_fn(records_list)
@@ -133,7 +128,9 @@ class ClientsStatisticsMetric(Metric):
 
   # Note: return type error issues at python/mypy#3915, python/typing#431
   def ProcessQuery(
-      self, req: JSONRequest) -> _TableQueryResult:  # type: ignore[override]
+      self,
+      req: werkzeug_wrappers.Request,
+  ) -> _TableQueryResult:  # type: ignore[override]
     fleet_stats = self._get_fleet_stats_fn(_FLEET_BREAKDOWN_DAY_BUCKETS)
     totals = fleet_stats.GetTotalsForDay(self._days_active)
     return _TableQueryResult(
@@ -199,31 +196,61 @@ class Grrafana(object):
   def __init__(self) -> None:
     """Initializes a new GRRafana HTTP server instance."""
     self._url_map = werkzeug_routing.Map([
-        werkzeug_routing.Rule("/", endpoint=self._OnRoot, methods=["GET"]),
+        werkzeug_routing.Rule("/", endpoint=self._OnRoot, methods=["GET"]),  # pytype: disable=wrong-arg-types
         werkzeug_routing.Rule(
-            "/search", endpoint=self._OnSearch, methods=["POST"]),
+            "/search", endpoint=self._OnSearch, methods=["POST"]),  # pytype: disable=wrong-arg-types
         werkzeug_routing.Rule(
-            "/query", endpoint=self._OnQuery, methods=["POST"]),
+            "/query", endpoint=self._OnQuery, methods=["POST"]),  # pytype: disable=wrong-arg-types
         werkzeug_routing.Rule(
-            "/annotations", endpoint=self._OnAnnotations, methods=["POST"]),
+            "/annotations", endpoint=self._OnAnnotations, methods=["POST"]),  # pytype: disable=wrong-arg-types
     ])
 
-  def _DispatchRequest(self, request: JSONRequest) -> JSONResponse:
+  def _DispatchRequest(
+      self,
+      request: werkzeug_wrappers.Request,
+  ) -> werkzeug_wrappers.Response:
     """Maps requests to different methods."""
     adapter = self._url_map.bind_to_environ(request.environ)
     endpoint, values = adapter.match()
-    return endpoint(request, **values)
+    return endpoint(request, **values)  # pytype: disable=not-callable
 
-  def __call__(self, environ, start_response) -> JSONResponse:
-    request = JSONRequest(environ)
+  # pyformat: disable
+  # pylint: disable=line-too-long
+  # Good luck finding out what the types of these parameters are. Werkzeug's
+  # documentation names `start_response` type as `StartResponse` [1] (super
+  # helpful!) and refuses to elaborate what it is further. There is a Python PEP
+  # that talks about some `start_response` [2] callable which may or may not be
+  # the same thing and says that it is callable but it takes *at least* 10 para-
+  # graphs to explain the type of arguments of this callable (and remaining 30
+  # on its behaviour). The below description is my best guess what the type rea-
+  # lly is but I refuse to take any responsibility for any issues this causes.
+  # Please, direct your complaints to whoever approved a dynamic language to be
+  # "production-ready".
+  #
+  # [1]: https://werkzeug.palletsprojects.com/en/2.2.x/wrappers/#werkzeug.wrappers.Response.__call__
+  # [2]: https://peps.python.org/pep-0333/#the-start-response-callable
+  # pyformat: enable
+  # pylint: enable=line-too-long
+  def __call__(
+      self,
+      environ: dict[str, Any],
+      start_response: Callable[[str, list[tuple[str, Any]], tuple[Type[Exception], Exception, types.TracebackType]], Any]
+  ) -> Iterable[bytes]:
+    request = werkzeug_wrappers.Request(environ)
     response = self._DispatchRequest(request)
     return response(environ, start_response)
 
-  def _OnRoot(self, unused_request: JSONRequest) -> JSONResponse:
+  def _OnRoot(
+      self,
+      unused_request: werkzeug_wrappers.Request,
+  ) -> werkzeug_wrappers.Response:
     """Serves OK message to database connection check."""
-    return JSONResponse(content_type=JSON_MIME_TYPE)
+    return werkzeug_wrappers.Response(content_type=JSON_MIME_TYPE)
 
-  def _OnSearch(self, unused_request: JSONRequest) -> JSONResponse:
+  def _OnSearch(
+      self,
+      unused_request: werkzeug_wrappers.Request,
+  ) -> werkzeug_wrappers.Response:
     """Fetches available resource usage metrics.
 
     Depending on the type of request Grafana is issuing, this method returns
@@ -237,10 +264,13 @@ class Grrafana(object):
       JSON response.
     """
     response = list(AVAILABLE_METRICS_BY_NAME.keys())
-    return JSONResponse(
+    return werkzeug_wrappers.Response(
         response=json.dumps(response), content_type=JSON_MIME_TYPE)
 
-  def _OnQuery(self, request: JSONRequest) -> JSONResponse:
+  def _OnQuery(
+      self,
+      request: werkzeug_wrappers.Request,
+  ) -> werkzeug_wrappers.Response:
     """Retrieves datapoints for Grafana.
 
     Given a client ID as a Grafana variable and targets (resource usages),
@@ -252,18 +282,21 @@ class Grrafana(object):
     Returns:
       JSON response.
     """
-    json_data = request.json
+    json_data = request.get_json()
     requested_targets = [entry["target"] for entry in json_data["targets"]]
     targets_with_datapoints = [
-        AVAILABLE_METRICS_BY_NAME[target].ProcessQuery(json_data)
+        AVAILABLE_METRICS_BY_NAME[target].ProcessQuery(request)
         for target in requested_targets
     ]
     response = [t._asdict() for t in targets_with_datapoints]
-    return JSONResponse(
+    return werkzeug_wrappers.Response(
         response=json.dumps(response), content_type=JSON_MIME_TYPE)
 
-  def _OnAnnotations(self, unused_request: JSONRequest) -> JSONResponse:
-    return JSONResponse(content_type=JSON_MIME_TYPE)
+  def _OnAnnotations(
+      self,
+      unused_request: werkzeug_wrappers.Request,
+  ) -> werkzeug_wrappers.Response:
+    return werkzeug_wrappers.Response(content_type=JSON_MIME_TYPE)
 
 
 def TimeToProtoTimestamp(grafana_time: str) -> timestamp_pb2.Timestamp:
@@ -276,7 +309,7 @@ def main(argv: Any) -> None:
   """Main."""
   del argv  # Unused.
 
-  if flags.FLAGS.version:
+  if _VERSION.value:
     print(f"GRRafana server {config_server.VERSION['packageversion']}")
     return
 

@@ -2,8 +2,11 @@
 // tslint:disable:enforce-comments-on-exported-symbols
 
 import {Client, ClientApproval} from '../../lib/models/client';
+import {Duration} from '../date_time';
 
 import {ArtifactDescriptor, ArtifactDescriptorMap, Flow, FlowDescriptor, FlowResult, FlowState, OperatingSystem, ScheduledFlow} from './flow';
+import {Hunt, HuntApproval, HuntState, HuntType, SafetyLimits} from './hunt';
+import {OutputPluginDescriptor} from './output_plugin';
 import {GrrUser} from './user';
 import {File, PathSpec, PathSpecPathType, StatEntry} from './vfs';
 
@@ -46,6 +49,7 @@ export function newFlow(args: Partial<Flow> = {}): Flow {
     state: args.state || FlowState.UNSET,
     errorDescription: args.errorDescription ?? undefined,
     resultCounts: args.resultCounts ?? undefined,
+    isRobot: false,
     ...args,
   };
 }
@@ -113,13 +117,22 @@ export function newArtifactDescriptor(args: Partial<ArtifactDescriptor>):
     dependencies: [],
     doc: 'Description of test artifact',
     isCustom: false,
-    labels: ['Browsers'],
     name: 'TestAritfact',
     pathDependencies: [],
     provides: [],
     sources: [],
     supportedOs: new Set([OperatingSystem.LINUX]),
     urls: [],
+    ...args,
+  };
+}
+
+export function newOutputPluginDescriptor(
+    args: Partial<OutputPluginDescriptor>): OutputPluginDescriptor {
+  return {
+    name: 'PluginName',
+    description: 'Plugin description',
+    argsType: 'PluginArgs',
     ...args,
   };
 }
@@ -169,5 +182,65 @@ export function newGrrUser(user: Partial<GrrUser>): GrrUser {
     huntApprovalRequired: true,
     canaryMode: false,
     ...user,
+  };
+}
+
+export function newSafetyLimits(limits: Partial<SafetyLimits>): SafetyLimits {
+  return {
+    cpuLimit: limits.cpuLimit ?? BigInt(33),
+    networkBytesLimit: limits.networkBytesLimit ?? BigInt(345),
+    clientRate: limits.clientRate ?? 60,
+    clientLimit: limits.clientLimit ?? BigInt(200),
+    crashLimit: limits.crashLimit ?? BigInt(55),
+    avgResultsPerClientLimit: limits.cpuLimit ?? BigInt(99),
+    avgCpuSecondsPerClientLimit: limits.cpuLimit ?? BigInt(20),
+    avgNetworkBytesPerClientLimit: limits.cpuLimit ?? BigInt(59),
+    expiryTime: limits.expiryTime ?? BigInt(32),
+    ...limits,
+  };
+}
+
+export function newHunt(hunt: Partial<Hunt>): Hunt {
+  return {
+    allClientsCount: hunt.allClientsCount ?? BigInt(123),
+    clientsWithResultsCount: hunt.clientsWithResultsCount ?? BigInt(10),
+    completedClientsCount: hunt.completedClientsCount ?? BigInt(5),
+    created: hunt.created ?? new Date(),
+    creator: hunt.creator ?? 'foouser',
+    description: hunt.description ?? 'test',
+    duration: hunt.duration ?? Duration.fromObject({seconds: 86400}),
+    flowArgs: hunt.flowArgs,
+    flowName: hunt.flowName,
+    huntId: hunt.huntId ?? '123',
+    huntType: hunt.huntType ?? HuntType.STANDARD,
+    initStartTime: hunt.initStartTime ?? new Date(),
+    internalError: hunt.internalError,
+    isRobot: hunt.isRobot ?? false,
+    lastStartTime: hunt.lastStartTime ?? new Date(),
+    name: hunt.name ?? 'GenericHunt',
+    remainingClientsCount: hunt.remainingClientsCount ?? BigInt(190),
+    resultsCount: hunt.resultsCount ?? BigInt(55),
+    state: hunt.state ?? HuntState.STARTED,
+    totalCpuUsage: hunt.totalCpuUsage ?? 0,
+    totalNetUsage: hunt.totalNetUsage ?? BigInt(0),
+    safetyLimits: newSafetyLimits(hunt.safetyLimits ?? {}),
+    ...hunt,
+  };
+}
+
+export function newHuntApproval(args: Partial<HuntApproval> = {}):
+    HuntApproval {
+  const huntId = args.huntId ?? args.subject?.huntId ?? `C.${randomHex(16)}`;
+
+  return {
+    approvalId: randomHex(8),
+    huntId,
+    requestor: 'msan',
+    reason: 't/1234',
+    status: {type: 'pending', reason: 'Need 1 more approver'},
+    requestedApprovers: ['rsanchez'],
+    approvers: ['msan'],
+    subject: newHunt({huntId, ...args.subject}),
+    ...args,
   };
 }

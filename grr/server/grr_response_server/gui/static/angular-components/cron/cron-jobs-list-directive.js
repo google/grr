@@ -98,11 +98,11 @@ const CronJobsListController = class {
           return successMessage;
         }.bind(this),
         function failure(response) {
-          var message = response['data']['message'];
+          const message = response['data']['message'];
 
           if (response['status'] === 403) {
-            var subject = response['data']['subject'];
-            var cronJobId = stripAff4Prefix(subject).split('/')[1];
+            const subject = response['data']['subject'];
+            const cronJobId = stripAff4Prefix(subject).split('/')[1];
 
             this.grrAclDialogService_.openRequestCronJobApprovalDialog(
                 cronJobId, message);
@@ -145,12 +145,12 @@ const CronJobsListController = class {
     items = angular.copy(items);
 
     angular.forEach(items, function(item, index) {
-      var cronJobId = item['value']['cron_job_id']['value'];
+      const cronJobId = item['value']['cron_job_id']['value'];
       this.cronJobsById[cronJobId] = item;
 
-      var frequency = item['value']['frequency']['value'];
-      var currentTime = this.timeService_.getCurrentTimeMs() / 1000;
-      var last_run_time;
+      const frequency = item['value']['frequency']['value'];
+      const currentTime = this.timeService_.getCurrentTimeMs() / 1000;
+      let last_run_time;
       if (angular.isDefined(item['value']['last_run_time'])) {
         last_run_time = item['value']['last_run_time']['value'] / 1000;
       } else {
@@ -168,7 +168,7 @@ const CronJobsListController = class {
    * @export
    */
   newCronJob() {
-    var modalScope = this.scope_.$new();
+    const modalScope = this.scope_.$new();
     modalScope.resolve = function() {
       modalInstance.close();
     };
@@ -180,7 +180,7 @@ const CronJobsListController = class {
     });
     modalScope.result = {};
 
-    var modalInstance = this.uibModal_.open({
+    const modalInstance = this.uibModal_.open({
       template: '<grr-new-cron-job-wizard-form on-resolve="resolve()" ' +
           'on-reject="reject()" cron-job="result.cronJob" />',
       scope: modalScope,
@@ -201,10 +201,10 @@ const CronJobsListController = class {
    * @export
    */
   enableCronJob() {
-    var modalPromise = this.grrDialogService_.openConfirmation(
+    const modalPromise = this.grrDialogService_.openConfirmation(
         'Enable this cron job?',
         'Are you sure you want to ENABLE this cron job?', function() {
-          var promise = this.grrApiService_.patch(
+          const promise = this.grrApiService_.patch(
               this.buildCronJobUrl_(this.selectedCronJobId), {enabled: true});
           return this.wrapApiPromise_(
               promise, 'Cron job was ENABLED successfully!');
@@ -228,10 +228,10 @@ const CronJobsListController = class {
    * @export
    */
   disableCronJob() {
-    var modalPromise = this.grrDialogService_.openConfirmation(
+    const modalPromise = this.grrDialogService_.openConfirmation(
         'Disable this cron job?',
         'Are you sure you want to DISABLE this cron job?', function() {
-          var promise = this.grrApiService_.patch(
+          const promise = this.grrApiService_.patch(
               this.buildCronJobUrl_(this.selectedCronJobId), {enabled: false});
           return this.wrapApiPromise_(
               promise, 'Cron job was DISABLED successfully!');
@@ -255,7 +255,7 @@ const CronJobsListController = class {
    * @export
    */
   showDeleteCronJobConfirmation() {
-    var dialogResult = this.grrDialogService_.openConfirmation(
+    const dialogResult = this.grrDialogService_.openConfirmation(
         'Delete cron job', 'Are you sure you want to DELETE this cron job?',
         this.deleteCronJob_.bind(this));
 
@@ -271,8 +271,8 @@ const CronJobsListController = class {
    * @private
    */
   deleteCronJob_() {
-    var url = this.buildCronJobUrl_(this.selectedCronJobId);
-    var promise = this.grrApiService_.delete(url);
+    const url = this.buildCronJobUrl_(this.selectedCronJobId);
+    const promise = this.grrApiService_.delete(url);
     return this.wrapApiPromise_(promise, 'Cron job was deleted successfully!');
   }
 
@@ -282,10 +282,10 @@ const CronJobsListController = class {
    * @export
    */
   forceRunCronJob() {
-    var modalPromise = this.grrDialogService_.openConfirmation(
+    const modalPromise = this.grrDialogService_.openConfirmation(
         'Force-run this cron job?',
         'Are you sure you want to FORCE-RUN this cron job?', function() {
-          var promise = this.grrApiService_.post(
+          const promise = this.grrApiService_.post(
               this.buildCronJobUrl_(this.selectedCronJobId) +
               '/actions/force-run');
           return this.wrapApiPromise_(

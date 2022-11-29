@@ -1,27 +1,51 @@
 <div class="hunt-overview centered-content">
-  <title-editor [disabled]=true class="title">
-    <h1 titleEditable>{{(hunt$ | async)?.description}}</h1>
-  </title-editor>
+  <div class="title-chips">
+    <title-editor [disabled]="true" class="title">
+      <h1 titleEditable>{{ (hunt$ | async)?.description }}</h1>
+    </title-editor>
+    <div class="chips">
+      <mat-chip-list [selectable]="false" [tabIndex]="-1">
+        <app-hunt-status-chip [hunt]="hunt$ | async"></app-hunt-status-chip>
+      </mat-chip-list>
+    </div>
+  </div>
 
   <div class="info">
     <table class="key-value-table">
       <tr>
         <td>ID:</td>
         <td>
-          <app-copy-button><span>{{ (hunt$ | async)?.huntId }}</span></app-copy-button>
+          <app-copy-button>
+            <span>{{ (hunt$ | async)?.huntId }}</span>
+          </app-copy-button>
         </td>
       </tr>
       <tr>
         <td>Creator:</td>
         <td>
-          <app-copy-button><span>{{ (hunt$ | async)?.creator }}</span></app-copy-button>
+          <span class="user-name">
+            <user-image [username]="(hunt$ | async)?.creator" size="16px"></user-image>
+            {{ (hunt$ | async)?.creator }}
+          </span>
         </td>
       </tr>
     </table>
   </div>
+
+  <div class="actions">
+    <button
+      *ngIf="(hunt$ | async)?.state === HuntState.STARTED || (hunt$ | async)?.state === HuntState.PAUSED"
+      mat-stroked-button
+      type="button"
+      color="primary"
+      name="stop-button"
+      (click)="stopHunt()"
+    >
+      Stop collection
+    </button>
+  </div>
 </div>
 
-
-<!-- TODO: Add chart -->
+<app-hunt-progress class="centered-content"></app-hunt-progress>
 
 <app-hunt-results class="centered-content"></app-hunt-results>

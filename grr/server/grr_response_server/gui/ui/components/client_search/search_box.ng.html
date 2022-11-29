@@ -1,0 +1,58 @@
+<form
+  #form
+  [appSubmitOnMetaEnter]="true"
+  [appSubmitOnEnter]="true"
+  (ngSubmit)="formSubmitted$.next()"
+>
+  <mat-form-field
+    hideRequiredMarker="true"
+    appearance="outline"
+    color="primary"
+  >
+    <mat-label>Search for a client...</mat-label>
+    <mat-icon matPrefix>search</mat-icon>
+
+    <a
+      mat-icon-button
+      matSuffix
+      type="button"
+      href="https://grr-doc.readthedocs.io/en/latest/investigating-with-grr/searching-for-client.html"
+      target="_blank"
+      matTooltip="Matches on FQDN, users, IP , labels, serial number, OS and serial number.
+    Click for more details"
+    >
+      <mat-icon>help_outline</mat-icon>
+    </a>
+
+    <input
+      #input
+      placeholder="Search for a client..."
+      name="clientSearchBox"
+      matInput
+      [formControl]="inputFormControl"
+      [matAutocomplete]="auto"
+      autocomplete="off"
+    />
+    <mat-autocomplete
+      #auto="matAutocomplete"
+      (optionSelected)="selectClient($event.option.value)"
+    >
+      <div class="search-results">
+        <mat-option
+          *ngFor="let client of clients$ | async; trackBy: trackClient"
+          [value]="client.clientId"
+        >
+          <div class="result-row">
+            <span>{{ client.knowledgeBase.fqdn }} ({{ client.clientId }})</span>
+            <mat-chip-list>
+              <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
+            </mat-chip-list>
+          </div>
+        </mat-option>
+        <mat-option *ngFor="let label of labels$ | async" [value]="label">
+          <span>{{ label }}</span>
+        </mat-option>
+      </div>
+    </mat-autocomplete>
+  </mat-form-field>
+</form>

@@ -16,7 +16,8 @@ from setuptools.command.sdist import sdist
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 os.chdir(THIS_DIRECTORY)
 
-GRPCIO_TOOLS = "grpcio-tools==1.29.0"
+GRPCIO = "grpcio==1.46.3"
+GRPCIO_TOOLS = "grpcio-tools==1.43.0"
 PROTOBUF = "protobuf>=3.12.2,<4"
 
 
@@ -53,8 +54,9 @@ def compile_protos():
     # version. Otherwise latest protobuf library will be installed with
     # grpcio-tools and then uninstalled when grr-response-proto's setup.py runs
     # and reinstalled to the version required by grr-response-proto.
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", GRPCIO_TOOLS, PROTOBUF])
+    subprocess.check_call([
+        sys.executable, "-m", "pip", "install", GRPCIO, GRPCIO_TOOLS, PROTOBUF
+    ])
 
   # If there's no makefile, we're likely installing from an sdist,
   # so there's no need to compile the protos (they should be already

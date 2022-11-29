@@ -1,9 +1,9 @@
 import {Injectable} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
 import {combineLatest, merge, Observable, of, throwError} from 'rxjs';
-import {catchError, concatMap, distinctUntilChanged, filter, map, scan, shareReplay, skip, startWith, switchMap, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
+import {catchError, concatMap, distinctUntilChanged, filter, map, scan, shareReplay, skip, startWith, switchMap, take, takeWhile, tap, withLatestFrom} from 'rxjs/operators';
 
-import {AnyObject} from '../lib/api/api_interfaces';
+import {Any} from '../lib/api/api_interfaces';
 import {HttpApiService, MissingApprovalError} from '../lib/api/http_api_service';
 import {extractErrorMessage, RequestStatus, RequestStatusType, trackRequest} from '../lib/api/track_request';
 import {translateApproval, translateClient} from '../lib/api_translation/client';
@@ -80,6 +80,10 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
 
   /** Reducer resetting the store and setting the clientId. */
   readonly selectClient = this.updater<string>((state, clientId) => {
+    if (state.clientId === clientId) {
+      return state;
+    }
+
     // Clear complete state when new client is selected to prevent stale
     // information.
     return {
@@ -207,7 +211,7 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
                 of<FlowListState>({isLoading: true} as FlowListState),
                 this.httpApiService
                     .subscribeToFlowsForClient(
-                        {clientId, count, topFlowsOnly: true})
+                        {clientId, count: count.toString(), topFlowsOnly: true})
                     .pipe(
                         map(apiFlows => apiFlows.map(translateFlow)
                                             .sort(compareDateNewestFirst(
@@ -297,8 +301,7 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
             return trackRequest(
                 this.httpApiService
                     .startFlow(
-                        clientId, flowInConfiguration.name,
-                        flowArgs as AnyObject)
+                        clientId, flowInConfiguration.name, flowArgs as Any)
                     .pipe(
                         map(flow => ({flow: translateFlow(flow)})),
                         ));
@@ -317,8 +320,7 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
             return trackRequest(
                 this.httpApiService
                     .scheduleFlow(
-                        clientId, flowInConfiguration.name,
-                        flowArgs as AnyObject)
+                        clientId, flowInConfiguration.name, flowArgs as Any)
                     .pipe(
                         map(sf =>
                                 ({scheduledFlow: translateScheduledFlow(sf)})),
@@ -327,6 +329,23 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
           tap(requestStatus => {
             this.updateFlowFormRequestStatus(requestStatus);
           }),
+          ));
+
+  readonly scheduleOrStartFlow = this.effect<unknown>(
+      obs$ => obs$.pipe(
+          switchMap(
+              flowArgs => this.hasAccess$.pipe(
+                  filter(isNonNull),
+                  take(1),
+                  tap((hasAccess) => {
+                    if (hasAccess) {
+                      this.startFlow(flowArgs);
+                    } else {
+                      this.scheduleFlow(flowArgs);
+                    }
+                  }),
+                  ),
+              ),
           ));
 
   /** Cancels given flow. */
@@ -483,6 +502,10 @@ export class ClientPageGlobalStore {
   /** Schedules a flow with given arguments. */
   scheduleFlow(flowArgs: unknown) {
     this.store.scheduleFlow(flowArgs);
+  }
+
+  scheduleOrStartFlow(flowArgs: unknown) {
+    this.store.scheduleOrStartFlow(flowArgs);
   }
 
   /** Cancels given flow. */

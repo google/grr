@@ -29,7 +29,7 @@ class TestOsquery(test_base.EndToEndTest):
 
     os_name = table.rows[0].values[0]
     if self.platform == test_base.EndToEndTest.Platform.DARWIN:
-      self.assertEqual(os_name, "Mac OS X")
+      self.assertIn(os_name, ("macOS", "Mac OS X"))
     elif self.platform == test_base.EndToEndTest.Platform.LINUX:
       # e.g. for Debian it is 'Debian GNU/Linux'.
       self.assertIn("Linux", os_name)

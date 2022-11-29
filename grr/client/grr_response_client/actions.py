@@ -115,7 +115,6 @@ class ActionPlugin(object):
     self.grr_worker = grr_worker
     self.response_id = INITIAL_RESPONSE_ID
     self.cpu_used = None
-    self.nanny_controller = None
     self.status = rdf_flows.GrrStatus(
         status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     self._last_gc_run = rdfvalue.RDFDatetime.Now()
@@ -205,7 +204,6 @@ class ActionPlugin(object):
                      "%r: %s" % (e, e), traceback.format_exc())
 
       if flags.FLAGS.pdb_post_mortem:
-        self.DisableNanny()
         pdb.post_mortem()
 
     if self.status.status != rdf_flows.GrrStatus.ReturnedStatus.OK:
@@ -348,12 +346,6 @@ class ActionPlugin(object):
   def ChargeBytesToSession(self, length):
     self.grr_worker.ChargeBytesToSession(
         self.message.session_id, length, limit=self.network_bytes_limit)
-
-  def DisableNanny(self):
-    try:
-      self.nanny_controller.nanny.Stop()
-    except AttributeError:
-      logging.info("Can't disable Nanny on this OS.")
 
   @property
   def session_id(self):

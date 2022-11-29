@@ -1,3 +1,2 @@
-recursive-include grr_response_client/nanny *
 include version.ini
 

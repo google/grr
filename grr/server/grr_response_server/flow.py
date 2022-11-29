@@ -235,7 +235,6 @@ def StartFlow(client_id=None,
       client_id=client_id,
       flow_class_name=flow_cls.__name__,
       args=flow_args,
-      create_time=rdfvalue.RDFDatetime.Now(),
       creator=creator,
       output_plugins=output_plugins,
       original_flow=original_flow,
@@ -435,7 +434,7 @@ def _StartScheduledFlow(scheduled_flow: rdf_flow_objects.ScheduledFlow) -> str:
         parent=FlowParent.FromScheduledFlowID(sf.scheduled_flow_id),
         cpu_limit=ra.cpu_limit,
         network_bytes_limit=ra.network_bytes_limit,
-        # TODO(user): runtime_limit is missing in FlowRunnerArgs.
+        # runtime_limit is missing in FlowRunnerArgs.
     )
   except Exception as e:
     scheduled_flow.error = str(e)

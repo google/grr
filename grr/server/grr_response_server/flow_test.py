@@ -161,6 +161,33 @@ class CallClientChildFlow(flow_base.FlowBase):
     self.CallClient(server_stubs.GetClientStats, next_state="End")
 
 
+class ParentFlowWithoutForwardingOutputPlugins(flow_base.FlowBase):
+  """This flow creates a Child without forwarding OutputPlugins."""
+
+  def Start(self):
+    # Call the child flow WITHOUT output plugins.
+    self.CallFlow("ChildFlow", next_state="IgnoreChildReplies")
+
+  def IgnoreChildReplies(self, responses):
+    del responses  # Unused
+    self.SendReply(rdfvalue.RDFString("Parent received"))
+
+
+class ParentFlowWithForwardedOutputPlugins(flow_base.FlowBase):
+  """This flow creates a Child without forwarding OutputPlugins."""
+
+  def Start(self):
+    # Calls the child flow WITH output plugins.
+    self.CallFlow(
+        "ChildFlow",
+        output_plugins=self.rdf_flow.output_plugins,
+        next_state="IgnoreChildReplies")
+
+  def IgnoreChildReplies(self, responses):
+    del responses  # Unused
+    self.SendReply(rdfvalue.RDFString("Parent received"))
+
+
 class FlowWithBrokenStart(flow_base.FlowBase):
 
   def Start(self):
@@ -491,6 +518,34 @@ class FlowOutputPluginsTest(BasicFlowTest):
     ])
 
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 1)
+    self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 1)
+
+  def testOutputPluginsOnlyRunInParentFlow_DoesNotForward(self):
+    self.RunFlow(
+        flow_cls=ParentFlowWithoutForwardingOutputPlugins,
+        client_mock=ClientMock(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name="DummyFlowOutputPlugin")
+        ])
+
+    # Parent calls once, and child doesn't call.
+    self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 1)
+    # Parent has one response, child has two.
+    self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 1)
+
+  def testOutputPluginsOnlyRunInParentFlow_Forwards(self):
+    self.RunFlow(
+        flow_cls=ParentFlowWithForwardedOutputPlugins,
+        client_mock=ClientMock(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name="DummyFlowOutputPlugin")
+        ])
+
+    # Parent calls once, and child doesn't call.
+    self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_calls, 1)
+    # Parent has one response, child has two.
     self.assertEqual(test_output_plugins.DummyFlowOutputPlugin.num_responses, 1)
 
 

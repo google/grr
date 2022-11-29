@@ -93,7 +93,7 @@ class FlowResultsComponentStore extends ComponentStore<FlowResultStoreState> {
                   ),
               map(flowResults => flowResults.map(translateFlowResult)),
               shareReplay({bufferSize: 1, refCount: true}),
-              // TODO(user): Ideally, unsubscription from the last subscriber
+              // Ideally, unsubscription from the last subscriber
               // should ONLY unsubscribe from the polling observable, but
               // retain and replay the latest value.
           );

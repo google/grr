@@ -101,7 +101,7 @@ describe('list-directory-details component', () => {
     });
     const statEntry: StatEntry = {
       stSize: '123',
-      stMtime: 1629144908,
+      stMtime: '1629144908',
       pathspec: {
         path: '/foo',
         pathtype: PathSpecPathType.OS,

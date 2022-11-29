@@ -29,7 +29,12 @@
           </tr>
           <tr>
             <td>Reason:</td>
-            <td>{{approval.reason}}</td>
+            <td>
+              <app-text-with-links
+              [text]="approval.reason"
+               >
+              </app-text-with-links>
+            </td>
           </tr>
           <tr>
             <td>Client:</td>

@@ -65,7 +65,7 @@ setup_args = dict(
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
         "cryptography==3.3.2",
         "requests==2.25.1",
-        "Werkzeug>=0.16.0,<=1.0.1",
+        "Werkzeug==2.1.2",
     ],
     extra_requires={
         "shell": ["ipython==7.15.0",],

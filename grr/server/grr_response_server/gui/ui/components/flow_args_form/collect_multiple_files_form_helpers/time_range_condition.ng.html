@@ -1,5 +1,5 @@
 <condition-panel
-  [title]="title[0]?.toUpperCase() + title.slice(1) + ' time'"
+  title="{{ title | titlecase }} time"
   (conditionRemoved)="conditionRemoved.emit()"
 >
   <mat-form-field appearance="outline">

@@ -42,7 +42,7 @@ exports.ReportDescsService = class {
    * @export
    */
   getDescs() {
-    var deferred = this.q_.defer();
+    const deferred = this.q_.defer();
 
     if (angular.isDefined(this.reports_)) {
       deferred.resolve(this.reports_);
@@ -67,7 +67,7 @@ exports.ReportDescsService = class {
    * @export
    */
   getDescByName(name) {
-    var deferred = this.q_.defer();
+    const deferred = this.q_.defer();
 
     if (angular.isDefined(this.descsByName_)) {
       // Nore that this will resolve to undefined if name is not in the dict.
@@ -75,8 +75,8 @@ exports.ReportDescsService = class {
     } else {
       this.getDescs().then(function(reports) {
         this.descsByName_ = {};
-        for (var i = 0; i < reports.length; i++) {
-          var desc = reports[i]['desc'];
+        for (let i = 0; i < reports.length; i++) {
+          const desc = reports[i]['desc'];
           this.descsByName_[desc['name']] = desc;
         }
 
@@ -87,6 +87,6 @@ exports.ReportDescsService = class {
     return deferred.promise;
   }
 };
-var ReportDescsService = exports.ReportDescsService;
+const ReportDescsService = exports.ReportDescsService;
 
 ReportDescsService.service_name = 'grrReportDescsService';

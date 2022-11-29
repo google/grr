@@ -1,0 +1,60 @@
+@use "@angular/material" as mat;
+@use "../../../material-theme" as c;
+
+:host {
+  display: flex;
+  flex-direction: column;
+}
+
+.controls-top {
+  display: flex;
+  border-top: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
+  border-bottom: 1px solid
+    mat.get-color-from-palette(c.$foreground, divider-light);
+}
+
+.filter-input {
+  flex: 1; // width fills out the space
+  padding-left: 24px;
+  border-right: 1px solid
+    mat.get-color-from-palette(c.$foreground, divider-light);
+}
+
+.top-paginator {
+  margin-left: auto; // aligns to the right
+}
+
+.bottom-paginator {
+  padding-left: 24px;
+}
+
+// The rules below shorten the height of the controls-top row, bringing it
+// closer to the actual content.
+:host ::ng-deep .mat-form-field-underline {
+  display: none;
+}
+
+:host ::ng-deep .mat-form-field-wrapper {
+  padding-bottom: 0;
+}
+
+// The rules below make the material filter input outline transparent. This
+// allow us to keep reusing other material styling such as the icon prefix,
+// animation, color pallette, etc.
+:host ::ng-deep .mat-form-field-appearance-outline .mat-form-field-outline {
+  color: rgba(117, 117, 117, 0);
+}
+
+:host
+  ::ng-deep
+  .mat-form-field-appearance-outline.mat-focused
+  .mat-form-field-outline-thick {
+  color: rgba(117, 117, 117, 0);
+}
+
+:host
+  ::ng-deep
+  .mat-form-field-appearance-outline.mat-form-field-invalid.mat-form-field-invalid
+  .mat-form-field-outline-thick {
+  color: rgba(117, 117, 117, 0);
+}

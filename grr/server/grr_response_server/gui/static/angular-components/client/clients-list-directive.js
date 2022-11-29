@@ -86,7 +86,7 @@ const ClientsListController = class {
    * @export
    */
   onClientClick(client) {
-    var clientId = client['value']['client_id']['value'];
+    const clientId = client['value']['client_id']['value'];
     this.grrRoutingService_.go('client.hostInfo', {
       clientId: clientId,
       reason: this.suggestedReason,
@@ -100,8 +100,8 @@ const ClientsListController = class {
    * @export
    */
   updateNumSelectedClients() {
-    var count = 0;
-    for (var key in this.selectedClients) {
+    let count = 0;
+    for (const key in this.selectedClients) {
       if (this.selectedClients[key]) {
         ++count;
       }
@@ -123,7 +123,7 @@ const ClientsListController = class {
    */
   onClientsFetched(items) {
     angular.forEach(items, function(item) {
-      var clientId = item['value']['client_id']['value'];
+      const clientId = item['value']['client_id']['value'];
       this.clients[clientId] = item;
       this.selectedClients[clientId] = false;
 
@@ -151,7 +151,7 @@ const ClientsListController = class {
    * @export
    */
   selectAll() {
-    for (var key in this.selectedClients) {
+    for (const key in this.selectedClients) {
       this.selectedClients[key] = this.allClientsSelected;
     }
 
@@ -165,14 +165,14 @@ const ClientsListController = class {
    * @export
    */
   showLabelsDialog(action) {
-    var clients = [];
-    for (var clientId in this.selectedClients) {
+    const clients = [];
+    for (const clientId in this.selectedClients) {
       if (this.selectedClients[clientId]) {
         clients.push(this.clients[clientId]);
       }
     }
 
-    var result;
+    let result;
     if (action == 'add') {
       result = this.grrClientDialogService_.openAddClientLabels(clients);
     } else if (action == 'remove') {

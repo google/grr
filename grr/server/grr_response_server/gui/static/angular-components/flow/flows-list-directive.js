@@ -7,9 +7,9 @@ const {InfiniteTableController} = goog.require('grrUi.core.infiniteTableDirectiv
 
 
 /** @const */
-var TABLE_KEY_NAME = InfiniteTableController.UNIQUE_KEY_NAME;
+const TABLE_KEY_NAME = InfiniteTableController.UNIQUE_KEY_NAME;
 /** @const */
-var TABLE_ROW_HASH = InfiniteTableController.ROW_HASH_NAME;
+const TABLE_ROW_HASH = InfiniteTableController.ROW_HASH_NAME;
 
 
 /** @type {number} */
@@ -46,9 +46,9 @@ exports.flattenFlowsList = function(flows, opt_currentDepth) {
     opt_currentDepth = 0;
   }
 
-  var result = [];
-  for (var i = 0; i < flows.length; ++i) {
-    var flow = angular.copy(flows[i]);
+  let result = [];
+  for (let i = 0; i < flows.length; ++i) {
+    const flow = angular.copy(flows[i]);
     flow['depth'] = opt_currentDepth;
 
     result.push(flow);
@@ -62,7 +62,7 @@ exports.flattenFlowsList = function(flows, opt_currentDepth) {
   }
   return result;
 };
-var flattenFlowsList = exports.flattenFlowsList;
+const flattenFlowsList = exports.flattenFlowsList;
 
 
 /**
@@ -79,8 +79,8 @@ var flattenFlowsList = exports.flattenFlowsList;
  * @export
  */
 exports.toggleFlowExpansion = function(flows, index) {
-  var flowToExpand = flows[index];
-  var i;
+  const flowToExpand = flows[index];
+  let i;
 
   flowToExpand.expanded = !flowToExpand.expanded;
 
@@ -94,7 +94,7 @@ exports.toggleFlowExpansion = function(flows, index) {
     }
   } else {
     // If this is not null, ignore all flows with a depth > ignoreDepth.
-    var ignoreDepth = null;
+    let ignoreDepth = null;
     for (i = index + 1; i < flows.length; ++i) {
       if (flows[i].depth > flowToExpand.depth) {
         if (!ignoreDepth || ignoreDepth >= flows[i].depth) {
@@ -134,7 +134,7 @@ exports.toggleFlowExpansion = function(flows, index) {
 
   return flows;
 };
-var toggleFlowExpansion = exports.toggleFlowExpansion;
+const toggleFlowExpansion = exports.toggleFlowExpansion;
 
 
 /**
@@ -211,10 +211,10 @@ const FlowsListController = class {
    * @export
    */
   transformItems(items) {
-    var flattenedItems = flattenFlowsList(items);
+    const flattenedItems = flattenFlowsList(items);
 
     angular.forEach(flattenedItems, function(item, index) {
-      var components = item['value']['flow_id']['value'].split('/');
+      const components = item['value']['flow_id']['value'].split('/');
       item.shortId = components[components.length - 1];
       item.shown = item.depth == 0;
       if (index < flattenedItems.length - 1 &&
@@ -232,12 +232,12 @@ const FlowsListController = class {
       // these attributes conditionally.
       // NOTE: It's only safe to assume that the "flow_id" attribute
       // is present.
-      var state = 'BROKEN';
+      let state = 'BROKEN';
       if (angular.isDefined(item['value']['state'])) {
         state = item['value']['state']['value'];
       }
 
-      var last_active_at = 0;
+      let last_active_at = 0;
       if (angular.isDefined(item['value']['last_active_at'])) {
         last_active_at = item['value']['last_active_at']['value'];
       }

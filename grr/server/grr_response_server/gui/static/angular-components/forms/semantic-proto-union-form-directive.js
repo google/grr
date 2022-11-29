@@ -55,7 +55,7 @@ const SemanticProtoUnionFormController = class {
   onUnionFieldValueChange_(newValue, oldValue) {
     if (angular.isDefined(newValue)) {
       if (angular.isDefined(oldValue) && oldValue !== newValue) {
-        var unionPart = this.scope_['value']['value'][this.unionFieldValue];
+        const unionPart = this.scope_['value']['value'][this.unionFieldValue];
 
         if (angular.isObject(unionPart)) {
           // We have to make sure that we replace the object at

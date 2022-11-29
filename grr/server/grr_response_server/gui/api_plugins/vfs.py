@@ -582,7 +582,9 @@ class ApiBrowseFilesystemHandler(api_call_handler_base.ApiCallHandler):
       existing = path_infos.get(pi.basename)
       # If the VFS has the same file in two PathTypes, use the latest collected
       # version.
-      if existing is None or existing.timestamp < pi.timestamp:
+
+      if (existing is None or existing.timestamp is None or
+          (pi.timestamp is not None and existing.timestamp < pi.timestamp)):
         path_infos[pi.basename] = pi
 
   def _ListDirectory(

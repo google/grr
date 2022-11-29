@@ -1,0 +1,92 @@
+@use '../../../main' as main;
+@use '@angular/material' as mat;
+@use '../../../material-theme' as c;
+
+:host {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  row-gap: c.$page-spacing;
+}
+
+.wrapper {
+  padding: 2em 0;
+  background-color: mat.get-color-from-palette(c.$background, dark-background);
+
+  mat-card {
+    mat-card-header {
+      font-size: 18px;
+      margin-top: 0.8em;
+      margin-bottom: 0.8em;
+    }
+
+    table {
+      margin-left: 1em;
+
+      td {
+        padding-right: 0.7em;
+        padding-bottom: 0.7em;
+      }
+    }
+
+    mat-card-actions {
+      margin-left: 1em;
+      margin-bottom: 1em;
+    }
+
+    max-width: 1280px;
+    width: 80%;
+    margin: 0 auto;
+  }
+}
+
+.key-value-table {
+  td {
+    font-size: 14px;
+  }
+}
+
+.section-title,
+h4 {
+  color: mat.get-color-from-palette(c.$foreground, text);
+  font-family: c.$google-sans-display-family;
+  font-size: 17px;
+  font-weight: 500;
+  display: flex;
+  margin-top: 0.7em;
+  margin-bottom: 0em;
+}
+
+.mat-chip-list {
+  margin-left: 0.5em;
+
+  .yellow-chip {
+    font-weight: bold;
+  }
+}
+
+.match-mode {
+  padding-left: 0.4em;
+}
+
+.id {
+  font-size: 10px;
+  color: mat.get-color-from-palette(c.$foreground, text-light);
+}
+
+.flow-card {
+  @extend .split-card;
+  position: relative;
+  background: mat.get-color-from-palette(c.$background, app-bar);
+
+  .header {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 18px 0 18px 24px;
+    font-size: 105%;
+  }
+
+  .flow-args {
+    padding: 18px 24px;
+  }
+}

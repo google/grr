@@ -31,8 +31,8 @@ class GrrUserBase(object):
   ):
     super().__init__()
 
-    self.username = username  # type: str
-    self._context = context  # type: api_context.GrrApiContext
+    self.username: str = username
+    self._context: api_context.GrrApiContext = context
 
   def Get(self) -> "GrrUser":
     """Fetches user's data and returns it wrapped in a Grruser object."""
@@ -95,7 +95,7 @@ class GrrUser(GrrUserBase):
   ):
     super().__init__(username=data.username, context=context)
 
-    self.data = data  # type: user_pb2.ApiGrrUser
+    self.data: user_pb2.ApiGrrUser = data
 
 
 class GrrBinaryRef(object):
@@ -111,9 +111,9 @@ class GrrBinaryRef(object):
   ):
     super().__init__()
 
-    self.binary_type = binary_type  # type: config_pb2.ApiGrrBinary.Type
-    self.path = path  # type: str
-    self._context = context  # type: api_context.GrrApiContext
+    self.binary_type: config_pb2.ApiGrrBinary.Type = binary_type
+    self.path: str = path
+    self._context: api_context.GrrApiContext = context
 
   def _DefaultBlobSign(
       self,
@@ -165,7 +165,7 @@ class RootGrrApi(object):
       context: api_context.GrrApiContext,
   ):
     super().__init__()
-    self._context = context  # type: api_context.GrrApiContext
+    self._context: api_context.GrrApiContext = context
 
   # TODO(hanuszczak): Python's protobuf enums don't currently work with
   # `Optional`.

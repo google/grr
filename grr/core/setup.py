@@ -99,11 +99,7 @@ data_files = list(
         find_data_files("install_data"),
         find_data_files("scripts"),
         find_data_files("grr_response_core/artifacts"),
-        # TODO: For some reason, this path cannot be unicode string
-        # or else installation fails for Python 2 (with "too many values to
-        # unpack" error). This call should be removed once support for Python 2
-        # is dropped.
-        [str("version.ini")],
+        ["version.ini"],
     ))
 
 setup_args = dict(
@@ -120,11 +116,8 @@ setup_args = dict(
     include_package_data=True,
     ext_modules=[
         Extension(
-            # TODO: In Python 2, extension name and sources have to
-            # be of type `bytes`. These calls should be removed once support for
-            # Python 2 is dropped.
-            name=str("grr_response_core._semantic"),
-            sources=[str("accelerated/accelerated.c")])
+            name="grr_response_core._semantic",
+            sources=["accelerated/accelerated.c"])
     ],
     cmdclass={
         "develop": Develop,

@@ -123,8 +123,7 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
         approver='approvername')
 
     self.WaitUntilNot(self.GetVisibleElement, 'css=scheduled-flow-list')
-
-    self.WaitUntilContains('All flows', self.GetText, 'css=flow-list')
+    self.WaitUntilContains('All human flows', self.GetText, 'css=flow-list')
     self.WaitUntilContains('Collect multiple files', self.GetText,
                            'css=flow-details')
     self.WaitUntil(self.GetVisibleElement, 'css=flow-details .in-progress')
@@ -158,7 +157,7 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
 
     self.Click('css=flow-form button:contains("Start")')
 
-    self.WaitUntilContains('All flows', self.GetText, 'css=flow-list')
+    self.WaitUntilContains('All human flows', self.GetText, 'css=flow-list')
     self.WaitUntilContains('Collect multiple files', self.GetText,
                            'css=flow-details')
     self.WaitUntil(self.GetVisibleElement, 'css=flow-details .in-progress')
@@ -313,14 +312,14 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(args.contents_regex_match.regex, b'regexinput')
     self.assertEqual(args.contents_literal_match.literal, b'literalinput')
 
-  def _LoadSystemArtifacts(self):
+  def _LoadTestArtifacts(self):
     artifact_registry.REGISTRY.ClearRegistry()
     test_artifacts_file = os.path.join(config.CONFIG['Test.data_dir'],
                                        'artifacts', 'test_artifacts.json')
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
   def testScheduleArtifactCollectorFlow(self):
-    self._LoadSystemArtifacts()
+    self._LoadTestArtifacts()
     self.Open(f'/v2/clients/{self.client_id}')
     self.WaitUntilContains('No access', self.GetText, 'css=client-overview')
 
@@ -348,6 +347,36 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
                      collectors.ArtifactCollectorFlow.__name__)
     self.assertEqual(scheduled_flow.flow_args.artifact_list,
                      ['FakeFileArtifact'])
+
+  def testScheduleArtifactCollectorFlowWithDefaultArtifacts(self):
+    artifact_registry.REGISTRY.AddDefaultSources()
+    self.assertLen(
+        artifact_registry.REGISTRY.GetArtifacts(
+            name_list=['LinuxHardwareInfo']), 1)
+
+    self.Open(f'/v2/clients/{self.client_id}')
+    self.WaitUntilContains('No access', self.GetText, 'css=client-overview')
+    self.Click('css=flow-form button:contains("Collect forensic artifacts")')
+
+    self.assertLen(
+        artifact_registry.REGISTRY.GetArtifacts(
+            name_list=['LinuxHardwareInfo']), 1)
+    # Type whole artifact name except last letter into autocomplete.
+    self.Type('css=flow-args-form input[name=artifactName]', 'LinuxHardwareInf')
+
+    self.Click('css=.mat-option:contains("LinuxHardwareInfo")')
+    self.Click('css=flow-form button:contains("Schedule")')
+
+    def GetFirstScheduledFlow():
+      scheduled_flows = _ListScheduledFlows(self.client_id, self.test_username)
+      return scheduled_flows[0] if len(scheduled_flows) == 1 else None
+
+    scheduled_flow = self.WaitUntil(GetFirstScheduledFlow)
+
+    self.assertEqual(scheduled_flow.flow_name,
+                     collectors.ArtifactCollectorFlow.__name__)
+    self.assertEqual(scheduled_flow.flow_args.artifact_list,
+                     ['LinuxHardwareInfo'])
 
   def _SetUpAdminUser(self):
     data_store.REL_DB.WriteGRRUser(
@@ -516,7 +545,7 @@ class FlowCreationTestWithApprovalsDisabled(gui_test_lib.GRRSeleniumTest):
 
     self.Click('css=flow-form button:contains("Start")')
 
-    self.WaitUntilContains('All flows', self.GetText, 'css=flow-list')
+    self.WaitUntilContains('All human flows', self.GetText, 'css=flow-list')
     self.WaitUntilContains('Collect multiple files', self.GetText,
                            'css=flow-details')
     self.WaitUntil(self.GetVisibleElement, 'css=flow-details .in-progress')

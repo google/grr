@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Registry for filters and abstract classes for basic filter functionality."""
 
-import collections
+from collections import abc
 import glob
 import itertools
 import logging
@@ -581,7 +581,7 @@ class CheckRegistry(object):
   @staticmethod
   def _AsList(arg):
     """Encapsulates an argument in a list, if it's not already iterable."""
-    if (isinstance(arg, str) or not isinstance(arg, collections.Iterable)):
+    if (isinstance(arg, str) or not isinstance(arg, abc.Iterable)):
       return [arg]
     else:
       return list(arg)

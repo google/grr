@@ -6,7 +6,7 @@ import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {FileFinderContentsMatchConditionMode} from '../../../lib/api/api_interfaces';
+import {FileFinderContentsRegexMatchConditionMode} from '../../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
@@ -50,7 +50,7 @@ describe('RegexMatchCondition component', () => {
            fixture.debugElement.query(By.css('input[type=number]'));
        expect(regexField.nativeElement.textContent).toBe('');
        expect(modeField.componentInstance.value)
-           .toBe(FileFinderContentsMatchConditionMode.FIRST_HIT);
+           .toBe(FileFinderContentsRegexMatchConditionMode.FIRST_HIT);
        expect(lengthField.nativeElement.value).toBe('20000000');
      });
 
@@ -70,7 +70,7 @@ describe('RegexMatchCondition component', () => {
 
     expect(control.value).toEqual({
       regex: 'test',
-      mode: FileFinderContentsMatchConditionMode.ALL_HITS,
+      mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
       length: 30000000,
     });
   });
@@ -80,13 +80,13 @@ describe('formValuesToFileFinderContentsRegexMatchCondition()', () => {
   it('correctly converts form value with decimal length', () => {
     const source = {
       regex: 'test',
-      mode: FileFinderContentsMatchConditionMode.ALL_HITS,
+      mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
       length: 20000000.999,
     };
     expect(formValuesToFileFinderContentsRegexMatchCondition(source)).toEqual({
       regex: btoa('test'),
-      mode: FileFinderContentsMatchConditionMode.ALL_HITS,
-      length: 20000000,
+      mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
+      length: '20000000',
     });
   });
 });

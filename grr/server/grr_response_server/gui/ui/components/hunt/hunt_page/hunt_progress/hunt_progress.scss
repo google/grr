@@ -1,0 +1,61 @@
+@use '@angular/material' as mat;
+@use "../../../../material-theme" as c;
+
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  // 0 on top and bottom so summary divider meets border.
+  padding: 0 30px;
+
+  .left-aligned {
+    font-size: 24px;
+    display: grid;
+    padding: c.$container-padding 0;
+
+    span {
+      color: mat.get-color-from-palette(c.$foreground, text-light);
+      font-size: 13px;
+      font-weight: 500;
+    }
+  }
+
+  .right-aligned {
+    display: inline-flex;
+  }
+
+  .summary {
+    display: grid;
+    justify-items: start;
+    color: mat.get-color-from-palette(c.$foreground, text-light);
+    font-size: 13px;
+    font-weight: 500;
+    padding: c.$container-padding 10px;
+
+    &:not(:first-of-type) {
+      border-left: 1px solid
+        mat.get-color-from-palette(c.$foreground, divider-light);
+    }
+
+    &:last-of-type {
+      padding: c.$container-padding 0 c.$container-padding 10px;
+    }
+
+    .title {
+      color: mat.get-color-from-palette(c.$foreground, text);
+    }
+
+    .relative {
+      font-size: 24px;
+      font-weight: bold;
+    }
+
+    .raw {
+      line-height: initial;
+    }
+  }
+}
+
+.divider-top {
+  border-top: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
+}

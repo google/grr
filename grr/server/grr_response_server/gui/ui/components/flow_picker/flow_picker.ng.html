@@ -87,8 +87,8 @@
             >
           </div>
           <div class="flow-description">
-            {{ option.flowListItem.description }}
-            {{ option.flowListItem.enabled ? '' : ' (restricted)' }}
+            {{ option.flowListItem.description }} {{ option.flowListItem.enabled
+            ? '' : ' (restricted)' }}
           </div>
         </mat-option>
       </mat-optgroup>
@@ -118,7 +118,15 @@
       >
         {{ fli.friendlyName }}
       </button>
-      <button mat-menu-item [routerLink]="['../../files']">
+      <button
+        *ngIf="clientId$ | async as clientId"
+        mat-menu-item
+        [disabled]="!(hasFilesAccess$ | async)"
+        [routerLink]="['/clients/', clientId, 'files']"
+      >
+        <mat-icon inline *ngIf="!(hasFilesAccess$ | async)"
+          >lock_outline</mat-icon
+        >
         Browse the filesystem
       </button>
     </mat-menu>

@@ -34,12 +34,12 @@ exports.DialogService = class {
    * @export
    */
   openConfirmation(title, message, proceed) {
-    var modalScope = this.rootScope_.$new();
+    const modalScope = this.rootScope_.$new();
     modalScope.title = title;
     modalScope.message = message;  // TODO(user): Evaluate markdown.
     modalScope.proceed = proceed;
 
-    var modalInstance = this.uibModal_.open({
+    const modalInstance = this.uibModal_.open({
       template: '<grr-confirmation-dialog title="title" proceed="proceed()" >' +
           '  <div class="vertically-padded">{$ message $}</div>' +
           '</grr-confirmation-dialog>',
@@ -60,11 +60,11 @@ exports.DialogService = class {
    * @export
    */
   openDirectiveDialog(directive, opt_params, opt_modalParams) {
-    var modalScope = this.rootScope_.$new();
-    var paramString = '';
+    const modalScope = this.rootScope_.$new();
+    let paramString = '';
 
     // Convert camel-case directive name to dash-delimited tag name.
-    var tagName = camelCaseToDashDelimited(directive);
+    const tagName = camelCaseToDashDelimited(directive);
 
     // Assign params to scope and build param string.
     if (angular.isDefined(opt_params)) {
@@ -74,15 +74,15 @@ exports.DialogService = class {
       });
     }
 
-    var template = '<' + tagName + ' ' + paramString + ' close="$close()" />';
-    var modalParams = angular.extend(
+    const template = '<' + tagName + ' ' + paramString + ' close="$close()" />';
+    const modalParams = angular.extend(
         {template: template, scope: modalScope}, opt_modalParams || {});
-    var modalInstance = this.uibModal_.open(modalParams);
+    const modalInstance = this.uibModal_.open(modalParams);
     return modalInstance.result;
   }
 };
 
-var DialogService = exports.DialogService;
+const DialogService = exports.DialogService;
 
 
 /**

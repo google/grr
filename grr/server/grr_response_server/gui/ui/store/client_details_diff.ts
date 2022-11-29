@@ -3,7 +3,7 @@ const DeepDiff = (DeepDiffMod as any).default;
 
 import {Client} from '../lib/models/client';
 
-// TODO(user): Use proper typing once @types/deep_diff has been upgraded.
+// Use proper typing once @types/deep_diff has been upgraded.
 // tslint:disable-next-line:no-any
 type Diff<T> = any;
 const {diff} = DeepDiff;

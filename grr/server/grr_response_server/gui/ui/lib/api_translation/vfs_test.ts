@@ -95,7 +95,7 @@ describe('translateFile', () => {
       isDirectory: false,
       name: 'get_rich_quick.sh',
       path: 'fs/os/foo/bar/get_rich_quick.sh',
-      age: 123000,
+      age: '123000',
       stat: {
         pathspec: {
           pathtype: 'OS' as PathSpecPathType,
@@ -128,7 +128,7 @@ describe('translateFile', () => {
       isDirectory: false,
       name: 'get_rich_quick.sh',
       path: 'fs/ntfs/foo/bar/get_rich_quick.sh',
-      age: 123000,
+      age: '123000',
       stat: {
         pathspec: {
           pathtype: 'OS' as PathSpecPathType,

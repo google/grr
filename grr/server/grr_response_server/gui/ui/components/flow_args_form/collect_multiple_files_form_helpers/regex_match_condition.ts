@@ -1,7 +1,7 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
 import {ControlContainer, FormControl, FormGroup, Validators} from '@angular/forms';
 
-import {FileFinderContentsMatchConditionMode, FileFinderContentsRegexMatchCondition} from '../../../lib/api/api_interfaces';
+import {FileFinderContentsRegexMatchCondition, FileFinderContentsRegexMatchConditionMode} from '../../../lib/api/api_interfaces';
 import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
 
 /** Form that configures a regex match condition. */
@@ -11,8 +11,8 @@ import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegexMatchCondition {
-  readonly FileFinderContentsMatchConditionMode =
-      FileFinderContentsMatchConditionMode;
+  readonly FileFinderContentsRegexMatchConditionMode =
+      FileFinderContentsRegexMatchConditionMode;
 
   constructor(readonly controlContainer: ControlContainer) {}
 
@@ -32,7 +32,8 @@ export function createRegexMatchFormGroup() {
     regex: new FormControl(
         '', {nonNullable: true, validators: [Validators.required]}),
     mode: new FormControl(
-        FileFinderContentsMatchConditionMode.FIRST_HIT, {nonNullable: true}),
+        FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
+        {nonNullable: true}),
     length: new FormControl(20_000_000, {
       nonNullable: true,
       validators: [Validators.required, Validators.min(0)]
@@ -50,6 +51,6 @@ export function formValuesToFileFinderContentsRegexMatchCondition(
   return {
     ...rawFormValues,
     regex: encodeStringToBase64(rawFormValues.regex ?? ''),
-    length: Math.floor(rawFormValues.length ?? 0),
+    length: Math.floor(rawFormValues.length ?? 0).toString(),
   };
 }

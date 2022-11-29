@@ -1,7 +1,7 @@
-<div class="row">
-  <a class="header" href="{{fallbackUrl$ | async}}">
-    <div class="title">
-      <span>View flow in the old UI</span>
-    </div>
-  </a>
-</div>
+<!-- TODO: Render link for link sections -->
+<ng-container *ngFor="let section of sections">
+  <app-dynamic-result-section
+    *ngIf="isViewSection(section)"
+    [section]="section"
+  ></app-dynamic-result-section>
+</ng-container>

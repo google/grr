@@ -12,6 +12,7 @@
         "creator": "",
         "error_description": "Cancelled in GUI",
         "flow_id": "W:ABCDEF",
+        "is_robot": false,
         "last_active_at": 4242000000,
         "name": "ListProcesses",
         "runner_args": {
@@ -42,6 +43,7 @@
         "creator": "",
         "error_description": "Cancelled in GUI",
         "flow_id": "W:ABCDEF",
+        "is_robot": false,
         "last_active_at": 4242000000,
         "name": "ListProcesses",
         "runner_args": {
@@ -90,6 +92,10 @@
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
+          },
+          "expiration_time_us": {
+            "type": "RDFDatetime",
+            "value": 2419326000000
           },
           "id": {
             "type": "unicode",
@@ -341,6 +347,7 @@
           "test@example.com"
         ],
         "email_message_id": "<message id stub>",
+        "expiration_time_us": 2419326000000,
         "id": "approval:112233",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -841,6 +848,10 @@
             "type": "ApiFlowId",
             "value": "W:ABCDEF"
           },
+          "is_robot": {
+            "type": "bool",
+            "value": false
+          },
           "last_active_at": {
             "type": "RDFDatetime",
             "value": 42000000
@@ -889,6 +900,7 @@
         "client_id": "C.1000000000000000",
         "creator": "api_test_user",
         "flow_id": "W:ABCDEF",
+        "is_robot": false,
         "last_active_at": 42000000,
         "name": "ListProcesses",
         "runner_args": {
@@ -1623,6 +1635,10 @@
             "type": "unicode",
             "value": "<message id stub>"
           },
+          "expiration_time_us": {
+            "type": "RDFDatetime",
+            "value": 2419244000000
+          },
           "id": {
             "type": "unicode",
             "value": "approval:111111"
@@ -1867,6 +1883,7 @@
         ],
         "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
+        "expiration_time_us": 2419244000000,
         "id": "approval:111111",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -1969,6 +1986,10 @@
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
+          },
+          "expiration_time_us": {
+            "type": "RDFDatetime",
+            "value": 2419245000000
           },
           "id": {
             "type": "unicode",
@@ -2211,6 +2232,7 @@
         ],
         "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
+        "expiration_time_us": 2419245000000,
         "id": "approval:222222",
         "is_valid": true,
         "notified_users": [
@@ -4266,6 +4288,10 @@
             "type": "ApiFlowId",
             "value": "F:ABCDEF12"
           },
+          "is_robot": {
+            "type": "bool",
+            "value": false
+          },
           "last_active_at": {
             "type": "RDFDatetime",
             "value": 42000000
@@ -4422,6 +4448,7 @@
         },
         "creator": "api_test_user",
         "flow_id": "F:ABCDEF12",
+        "is_robot": false,
         "last_active_at": 42000000,
         "name": "Interrogate",
         "progress": {},
@@ -4531,6 +4558,10 @@
           "flow_id": {
             "type": "ApiFlowId",
             "value": "F:ABCDEF13"
+          },
+          "is_robot": {
+            "type": "bool",
+            "value": false
           },
           "last_active_at": {
             "type": "RDFDatetime",
@@ -4690,6 +4721,7 @@
         "creator": "api_test_user",
         "error_description": "Pending termination: Some reason",
         "flow_id": "F:ABCDEF13",
+        "is_robot": false,
         "last_active_at": 42000000,
         "name": "Interrogate",
         "progress": {},
@@ -6120,6 +6152,10 @@
                 "type": "ApiFlowId",
                 "value": "F:112233"
               },
+              "is_robot": {
+                "type": "bool",
+                "value": false
+              },
               "last_active_at": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -6448,6 +6484,7 @@
           "client_id": "C.1000000000000000",
           "creator": "api_test_user",
           "flow_id": "F:112233",
+          "is_robot": false,
           "last_active_at": 42000000,
           "name": "Interrogate",
           "runner_args": {
@@ -9091,6 +9128,19 @@
             "type": "RDFString"
           },
           {
+            "default": {
+              "type": "bool",
+              "value": false
+            },
+            "doc": "Whether the flow was created by a GRRWorker.",
+            "dynamic": false,
+            "friendly_name": "Is robot",
+            "index": 19,
+            "name": "is_robot",
+            "repeated": false,
+            "type": "bool"
+          },
+          {
             "doc": "Current flow state data.",
             "dynamic": false,
             "friendly_name": "State data",
@@ -9302,6 +9352,16 @@
             "name": "creator",
             "repeated": false,
             "type": "RDFString"
+          },
+          {
+            "default": false,
+            "doc": "Whether the flow was created by a GRRWorker.",
+            "dynamic": false,
+            "friendly_name": "Is robot",
+            "index": 19,
+            "name": "is_robot",
+            "repeated": false,
+            "type": "bool"
           },
           {
             "doc": "Current flow state data.",
@@ -9741,6 +9801,10 @@
             "type": "unicode",
             "value": "<message id stub>"
           },
+          "expiration_time_us": {
+            "type": "RDFDatetime",
+            "value": 2419244000000
+          },
           "id": {
             "type": "unicode",
             "value": "approval:111111"
@@ -9982,6 +10046,7 @@
         ],
         "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
+        "expiration_time_us": 2419244000000,
         "id": "approval:111111",
         "is_valid": true,
         "notified_users": [
@@ -11209,6 +11274,10 @@
                 "type": "unicode",
                 "value": "<message id stub>"
               },
+              "expiration_time_us": {
+                "type": "RDFDatetime",
+                "value": 2419245000000
+              },
               "id": {
                 "type": "unicode",
                 "value": "approval:222222"
@@ -11455,6 +11524,10 @@
               "email_message_id": {
                 "type": "unicode",
                 "value": "<message id stub>"
+              },
+              "expiration_time_us": {
+                "type": "RDFDatetime",
+                "value": 2419244000000
               },
               "id": {
                 "type": "unicode",
@@ -11705,6 +11778,7 @@
             ],
             "email_cc_addresses": [],
             "email_message_id": "<message id stub>",
+            "expiration_time_us": 2419245000000,
             "id": "approval:222222",
             "is_valid": true,
             "notified_users": [
@@ -11790,6 +11864,7 @@
             ],
             "email_cc_addresses": [],
             "email_message_id": "<message id stub>",
+            "expiration_time_us": 2419244000000,
             "id": "approval:111111",
             "is_valid": false,
             "is_valid_message": "Need at least 1 additional approver for access.",
@@ -11892,6 +11967,10 @@
               "email_message_id": {
                 "type": "unicode",
                 "value": "<message id stub>"
+              },
+              "expiration_time_us": {
+                "type": "RDFDatetime",
+                "value": 2419244000000
               },
               "id": {
                 "type": "unicode",
@@ -12141,6 +12220,7 @@
             ],
             "email_cc_addresses": [],
             "email_message_id": "<message id stub>",
+            "expiration_time_us": 2419244000000,
             "id": "approval:111111",
             "is_valid": false,
             "is_valid_message": "Need at least 1 additional approver for access.",
@@ -13640,8 +13720,7 @@
               }
             }
           }
-        ],
-        "total_count": 1
+        ]
       },
       "test_class": "ApiListFlowResultsHandlerRegressionTest_http_v1",
       "type_stripped_response": {
@@ -13666,8 +13745,7 @@
             "payload_type": "StatEntry",
             "timestamp": 42000000
           }
-        ],
-        "total_count": 1
+        ]
       },
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results?filter=evil"
     },
@@ -13675,8 +13753,7 @@
       "api_method": "ListFlowResults",
       "method": "GET",
       "response": {
-        "items": [],
-        "total_count": 1
+        "items": []
       },
       "test_class": "ApiListFlowResultsHandlerRegressionTest_http_v1",
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results?filter=benign"
@@ -13697,11 +13774,15 @@
               },
               "creator": {
                 "type": "unicode",
-                "value": "api_test_user"
+                "value": "GRRWorker"
               },
               "flow_id": {
                 "type": "ApiFlowId",
                 "value": "F:ABCDEF11"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": true
               },
               "last_active_at": {
                 "type": "RDFDatetime",
@@ -13725,7 +13806,7 @@
                   },
                   "notify_to_user": {
                     "type": "bool",
-                    "value": true
+                    "value": false
                   }
                 }
               },
@@ -13757,6 +13838,10 @@
               "flow_id": {
                 "type": "ApiFlowId",
                 "value": "F:ABCDEF10"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": false
               },
               "last_active_at": {
                 "type": "RDFDatetime",
@@ -13805,15 +13890,16 @@
         "items": [
           {
             "client_id": "C.1000000000000000",
-            "creator": "api_test_user",
+            "creator": "GRRWorker",
             "flow_id": "F:ABCDEF11",
+            "is_robot": true,
             "last_active_at": 44000000,
             "name": "ListProcesses",
             "nested_flows": [],
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
               "flow_name": "ListProcesses",
-              "notify_to_user": true
+              "notify_to_user": false
             },
             "started_at": 44000000,
             "state": "RUNNING",
@@ -13823,6 +13909,7 @@
             "client_id": "C.1000000000000000",
             "creator": "api_test_user",
             "flow_id": "F:ABCDEF10",
+            "is_robot": false,
             "last_active_at": 43000000,
             "name": "Interrogate",
             "nested_flows": [],
@@ -13857,11 +13944,15 @@
               },
               "creator": {
                 "type": "unicode",
-                "value": "api_test_user"
+                "value": "GRRWorker"
               },
               "flow_id": {
                 "type": "ApiFlowId",
                 "value": "F:ABCDEF11"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": true
               },
               "last_active_at": {
                 "type": "RDFDatetime",
@@ -13897,7 +13988,7 @@
                   },
                   "notify_to_user": {
                     "type": "bool",
-                    "value": true
+                    "value": false
                   }
                 }
               },
@@ -13934,6 +14025,10 @@
                 "type": "ApiFlowId",
                 "value": "F:ABCDEF10"
               },
+              "is_robot": {
+                "type": "bool",
+                "value": false
+              },
               "last_active_at": {
                 "type": "RDFDatetime",
                 "value": 43000000
@@ -13994,8 +14089,9 @@
           {
             "args": {},
             "client_id": "C.1000000000000000",
-            "creator": "api_test_user",
+            "creator": "GRRWorker",
             "flow_id": "F:ABCDEF11",
+            "is_robot": true,
             "last_active_at": 44000000,
             "name": "ListProcesses",
             "progress": {},
@@ -14005,7 +14101,7 @@
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
               "flow_name": "ListProcesses",
-              "notify_to_user": true
+              "notify_to_user": false
             },
             "started_at": 44000000,
             "state": "RUNNING",
@@ -14016,6 +14112,7 @@
             "client_id": "C.1000000000000000",
             "creator": "api_test_user",
             "flow_id": "F:ABCDEF10",
+            "is_robot": false,
             "last_active_at": 43000000,
             "name": "Interrogate",
             "progress": {},
@@ -14053,11 +14150,15 @@
               },
               "creator": {
                 "type": "unicode",
-                "value": "api_test_user"
+                "value": "GRRWorker"
               },
               "flow_id": {
                 "type": "ApiFlowId",
                 "value": "F:ABCDEF11"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": true
               },
               "last_active_at": {
                 "type": "RDFDatetime",
@@ -14093,7 +14194,7 @@
                   },
                   "notify_to_user": {
                     "type": "bool",
-                    "value": true
+                    "value": false
                   }
                 }
               },
@@ -14119,8 +14220,9 @@
           {
             "args": {},
             "client_id": "C.1000000000000000",
-            "creator": "api_test_user",
+            "creator": "GRRWorker",
             "flow_id": "F:ABCDEF11",
+            "is_robot": true,
             "last_active_at": 44000000,
             "name": "ListProcesses",
             "progress": {},
@@ -14130,7 +14232,7 @@
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
               "flow_name": "ListProcesses",
-              "notify_to_user": true
+              "notify_to_user": false
             },
             "started_at": 44000000,
             "state": "RUNNING",
@@ -14163,6 +14265,10 @@
               "flow_id": {
                 "type": "ApiFlowId",
                 "value": "F:ABCDEF10"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": false
               },
               "last_active_at": {
                 "type": "RDFDatetime",
@@ -14226,6 +14332,7 @@
             "client_id": "C.1000000000000000",
             "creator": "api_test_user",
             "flow_id": "F:ABCDEF10",
+            "is_robot": false,
             "last_active_at": 43000000,
             "name": "Interrogate",
             "progress": {},
@@ -14244,6 +14351,96 @@
         ]
       },
       "url": "/api/clients/C.1000000000000000/flows?max_started_at=43000000&top_flows_only=1"
+    },
+    {
+      "api_method": "ListFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "type": "ApiFlow",
+            "value": {
+              "client_id": {
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "flow_id": {
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF10"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": false
+              },
+              "last_active_at": {
+                "type": "RDFDatetime",
+                "value": 43000000
+              },
+              "name": {
+                "type": "unicode",
+                "value": "Interrogate"
+              },
+              "nested_flows": [],
+              "runner_args": {
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "type": "unicode",
+                    "value": "Interrogate"
+                  },
+                  "notify_to_user": {
+                    "type": "bool",
+                    "value": true
+                  }
+                }
+              },
+              "started_at": {
+                "type": "RDFDatetime",
+                "value": 43000000
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "client_id": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flow_id": "F:ABCDEF10",
+            "is_robot": false,
+            "last_active_at": 43000000,
+            "name": "Interrogate",
+            "nested_flows": [],
+            "runner_args": {
+              "client_id": "aff4:/C.1000000000000000",
+              "flow_name": "Interrogate",
+              "notify_to_user": true
+            },
+            "started_at": 43000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/flows?human_flows_only=1"
     }
   ],
   "ApiListGrrBinariesHandler": [

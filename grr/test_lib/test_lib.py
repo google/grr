@@ -25,7 +25,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.util import cache
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import temp
 from grr_response_core.stats import stats_collector_instance
@@ -660,10 +659,6 @@ class SuppressLogs(object):
     logging.debug = self.old_debug
 
 
-# TODO(user): It would be nice if all doctested functions (or even examples)
-# had their own method in the TestCase. This allows faster developer cycles,
-# because the developer sees all failures instead of only the first one. Also,
-# it makes it easier to see if a doctest has been added for a new docstring.
 class DocTest(absltest.TestCase):
   """A TestCase that tests examples in docstrings using doctest.
 
@@ -674,12 +669,6 @@ class DocTest(absltest.TestCase):
 
   def testDocStrings(self):
     """Test all examples in docstrings using doctest."""
-
-    if not compatibility.PY2:
-      # TODO(user): Migrate all doctests to Python 3 only once we use Python 3
-      # in production.
-      self.skipTest("DocTest is disabled for Python 3 because of unicode string"
-                    " formatting.")
 
     self.assertIsNotNone(self.module, "Set DocTest.module to test docstrings.")
     try:

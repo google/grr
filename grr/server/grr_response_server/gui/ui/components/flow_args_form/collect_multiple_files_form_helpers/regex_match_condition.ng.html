@@ -21,10 +21,10 @@
   <mat-form-field appearance="outline">
     <mat-label>Mode</mat-label>
     <mat-select [formControl]="formGroup.controls.mode" name="mode">
-      <mat-option [value]="FileFinderContentsMatchConditionMode.ALL_HITS">
+      <mat-option [value]="FileFinderContentsRegexMatchConditionMode.ALL_HITS">
         All Hits
       </mat-option>
-      <mat-option [value]="FileFinderContentsMatchConditionMode.FIRST_HIT">
+      <mat-option [value]="FileFinderContentsRegexMatchConditionMode.FIRST_HIT">
         First Hit
       </mat-option>
     </mat-select>

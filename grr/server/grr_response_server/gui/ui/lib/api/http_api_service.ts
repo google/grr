@@ -1,17 +1,15 @@
 import {HttpClient, HttpErrorResponse, HttpEvent, HttpHandler, HttpInterceptor, HttpParams, HttpParamsOptions, HttpRequest} from '@angular/common/http';
 import {Injectable} from '@angular/core';
-import {MatSnackBar} from '@angular/material/snack-bar';
 import {merge, Observable, of, Subject, throwError, timer} from 'rxjs';
 import {catchError, exhaustMap, map, mapTo, shareReplay, switchMap, take, takeLast, takeWhile, tap} from 'rxjs/operators';
 
-import {ErrorSnackbar} from '../../components/helpers/error_snackbar/error_snackbar';
+import {SnackBarErrorHandler} from '../../components/helpers/error_snackbar/error_handler';
 import {ApprovalConfig, ApprovalRequest} from '../../lib/models/client';
 import {FlowWithDescriptor} from '../../lib/models/flow';
-import {SafetyLimits} from '../../lib/models/hunt';
+import {HuntApprovalKey, SafetyLimits} from '../../lib/models/hunt';
 import {assertNonNull, isNonNull} from '../preconditions';
 
 import * as apiInterfaces from './api_interfaces';
-
 
 /**
  * Parameters of the listResultsForFlow call.
@@ -64,16 +62,16 @@ export class WithCredentialsInterceptor implements HttpInterceptor {
 
 /** Arguments of GetFileText API call. */
 export interface GetFileTextOptions {
-  readonly offset?: apiInterfaces.DecimalString;
-  readonly length?: apiInterfaces.DecimalString;
+  readonly offset?: apiInterfaces.ProtoInt64;
+  readonly length?: apiInterfaces.ProtoInt64;
   readonly timestamp?: Date;
   readonly encoding?: apiInterfaces.ApiGetFileTextArgsEncoding;
 }
 
 /** Arguments of GetFileBlob API call. */
 export interface GetFileBlobOptions {
-  readonly offset?: apiInterfaces.DecimalString;
-  readonly length?: apiInterfaces.DecimalString;
+  readonly offset?: apiInterfaces.ProtoInt64;
+  readonly length?: apiInterfaces.ProtoInt64;
   readonly timestamp?: Date;
 }
 
@@ -131,7 +129,7 @@ export class HttpApiService {
         message = `${error['message'] ?? error} (from ${address})`;
       }
 
-      this.snackBar.openFromComponent(ErrorSnackbar, {data: message});
+      this.errorHandler.handleError(message);
     },
   };
 
@@ -141,22 +139,22 @@ export class HttpApiService {
 
   constructor(
       private readonly http: HttpClient,
-      private readonly snackBar: MatSnackBar) {}
+      private readonly errorHandler: SnackBarErrorHandler) {}
 
   /**
    * Searches for clients using given API arguments.
    */
   searchClients(args: apiInterfaces.ApiSearchClientsArgs):
-      Observable<apiInterfaces.ApiSearchClientResult> {
-    const params = new HttpParams().set('query', args.query || '');
+      Observable<apiInterfaces.ApiSearchClientsResult> {
+    let params = new HttpParams().set('query', args.query || '');
     if (args.offset) {
-      params.set('offset', args.offset.toString());
+      params = params.set('offset', args.offset.toString());
     }
     if (args.count) {
-      params.set('count', args.count.toString());
+      params = params.set('count', args.count.toString());
     }
 
-    return this.http.get<apiInterfaces.ApiSearchClientResult>(
+    return this.http.get<apiInterfaces.ApiSearchClientsResult>(
         `${URL_PREFIX}/clients`, {params});
   }
 
@@ -197,11 +195,11 @@ export class HttpApiService {
 
   fetchApprovalConfig(): Observable<ApprovalConfig> {
     return this.http
-        .get<apiInterfaces.ApiApprovalOptionalCcAddressResult>(
+        .get<apiInterfaces.ApiConfigOption>(
             `${URL_PREFIX}/config/Email.approval_optional_cc_address`)
         .pipe(
             // Replace empty string (protobuf default) with undefined.
-            map(res => (res.value || {}).value || undefined),
+            map(res => res.value?.['value'] as string ?? undefined),
             map(optionalCcEmail => ({optionalCcEmail})),
             tap(this.showErrors),
         );
@@ -281,7 +279,18 @@ export class HttpApiService {
       Observable<apiInterfaces.ApiHunt> {
     const huntRunnerArgs: apiInterfaces.HuntRunnerArgs = {
       description,
-      ...safetyLimits,
+      cpuLimit: safetyLimits.cpuLimit?.toString(),
+      networkBytesLimit: safetyLimits.networkBytesLimit?.toString(),
+      clientRate: safetyLimits.clientRate,
+      crashLimit: safetyLimits.crashLimit?.toString(),
+      avgResultsPerClientLimit:
+          safetyLimits.avgResultsPerClientLimit?.toString(),
+      avgCpuSecondsPerClientLimit:
+          safetyLimits.avgCpuSecondsPerClientLimit?.toString(),
+      avgNetworkBytesPerClientLimit:
+          safetyLimits.avgNetworkBytesPerClientLimit?.toString(),
+      expiryTime: safetyLimits.expiryTime?.toString(),
+      clientLimit: safetyLimits.clientLimit?.toString(),
       outputPlugins,
       clientRuleSet: rules,
     };
@@ -289,12 +298,11 @@ export class HttpApiService {
       flowId: flowWithDescriptors.flow.flowId,
       clientId: flowWithDescriptors.flow.clientId,
     };
-    const args = flowWithDescriptors.flow.args as apiInterfaces.AnyObject;
     const request: apiInterfaces.ApiCreateHuntArgs = {
       flowName: flowWithDescriptors.flow.name,
       flowArgs: {
         '@type': flowWithDescriptors.flowArgType,
-        ...args,
+        ...(flowWithDescriptors.flow.args as {}),
       },
       huntRunnerArgs,
       originalFlow,
@@ -319,6 +327,35 @@ export class HttpApiService {
         .pipe(tap(this.showErrors));
   }
 
+  subscribeToHuntApproval(key: HuntApprovalKey):
+      Observable<apiInterfaces.ApiHuntApproval> {
+    return timer(0, this.POLLING_INTERVAL)
+        .pipe(
+            exhaustMap(() => this.fetchHuntApproval(key)),
+            tap(this.showErrors),
+        );
+  }
+
+  /** Fetches a HuntApproval */
+  private fetchHuntApproval({huntId, approvalId, requestor}: HuntApprovalKey):
+      Observable<apiInterfaces.ApiHuntApproval> {
+    return this.http
+        .get<apiInterfaces.ApiHuntApproval>(`${URL_PREFIX}/users/${
+            requestor}/approvals/hunt/${huntId}/${approvalId}`)
+        .pipe(
+            tap(this.showErrors),
+        );
+  }
+
+  /** Grants a HuntApproval. */
+  grantHuntApproval({huntId, approvalId, requestor}: HuntApprovalKey):
+      Observable<apiInterfaces.ApiHuntApproval> {
+    return this.http.post<apiInterfaces.ApiHuntApproval>(
+        `${URL_PREFIX}/users/${requestor}/approvals/hunt/${huntId}/${
+            approvalId}/actions/grant`,
+        {});
+  }
+
   subscribeToHunt(huntId: string): Observable<apiInterfaces.ApiHunt> {
     return timer(0, this.POLLING_INTERVAL)
         .pipe(
@@ -327,13 +364,21 @@ export class HttpApiService {
         );
   }
 
+  patchHunt(huntId: string, patch: {state: apiInterfaces.ApiHuntState}):
+      Observable<apiInterfaces.ApiHunt> {
+    const params: apiInterfaces.ApiModifyHuntArgs = {...patch};
+    return this.http
+        .patch<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts/${huntId}`, params)
+        .pipe(tap(this.showErrors));
+  }
+
   /** Lists results of the given hunt. */
   listResultsForHunt(params: apiInterfaces.ApiListHuntResultsArgs):
       Observable<ReadonlyArray<apiInterfaces.ApiHuntResult>> {
     const huntId = params.huntId;
     assertNonNull(huntId);
 
-    const options: {[key: string]: number} = {};
+    const options: {[key: string]: number|string} = {};
     if (params.count) {
       options['count'] = params.count;
     }
@@ -371,13 +416,56 @@ export class HttpApiService {
         );
   }
 
+  /** Lists errors of the given hunt. */
+  listErrorsForHunt(params: apiInterfaces.ApiListHuntErrorsArgs):
+      Observable<readonly apiInterfaces.ApiHuntError[]> {
+    const huntId = params.huntId;
+    assertNonNull(huntId);
+
+    const options: {[key: string]: number|string} = {};
+    if (params.count) {
+      options['count'] = params.count;
+    }
+
+    const httpParams = new HttpParams({
+      fromObject: {
+        'huntId': huntId,
+        ...options,
+      }
+    });
+
+    return this.http
+        .get<apiInterfaces.ApiListHuntErrorsResult>(
+            `${URL_PREFIX}/hunts/${params.huntId}/errors`, {params: httpParams})
+        .pipe(
+            catchError((err: HttpErrorResponse) => {
+              if (err.status === 403) {
+                return throwError(new MissingApprovalError(err));
+              } else {
+                return throwError(err);
+              }
+            }),
+            map(res => res.items ?? []),
+            tap(this.showErrors),
+        );
+  }
+
+  subscribeToErrorsForHunt(params: apiInterfaces.ApiListHuntErrorsArgs):
+      Observable<readonly apiInterfaces.ApiHuntError[]> {
+    return timer(0, this.POLLING_INTERVAL)
+        .pipe(
+            exhaustMap(() => this.listErrorsForHunt(params)),
+            tap(this.showErrors),
+        );
+  }
+
   // TODO: GET parameters require snake_case not camelCase
   // parameters. Do not allow createdBy and other camelCase parameters until
   // fixed.
   private listHunts(args:
                         Pick<apiInterfaces.ApiListHuntsArgs, 'offset'|'count'>):
       Observable<apiInterfaces.ApiListHuntsResult> {
-    const params = toHttpParams(args);
+    const params = toHttpParams(args).append('with_full_summary', true);
     return this.http
         .get<apiInterfaces.ApiListHuntsResult>(`${URL_PREFIX}/hunts`, {params})
         .pipe(tap(this.showErrors));
@@ -413,7 +501,7 @@ export class HttpApiService {
 
   private readonly flowDescriptors$ =
       this.http
-          .get<apiInterfaces.ApiListClientFlowDescriptorsResult>(
+          .get<apiInterfaces.ApiListFlowDescriptorsResult>(
               `${URL_PREFIX}/flows/descriptors`)
           .pipe(
               map(res => res.items ?? []),
@@ -436,6 +524,18 @@ export class HttpApiService {
         );
   }
 
+  listOutputPluginDescriptors():
+      Observable<readonly apiInterfaces.ApiOutputPluginDescriptor[]> {
+    return this.http
+        .get<apiInterfaces.ApiListOutputPluginDescriptorsResult>(
+            `${URL_PREFIX}/output-plugins/all`)
+        .pipe(
+            map(res => res.items ?? []),
+            tap(this.showErrors),
+            shareReplay({bufferSize: 1, refCount: true}),
+        );
+  }
+
   private listFlowsForClient(args: apiInterfaces.ApiListFlowsArgs):
       Observable<ReadonlyArray<apiInterfaces.ApiFlow>> {
     const clientId = args.clientId;
@@ -449,6 +549,7 @@ export class HttpApiService {
       'top_flows_only': args.topFlowsOnly,
       'min_started_at': args.minStartedAt,
       'max_started_at': args.maxStartedAt,
+      'human_flows_only': args.humanFlowsOnly,
     });
 
     return this.http
@@ -534,8 +635,6 @@ export class HttpApiService {
         );
   }
 
-  // TODO(user): Ideally, HttpApiClient would stop polling when the flow has
-  // been completed. This logic is now in the Store.
   /** Continuously lists results for the given flow, e.g. by polling. */
   subscribeToResultsForFlow(params: FlowResultsParams):
       Observable<ReadonlyArray<apiInterfaces.ApiFlowResult>> {
@@ -547,9 +646,8 @@ export class HttpApiService {
   }
 
   /** Starts a Flow on the given Client. */
-  startFlow(
-      clientId: string, flowName: string,
-      flowArgs: apiInterfaces.AnyObject): Observable<apiInterfaces.ApiFlow> {
+  startFlow(clientId: string, flowName: string, flowArgs: apiInterfaces.Any):
+      Observable<apiInterfaces.ApiFlow> {
     return this.listFlowDescriptors().pipe(
         // Take FlowDescriptors at most once, so that Flows are not started
         // repeatedly if FlowDescriptors are ever updated.
@@ -583,8 +681,7 @@ export class HttpApiService {
   }
 
   /** Schedules a Flow on the given Client. */
-  scheduleFlow(
-      clientId: string, flowName: string, flowArgs: apiInterfaces.AnyObject):
+  scheduleFlow(clientId: string, flowName: string, flowArgs: apiInterfaces.Any):
       Observable<apiInterfaces.ApiScheduledFlow> {
     return this.listFlowDescriptors().pipe(
         // Take FlowDescriptors at most once, so that Flows are not scheduled
@@ -705,7 +802,7 @@ export class HttpApiService {
   }
 
   fetchAllClientsLabels():
-      Observable<ReadonlyArray<apiInterfaces.ApiClientLabel>> {
+      Observable<ReadonlyArray<apiInterfaces.ClientLabel>> {
     const url = `${URL_PREFIX}/clients/labels`;
     return this.http.get<apiInterfaces.ApiListClientsLabelsResult>(url).pipe(
         map(clientsLabels => clientsLabels.items ?? []),
@@ -733,8 +830,8 @@ export class HttpApiService {
         );
   }
 
-  suggestApprovers(usernameQuery: string):
-      Observable<ReadonlyArray<apiInterfaces.ApproverSuggestion>> {
+  suggestApprovers(usernameQuery: string): Observable<ReadonlyArray<
+      apiInterfaces.ApiListApproverSuggestionsResultApproverSuggestion>> {
     const params = new HttpParams().set('username_query', usernameQuery);
     return this.http
         .get<apiInterfaces.ApiListApproverSuggestionsResult>(
@@ -782,9 +879,9 @@ export class HttpApiService {
       ): Observable<apiInterfaces.ApiGetFileTextResult|null> {
     const queryArgs: apiInterfaces.ApiGetFileTextArgs = {
       encoding: apiInterfaces.ApiGetFileTextArgsEncoding.UTF_8,
-      offset: 0,
+      offset: '0',
       ...opts,
-      timestamp: opts?.timestamp?.getTime(),
+      timestamp: opts?.timestamp?.getTime()?.toString(),
     };
 
     const vfsPath = toVFSPath(pathType, path, {urlEncode: true});
@@ -807,7 +904,7 @@ export class HttpApiService {
       ): Observable<bigint|null> {
     const queryArgs: apiInterfaces.ApiGetFileTextArgs = {
       ...opts,
-      timestamp: opts?.timestamp?.getTime(),
+      timestamp: opts?.timestamp?.getTime()?.toString(),
     };
 
     return this.http
@@ -835,9 +932,9 @@ export class HttpApiService {
       ): Observable<ArrayBuffer|null> {
     const queryArgs: apiInterfaces.ApiGetFileTextArgs = {
       encoding: apiInterfaces.ApiGetFileTextArgsEncoding.UTF_8,
-      offset: 0,
+      offset: '0',
       ...opts,
-      timestamp: opts?.timestamp?.getTime(),
+      timestamp: opts?.timestamp?.getTime()?.toString(),
     };
 
     return this.http

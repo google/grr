@@ -1206,6 +1206,44 @@ class DatabaseTestClientsMixin(object):
         full_info.labels,
         [rdf_objects.ClientLabel(owner="test_owner", name="test_label")])
 
+  def testReadClientFullInfoTimestamps(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    first_seen_time = rdfvalue.RDFDatetime.Now()
+    last_clock_time = rdfvalue.RDFDatetime.Now()
+    last_ping_time = rdfvalue.RDFDatetime.Now()
+    last_foreman_time = rdfvalue.RDFDatetime.Now()
+
+    self.db.WriteClientMetadata(
+        client_id=client_id,
+        first_seen=first_seen_time,
+        last_clock=last_clock_time,
+        last_ping=last_ping_time,
+        last_foreman=last_foreman_time)
+
+    pre_time = self.db.Now()
+
+    startup_info = rdf_client.StartupInfo()
+    startup_info.client_info.client_name = "rrg"
+    self.db.WriteClientStartupInfo(client_id, startup_info)
+
+    crash_info = rdf_client.ClientCrash()
+    crash_info.client_info.client_name = "grr"
+    self.db.WriteClientCrashInfo(client_id, crash_info)
+
+    post_time = self.db.Now()
+
+    full_info = self.db.ReadClientFullInfo(client_id)
+    self.assertEqual(full_info.metadata.first_seen, first_seen_time)
+    self.assertEqual(full_info.metadata.clock, last_clock_time)
+    self.assertEqual(full_info.metadata.ping, last_ping_time)
+    self.assertEqual(full_info.metadata.last_foreman_time, last_foreman_time)
+
+    self.assertBetween(full_info.metadata.startup_info_timestamp, pre_time,
+                       post_time)
+    self.assertBetween(full_info.metadata.last_crash_timestamp, pre_time,
+                       post_time)
+
   def _SetupFullInfoClients(self):
     self.db.WriteGRRUser("test_owner")
 
@@ -1742,6 +1780,19 @@ class DatabaseTestClientsMixin(object):
       self.assertEqual(snapshot.startup_info.client_info.revision, idx)
       self.assertEqual(snapshot.kernel, f"3.14.{idx}")
 
+  def testWriteClientSnapshotNonDestructiveArgs(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    written_snapshot = rdf_objects.ClientSnapshot()
+    written_snapshot.client_id = client_id
+    written_snapshot.startup_info.client_info.labels.append("foo")
+
+    self.db.WriteClientSnapshot(written_snapshot)
+    read_snapshot = self.db.ReadClientSnapshot(client_id)
+
+    self.assertEqual(written_snapshot.startup_info.client_info.labels, ["foo"])
+    self.assertEqual(read_snapshot.startup_info.client_info.labels, ["foo"])
+
   def _AddClientKeyedData(self, client_id):
     # Client labels.
     self.db.WriteGRRUser("testowner")
@@ -1767,10 +1818,7 @@ class DatabaseTestClientsMixin(object):
     # A flow.
     flow_id = flow.RandomFlowId()
     self.db.WriteFlowObject(
-        rdf_flow_objects.Flow(
-            client_id=client_id,
-            flow_id=flow_id,
-            create_time=rdfvalue.RDFDatetime.Now()))
+        rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id))
     # A flow request.
     self.db.WriteFlowRequests([
         rdf_flow_objects.FlowRequest(

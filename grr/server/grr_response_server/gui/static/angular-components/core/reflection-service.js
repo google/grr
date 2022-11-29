@@ -38,7 +38,8 @@ exports.ReflectionService = class {
    */
   processRequestsQueue_() {
     angular.forEach(this.requestsQueue_, function(request) {
-      var result = this.getRDFValueDescriptorFromCache_(request[1], request[2]);
+      const result =
+          this.getRDFValueDescriptorFromCache_(request[1], request[2]);
       request[0].resolve(result);
     }.bind(this));
 
@@ -62,14 +63,14 @@ exports.ReflectionService = class {
     if (!opt_withDeps) {
       return this.descriptorsCache_[valueType];
     } else {
-      var results = {};
+      const results = {};
 
-      var fillInResult = function(type) {
+      const fillInResult = function(type) {
         if (angular.isDefined(results[type])) {
           return;
         }
 
-        var descriptor = this.descriptorsCache_[type];
+        const descriptor = this.descriptorsCache_[type];
         results[type] = descriptor;
 
         angular.forEach(descriptor['fields'], function(fieldDescriptor) {
@@ -99,16 +100,16 @@ exports.ReflectionService = class {
    *                               a requested descriptor.
    */
   getRDFValueDescriptor(valueType, opt_withDeps) {
-    var deferred = this.q_.defer();
+    const deferred = this.q_.defer();
 
     if (angular.isDefined(this.descriptorsCache_)) {
-      var result =
+      const result =
           this.getRDFValueDescriptorFromCache_(valueType, opt_withDeps);
       deferred.resolve(result);
       return deferred.promise;
     } else {
       if (this.requestsQueue_.length === 0) {
-        var apiPromise = this.grrApiService_.get('reflection/rdfvalue/all');
+        const apiPromise = this.grrApiService_.get('reflection/rdfvalue/all');
         apiPromise.then(function(response) {
           this.descriptorsCache_ = {};
           angular.forEach(response['data']['items'], function(item) {
@@ -123,7 +124,7 @@ exports.ReflectionService = class {
     }
   }
 };
-var ReflectionService = exports.ReflectionService;
+const ReflectionService = exports.ReflectionService;
 
 
 /**

@@ -40,7 +40,6 @@ class DatabaseTestHuntMixin(object):
         client_id=client_id,
         flow_id=flow_id,
         parent_hunt_id=hunt_id,
-        create_time=rdfvalue.RDFDatetime.Now(),
         **additional_flow_args)
     self.db.WriteFlowObject(rdf_flow)
 
@@ -58,6 +57,34 @@ class DatabaseTestHuntMixin(object):
     self.assertEqual(read_hunt_obj.description, "Lorem ipsum.")
     self.assertGreater(read_hunt_obj.create_time, then)
     self.assertGreater(read_hunt_obj.last_update_time, then)
+
+  def testWritingHuntObjectIntegralClientRate(self):
+    creator = db_test_utils.InitializeUser(self.db)
+
+    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj.creator = creator
+    hunt_obj.description = "Lorem ipsum."
+    hunt_obj.client_rate = 42
+    self.db.WriteHuntObject(hunt_obj)
+
+    hunt_obj = self.db.ReadHuntObject(hunt_obj.hunt_id)
+    self.assertEqual(hunt_obj.creator, creator)
+    self.assertEqual(hunt_obj.description, "Lorem ipsum.")
+    self.assertAlmostEqual(hunt_obj.client_rate, 42, places=5)
+
+  def testWritingHuntObjectFractionalClientRate(self):
+    creator = db_test_utils.InitializeUser(self.db)
+
+    hunt_obj = rdf_hunt_objects.Hunt()
+    hunt_obj.creator = creator
+    hunt_obj.description = "Lorem ipsum."
+    hunt_obj.client_rate = 3.14
+    self.db.WriteHuntObject(hunt_obj)
+
+    hunt_obj = self.db.ReadHuntObject(hunt_obj.hunt_id)
+    self.assertEqual(hunt_obj.creator, creator)
+    self.assertEqual(hunt_obj.description, "Lorem ipsum.")
+    self.assertAlmostEqual(hunt_obj.client_rate, 3.14, places=5)
 
   def testHuntObjectCannotBeOverwritten(self):
     self.db.WriteGRRUser("user")
@@ -1316,7 +1343,6 @@ class DatabaseTestHuntMixin(object):
         flow_id="12345678",
         parent_flow_id=flow_id,
         parent_hunt_id=hunt_obj.hunt_id,
-        create_time=rdfvalue.RDFDatetime.Now(),
         cpu_time_used=rdf_client_stats.CpuSeconds(
             user_cpu_time=10, system_cpu_time=20),
         network_bytes_sent=30)

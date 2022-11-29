@@ -11,7 +11,7 @@ an __iter__) method, but are serializable as an RDFProto.
 """
 
 
-import collections
+from collections import abc
 from typing import Text
 
 from absl import app
@@ -56,7 +56,7 @@ class DictTest(rdf_test_base.RDFProtoTestMixin, test_lib.GRRBaseTest):
 
   def testIsMapping(self):
     test_dict = rdf_protodict.Dict(a=1)
-    self.assertIsInstance(test_dict, collections.Mapping)
+    self.assertIsInstance(test_dict, abc.Mapping)
 
   def testDictBehaviour(self):
     tested = rdf_protodict.Dict(a=1)

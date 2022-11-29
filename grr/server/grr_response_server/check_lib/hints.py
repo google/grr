@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Hint processing."""
 
-import collections
+from collections import abc
 import string
 
 
@@ -22,7 +22,7 @@ class DefinitionError(Error):
 def Overlay(child, parent):
   """Adds hint attributes to a child hint if they are not defined."""
   for arg in child, parent:
-    if not isinstance(arg, collections.Mapping):
+    if not isinstance(arg, abc.Mapping):
       raise DefinitionError("Trying to merge badly defined hints. Child: %s, "
                             "Parent: %s" % (type(child), type(parent)))
   for attr in ["fix", "format", "problem", "summary"]:
@@ -58,13 +58,12 @@ class RdfFormatter(string.Formatter):
       results = [utils.SmartUnicode(obj).strip()]
     elif isinstance(obj, rdf_protodict.DataBlob):
       results = self.FanOut(obj.GetValue())
-    elif isinstance(obj, (collections.Mapping, rdf_protodict.Dict)):
+    elif isinstance(obj, (abc.Mapping, rdf_protodict.Dict)):
       results = []
       for k, v in obj.items():
         expanded_v = [utils.SmartUnicode(r) for r in self.FanOut(v)]
         results.append("%s:%s" % (utils.SmartUnicode(k), ",".join(expanded_v)))
-    elif isinstance(obj, (collections.Iterable,
-                          rdf_structs.RepeatedFieldHelper)):
+    elif isinstance(obj, (abc.Iterable, rdf_structs.RepeatedFieldHelper)):
       results = []
       for rslt in [self.FanOut(o, obj) for o in obj]:
         results.extend(rslt)

@@ -1,3 +1,7 @@
+import {EventEmitter} from '@angular/core';
+
+import {isNonNull} from '../preconditions';
+
 /** Descriptor containing information about a flow class. */
 export declare interface FlowDescriptor {
   readonly name: string;
@@ -18,17 +22,18 @@ export enum FlowState {
 }
 
 /** A Flow is a server-side process that collects data from clients. */
-export declare interface Flow {
+export declare interface Flow<Args extends {}|unknown = unknown> {
   readonly flowId: string;
   readonly clientId: string;
   readonly lastActiveAt: Date;
   readonly startedAt: Date;
   readonly name: string;
   readonly creator: string;
-  readonly args: unknown|undefined;
+  readonly args: Args|undefined;
   readonly progress: unknown|undefined;
   readonly state: FlowState;
   readonly errorDescription: string|undefined;
+  readonly isRobot: boolean;
   /**
    * Counts of flow Results. undefined for legacy flows where we don't know
    * about result metadata.
@@ -103,7 +108,6 @@ export type ArtifactDescriptorMap = ReadonlyMap<string, ArtifactDescriptor>;
 export interface ArtifactDescriptor {
   readonly name: string;
   readonly doc?: string;
-  readonly labels: ReadonlyArray<string>;
   readonly supportedOs: ReadonlySet<OperatingSystem>;
   readonly urls: ReadonlyArray<string>;
   readonly provides: ReadonlyArray<string>;
@@ -309,4 +313,58 @@ export function countFlowResults(
   }
 
   return count;
+}
+
+/** Adds the corresponding FlowDescriptor to a Flow, if existent. */
+export function withDescriptor(fds: FlowDescriptorMap):
+    ((flow: Flow) => FlowWithDescriptor) {
+  return flow => ({
+           flow,
+           descriptor: fds.get(flow.name),
+         });
+}
+
+
+/** A query to load `count` results starting at `offset`. */
+export interface ResultQuery {
+  readonly offset: number;
+  readonly count: number;
+}
+
+/**
+ * An interface for @Component()s that can render flow/hunt results.
+ * These components expect results to be preloaded and assigned to `data`.
+ */
+export interface PreloadedResultView<T> {
+  /** @Input() */
+  data: readonly T[];
+}
+
+/**
+ * An interface for @Component()s that query and render flow results.
+ *
+ * These components expect `totalCount` to be provided. No results should be
+ * preloaded. Instead, the component initiates loading results by emitting
+ * loadResults.
+ */
+export interface PaginatedResultView<T> {
+  /** @Input(): The results loaded with the query emitted from loadResults. */
+  results?: readonly FlowResult[];
+
+  /** @Input(): The total count of results that can be loaded. */
+  totalCount: number;
+
+  /** @Output(): Emits queries to initiate loading results. */
+  readonly loadResults: EventEmitter<ResultQuery>;
+}
+
+/**
+ * Returns true if the given view is a PaginatedResultView, meaning it triggers
+ * loading its own results. This is unlike PreloadedResultView, that expects all
+ * results to be provided up front.
+ */
+export function viewQueriesResults<T>(
+    view: PreloadedResultView<T>|
+    PaginatedResultView<T>): view is PaginatedResultView<T> {
+  return isNonNull((view as PaginatedResultView<T>).loadResults);
 }

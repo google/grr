@@ -374,6 +374,8 @@ def _InitApiApprovalFromDatabaseObject(api_approval, db_obj):
 
   api_approval.approvers = sorted([g.grantor_username for g in db_obj.grants])
 
+  api_approval.expiration_time_us = db_obj.expiration_time
+
   try:
     approval_checks.CheckApprovalRequest(db_obj)
     api_approval.is_valid = True
@@ -390,6 +392,7 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
   protobuf = api_user_pb2.ApiClientApproval
   rdf_deps = [
       api_client.ApiClient,
+      rdfvalue.RDFDatetime,
   ]
 
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
@@ -397,7 +400,7 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
       approval_subject_obj = data_store.REL_DB.ReadClientFullInfo(
           db_obj.subject_id)
     self.subject = api_client.ApiClient().InitFromClientInfo(
-        approval_subject_obj)
+        db_obj.subject_id, approval_subject_obj)
 
     return _InitApiApprovalFromDatabaseObject(self, db_obj)
 

@@ -19,19 +19,20 @@ from grr_response_core import config
 from grr_response_core.config import contexts
 from grr_response_core.lib import config_lib
 
-flags.DEFINE_bool("install", False, "Specify this to install the client.")
+_INSTALL = flags.DEFINE_bool("install", False,
+                             "Specify this to install the client.")
 
-flags.DEFINE_bool(
+_BREAK_ON_START = flags.DEFINE_bool(
     "break_on_start", False,
     "If True break into a pdb shell immediately on startup. This"
     " can be used for debugging the client manually.")
 
-flags.DEFINE_bool(
+_DEBUG_CLIENT_ACTIONS = flags.DEFINE_bool(
     "debug_client_actions", False,
     "If True break into a pdb shell before executing any client"
     " action.")
 
-flags.DEFINE_integer(
+_REMOTE_DEBUGGING_PORT = flags.DEFINE_integer(
     "remote_debugging_port", 0,
     "If set to a non-zero port, pydevd is started to allow remote debugging "
     "(e.g. using PyCharm).")
@@ -49,7 +50,7 @@ def _start_remote_debugging(port):
         port=port,
         stdoutToServer=True,
         stderrToServer=True,
-        suspend=flags.FLAGS.break_on_start)
+        suspend=_BREAK_ON_START.value)
   except ImportError:
     print(
         "pydevd is required for remote debugging. Please follow the PyCharm"
@@ -60,9 +61,9 @@ def _start_remote_debugging(port):
 def main(unused_args):
   client_plugins.RegisterPlugins()
 
-  if flags.FLAGS.remote_debugging_port:
-    _start_remote_debugging(flags.FLAGS.remote_debugging_port)
-  elif flags.FLAGS.break_on_start:
+  if _REMOTE_DEBUGGING_PORT.value:
+    _start_remote_debugging(_REMOTE_DEBUGGING_PORT.value)
+  elif _BREAK_ON_START.value:
     pdb.set_trace()
 
   # Allow per platform configuration.
@@ -71,7 +72,7 @@ def main(unused_args):
 
   client_startup.ClientInit()
 
-  if flags.FLAGS.install:
+  if _INSTALL.value:
     installer.RunInstaller()
     sys.exit(0)
 

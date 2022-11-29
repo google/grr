@@ -1,7 +1,9 @@
 import * as api from '../../lib/api/api_interfaces';
 import {translateDict} from '../../lib/api_translation/primitive';
-import {ArtifactDescriptor, ArtifactSource, OperatingSystem, SourceType} from '../../lib/models/flow';
-import {assertKeyNonNull, PreconditionError} from '../preconditions';
+import {ArtifactDescriptor, ArtifactSource, SourceType} from '../../lib/models/flow';
+import {assertKeyNonNull, isNonNull} from '../preconditions';
+
+import {safeTranslateOperatingSystem} from './flow';
 
 /**
  * Flattens an API ArtifactDescriptor and its contained Artifact into one
@@ -17,9 +19,9 @@ export function translateArtifactDescriptor(ad: api.ArtifactDescriptor):
   return {
     name: artifact.name,
     doc: artifact.doc,
-    labels: [...artifact.labels ?? []],
-    supportedOs:
-        new Set([...artifact.supportedOs ?? []].map(translateOperatingSystem)),
+    supportedOs: new Set([...artifact.supportedOs ?? []]
+                             .map(safeTranslateOperatingSystem)
+                             .filter(isNonNull)),
     urls: [...artifact.urls ?? []],
     provides: [...artifact.provides ?? []],
     dependencies: [...ad.dependencies ?? []],
@@ -27,34 +29,6 @@ export function translateArtifactDescriptor(ad: api.ArtifactDescriptor):
     isCustom: ad.isCustom ?? false,
     sources: [...artifact.sources ?? []].map(translateArtifactSource),
   };
-}
-
-function translateOperatingSystem(str: string): OperatingSystem {
-  switch (str) {
-    case 'Linux':
-      return OperatingSystem.LINUX;
-    case 'Darwin':
-      return OperatingSystem.DARWIN;
-    case 'Windows':
-      return OperatingSystem.WINDOWS;
-    default:
-      throw new PreconditionError(
-          `OperatingSystem enum does not include "${str}".`);
-  }
-}
-
-/** Translates a String to OperatingSystem, returning undefined on error. */
-export function safeTranslateOperatingSystem(str: string|undefined):
-    OperatingSystem|undefined {
-  if (str === undefined) {
-    return undefined;
-  }
-
-  try {
-    return translateOperatingSystem(str);
-  } catch (e: unknown) {
-    return undefined;
-  }
 }
 
 type KeyValuePair = Map<'key'|'value', string>;
@@ -68,33 +42,34 @@ function translateArtifactSource(source: api.ArtifactSource): ArtifactSource {
   const base = {
     conditions: [...source.conditions ?? []],
     returnedTypes: [...source.returnedTypes ?? []],
-    supportedOs:
-        new Set([...source.supportedOs ?? []].map(translateOperatingSystem)),
+    supportedOs: new Set([...source.supportedOs ?? []]
+                             .map(safeTranslateOperatingSystem)
+                             .filter(isNonNull)),
   };
 
   switch (source.type) {
-    case api.SourceType.ARTIFACT_GROUP:
+    case api.ArtifactSourceSourceType.ARTIFACT_GROUP:
       return {
         ...base,
         type: SourceType.ARTIFACT_GROUP,
         names: attributes.get('names') as string[] ?? [],
       };
 
-    case api.SourceType.ARTIFACT_FILES:
+    case api.ArtifactSourceSourceType.ARTIFACT_FILES:
       return {
         ...base,
         type: SourceType.ARTIFACT_FILES,
         names: attributes.get('artifact_list') as string[] ?? [],
       };
 
-    case api.SourceType.GRR_CLIENT_ACTION:
+    case api.ArtifactSourceSourceType.GRR_CLIENT_ACTION:
       return {
         ...base,
         type: SourceType.GRR_CLIENT_ACTION,
         clientAction: attributes.get('client_action') as string,
       };
 
-    case api.SourceType.COMMAND:
+    case api.ArtifactSourceSourceType.COMMAND:
       const cmd = attributes.get('cmd') as string;
       const args = attributes.get('args') as string[] ?? [];
       return {
@@ -103,42 +78,41 @@ function translateArtifactSource(source: api.ArtifactSource): ArtifactSource {
         cmdline: [cmd, ...args].join(' '),
       };
 
-    case api.SourceType.DIRECTORY:
+    case api.ArtifactSourceSourceType.DIRECTORY:
       return {
         ...base,
         type: SourceType.DIRECTORY,
         paths: attributes.get('paths') as string[] ?? [],
       };
 
-    case api.SourceType.FILE:
+    case api.ArtifactSourceSourceType.FILE:
       return {
         ...base,
         type: SourceType.FILE,
         paths: attributes.get('paths') as string[] ?? [],
       };
-    case api.SourceType.GREP:
+    case api.ArtifactSourceSourceType.GREP:
       return {
         ...base,
         type: SourceType.GREP,
-        // TODO(user): Add grep param.
         paths: attributes.get('paths') as string[] ?? [],
       };
 
-    case api.SourceType.PATH:
+    case api.ArtifactSourceSourceType.PATH:
       return {
         ...base,
         type: SourceType.PATH,
         paths: attributes.get('paths') as string[] ?? [],
       };
 
-    case api.SourceType.REGISTRY_KEY:
+    case api.ArtifactSourceSourceType.REGISTRY_KEY:
       return {
         ...base,
         type: SourceType.REGISTRY_KEY,
         keys: attributes.get('keys') as string[] ?? [],
       };
 
-    case api.SourceType.REGISTRY_VALUE:
+    case api.ArtifactSourceSourceType.REGISTRY_VALUE:
       const pairs = attributes.get('key_value_pairs') as KeyValuePair[] ?? [];
       const values = pairs.map((p) => `${p.get('key')}\\${p.get('value')}`);
 
@@ -148,7 +122,7 @@ function translateArtifactSource(source: api.ArtifactSource): ArtifactSource {
         values,
       };
 
-    case api.SourceType.WMI:
+    case api.ArtifactSourceSourceType.WMI:
       return {
         ...base,
         type: SourceType.WMI,

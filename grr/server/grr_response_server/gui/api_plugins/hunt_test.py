@@ -99,6 +99,32 @@ class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
     for i in range(10):
       self.assertIn("hunt_%d" % i, descriptions)
 
+  def testShowsFullSummaryWhenRequested(self):
+    client_ids = self.SetupClients(1)
+    hunt_id = self.StartHunt(
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+            flow_name=file_finder.FileFinder.__name__),
+        flow_args=rdf_file_finder.FileFinderArgs(
+            paths=[os.path.join(self.base_path, "test.plist")],
+            action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
+        ),
+        client_rate=0,
+        creator=self.context.username)
+    self.RunHunt(
+        client_ids=client_ids, client_mock=action_mocks.FileFinderClientMock())
+
+    args = hunt_plugin.ApiGetHuntArgs(hunt_id=hunt_id)
+    hunt_api_obj = hunt_plugin.ApiGetHuntHandler().Handle(
+        args, context=self.context)
+    self.assertEqual(hunt_api_obj.all_clients_count, 1)
+
+    result = self.handler.Handle(
+        hunt_plugin.ApiListHuntsArgs(with_full_summary=True),
+        context=self.context)
+
+    self.assertLen(result.items, 1)
+    self.assertEqual(result.items[0].all_clients_count, 1)
+
   def testHuntListIsSortedInReversedCreationTimestampOrder(self):
     for i in range(1, 11):
       with test_lib.FakeTime(i * 1000):

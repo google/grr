@@ -217,7 +217,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "42423")
     self.WaitUntilNot(
         self.IsElementPresent,
-        "css=grr-results-collection button:has(span.glyphicon-download)")
+        "css=grr-results-collection button:has(span.fa-download)")
 
   def testShowsPerFileDownloadButtonForFileFinderHunt(self):
     stat_entry = rdf_client_fs.StatEntry(
@@ -232,9 +232,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=grr-results-collection button:has(span.glyphicon-download)")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-results-collection button:has(span.fa-download)")
 
   def testShowsPerFileDownloadButtonForArtifactDownloaderHunt(self):
     stat_entry = rdf_client_fs.StatEntry(
@@ -251,9 +250,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
 
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=grr-results-collection button:has(span.glyphicon-download)")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-results-collection button:has(span.fa-download)")
 
   def testHuntAuthorizationIsRequiredToDownloadSingleHuntFile(self):
     hunt_id = self._CreateHuntWithDownloadedFile()
@@ -262,7 +260,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
-    self.Click("css=grr-results-collection button:has(span.glyphicon-download)")
+    self.Click("css=grr-results-collection button:has(span.fa-download)")
 
     self.WaitUntil(self.IsTextPresent, "Create a new approval request")
 
@@ -280,8 +278,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     fd = file_store.OpenFile(flow_export.CollectionItemToClientPath(results[0]))
 
     with mock.patch.object(fd.__class__, "Read") as mock_obj:
-      self.Click(
-          "css=grr-results-collection button:has(span.glyphicon-download)")
+      self.Click("css=grr-results-collection button:has(span.fa-download)")
       self.WaitUntil(lambda: mock_obj.called)
 
   def testDisplaysErrorMessageIfSingleHuntFileCanNotBeRead(self):
@@ -301,8 +298,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
-    self.Click(
-        "css=grr-results-collection button:has(span.glyphicon-download):last")
+    self.Click("css=grr-results-collection button:has(span.fa-download):last")
     self.WaitUntil(self.IsTextPresent, "Couldn't download the file.")
 
 

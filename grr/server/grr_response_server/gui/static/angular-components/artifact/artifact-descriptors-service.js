@@ -43,7 +43,7 @@ exports.ArtifactDescriptorsService = class {
       return this.fillCachePromise_;
     }
 
-    var deferred = this.q_.defer();
+    const deferred = this.q_.defer();
 
     if (!angular.isObject(this.descriptorsCache_)) {
       this.grrApiService_.get('/artifacts')
@@ -51,7 +51,7 @@ exports.ArtifactDescriptorsService = class {
               function success(response) {
                 this.descriptorsCache_ = {};
                 angular.forEach(response['data']['items'], function(descriptor) {
-                  var name =
+                  const name =
                       descriptor['value']['artifact']['value']['name']['value'];
                   this.descriptorsCache_[name] = descriptor;
                 }.bind(this));
@@ -112,7 +112,7 @@ exports.ArtifactDescriptorsService = class {
   }
 };
 
-var ArtifactDescriptorsService = exports.ArtifactDescriptorsService;
+const ArtifactDescriptorsService = exports.ArtifactDescriptorsService;
 
 
 

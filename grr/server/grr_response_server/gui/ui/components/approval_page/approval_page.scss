@@ -1,4 +1,5 @@
 @use '../../main' as main;
+@use '@angular/material' as mat;
 @use '../../material-theme' as c;
 
 :host {
@@ -10,7 +11,7 @@
 
 .wrapper {
   padding: 2em 0;
-  background-color: #bdc1c6;
+  background-color: mat.get-color-from-palette(c.$background, dark-background);
 
   mat-card {
     mat-card-header {

@@ -27,13 +27,9 @@ THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 # package dir.
 os.chdir(THIS_DIRECTORY)
 
-GRPCIO_TOOLS = "grpcio-tools==1.29.0"
+GRPCIO = "grpcio==1.46.3"
+GRPCIO_TOOLS = "grpcio-tools==1.43.0"
 PROTOBUF = "protobuf==3.12.2"
-
-if platform.system() == "Darwin":
-  PYTSK3 = "pytsk3==20210419"
-else:
-  PYTSK3 = "pytsk3==20200117"
 
 
 def get_config():
@@ -66,8 +62,9 @@ def compile_protos():
     # version. Otherwise latest protobuf library will be installed with
     # grpcio-tools and then uninstalled when grr-response-proto's setup.py runs
     # and reinstalled to the version required by grr-response-proto.
-    subprocess.check_call(
-        [sys.executable, "-m", "pip", "install", GRPCIO_TOOLS, PROTOBUF])
+    subprocess.check_call([
+        sys.executable, "-m", "pip", "install", GRPCIO, GRPCIO_TOOLS, PROTOBUF
+    ])
 
   # If there's no makefile, we're likely installing from an sdist,
   # so there's no need to compile the protos (they should be already
@@ -130,12 +127,11 @@ setup_args = dict(
     },
     packages=find_packages(),
     include_package_data=True,
-    python_requires=">=3.6",
+    python_requires=">=3.9",
     install_requires=[
-        "absl-py==0.9.0",
+        "absl-py==1.2.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        "PyInstaller==3.6",
-        PYTSK3,
+        "pytsk3==20210419",
         "retry==0.9.2",
         "libfsntfs-python==20210503",
         "fleetspeak-client-bin==0.1.11",
@@ -144,7 +140,7 @@ setup_args = dict(
         # The following requirements are needed in Windows.
         ':sys_platform=="win32"': [
             "WMI==1.5.1",
-            "pywin32==228",
+            "pywin32==303",
         ],
     },
 )

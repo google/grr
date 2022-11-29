@@ -8,9 +8,7 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
 import {FlowFileResult, flowFileResultFromStatEntry, StatusIcon} from '../../../components/flow_details/helpers/file_results_table';
-import {newPathSpec} from '../../../lib/api/api_test_util';
-import {translateStatEntry} from '../../../lib/api_translation/flow';
-import {StatEntry} from '../../../lib/models/vfs';
+import {createStatEntry} from '../../../lib/api/api_test_util';
 import {initTestEnvironment} from '../../../testing';
 import {TimestampTestingModule} from '../../timestamp/module';
 
@@ -66,20 +64,6 @@ describe('FileResultsTable Component', () => {
     fixture.detectChanges();
 
     return fixture;
-  }
-
-  function createStatEntry(index: number): StatEntry {
-    return translateStatEntry({
-      pathspec: newPathSpec(`/home/foo/bar/${index}`),
-      stMode: '420',  // 0644
-      stDev: 16777220 + index,
-      stNlink: 1 + index,
-      stSize: `${index + 1}42`,
-      stAtime: `${index + 1}40000`,
-      stMtime: `${index + 1}400000`,
-      stCtime: `${index + 1}4000000`,
-      stBtime: `${index + 1}40000000`,
-    });
   }
 
   it('correctly presents a single row - no Hash nor Status', () => {

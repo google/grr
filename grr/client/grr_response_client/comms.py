@@ -500,7 +500,6 @@ class GRRClientWorker(threading.Thread):
   def __init__(self,
                client=None,
                out_queue=None,
-               internal_nanny_monitoring=True,
                heart_beat_cb=None):
     threading.Thread.__init__(self)
 
@@ -511,18 +510,13 @@ class GRRClientWorker(threading.Thread):
 
     self.proc = psutil.Process()
 
-    self.nanny_controller = None
-
     self.transaction_log = client_utils.TransactionLog()
 
-    if internal_nanny_monitoring:
+    def HeartBeatStub():
+      pass
 
-      self.StartNanny()
-
-      if heart_beat_cb is None:
-        heart_beat_cb = self.nanny_controller.Heartbeat
-
-    self.heart_beat_cb = heart_beat_cb
+    # If the heartbeat callback is not provided, a stub will be used instead.
+    self.heart_beat_cb = heart_beat_cb or HeartBeatStub
 
     self.lock = threading.RLock()
 
@@ -542,7 +536,7 @@ class GRRClientWorker(threading.Thread):
       # is too large, the worker thread will block until the queue is drained.
       self._out_queue = SizeLimitedQueue(
           maxsize=config.CONFIG["Client.max_out_queue"],
-          heart_beat_cb=heart_beat_cb)
+          heart_beat_cb=self.heart_beat_cb)
 
     # Only start this thread after the _out_queue is ready to send.
     self.StartStatsCollector()
@@ -588,11 +582,6 @@ class GRRClientWorker(threading.Thread):
   def Heartbeat(self):
     if self.heart_beat_cb:
       self.heart_beat_cb()
-
-  def StartNanny(self):
-    # Use this to control the nanny transaction log.
-    self.nanny_controller = client_utils.NannyController()
-    self.nanny_controller.StartNanny()
 
   def StartStatsCollector(self):
     if not GRRClientWorker.stats_collector:
@@ -719,20 +708,6 @@ class GRRClientWorker(threading.Thread):
     """Returns True if worker is currently handling a message."""
     return self._is_active
 
-  def SendNannyMessage(self):
-    """Sends the Nanny message."""
-    # We might be monitored by Fleetspeak.
-    if not self.nanny_controller:
-      return
-
-    msg = self.nanny_controller.GetNannyMessage()
-    if msg:
-      self.SendReply(
-          rdf_protodict.DataBlob(string=msg),
-          session_id=rdfvalue.FlowSessionID(flow_name="NannyMessage"),
-          require_fastpoll=False)
-      self.nanny_controller.ClearNannyMessage()
-
   def SendClientAlert(self, msg):
     self.SendReply(
         rdf_protodict.DataBlob(string=msg),
@@ -741,9 +716,6 @@ class GRRClientWorker(threading.Thread):
 
   def Sleep(self, timeout):
     """Sleeps the calling thread with heartbeat."""
-    if self.nanny_controller:
-      self.nanny_controller.Heartbeat()
-
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
     while timeout > 0:
       time.sleep(min(1., timeout))
@@ -752,9 +724,6 @@ class GRRClientWorker(threading.Thread):
       # point in waiting.
       if self._out_queue.Full():
         return
-
-      if self.nanny_controller:
-        self.nanny_controller.Heartbeat()
 
   def OnStartup(self):
     """A handler that is called on client startup."""
@@ -767,10 +736,6 @@ class GRRClientWorker(threading.Thread):
       status = rdf_flows.GrrStatus(
           status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED,
           error_message="Client killed during transaction")
-      if self.nanny_controller:
-        nanny_status = self.nanny_controller.GetNannyStatus()
-        if nanny_status:
-          status.nanny_status = nanny_status
 
       self.SendReply(
           status,
@@ -1223,9 +1188,6 @@ class GRRHTTPClient(object):
     while True:
       if self.http_manager.ErrorLimitReached():
         return
-
-      # Check if there is a message from the nanny to be sent.
-      self.client_worker.SendNannyMessage()
 
       now = time.time()
       # Check with the foreman if we need to

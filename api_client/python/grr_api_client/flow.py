@@ -21,8 +21,8 @@ class FlowResult(object):
       data: flow_pb2.ApiFlowResult,
   ):
     super().__init__()
-    self.data = data  # type: flow_pb2.ApiFlowResult
-    self.timestamp = data.timestamp  # type: int
+    self.data: flow_pb2.ApiFlowResult = data
+    self.timestamp: int = data.timestamp
 
   @property
   def payload(self) -> Union[message.Message, utils.UnknownProtobuf]:
@@ -41,8 +41,8 @@ class FlowLog(object):
   ):
     super().__init__()
 
-    self.data = data  # type: flow_pb2.ApiFlowLog
-    self.log_message = self.data.log_message  # type: str
+    self.data: flow_pb2.ApiFlowLog = data
+    self.log_message: str = self.data.log_message
 
 
 class FlowBase(object):
@@ -65,9 +65,9 @@ class FlowBase(object):
     if not context:
       raise ValueError("context can't be empty")
 
-    self.client_id = client_id  # type: str
-    self.flow_id = flow_id  # type: str
-    self._context = context  # type: api_context.GrrApiContext
+    self.client_id: str = client_id
+    self.flow_id: str = flow_id
+    self._context: api_context.GrrApiContext = context
 
   def Cancel(self):
     args = flow_pb2.ApiCancelFlowArgs(
@@ -214,7 +214,7 @@ class Flow(FlowBase):
 
     super().__init__(client_id=client_id, flow_id=flow_id, context=context)
 
-    self.data = data  # type: flow_pb2.ApiFlow
+    self.data: flow_pb2.ApiFlow = data
 
   @property
   def args(self) -> Union[message.Message, utils.UnknownProtobuf]:

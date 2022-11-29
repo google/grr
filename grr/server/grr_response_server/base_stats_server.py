@@ -25,6 +25,7 @@ class BaseStatsServer(metaclass=abc.ABCMeta):
   """Abstract base class for statistics server.
 
   Attributes:
+    address: The IP address of the server to bind.
     port: The TCP port that the server should listen to.
   """
 

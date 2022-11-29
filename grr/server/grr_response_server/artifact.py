@@ -321,8 +321,8 @@ class ParseResults(object):
   """A class representing results of parsing flow responses."""
 
   def __init__(self):
-    self._responses = []  # type: List[rdfvalue.RDFValue]
-    self._errors = []  # type: List[parsers.ParseError]
+    self._responses: List[rdfvalue.RDFValue] = []
+    self._errors: List[parsers.ParseError] = []
 
   def AddResponses(self, responses: Iterator[rdfvalue.RDFValue]) -> None:
     self._responses.extend(responses)
@@ -380,7 +380,7 @@ class ParserApplicator(object):
     # artifact declares multiple sources and has multiple parsers attached (each
     # for different kind of source). Thus, artifacts are not "well typed" now
     # we must supply parsers only with something they support.
-    stat_responses = []  # type: List[rdf_client_fs.StatEntry]
+    stat_responses: List[rdf_client_fs.StatEntry] = []
     for response in responses:
       if isinstance(response, rdf_client_fs.StatEntry):
         stat_responses.append(response)

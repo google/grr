@@ -73,6 +73,7 @@ describe('NewHuntLocalStore', () => {
          creator: 'morty',
          name: 'GetFile',
          state: FlowState.RUNNING,
+         isRobot: false,
        });
        const expected: FlowWithDescriptor = {
          flow,
@@ -110,6 +111,7 @@ describe('NewHuntLocalStore', () => {
          creator: 'morty',
          name: 'GetFile',
          state: ApiFlowState.RUNNING,
+         isRobot: false,
        });
 
        expect(httpApiService.fetchFlow).toHaveBeenCalledWith('C.1234', 'abcd');
@@ -143,6 +145,7 @@ describe('NewHuntLocalStore', () => {
   it('runs a hunt', fakeAsync(() => {
        const safetyLimits: SafetyLimits = {
          clientRate: 200.0,
+         clientLimit: BigInt(123),
          crashLimit: BigInt(100),
          avgResultsPerClientLimit: BigInt(1000),
          avgCpuSecondsPerClientLimit: BigInt(60),
@@ -180,6 +183,7 @@ describe('NewHuntLocalStore', () => {
          creator: 'morty',
          name: 'GetFile',
          state: ApiFlowState.RUNNING,
+         isRobot: false,
        });
 
        newHuntLocalStore.runHunt(

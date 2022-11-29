@@ -3,7 +3,7 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
-import {ExecuteResponse, PathSpecPathType, RegistryType, StatEntry} from '../../../lib/api/api_interfaces';
+import {ExecuteResponse, PathSpecPathType, StatEntry, StatEntryRegistryType} from '../../../lib/api/api_interfaces';
 import {FlowState} from '../../../lib/models/flow';
 import {newFlow, newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
@@ -81,7 +81,7 @@ describe('app-artifact-collector-flow-details component', () => {
 
     const statEntry: StatEntry = {
       stSize: '123',
-      registryType: RegistryType.REG_BINARY,
+      registryType: StatEntryRegistryType.REG_BINARY,
       pathspec: {path: 'HKLM\\foo', pathtype: PathSpecPathType.REGISTRY},
     };
 

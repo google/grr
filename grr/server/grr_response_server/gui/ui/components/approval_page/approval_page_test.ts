@@ -212,4 +212,20 @@ describe('ApprovalPage Component', () => {
 
     expect(grantButton.attributes['disabled']).toBe('true');
   });
+
+  it('linkifies tokens starting with http:// in request reason', () => {
+    const fixture = TestBed.createComponent(ApprovalPage);
+    injectMockStore(ApprovalPageGlobalStore)
+        .mockedObservables.approval$.next(newClientApproval({
+          reason: 'foobazzle 42 http://example.com',
+        }));
+    fixture.detectChanges();
+
+    const link = fixture.debugElement.query(By.css('app-text-with-links a'));
+    expect(link.attributes['href']).toEqual('http://example.com');
+    expect(link.nativeElement.textContent).toEqual('http://example.com');
+
+    const text = fixture.debugElement.nativeElement.textContent;
+    expect(text).toContain('foobazzle 42 http://example.com');
+  });
 });

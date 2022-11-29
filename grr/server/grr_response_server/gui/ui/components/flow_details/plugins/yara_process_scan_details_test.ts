@@ -76,7 +76,7 @@ describe('app-yara-process-scan-details component', () => {
         stringMatches: [{
           data: encodeStringToBase64('ExampleData'),
           stringId: 'ExampleStringId',
-          offset: 456,
+          offset: '456',
         }]
       }]
     };

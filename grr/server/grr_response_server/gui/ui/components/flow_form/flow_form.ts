@@ -62,19 +62,14 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
             takeUntil(this.ngOnDestroy.triggered$),
             withLatestFrom(
                 this.flowArgsForm.flowArgValues$,
-                this.hasAccess$,
                 this.disabled$,
                 ),
             )
-        .subscribe(([e, flowArgs, hasApproval, disabled]) => {
+        .subscribe(([e, flowArgs, disabled]) => {
           e.preventDefault();
 
-          if (disabled) {
-            return;
-          } else if (hasApproval) {
-            this.clientPageGlobalStore.startFlow(flowArgs);
-          } else {
-            this.clientPageGlobalStore.scheduleFlow(flowArgs);
+          if (!disabled) {
+            this.clientPageGlobalStore.scheduleOrStartFlow(flowArgs);
           }
         });
 

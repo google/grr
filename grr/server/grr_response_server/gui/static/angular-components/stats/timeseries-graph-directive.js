@@ -96,7 +96,7 @@ const TimeseriesGraphController = class {
     }
 
     let prevPointValue = points.shift()[1];
-    for (var i = 0; i < points.length; ++i) {
+    for (let i = 0; i < points.length; ++i) {
       const pointValue = points[i][1];
       points[i][1] = points[i][1] - prevPointValue;
       prevPointValue = pointValue;

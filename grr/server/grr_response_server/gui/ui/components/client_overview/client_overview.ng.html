@@ -8,7 +8,7 @@
       >
         <h1>
           <ng-container *ngIf="(client$ | async) as client">
-            {{ client.knowledgeBase?.fqdn || client.clientId }}
+            {{ client.knowledgeBase.fqdn || client.clientId }}
           </ng-container>
         </h1>
       </a>
@@ -16,10 +16,6 @@
 
     <div class="chips">
       <mat-chip-list [selectable]="false" [tabIndex]="-1">
-        <online-chip
-          *ngIf="(client$ | async) as client"
-          [lastSeen]="client.lastSeenAt"
-        ></online-chip>
         <mat-chip
           *ngIf="(client$ | async)?.fleetspeakEnabled === false"
           class="red-chip"
@@ -34,6 +30,29 @@
           *ngIf="showApprovalChip$ | async"
           [approval]="approval$ | async"
         ></app-approval-chip>
+        <online-chip
+          *ngIf="(client$ | async) as client"
+          [lastSeen]="client.lastSeenAt"
+        ></online-chip>
+        <ng-container *ngIf="showOnlineNotificationToggle$ | async">
+          <mat-chip
+            *ngIf="activeOnlineNotificationArgs$ | async as args; else onlineNotificationButton"
+            matTooltip="We will send an email to {{args.email}} when the client comes online the next time."
+            disabled
+          >
+            <mat-icon>notifications_active</mat-icon> Notifying when online
+          </mat-chip>
+          <ng-template #onlineNotificationButton>
+            <button
+              mat-button
+              type="button"
+              (click)="triggerOnlineNotification()"
+              name="online-notification"
+            >
+              <mat-icon>notifications</mat-icon> Notify when online
+            </button></ng-template
+          >
+        </ng-container>
       </mat-chip-list>
     </div>
   </div>
@@ -45,7 +64,8 @@
           *ngFor="let label of (client$ | async)?.labels; trackBy: labelsTrackByName"
           [routerLink]="['/clients']"
           [queryParams]="{'q': 'label:' + label.name}"
-          ><mat-chip (removed)="removeLabel(label.name)">
+        >
+          <mat-chip (removed)="removeLabel(label.name)">
             {{label.name}}
             <mat-icon
               matChipRemove
@@ -53,17 +73,17 @@
               (click)="$event.preventDefault()"
               >close</mat-icon
             >
-          </mat-chip></a
+          </mat-chip>
+        </a>
+        <button
+          *ngIf="client$ | async as client"
+          mat-button
+          class="add_label"
+          (click)="openAddLabelDialog(client.labels)"
         >
+          <mat-icon>add</mat-icon>Add label
+        </button>
       </mat-chip-list>
-      <button
-        *ngIf="client$ | async as client"
-        mat-button
-        class="add_label"
-        (click)="openAddLabelDialog(client.labels)"
-      >
-        <mat-icon>add</mat-icon>Add label
-      </button>
     </div>
 
     <div class="info">
@@ -150,9 +170,10 @@
 
     <div class="buttons">
       <a
+        *ngIf="client$ | async as client"
         mat-stroked-button
         class="goto-details"
-        [drawerLink]="['details']"
+        [drawerLink]="['details', client.clientId]"
         color="primary"
       >
         <mat-icon>menu_open</mat-icon>

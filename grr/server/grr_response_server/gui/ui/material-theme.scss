@@ -30,26 +30,55 @@ $_grr-background: (
   hover: #e8f0fe,
   app-bar: white,
   darker-background: #f7f8f9,
+  page-background: mat.get-color-from-palette(mat.$grey-palette, 50),
+  panel-background: mat.get-color-from-palette(mat.$grey-palette, 100),
   // custom GRR property
   shadow: rgba(0, 0, 0, 0.5),
   // custom GRR property
   danger-light: mat.get-color-from-palette($danger, 100),
+  dark-background: mat.get-color-from-palette(mat.$grey-palette, 400),
 );
-$_theme: mat.define-light-theme($primary, $accent, $warn);
+// TODO: Provide this application's typography in the
+// theme configuration instead of providing null.
+$_theme: mat.define-light-theme(
+  (
+    color: (
+      primary: $primary,
+      accent: $accent,
+      warn: $warn,
+    ),
+    typography: null,
+    density: 0,
+  )
+);
 $theme: map-merge(
   $_theme,
   (
-    foreground: map-merge(map-get($_theme, foreground), $_grr-foreground),
-    background: map-merge(map-get($_theme, background), $_grr-background),
+    color:
+      map-merge(
+        mat.get-color-config($_theme),
+        (
+          foreground:
+            map-merge(
+              map-get(mat.get-color-config($_theme), foreground),
+              $_grr-foreground
+            ),
+          background:
+            map-merge(
+              map-get(mat.get-color-config($_theme), background),
+              $_grr-background
+            ),
+        )
+      ),
   )
 );
 
-$foreground: map-get($theme, foreground);
-$background: map-get($theme, background);
+$foreground: map-get(mat.get-color-config($theme), foreground);
+$background: map-get(mat.get-color-config($theme), background);
 
-$google-sans-display-family: Google Sans Display, 'Helvetica Neue', sans-serif;
-$google-sans-family: Google Sans, 'Helvetica Neue', sans-serif;
-$roboto-family: Roboto, 'Helvetica Neue', sans-serif;
+$google-sans-display-family: Google Sans Display, "Helvetica Neue", sans-serif;
+$google-sans-family: Google Sans, "Helvetica Neue", sans-serif;
+$roboto-family: Roboto, "Helvetica Neue", sans-serif;
 $google-sans-display-family-str: 'Google Sans Display, "Helvetica Neue", sans-serif';
 $google-sans-family-str: 'Google Sans, "Helvetica Neue", sans-serif';
 $roboto-family-str: 'Roboto, "Helvetica Neue", sans-serif';
@@ -138,7 +167,7 @@ $page-spacing: 16px;
 }
 
 body .mat-button-toggle-group,
-body .mat-button-toggle-group:not([class*='mat-elevation-z']),
+body .mat-button-toggle-group:not([class*="mat-elevation-z"]),
 body mat-button-toggle-group.mat-button-toggle-group {
   border-radius: 4px;
   box-shadow: none;

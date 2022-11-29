@@ -1,4 +1,3 @@
-<!-- TODO: Stop using formControlName here. -->
 <div class="wrapper">
   <div class="header" (click)="showContent($event)">
       Select Client
@@ -19,15 +18,15 @@
                       class="match-condition"
                       *ngIf="conditions().controls.length > 1">
         <mat-label>Match Mode</mat-label>
-        <mat-select formControlName="rulesMatchMode">
-          <mat-option value="Match All (and)">Match All (and)</mat-option>
-          <mat-option value="Match Any (or)">Match Any (or)</mat-option>
+        <mat-select id="rulesMatchMode" [formControl]="rulesMatchModeControl">
+          <mat-option [value]="RuleSetMatchMode.MATCH_ALL">Match All (and)</mat-option>
+          <mat-option [value]="RuleSetMatchMode.MATCH_ANY">Match Any (or)</mat-option>
         </mat-select>
       </mat-form-field>
-      <div class="rules-container" formGroupName="conditions">
+      <div class="rules-container">
         <div *ngFor="let condition of conditions().controls; let conditionIndex=index"
              [ngSwitch]="condition.get('type')?.value"
-             [formGroupName]="conditionIndex"
+             [formGroup]="conditionGroup(conditionIndex)"
              [ngClass]="{'without-seperation':conditionIndex===0,'with-seperation':conditionIndex!==0}">
           <button mat-icon-button
                   id="close"
@@ -40,7 +39,7 @@
           </button>
           <ng-container *ngSwitchCase="clientRuleType.OS"
                        [ngTemplateOutlet]="osForm"
-                       [ngTemplateOutletContext]="{title: condition.get('name')?.value, form: condition}">
+                       [ngTemplateOutletContext]="{title: condition.get('name')?.value, form: condition, id: conditionIndex}">
           </ng-container>
           <ng-template *ngSwitchCase="clientRuleType.LABEL"
                         [ngTemplateOutlet]="labelForm"
@@ -48,11 +47,11 @@
           </ng-template>
           <ng-template *ngSwitchCase="clientRuleType.REGEX"
                         [ngTemplateOutlet]="regexForm"
-                        [ngTemplateOutletContext]="{title: condition.get('name')?.value, form: condition}">
+                        [ngTemplateOutletContext]="{title: condition.get('name')?.value, form: condition, id: conditionIndex}">
           </ng-template>
           <ng-template *ngSwitchCase="clientRuleType.INTEGER"
                         [ngTemplateOutlet]="integerForm"
-                        [ngTemplateOutletContext]="{title: condition.get('name')?.value, form: condition}">
+                        [ngTemplateOutletContext]="{title: condition.get('name')?.value, form: condition, id: conditionIndex}">
           </ng-template>
         </div>
       </div>
@@ -83,15 +82,16 @@
   </div>
 </div>
 
-<ng-template #osForm let-title="title" let-form="form">
+<ng-template #osForm let-title="title" let-form="form" let-id="id">
   <div [formGroup]="form" class="os-container">
-    <div class="rule-content" formGroupName="options">
+    <div class="rule-content" [formGroup]="osOptionGroup(id)">
       <div class="os-rule-title">{{ title }}</div>
-      <mat-checkbox *ngFor="let os of operatingSystems"
-                  [checked]="false"
-                  [formControlName]="os">
-        {{ os }}
-      </mat-checkbox>
+        <mat-checkbox *ngFor="let os of operatingSystems | keyvalue"
+                    [id]="'condition_'+id+'_'+os.key | lowercase"
+                    [checked]="os.value"
+                    [formControl]="osOptionControl(id, os.key)">
+          {{ os.key }}
+        </mat-checkbox>
     </div>
   </div>
 </ng-template>
@@ -102,7 +102,7 @@
       <div class="rule-title">{{ title }}</div>
       <mat-form-field appearance="outline" class="match-mode">
         <mat-label>Match Mode</mat-label>
-        <mat-select formControlName="matchMode">
+        <mat-select [id]="'condition_'+id+'_match_mode'" [formControl]="labelMatchMode(id)">
           <mat-option [value]="matchMode.MATCH_ALL">Match all</mat-option>
           <mat-option [value]="matchMode.MATCH_ANY">Match any</mat-option>
           <mat-option [value]="matchMode.DOES_NOT_MATCH_ALL">Doesn't match all</mat-option>
@@ -110,12 +110,12 @@
         </mat-select>
       </mat-form-field>
     </div>
-    <div formGroupName="names" class="names">
+    <div [formGroup]="conditionGroup(id)" class="names">
       <div *ngFor="let name of labelNames(id).controls; let labelIndex=index; let last=last"
            class="name-input-wrapper">
         <mat-form-field appearance="outline" class="label-name">
           <mat-label>Label name</mat-label>
-          <input id="label_name" matInput [matAutocomplete]="auto">
+          <input [id]="'condition_'+id+'_label_name_'+labelIndex" [formControl]="name" matInput [matAutocomplete]="auto">
           <mat-autocomplete #auto="matAutocomplete">
             <mat-option *ngFor="let label of allClientsLabels$ | async" [value]="label">
               {{label}}
@@ -145,24 +145,24 @@
   </div>
 </ng-template>
 
-<ng-template #regexForm let-title="title" let-form="form" class="regex-rule">
+<ng-template #regexForm let-title="title" let-form="form" let-id="id" class="regex-rule">
   <div [formGroup]="form" class="rule-content">
     <div class="rule-title">{{ title }}</div>
     <mat-form-field appearance="outline" class="attribute-regex">
       <mat-label>Attribute Regex</mat-label>
-      <input id="regex_value"
-             [formControlName]="'attribute'"
+      <input [id]="'condition_'+id+'_regex_value'"
+             [formControl]="regexAttribute(id)"
              matInput>
     </mat-form-field>
   </div>
 </ng-template>
 
-<ng-template #integerForm let-title="title" let-form="form" class="integer-rule">
+<ng-template #integerForm let-title="title" let-form="form" let-id="id" class="integer-rule">
   <div [formGroup]="form" class="rule-content">
     <div class="rule-title">{{ title }}</div>
     <mat-form-field appearance="outline" class="operator">
       <mat-label>Operator</mat-label>
-      <mat-select [formControlName]="'operator'">
+      <mat-select [id]="'condition_'+id+'_operator'" [formControl]="integerOperator(id)">
         <mat-option [value]="operator.EQUAL">Equal</mat-option>
         <mat-option [value]="operator.LESS_THAN">Less Than</mat-option>
         <mat-option [value]="operator.GREATER_THAN">Greater Than</mat-option>
@@ -170,8 +170,8 @@
     </mat-form-field>
     <mat-form-field appearance="outline">
       <mat-label>Value</mat-label>
-      <input id="integer_value"
-             [formControlName]="'value'"
+      <input [id]="'condition_'+id+'_integer_value'"
+             [formControl]="integerValue(id)"
              matInput
              autocomplete="off">
     </mat-form-field>

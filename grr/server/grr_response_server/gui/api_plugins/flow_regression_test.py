@@ -8,6 +8,7 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
@@ -84,7 +85,9 @@ class ApiListFlowsHandlerRegressionTest(
 
     with test_lib.FakeTime(44):
       flow_id_2 = flow_test_lib.StartFlow(
-          processes.ListProcesses, client_id, creator=self.test_username)
+          processes.ListProcesses,
+          client_id,
+          creator=access_control._SYSTEM_USERS_LIST[0])
 
     replace = api_regression_test_lib.GetFlowTestReplaceDict(
         client_id, flow_id_1, "F:ABCDEF10")
@@ -120,6 +123,14 @@ class ApiListFlowsHandlerRegressionTest(
             client_id=client_id,
             max_started_at=rdfvalue.RDFDatetimeSeconds(43),
             top_flows_only=True,
+        ),
+        replace=replace)
+
+    self.Check(
+        "ListFlows",
+        args=flow_plugin.ApiListFlowsArgs(
+            client_id=client_id,
+            human_flows_only=True,
         ),
         replace=replace)
 

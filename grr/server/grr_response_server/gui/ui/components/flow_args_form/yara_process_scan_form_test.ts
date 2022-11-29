@@ -44,7 +44,9 @@ describe('YaraProcessScanForm', () => {
     input.triggerEventHandler('change', {target: input.nativeElement});
     fixture.detectChanges();
 
-    expect(await args).toEqual(jasmine.objectContaining({pids: [123, 456]}));
+    expect(await args).toEqual(jasmine.objectContaining({
+      pids: ['123', '456']
+    }));
   });
 
   it('shows a process name input field', async () => {

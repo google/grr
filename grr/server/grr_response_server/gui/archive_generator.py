@@ -188,7 +188,9 @@ class CollectionArchiveGenerator(object):
     if client_ids:
       client_infos = data_store.REL_DB.MultiReadClientFullInfo(client_ids)
       for client_id, client_info in client_infos.items():
-        client = api_client.ApiClient().InitFromClientInfo(client_info)
+        client = api_client.ApiClient()
+        client.InitFromClientInfo(client_id, client_info)
+
         for chunk in self._GenerateClientInfo(client_id, client):
           yield chunk
 

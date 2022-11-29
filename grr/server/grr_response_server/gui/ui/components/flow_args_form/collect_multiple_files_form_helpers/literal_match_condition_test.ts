@@ -6,7 +6,7 @@ import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {FileFinderContentsLiteralMatchCondition, FileFinderContentsMatchConditionMode} from '../../../lib/api/api_interfaces';
+import {FileFinderContentsLiteralMatchCondition, FileFinderContentsLiteralMatchConditionMode} from '../../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../../testing';
 
 import {createLiteralMatchFormGroup, LiteralMatchCondition} from './literal_match_condition';
@@ -48,7 +48,7 @@ describe('LiteralMatchCondition component', () => {
        const modeField = fixture.debugElement.query(By.css('mat-select'));
        expect(literalField.nativeElement.textContent).toBe('');
        expect(modeField.componentInstance.value)
-           .toBe(FileFinderContentsMatchConditionMode.FIRST_HIT);
+           .toBe(FileFinderContentsLiteralMatchConditionMode.FIRST_HIT);
      });
 
   it('correctly exposes form value', async () => {
@@ -63,7 +63,7 @@ describe('LiteralMatchCondition component', () => {
 
     const expected: FileFinderContentsLiteralMatchCondition = {
       literal: 'test',
-      mode: FileFinderContentsMatchConditionMode.ALL_HITS,
+      mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
     };
     expect(control.value).toEqual(expected);
   });

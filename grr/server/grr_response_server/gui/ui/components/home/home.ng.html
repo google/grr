@@ -1,16 +1,10 @@
 <div class="search-container">
-  <search-box (querySubmitted)="onQuerySubmitted($event)" [autofocus]="true"></search-box>
+  <app-search-box
+    (querySubmitted)="onQuerySubmitted($event)"
+    [autofocus]="true"
+  ></app-search-box>
 </div>
 
-<div class="clients-container" *ngIf="(recentClients$ | async)?.length">
-  <h1>Recently accessed clients</h1>
-  <div *ngFor="let client of recentClients$ | async; trackBy: trackClient">
-    <a [routerLink]="['/clients', client.clientId]" mat-button>
-      <mat-icon>computer</mat-icon>
-      <h3>{{client.knowledgeBase.fqdn}} {{client.clientId}}</h3>
-      <mat-chip-list>
-      <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
-      </mat-chip-list>
-    </a>
-  </div>
+<div class="centered-content">
+  <app-recent-activity> </app-recent-activity>
 </div>

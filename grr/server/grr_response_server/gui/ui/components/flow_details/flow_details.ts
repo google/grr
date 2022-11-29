@@ -85,7 +85,7 @@ export class FlowDetails implements OnChanges {
   /**
    * Whether show "Create a hunt" in the menu.
    */
-  @Input() showCreateHunt = true;
+  @Input() showContextMenu = true;
 
   /**
    * Event that is triggered when a flow context menu action is selected.

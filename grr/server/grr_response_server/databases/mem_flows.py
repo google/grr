@@ -7,7 +7,12 @@ import sys
 import threading
 import time
 
-from typing import Dict, List, Optional, Sequence, Text
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -230,8 +235,7 @@ class InMemoryDBFlowMixin(object):
 
     clone = flow_obj.Copy()
     clone.last_update_time = now
-    if clone.create_time is None:
-      clone.create_time = now
+    clone.create_time = now
 
     self.flows[key] = clone
 
@@ -251,6 +255,7 @@ class InMemoryDBFlowMixin(object):
       min_create_time: Optional[rdfvalue.RDFDatetime] = None,
       max_create_time: Optional[rdfvalue.RDFDatetime] = None,
       include_child_flows: bool = True,
+      not_created_by: Optional[Iterable[str]] = None,
   ) -> List[rdf_flow_objects.Flow]:
     """Returns all flow objects."""
     res = []
@@ -259,7 +264,8 @@ class InMemoryDBFlowMixin(object):
           (parent_flow_id is None or flow.parent_flow_id == parent_flow_id) and
           (min_create_time is None or flow.create_time >= min_create_time) and
           (max_create_time is None or flow.create_time <= max_create_time) and
-          (include_child_flows or not flow.parent_flow_id)):
+          (include_child_flows or not flow.parent_flow_id) and
+          (not_created_by is None or flow.creator not in not_created_by)):
         res.append(flow.Copy())
     return res
 

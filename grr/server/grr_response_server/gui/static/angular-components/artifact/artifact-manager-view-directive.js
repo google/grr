@@ -91,7 +91,7 @@ const ArtifactManagerViewController = class {
    * @export
    */
   upload() {
-    var result = this.grrArtifactDialogService_.openUploadArtifact();
+    const result = this.grrArtifactDialogService_.openUploadArtifact();
     result.then(function resolve() {
       this.triggerUpdate();
     }.bind(this));
@@ -103,14 +103,14 @@ const ArtifactManagerViewController = class {
    * @export
    */
   deleteSelected() {
-    var namesToDelete = [];
-    for (var name in this.selectedDescriptors) {
+    const namesToDelete = [];
+    for (const name in this.selectedDescriptors) {
       if (this.selectedDescriptors[name]) {
         namesToDelete.push(name);
       }
     }
 
-    var result =
+    const result =
         this.grrArtifactDialogService_.openDeleteArtifacts(namesToDelete);
     result.then(function resolve() {
       this.selectedDescriptors = {};
@@ -125,8 +125,8 @@ const ArtifactManagerViewController = class {
    * @export
    */
   updateNumSelectedDescriptors() {
-    var count = 0;
-    for (var key in this.selectedDescriptors) {
+    let count = 0;
+    for (const key in this.selectedDescriptors) {
       if (this.selectedDescriptors[key]) {
         ++count;
       }

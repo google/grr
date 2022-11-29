@@ -2,7 +2,7 @@
 # -*- encoding: utf-8 -*-
 
 import hashlib
-
+import os
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -41,6 +41,14 @@ class DatabaseTestPathsMixin(object):
 
     self.assertEqual(context.exception.client_id, client_id)
 
+  def testWritePathInfosValidatesClientEvenIfEmpty(self):
+    client_id = "C.0123456789012345"
+
+    with self.assertRaises(db.UnknownClientError) as context:
+      self.db.WritePathInfos(client_id, [])
+
+    self.assertEqual(context.exception.client_id, client_id)
+
   def testWritePathInfosValidateConflictingWrites(self):
     client_id = db_test_utils.InitializeClient(self.db)
 
@@ -49,6 +57,10 @@ class DatabaseTestPathsMixin(object):
           rdf_objects.PathInfo.OS(components=["foo", "bar"], directory=False),
           rdf_objects.PathInfo.OS(components=["foo", "bar"], directory=True),
       ])
+
+  def testWritePathInfosEmpty(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    self.db.WritePathInfos(client_id, [])  # Should not raise.
 
   def testWritePathInfosMetadata(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -409,6 +421,19 @@ class DatabaseTestPathsMixin(object):
 
     self.assertLen(results, 1)
     self.assertTrue(results[("foo",)].directory)
+
+  def testWritePathInfosWritesAncestorsWithTimestamps(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    self.db.WritePathInfos(client_id, [
+        rdf_objects.PathInfo.OS(components=["ancestor", "bar"]),
+    ])
+
+    results = self.db.ReadPathInfos(client_id, rdf_objects.PathInfo.PathType.OS,
+                                    [("ancestor",)])
+
+    self.assertLen(results, 1)
+    self.assertIsNotNone(results[("ancestor",)].timestamp)
 
   def testWritePathInfosDuplicatedData(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -1667,6 +1692,48 @@ class DatabaseTestPathsMixin(object):
     self.assertCountEqual(results.keys(), [path])
     self.assertEqual(results[path].hash_entry, path_info_1.hash_entry)
     self.assertTrue(results[path].timestamp)
+
+  def testReadLatestPathInfosMaxTimestampMultiplePaths(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    before_hash_id = os.urandom(32)
+    after_hash_id = os.urandom(32)
+
+    blob_ref = rdf_objects.BlobReference()
+    blob_ref.blob_id = os.urandom(32)
+
+    self.db.WriteHashBlobReferences({
+        rdf_objects.SHA256HashID(before_hash_id): [blob_ref],
+        rdf_objects.SHA256HashID(after_hash_id): [blob_ref],
+    })
+
+    before_path_info_1 = rdf_objects.PathInfo.OS(components=("foo",))
+    before_path_info_1.hash_entry.sha256 = before_hash_id
+
+    before_path_info_2 = rdf_objects.PathInfo.OS(components=("bar",))
+    before_path_info_2.hash_entry.sha256 = before_hash_id
+
+    self.db.WritePathInfos(client_id, [before_path_info_1, before_path_info_2])
+
+    timestamp = self.db.Now()
+
+    after_path_info_1 = rdf_objects.PathInfo.OS(components=("foo",))
+    after_path_info_1.hash_entry.sha256 = after_hash_id
+
+    after_path_info_2 = rdf_objects.PathInfo.OS(components=("bar",))
+    after_path_info_2.hash_entry.sha256 = after_hash_id
+
+    self.db.WritePathInfos(client_id, [after_path_info_1, after_path_info_2])
+
+    client_path_1 = db.ClientPath.OS(client_id, ("foo",))
+    client_path_2 = db.ClientPath.OS(client_id, ("bar",))
+
+    results = self.db.ReadLatestPathInfosWithHashBlobReferences(
+        [client_path_1, client_path_2], max_timestamp=timestamp)
+
+    self.assertLen(results, 2)
+    self.assertEqual(results[client_path_1].hash_entry.sha256, before_hash_id)
+    self.assertEqual(results[client_path_2].hash_entry.sha256, before_hash_id)
 
   def testReadLatestPathInfosIncludesStatEntryIfThereIsOneWithSameTimestamp(
       self):

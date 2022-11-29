@@ -1,3 +1,5 @@
+import {HexHash} from './flow';
+
 /**
  * Component describes which component that will be used to render the
  * cell contents.
@@ -5,8 +7,21 @@
 // TODO: Expand CellComponent enum types.
 export enum CellComponent {
   DEFAULT,
+  DRAWER_LINK,
+  FILE_MODE,
+  HASH,
+  HUMAN_READABLE_SIZE,
   TIMESTAMP,  // Takes in a Date object (see ComponentToType below)
+  USERNAME,
 }
+
+/** ClientHuntFlow describes the hunt's flow result for a client. */
+export declare interface ClientHuntFlow {
+  clientId?: string;
+  flowId?: string;
+  resultData?: unknown;  // ApiHuntResult import creates a circular
+}
+
 /**
  * ComponentToType maps CellComponent values to types that represent them. This
  * allows us to know the TS type of an object property based on its
@@ -14,8 +29,13 @@ export enum CellComponent {
  */
 // TODO: Expand CellComponent enum types.
 export declare interface ComponentToType {
-  [CellComponent.TIMESTAMP]: Date|undefined;
   [CellComponent.DEFAULT]: string|number|undefined;
+  [CellComponent.DRAWER_LINK]: string[]|undefined;
+  [CellComponent.FILE_MODE]: bigint|undefined;
+  [CellComponent.HASH]: HexHash|undefined;
+  [CellComponent.HUMAN_READABLE_SIZE]: bigint|undefined;
+  [CellComponent.TIMESTAMP]: Date|undefined;
+  [CellComponent.USERNAME]: string|undefined;
 }
 
 /**
@@ -67,7 +87,35 @@ export declare type CellData<T extends {[key: string]: ColumnDescriptor}> = {
  */
 export declare interface PayloadTranslation<
     T extends {[key: string]: ColumnDescriptor}> {
-  translateFn(arg: unknown): CellData<T>;
+  translateFn(...args: unknown[]): CellData<T>;
   columns: T;
   tabName: string;
+}
+
+/** ResultKey describes the primary keys for a Result */
+export declare interface ResultKey {
+  clientId: string;
+  flowId: string;
+  timestamp: string;
+}
+
+/**
+ * Transforms a ResultKey into a string representation of it to be used for
+ * indexing/representing results.
+ */
+export function toResultKeyString(r: ResultKey): string {
+  return `${r.clientId}-${r.flowId}-${r.timestamp}`;
+}
+
+/**
+ * Breaks down a string representation of a ResultKey, returning an object with
+ * the individual parts.
+ */
+export function toResultKey(s: string): ResultKey {
+  const parts = s.split('-');
+  if (parts.length !== 3) {
+    throw new Error(`Error parsing result key "${s}": got length ${
+        parts.length}; expected 3`);
+  }
+  return {clientId: parts[0], flowId: parts[1], timestamp: parts[2]};
 }

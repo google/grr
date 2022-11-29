@@ -84,8 +84,8 @@ HuntsListController.prototype.huntsUrl = '/hunts';
  * @private
  */
 HuntsListController.prototype.buildHuntUrl_ = function() {
-  var components = this.scope_['selectedHuntId'].split('/');
-  var basename = components[components.length - 1];
+  const components = this.scope_['selectedHuntId'].split('/');
+  const basename = components[components.length - 1];
   return this.huntsUrl + '/' + basename;
 };
 
@@ -109,11 +109,11 @@ HuntsListController.prototype.wrapApiPromise_ = function(promise, successMessage
           return successMessage;
         }.bind(this),
         function failure(response) {
-          var message = response['data']['message'];
+          const message = response['data']['message'];
 
           if (response['status'] === 403) {
-            var subject = response['data']['subject'];
-            var huntId = stripAff4Prefix(subject).split('/')[1];
+            const subject = response['data']['subject'];
+            const huntId = stripAff4Prefix(subject).split('/')[1];
 
             this.grrAclDialogService_.openRequestHuntApprovalDialog(
                 huntId, message);
@@ -140,7 +140,7 @@ HuntsListController.prototype.selectItem = function(item) {
  * @export
  */
 HuntsListController.prototype.newHunt = function() {
-  var modalScope = this.scope_.$new();
+  const modalScope = this.scope_.$new();
   modalScope.resolve = function() {
     modalInstance.close();
   };
@@ -151,7 +151,7 @@ HuntsListController.prototype.newHunt = function() {
     modalScope.$destroy();
   });
 
-  var modalInstance = this.uibModal_.open({
+  const modalInstance = this.uibModal_.open({
     template: '<grr-new-hunt-wizard-form on-resolve="resolve()" ' +
         'on-reject="reject()" />',
     scope: modalScope,
@@ -171,11 +171,11 @@ HuntsListController.prototype.newHunt = function() {
  * @export
  */
 HuntsListController.prototype.runHunt = function() {
-  var modalPromise = this.grrDialogService_.openConfirmation(
+  const modalPromise = this.grrDialogService_.openConfirmation(
       'Run this hunt?',
       'Are you sure you want to run this hunt?',
       function() {
-        var promise = this.grrApiService_.patch(this.buildHuntUrl_(),
+        const promise = this.grrApiService_.patch(this.buildHuntUrl_(),
                                                 {state: 'STARTED'});
         return this.wrapApiPromise_(promise, 'Hunt started successfully!');
       }.bind(this));
@@ -197,12 +197,12 @@ HuntsListController.prototype.runHunt = function() {
  * @export
  */
 HuntsListController.prototype.stopHunt = function() {
-  var modalPromise = this.grrDialogService_.openConfirmation(
+  const modalPromise = this.grrDialogService_.openConfirmation(
       'Stop this hunt?',
       'Are you sure you want to stop this hunt? Once a hunt is ' +
           'stopped, resuming it is not possible.',
       function() {
-        var promise = this.grrApiService_.patch(this.buildHuntUrl_(),
+        const promise = this.grrApiService_.patch(this.buildHuntUrl_(),
                                                 {state: 'STOPPED'});
         return this.wrapApiPromise_(promise, 'Hunt stopped successfully!');
       }.bind(this));
@@ -224,11 +224,11 @@ HuntsListController.prototype.stopHunt = function() {
  * @export
  */
 HuntsListController.prototype.modifyHunt = function() {
-  var components = this.scope_['selectedHuntId'].split('/');
-  var huntId = components[components.length - 1];
+  const components = this.scope_['selectedHuntId'].split('/');
+  const huntId = components[components.length - 1];
 
-  var argsObj = {};
-  var modalPromise = this.grrDialogService_.openDirectiveDialog(
+  const argsObj = {};
+  const modalPromise = this.grrDialogService_.openDirectiveDialog(
     'grrModifyHuntDialog', { huntId: huntId });
 
   // TODO(user): there's no need to trigger update on dismiss.
@@ -249,7 +249,7 @@ HuntsListController.prototype.modifyHunt = function() {
  * @export
  */
 HuntsListController.prototype.copyHunt = function() {
-  var modalScope = this.scope_.$new();
+  const modalScope = this.scope_.$new();
   modalScope.huntId = this.scope_['selectedHuntId'];
   modalScope.resolve = function() {
     modalInstance.close();
@@ -262,7 +262,7 @@ HuntsListController.prototype.copyHunt = function() {
     modalScope.$destroy();
   });
 
-  var modalInstance = this.uibModal_.open({
+  const modalInstance = this.uibModal_.open({
     template: '<grr-new-hunt-wizard-copy-form on-resolve="resolve()" ' +
         'on-reject="reject()" hunt-id="huntId" />',
     scope: modalScope,
@@ -281,11 +281,11 @@ HuntsListController.prototype.copyHunt = function() {
  * @export
  */
 HuntsListController.prototype.deleteHunt = function() {
-  var modalPromise = this.grrDialogService_.openConfirmation(
+  const modalPromise = this.grrDialogService_.openConfirmation(
       'Delete this hunt?',
       'Are you sure you want to delete this hunt?',
       function() {
-        var promise = this.grrApiService_.delete(this.buildHuntUrl_());
+        const promise = this.grrApiService_.delete(this.buildHuntUrl_());
         return this.wrapApiPromise_(promise, 'Hunt deleted successfully!');
       }.bind(this));
 

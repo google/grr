@@ -28,7 +28,7 @@ from grr_response_server.gui import webauth
 from grr.test_lib import test_lib
 from grr.test_lib import testing_startup
 
-flags.DEFINE_string(
+_GENERATE = flags.DEFINE_string(
     "generate", "",
     "Generate golden regression data for tests using a given connection type.")
 
@@ -316,8 +316,8 @@ def GetFlowTestReplaceDict(client_id=None,
 
 def main(argv=None):
   testing_startup.TestInit()
-  if flags.FLAGS.generate:
+  if _GENERATE.value:
     testing_startup.TestInit()
-    ApiRegressionGoldenOutputGenerator(flags.FLAGS.generate).Generate()
+    ApiRegressionGoldenOutputGenerator(_GENERATE.value).Generate()
   else:
     test_lib.main(argv)

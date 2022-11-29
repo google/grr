@@ -60,7 +60,7 @@ export class ResultAccordion {
 
   @Input() colorScheme?: ColorScheme|null;
 
-  isOpen: boolean = false;
+  @Input() isOpen?: boolean = false;
 
   @Output() readonly firstOpened = new EventEmitter<void>();
 

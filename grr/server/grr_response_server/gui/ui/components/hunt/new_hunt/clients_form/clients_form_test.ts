@@ -1,9 +1,13 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
+import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
+import {MatInputHarness} from '@angular/material/input/testing';
 import {MatMenuHarness} from '@angular/material/menu/testing';
+import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
+import {ForemanClientRuleSetMatchMode, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../../../lib/api/api_interfaces';
 import {ConfigGlobalStore} from '../../../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../../../store/config_global_store_test_util';
 import {initTestEnvironment} from '../../../../testing';
@@ -12,6 +16,64 @@ import {ClientsForm} from './clients_form';
 import {ClientsFormModule} from './module';
 
 initTestEnvironment();
+
+async function setInputValue(
+    fixture: ComponentFixture<unknown>, query: string, value: string) {
+  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+  const inputHarness =
+      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
+  await inputHarness.setValue(value);
+}
+
+async function getInputValue(
+    fixture: ComponentFixture<unknown>, query: string): Promise<string> {
+  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+  const inputHarness =
+      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
+  return await inputHarness.getValue();
+}
+
+async function setCheckboxValue(
+    fixture: ComponentFixture<unknown>, query: string, value: boolean) {
+  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+  const checkboxHarness = await harnessLoader.getHarness(
+      MatCheckboxHarness.with({selector: query}));
+  if (value) {
+    await checkboxHarness.check();
+  } else {
+    await checkboxHarness.uncheck();
+  }
+}
+
+async function getCheckboxValue(
+    fixture: ComponentFixture<unknown>, query: string): Promise<boolean> {
+  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+  const checkboxHarness = await harnessLoader.getHarness(
+      MatCheckboxHarness.with({selector: query}));
+  return await checkboxHarness.isChecked();
+}
+
+async function selectMenuOption(menuHarness: MatMenuHarness, index: number) {
+  await menuHarness.open();
+  const items = await menuHarness.getItems();
+  await items[index].click();
+}
+
+async function selectBoxOption(
+    fixture: ComponentFixture<unknown>, query: string, value: string) {
+  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+  const selectionBoxHarness =
+      await harnessLoader.getHarness(MatSelectHarness.with({selector: query}));
+  await selectionBoxHarness.clickOptions({text: value});
+}
+
+async function getSelectBoxValue(
+    fixture: ComponentFixture<unknown>, query: string): Promise<string> {
+  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+  const selectionBoxHarness =
+      await harnessLoader.getHarness(MatSelectHarness.with({selector: query}));
+  return await selectionBoxHarness.getValueText();
+}
 
 describe('clients form test', () => {
   let configGlobalStoreMock: ConfigGlobalStoreMock;
@@ -188,6 +250,95 @@ describe('clients form test', () => {
     expect(fixture.componentInstance.conditions().controls.length).toBe(2);
   });
 
+  it('buildRules builds ForemanRuleSet using the form values', async () => {
+    const fixture = TestBed.createComponent(ClientsForm);
+    fixture.detectChanges();
+
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const menu = await loader.getHarness(MatMenuHarness);
+
+    // OS rule is rendered by default
+    await setCheckboxValue(fixture, '[id=condition_0_windows]', true);
+
+    await selectMenuOption(menu, 1);  // adds Labels form
+    await selectBoxOption(fixture, '[id=condition_1_match_mode]', 'Match any');
+    await setInputValue(fixture, 'input[id=condition_1_label_name_0]', 'foo');
+    const addLabelButton =
+        fixture.debugElement.query(By.css('#add-label-name'));
+    addLabelButton.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+    await setInputValue(fixture, 'input[id=condition_1_label_name_1]', 'bar');
+
+    await selectMenuOption(menu, 4);  // adds Client Clock integer form
+    await selectBoxOption(fixture, '[id=condition_2_operator]', 'Greater Than');
+    await setInputValue(fixture, 'input[id=condition_2_integer_value]', '123');
+
+    await selectMenuOption(menu, 5);  // adds Client Description regex form
+    await setInputValue(
+        fixture, 'input[id=condition_3_regex_value]', 'I am a regex');
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.buildRules()).toEqual({
+      matchMode: ForemanClientRuleSetMatchMode.MATCH_ALL,  // Default
+      rules: [
+        {
+          ruleType: ForemanClientRuleType.OS,
+          os: {osWindows: true, osLinux: false, osDarwin: false},
+        },
+        {
+          ruleType: ForemanClientRuleType.LABEL,
+          label: {
+            labelNames: ['foo', 'bar'],
+            matchMode: ForemanLabelClientRuleMatchMode.MATCH_ANY
+          },
+        },
+        {
+          ruleType: ForemanClientRuleType.INTEGER,
+          integer: {
+            operator: ForemanIntegerClientRuleOperator.GREATER_THAN,
+            value: '123',
+            field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK
+          },
+        },
+        {
+          ruleType: ForemanClientRuleType.REGEX,
+          regex: {
+            attributeRegex: 'I am a regex',
+            field: ForemanRegexClientRuleForemanStringField.CLIENT_DESCRIPTION
+          },
+        },
+      ]
+    });
+  });
+
+  it('buildRules builds with rule match ALL by default', async () => {
+    const fixture = TestBed.createComponent(ClientsForm);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.buildRules())
+        .toEqual(jasmine.objectContaining({
+          matchMode: ForemanClientRuleSetMatchMode.MATCH_ALL,
+        }));
+  });
+
+  it('buildRules builds with rule match ANY', async () => {
+    const fixture = TestBed.createComponent(ClientsForm);
+    fixture.detectChanges();
+
+    // This only shows when there is more than one condition, so we add one here
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const menu = await loader.getHarness(MatMenuHarness);
+    await selectMenuOption(menu, 1);
+
+    await selectBoxOption(fixture, '[id=rulesMatchMode]', 'Match Any (or)');
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.buildRules())
+        .toEqual(jasmine.objectContaining({
+          matchMode: ForemanClientRuleSetMatchMode.MATCH_ANY,
+        }));
+  });
+
   it('shows autocomplete options correctly', async () => {
     const fixture = TestBed.createComponent(ClientsForm);
     fixture.detectChanges();
@@ -212,5 +363,68 @@ describe('clients form test', () => {
     expect(fixture.debugElement.queryAll(By.css('.mat-option'))[0]
                .nativeElement.textContent)
         .toContain('label1');
+  });
+
+  it('setFormState sets form values using ForemanRuleSet input', async () => {
+    const fixture = TestBed.createComponent(ClientsForm);
+    fixture.detectChanges();
+
+    fixture.componentInstance.setFormState({
+      matchMode: ForemanClientRuleSetMatchMode.MATCH_ANY,  // NOT Default
+      rules: [
+        {
+          ruleType: ForemanClientRuleType.OS,
+          os: {osWindows: true, osLinux: true, osDarwin: false},
+        },
+        {
+          ruleType: ForemanClientRuleType.LABEL,
+          label: {
+            labelNames: ['foo', 'bar'],
+            matchMode: ForemanLabelClientRuleMatchMode.MATCH_ANY
+          },
+        },
+        {
+          ruleType: ForemanClientRuleType.INTEGER,
+          integer: {
+            operator: ForemanIntegerClientRuleOperator.GREATER_THAN,
+            value: '123',
+            field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK
+          },
+        },
+        {
+          ruleType: ForemanClientRuleType.REGEX,
+          regex: {
+            attributeRegex: 'I am a regex',
+            field: ForemanRegexClientRuleForemanStringField.CLIENT_DESCRIPTION
+          },
+        },
+      ]
+    });
+
+    // OS form values
+    expect(await getCheckboxValue(fixture, '[id=condition_0_windows]'))
+        .toBe(true);
+    expect(await getCheckboxValue(fixture, '[id=condition_0_linux]'))
+        .toBe(true);
+    expect(await getCheckboxValue(fixture, '[id=condition_0_darwin]'))
+        .toBe(false);
+
+    // Labels form values
+    expect(await getSelectBoxValue(fixture, '[id=condition_1_match_mode]'))
+        .toBe('Match any');
+    expect(await getInputValue(fixture, '[id=condition_1_label_name_0]'))
+        .toBe('foo');
+    expect(await getInputValue(fixture, '[id=condition_1_label_name_1]'))
+        .toBe('bar');
+
+    // Client Clock form values
+    expect(await getSelectBoxValue(fixture, '[id=condition_2_operator]'))
+        .toBe('Greater Than');
+    expect(await getInputValue(fixture, '[id=condition_2_integer_value]'))
+        .toBe('123');
+
+    // Client Description form values
+    expect(await getInputValue(fixture, '[id=condition_3_regex_value]'))
+        .toBe('I am a regex');
   });
 });

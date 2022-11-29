@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """A module with assertion functions for checking preconditions."""
 import collections
+from collections import abc
 import re
 from typing import Sized, Text
 
@@ -57,7 +58,7 @@ def AssertIterableType(iterable, expected_item_type):
     message %= iterable
     raise TypeError(message)
 
-  AssertType(iterable, collections.Iterable)
+  AssertType(iterable, abc.Iterable)
   for item in iterable:
     AssertType(item, expected_item_type)
 
@@ -74,7 +75,7 @@ def AssertDictType(dct, expected_key_type, expected_value_type):
     TypeError: If given dictionary is not really a dictionary or not all its
                keys and values have the expected type.
   """
-  AssertType(dct, collections.Mapping)
+  AssertType(dct, abc.Mapping)
   for key, value in dct.items():
     AssertType(key, expected_key_type)
     AssertType(value, expected_value_type)

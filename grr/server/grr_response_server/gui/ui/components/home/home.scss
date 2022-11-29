@@ -1,3 +1,6 @@
+@use "@angular/material" as mat;
+@use '../../material-theme' as c;
+
 :host {
   display: flex;
   align-items: stretch;
@@ -6,47 +9,20 @@
 
   flex-grow: 1;
 
-  background-color: #f7f8f9;
+  background-color: mat.get-color-from-palette(c.$background, page-background);
 
   .search-container {
     padding: 70px 0;
     background: white;
 
-    search-box {
+    app-search-box {
       margin: auto;
       width: 60%;
       max-width: 800px;
     }
   }
 
-  .clients-container {
-    flex-grow: 1;
-
-    max-width: 1280px;
-    width: 80%;
-    margin: 0 auto;
-
-    h1 {
-      margin: 4em 0 1em;
-    }
-
-    a {
-      margin-bottom: 0.5em;
-    }
-
-    a h3 {
-      display: inline;
-    }
-
-    mat-icon {
-      margin-right: 0.5em;
-    }
-
-    mat-chip-list {
-      display: inline-block;
-      padding-left: 0.5em;
-      /** Prevent online chip from changing cursor and hover effect. */
-      pointer-events: none;
-    }
+  .centered-content {
+    padding-bottom: 100px;
   }
 }

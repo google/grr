@@ -4,6 +4,10 @@ import collections
 import functools
 import os
 import re
+from typing import Iterable
+from typing import Iterator
+from typing import Optional
+from typing import Tuple
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -152,7 +156,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       return rdf_hunt_objects.HuntArgumentsVariable
 
   def InitFromHuntObject(self,
-                         hunt_obj,
+                         hunt_obj: rdf_hunt_objects.Hunt,
                          hunt_counters=None,
                          with_full_summary=False):
     """Initialize API hunt object from a database hunt object.
@@ -271,7 +275,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
 
     return self
 
-  def InitFromHuntMetadata(self, hunt_metadata):
+  def InitFromHuntMetadata(self, hunt_metadata: rdf_hunt_objects.HuntMetadata):
     """Initialize API hunt object from a hunt metadata object.
 
     Args:
@@ -463,15 +467,24 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     if args.active_within:
       kw_args["created_after"] = rdfvalue.RDFDatetime.Now() - args.active_within
 
-    hunt_metadatas = data_store.REL_DB.ListHuntObjects(
-        args.offset, args.count or db.MAX_COUNT, **kw_args)
-
     # TODO(user): total_count is not returned by the current implementation.
     # It's not clear, if it's needed - GRR UI doesn't show total number of
     # available hunts anywhere. Adding it would require implementing
     # an additional data_store.REL_DB.CountHuntObjects method.
-    return ApiListHuntsResult(
-        items=[ApiHunt().InitFromHuntMetadata(h) for h in hunt_metadatas])
+
+    if args.with_full_summary:
+      hunt_objects = data_store.REL_DB.ReadHuntObjects(
+          args.offset, args.count or db.MAX_COUNT, **kw_args)
+      items = []
+      for hunt_obj in hunt_objects:
+        hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_obj.hunt_id)
+        items.append(ApiHunt().InitFromHuntObject(
+            hunt_obj, hunt_counters=hunt_counters, with_full_summary=True))
+    else:
+      hunt_objects = data_store.REL_DB.ListHuntObjects(
+          args.offset, args.count or db.MAX_COUNT, **kw_args)
+      items = [ApiHunt().InitFromHuntMetadata(h) for h in hunt_objects]
+    return ApiListHuntsResult(items=items)
 
 
 class ApiGetHuntArgs(rdf_structs.RDFProtoStruct):
@@ -991,7 +1004,13 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetHuntFilesArchiveArgs
 
-  def _WrapContentGenerator(self, generator, collection, args, context=None):
+  def _WrapContentGenerator(
+      self,
+      generator: archive_generator.CollectionArchiveGenerator,
+      collection: Iterable[rdf_flow_objects.FlowResult],
+      args: ApiGetHuntFilesArchiveArgs,
+      context: api_call_context.ApiCallContext,
+  ) -> Iterator[bytes]:
     try:
 
       for item in generator.Generate(collection):
@@ -1012,7 +1031,10 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
       raise
 
-  def _LoadData(self, args, context=None):
+  def _LoadData(
+      self,
+      args: ApiGetHuntFilesArchiveArgs,
+  ) -> Tuple[Iterable[rdf_flow_objects.FlowResult], str]:
     hunt_id = str(args.hunt_id)
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
     hunt_api_object = ApiHunt().InitFromHuntObject(hunt_obj)
@@ -1025,8 +1047,16 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         hunt_id, offset=0, count=db.MAX_COUNT)
     return results, description
 
-  def Handle(self, args, context=None):
-    collection, description = self._LoadData(args, context=context)
+  def Handle(
+      self,
+      args: ApiGetHuntFilesArchiveArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_call_handler_base.ApiBinaryStream:
+
+    if context is None:
+      raise ValueError("No API call context given")
+
+    collection, description = self._LoadData(args)
     target_file_prefix = "hunt_" + str(args.hunt_id).replace(":", "_")
 
     if args.archive_format == args.ArchiveFormat.ZIP:

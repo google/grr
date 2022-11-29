@@ -1,7 +1,7 @@
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, Params} from '@angular/router';
+import {ActivatedRoute, convertToParamMap, ParamMap} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 import {ReplaySubject} from 'rxjs';
 
@@ -9,10 +9,9 @@ import {ApiModule} from '../../lib/api/module';
 import {newClient} from '../../lib/models/model_test_util';
 import {getClientVersions} from '../../store/client_details_diff';
 import {ClientDetailsGlobalStore} from '../../store/client_details_global_store';
-import {ClientDetailsGlobalStoreMock, mockClientDetailsGlobalStore} from '../../store/client_details_global_store_test_util';
-import {ConfigGlobalStore} from '../../store/config_global_store';
-import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
-import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
+import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
+import {MockStore} from '../../store/store_test_util';
 import {DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER, initTestEnvironment} from '../../testing';
 
 import {ClientDetails} from './client_details';
@@ -23,9 +22,9 @@ import {CLIENT_DETAILS_ROUTES} from './routing';
 initTestEnvironment();
 
 describe('Client Details Component', () => {
-  let store: ClientDetailsGlobalStoreMock;
-  let configGlobalStore: ConfigGlobalStoreMock;
-  let activatedRoute: Partial<ActivatedRoute>&{params: ReplaySubject<Params>};
+  let store: MockStore<ClientDetailsGlobalStore>;
+  let activatedRoute: Partial<ActivatedRoute>&
+      {paramMap: ReplaySubject<ParamMap>};
 
   const clientVersionsMock = [
     newClient({
@@ -51,10 +50,8 @@ describe('Client Details Component', () => {
   ];
 
   beforeEach(waitForAsync(() => {
-    configGlobalStore = mockConfigGlobalStore();
-    store = mockClientDetailsGlobalStore();
     activatedRoute = {
-      params: new ReplaySubject<Params>(),
+      paramMap: new ReplaySubject<ParamMap>(),
     };
 
     TestBed
@@ -63,24 +60,27 @@ describe('Client Details Component', () => {
             ApiModule,
             NoopAnimationsModule,
             ClientDetailsModule,
-            RouterTestingModule.withRoutes(CLIENT_DETAILS_ROUTES),
+            RouterTestingModule.withRoutes([
+              ...CLIENT_DETAILS_ROUTES,
+              // Dummy route to stop error when navigating back to client.
+              {path: 'clients/:id', component: ClientDetails},
+            ]),
           ],
           providers: [
-            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
-            {provide: ClientDetailsGlobalStore, useFactory: () => store},
+            ...STORE_PROVIDERS,
             {provide: ActivatedRoute, useFactory: () => activatedRoute},
             DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER,
           ],
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();
+
+    store = injectMockStore(ClientDetailsGlobalStore);
   }));
 
-  it('reads globally selected client id', () => {
+  it('reads client id from URL', () => {
     TestBed.createComponent(ClientDetails);
-    const selectedClientGlobalStore = TestBed.inject(SelectedClientGlobalStore);
-
-    selectedClientGlobalStore.selectClientId('C.1222');
+    activatedRoute.paramMap.next(convertToParamMap({'clientId': 'C.1222'}));
     expect(store.selectClient).toHaveBeenCalledWith('C.1222');
   });
 
@@ -100,7 +100,8 @@ describe('Client Details Component', () => {
     const fixture = TestBed.createComponent(ClientDetails);
     fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
-    activatedRoute.params.next({sourceFlowId: '123'});
+    activatedRoute.paramMap.next(
+        convertToParamMap({'clientId': 'C.1234', 'sourceFlowId': '123'}));
     store.mockedObservables.selectedClientVersions$.next(
         getClientVersions(clientVersionsMock));
     fixture.detectChanges();
@@ -299,5 +300,26 @@ describe('Client Details Component', () => {
        fixture.detectChanges();
        text = fixture.debugElement.nativeElement.textContent;
        expect(text).not.toContain('hidden-username');
+     }));
+
+  it('clicking on interrogate button starts Interrogate configuration',
+     fakeAsync(() => {
+       const fixture = TestBed.createComponent(ClientDetails);
+       fixture.detectChanges();  // Ensure ngOnInit hook completes.
+
+       store.mockedObservables.selectedClientVersions$.next(
+           getClientVersions(clientVersionsMock));
+       fixture.detectChanges();
+       tick();
+       fixture.detectChanges();
+
+       fixture.debugElement.query(By.css('[name="interrogate-button"]'))
+           .triggerEventHandler('click', null);
+
+       const clientPageGlobalStore = injectMockStore(ClientPageGlobalStore);
+       expect(clientPageGlobalStore.startFlowConfiguration)
+           .toHaveBeenCalledOnceWith('Interrogate', {});
+       expect(clientPageGlobalStore.scheduleOrStartFlow)
+           .toHaveBeenCalledOnceWith({});
      }));
 });

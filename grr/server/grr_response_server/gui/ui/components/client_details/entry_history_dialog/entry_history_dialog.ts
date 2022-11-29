@@ -14,7 +14,7 @@ export interface EntryHistoryDialogParams {
 }
 
 interface EntryHistoryTableRow<T> {
-  time: Date;
+  time?: Date;
   version: T;
 }
 

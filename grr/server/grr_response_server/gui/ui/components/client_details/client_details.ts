@@ -1,8 +1,7 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, ViewChild} from '@angular/core';
 import {MatSelectionList} from '@angular/material/list';
-import {MatSnackBar} from '@angular/material/snack-bar';
 import {ActivatedRoute} from '@angular/router';
-import {combineLatest, Observable} from 'rxjs';
+import {combineLatest} from 'rxjs';
 import {filter, map, startWith, take, takeUntil} from 'rxjs/operators';
 
 import {Client} from '../../lib/models/client';
@@ -11,12 +10,7 @@ import {observeOnDestroy} from '../../lib/reactive';
 import {ClientVersion} from '../../store/client_details_diff';
 import {ClientDetailsGlobalStore} from '../../store/client_details_global_store';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
-import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
-import {ErrorSnackbar} from '../helpers/error_snackbar/error_snackbar';
-
-declare interface ClientDetailsRouteParams {
-  sourceFlowId?: string;
-}
+import {SnackBarErrorHandler} from '../helpers/error_snackbar/error_handler';
 
 /**
  * Component displaying the details for a single Client.
@@ -49,36 +43,35 @@ export class ClientDetails implements OnDestroy {
   readonly selectedIndex$ =
       combineLatest([
         this.clientVersions$,
-        this.activatedRoute.params as Observable<ClientDetailsRouteParams>,
+        this.activatedRoute.paramMap,
       ])
           .pipe(
               take(1),
-              map(([versions, params]) =>
-                      this.findVersionOrShowError(versions, params)),
+              map(([versions, paramMap]) => this.findVersionOrShowError(
+                      versions, paramMap.get('sourceFlowId'))),
               startWith(0),
           );
 
   constructor(
       private readonly clientDetailsGlobalStore: ClientDetailsGlobalStore,
-      private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
       private readonly clientPageGlobalStore: ClientPageGlobalStore,
       private readonly activatedRoute: ActivatedRoute,
-      private readonly snackBar: MatSnackBar,
-
+      private readonly errorHandler: SnackBarErrorHandler,
   ) {
-    this.selectedClientGlobalStore.clientId$
+    this.activatedRoute.paramMap
         .pipe(
             takeUntil(this.ngOnDestroy.triggered$),
+            map(params => params.get('clientId')),
             filter(isNonNull),
             )
         .subscribe(clientId => {
+          this.clientPageGlobalStore.selectClient(clientId);
           this.clientDetailsGlobalStore.selectClient(clientId);
         });
   }
 
   findVersionOrShowError(
-      versions: ReadonlyArray<ClientVersion>,
-      {sourceFlowId}: ClientDetailsRouteParams) {
+      versions: readonly ClientVersion[], sourceFlowId?: string|null) {
     if (!sourceFlowId) {
       return 0;
     }
@@ -87,9 +80,8 @@ export class ClientDetails implements OnDestroy {
         versions.findIndex(v => v.client.sourceFlowId === sourceFlowId);
 
     if (version === -1) {
-      this.snackBar.openFromComponent(ErrorSnackbar, {
-        data: `Did not find client history entry from flow ${sourceFlowId}.`
-      });
+      this.errorHandler.handleError(
+          `Did not find client history entry from flow ${sourceFlowId}.`);
       return 0;
     }
 
@@ -98,7 +90,7 @@ export class ClientDetails implements OnDestroy {
 
   triggerInterrogate() {
     this.clientPageGlobalStore.startFlowConfiguration('Interrogate', {});
-    this.clientPageGlobalStore.startFlow({});
+    this.clientPageGlobalStore.scheduleOrStartFlow({});
   }
 
   get selectedClient(): Client|undefined {

@@ -1,4 +1,9 @@
-<div class="content-list">
+<app-infinite-list
+  class="content-list"
+  [hasMore]="huntOverviewPageLocalStore.hasMore$ | async"
+  [isLoading]="huntOverviewPageLocalStore.isLoading$ | async"
+  (loadMore)="huntOverviewPageLocalStore.loadMore(undefined)"
+>
   <h2>All fleet collections</h2>
 
   <mat-card
@@ -6,6 +11,24 @@
     class="clickable mat-card-outlined"
     [routerLink]="['/hunts', hunt.huntId]"
   >
-    <mat-card-title> {{ hunt.description }}</mat-card-title>
+    <div class="header">
+      <mat-card-title>{{ hunt.description }} </mat-card-title>
+      <div>
+        <user-image [username]="hunt.creator" size="16px"></user-image>
+        {{hunt.creator}}
+      </div>
+      <div>
+        <app-timestamp [date]="hunt.created"></app-timestamp>
+      </div>
+      <div>{{ hunt.completedClientsCount }} of {{ hunt.allClientsCount }}</div>
+      <mat-progress-bar
+        [mode]="isRunning(hunt) ? 'buffer' : 'determinate'"
+        [value]="getHuntProgress(hunt)"
+        [bufferValue]="getHuntBufferProgress(hunt)"
+        [matTooltip]="getHuntProgressTooltip(hunt)"
+        color="success"
+      ></mat-progress-bar>
+    </div>
+    {{ hunt.flowName ?? hunt.name }}
   </mat-card>
-</div>
+</app-infinite-list>

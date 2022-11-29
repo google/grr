@@ -44,10 +44,10 @@ def Placeholders(num: int, values: int = 1) -> Text:
 
   Examples:
     >>> Placeholders(3)
-    u'(%s, %s, %s)'
+    '(%s, %s, %s)'
 
     >>> Placeholders(num=3, values=2)
-    u'(%s, %s, %s), (%s, %s, %s)'
+    '(%s, %s, %s), (%s, %s, %s)'
 
   Args:
     num: The number of %s placeholders for each value.
@@ -56,7 +56,6 @@ def Placeholders(num: int, values: int = 1) -> Text:
   Returns:
     a string with `values` comma-separated tuples containing `num`
     comma-separated placeholders each.
-
   """
   value = "(" + ", ".join(["%s"] * num) + ")"
   return ", ".join([value] * values)
@@ -72,7 +71,7 @@ def NamedPlaceholders(iterable: Iterable[Text]) -> Text:
 
   Examples:
     >>> NamedPlaceholders({"password": "foo", "name": "bar"})
-    u'(%(name)s, %(password)s)'
+    '(%(name)s, %(password)s)'
 
   Args:
     iterable: The iterable of strings to be used as placeholder keys.
@@ -92,7 +91,7 @@ def Columns(iterable: Iterable[Text]) -> Text:
 
   Examples:
     >>> Columns({"password": "foo", "name": "bar"})
-    u'(`name`, `password`)'
+    '(`name`, `password`)'
 
   Args:
     iterable: The iterable of strings to be used as column names.
@@ -114,8 +113,8 @@ def TimestampToRDFDatetime(timestamp) -> Optional[rdfvalue.RDFDatetime]:
     return rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(micros)
 
 
-def RDFDatetimeToTimestamp(datetime: Optional[rdfvalue.RDFDatetime]
-                          ) -> Optional[float]:
+def RDFDatetimeToTimestamp(
+    datetime: Optional[rdfvalue.RDFDatetime]) -> Optional[float]:
   """Converts a datetime object to MySQL `TIMESTAMP(6)` column."""
   if datetime is None:
     return None

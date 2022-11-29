@@ -11,6 +11,8 @@ from typing import Text
 from typing import Tuple
 from typing import TypeVar
 
+from google.protobuf import any_pb2
+from google.protobuf import wrappers_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -213,13 +215,22 @@ def ParseAndUnpackAny(payload_type: str,
     if payload type is not recognized, an instance of
     SerializedValueOfUnrecognizedType.
   """
+  any_proto = any_pb2.Any.FromString(payload_bytes)
 
-  payload_any = rdf_structs.AnyValue.FromSerializedBytes(payload_bytes)
-  if payload_type in rdfvalue.RDFValue.classes:
-    return payload_any.Unpack(rdfvalue.RDFValue.classes[payload_type])
+  if any_proto.type_url == _BYTES_VALUE_TYPE_URL:
+    bytes_value_proto = wrappers_pb2.BytesValue()
+    any_proto.Unpack(bytes_value_proto)
+
+    payload_value_bytes = bytes_value_proto.value
   else:
+    payload_value_bytes = any_proto.value
+
+  if payload_type not in rdfvalue.RDFValue.classes:
     return rdf_objects.SerializedValueOfUnrecognizedType(
-        type_name=payload_type, value=payload_any.value)
+        type_name=payload_type, value=payload_value_bytes)
+
+  rdf_class = rdfvalue.RDFValue.classes[payload_type]
+  return rdf_class.FromSerializedBytes(payload_value_bytes)
 
 
 class BatchPlanner(Generic[_T]):
@@ -330,3 +341,6 @@ class BatchPlanner(Generic[_T]):
       return result
 
     return self._batches
+
+
+_BYTES_VALUE_TYPE_URL = f"type.googleapis.com/{wrappers_pb2.BytesValue.DESCRIPTOR.full_name}"

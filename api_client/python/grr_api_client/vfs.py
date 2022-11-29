@@ -46,10 +46,10 @@ class FileOperation(metaclass=abc.ABCMeta):
     if not target_file:
       raise ValueError("target_file can't be empty")
 
-    self.client_id = client_id  # type: str
-    self.operation_id = operation_id  # type: str
-    self.target_file = target_file  # type: FileBase
-    self._context = context  # type: api_context.GrrApiContext
+    self.client_id: str = client_id
+    self.operation_id: str = operation_id
+    self.target_file: FileBase = target_file
+    self._context: api_context.GrrApiContext = context
 
   @abc.abstractmethod
   def GetState(self) -> int:
@@ -150,9 +150,9 @@ class FileBase(object):
     if not path:
       raise ValueError("path can't be empty")
 
-    self.client_id = client_id  # type: str
-    self.path = path  # type: str
-    self._context = context  # type: api_context.GrrApiContext
+    self.client_id: str = client_id
+    self.path: str = path
+    self._context: api_context.GrrApiContext = context
 
   def GetBlob(
       self,
@@ -289,7 +289,7 @@ class File(FileBase):
   ):
     super().__init__(client_id=client_id, path=data.path, context=context)
 
-    self.data = data  # type: vfs_pb2.ApiFile
+    self.data: vfs_pb2.ApiFile = data
 
   @property
   def is_directory(self) -> bool:

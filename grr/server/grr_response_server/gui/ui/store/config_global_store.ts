@@ -8,15 +8,18 @@ import {HttpApiService} from '../lib/api/http_api_service';
 import {translateArtifactDescriptor} from '../lib/api_translation/artifact';
 import {getApiClientLabelName} from '../lib/api_translation/client';
 import {safeTranslateBinary, translateFlowDescriptor} from '../lib/api_translation/flow';
+import {translateOutputPluginDescriptor} from '../lib/api_translation/output_plugin';
 import {cacheLatest} from '../lib/cache';
 import {ApprovalConfig} from '../lib/models/client';
 import {ArtifactDescriptor, ArtifactDescriptorMap, Binary, FlowDescriptor, FlowDescriptorMap} from '../lib/models/flow';
+import {OutputPluginDescriptor, OutputPluginDescriptorMap} from '../lib/models/output_plugin';
 import {isNonNull} from '../lib/preconditions';
 
 /** The state of the Config. */
 export interface ConfigState {
   readonly flowDescriptors?: FlowDescriptorMap;
   readonly artifactDescriptors?: ArtifactDescriptorMap;
+  readonly outputPluginDescriptors?: OutputPluginDescriptorMap;
   readonly approvalConfig?: ApprovalConfig;
   readonly uiConfig?: ApiUiConfig;
   readonly clientsLabels?: ReadonlyArray<string>;
@@ -42,6 +45,15 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
         return {
           ...state,
           artifactDescriptors: new Map(descriptors.map(ad => [ad.name, ad])),
+        };
+      });
+
+  private readonly updateOutputPluginDescriptors =
+      this.updater<readonly OutputPluginDescriptor[]>((state, descriptors) => {
+        return {
+          ...state,
+          outputPluginDescriptors:
+              new Map(descriptors.map(opd => [opd.name, opd])),
         };
       });
 
@@ -73,6 +85,17 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
                   apiDescriptors.map(translateArtifactDescriptor)),
           tap(descriptors => {
             this.updateArtifactDescriptors(descriptors);
+          }),
+          ));
+
+  private readonly listOutputPluginDescriptors = this.effect<void>(
+      obs$ => obs$.pipe(
+          switchMap(() => this.httpApiService.listOutputPluginDescriptors()),
+          cacheLatest('listOutputPluginDescriptors'),
+          map(apiDescriptors =>
+                  apiDescriptors.map(translateOutputPluginDescriptor)),
+          tap(descriptors => {
+            this.updateOutputPluginDescriptors(descriptors);
           }),
           ));
 
@@ -175,6 +198,17 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
       shareReplay(1),  // Ensure that the query is done just once.
   );
 
+  /** An observable emitting available output plugin descriptors. */
+  readonly outputPluginDescriptors$ = of(undefined).pipe(
+      // Ensure that the query is done on subscription.
+      tap(() => {
+        this.listOutputPluginDescriptors();
+      }),
+      switchMap(() => this.select(state => state.outputPluginDescriptors)),
+      filter(isNonNull),
+      shareReplay(1),  // Ensure that the query is done just once.
+  );
+
   readonly binaries$ = of(undefined).pipe(
       // Ensure that the query is done on subscription.
       tap(() => {
@@ -214,4 +248,7 @@ export class ConfigGlobalStore {
       this.store.artifactDescriptors$;
 
   readonly binaries$: Observable<ReadonlyArray<Binary>> = this.store.binaries$;
+
+  readonly outputPluginDescriptors$: Observable<OutputPluginDescriptorMap> =
+      this.store.outputPluginDescriptors$;
 }

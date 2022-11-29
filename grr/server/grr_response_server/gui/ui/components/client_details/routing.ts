@@ -7,7 +7,16 @@ import {ClientDetails} from './client_details';
  * Client details sidebar route.
  */
 export const CLIENT_DETAILS_ROUTES: Routes = [
-  {path: 'details', component: ClientDetails, outlet: 'drawer'},
+  {
+    path: 'details/:clientId',
+    component: ClientDetails,
+    outlet: 'drawer',
+  },
+  {
+    path: 'details/:clientId/:sourceFlowId',
+    component: ClientDetails,
+    outlet: 'drawer',
+  },
 ];
 
 @NgModule({

@@ -49,10 +49,10 @@ config_lib.DEFINE_option(
         default="grr-emergency@localhost"))
 
 config_lib.DEFINE_string("Monitoring.http_address", "::1",
-    "IP address for stats monitoring server.")
+                         "IP address for stats monitoring server.")
 
 config_lib.DEFINE_integer("Monitoring.http_port", 0,
-    "Port for stats monitoring server.")
+                          "Port for stats monitoring server.")
 
 config_lib.DEFINE_integer(
     "Monitoring.http_port_max", None,

@@ -7,7 +7,7 @@ from grr_response_core import config
 from fleetspeak.server_connector import connector as fs_client
 
 # The singleton instance of the Fleetspeak connector.
-CONN = None  # type: Optional[fs_client.ServiceClient]
+CONN: Optional[fs_client.ServiceClient] = None
 
 # Singleton information mapping Fleetspeak labels to GRR labels.
 label_map = {}

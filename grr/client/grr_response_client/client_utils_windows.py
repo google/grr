@@ -6,7 +6,6 @@ import logging
 import os
 import re
 import sys
-import time
 
 import ntsecuritycon
 import pywintypes
@@ -221,8 +220,8 @@ def GetRawDevice(path):
 
   if not path.startswith(mount_point):
     stripped_mp = mount_point.rstrip("\\")
-    if not path.startswith(stripped_mp):
-      raise IOError("path %s is not mounted under %s" % (path, mount_point))
+    if not path.lower().startswith(stripped_mp.lower()):
+      raise IOError("Path %s is not mounted under %s" % (path, mount_point))
 
   corrected_path = LocalPathToCanonicalPath(path[len(mount_point):])
   corrected_path = utils.NormalizePath(corrected_path)
@@ -254,48 +253,6 @@ def _GetServiceKey():
     _service_key = winreg.CreateKeyEx(hive, path, 0, winreg.KEY_ALL_ACCESS)
 
   return _service_key
-
-
-class NannyController(object):
-  """Controls communication with the nanny."""
-
-  def Heartbeat(self):
-    """Writes a heartbeat to the registry."""
-    service_key = _GetServiceKey()
-    try:
-      winreg.SetValueEx(service_key, "Nanny.heartbeat", 0, winreg.REG_DWORD,
-                        int(time.time()))
-    except OSError as e:
-      logging.debug("Failed to heartbeat nanny at %s: %s", service_key, e)
-
-  def GetNannyStatus(self):
-    try:
-      value, _ = winreg.QueryValueEx(_GetServiceKey(), "Nanny.status")
-    except OSError:
-      return None
-
-    return value
-
-  def GetNannyMessage(self):
-    try:
-      value, _ = winreg.QueryValueEx(_GetServiceKey(), "Nanny.message")
-    except OSError:
-      return None
-
-    return value
-
-  def ClearNannyMessage(self):
-    """Wipes the nanny message."""
-    try:
-      winreg.DeleteValue(_GetServiceKey(), "Nanny.message")
-    except OSError:
-      pass
-
-  def StartNanny(self):
-    """Not used for the Windows nanny."""
-
-  def StopNanny(self):
-    """Not used for the Windows nanny."""
 
 
 class Kernel32(object):
