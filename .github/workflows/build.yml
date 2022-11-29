@@ -176,10 +176,10 @@ jobs:
     env:
       GCS_TAG: server_deb
     needs:
-      - build-centos
+      # - build-centos
       - build-linux
       - build-osx
-      - build-windows
+      # - build-windows
     steps:
       - uses: actions/checkout@v2
       - name: Download installers from GitHub artifacts
