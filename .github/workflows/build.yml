@@ -15,7 +15,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.9'
       - name: Install
         run: |
           free -hmw
@@ -43,7 +43,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.9'
       - name: Install
         run: |
           sudo apt install -y libmysqlclient-dev
@@ -71,7 +71,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.6'
+          python-version: '3.9'
       - name: Set up
         run: |
           sudo apt install fakeroot debhelper libffi-dev libssl-dev
@@ -95,7 +95,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.6'
+          python-version: '3.9'
       - name: Set up
         run: |
           pip install --upgrade setuptools virtualenv
@@ -123,7 +123,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.6'
+          python-version: '3.9'
       - name: Build installers
         run: |
           sudo docker run -dit \
@@ -152,7 +152,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.7'
+          python-version: '3.9'
       - name: Build installers
         shell: bash
         run: |
@@ -226,7 +226,7 @@ jobs:
       - uses: actions/checkout@v2
       - uses: actions/setup-python@v2
         with:
-          python-version: '3.6'
+          python-version: '3.9'
       - name: Set up MySQL
         run: |
           sudo /etc/init.d/mysql start
