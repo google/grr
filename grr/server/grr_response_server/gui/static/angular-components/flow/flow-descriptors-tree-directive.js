@@ -56,9 +56,9 @@ const FlowDescriptorsTreeController = class {
    * @private
    */
   groupDescriptorsByCategory_(items) {
-    var result = {};
+    const result = {};
     angular.forEach(items, function(item) {
-      var category = item['value']['category']['value'];
+      const category = item['value']['category']['value'];
       result[category] = result[category] || [];
       result[category].push(item);
     }.bind(this));
@@ -83,27 +83,27 @@ const FlowDescriptorsTreeController = class {
     // it's not set.
     // TODO(user): stuff like this should be abstracted away into a
     // dedicated service.
-    var mode = this.scope_.$eval('controller.userSettings.value.mode.value');
+    let mode = this.scope_.$eval('controller.userSettings.value.mode.value');
     if (angular.isUndefined(mode)) {
       mode = 'BASIC';
     }
 
-    var treeNodes = [];
-    var descriptorsKeys = Object.keys(this.flowsDescriptors).sort();
+    const treeNodes = [];
+    const descriptorsKeys = Object.keys(this.flowsDescriptors).sort();
     angular.forEach(descriptorsKeys, function(category) {
-      var categoryNode = {
+      const categoryNode = {
         text: category,
         // Id is needed for Selenium tests backwards compatibility.
         li_attr: {id: '_' + category},
         children: []
       };
 
-      var descriptors = this.flowsDescriptors[category].sort(function(a, b) {
+      const descriptors = this.flowsDescriptors[category].sort(function(a, b) {
         a = stripTypeInfo(a);
         b = stripTypeInfo(b);
 
-        var aName = a['friendly_name'] || a['name'];
-        var bName = b['friendly_name'] || b['name'];
+        const aName = a['friendly_name'] || a['name'];
+        const bName = b['friendly_name'] || b['name'];
 
         if (aName < bName) {
           return -1;
@@ -114,7 +114,7 @@ const FlowDescriptorsTreeController = class {
         }
       });
       angular.forEach(descriptors, function(descriptor) {
-        var strippedDescriptor = stripTypeInfo(descriptor);
+        const strippedDescriptor = stripTypeInfo(descriptor);
 
         // Filter out flows that don't support display mode selected by
         // the user.
@@ -135,7 +135,7 @@ const FlowDescriptorsTreeController = class {
       treeNodes.push(categoryNode);
     }.bind(this));
 
-    var treeElem = $(this.element_).children('div.tree');
+    const treeElem = $(this.element_).children('div.tree');
     treeElem.jstree({
       'core': {
         'data': treeNodes,
@@ -145,7 +145,7 @@ const FlowDescriptorsTreeController = class {
       data['instance']['toggle_node'](data['node']);
 
       if (data.node.data !== null) {
-        var descriptor = data.node.data.descriptor;
+        const descriptor = data.node.data.descriptor;
 
         // Have to call apply as we're in event handler triggered by
         // non-Angular code.

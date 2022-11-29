@@ -8,7 +8,7 @@
     <flow-details *ngIf="flowWithDescriptor$ | async"
       [flow]="(flowWithDescriptor$ | async)?.flow"
       [flowDescriptor]="(flowWithDescriptor$ | async)?.descriptor"
-      [showCreateHunt]="false">
+      [showContextMenu]="false">
     </flow-details>
     <app-clients-form #clientsForm>
     </app-clients-form>

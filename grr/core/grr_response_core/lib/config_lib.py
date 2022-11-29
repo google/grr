@@ -4,6 +4,7 @@
 This handles opening and parsing of config files.
 """
 import collections
+from collections import abc
 import copy
 import io
 import logging
@@ -118,6 +119,8 @@ def SetPlatformArchContext():
       arch = "amd64"
   elif machine == "x86":
     arch = "i386"
+  elif machine == "arm64":
+    arch = "aarch64"
   else:
     arch = machine
 
@@ -1023,8 +1026,7 @@ class GrrConfigManager(object):
                            "Configuration hasn't been initialized yet." % name)
     if context:
       # Make sure it's not just a string and is iterable.
-      if (isinstance(context, str) or
-          not isinstance(context, collections.Iterable)):
+      if (isinstance(context, str) or not isinstance(context, abc.Iterable)):
         raise ValueError("context should be a list, got %r" % context)
 
     calc_context = context

@@ -32,8 +32,8 @@ class GrrApi(object):
     super().__init__()
 
     self._context = context.GrrApiContext(connector=connector)
-    self.types = types.Types(context=self._context)  # type: types.Types
-    self.root = root.RootGrrApi(context=self._context)  # type: root.RootGrrApi
+    self.types: types.Types = types.Types(context=self._context)
+    self.root: root.RootGrrApi = root.RootGrrApi(context=self._context)
 
   def Client(self, client_id: str) -> client.ClientRef:
     return client.ClientRef(client_id=client_id, context=self._context)

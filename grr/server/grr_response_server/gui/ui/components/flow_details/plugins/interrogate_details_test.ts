@@ -45,6 +45,7 @@ describe('app-interrogate-details component', () => {
   it('links to client metadata drawer with sourceFlowId', () => {
     const fixture = TestBed.createComponent(InterrogateDetails);
     fixture.componentInstance.flow = newFlow({
+      clientId: 'C.1111',
       flowId: '1234',
       name: 'Interrogate',
       state: FlowState.FINISHED,
@@ -52,6 +53,7 @@ describe('app-interrogate-details component', () => {
     fixture.detectChanges();
 
     const link = fixture.debugElement.query(By.css('a.header'));
-    expect(link.attributes['href']).toContain('sourceFlowId=1234');
+    expect(link.attributes['href']).toContain('C.1111');
+    expect(link.attributes['href']).toContain('1234');
   });
 });

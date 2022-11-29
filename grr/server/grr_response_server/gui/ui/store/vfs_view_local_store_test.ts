@@ -23,7 +23,7 @@ const apiFile =
           name: path.slice(path.lastIndexOf('/') + 1),
           isDirectory: false,
           stat: {pathspec: {path, pathtype}},
-          age: 123,
+          age: '123',
         });
 
 describe('VfsViewLocalStore', () => {
@@ -284,7 +284,7 @@ describe('VfsViewLocalStore', () => {
 
        expect(httpApiService.refreshVfsFolder)
            .toHaveBeenCalledOnceWith(
-               'C.1234', PathSpecPathType.OS, '/', {maxDepth: 5});
+               'C.1234', PathSpecPathType.OS, '/', {maxDepth: '5'});
 
        httpApiService.browseFilesystem = jasmine.createSpy('browseFilesystem')
                                              .and.callFake((clientId, path) => {

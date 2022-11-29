@@ -3,7 +3,7 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
 import {FlowFormModule} from '../../components/flow_form/module';
-import {CollectBrowserHistoryArgsBrowser} from '../../lib/api/api_interfaces';
+import {Browser} from '../../lib/api/api_interfaces';
 import {RequestStatusType} from '../../lib/api/track_request';
 import {newClient, newFlowDescriptor} from '../../lib/models/model_test_util';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
@@ -68,7 +68,7 @@ describe('FlowForm Component', () => {
     expect(getSubmit(fixture)).toBeTruthy();
   });
 
-  it('triggers startFlow on form submit', () => {
+  it('triggers scheduleOrStartFlow on form submit', () => {
     const fixture = TestBed.createComponent(FlowForm);
     fixture.detectChanges();
 
@@ -77,36 +77,15 @@ describe('FlowForm Component', () => {
         newFlowDescriptor({
           name: 'CollectBrowserHistory',
           defaultArgs: {
-            browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
+            browsers: [Browser.CHROME],
           }
         }));
     clientPageGlobalStore.mockedObservables.hasAccess$.next(true);
     fixture.detectChanges();
 
     getSubmit(fixture).click();
-    expect(clientPageGlobalStore.startFlow).toHaveBeenCalledWith({
-      browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
-    });
-  });
-
-  it('triggers scheduleFlow on form submit without access', () => {
-    const fixture = TestBed.createComponent(FlowForm);
-    fixture.detectChanges();
-
-    clientPageGlobalStore.mockedObservables.selectedClient$.next(newClient());
-    clientPageGlobalStore.mockedObservables.hasAccess$.next(false);
-    clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
-        newFlowDescriptor({
-          name: 'CollectBrowserHistory',
-          defaultArgs: {
-            browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
-          }
-        }));
-    fixture.detectChanges();
-
-    getSubmit(fixture).click();
-    expect(clientPageGlobalStore.scheduleFlow).toHaveBeenCalledWith({
-      browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
+    expect(clientPageGlobalStore.scheduleOrStartFlow).toHaveBeenCalledWith({
+      browsers: [Browser.CHROME],
     });
   });
 

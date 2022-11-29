@@ -49,12 +49,12 @@ const ModifyHuntDialogController = class {
 
     if (angular.isString(newValue)) {
       this.grrApiService_.get('/hunts/' + newValue).then(function(response) {
-        var hunt = response['data'];
+        const hunt = response['data'];
         this.argsObj = {type: 'ApiModifyHuntArgs', value: {}};
 
         angular.forEach(
             ['client_limit', 'client_rate', 'duration'], function(k) {
-              var v = hunt['value'][k];
+              const v = hunt['value'][k];
 
               if (v) {
                 this.argsObj['value'][k] = angular.copy(v);
@@ -73,18 +73,18 @@ const ModifyHuntDialogController = class {
    * @export
    */
   proceed() {
-    var request = /** @type {Object} */ (stripTypeInfo(this.argsObj));
+    const request = /** @type {Object} */ (stripTypeInfo(this.argsObj));
     return this.grrApiService_.patch('/hunts/' + this.scope_['huntId'], request)
         .then(
             function success() {
               return 'Hunt modified successfully!';
             }.bind(this),
             function failure(response) {
-              var message = response['data']['message'];
+              const message = response['data']['message'];
 
               if (response['status'] === 403) {
-                var subject = response['data']['subject'];
-                var huntId = stripAff4Prefix(subject).split('/')[1];
+                const subject = response['data']['subject'];
+                const huntId = stripAff4Prefix(subject).split('/')[1];
 
                 this.grrAclDialogService_.openRequestHuntApprovalDialog(
                     huntId, message);

@@ -465,6 +465,8 @@ class RegistryVFSStubber(object):
     from grr_response_client.vfs_handlers import registry
     # pylint: enable=g-import-not-at-top
 
+    self._supported_pathtype = registry.RegistryFile.supported_pathtype
+
     fixture = RegistryFake()
 
     self.stubber = utils.MultiStubber(
@@ -477,14 +479,20 @@ class RegistryVFSStubber(object):
     self.stubber.Start()
 
     # Add the Registry handler to the vfs.
-    vfs.VFS_HANDLERS[
-        registry.RegistryFile.supported_pathtype] = registry.RegistryFile
+    self._original_handler = vfs.VFS_HANDLERS.get(self._supported_pathtype,
+                                                  None)
+    vfs.VFS_HANDLERS[self._supported_pathtype] = registry.RegistryFile
 
   def Stop(self):
     """Uninstall the stubs."""
 
     self.module_patcher.stop()
     self.stubber.Stop()
+
+    # Remove the Registry handler from the vfs.
+    del vfs.VFS_HANDLERS[self._supported_pathtype]
+    if self._original_handler is not None:
+      vfs.VFS_HANDLERS[self._supported_pathtype] = self._original_handler
 
 
 def CreateFile(client_path, content=b""):

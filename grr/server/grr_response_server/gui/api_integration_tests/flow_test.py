@@ -402,7 +402,6 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     self.assertEqual(pending_notifications[0].data.reference.flow.flow_id,
                      flow_id)
 
-  # TODO(user): These unit tests should be moved to a dedicated GrrApi test.
   def testClientReprContainsClientId(self):
     client_id = self.SetupClient(0)
     client_ref = self.api.Client(client_id=client_id)

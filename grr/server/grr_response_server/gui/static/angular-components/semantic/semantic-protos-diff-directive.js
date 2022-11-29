@@ -21,9 +21,9 @@ const {SemanticProtoDirective} = goog.require('grrUi.semantic.semanticProtoDirec
  * @param {Array<Object>} originalValue
  * @param {Array<Object>} newValue
  */
-var diffAnnotateArrays = function(originalValue, newValue) {
+const diffAnnotateArrays = function(originalValue, newValue) {
   angular.forEach(originalValue, function(originalItem) {
-    var found = false;
+    let found = false;
     angular.forEach(newValue, function(newItem) {
       if (angular.equals(originalItem, newItem)) {
         found = true;
@@ -36,7 +36,7 @@ var diffAnnotateArrays = function(originalValue, newValue) {
   });
 
   angular.forEach(newValue, function(newItem) {
-    var found = false;
+    let found = false;
     angular.forEach(originalValue, function(originalItem) {
       if (angular.equals(originalItem, newItem)) {
         found = true;
@@ -160,16 +160,16 @@ exports.diffAnnotate = function(originalValue, newValue) {
   // At this point both values' "value" attribute is guaranteed to be a map
   // (see comments above). We build a union of both maps so that
   // we can traverse the union of the keys.
-  var allKeys = angular.extend({}, originalValue['value'], newValue['value']);
+  const allKeys = angular.extend({}, originalValue['value'], newValue['value']);
   // For every key present in either one of two values, call diffAnnotate
   // recursively. originalValue['value'][key] and newValue['value'][key]
   // can either be undefined, be arrays or be objects of a
   // {type: ..., value: ...} structure.
-  for (var key in allKeys) {
+  for (const key in allKeys) {
     diffAnnotate(originalValue['value'][key], newValue['value'][key]);
   }
 };
-var diffAnnotate = exports.diffAnnotate;
+const diffAnnotate = exports.diffAnnotate;
 
 /**
  * Controller for SemanticProtosDiffDirective.
@@ -190,8 +190,8 @@ const SemanticProtosDiffController = class {
     /** @type {Object} */
     this.annotatedNewValue;
 
-    var protoType = SemanticProtoDirective.semantic_type;
-    var protoDirectiveOverride = SemanticDiffAnnotatedProtoDirective;
+    const protoType = SemanticProtoDirective.semantic_type;
+    const protoDirectiveOverride = SemanticDiffAnnotatedProtoDirective;
 
     /** @type {Object<string, Object>} */
     this.overrideMap = {};

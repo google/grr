@@ -56,10 +56,10 @@ exports.SemanticRegistryService = class {
   findDirectiveForMro(mro, overrides) {
     overrides = overrides || {};
 
-    for (var i = 0; i < mro.length; ++i) {
-      var objType = mro[i];
+    for (let i = 0; i < mro.length; ++i) {
+      const objType = mro[i];
 
-      var directive = overrides[objType];
+      let directive = overrides[objType];
       if (angular.isUndefined(directive)) {
         directive = this.directivesByType_[objType];
       }
@@ -91,7 +91,7 @@ exports.SemanticRegistryService = class {
     // If we have an exact match with one of the overrides, no need for
     // the MRO check.
     if (angular.isDefined(overrides[type])) {
-      var deferred = this.q_.defer();
+      const deferred = this.q_.defer();
       deferred.resolve(overrides[type]);
       return deferred.promise;
     }
@@ -99,13 +99,13 @@ exports.SemanticRegistryService = class {
     // If we have an exact match with one of the registered types, no need
     // for the MRO check.
     if (angular.isDefined(this.directivesByType_[type])) {
-      var deferred = this.q_.defer();
+      const deferred = this.q_.defer();
       deferred.resolve(this.directivesByType_[type]);
       return deferred.promise;
     }
 
-    var handleDescriptor = function(descriptor) {
-      var directive = this.findDirectiveForMro(descriptor['mro'], overrides);
+    const handleDescriptor = function(descriptor) {
+      const directive = this.findDirectiveForMro(descriptor['mro'], overrides);
       if (angular.isDefined(directive)) {
         return directive;
       } else {
@@ -118,7 +118,7 @@ exports.SemanticRegistryService = class {
                             // in grrReflectionService.
   }
 };
-var SemanticRegistryService = exports.SemanticRegistryService;
+const SemanticRegistryService = exports.SemanticRegistryService;
 
 
 /**

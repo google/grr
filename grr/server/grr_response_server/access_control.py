@@ -16,11 +16,13 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import deprecated_pb2
 
-SYSTEM_USERS = frozenset([
+_SYSTEM_USERS_LIST = [
     "GRRWorker", "GRRCron", "GRRSystem", "GRRFrontEnd", "GRRConsole",
     "GRRArtifactRegistry", "GRRStatsStore", "GRREndToEndTest", "GRR",
     "GRRBenchmarkTest", "Cron"
-])
+]
+
+SYSTEM_USERS = frozenset(_SYSTEM_USERS_LIST)
 
 _SYSTEM_USERS_LOWERCASE = frozenset(
     username.lower() for username in SYSTEM_USERS)

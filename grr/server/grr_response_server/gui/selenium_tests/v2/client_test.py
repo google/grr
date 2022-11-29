@@ -40,7 +40,8 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
                              "css=a:contains('View details')")
     self.assertEndsWith(
         element.get_attribute("href"),
-        "/v2/clients/C.1000000000000000/flows(drawer:details)")
+        "/v2/clients/C.1000000000000000/flows(drawer:details/C.1000000000000000)"
+    )
     element.click()
 
     self.WaitUntilContains("drawer", self.GetCurrentUrlPath)
@@ -61,7 +62,8 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
                              "css=a:contains('View details')")
     self.assertEndsWith(
         element.get_attribute("href"),
-        "/v2/clients/C.1000000000000000/flows(drawer:details)")
+        "/v2/clients/C.1000000000000000/flows(drawer:details/C.1000000000000000)"
+    )
     element.click()
 
     self.WaitUntilContains("drawer", self.GetCurrentUrlPath)
@@ -70,6 +72,16 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
     # Reload the web page to simulate a deep link directly to the drawer.
     self.Open(self.GetCurrentUrlPath())
     self.WaitUntil(self.IsTextPresent, mem_size)
+
+  def testFileFlowMenuHasLinkToVfsView(self):
+    client_id = self.SetupClient(0)
+    self.RequestAndGrantClientApproval(client_id)
+
+    self.Open(f"/v2/clients/{client_id}")
+    self.Click("css=button:contains('Collect files')")
+    self.Click("css=button:contains('Browse the filesystem')")
+
+    self.WaitUntil(self.GetVisibleElement, "css=app-vfs-section")
 
 
 if __name__ == "__main__":

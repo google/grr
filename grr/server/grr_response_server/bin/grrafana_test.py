@@ -6,6 +6,7 @@ from unittest import mock
 from absl import app
 from absl.testing import absltest
 from werkzeug import test as werkzeug_test
+from werkzeug import wrappers as werkzeug_wrappers
 
 from google.protobuf import timestamp_pb2
 
@@ -272,7 +273,8 @@ class GrrafanaTest(absltest.TestCase):
   def setUp(self):
     super().setUp()
     self.client = werkzeug_test.Client(
-        application=grrafana.Grrafana(), response_wrapper=grrafana.JSONResponse)
+        application=grrafana.Grrafana(),
+        response_wrapper=werkzeug_wrappers.Response)
 
   def testRoot(self):
     response = self.client.get("/")

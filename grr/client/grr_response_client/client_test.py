@@ -35,7 +35,7 @@ class RaiseAction(actions.ActionPlugin):
     raise RuntimeError("I dont like.")
 
 
-class TestedContext(worker_mocks.DisabledNannyClientWorker):
+class TestedContext(worker_mocks.ClientWorker):
   """We test a simpler Context without crypto here."""
 
   def LoadCertificates(self):

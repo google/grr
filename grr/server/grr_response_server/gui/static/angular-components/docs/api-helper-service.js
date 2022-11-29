@@ -63,11 +63,11 @@ exports.ApiHelperService = class {
    * @private
    */
   buildStartFlow_(webAuthType, clientId, createFlowJson) {
-    var helpersByType = {};
-    for (var i = 0; i < this.helperTuples_.length; ++i) {
-      var helperTuple = this.helperTuples_[i];
-      var helperType = helperTuple[0];
-      var helperWebAuthType = helperTuple[1];
+    const helpersByType = {};
+    for (let i = 0; i < this.helperTuples_.length; ++i) {
+      const helperTuple = this.helperTuples_[i];
+      const helperType = helperTuple[0];
+      const helperWebAuthType = helperTuple[1];
 
       // Use the helper if it's auth-type agnostic (helper[1] == null) or
       // if it has a matching webAuthType. Helpers with a matching webAuthType
@@ -78,13 +78,13 @@ exports.ApiHelperService = class {
       }
     }
 
-    var result = {};
-    var promises = [];
+    const result = {};
+    const promises = [];
     angular.forEach(helpersByType, function(helperTuple, key) {
-      var helperWebAuthType = helperTuple[1];
-      var helper = helperTuple[2];
+      const helperWebAuthType = helperTuple[1];
+      const helper = helperTuple[2];
 
-      var promise =
+      const promise =
           helper['buildStartFlow'](clientId, createFlowJson)
               .then(function(data) {
                 result[key] = {webAuthType: helperWebAuthType, data: data};
@@ -115,12 +115,12 @@ exports.ApiHelperService = class {
   buildStartFlow(clientId, createFlowJson) {
     return this.grrApiService_.getCached('/config/AdminUI.webauth_manager')
         .then(function(response) {
-          var webAuthType = response['data']['value']['value'];
+          const webAuthType = response['data']['value']['value'];
           return this.buildStartFlow_(webAuthType, clientId, createFlowJson);
         }.bind(this));
   }
 };
-var ApiHelperService = exports.ApiHelperService;
+const ApiHelperService = exports.ApiHelperService;
 
 
 ApiHelperService.service_name = 'grrApiHelperService';

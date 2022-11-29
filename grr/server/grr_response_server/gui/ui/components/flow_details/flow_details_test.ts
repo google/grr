@@ -30,12 +30,14 @@ initTestEnvironment();
   template: `
 <flow-details
     [flow]="flow"
-    [flowDescriptor]="flowDescriptor">
+    [flowDescriptor]="flowDescriptor"
+    [showContextMenu]="showContextMenu">
 </flow-details>`
 })
 class TestHostComponent {
   flow: Flow|undefined;
   flowDescriptor: FlowDescriptor|undefined;
+  showContextMenu: boolean|undefined;
 }
 
 describe('FlowDetails Component', () => {
@@ -59,11 +61,13 @@ describe('FlowDetails Component', () => {
         .compileComponents();
   }));
 
-  function createComponent(flow: Flow, flowDescriptor?: FlowDescriptor):
-      ComponentFixture<TestHostComponent> {
+  function createComponent(
+      flow: Flow, flowDescriptor?: FlowDescriptor,
+      showContextMenu?: boolean): ComponentFixture<TestHostComponent> {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.componentInstance.flow = flow;
     fixture.componentInstance.flowDescriptor = flowDescriptor;
+    fixture.componentInstance.showContextMenu = showContextMenu;
     fixture.detectChanges();
 
     return fixture;
@@ -273,5 +277,21 @@ describe('FlowDetails Component', () => {
 
   afterEach(() => {
     delete FLOW_DETAILS_PLUGIN_REGISTRY[SAMPLE_FLOW_LIST_ENTRY.name];
+  });
+
+  it('displays flow context menu button', () => {
+    const fixture =
+        createComponent(SAMPLE_FLOW_LIST_ENTRY, SAMPLE_FLOW_DESCRIPTOR, true);
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.menu-button'))).toBeTruthy();
+  });
+
+  it('hides flow context menu button', () => {
+    const fixture =
+        createComponent(SAMPLE_FLOW_LIST_ENTRY, SAMPLE_FLOW_DESCRIPTOR, false);
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('.menu-button'))).toBeFalsy();
   });
 });

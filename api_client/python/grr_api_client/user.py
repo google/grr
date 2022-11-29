@@ -16,8 +16,8 @@ class Notification(object):
       data: user_pb2.ApiNotification,
       context: api_context.GrrApiContext,
   ):
-    self.data = data  # type: user_pb2.ApiNotification
-    self._context = context  # type: api_context.GrrApiContext
+    self.data: user_pb2.ApiNotification = data
+    self._context: api_context.GrrApiContext = context
 
 
 class GrrUser(object):
@@ -27,7 +27,7 @@ class GrrUser(object):
       self,
       context: api_context.GrrApiContext,
   ):
-    self._context = context  # type: api_context.GrrApiContext
+    self._context: api_context.GrrApiContext = context
 
   @property
   def username(self) -> str:

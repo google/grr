@@ -6,12 +6,10 @@ import {ActivatedRoute, Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 
 import {ApiModule} from '../../lib/api/module';
-import {FlowState} from '../../lib/models/flow';
-import {newClient, newFlow, newGrrUser} from '../../lib/models/model_test_util';
+import {newClient} from '../../lib/models/model_test_util';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
 import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
-import {UserGlobalStore} from '../../store/user_global_store';
 import {VfsViewLocalStore} from '../../store/vfs_view_local_store';
 import {mockVfsViewLocalStore} from '../../store/vfs_view_local_store_test_util';
 import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
@@ -123,95 +121,4 @@ describe('ClientPage Component', () => {
                   .componentInstance.collapsed)
            .toBe(true);
      });
-
-  it('clicking on notify button starts OnlineNotification configuration',
-     async () => {
-       await TestBed.inject(Router).navigate(['clients', 'C.1234']);
-
-       const fixture = TestBed.createComponent(TestHostComponent);
-       fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-       const clientPageGlobalStore = injectMockStore(ClientPageGlobalStore);
-       clientPageGlobalStore.mockedObservables.selectedClient$.next(
-           newClient({clientId: 'C.1234'}));
-       fixture.detectChanges();
-
-       fixture.debugElement.query(By.css('[name="online-notification-button"]'))
-           .triggerEventHandler('click', null);
-
-       expect(clientPageGlobalStore.startFlowConfiguration)
-           .toHaveBeenCalledOnceWith('OnlineNotification');
-     });
-
-  it('notify button links to flow if in progress', async () => {
-    await TestBed.inject(Router).navigate(['clients', 'C.1234']);
-
-    const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-    const clientPageGlobalStore = injectMockStore(ClientPageGlobalStore);
-    clientPageGlobalStore.mockedObservables.selectedClient$.next(
-        newClient({clientId: 'C.1234'}));
-    injectMockStore(UserGlobalStore)
-        .mockedObservables.currentUser$.next(newGrrUser({name: 'currentuser'}));
-    clientPageGlobalStore.mockedObservables.flowListEntries$.next({
-      isLoading: false,
-      flows: [newFlow({
-        name: 'OnlineNotification',
-        state: FlowState.RUNNING,
-        clientId: 'C.1234',
-        flowId: '456',
-        creator: 'currentuser',
-      })],
-    });
-    fixture.detectChanges();
-
-    const link = fixture.debugElement.query(
-        By.css('a[name="online-notification-button"]'));
-    expect(link.attributes['href']).toMatch(/\/clients\/C\.1234\/flows\/456$/);
-  });
-
-  it('clicking on interrogate button starts Interrogate configuration',
-     async () => {
-       await TestBed.inject(Router).navigate(['clients', 'C.1234']);
-
-       const fixture = TestBed.createComponent(TestHostComponent);
-       fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-       const clientPageGlobalStore = injectMockStore(ClientPageGlobalStore);
-       clientPageGlobalStore.mockedObservables.selectedClient$.next(
-           newClient({clientId: 'C.1234'}));
-       fixture.detectChanges();
-
-       fixture.debugElement.query(By.css('[name="interrogate-button"]'))
-           .triggerEventHandler('click', null);
-
-       expect(clientPageGlobalStore.startFlowConfiguration)
-           .toHaveBeenCalledOnceWith('Interrogate');
-     });
-
-  it('interrogate button links to flow if in progress', async () => {
-    await TestBed.inject(Router).navigate(['clients', 'C.1234']);
-
-    const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-    const clientPageGlobalStore = injectMockStore(ClientPageGlobalStore);
-    clientPageGlobalStore.mockedObservables.selectedClient$.next(
-        newClient({clientId: 'C.1234'}));
-    clientPageGlobalStore.mockedObservables.flowListEntries$.next({
-      isLoading: false,
-      flows: [newFlow({
-        name: 'Interrogate',
-        state: FlowState.RUNNING,
-        clientId: 'C.1234',
-        flowId: '456',
-      })],
-    });
-    fixture.detectChanges();
-
-    const link =
-        fixture.debugElement.query(By.css('a[name="interrogate-button"]'));
-    expect(link.attributes['href']).toMatch(/\/clients\/C\.1234\/flows\/456$/);
-  });
 });

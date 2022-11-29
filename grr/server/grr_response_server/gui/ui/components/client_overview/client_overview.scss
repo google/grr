@@ -1,6 +1,6 @@
-@use '@angular/material' as mat;
-@use '../../material-theme' as c;
-@use '../../main' as main;
+@use "@angular/material" as mat;
+@use "../../material-theme" as c;
+@use "../../main" as main;
 
 $max-width: 1280px;
 $width: 80%;
@@ -42,15 +42,6 @@ $width: 80%;
       &:first-child {
         margin-left: 0;
       }
-    }
-
-    .add_label {
-      margin-left: 0.5em;
-      border-radius: 2em;
-      padding-left: 8px;
-      min-height: 26px;
-      line-height: 16px;
-      font-family: c.$google-sans-family;
     }
   }
 

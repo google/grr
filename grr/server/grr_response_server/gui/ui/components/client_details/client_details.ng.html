@@ -71,7 +71,6 @@
             [routerLink]="['', {outlets: {
               'primary': ['clients', client.clientId],
               'drawer': null}}]"
-            [disabled]="!(canStartFlow$ | async)"
           >
             <mat-icon>refresh</mat-icon>
             Recollect metadata

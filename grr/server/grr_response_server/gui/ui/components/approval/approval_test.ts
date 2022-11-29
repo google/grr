@@ -309,4 +309,26 @@ describe('Approval Component', () => {
     fixture.detectChanges();
     expect(fixture.componentInstance.hideContent).toBeFalse();
   });
+
+  it('linkifies tokens starting with http:// in request reason', () => {
+    const latestApproval: ClientApproval = {
+      approvalId: '1',
+      clientId: 'C.1234',
+      requestor: 'testuser',
+      status: {type: 'valid'},
+      approvers: [],
+      reason: 'sample reason http://example.com',
+      requestedApprovers: ['foo'],
+      subject: newClient({clientId: 'C.1234'}),
+    };
+
+    const fixture = createComponent(latestApproval);
+    fixture.detectChanges();
+
+    const link = fixture.debugElement.query(By.css('app-text-with-links a'));
+    expect(link.attributes['href']).toEqual('http://example.com');
+
+    const text = fixture.debugElement.nativeElement.textContent;
+    expect(text).toContain('sample reason http://example.com');
+  });
 });

@@ -165,7 +165,6 @@ class RDFValue(metaclass=RDFValueMetaclass):  # pylint: disable=invalid-metaclas
     return "<%s(%r)>" % (compatibility.GetName(self.__class__), content)
 
 
-# TODO(user): Replace `RDFValue.classes` with a function in serialization.py.
 RDFValue.classes["bool"] = bool
 RDFValue.classes["RDFBool"] = bool
 

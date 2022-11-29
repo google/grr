@@ -400,13 +400,14 @@ class CollectBrowserHistory(flow_base.FlowBase):
   category = "/Browser/"
   args_type = CollectBrowserHistoryArgs
   progress_type = CollectBrowserHistoryProgress
+  result_types = (CollectBrowserHistoryResult,)
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   BROWSER_TO_ARTIFACTS_MAP = {
       Browser.CHROME: ["ChromiumBasedBrowsersHistory"],
       Browser.FIREFOX: ["FirefoxHistory"],
       Browser.INTERNET_EXPLORER: ["InternetExplorerHistory"],
-      Browser.OPERA: ["OperaHistory"],
+      Browser.OPERA: ["OperaHistoryFile"],
       Browser.SAFARI: ["SafariHistory"],
   }
 
@@ -421,9 +422,8 @@ class CollectBrowserHistory(flow_base.FlowBase):
       p = cast(CollectBrowserHistoryResult, r.payload)
       client_path = db.ClientPath.FromPathSpec(self.client_id,
                                                p.stat_entry.pathspec)
-
       target_path = os.path.join(p.browser.name.lower(),
-                                 p.stat_entry.pathspec.Basename())
+                                 _ArchiveFilename(client_path.components))
       if path_counters[target_path] > 0:
         fname, ext = os.path.splitext(target_path)
         target_path = f"{fname}_{path_counters[target_path]}{ext}"
@@ -502,3 +502,19 @@ class CollectBrowserHistory(flow_base.FlowBase):
         Browser.OPERA,
         Browser.SAFARI,
     ])
+
+
+def _StripPunctuation(word: str) -> str:
+  return "".join(c for c in word if c.isalnum())
+
+
+def _ArchiveFilename(components: str) -> str:
+  """Builds a pathname string based on components names."""
+  new_components = []
+  for i, component in enumerate(components):
+    if i != len(components) - 1:
+      new_components.append(_StripPunctuation(component))
+    else:  # last component includes file extension so no stripping
+      new_components.append(component)
+
+  return "_".join(new_components)

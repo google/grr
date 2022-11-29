@@ -138,8 +138,8 @@ describe('ReadLowLevelForm', () => {
 
     expect(latestValue).toEqual({
       path: '/some/path',
-      length: 3072,
-      offset: 6,
+      length: '3072',
+      offset: '6',
     });
   });
 

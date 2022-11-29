@@ -10,6 +10,7 @@ describe('Hunt translation test', () => {
   it('converts HuntRunnerArgs correctly', () => {
     const huntRunnerArgs: HuntRunnerArgs = {
       clientRate: 200.0,
+      clientLimit: '123',
       crashLimit: '100',
       avgResultsPerClientLimit: '1000',
       avgCpuSecondsPerClientLimit: '60',
@@ -21,6 +22,7 @@ describe('Hunt translation test', () => {
 
     const safetyLimits: SafetyLimits = {
       clientRate: 200.0,
+      clientLimit: BigInt(123),
       crashLimit: BigInt(100),
       avgResultsPerClientLimit: BigInt(1000),
       avgCpuSecondsPerClientLimit: BigInt(60),

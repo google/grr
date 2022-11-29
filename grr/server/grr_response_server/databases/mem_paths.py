@@ -299,9 +299,6 @@ class InMemoryDBPathMixin(object):
 
   def _WritePathInfo(self, client_id, path_info):
     """Writes a single path info record for given client."""
-    if client_id not in self.metadatas:
-      raise db.UnknownClientError(client_id)
-
     path_record = self._GetPathRecord(client_id, path_info)
     path_record.AddPathInfo(path_info)
 
@@ -312,6 +309,9 @@ class InMemoryDBPathMixin(object):
 
   @utils.Synchronized
   def WritePathInfos(self, client_id, path_infos):
+    if client_id not in self.metadatas:
+      raise db.UnknownClientError(client_id)
+
     for path_info in path_infos:
       self._WritePathInfo(client_id, path_info)
       for ancestor_path_info in path_info.GetAncestors():

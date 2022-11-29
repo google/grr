@@ -3,7 +3,7 @@ import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {FlowFileResult, flowFileResultFromStatEntry} from '../../../components/flow_details/helpers/file_results_table';
-import {BrowserProgress, BrowserProgressStatus, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectBrowserHistoryProgress, CollectBrowserHistoryResult} from '../../../lib/api/api_interfaces';
+import {Browser, BrowserProgress, BrowserProgressStatus, CollectBrowserHistoryArgs, CollectBrowserHistoryProgress, CollectBrowserHistoryResult} from '../../../lib/api/api_interfaces';
 import {translateStatEntry} from '../../../lib/api_translation/flow';
 import {Flow, FlowResult, FlowState} from '../../../lib/models/flow';
 import {assertNonNull} from '../../../lib/preconditions';
@@ -14,7 +14,7 @@ import {ExportMenuItem, Plugin} from './plugin';
 
 
 declare interface BrowserRow {
-  name: CollectBrowserHistoryArgsBrowser;
+  name: Browser;
   friendlyName: string;
   progress: BrowserProgress;
   status?: ResultAccordionStatus;

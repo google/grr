@@ -164,8 +164,26 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     return self
 
   def InitFromClientInfo(
-      self, client_info: rdf_objects.ClientFullInfo) -> "ApiClient":
-    self.InitFromClientObject(client_info.last_snapshot)
+      self,
+      client_id: str,
+      client_info: rdf_objects.ClientFullInfo,
+  ) -> "ApiClient":
+    self.client_id = client_id
+
+    if client_info.HasField("last_snapshot"):
+      # Just a sanity check to ensure that the object has correct client id.
+      if client_info.last_snapshot.client_id != client_id:
+        raise ValueError(f"Invalid last snapshot client id: "
+                         f"{client_id} expected but "
+                         f"{client_info.last_snapshot.client_id} found")
+
+      self.InitFromClientObject(client_info.last_snapshot)
+    else:
+      # Every returned object should have `age` specified. If we cannot get this
+      # information from the snapshot (because there is none), we just use the
+      # time of the first observation of the client.
+      if not client_info.last_snapshot.timestamp:
+        self.age = client_info.metadata.first_seen
 
     # If we have it, use the boot_time / agent info from the startup
     # info which might be more recent than the interrogation
@@ -238,8 +256,8 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
     clients = index.LookupClients(keywords)[args.offset:args.offset + end]
 
     client_infos = data_store.REL_DB.MultiReadClientFullInfo(clients)
-    for client_info in client_infos.values():
-      api_clients.append(ApiClient().InitFromClientInfo(client_info))
+    for client_id, client_info in client_infos.items():
+      api_clients.append(ApiClient().InitFromClientInfo(client_id, client_info))
 
     UpdateClientsFromFleetspeak(api_clients)
     return ApiSearchClientsResult(items=api_clients)
@@ -327,11 +345,12 @@ class ApiLabelsRestrictedSearchClientsHandler(
     for cid_batch in collection.Batch(sorted(all_client_ids), batch_size):
       client_infos = data_store.REL_DB.MultiReadClientFullInfo(cid_batch)
 
-      for _, client_info in sorted(client_infos.items()):
+      for client_id, client_info in sorted(client_infos.items()):
         if not self._VerifyLabels(client_info.labels):
           continue
         if index >= args.offset and index < end:
-          api_clients.append(ApiClient().InitFromClientInfo(client_info))
+          api_clients.append(ApiClient().InitFromClientInfo(
+              client_id, client_info))
         index += 1
         if index >= end:
           UpdateClientsFromFleetspeak(api_clients)
@@ -392,7 +411,7 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
         info.last_snapshot = snapshots[0]
         info.last_startup_info = snapshots[0].startup_info
 
-    api_client = ApiClient().InitFromClientInfo(info)
+    api_client = ApiClient().InitFromClientInfo(client_id, info)
     UpdateClientsFromFleetspeak([api_client])
     return api_client
 

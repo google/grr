@@ -1,6 +1,6 @@
 import {HttpErrorResponse} from '@angular/common/http';
 import {discardPeriodicTasks, fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {firstValueFrom} from 'rxjs';
+import {BehaviorSubject, firstValueFrom} from 'rxjs';
 import {filter} from 'rxjs/operators';
 
 import {ApiFlow, ApiFlowState} from '../lib/api/api_interfaces';
@@ -32,6 +32,7 @@ function makeApiFlow(flow?: Partial<ApiFlow>): ApiFlow {
     creator: 'rick',
     name: 'ListProcesses',
     state: ApiFlowState.RUNNING,
+    isRobot: false,
     ...flow,
   };
 }
@@ -209,7 +210,7 @@ describe('ClientPageGlobalStore', () => {
 
        expect(httpApiService.subscribeToFlowsForClient).toHaveBeenCalledWith({
          clientId: 'C.1234',
-         count: FLOWS_PAGE_SIZE,
+         count: FLOWS_PAGE_SIZE.toString(),
          topFlowsOnly: true,
        });
      }));
@@ -223,7 +224,7 @@ describe('ClientPageGlobalStore', () => {
        expect(httpApiService.subscribeToFlowsForClient)
            .toHaveBeenCalledOnceWith({
              clientId: 'C.1234',
-             count: FLOWS_PAGE_SIZE,
+             count: FLOWS_PAGE_SIZE.toString(),
              topFlowsOnly: true,
            });
        httpApiService.subscribeToFlowsForClient.calls.reset();
@@ -233,7 +234,7 @@ describe('ClientPageGlobalStore', () => {
        expect(httpApiService.subscribeToFlowsForClient)
            .toHaveBeenCalledOnceWith({
              clientId: 'C.1234',
-             count: FLOWS_PAGE_SIZE * 2,
+             count: String(FLOWS_PAGE_SIZE * 2),
              topFlowsOnly: true,
            });
      }));
@@ -293,6 +294,7 @@ describe('ClientPageGlobalStore', () => {
            creator: 'morty',
            name: 'GetFile',
            state: FlowState.RUNNING,
+           isRobot: false,
          },
          {
            flowId: '3',
@@ -302,6 +304,7 @@ describe('ClientPageGlobalStore', () => {
            creator: 'morty',
            name: 'KeepAlive',
            state: FlowState.FINISHED,
+           isRobot: false,
          },
          {
            flowId: '1',
@@ -311,6 +314,7 @@ describe('ClientPageGlobalStore', () => {
            creator: 'rick',
            name: 'ListProcesses',
            state: FlowState.RUNNING,
+           isRobot: false,
          },
        ].map(f => newFlow(f));
 
@@ -332,6 +336,7 @@ describe('ClientPageGlobalStore', () => {
            creator: 'rick',
            name: 'ListProcesses',
            state: ApiFlowState.RUNNING,
+           isRobot: false,
          },
          {
            flowId: '2',
@@ -341,6 +346,7 @@ describe('ClientPageGlobalStore', () => {
            creator: 'morty',
            name: 'GetFile',
            state: ApiFlowState.RUNNING,
+           isRobot: false,
          },
          {
            flowId: '3',
@@ -350,6 +356,7 @@ describe('ClientPageGlobalStore', () => {
            creator: 'morty',
            name: 'KeepAlive',
            state: ApiFlowState.TERMINATED,
+           isRobot: false,
          },
        ]);
 
@@ -379,6 +386,27 @@ describe('ClientPageGlobalStore', () => {
     clientPageGlobalStore.scheduleFlow({foo: 1});
     expect(httpApiService.scheduleFlow)
         .toHaveBeenCalledWith('C.1234', 'ListProcesses', {foo: 1});
+    expect(httpApiService.startFlow).not.toHaveBeenCalled();
+  });
+
+  it('calls the startFlow API on scheduleOrStartFlow with access', () => {
+    httpApiService.mockedObservables.subscribeToVerifyClientAccess =
+        new BehaviorSubject(true);
+    clientPageGlobalStore.startFlowConfiguration('ListProcesses');
+    clientPageGlobalStore.scheduleOrStartFlow({foo: 1});
+    expect(httpApiService.startFlow)
+        .toHaveBeenCalledWith('C.1234', 'ListProcesses', {foo: 1});
+    expect(httpApiService.scheduleFlow).not.toHaveBeenCalled();
+  });
+
+  it('calls the scheduleFlow API on scheduleOrStartFlow without access', () => {
+    httpApiService.mockedObservables.subscribeToVerifyClientAccess =
+        new BehaviorSubject(false);
+    clientPageGlobalStore.startFlowConfiguration('ListProcesses');
+    clientPageGlobalStore.scheduleOrStartFlow({foo: 1});
+    expect(httpApiService.scheduleFlow)
+        .toHaveBeenCalledWith('C.1234', 'ListProcesses', {foo: 1});
+    expect(httpApiService.startFlow).not.toHaveBeenCalled();
   });
 
   it('emits the error in startFlowState', async () => {
@@ -424,6 +452,7 @@ describe('ClientPageGlobalStore', () => {
       creator: 'rick',
       name: 'ListProcesses',
       state: ApiFlowState.RUNNING,
+      isRobot: false,
     });
 
     clientPageGlobalStore.selectedFlowDescriptor$.subscribe(fd => {

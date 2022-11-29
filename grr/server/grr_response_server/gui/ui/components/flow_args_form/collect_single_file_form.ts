@@ -73,6 +73,9 @@ export class CollectSingleFileForm extends
   }
 
   override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
-    return formState;
+    return {
+      path: formState.path,
+      maxSizeBytes: formState.maxSizeBytes?.toString(),
+    };
   }
 }

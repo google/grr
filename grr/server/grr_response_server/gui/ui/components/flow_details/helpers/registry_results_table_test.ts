@@ -8,8 +8,7 @@ import {MatTableHarness} from '@angular/material/table/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {RegistryType} from '../../../lib/api/api_interfaces';
-import {RegistryKey, RegistryValue} from '../../../lib/models/flow';
+import {RegistryKey, RegistryType, RegistryValue} from '../../../lib/models/flow';
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';

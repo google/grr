@@ -4,7 +4,6 @@
 import configparser
 import os
 import shutil
-import sys
 
 from setuptools import setup
 from setuptools.command.sdist import sdist
@@ -61,7 +60,7 @@ setup(
         "grr_api_client==%s" % VERSION.get("Version", "packagedepends"),
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
         "humanize==2.4.0",
-        "ipython==%s" % ("5.0.0" if sys.version_info < (3, 0) else "7.15.0"),
-        "numpy==1.18.5",
-        "pandas==1.0.4",
+        "ipython==7.15.0",
+        "numpy==1.21.5",
+        "pandas==1.1.5",
     ])

@@ -450,7 +450,8 @@ describe('FlowPicker Component', () => {
         MatMenuHarness.with({triggerText: /Collect files/}));
     await menu.open();
     const renderedMenuItems = await menu.getItems();
-    expect(renderedMenuItems.length).toEqual(COMMON_FILE_FLOWS.length + 1);
+    expect(renderedMenuItems.length)
+        .toBeGreaterThanOrEqual(COMMON_FILE_FLOWS.length);
     expect(await renderedMenuItems[0].getText())
         .toEqual(COMMON_FILE_FLOWS[0].friendlyName);
     expect(await renderedMenuItems[1].getText())

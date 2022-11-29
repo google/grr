@@ -5,7 +5,7 @@ import {MatChipInputEvent} from '@angular/material/chips';
 import {MatDialog} from '@angular/material/dialog';
 
 import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
-import {DecimalString, OsqueryFlowArgs} from '../../lib/api/api_interfaces';
+import {OsqueryFlowArgs} from '../../lib/api/api_interfaces';
 import {isNonNull} from '../../lib/preconditions';
 import {CodeEditor, HighlightMode} from '../code_editor/code_editor';
 
@@ -17,8 +17,8 @@ function makeControls() {
   return {
     query: new FormControl(
         DEFAULT_QUERY, {nonNullable: true, validators: [Validators.required]}),
-    timeoutMillis: new FormControl<DecimalString>(
-        '', {nonNullable: true, validators: [Validators.required]}),
+    timeoutMillis: new FormControl(
+        0, {nonNullable: true, validators: [Validators.required]}),
     ignoreStderrErrors: new FormControl(false, {nonNullable: true}),
     fileCollectionColumns:
         new FormControl<ReadonlyArray<string>>([], {nonNullable: true}),
@@ -79,14 +79,17 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs, Controls> {
           this.controls.fileCollectionColumns.defaultValue,
       ignoreStderrErrors: flowArgs.ignoreStderrErrors ??
           this.controls.ignoreStderrErrors.defaultValue,
-      timeoutMillis:
-          flowArgs.timeoutMillis ?? this.controls.timeoutMillis.defaultValue,
+      timeoutMillis: Number(
+          flowArgs.timeoutMillis ?? this.controls.timeoutMillis.defaultValue),
       query: flowArgs.query ?? this.controls.query.defaultValue,
     };
   }
 
   override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
-    return formState;
+    return {
+      ...formState,
+      timeoutMillis: formState.timeoutMillis?.toString(),
+    };
   }
 
   override resetFlowArgs(flowArgs: OsqueryFlowArgs): void {

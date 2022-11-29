@@ -11,6 +11,7 @@
         "creator": "",
         "errorDescription": "Cancelled in GUI",
         "flowId": "W:ABCDEF",
+        "isRobot": false,
         "lastActiveAt": "4242000000",
         "name": "ListProcesses",
         "runnerArgs": {
@@ -50,6 +51,7 @@
           "test@example.com"
         ],
         "emailMessageId": "<message id stub>",
+        "expirationTimeUs": "2419326000000",
         "id": "approval:112233",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -220,6 +222,7 @@
         "clientId": "C.1000000000000000",
         "creator": "api_test_user",
         "flowId": "W:ABCDEF",
+        "isRobot": false,
         "lastActiveAt": "42000000",
         "name": "ListProcesses",
         "runnerArgs": {
@@ -481,6 +484,7 @@
           "api_test_user"
         ],
         "emailMessageId": "<message id stub>",
+        "expirationTimeUs": "2419244000000",
         "id": "approval:111111",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -572,6 +576,7 @@
           "approver"
         ],
         "emailMessageId": "<message id stub>",
+        "expirationTimeUs": "2419245000000",
         "id": "approval:222222",
         "isValid": true,
         "notifiedUsers": [
@@ -1260,6 +1265,7 @@
         },
         "creator": "api_test_user",
         "flowId": "F:ABCDEF12",
+        "isRobot": false,
         "lastActiveAt": "42000000",
         "name": "Interrogate",
         "progress": {
@@ -1335,6 +1341,7 @@
         "creator": "api_test_user",
         "errorDescription": "Pending termination: Some reason",
         "flowId": "F:ABCDEF13",
+        "isRobot": false,
         "lastActiveAt": "42000000",
         "name": "Interrogate",
         "progress": {
@@ -1780,6 +1787,7 @@
           "clientId": "C.1000000000000000",
           "creator": "api_test_user",
           "flowId": "F:112233",
+          "isRobot": false,
           "lastActiveAt": "42000000",
           "name": "Interrogate",
           "runnerArgs": {
@@ -2876,6 +2884,19 @@
             "type": "RDFString"
           },
           {
+            "default": {
+              "@type": "type.googleapis.com/google.protobuf.UInt64Value",
+              "value": "0"
+            },
+            "doc": "Whether the flow was created by a GRRWorker.",
+            "dynamic": false,
+            "friendlyName": "Is robot",
+            "index": 19,
+            "name": "is_robot",
+            "repeated": false,
+            "type": "bool"
+          },
+          {
             "doc": "Current flow state data.",
             "dynamic": false,
             "friendlyName": "State data",
@@ -3110,6 +3131,7 @@
           "requestor"
         ],
         "emailMessageId": "<message id stub>",
+        "expirationTimeUs": "2419244000000",
         "id": "approval:111111",
         "isValid": true,
         "notifiedUsers": [
@@ -3552,6 +3574,7 @@
               "approver"
             ],
             "emailMessageId": "<message id stub>",
+            "expirationTimeUs": "2419245000000",
             "id": "approval:222222",
             "isValid": true,
             "notifiedUsers": [
@@ -3635,6 +3658,7 @@
               "api_test_user"
             ],
             "emailMessageId": "<message id stub>",
+            "expirationTimeUs": "2419244000000",
             "id": "approval:111111",
             "isValid": false,
             "isValidMessage": "Need at least 1 additional approver for access.",
@@ -3729,6 +3753,7 @@
               "api_test_user"
             ],
             "emailMessageId": "<message id stub>",
+            "expirationTimeUs": "2419244000000",
             "id": "approval:111111",
             "isValid": false,
             "isValidMessage": "Need at least 1 additional approver for access.",
@@ -4212,8 +4237,7 @@
             "payloadType": "StatEntry",
             "timestamp": "42000000"
           }
-        ],
-        "totalCount": "1"
+        ]
       },
       "test_class": "ApiListFlowResultsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/results?filter=evil"
@@ -4221,9 +4245,7 @@
     {
       "api_method": "ListFlowResults",
       "method": "GET",
-      "response": {
-        "totalCount": "1"
-      },
+      "response": {},
       "test_class": "ApiListFlowResultsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/results?filter=benign"
     }
@@ -4236,14 +4258,15 @@
         "items": [
           {
             "clientId": "C.1000000000000000",
-            "creator": "api_test_user",
+            "creator": "GRRWorker",
             "flowId": "F:ABCDEF11",
+            "isRobot": true,
             "lastActiveAt": "44000000",
             "name": "ListProcesses",
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "ListProcesses",
-              "notifyToUser": true
+              "notifyToUser": false
             },
             "startedAt": "44000000",
             "state": "RUNNING",
@@ -4253,6 +4276,7 @@
             "clientId": "C.1000000000000000",
             "creator": "api_test_user",
             "flowId": "F:ABCDEF10",
+            "isRobot": false,
             "lastActiveAt": "43000000",
             "name": "Interrogate",
             "runnerArgs": {
@@ -4279,8 +4303,9 @@
               "@type": "type.googleapis.com/grr.ListProcessesArgs"
             },
             "clientId": "C.1000000000000000",
-            "creator": "api_test_user",
+            "creator": "GRRWorker",
             "flowId": "F:ABCDEF11",
+            "isRobot": true,
             "lastActiveAt": "44000000",
             "name": "ListProcesses",
             "progress": {
@@ -4292,7 +4317,7 @@
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "ListProcesses",
-              "notifyToUser": true
+              "notifyToUser": false
             },
             "startedAt": "44000000",
             "state": "RUNNING",
@@ -4305,6 +4330,7 @@
             "clientId": "C.1000000000000000",
             "creator": "api_test_user",
             "flowId": "F:ABCDEF10",
+            "isRobot": false,
             "lastActiveAt": "43000000",
             "name": "Interrogate",
             "progress": {
@@ -4337,8 +4363,9 @@
               "@type": "type.googleapis.com/grr.ListProcessesArgs"
             },
             "clientId": "C.1000000000000000",
-            "creator": "api_test_user",
+            "creator": "GRRWorker",
             "flowId": "F:ABCDEF11",
+            "isRobot": true,
             "lastActiveAt": "44000000",
             "name": "ListProcesses",
             "progress": {
@@ -4350,7 +4377,7 @@
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "ListProcesses",
-              "notifyToUser": true
+              "notifyToUser": false
             },
             "startedAt": "44000000",
             "state": "RUNNING",
@@ -4373,6 +4400,7 @@
             "clientId": "C.1000000000000000",
             "creator": "api_test_user",
             "flowId": "F:ABCDEF10",
+            "isRobot": false,
             "lastActiveAt": "43000000",
             "name": "Interrogate",
             "progress": {
@@ -4394,6 +4422,32 @@
       },
       "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows?max_started_at=43000000&top_flows_only=1"
+    },
+    {
+      "api_method": "ListFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "C.1000000000000000",
+            "creator": "api_test_user",
+            "flowId": "F:ABCDEF10",
+            "isRobot": false,
+            "lastActiveAt": "43000000",
+            "name": "Interrogate",
+            "runnerArgs": {
+              "clientId": "aff4:/C.1000000000000000",
+              "flowName": "Interrogate",
+              "notifyToUser": true
+            },
+            "startedAt": "43000000",
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/clients/C.1000000000000000/flows?human_flows_only=1"
     }
   ],
   "ApiListGrrBinariesHandler": [

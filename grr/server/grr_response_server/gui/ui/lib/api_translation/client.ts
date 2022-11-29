@@ -3,33 +3,32 @@
  */
 
 
-import {ApiClient, ApiClientApproval, ApiClientInformation, ApiClientLabel, ApiInterface, ApiKnowledgeBase, ApiNetworkAddress, ApiUname, ApiUnixVolume, ApiUser, ApiVolume, ApiWindowsVolume} from '../api/api_interfaces';
-import {AgentInfo, Client, ClientApproval, ClientApprovalStatus, ClientLabel, KnowledgeBase, NetworkAddress, NetworkInterface, OsInfo, StorageVolume, UnixVolume, User, WindowsVolume} from '../models/client';
+import * as apiInterfaces from '../api/api_interfaces';
+import {AgentInfo, Client, ClientApproval, ClientLabel, NetworkAddress, NetworkInterface, OsInfo, StorageVolume, UnixVolume, User, WindowsVolume} from '../models/client';
 import {assertKeyTruthy} from '../preconditions';
 
-import {createDate, createIpv4Address, createIpv6Address, createMacAddress, createOptionalDate, decodeBase64} from './primitive';
-
-function createKnowledgeBase(kb: ApiKnowledgeBase): KnowledgeBase {
-  return {...kb};
-}
+import {createIpv4Address, createIpv6Address, createMacAddress, createOptionalDate, decodeBase64} from './primitive';
+import {translateApprovalStatus} from './user';
 
 /**
- * Get label name from ApiClientLabel.
+ * Get label name from API ClientLabel.
  */
-export function getApiClientLabelName(apiLabel: ApiClientLabel): string {
+export function getApiClientLabelName(apiLabel: apiInterfaces.ClientLabel):
+    string {
   if (!apiLabel.name) throw new Error('name attribute is missing.');
 
   return apiLabel.name;
 }
 
-function createClientLabel(label: ApiClientLabel): ClientLabel {
+function createClientLabel(label: apiInterfaces.ClientLabel): ClientLabel {
   assertKeyTruthy(label, 'owner');
   assertKeyTruthy(label, 'name');
 
   return {owner: label.owner, name: label.name};
 }
 
-function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
+function createAgentInfo(apiAgentInfo: apiInterfaces.ClientInformation):
+    AgentInfo {
   let revision = undefined;
   if (apiAgentInfo.revision !== undefined) {
     revision = BigInt(apiAgentInfo.revision);
@@ -54,7 +53,7 @@ function createAgentInfo(apiAgentInfo: ApiClientInformation): AgentInfo {
   };
 }
 
-function createOsInfo(apiUname: ApiUname): OsInfo {
+function createOsInfo(apiUname: apiInterfaces.Uname): OsInfo {
   return {
     system: apiUname.system,
     node: apiUname.node,
@@ -69,7 +68,7 @@ function createOsInfo(apiUname: ApiUname): OsInfo {
   };
 }
 
-function createUser(apiUser: ApiUser): User {
+function createUser(apiUser: apiInterfaces.User): User {
   return {
     username: apiUser.username,
     fullName: apiUser.fullName,
@@ -81,7 +80,7 @@ function createUser(apiUser: ApiUser): User {
   };
 }
 
-function createNetworkAddress(apiNetAddress: ApiNetworkAddress):
+function createNetworkAddress(apiNetAddress: apiInterfaces.NetworkAddress):
     NetworkAddress {
   if (!apiNetAddress.addressType) {
     throw new Error('addressType attribute is missing.');
@@ -104,7 +103,8 @@ function createNetworkAddress(apiNetAddress: ApiNetworkAddress):
   };
 }
 
-function createNetworkInterface(apiInterface: ApiInterface): NetworkInterface {
+function createNetworkInterface(apiInterface: apiInterfaces.Interface):
+    NetworkInterface {
   if (!apiInterface.ifname) {
     throw new Error('ifname attribute is missing.');
   }
@@ -118,8 +118,8 @@ function createNetworkInterface(apiInterface: ApiInterface): NetworkInterface {
   };
 }
 
-function createOptionalWindowsVolume(volume?: ApiWindowsVolume): WindowsVolume|
-    undefined {
+function createOptionalWindowsVolume(volume?: apiInterfaces.WindowsVolume):
+    WindowsVolume|undefined {
   if (volume === undefined) {
     return undefined;
   }
@@ -131,8 +131,8 @@ function createOptionalWindowsVolume(volume?: ApiWindowsVolume): WindowsVolume|
   };
 }
 
-function createOptionalUnixVolume(volume?: ApiUnixVolume): UnixVolume|
-    undefined {
+function createOptionalUnixVolume(volume?: apiInterfaces.UnixVolume):
+    UnixVolume|undefined {
   if (volume === undefined) {
     return undefined;
   }
@@ -143,7 +143,7 @@ function createOptionalUnixVolume(volume?: ApiUnixVolume): UnixVolume|
   };
 }
 
-function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
+function createStorageVolume(apiVolume: apiInterfaces.Volume): StorageVolume {
   let totalSize = undefined;
   let freeSpace = undefined;
   let bytesPerSector = undefined;
@@ -183,9 +183,8 @@ function createStorageVolume(apiVolume: ApiVolume): StorageVolume {
 /**
  * Constructs a Client object from the corresponding API data structure.
  */
-export function translateClient(client: ApiClient): Client {
+export function translateClient(client: apiInterfaces.ApiClient): Client {
   assertKeyTruthy(client, 'clientId');
-  assertKeyTruthy(client, 'age');
 
   let memorySize = undefined;
   if (client.memorySize !== undefined) {
@@ -197,12 +196,7 @@ export function translateClient(client: ApiClient): Client {
     fleetspeakEnabled: client.fleetspeakEnabled ?? false,
     agentInfo: createAgentInfo(client.agentInfo ?? {}),
     labels: (client.labels ?? []).map(createClientLabel),
-    // TODO(user): KnowledgeBase is a huge Protobuf message with no underlying
-    // semantics - it's basically a dictionary. It's field names carry meaning -
-    // they are used in glob expression substitutions. We should come up with a
-    // sensible way of using API interfaces throughout the code base without
-    // requiring a manual, 1-to-1 mapping that does not change anything.
-    knowledgeBase: createKnowledgeBase(client.knowledgeBase ?? {}),
+    knowledgeBase: client.knowledgeBase ?? {},
     osInfo: createOsInfo(client.osInfo ?? {}),
     users: (client.users ?? []).map(createUser),
     networkInterfaces: (client.interfaces ?? []).map(createNetworkInterface),
@@ -212,7 +206,7 @@ export function translateClient(client: ApiClient): Client {
     lastSeenAt: createOptionalDate(client.lastSeenAt),
     lastBootedAt: createOptionalDate(client.lastBootedAt),
     lastClock: createOptionalDate(client.lastClock),
-    age: createDate(client.age),
+    age: createOptionalDate(client.age),
     cloudInstance: client.cloudInstance,
     hardwareInfo: client.hardwareInfo,
     sourceFlowId: client.sourceFlowId,
@@ -220,7 +214,8 @@ export function translateClient(client: ApiClient): Client {
 }
 
 /** Constructs a ClientApproval from the corresponding API data structure. */
-export function translateApproval(approval: ApiClientApproval): ClientApproval {
+export function translateApproval(approval: apiInterfaces.ApiClientApproval):
+    ClientApproval {
   assertKeyTruthy(approval, 'id');
   assertKeyTruthy(approval, 'subject');
   assertKeyTruthy(approval, 'reason');
@@ -230,18 +225,8 @@ export function translateApproval(approval: ApiClientApproval): ClientApproval {
   const {subject} = approval;
   assertKeyTruthy(subject, 'clientId');
 
-  let status: ClientApprovalStatus;
-  if (approval.isValid) {
-    status = {type: 'valid'};
-  } else if (!approval.isValidMessage) {
-    throw new Error('isValidMessage attribute is missing.');
-  } else if (approval.isValidMessage.includes('Approval request is expired')) {
-    status = {type: 'expired', reason: approval.isValidMessage};
-  } else if (approval.isValidMessage.includes('Need at least')) {
-    status = {type: 'pending', reason: approval.isValidMessage};
-  } else {
-    status = {type: 'invalid', reason: approval.isValidMessage};
-  }
+  const status =
+      translateApprovalStatus(approval.isValid, approval.isValidMessage);
 
   return {
     status,
@@ -252,5 +237,6 @@ export function translateApproval(approval: ApiClientApproval): ClientApproval {
     approvers: (approval.approvers ?? []).filter(u => u !== approval.requestor),
     requestor: approval.requestor,
     subject: translateClient(approval.subject),
+    expirationTime: createOptionalDate(approval.expirationTimeUs),
   };
 }

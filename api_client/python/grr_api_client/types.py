@@ -27,7 +27,7 @@ class Types(object):
   ):
     super().__init__()
 
-    self._context = context  # type: api_context.GrrApiContext
+    self._context: api_context.GrrApiContext = context
     self._flow_descriptors = None
 
   def CreateFlowRunnerArgs(self) -> flows_pb2.FlowRunnerArgs:

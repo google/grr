@@ -1,11 +1,12 @@
 @use "@angular/material" as mat;
 @use "./material-theme" as c;
 
-@import "material-theme";
+@import 'material-theme';
 
 // Initialize Angular material theme.
 // Include non-theme styles for core.
-@include mat.core($custom-typography);
+@include mat.all-component-typographies($custom-typography);
+@include mat.core();
 // Include all theme-styles for the components based on the current theme.
 @include mat.all-component-themes($theme);
 
@@ -29,7 +30,7 @@ html {
 
 .monospace,
 .mat-input-element.monospace {
-  font-family: "Roboto Mono", monospace;
+  font-family: 'Roboto Mono', monospace;
 }
 
 // Flow search results appear on a CDK overlay layer, so their styling has
@@ -59,6 +60,15 @@ html {
 .progress-spinner-button mat-spinner {
   display: inline-block;
   margin-right: $button-horizontal-padding;
+}
+
+.mat-progress-bar.mat-success {
+  .mat-progress-bar-fill::after {
+    background-color: mat.get-color-from-palette(c.$foreground, success);
+  }
+  .mat-progress-bar-background {
+    fill: mat.get-color-from-palette(c.$foreground, success);
+  }
 }
 
 .clickable {
@@ -124,6 +134,16 @@ a.text-link-hover:hover {
     width: 14px;
     margin-right: 0.3em;
   }
+
+  mat-spinner {
+    margin-right: 0.3em;
+  }
+
+  .subtitle {
+    font-style: italic;
+    color: mat.get-color-from-palette(c.$foreground, text-light);
+    padding-left: 0.4em;
+  }
 }
 
 a:any-link .mat-chip,
@@ -134,6 +154,12 @@ a:any-link .mat-standard-chip {
 .green-chip,
 .mat-chip.green-chip {
   background-color: mat.get-color-from-palette(c.$foreground, success-light);
+  color: mat.get-color-from-palette(c.$foreground, text);
+}
+
+.yellow-chip,
+.mat-chip.yellow-chip {
+  background-color: mat.get-color-from-palette(c.$foreground, in-progress);
   color: mat.get-color-from-palette(c.$foreground, text);
 }
 
@@ -226,6 +252,74 @@ mat-option {
   }
 }
 
+.result-table {
+  border-color: mat.get-color-from-palette(c.$foreground, divider-light);
+  color: mat.get-color-from-palette(c.$foreground, text-light);
+  font-size: 14px;
+  width: 100%;
+
+  .mat-header-cell {
+    border-bottom: none;
+    font-weight: 500;
+    font-size: inherit;
+  }
+
+  .mat-cell,
+  .mat-header-cell {
+    padding: 0.5em 0.25em;
+
+    &:last-of-type {
+      padding-right: 24px;
+    }
+
+    &:first-of-type {
+      padding-left: 24px;
+    }
+  }
+
+  .mat-row:last-child .mat-cell,
+  tr:last-child .mat-cell {
+    border-bottom: none;
+  }
+
+  .path {
+    word-break: break-word;
+    min-width: 200px;
+    width: 30%;
+
+    .copy-button {
+      font-size: 16px;
+      visibility: hidden;
+
+      line-height: 18px;
+      height: 18px;
+      width: 18px;
+    }
+
+    &:hover .copy-button {
+      visibility: visible;
+    }
+  }
+
+  .mat-cell > mat-icon,
+  td > mat-icon {
+    font-size: 16px;
+  }
+
+  .number {
+    white-space: nowrap;
+    width: 10%;
+  }
+
+  .timestamp {
+    width: 10%;
+  }
+
+  .centered {
+    text-align: center;
+  }
+}
+
 flow-details app-flow-args-view {
   button,
   .mat-button,
@@ -261,6 +355,13 @@ flow-details app-flow-args-view {
   }
 }
 
+// Cards with dividers should not have the padding set, so dividers meet the
+// borders.
+.split-card {
+  @extend .card;
+  padding: 0;
+}
+
 .centered-content {
   margin-left: auto;
   margin-right: auto;
@@ -282,4 +383,15 @@ flow-details app-flow-args-view {
     width: 100%;
     margin: 0;
   }
+}
+
+.mat-menu-item .mat-icon.mat-icon-inline {
+  width: 24px;
+  margin-right: 0;
+}
+
+mat-chip-list .mat-button {
+  border-radius: 2em;
+  line-height: 26px;
+  padding: 0 12px 0 6px;
 }

@@ -50,10 +50,10 @@ const ApiDocsController = class {
    * @private
    */
   onApiMethodsListFetched_(response) {
-    var categoriesDict = {};
-    var items = stripTypeInfo(response['data']['items']);
+    const categoriesDict = {};
+    const items = stripTypeInfo(response['data']['items']);
     angular.forEach(/** @type {Array<Object>} */ (items), function(descriptor) {
-      var category = descriptor['category'];
+      let category = descriptor['category'];
       if (!category) {
         category = 'Other';
       }
@@ -66,8 +66,8 @@ const ApiDocsController = class {
 
     angular.forEach(categoriesDict, function(descriptors) {
       descriptors.sort(function(a, b) {
-        var astr = a['name'] + '_' + a['http_route'];
-        var bstr = b['name'] + '_' + b['http_route'];
+        const astr = a['name'] + '_' + a['http_route'];
+        const bstr = b['name'] + '_' + b['http_route'];
         if (astr > bstr) {
           return 1;
         } else if (astr < bstr) {
@@ -92,7 +92,7 @@ const ApiDocsController = class {
     this.examplesByMethod = {};
     angular.forEach(response.data, function(handlerExamples) {
       angular.forEach(handlerExamples, function(example) {
-        var apiMethod = example['api_method'];
+        const apiMethod = example['api_method'];
         if (!this.examplesByMethod[apiMethod]) {
           this.examplesByMethod[apiMethod] = [];
         }
@@ -108,8 +108,8 @@ const ApiDocsController = class {
    * @export
    */
   onCategoryLinkClick(category) {
-    var index = this.categories.indexOf(category);
-    var headingElement = $('#docs-category-' + index.toString());
+    const index = this.categories.indexOf(category);
+    const headingElement = $('#docs-category-' + index.toString());
 
     /**
      * We have to find a scrollable container that actually has the scrollbars.
@@ -121,16 +121,16 @@ const ApiDocsController = class {
      *    Changing scrollTop() value means that container has actually
      *    scrolled.
      */
-    var scrollableContainer = headingElement.parent();
+    let scrollableContainer = headingElement.parent();
     while (scrollableContainer.length != 0) {
       if (scrollableContainer.scrollTop() > 0 ||
           Math.abs(
               scrollableContainer[0].clientHeight -
               scrollableContainer[0].scrollHeight) > 1) {
-        var offset = headingElement.offset()['top'] -
+        const offset = headingElement.offset()['top'] -
             scrollableContainer.offset()['top'] +
             scrollableContainer.scrollTop();
-        var prevOffset = scrollableContainer.scrollTop();
+        const prevOffset = scrollableContainer.scrollTop();
         scrollableContainer.scrollTop(/** @type {number} */ (offset));
 
         /**

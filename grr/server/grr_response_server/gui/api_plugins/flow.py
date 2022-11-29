@@ -218,6 +218,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       self.started_at = flow_obj.create_time
       self.last_active_at = flow_obj.last_update_time
       self.creator = flow_obj.creator
+      self.is_robot = flow_obj.creator in access_control.SYSTEM_USERS
 
       if flow_obj.client_crash_info:
         self.state = "CLIENT_CRASHED"
@@ -454,9 +455,24 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
         args.offset,
         args.count or db.MAX_COUNT,
         with_substring=args.filter or None,
-        with_tag=args.with_tag or None)
-    total_count = data_store.REL_DB.CountFlowResults(
-        str(args.client_id), str(args.flow_id))
+        with_tag=args.with_tag or None,
+        with_type=args.with_type or None)
+
+    if args.filter:
+      # TODO: with_substring is implemented in a hacky way,
+      #   searching for a string in the serialized protobuf bytes. We decided
+      #   to omit the same hacky implementation in CountFlowResults. Until
+      #   CountFlowResults implements the same, or we generally improve this
+      #   string search, total_count will be unset if `filter` is specified.
+      total_count = None
+    else:
+      total_count = data_store.REL_DB.CountFlowResults(
+          str(args.client_id),
+          str(args.flow_id),
+          # TODO: Add with_substring to CountFlowResults().
+          with_tag=args.with_tag or None,
+          with_type=args.with_type or None)
+
     wrapped_items = [ApiFlowResult().InitFromFlowResult(r) for r in results]
 
     return ApiListFlowResultsResult(
@@ -1085,8 +1101,9 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         client_id=str(args.client_id),
         min_create_time=args.min_started_at,
         max_create_time=args.max_started_at,
-        include_child_flows=False)
-
+        include_child_flows=False,
+        not_created_by=access_control.SYSTEM_USERS
+        if args.human_flows_only else None)
     result = [
         ApiFlow().InitFromFlowObject(
             f_data, with_args=True, with_progress=True) for f_data in top_flows
@@ -1104,7 +1121,9 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         client_id=str(args.client_id),
         min_create_time=args.min_started_at,
         max_create_time=args.max_started_at,
-        include_child_flows=True)
+        include_child_flows=True,
+        not_created_by=access_control.SYSTEM_USERS
+        if args.human_flows_only else None)
     api_flow_dict = {
         rdf_flow.flow_id:
         ApiFlow().InitFromFlowObject(rdf_flow, with_args=False)

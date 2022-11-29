@@ -1,7 +1,7 @@
 import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
 import {ControlContainer, FormControl, FormGroup, Validators} from '@angular/forms';
 
-import {FileFinderContentsLiteralMatchCondition, FileFinderContentsMatchConditionMode} from '../../../lib/api/api_interfaces';
+import {FileFinderContentsLiteralMatchCondition, FileFinderContentsLiteralMatchConditionMode} from '../../../lib/api/api_interfaces';
 import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
 
 /** Form that configures a literal match condition. */
@@ -11,8 +11,8 @@ import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LiteralMatchCondition {
-  readonly FileFinderContentsMatchConditionMode =
-      FileFinderContentsMatchConditionMode;
+  readonly FileFinderContentsLiteralMatchConditionMode =
+      FileFinderContentsLiteralMatchConditionMode;
 
   constructor(readonly controlContainer: ControlContainer) {}
 
@@ -32,7 +32,8 @@ export function createLiteralMatchFormGroup() {
     literal: new FormControl(
         '', {nonNullable: true, validators: Validators.required}),
     mode: new FormControl(
-        FileFinderContentsMatchConditionMode.FIRST_HIT, {nonNullable: true}),
+        FileFinderContentsLiteralMatchConditionMode.FIRST_HIT,
+        {nonNullable: true}),
   });
 }
 

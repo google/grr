@@ -20,10 +20,9 @@ class DarwinClientBuilder(build.ClientBuilder):
 
   BUILDER_CONTEXT = "Target:Darwin"
 
-  def _SetBuildVars(self, fleetspeak_enabled=False, fleetspeak_bundled=False):
+  def _SetBuildVars(self, fleetspeak_bundled=False):
     self.build_dir = config.CONFIG.Get(
         "PyInstaller.build_dir", context=self.context)
-    self.fleetspeak_enabled = fleetspeak_enabled
     self.fleetspeak_bundled = fleetspeak_bundled
     self.version = config.CONFIG.Get(
         "Source.version_string", context=self.context)
@@ -47,15 +46,10 @@ class DarwinClientBuilder(build.ClientBuilder):
           "ClientBuilder.fleetspeak_service_dir", context=self.context)
     self.pkg_root = os.path.join(self.build_root, "pkg-root")
     self.universal_root = os.path.join(self.build_root, "universal-root")
-    if self.fleetspeak_enabled:
-      self.target_binary_dir = os.path.join(
-          self.pkg_root,
-          config.CONFIG.Get("ClientBuilder.install_dir",
-                            context=self.context)[1:])
-    else:
-      self.target_binary_dir = os.path.join(self.pkg_root, "usr/local/lib/",
-                                            self.client_name,
-                                            self.output_basename)
+    self.target_binary_dir = os.path.join(
+        self.pkg_root,
+        config.CONFIG.Get("ClientBuilder.install_dir",
+                          context=self.context)[1:])
     self.pkg_fleetspeak_service_dir = os.path.join(
         self.pkg_root, self.fleetspeak_service_dir[1:])
     self.pkgbuild_out_dir = os.path.join(self.build_root, "pkgbuild-out")
@@ -96,27 +90,18 @@ class DarwinClientBuilder(build.ClientBuilder):
         os.path.join(self.zip_out_dir, f"{self.pkg_name}.zip"), output_path)
 
   def _InterpolateFiles(self):
-    if self.fleetspeak_enabled:
-      fleetspeak_template = config.CONFIG.Get(
-          "ClientBuilder.fleetspeak_config_path", context=self.context)
-      dest_fleetspeak_config = os.path.join(
-          self.pkg_fleetspeak_service_dir,
-          config.CONFIG.Get(
-              "Client.fleetspeak_unsigned_config_fname", context=self.context))
-      build_helpers.GenerateFile(
-          input_filename=fleetspeak_template,
-          output_filename=dest_fleetspeak_config,
-          context=self.context)
-      build_files_dir = package.ResourcePath(
-          "grr-response-core", "install_data/macosx/client/fleetspeak")
-    else:
-      build_files_dir = package.ResourcePath("grr-response-core",
-                                             "install_data/macosx/client")
-      build_helpers.GenerateFile(
-          input_filename=os.path.join(build_files_dir, "grr.plist.in"),
-          output_filename=os.path.join(self.pkg_root, "Library/LaunchDaemons",
-                                       self.plist_name),
-          context=self.context)
+    fleetspeak_template = config.CONFIG.Get(
+        "ClientBuilder.fleetspeak_config_path", context=self.context)
+    dest_fleetspeak_config = os.path.join(
+        self.pkg_fleetspeak_service_dir,
+        config.CONFIG.Get(
+            "Client.fleetspeak_unsigned_config_fname", context=self.context))
+    build_helpers.GenerateFile(
+        input_filename=fleetspeak_template,
+        output_filename=dest_fleetspeak_config,
+        context=self.context)
+    build_files_dir = package.ResourcePath(
+        "grr-response-core", "install_data/macosx/client/fleetspeak")
 
     # We pass in scripts separately with --scripts so they don't go in pkg_root
     build_helpers.GenerateFile(
@@ -187,11 +172,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     utils.EnsureDirExists(self.build_dir)
     utils.EnsureDirExists(self.script_dir)
     utils.EnsureDirExists(self.pkg_root)
-    if self.fleetspeak_enabled:
-      utils.EnsureDirExists(self.pkg_fleetspeak_service_dir)
-    else:
-      utils.EnsureDirExists(
-          os.path.join(self.pkg_root, "Library/LaunchDaemons"))
+    utils.EnsureDirExists(self.pkg_fleetspeak_service_dir)
     utils.EnsureDirExists(os.path.join(self.pkg_root, "usr/local/lib/"))
     utils.EnsureDirExists(self.pkgbuild_out_dir)
     utils.EnsureDirExists(self.prodbuild_out_dir)
@@ -235,9 +216,9 @@ class DarwinClientBuilder(build.ClientBuilder):
     ]
     self._RunCmd(command)
 
-  def _BuildInstallerPkg(self, fleetspeak_enabled, fleetspeak_bundled):
+  def _BuildInstallerPkg(self, fleetspeak_bundled):
     """Builds a package (.pkg) using PackageMaker."""
-    self._SetBuildVars(fleetspeak_enabled, fleetspeak_bundled)
+    self._SetBuildVars(fleetspeak_bundled)
     self._MakeBuildDirectory()
     self._CreateInstallDirs()
     self._InterpolateFiles()
@@ -263,13 +244,10 @@ class DarwinClientBuilder(build.ClientBuilder):
     self._SetBuildVars()
     build_helpers.CleanDirectory(self.universal_root)
 
-    self._BuildInstallerPkg(fleetspeak_enabled=False, fleetspeak_bundled=False)
-    self._ExtractInstallerPkg("legacy")
-
-    self._BuildInstallerPkg(fleetspeak_enabled=True, fleetspeak_bundled=False)
+    self._BuildInstallerPkg(fleetspeak_bundled=False)
     self._ExtractInstallerPkg("fleetspeak-enabled")
 
-    self._BuildInstallerPkg(fleetspeak_enabled=True, fleetspeak_bundled=True)
+    self._BuildInstallerPkg(fleetspeak_bundled=True)
     self._ExtractInstallerPkg("fleetspeak-bundled")
 
     self._WriteBuildYaml()

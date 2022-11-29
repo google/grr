@@ -369,7 +369,7 @@ class DummyFlowWithTwoTaggedReplies(flow_base.FlowBase):
   def SendSomething(self, responses=None):
     del responses  # Unused.
     self.SendReply(rdfvalue.RDFString("foo"), tag="tag:foo")
-    self.SendReply(rdfvalue.RDFString("bar"), tag="tag:bar")
+    self.SendReply(rdfvalue.RDFInteger(42), tag="tag:bar")
 
 
 class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
@@ -388,6 +388,7 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
     result = self.handler.Handle(
         flow_plugin.ApiListFlowResultsArgs(
             client_id=self.client_id, flow_id=self.flow_id))
+    self.assertEqual(result.total_count, 2)
     self.assertLen(result.items, 2)
     self.assertEqual(result.items[0].tag, "tag:foo")
     self.assertEqual(result.items[1].tag, "tag:bar")
@@ -396,12 +397,46 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
     foo_result = self.handler.Handle(
         flow_plugin.ApiListFlowResultsArgs(
             client_id=self.client_id, flow_id=self.flow_id, with_tag="tag:foo"))
+    self.assertEqual(foo_result.total_count, 1)
     self.assertLen(foo_result.items, 1)
     self.assertEqual(foo_result.items[0].tag, "tag:foo")
 
     bar_result = self.handler.Handle(
         flow_plugin.ApiListFlowResultsArgs(
             client_id=self.client_id, flow_id=self.flow_id, with_tag="tag:bar"))
+    self.assertEqual(bar_result.total_count, 1)
+    self.assertLen(bar_result.items, 1)
+    self.assertEqual(bar_result.items[0].tag, "tag:bar")
+
+  def testCorrectlyFiltersByType(self):
+    foo_result = self.handler.Handle(
+        flow_plugin.ApiListFlowResultsArgs(
+            client_id=self.client_id,
+            flow_id=self.flow_id,
+            with_type=rdfvalue.RDFString.__name__))
+    self.assertEqual(foo_result.total_count, 1)
+    self.assertLen(foo_result.items, 1)
+    self.assertEqual(foo_result.items[0].tag, "tag:foo")
+
+    bar_result = self.handler.Handle(
+        flow_plugin.ApiListFlowResultsArgs(
+            client_id=self.client_id,
+            flow_id=self.flow_id,
+            with_type=rdfvalue.RDFInteger.__name__))
+    self.assertEqual(bar_result.total_count, 1)
+    self.assertLen(bar_result.items, 1)
+    self.assertEqual(bar_result.items[0].tag, "tag:bar")
+
+  def testCorrectlyFiltersBySubstring(self):
+    foo_result = self.handler.Handle(
+        flow_plugin.ApiListFlowResultsArgs(
+            client_id=self.client_id, flow_id=self.flow_id, filter="foo"))
+    self.assertLen(foo_result.items, 1)
+    self.assertEqual(foo_result.items[0].tag, "tag:foo")
+
+    bar_result = self.handler.Handle(
+        flow_plugin.ApiListFlowResultsArgs(
+            client_id=self.client_id, flow_id=self.flow_id, filter="42"))
     self.assertLen(bar_result.items, 1)
     self.assertEqual(bar_result.items[0].tag, "tag:bar")
 
@@ -411,6 +446,7 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
             client_id=self.client_id,
             flow_id=self.flow_id,
             with_tag="non-existing"))
+    self.assertEqual(result.total_count, 0)
     self.assertEmpty(result.items)
 
 
@@ -1053,8 +1089,7 @@ class ApiScheduleFlowsTest(absltest.TestCase):
 
     handler = flow_plugin.ApiUnscheduleFlowHandler()
     args = flow_plugin.ApiUnscheduleFlowArgs(
-        client_id=client_id,
-        scheduled_flow_id=sf1.scheduled_flow_id)
+        client_id=client_id, scheduled_flow_id=sf1.scheduled_flow_id)
     handler.Handle(args, context=context)
 
     handler = flow_plugin.ApiListScheduledFlowsHandler()

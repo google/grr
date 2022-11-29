@@ -188,6 +188,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
   # Artifacts methods.
   # =================
   #
+  # pytype: disable=attribute-error
   def ListArtifacts(self, args, context=None):
     # Everybody is allowed to list artifacts.
 
@@ -997,6 +998,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     """Returns a description of the API following the OpenAPI specification."""
     # Everybody can get the OpenAPI description.
     return self.delegate.GetOpenApiDescription(args, context=context)
+  # pytype: enable=attribute-error
 
 
 # This class is kept here for backwards compatibility only.

@@ -10,7 +10,7 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {firstValueFrom, ReplaySubject, Subject} from 'rxjs';
 
 import {FlowArgsFormModule} from '../../components/flow_args_form/module';
-import {ArtifactCollectorFlowArgs, CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser, CollectFilesByKnownPathArgsCollectionLevel, ExecutePythonHackArgs, GlobComponentExplanation, LaunchBinaryArgs, PipeEndFilter, PipeTypeFilter, TimelineArgs} from '../../lib/api/api_interfaces';
+import {ArtifactCollectorFlowArgs, Browser, CollectBrowserHistoryArgs, CollectFilesByKnownPathArgsCollectionLevel, ExecutePythonHackArgs, GlobComponentExplanation, LaunchBinaryArgs, ListNamedPipesFlowArgsPipeEndFilter, ListNamedPipesFlowArgsPipeTypeFilter, TimelineArgs} from '../../lib/api/api_interfaces';
 import {ApiModule} from '../../lib/api/module';
 import {BinaryType, FlowDescriptor, OperatingSystem, SourceType} from '../../lib/models/flow';
 import {newArtifactDescriptorMap, newClient} from '../../lib/models/model_test_util';
@@ -40,7 +40,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     friendlyName: 'Browser History',
     category: 'Browser',
     defaultArgs: {
-      browsers: [CollectBrowserHistoryArgsBrowser.CHROME],
+      browsers: [Browser.CHROME],
     },
   },
   CollectFilesByKnownPath: {
@@ -84,8 +84,8 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     defaultArgs: {
       pipeNameRegex: '',
       procExeRegex: '',
-      pipeTypeFilter: PipeTypeFilter.ANY_TYPE,
-      pipeEndFilter: PipeEndFilter.ANY_END,
+      pipeTypeFilter: ListNamedPipesFlowArgsPipeTypeFilter.ANY_TYPE,
+      pipeEndFilter: ListNamedPipesFlowArgsPipeEndFilter.ANY_END,
     },
   },
   ListProcesses: {
@@ -218,8 +218,7 @@ describe('FlowArgsForm Component', () => {
         await firstValueFrom(
             fixture.componentInstance.flowArgsForm.flowArgValues$) as
         CollectBrowserHistoryArgs;
-    expect(initialArgs.browsers ?? [])
-        .toContain(CollectBrowserHistoryArgsBrowser.CHROME);
+    expect(initialArgs.browsers ?? []).toContain(Browser.CHROME);
 
     // This test assumes that the first label in the CollectBrowserHistoryForm
     // is Chrome, which is not ideal, but an effective workaround.
@@ -231,8 +230,7 @@ describe('FlowArgsForm Component', () => {
     const args = await firstValueFrom(
                      fixture.componentInstance.flowArgsForm.flowArgValues$) as
         CollectBrowserHistoryArgs;
-    expect(args.browsers ?? [])
-        .not.toContain(CollectBrowserHistoryArgsBrowser.CHROME);
+    expect(args.browsers ?? []).not.toContain(Browser.CHROME);
   });
 
   it('is empty after flow unselection', () => {

@@ -17,6 +17,7 @@ import {RouterModule} from '@angular/router';
 
 import {ApprovalChipModule} from '../client/approval_chip/approval_chip_module';
 import {SubmitOnMetaEnterModule} from '../form/submit_on_meta_enter/submit_on_meta_enter_module';
+import {TextWithLinksModule} from '../helpers/text_with_links/text_with_links_module';
 import {UserImageModule} from '../user_image/module';
 
 import {Approval} from './approval';
@@ -47,6 +48,7 @@ import {Approval} from './approval';
     ApprovalChipModule,
     UserImageModule,
     SubmitOnMetaEnterModule,
+    TextWithLinksModule,
   ],
   declarations: [
     Approval,

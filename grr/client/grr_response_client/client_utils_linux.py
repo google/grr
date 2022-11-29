@@ -18,7 +18,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 GetExtAttrs = client_utils_osx_linux.GetExtAttrs
 CanonicalPathToLocalPath = client_utils_osx_linux.CanonicalPathToLocalPath
 LocalPathToCanonicalPath = client_utils_osx_linux.LocalPathToCanonicalPath
-NannyController = client_utils_osx_linux.NannyController
 VerifyFileOwner = client_utils_osx_linux.VerifyFileOwner
 TransactionLog = client_utils_osx_linux.TransactionLog
 

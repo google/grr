@@ -9,6 +9,7 @@ from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.parsers import windows_persistence
+from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
@@ -91,6 +92,14 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
   category = "/Collectors/"
   args_type = rdf_artifacts.ArtifactCollectorFlowArgs
   progress_type = rdf_artifacts.ArtifactCollectorFlowProgress
+  result_types = (
+      rdf_anomaly.Anomaly,
+      rdf_client_action.ExecuteResponse,
+      # ArtifactCollectorFlow has many more result types. For now, only result
+      # types required for UI type generation are captured here, add other
+      # types when needed.
+      rdfvalue.RDFValue,
+  )
   behaviours = flow_base.BEHAVIOUR_BASIC
 
   def Start(self):

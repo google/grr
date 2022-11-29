@@ -15,8 +15,6 @@ import {ConfigGlobalStore} from '../../store/config_global_store';
 
 import {ControlValues} from './form_interface';
 
-const MAX_AUTOCOMPLETE_RESULTS = 50;
-
 const READABLE_SOURCE_NAME: {[key in SourceType]?: string} = {
   [SourceType.ARTIFACT_FILES]: 'Collects artifact',
   [SourceType.ARTIFACT_GROUP]: 'Collects artifact',
@@ -246,8 +244,7 @@ export class ArtifactCollectorFlowForm extends
           .pipe(
               map(([entries, searchString]) => {
                 const str = searchString?.toLowerCase() ?? '';
-                return entries.filter(ad => matches(ad, str))
-                    .slice(0, MAX_AUTOCOMPLETE_RESULTS);
+                return entries.filter(ad => matches(ad, str));
               }),
           );
 

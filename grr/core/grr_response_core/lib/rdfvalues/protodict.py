@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """A generic serializer for python dictionaries."""
 
-import collections
+from collections import abc
 import logging
 from typing import List, Text, Union, cast
 
@@ -507,4 +507,4 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
 
 # TODO(user):pytype: Mapping is likely using abc.ABCMeta that provides a
 # "register" method. Type checker doesn't see this, unfortunately.
-collections.Mapping.register(Dict)  # pytype: disable=attribute-error
+abc.Mapping.register(Dict)  # pytype: disable=attribute-error

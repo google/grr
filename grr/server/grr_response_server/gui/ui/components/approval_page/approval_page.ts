@@ -48,8 +48,6 @@ export class ApprovalPage implements OnDestroy {
       readonly route: ActivatedRoute,
       private readonly title: Title,
       private readonly approvalPageGlobalStore: ApprovalPageGlobalStore,
-      // TODO(user): Refactor ClientOverview to not require
-      // ClientPageGlobalStore in ApprovalPage.
       private readonly clientPageGlobalStore: ClientPageGlobalStore,
       private readonly userGlobalStore: UserGlobalStore,
       private readonly selectedClientGlobalStore: SelectedClientGlobalStore,

@@ -43,7 +43,7 @@ const RemoveClientsLabelsDialogController = class {
    * @private
    */
   onClientsChange_(newValue) {
-    var labelsSet = {};
+    const labelsSet = {};
 
     if (angular.isDefined(newValue)) {
       angular.forEach(newValue, function(client) {
@@ -73,14 +73,14 @@ const RemoveClientsLabelsDialogController = class {
    * @export
    */
   proceed() {
-    var clients = [];
+    const clients = [];
     angular.forEach(this.scope_['clients'], function(clientObj) {
       clients.push(clientObj['value']['client_id']['value']);
     });
 
-    var deferred = this.q_.defer();
-    var url = '/clients/labels/remove';
-    var params = {client_ids: clients, labels: [this.labelName]};
+    const deferred = this.q_.defer();
+    const url = '/clients/labels/remove';
+    const params = {client_ids: clients, labels: [this.labelName]};
     this.grrApiService_.post(url, params)
         .then(
             function success() {

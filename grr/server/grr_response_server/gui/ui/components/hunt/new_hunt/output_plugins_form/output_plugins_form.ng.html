@@ -14,10 +14,26 @@
 <div class="content">
   <form autocomplete="off" spellcheck="false" [formGroup]="outputPluginsForm">
     <div class="plugins-container">
-      <div class="plugin-content">
-        <!-- TODO: Implement dynamic output plugins UI. -->
+      <div
+        *ngFor="let plugin of plugins.controls; let pluginIndex = index"
+        [ngSwitch]="plugin.get('type')?.value"
+        [formGroup]="pluginGroup(pluginIndex)"
+        class="plugin-content"
+      >
+        <button
+          mat-icon-button
+          [id]="'remove_plugin_' + pluginIndex"
+          class="remove-button"
+          (click)="removePlugin(pluginIndex)"
+          type="button"
+          [attr.aria-label]="removePlugin"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+        <!-- TODO: Add forms for each Output Plugin. -->
 
       </div>
     </div>
   </form>
 </div>
+

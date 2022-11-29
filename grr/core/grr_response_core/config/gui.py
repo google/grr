@@ -109,6 +109,12 @@ config_lib.DEFINE_semantic_struct(
     rdf_config.AdminUIClientWarningsConfigOption, "AdminUI.client_warnings",
     None, "List of per-client-label warning messages to be shown.")
 
+config_lib.DEFINE_string(
+    "AdminUI.analytics_id", None,
+    "The Google Analytics ID to use for logging interactions when users access "
+    "the web UI. If None (default), no Analytics script will be included and "
+    "no events will be logged.")
+
 config_lib.DEFINE_bool(
     "AdminUI.rapid_hunts_enabled", True,
     "If True, enabled 'rapid hunts' feature in the Hunts Wizard. Rapid hunts "

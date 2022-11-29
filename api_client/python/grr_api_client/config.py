@@ -50,7 +50,7 @@ class GrrBinary(GrrBinaryBase):
   ):
     super().__init__(binary_type=data.type, path=data.path, context=context)
 
-    self.data = data  # type: config_pb2.ApiGrrBinary
+    self.data: config_pb2.ApiGrrBinary = data
 
 
 def ListGrrBinaries(

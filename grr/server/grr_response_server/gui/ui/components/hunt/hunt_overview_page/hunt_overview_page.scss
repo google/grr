@@ -6,3 +6,25 @@
   @extend .centered-content;
   padding: c.$page-spacing 0;
 }
+
+.header {
+  display: flex;
+  align-items: center;
+  column-gap: c.$container-padding;
+
+  & > .mat-card-title {
+    margin-bottom: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  & > * {
+    white-space: nowrap;
+  }
+
+  & > .mat-progress-bar {
+    max-width: 100px;
+  }
+}

@@ -47,7 +47,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
         [rdfvalue.RDFString("foo-result")])
 
     self.Open("/#/hunts/%s/results" % hunt_id)
-    self.Click("css=td:contains('%s') button:has(.glyphicon-info-sign)" %
+    self.Click("css=td:contains('%s') button:has(.fa-info-circle)" %
                self.client_ids[0])
 
     self.WaitUntil(self.IsElementPresent,

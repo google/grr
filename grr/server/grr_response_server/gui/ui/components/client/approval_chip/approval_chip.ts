@@ -2,9 +2,11 @@ import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {BehaviorSubject} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {ClientApproval, ClientApprovalStatus} from '../../../lib/models/client';
+import {DateTime} from '../../../lib/date_time';
+import {ClientApproval} from '../../../lib/models/client';
+import {ApprovalStatus} from '../../../lib/models/user';
 
-const TITLES: {readonly[key in ClientApprovalStatus['type']]: string} = {
+const TITLES: {readonly[key in ApprovalStatus['type']]: string} = {
   'expired': 'No access',
   'invalid': 'No access',
   'pending': 'Access pending',
@@ -28,8 +30,16 @@ export class ApprovalChip {
     return this.approval$.getValue();
   }
 
-  private readonly approval$ = new BehaviorSubject<ClientApproval|null>(null);
+  get timeUntilExpiry() {
+    if (this.approval && this.approval.expirationTime) {
+      const date = DateTime.fromJSDate(this.approval.expirationTime);
+      return ` –  ${date.toRelative()!.replace('in ', '')} left`;
+    } else {
+      return '';
+    }
+  }
 
+  private readonly approval$ = new BehaviorSubject<ClientApproval|null>(null);
   readonly status$ =
       this.approval$.pipe(map(approval => approval?.status.type ?? 'invalid'));
 

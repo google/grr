@@ -1,54 +1,4 @@
-<client-overview [collapsed]="filesActive.isActive">
-  <a
-    *ngIf="onlineNotificationInProgress$ | async as flow; else onlineNotificationButton"
-    mat-stroked-button
-    [routerLink]="['/clients', flow.clientId, 'flows', flow.flowId]"
-    color="primary"
-    class="progress-spinner-button"
-    name="online-notification-button"
-  >
-    <mat-spinner diameter="24"></mat-spinner>
-    Notify when online
-  </a>
-  <ng-template #onlineNotificationButton>
-    <button
-      mat-stroked-button
-      (click)="triggerOnlineNotification()"
-      type="button"
-      color="primary"
-      class="progress-spinner-button"
-      name="online-notification-button"
-    >
-      <mat-icon>notifications</mat-icon>
-      Notify when online
-    </button>
-  </ng-template>
-
-  <a
-    *ngIf="interrogateInProgress$ | async as flow; else interrogateButton"
-    mat-stroked-button
-    [routerLink]="['/clients', flow.clientId, 'flows', flow.flowId]"
-    color="primary"
-    class="progress-spinner-button"
-    name="interrogate-button"
-  >
-    <mat-spinner diameter="24"></mat-spinner>
-    Recollect metadata
-  </a>
-  <ng-template #interrogateButton>
-    <button
-      mat-stroked-button
-      (click)="triggerInterrogate()"
-      type="button"
-      color="primary"
-      class="progress-spinner-button"
-      name="interrogate-button"
-    >
-      <mat-icon>refresh</mat-icon>
-      Recollect metadata
-    </button>
-  </ng-template>
-</client-overview>
+<client-overview [collapsed]="filesActive.isActive"></client-overview>
 
 <div>
   <!-- Wrapper <div> to prevent row-gap between nav and divider. -->
@@ -73,7 +23,7 @@
       [active]="filesActive.isActive"
       [disabled]="!(hasAccess$ | async)"
     >
-      Collected files
+      Browse collected files & metadata
     </a>
   </nav>
 

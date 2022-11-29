@@ -116,19 +116,19 @@ exports.InfiniteTableController = class {
     this.elementScopes_ = {};
 
     // Replace the directive's element with table-loading row.
-    var template = angular.element(InfiniteTableController.LOADING_TEMPLATE);
+    const template = angular.element(InfiniteTableController.LOADING_TEMPLATE);
     this.element_.replaceWith(template);
 
     // If triggerUpdate attribute is defined, assign own triggerUpdate function
     // to it. This way users of the directive will be able to trigger updates.
     if (angular.isDefined(this.attrs_['triggerUpdate'])) {
-      var parsedExpression = $parse(this.attrs_['triggerUpdate']);
+      const parsedExpression = $parse(this.attrs_['triggerUpdate']);
       parsedExpression.assign(this.scope_, this.triggerUpdate.bind(this));
     }
 
     // Initialize timer used to check whether table-loading element is visible.
     /** @type {!angular.$q.Promise} */
-    var loadingTimer =
+    const loadingTimer =
         this.interval_(this.checkIfTableLoadingIsVisible_.bind(this), 100);
 
     // Destroy the timer when the shared directive's scope is destroyed.
@@ -148,7 +148,7 @@ exports.InfiniteTableController = class {
     if (this.autoRefreshInterval_) {
       // Initialize timer used to refresh data in the table.
       /** @type {!angular.$q.Promise} */
-      var refreshTimer = this.interval_(
+      const refreshTimer = this.interval_(
           this.refreshData_.bind(this), this.autoRefreshInterval_);
 
       // Destroy the timer when the shared directive's scope is destroyed.
@@ -171,13 +171,13 @@ exports.InfiniteTableController = class {
    */
   setFetchedItems_(newValue) {
     if (newValue.length != this.fetchedItems_.length) {
-      var loadingElement =
+      const loadingElement =
           $(this.rootElement_).find('tr:has(td.table-loading)');
-      for (var i = this.fetchedItems_.length; i < newValue.length; ++i) {
+      for (let i = this.fetchedItems_.length; i < newValue.length; ++i) {
         this.transclude_(function(clone, scope) {
           scope.item = newValue[i];
 
-          var key = newValue[i][InfiniteTableController.UNIQUE_KEY_NAME];
+          let key = newValue[i][InfiniteTableController.UNIQUE_KEY_NAME];
           if (angular.isUndefined(key) && this.autoRefreshInterval_) {
             // Exceptions thrown inside transclude_() call will be swallowed,
             // using logging instead.
@@ -188,7 +188,7 @@ exports.InfiniteTableController = class {
           }
           key = key || '';
 
-          var rowHash = newValue[i][InfiniteTableController.ROW_HASH_NAME];
+          let rowHash = newValue[i][InfiniteTableController.ROW_HASH_NAME];
           if (angular.isUndefined(rowHash) && this.autoRefreshInterval_) {
             // Exceptions thrown inside transclude_() call will be swallowed,
             // using logging instead.
@@ -208,8 +208,8 @@ exports.InfiniteTableController = class {
           // Therefore we track the start/end comments and it's guaranteed
           // that all transcluded elements corresponding to the current
           // item will be between them.
-          var startComment = document.createComment('-> ' + key);
-          var endComment = document.createComment('<- ' + key);
+          const startComment = document.createComment('-> ' + key);
+          const endComment = document.createComment('<- ' + key);
           this.elementScopes_[key] = [startComment, endComment, scope, rowHash];
 
           $(startComment).insertBefore(loadingElement);
@@ -286,7 +286,7 @@ exports.InfiniteTableController = class {
     $(this.rootElement_)
         .find('.table-loading')
         .each(function(index, loadingElement) {
-          var loadingOffset = loadingElement.getBoundingClientRect();
+          const loadingOffset = loadingElement.getBoundingClientRect();
           // NOTE: using Math.ceil here is important since elementFromPoint is
           // pixel-sensitive and effectively needs integer coordinates, while
           // getBoundClientRect is not - it returns floating-point coordinates
@@ -297,7 +297,7 @@ exports.InfiniteTableController = class {
           // and y coordinates, since the bounding client rect returned by the
           // getBoundingClientRect() is an outer rectangle and the actual
           // element is positioned within it.
-          var elem = document.elementFromPoint(
+          const elem = document.elementFromPoint(
               Math.ceil(loadingOffset.left) + 1,
               Math.ceil(loadingOffset.top) + 1);
 
@@ -323,7 +323,7 @@ exports.InfiniteTableController = class {
 
     this.autoRefreshInProgress_ = true;
 
-    var prevUpdateCounter = this.updateCounter_;
+    const prevUpdateCounter = this.updateCounter_;
     this.itemsProvider.fetchItems(0, this.currentPage_ * this.pageSize_)
         .then(function(newItems) {
           if (this.updateCounter_ === prevUpdateCounter) {
@@ -342,19 +342,19 @@ exports.InfiniteTableController = class {
    * @private
    */
   onAutoRefreshDataFetched_(newItems) {
-    for (var i = newItems.items.length - 1; i >= 0; --i) {
-      var newItem = newItems.items[i];
-      var key = newItem[InfiniteTableController.UNIQUE_KEY_NAME];
-      var rowHash = newItem[InfiniteTableController.ROW_HASH_NAME];
-      var elemScope = this.elementScopes_[key];
+    for (let i = newItems.items.length - 1; i >= 0; --i) {
+      const newItem = newItems.items[i];
+      const key = newItem[InfiniteTableController.UNIQUE_KEY_NAME];
+      const rowHash = newItem[InfiniteTableController.ROW_HASH_NAME];
+      const elemScope = this.elementScopes_[key];
 
       if (angular.isDefined(elemScope)) {
         // The item with the same unique key was already displayed. We need to
         // remove the old element and show a new one.
-        var startComment = elemScope[0];
-        var endComment = elemScope[1];
-        var scope = elemScope[2];
-        var oldRowHash = elemScope[3];
+        const startComment = elemScope[0];
+        const endComment = elemScope[1];
+        const scope = elemScope[2];
+        const oldRowHash = elemScope[3];
 
         if (angular.equals(oldRowHash, rowHash)) {
           continue;
@@ -363,8 +363,8 @@ exports.InfiniteTableController = class {
         scope.$destroy();
 
         // Remove elements between startComment and endComment.
-        var toRemove = [];
-        for (var e = startComment.nextSibling; e !== endComment;
+        const toRemove = [];
+        for (let e = startComment.nextSibling; e !== endComment;
              e = e.nextSibling) {
           toRemove.push(e);
         }
@@ -384,8 +384,8 @@ exports.InfiniteTableController = class {
         this.transclude_(function(clone, scope) {
           scope.item = newItem;
 
-          var startComment = document.createComment('-> ' + key);
-          var endComment = document.createComment('<- ' + key);
+          const startComment = document.createComment('-> ' + key);
+          const endComment = document.createComment('<- ' + key);
           this.elementScopes_[key] = [startComment, endComment, scope, rowHash];
 
           this.rootElement_.prepend([startComment, clone, endComment]);
@@ -403,7 +403,7 @@ exports.InfiniteTableController = class {
   tableLoadingElementWasShown_() {
     this.loadingInProgress_ = true;
 
-    var prevUpdateCounter = this.updateCounter_;
+    const prevUpdateCounter = this.updateCounter_;
     if (!this.filterValue_) {
       this.itemsProvider
           .fetchItems(this.currentPage_ * this.pageSize_, this.pageSize_)
@@ -446,7 +446,7 @@ exports.InfiniteTableController = class {
   }
 };
 
-var InfiniteTableController = exports.InfiniteTableController;
+const InfiniteTableController = exports.InfiniteTableController;
 
 
 /** @const */
@@ -484,8 +484,8 @@ exports.InfiniteTableDirective = function() {
         ['grrInfiniteTable', '?grrMemoryItemsProvider', '?grrApiItemsProvider'],
     controller: InfiniteTableController,
     link: function(scope, element, attrs, controllers) {
-      var providerController = undefined;
-      for (var i = 1; i < controllers.length; ++i) {
+      let providerController = undefined;
+      for (let i = 1; i < controllers.length; ++i) {
         if (angular.isObject(controllers[i])) {
           if (angular.isDefined(providerController)) {
             throw new Error('Can have only 1 provider.');

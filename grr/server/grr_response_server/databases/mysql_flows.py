@@ -4,7 +4,12 @@
 import logging
 import threading
 import time
-from typing import Dict, List, Optional, Sequence, Text
+from typing import Dict
+from typing import Iterable
+from typing import List
+from typing import Optional
+from typing import Sequence
+from typing import Text
 
 import MySQLdb
 from MySQLdb import cursors
@@ -276,8 +281,7 @@ class MySQLDBFlowMixin(object):
                        system_cpu_time_used_micros, num_replies_sent, last_update)
     VALUES (%(client_id)s, %(flow_id)s, %(long_flow_id)s, %(parent_flow_id)s,
             %(parent_hunt_id)s, %(name)s, %(creator)s, %(flow)s, %(flow_state)s,
-            %(next_request_to_process)s,
-            FROM_UNIXTIME(%(timestamp)s),
+            %(next_request_to_process)s, NOW(6),
             %(network_bytes_sent)s, %(user_cpu_time_used_micros)s,
             %(system_cpu_time_used_micros)s, %(num_replies_sent)s, NOW(6))"""
 
@@ -294,16 +298,6 @@ class MySQLDBFlowMixin(object):
     system_cpu_time_used_micros = db_utils.SecondsToMicros(
         flow_obj.cpu_time_used.system_cpu_time)
 
-    # TODO(hanuszczak): Consider using `now` always, not only when the flow does
-    # not specify it itself. Flow object should not control when it was really
-    # created. As long as it has not been written to the database, it doesn't
-    # really exist yet. It also introduces a possibility of the object "lying"
-    # about its creation time which might or might not be an issue.
-    if flow_obj.create_time is None:
-      timestamp = mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now())
-    else:
-      timestamp = mysql_utils.RDFDatetimeToTimestamp(flow_obj.create_time)
-
     args = {
         "client_id": db_utils.ClientIDToInt(flow_obj.client_id),
         "flow_id": db_utils.FlowIDToInt(flow_obj.flow_id),
@@ -313,7 +307,6 @@ class MySQLDBFlowMixin(object):
         "flow": flow_obj.SerializeToBytes(),
         "flow_state": int(flow_obj.flow_state),
         "next_request_to_process": flow_obj.next_request_to_process,
-        "timestamp": timestamp,
         "network_bytes_sent": flow_obj.network_bytes_sent,
         "num_replies_sent": flow_obj.num_replies_sent,
         "user_cpu_time_used_micros": user_cpu_time_used_micros,
@@ -436,13 +429,16 @@ class MySQLDBFlowMixin(object):
     return self._FlowObjectFromRow(row)
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadAllFlowObjects(self,
-                         client_id: Optional[Text] = None,
-                         parent_flow_id: Optional[str] = None,
-                         min_create_time: Optional[rdfvalue.RDFDatetime] = None,
-                         max_create_time: Optional[rdfvalue.RDFDatetime] = None,
-                         include_child_flows: bool = True,
-                         cursor=None) -> List[rdf_flow_objects.Flow]:
+  def ReadAllFlowObjects(
+      self,
+      client_id: Optional[Text] = None,
+      parent_flow_id: Optional[str] = None,
+      min_create_time: Optional[rdfvalue.RDFDatetime] = None,
+      max_create_time: Optional[rdfvalue.RDFDatetime] = None,
+      include_child_flows: bool = True,
+      not_created_by: Optional[Iterable[str]] = None,
+      cursor=None,
+  ) -> List[rdf_flow_objects.Flow]:
     """Returns all flow objects."""
     conditions = []
     args = []
@@ -465,6 +461,13 @@ class MySQLDBFlowMixin(object):
 
     if not include_child_flows:
       conditions.append("parent_flow_id IS NULL")
+
+    if not_created_by is not None:
+      conditions.append("creator NOT IN %s")
+      # We explicitly convert not_created_by into a list because the cursor
+      # implementation does not know how to convert a `frozenset` to a string.
+      # The cursor implementation knows how to convert lists and ordinary sets.
+      args.append(list(not_created_by))
 
     query = f"SELECT {self.FLOW_DB_FIELDS} FROM flows"
     if conditions:

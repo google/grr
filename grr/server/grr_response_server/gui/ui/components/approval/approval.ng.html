@@ -39,7 +39,12 @@
         </tr>
         <tr>
           <td><strong>Request reason: </strong></td>
-          <td>{{latestApproval.reason}}</td>
+          <td>
+            <app-text-with-links
+                [text]="latestApproval.reason"
+            >
+            </app-text-with-links>
+          </td>
         </tr>
       </table>
 
@@ -57,7 +62,12 @@
         </tr>
         <tr>
           <td><strong>Request reason: </strong></td>
-          <td>{{latestApproval.reason}}</td>
+          <td>
+            <app-text-with-links
+                [text]="latestApproval.reason"
+            >
+            </app-text-with-links>
+          </td>
         </tr>
       </table>
 

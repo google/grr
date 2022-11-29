@@ -2,7 +2,7 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FormControl} from '@angular/forms';
 
 import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
-import {CollectBrowserHistoryArgs, CollectBrowserHistoryArgsBrowser} from '../../lib/api/api_interfaces';
+import {Browser, CollectBrowserHistoryArgs} from '../../lib/api/api_interfaces';
 
 function makeControls() {
   return {
@@ -32,32 +32,30 @@ export class CollectBrowserHistoryForm extends
   override convertFlowArgsToFormState(flowArgs: CollectBrowserHistoryArgs) {
     const browsers = flowArgs.browsers ?? [];
     return {
-      collectChrome: browsers.includes(CollectBrowserHistoryArgsBrowser.CHROME),
-      collectFirefox:
-          browsers.includes(CollectBrowserHistoryArgsBrowser.FIREFOX),
-      collectInternetExplorer:
-          browsers.includes(CollectBrowserHistoryArgsBrowser.INTERNET_EXPLORER),
-      collectOpera: browsers.includes(CollectBrowserHistoryArgsBrowser.OPERA),
-      collectSafari: browsers.includes(CollectBrowserHistoryArgsBrowser.SAFARI),
+      collectChrome: browsers.includes(Browser.CHROME),
+      collectFirefox: browsers.includes(Browser.FIREFOX),
+      collectInternetExplorer: browsers.includes(Browser.INTERNET_EXPLORER),
+      collectOpera: browsers.includes(Browser.OPERA),
+      collectSafari: browsers.includes(Browser.SAFARI),
     };
   }
 
   override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     const browsers = [];
     if (formState.collectChrome) {
-      browsers.push(CollectBrowserHistoryArgsBrowser.CHROME);
+      browsers.push(Browser.CHROME);
     }
     if (formState.collectFirefox) {
-      browsers.push(CollectBrowserHistoryArgsBrowser.FIREFOX);
+      browsers.push(Browser.FIREFOX);
     }
     if (formState.collectInternetExplorer) {
-      browsers.push(CollectBrowserHistoryArgsBrowser.INTERNET_EXPLORER);
+      browsers.push(Browser.INTERNET_EXPLORER);
     }
     if (formState.collectOpera) {
-      browsers.push(CollectBrowserHistoryArgsBrowser.OPERA);
+      browsers.push(Browser.OPERA);
     }
     if (formState.collectSafari) {
-      browsers.push(CollectBrowserHistoryArgsBrowser.SAFARI);
+      browsers.push(Browser.SAFARI);
     }
     return {browsers};
   }

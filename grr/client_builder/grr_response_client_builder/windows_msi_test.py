@@ -205,19 +205,6 @@ class WindowsMsiTest(absltest.TestCase):
   def testInstaller(self):
     self._BuildTemplate()
 
-    with self.subTest("legacy"):
-      installer_path = self._RepackTemplate("legacy", False, False)
-      self._Install(installer_path)
-      self._WaitForProcess("foo.exe")
-      self._WaitForProcess("bar.exe")
-      self._AssertServiceExists("bar Monitor")
-
-      self._Uninstall(installer_path)
-      time.sleep(5)
-      self._AssertProcessNotRunning("foo.exe")
-      self._AssertProcessNotRunning("bar.exe")
-      self._AssertServiceDoesNotExist("bar Monitor")
-
     with self.subTest("fleetspeak enabled"):
       self._RunFakeFleestpeakServiceCommand("install")
       self._RunFakeFleestpeakServiceCommand("start")

@@ -103,7 +103,7 @@ class ClientRegistryFinder(flow_base.FlowBase):
   friendly_name = "Client Side Registry Finder"
   category = "/Registry/"
   args_type = RegistryFinderArgs
-  behaviours = flow_base.BEHAVIOUR_DEBUG
+  behaviours = flow_base.BEHAVIOUR_ADVANCED
 
   @classmethod
   def GetDefaultArgs(cls, username=None):

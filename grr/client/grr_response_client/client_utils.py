@@ -28,7 +28,6 @@ GetRawDevice = _client_utils.GetRawDevice
 KeepAlive = _client_utils.KeepAlive
 LocalPathToCanonicalPath = _client_utils.LocalPathToCanonicalPath
 MemoryRegions = _client_utils.MemoryRegions
-NannyController = _client_utils.NannyController
 OpenProcessForMemoryAccess = _client_utils.OpenProcessForMemoryAccess
 TransactionLog = _client_utils.TransactionLog
 VerifyFileOwner = _client_utils.VerifyFileOwner

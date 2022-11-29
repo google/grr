@@ -2,6 +2,7 @@
 """Simple parsers for configuration files."""
 
 import collections
+from collections import abc
 import logging
 import re
 from typing import IO
@@ -28,7 +29,7 @@ def AsIter(arg):
   """Encapsulates an argument in a tuple, if it's not already iterable."""
   if isinstance(arg, str):
     rslt = [arg]
-  elif isinstance(arg, collections.Iterable):
+  elif isinstance(arg, abc.Iterable):
     rslt = arg
   elif not arg:
     rslt = []

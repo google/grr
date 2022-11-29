@@ -197,7 +197,7 @@ setup_args = dict(
         "pyOpenSSL==19.1.0",  # https://github.com/google/grr/issues/704
         "python-crontab==2.5.1",
         "python-debian==0.1.37",
-        "Werkzeug==1.0.1",
+        "Werkzeug==2.1.2",
     ],
     extras_require={
         # This is an optional component. Install to get MySQL data
@@ -207,16 +207,7 @@ setup_args = dict(
         # incompatibilities between the system mysqlclient/mariadbclient and the
         # Python library otherwise. Thus, this version has to be equal to the
         # python-mysqldb version of the system we support. This is currently
-        # Ubuntu Xenial, see https://packages.ubuntu.com/xenial/python-mysqldb
-        #
-        # NOTE: the Xenial-provided 1.3.7 version is not properly Python 3
-        # compatible. Versions 1.3.13 or later are API-compatible with 1.3.7
-        # when running on Python 2 and work correctly on Python 3. However,
-        # they don't have Python 2 wheels released, which makes GRR packaging
-        # for Python 2 much harder if one of these versions is used.
-        #
-        # TODO(user): Find a way to use the latest mysqlclient version
-        # in GRR server DEB.
+        # Ubuntu Bionic, see https://packages.ubuntu.com/bionic/python-mysqldb
         "mysqldatastore": ["mysqlclient==1.3.10"],
         # TODO: We currently release fleetspeak-server-bin packages
         # for Linux only.

@@ -88,7 +88,7 @@ class RawConnector(connectors.Connector):
   def page_size(self) -> int:
     return self._page_size
 
-  def SendRequest(
+  def SendRequest(  # pytype: disable=signature-mismatch  # overriding-parameter-type-checks
       self,
       handler_name: str,
       args: message.Message,

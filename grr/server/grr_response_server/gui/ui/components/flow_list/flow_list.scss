@@ -1,42 +1,36 @@
-@use '@angular/material' as mat;
-@use '../../material-theme' as c;
+@use "@angular/material" as mat;
+@use "../../material-theme" as c;
 
-:host {
+:host,
+app-infinite-list {
   display: flex;
   flex-direction: column;
   row-gap: 1em;
+}
 
-  h1 {
-    font-family: c.$google-sans-display-family;
-    font-size: 18px;
-    font-weight: 500;
-    line-height: 24px;
-    margin: 0;
+h1 {
+  font-family: c.$google-sans-display-family;
+  font-size: 18px;
+  font-weight: 500;
+  line-height: 24px;
+  margin: 0;
+}
+
+mat-form-field {
+  width: 145px;
+}
+
+flow-details {
+  display: block;
+  border-radius: 8px;
+
+  &.highlight {
+    outline: 5px solid mat.get-color-from-palette(c.$primary, 100);
   }
+}
 
-  flow-details {
-    display: block;
-    border-radius: 8px;
-
-    &.highlight {
-      outline: 5px solid mat.get-color-from-palette(c.$primary, 100);
-    }
-  }
-
-  .footer {
-    display: flex;
-    flex-direction: column;
-
-    mat-spinner {
-      align-self: center;
-    }
-
-    button {
-      justify-self: center;
-    }
-
-    aside {
-      text-align: center;
-    }
-  }
+.footer {
+  display: flex;
+  flex-direction: column;
+  text-align: center;
 }

@@ -1,0 +1,50 @@
+<span *ngIf="isLoading$ | async; else details">
+  <h1><mat-spinner></mat-spinner>LOADING...</h1>
+</span>
+
+<ng-template #details>
+  <h3 class="section-title client-title">
+    <mat-icon class="computer-icon">computer</mat-icon>
+    Client: {{ clientId$ | async }}
+  </h3>
+  <table class="section">
+    <tr>
+      <td class="description">Source flow</td>
+      <td class="value">
+        <!-- Navigate to flow and close drawer. -->
+        <a
+          [routerLink]="[
+            '',
+            {
+              outlets: {
+                'primary': ['clients', clientId$ | async, 'flows', huntId$ | async],
+                'drawer': null
+              }
+            }
+          ]"
+          class="text-link"
+        >
+          {{ huntId$ | async }}
+        </a>
+      </td>
+    </tr>
+    <tr>
+      <td class="description">Collected at</td>
+      <td class="value">
+        <app-timestamp
+          [date]="(timestamp$ | async) ?? undefined"
+          relativeTimestamp="visible"
+        ></app-timestamp>
+      </td>
+    </tr>
+  </table>
+
+  <h3 class="section-title">Result</h3>
+  <table class="section">
+    <tr>
+      <td class="monospace payload">
+        <pre>{{ payload$ | async }}</pre>
+      </td>
+    </tr>
+  </table>
+</ng-template>

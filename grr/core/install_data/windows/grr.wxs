@@ -53,86 +53,6 @@
             <Component Id="CompGrrExe">
                <File Id="FileGrrExe" Source="$(var.InputDir)\grr-client.exe" Name="__grr-client.exe" />
             </Component>
-            <Component Id="CompDbgNannyExe">
-              <File Id="FileDbgNannyExe" Source="$(var.InputDir)\dbg_GRRService.exe" Name="__dbg_GRRService.exe" />
-              <ServiceInstall
-                  Arguments="__NannyArguments"
-                  Id="ServiceInstallDbgNannyExe"
-                  Type="ownProcess"
-                  Name="__DbgNannyServiceName"
-                  Description="__NannyServiceDescription"
-                  Start="auto"
-                  Account="LOCALSYSTEM"
-                  ErrorControl="normal"
-                  Vital="no">
-                <ServiceConfig
-                    Id="ServiceConfigDbgNannyExe"
-                    DelayedAutoStart="yes"
-                    OnInstall="yes"
-                    OnReinstall="yes" />
-                <util:ServiceConfig
-                    ResetPeriodInDays="1"
-                    RestartServiceDelayInSeconds="120"
-                    FirstFailureActionType="restart"
-                    SecondFailureActionType="restart"
-                    ThirdFailureActionType="restart" />
-              </ServiceInstall>
-              <ServiceControl
-                  Id="ServiceControlDbgNannyExe"
-                  Name="__DbgNannyServiceName"
-                  Start="install"
-                  Stop="both"
-                  Remove="uninstall"
-                  Wait="no" />
-            </Component>
-            <Component Id="CompDbgNannyReg" Guid="*">
-              <RegistryKey Root="HKLM" Key="__DbgNannyRegistryKey">
-                <RegistryValue Type="string" Name="Nanny.child_binary" KeyPath="yes" Value="__NannyChildBinary" />
-                <RegistryValue Type="string" Name="Nanny.child_command_line" Value="__NannyChildCommandLine" />
-                <RegistryValue Type="string" Name="Nanny.service_name" Value="__DbgNannyServiceName" />
-                <RegistryValue Type="string" Name="Nanny.service_description" Value="__NannyServiceDescription" />
-              </RegistryKey>
-            </Component>
-            <Component Id="CompNannyExe">
-              <ServiceInstall
-                  Arguments="__NannyArguments"
-                  Id="ServiceInstallerNannyExe"
-                  Type="ownProcess"
-                  Name="__NannyServiceName"
-                  Description="__NannyServiceDescription"
-                  Start="auto"
-                  Account="LOCALSYSTEM"
-                  ErrorControl="normal"
-                  Vital="no">
-                <ServiceConfig
-                    Id="ServiceConfigNannyExe"
-                    DelayedAutoStart="yes"
-                    OnInstall="yes"
-                    OnReinstall="yes" />
-                  <util:ServiceConfig
-                      ResetPeriodInDays="1"
-                      RestartServiceDelayInSeconds="120"
-                      FirstFailureActionType="restart"
-                      SecondFailureActionType="restart"
-                      ThirdFailureActionType="restart" />
-              </ServiceInstall>
-              <ServiceControl
-                  Id="ServiceControlNannyExe"
-                  Name="__NannyServiceName"
-                  Start="install"
-                  Stop="both"
-                  Remove="uninstall"
-                  Wait="no" />
-              <File Id="FileNannyExe" Source="$(var.InputDir)\GRRService.exe" Name="__GRRService.exe" />
-            </Component>
-            <Component Id="CompNannyReg" Guid="*">
-              <RegistryKey Root="HKLM" Key="__NannyRegistryKey">
-                <RegistryValue Type="string" Name="Nanny.child_binary" KeyPath="yes" Value="__NannyChildBinary" />
-                <RegistryValue Type="string" Name="Nanny.child_command_line" Value="__NannyChildCommandLine" />
-                <RegistryValue Type="string" Name="Nanny.service_name" Value="__NannyServiceName" />
-                <RegistryValue Type="string" Name="Nanny.service_description" Value="__NannyServiceDescription" />
-              </RegistryKey>
-            </Component>
             <Component Id="CompGrrConfig">
               <File Id="FileGrrConfig" Source="$(var.InputDir)\grr-config.yaml" Name="grr-config.yaml" />
             </Component>
@@ -207,12 +127,12 @@
       <ComponentRef Id="CompFleetspeakServiceConfig"/>
     </Feature>
 
-    <Feature Id="FleetspeakServiceRestart" Level="0">
-      <ComponentRef Id="CompFleetspeakServiceRestart"/>
-    </Feature>
-
     <Feature Id="NannyServiceRemove" Level="0">
       <ComponentRef Id="CompNannyServiceRemove"/>
+    </Feature>
+
+    <Feature Id="FleetspeakServiceRestart" Level="0">
+      <ComponentRef Id="CompFleetspeakServiceRestart"/>
     </Feature>
 
     <Feature Id="PaddingFile" Level="0">
@@ -224,16 +144,6 @@
         NOT Installed AND NOT REMOVE
       </Custom>
     </InstallExecuteSequence>
-
-    <Feature Id="Nanny" Level="0">
-      <ComponentRef Id="CompNannyExe"/>
-      <ComponentRef Id="CompNannyReg"/>
-    </Feature>
-
-    <Feature Id="DbgNanny" Level="0">
-      <ComponentRef Id="CompDbgNannyExe"/>
-      <ComponentRef Id="CompDbgNannyReg"/>
-    </Feature>
 
   </Product>
 </Wix>

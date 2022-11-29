@@ -14,12 +14,11 @@ describe('translateArtifactDescriptor', () => {
       'artifact': {
         'name': 'ChromiumBasedBrowsersHistory',
         'doc': 'Chrome browser history.',
-        'labels': ['Browser'],
         'supportedOs': ['Windows', 'Linux'],
         'urls': ['artifactUrl'],
         'sources': [
           {
-            'type': 'FILE' as api.SourceType,
+            'type': 'FILE' as api.ArtifactSourceSourceType,
             'attributes': {
               'dat': [
                 {
@@ -39,7 +38,7 @@ describe('translateArtifactDescriptor', () => {
             'supportedOs': ['Windows']
           },
           {
-            'type': 'FILE' as api.SourceType,
+            'type': 'FILE' as api.ArtifactSourceSourceType,
             'attributes': {
               'dat': [{
                 'k': {'string': 'paths'},
@@ -64,7 +63,6 @@ describe('translateArtifactDescriptor', () => {
     const descriptor: ArtifactDescriptor = {
       name: 'ChromiumBasedBrowsersHistory',
       doc: 'Chrome browser history.',
-      labels: ['Browser'],
       supportedOs: new Set([OperatingSystem.WINDOWS, OperatingSystem.LINUX]),
       urls: ['artifactUrl'],
       provides: [],

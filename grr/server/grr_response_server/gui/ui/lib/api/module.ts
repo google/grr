@@ -2,7 +2,7 @@ import {HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule} from '@angula
 import {NgModule} from '@angular/core';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
 
-import {ErrorSnackbarModule} from '../../components/helpers/error_snackbar/error_snackbar_module';
+import {ErrorSnackBarModule} from '../../components/helpers/error_snackbar/error_snackbar_module';
 
 import {HttpApiService, WithCredentialsInterceptor} from './http_api_service';
 
@@ -26,7 +26,7 @@ import {HttpApiService, WithCredentialsInterceptor} from './http_api_service';
 
     MatSnackBarModule,
 
-    ErrorSnackbarModule,
+    ErrorSnackBarModule,
   ],
 
 })

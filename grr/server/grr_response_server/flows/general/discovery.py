@@ -284,6 +284,8 @@ class Interrogate(flow_base.FlowBase):
           self.client_id)
       if fleetspeak_labels:
         response.labels = fleetspeak_labels
+        data_store.REL_DB.AddClientLabels(
+            client_id=self.client_id, owner="GRR", labels=fleetspeak_labels)
       else:
         FLEETSPEAK_UNLABELED_CLIENTS.Increment()
         logging.warning("Failed to get labels for Fleetspeak client %s.",

@@ -37,11 +37,11 @@ class HuntApprovalBase(object):
     if not username:
       raise ValueError("username can't be empty.")
 
-    self.hunt_id = hunt_id  # type: str
-    self.approval_id = approval_id  # type: str
-    self.username = username  # type: str
+    self.hunt_id: str = hunt_id
+    self.approval_id: str = approval_id
+    self.username: str = username
 
-    self._context = context  # type: context_lib.GrrApiContext
+    self._context: context_lib.GrrApiContext = context
 
   # TODO(hanuszczak): There was an unresolved reference in this function, yet
   # none of the test caught it, indicating insufficient test coverage.
@@ -111,7 +111,7 @@ class HuntApproval(HuntApprovalBase):
         username=username,
         context=context)
 
-    self.data = data  # type: user_pb2.ApiHuntApproval
+    self.data: user_pb2.ApiHuntApproval = data
 
 
 class HuntResult(object):
@@ -123,12 +123,11 @@ class HuntResult(object):
       context: context_lib.GrrApiContext,
   ):
     super().__init__()
-    self.data = data  # type: hunt_pb2.ApiHuntResult
+    self.data: hunt_pb2.ApiHuntResult = data
 
-    self.client = client.ClientRef(
-        client_id=utils.UrnStringToClientId(data.client_id),
-        context=context)  # type: client.ClientRef
-    self.timestamp = data.timestamp  # type: int
+    self.client: client.ClientRef = client.ClientRef(
+        client_id=utils.UrnStringToClientId(data.client_id), context=context)
+    self.timestamp: int = data.timestamp
 
   @property
   def payload(self) -> Union[message.Message, utils.UnknownProtobuf]:
@@ -145,13 +144,12 @@ class HuntError(object):
   ):
     super().__init__()
 
-    self.data = data  # type: hunt_pb2.ApiHuntError
-    self.log_message = self.data.log_message  # type: str
-    self.backtrace = self.data.backtrace  # type: str
+    self.data: hunt_pb2.ApiHuntError = data
+    self.log_message: str = self.data.log_message
+    self.backtrace: str = self.data.backtrace
 
-    self.client = client.ClientRef(
-        client_id=utils.UrnStringToClientId(data.client_id),
-        context=context)  # type: client.ClientRef
+    self.client: client.ClientRef = client.ClientRef(
+        client_id=utils.UrnStringToClientId(data.client_id), context=context)
 
 
 class HuntLog(object):
@@ -164,10 +162,10 @@ class HuntLog(object):
   ):
     super().__init__()
 
-    self.data = data  # type: hunt_pb2.ApiHuntLog
+    self.data: hunt_pb2.ApiHuntLog = data
     self.log_message = self.data.log_message  # str
 
-    self.client = None  # type: Optional[client.ClientRef]
+    self.client: Optional[client.ClientRef] = None
     if data.client_id:
       self.client = client.ClientRef(
           client_id=utils.UrnStringToClientId(data.client_id), context=context)
@@ -183,7 +181,7 @@ class HuntClient(client.ClientRef):
   ):
     super().__init__(client_id=data.client_id, context=context)
 
-    self.data = data  # type: hunt_pb2.ApiHuntClient
+    self.data: hunt_pb2.ApiHuntClient = data
 
 
 class HuntBase(object):
@@ -199,8 +197,8 @@ class HuntBase(object):
     if not hunt_id:
       raise ValueError("hunt_id can't be empty.")
 
-    self.hunt_id = hunt_id  # type: str
-    self._context = context  # type: context_lib.GrrApiContext
+    self.hunt_id: str = hunt_id
+    self._context: context_lib.GrrApiContext = context
 
   def Approval(
       self,
@@ -399,7 +397,7 @@ class Hunt(HuntBase):
 
     super().__init__(hunt_id=hunt_id, context=context)
 
-    self.data = data  # type: hunt_pb2.ApiHunt
+    self.data: hunt_pb2.ApiHunt = data
 
 
 def CreateHunt(

@@ -21,7 +21,7 @@ try:
 except ImportError:
   raise unittest.SkipTest("This is a Windows only test.")
 
-flags.DEFINE_bool(
+_SET_INHERITANCE = flags.DEFINE_bool(
     "set_inheritance",
     default=True,
     help="If true, permission inheritance is set on directories shared with the sandbox."
@@ -61,7 +61,7 @@ def setUpModule():
   # This enables inheritance on all directory trees recursively.
   # Since this is a very slow operation, directories are processed in parallel.
 
-  if flags.FLAGS.set_inheritance:
+  if _SET_INHERITANCE.value:
     futures = []
     with concurrent.futures.ThreadPoolExecutor() as executor:
       for read_only_path in read_only_paths:

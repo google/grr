@@ -84,14 +84,3 @@ config_lib.DEFINE_integer(
     "Mysql.max_values_per_query", 10000, help="Deprecated.")
 
 config_lib.DEFINE_integer("Mysql.max_retries", 10, help="Deprecated.")
-
-# DualBlobStore blob storage proxy
-config_lib.DEFINE_string(
-    "DualBlobStore.primary_implementation", "",
-    "Class name of the blob storage to use as primary backend (reading & "
-    "writing)")
-
-config_lib.DEFINE_string(
-    "DualBlobStore.secondary_implementation", "",
-    "Class name of the blob storage to use as secondary backend (writing, not "
-    "reading)")

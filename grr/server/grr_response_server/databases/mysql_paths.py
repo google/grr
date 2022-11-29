@@ -196,6 +196,14 @@ class MySQLDBPathMixin(object):
 
     int_client_id = db_utils.ClientIDToInt(client_id)
 
+    # Since we need to validate client id even if there are no paths given, we
+    # cannot rely on foreign key constraints and have to special-case this.
+    if not path_infos:
+      query = "SELECT client_id FROM clients WHERE client_id = %(client_id)s"
+      cursor.execute(query, {"client_id": int_client_id})
+      if not cursor.fetchall():
+        raise db.UnknownClientError(client_id)
+
     path_info_values = []
     parent_path_info_values = []
 

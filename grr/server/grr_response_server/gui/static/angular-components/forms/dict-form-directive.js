@@ -59,7 +59,7 @@ const DictFormController = class {
     }
 
     value = angular.copy(value);
-    var s = value['value'].trim();
+    const s = value['value'].trim();
 
     if (/^\d+$/.test(s)) {
       value['value'] = parseInt(s, 10);
@@ -89,8 +89,8 @@ const DictFormController = class {
   onKeyValueListChange_(newValue) {
     if (angular.isDefined(newValue)) {
       this.scope_.value.value = {};
-      for (var i = 0; i < this.keyValueList.length; ++i) {
-        var pair = this.keyValueList[i];
+      for (let i = 0; i < this.keyValueList.length; ++i) {
+        const pair = this.keyValueList[i];
         this.scope_.value.value[pair['key']] =
             this.convertFromRDFString(pair['value']);
       }
@@ -113,9 +113,9 @@ const DictFormController = class {
       }
 
       angular.forEach(newValue, function(value, key) {
-        var found = false;
-        for (var i = 0; i < this.keyValueList.length; ++i) {
-          var pair = this.keyValueList[i];
+        let found = false;
+        for (let i = 0; i < this.keyValueList.length; ++i) {
+          const pair = this.keyValueList[i];
           if (pair['key'] == key) {
             found = true;
 

@@ -9,6 +9,7 @@ from absl.testing import absltest
 
 from grr_response_core.lib.util import statx
 from grr_response_core.lib.util import temp
+from grr.test_lib import time as time_test_lib
 
 
 class GetTest(absltest.TestCase):
@@ -95,11 +96,10 @@ class GetTest(absltest.TestCase):
       self.assertGreater(result.mtime_ns, 0)
       self.assertGreater(result.ctime_ns, 0)
 
-      # TODO(hanuszczak): Remove this once support for Python 3.6 is dropped.
-      if hasattr(time, "time_ns"):
-        self.assertLess(result.atime_ns, time.time_ns())
-        self.assertLess(result.mtime_ns, time.time_ns())
-        self.assertLess(result.ctime_ns, time.time_ns())
+      time_test_lib.Step()
+      self.assertLess(result.atime_ns, time.time_ns())
+      self.assertLess(result.mtime_ns, time.time_ns())
+      self.assertLess(result.ctime_ns, time.time_ns())
 
   def testBirthTime(self):
     # On Linux, file birth time is collected only if `statx` is available.
@@ -113,10 +113,8 @@ class GetTest(absltest.TestCase):
       result = statx.Get(tempfile.encode("utf-8"))
 
       self.assertGreater(result.btime_ns, 0)
-
-      # TODO(hanuszczak): Remove this once support for Python 3.6 is dropped.
-      if hasattr(time, "time_ns"):
-        self.assertLess(result.btime_ns, time.time_ns())
+      time_test_lib.Step()
+      self.assertLess(result.btime_ns, time.time_ns())
 
   def testRaisesExceptionOnError(self):
     with temp.AutoTempDirPath() as tempdir:

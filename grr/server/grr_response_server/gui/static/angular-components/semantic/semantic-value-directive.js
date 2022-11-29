@@ -78,7 +78,7 @@ const RegistryOverrideController = class {
     this.overrideKey = '';
     angular.forEach(
         Object.keys(/** @type {!Object} */ (this.map)).sort(), function(key) {
-          var value = this.map[key];
+          const value = this.map[key];
           this.overrideKey += ':' + key + '_' + value['directive_name'];
         }.bind(this));
   }
@@ -174,8 +174,8 @@ const SemanticValueController = class {
    * @private
    */
   compileSingleTypedValueTemplate_(value) {
-    var successHandler = function(directive) {
-      var element = angular.element('<span />');
+    const successHandler = function(directive) {
+      const element = angular.element('<span />');
 
       element.html(
           '<' + this.camelCaseToDashDelimited(directive.directive_name) +
@@ -183,13 +183,13 @@ const SemanticValueController = class {
       return this.compile_(element);
     }.bind(this);
 
-    var failureHandler = function(directive) {
-      var element = angular.element('<span />');
+    const failureHandler = function(directive) {
+      const element = angular.element('<span />');
       element.html('{$ ::value.value $}');
       return this.compile_(element);
     }.bind(this);
 
-    var overrides;
+    let overrides;
     if (this.registryOverrideController) {
       overrides = this.registryOverrideController.map;
     }
@@ -207,7 +207,7 @@ const SemanticValueController = class {
    * @private
    */
   compileRepeatedValueTemplate_() {
-    var element = angular.element(
+    const element = angular.element(
         '<div ng-repeat="item in ::repeatedValue || []">' +
         '<grr-semantic-value value="::item" /></div>');
     return this.compile_(element);
@@ -219,7 +219,7 @@ const SemanticValueController = class {
    * @export
    */
   onValueChange() {
-    var value = this.scope_.value;
+    const value = this.scope_.value;
 
     if (value == null) {
       return;
@@ -229,11 +229,11 @@ const SemanticValueController = class {
      * @type {(function(!angular.Scope, function(Object,
      *     !angular.Scope=)=):Object|undefined)}
      */
-    var template;
+    let template;
 
 
     if (angular.isDefined(value['type'])) {
-      var handleTemplate = function(template) {
+      const handleTemplate = function(template) {
         template(this.scope_, function(cloned, opt_scope) {
           this.element_.html('');
           this.element_.append(cloned);
@@ -242,7 +242,7 @@ const SemanticValueController = class {
 
       // Make sure that templates for overrides do not collide with either
       // templates for other overrides or with default templates.
-      var cacheKey = value['type'];
+      let cacheKey = value['type'];
       if (this.registryOverrideController) {
         cacheKey += this.registryOverrideController.overrideKey;
       }
@@ -258,7 +258,7 @@ const SemanticValueController = class {
       }
     } else if (angular.isArray(value)) {
       if (value.length > 10) {
-        var continuation = value.slice(10);
+        const continuation = value.slice(10);
         this.scope_.repeatedValue = value.slice(0, 10);
         this.scope_.repeatedValue.push(
             {type: '__FetchMoreLink', value: continuation});

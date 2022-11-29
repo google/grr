@@ -6,7 +6,7 @@ const loadingIndicatorService = goog.requireType('grrUi.core.loadingIndicatorSer
 
 
 /** @const */
-var UNAUTHORIZED_API_RESPONSE_EVENT = 'UnauthorizedApiResponse';
+const UNAUTHORIZED_API_RESPONSE_EVENT = 'UnauthorizedApiResponse';
 
 /**
  * "Refresh folder" event name.
@@ -24,11 +24,11 @@ exports.UNAUTHORIZED_API_RESPONSE_EVENT = UNAUTHORIZED_API_RESPONSE_EVENT;
  * @return {string} Encoded url path.
  */
 exports.encodeUrlPath = function(urlPath) {
-  var components = urlPath.split('/');
-  var encodedComponents = components.map(encodeURIComponent);
+  const components = urlPath.split('/');
+  const encodedComponents = components.map(encodeURIComponent);
   return encodedComponents.join('/');
 };
-var encodeUrlPath = exports.encodeUrlPath;
+const encodeUrlPath = exports.encodeUrlPath;
 
 /**
  * Strips type information from a JSON-encoded RDFValue.
@@ -70,13 +70,13 @@ var encodeUrlPath = exports.encodeUrlPath;
  * @return {*} Same RDFValue but with all type information stripped.
  */
 exports.stripTypeInfo = function(richlyTypedValue) {
-  var recursiveStrip = function(value) {
+  const recursiveStrip = function(value) {
     if (angular.isArray(value)) {
       value = value.map(recursiveStrip);
     } else if (angular.isDefined(value.value)) {
       value = value.value;
       if (angular.isObject(value)) {
-        for (var k in value) {
+        for (const k in value) {
           value[k] = recursiveStrip(value[k]);
         }
       }
@@ -86,7 +86,7 @@ exports.stripTypeInfo = function(richlyTypedValue) {
 
   return recursiveStrip(angular.copy(richlyTypedValue));
 };
-var stripTypeInfo = exports.stripTypeInfo;
+const stripTypeInfo = exports.stripTypeInfo;
 
 
 /**
@@ -98,13 +98,13 @@ var stripTypeInfo = exports.stripTypeInfo;
  *     methods will propagate 'cancel' property of the parent promise to
  *     children promises.
  */
-var wrapCancellablePromise_ = function(promise) {
-  var cancel = promise['cancel'];
+const wrapCancellablePromise_ = function(promise) {
+  const cancel = promise['cancel'];
 
   if (angular.isUndefined(promise['_oldThen'])) {
     promise['_oldThen'] = promise['then'];
     promise['then'] = function(onFulfilled, onRejected, progressBack) {
-      var result = promise['_oldThen'](onFulfilled, onRejected, progressBack);
+      const result = promise['_oldThen'](onFulfilled, onRejected, progressBack);
       result['cancel'] = cancel;
       return wrapCancellablePromise_(result);
     };
@@ -113,7 +113,7 @@ var wrapCancellablePromise_ = function(promise) {
   if (angular.isUndefined(promise['_oldCatch'])) {
     promise['_oldCatch'] = promise['catch'];
     promise['catch'] = function(callback) {
-      var result = promise['_oldCatch'](callback);
+      const result = promise['_oldCatch'](callback);
       result['cancel'] = cancel;
       return wrapCancellablePromise_(result);
     };
@@ -122,7 +122,7 @@ var wrapCancellablePromise_ = function(promise) {
   if (angular.isUndefined(promise['_oldFinally'])) {
     promise['_oldFinally'] = promise['finally'];
     promise['finally'] = function(callback, progressBack) {
-      var result = promise['_oldFinally'](callback, progressBack);
+      const result = promise['_oldFinally'](callback, progressBack);
       result['cancel'] = cancel;
       return wrapCancellablePromise_(result);
     };
@@ -204,18 +204,18 @@ exports.ApiService = class {
    * @private
    */
   sendRequestWithoutPayload_(method, apiPath, opt_params, opt_requestSettings) {
-    var requestParams = angular.extend({}, opt_params);
-    var requestSettings = angular.extend({}, opt_requestSettings);
+    const requestParams = angular.extend({}, opt_params);
+    const requestSettings = angular.extend({}, opt_requestSettings);
 
-    var loadingKey = this.grrLoadingIndicatorService_.startLoading();
-    var apiPrefix = '/api/';
+    const loadingKey = this.grrLoadingIndicatorService_.startLoading();
+    let apiPrefix = '/api/';
     if (requestSettings['useV2']) {
       apiPrefix += 'v2/';
     }
-    var url = encodeUrlPath(apiPrefix + apiPath.replace(/^\//, ''));
+    const url = encodeUrlPath(apiPrefix + apiPath.replace(/^\//, ''));
 
     return this.waitForAuth_(function() {
-      var promise = /** @type {function(Object)} */ (this.http_)({
+      const promise = /** @type {function(Object)} */ (this.http_)({
         method: method,
         url: url,
         params: requestParams,
@@ -313,10 +313,10 @@ exports.ApiService = class {
       }.bind(this);
     }
 
-    var result = this.q_.defer();
-    var inProgress = false;
-    var cancelled = false;
-    var pollIteration = function() {
+    const result = this.q_.defer();
+    let inProgress = false;
+    let cancelled = false;
+    const pollIteration = function() {
       inProgress = true;
       this.get(apiPath, opt_params)
           .then(
@@ -346,7 +346,7 @@ exports.ApiService = class {
 
     pollIteration();
 
-    var intervalPromise = this.interval_(function() {
+    const intervalPromise = this.interval_(function() {
       if (!inProgress) {
         pollIteration();
       }
@@ -385,8 +385,8 @@ exports.ApiService = class {
    * @return {!angular.$q.Promise} Promise that resolves to the download status.
    */
   downloadFile(apiPath, opt_params) {
-    var requestParams = angular.extend({}, opt_params);
-    var url = encodeUrlPath('/api/' + apiPath.replace(/^\//, ''));
+    const requestParams = angular.extend({}, opt_params);
+    let url = encodeUrlPath('/api/' + apiPath.replace(/^\//, ''));
 
     // Using HEAD to check that there are no ACL issues when accessing url
     // in question.
@@ -394,7 +394,7 @@ exports.ApiService = class {
         .then(
             function() {
               // If HEAD request succeeds, initiate the download via an iFrame.
-              var paramsString = Object.keys(requestParams)
+              const paramsString = Object.keys(requestParams)
                                      .sort()
                                      .map(function(key) {
                                        return [key, requestParams[key]]
@@ -406,15 +406,15 @@ exports.ApiService = class {
                 url += '?' + paramsString;
               }
 
-              var deferred = this.q_.defer();
+              const deferred = this.q_.defer();
 
-              var iframe = /** @type {!HTMLIFrameElement} */ (
+              const iframe = /** @type {!HTMLIFrameElement} */ (
                   document.createElement('iframe'));
               iframe.src = url;
               angular.element(iframe).addClass('grr-binary-download');
               document.body.appendChild(iframe);
 
-              var intervalPromise = this.interval_(function() {
+              const intervalPromise = this.interval_(function() {
                 try {
                   if (iframe.contentWindow.document.readyState === 'complete') {
                     this.interval_.cancel(intervalPromise);
@@ -437,7 +437,7 @@ exports.ApiService = class {
               if (response.status == 403) {
                 // HEAD response is not expected to have any body. Therefore
                 // using headers to get failure subject and reason information.
-                var headers = response.headers();
+                const headers = response.headers();
                 this.rootScope_.$broadcast(UNAUTHORIZED_API_RESPONSE_EVENT, {
                   subject: headers['x-grr-unauthorized-access-subject'],
                   reason: headers['x-grr-unauthorized-access-reason']
@@ -482,7 +482,7 @@ exports.ApiService = class {
           /** @type {Object<string, string>} */ (stripTypeInfo(opt_params));
     }
 
-    var request;
+    let request;
     if (angular.equals(opt_files || {}, {})) {
       request = {
         method: httpMethod,
@@ -491,7 +491,7 @@ exports.ApiService = class {
         headers: {}
       };
     } else {
-      var fd = new FormData();
+      const fd = new FormData();
       angular.forEach(/** @type {Object} */ (opt_files), function(value, key) {
         fd.append(key, value);
       }.bind(this));
@@ -507,8 +507,8 @@ exports.ApiService = class {
     }
 
     return this.waitForAuth_(function() {
-      var loadingKey = this.grrLoadingIndicatorService_.startLoading();
-      var promise = /** @type {function(Object)} */ (this.http_)(request);
+      const loadingKey = this.grrLoadingIndicatorService_.startLoading();
+      const promise = /** @type {function(Object)} */ (this.http_)(request);
       return promise.finally(function() {
         this.grrLoadingIndicatorService_.stopLoading(loadingKey);
       }.bind(this));
@@ -591,7 +591,7 @@ exports.ApiService = class {
         'PATCH', apiPath, opt_params, opt_stripTypeInfo);
   }
 };
-var ApiService = exports.ApiService;
+const ApiService = exports.ApiService;
 
 
 /**

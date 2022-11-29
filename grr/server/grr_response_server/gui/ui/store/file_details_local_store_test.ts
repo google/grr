@@ -48,7 +48,7 @@ describe('FileDetailsLocalStore', () => {
          name: 'bar',
          path: 'fs/os/foo/bar',
          stat: {pathspec: {path: '/foo/bar', pathtype: PathSpecPathType.OS}},
-         age: 123,
+         age: '123',
        });
        httpApiService.mockedObservables.updateVfsFileContent.complete();
 
@@ -75,7 +75,7 @@ describe('FileDetailsLocalStore', () => {
          name: 'BAR',
          path: 'fs/os/foo/bar',
          stat: {pathspec: {path: '/foo/bar', pathtype: PathSpecPathType.OS}},
-         age: 123,
+         age: '123',
        });
        httpApiService.mockedObservables.updateVfsFileContent.complete();
 
@@ -96,12 +96,12 @@ describe('FileDetailsLocalStore', () => {
        httpApiService.mockedObservables.getFileText = new Subject();
        fileDetailsLocalStore.fetchMoreContent(BigInt(3));
        httpApiService.mockedObservables.getFileText.next(
-           {content: '123', totalSize: 12});
+           {content: '123', totalSize: '12'});
 
        httpApiService.mockedObservables.getFileText = new Subject();
        fileDetailsLocalStore.fetchMoreContent(BigInt(4));
        httpApiService.mockedObservables.getFileText.next(
-           {content: '4567', totalSize: 12});
+           {content: '4567', totalSize: '12'});
 
        httpApiService.mockedObservables.getFileText = new Subject();
        fileDetailsLocalStore.recollectFile();
@@ -110,16 +110,15 @@ describe('FileDetailsLocalStore', () => {
          path: 'fs/os/foo/bar',
          name: 'BAR',
          stat: {pathspec: {path: '/foo/bar', pathtype: PathSpecPathType.OS}},
-         age: 123,
+         age: '123',
        });
        httpApiService.mockedObservables.getFileText.next(
-           {content: 'abcdefg', totalSize: 12});
+           {content: 'abcdefg', totalSize: '12'});
 
        expect(httpApiService.getFileText)
            .toHaveBeenCalledWith(
                'C.1234', PathSpecPathType.OS, '/foo/bar',
-               jasmine.objectContaining(
-                   {offset: BigInt(0), length: BigInt(7)}));
+               jasmine.objectContaining({offset: '0', length: '7'}));
        expect(await firstValueFrom(fileDetailsLocalStore.textContent$))
            .toBe('abcdefg');
      }));
@@ -152,7 +151,7 @@ describe('FileDetailsLocalStore', () => {
          path: 'fs/os/foo/bar',
          name: 'BAR',
          stat: {pathspec: {path: '/foo/bar', pathtype: PathSpecPathType.OS}},
-         age: 123,
+         age: '123',
        });
        const NEW_LENGTH = BigInt(12);
        httpApiService.mockedObservables.getFileBlobLength.next(NEW_LENGTH);
@@ -162,8 +161,7 @@ describe('FileDetailsLocalStore', () => {
        expect(httpApiService.getFileBlob)
            .toHaveBeenCalledWith(
                'C.1234', PathSpecPathType.OS, '/foo/bar',
-               jasmine.objectContaining(
-                   {offset: BigInt(0), length: BigInt(5)}));
+               jasmine.objectContaining({offset: '0', length: '5'}));
        expect(await firstValueFrom(fileDetailsLocalStore.totalLength$))
            .toEqual(NEW_LENGTH);
        expect(await firstValueFrom(fileDetailsLocalStore.blobContent$))
@@ -186,12 +184,11 @@ describe('FileDetailsLocalStore', () => {
        expect(httpApiService.getFileText)
            .toHaveBeenCalledOnceWith(
                'C.1234', PathSpecPathType.OS, '/foo/bar',
-               jasmine.objectContaining(
-                   {offset: BigInt(0), length: BigInt(3)}));
+               jasmine.objectContaining({offset: '0', length: '3'}));
        httpApiService.getFileText.calls.reset();
 
        httpApiService.mockedObservables.getFileText.next(
-           {content: '123', totalSize: 12});
+           {content: '123', totalSize: '12'});
 
        expect(await firstValueFrom(fileDetailsLocalStore.textContent$))
            .toBe('123');
@@ -202,11 +199,10 @@ describe('FileDetailsLocalStore', () => {
        expect(httpApiService.getFileText)
            .toHaveBeenCalledOnceWith(
                'C.1234', PathSpecPathType.OS, '/foo/bar',
-               jasmine.objectContaining(
-                   {offset: BigInt(3), length: BigInt(4)}));
+               jasmine.objectContaining({offset: '3', length: '4'}));
 
        httpApiService.mockedObservables.getFileText.next(
-           {content: '4567', totalSize: 12});
+           {content: '4567', totalSize: '12'});
 
        expect(await firstValueFrom(fileDetailsLocalStore.textContent$))
            .toBe('1234567');
@@ -229,8 +225,7 @@ describe('FileDetailsLocalStore', () => {
        expect(httpApiService.getFileBlob)
            .toHaveBeenCalledOnceWith(
                'C.1234', PathSpecPathType.OS, '/foo/bar',
-               jasmine.objectContaining(
-                   {offset: BigInt(0), length: BigInt(2)}));
+               jasmine.objectContaining({offset: '0', length: '2'}));
        httpApiService.getFileBlob.calls.reset();
 
        httpApiService.mockedObservables.getFileBlobLength.next(BigInt(10));
@@ -246,8 +241,7 @@ describe('FileDetailsLocalStore', () => {
        expect(httpApiService.getFileBlob)
            .toHaveBeenCalledOnceWith(
                'C.1234', PathSpecPathType.OS, '/foo/bar',
-               jasmine.objectContaining(
-                   {offset: BigInt(2), length: BigInt(3)}));
+               jasmine.objectContaining({offset: '2', length: '3'}));
 
        httpApiService.mockedObservables.getFileBlob.next(
            arrayBufferOf([5, 6, 7]));

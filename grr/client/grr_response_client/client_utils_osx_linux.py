@@ -4,11 +4,8 @@
 import io
 import logging
 import os
-import threading
-import time
 from typing import Text
 
-import psutil
 import xattr
 
 from google.protobuf import message
@@ -93,132 +90,6 @@ def GetExtAttrs(filepath):
     yield rdf_client_fs.ExtAttr(name=attr_name, value=attr_value)
 
 
-class NannyThread(threading.Thread):
-  """This is the thread which watches the nanny running."""
-
-  def __init__(self, unresponsive_kill_period):
-    """Constructor.
-
-    Args:
-      unresponsive_kill_period: The time in seconds which we wait for a
-        heartbeat.
-    """
-    super().__init__(name="Nanny")
-    self.last_heart_beat_time = time.time()
-    self.unresponsive_kill_period = unresponsive_kill_period
-    self.running = True
-    self.daemon = True
-    self.proc = psutil.Process()
-    self.memory_quota = config.CONFIG["Client.rss_max_hard"] * 1024 * 1024
-
-  def _CheckHeartbeatDeadline(self, deadline):
-    if time.time() > deadline:
-      # Missed the deadline, we need to die.
-      msg = "Suicide by nanny thread."
-      logging.error(msg)
-      self.WriteNannyStatus(msg)
-
-      # Die hard here to prevent hangs due to non daemonized threads.
-      os._exit(-1)  # pylint: disable=protected-access
-
-  def run(self):
-    self.WriteNannyStatus("Nanny running.")
-    while self.running:
-      next_deadline = self.last_heart_beat_time + self.unresponsive_kill_period
-      self._CheckHeartbeatDeadline(next_deadline)
-
-      # Sleep until the next heartbeat is due.
-      self.Sleep(next_deadline - time.time())
-
-  def Sleep(self, seconds):
-    """Sleep a given time in 1 second intervals.
-
-    When a machine is suspended during a time.sleep(n) call for more
-    than n seconds, sometimes the sleep is interrupted and all threads
-    wake up at the same time. This leads to race conditions between
-    the threads issuing the heartbeat and the one checking for it. By
-    sleeping in small intervals, we make sure that even if one sleep
-    call is interrupted, we do not check for the heartbeat too early.
-
-    Args:
-      seconds: Number of seconds to sleep.
-
-    Raises:
-      MemoryError: if the process exceeds memory quota.
-    """
-    time.sleep(seconds - int(seconds))
-    for _ in range(int(seconds)):
-      time.sleep(1)
-      # Check that we do not exceeded our memory allowance.
-      if self.GetMemoryUsage() > self.memory_quota:
-        raise MemoryError("Exceeded memory allowance.")
-      if not self.running:
-        break
-
-  def Stop(self):
-    """Exits the main thread."""
-    self.running = False
-    self.WriteNannyStatus("Nanny stopping.")
-
-  def GetMemoryUsage(self):
-    return self.proc.memory_info().rss
-
-  def Heartbeat(self):
-    self.last_heart_beat_time = time.time()
-
-  def WriteNannyStatus(self, status):
-    try:
-      with io.open(
-          config.CONFIG["Nanny.statusfile"], mode="w", encoding="utf-8") as fd:
-        fd.write(status)
-    except (IOError, OSError):
-      pass
-
-
-class NannyController(object):
-  """Controls communication with the nanny."""
-
-  # Nanny should be a global singleton thread.
-  nanny = None
-  max_log_size = 100000000
-
-  def StartNanny(self, unresponsive_kill_period=None):
-    # The nanny thread is a singleton.
-    if NannyController.nanny is None:
-      if unresponsive_kill_period is None:
-        unresponsive_kill_period = config.CONFIG[
-            "Nanny.unresponsive_kill_period"]
-
-      NannyController.nanny = NannyThread(unresponsive_kill_period)
-      NannyController.nanny.start()
-
-  def StopNanny(self):
-    if NannyController.nanny:
-      NannyController.nanny.Stop()
-      NannyController.nanny.join()
-      NannyController.nanny = None
-
-  def Heartbeat(self):
-    """Notifies the nanny of a heartbeat."""
-    if self.nanny:
-      self.nanny.Heartbeat()
-
-  def GetNannyMessage(self):
-    # Not implemented on Linux.
-    return None
-
-  def ClearNannyMessage(self):
-    # Not implemented on Linux.
-    pass
-
-  def GetNannyStatus(self):
-    try:
-      with open(config.CONFIG["Nanny.statusfile"], "rb") as fd:
-        return fd.read(self.max_log_size)
-    except (IOError, OSError):
-      return None
-
-
 class TransactionLog(object):
   """A class to manage a transaction log for client processing."""
 
@@ -242,7 +113,7 @@ class TransactionLog(object):
           with io.open(self.logfile, "wb") as fd:
             fd.write(grr_message)
         except (IOError, OSError):
-          logging.exception("Couldn't write nanny transaction log to %s",
+          logging.exception("Couldn't write the transaction log to %s",
                             self.logfile)
 
   def Sync(self):

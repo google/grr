@@ -18,8 +18,8 @@ const ConfigViewController = class {
       this.items = {};
 
       angular.forEach(config['data']['sections'], function(section) {
-        var sectionName = section['value']['name']['value'];
-        var sectionOptions = section['value']['options'];
+        const sectionName = section['value']['name']['value'];
+        const sectionOptions = section['value']['options'];
 
         this.items[sectionName] = {};
         angular.forEach(sectionOptions, function(option) {

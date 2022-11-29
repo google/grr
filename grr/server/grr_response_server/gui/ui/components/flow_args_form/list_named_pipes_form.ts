@@ -2,15 +2,16 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FormControl} from '@angular/forms';
 
 import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
-import {ListNamedPipesFlowArgs, PipeEndFilter, PipeTypeFilter} from '../../lib/api/api_interfaces';
+import {ListNamedPipesFlowArgs, ListNamedPipesFlowArgsPipeEndFilter, ListNamedPipesFlowArgsPipeTypeFilter} from '../../lib/api/api_interfaces';
 
 function makeControls() {
   return {
     pipeNameRegex: new FormControl('', {nonNullable: true}),
     procExeRegex: new FormControl('', {nonNullable: true}),
-    pipeTypeFilter:
-        new FormControl(PipeTypeFilter.ANY_TYPE, {nonNullable: true}),
-    pipeEndFilter: new FormControl(PipeEndFilter.ANY_END, {nonNullable: true}),
+    pipeTypeFilter: new FormControl(
+        ListNamedPipesFlowArgsPipeTypeFilter.ANY_TYPE, {nonNullable: true}),
+    pipeEndFilter: new FormControl(
+        ListNamedPipesFlowArgsPipeEndFilter.ANY_END, {nonNullable: true}),
   };
 }
 
@@ -25,8 +26,8 @@ type Controls = ReturnType<typeof makeControls>;
 })
 export class ListNamedPipesForm extends
     FlowArgumentForm<ListNamedPipesFlowArgs, Controls> {
-  readonly PipeTypeFilter = PipeTypeFilter;
-  readonly PipeEndFilter = PipeEndFilter;
+  readonly PipeTypeFilter = ListNamedPipesFlowArgsPipeTypeFilter;
+  readonly PipeEndFilter = ListNamedPipesFlowArgsPipeEndFilter;
 
   override makeControls() {
     return makeControls();

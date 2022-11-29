@@ -89,7 +89,7 @@ filter is easy. Three basic filter implementations are given:
 
 import abc
 import binascii
-import collections
+from collections.abc import Mapping
 import re
 from typing import Text
 
@@ -477,7 +477,7 @@ class ValueExpander(object):
 
   def _AtLeaf(self, attr_value):
     """Called when at a leaf value. Should yield a value."""
-    if isinstance(attr_value, collections.Mapping):
+    if isinstance(attr_value, Mapping):
       # If the result is a dict, return each key/value pair as a new dict.
       for k, v in attr_value.items():
         yield {k: v}
@@ -487,7 +487,7 @@ class ValueExpander(object):
   def _AtNonLeaf(self, attr_value, path):
     """Called when at a non-leaf value. Should recurse and yield values."""
     try:
-      if isinstance(attr_value, collections.Mapping):
+      if isinstance(attr_value, Mapping):
         # If it's dictionary-like, treat the dict key as the attribute..
         sub_obj = attr_value.get(path[1])
         if len(path) > 2:
@@ -496,7 +496,7 @@ class ValueExpander(object):
         if isinstance(sub_obj, str):
           # If it is a string, stop here
           yield sub_obj
-        elif isinstance(sub_obj, collections.Mapping):
+        elif isinstance(sub_obj, Mapping):
           # If the result is a dict, return each key/value pair as a new dict.
           for k, v in sub_obj.items():
             yield {k: v}
@@ -550,7 +550,7 @@ class AttributeValueExpander(ValueExpander):
   """An expander that gives values based on object attribute names."""
 
   def _GetValue(self, obj, attr_name):
-    if isinstance(obj, collections.Mapping):
+    if isinstance(obj, Mapping):
       return obj.get(attr_name)
     return getattr(obj, attr_name, None)
 

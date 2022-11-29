@@ -211,6 +211,7 @@ message ApiListHuntsArgs {
     description: "Only return hunts that were active within given time "
                  "duration."
   }];
+  optional bool with_full_summary = 6;
 }
 
 message ApiListHuntsResult {

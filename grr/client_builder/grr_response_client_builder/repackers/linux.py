@@ -23,14 +23,8 @@ class LinuxClientRepacker(build.ClientRepacker):
   def _GenerateDPKGFiles(self, template_path):
     """Generates the files needed by dpkg-buildpackage."""
 
-    fleetspeak_enabled = config.CONFIG.Get(
-        "Client.fleetspeak_enabled", context=self.context)
     fleetspeak_bundled = config.CONFIG.Get(
         "ClientBuilder.fleetspeak_bundled", context=self.context)
-
-    if fleetspeak_bundled and not fleetspeak_enabled:
-      raise build.BuildError("ClientBuilder.fleetspeak_bundled requires "
-                             "Client.fleetspeak_enabled to be set.")
 
     # Rename the generated binaries to the correct name.
     template_binary_dir = os.path.join(template_path, "dist/debian/grr-client")
@@ -57,15 +51,8 @@ class LinuxClientRepacker(build.ClientRepacker):
     deb_in_dir = os.path.join(template_path, "dist/debian/debian.in/")
 
     if not os.path.isdir(deb_in_dir):
-      # This is an universal (fleetspeak + legacy) template.
-      # In prior versions, debian.in used to contain different files for a
-      # fleetspeak-enabled and legacy template respectively.
-      if fleetspeak_enabled:
-        deb_in_dir = os.path.join(template_path,
-                                  "dist/debian/fleetspeak-debian.in/")
-      else:
-        deb_in_dir = os.path.join(template_path,
-                                  "dist/debian/legacy-debian.in/")
+      deb_in_dir = os.path.join(template_path,
+                                "dist/debian/fleetspeak-debian.in/")
 
     build_helpers.GenerateDirectory(
         deb_in_dir,
@@ -84,63 +71,29 @@ class LinuxClientRepacker(build.ClientRepacker):
           context=self.context)
       os.chmod(os.path.join(target_binary_dir, "wrapper.sh"), 0o755)
 
-    if fleetspeak_enabled:
-      if fleetspeak_bundled:
-        self._GenerateFleetspeakConfig(template_path,
-                                       "/etc/fleetspeak-client/textservices")
-        self._GenerateBundledFleetspeakFiles(
-            os.path.join(template_path, "dist/bundled-fleetspeak"),
-            os.path.join(template_path, "dist/debian", package_name))
+    if fleetspeak_bundled:
+      self._GenerateFleetspeakConfig(template_path,
+                                     "/etc/fleetspeak-client/textservices")
+      self._GenerateBundledFleetspeakFiles(
+          os.path.join(template_path, "dist/bundled-fleetspeak"),
+          os.path.join(template_path, "dist/debian", package_name))
 
-        shutil.copy(
-            config.CONFIG.Get(
-                "ClientBuilder.fleetspeak_client_config", context=self.context),
-            os.path.join(template_path, "dist", "debian", package_name,
-                         "etc/fleetspeak-client/client.config"))
+      shutil.copy(
+          config.CONFIG.Get(
+              "ClientBuilder.fleetspeak_client_config", context=self.context),
+          os.path.join(template_path, "dist", "debian", package_name,
+                       "etc/fleetspeak-client/client.config"))
 
-      else:
-        fleetspeak_service_dir = config.CONFIG.Get(
-            "ClientBuilder.fleetspeak_service_dir", context=self.context)
-        self._GenerateFleetspeakConfig(template_path, fleetspeak_service_dir)
     else:
-      # Generate the nanny template.
-      # This exists from client version 3.1.2.5 onwards.
-      build_helpers.GenerateFile(
-          os.path.join(target_binary_dir, "nanny.sh.in"),
-          os.path.join(target_binary_dir, "nanny.sh"),
-          context=self.context)
-
-      # Generate the upstart template.
-      build_helpers.GenerateFile(
-          os.path.join(template_path, "dist/debian/upstart.in/grr-client.conf"),
-          os.path.join(template_path, "dist/debian/%s.upstart" % package_name),
-          context=self.context)
-
-      # Generate the initd template. The init will not run if it detects upstart
-      # is present.
-      build_helpers.GenerateFile(
-          os.path.join(template_path, "dist/debian/initd.in/grr-client"),
-          os.path.join(template_path, "dist/debian/%s.init" % package_name),
-          context=self.context)
-
-      # Generate the systemd unit file.
-      build_helpers.GenerateFile(
-          os.path.join(template_path,
-                       "dist/debian/systemd.in/grr-client.service"),
-          os.path.join(template_path, "dist/debian/%s.service" % package_name),
-          context=self.context)
+      fleetspeak_service_dir = config.CONFIG.Get(
+          "ClientBuilder.fleetspeak_service_dir", context=self.context)
+      self._GenerateFleetspeakConfig(template_path, fleetspeak_service_dir)
 
     # Clean up the template dirs.
     # Some of the dirs might be missing in older template versions, so removing
     # conditionally.
-    self._RmTreeIfExists(os.path.join(template_path, "dist/debian/debian.in"))
     self._RmTreeIfExists(
         os.path.join(template_path, "dist/debian/fleetspeak-debian.in"))
-    self._RmTreeIfExists(
-        os.path.join(template_path, "dist/debian/legacy-debian.in"))
-    self._RmTreeIfExists(os.path.join(template_path, "dist/debian/upstart.in"))
-    self._RmTreeIfExists(os.path.join(template_path, "dist/debian/initd.in"))
-    self._RmTreeIfExists(os.path.join(template_path, "dist/debian/systemd.in"))
     self._RmTreeIfExists(os.path.join(template_path, "dist/fleetspeak"))
     self._RmTreeIfExists(os.path.join(template_path, "dist/bundled-fleetspeak"))
 
@@ -355,25 +308,20 @@ class CentosClientRepacker(LinuxClientRepacker):
             os.path.join(target_binary_dir, client_binary_name))
         # pytype: enable=wrong-arg-types
 
-      if config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context):
-        self._GenerateFleetspeakConfig(template_dir, rpm_build_dir)
-        if not config.CONFIG.Get(
-            "Client.fleetspeak_service_name", context=self.context):
-          # The Fleetspeak service name is required when generating the RPM
-          # spec file.
-          raise build.BuildError("Client.fleetspeak_service_name is not set.")
-        if config.CONFIG.Get(
-            "ClientBuilder.fleetspeak_bundled", context=self.context):
-          self._GenerateBundledFleetspeakFiles(
-              os.path.join(template_dir, "bundled-fleetspeak"), rpm_build_dir)
-          shutil.copy(
-              config.CONFIG.Get(
-                  "ClientBuilder.fleetspeak_client_config",
-                  context=self.context),
-              os.path.join(rpm_build_dir,
-                           "etc/fleetspeak-client/client.config"))
-      else:
-        self._GenerateInitConfigs(template_dir, rpm_build_dir)
+      self._GenerateFleetspeakConfig(template_dir, rpm_build_dir)
+      if not config.CONFIG.Get(
+          "Client.fleetspeak_service_name", context=self.context):
+        # The Fleetspeak service name is required when generating the RPM
+        # spec file.
+        raise build.BuildError("Client.fleetspeak_service_name is not set.")
+      if config.CONFIG.Get(
+          "ClientBuilder.fleetspeak_bundled", context=self.context):
+        self._GenerateBundledFleetspeakFiles(
+            os.path.join(template_dir, "bundled-fleetspeak"), rpm_build_dir)
+        shutil.copy(
+            config.CONFIG.Get(
+                "ClientBuilder.fleetspeak_client_config", context=self.context),
+            os.path.join(rpm_build_dir, "etc/fleetspeak-client/client.config"))
 
       # Generate spec
       spec_filename = os.path.join(rpm_specs_dir, "%s.spec" % client_name)
@@ -465,48 +413,12 @@ class CentosClientRepacker(LinuxClientRepacker):
         output_filename=dest_config_path,
         context=self.context)
 
-  def _GenerateInitConfigs(self, template_dir, rpm_build_dir):
-    """Generates init-system configs."""
-    client_name = config.CONFIG.Get("Client.name", context=self.context)
-    initd_target_filename = os.path.join(rpm_build_dir, "etc/init.d",
-                                         client_name)
-
-    # Generate init.d
-    utils.EnsureDirExists(os.path.dirname(initd_target_filename))
-    build_helpers.GenerateFile(
-        os.path.join(template_dir, "rpmbuild/grr-client.initd.in"),
-        initd_target_filename,
-        context=self.context)
-
-    # Generate systemd unit
-    if config.CONFIG["Template.version_numeric"] >= 3125:
-      systemd_target_filename = os.path.join(rpm_build_dir,
-                                             "usr/lib/systemd/system/",
-                                             "%s.service" % client_name)
-
-      utils.EnsureDirExists(os.path.dirname(systemd_target_filename))
-      build_helpers.GenerateFile(
-          os.path.join(template_dir, "rpmbuild/grr-client.service.in"),
-          systemd_target_filename,
-          context=self.context)
-
   def _ProcessUniversalTemplate(self, dist_dir):
-    # An universal teplate contains both fleetspeak and legacy files.
-    # If there is a legacy directory, then this is an universal template
-    # Depending on the config option, copy only one set of the files into
-    # the tree.
+    # Since there is fleetspeak/fleetspeak, rename the top-level
+    # fleetspeak directory.
+    shutil.move(
+        os.path.join(dist_dir, "fleetspeak"),
+        os.path.join(dist_dir, "_fleetspeak"))
+    utils.MergeDirectories(os.path.join(dist_dir, "_fleetspeak"), dist_dir)
 
-    if not os.path.exists(os.path.join(dist_dir, "legacy")):
-      return
-
-    if config.CONFIG.Get("Client.fleetspeak_enabled", context=self.context):
-      # Since there is fleetspeak/fleetspeak, rename the top-level
-      # fleetspeak directory.
-      shutil.move(
-          os.path.join(dist_dir, "fleetspeak"),
-          os.path.join(dist_dir, "_fleetspeak"))
-      utils.MergeDirectories(os.path.join(dist_dir, "_fleetspeak"), dist_dir)
-    else:
-      utils.MergeDirectories(os.path.join(dist_dir, "legacy"), dist_dir)
-    self._RmTreeIfExists(os.path.join(dist_dir, "legacy"))
     self._RmTreeIfExists(os.path.join(dist_dir, "_fleetspeak"))

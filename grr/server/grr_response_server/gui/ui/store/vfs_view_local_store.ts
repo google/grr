@@ -212,7 +212,10 @@ class VfsViewComponentStore extends ComponentStore<State> {
                 }),
                 switchMap(
                     () => this.httpApiService.refreshVfsFolder(
-                        clientId, pathtype, path, opts)),
+                        clientId, pathtype, path,
+                        isNonNull(opts?.maxDepth) ?
+                            {maxDepth: opts?.maxDepth.toString()} :
+                            undefined)),
                 map(translateBrowseFilesytemResult),
                 tap(result => {
                   this.saveListingForPaths(result);

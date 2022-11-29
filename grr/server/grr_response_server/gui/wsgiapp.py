@@ -279,6 +279,7 @@ class AdminUIApp(object):
     context = {
         "is_development": contexts.DEBUG_CONTEXT in config.CONFIG.context,
         "is_test": contexts.TEST_CONTEXT in config.CONFIG.context,
+        "analytics_id": config.CONFIG["AdminUI.analytics_id"],
     }
 
     env = jinja2.Environment(

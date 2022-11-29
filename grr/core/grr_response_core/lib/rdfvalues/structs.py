@@ -2,7 +2,7 @@
 """Semantic Protobufs are serialization agnostic, rich data types."""
 
 import base64
-import collections
+from collections import abc
 import copy
 import functools
 import logging
@@ -620,6 +620,9 @@ class EnumNamedValue(rdfvalue.RDFPrimitive):
   def __int__(self):
     return self.id
 
+  def __index__(self):
+    return self.id
+
   def __bool__(self):
     return bool(self.id)
 
@@ -1082,7 +1085,7 @@ class ProtoAnyValue(ProtoType):
     return (self.encoded_tag, VarintEncode(len(data)), data)
 
 
-class RepeatedFieldHelper(collections.Sequence, object):
+class RepeatedFieldHelper(abc.Sequence, object):
   """A helper for the RDFProto to handle repeated fields.
 
   This helper is intended to only be constructed from the RDFProto class.

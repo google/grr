@@ -17,7 +17,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.util.compat import yaml
 from grr_response_server import data_store
 
-
 # Names of fields that should no longer be used but might occur in old artifact
 # files.
 DEPRECATED_ARTIFACT_FIELDS = frozenset([
@@ -185,6 +184,17 @@ class ArtifactRegistry(object):
       for field in DEPRECATED_ARTIFACT_FIELDS:
         artifact_dict.pop(field, None)
 
+      # Strip operating systems that are supported in ForensicArtifacts, but not
+      # in GRR. The Artifact will still be added to GRR's repository, but the
+      # unsupported OS will be removed. This can result in artifacts with 0
+      # supported_os entries. For end-users, there might still be value in
+      # seeing the artifact, even if the artifact's OS is not supported.
+      if "supported_os" in artifact_dict:
+        artifact_dict["supported_os"] = [
+            os for os in artifact_dict["supported_os"]
+            if os not in rdf_artifacts.Artifact.IGNORE_OS_LIST
+        ]
+
       # In this case we are feeding parameters directly from potentially
       # untrusted yaml/json to our RDFValue class. However, safe_load ensures
       # these are all primitive types as long as there is no other
@@ -350,8 +360,8 @@ class ArtifactRegistry(object):
     for artifact in self._artifacts.values():
 
       # artifact.supported_os = [] matches all OSes
-      if os_name and artifact.supported_os and (
-          os_name not in artifact.supported_os):
+      if os_name and artifact.supported_os and (os_name
+                                                not in artifact.supported_os):
         continue
       if name_list and artifact.name not in name_list:
         continue

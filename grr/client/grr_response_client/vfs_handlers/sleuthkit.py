@@ -57,7 +57,7 @@ class MyImgInfo(pytsk3.Img_Info):
     # Windows is unable to report the true size of the raw device and allows
     # arbitrary reading past the end - so we lie here to force tsk to read it
     # anyway
-    return 1e12
+    return 10 ** 12
 
 
 class TSKFile(vfs_base.VFSHandler):

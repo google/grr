@@ -4,7 +4,6 @@
 import threading
 
 from grr_response_client import client_stats
-from grr_response_client import client_utils
 from grr_response_client import comms
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 
@@ -33,16 +32,12 @@ class FakeMixin(object):
     return result
 
 
-class DisabledNannyClientWorker(comms.GRRClientWorker):
-  """A GRR client worker with disabled Nanny thread."""
+class ClientWorker(comms.GRRClientWorker):
+  """A GRR client worker with disabled threads."""
 
   def __init__(self, *args, **kwargs):
     super().__init__(*args, **kwargs)
     self.stats_collector = client_stats.ClientStatsCollector(self)
-
-  def StartNanny(self):
-    # Deliberatley no call to StartNanny()
-    self.nanny_controller = client_utils.NannyController()
 
   def StartStatsCollector(self):
     # Don't start any threads in tests.
@@ -53,5 +48,5 @@ class DisabledNannyClientWorker(comms.GRRClientWorker):
     pass
 
 
-class FakeClientWorker(FakeMixin, DisabledNannyClientWorker):
+class FakeClientWorker(FakeMixin, ClientWorker):
   """A Fake GRR client worker which just collects SendReplys."""

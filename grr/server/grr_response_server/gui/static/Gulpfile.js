@@ -138,7 +138,6 @@ function copyThirdPartyResources() {
       .src(validateGlobs([
         NODE_MODULES + '/jstree/dist/themes/default/*.gif',
         NODE_MODULES + '/jstree/dist/themes/default/*.png',
-        NODE_MODULES + '/bootstrap/fonts/glyphicons-halflings-regular.*',
       ]))
       .pipe(gulp.dest(config.distDir))
       /**

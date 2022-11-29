@@ -1,0 +1,18 @@
+<a *ngIf="approval?.subject as subject" [routerLink]="['/clients', subject.clientId]" mat-button>
+  <mat-icon>computer</mat-icon>
+  <h3>{{ subject.knowledgeBase.fqdn }} {{ subject.clientId }}</h3>
+  <mat-chip-list>
+    <app-approval-chip *ngIf="approval" [approval]="approval"> </app-approval-chip>
+    <online-chip [lastSeen]="subject.lastSeenAt"></online-chip>
+  </mat-chip-list>
+</a>
+<div class="flow-details-list">
+  <flow-details
+    *ngFor="let entry of entries$ | async; trackBy:entryTrackByFunction"
+    [id]="'flow-' + entry.flow.flowId"
+    [flow]="entry.flow"
+    [flowDescriptor]="entry.descriptor"
+    [showContextMenu]="false"
+  >
+  </flow-details>
+</div>

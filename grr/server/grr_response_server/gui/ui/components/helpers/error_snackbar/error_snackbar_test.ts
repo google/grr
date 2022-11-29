@@ -10,15 +10,15 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {DeepPartial} from '../../../lib/type_utils';
 
-import {ErrorSnackbar, WINDOW} from './error_snackbar';
-import {ErrorSnackbarModule} from './error_snackbar_module';
+import {ErrorSnackBar, WINDOW} from './error_snackbar';
+import {ErrorSnackBarModule} from './error_snackbar_module';
 
 @Component({})
 class TestHostComponent {
   constructor(public viewContainerRef: ViewContainerRef) {}
 }
 
-describe('ErrorSnackbar Component', () => {
+describe('ErrorSnackBar Component', () => {
   let loader: HarnessLoader;
   let fixture: ComponentFixture<TestHostComponent>;
   let clipboard: Partial<Clipboard>;
@@ -37,7 +37,7 @@ describe('ErrorSnackbar Component', () => {
     TestBed
         .configureTestingModule({
           imports: [
-            MatSnackBarModule, ErrorSnackbarModule,
+            MatSnackBarModule, ErrorSnackBarModule,
             NoopAnimationsModule,  // This makes test faster and more stable.
           ],
           declarations: [TestHostComponent],
@@ -67,7 +67,7 @@ describe('ErrorSnackbar Component', () => {
     const snackBar = TestBed.inject(MatSnackBar);
     expect((await loader.getAllHarnesses(MatSnackBarHarness)).length).toBe(0);
 
-    snackBar.openFromComponent(ErrorSnackbar, {data: 'testerror'});
+    snackBar.openFromComponent(ErrorSnackBar, {data: 'testerror'});
 
     expect((await loader.getAllHarnesses(MatSnackBarHarness)).length).toBe(1);
 
@@ -76,7 +76,7 @@ describe('ErrorSnackbar Component', () => {
 
   it('reloads the window when clicking on reload', async () => {
     const snackBar = TestBed.inject(MatSnackBar);
-    snackBar.openFromComponent(ErrorSnackbar, {data: 'testerror'});
+    snackBar.openFromComponent(ErrorSnackBar, {data: 'testerror'});
 
     expect((await loader.getAllHarnesses(MatSnackBarHarness)).length).toBe(1);
 
@@ -89,7 +89,7 @@ describe('ErrorSnackbar Component', () => {
 
   it('shows a copy confirmation when clicking on copy', async () => {
     const snackBar = TestBed.inject(MatSnackBar);
-    snackBar.openFromComponent(ErrorSnackbar, {data: 'testerror'});
+    snackBar.openFromComponent(ErrorSnackBar, {data: 'testerror'});
 
     expect((await loader.getAllHarnesses(MatSnackBarHarness)).length).toBe(1);
     fixture.detectChanges();
@@ -107,7 +107,7 @@ describe('ErrorSnackbar Component', () => {
   it('copies the error message to the clipboard when clicking on copy',
      async () => {
        const snackBar = TestBed.inject(MatSnackBar);
-       snackBar.openFromComponent(ErrorSnackbar, {data: 'testerror'});
+       snackBar.openFromComponent(ErrorSnackBar, {data: 'testerror'});
 
        expect(clipboard.copy).not.toHaveBeenCalled();
 

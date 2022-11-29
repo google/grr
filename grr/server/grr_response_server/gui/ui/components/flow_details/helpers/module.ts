@@ -16,20 +16,20 @@ import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
 import {ExpandableHashModule} from '../../../components/expandable_hash/module';
-import {FileModePipe} from '../../../components/flow_details/helpers/file_mode_pipe';
 import {NetworkConnectionFamilyPipe, NetworkConnectionTypePipe} from '../../../components/flow_details/helpers/network_connection_pipes';
 import {HumanReadableSizeModule} from '../../../components/human_readable_size/module';
 import {TimestampModule} from '../../../components/timestamp/module';
+import {FileModeModule} from '../../data_renderers/file_mode/file_mode_module';
 import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';
 import {DrawerLinkModule} from '../../helpers/drawer_link/drawer_link_module';
+import {FilterPaginate} from '../../helpers/filter_paginate/filter_paginate';
 
+import {DynamicResultSection} from './dynamic_result_section';
 import {FileResultsTable} from './file_results_table';
-import {FilterPaginate} from './filter_paginate';
 import {LoadFlowResultsDirective} from './load_flow_results_directive';
 import {OsqueryResultsTable} from './osquery_results_table';
 import {RegistryResultsTable} from './registry_results_table';
 import {ResultAccordion} from './result_accordion';
-
 
 /**
  * Module for the flow_picker details component.
@@ -57,13 +57,14 @@ import {ResultAccordion} from './result_accordion';
     CopyButtonModule,
     DrawerLinkModule,
     ExpandableHashModule,
+    FileModeModule,
     HumanReadableSizeModule,
     TimestampModule,
+    FilterPaginate,
   ],
   declarations: [
+    DynamicResultSection,
     FileResultsTable,
-    FileModePipe,
-    FilterPaginate,
     NetworkConnectionFamilyPipe,
     NetworkConnectionTypePipe,
     OsqueryResultsTable,
@@ -72,8 +73,8 @@ import {ResultAccordion} from './result_accordion';
     RegistryResultsTable,
   ],
   exports: [
+    DynamicResultSection,
     FileResultsTable,
-    FileModePipe,
     FilterPaginate,
     NetworkConnectionFamilyPipe,
     NetworkConnectionTypePipe,

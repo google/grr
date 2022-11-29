@@ -3,10 +3,10 @@ import {fakeAsync, TestBed, tick} from '@angular/core/testing';
 import {MatSnackBar} from '@angular/material/snack-bar';
 import {lastValueFrom} from 'rxjs';
 
-import {ErrorSnackbar} from '../../components/helpers/error_snackbar/error_snackbar';
+import {ErrorSnackBar} from '../../components/helpers/error_snackbar/error_snackbar';
 import {initTestEnvironment} from '../../testing';
 
-import {ApiBrowseFilesystemResult, ApiClientApproval, ApiFlow, ApiFlowResult, ApiGetFileDetailsResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGetVfsRefreshOperationStateResult, ApiGetVfsRefreshOperationStateResultState, ApiHuntResult, ApiListClientApprovalsResult, ApiListClientFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListHuntResultsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiUpdateVfsFileContentResult, PathSpecPathType} from './api_interfaces';
+import {ApiBrowseFilesystemResult, ApiClientApproval, ApiFlow, ApiFlowResult, ApiGetFileDetailsResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGetVfsRefreshOperationStateResult, ApiGetVfsRefreshOperationStateResultState, ApiHuntResult, ApiListClientApprovalsResult, ApiListFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListHuntResultsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiUpdateVfsFileContentResult, PathSpecPathType} from './api_interfaces';
 import {HttpApiService, URL_PREFIX} from './http_api_service';
 import {ApiModule} from './module';
 
@@ -224,11 +224,11 @@ describe('HttpApiService', () => {
 
   it('subscribeToResultsForHunt polls listResultsForHunt', fakeAsync(() => {
        const values: Array<ReadonlyArray<ApiHuntResult>> = [];
-       const sub =
-           httpApiService.subscribeToResultsForHunt({huntId: '1234', count: 10})
-               .subscribe(result => {
-                 values.push(result);
-               });
+       const sub = httpApiService
+                       .subscribeToResultsForHunt({huntId: '1234', count: '10'})
+                       .subscribe(result => {
+                         values.push(result);
+                       });
 
        tick();
 
@@ -267,11 +267,11 @@ describe('HttpApiService', () => {
   it('subscribeToResultsForHunt waits for result before re-polling',
      fakeAsync(() => {
        const values: Array<ReadonlyArray<ApiHuntResult>> = [];
-       const sub =
-           httpApiService.subscribeToResultsForHunt({huntId: '1234', count: 10})
-               .subscribe(result => {
-                 values.push(result);
-               });
+       const sub = httpApiService
+                       .subscribeToResultsForHunt({huntId: '1234', count: '10'})
+                       .subscribe(result => {
+                         values.push(result);
+                       });
 
        tick();
 
@@ -321,7 +321,7 @@ describe('HttpApiService', () => {
            })
            .flush({
              items: [{category: 'Test', name: 'TestFlow', defaultArgs: {}}]
-           } as ApiListClientFlowDescriptorsResult);
+           } as ApiListFlowDescriptorsResult);
 
        httpMock
            .expectOne({
@@ -348,7 +348,7 @@ describe('HttpApiService', () => {
        let lastFlows: ReadonlyArray<ApiFlow> = [];
        const sub =
            httpApiService
-               .subscribeToFlowsForClient({clientId: 'C.1234', count: 10})
+               .subscribeToFlowsForClient({clientId: 'C.1234', count: '10'})
                .subscribe((flows) => {
                  lastFlows = flows;
                });
@@ -371,7 +371,7 @@ describe('HttpApiService', () => {
            })
            .flush({
              items: [{category: 'Test', name: 'TestFlow', defaultArgs: {}}]
-           } as ApiListClientFlowDescriptorsResult);
+           } as ApiListFlowDescriptorsResult);
 
        httpMock
            .expectOne({
@@ -396,7 +396,7 @@ describe('HttpApiService', () => {
        let lastFlows: ReadonlyArray<ApiFlow> = [];
        const sub =
            httpApiService
-               .subscribeToFlowsForClient({clientId: 'C.1234', count: 10})
+               .subscribeToFlowsForClient({clientId: 'C.1234', count: '10'})
                .subscribe((flows) => {
                  lastFlows = flows;
                });
@@ -526,7 +526,7 @@ describe('HttpApiService', () => {
         .flush({message: 'testerror'}, {status: 500, statusText: 'Error'});
 
     expect(snackbar.openFromComponent)
-        .toHaveBeenCalledOnceWith(ErrorSnackbar, jasmine.objectContaining({
+        .toHaveBeenCalledOnceWith(ErrorSnackBar, jasmine.objectContaining({
           data: jasmine.stringMatching('testerror')
         }));
   });

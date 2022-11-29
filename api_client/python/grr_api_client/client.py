@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Clients-related part of GRR API client library."""
 
-import collections
+from collections import abc
 from typing import Sequence
 
 from grr_api_client import flow
@@ -231,7 +231,7 @@ class ClientBase(object):
       raise TypeError("'labels' argument is expected to be an "
                       "iterable of strings, not {!r}.".format(labels))
 
-    if not isinstance(labels, collections.Iterable):
+    if not isinstance(labels, abc.Iterable):
       raise TypeError(
           "Expected iterable container, but got {!r} instead.".format(labels))
 

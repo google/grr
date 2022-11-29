@@ -1,12 +1,12 @@
 import {ChangeDetectionStrategy, Component, OnDestroy} from '@angular/core';
-import {ActivatedRoute, Params} from '@angular/router';
+import {ActivatedRoute, Params, Router} from '@angular/router';
 import {Observable} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
-import {Client} from '../../lib/models/client';
+import {Client, isClientId} from '../../lib/models/client';
 import {isNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
-import {ClientSearchGlobalStore} from '../../store/client_search_global_store';
+import {ClientSearchLocalStore} from '../../store/client_search_local_store';
 
 function toRow(c: Client) {
   return {
@@ -31,36 +31,48 @@ function toRow(c: Client) {
 export class ClientSearch implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  private readonly query$ = this.route.queryParamMap.pipe(
+  protected readonly query$ = this.route.queryParamMap.pipe(
       takeUntil(this.ngOnDestroy.triggered$),
       map(params => params.get('q') ?? ''),
   );
 
-  readonly reason$: Observable<Params> = this.route.queryParamMap.pipe(
-      takeUntil(this.ngOnDestroy.triggered$),
-      map(params => params.get('reason')),
-      filter(isNonNull),
-      map((reason) => ({'reason': reason})),
-  );
+  protected readonly clientLinkParams$: Observable<Params> =
+      this.route.queryParamMap.pipe(
+          takeUntil(this.ngOnDestroy.triggered$),
+          map(params => params.get('reason')),
+          filter(isNonNull),
+          map((reason) => ({'reason': reason})),
+      );
 
   /**
    * Table rows for the MatTable component.
    */
-  readonly rows$ = this.clientSearchGlobalStore.clients$.pipe(
+  protected readonly rows$ = this.clientSearchLocalStore.clients$.pipe(
       map(clients => clients?.map(toRow) ?? []));
-
   /**
    * Table columns for the MatTable component.
    */
-  readonly columns =
-      ['clientId', 'fqdn', 'users', 'labels', 'online', 'lastSeenAt'];
+  protected readonly columns =
+      ['clientId', 'fqdn', 'users', 'labels', 'online', 'lastSeenAt'] as const;
 
   constructor(
       private readonly route: ActivatedRoute,
-      private readonly clientSearchGlobalStore: ClientSearchGlobalStore,
+      protected readonly clientSearchLocalStore: ClientSearchLocalStore,
+      private readonly router: Router,
+
   ) {
     this.query$.subscribe(query => {
-      this.clientSearchGlobalStore.searchClients(query);
+      this.clientSearchLocalStore.searchClients(query);
     });
+  }
+
+  async onQuerySubmitted(query: string) {
+    if (isClientId(query)) {
+      await this.router.navigate(['/clients', query]);
+    } else {
+      await this.router.navigate(
+          ['/clients'],
+          {queryParams: {...this.route.snapshot.queryParams, 'q': query}});
+    }
   }
 }

@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """A module with utilities for maintaining compatibility with Python 2 and 3."""
 
-import collections
+from collections import abc
 import os
 import shlex
 import sys
@@ -282,7 +282,7 @@ def UnicodeJson(json: Any) -> Any:
     return json.decode("utf-8")
 
   # Only allowed iterables are dictionaries, list and strings.
-  if isinstance(json, collections.Iterable) and not isinstance(json, Text):
+  if isinstance(json, abc.Iterable) and not isinstance(json, Text):
     raise TypeError("Incorrect JSON object: {!r}".format(json))
 
   return json

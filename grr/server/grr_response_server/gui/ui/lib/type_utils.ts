@@ -148,3 +148,8 @@ export type OnChangeFn<T> = (value: T) => void;
 
 /** Callback for `ControlValueAccessor.registerOnTouched`. */
 export type OnTouchedFn = () => void;
+
+/** Capitalizes a string by turning the first character uppercase. */
+export function capitalize(v: string): string {
+  return v[0].toUpperCase() + v.slice(1);
+}

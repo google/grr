@@ -1,41 +1,37 @@
 import {Injectable} from '@angular/core';
-import {ComponentStore} from '@ngrx/component-store';
 import {Observable} from 'rxjs';
-import {map, shareReplay, switchMap} from 'rxjs/operators';
+import {map} from 'rxjs/operators';
 
-import {ApiHunt, ApiListHuntsArgs} from '../lib/api/api_interfaces';
-import {HttpApiService} from '../lib/api/http_api_service';
+import {ApiListHuntsArgs} from '../lib/api/api_interfaces';
+import {translateHunt} from '../lib/api_translation/hunt';
+import {Hunt} from '../lib/models/hunt';
+import {compareDateNewestFirst} from '../lib/type_utils';
 
-// Dependency injection in constructor seems to not work without @Injectable()
-// annotation.
-@Injectable()
-abstract class ApiStore<Result, Args extends {} = {}> {
-  constructor(protected readonly httpApiService: HttpApiService) {}
-
-  protected readonly store = new ComponentStore<Args>();
-
-  setArgs(args: Args) {
-    this.store.setState(args);
-  }
-
-  patchArgs(args: Partial<Args>) {
-    this.store.patchState(args);
-  }
-
-  abstract loadResults(args: Args): Observable<Result>;
-
-  results$: Observable<Result> = this.store.state$.pipe(
-      switchMap(args => this.loadResults(args)),
-      shareReplay({bufferSize: 1, refCount: true}),
-  );
-}
+import {ApiCollectionStore, PaginationArgs} from './store_util';
 
 /** Store for HuntOverviewPage. */
 @Injectable()
 export class HuntOverviewPageLocalStore extends
-    ApiStore<ReadonlyArray<ApiHunt>, ApiListHuntsArgs> {
-  loadResults(args: ApiListHuntsArgs) {
-    return this.httpApiService.subscribeToListHunts(args).pipe(
-        map(response => response.items ?? []));
+    ApiCollectionStore<Hunt, ApiListHuntsArgs> {
+  override readonly INITIAL_LOAD_COUNT = 5;
+
+  protected loadResults(args: ApiListHuntsArgs, paginationArgs: PaginationArgs):
+      Observable<readonly Hunt[]> {
+    return this.httpApiService
+        .subscribeToListHunts({
+          ...args,
+          count: paginationArgs.count.toString(),
+          offset: paginationArgs.offset.toString(),
+        })
+        .pipe(
+            map(response => (response.items ?? []).map(translateHunt)),
+        );
+  }
+
+  protected readonly compareItems =
+      compareDateNewestFirst<Hunt>(hunt => hunt.created);
+
+  protected areItemsEqual(a: Hunt, b: Hunt): boolean {
+    return a.huntId === b.huntId;
   }
 }

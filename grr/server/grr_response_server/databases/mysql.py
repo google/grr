@@ -23,6 +23,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_server import threadpool
 from grr_response_server.databases import db as db_module
 from grr_response_server.databases import mysql_artifacts
+from grr_response_server.databases import mysql_blob_keys
 from grr_response_server.databases import mysql_blobs
 from grr_response_server.databases import mysql_client_reports
 from grr_response_server.databases import mysql_clients
@@ -425,6 +426,7 @@ def _SleepWithBackoff(exponent):
 # pyformat: disable
 class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
               mysql_blobs.MySQLDBBlobsMixin,  # Implements BlobStore.
+              mysql_blob_keys.MySQLDBBlobKeysMixin,
               mysql_client_reports.MySQLDBClientReportsMixin,
               mysql_clients.MySQLDBClientMixin,
               mysql_cronjobs.MySQLDBCronJobMixin,
@@ -441,8 +443,7 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
   """Implements db.Database and blob_store.BlobStore using MySQL."""
 
   def ClearTestDB(self):
-    # TODO(user): This is required because GRRBaseTest.setUp() calls it.
-    # Refactor database test to provide their own logic of cleanup in tearDown.
+    # This is required because GRRBaseTest.setUp() calls it.
     pass
 
   _WRITE_ROWS_BATCH_SIZE = 10000

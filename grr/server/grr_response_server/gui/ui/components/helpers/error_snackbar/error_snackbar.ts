@@ -11,7 +11,7 @@ export const WINDOW = new InjectionToken<Window>('Window');
   templateUrl: './error_snackbar.ng.html',
   styleUrls: ['./error_snackbar.scss']
 })
-export class ErrorSnackbar {
+export class ErrorSnackBar {
   copied = false;
 
   constructor(
@@ -21,7 +21,7 @@ export class ErrorSnackbar {
   ) {}
 
   dismiss() {
-    // The ErrorSnackbar is shown as last resort when unexpected errors occur.
+    // The ErrorSnackBar is shown as last resort when unexpected errors occur.
     // Many Observables do not have a well-defined state after throwing an
     // error, e.g. they might complete and no longer be subscribed to. For now,
     // prevent users from using GRR in this undefined state and nudge them to

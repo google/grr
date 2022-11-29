@@ -96,8 +96,9 @@ export class YaraProcessScanForm extends
   override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return {
       yaraSignature: formState.yaraSignature,
-      pids: formState.filterMode === FilterMode.PID ? formState.pids :
-                                                      undefined,
+      pids: formState.filterMode === FilterMode.PID ?
+          formState.pids?.map(pid => pid.toString()) :
+          undefined,
       processRegex: formState.filterMode === FilterMode.NAME ?
           formState.processRegex :
           undefined,

@@ -1,0 +1,22 @@
+@use '../../../material-theme' as c;
+
+a {
+  margin-bottom: 0.5em;
+  display: flex;
+}
+
+mat-icon {
+  margin-right: 0.5em;
+}
+
+mat-chip-list {
+  display: inline-block;
+  padding-left: 0.5em;
+  /** Prevent online chip from changing cursor and hover effect. */
+  pointer-events: none;
+}
+
+.flow-details-list {
+  display: grid;
+  row-gap: c.$page-spacing;
+}

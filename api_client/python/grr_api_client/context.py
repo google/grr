@@ -18,8 +18,8 @@ class GrrApiContext(object):
   def __init__(self, connector: connectors.Connector):
     super().__init__()
 
-    self.connector = connector  # type: connectors.Connector
-    self.user = None  # type: Optional[user_pb2.ApiGrrUser]
+    self.connector: connectors.Connector = connector
+    self.user: Optional[user_pb2.ApiGrrUser] = None
 
   def SendRequest(
       self,

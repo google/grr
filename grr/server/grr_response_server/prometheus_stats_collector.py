@@ -160,7 +160,7 @@ class PrometheusStatsCollector(stats_collector.StatsCollector):
         new CollectorRegistry is instantiated. Use prometheus_client.REGISTRY
         for the global default registry.
     """
-    self._metrics = {}  # type: Dict[Text, _Metric]
+    self._metrics: Dict[Text, _Metric] = {}
 
     if registry is None:
       self._registry = prometheus_client.CollectorRegistry(auto_describe=True)
@@ -175,7 +175,7 @@ class PrometheusStatsCollector(stats_collector.StatsCollector):
   @utils.Synchronized
   def IncrementCounter(self, metric_name, delta=1, fields=None):
     metric = self._metrics[metric_name]
-    counter = metric.ForFields(fields)  # type: prometheus_client.Counter
+    counter: prometheus_client.Counter = metric.ForFields(fields)
     counter.inc(delta)
 
   @utils.Synchronized
@@ -186,19 +186,19 @@ class PrometheusStatsCollector(stats_collector.StatsCollector):
     precondition.AssertType(value, six.integer_types + (float,))
 
     metric = self._metrics[metric_name]
-    histogram = metric.ForFields(fields)  # type: prometheus_client.Histogram
+    histogram: prometheus_client.Histogram = metric.ForFields(fields)
     histogram.observe(value)
 
   @utils.Synchronized
   def SetGaugeValue(self, metric_name, value, fields=None):
     metric = self._metrics[metric_name]
-    gauge = metric.ForFields(fields)  # type: prometheus_client.Gauge
+    gauge: prometheus_client.Gauge = metric.ForFields(fields)
     gauge.set(value)
 
   @utils.Synchronized
   def SetGaugeCallback(self, metric_name, callback, fields=None):
     metric = self._metrics[metric_name]
-    gauge = metric.ForFields(fields)  # type: prometheus_client.Gauge
+    gauge: prometheus_client.Gauge = metric.ForFields(fields)
     gauge.set_function(callback)
 
   @utils.Synchronized

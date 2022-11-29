@@ -45,7 +45,8 @@ class StatsServer(base_stats_server.BaseStatsServer):
   def Start(self):
     """Start HTTPServer."""
     try:
-      self._http_server = IPv6HTTPServer((self.address, self.port), StatsServerHandler)
+      self._http_server = IPv6HTTPServer((self.address, self.port),
+                                         StatsServerHandler)
     except socket.error as e:
       if e.errno == errno.EADDRINUSE:
         raise base_stats_server.PortInUseError(self.port)
@@ -81,7 +82,6 @@ def InitializeStatsServerOnce():
     logging.info("Monitoring server disabled.")
     return
 
-  # TODO(user): Implement __contains__ for GrrConfigManager.
   max_port = config.CONFIG.Get("Monitoring.http_port_max", None)
   if max_port is None:
     # Use the same number of available ports as the adminui is using. If we
@@ -102,7 +102,8 @@ def InitializeStatsServerOnce():
 
   for port in range(port, max_port + 1):
     try:
-      logging.info("Starting monitoring server on address %s and port %d.", address, port)
+      logging.info("Starting monitoring server on address %s and port %d.",
+                   address, port)
       server_obj = server_cls(address, port)
       server_obj.Start()
       return

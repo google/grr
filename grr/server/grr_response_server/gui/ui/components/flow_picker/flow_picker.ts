@@ -46,7 +46,7 @@ enum InputToShow {
  * Component that displays available Flows.
  */
 @Component({
-  selector: 'flow-picker',
+  selector: 'app-flow-picker',
   templateUrl: './flow_picker.ng.html',
   styleUrls: ['./flow_picker.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -79,6 +79,10 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
   readonly textInput = new UntypedFormControl('');
   readonly textInputWidth$ = new Subject<number>();
 
+  readonly clientId$ =
+      this.clientPageGlobalStore.selectedClient$.pipe(map(c => c?.clientId));
+
+  readonly hasFilesAccess$ = this.clientPageGlobalStore.hasAccess$;
 
   private readonly textInputFocused$ = new Subject<boolean>();
 

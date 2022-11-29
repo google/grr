@@ -239,7 +239,7 @@ class MockArtifactCollectorFlowWithDuplicatesAndExtensions(
       self.SendReply(
           rdf_client_fs.StatEntry(
               pathspec=rdf_paths.PathSpec.OS(
-                  path=f"/home/bar/{artifact_name}.tmp")))
+                  path=f"/home/foo/{artifact_name}.tmp")))
 
 
 class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
@@ -336,11 +336,11 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
         flow_base.ClientPathArchiveMapping(
             db.ClientPath.OS(self.client_id,
                              ("home", "foo", "ChromiumBasedBrowsersHistory")),
-            "chrome/ChromiumBasedBrowsersHistory",
+            "chrome/home_foo_ChromiumBasedBrowsersHistory",
         ),
         flow_base.ClientPathArchiveMapping(
             db.ClientPath.OS(self.client_id, ("home", "foo", "SafariHistory")),
-            "safari/SafariHistory",
+            "safari/home_foo_SafariHistory",
         ),
     ])
 
@@ -350,7 +350,6 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
         MockArtifactCollectorFlowWithDuplicatesAndExtensions):
       flow_id, _, _ = self._RunCollectBrowserHistory(browsers=[
           webhistory.Browser.CHROME,
-          webhistory.Browser.SAFARI,
       ])
       flow = flow_base.FlowBase.CreateFlowInstance(
           flow_test_lib.GetFlowObj(self.client_id, flow_id))
@@ -363,23 +362,13 @@ class CollectBrowserHistoryTest(flow_test_lib.FlowTestsBaseclass):
             db.ClientPath.OS(
                 self.client_id,
                 ("home", "foo", "ChromiumBasedBrowsersHistory.tmp")),
-            "chrome/ChromiumBasedBrowsersHistory.tmp",
+            "chrome/home_foo_ChromiumBasedBrowsersHistory.tmp",
         ),
         flow_base.ClientPathArchiveMapping(
             db.ClientPath.OS(
                 self.client_id,
-                ("home", "bar", "ChromiumBasedBrowsersHistory.tmp")),
-            "chrome/ChromiumBasedBrowsersHistory_1.tmp",
-        ),
-        flow_base.ClientPathArchiveMapping(
-            db.ClientPath.OS(self.client_id,
-                             ("home", "foo", "SafariHistory.tmp")),
-            "safari/SafariHistory.tmp",
-        ),
-        flow_base.ClientPathArchiveMapping(
-            db.ClientPath.OS(self.client_id,
-                             ("home", "bar", "SafariHistory.tmp")),
-            "safari/SafariHistory_1.tmp",
+                ("home", "foo", "ChromiumBasedBrowsersHistory.tmp")),
+            "chrome/home_foo_ChromiumBasedBrowsersHistory_1.tmp",
         ),
     ])
 

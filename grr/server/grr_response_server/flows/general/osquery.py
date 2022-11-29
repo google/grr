@@ -119,6 +119,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
   args_type = rdf_server_osquery.OsqueryFlowArgs
   progress_type = rdf_osquery.OsqueryProgress
+  result_types = (rdf_osquery.OsqueryResult,)
 
   def _UpdateProgressWithError(self, error_message: str) -> None:
     self.state.progress.error_message = error_message

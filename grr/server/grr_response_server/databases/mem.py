@@ -10,6 +10,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
 from grr_response_server.databases import db
 from grr_response_server.databases import mem_artifacts
+from grr_response_server.databases import mem_blob_keys
 from grr_response_server.databases import mem_blobs
 from grr_response_server.databases import mem_client_reports
 from grr_response_server.databases import mem_clients
@@ -27,6 +28,7 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 # pyformat: disable
 class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
+                 mem_blob_keys.InMemoryDBBlobKeysMixin,
                  mem_blobs.InMemoryDBBlobsMixin,
                  mem_client_reports.InMemoryDBClientReportsMixin,
                  mem_clients.InMemoryDBClientMixin,
@@ -51,6 +53,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
   def _Init(self):
     self.artifacts = {}
     self.approvals_by_username = {}
+    self.blob_keys: dict[rdf_objects.BlobID, db.EncryptionKey] = {}
     self.clients = {}
     self.client_action_requests = {}
     self.client_action_request_leases = {}

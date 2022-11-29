@@ -12,13 +12,13 @@ from absl.testing import absltest
 
 import winreg
 
-flags.DEFINE_integer(
+_LOCALHOST_PORT = flags.DEFINE_integer(
     "localhost_port",
     default=-1,
     help="",
 )
 
-flags.DEFINE_string(
+_REGISTRY_SUB_KEY = flags.DEFINE_string(
     "registry_sub_key",
     default="",
     help="",
@@ -46,13 +46,13 @@ class SandboxUnprivilegedTest(absltest.TestCase):
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
       s.settimeout(5)
       with self.assertRaises(OSError):
-        s.connect(("127.0.0.1", flags.FLAGS.localhost_port))
+        s.connect(("127.0.0.1", _LOCALHOST_PORT.value))
 
   def testRegistry(self):
     with self.assertRaises(PermissionError):
       key = winreg.OpenKey(
           winreg.HKEY_LOCAL_MACHINE,
-          flags.FLAGS.registry_sub_key,
+          _REGISTRY_SUB_KEY.value,
           access=winreg.KEY_ALL_ACCESS)
       winreg.SetValueEx(key, "foo", 0, winreg.REG_SZ, "bar")
 

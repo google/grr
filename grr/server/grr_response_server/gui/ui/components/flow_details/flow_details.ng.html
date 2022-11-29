@@ -69,19 +69,23 @@
     </mat-menu>
 
     <div class="flow-status">
-      <span *ngIf="flow?.state === flowState.RUNNING">
-        <mat-icon class="in-progress">watch_later</mat-icon>
+      <span class="flow-status-span" *ngIf="flow?.state === flowState.RUNNING">
+        <mat-spinner class="in-progress" diameter="20">watch_later</mat-spinner>
+        <label class="in-progress">Collection in progress</label>
       </span>
-      <span *ngIf="flow?.state === flowState.ERROR">
+      <span class="flow-status-span" *ngIf="flow?.state === flowState.ERROR">
         <mat-icon class="error">error_outline</mat-icon>
+        <label class="error">Collection failed</label>
       </span>
-      <span *ngIf="flow?.state === flowState.FINISHED">
+      <span class="flow-status-span" *ngIf="flow?.state === flowState.FINISHED">
         <mat-icon class="success">check_circle</mat-icon>
+        <label class="success">Collection successful</label>
       </span>
     </div>
 
     <!-- Flow context menu. -->
     <button
+      *ngIf="showContextMenu"
       class="menu-button"
       [matMenuTriggerFor]="menu"
       mat-icon-button
@@ -107,7 +111,7 @@
         <span>Duplicate flow</span>
       </button>
       <button
-        *ngIf="showCreateHunt && (canaryMode$ | async)"
+        *ngIf="canaryMode$ | async"
         mat-menu-item
         (click)="triggerMenuEvent(flowMenuAction.CREATE_HUNT)"
       >

@@ -44,21 +44,21 @@ const ApiRouteController = class {
    * @export
    */
   onValueChange() {
-    var routeComponents = this.routeComponents = [];
-    var queryParameters = this.queryParameters = {};
+    const routeComponents = this.routeComponents = [];
+    const queryParameters = this.queryParameters = {};
 
     if (angular.isString(this.scope_.value)) {
-      var route = this.scope_.value;
+      let route = this.scope_.value;
 
-      var questionMarkIndex = route.indexOf('?');
+      const questionMarkIndex = route.indexOf('?');
       if (questionMarkIndex != -1) {
-        var queryParamString =
+        const queryParamString =
             route.substring(questionMarkIndex + 1, route.length);
         route = route.substring(0, questionMarkIndex);
 
-        var vars = queryParamString.split('&');
+        const vars = queryParamString.split('&');
         angular.forEach(vars, function(variable) {
-          var pair = variable.split('=');
+          const pair = variable.split('=');
           if (pair.length == 2) {
             queryParameters[pair[0]] = pair[1];
           } else {
@@ -67,13 +67,14 @@ const ApiRouteController = class {
         });
       }
 
-      var components = route.split('/');
+      const components = route.split('/');
       angular.forEach(components, function(component) {
         if (component.length > 0) {
           if (component[0] === '<') {
             component = component.substring(1, component.length - 1);
-            var componentParts = component.split(':');
-            var componentType, componentValue;
+            const componentParts = component.split(':');
+            let componentType;
+            let componentValue;
             if (componentParts.length === 1) {
               componentType = 'string';
               componentValue = componentParts[0];

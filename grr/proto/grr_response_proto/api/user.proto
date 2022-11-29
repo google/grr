@@ -117,7 +117,7 @@ message ApiCronJobApproval {
   }];
 }
 
-// Next message id: 11
+// Next message id: 12
 message ApiClientApproval {
   optional ApiClient subject = 1 [(sem_type) = {
     description: "A client that has to be accessed after this approval "
@@ -161,6 +161,11 @@ message ApiClientApproval {
   repeated string approvers = 7 [(sem_type) = {
     description: "List of GRR users who granted this approval. Note: this "
                  "list always includes the original approval requestor."
+  }];
+
+  optional uint64 expiration_time_us = 11 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Expiration time for this approval."
   }];
 }
 

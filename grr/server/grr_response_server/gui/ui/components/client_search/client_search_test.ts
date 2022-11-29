@@ -1,12 +1,15 @@
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {Location} from '@angular/common';
+import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Router, RouterLink} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 
 import {ApiModule} from '../../lib/api/module';
 import {newClient} from '../../lib/models/model_test_util';
-import {ClientSearchGlobalStore} from '../../store/client_search_global_store';
-import {ClientSearchGlobalStoreMock, mockClientSearchGlobalStore} from '../../store/client_search_global_store_test_util';
+import {ClientSearchLocalStore} from '../../store/client_search_local_store';
+import {ClientSearchLocalStoreMock, mockClientSearchLocalStore} from '../../store/client_search_local_store_test_util';
+import {STORE_PROVIDERS} from '../../store/store_test_providers';
 import {initTestEnvironment} from '../../testing';
 
 import {ClientSearch} from './client_search';
@@ -29,7 +32,7 @@ function htmlCollectionToList(c: HTMLCollection): Element[] {
 }
 
 describe('ClientSearch Component', () => {
-  let store: ClientSearchGlobalStoreMock;
+  let store: ClientSearchLocalStoreMock;
 
   beforeEach(waitForAsync(() => {
     TestBed
@@ -41,8 +44,9 @@ describe('ClientSearch Component', () => {
             RouterTestingModule,
           ],
           providers: [
+            ...STORE_PROVIDERS,
             {
-              provide: ClientSearchGlobalStore,
+              provide: ClientSearchLocalStore,
               useFactory: () => store,
             },
           ],
@@ -50,7 +54,7 @@ describe('ClientSearch Component', () => {
         })
         .compileComponents();
 
-    store = mockClientSearchGlobalStore();
+    store = mockClientSearchLocalStore();
   }));
 
   it('triggers a new search on route change', async () => {
@@ -152,11 +156,35 @@ describe('ClientSearch Component', () => {
 
     // Traverse the levels in the DOM tree manually since we can't use
     // queryAll to query the childComponent here.
-    const matTable = fixture.debugElement.children[0];
+    const matTable = fixture.debugElement.query(By.css('table'));
     const matTableBody = matTable.children[1];
     const dataRow = matTableBody.children[0];
     expect(dataRow.injector.get(RouterLink).queryParams).toEqual({
       reason: 'foo/t/123'
     });
   });
+
+  it('changes the route when query is submitted', fakeAsync(() => {
+       const fixture = TestBed.createComponent(ClientSearch);
+       const componentInstance = fixture.componentInstance;
+       componentInstance.onQuerySubmitted('foo');
+       tick();
+
+       const location = TestBed.inject(Location);
+       expect(location.path()).toEqual('/clients?q=foo');
+     }));
+
+  it('preserves reason in the route when a new query is submitted',
+     fakeAsync(async () => {
+       await TestBed.inject(Router).navigate(
+           [], {queryParams: {'q': 'foo', 'reason': 'testreason'}});
+
+       const fixture = TestBed.createComponent(ClientSearch);
+       const componentInstance = fixture.componentInstance;
+       await componentInstance.onQuerySubmitted('bar');
+       tick();
+
+       const location = TestBed.inject(Location);
+       expect(location.path()).toEqual('/clients?q=bar&reason=testreason');
+     }));
 });

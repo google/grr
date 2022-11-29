@@ -572,7 +572,7 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
   def CreateClientCommunicator(self):
     self.client_communicator = comms.GRRHTTPClient(
         ca_cert=config.CONFIG["CA.certificate"],
-        worker_cls=worker_mocks.DisabledNannyClientWorker)
+        worker_cls=worker_mocks.ClientWorker)
 
   def CreateNewClientObject(self):
     self.CreateClientCommunicator()
@@ -1049,8 +1049,7 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
     raise MakeHTTPException(500, "Not a real connection.")
 
   def testClientConnectionErrors(self):
-    client_obj = comms.GRRHTTPClient(
-        worker_cls=worker_mocks.DisabledNannyClientWorker)
+    client_obj = comms.GRRHTTPClient(worker_cls=worker_mocks.ClientWorker)
     # Make the connection unavailable and skip the retry interval.
     with utils.MultiStubber(
         (requests, "request", self.RaiseError),

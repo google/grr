@@ -23,13 +23,14 @@ from urllib import parse as urlparse
 from google.protobuf import descriptor as proto_descriptor
 from grr_response_core import version
 from grr_response_core.lib import casing
+from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import proto2 as rdf_proto2
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import semantic_pb2
 from grr_response_proto.api import metadata_pb2
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
-
 
 # Type aliases used throughout the metadata module.
 Descriptor = proto_descriptor.Descriptor
@@ -439,6 +440,9 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
     if cls is None:
       raise ValueError("Trying to extract schema of None.")
 
+    if (inspect.isclass(cls) and issubclass(cls, rdf_structs.RDFProtoStruct)):
+      cls = cls.protobuf.DESCRIPTOR
+
     type_name = _GetTypeName(cls)
     # "Primitive" types should be already present in `self.schema_objs`.
     if type_name in self.schema_objs:
@@ -472,8 +476,34 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
                     f"which is not a protobuf message Descriptor, "
                     f"nor an EnumDescriptor, nor a primitive type.")
 
+  def _CreateFlowSchemas(self, visiting: Set[str]) -> None:
+    """Creates OpenAPI schemas for flow args, progress, and result types."""
+    # FLOW_REGISTRY depends on registry_init imports to be populated.
+    for flow_cls in registry.FlowRegistry.FLOW_REGISTRY.values():
+      if flow_cls.args_type:
+        self._CreateSchema(flow_cls.args_type, visiting)
+      if flow_cls.progress_type:
+        self._CreateSchema(flow_cls.progress_type, visiting)
+      for result_type in flow_cls.result_types:
+        # Some Flows specify the base RDFValue class as catch all type. We
+        # cannot describe the RDFValue type itself, so we skip it here.
+        if result_type != rdfvalue.RDFValue:
+          self._CreateSchema(result_type, visiting)
+
+  def _CreateRouterMethodSchemas(self, visiting: Set[str]) -> None:
+    """Creates OpenAPI schemas for router method args and result types."""
+    router_methods = self.router.__class__.GetAnnotatedMethods()
+    for method_metadata in router_methods.values():
+      args_type = method_metadata.args_type
+      if args_type:
+        self._CreateSchema(args_type, visiting)
+
+      result_type = method_metadata.result_type
+      if result_type:
+        self._CreateSchema(result_type, visiting)
+
   def _CreateSchemas(self) -> None:
-    """Create OpenAPI schemas for all the used protobuf types."""
+    """Creates OpenAPI schemas for all the used protobuf types."""
     self.schema_objs = dict()  # Holds OpenAPI representations of types.
 
     # Add the OpenAPI schemas of protobuf primitive types.
@@ -488,23 +518,8 @@ class ApiGetOpenApiDescriptionHandler(api_call_handler_base.ApiCallHandler):
 
     # Holds state of type extraction (white/gray nodes).
     visiting: Set[str] = set()
-    router_methods = self.router.__class__.GetAnnotatedMethods()
-    for method_metadata in router_methods.values():
-      args_type = method_metadata.args_type
-      if args_type:
-        if (inspect.isclass(args_type) and
-            issubclass(args_type, rdf_structs.RDFProtoStruct)):
-          self._CreateSchema(args_type.protobuf.DESCRIPTOR, visiting)
-        else:
-          self._CreateSchema(args_type, visiting)
-
-      result_type = method_metadata.result_type
-      if result_type:
-        if (inspect.isclass(result_type) and
-            issubclass(result_type, rdf_structs.RDFProtoStruct)):
-          self._CreateSchema(result_type.protobuf.DESCRIPTOR, visiting)
-        else:
-          self._CreateSchema(result_type, visiting)
+    self._CreateRouterMethodSchemas(visiting)
+    self._CreateFlowSchemas(visiting)
 
   def _GetDescribedSchema(
       self,

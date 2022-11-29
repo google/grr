@@ -72,7 +72,7 @@ describe('FlowResultsLocalStore', () => {
          timestamp: '1',
        }]);
 
-       // TODO(user): Calling unsubscribe() on the above subscription clears
+       // Calling unsubscribe() on the above subscription clears
        // the cached value -- ideally, FlowResultsLocalStore should cache
        // indefinitely even when no subscribers are subscribed any longer.
 

@@ -50,22 +50,22 @@ from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
 
-flags.DEFINE_string(
+_CHROME_DRIVER_PATH = flags.DEFINE_string(
     "chrome_driver_path", None,
     "Path to the chrome driver binary. If not set, webdriver "
     "will search on PATH for the binary.")
 
-flags.DEFINE_string(
+_CHROME_BINARY_PATH = flags.DEFINE_string(
     "chrome_binary_path", None,
     "Path to the Chrome binary. If not set, webdriver will search for "
     "Chrome on PATH.")
 
-flags.DEFINE_bool(
+_USE_HEADLESS_CHROME = flags.DEFINE_bool(
     "use_headless_chrome", False, "If set, run Chrome driver in "
     "headless mode. Useful when running tests in a window-manager-less "
     "environment.")
 
-flags.DEFINE_bool(
+_DISABLE_CHROME_SANDBOXING = flags.DEFINE_bool(
     "disable_chrome_sandboxing", False,
     "Whether to disable chrome sandboxing (e.g when running in a Docker "
     "container).")
@@ -199,24 +199,24 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     }
     options.add_experimental_option("prefs", prefs)
 
-    if flags.FLAGS.chrome_binary_path:
-      options.binary_location = flags.FLAGS.chrome_binary_path
+    if _CHROME_BINARY_PATH.value:
+      options.binary_location = _CHROME_BINARY_PATH.value
 
     options.add_argument("--disable-notifications")
 
-    if flags.FLAGS.use_headless_chrome:
+    if _USE_HEADLESS_CHROME.value:
       options.add_argument("--headless")
       options.add_argument("--window-size=1400,1080")
 
-    if flags.FLAGS.disable_chrome_sandboxing:
+    if _DISABLE_CHROME_SANDBOXING.value:
       options.add_argument("--no-sandbox")
 
     # pylint: disable=unreachable
     os.environ.pop("http_proxy", None)
 
-    if flags.FLAGS.chrome_driver_path:
+    if _CHROME_DRIVER_PATH.value:
       GRRSeleniumTest.driver = webdriver.Chrome(
-          flags.FLAGS.chrome_driver_path, chrome_options=options)
+          _CHROME_DRIVER_PATH.value, chrome_options=options)
     else:
       GRRSeleniumTest.driver = webdriver.Chrome(chrome_options=options)
 
@@ -693,7 +693,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     self.InstallACLChecks()
 
-    if flags.FLAGS.use_headless_chrome:
+    if _USE_HEADLESS_CHROME.value:
       params = {
           "cmd": "Page.setDownloadBehavior",
           "params": {

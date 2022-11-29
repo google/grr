@@ -24,7 +24,7 @@ from grr_response_server import frontend_lib
 from grr_response_server import server_logging
 from grr_response_server import server_startup
 
-flags.DEFINE_bool(
+_VERSION = flags.DEFINE_bool(
     "version",
     default=False,
     allow_override=True,
@@ -312,7 +312,7 @@ def main(argv):
   """Main."""
   del argv  # Unused.
 
-  if flags.FLAGS.version:
+  if _VERSION.value:
     print("GRR frontend {}".format(config_server.VERSION["packageversion"]))
     return
 

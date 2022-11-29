@@ -1,0 +1,309 @@
+<ng-container *ngIf="approval$ | async as approval">
+  <div class="wrapper">
+    <mat-card>
+      <mat-card-header>
+        <mat-card-title>
+          Approval request for fleet collection:
+          {{ approval.subject.name }}
+        </mat-card-title>
+        <mat-card-title
+          ><app-copy-button class="mat-small monospace id">{{
+            approval.huntId
+          }}</app-copy-button></mat-card-title
+        >
+      </mat-card-header>
+      <mat-card-content>
+        <table>
+          <tr>
+            <td>Description:</td>
+            <td>{{ approval.subject.description }}</td>
+          </tr>
+          <tr>
+            <td>Requested by:</td>
+            <td>
+              <user-image [username]="approval.requestor" size="16px"></user-image>
+              {{ approval.requestor }}
+            </td>
+          </tr>
+          <tr>
+            <td>Creation Time:</td>
+            <app-timestamp [date]="approval.subject.created"> </app-timestamp>
+          </tr>
+          <tr>
+            <td>Sent to:</td>
+            <td>
+              <span *ngFor="let approver of approval.requestedApprovers; last as isLast">
+                <user-image [username]="approver" size="16px"></user-image>
+                {{ approver }}{{ isLast ? "" : "," }}
+              </span>
+            </td>
+          </tr>
+          <tr>
+            <td>Reason:</td>
+            <td>
+              <app-text-with-links [text]="approval.reason"></app-text-with-links>
+            </td>
+          </tr>
+          <tr>
+            <td>Status:</td>
+            <td>{{ approval.status.type }}</td>
+          </tr>
+          <tr *ngIf="approval.approvers.length > 0">
+            <td>Granted by:</td>
+            <td>
+              <span *ngFor="let approver of approval.approvers; last as isLast">
+                <user-image [username]="approver" size="16px"></user-image>
+                {{ approver }}{{ isLast ? "" : "," }}
+              </span>
+            </td>
+          </tr>
+        </table>
+      </mat-card-content>
+      <mat-card-actions>
+        <button
+          mat-flat-button
+          color="primary"
+          [disabled]="disabled$ | async"
+          (click)="grantApproval()"
+          class="grant-button progress-spinner-button"
+        >
+          <mat-spinner *ngIf="requestInProgress$ | async" diameter="24"></mat-spinner>
+          <span
+            matTooltip="You cannot approve this fleet collection.
+              Either you are the requestor or the approval has already been granted"
+            [matTooltipDisabled]="!(disabled$ | async)"
+          >
+            Approve this fleet collection
+          </span>
+        </button>
+      </mat-card-actions>
+    </mat-card>
+  </div>
+
+  <div class="centered-content">
+    <h4>
+      Configuration details for fleet collection: {{ approval.subject.name }}
+      <mat-chip-list *ngIf="!approval.subject.flowReference && !approval.subject.huntReference">
+        <mat-chip
+          class="yellow-chip"
+          color="custom"
+          matTooltip="This hunt is new. It wasn't copied from another hunt and wasn't created from a flow. Make sure it is safe to run!"
+          disabled
+          ><mat-icon>warning</mat-icon>New Configuration</mat-chip
+        >
+      </mat-chip-list>
+    </h4>
+  </div>
+  <div class="flow-card centered-content">
+    <div class="header">
+      <a
+        *ngIf="
+          approval.subject.flowReference?.flowId && approval.subject.flowReference?.clientId;
+          else noLink
+        "
+        [routerLink]="[
+          '',
+          {
+            outlets: {
+              'primary': [
+                'clients',
+                approval.subject.flowReference?.clientId,
+                'flows',
+                approval.subject.flowReference?.flowId
+              ]
+            }
+          }
+        ]"
+      >
+        {{ approval.subject.flowName }}
+      </a>
+      <ng-template #noLink>{{ approval.subject.flowName }}</ng-template>
+      <app-copy-button
+        *ngIf="approval.subject.flowReference?.flowId"
+        class="mat-small monospace id"
+      >
+        {{ approval.subject.flowReference?.flowId }}
+      </app-copy-button>
+    </div>
+
+    <result-accordion
+      *ngIf="flowArgsViewData$ | async"
+      [colorScheme]="ColorScheme.FLOW_ARGS"
+      title="Flow arguments"
+      [isOpen]="true"
+    >
+      <div class="flow-args">
+        <app-flow-args-view [flowArgsViewData]="flowArgsViewData$ | async"></app-flow-args-view>
+      </div>
+    </result-accordion>
+  </div>
+
+  <div *ngIf="approval.subject as hunt" class="key-value-table centered-content">
+    <table>
+      <tr>
+        <td class="section-title"><h4>Defined Parameters</h4></td>
+      </tr>
+      <tr>
+        <td>Rollout speed:</td>
+        <td>
+          <app-copy-button
+            ><span>
+              {{ hunt.safetyLimits.clientRate }} clients/min ({{
+                clientRateBucket(hunt.safetyLimits.clientRate)
+              }})</span
+            >
+          </app-copy-button>
+        </td>
+      </tr>
+      <tr>
+        <td>Run On:</td>
+        <td>
+          <app-copy-button
+            ><span>
+              {{ hunt.safetyLimits.clientLimit === BigInt(0) ? "All matching" : hunt.safetyLimits.clientLimit }} clients
+            </span>
+          </app-copy-button>
+        </td>
+      </tr>
+      <tr>
+        <td>Active for:</td>
+        <td>
+          <app-copy-button
+            ><span> {{ convertToUnitTime(hunt.safetyLimits.expiryTime) }}</span>
+          </app-copy-button>
+        </td>
+      </tr>
+
+      <tr>
+        <td class="section-title"><h4>Stop fleet collection if...</h4></td>
+      </tr>
+      <tr>
+        <td>Crash Limit:</td>
+        <td>
+          <app-copy-button
+            ><span> {{ hunt.safetyLimits.crashLimit }} clients</span>
+          </app-copy-button>
+        </td>
+      </tr>
+      <tr>
+        <td>Average results per client:</td>
+        <td>
+          <app-copy-button
+            ><span> {{ hunt.safetyLimits.avgResultsPerClientLimit }}</span>
+          </app-copy-button>
+        </td>
+      </tr>
+      <tr>
+        <td>Average CPU (per client):</td>
+        <td>
+          <app-copy-button
+            ><span> {{ convertToUnitTime(hunt.safetyLimits.avgCpuSecondsPerClientLimit) }}</span>
+          </app-copy-button>
+        </td>
+      </tr>
+      <tr>
+        <td>Average network usage (per client):</td>
+        <td>
+          <app-copy-button
+            ><human-readable-size [size]="hunt.safetyLimits.avgNetworkBytesPerClientLimit">
+            </human-readable-size>
+          </app-copy-button>
+        </td>
+      </tr>
+
+      <tr>
+        <td class="section-title"><h4>Stop flow collection if...</h4></td>
+      </tr>
+      <tr>
+        <td>CPU limit per client:</td>
+        <td>
+          <app-copy-button
+            ><span> {{ convertToUnitTime(hunt.safetyLimits.cpuLimit) }}</span>
+          </app-copy-button>
+        </td>
+      </tr>
+      <tr>
+        <td>Network Limit per client:</td>
+        <td>
+          <app-copy-button>
+            <human-readable-size [size]="hunt.safetyLimits.networkBytesLimit">
+            </human-readable-size>
+          </app-copy-button>
+        </td>
+      </tr>
+
+      <tr>
+        <td class="section-title">
+          <h4>Selected clients</h4>
+          <h4 class="match-mode" *ngIf="approval.subject.clientRuleSet?.matchMode">
+            {{
+              approval.subject.clientRuleSet?.matchMode === ClientRuleSetMatchMode.MATCH_ALL
+                ? " – match all (and)"
+                : " – match any (or):"
+            }}
+          </h4>
+        </td>
+      </tr>
+      <tr *ngFor="let rule of approval.subject.clientRuleSet?.rules" [ngSwitch]="rule.ruleType">
+        <ng-container *ngSwitchCase="ClientRuleType.OS">
+          <td>Operating System:</td>
+          <td>
+            <ng-container *ngIf="rule.os?.osWindows"> Windows </ng-container>
+
+            <ng-container *ngIf="rule.os?.osLinux"> Linux </ng-container>
+
+            <ng-container *ngIf="rule.os?.osDarwin"> Darwin </ng-container>
+          </td>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="ClientRuleType.LABEL">
+          <td>Label:</td>
+          <td>
+            <ng-container [ngSwitch]="rule.label?.matchMode">
+              <ng-container *ngSwitchCase="LabelClientRuleMatchMode.MATCH_ALL"
+                >match all:</ng-container
+              >
+              <ng-container *ngSwitchCase="LabelClientRuleMatchMode.MATCH_ANY"
+                >match any:</ng-container
+              >
+              <ng-container *ngSwitchCase="LabelClientRuleMatchMode.DOES_NOT_MATCH_ALL">
+                doesn't match all:</ng-container
+              >
+              <ng-container *ngSwitchCase="LabelClientRuleMatchMode.DOES_NOT_MATCH_ANY">
+                doesn't match any:</ng-container
+              >
+            </ng-container>
+            <ng-container *ngFor="let name of rule.label?.labelNames; last as isLast"
+              >{{ name }}{{ isLast ? "" : ", " }}</ng-container
+            >
+          </td>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="ClientRuleType.REGEX">
+          <td>{{ regexConditionsNames.get(rule.regex?.field) }}:</td>
+          <td>{{ rule.regex?.attributeRegex ?? "No attribute specified" }}</td>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="ClientRuleType.INTEGER">
+          <td>
+            <ng-container *ngIf="rule.integer?.field">
+              {{ integerConditionsNames.get(rule.integer?.field) }}:
+            </ng-container>
+          </td>
+          <td>
+            <ng-container [ngSwitch]="rule.integer?.operator">
+              <ng-container *ngSwitchCase="IntegerClientRuleOperator.EQUAL">Equal:</ng-container>
+              <ng-container *ngSwitchCase="IntegerClientRuleOperator.LESS_THAN"
+                >Less Than:</ng-container
+              >
+              <ng-container *ngSwitchCase="IntegerClientRuleOperator.GREATER_THAN"
+                >Greater Than:</ng-container
+              >
+            </ng-container>
+            <ng-container *ngIf="rule.integer?.value">{{ rule.integer?.value }}</ng-container>
+          </td>
+        </ng-container>
+      </tr>
+    </table>
+  </div>
+</ng-container>

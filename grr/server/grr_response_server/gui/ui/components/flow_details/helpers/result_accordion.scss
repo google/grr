@@ -15,7 +15,7 @@ $files-counter-offset: 135px;
   &.flow-args-scheme {
     background-color: mat.get-color-from-palette(
       c.$background,
-      darker-background
+      panel-background
     );
 
     .header.expandable:hover {

@@ -1,5 +1,5 @@
-import {AnyObject, DataBlob, DecimalString, Dict, KeyValue} from '../../lib/api/api_interfaces';
-import {DateTime} from '../../lib/date_time';
+import {Any, DataBlob, Dict, DurationSeconds, KeyValue, RDFDatetime, RDFDatetimeSeconds} from '../../lib/api/api_interfaces';
+import {DateTime, Duration} from '../../lib/date_time';
 import {isNonNull} from '../../lib/preconditions';
 import {assertTruthy} from '../preconditions';
 
@@ -22,7 +22,7 @@ export function createOptionalApiTimestamp(dateTime?: DateTime|null): string|
  *
  * Because `Date` uses millisecond-precision, microseconds are truncated.
  */
-export function createDate(apiTimestamp: DecimalString): Date {
+export function createDate(apiTimestamp: RDFDatetime): Date {
   assertTruthy(apiTimestamp, 'Date');
 
   const date = new Date(Number(apiTimestamp) / 1000);
@@ -40,12 +40,10 @@ export function createDate(apiTimestamp: DecimalString): Date {
  */
 export function createOptionalDate(apiTimestamp: undefined): undefined;
 export function createOptionalDate(apiTimestamp: ''): undefined;
-export function createOptionalDate(apiTimestamp: DecimalString): Date;
-export function createOptionalDate(apiTimestamp?: DecimalString): Date|
-    undefined;
+export function createOptionalDate(apiTimestamp: RDFDatetime): Date;
+export function createOptionalDate(apiTimestamp?: RDFDatetime): Date|undefined;
 
-export function createOptionalDate(apiTimestamp?: DecimalString): Date|
-    undefined {
+export function createOptionalDate(apiTimestamp?: RDFDatetime): Date|undefined {
   if (!apiTimestamp) {
     return undefined;  // Return undefined for undefined and empty string.
   }
@@ -57,13 +55,13 @@ export function createOptionalDate(apiTimestamp?: DecimalString): Date|
  */
 export function createOptionalDateSeconds(timestampSeconds: undefined):
     undefined;
-export function createOptionalDateSeconds(timestampSeconds: DecimalString):
+export function createOptionalDateSeconds(timestampSeconds: RDFDatetimeSeconds):
     Date;
-export function createOptionalDateSeconds(timestampSeconds?: DecimalString):
-    Date|undefined;
+export function createOptionalDateSeconds(
+    timestampSeconds?: RDFDatetimeSeconds): Date|undefined;
 
-export function createOptionalDateSeconds(timestampSeconds?: DecimalString):
-    Date|undefined {
+export function createOptionalDateSeconds(
+    timestampSeconds?: RDFDatetimeSeconds): Date|undefined {
   if (!timestampSeconds) {
     return undefined;
   }
@@ -83,13 +81,41 @@ export function toOptionalMillis(date?: Date): number|undefined {
   return date?.getTime();
 }
 
+/**
+ * Constructs a Duration from a duration seconds.
+ */
+export function createDuration(apiDuration: DurationSeconds): Duration {
+  const duration = Duration.fromObject({seconds: Number(apiDuration)});
+  if (isNaN(duration.valueOf())) {
+    throw new Error(`Duration "${apiDuration}" is invalid.`);
+  }
+  return duration;
+}
+
+/**
+ * Constructs an optional Duration from a DurationSeconds object.
+ */
+export function createOptionalDuration(apiDuration: DurationSeconds): undefined;
+export function createOptionalDuration(apiDuration: ''): undefined;
+export function createOptionalDuration(apiDuration: DurationSeconds): Duration;
+export function createOptionalDuration(apiDuration?: DurationSeconds): Duration|
+    undefined;
+
+export function createOptionalDuration(apiDuration?: DurationSeconds): Duration|
+    undefined {
+  if (!apiDuration) {
+    return undefined;  // Return undefined for undefined and empty string.
+  }
+  return createDuration(apiDuration);
+}
+
 
 /**
  * Creates an unknown object out of protobuf's any object.
  * Unknown is different from any as, unlike any, it has to be explicitly cast
  * to a type for any use.
  */
-export function createUnknownObject(anyObject?: AnyObject): unknown|undefined {
+export function createUnknownObject(anyObject?: Any): unknown|undefined {
   if (!anyObject) {
     return undefined;
   }
@@ -219,6 +245,6 @@ export function translateDict(dict: Dict): ReadonlyMap<unknown, unknown> {
 }
 
 /** Converts an optional numeric value to a bigint. */
-export function createOptionalBigInt(data?: DecimalString): bigint|undefined {
+export function createOptionalBigInt(data?: string): bigint|undefined {
   return isNonNull(data) ? BigInt(data) : data;
 }

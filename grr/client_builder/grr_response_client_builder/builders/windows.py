@@ -90,22 +90,6 @@ def _EnumMissingModules():
       yield path
 
 
-def _MakeZip(input_dir, output_path):
-  """Creates a ZIP archive of the files in the input directory.
-
-  Args:
-    input_dir: the name of the input directory.
-    output_path: path to the output ZIP archive without extension.
-  """
-  logging.info("Generating zip template file at %s", output_path)
-  basename, _ = os.path.splitext(output_path)
-  # TODO(user):pytype: incorrect make_archive() definition in typeshed.
-  # pytype: disable=wrong-arg-types
-  shutil.make_archive(
-      basename, "zip", base_dir=".", root_dir=input_dir, verbose=True)
-  # pytype: enable=wrong-arg-types
-
-
 def _MakeMsi(input_dir: str, output_path: str) -> None:
   """Packages the PyInstaller files as MSI."""
   wxs_file = package.ResourcePath("grr-response-core",
@@ -121,8 +105,6 @@ def _MakeMsi(input_dir: str, output_path: str) -> None:
   exclude_files = [
       "grr-client.exe",
       "dbg_grr-client.exe",
-      "GRRservice.exe",
-      "dbg_GRRservice.exe",
       "fleetspeak-client.exe",
       "grr-client.exe.manifest",
   ]
@@ -227,66 +209,6 @@ class WindowsClientBuilder(build.ClientBuilder):
 
   BUILDER_CONTEXT = "Target:Windows"
 
-  def BuildNanny(self, dest_dir: str):
-    """Use VS2010 to build the windows Nanny service."""
-    # When running under cygwin, the following environment variables are not set
-    # (since they contain invalid chars). Visual Studio requires these or it
-    # will fail.
-    os.environ["ProgramFiles(x86)"] = r"C:\Program Files (x86)"
-    with utils.TempDirectory() as temp_dir:
-      nanny_dir = os.path.join(temp_dir, "grr", "client", "grr_response_client",
-                               "nanny")
-      nanny_src_dir = config.CONFIG.Get(
-          "ClientBuilder.nanny_source_dir", context=self.context)
-      logging.info("Copying Nanny build files from %s to %s", nanny_src_dir,
-                   nanny_dir)
-
-      shutil.copytree(
-          config.CONFIG.Get(
-              "ClientBuilder.nanny_source_dir", context=self.context),
-          nanny_dir)
-
-      build_type = config.CONFIG.Get(
-          "ClientBuilder.build_type", context=self.context)
-
-      vs_arch = config.CONFIG.Get(
-          "ClientBuilder.vs_arch", default=None, context=self.context)
-
-      # We have to set up the Visual Studio environment first and then call
-      # msbuild.
-      env_script = config.CONFIG.Get(
-          "ClientBuilder.vs_env_script", default=None, context=self.context)
-
-      if vs_arch is None or env_script is None or not os.path.exists(
-          env_script) or config.CONFIG.Get(
-              "ClientBuilder.use_prebuilt_nanny", context=self.context):
-        # Visual Studio is not installed. We just use pre-built binaries in that
-        # case.
-        logging.warning(
-            "Visual Studio does not appear to be installed, "
-            "Falling back to prebuilt GRRNanny binaries."
-            "If you want to build it you must have VS 2012 installed.")
-
-        binaries_dir = config.CONFIG.Get(
-            "ClientBuilder.nanny_prebuilt_binaries", context=self.context)
-
-        shutil.copy(
-            os.path.join(binaries_dir, "GRRNanny_%s.exe" % vs_arch),
-            os.path.join(dest_dir, "GRRservice.exe"))
-
-      else:
-        # Lets build the nanny with the VS env script.
-        subprocess.check_call(
-            "cmd /c \"\"%s\" && msbuild /p:Configuration=%s;Platform=%s\"" %
-            (env_script, build_type, vs_arch),
-            cwd=nanny_dir)
-
-        # The templates always contain the same filenames - the repack step
-        # might rename them later.
-        shutil.copy(
-            os.path.join(nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
-            os.path.join(dest_dir, "GRRservice.exe"))
-
   def CopyBundledFleetspeak(self, output_dir):
     src_dir = config.CONFIG.Get(
         "ClientBuilder.fleetspeak_install_dir", context=self.context)
@@ -301,17 +223,6 @@ class WindowsClientBuilder(build.ClientBuilder):
     for module in _EnumMissingModules():
       logging.info("Copying additional dll %s.", module)
       shutil.copy(module, output_dir)
-
-    self.BuildNanny(output_dir)
-
-    # Generate a prod and a debug version of nanny executable.
-    shutil.copy(
-        os.path.join(output_dir, "GRRservice.exe"),
-        os.path.join(output_dir, "dbg_GRRservice.exe"))
-    with io.open(os.path.join(output_dir, "GRRservice.exe"), "rb+") as fd:
-      build_helpers.SetPeSubsystem(fd, console=False)
-    with io.open(os.path.join(output_dir, "dbg_GRRservice.exe"), "rb+") as fd:
-      build_helpers.SetPeSubsystem(fd, console=True)
 
     # Generate a prod and a debug version of client executable.
     shutil.copy(
@@ -328,7 +239,4 @@ class WindowsClientBuilder(build.ClientBuilder):
 
   def MakeExecutableTemplate(self, output_path):
     output_dir = self._CreateOutputDir()
-    if config.CONFIG["ClientBuilder.build_msi"]:
-      _MakeMsi(output_dir, output_path)
-    else:
-      _MakeZip(output_dir, output_path)
+    _MakeMsi(output_dir, output_path)

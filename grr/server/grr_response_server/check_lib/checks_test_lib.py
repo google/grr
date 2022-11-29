@@ -2,6 +2,7 @@
 """A library for check-specific tests."""
 
 import collections
+from collections import abc
 import io
 import os
 
@@ -442,7 +443,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
 
   def assertCheckUndetected(self, check_id, results):
     """Assert a check_id was performed, and resulted in no anomalies."""
-    if not isinstance(results, collections.Mapping):
+    if not isinstance(results, abc.Mapping):
       self.fail("Invalid arg, %s should be dict-like.\n" % type(results))
     if check_id not in results:
       self.fail("Check %s was not performed.\n" % check_id)

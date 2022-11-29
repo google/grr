@@ -12,7 +12,7 @@ from grr_response_server import server_startup
 from grr_response_server import worker_lib
 
 
-flags.DEFINE_bool(
+_VERSION = flags.DEFINE_bool(
     "version",
     default=False,
     allow_override=True,
@@ -23,7 +23,7 @@ def main(argv):
   """Main."""
   del argv  # Unused.
 
-  if flags.FLAGS.version:
+  if _VERSION.value:
     print("GRR worker {}".format(config_server.VERSION["packageversion"]))
     return
 

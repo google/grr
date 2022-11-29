@@ -6,6 +6,7 @@ import ipaddress
 from unittest import mock
 
 from absl import app
+from absl.testing import absltest
 
 from google.protobuf import timestamp_pb2
 from google.protobuf import text_format
@@ -17,9 +18,38 @@ from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import db_test_lib
 from grr.test_lib import test_lib
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
+
+
+class ApiClientTest(absltest.TestCase):
+
+  def testInitFromClientInfoAgeWithSnapshot(self):
+    first_seen_time = rdfvalue.RDFDatetime.FromHumanReadable("2022-01-01")
+    last_snapshot_time = rdfvalue.RDFDatetime.FromHumanReadable("2022-02-02")
+
+    info = rdf_objects.ClientFullInfo()
+    info.metadata.first_seen = first_seen_time
+    info.last_snapshot.client_id = "C.1122334455667788"
+    info.last_snapshot.timestamp = last_snapshot_time
+
+    client = client_plugin.ApiClient()
+    client.InitFromClientInfo("C.1122334455667788", info)
+
+    self.assertEqual(client.age, last_snapshot_time)
+
+  def testInitFromClientInfoWithoutSnapshot(self):
+    first_seen_time = rdfvalue.RDFDatetime.FromHumanReadable("2022-01-01")
+
+    info = rdf_objects.ClientFullInfo()
+    info.metadata.first_seen = first_seen_time
+
+    client = client_plugin.ApiClient()
+    client.InitFromClientInfo("C.1122334455667788", info)
+
+    self.assertEqual(client.age, first_seen_time)
 
 
 class ApiClientIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):

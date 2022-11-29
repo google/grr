@@ -3,10 +3,10 @@ import {ActivatedRoute} from '@angular/router';
 import {Observable} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
-import {ApiHunt} from '../../../lib/api/api_interfaces';
+import {Hunt, HuntState} from '../../../lib/models/hunt';
 import {isNonNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
-import {HuntPageLocalStore} from '../../../store/hunt_page_local_store';
+import {HuntPageGlobalStore} from '../../../store/hunt_page_global_store';
 
 /**
  * Provides the new hunt creation page.
@@ -15,17 +15,18 @@ import {HuntPageLocalStore} from '../../../store/hunt_page_local_store';
   templateUrl: './hunt_page.ng.html',
   styleUrls: ['./hunt_page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [HuntPageLocalStore],
 })
 export class HuntPage implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  readonly hunt$: Observable<ApiHunt|null> =
-      this.huntPageLocalStore.selectedHunt$;
+  protected readonly HuntState = HuntState;
+
+  readonly hunt$: Observable<Hunt|null> =
+      this.huntPageGlobalStore.selectedHunt$;
 
   constructor(
       private readonly route: ActivatedRoute,
-      private readonly huntPageLocalStore: HuntPageLocalStore,
+      private readonly huntPageGlobalStore: HuntPageGlobalStore,
   ) {
     this.route.paramMap
         .pipe(
@@ -34,7 +35,11 @@ export class HuntPage implements OnDestroy {
             filter(isNonNull),
             )
         .subscribe(huntId => {
-          this.huntPageLocalStore.selectHunt(huntId);
+          this.huntPageGlobalStore.selectHunt(huntId);
         });
+  }
+
+  stopHunt() {
+    this.huntPageGlobalStore.stopHunt();
   }
 }

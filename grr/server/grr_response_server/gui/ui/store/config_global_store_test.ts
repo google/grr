@@ -96,6 +96,26 @@ describe('ConfigGlobalStore', () => {
     ]);
   });
 
+  it('calls the API on subscription to outputPluginDescriptors$', () => {
+    configGlobalStore.outputPluginDescriptors$.subscribe();
+    expect(httpApiService.listOutputPluginDescriptors).toHaveBeenCalled();
+  });
+
+  it('correctly emits the API results in outputPluginDescriptors$', (done) => {
+    configGlobalStore.outputPluginDescriptors$.subscribe((results) => {
+      expect(results.get('TestOutputPlugin')).toEqual(jasmine.objectContaining({
+        name: 'TestOutputPlugin'
+      }));
+      done();
+    });
+
+    httpApiService.mockedObservables.listOutputPluginDescriptors.next([
+      {
+        name: 'TestOutputPlugin',
+      },
+    ]);
+  });
+
   it('calls the API on subscription to uiConfig$', () => {
     expect(httpApiService.fetchUiConfig).not.toHaveBeenCalled();
     configGlobalStore.uiConfig$.subscribe();
