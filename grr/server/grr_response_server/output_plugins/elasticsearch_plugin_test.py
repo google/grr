@@ -66,12 +66,18 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
   def _ParseEvents(self, patched):
     request = patched.call_args[KWARGS]['data']
-
     # Elasticsearch bulk requests are line-deliminated pairs, where the first
     # line is the index command and the second is the actual document to index
-    split_requests = [json.Parse(line) for line in request.split('\n')]
-    update_pairs = [(split_requests[i], split_requests[i + 1])
-                    for i in range(0, len(split_requests), 2)]
+    split_requests = []
+    split_request = request.split('\n')
+    for line in split_request:
+        # Skip terminating newlines - which crashes json.Parse
+        if not line:
+            continue
+        split_requests.append(json.Parse(line))
+    update_pairs = []
+    for i in range(0, len(split_requests), 2):
+        update_pairs.append([split_requests[i], split_requests[i + 1]])
 
     return update_pairs
 
@@ -153,6 +159,10 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     self.assertFalse(mock_post.call_args[KWARGS]['verify'])
     self.assertEqual(mock_post.call_args[KWARGS]['headers']['Authorization'],
                      'Basic b')
+    self.assertIn(
+        mock_post.call_args[KWARGS]['headers']['Content-Type'],
+        ('application/json', 'application/x-ndjson')
+    )
 
     bulk_pairs = self._ParseEvents(mock_post)
     self.assertEqual(bulk_pairs[0][0]['index']['_index'], 'e')
@@ -195,6 +205,15 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
             responses=[rdf_client.Process(pid=42)],
             patcher=mock.patch.object(requests, 'post', post))
 
+  def testPostDataTerminatingNewline(self):
+      with test_lib.ConfigOverrider({
+          'Elasticsearch.url': 'http://a',
+          'Elasticsearch.token': 'b',
+      }):
+          mock_post = self._CallPlugin(
+              plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(),
+              responses=[rdf_client.Process(pid=42)])
+      self.assertTrue(mock_post.call_args[KWARGS]['data'].endswith('\n'))
 
 if __name__ == '__main__':
   app.run(test_lib.main)
