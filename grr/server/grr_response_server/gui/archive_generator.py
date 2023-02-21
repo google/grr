@@ -7,9 +7,10 @@ import os
 from typing import Dict, Iterable, Iterator
 import zipfile
 
+import yaml
+
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import collection
-from grr_response_core.lib.util.compat import yaml
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
@@ -124,7 +125,7 @@ class CollectionArchiveGenerator(object):
     manifest_fd = io.BytesIO()
     if self.total_files != len(self.archived_files):
       manifest_fd.write(self.FILES_SKIPPED_WARNING)
-    manifest_fd.write(yaml.Dump(manifest).encode("utf-8"))
+    manifest_fd.write(yaml.safe_dump(manifest).encode("utf-8"))
 
     manifest_fd.seek(0)
     st = os.stat_result(
@@ -137,7 +138,7 @@ class CollectionArchiveGenerator(object):
   def _GenerateClientInfo(self, client_id, client_fd):
     """Yields chucks of archive information for given client."""
     summary_dict = client_fd.ToPrimitiveDict(stringify_leaf_fields=True)
-    summary = yaml.Dump(summary_dict).encode("utf-8")
+    summary = yaml.safe_dump(summary_dict).encode("utf-8")
 
     client_info_path = os.path.join(self.prefix, client_id, "client_info.yaml")
     st = os.stat_result((0o644, 0, 0, 0, 0, 0, len(summary), 0, 0, 0))
@@ -255,7 +256,7 @@ class FlowArchiveGenerator:
     }
 
     manifest_fd = io.BytesIO()
-    manifest_fd.write(yaml.Dump(manifest).encode("utf-8"))
+    manifest_fd.write(yaml.safe_dump(manifest).encode("utf-8"))
 
     manifest_fd.seek(0)
     st = os.stat_result(

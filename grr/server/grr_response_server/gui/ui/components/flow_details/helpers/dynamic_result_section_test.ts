@@ -1,12 +1,13 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {Component, EventEmitter, Input, OnInit, Output} from '@angular/core';
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {Component, Input, OnInit} from '@angular/core';
+import {fakeAsync, TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
+import {firstValueFrom} from 'rxjs';
 
 import {Process} from '../../../lib/api/api_interfaces';
-import {FlowResult, PaginatedResultView, PreloadedResultView, ResultQuery} from '../../../lib/models/flow';
+import {PaginatedResultView, PreloadedResultView, ResultSource} from '../../../lib/models/flow';
 import {newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
@@ -32,16 +33,16 @@ const INITIAL_QUERY = {
 
 @Component({
   template: `
-  <div id="totalCount">{{totalCount}}</div>
-  <div id="results">{{ results | json }}</div>`
+  <div id="totalCount">{{resultSource.totalCount$ | async}}</div>
+  <div id="results">{{ resultSource.results$ | async | json }}</div>`
 })
-class PaginatedTestComponent implements OnInit, PaginatedResultView<Process> {
-  @Input() results?: readonly FlowResult[];
-  @Input() totalCount!: number;
-  @Output() readonly loadResults = new EventEmitter<ResultQuery>();
-
+class PaginatedTestComponent extends PaginatedResultView<Process> implements
+    OnInit {
+  constructor(override readonly resultSource: ResultSource<Process>) {
+    super(resultSource);
+  }
   ngOnInit() {
-    this.loadResults.emit(INITIAL_QUERY);
+    this.resultSource.loadResults(INITIAL_QUERY);
   }
 }
 
@@ -58,8 +59,11 @@ describe('app-dynamic-result-section component', () => {
             HelpersModule,
             RouterTestingModule,
           ],
-          declarations: [TestComponent, PaginatedTestComponent],
-          providers: [],
+          declarations: [
+            DynamicResultSection,
+            TestComponent,
+            PaginatedTestComponent,
+          ],
           teardown: {destroyAfterEach: false}
         })
         // Override ALL providers to mock the GlobalStore that is provided by
@@ -126,39 +130,58 @@ describe('app-dynamic-result-section component', () => {
            .toContain('123');
      });
 
-  it('executes pagination queries and assigns flow results', async () => {
-    const fixture = TestBed.createComponent(DynamicResultSection);
-    fixture.componentInstance.section = {
-      title: 'Testtitle',
-      component: PaginatedTestComponent,
-      query: {type: 'Process'},
-      totalResultCount: 123,
-      flow: {
-        flowId: 'flow123',
-        clientId: 'C.123',
-      }
-    };
-    fixture.detectChanges();
+  it('passes through query', fakeAsync(async () => {
+       const fixture = TestBed.createComponent(DynamicResultSection);
+       fixture.componentInstance.section = {
+         title: 'Testtitle',
+         component: PaginatedTestComponent,
+         query: {type: 'Process'},
+         totalResultCount: 123,
+         flow: {
+           flowId: 'flow123',
+           clientId: 'C.123',
+         }
+       };
+       fixture.detectChanges();
 
-    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultSection =
-        await harnessLoader.getHarness(ResultAccordionHarness);
-    await resultSection.toggle();
+       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+       const resultSection =
+           await harnessLoader.getHarness(ResultAccordionHarness);
+       await resultSection.toggle();
 
-    expect(flowResultsLocalStore.query).toHaveBeenCalledOnceWith({
-      withType: 'Process',
-      withTag: undefined,
-      flow: {flowId: 'flow123', clientId: 'C.123'},
-      count: INITIAL_QUERY.count,
-      offset: INITIAL_QUERY.offset
-    });
+       expect(await firstValueFrom(flowResultsLocalStore.query$))
+           .toEqual(jasmine.objectContaining({
+             withType: 'Process',
+             withTag: undefined,
+             flow: {flowId: 'flow123', clientId: 'C.123'},
+           }));
+     }));
 
-    flowResultsLocalStore.mockedObservables.results$.next(
-        [newFlowResult({payload: {name: 'Testprocess'}})]);
-    fixture.detectChanges();
+  it('assigns flow results', fakeAsync(async () => {
+       const fixture = TestBed.createComponent(DynamicResultSection);
+       fixture.componentInstance.section = {
+         title: 'Testtitle',
+         component: PaginatedTestComponent,
+         query: {type: 'Process'},
+         totalResultCount: 123,
+         flow: {
+           flowId: 'flow123',
+           clientId: 'C.123',
+         }
+       };
+       fixture.detectChanges();
 
-    expect(fixture.debugElement.query(By.css('#results'))
-               .nativeElement.textContent)
-        .toContain('Testprocess');
-  });
+       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+       const resultSection =
+           await harnessLoader.getHarness(ResultAccordionHarness);
+       await resultSection.toggle();
+
+       flowResultsLocalStore.mockedObservables.results$.next(
+           [newFlowResult({payload: {name: 'Testprocess'}})]);
+       fixture.detectChanges();
+
+       expect(fixture.debugElement.query(By.css('#results'))
+                  .nativeElement.textContent)
+           .toContain('Testprocess');
+     }));
 });

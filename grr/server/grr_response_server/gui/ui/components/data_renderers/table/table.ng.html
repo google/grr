@@ -1,0 +1,66 @@
+<app-filter-paginate
+  [dataSource]="paginationDataSource"
+  [dataLength]="(resultSource.totalCount$ | async) ?? 0"
+  [showFilterInput]="false"
+>
+  <mat-table [dataSource]="rows$" [trackBy]="trackByIndex">
+    <ng-container
+      *ngFor="let colDesc of columns$ | async | keyvalue; trackBy: trackByKey"
+      [matColumnDef]="colDesc.key"
+      class="result-table"
+    >
+      <mat-header-cell *matHeaderCellDef>
+        {{ colDesc.value.title }}
+      </mat-header-cell>
+
+      <mat-cell
+        *matCellDef="let element"
+        [ngSwitch]="colDesc.value.component"
+        [ngClass]="{
+          'timestamp': colDesc.value.component === CellComponent.TIMESTAMP,
+          'number': colDesc.value.component === CellComponent.FILE_MODE
+        }"
+      >
+        <app-timestamp
+          *ngSwitchCase="CellComponent.TIMESTAMP"
+          [date]="element[colDesc.key]"
+        ></app-timestamp>
+
+        <expandable-hash *ngSwitchCase="CellComponent.HASH" [hashes]="element[colDesc.key]">
+        </expandable-hash>
+
+        <human-readable-size
+          *ngSwitchCase="CellComponent.HUMAN_READABLE_SIZE"
+          [size]="element[colDesc.key]"
+        ></human-readable-size>
+
+        <ng-container *ngSwitchCase="CellComponent.FILE_MODE">
+          {{ element[colDesc.key] | fileMode }}
+        </ng-container>
+
+        <span *ngSwitchCase="CellComponent.USERNAME">
+          <user-image [username]="element[colDesc.key]" size="16px"></user-image>
+          {{ element[colDesc.key] }}
+        </span>
+
+        <a
+          mat-stroked-button
+          *ngSwitchCase="CellComponent.DRAWER_LINK"
+          color="primary"
+          name="details-link"
+          [drawerLink]="element[colDesc.key]"
+        >
+          <mat-icon>menu_open</mat-icon>
+          View details
+        </a>
+
+        <ng-container *ngSwitchDefault class="default-wrap">
+          <app-copy-button *ngIf="element[colDesc.key]">{{ element[colDesc.key] }}</app-copy-button>
+        </ng-container>
+      </mat-cell>
+    </ng-container>
+
+    <mat-header-row *matHeaderRowDef="displayedColumns$ | async"></mat-header-row>
+    <mat-row *matRowDef="let row; columns: displayedColumns$ | async"></mat-row>
+  </mat-table>
+</app-filter-paginate>

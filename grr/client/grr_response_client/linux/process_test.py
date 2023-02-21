@@ -3,6 +3,7 @@
 
 import builtins
 import os
+from unittest import mock
 
 from absl import app
 
@@ -21,7 +22,7 @@ class ProcessTest(test_lib.GRRBaseTest):
       del requested_path, mode
       raise OSError("Error in open64.")
 
-    with utils.Stubber(process, "open64", FailingOpen):
+    with mock.patch.object(process, "open64", FailingOpen):
       with self.assertRaises(process_error.ProcessError):
         process.Process(pid=1).Open()
 

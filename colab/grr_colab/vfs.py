@@ -24,7 +24,7 @@ class VfsFile(io.BufferedIOBase):
   Currently this file is readable only, not seekable and not writable. Read
   operations are buffered.
   """
-  _buffer_pos = None  # type: int
+  _buffer_pos: int = None
 
   def __init__(self, fetch: Callable[[int], Iterator[bytes]]) -> None:
     super().__init__()
@@ -122,7 +122,7 @@ class VfsFile(io.BufferedIOBase):
   def writelines(self, lines: List[Text]) -> None:
     raise io.UnsupportedOperation()
 
-  def detach(self) -> None:
+  def detach(self) -> None:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     raise io.UnsupportedOperation()
 
   def readable(self) -> bool:

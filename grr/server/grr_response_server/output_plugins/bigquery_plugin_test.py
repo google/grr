@@ -1,9 +1,10 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for BigQuery output plugin."""
 
 import base64
 import gzip
+import io
+import json
 import os
 from unittest import mock
 
@@ -11,12 +12,10 @@ from absl import app
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util.compat import json
 from grr_response_server import bigquery
 from grr_response_server.output_plugins import bigquery_plugin
 from grr.test_lib import export_test_lib
@@ -62,7 +61,8 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
   def CompareSchemaToKnownGood(self, schema):
     expected_schema_path = os.path.join(config.CONFIG["Test.data_dir"],
                                         "bigquery", "ExportedFile.schema")
-    expected_schema_data = json.ReadFromPath(expected_schema_path)
+    with open(expected_schema_path, mode="rt", encoding="utf-8") as file:
+      expected_schema_data = json.load(file)
 
     # It's easier to just compare the two dicts but even a change to the proto
     # description requires you to fix the json so we just compare field names
@@ -125,7 +125,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     for actual, expected in zip(actual_fd, expected_fd):
       actual = actual.decode("utf-8")
       expected = expected.decode("utf-8")
-      self.assertEqual(json.Parse(actual), json.Parse(expected))
+      self.assertEqual(json.loads(actual), json.loads(expected))
       counter += 1
 
     self.assertEqual(counter, 10)
@@ -144,7 +144,8 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
     _, filedesc, _, _ = output[0]
     with gzip.GzipFile(mode="r", fileobj=filedesc) as filedesc:
-      content = json.Parse(filedesc.read().decode("utf-8"))
+      filedesc = io.TextIOWrapper(filedesc)
+      content = json.load(filedesc)
 
     self.assertIsNone(content["st_mtime"])
 
@@ -162,7 +163,8 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     _, filedesc, _, _ = output[0]
 
     with gzip.GzipFile(mode="r", fileobj=filedesc) as filedesc:
-      content = json.Parse(filedesc.read().decode("utf-8"))
+      filedesc = io.TextIOWrapper(filedesc)
+      content = json.load(filedesc)
 
     self.assertNotIn("digest", content)
 
@@ -180,7 +182,8 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     _, filedesc, _, _ = output[0]
 
     with gzip.GzipFile(mode="r", fileobj=filedesc) as filedesc:
-      content = json.Parse(filedesc.read().decode("utf-8"))
+      filedesc = io.TextIOWrapper(filedesc)
+      content = json.load(filedesc)
 
     self.assertIn("digest", content)
     self.assertEqual(base64.b64decode(content["digest"]), b"\x00\xff\x00")
@@ -194,7 +197,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
 
     for item in content_fd:
       counter += 1
-      row = json.Parse(item.decode("utf-8"))
+      row = json.loads(item.decode("utf-8"))
 
       if name == "ExportedFile":
         self.assertEqual(row["metadata"]["client_urn"],
@@ -265,7 +268,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     # metadata is a dict with unpredictable order so we make up the file sizes
     # such that there is one flush during processing.
     with test_lib.ConfigOverrider({"BigQuery.max_file_post_size": 800}):
-      with utils.Stubber(os.path, "getsize", GetSize):
+      with mock.patch.object(os.path, "getsize", GetSize):
         output = self.ProcessResponses(
             plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
             responses=responses)
@@ -290,7 +293,7 @@ class BigQueryOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
       for actual, expected in zip(actual_fd, expected_fd):
         actual = actual.decode("utf-8")
         expected = expected.decode("utf-8")
-        self.assertEqual(json.Parse(actual), json.Parse(expected))
+        self.assertEqual(json.loads(actual), json.loads(expected))
         counter += 1
 
     self.assertEqual(counter, 10)

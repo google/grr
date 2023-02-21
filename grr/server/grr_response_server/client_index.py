@@ -6,7 +6,7 @@ An index of client machines, associating likely identifiers to client IDs.
 
 import functools
 import operator
-from typing import Mapping, Iterable, Sequence
+from typing import Collection, Mapping, Iterable, Sequence
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
@@ -214,6 +214,19 @@ class ClientIndex(object):
     data_store.REL_DB.AddClientKeywords(client.client_id, keywords)
 
   def AddClientLabels(self, client_id: str, labels: Iterable[str]):
+    self.MultiAddClientLabels([client_id], labels)
+
+  def MultiAddClientLabels(
+      self,
+      client_ids: Collection[str],
+      labels: Collection[str],
+  ) -> None:
+    """Associates given labels with the specified clients.
+
+    Args:
+      client_ids: Client identifiers of clients to annotate with the labels.
+      labels: Labels to use for annotating the clients.
+    """
     precondition.AssertIterableType(labels, str)
     keywords = set()
     for label in labels:
@@ -221,7 +234,7 @@ class ClientIndex(object):
       keywords.add(keyword_string)
       keywords.add("label:" + keyword_string)
 
-    data_store.REL_DB.AddClientKeywords(client_id, keywords)
+    data_store.REL_DB.MultiAddClientKeywords(client_ids, keywords)
 
   def RemoveAllClientLabels(self, client_id: str):
     """Removes all labels for a given client.

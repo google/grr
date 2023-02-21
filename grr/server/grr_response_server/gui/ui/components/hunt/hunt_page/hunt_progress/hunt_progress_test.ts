@@ -6,8 +6,12 @@ import {newHunt} from '../../../../lib/models/model_test_util';
 import {HuntPageGlobalStore} from '../../../../store/hunt_page_global_store';
 import {HuntPageGlobalStoreMock, mockHuntPageGlobalStore} from '../../../../store/hunt_page_global_store_test_util';
 import {STORE_PROVIDERS} from '../../../../store/store_test_providers';
+import {initTestEnvironment} from '../../../../testing';
 
 import {HuntProgress} from './hunt_progress';
+import {HuntProgressModule} from './module';
+
+initTestEnvironment();
 
 describe('HuntProgress Component', () => {
   let huntPageGlobalStore: HuntPageGlobalStoreMock;
@@ -18,7 +22,7 @@ describe('HuntProgress Component', () => {
         .configureTestingModule({
           imports: [
             NoopAnimationsModule,
-            HuntProgress,
+            HuntProgressModule,
             RouterTestingModule,
           ],
           providers: [...STORE_PROVIDERS],

@@ -138,7 +138,7 @@ class NTFSFile(vfs_base.VFSHandler):
   def IsDirectory(self) -> bool:
     return self.fd.has_directory_entries_index()
 
-  def ListFiles(self,
+  def ListFiles(self,  # pytype: disable=signature-mismatch  # overriding-return-type-checks
                 ext_attrs: bool = False) -> Iterable[rdf_client_fs.StatEntry]:
     del ext_attrs  # Unused.
 
@@ -157,7 +157,7 @@ class NTFSFile(vfs_base.VFSHandler):
         pathspec.last.stream_name = data_stream.name
         yield self._Stat(entry, data_stream, pathspec.Copy())
 
-  def ListNames(self) -> Iterable[Text]:
+  def ListNames(self) -> Iterable[Text]:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     self._CheckIsDirectory()
     for entry in self.fd.sub_file_entries:
       yield entry.name

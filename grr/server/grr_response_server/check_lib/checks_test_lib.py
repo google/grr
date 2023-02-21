@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 """A library for check-specific tests."""
-
-import collections
 from collections import abc
 import io
 import os
@@ -341,7 +339,7 @@ class HostCheckTest(test_lib.GRRBaseTest):
     except yaml.error.YAMLError as e:
       self.fail("File %s could not be parsed: %s\n" % (relpath, e))
     # Otherwise, check all the configs and pass/fail at the end.
-    errors = collections.OrderedDict()
+    errors = dict()
     for check_id, check_spec in configs.items():
       check_errors = self.GetCheckErrors(check_spec)
       if check_errors:

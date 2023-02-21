@@ -191,7 +191,7 @@ class BlobStore(metaclass=abc.ABCMeta):
     while True:
       blob_id_exists = self.CheckBlobsExist(remaining_blob_ids)
 
-      elapsed = start_time - rdfvalue.RDFDatetime.Now()
+      elapsed = rdfvalue.RDFDatetime.Now() - start_time
       elapsed_secs = elapsed.ToFractional(rdfvalue.SECONDS)
       ticks += 1
 

@@ -5,10 +5,11 @@ import {MatTableDataSource} from '@angular/material/table';
 import {ActivatedRoute} from '@angular/router';
 import {SplitAreaDirective, SplitComponent} from 'angular-split';
 import {Observable} from 'rxjs';
-import {map, takeUntil, tap, withLatestFrom} from 'rxjs/operators';
+import {filter, map, takeUntil, tap, withLatestFrom} from 'rxjs/operators';
 
+import {getClientArchiveURL} from '../../lib/api/http_api_service';
 import {Directory, File, scanPath} from '../../lib/models/vfs';
-import {isNull} from '../../lib/preconditions';
+import {isNonNull, isNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
 import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
 import {DirectoryNode, VfsViewLocalStore} from '../../store/vfs_view_local_store';
@@ -89,6 +90,14 @@ export class VfsSection {
               null));
 
   readonly selectedDirectory$ = this.vfsViewLocalStore.currentDirectory$;
+
+  protected readonly isRootSelected$ = this.vfsViewLocalStore.isRootSelected$;
+  protected readonly downloadAllFromClientURL$ =
+      this.selectedClientGlobalStore.clientId$.pipe(
+          filter(isNonNull), map(clientId => getClientArchiveURL(clientId)));
+  protected readonly downloadAllFromClientFileName$ =
+      this.selectedClientGlobalStore.clientId$.pipe(
+          map(clientId => `all_files_${clientId}.zip`));
 
   readonly isListingCurrentDirectory$ =
       this.vfsViewLocalStore.isListingCurrentDirectory$;

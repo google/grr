@@ -7,8 +7,8 @@ from typing import Text
 
 
 from grr_response_core.lib import utils
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util import text
 
 
 class Token(object):
@@ -378,7 +378,7 @@ class SearchParser(Lexer):
     """
     precondition.AssertType(string, Text)
     if match.group(1) in "'\"rnbt":
-      self.string += compatibility.UnescapeString(string)
+      self.string += text.Unescape(string)
     else:
       self.string += string
 

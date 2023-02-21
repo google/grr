@@ -1,16 +1,26 @@
-@use "@angular/material" as mat;
-@use "../../../material-theme" as c;
-@use "../../../main" as main;
+@use '@angular/material' as mat;
+@use '../../../material-theme' as c;
+@use '../../../main' as main;
 
 :host {
   @extend .centered-content;
   padding: c.$page-spacing 0;
 }
 
-.header {
+mat-form-field {
+  width: 250px;
+}
+
+.args {
+  display: block;
+  margin: 0 c.$card-margin c.$container-padding c.$card-margin;
+}
+
+.header-all {
   display: flex;
   align-items: center;
   column-gap: c.$container-padding;
+  padding: 0.5em c.$card-margin;
 
   & > .mat-card-title {
     margin-bottom: 0;

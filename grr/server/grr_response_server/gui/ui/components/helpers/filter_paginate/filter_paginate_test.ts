@@ -30,9 +30,27 @@ declare interface DummyRow {
   </table>
 </app-filter-paginate>`
 })
-class TestHostComponent {
+class TestHostComponentWithDataLength {
   dataSource?: MatTableDataSource<DummyRow>;
   dataLength?: number = 0;
+  displayedColumns: string[] = ['content'];
+}
+
+@Component({
+  template: `
+<app-filter-paginate [dataSource]="dataSource">
+  <table mat-table [dataSource]="dataSource">
+    <ng-container matColumnDef="content">
+      <td mat-cell *matCellDef="let r" class="cell">
+        {{r.content}}
+      </td>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </ng-container>
+  </table>
+</app-filter-paginate>`
+})
+class TestHostComponent {
+  dataSource?: MatTableDataSource<DummyRow>;
   displayedColumns: string[] = ['content'];
 }
 
@@ -47,6 +65,7 @@ describe('FilterPaginate Component', () => {
           ],
           declarations: [
             TestHostComponent,
+            TestHostComponentWithDataLength,
           ],
           providers: []
         })
@@ -64,18 +83,26 @@ describe('FilterPaginate Component', () => {
     return source;
   }
 
-  function createComponent(
-      dataSource: MatTableDataSource<DummyRow>,
-      dataLength: number|undefined): ComponentFixture<TestHostComponent> {
-    const fixture = TestBed.createComponent(TestHostComponent);
+  function createComponentWithDataLength(
+      dataSource: MatTableDataSource<DummyRow>, dataLength: number|undefined):
+      ComponentFixture<TestHostComponentWithDataLength> {
+    const fixture = TestBed.createComponent(TestHostComponentWithDataLength);
     fixture.componentInstance.dataSource = dataSource;
     fixture.componentInstance.dataLength = dataLength;
     fixture.detectChanges();
     return fixture;
   }
 
+  function createComponent(dataSource: MatTableDataSource<DummyRow>):
+      ComponentFixture<TestHostComponentWithDataLength> {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.componentInstance.dataSource = dataSource;
+    fixture.detectChanges();
+    return fixture;
+  }
+
   it('filters results', () => {
-    const fixture = createComponent(generateTableData(10), 10);
+    const fixture = createComponentWithDataLength(generateTableData(10), 10);
 
     const rows = fixture.nativeElement.querySelectorAll('tr');
     expect(rows.length).toBe(10);
@@ -102,7 +129,7 @@ describe('FilterPaginate Component', () => {
   });
 
   it('default pagination works', async () => {
-    const fixture = createComponent(generateTableData(12), 12);
+    const fixture = createComponentWithDataLength(generateTableData(12), 12);
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
@@ -121,7 +148,7 @@ describe('FilterPaginate Component', () => {
   });
 
   it('uses data length if it is not provided', async () => {
-    const fixture = createComponent(
+    const fixture = createComponentWithDataLength(
         generateTableData(12), undefined);  // undefined dataLength
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
@@ -142,7 +169,7 @@ describe('FilterPaginate Component', () => {
 
   it('clicking TOP paginator updates bottom paginator state (page size)',
      async () => {
-       const fixture = createComponent(generateTableData(55), 55);
+       const fixture = createComponentWithDataLength(generateTableData(55), 55);
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const paginatorTop = await harnessLoader.getHarness(
@@ -162,7 +189,7 @@ describe('FilterPaginate Component', () => {
 
   it('clicking BOTTOM paginator updates top paginator state (page size)',
      async () => {
-       const fixture = createComponent(generateTableData(55), 55);
+       const fixture = createComponentWithDataLength(generateTableData(55), 55);
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const paginatorTop = await harnessLoader.getHarness(
@@ -181,7 +208,7 @@ describe('FilterPaginate Component', () => {
      });
 
   it('shows controls when data length is updated to more than 1 page', () => {
-    const fixture = createComponent(generateTableData(2), 2);
+    const fixture = createComponentWithDataLength(generateTableData(2), 2);
 
     let controlsTop = fixture.debugElement.query(By.css('.controls-top'));
     let controlsBottom = fixture.debugElement.query(By.css('.controls-bottom'));
@@ -198,7 +225,7 @@ describe('FilterPaginate Component', () => {
   });
 
   it('hides controls when data length is updated to less than 1 page', () => {
-    const fixture = createComponent(generateTableData(10), 10);
+    const fixture = createComponentWithDataLength(generateTableData(10), 10);
 
     let controlsTop = fixture.debugElement.query(By.css('.controls-top'));
     let controlsBottom = fixture.debugElement.query(By.css('.controls-bottom'));
@@ -206,6 +233,40 @@ describe('FilterPaginate Component', () => {
     expect(controlsBottom.nativeElement.hasAttribute('hidden')).toBeFalse();
 
     fixture.componentInstance.dataLength = 1;
+    fixture.detectChanges();
+
+    controlsTop = fixture.debugElement.query(By.css('.controls-top'));
+    controlsBottom = fixture.debugElement.query(By.css('.controls-bottom'));
+    expect(controlsTop.nativeElement.hasAttribute('hidden')).toBeTrue();
+    expect(controlsBottom.nativeElement.hasAttribute('hidden')).toBeTrue();
+  });
+
+  it('shows controls when data length is not set', () => {
+    const fixture = createComponent(generateTableData(2));
+
+    let controlsTop = fixture.debugElement.query(By.css('.controls-top'));
+    let controlsBottom = fixture.debugElement.query(By.css('.controls-bottom'));
+    expect(controlsTop.nativeElement.hasAttribute('hidden')).toBeTrue();
+    expect(controlsBottom.nativeElement.hasAttribute('hidden')).toBeTrue();
+
+    fixture.componentInstance.dataSource = generateTableData(50);
+    fixture.detectChanges();
+
+    controlsTop = fixture.debugElement.query(By.css('.controls-top'));
+    controlsBottom = fixture.debugElement.query(By.css('.controls-bottom'));
+    expect(controlsTop.nativeElement.hasAttribute('hidden')).toBeFalse();
+    expect(controlsBottom.nativeElement.hasAttribute('hidden')).toBeFalse();
+  });
+
+  it('hides controls when when data length is not set', () => {
+    const fixture = createComponent(generateTableData(10));
+
+    let controlsTop = fixture.debugElement.query(By.css('.controls-top'));
+    let controlsBottom = fixture.debugElement.query(By.css('.controls-bottom'));
+    expect(controlsTop.nativeElement.hasAttribute('hidden')).toBeFalse();
+    expect(controlsBottom.nativeElement.hasAttribute('hidden')).toBeFalse();
+
+    fixture.componentInstance.dataSource = generateTableData(1);
     fixture.detectChanges();
 
     controlsTop = fixture.debugElement.query(By.css('.controls-top'));

@@ -21,11 +21,9 @@ import time
 from typing import Generic, Iterable, Optional, Text, TypeVar
 import weakref
 import zipfile
-import zlib
 
 import psutil
 
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
@@ -524,7 +522,7 @@ def FormatAsTimestamp(timestamp: int) -> Text:
   if not timestamp:
     return "-"
 
-  return compatibility.FormatTime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
+  return time.strftime("%Y-%m-%d %H:%M:%S", time.gmtime(timestamp))
 
 
 def NormalizePath(path: Text, sep: Text = "/") -> Text:
@@ -741,242 +739,9 @@ class ArchiveAlreadyClosedError(Error):
   pass
 
 
-# TODO: These `StreamingZipGenerator` classes exist because in PY2,
-# there was no support for streaming. Once we support for PY2 is dropped, we can
-# switch back to the native implementation that does not rely on dirty hacks.
-# TODO(user):pytype: we use a lot of zipfile internals that type checker is
-# not aware of.
-# pytype: disable=attribute-error,wrong-arg-types
-class StreamingZipGeneratorPy2(object):
-  """A streaming zip generator that can archive file-like objects."""
-
-  FILE_CHUNK_SIZE = 1024 * 1024 * 4
-
-  def __init__(self, compression=zipfile.ZIP_STORED):
-    self._stream = RollingMemoryStream()
-    self._zip_fd = zipfile.ZipFile(
-        self._stream, mode="w", compression=compression, allowZip64=True)
-    self._compression = compression
-
-    self._ResetState()
-
-  def _ResetState(self):
-    self.cur_zinfo = None
-    self.cur_file_size = 0
-    self.cur_compress_size = 0
-    self.cur_cmpr = None
-    self.cur_crc = 0
-
-  def __enter__(self):
-    return self
-
-  def __exit__(self, unused_type, unused_value, unused_traceback):
-    self.Close()
-
-  def _GenerateZipInfo(self, arcname=None, compress_type=None, st=None):
-    """Generate ZipInfo instance for the given name, compression and stat.
-
-    Args:
-      arcname: The name in the archive this should take.
-      compress_type: Compression type (zipfile.ZIP_DEFLATED, or ZIP_STORED)
-      st: An optional stat object to be used for setting headers.
-
-    Returns:
-      ZipInfo instance.
-
-    Raises:
-      ValueError: If arcname is not provided.
-    """
-    # Fake stat response.
-    if st is None:
-      # TODO(user):pytype: stat_result typing is not correct.
-      # pytype: disable=wrong-arg-count
-      st = os.stat_result((0o100644, 0, 0, 0, 0, 0, 0, 0, 0, 0))
-      # pytype: enable=wrong-arg-count
-
-    mtime = time.localtime(st.st_mtime or time.time())
-    date_time = mtime[0:6]
-    # Create ZipInfo instance to store file information
-    if arcname is None:
-      raise ValueError("An arcname must be provided.")
-
-    zinfo = zipfile.ZipInfo(arcname, date_time)
-    zinfo.external_attr = (st[0] & 0xFFFF) << 16  # Unix attributes
-
-    if compress_type is None:
-      zinfo.compress_type = self._compression
-    else:
-      zinfo.compress_type = compress_type
-
-    zinfo.file_size = 0
-    zinfo.compress_size = 0
-    zinfo.flag_bits = 0x08  # Setting data descriptor flag.
-    zinfo.CRC = 0x08074b50  # Predefined CRC for archives using data
-    # descriptors.
-    # This fills an empty Info-ZIP Unix extra field.
-    zinfo.extra = struct.pack(
-        "<HHIIHH",
-        0x5855,
-        12,
-        0,  # time of last access (UTC/GMT)
-        0,  # time of last modification (UTC/GMT)
-        0,  # user ID
-        0)  # group ID
-    return zinfo
-
-  def WriteFileHeader(self, arcname=None, compress_type=None, st=None):
-    """Writes a file header."""
-
-    if not self._stream:
-      raise ArchiveAlreadyClosedError(
-          "Attempting to write to a ZIP archive that was already closed.")
-
-    self.cur_zinfo = self._GenerateZipInfo(
-        arcname=arcname, compress_type=compress_type, st=st)
-    self.cur_file_size = 0
-    self.cur_compress_size = 0
-
-    if self.cur_zinfo.compress_type == zipfile.ZIP_DEFLATED:
-      self.cur_cmpr = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION,
-                                       zlib.DEFLATED, -15)
-    else:
-      self.cur_cmpr = None
-
-    self.cur_crc = 0
-
-    if not self._stream:
-      raise ArchiveAlreadyClosedError(
-          "Attempting to write to a ZIP archive that was already closed.")
-
-    self.cur_zinfo.header_offset = self._stream.tell()
-    # Call _writeCheck(self.cur_zinfo) to do sanity checking on zinfo structure
-    # that we've constructed.
-    self._zip_fd._writecheck(self.cur_zinfo)  # pylint: disable=protected-access
-    # Mark ZipFile as dirty. We have to keep self._zip_fd's internal state
-    # coherent so that it behaves correctly when close() is called.
-    self._zip_fd._didModify = True  # pylint: disable=protected-access
-
-    # Write FileHeader now. It's incomplete, but CRC and uncompressed/compressed
-    # sized will be written later in data descriptor.
-    self._stream.write(self.cur_zinfo.FileHeader())
-
-    return self._stream.GetValueAndReset()
-
-  def WriteFileChunk(self, chunk):
-    """Writes file chunk."""
-    precondition.AssertType(chunk, bytes)
-
-    if not self._stream:
-      raise ArchiveAlreadyClosedError(
-          "Attempting to write to a ZIP archive that was already closed.")
-
-    self.cur_file_size += len(chunk)
-    # TODO(user):pytype: crc32 is not visible outside of zipfile.
-    # pytype: disable=module-attr
-    self.cur_crc = zipfile.crc32(chunk, self.cur_crc) & 0xffffffff
-    # pytype: enable=module-attr
-
-    if self.cur_cmpr:
-      chunk = self.cur_cmpr.compress(chunk)
-      self.cur_compress_size += len(chunk)
-
-    self._stream.write(chunk)
-    return self._stream.GetValueAndReset()
-
-  def WriteFileFooter(self):
-    """Writes the file footer (finished the file)."""
-
-    if not self._stream:
-      raise ArchiveAlreadyClosedError(
-          "Attempting to write to a ZIP archive that was already closed.")
-
-    if self.cur_cmpr:
-      buf = self.cur_cmpr.flush()
-      self.cur_compress_size += len(buf)
-      self.cur_zinfo.compress_size = self.cur_compress_size
-
-      self._stream.write(buf)
-    else:
-      self.cur_zinfo.compress_size = self.cur_file_size
-
-    self.cur_zinfo.CRC = self.cur_crc
-    self.cur_zinfo.file_size = self.cur_file_size
-
-    # The zip footer has a 8 bytes limit for sizes so if we compress a
-    # file larger than 4 GB, the code below will not work. The ZIP64
-    # convention is to write 0xffffffff for compressed and
-    # uncompressed size in those cases. The actual size is written by
-    # the library for us anyways so those fields are redundant.
-    cur_file_size = min(0xffffffff, self.cur_file_size)
-    cur_compress_size = min(0xffffffff, self.cur_compress_size)
-
-    # Writing data descriptor ZIP64-way by default. We never know how large
-    # the archive may become as we're generating it dynamically.
-    #
-    # crc-32                          8 bytes (little endian)
-    # compressed size                 8 bytes (little endian)
-    # uncompressed size               8 bytes (little endian)
-    self._stream.write(
-        struct.pack("<LLL", self.cur_crc, cur_compress_size, cur_file_size))
-
-    # Register the file in the zip file, so that central directory gets
-    # written correctly.
-    self._zip_fd.filelist.append(self.cur_zinfo)
-    self._zip_fd.NameToInfo[self.cur_zinfo.filename] = self.cur_zinfo
-
-    self._ResetState()
-
-    return self._stream.GetValueAndReset()
-
-  @property
-  def is_file_write_in_progress(self):
-    return self.cur_zinfo
-
-  def WriteFromFD(self, src_fd, arcname=None, compress_type=None, st=None):
-    """Write a zip member from a file like object.
-
-    Args:
-      src_fd: A file like object, must support seek(), tell(), read().
-      arcname: The name in the archive this should take.
-      compress_type: Compression type (zipfile.ZIP_DEFLATED, or ZIP_STORED)
-      st: An optional stat object to be used for setting headers.
-
-    Raises:
-      ArchiveAlreadyClosedError: If the zip if already closed.
-
-    Yields:
-      Chunks of binary data.
-    """
-    yield self.WriteFileHeader(
-        arcname=arcname, compress_type=compress_type, st=st)
-    while 1:
-      buf = src_fd.read(1024 * 1024)
-      if not buf:
-        break
-
-      yield self.WriteFileChunk(buf)
-
-    yield self.WriteFileFooter()
-
-  def Close(self):
-    self._zip_fd.close()
-
-    value = self._stream.GetValueAndReset()
-    self._stream.close()
-
-    return value
-
-  @property
-  def output_size(self):
-    return self._stream.tell()
-
-
-# pytype: enable=attribute-error,wrong-arg-types
-
-
 # TODO(hanuszczak): Typings for `ZipFile` are ill-typed.
 # pytype: disable=attribute-error,wrong-arg-types
-class StreamingZipGeneratorPy3(object):
+class StreamingZipGenerator(object):
   """A streaming zip generator that can archive file-like objects."""
 
   def __init__(self, compression=zipfile.ZIP_STORED):
@@ -1069,11 +834,6 @@ class StreamingZipGeneratorPy3(object):
 
 # pytype: enable=attribute-error,wrong-arg-types
 
-if compatibility.PY2:
-  StreamingZipGenerator = StreamingZipGeneratorPy2
-else:
-  StreamingZipGenerator = StreamingZipGeneratorPy3
-
 
 class StreamingTarGenerator(object):
   """A streaming tar generator that can archive file-like objects."""
@@ -1116,11 +876,6 @@ class StreamingTarGenerator(object):
 
     if st is None:
       raise ValueError("Stat object can't be None.")
-
-    # TODO: In Python 2, name of the file has to be a bytestring.
-    # Once support for Python 2 is dropped, this line can be removed.
-    if compatibility.PY2:
-      arcname = arcname.encode("utf-8")
 
     self.cur_file_size = 0
 
@@ -1281,13 +1036,7 @@ def ResolveHostnameToIP(host, port):
   # We are interested in sockaddr which is in turn a tuple
   # (address, port) for IPv4 or (address, port, flow info, scope id)
   # for IPv6. In both cases, we want the first element, the address.
-  result = ip_addrs[0][4][0]
-  # TODO: In Python 2, this value is a byte string instead of UTF-8
-  # string. To ensure type correctness until support for Python 2 is dropped,
-  # we always decode this value.
-  if compatibility.PY2:
-    result = result.decode("ascii")  # pytype: disable=attribute-error
-  return result
+  return ip_addrs[0][4][0]
 
 
 # TODO: This module is way too big right now. It should be split

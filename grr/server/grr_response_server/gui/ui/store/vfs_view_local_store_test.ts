@@ -440,4 +440,42 @@ describe('VfsViewLocalStore', () => {
          ],
        }));
      });
+
+  it('isRootSelected$ emits true if root is selected', async () => {
+    httpApiService.browseFilesystem =
+        jasmine.createSpy('browseFilesystem').and.callFake((clientId, path) => {
+          return of({
+            items: [
+              {
+                path: '/',
+                children: [apiDir('/foo')],
+              },
+            ],
+          });
+        });
+
+    vfsViewLocalStore.resetClientId('C.1234');
+    vfsViewLocalStore.navigateToPath('/');
+
+    expect(await firstValueFrom(vfsViewLocalStore.isRootSelected$)).toBeTrue();
+  });
+
+  it('isRootSelected$ emits false if root is not selected', async () => {
+    httpApiService.browseFilesystem =
+        jasmine.createSpy('browseFilesystem').and.callFake((clientId, path) => {
+          return of({
+            items: [
+              {
+                path: '/',
+                children: [apiDir('/foo')],
+              },
+            ],
+          });
+        });
+
+    vfsViewLocalStore.resetClientId('C.1234');
+    vfsViewLocalStore.navigateToPath('/foo');
+
+    expect(await firstValueFrom(vfsViewLocalStore.isRootSelected$)).toBeFalse();
+  });
 });

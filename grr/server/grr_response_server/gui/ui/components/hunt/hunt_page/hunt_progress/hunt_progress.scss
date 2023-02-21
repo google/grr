@@ -1,5 +1,10 @@
 @use '@angular/material' as mat;
-@use "../../../../material-theme" as c;
+@use '../../../../material-theme' as c;
+
+.args {
+  display: block;
+  padding: c.$container-padding c.$card-margin;
+}
 
 .header {
   display: flex;

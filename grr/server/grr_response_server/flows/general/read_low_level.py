@@ -3,7 +3,6 @@
 import logging
 
 from grr_response_core.lib.rdfvalues import read_low_level as rdf_read_low_level
-from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
@@ -39,7 +38,7 @@ class ReadLowLevel(flow_base.FlowBase):
       self.CallClient(
           server_stubs.ReadLowLevel,
           request,
-          next_state=compatibility.GetName(self.StoreBlobsAsTmpFile))
+          next_state=self.StoreBlobsAsTmpFile.__name__)
     else:
       raise flow_base.FlowError("ReadLowLevel Flow is only supported on "
                                 "client version 3459 or higher (target client "

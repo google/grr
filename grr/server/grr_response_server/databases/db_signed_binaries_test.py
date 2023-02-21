@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for signed-binary DB functionality."""
 
 from grr_response_server.databases import db

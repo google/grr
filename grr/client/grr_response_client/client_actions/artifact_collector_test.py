@@ -97,7 +97,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
         attributes={"client_action": "ListProcesses"})
     request = GetRequest(source, "TestClientActionArtifact")
 
-    with utils.Stubber(psutil, "process_iter", ProcessIter):
+    with mock.patch.object(psutil, "process_iter", ProcessIter):
       collected_artifact = self.RunArtifactCollector(request)
       value = collected_artifact.action_results[0].value
       self.assertIsInstance(value, rdf_client.Process)
@@ -396,7 +396,7 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
       self.RunAction(artifact_collector.ArtifactCollector, request)
 
 
-class OSXArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
+class OSXArtifactCollectorTests(client_test_lib.EmptyActionTest):
 
   def setUp(self):
     super().setUp()
@@ -439,8 +439,8 @@ class OSXArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
         attributes={"client_action": "EnumerateFilesystems"})
     request = GetRequest(source, "TestClientActionArtifact")
 
-    with utils.Stubber(self.os, "EnumerateFilesystemsFromClient",
-                       self.EnumerateFilesystemsStub):
+    with mock.patch.object(self.os, "EnumerateFilesystemsFromClient",
+                           self.EnumerateFilesystemsStub):
       result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
       collected_artifact = result.collected_artifacts[0]
 
@@ -458,8 +458,8 @@ class OSXArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
         attributes={"client_action": "OSXEnumerateRunningServices"})
     request = GetRequest(source, "TestClientActionArtifact")
 
-    with utils.Stubber(self.os, "EnumerateRunningServices",
-                       self.OSXEnumerateRunningServicesStub):
+    with mock.patch.object(self.os, "EnumerateRunningServices",
+                           self.OSXEnumerateRunningServicesStub):
       result = self.RunAction(artifact_collector.ArtifactCollector, request)[0]
       collected_artifact = result.collected_artifacts[0]
 
@@ -470,7 +470,7 @@ class OSXArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
       self.assertEqual(res.label, "com.apple.FileSyncAgent.PHD")
 
 
-class WindowsArtifactCollectorTests(client_test_lib.OSSpecificClientTests):
+class WindowsArtifactCollectorTests(client_test_lib.EmptyActionTest):
 
   def setUp(self):
     super().setUp()
@@ -684,8 +684,8 @@ class KnowledgeBaseUpdateTest(client_test_lib.EmptyActionTest):
 
   def GetUpdatedKnowledgeBase(self):
     """Runs the artifact collector with the specified client action result."""
-    with utils.Stubber(artifact_collector.ArtifactCollector, "_ProcessSources",
-                       self.GetActionResult):
+    with mock.patch.object(artifact_collector.ArtifactCollector,
+                           "_ProcessSources", self.GetActionResult):
       result = self.RunAction(artifact_collector.ArtifactCollector,
                               self.request)[0]
     return result.knowledge_base

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from absl import app
 from absl.testing import absltest
 

@@ -32,7 +32,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
         output_plugins=[
             rdf_output_plugin.OutputPluginDescriptor(
                 plugin_name="DummyOutputPlugin",
-                plugin_args=gui_test_lib.DummyOutputPlugin.args_type(
+                args=gui_test_lib.DummyOutputPlugin.args_type(
                     filename_regex="blah!", fetch_binaries=True))
         ],
         client_rate=60,
@@ -258,18 +258,18 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
                      transfer.GetFile.__name__)
 
     self.assertLen(last_hunt.output_plugins, 2)
-    self.assertEqual(last_hunt.output_plugins[0].plugin_name,
-                     "DummyOutputPlugin")
-    self.assertEqual(last_hunt.output_plugins[0].plugin_args.filename_regex,
-                     "foobar!")
-    self.assertEqual(last_hunt.output_plugins[0].plugin_args.fetch_binaries,
-                     False)
-    self.assertEqual(last_hunt.output_plugins[1].plugin_name,
-                     "DummyOutputPlugin")
-    self.assertEqual(last_hunt.output_plugins[1].plugin_args.filename_regex,
-                     "blah!")
-    self.assertEqual(last_hunt.output_plugins[1].plugin_args.fetch_binaries,
-                     True)
+    self.assertEqual(
+        last_hunt.output_plugins[0],
+        rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name="DummyOutputPlugin",
+            args=gui_test_lib.DummyOutputPlugin.args_type(
+                filename_regex="foobar!")))
+    self.assertEqual(
+        last_hunt.output_plugins[1],
+        rdf_output_plugin.OutputPluginDescriptor(
+            plugin_name="DummyOutputPlugin",
+            args=gui_test_lib.DummyOutputPlugin.args_type(
+                filename_regex="blah!", fetch_binaries=True)))
 
     self.assertAlmostEqual(last_hunt.client_rate, 42)
     self.assertEqual(last_hunt.description, "my personal copy")

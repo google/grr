@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """A module with test cases for the YARA database method."""
 
 import os

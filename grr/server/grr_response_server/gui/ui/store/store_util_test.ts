@@ -173,4 +173,48 @@ describe('ApiCollectionStore', () => {
       {payload: `args= offset=2 count=20`},
     ]);
   });
+
+  it('resetting arguments resets state', async () => {
+    const store = new TestStore();
+    store.setArgs({payload: ''});
+    const count = store.INITIAL_LOAD_COUNT;
+
+    store.api = jasmine.createSpy('api').and.callFake(
+        (args, paginationArgs) => of([{
+          payload: `args=${args.payload} offset=${
+              paginationArgs.offset} count=${paginationArgs.count}`
+        }]));
+    const results = latestValueFrom(store.results$);
+
+    expect(store.api).toHaveBeenCalledOnceWith(
+        {payload: ''}, {count, offset: 0});
+
+    expect(results.get()).toEqual([{payload: `args= offset=0 count=${count}`}]);
+
+    store.loadMore(10);
+    expect(store.api).toHaveBeenCalledWith(
+        {payload: ''}, {count: 10, offset: 1});
+
+    expect(results.get()).toEqual([
+      {payload: `args= offset=0 count=${count}`},
+      {payload: `args= offset=1 count=10`},
+    ]);
+
+    store.loadMore(20);
+    expect(store.api).toHaveBeenCalledWith(
+        {payload: ''}, {count: 20, offset: 2});
+
+    expect(results.get()).toEqual([
+      {payload: `args= offset=0 count=${count}`},
+      {payload: `args= offset=1 count=10`},
+      {payload: `args= offset=2 count=20`},
+    ]);
+
+    store.setArgs({payload: 'new'});
+    expect(store.api).toHaveBeenCalledWith(
+        {payload: 'new'}, {count, offset: 0});
+    expect(results.get()).toEqual([
+      {payload: `args=new offset=0 count=${count}`},
+    ]);
+  });
 });

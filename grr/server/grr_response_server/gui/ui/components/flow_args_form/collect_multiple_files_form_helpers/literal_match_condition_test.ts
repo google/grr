@@ -9,7 +9,7 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FileFinderContentsLiteralMatchCondition, FileFinderContentsLiteralMatchConditionMode} from '../../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../../testing';
 
-import {createLiteralMatchFormGroup, LiteralMatchCondition} from './literal_match_condition';
+import {createLiteralMatchFormGroup, fileFinderContentsLiteralMatchConditionToFormValue, formValuesToFileFinderContentsLiteralMatchCondition, LiteralMatchCondition} from './literal_match_condition';
 import {HelpersModule} from './module';
 
 initTestEnvironment();
@@ -67,4 +67,60 @@ describe('LiteralMatchCondition component', () => {
     };
     expect(control.value).toEqual(expected);
   });
+});
+
+describe('formValuesToFileFinderContentsLiteralMatchCondition()', () => {
+  it('correctly converts form value to FileFinderContentsLiteralMatchCondition',
+     () => {
+       const source = {
+         literal: 'test',
+         mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
+       };
+       expect(formValuesToFileFinderContentsLiteralMatchCondition(source))
+           .toEqual({
+             literal: btoa('test'),
+             mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
+           });
+     });
+});
+
+describe('fileFinderContentsLiteralMatchConditionToFormValue()', () => {
+  it('correctly converts FileFinderContentsLiteralMatchCondition to form value',
+     () => {
+       const source = {
+         literal: 'test',
+         mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
+       };
+       expect(fileFinderContentsLiteralMatchConditionToFormValue(source))
+           .toEqual({
+             literal: atob('test'),
+             mode: FileFinderContentsLiteralMatchConditionMode.ALL_HITS,
+           });
+     });
+
+  it('correctly converts FileFinderContentsLiteralMatchCondition to form value (empty string)',
+     () => {
+       const source = {
+         literal: '',
+         mode: FileFinderContentsLiteralMatchConditionMode.FIRST_HIT,
+       };
+       expect(fileFinderContentsLiteralMatchConditionToFormValue(source))
+           .toEqual({
+             literal: '',
+             mode: FileFinderContentsLiteralMatchConditionMode.FIRST_HIT,
+           });
+     });
+
+  it('correctly converts FileFinderContentsLiteralMatchCondition to form value (undefined)',
+     () => {
+       const source = {
+         literal: undefined,
+         mode: undefined,
+       };
+       expect(fileFinderContentsLiteralMatchConditionToFormValue(source))
+           .toEqual({
+             literal: '',
+             mode: undefined,
+           });
+     });
 });

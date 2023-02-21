@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for Interrogate."""
 
 import platform
@@ -187,6 +186,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     # This test checks for notifications so we can't use a system user.
     self.test_username = "discovery_test_user"
     self.CreateUser(self.test_username)
+    # Labels are added using the `GRR` system user.
+    self.CreateUser("GRR")
 
   def _SetupMinimalClient(self):
     client_id = "C.0000000000000000"

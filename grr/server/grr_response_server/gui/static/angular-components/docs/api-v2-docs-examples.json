@@ -9,7 +9,7 @@
         },
         "clientId": "C.1000000000000000",
         "creator": "",
-        "errorDescription": "Cancelled in GUI",
+        "errorDescription": "Cancelled by user",
         "flowId": "W:ABCDEF",
         "isRobot": false,
         "lastActiveAt": "4242000000",
@@ -25,6 +25,22 @@
       },
       "test_class": "ApiCancelFlowHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/actions/cancel"
+    }
+  ],
+  "ApiCountHuntResultsByTypeHandler": [
+    {
+      "api_method": "CountHuntResultsByType",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "count": "1",
+            "type": "RDFString"
+          }
+        ]
+      },
+      "test_class": "ApiCountHuntResultsByTypeRegressionTest_http_v2",
+      "url": "/api/v2/hunts/H:123456/result-counts"
     }
   ],
   "ApiCreateClientApprovalHandler": [
@@ -262,6 +278,7 @@
           "test@example.com"
         ],
         "emailMessageId": "<message id stub>",
+        "expirationTimeUs": "2419326000000",
         "id": "approval:112233",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -330,6 +347,7 @@
           "remainingClientsCount": "0",
           "resultsCount": "0",
           "state": "PAUSED",
+          "stateComment": "",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:123456"
@@ -409,6 +427,7 @@
         "remainingClientsCount": "0",
         "resultsCount": "0",
         "state": "PAUSED",
+        "stateComment": "",
         "totalCpuUsage": 0.0,
         "totalNetUsage": "0",
         "urn": "aff4:/hunts/H:123456"
@@ -1458,6 +1477,7 @@
           "api_test_user"
         ],
         "emailMessageId": "<message id stub>",
+        "expirationTimeUs": "2419244000000",
         "id": "approval:111111",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -1525,6 +1545,7 @@
           "remainingClientsCount": "0",
           "resultsCount": "0",
           "state": "PAUSED",
+          "stateComment": "",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:123456"
@@ -1542,6 +1563,7 @@
           "approver"
         ],
         "emailMessageId": "<message id stub>",
+        "expirationTimeUs": "2419245000000",
         "id": "approval:222222",
         "isValid": true,
         "notifiedUsers": [
@@ -1608,6 +1630,7 @@
           "remainingClientsCount": "0",
           "resultsCount": "0",
           "state": "PAUSED",
+          "stateComment": "",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:567890"
@@ -1682,11 +1705,13 @@
           "remainingClientsCount": "0",
           "resultsCount": "0",
           "state": "PAUSED",
+          "stateComment": "",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:556677"
         },
         "emailMessageId": "<message id stub>",
+        "expirationTimeUs": "2419244000000",
         "id": "approval:333333",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -1765,6 +1790,7 @@
           "remainingClientsCount": "0",
           "resultsCount": "0",
           "state": "PAUSED",
+          "stateComment": "",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:DDEEFF"
@@ -1800,6 +1826,7 @@
           "urn": "aff4:/C.1000000000000000/flows/F:112233"
         },
         "emailMessageId": "<message id stub>",
+        "expirationTimeUs": "2419244000000",
         "id": "approval:444444",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
@@ -1880,6 +1907,7 @@
           "remainingClientsCount": "0",
           "resultsCount": "0",
           "state": "PAUSED",
+          "stateComment": "",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:667788"
@@ -2211,6 +2239,7 @@
         "remainingClientsCount": "0",
         "resultsCount": "0",
         "state": "PAUSED",
+        "stateComment": "",
         "totalCpuUsage": 0.0,
         "totalNetUsage": "0",
         "urn": "aff4:/hunts/H:123456"
@@ -2291,6 +2320,7 @@
         "remainingClientsCount": "0",
         "resultsCount": "0",
         "state": "PAUSED",
+        "stateComment": "",
         "totalCpuUsage": 0.0,
         "totalNetUsage": "0",
         "urn": "aff4:/hunts/H:123456"
@@ -2360,6 +2390,7 @@
         "remainingClientsCount": "0",
         "resultsCount": "0",
         "state": "PAUSED",
+        "stateComment": "",
         "totalCpuUsage": 0.0,
         "totalNetUsage": "0",
         "urn": "aff4:/hunts/H:123456"
@@ -3268,6 +3299,7 @@
           "requestor"
         ],
         "emailMessageId": "<message id stub>",
+        "expirationTimeUs": "2419244000000",
         "id": "approval:111111",
         "isValid": true,
         "notifiedUsers": [
@@ -3334,6 +3366,7 @@
           "remainingClientsCount": "0",
           "resultsCount": "0",
           "state": "PAUSED",
+          "stateComment": "",
           "totalCpuUsage": 0.0,
           "totalNetUsage": "0",
           "urn": "aff4:/hunts/H:123456"
@@ -4487,6 +4520,7 @@
               "api_test_user"
             ],
             "emailMessageId": "<message id stub>",
+            "expirationTimeUs": "2419243000000",
             "id": "approval:112233",
             "isValid": false,
             "isValidMessage": "Need at least 1 additional approver for access.",
@@ -4554,6 +4588,7 @@
               "remainingClientsCount": "0",
               "resultsCount": "0",
               "state": "PAUSED",
+              "stateComment": "",
               "totalCpuUsage": 0.0,
               "totalNetUsage": "0",
               "urn": "aff4:/hunts/H:123456"
@@ -4938,11 +4973,11 @@
             "clientLimit": "100",
             "clientRate": 0.0,
             "created": "1000000000",
-            "creator": "api_test_user",
+            "creator": "GRRWorker",
             "description": "hunt_0",
             "duration": "1209600",
             "huntId": "H:000000",
-            "isRobot": false,
+            "isRobot": true,
             "state": "PAUSED",
             "urn": "aff4:/hunts/H:000000"
           }
@@ -4982,11 +5017,11 @@
             "clientLimit": "100",
             "clientRate": 0.0,
             "created": "1000000000",
-            "creator": "api_test_user",
+            "creator": "GRRWorker",
             "description": "hunt_0",
             "duration": "1209600",
             "huntId": "H:000000",
-            "isRobot": false,
+            "isRobot": true,
             "state": "PAUSED",
             "urn": "aff4:/hunts/H:000000"
           }
@@ -4994,6 +5029,84 @@
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=1&offset=1"
+    },
+    {
+      "api_method": "ListHunts",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientLimit": "100",
+            "clientRate": 0.0,
+            "created": "2000000000",
+            "creator": "api_test_user",
+            "description": "hunt_1",
+            "duration": "1209600",
+            "huntId": "H:000001",
+            "isRobot": false,
+            "state": "STOPPED",
+            "urn": "aff4:/hunts/H:000001"
+          }
+        ]
+      },
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts?count=2&offset=0&robot_filter=no_robots"
+    },
+    {
+      "api_method": "ListHunts",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientLimit": "100",
+            "clientRate": 0.0,
+            "created": "1000000000",
+            "creator": "GRRWorker",
+            "description": "hunt_0",
+            "duration": "1209600",
+            "huntId": "H:000000",
+            "isRobot": true,
+            "state": "PAUSED",
+            "urn": "aff4:/hunts/H:000000"
+          }
+        ]
+      },
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts?count=2&offset=0&robot_filter=only_robots"
+    },
+    {
+      "api_method": "ListHunts",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientLimit": "100",
+            "clientRate": 0.0,
+            "created": "2000000000",
+            "creator": "api_test_user",
+            "description": "hunt_1",
+            "duration": "1209600",
+            "huntId": "H:000001",
+            "isRobot": false,
+            "state": "STOPPED",
+            "urn": "aff4:/hunts/H:000001"
+          },
+          {
+            "clientLimit": "100",
+            "clientRate": 0.0,
+            "created": "1000000000",
+            "creator": "GRRWorker",
+            "description": "hunt_0",
+            "duration": "1209600",
+            "huntId": "H:000000",
+            "isRobot": true,
+            "state": "PAUSED",
+            "urn": "aff4:/hunts/H:000000"
+          }
+        ]
+      },
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts?count=2&offset=0&robot_filter=unknown"
     }
   ],
   "ApiListKbFieldsHandler": [
@@ -5373,6 +5486,7 @@
         "remainingClientsCount": "0",
         "resultsCount": "0",
         "state": "PAUSED",
+        "stateComment": "",
         "totalCpuUsage": 0.0,
         "totalNetUsage": "0",
         "urn": "aff4:/hunts/H:123456"
@@ -5446,6 +5560,7 @@
         "remainingClientsCount": "0",
         "resultsCount": "0",
         "state": "STOPPED",
+        "stateComment": "Cancelled by user",
         "totalCpuUsage": 0.0,
         "totalNetUsage": "0",
         "urn": "aff4:/hunts/H:123456"

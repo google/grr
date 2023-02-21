@@ -5,7 +5,7 @@ import {filter, map, switchMap, tap, withLatestFrom} from 'rxjs/operators';
 
 import {HttpApiService} from '../lib/api/http_api_service';
 import {RequestStatus, RequestStatusType, trackRequest} from '../lib/api/track_request';
-import {translateApproval} from '../lib/api_translation/client';
+import {translateClientApproval} from '../lib/api_translation/client';
 import {ClientApproval} from '../lib/models/client';
 import {assertNonNull, isNonNull} from '../lib/preconditions';
 
@@ -46,7 +46,7 @@ class ApprovalPageComponentStore extends ComponentStore<ApprovalPageState> {
               switchMap(
                   (key) => key ?
                       this.httpApiService.subscribeToClientApproval(key).pipe(
-                          map(translateApproval)) :
+                          map(translateClientApproval)) :
                       of(null)),
               ),
   );
@@ -58,7 +58,7 @@ class ApprovalPageComponentStore extends ComponentStore<ApprovalPageState> {
             assertNonNull(key, 'approval key');
             return trackRequest(
                 this.httpApiService.grantClientApproval(key).pipe(
-                    map(translateApproval)),
+                    map(translateClientApproval)),
             );
           }),
           tap((grantRequestStatus) => {

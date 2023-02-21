@@ -57,6 +57,7 @@ describe('RecentClientFlows Component', () => {
     const dummyComponent = fixture.componentInstance;
     dummyComponent.approval =
         newClientApproval({clientId: 'C.1111', status: {type: 'valid'}});
+    recentClientFlowsLocalStore.mockedObservables.hasAccess$.next(true);
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -66,6 +67,30 @@ describe('RecentClientFlows Component', () => {
 
     const link = fixture.debugElement.query(By.css('a'));
     expect(link.attributes['href']).toEqual('/clients/C.1111');
+  });
+
+  it('does not display chip when access is inconsistent 1', () => {
+    const fixture = TestBed.createComponent(RecentClientFlows);
+    const dummyComponent = fixture.componentInstance;
+    dummyComponent.approval =
+        newClientApproval({clientId: 'C.1111', status: {type: 'valid'}});
+    recentClientFlowsLocalStore.mockedObservables.hasAccess$.next(false);
+    fixture.detectChanges();
+
+    const text = fixture.debugElement.nativeElement.textContent;
+    expect(text).not.toContain('Access granted');
+  });
+
+  it('does not display chip when access is inconsistent 2', () => {
+    const fixture = TestBed.createComponent(RecentClientFlows);
+    const dummyComponent = fixture.componentInstance;
+    dummyComponent.approval = newClientApproval(
+        {clientId: 'C.1111', status: {type: 'invalid', reason: 'reasons'}});
+    recentClientFlowsLocalStore.mockedObservables.hasAccess$.next(true);
+    fixture.detectChanges();
+
+    const text = fixture.debugElement.nativeElement.textContent;
+    expect(text).not.toContain('Access granted');
   });
 
   it('displays and loads the top 3 recent client flows', async () => {

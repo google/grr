@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for the Fingerprint flow."""
 
 import os

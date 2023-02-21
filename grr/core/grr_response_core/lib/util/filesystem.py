@@ -11,7 +11,6 @@ from typing import NamedTuple
 from typing import Optional
 from typing import Text
 
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
@@ -55,15 +54,11 @@ class Stat(object):
     else:
       stat_obj = os.lstat(path)
 
-    if compatibility.PY2 and platform.system() == "Windows":
-      # TODO: In Python 2 on Windows `os.readlink` is missing.
+    try:
+      target = os.readlink(path)
+    # `os.readlink` raises `ValueError` on Windows and `OSError` on UNIX.
+    except (OSError, ValueError):
       target = None
-    else:
-      try:
-        target = os.readlink(path)
-      # `os.readlink` raises `ValueError` on Windows and `OSError` on UNIX.
-      except (OSError, ValueError):
-        target = None
 
     return cls(path=path, stat_obj=stat_obj, symlink_target=target)
 
@@ -104,19 +99,13 @@ class Stat(object):
     return self._stat.st_size
 
   def GetAccessTime(self) -> int:
-    if compatibility.PY2:
-      return _SecondsToMicroseconds(self._stat.st_atime)
-    return _NanosecondsToMicroseconds(self._stat.st_atime_ns)  # pytype: disable=attribute-error
+    return _NanosecondsToMicroseconds(self._stat.st_atime_ns)
 
   def GetModificationTime(self) -> int:
-    if compatibility.PY2:
-      return _SecondsToMicroseconds(self._stat.st_mtime)
-    return _NanosecondsToMicroseconds(self._stat.st_mtime_ns)  # pytype: disable=attribute-error
+    return _NanosecondsToMicroseconds(self._stat.st_mtime_ns)
 
   def GetChangeTime(self) -> int:
-    if compatibility.PY2:
-      return _SecondsToMicroseconds(self._stat.st_ctime)
-    return _NanosecondsToMicroseconds(self._stat.st_ctime_ns)  # pytype: disable=attribute-error
+    return _NanosecondsToMicroseconds(self._stat.st_ctime_ns)
 
   def GetDevice(self) -> int:
     return self._stat.st_dev
@@ -162,13 +151,7 @@ class Stat(object):
     try:
       # This import is Linux-specific.
       import fcntl  # pylint: disable=g-import-not-at-top
-      # TODO: On Python 2.7.6 `array.array` accepts only byte
-      # strings as an argument. On Python 2.7.12 and 2.7.13 unicodes are
-      # supported as well. On Python 3, only unicode strings are supported. This
-      # is why, as a temporary hack, we wrap the literal with `str` call that
-      # will convert it to whatever is the default on given Python version. This
-      # should be changed to raw literal once support for Python 2 is dropped.
-      buf = array.array(compatibility.NativeStr("l"), [0])
+      buf = array.array("l", [0])
       # TODO(user):pytype: incorrect type spec for fcntl.ioctl
       # pytype: disable=wrong-arg-types
       fcntl.ioctl(fd, self.FS_IOC_GETFLAGS, buf)
@@ -200,7 +183,7 @@ class StatCache(object):
   _Key = NamedTuple("_Key", (("path", Text), ("follow_symlink", bool)))  # pylint: disable=invalid-name
 
   def __init__(self):
-    self._cache = {}  # type: Dict[StatCache._Key, Stat]
+    self._cache: Dict[StatCache._Key, Stat] = {}
 
   def Get(self, path: Text, follow_symlink: bool = True) -> Stat:
     """Stats given file or returns a cached result if available.
@@ -228,11 +211,6 @@ class StatCache(object):
         self._cache[self._Key(path=path, follow_symlink=True)] = value
 
       return value
-
-
-def _SecondsToMicroseconds(secs: float) -> int:
-  """Converts seconds to microseconds."""
-  return int(secs * 1000000)
 
 
 def _NanosecondsToMicroseconds(ns: int) -> int:

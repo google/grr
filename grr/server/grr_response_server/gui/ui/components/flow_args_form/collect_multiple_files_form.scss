@@ -23,6 +23,11 @@ mat-error {
   margin-top: 0.5em;
 }
 
+.path-row {
+  display: flex;
+  align-items: baseline;
+}
+
 .add-path-row {
   display: flex;
   flex-direction: row;

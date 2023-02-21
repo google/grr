@@ -1,8 +1,6 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_server import artifact_registry
 from grr_response_server.databases import db
 
 
@@ -163,103 +161,6 @@ class DatabaseTestArtifactsMixin(object):
 
     artifacts = self.db.ReadAllArtifacts()
     self.assertCountEqual(map(name, artifacts), ["Foo", "Bar"])
-
-  # TODO: Remove once artifact patching is no longer needed.
-  def testReadArtifactPatching(self):
-    source = rdf_artifacts.ArtifactSource()
-    source.type = rdf_artifacts.ArtifactSource.SourceType.GREP
-    source.attributes = {
-        b"paths": ["foo/bar", "norf/thud"],
-        b"content_regex_list": ["ba[rz]"],
-    }
-
-    artifact = rdf_artifacts.Artifact()
-    artifact.name = "foobar"
-    artifact.sources = [source]
-
-    self.db.WriteArtifact(artifact)
-
-    artifact = self.db.ReadArtifact("foobar")
-    self.assertLen(artifact.sources, 1)
-
-    source = artifact.sources[0]
-    source.Validate()  # Should not raise.
-    self.assertEqual(source.attributes["paths"], ["foo/bar", "norf/thud"])
-    self.assertEqual(source.attributes["content_regex_list"], ["ba[rz]"])
-
-    # Should not raise.
-    source.Validate()
-
-    self.assertEqual(artifact, self.db.ReadArtifact("foobar"))
-
-  def testReadArtifactPatchingDeep(self):
-    source = rdf_artifacts.ArtifactSource()
-    source.type = rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE
-    source.attributes = {
-        b"key_value_pairs": [
-            {
-                b"key": "foo",
-                b"value": "bar",
-            },
-            {
-                b"key": b"quux",
-                b"value": 1337,
-            },
-        ],
-    }
-
-    artifact = rdf_artifacts.Artifact()
-    artifact.name = "foobar"
-    artifact.doc = "Lorem ipsum."
-    artifact.sources = [source]
-
-    self.db.WriteArtifact(artifact)
-
-    artifact = self.db.ReadArtifact("foobar")
-    artifact_registry.Validate(artifact)  # Should not raise.
-
-    self.assertLen(artifact.sources, 1)
-
-    source = artifact.sources[0]
-    self.assertEqual(source.attributes["key_value_pairs"][0]["key"], "foo")
-    self.assertEqual(source.attributes["key_value_pairs"][0]["value"], "bar")
-    self.assertEqual(source.attributes["key_value_pairs"][1]["key"], "quux")
-    self.assertEqual(source.attributes["key_value_pairs"][1]["value"], 1337)
-
-    # Read again, to ensure that we retrieve what is stored in the database.
-    artifact = self.db.ReadArtifact("foobar")
-    artifact_registry.Validate(artifact)  # Should not raise.
-
-  # TODO: Remove once artifact patching is no longer needed.
-  def testReadAllArtifactsPatching(self):
-    source0 = rdf_artifacts.ArtifactSource()
-    source0.type = rdf_artifacts.ArtifactSource.SourceType.PATH
-    source0.attributes = {
-        b"paths": ["norf/thud"],
-    }
-
-    source1 = rdf_artifacts.ArtifactSource()
-    source1.type = rdf_artifacts.ArtifactSource.SourceType.COMMAND
-    source1.attributes = {
-        b"cmd": "quux",
-        b"args": ["foo", "bar"],
-    }
-
-    artifact = rdf_artifacts.Artifact()
-    artifact.name = "foobar"
-    artifact.sources = [source0, source1]
-
-    self.db.WriteArtifact(artifact)
-
-    artifacts = self.db.ReadAllArtifacts()
-    self.assertLen(artifacts, 1)
-    self.assertEqual(artifacts[0].sources[0].attributes["paths"], ["norf/thud"])
-    self.assertEqual(artifacts[0].sources[1].attributes["cmd"], "quux")
-    self.assertEqual(artifacts[0].sources[1].attributes["args"], ["foo", "bar"])
-
-    # Should not raise.
-    artifacts[0].sources[0].Validate()
-    artifacts[0].sources[1].Validate()
 
 
 # This file is a test library and thus does not require a __main__ block.

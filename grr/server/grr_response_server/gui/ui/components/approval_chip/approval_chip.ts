@@ -2,9 +2,8 @@ import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {BehaviorSubject} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {DateTime} from '../../../lib/date_time';
-import {ClientApproval} from '../../../lib/models/client';
-import {ApprovalStatus} from '../../../lib/models/user';
+import {DateTime} from '../../lib/date_time';
+import {Approval, ApprovalStatus} from '../../lib/models/user';
 
 const TITLES: {readonly[key in ApprovalStatus['type']]: string} = {
   'expired': 'No access',
@@ -13,7 +12,7 @@ const TITLES: {readonly[key in ApprovalStatus['type']]: string} = {
   'valid': 'Access granted',
 };
 
-/** Chip that shows the validity of a ClientApproval. */
+/** Chip that shows the validity of an Approval. */
 @Component({
   selector: 'app-approval-chip',
   templateUrl: './approval_chip.ng.html',
@@ -22,7 +21,7 @@ const TITLES: {readonly[key in ApprovalStatus['type']]: string} = {
 })
 export class ApprovalChip {
   @Input()
-  set approval(approval: ClientApproval|null) {
+  set approval(approval: Approval|null) {
     this.approval$.next(approval);
   }
 
@@ -39,7 +38,7 @@ export class ApprovalChip {
     }
   }
 
-  private readonly approval$ = new BehaviorSubject<ClientApproval|null>(null);
+  private readonly approval$ = new BehaviorSubject<Approval|null>(null);
   readonly status$ =
       this.approval$.pipe(map(approval => approval?.status.type ?? 'invalid'));
 

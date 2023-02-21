@@ -4,7 +4,6 @@
 from absl import app
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
 from grr_response_server.gui import api_call_router
@@ -68,9 +67,9 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
         self.assertIn(
             name, valid_parameters,
             "Parameter {} in route {} is not found in {}. "
-            "Valid parameters are {}.".format(
-                name, method.name, compatibility.GetName(method.args_type),
-                valid_parameters))
+            "Valid parameters are {}.".format(name, method.name,
+                                              method.args_type.__name__,
+                                              valid_parameters))
 
   def testRouterMethodNamesAreInLengthLimit(self):
     for name in api_call_router.ApiCallRouterStub.GetAnnotatedMethods():

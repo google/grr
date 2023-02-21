@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """The base classes for RDFValue tests."""
 
 from typing import Text

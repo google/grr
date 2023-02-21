@@ -19,7 +19,6 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
@@ -111,7 +110,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
           "ArtifactCollectorFlow",
           artifact_list=[artifact_name],
           knowledge_base=self.state.knowledge_base,
-          next_state=compatibility.GetName(self.ProcessBase),
+          next_state=self.ProcessBase.__name__,
           request_data={"artifact_name": artifact_name})
 
   def _ScheduleCollection(self):
@@ -127,7 +126,7 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
             # collectors.ArtifactCollectorFlow.__name__,
             "ArtifactCollectorFlow",
             artifact_list=[artifact_name],
-            next_state=compatibility.GetName(self.ProcessBase),
+            next_state=self.ProcessBase.__name__,
             request_data={"artifact_name": artifact_name},
             knowledge_base=self.state.knowledge_base)
 

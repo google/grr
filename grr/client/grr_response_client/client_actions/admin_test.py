@@ -18,7 +18,6 @@ from grr_response_client.client_actions import admin
 from grr_response_client.unprivileged import sandbox
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -81,7 +80,7 @@ Client.server_urls:
       response._content = data
       return response
 
-    with utils.Stubber(requests, "request", FakeUrlOpen):
+    with mock.patch.object(requests, "request", FakeUrlOpen):
       client_context = comms.GRRHTTPClient(worker_cls=MockClientWorker)
       client_context.MakeRequest("")
 

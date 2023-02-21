@@ -6,7 +6,6 @@ from grr_response_core.lib import parsers
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
 from grr_response_server import artifact
 from grr_response_server import flow_base
@@ -72,8 +71,8 @@ class CheckRunner(flow_base.FlowBase):
           artifact_list=[artifact_name],
           apply_parsers=False,
           request_data={"artifact_name": artifact_name},
-          next_state=compatibility.GetName(self.AddResponses))
-    self.CallState(next_state=compatibility.GetName(self.RunChecks))
+          next_state=self.AddResponses.__name__)
+    self.CallState(next_state=self.RunChecks.__name__)
 
   def _RunProcessors(self, artifact_name, responses):
     """Manages processing of raw data from the artifact collection.

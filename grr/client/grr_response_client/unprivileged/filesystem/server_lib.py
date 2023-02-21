@@ -30,7 +30,7 @@ class State:
   """
 
   def __init__(self):
-    self.filesystem = None  # type: Optional[filesystem.Filesystem]
+    self.filesystem: Optional[filesystem.Filesystem] = None
     self.files = filesystem.Files()
 
 

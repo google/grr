@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 """Utility functions and classes for GRR API client library."""
-
-import collections
 import time
 from typing import Any
 from typing import Callable
@@ -258,7 +256,7 @@ def MessageToFlatDict(
     A flat dictionary corresponding to the given message.
   """
   # Using ordered dictionary guarantees stable order of fields in the result.
-  result = collections.OrderedDict()
+  result = dict()
 
   def Recurse(msg: message.Message, prev: Tuple[str, ...]) -> None:
     fields = sorted(msg.ListFields(), key=lambda field: field[0].name)

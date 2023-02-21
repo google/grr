@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for export converters."""
 
 from absl import app
@@ -113,6 +112,7 @@ class GetMetadataTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super().setUp()
+    data_store.REL_DB.WriteGRRUser(self.test_username)
     self.client_id = "C.4815162342108107"
 
   def testGetMetadataWithSingleUserLabel(self):
@@ -140,6 +140,8 @@ class GetMetadataTest(test_lib.GRRBaseTest):
     self.assertEqual(metadata.system_labels, "")
 
   def testGetMetadataWithSystemLabels(self):
+    data_store.REL_DB.WriteGRRUser("GRR")
+
     fixture_test_lib.ClientFixture(self.client_id)
     self.AddClientLabel(self.client_id, self.test_username, "a")
     self.AddClientLabel(self.client_id, self.test_username, "b")

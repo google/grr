@@ -5,7 +5,6 @@ import {filter} from 'rxjs/operators';
 import {ApiHuntResult, ApiHuntState} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
 import {HttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
-import {HuntState} from '../lib/models/hunt';
 import {isNonNull} from '../lib/preconditions';
 import {initTestEnvironment} from '../testing';
 
@@ -215,11 +214,21 @@ describe('HuntPageGlobalStore', () => {
 
   it('stopHunt calls http api service', fakeAsync(() => {
        huntPageGlobalStore.selectHunt('456');
-       huntPageGlobalStore.stopHunt();
+       huntPageGlobalStore.cancelHunt();
        expect(httpApiService.patchHunt)
            .toHaveBeenCalledWith(
                '456',
-               {state: HuntState.STOPPED},
+               {state: ApiHuntState.STOPPED},
+           );
+     }));
+
+  it('startHunt calls http api service', fakeAsync(() => {
+       huntPageGlobalStore.selectHunt('456');
+       huntPageGlobalStore.startHunt();
+       expect(httpApiService.patchHunt)
+           .toHaveBeenCalledWith(
+               '456',
+               {state: ApiHuntState.STARTED},
            );
      }));
 });

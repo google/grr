@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for API client and flows-related API calls."""
 
 import io
@@ -18,7 +17,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import flow_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
@@ -147,7 +145,7 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
 
     client_id = self.SetupClient(0)
     flow_id = flow_test_lib.TestFlowHelper(
-        compatibility.GetName(processes.ListProcesses),
+        processes.ListProcesses.__name__,
         client_id=client_id,
         client_mock=action_mocks.ListProcessesMock([process]),
         creator=self.test_username)

@@ -31,9 +31,6 @@ class Target(rdf_structs.RDFProtoStruct):
   def __bool__(self):
     return any([self.cpe, self.os, self.label])
 
-  # TODO: Remove after support for Python 2 is dropped.
-  __nonzero__ = __bool__
-
 
 class Condition(object):
   """Conditions specify match criteria for a check."""

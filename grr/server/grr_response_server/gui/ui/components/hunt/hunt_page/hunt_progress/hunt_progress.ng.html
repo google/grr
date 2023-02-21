@@ -17,4 +17,9 @@
   <div class="content divider-top">
     <!-- TODO: Add chart -->
   </div>
+
+  <result-accordion [colorScheme]="ColorScheme.FLOW_ARGS" title="Fleet collection arguments">
+    <hunt-flow-arguments class="args" [hunt]="hunt$ | async"></hunt-flow-arguments>
+    <hunt-arguments class="args" [hunt]="hunt$ | async"></hunt-arguments>
+  </result-accordion>
 </div>

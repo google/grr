@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test RDFStruct implementations."""
 
 
@@ -20,7 +19,6 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
-from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import test_lib
@@ -293,14 +291,7 @@ class RDFStructsTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     # Test serialization/deserialization.
     serialized = test_pb.SerializeToBytes()
     self.assertEqual(DynamicTypeTest.FromSerializedBytes(serialized), test_pb)
-
-    # TODO: In Python 2 unicode string representation has an extra
-    # 'u' prefix and there is nothing we can do about that. Once support for
-    # Python 2 is dropped, this can be removed.
-    if compatibility.PY2:
-      test_struct_class_repr = "u'TestStruct'"
-    else:
-      test_struct_class_repr = "'TestStruct'"
+    test_struct_class_repr = "'TestStruct'"
 
     expected_emitted_proto = """\
 message DynamicTypeTest {{

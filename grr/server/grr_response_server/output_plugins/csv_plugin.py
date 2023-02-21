@@ -1,16 +1,16 @@
 #!/usr/bin/env python
 """CSV single-pass output plugin."""
-
+import csv
+import io
 import os
 import zipfile
 
+import yaml
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import text
-from grr_response_core.lib.util.compat import csv
-from grr_response_core.lib.util.compat import yaml
 from grr_response_server import instant_output_plugin
 
 
@@ -70,14 +70,15 @@ class CSVInstantOutputPlugin(
         "%s/%s/from_%s.csv" % (self.path_prefix, first_value.__class__.__name__,
                                original_value_type.__name__))
 
-    writer = csv.Writer()
+    buffer = io.StringIO()
+    writer = csv.writer(buffer)
     # Write the CSV header based on first value class and write
     # the first value itself. All other values are guaranteed
     # to have the same class (see ProcessSingleTypeExportedValues definition).
-    writer.WriteRow(self._GetCSVHeader(first_value.__class__))
-    writer.WriteRow(self._GetCSVRow(first_value))
+    writer.writerow(self._GetCSVHeader(first_value.__class__))
+    writer.writerow(self._GetCSVRow(first_value))
 
-    chunk = writer.Content().encode("utf-8")
+    chunk = buffer.getvalue().encode("utf-8")
     yield self.archive_generator.WriteFileChunk(chunk)
 
     # Counter starts from 1, as 1 value has already been written.
@@ -85,11 +86,12 @@ class CSVInstantOutputPlugin(
     for batch in collection.Batch(exported_values, self.ROW_BATCH):
       counter += len(batch)
 
-      writer = csv.Writer()
+      buffer = io.StringIO()
+      writer = csv.writer(buffer)
       for value in batch:
-        writer.WriteRow(self._GetCSVRow(value))
+        writer.writerow(self._GetCSVRow(value))
 
-      chunk = writer.Content().encode("utf-8")
+      chunk = buffer.getvalue().encode("utf-8")
       yield self.archive_generator.WriteFileChunk(chunk)
 
     yield self.archive_generator.WriteFileFooter()
@@ -100,7 +102,7 @@ class CSVInstantOutputPlugin(
 
   def Finish(self):
     manifest = {"export_stats": self.export_counts}
-    manifest_bytes = yaml.Dump(manifest).encode("utf-8")
+    manifest_bytes = yaml.safe_dump(manifest).encode("utf-8")
 
     yield self.archive_generator.WriteFileHeader(self.path_prefix + "/MANIFEST")
     yield self.archive_generator.WriteFileChunk(manifest_bytes)

@@ -385,9 +385,9 @@
         <td class="value">
           <mat-chip-list [disabled]="true">
             <mat-chip
-              class="{{ client.fleetspeakEnabled ? 'green-chip' : 'red-chip' }}"
+              class="{{ client.fleetspeakEnabled === true ? 'green-chip' : 'red-chip' }}"
             >
-              {{ client.fleetspeakEnabled ? 'Fleetspeak' : 'Legacy' }}
+              {{ client.fleetspeakEnabled === true ? 'Fleetspeak' : 'Legacy' }}
             </mat-chip>
           </mat-chip-list>
           <entry-history-button path="fleetspeakEnabled"></entry-history-button>

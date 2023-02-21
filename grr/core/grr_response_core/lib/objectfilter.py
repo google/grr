@@ -96,8 +96,8 @@ from typing import Text
 
 from grr_response_core.lib import lexer
 from grr_response_core.lib import utils
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util import text
 
 
 class Error(Exception):
@@ -770,9 +770,9 @@ class Parser(lexer.SearchParser):
     # characters (e.g. \*) or special sequences (e.g. \w) can be used in
     # objectfilter.
     if self.current_expression.operator == "regexp":
-      self.string += compatibility.UnescapeString(string)
+      self.string += text.Unescape(string)
     elif match.group(1) in "\\'\"rnbt":
-      self.string += compatibility.UnescapeString(string)
+      self.string += text.Unescape(string)
     else:
       raise ParseError("Invalid escape character %s." % string)
 
@@ -781,12 +781,7 @@ class Parser(lexer.SearchParser):
     hex_string = match.group(1)
     try:
       self.string += binascii.unhexlify(hex_string).decode("utf-8")
-    # TODO: In Python 2 `binascii` throws `TypeError` for invalid
-    # input values (for whathever reason). This behaviour is fixed in Python 3
-    # where `binascii.Error` (a subclass of `ValueError`) is raised. Once we do
-    # not have to support Python 2 anymore, this `TypeError` catch should be
-    # removed.
-    except (binascii.Error, TypeError) as error:
+    except binascii.Error as error:
       raise ParseError("Invalid hex escape '{}': {}".format(hex_string, error))
 
   def ContextOperator(self, string="", **_):

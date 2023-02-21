@@ -2,6 +2,7 @@
 """Implementation of path expansion mechanism for client-side file-finder."""
 
 import abc
+import fnmatch
 import itertools
 import os
 import platform
@@ -16,7 +17,6 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
-from grr_response_core.lib.util.compat import fnmatch
 
 
 def _NoOp():

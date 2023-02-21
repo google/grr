@@ -1,37 +1,30 @@
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {discardPeriodicTasks, fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRouteSnapshot, ActivationEnd, Router} from '@angular/router';
+import {Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
-import {Subject} from 'rxjs';
 
-import {Writable} from '../../lib/type_utils';
 import {STORE_PROVIDERS} from '../../store/store_test_providers';
+import {CLIENT_PAGE_ROUTES} from '../client_page/routing';
 
 import {App} from './app';
 import {AppModule} from './app_module';
 
 
 describe('App Component', () => {
-  let routerEvents: Subject<ActivationEnd>;
-
   beforeEach(waitForAsync(() => {
     TestBed
         .configureTestingModule({
           imports: [
             AppModule,
             NoopAnimationsModule,
-            RouterTestingModule,
+            RouterTestingModule.withRoutes(CLIENT_PAGE_ROUTES),
           ],
           providers: [
             ...STORE_PROVIDERS,
           ],
         })
         .compileComponents();
-
-    routerEvents = new Subject();
-    const router = TestBed.inject(Router);
-    (router as Writable<Router>).events = routerEvents.asObservable();
   }));
 
   it('should create the app', () => {
@@ -40,22 +33,18 @@ describe('App Component', () => {
     expect(componentInstance).toBeTruthy();
   });
 
-  it('should link to the old ui', () => {
-    const fixture = TestBed.createComponent(App);
-    fixture.detectChanges();
+  it('should link to the old ui', fakeAsync(async () => {
+       const fixture = TestBed.createComponent(App);
+       fixture.detectChanges();
 
-    const snapshot: Partial<ActivatedRouteSnapshot> = {
-      params: {id: 'C.1234'},
-      queryParams: {},
-      data: {legacyLink: '#/legacy/:id/foo'},
-      children: [],
-    };
+       await TestBed.inject(Router).navigate(['/clients/C.123']);
+       tick();
+       fixture.detectChanges();
 
-    routerEvents.next(new ActivationEnd(snapshot as ActivatedRouteSnapshot));
+       const fallbackLink =
+           fixture.debugElement.query(By.css('#fallback-link'));
+       expect(fallbackLink.nativeElement.href).toContain('#/clients/C.123');
 
-    fixture.detectChanges();
-
-    const fallbackLink = fixture.debugElement.query(By.css('#fallback-link'));
-    expect(fallbackLink.nativeElement.href).toContain('#/legacy/C.1234/foo');
-  });
+       discardPeriodicTasks();
+     }));
 });

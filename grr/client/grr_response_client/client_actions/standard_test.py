@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test client standard actions."""
 
 import hashlib
@@ -7,6 +6,7 @@ import io
 import os
 import platform
 import stat
+import sys
 import unittest
 from unittest import mock
 
@@ -15,7 +15,6 @@ from absl import app
 from grr_response_client.client_actions import standard
 from grr_response_client.vfs_handlers import files
 from grr_response_core import config
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
@@ -39,8 +38,8 @@ class TestExecutePython(client_test_lib.EmptyActionTest):
 
   def testExecutePython(self):
     """Test the basic ExecutePython action."""
-    utils.TEST_VAL = "original"
-    python_code = "utils.TEST_VAL = 'modified'"
+    sys.TEST_VAL = "original"
+    python_code = "import sys; sys.TEST_VAL = 'modified'"
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
@@ -49,7 +48,7 @@ class TestExecutePython(client_test_lib.EmptyActionTest):
     if platform.system() != "Windows":  # Windows time resolution is too coarse.
       self.assertGreater(result.time_used, 0)
     self.assertEqual(result.return_val, "")
-    self.assertEqual(utils.TEST_VAL, "modified")
+    self.assertEqual(sys.TEST_VAL, "modified")
 
   def testExecutePythonEnvironment(self):
     """Test the basic ExecutePython action."""
@@ -122,13 +121,13 @@ print("Done.")
 
   def testExecuteModifiedPython(self):
     """Test that rejects invalid ExecutePython action."""
-    utils.TEST_VAL = "original"
-    python_code = "utils.TEST_VAL = 'modified'"
+    sys.TEST_VAL = "original"
+    python_code = "import sys; sys.TEST_VAL = 'modified'"
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
 
     # Modify the data so the signature does not match.
-    signed_blob.data = b"utils.TEST_VAL = 'notmodified'"
+    signed_blob.data = b"sys.TEST_VAL = 'notmodified'"
 
     request = rdf_client_action.ExecutePythonRequest(python_code=signed_blob)
 
@@ -144,7 +143,7 @@ print("Done.")
                       standard.ExecutePython, request)
 
     # Make sure the code never ran.
-    self.assertEqual(utils.TEST_VAL, "original")
+    self.assertEqual(sys.TEST_VAL, "original")
 
   def testExecuteBrokenPython(self):
     """Test broken code raises back to the original flow."""
@@ -200,10 +199,12 @@ print("Done.")
 
   def testArgs(self):
     """Test passing arguments."""
-    utils.TEST_VAL = "original"
+    sys.TEST_VAL = "original"
     python_code = """
+import sys
+
 magic_return_str = py_args['test']
-utils.TEST_VAL = py_args[43]
+sys.TEST_VAL = py_args[43]
 """
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code.encode("utf-8"), self.signing_key)
@@ -212,7 +213,7 @@ utils.TEST_VAL = py_args[43]
         python_code=signed_blob, py_args=pdict)
     result = self.RunAction(standard.ExecutePython, request)[0]
     self.assertEqual(result.return_val, "dict_arg")
-    self.assertEqual(utils.TEST_VAL, "dict_arg2")
+    self.assertEqual(sys.TEST_VAL, "dict_arg2")
 
 
 class GetFileStatTest(client_test_lib.EmptyActionTest):

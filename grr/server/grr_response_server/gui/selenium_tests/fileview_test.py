@@ -1,13 +1,12 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test the fileview interface."""
 
 import os
+from unittest import mock
 
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.util import text
 
 from grr_response_server.databases import db
@@ -162,8 +161,8 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
           filename=os.path.basename(args.file_path),
           content_generator=range(42))
 
-    with utils.Stubber(api_vfs.ApiGetFileBlobHandler, "Handle",
-                       FakeDownloadHandle):
+    with mock.patch.object(api_vfs.ApiGetFileBlobHandler, "Handle",
+                           FakeDownloadHandle):
       # Try to download the file.
       self.Click("css=li[heading=Download]")
 

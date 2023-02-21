@@ -24,6 +24,8 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
     self.client_id = self.SetupClient(0)
 
     self.allow_labels = ["foo"]
+
+    data_store.REL_DB.WriteGRRUser("GRR")
     self.allow_labels_owners = ["GRR"]
 
   def _AddLabel(self, name, owner=None):
@@ -70,6 +72,7 @@ class CheckClientLabelsTest(test_lib.GRRBaseTest):
           allow_labels_owners=self.allow_labels_owners)
 
   def testRaisesIfOwnerDoesNotMatch(self):
+    data_store.REL_DB.WriteGRRUser("GRRother")
     self._AddLabel("foo", owner="GRRother")
 
     with self.assertRaises(access_control.UnauthorizedAccess):
@@ -137,6 +140,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
     super().setUp()
 
     self.client_id = self.SetupClient(0)
+
+    data_store.REL_DB.WriteGRRUser("GRR")
     data_store.REL_DB.AddClientLabels(self.client_id, "GRR", ["foo"])
 
     self.hunt_id = "H:123456"

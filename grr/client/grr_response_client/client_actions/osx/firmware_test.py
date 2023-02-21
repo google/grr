@@ -8,7 +8,6 @@ from absl import app
 
 from grr_response_client.client_actions import tempfiles
 from grr_response_client.client_actions.osx import firmware
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import apple_firmware as rdf_apple_firmware
 from grr.test_lib import client_test_lib
 from grr.test_lib import test_lib
@@ -51,7 +50,8 @@ class TestEficheckCollect(client_test_lib.EmptyActionTest):
     glob.glob.return_value = ["./MBP142.88Z.F000.B00.123.0.ealf"]
 
     args = rdf_apple_firmware.EficheckConfig()
-    with utils.Stubber(tempfiles, "DeleteGRRTempFile", lambda filename: None):
+    with mock.patch.object(tempfiles, "DeleteGRRTempFile",
+                           lambda filename: None):
       result = self.RunAction(firmware.EficheckCollectHashes, args)[0]
 
     self.assertEqual(result.boot_rom_version, "MBP142.88Z.F000.B00.123.0")
@@ -76,7 +76,8 @@ class TestEficheckCollect(client_test_lib.EmptyActionTest):
     glob.glob.return_value = ["./MBP61.ealf", "$(id).ealf", "`id`.ealf"]
 
     args = rdf_apple_firmware.EficheckConfig()
-    with utils.Stubber(tempfiles, "DeleteGRRTempFile", lambda filename: None):
+    with mock.patch.object(tempfiles, "DeleteGRRTempFile",
+                           lambda filename: None):
       results = self.RunAction(firmware.EficheckCollectHashes, args)
     self.assertLen(results, 1)
 
@@ -86,8 +87,8 @@ class TestEficheckCollect(client_test_lib.EmptyActionTest):
     client_utils_common.Execute = MockExecute
 
     args = rdf_apple_firmware.EficheckConfig()
-    with utils.Stubber(tempfiles, "GetDefaultGRRTempDirectory", lambda **kw: os.
-                       path.abspath(self.temp_dir)):
+    with mock.patch.object(tempfiles, "GetDefaultGRRTempDirectory",
+                           lambda **kw: os.path.abspath(self.temp_dir)):
       result = self.RunAction(firmware.EficheckDumpImage, args)[0]
 
     self.assertEqual(result.eficheck_version, "v1.14")

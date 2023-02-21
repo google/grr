@@ -7,6 +7,7 @@ import itertools
 import logging
 import os
 
+import yaml
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -15,7 +16,6 @@ from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util.compat import yaml
 from grr_response_proto import anomaly_pb2
 from grr_response_proto import checks_pb2
 from grr_response_server.check_lib import filters
@@ -301,9 +301,6 @@ class CheckResult(rdf_structs.RDFProtoStruct):
   def __bool__(self):
     return bool(self.anomaly)
 
-  # TODO: Remove after support for Python 2 is dropped.
-  __nonzero__ = __bool__
-
   def ExtendAnomalies(self, other):
     """Merge anomalies from another CheckResult."""
     for o in other:
@@ -322,9 +319,6 @@ class CheckResults(rdf_structs.RDFProtoStruct):
 
   def __bool__(self):
     return bool(self.result)
-
-  # TODO: Remove after support for Python 2 is dropped.
-  __nonzero__ = __bool__
 
 
 class Check(rdf_structs.RDFProtoStruct):
@@ -768,7 +762,8 @@ def CheckHost(host_data,
 
 def LoadConfigsFromFile(file_path):
   """Loads check definitions from a file."""
-  return {d["check_id"]: d for d in yaml.ReadManyFromPath(file_path)}
+  with open(file_path, mode="rt", encoding="utf-8") as file_desc:
+    return {d["check_id"]: d for d in yaml.safe_load_all(file_desc)}
 
 
 def LoadCheckFromFile(file_path, check_id, overwrite_if_exists=True):

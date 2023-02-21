@@ -76,9 +76,7 @@ class Develop(develop):
   """Build developer version (pip install -e)."""
 
   user_options = develop.user_options + [
-      # TODO: This has to be `bytes` on Python 2. Remove this `str`
-      # call once support for Python 2 is dropped.
-      (str("no-make-ui-files"), None, "Don't build UI JS/CSS bundles."),
+      ("no-make-ui-files", None, "Don't build UI JS/CSS bundles."),
   ]
 
   def initialize_options(self):
@@ -101,9 +99,7 @@ class Sdist(sdist):
   """Build sdist."""
 
   user_options = sdist.user_options + [
-      # TODO: This has to be `bytes` on Python 2. Remove this `str`
-      # call once support for Python 2 is dropped.
-      (str("no-make-ui-files"), None, "Don't build UI JS/CSS bundles."),
+      ("no-make-ui-files", None, "Don't build UI JS/CSS bundles."),
   ]
 
   def initialize_options(self):
@@ -138,9 +134,7 @@ data_files = list(
         find_data_files(
             "grr_response_server/gui/local/static",
             ignore_dirs=IGNORE_GUI_DIRS),
-        # TODO: This has to be `bytes` on Python 2. Remove this
-        # `str` call once support for Python 2 is dropped.
-        [str("version.ini")],
+        ["version.ini"],
     ))
 
 setup_args = dict(

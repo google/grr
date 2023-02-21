@@ -15,12 +15,12 @@ import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
-import {ApprovalChipModule} from '../client/approval_chip/approval_chip_module';
+import {ApprovalChipModule} from '../approval_chip/approval_chip_module';
 import {SubmitOnMetaEnterModule} from '../form/submit_on_meta_enter/submit_on_meta_enter_module';
 import {TextWithLinksModule} from '../helpers/text_with_links/text_with_links_module';
 import {UserImageModule} from '../user_image/module';
 
-import {Approval} from './approval';
+import {ApprovalCard} from './approval_card';
 
 /**
  * Module for the approval details component.
@@ -51,11 +51,11 @@ import {Approval} from './approval';
     TextWithLinksModule,
   ],
   declarations: [
-    Approval,
+    ApprovalCard,
   ],
   exports: [
-    Approval,
+    ApprovalCard,
   ],
 })
-export class ApprovalModule {
+export class ApprovalCardModule {
 }

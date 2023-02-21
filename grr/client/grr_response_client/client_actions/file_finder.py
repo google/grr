@@ -126,7 +126,7 @@ class FileFinderOS(actions.ActionPlugin):
         raise _SkipFileException()
 
   def _ValidateContent(self, stat, filepath, matches):
-    if self._content_conditions and stat.IsDirectory():
+    if self._content_conditions and not stat.IsRegular():
       raise _SkipFileException()
 
     for content_condition in self._content_conditions:

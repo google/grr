@@ -13,7 +13,7 @@ import {AngularSplitModule} from 'angular-split';
 
 import {FlowFormModule} from '../../components/flow_form/module';
 import {FlowListModule} from '../../components/flow_list/module';
-import {ApprovalModule} from '../approval/module';
+import {ApprovalCardModule} from '../approval_card/module';
 import {ClientOverviewModule} from '../client_overview/module';
 import {FileDetailsModule} from '../file_details/file_details_module';
 import {DrawerLinkModule} from '../helpers/drawer_link/drawer_link_module';
@@ -40,7 +40,7 @@ import {VfsSection} from './vfs_section';
 
     AngularSplitModule,
 
-    ApprovalModule,          ClientOverviewModule,
+    ApprovalCardModule,      ClientOverviewModule,
     ClientPageRoutingModule, DrawerLinkModule,
     FileDetailsModule,       FlowFormModule,
     FlowListModule,          HumanReadableSizeModule,

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test the hunt results interface."""
 
 from unittest import mock

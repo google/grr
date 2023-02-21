@@ -7,7 +7,7 @@ core/grr_response_core/config/output_plugins.py
 The specification for the indexing of documents is
 https://www.elastic.co/guide/en/elasticsearch/reference/7.1/docs-index_.html
 """
-
+import json
 from typing import Any
 from typing import Dict
 from typing import List
@@ -21,7 +21,6 @@ from grr_response_core import config
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util.compat import json
 from grr_response_proto import output_plugin_pb2
 from grr_response_server import data_store
 from grr_response_server import export
@@ -131,22 +130,31 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
     return event
 
   def _SendEvents(self, events: List[JsonDict]) -> None:
-    """Uses the Elasticsearch bulk API to index all events in a single request."""
+    """Uses the Elasticsearch bulk API to index all events in a single request.
+    """
     # https://www.elastic.co/guide/en/elasticsearch/reference/7.1/docs-bulk.html
 
     if self._token:
-      headers = {"Authorization": "Basic {}".format(self._token), "Content-Type": "application/json"}
+      headers = {
+          "Authorization": "Basic {}".format(self._token),
+          "Content-Type": "application/json"
+      }
     else:
       headers = {"Content-Type": "application/json"}
 
-    index_command = json.Dump({"index": {"_index": self._index}}, indent=None)
+    index_command = json.dumps({"index": {"_index": self._index}}, indent=None)
 
     # Each index operation is two lines, the first defining the index settings,
     # the second is the actual document to be indexed
-    data = "\n".join([
-        "{}\n{}".format(index_command, json.Dump(event, indent=None))
-        for event in events
-    ]) + "\n"
+    data = (
+        "\n".join(
+            [
+                "{}\n{}".format(index_command, json.dumps(event, indent=None))
+                for event in events
+            ]
+        )
+        + "\n"
+    )
 
     response = requests.post(
         url=self._url, verify=self._verify_https, data=data, headers=headers)

@@ -217,13 +217,17 @@ class MySQLDBHuntMixin(object):
     return self._HuntObjectFromRow(cursor.fetchone())
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ReadHuntObjects(self,
-                      offset,
-                      count,
-                      with_creator=None,
-                      created_after=None,
-                      with_description_match=None,
-                      cursor=None):
+  def ReadHuntObjects(
+      self,
+      offset,
+      count,
+      with_creator=None,
+      created_after=None,
+      with_description_match=None,
+      created_by=None,
+      not_created_by=None,
+      cursor=None,
+  ):
     """Reads multiple hunt objects from the database."""
     query = "SELECT {columns} FROM hunts ".format(columns=_HUNT_COLUMNS_SELECT)
     args = []
@@ -232,6 +236,23 @@ class MySQLDBHuntMixin(object):
     if with_creator is not None:
       components.append("creator = %s ")
       args.append(with_creator)
+
+    if created_by is not None:
+      # If it is an empty list of creators, return empty results.
+      if not created_by:
+        return []
+      components.append("creator IN %s ")
+      # We explicitly convert created_by into a list because the cursor
+      # implementation does not know how to convert a `frozenset` to a string.
+      # The cursor implementation knows how to convert lists and ordinary sets.
+      args.append(list(created_by))
+
+    if not_created_by:
+      components.append("creator NOT IN %s ")
+      # We explicitly convert not_created_by into a list because the cursor
+      # implementation does not know how to convert a `frozenset` to a string.
+      # The cursor implementation knows how to convert lists and ordinary sets.
+      args.append(list(not_created_by))
 
     if created_after is not None:
       components.append("create_timestamp > FROM_UNIXTIME(%s) ")
@@ -252,13 +273,17 @@ class MySQLDBHuntMixin(object):
     return [self._HuntObjectFromRow(row) for row in cursor.fetchall()]
 
   @mysql_utils.WithTransaction(readonly=True)
-  def ListHuntObjects(self,
-                      offset,
-                      count,
-                      with_creator=None,
-                      created_after=None,
-                      with_description_match=None,
-                      cursor=None):
+  def ListHuntObjects(
+      self,
+      offset,
+      count,
+      with_creator=None,
+      created_after=None,
+      with_description_match=None,
+      created_by=None,
+      not_created_by=None,
+      cursor=None,
+  ):
     """Reads metadata for hunt objects from the database."""
     query = """
     SELECT
@@ -281,6 +306,23 @@ class MySQLDBHuntMixin(object):
     if with_creator is not None:
       components.append("creator = %s ")
       args.append(with_creator)
+
+    if created_by is not None:
+      # If it is an empty list of creators, return empty results.
+      if not created_by:
+        return []
+      components.append("creator IN %s ")
+      # We explicitly convert created_by into a list because the cursor
+      # implementation does not know how to convert a `frozenset` to a string.
+      # The cursor implementation knows how to convert lists and ordinary sets.
+      args.append(list(created_by))
+
+    if not_created_by:
+      components.append("creator NOT IN %s ")
+      # We explicitly convert not_created_by into a list because the cursor
+      # implementation does not know how to convert a `frozenset` to a string.
+      # The cursor implementation knows how to convert lists and ordinary sets.
+      args.append(list(not_created_by))
 
     if created_after is not None:
       components.append("create_timestamp > FROM_UNIXTIME(%s) ")
@@ -338,8 +380,10 @@ class MySQLDBHuntMixin(object):
       # still want to get plugin's definition and state back and not fail hard,
       # so that all other plugins can be read.
       if plugin_args_cls is not None:
-        plugin_descriptor.plugin_args = plugin_args_cls.FromSerializedBytes(
+        plugin_descriptor.args = plugin_args_cls.FromSerializedBytes(
             plugin_args_bytes)
+      else:  # Avoid missing information even if we cannot unpack it.
+        plugin_descriptor.args = plugin_args_bytes
 
     plugin_state = rdf_protodict.AttributedDict.FromSerializedBytes(
         plugin_state_bytes)
@@ -384,10 +428,13 @@ class MySQLDBHuntMixin(object):
                    columns=columns, placeholders=placeholders))
       args = [hunt_id_int, index, state.plugin_descriptor.plugin_name]
 
-      if state.plugin_descriptor.plugin_args is None:
-        args.append(None)
-      else:
+      # TODO: Stop reading `plugin_args` at all (no fallback).
+      if state.plugin_descriptor.HasField("args"):
+        args.append(state.plugin_descriptor.args.SerializeToBytes())
+      elif state.plugin_descriptor.HasField("plugin_args"):
         args.append(state.plugin_descriptor.plugin_args.SerializeToBytes())
+      else:
+        args.append(None)
 
       args.append(state.plugin_state.SerializeToBytes())
 

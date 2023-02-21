@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for utility classes."""
 
 import contextlib
@@ -13,7 +12,6 @@ from absl import app
 from absl.testing import absltest
 
 from grr_response_core.lib import utils
-from grr_response_core.lib.util import compatibility
 from grr.test_lib import test_lib
 
 # Test method names don't conform with Google style
@@ -310,7 +308,7 @@ class RunOnceTest(absltest.TestCase):
 
   def testDecoratedFunctionIsCalledAtLeastOnce(self):
     mock_fn = mock.Mock()
-    mock_fn.__name__ = compatibility.NativeStr("MockFunction")
+    mock_fn.__name__ = "MockFunction"
     fn = utils.RunOnce(mock_fn)
     mock_fn.assert_not_called()
     fn()
@@ -318,7 +316,7 @@ class RunOnceTest(absltest.TestCase):
 
   def testDecoratedFunctionIsCalledAtMostOnce(self):
     mock_fn = mock.Mock(side_effect=[None, AssertionError()])
-    mock_fn.__name__ = compatibility.NativeStr("MockFunction")
+    mock_fn.__name__ = "MockFunction"
     fn = utils.RunOnce(mock_fn)
     fn()
     fn()
@@ -327,28 +325,28 @@ class RunOnceTest(absltest.TestCase):
 
   def testArgumentsArePassedThrough(self):
     mock_fn = mock.Mock()
-    mock_fn.__name__ = compatibility.NativeStr("MockFunction")
+    mock_fn.__name__ = "MockFunction"
     fn = utils.RunOnce(mock_fn)
     fn(1, 2, foo="bar")
     mock_fn.assert_called_once_with(1, 2, foo="bar")
 
   def testReturnValueIsPassedThrough(self):
     mock_fn = mock.Mock(return_value="bar")
-    mock_fn.__name__ = compatibility.NativeStr("MockFunction")
+    mock_fn.__name__ = "MockFunction"
     fn = utils.RunOnce(mock_fn)
     self.assertEqual("bar", fn())
 
   def testReturnValueForFollowingCallsIsCached(self):
     result = object()
     mock_fn = mock.Mock(side_effect=[result])
-    mock_fn.__name__ = compatibility.NativeStr("MockFunction")
+    mock_fn.__name__ = "MockFunction"
     fn = utils.RunOnce(mock_fn)
     self.assertIs(fn(), result)
     self.assertIs(fn(), result)
 
   def testExceptionsArePassedThrough(self):
     mock_fn = mock.Mock(side_effect=ValueError())
-    mock_fn.__name__ = compatibility.NativeStr("MockFunction")
+    mock_fn.__name__ = "MockFunction"
     fn = utils.RunOnce(mock_fn)
     with self.assertRaises(ValueError):
       fn()
@@ -357,9 +355,9 @@ class RunOnceTest(absltest.TestCase):
 
   def testWrapsFunctionProperly(self):
     mock_fn = mock.Mock()
-    mock_fn.__name__ = compatibility.NativeStr("MockFunction")
+    mock_fn.__name__ = "MockFunction"
     fn = utils.RunOnce(mock_fn)
-    self.assertEqual(fn.__name__, compatibility.NativeStr("MockFunction"))
+    self.assertEqual(fn.__name__, "MockFunction")
 
 
 class StreamingZipGeneratorTest(absltest.TestCase):

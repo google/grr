@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests the client file finder action."""
 
 import collections
@@ -199,10 +198,10 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       self.assertIn("lnk_target/contents", relative_results)
       self.assertIn("lnk/contents", relative_results)
 
-      # TODO: This fails currently.
-      # results = self._RunFileFinder(paths, self.stat_action,
-      #                               conditions=[condition],
-      #                               follow_links=False)
+      results = self._RunFileFinder(
+          paths, self.stat_action, conditions=[condition], follow_links=False)
+      self.assertLen(results, 1)
+      self.assertEqual(results[0].stat_entry.pathspec.path, contents)
 
     finally:
       try:

@@ -6,7 +6,6 @@ import re
 from typing import Optional
 from typing import Text
 
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 from grr_response_server.gui import api_call_context
@@ -197,7 +196,7 @@ class ApiCallRouter:
     # We want methods with the highest call-order to be processed last,
     # so that their annotations have precedence.
     for i_cls in reversed(inspect.getmro(cls)):
-      for name in compatibility.ListAttrs(i_cls):
+      for name in dir(i_cls):
         cls_method = getattr(i_cls, name)
 
         if not callable(cls_method):
@@ -963,6 +962,15 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Hunts")
+  @ArgsType(api_hunt.ApiVerifyHuntAccessArgs)
+  @ResultType(api_hunt.ApiVerifyHuntAccessResult)
+  @Http("GET", "/api/hunts/<hunt_id>/access")
+  def VerifyHuntAccess(self, args, context=None):
+    """Verifies if user has access to a hunt."""
+
+    raise NotImplementedError()
+
+  @Category("Hunts")
   @ArgsType(api_hunt.ApiGetHuntArgs)
   @ResultType(api_hunt.ApiHunt)
   @Http("GET", "/api/hunts/<hunt_id>", strip_root_types=False)
@@ -996,6 +1004,15 @@ class ApiCallRouterStub(ApiCallRouter):
   @Http("GET", "/api/hunts/<hunt_id>/results")
   def ListHuntResults(self, args, context=None):
     """List hunt results."""
+
+    raise NotImplementedError()
+
+  @Category("Hunts")
+  @ArgsType(api_hunt.ApiCountHuntResultsByTypeArgs)
+  @ResultType(api_hunt.ApiCountHuntResultsByTypeResult)
+  @Http("GET", "/api/hunts/<hunt_id>/result-counts")
+  def CountHuntResultsByType(self, args, context=None):
+    """Count all hunt results by type."""
 
     raise NotImplementedError()
 
@@ -1282,6 +1299,7 @@ class ApiCallRouterStub(ApiCallRouter):
   @ResultType(api_user.ApiListHuntApprovalsResult)
   @NoAuditLogRequired()
   @Http("GET", "/api/users/me/approvals/hunt")
+  @Http("GET", "/api/users/me/approvals/hunt/<hunt_id>")
   def ListHuntApprovals(self, args, context=None):
     """List hunt approvals of a current user."""
 

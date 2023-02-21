@@ -18,7 +18,6 @@ from grr_response_core import config
 from grr_response_core.config import server as config_server
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_core.lib.util import compatibility
 from grr_response_server import communicator
 from grr_response_server import frontend_lib
 from grr_response_server import server_logging
@@ -193,10 +192,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
       api_version = 3
 
     try:
-      if compatibility.PY2:
-        content_length = self.headers.getheader("content-length")
-      else:
-        content_length = self.headers.get("content-length")
+      content_length = self.headers.get("content-length")
       if not content_length:
         raise IOError("No content-length header provided.")
 
@@ -214,15 +210,7 @@ class GRRHTTPServerHandler(http_server.BaseHTTPRequestHandler):
       responses_comms = rdf_flows.ClientCommunication(
           api_version=request_comms.api_version)
 
-      # TODO: Python's documentation is just plain terrible and
-      # does not explain what `client_address` exactly is or what type does it
-      # have (because its Python, why would they bother) so just to be on the
-      # safe side, we anticipate byte-string addresses in Python 2 and convert
-      # that if needed. On Python 3 these should be always unicode strings, so
-      # once support for Python 2 is dropped this branch can be removed.
       address = self.client_address[0]
-      if compatibility.PY2 and isinstance(self.client_address[0], bytes):
-        address = address.decode("ascii")
       source_ip = ipaddress.ip_address(address)
 
       if source_ip.version == 6:

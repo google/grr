@@ -13,7 +13,6 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.util import compatibility
 
 # Difference between 1 Jan 1601 and 1 Jan 1970.
 WIN_UNIX_DIFF_MSECS = 11644473600
@@ -463,13 +462,6 @@ class RegistryFile(vfs_base.VFSHandler):
 
     if self.hive is None:
       for name in dir(winreg):
-        # TODO: `dir` call in Python 2 yields names as a list of
-        # `bytes` objects. Because `JoinPath` requires `unicode` objects, we
-        # have to properly convert these. Once support for Python 2 is dropped,
-        # this part be removed.
-        if compatibility.PY2:
-          name = name.decode("utf-8")
-
         if name.startswith("HKEY_"):
           response = rdf_client_fs.StatEntry(st_mode=stat.S_IFDIR)
           response_pathspec = self.pathspec.Copy()

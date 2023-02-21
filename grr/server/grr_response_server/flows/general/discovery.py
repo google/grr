@@ -14,7 +14,6 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
 from grr_response_server import artifact
@@ -58,29 +57,25 @@ class Interrogate(flow_base.FlowBase):
     # ClientInfo should be collected early on since we might need the client
     # version later on to know what actions a client supports.
     self.CallClient(
-        server_stubs.GetClientInfo,
-        next_state=compatibility.GetName(self.ClientInfo))
+        server_stubs.GetClientInfo, next_state=self.ClientInfo.__name__)
     self.CallClient(
-        server_stubs.GetPlatformInfo,
-        next_state=compatibility.GetName(self.Platform))
+        server_stubs.GetPlatformInfo, next_state=self.Platform.__name__)
     self.CallClient(
-        server_stubs.GetMemorySize,
-        next_state=compatibility.GetName(self.StoreMemorySize))
+        server_stubs.GetMemorySize, next_state=self.StoreMemorySize.__name__)
     self.CallClient(
-        server_stubs.GetInstallDate,
-        next_state=compatibility.GetName(self.InstallDate))
+        server_stubs.GetInstallDate, next_state=self.InstallDate.__name__)
     self.CallClient(
         server_stubs.GetConfiguration,
-        next_state=compatibility.GetName(self.ClientConfiguration))
+        next_state=self.ClientConfiguration.__name__)
     self.CallClient(
         server_stubs.GetLibraryVersions,
-        next_state=compatibility.GetName(self.ClientLibraries))
+        next_state=self.ClientLibraries.__name__)
     self.CallClient(
         server_stubs.EnumerateInterfaces,
-        next_state=compatibility.GetName(self.EnumerateInterfaces))
+        next_state=self.EnumerateInterfaces.__name__)
     self.CallClient(
         server_stubs.EnumerateFilesystems,
-        next_state=compatibility.GetName(self.EnumerateFilesystems))
+        next_state=self.EnumerateFilesystems.__name__)
 
     flow_args_cls = rdf_artifacts.ArtifactCollectorFlowArgs
     if config.CONFIG["Artifacts.edr_agents"]:
@@ -88,7 +83,7 @@ class Interrogate(flow_base.FlowBase):
           collectors.ArtifactCollectorFlow.__name__,
           artifact_list=config.CONFIG["Artifacts.edr_agents"],
           dependencies=flow_args_cls.Dependency.IGNORE_DEPS,
-          next_state=compatibility.GetName(self.ProcessEdrAgents))
+          next_state=self.ProcessEdrAgents.__name__)
 
   def CloudMetadata(self, responses):
     """Process cloud metadata and store in the client."""
@@ -150,7 +145,7 @@ class Interrogate(flow_base.FlowBase):
         self.CallClient(
             server_stubs.GetCloudVMMetadata,
             rdf_cloud.BuildCloudMetadataRequests(),
-            next_state=compatibility.GetName(self.CloudMetadata))
+            next_state=self.CloudMetadata.__name__)
 
       known_system_type = True
     else:
@@ -168,7 +163,7 @@ class Interrogate(flow_base.FlowBase):
           artifact.KnowledgeBaseInitializationFlow.__name__,
           require_complete=False,
           lightweight=self.args.lightweight,
-          next_state=compatibility.GetName(self.ProcessKnowledgeBase))
+          next_state=self.ProcessKnowledgeBase.__name__)
     else:
       self.Log("Unknown system type, skipping KnowledgeBaseInitializationFlow")
 
@@ -218,7 +213,7 @@ class Interrogate(flow_base.FlowBase):
           collectors.ArtifactCollectorFlow.__name__,
           artifact_list=non_kb_artifacts,
           knowledge_base=kb,
-          next_state=compatibility.GetName(self.ProcessArtifactResponses))
+          next_state=self.ProcessArtifactResponses.__name__)
 
     try:
       # Update the client index for the rdf_objects.ClientSnapshot.

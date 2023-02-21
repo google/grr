@@ -1,12 +1,10 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test the vfs refreshing functionality."""
 
 from absl import app
 from flaky import flaky
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server.flows.general import filesystem
 from grr_response_server.flows.general import transfer
@@ -60,7 +58,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     # Make sure that the flow has started (when button is clicked, the HTTP
     # API request is sent asynchronously).
     def MultiGetFileStarted():
-      return compatibility.GetName(transfer.MultiGetFile) in [
+      return transfer.MultiGetFile.__name__ in [
           f.flow_class_name for f in data_store.REL_DB.ReadAllFlowObjects(
               client_id=self.client_id)
       ]

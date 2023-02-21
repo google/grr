@@ -44,13 +44,10 @@ class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):
   def plugin_args(self) -> _V:
     # Use new `args` field if available, else fallback to `plugin_args`.
     if self.HasField("args"):
-      return self.args.Unpack(self.GetPluginArgsClass())
+      return self.Get("args")
 
+    # TODO: Stop reading `plugin_args` at all (no fallback).
     return self.Get("plugin_args")
-
-  @plugin_args.setter
-  def plugin_args(self, value: bytes) -> None:
-    self.Set("plugin_args", value)
 
   def __str__(self) -> Text:
     result = self.plugin_name

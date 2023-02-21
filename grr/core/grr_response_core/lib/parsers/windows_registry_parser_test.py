@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for grr.parsers.windows_registry_parser."""
 
 
@@ -10,7 +9,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.util import compatibility
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -79,13 +77,7 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
       elif str(result.registry_key).endswith("AcpiPmi"):
         self.assertEqual(result.name, "AcpiPmi")
         self.assertEqual(result.startup_type, 3)
-        # TODO: String representation in Python 2 represents
-        # unicode strings with "u" prefix and there is nothing we can do about
-        # that.
-        if compatibility.PY2:
-          self.assertEqual(result.display_name, "[u'AcpiPmi']")
-        else:
-          self.assertEqual(result.display_name, "['AcpiPmi']")
+        self.assertEqual(result.display_name, "['AcpiPmi']")
         self.assertEqual(result.registry_key, "%s/AcpiPmi" % hklm_set01)
         names.append(result.display_name)
       elif str(result.registry_key).endswith("ACPI"):
@@ -99,13 +91,8 @@ class WindowsRegistryParserTest(flow_test_lib.FlowTestsBaseclass):
         self.assertEqual(result.driver_package_id,
                          "acpi.inf_amd64_neutral_99aaaaabcccccccc")
         names.append(result.display_name)
-    # TODO: See TODO comment above.
-    if compatibility.PY2:
-      self.assertCountEqual(names,
-                            [u"中国日报", "[u'AcpiPmi']", "Microsoft ACPI Driver"])
-    else:
-      self.assertCountEqual(names,
-                            [u"中国日报", "['AcpiPmi']", "Microsoft ACPI Driver"])
+    self.assertCountEqual(names,
+                          [u"中国日报", "['AcpiPmi']", "Microsoft ACPI Driver"])
 
   def testWinUserSpecialDirs(self):
     reg_str = rdf_client_fs.StatEntry.RegistryType.REG_SZ

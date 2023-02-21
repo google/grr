@@ -1,10 +1,10 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {MatButtonToggleHarness} from '@angular/material/button-toggle/testing';
+import {TestBed, waitForAsync} from '@angular/core/testing';
 import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
+import {getInputValue, isButtonToggleSelected, selectButtonToggle, setInputValue} from '../../../../form_testing';
 import {NewHuntLocalStore} from '../../../../store/new_hunt_local_store';
 import {mockNewHuntLocalStore} from '../../../../store/new_hunt_local_store_test_util';
 import {injectMockStore, STORE_PROVIDERS} from '../../../../store/store_test_providers';
@@ -14,39 +14,6 @@ import {ParamsFormModule} from './module';
 import {ParamsForm} from './params_form';
 
 initTestEnvironment();
-
-async function setInputValue(
-    fixture: ComponentFixture<unknown>, query: string, value: string) {
-  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const inputHarness =
-      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
-  await inputHarness.setValue(value);
-}
-
-async function getInputValue(
-    fixture: ComponentFixture<unknown>, query: string): Promise<string> {
-  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const inputHarness =
-      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
-  return await inputHarness.getValue();
-}
-
-async function selectButton(
-    fixture: ComponentFixture<unknown>, query: string, text: string) {
-  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const toggle = await harnessLoader.getHarness(
-      MatButtonToggleHarness.with({selector: query, text}));
-  await toggle.check();
-}
-
-async function isButtonSelected(
-    fixture: ComponentFixture<unknown>, query: string,
-    text: string): Promise<boolean> {
-  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const toggle = await harnessLoader.getHarness(
-      MatButtonToggleHarness.with({selector: query, text}));
-  return await toggle.isChecked();
-}
 
 describe('params form test', () => {
   beforeEach(waitForAsync(() => {
@@ -153,8 +120,8 @@ describe('params form test', () => {
        const fixture = TestBed.createComponent(ParamsForm);
        fixture.detectChanges();
 
-       await selectButton(fixture, '.rollout-speed-option', 'Unlimited');
-       await selectButton(fixture, '.run-on-option', 'Custom');
+       await selectButtonToggle(fixture, '.rollout-speed-option', 'Unlimited');
+       await selectButtonToggle(fixture, '.run-on-option', 'Custom');
        fixture.detectChanges();
        await setInputValue(fixture, '[name=customClientLimit]', '2022');
        await setInputValue(fixture, '[name=activeFor]', '1 h');
@@ -201,10 +168,10 @@ describe('params form test', () => {
       networkBytesLimit: BigInt(13),
     });
 
-    expect(
-        await isButtonSelected(fixture, '.rollout-speed-option', 'Unlimited'))
+    expect(await isButtonToggleSelected(
+               fixture, '.rollout-speed-option', 'Unlimited'))
         .toBe(true);
-    expect(await isButtonSelected(fixture, '.run-on-option', 'Custom'))
+    expect(await isButtonToggleSelected(fixture, '.run-on-option', 'Custom'))
         .toBe(true);
     expect(await getInputValue(fixture, '[name=customClientLimit]'))
         .toBe('2022');

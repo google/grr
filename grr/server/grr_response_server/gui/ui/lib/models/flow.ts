@@ -1,6 +1,6 @@
-import {EventEmitter} from '@angular/core';
+import {Directive, Injectable} from '@angular/core';
+import {Observable} from 'rxjs';
 
-import {isNonNull} from '../preconditions';
 
 /** Descriptor containing information about a flow class. */
 export declare interface FlowDescriptor {
@@ -331,6 +331,12 @@ export interface ResultQuery {
   readonly count: number;
 }
 
+/** A query describing what type & tag of flow/hunt results to load. */
+export interface ResultTypeQuery {
+  readonly type?: string;
+  readonly tag?: string;
+}
+
 /**
  * An interface for @Component()s that can render flow/hunt results.
  * These components expect results to be preloaded and assigned to `data`.
@@ -341,21 +347,26 @@ export interface PreloadedResultView<T> {
 }
 
 /**
- * An interface for @Component()s that query and render flow results.
+ * A base class for @Component()s that query and render flow results.
  *
- * These components expect `totalCount` to be provided. No results should be
- * preloaded. Instead, the component initiates loading results by emitting
- * loadResults.
+ * This Component injects ResultSource and handles initiates loading results,
+ * e.g. based on pagination.
  */
-export interface PaginatedResultView<T> {
-  /** @Input(): The results loaded with the query emitted from loadResults. */
-  results?: readonly FlowResult[];
+@Directive()
+export abstract class PaginatedResultView<T> {
+  constructor(protected readonly resultSource: ResultSource<T>) {}
+}
 
-  /** @Input(): The total count of results that can be loaded. */
-  totalCount: number;
-
-  /** @Output(): Emits queries to initiate loading results. */
-  readonly loadResults: EventEmitter<ResultQuery>;
+/**
+ * An abstraction over flow and hunt result sources, e.g. delegating result
+ * queries to FlowResultsLocalStore. Used by PaginatedResultView.
+ */
+@Injectable()
+export abstract class ResultSource<T> {
+  readonly abstract results$: Observable<readonly FlowResult[]>;
+  readonly abstract totalCount$: Observable<number>;
+  readonly abstract query$: Observable<ResultTypeQuery>;
+  abstract loadResults(query: ResultQuery): void;
 }
 
 /**
@@ -366,5 +377,5 @@ export interface PaginatedResultView<T> {
 export function viewQueriesResults<T>(
     view: PreloadedResultView<T>|
     PaginatedResultView<T>): view is PaginatedResultView<T> {
-  return isNonNull((view as PaginatedResultView<T>).loadResults);
+  return view instanceof PaginatedResultView;
 }

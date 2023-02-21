@@ -48,16 +48,20 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.CreateUser('approvername')
 
   def _RequestApproval(self, reason: str, approver: str):
-    self.Type('css=approval input[name=reason]', 'examplereason')
+    self.Type('css=approval-card input[name=reason]', 'examplereason')
     self.Type(
-        'css=approval .approvers input', 'approvername', end_with_enter=True)
+        'css=approval-card .approvers input',
+        'approvername',
+        end_with_enter=True,
+    )
 
     self.assertEmpty(self.ListClientApprovals())
 
-    self.Click('css=approval button[type=submit]')
+    self.Click('css=approval-card button[type=submit]')
 
-    self.WaitUntilContains('Request sent, waiting', self.GetText,
-                           'css=approval')
+    self.WaitUntilContains(
+        'Request sent, waiting', self.GetText, 'css=approval-card'
+    )
 
     def ApprovalHasBeenRequested():
       approvals = self.ListClientApprovals()
@@ -227,13 +231,13 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     )
 
     self.Type(
-        'css=flow-args-form ' +
-        'app-glob-expression-input:nth-of-type(1) input', '/foo/firstpath')
+        'css=flow-args-form ' + 'app-glob-expression-input[id=path0] input',
+        '/foo/firstpath')
 
     self.Click('css=flow-form button:contains("Add path expression")')
     self.Type(
-        'css=flow-args-form ' +
-        'app-glob-expression-input:nth-of-type(2) input', '/foo/secondpath')
+        'css=flow-args-form ' + 'app-glob-expression-input[id=path1] input',
+        '/foo/secondpath')
 
     self.Click('css=flow-form button:contains("Literal match")')
     self.Type('css=flow-args-form input[name=literal]', 'literalinput')

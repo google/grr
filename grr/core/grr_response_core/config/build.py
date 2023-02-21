@@ -6,7 +6,6 @@ import time
 
 from grr_response_core.lib import config_lib
 from grr_response_core.lib import type_info
-from grr_response_core.lib.util import compatibility
 
 config_lib.DEFINE_string(
     name="ClientBuilder.output_extension",
@@ -380,14 +379,13 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(
     name="ClientBuilder.debian_build_time",
-    default=compatibility.FormatTime("%a, %d %b %Y %H:%M:%S +0000",
-                                     time.gmtime()),
+    default=time.strftime("%a, %d %b %Y %H:%M:%S +0000", time.gmtime()),
     help="The build time put into the debian package. Needs to be formatted"
     " like the output of 'date -R'.")
 
 config_lib.DEFINE_string(
     name="ClientBuilder.rpm_build_time",
-    default=compatibility.FormatTime("%a %b %d %Y", time.gmtime()),
+    default=time.strftime("%a %b %d %Y", time.gmtime()),
     help="The build time put into the rpm package. Needs to be formatted"
     " according to the rpm specs.")
 

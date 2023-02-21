@@ -5,6 +5,7 @@ import logging
 import queue
 import threading
 import time
+from unittest import mock
 
 from absl import app
 
@@ -145,7 +146,7 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
 
     with self.assertStatsCounterDelta(
         2, threadpool.THREADPOOL_TASK_EXCEPTIONS, fields=[self.test_pool.name]):
-      with utils.Stubber(logging, "exception", MockException):
+      with mock.patch.object(logging, "exception", MockException):
         self.test_pool.AddTask(IRaise, (None,), "Raising")
         self.test_pool.AddTask(IRaise, (None,), "Raising")
         self.test_pool.Join()
@@ -168,7 +169,7 @@ class ThreadPoolTest(stats_test_lib.StatsTestMixin, test_lib.GRRBaseTest):
       raise threading.ThreadError()
 
     # Now simulate failure of creating threads.
-    with utils.Stubber(threadpool._WorkerThread, "start", RaisingStart):
+    with mock.patch.object(threadpool._WorkerThread, "start", RaisingStart):
       # Fill all the existing threads and wait for them to become busy.
       self.test_pool.AddTask(Block, (done_event,))
       self.WaitUntil(lambda: self.test_pool.busy_threads == self.

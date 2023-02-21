@@ -23,7 +23,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.util import compatibility
 from grr_response_server import communicator
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
@@ -75,8 +74,7 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
 
   def _FlowSetup(self, client_id, flow_id):
     rdf_flow = rdf_flow_objects.Flow(
-        flow_class_name=compatibility.GetName(
-            administrative.OnlineNotification),
+        flow_class_name=administrative.OnlineNotification.__name__,
         client_id=client_id,
         flow_id=flow_id,
         create_time=rdfvalue.RDFDatetime.Now())
@@ -352,8 +350,11 @@ class ClientCommsTest(stats_test_lib.StatsTestMixin,
     """Check client ping stats are updated."""
     self._MakeClientRecord()
 
+    data_store.REL_DB.WriteGRRUser("Test")
+
     with self.assertStatsCounterDelta(
         1, frontend_lib.CLIENT_PINGS_BY_LABEL, fields=["testlabel"]):
+
       data_store.REL_DB.AddClientLabels(self.client_id, "Test", ["testlabel"])
 
       now = rdfvalue.RDFDatetime.Now()
@@ -394,7 +395,7 @@ class ClientCommsTest(stats_test_lib.StatsTestMixin,
     """X509 Verify can have several failure paths."""
 
     # This is a successful verify.
-    with utils.Stubber(
+    with mock.patch.object(
         rdf_crypto.RDFX509Cert, "Verify", lambda self, public_key=None: True):
       self.client_communicator.LoadServerCertificate(
           self.server_certificate, config.CONFIG["CA.certificate"])
@@ -404,7 +405,7 @@ class ClientCommsTest(stats_test_lib.StatsTestMixin,
       raise rdf_crypto.VerificationError("Testing verification failure.")
 
     # Mock the verify function to simulate certificate failures.
-    with utils.Stubber(rdf_crypto.RDFX509Cert, "Verify", Verify):
+    with mock.patch.object(rdf_crypto.RDFX509Cert, "Verify", Verify):
       self.assertRaises(IOError, self.client_communicator.LoadServerCertificate,
                         self.server_certificate,
                         config.CONFIG["CA.certificate"])
@@ -422,10 +423,7 @@ class ClientCommsTest(stats_test_lib.StatsTestMixin,
     result = rdf_flows.ClientCommunication()
     self.client_communicator.EncodeMessages(message_list, result)
 
-    # TODO: We use `bytes` from the `future` package here to have
-    # Python 3 iteration behaviour. This call should be a noop in Python 3 and
-    # should be safe to remove on support for Python 2 is dropped.
-    cipher_text = bytes(result.SerializeToBytes())
+    cipher_text = result.SerializeToBytes()
 
     # Depending on this modification several things may happen:
     # 1) The padding may not match which will cause a decryption exception.
@@ -437,11 +435,6 @@ class ClientCommsTest(stats_test_lib.StatsTestMixin,
       # Futz with the cipher text (Make sure it's really changed)
       mod = chr((cipher_text[x] % 250) + 1).encode("latin-1")
       mod_cipher_text = cipher_text[:x] + mod + cipher_text[x + 1:]
-
-      # TODO: Now we revert back to native `bytes` object because
-      # proto deserialization assumes native indexing behaviour.
-      if compatibility.PY2:
-        mod_cipher_text = mod_cipher_text.__native__()
 
       try:
         decoded, client_id, _ = self.server_communicator.DecryptMessage(
@@ -485,7 +478,7 @@ class ClientCommsTest(stats_test_lib.StatsTestMixin,
                        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
     # Suppress the output.
-    with utils.Stubber(maintenance_utils, "EPrint", lambda msg: None):
+    with mock.patch.object(maintenance_utils, "EPrint", lambda msg: None):
       maintenance_utils.RotateServerKey()
 
     server_certificate = config.CONFIG["Frontend.certificate"]
@@ -533,13 +526,13 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
     # And cache it in the server
     self.CreateNewServerCommunicator()
 
-    requests_stubber = utils.Stubber(requests, "request", self.UrlMock)
-    requests_stubber.Start()
-    self.addCleanup(requests_stubber.Stop)
+    requests_stubber = mock.patch.object(requests, "request", self.UrlMock)
+    requests_stubber.start()
+    self.addCleanup(requests_stubber.stop)
 
-    sleep_stubber = utils.Stubber(time, "sleep", lambda x: None)
-    sleep_stubber.Start()
-    self.addCleanup(sleep_stubber.Stop)
+    sleep_stubber = mock.patch.object(time, "sleep", lambda x: None)
+    sleep_stubber.start()
+    self.addCleanup(sleep_stubber.stop)
 
     self.messages = []
 
@@ -845,17 +838,7 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
           # This converts encryption keys to a string so we can corrupt them.
           field_data = field_data.SerializeToBytes()
 
-        # TODO: We use `bytes` from the `future` package here to
-        # have Python 3 iteration behaviour. This call should be a noop in
-        # Python 3 and should be safe to remove on support for Python 2 is
-        # dropped.
-        field_data = bytes(field_data)
-
-        # TODO: On Python 2.7.6 and lower `array.array` accepts
-        # only byte strings as argument so the call below is necessary. Once
-        # support for old Python versions is dropped, this call should be
-        # removed.
-        modified_data = array.array(compatibility.NativeStr("B"), field_data)
+        modified_data = array.array("B", field_data)
         offset = len(field_data) // 2
         char = field_data[offset]
         modified_data[offset] = char % 250 + 1
@@ -875,7 +858,7 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
       data = self.client_communication.SerializeToBytes()
       return self.UrlMock(url=url, data=data, **kwargs)
 
-    with utils.Stubber(requests, "request", Corruptor):
+    with mock.patch.object(requests, "request", Corruptor):
       self.SendToServer()
       status = self.client_communicator.RunOnce()
       self.assertEqual(status.code, 200)
@@ -913,7 +896,7 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
 
       raise MakeHTTPException(500)
 
-    with utils.Stubber(requests, "request", FlakyServer):
+    with mock.patch.object(requests, "request", FlakyServer):
       self.SendToServer()
       status = self.client_communicator.RunOnce()
       self.assertEqual(status.code, 500)
@@ -952,8 +935,8 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
       self.client_communicator.client_worker.stats_collector._Send()
 
     runs = []
-    with utils.Stubber(admin.GetClientStatsAuto, "Run",
-                       lambda cls, _: runs.append(1)):
+    with mock.patch.object(admin.GetClientStatsAuto, "Run",
+                           lambda cls, _: runs.append(1)):
 
       # No stats collection after 10 minutes.
       with test_lib.FakeTime(now + 600):
@@ -985,8 +968,8 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
       self.client_communicator.client_worker.stats_collector._Send()
 
     runs = []
-    with utils.Stubber(admin.GetClientStatsAuto, "Run",
-                       lambda cls, _: runs.append(1)):
+    with mock.patch.object(admin.GetClientStatsAuto, "Run",
+                           lambda cls, _: runs.append(1)):
 
       # No stats collection after 30 seconds.
       with test_lib.FakeTime(now + 30):
@@ -1021,8 +1004,8 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
       self.client_communicator.client_worker.stats_collector._Send()
 
     runs = []
-    with utils.Stubber(admin.GetClientStatsAuto, "Run",
-                       lambda cls, _: runs.append(1)):
+    with mock.patch.object(admin.GetClientStatsAuto, "Run",
+                           lambda cls, _: runs.append(1)):
 
       # No stats collection after 30 seconds.
       with test_lib.FakeTime(now + 30):

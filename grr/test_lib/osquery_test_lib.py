@@ -31,6 +31,18 @@ $EOF$
   return _FakeOsqueryiScript(script)
 
 
+def FakeOsqueryiError(stderr: Text) -> ContextManager[None]:
+  """A context manager with osqueryi executable always erroring out."""
+  script = """\
+#!/usr/bin/env bash
+>&2 cat << $EOF$
+{stderr}
+$EOF$
+false
+  """.format(stderr=stderr)
+  return _FakeOsqueryiScript(script)
+
+
 def FakeOsqueryiSleep(time: float) -> ContextManager[None]:
   """A context manager with osqueryi executable hanging for some time."""
   script = """\

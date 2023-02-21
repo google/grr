@@ -4,7 +4,7 @@ import {Observable, of} from 'rxjs';
 import {filter, map, shareReplay, switchMap, tap} from 'rxjs/operators';
 
 import {HttpApiService} from '../lib/api/http_api_service';
-import {translateApproval} from '../lib/api_translation/client';
+import {translateClientApproval} from '../lib/api_translation/client';
 import {ClientApproval} from '../lib/models/client';
 import {isNonNull} from '../lib/preconditions';
 
@@ -34,7 +34,7 @@ class HomePageComponentStore extends ComponentStore<HomePageState> {
       obs$ => obs$.pipe(
           switchMap(
               () => this.httpApiService.listRecentClientApprovals({count: 20})),
-          map(approvals => approvals.map(translateApproval)),
+          map(approvals => approvals.map(translateClientApproval)),
           tap(approvals => {
             this.updateRecentApprovals(approvals);
           }),

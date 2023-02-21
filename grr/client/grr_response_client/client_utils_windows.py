@@ -5,7 +5,6 @@ import ctypes
 import logging
 import os
 import re
-import sys
 
 import ntsecuritycon
 import pywintypes
@@ -262,19 +261,7 @@ class Kernel32(object):
 
   def __init__(self):
     if not Kernel32._kernel32:
-      # TODO(hanuszczak): We use binary literal here because of apparent issues
-      # with passing a unicode literal in Python 2.7.13 [1, 2] and Python 2.7.16
-      # (ends up in "Failed to load dynlib/dll" error).
-      #
-      # This should be reverted to unicode literal once support for 2.7
-      # is officially dropped.
-      #
-      # [1]: https://bugs.python.org/issue29082
-      # [2]: https://bugs.python.org/issue29294
-      if sys.version_info[0:2] == (2, 7):
-        Kernel32._kernel32 = ctypes.windll.LoadLibrary(b"Kernel32.dll")
-      else:
-        Kernel32._kernel32 = ctypes.windll.LoadLibrary("Kernel32.dll")
+      Kernel32._kernel32 = ctypes.windll.LoadLibrary("Kernel32.dll")
 
   @property
   def kernel32(self):

@@ -6,7 +6,7 @@ from grr_colab import flags
 
 FLAGS = flags.FLAGS
 
-_API = None  # type: api.GrrApi
+_API: api.GrrApi = None
 
 
 def get() -> api.GrrApi:

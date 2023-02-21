@@ -41,6 +41,9 @@ class SystemCronJobTest(test_lib.GRRBaseTest):
     self.SetupClientsWithIndices(
         range(22, 24), system="Linux", ping=ancient_ping)
 
+    data_store.REL_DB.WriteGRRUser("GRR")
+    data_store.REL_DB.WriteGRRUser("jim")
+
     for i in range(0, 10):
       client_id = "C.1%015x" % i
       data_store.REL_DB.AddClientLabels(client_id, "GRR", ["Label1", "Label2"])

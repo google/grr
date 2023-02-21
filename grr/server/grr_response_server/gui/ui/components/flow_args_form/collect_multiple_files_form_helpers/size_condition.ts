@@ -4,6 +4,7 @@ import {combineLatest, Observable, zip} from 'rxjs';
 import {map, shareReplay} from 'rxjs/operators';
 
 import {atLeastOneMustBeSet} from '../../../components/form/validators';
+import {FileFinderSizeCondition} from '../../../lib/api/api_interfaces';
 import {toByteUnit} from '../../form/byte_input/byte_conversion';
 
 // Default max file size is 20 MB.
@@ -129,4 +130,18 @@ export function createSizeFormGroup() {
         maxFileSize,
       },
       atLeastOneMustBeSet([minFileSize, maxFileSize]));
+}
+
+/** Maps FileFinderSizeCondition to Form Value for size condition input */
+export function sizeConditionToFormValue(
+    size: FileFinderSizeCondition|undefined,
+    ): ReturnType<typeof createSizeFormGroup>['value']|undefined {
+  if (!size) {
+    return undefined;
+  }
+
+  return {
+    minFileSize: size.minFileSize ? Number(size.minFileSize) : undefined,
+    maxFileSize: size.maxFileSize ? Number(size.maxFileSize) : undefined,
+  };
 }

@@ -18,7 +18,6 @@ from grr_response_core.lib import serialization
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import proto2 as rdf_proto2
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_proto import semantic_pb2
 
@@ -189,7 +188,7 @@ class ProtoType(type_info.TypeInfoObject):
     super().__init__(**kwargs)
     # TODO: Without this type hint, pytype thinks that field_number
     # is always None.
-    self.field_number = field_number  # type: int
+    self.field_number: int = field_number
     self.required = required
     if set_default_on_access is not None:
       self.set_default_on_access = set_default_on_access
@@ -345,7 +344,8 @@ class ProtoString(ProtoType):
 
     raise type_info.TypeValueError(
         "Not a valid unicode string: {!r} of type {}".format(
-            value, compatibility.GetName(type(value))))
+            value,
+            type(value).__name__))
 
   def ConvertFromWireFormat(self, value, container=None):
     """Internally strings are utf8 encoded."""
@@ -615,7 +615,7 @@ class EnumNamedValue(rdfvalue.RDFPrimitive):
 
   def __repr__(self):
     return "{}(initializer={!r}, name={!r})".format(
-        compatibility.GetName(type(self)), self.id, self.name)
+        type(self).__name__, self.id, self.name)
 
   def __int__(self):
     return self.id
@@ -625,8 +625,6 @@ class EnumNamedValue(rdfvalue.RDFPrimitive):
 
   def __bool__(self):
     return bool(self.id)
-
-  __nonzero__ = __bool__
 
   def Copy(self):
     return type(self)(self.id, self.name, self.description, self.labels)
@@ -1047,7 +1045,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
                    wrapper_cls.__name__)
       data = wrapped_data.SerializeToString()
     else:
-      raise ValueError("Can't convert value %s to an protobuf.Any value." %
+      raise ValueError("Can't convert value %s to a protobuf.Any value." %
                        value)
 
     any_value = AnyValue(type_url=type_name, value=data)
@@ -1226,8 +1224,7 @@ class RepeatedFieldHelper(abc.Sequence, object):
 
   def __repr__(self):
     # Skip self.container and self.type_descriptor to avoid cyclical output.
-    return "<{} {!r}>".format(
-        compatibility.GetName(type(self)), self.wrapped_list)
+    return "<{} {!r}>".format(type(self).__name__, self.wrapped_list)
 
   def Validate(self):
     for x in self:
@@ -1545,7 +1542,7 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
     # biggest caveat here is that RDFStruct is defined *with the help*
     # of RDFStructMetaclass, so its name is not defined at the time
     # this code is evaluated.
-    cls = untyped_cls  # type: Type["RDFStruct"]
+    cls: Type["RDFStruct"] = untyped_cls
     cls.type_infos = type_info.TypeDescriptorSet()
 
     # Keep track of the late bound fields.
@@ -1609,7 +1606,7 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
   protobuf = None
 
   # This is where the type infos are constructed.
-  type_infos = None  # type: type_info.TypeDescriptorSet
+  type_infos: type_info.TypeDescriptorSet = None
 
   # Mark as dirty each time we modify this object.
   dirty = False
@@ -1842,14 +1839,14 @@ class RDFStruct(rdfvalue.RDFValue, metaclass=RDFStructMetaclass):  # pylint: dis
         prev_value != self.Get(attr, allow_set_default=False)):
       try:
         hash(self)  # Recompute hash to raise if hash changed due to mutation.
-      except AssertionError:
+      except AssertionError as ex:
         raise AssertionError(
             "Cannot set {}.{} to {} with previous value {}! hash() has "
             "changed after it has been used! Usage of RDFStructs as members of "
             "sets or keys of dicts is discouraged. If used anyway, mutating is "
             "prohibited, because it causes the hash to change. Be aware that "
             "accessing unset fields can trigger a mutation.".format(
-                compatibility.GetName(type(self)), attr, value, prev_value))
+                type(self).__name__, attr, value, prev_value)) from ex
     return value
 
   def Set(self, attr, value):
@@ -2080,9 +2077,6 @@ class RDFProtoStruct(RDFStruct):
 
   def __bool__(self):
     return bool(self._data)
-
-  # TODO: Remove after support for Python 2 is dropped.
-  __nonzero__ = __bool__
 
   @classmethod
   def EmitProto(cls):

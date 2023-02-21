@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test the vfs recursive refreshing functionality."""
 
 from absl import app

@@ -7,7 +7,6 @@ import zipfile
 from absl import app
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.util import compatibility
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.output_plugins import csv_plugin
@@ -30,7 +29,7 @@ class ApiInstantExportTest(api_integration_test_lib.ApiIntegrationTest):
 
     client_id = self.SetupClient(0)
     flow_id = flow_test_lib.TestFlowHelper(
-        compatibility.GetName(processes.ListProcesses),
+        processes.ListProcesses.__name__,
         client_id=client_id,
         client_mock=action_mocks.ListProcessesMock([process]),
         creator=self.test_username)

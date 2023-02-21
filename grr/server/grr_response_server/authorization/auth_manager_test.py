@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 """Tests for AuthorizationManager."""
+from unittest import mock
 
 from absl import app
 
-from grr_response_core.lib import utils
 from grr_response_server.authorization import auth_manager
 from grr_response_server.authorization import groups
 from grr.test_lib import test_lib
@@ -107,16 +107,16 @@ class AuthorizationManagerTest(test_lib.GRRBaseTest):
 
   def testCheckPermissionsReturnsTrueIfGroupWasAuthorized(self):
     self.auth_manager.DenyAll("subject-bar")
-    with utils.Stubber(self.group_access_manager, "MemberOfAuthorizedGroup",
-                       lambda *args: True):
+    with mock.patch.object(self.group_access_manager, "MemberOfAuthorizedGroup",
+                           lambda *args: True):
       self.assertTrue(
           self.auth_manager.CheckPermissions("user-bar", "subject-bar"))
 
   def testCheckPermissionsReturnsFalseIfGroupWasNotAuthorized(self):
     self.auth_manager.DenyAll("subject-bar")
 
-    with utils.Stubber(self.group_access_manager, "MemberOfAuthorizedGroup",
-                       lambda *args: False):
+    with mock.patch.object(self.group_access_manager, "MemberOfAuthorizedGroup",
+                           lambda *args: False):
       self.assertFalse(
           self.auth_manager.CheckPermissions("user-bar", "subject-bar"))
 

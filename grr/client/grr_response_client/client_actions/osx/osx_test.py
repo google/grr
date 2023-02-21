@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """OSX tests."""
 
 import ctypes
@@ -16,7 +15,7 @@ from grr.test_lib import osx_launchd_testdata
 from grr.test_lib import test_lib
 
 
-class OSXClientTests(client_test_lib.OSSpecificClientTests):
+class OSXClientTests(client_test_lib.EmptyActionTest):
   """OSX client action tests."""
 
   def setUp(self):

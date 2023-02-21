@@ -1,7 +1,8 @@
 /** Test helpers. */
 // tslint:disable:enforce-comments-on-exported-symbols
-
+import {ForemanClientRuleSet, ForemanClientRuleSetMatchMode, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../lib/api/api_interfaces';
 import {Client, ClientApproval} from '../../lib/models/client';
+import {Approval} from '../../lib/models/user';
 import {Duration} from '../date_time';
 
 import {ArtifactDescriptor, ArtifactDescriptorMap, Flow, FlowDescriptor, FlowResult, FlowState, OperatingSystem, ScheduledFlow} from './flow';
@@ -83,19 +84,27 @@ export function newScheduledFlow(args: Partial<ScheduledFlow> = {}):
   };
 }
 
-export function newClientApproval(args: Partial<ClientApproval> = {}):
-    ClientApproval {
-  const clientId =
-      args.clientId ?? args.subject?.clientId ?? `C.${randomHex(16)}`;
-
+export function newApproval(args: Partial<Approval> = {}): Approval {
   return {
     approvalId: randomHex(8),
-    clientId,
     requestor: 'msan',
     reason: 't/1234',
     status: {type: 'pending', reason: 'Need 1 more approver'},
     requestedApprovers: ['rsanchez'],
     approvers: ['msan'],
+    ...args,
+  };
+}
+
+export function newClientApproval(args: Partial<ClientApproval> = {}):
+    ClientApproval {
+  const approval = newApproval({});
+  const clientId =
+      args.clientId ?? args.subject?.clientId ?? `C.${randomHex(16)}`;
+
+  return {
+    ...approval,
+    clientId,
     subject: newClient({clientId, ...args.subject}),
     ...args,
   };
@@ -185,6 +194,42 @@ export function newGrrUser(user: Partial<GrrUser>): GrrUser {
   };
 }
 
+export function newClientRuleSet(clientRuleSet: Partial<ForemanClientRuleSet>):
+    ForemanClientRuleSet {
+  return {
+    matchMode: ForemanClientRuleSetMatchMode.MATCH_ANY,
+    rules: [
+      {
+        ruleType: ForemanClientRuleType.OS,
+        os: {osWindows: true, osLinux: true, osDarwin: false},
+      },
+      {
+        ruleType: ForemanClientRuleType.LABEL,
+        label: {
+          labelNames: ['foo', 'bar'],
+          matchMode: ForemanLabelClientRuleMatchMode.MATCH_ANY
+        },
+      },
+      {
+        ruleType: ForemanClientRuleType.INTEGER,
+        integer: {
+          operator: ForemanIntegerClientRuleOperator.GREATER_THAN,
+          value: '123',
+          field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK
+        },
+      },
+      {
+        ruleType: ForemanClientRuleType.REGEX,
+        regex: {
+          attributeRegex: 'I am a regex',
+          field: ForemanRegexClientRuleForemanStringField.CLIENT_DESCRIPTION
+        },
+      },
+    ],
+    ...clientRuleSet,
+  };
+}
+
 export function newSafetyLimits(limits: Partial<SafetyLimits>): SafetyLimits {
   return {
     cpuLimit: limits.cpuLimit ?? BigInt(33),
@@ -220,7 +265,7 @@ export function newHunt(hunt: Partial<Hunt>): Hunt {
     name: hunt.name ?? 'GenericHunt',
     remainingClientsCount: hunt.remainingClientsCount ?? BigInt(190),
     resultsCount: hunt.resultsCount ?? BigInt(55),
-    state: hunt.state ?? HuntState.STARTED,
+    state: hunt.state ?? HuntState.RUNNING,
     totalCpuUsage: hunt.totalCpuUsage ?? 0,
     totalNetUsage: hunt.totalNetUsage ?? BigInt(0),
     safetyLimits: newSafetyLimits(hunt.safetyLimits ?? {}),

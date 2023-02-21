@@ -2,7 +2,6 @@
 """GRR config parsing code."""
 
 import abc
-import collections
 import configparser
 import errno
 import io
@@ -10,7 +9,7 @@ import logging
 import os
 from typing import Any, BinaryIO, Dict, Type
 
-from grr_response_core.lib.util.compat import yaml
+import yaml
 
 
 class Error(Exception):
@@ -153,7 +152,7 @@ class GRRConfigFileParser(GRRConfigParser):
         # permissions.
         raise ReadDataPermissionError(e) from e
 
-      return collections.OrderedDict()
+      return dict()
 
   def Copy(self) -> "GRRConfigFileParser":
     return self.__class__(self._config_path)  # pytype: disable=not-instantiable
@@ -176,7 +175,7 @@ class IniConfigFileParser(GRRConfigFileParser):
     parser = self._Parser()
     parser.read_file(b.decode("utf-8").splitlines())
 
-    raw_data = collections.OrderedDict()
+    raw_data = dict()
     for section in parser.sections():
       for key, value in parser.items(section):
         raw_data[".".join([section, key])] = value
@@ -193,10 +192,10 @@ class YamlConfigFileParser(GRRConfigFileParser):
   """A parser for yaml style config files."""
 
   def RawDataToBytes(self, raw_data: Dict[str, Any]) -> bytes:
-    return yaml.Dump(raw_data).encode("utf-8")
+    return yaml.safe_dump(raw_data).encode("utf-8")
 
   def RawDataFromBytes(self, b: bytes) -> Dict[str, Any]:
-    return yaml.Parse(b.decode("utf-8")) or collections.OrderedDict()
+    return yaml.safe_load(b.decode("utf-8")) or dict()
 
 
 class FileParserDataWrapper(GRRConfigParser):

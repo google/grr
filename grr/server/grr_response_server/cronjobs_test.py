@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import functools
 import threading
 from unittest import mock
@@ -8,7 +7,6 @@ from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util import compatibility
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server.flows.general import transfer
@@ -503,12 +501,12 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         self.assertEqual(cron_job.current_run_id, run.run_id)
         self.assertEqual(run.status, "RUNNING")
 
-      try:
-        prev_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue([job_id])
-        prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
+      fake_time += rdfvalue.Duration.From(2, rdfvalue.HOURS)
+      with test_lib.FakeTime(fake_time):
+        try:
+          prev_timeout_value = cronjobs.CRON_JOB_TIMEOUT.GetValue([job_id])
+          prev_latency_value = cronjobs.CRON_JOB_LATENCY.GetValue([job_id])
 
-        fake_time += rdfvalue.Duration.From(2, rdfvalue.HOURS)
-        with test_lib.FakeTime(fake_time):
           signal_event.clear()
           # First RunOnce call will mark the stuck job as failed.
           cron_manager.RunOnce()
@@ -551,12 +549,13 @@ class RelationalCronTest(test_lib.GRRBaseTest):
               current_latency_value.sum - prev_latency_value.sum,
               rdfvalue.Duration.From(2, rdfvalue.HOURS).ToInt(rdfvalue.SECONDS))
 
-      finally:
-        # Make sure that the cron job thread actually finishes.
-        wait_event.set()
-        cron_manager._GetThreadPool().Join()
+        finally:
+          # Make sure that the cron job thread actually finishes.
+          wait_event.set()
+          cron_manager._GetThreadPool().Join()
 
-      # Make sure cron job got updated correctly after stuck job as finished.
+      # Make sure the cron job got updated correctly after the stuck job has
+      # finished.
       cron_job = cron_manager.ReadJob(job_id)
       self.assertEqual(cron_job.last_run_status, "FINISHED")
 
@@ -791,7 +790,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
 
   def _TestHeartBeat(self, cron_class, cron_started_event, heartbeat_event):
     """Helper for heartbeat tests."""
-    cron_name = compatibility.GetName(cron_class)
+    cron_name = cron_class.__name__
     cronjobs.ScheduleSystemCronJobs(names=[cron_name])
     cron_manager = cronjobs.CronManager()
     jobs = cronjobs.CronManager().ListJobs()
@@ -827,7 +826,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         for i in range(7):
           self.Log("Log message %d." % i)
 
-    cron_name = compatibility.GetName(LoggingCronJob)
+    cron_name = LoggingCronJob.__name__
     cronjobs.ScheduleSystemCronJobs(names=[cron_name])
     cron_manager = cronjobs.CronManager()
     try:

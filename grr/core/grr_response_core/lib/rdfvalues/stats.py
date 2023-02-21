@@ -213,9 +213,6 @@ class Graph(rdf_structs.RDFProtoStruct):
   def __bool__(self):
     return bool(self.data)
 
-  # TODO: Remove after support for Python 2 is dropped.
-  __nonzero__ = __bool__
-
   def __getitem__(self, item):
     return Sample(self.data[item])
 

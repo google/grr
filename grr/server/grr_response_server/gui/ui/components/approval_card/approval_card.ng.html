@@ -75,7 +75,8 @@
         <button
           id="copy-approval-link"
           mat-stroked-button
-          [cdkCopyToClipboard]="(url$ | async) ?? ''"
+          [cdkCopyToClipboard]="url"
+          [disabled]="url === ''"
         >
           Copy link
         </button>
@@ -108,6 +109,8 @@
           autocomplete="off"
           name="reason"
         />
+        <mat-error *ngIf="$any(form.controls).reason.hasError('required')"
+            >Reason is required</mat-error>
       </mat-form-field>
 
       <div class="approvers">
@@ -126,7 +129,7 @@
             <input
               #approversInput
               placeholder="Approvers..."
-              [formControl]="approversInputControl"
+              [formControl]="controls.approvers"
               [matAutocomplete]="auto"
               [matChipInputFor]="chipList"
               [matChipInputSeparatorKeyCodes]="separatorKeysCodes"

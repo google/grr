@@ -8,7 +8,7 @@ import {AgentInfo, Client, ClientApproval, ClientLabel, NetworkAddress, NetworkI
 import {assertKeyTruthy} from '../preconditions';
 
 import {createIpv4Address, createIpv6Address, createMacAddress, createOptionalDate, decodeBase64} from './primitive';
-import {translateApprovalStatus} from './user';
+import {translateApproval} from './user';
 
 /**
  * Get label name from API ClientLabel.
@@ -214,29 +214,17 @@ export function translateClient(client: apiInterfaces.ApiClient): Client {
 }
 
 /** Constructs a ClientApproval from the corresponding API data structure. */
-export function translateApproval(approval: apiInterfaces.ApiClientApproval):
-    ClientApproval {
-  assertKeyTruthy(approval, 'id');
-  assertKeyTruthy(approval, 'subject');
-  assertKeyTruthy(approval, 'reason');
-  assertKeyTruthy(approval, 'requestor');
-  assertKeyTruthy(approval, 'subject');
+export function translateClientApproval(
+    approval: apiInterfaces.ApiClientApproval): ClientApproval {
+  const translatedApproval = translateApproval(approval);
 
+  assertKeyTruthy(approval, 'subject');
   const {subject} = approval;
   assertKeyTruthy(subject, 'clientId');
 
-  const status =
-      translateApprovalStatus(approval.isValid, approval.isValidMessage);
-
   return {
-    status,
-    approvalId: approval.id,
+    ...translatedApproval,
     clientId: subject.clientId,
-    reason: approval.reason,
-    requestedApprovers: approval.notifiedUsers ?? [],
-    approvers: (approval.approvers ?? []).filter(u => u !== approval.requestor),
-    requestor: approval.requestor,
-    subject: translateClient(approval.subject),
-    expirationTime: createOptionalDate(approval.expirationTimeUs),
+    subject: translateClient(subject),
   };
 }

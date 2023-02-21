@@ -2,7 +2,7 @@
   <mat-icon>computer</mat-icon>
   <h3>{{ subject.knowledgeBase.fqdn }} {{ subject.clientId }}</h3>
   <mat-chip-list>
-    <app-approval-chip *ngIf="approval" [approval]="approval"> </app-approval-chip>
+    <app-approval-chip *ngIf="showApprovalChip$ | async" [approval]="approval ?? null"> </app-approval-chip>
     <online-chip [lastSeen]="subject.lastSeenAt"></online-chip>
   </mat-chip-list>
 </a>

@@ -15,7 +15,6 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import flow_pb2
 from grr_response_server import access_control
 from grr_response_server import artifact
@@ -327,7 +326,7 @@ class ApiFlowResult(rdf_structs.RDFProtoStruct):
 
   def InitFromFlowResult(self, result):
     p = result.payload
-    self.payload_type = compatibility.GetName(p.__class__)
+    self.payload_type = p.__class__.__name__
     self.payload = p
     self.timestamp = result.timestamp
     if result.tag:
@@ -1253,7 +1252,8 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, context=None):
     flow_base.TerminateFlow(
-        str(args.client_id), str(args.flow_id), reason="Cancelled in GUI")
+        str(args.client_id), str(args.flow_id), reason="Cancelled by user"
+    )
     flow_obj = data_store.REL_DB.ReadFlowObject(
         str(args.client_id), str(args.flow_id))
     return ApiFlow().InitFromFlowObject(flow_obj)

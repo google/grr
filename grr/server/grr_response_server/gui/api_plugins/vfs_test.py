@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """This modules contains tests for VFS API handlers."""
 
 import binascii

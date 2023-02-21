@@ -23,8 +23,8 @@ import {ApprovalPageModule} from '../approval_page/approval_page_module';
 import {FileDetailsModule} from '../file_details/file_details_module';
 import {SnackBarErrorHandler} from '../helpers/error_snackbar/error_handler';
 import {ErrorSnackBarModule} from '../helpers/error_snackbar/error_snackbar_module';
-import {HuntOverviewPage} from '../hunt/hunt_overview_page/hunt_overview_page';
-// import {HuntProgress} from '../hunt/hunt_progress/hunt_progress';
+import {HuntArguments} from '../hunt/hunt_arguments/hunt_arguments';
+import {HuntFlowArguments} from '../hunt/hunt_flow_arguments/hunt_flow_arguments';
 
 import {App} from './app';
 import {NotFoundPage} from './not_found_page';
@@ -51,9 +51,9 @@ const GRR_MODULES = [
   HomeModule,
   NewHuntModule,
   UserMenuModule,
-  HuntOverviewPage,
+  HuntArguments,
+  HuntFlowArguments,
   HuntPageModule,
-  // HuntProgress,
   HuntApprovalPageModule,
 ];
 

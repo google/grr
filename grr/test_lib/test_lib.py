@@ -112,18 +112,19 @@ class GRRBaseTest(absltest.TestCase):
       raise NotImplementedError(
           "Usage of Set() is disabled, please use a configoverrider in tests.")
 
-    self.config_set_disable = utils.Stubber(config.CONFIG, "Set", DisabledSet)
-    self.config_set_disable.Start()
-    self.addCleanup(self.config_set_disable.Stop)
+    self.config_set_disable = mock.patch.object(config.CONFIG, "Set",
+                                                DisabledSet)
+    self.config_set_disable.start()
+    self.addCleanup(self.config_set_disable.stop)
 
     self._SetupFakeStatsContext()
 
     # Turn off WithLimitedCallFrequency-based caching in tests. Tests that need
     # to test caching behavior explicitly, should turn it on explicitly.
-    with_limited_call_frequency_stubber = utils.Stubber(
+    with_limited_call_frequency_stubber = mock.patch.object(
         cache, "WITH_LIMITED_CALL_FREQUENCY_PASS_THROUGH", True)
-    with_limited_call_frequency_stubber.Start()
-    self.addCleanup(with_limited_call_frequency_stubber.Stop)
+    with_limited_call_frequency_stubber.start()
+    self.addCleanup(with_limited_call_frequency_stubber.stop)
 
   def _SetupFakeStatsContext(self):
     """Creates a stats context for running tests based on defined metrics."""
@@ -287,6 +288,7 @@ class GRRBaseTest(absltest.TestCase):
 
     client_index.ClientIndex().AddClient(client)
     if labels is not None:
+      data_store.REL_DB.WriteGRRUser("GRR")
       data_store.REL_DB.AddClientLabels(client_id, u"GRR", labels)
       client_index.ClientIndex().AddClientLabels(client_id, labels)
 
@@ -474,8 +476,8 @@ class FakeTimeline(object):
     self._original_time = time.time
     self._original_sleep = time.sleep
 
-    with utils.Stubber(time, "time", self._Time),\
-         utils.Stubber(time, "sleep", self._Sleep):
+    with mock.patch.object(time, "time", self._Time),\
+         mock.patch.object(time, "sleep", self._Sleep):
       self._owner_thread_turn.clear()
       self._worker_thread_turn.set()
       self._owner_thread_turn.wait()
@@ -595,7 +597,7 @@ class Instrument(object):
       self.call_count += 1
       return self.old_target(*args, **kwargs)
 
-    self.stubber = utils.Stubber(module, target_name, Wrapper)
+    self.stubber = mock.patch.object(module, target_name, Wrapper)
     self.args = []
     self.kwargs = []
     self.call_count = 0

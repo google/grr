@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Contains tests for archive_generator."""
 
 import hashlib
@@ -14,7 +13,6 @@ import yaml
 
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
@@ -156,12 +154,6 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
       archive_path_0 = self.archive_paths[0]
       archive_path_1 = self.archive_paths[1]
-
-      # TODO: In Python 2, `extractfile` expects bytestrings. Once
-      # support for Python 2 is dropped, this can be removed.
-      if compatibility.PY2:
-        archive_path_0 = archive_path_0.encode("utf-8")
-        archive_path_1 = archive_path_1.encode("utf-8")
 
       self.assertEqual(tar_fd.extractfile(archive_path_0).read(), b"hello1")
       self.assertEqual(tar_fd.extractfile(archive_path_1).read(), b"hello2")

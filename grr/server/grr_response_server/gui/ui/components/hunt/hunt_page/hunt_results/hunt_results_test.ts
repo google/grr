@@ -1,19 +1,22 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
+import {MatMenuHarness} from '@angular/material/menu/testing';
 import {MatTabGroupHarness} from '@angular/material/tabs/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
+import {firstValueFrom} from 'rxjs';
 
 import {Any, ApiHuntError, ApiHuntResult} from '../../../../lib/api/api_interfaces';
 import {createStatEntry} from '../../../../lib/api/api_test_util';
 import {getHuntResultKey} from '../../../../lib/api_translation/hunt';
+import {HexHash} from '../../../../lib/models/flow';
 import {HuntPageGlobalStore} from '../../../../store/hunt_page_global_store';
 import {HuntPageGlobalStoreMock, mockHuntPageGlobalStore} from '../../../../store/hunt_page_global_store_test_util';
 import {STORE_PROVIDERS} from '../../../../store/store_test_providers';
 import {initTestEnvironment} from '../../../../testing';
 
-import {HuntResults} from './hunt_results';
+import {HuntResults, ResultsDescriptor} from './hunt_results';
 import {HuntResultsModule} from './module';
 
 initTestEnvironment();
@@ -74,6 +77,59 @@ describe('HuntResults', () => {
     expect(huntPageGlobalStore.loadMoreResults).toHaveBeenCalled();
     expect(fixture.nativeElement.querySelectorAll('mat-spinner').length)
         .toBe(1);
+  });
+
+  it('does NOT display download button when no data', () => {
+    const fixture = TestBed.createComponent(HuntResults);
+    fixture.detectChanges();
+
+    huntPageGlobalStore.mockedObservables.selectedHuntId$.next('XXX');
+    huntPageGlobalStore.mockedObservables.huntResults$.next(
+        {isLoading: true, results: {}});
+    huntPageGlobalStore.mockedObservables.huntErrors$.next(
+        {isLoading: false, hasMore: false, errors: []});
+    fixture.detectChanges();
+
+    const downloadButton =
+        fixture.debugElement.query(By.css('#downloadButton'));
+    expect(downloadButton).toBeFalsy();
+    expect(fixture.nativeElement.textContent).not.toContain('Download');
+  });
+
+  it('displays download button', async () => {
+    const fixture = TestBed.createComponent(HuntResults);
+    fixture.detectChanges();
+
+    huntPageGlobalStore.mockedObservables.selectedHuntId$.next('XXX');
+    huntPageGlobalStore.mockedObservables.huntResults$.next(
+        {isLoading: true, results: {}});
+    huntPageGlobalStore.mockedObservables.huntErrors$.next(
+        {isLoading: false, hasMore: false, errors: [{}]});
+    fixture.detectChanges();
+
+    const downloadButton =
+        fixture.debugElement.query(By.css('#downloadButton'));
+    expect(downloadButton).toBeTruthy();
+
+    const primaryOption = downloadButton.query(By.css('a'));
+    expect(primaryOption).toBeTruthy();
+    expect(primaryOption.attributes['href'])
+        .toContain('hunts/XXX/results/files-archive?archive_format=TAR_GZ');
+
+    const openMenuButton = downloadButton.query(By.css('button'));
+    expect(openMenuButton).toBeTruthy();
+    await openMenuButton.nativeElement.click();
+    fixture.detectChanges();
+
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const menu = await loader.getHarness(MatMenuHarness);
+    const renderedMenuItems = await menu.getItems();
+
+    expect(renderedMenuItems.length).toBe(4);
+    expect(await renderedMenuItems[0].getText()).toContain('ZIP');
+    expect(await renderedMenuItems[1].getText()).toContain('CSV');
+    expect(await renderedMenuItems[2].getText()).toContain('YAML');
+    expect(await renderedMenuItems[3].getText()).toContain('SQL');
   });
 
   it('displays message when no data', () => {
@@ -377,7 +433,7 @@ describe('HuntResults', () => {
     expect(rows[0].innerText.trim()).toContain('something');
   });
 
-  it('expands file types', () => {
+  it('expands file types', async () => {
     const fixture = TestBed.createComponent(HuntResults);
     fixture.detectChanges();
 
@@ -411,7 +467,14 @@ describe('HuntResults', () => {
       },
     ];
     receiveResults(huntPageGlobalStore, res);
+    const transformedResults =
+        await firstValueFrom(fixture.componentInstance.resultsMap$) as
+        {[key: string]: ResultsDescriptor};
     fixture.detectChanges();
+
+    const hashes = transformedResults['Files']?.dataSource?.filteredData.map(
+        v => v['hash'] as HexHash);
+    expect(hashes.length).toBe(4);
 
     const rows = fixture.nativeElement.querySelectorAll('mat-row');
     expect(rows.length).toBe(4);
@@ -426,6 +489,8 @@ describe('HuntResults', () => {
     expect(rows[0].innerText).toContain('1970-01-01 00:23:20 UTC');
     expect(rows[0].innerText).toContain('1970-01-01 03:53:20 UTC');
     expect(rows[0].innerText).toContain('1970-01-02 14:53:20 UTC');
+    expect(hashes[0]).toEqual(
+        jasmine.objectContaining({sha256: '85ab21', md5: '85ab21'}));
 
     // FileFinderResult
     expect(rows[1].innerText).toContain('C.1');
@@ -437,6 +502,7 @@ describe('HuntResults', () => {
     expect(rows[1].innerText).toContain('1970-01-01 00:40:00 UTC');
     expect(rows[1].innerText).toContain('1970-01-01 06:40:00 UTC');
     expect(rows[1].innerText).toContain('1970-01-03 18:40:00 UTC');
+    expect(hashes[1]).toEqual(jasmine.objectContaining({md5: '85ab21'}));
 
     expect(rows[2].innerText).toContain('C.2');
     expect(rows[2].innerText).toContain('/home/foo/bar/2');
@@ -447,6 +513,7 @@ describe('HuntResults', () => {
     expect(rows[2].innerText).toContain('1970-01-01 00:56:40 UTC');
     expect(rows[2].innerText).toContain('1970-01-01 09:26:40 UTC');
     expect(rows[2].innerText).toContain('1970-01-04 22:26:40 UTC');
+    expect(hashes[2]).toEqual(jasmine.objectContaining({sha256: '85ab21'}));
 
     // StatEntry
     expect(rows[3].innerText).toContain('C.3');
@@ -458,6 +525,7 @@ describe('HuntResults', () => {
     expect(rows[3].innerText).toContain('1970-01-01 01:13:20 UTC');
     expect(rows[3].innerText).toContain('1970-01-01 12:13:20 UTC');
     expect(rows[3].innerText).toContain('1970-01-06 02:13:20 UTC');
+    expect(hashes[3]).toBeFalsy();
   });
 
   it('expands client info results', () => {

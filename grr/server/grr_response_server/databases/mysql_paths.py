@@ -286,14 +286,14 @@ class MySQLDBPathMixin(object):
       """
       cursor.executemany(query, stat_entry_values)
 
-      condition = "(client_id = %s AND path_type = %s AND path_id = %s)"
-
       query = """
         UPDATE client_paths
         FORCE INDEX (PRIMARY)
         SET last_stat_entry_timestamp = FROM_UNIXTIME(%s)
-        WHERE {}
-      """.format(" OR ".join([condition] * len(stat_entry_values)))
+        WHERE (client_id, path_type, path_id) IN ({})
+      """.format(
+          ",".join(["(%s, %s, %s)"] * len(stat_entry_values))
+      )
 
       params = [mysql_utils.RDFDatetimeToTimestamp(now)] + stat_entry_keys
       cursor.execute(query, params)
@@ -307,14 +307,14 @@ class MySQLDBPathMixin(object):
       """
       cursor.executemany(query, hash_entry_values)
 
-      condition = "(client_id = %s AND path_type = %s AND path_id = %s)"
-
       query = """
         UPDATE client_paths
         FORCE INDEX (PRIMARY)
         SET last_hash_entry_timestamp = FROM_UNIXTIME(%s)
-        WHERE {}
-      """.format(" OR ".join([condition] * len(hash_entry_values)))
+        WHERE (client_id, path_type, path_id) IN ({})
+      """.format(
+          ",".join(["(%s, %s, %s)"] * len(hash_entry_values))
+      )
 
       params = [mysql_utils.RDFDatetimeToTimestamp(now)] + hash_entry_keys
       cursor.execute(query, params)

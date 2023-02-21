@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The in memory database methods for client handling."""
 import sys
-from typing import Iterator, Optional, List, Text
+from typing import Collection, Iterator, Optional, List, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
@@ -221,14 +221,20 @@ class InMemoryDBClientMixin(object):
     return res
 
   @utils.Synchronized
-  def AddClientKeywords(self, client_id, keywords):
-    """Associates the provided keywords with the client."""
-    if client_id not in self.metadatas:
-      raise db.UnknownClientError(client_id)
+  def MultiAddClientKeywords(
+      self,
+      client_ids: Collection[str],
+      keywords: Collection[str],
+  ) -> None:
+    """Associates the provided keywords with the specified clients."""
+    for client_id in client_ids:
+      if client_id not in self.metadatas:
+        raise db.AtLeastOneUnknownClientError(client_ids)
 
-    for kw in keywords:
-      self.keywords.setdefault(kw, {})
-      self.keywords[kw][client_id] = rdfvalue.RDFDatetime.Now()
+    for client_id in client_ids:
+      for kw in keywords:
+        self.keywords.setdefault(kw, {})
+        self.keywords[kw][client_id] = rdfvalue.RDFDatetime.Now()
 
   @utils.Synchronized
   def ListClientsForKeywords(self, keywords, start_time=None):
@@ -248,14 +254,23 @@ class InMemoryDBClientMixin(object):
       del self.keywords[keyword][client_id]
 
   @utils.Synchronized
-  def AddClientLabels(self, client_id, owner, labels):
-    """Attaches a user label to a client."""
-    if client_id not in self.metadatas:
-      raise db.UnknownClientError(client_id)
+  def MultiAddClientLabels(
+      self,
+      client_ids: Collection[str],
+      owner: str,
+      labels: Collection[str],
+  ) -> None:
+    """Attaches user labels to the specified clients."""
+    if owner not in self.users:
+      raise db.UnknownGRRUserError(owner)
 
-    labelset = self.labels.setdefault(client_id, {}).setdefault(owner, set())
-    for l in labels:
-      labelset.add(utils.SmartUnicode(l))
+    for client_id in client_ids:
+      if client_id not in self.metadatas:
+        raise db.AtLeastOneUnknownClientError(client_ids)
+
+    for client_id in client_ids:
+      client_labels = self.labels.setdefault(client_id, dict())
+      client_labels.setdefault(owner, set()).update(set(labels))
 
   @utils.Synchronized
   def MultiReadClientLabels(self, client_ids):

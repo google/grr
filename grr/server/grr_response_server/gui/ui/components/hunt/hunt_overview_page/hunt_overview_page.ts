@@ -1,17 +1,20 @@
-import {CommonModule} from '@angular/common';
-import {ChangeDetectionStrategy, Component, TrackByFunction} from '@angular/core';
-import {MatCardModule} from '@angular/material/card';
-import {MatIconModule} from '@angular/material/icon';
-import {MatProgressBarModule} from '@angular/material/progress-bar';
-import {MatTooltipModule} from '@angular/material/tooltip';
-import {RouterModule} from '@angular/router';
+import {ChangeDetectionStrategy, Component, OnDestroy, TrackByFunction} from '@angular/core';
+import {FormControl} from '@angular/forms';
 import {Observable} from 'rxjs';
+import {tap} from 'rxjs/operators';
 
+import {ApiListHuntsArgsRobotFilter} from '../../../lib/api/api_interfaces';
 import {Hunt, HuntState} from '../../../lib/models/hunt';
+import {observeOnDestroy} from '../../../lib/reactive';
 import {HuntOverviewPageLocalStore} from '../../../store/hunt_overview_page_local_store';
-import {InfiniteListModule} from '../../helpers/infinite_list/infinite_list_module';
-import {TimestampModule} from '../../timestamp/module';
-import {UserImageModule} from '../../user_image/module';
+import {ColorScheme} from '../../flow_details/helpers/result_accordion';
+
+/** Hunt filter enum used for classifying the hunts. */
+export enum HuntFilter {
+  ALL_HUMAN_HUNTS = 'All human fleet collections',
+  ALL_ROBOT_HUNTS = 'All robot fleet collections',
+  ALL_HUNTS = 'All fleet collections',
+}
 
 /** Page showing an overview of recent hunts. */
 @Component({
@@ -20,28 +23,41 @@ import {UserImageModule} from '../../user_image/module';
   styleUrls: ['./hunt_overview_page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [HuntOverviewPageLocalStore],
-  imports: [
-    CommonModule,
-    RouterModule,
-    MatCardModule,
-    MatIconModule,
-    MatProgressBarModule,
-    MatTooltipModule,
-    InfiniteListModule,
-    TimestampModule,
-    UserImageModule,
-  ],
-  standalone: true,
 })
-export class HuntOverviewPage {
+export class HuntOverviewPage implements OnDestroy {
+  readonly ngOnDestroy = observeOnDestroy(this);
   protected readonly HuntState = HuntState;
+  protected readonly ColorScheme = ColorScheme;
+  protected readonly HuntFilter = HuntFilter;
+
+  readonly huntFiltersForm = new FormControl(HuntFilter.ALL_HUMAN_HUNTS);
 
   protected readonly hunts$: Observable<readonly Hunt[]> =
       this.huntOverviewPageLocalStore.results$;
 
   constructor(protected readonly huntOverviewPageLocalStore:
                   HuntOverviewPageLocalStore) {
-    huntOverviewPageLocalStore.setArgs({});
+    huntOverviewPageLocalStore.setArgs(
+        {robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS});
+
+    this.huntFiltersForm.valueChanges
+        .pipe(tap(filterType => {
+          switch (filterType) {
+            case HuntFilter.ALL_HUMAN_HUNTS:
+              huntOverviewPageLocalStore.setArgs(
+                  {robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS});
+              break;
+            case HuntFilter.ALL_ROBOT_HUNTS:
+              huntOverviewPageLocalStore.setArgs(
+                  {robotFilter: ApiListHuntsArgsRobotFilter.ONLY_ROBOTS});
+              break;
+            default:
+              huntOverviewPageLocalStore.setArgs(
+                  {robotFilter: ApiListHuntsArgsRobotFilter.UNKNOWN});
+              break;
+          }
+        }))
+        .subscribe();
   }
 
   readonly trackHuntById: TrackByFunction<Hunt> = (index, item) => item.huntId;
@@ -96,7 +112,7 @@ export class HuntOverviewPage {
     switch (hunt.state) {
       case HuntState.COMPLETED:
         return 'Completed';
-      case HuntState.STOPPED:
+      case HuntState.CANCELLED:
         return 'Stopped';
       case HuntState.PAUSED:
         return 'Paused';
@@ -106,6 +122,6 @@ export class HuntOverviewPage {
   }
 
   isRunning(hunt: Hunt) {
-    return hunt.state === HuntState.STARTED;
+    return hunt.state === HuntState.RUNNING;
   }
 }

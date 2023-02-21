@@ -50,7 +50,7 @@
 h4 {
   color: mat.get-color-from-palette(c.$foreground, text);
   font-family: c.$google-sans-display-family;
-  font-size: 17px;
+  font-size: 14px;
   font-weight: 500;
   display: flex;
   margin-top: 0.7em;
@@ -65,28 +65,7 @@ h4 {
   }
 }
 
-.match-mode {
-  padding-left: 0.4em;
-}
-
 .id {
   font-size: 10px;
   color: mat.get-color-from-palette(c.$foreground, text-light);
-}
-
-.flow-card {
-  @extend .split-card;
-  position: relative;
-  background: mat.get-color-from-palette(c.$background, app-bar);
-
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 18px 0 18px 24px;
-    font-size: 105%;
-  }
-
-  .flow-args {
-    padding: 18px 24px;
-  }
 }

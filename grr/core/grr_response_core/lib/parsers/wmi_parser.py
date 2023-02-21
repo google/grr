@@ -15,7 +15,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import wmi as rdf_wmi
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
@@ -43,13 +42,6 @@ def BinarySIDtoStringSID(sid):
     ValueError: If the binary SID is malformed.
   """
   precondition.AssertType(sid, bytes)
-
-  # TODO: This seemingly no-op is actually not a no-op. The reason
-  # is that `sid` might be either `bytes` from the future package or `str` (e.g.
-  # a bytes literal on Python 2). This call ensures that we get a `bytes` object
-  # with Python 3 semantics. Once GRR's codebase is ready to drop support for
-  # Python 2 this line can be removed as indeed then it would be a no-op.
-  sid = bytes(sid)
 
   if not sid:
     return u""
@@ -98,7 +90,7 @@ class WMIEventConsumerParser(parser.WMIQueryParser):
         wmi_dict["CreatorSID"] = BinarySIDtoStringSID(creator_sid_bytes)
       except ValueError:
         # We recover from corrupt SIDs by outputting it raw as a string
-        wmi_dict["CreatorSID"] = compatibility.Repr(wmi_dict["CreatorSID"])
+        wmi_dict["CreatorSID"] = repr(wmi_dict["CreatorSID"])
       except KeyError:
         pass
 

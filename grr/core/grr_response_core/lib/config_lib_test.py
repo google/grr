@@ -5,6 +5,7 @@ import io
 import ntpath
 import os
 import stat
+from unittest import mock
 
 from absl import app
 from absl.testing import absltest
@@ -441,7 +442,7 @@ Platform:Windows:
       raise NotImplementedError("Write was called!")
 
     # If the value in config and writeback are the same, nothing is written.
-    with utils.Stubber(conf, "Write", DontCall):
+    with mock.patch.object(conf, "Write", DontCall):
       conf.Persist("Section1.option1")
 
   def testPersistDoesntOverwriteCustomOptions(self):
@@ -1100,16 +1101,6 @@ Test1 Context:
 
     data = io.open(config_file).read()
     self.assertNotIn("!!python/unicode", data)
-
-  def testNoUnicodeReading(self):
-    """Check that we can parse yaml files with unicode tags."""
-    data = """
-Client.labels: [Test1]
-!!python/unicode ClientBuilder.target_platforms:
-  - linux_amd64_deb
-"""
-    conf = config.CONFIG.MakeNewConfig()
-    conf.Initialize(parser=config_parser.YamlConfigFileParser, data=data)
 
   def testRenameOnWritebackFailure(self):
     conf = config.CONFIG.MakeNewConfig()

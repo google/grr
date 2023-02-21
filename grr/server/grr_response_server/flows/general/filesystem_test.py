@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test the filesystem related flows."""
 
 import io
@@ -15,7 +14,6 @@ from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -56,7 +54,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     with self.assertRaises(RuntimeError):
       with test_lib.SuppressLogs():
         flow_test_lib.TestFlowHelper(
-            compatibility.GetName(filesystem.ListDirectory),
+            filesystem.ListDirectory.__name__,
             client_mock,
             client_id=self.client_id,
             pathspec=pb,
@@ -73,7 +71,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     with mock.patch.object(notification, "Notify") as mock_notify:
       # Change the username so we get a notification about the flow termination.
       flow_test_lib.TestFlowHelper(
-          compatibility.GetName(filesystem.ListDirectory),
+          filesystem.ListDirectory.__name__,
           client_mock,
           client_id=self.client_id,
           pathspec=pb,
@@ -100,7 +98,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     with self.assertRaises(RuntimeError):
       with test_lib.SuppressLogs():
         flow_test_lib.TestFlowHelper(
-            compatibility.GetName(filesystem.ListDirectory),
+            filesystem.ListDirectory.__name__,
             client_mock,
             client_id=self.client_id,
             pathspec=pb,
@@ -126,7 +124,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     pb.Append(path=filename, pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.ListDirectory),
+        filesystem.ListDirectory.__name__,
         client_mock,
         client_id=self.client_id,
         pathspec=pb,
@@ -153,7 +151,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           path=temp_dirpath, pathtype=rdf_paths.PathSpec.PathType.OS)
 
       flow_id = flow_test_lib.TestFlowHelper(
-          compatibility.GetName(filesystem.RecursiveListDirectory),
+          filesystem.RecursiveListDirectory.__name__,
           client_mock,
           client_id=self.client_id,
           pathspec=pathspec,
@@ -179,7 +177,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           path=temp_dirpath, pathtype=rdf_paths.PathSpec.PathType.OS)
 
       flow_id = flow_test_lib.TestFlowHelper(
-          compatibility.GetName(filesystem.RecursiveListDirectory),
+          filesystem.RecursiveListDirectory.__name__,
           client_mock,
           client_id=self.client_id,
           pathspec=pathspec,
@@ -203,7 +201,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
           path=temp_dirpath, pathtype=rdf_paths.PathSpec.PathType.OS)
 
       flow_id = flow_test_lib.TestFlowHelper(
-          compatibility.GetName(filesystem.RecursiveListDirectory),
+          filesystem.RecursiveListDirectory.__name__,
           client_mock,
           client_id=self.client_id,
           pathspec=pathspec,
@@ -233,7 +231,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     ]
 
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.Glob),
+        filesystem.Glob.__name__,
         client_mock,
         client_id=client_id,
         paths=paths,
@@ -262,7 +260,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
   def _RunGlob(self, paths):
     client_mock = action_mocks.GlobClientMock()
     session_id = flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.Glob),
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=paths,
@@ -290,7 +288,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     # Run the flow.
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.Glob),
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -417,7 +415,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     # Make sure the flow raises.
     with self.assertRaises(ValueError):
       flow_test_lib.TestFlowHelper(
-          compatibility.GetName(filesystem.Glob),
+          filesystem.Glob.__name__,
           client_mock,
           client_id=self.client_id,
           paths=paths,
@@ -436,7 +434,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     # Run the flow.
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.Glob),
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -461,7 +459,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     # Run the flow.
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.Glob),
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -481,7 +479,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     path = os.path.join(self.base_path, "test_IMG.dd", "glob_test", "a", "b",
                         "FOO*")
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.Glob),
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -498,7 +496,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     # Specifying a wildcard for the image will not open it.
     path = os.path.join(self.base_path, "*.dd", "glob_test", "a", "b", "FOO*")
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.Glob),
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -524,7 +522,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     # Run the flow.
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.Glob),
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -545,7 +543,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     # Run the flow.
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.Glob),
+        filesystem.Glob.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[path],
@@ -604,7 +602,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
       # Run the flow.
       flow_test_lib.TestFlowHelper(
-          compatibility.GetName(filesystem.Glob),
+          filesystem.Glob.__name__,
           client_mock,
           client_id=self.client_id,
           paths=[path],
@@ -659,7 +657,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
       client_mock = action_mocks.FileFinderClientMock()
 
       flow_test_lib.TestFlowHelper(
-          compatibility.GetName(file_finder.FileFinder),
+          file_finder.FileFinder.__name__,
           client_mock,
           client_id=self.client_id,
           paths=["/c/Downloads/*"],
@@ -707,7 +705,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     test_dir = self._SetupTestDir("testDownloadDirectory")
 
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(file_finder.FileFinder),
+        file_finder.FileFinder.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[test_dir + "/*"],
@@ -735,7 +733,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     test_dir = self._SetupTestDir("testDownloadDirectorySub")
 
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(file_finder.FileFinder),
+        file_finder.FileFinder.__name__,
         client_mock,
         client_id=self.client_id,
         paths=[test_dir + "/**5"],
@@ -759,7 +757,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
   def testDiskVolumeInfoOSXLinux(self):
     client_mock = action_mocks.UnixVolumeClientMock()
     session_id = flow_test_lib.TestFlowHelper(
-        compatibility.GetName(filesystem.DiskVolumeInfo),
+        filesystem.DiskVolumeInfo.__name__,
         client_mock,
         client_id=self.client_id,
         creator=self.test_username,
@@ -779,7 +777,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
       client_mock = action_mocks.WindowsVolumeClientMock()
       session_id = flow_test_lib.TestFlowHelper(
-          compatibility.GetName(filesystem.DiskVolumeInfo),
+          filesystem.DiskVolumeInfo.__name__,
           client_mock,
           client_id=self.client_id,
           creator=self.test_username,
@@ -793,7 +791,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
                             ["C:"])
 
       session_id = flow_test_lib.TestFlowHelper(
-          compatibility.GetName(filesystem.DiskVolumeInfo),
+          filesystem.DiskVolumeInfo.__name__,
           client_mock,
           client_id=self.client_id,
           creator=self.test_username,
@@ -858,6 +856,53 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
     results = self._RunGlob(paths)
     self.assertCountEqual(expected_paths, results)
 
+  def testGlobPrefixCollection(self):
+    os.makedirs(utils.JoinPath(self.temp_dir, "foo"))
+    self._Touch("foo/bar")
+    paths = [
+        utils.JoinPath(self.temp_dir, "foo"),
+        utils.JoinPath(self.temp_dir, "foo/bar"),
+    ]
+    expected_paths = [
+        utils.JoinPath(self.temp_dir, "foo"),
+        utils.JoinPath(self.temp_dir, "foo/bar"),
+    ]
+    results = self._RunGlob(paths)
+    self.assertCountEqual(expected_paths, results)
+
+  def testGlobPrefixCollectionWithRegex(self):
+    os.makedirs(utils.JoinPath(self.temp_dir, "foo/bar"))
+    self._Touch("foo/bar/baz1")
+    self._Touch("foo/bar/baz2")
+    paths = [
+        utils.JoinPath(self.temp_dir, "foo"),
+        utils.JoinPath(self.temp_dir, "foo/*/baz?"),
+    ]
+    expected_paths = [
+        utils.JoinPath(self.temp_dir, "foo"),
+        utils.JoinPath(self.temp_dir, "foo/bar/baz1"),
+        utils.JoinPath(self.temp_dir, "foo/bar/baz2"),
+    ]
+    results = self._RunGlob(paths)
+    self.assertCountEqual(expected_paths, results)
+
+  def testGlobPrefixCollectionWithRecursion(self):
+    os.makedirs(utils.JoinPath(self.temp_dir, "foo/bar/1"))
+    os.makedirs(utils.JoinPath(self.temp_dir, "foo/bar/2"))
+    self._Touch("foo/bar/1/baz")
+    self._Touch("foo/bar/2/baz")
+    paths = [
+        utils.JoinPath(self.temp_dir, "foo"),
+        utils.JoinPath(self.temp_dir, "foo/**/baz"),
+    ]
+    expected_paths = [
+        utils.JoinPath(self.temp_dir, "foo"),
+        utils.JoinPath(self.temp_dir, "foo/bar/1/baz"),
+        utils.JoinPath(self.temp_dir, "foo/bar/2/baz"),
+    ]
+    results = self._RunGlob(paths)
+    self.assertCountEqual(expected_paths, results)
+
   def _Touch(self, relative_path):
     io.open(utils.JoinPath(self.temp_dir, relative_path), "wb").close()
 
@@ -872,7 +917,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
       client_mock = action_mocks.ListDirectoryClientMock()
 
       flow_test_lib.TestFlowHelper(
-          compatibility.GetName(filesystem.ListDirectory),
+          filesystem.ListDirectory.__name__,
           client_mock,
           client_id=client_id,
           pathspec=pb,
@@ -899,7 +944,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
       client_mock = action_mocks.ListDirectoryClientMock()
 
       flow_test_lib.TestFlowHelper(
-          compatibility.GetName(filesystem.ListDirectory),
+          filesystem.ListDirectory.__name__,
           client_mock,
           client_id=client_id,
           pathspec=pb,

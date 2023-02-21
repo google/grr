@@ -2,6 +2,7 @@
 """Base test classes for API handlers tests."""
 
 import abc
+import json
 import logging
 import os
 import re
@@ -13,8 +14,7 @@ import psutil
 
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
-from grr_response_core.lib.util import compatibility
-from grr_response_core.lib.util.compat import json
+from grr_response_server import data_store
 from grr_response_server.gui import api_auth_manager
 # pylint: disable=unused-import
 # This import guarantees that all API-related RDF types will get imported
@@ -64,7 +64,7 @@ class ApiRegressionTestMetaclass(registry.MetaclassRegistry):
         continue
 
       cls_name = "%s_%s" % (name, mixin.connection_type)
-      test_cls = compatibility.MakeType(
+      test_cls = type(
           cls_name,
           (mixin, cls, test_lib.GRRBaseTest),
           # pylint: disable=protected-access
@@ -126,6 +126,7 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
     self.addCleanup(syscalls_stubber.Stop)
 
     self.test_username = "api_test_user"
+    data_store.REL_DB.WriteGRRUser(self.test_username)
     webauth.WEBAUTH_MANAGER.SetUserName(self.test_username)
 
     # Force creation of new APIAuthorizationManager.
@@ -220,7 +221,8 @@ class ApiRegressionTest(  # pylint: disable=invalid-metaclass
     creates a public testForRegression method for generated regression
     classes.
     """
-    prev_data = json.ReadFromPath(self.output_file_name)
+    with open(self.output_file_name, mode="rt", encoding="utf-8") as file:
+      prev_data = json.load(file)
 
     # Using an empty list if the handler class name is not present in the
     # golden file. This way it's easy to debug new tests: we get a proper
@@ -293,7 +295,7 @@ class ApiRegressionGoldenOutputGenerator(object):
           except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
 
-    json_sample_data = json.Dump(sample_data, sort_keys=True)
+    json_sample_data = json.dumps(sample_data, sort_keys=True)
     sys.stdout.buffer.write(json_sample_data.encode("utf-8"))
 
 

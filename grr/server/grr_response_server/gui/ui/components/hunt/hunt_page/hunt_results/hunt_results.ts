@@ -1,18 +1,21 @@
+import {Clipboard} from '@angular/cdk/clipboard';
 import {KeyValue} from '@angular/common';
 import {ChangeDetectionStrategy, Component, OnDestroy} from '@angular/core';
 import {MatTableDataSource} from '@angular/material/table';
 import {combineLatest, Observable} from 'rxjs';
-import {map, startWith} from 'rxjs/operators';
+import {filter, map, startWith, takeUntil} from 'rxjs/operators';
 
+import {ExportMenuItem} from '../../../../components/flow_details/plugins/plugin';
 import {ApiHuntError} from '../../../../lib/api/api_interfaces';
+import {getHuntExportedResultsCsvUrl, getHuntExportedResultsSqliteUrl, getHuntExportedResultsYamlUrl, getHuntFilesArchiveTarGzUrl, getHuntFilesArchiveZipUrl} from '../../../../lib/api/http_api_service';
 import {orderApiHuntResultColumns, PAYLOAD_TYPE_TRANSLATION, toHuntResultRow} from '../../../../lib/api_translation/result';
 import {CellComponent, ColumnDescriptor} from '../../../../lib/models/result';
-import {isNull} from '../../../../lib/preconditions';
+import {isNonNull, isNull} from '../../../../lib/preconditions';
 import {observeOnDestroy} from '../../../../lib/reactive';
 import {HuntPageGlobalStore} from '../../../../store/hunt_page_global_store';
 
 /** Describes for a particular PayloadType, its render information. */
-declare interface ResultsDescriptor {
+export declare interface ResultsDescriptor {
   tabName?: string;
   columns: {[key: string]: ColumnDescriptor};
   displayedColumns?: string[];
@@ -54,11 +57,23 @@ export class HuntResults implements OnDestroy {
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
+  private huntId: string = '';
+  protected copied: boolean = false;
+
   constructor(
       private readonly huntPageGlobalStore: HuntPageGlobalStore,
+      private readonly clipboard: Clipboard,
   ) {
     huntPageGlobalStore.loadMoreResults();
     huntPageGlobalStore.loadMoreErrors();
+    huntPageGlobalStore.selectedHuntId$
+        .pipe(
+            takeUntil(this.ngOnDestroy.triggered$),
+            filter(isNonNull),
+            )
+        .subscribe(id => {
+          this.huntId = id;
+        });
   }
 
   readonly LoadMoreState = LoadMoreState;
@@ -168,12 +183,51 @@ export class HuntResults implements OnDestroy {
       ]).pipe(map(([loadingResults,
                     loadingErrors]) => loadingResults && loadingErrors));
 
+  get exportMenuItems(): readonly ExportMenuItem[] {
+    return [
+      {
+        title: 'Download files (TAR GZ)',
+        url: getHuntFilesArchiveTarGzUrl(this.huntId),
+        downloadName: `results_hunt_${this.huntId}.tar.gz`,
+      },
+      {
+        title: 'Download files (ZIP)',
+        url: getHuntFilesArchiveZipUrl(this.huntId),
+        downloadName: `results_hunt_${this.huntId}.zip`,
+      },
+      {
+        title: 'Download (CSV)',
+        url: getHuntExportedResultsCsvUrl(this.huntId),
+        downloadName: `hunt_${this.huntId}.csv.zip`,
+      },
+      {
+        title: 'Download (YAML)',
+        url: getHuntExportedResultsYamlUrl(this.huntId),
+        downloadName: `hunt_${this.huntId}.yaml.zip`,
+      },
+      {
+        title: 'Download (SQLite)',
+        url: getHuntExportedResultsSqliteUrl(this.huntId),
+        downloadName: `hunt_${this.huntId}.sql.zip`,
+      },
+    ];
+  }
+
+  exportCommand() {
+    const cmd = `/usr/bin/grr_api_shell 'http://localhost:8081' --exec_code` +
+        `'grrapi.Hunt("${this.huntId}").GetFilesArchive().WriteToFile(` +
+        `"./hunt_results_${this.huntId}.zip")'`;
+    this.copied = this.clipboard.copy(cmd);
+  }
+
   trackByIndex(index: number) {
     return index;
   }
-
   trackByKey(index: number, pair: KeyValue<string, ColumnDescriptor>) {
     return pair.key;
+  }
+  trackExportMenuItem(index: number, entry: ExportMenuItem) {
+    return entry.title;
   }
 
   loadMoreResults() {

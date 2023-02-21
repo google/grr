@@ -6,7 +6,7 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {newClientApproval} from '../../../lib/models/model_test_util';
 import {HomePageGlobalStore} from '../../../store/home_page_global_store';
 import {RecentClientFlowsLocalStore} from '../../../store/recent_client_flows_local_store';
-import {mockRecentClientFlowsLocalStore} from '../../../store/recent_client_flows_local_store_test_util';
+import {mockRecentClientFlowsLocalStore, RecentClientFlowsLocalStoreMock} from '../../../store/recent_client_flows_local_store_test_util';
 import {injectMockStore, STORE_PROVIDERS} from '../../../store/store_test_providers';
 import {initTestEnvironment} from '../../../testing';
 
@@ -20,7 +20,11 @@ class DummyComponent {
 }
 
 describe('RecentActivity Component', () => {
+  let recentClientFlowsLocalStore: RecentClientFlowsLocalStoreMock;
+
   beforeEach(waitForAsync(() => {
+    recentClientFlowsLocalStore = mockRecentClientFlowsLocalStore();
+
     TestBed
         .configureTestingModule({
           imports: [
@@ -41,7 +45,7 @@ describe('RecentActivity Component', () => {
         // needing a super-override in all tests of components that include it.
         .overrideProvider(
             RecentClientFlowsLocalStore,
-            {useFactory: mockRecentClientFlowsLocalStore})
+            {useFactory: () => recentClientFlowsLocalStore})
         .compileComponents();
   }));
 
@@ -72,6 +76,7 @@ describe('RecentActivity Component', () => {
         .mockedObservables.recentClientApprovals$.next([
           newClientApproval({status: {type: 'valid'}}),
         ]);
+    recentClientFlowsLocalStore.mockedObservables.hasAccess$.next(true);
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -88,6 +93,7 @@ describe('RecentActivity Component', () => {
             status: {type: 'pending', reason: 'Need 1 more approver'}
           })
         ]);
+    recentClientFlowsLocalStore.mockedObservables.hasAccess$.next(true);
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;

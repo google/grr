@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 """Helper for running end-to-end tests."""
-
-import collections
 import getpass
 import inspect
 import logging
@@ -149,7 +147,7 @@ class E2ETestRunner(object):
     test_base.init_fn = lambda: (self._grr_api, client)
     unittest_runner = unittest.TextTestRunner()
 
-    results = collections.OrderedDict()
+    results = dict()
     applicable_tests = self._GetApplicableTests(client)
     if not applicable_tests:
       raise E2ETestError("Can't find applicable tests for the client.")
@@ -273,7 +271,7 @@ class E2ETestRunner(object):
           continue
         else:
           applicable_tests[test_name] = test
-    return collections.OrderedDict(sorted(applicable_tests.items()))
+    return dict(sorted(applicable_tests.items()))
 
   def _RetryTest(self, test_name, test, unittest_runner):
     """Runs the given test with the given test runner, retrying on failure."""

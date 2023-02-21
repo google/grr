@@ -9,7 +9,6 @@ from absl import app
 
 from grr_api_client import errors
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.util import compatibility
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_auth_manager
@@ -21,8 +20,7 @@ from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
-ROBOT_ROUTER_NAME = compatibility.GetName(
-    api_call_robot_router.ApiCallRobotRouter)
+ROBOT_ROUTER_NAME = api_call_robot_router.ApiCallRobotRouter.__name__
 
 
 class ApiCallRobotRouterE2ETest(api_integration_test_lib.ApiIntegrationTest):

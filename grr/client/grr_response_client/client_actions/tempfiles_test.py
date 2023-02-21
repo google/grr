@@ -5,6 +5,7 @@ import io
 import os
 import shutil
 import tempfile
+from unittest import mock
 
 from absl import app
 
@@ -58,8 +59,10 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
 
   def testWrongOwnerGetsFixed(self):
 
+    lstat = os.lstat
+
     def mystat(filename):
-      stat_info = os.lstat.old_target(filename)
+      stat_info = lstat(filename)
       stat_list = list(stat_info)
       # Adjust the UID.
       stat_list[4] += 1
@@ -72,7 +75,7 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
 
     self.assertTrue(os.path.exists(fd.name))
 
-    with utils.Stubber(os, "lstat", mystat):
+    with mock.patch.object(os, "lstat", mystat):
       fd2 = tempfiles.CreateGRRTempFile(filename="temptemp", mode="wb")
       fd2.close()
 
@@ -224,7 +227,7 @@ class DeleteGRRTempFiles(client_test_lib.EmptyActionTest):
       res.append(os.path.basename(self.temp_fd2.name))
       return res
 
-    with utils.Stubber(os, "listdir", listdir):
+    with mock.patch.object(os, "listdir", listdir):
       result = self.RunAction(tempfiles.DeleteGRRTempFiles, self.pathspec)[0]
       self.assertIn("not_really_a_file does not exist", result.data)
 

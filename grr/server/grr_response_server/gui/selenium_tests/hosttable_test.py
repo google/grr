@@ -3,6 +3,7 @@
 
 from absl import app
 
+from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
 from grr.test_lib import test_lib
 
@@ -24,6 +25,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
         "span.label-success:contains('foo')" % self.client_ids[0])
 
   def testSystemLabelIsShownAsRegularBootstrapLabel(self):
+    data_store.REL_DB.WriteGRRUser("GRR")
     self.AddClientLabel(self.client_ids[0], u"GRR", u"bar")
 
     self.Open("/#/search?q=.")

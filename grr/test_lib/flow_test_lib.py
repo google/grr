@@ -6,6 +6,7 @@ import sys
 from typing import ContextManager, Iterable, Optional, Text, Type, List
 from unittest import mock
 
+from grr_response_client import actions
 from grr_response_client.client_actions import standard
 
 from grr_response_core.lib import rdfvalue
@@ -214,6 +215,11 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
     self.addCleanup(conn_patcher.stop)
     mock_conn.outgoing.InsertMessage.side_effect = (
         lambda msg, **_: fleetspeak_test_lib.StoreMessage(msg))
+
+    # Some tests run with fake time and leak into the last_progress_time. To
+    # prevent getting negative durations, we clean up here.
+    actions.ActionPlugin.last_progress_time = (
+        rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
 
 class CrashClientMock(action_mocks.ActionMock):

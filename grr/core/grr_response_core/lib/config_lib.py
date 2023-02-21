@@ -3,7 +3,6 @@
 
 This handles opening and parsing of config files.
 """
-import collections
 from collections import abc
 import copy
 import io
@@ -24,7 +23,6 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.registry import MetaclassRegistry
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
@@ -207,7 +205,7 @@ class Env(ConfigFilter):
 
   def Filter(self, data: Text) -> Text:
     precondition.AssertType(data, Text)
-    return compatibility.Environ(data.upper(), default="")
+    return os.environ.get(data.upper(), "")
 
 
 class Expand(ConfigFilter):
@@ -453,11 +451,11 @@ class GrrConfigManager(object):
     # different situations. The context can contain any string describing a
     # different aspect of the running instance.
     self.context = []
-    self.raw_data = collections.OrderedDict()
+    self.raw_data = dict()
     self.files = []
     self.secondary_config_parsers = []
     self.writeback = None
-    self.writeback_data = collections.OrderedDict()
+    self.writeback_data = dict()
     self.global_override = dict()
     self.context_descriptions = {}
     self.constants = set()
@@ -704,7 +702,7 @@ class GrrConfigManager(object):
       if isinstance(value, Text):
         value = self.EscapeString(value)
 
-      if not compatibility.PY2 and isinstance(value, bytes):
+      if isinstance(value, bytes):
         raise ValueError("Setting config option %s to bytes is not allowed" %
                          name)
 
@@ -811,7 +809,7 @@ class GrrConfigManager(object):
       if isinstance(v, dict) and k not in self.type_infos:
         if k not in self.valid_contexts:
           raise InvalidContextError("Invalid context specified: %s" % k)
-        context_data = raw_data.setdefault(k, collections.OrderedDict())
+        context_data = raw_data.setdefault(k, dict())
         self.MergeData(v, context_data)
 
       else:
@@ -944,8 +942,8 @@ class GrrConfigManager(object):
     self.FlushCache()
     if reset:
       # Clear previous configuration.
-      self.raw_data = collections.OrderedDict()
-      self.writeback_data = collections.OrderedDict()
+      self.raw_data = dict()
+      self.writeback_data = dict()
       self.writeback = None
       self.initialized = False
 

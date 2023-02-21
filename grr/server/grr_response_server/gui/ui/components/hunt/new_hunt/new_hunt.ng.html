@@ -1,32 +1,105 @@
 <div class="new-hunt-container centered-content">
   <div class="config">
-    <title-editor (changed)="updateTitle($event)"
+    <title-editor [route]="huntsOverviewRoute"
+                 (changed)="updateTitle($event)"
                  #titleEditor
                  class="title">
       <h1 titleEditable>Create a fleet collection</h1>
     </title-editor>
+    <mat-chip-list *ngIf="(hasOrigin$ | async) === false">
+      <mat-chip
+        class="yellow-chip"
+        color="custom"
+        matTooltip="It wasn't created from an existing fleet collection or flow."
+        disabled
+        ><mat-icon>warning</mat-icon>The fleet collection MUST be created from an existing fleet collection or flow</mat-chip
+      >
+    </mat-chip-list>
+    <table class="key-value-table">
+      <tr *ngIf="(originalHunt$ | async)?.huntId as originalHuntId">
+        <td>Based on fleet collection:</td>
+        <td>
+          <app-copy-button
+            ><span
+              ><a
+                [routerLink]="[
+                  '',
+                  {
+                    outlets: {
+                      'primary': ['hunts', originalHuntId]
+                    }
+                  }
+                ]"
+                class="text-link"
+              >
+                {{ originalHuntId }}</a
+              ></span
+            >
+          </app-copy-button>
+        </td>
+      </tr>
+      <tr *ngIf="(flowWithDescriptor$ | async)?.flow as originalFlow">
+        <td>Based on flow:</td>
+        <td>
+          <app-copy-button
+            ><span
+              ><a
+                [routerLink]="[
+                  '',
+                  {
+                    outlets: {
+                      'primary': [
+                        'clients',
+                        originalFlow?.clientId,
+                        'flows',
+                        originalFlow.flowId
+                      ]
+                    }
+                  }
+                ]"
+                class="text-link"
+                >{{ originalFlow.flowId }}</a
+              ></span
+            >
+          </app-copy-button>
+        </td>
+      </tr>
+    </table>
     <flow-details *ngIf="flowWithDescriptor$ | async"
       [flow]="(flowWithDescriptor$ | async)?.flow"
       [flowDescriptor]="(flowWithDescriptor$ | async)?.descriptor"
       [showContextMenu]="false">
     </flow-details>
-    <app-clients-form #clientsForm>
+    <hunt-flow-arguments *ngIf="!(flowWithDescriptor$ | async) && (originalHunt$ | async)"
+      [hunt]="originalHunt$ | async">
+    </hunt-flow-arguments>
+    <app-clients-form id="clientsForm" #clientsForm>
     </app-clients-form>
-    <app-params-form #paramsForm>
+    <app-params-form id="paramsForm" #paramsForm>
     </app-params-form>
-    <app-output-plugins-form #outputPluginsForm>
+    <app-output-plugins-form id="outputPluginsForm" #outputPluginsForm>
     </app-output-plugins-form>
-    <approval #approval
+    <approval-card #approvalCard
               *ngIf="huntApprovalRequired$ | async"
+              [urlTree]="(huntApprovalRoute$ | async) ?? []"
+              [latestApproval]="latestApproval$ | async"
               [showSubmitButton]="false"
+              [validateOnStart]="true"
               (approvalParams)="requestHuntApproval($event)">
-    </approval>
-    <button mat-flat-button
-            color="primary"
-            (click)="runHunt()"
-            id="runHunt"
-            aria-label="Start a fleet collection">
-      Run fleet collection
-    </button>
+    </approval-card>
+    <span matTooltip="You must use an existing fleet collection or flow to create a new collection"
+        [matTooltipDisabled]="(canCreateHunt$ | async) === true">
+      <button mat-flat-button
+              color="primary"
+              (click)="runHunt()"
+              id="runHunt"
+              [disabled]="(canCreateHunt$ | async) === false"
+              aria-label="Start a fleet collection">
+        Run fleet collection
+      </button>
+      <mat-error *ngIf="!(hasOrigin$|async)">
+        You must use an existing fleet collection or flow to create a new collection
+      </mat-error>
+    </span>
   </div>
 </div>

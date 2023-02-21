@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests acl policies when approvals system is disabled."""
 
 from absl import app

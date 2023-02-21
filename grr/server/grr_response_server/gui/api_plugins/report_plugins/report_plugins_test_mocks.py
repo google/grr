@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 """This module contains report plugin mocks used for testing."""
-
+from unittest import mock
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_server.gui.api_plugins.report_plugins import rdf_report_plugins
 from grr_response_server.gui.api_plugins.report_plugins import report_plugin_base
 from grr_response_server.gui.api_plugins.report_plugins import report_plugins
@@ -55,7 +54,7 @@ class MockedReportPlugins(object):
   """A context manager that swaps available reports with the mocked reports."""
 
   def __init__(self):
-    self.stubber = utils.Stubber(report_plugins.REGISTRY, "plugins", {
+    self.stubber = mock.patch.object(report_plugins.REGISTRY, "plugins", {
         "FooReportPlugin": FooReportPlugin,
         "BarReportPlugin": BarReportPlugin
     })
@@ -67,7 +66,7 @@ class MockedReportPlugins(object):
     self.Stop()
 
   def Start(self):
-    self.stubber.Start()
+    self.stubber.start()
 
   def Stop(self):
-    self.stubber.Stop()
+    self.stubber.stop()

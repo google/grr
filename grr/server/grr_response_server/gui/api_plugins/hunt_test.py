@@ -464,6 +464,128 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
                      results[0].payload.stat_entry.st_size)
 
 
+class ApiListHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                    hunt_test_lib.StandardHuntTestMixin):
+  """Test for ApiListHuntResultsHandler."""
+
+  def setUp(self):
+    super().setUp()
+
+    self.handler = hunt_plugin.ApiListHuntResultsHandler()
+
+  def _RunHuntWithResults(self, client_count, results):
+    hunt_id = self.StartHunt(description="the hunt")
+
+    self.client_ids = self.SetupClients(client_count)
+    for client_id in self.client_ids:
+      self.AddResultsToHunt(hunt_id, client_id, results)
+
+    return hunt_id
+
+  def testReturnsAllResultsOfAllTypes(self):
+    hunt_id = self._RunHuntWithResults(
+        client_count=5,
+        results=[
+            rdf_file_finder.CollectSingleFileResult(),
+            rdf_file_finder.FileFinderResult()
+        ])
+    result = self.handler.Handle(
+        hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id),
+        context=self.context)
+
+    self.assertCountEqual([r.payload_type for r in result.items], [
+        rdf_file_finder.CollectSingleFileResult.__name__,
+        rdf_file_finder.FileFinderResult.__name__
+    ] * 5)
+    self.assertEqual(result.total_count, 10)
+
+  def testCountsAllResultsWithAllTypes(self):
+    hunt_id = self._RunHuntWithResults(
+        client_count=5,
+        results=[
+            rdf_file_finder.CollectSingleFileResult(),
+            rdf_file_finder.FileFinderResult()
+        ])
+    result = self.handler.Handle(
+        hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id, count=3),
+        context=self.context)
+
+    self.assertLen(result.items, 3)
+    self.assertEqual(result.total_count, 10)
+
+  def testReturnsAllResultsOfFilteredType(self):
+    hunt_id = self._RunHuntWithResults(
+        client_count=5,
+        results=[
+            rdf_file_finder.CollectSingleFileResult(),
+            rdf_file_finder.FileFinderResult()
+        ])
+    result = self.handler.Handle(
+        hunt_plugin.ApiListHuntResultsArgs(
+            hunt_id=hunt_id,
+            with_type=rdf_file_finder.FileFinderResult.__name__),
+        context=self.context)
+
+    self.assertCountEqual([r.payload_type for r in result.items],
+                          [rdf_file_finder.FileFinderResult.__name__] * 5)
+    self.assertEqual(result.total_count, 5)
+
+  def testCountsAllResultsWithType(self):
+    hunt_id = self._RunHuntWithResults(
+        client_count=5,
+        results=[
+            rdf_file_finder.CollectSingleFileResult(),
+            rdf_file_finder.FileFinderResult()
+        ])
+    result = self.handler.Handle(
+        hunt_plugin.ApiListHuntResultsArgs(
+            hunt_id=hunt_id,
+            count=3,
+            with_type=rdf_file_finder.FileFinderResult.__name__),
+        context=self.context)
+
+    self.assertCountEqual([r.payload_type for r in result.items],
+                          [rdf_file_finder.FileFinderResult.__name__] * 3)
+    self.assertEqual(result.total_count, 5)
+
+
+class ApiCountHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                     hunt_test_lib.StandardHuntTestMixin):
+  """Test for ApiCountHuntResultsByTypeHandler."""
+
+  def setUp(self):
+    super().setUp()
+
+    self.handler = hunt_plugin.ApiCountHuntResultsByTypeHandler()
+
+  def _RunHuntWithResults(self, client_count, results):
+    hunt_id = self.StartHunt(description="the hunt")
+
+    self.client_ids = self.SetupClients(client_count)
+    for client_id in self.client_ids:
+      self.AddResultsToHunt(hunt_id, client_id, results)
+
+    return hunt_id
+
+  def testCountsAllResultsOfAllTypes(self):
+    hunt_id = self._RunHuntWithResults(
+        client_count=5,
+        results=[
+            rdf_file_finder.CollectSingleFileResult(),
+            rdf_file_finder.FileFinderResult()
+        ])
+    result = self.handler.Handle(
+        hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id),
+        context=self.context)
+
+    self.assertCountEqual(result.items, [
+        hunt_plugin.ApiTypeCount(
+            type=rdf_file_finder.CollectSingleFileResult.__name__, count=5),
+        hunt_plugin.ApiTypeCount(
+            type=rdf_file_finder.FileFinderResult.__name__, count=5),
+    ])
+
+
 class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
                                              hunt_test_lib.StandardHuntTestMixin
                                             ):
@@ -477,11 +599,11 @@ class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.output_plugins = [
         rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
-            plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
+            args=test_plugins.DummyHuntTestOutputPlugin.args_type(
                 filename_regex="foo")),
         rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
-            plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
+            args=test_plugins.DummyHuntTestOutputPlugin.args_type(
                 filename_regex="bar"))
     ]
 
@@ -601,6 +723,7 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     h = data_store.REL_DB.ReadHuntObject(self.hunt_id)
     self.assertEqual(h.hunt_state, h.HuntState.STOPPED)
+    self.assertEqual(h.hunt_state_comment, "Cancelled by user")
 
   def testRaisesWhenModifyingHuntInNonPausedState(self):
     hunt.StartHunt(self.hunt_id)

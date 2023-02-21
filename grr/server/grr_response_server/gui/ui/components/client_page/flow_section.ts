@@ -4,7 +4,7 @@ import {first} from 'rxjs/operators';
 import {assertNonNull} from '../../lib/preconditions';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {UserGlobalStore} from '../../store/user_global_store';
-import {ApprovalParams} from '../approval/approval';
+import {ApprovalParams} from '../approval_card/approval_card';
 
 /** Section in ClientPage that shows the flow form and list. */
 @Component({
@@ -22,6 +22,9 @@ export class FlowSection {
 
   readonly latestApproval$ = this.clientPageGlobalStore.latestApproval$;
 
+  readonly clientApprovalRoute$ =
+      this.clientPageGlobalStore.clientApprovalRoute$;
+
   readonly hasAccess$ = this.clientPageGlobalStore.hasAccess$;
 
   constructor(
@@ -32,7 +35,7 @@ export class FlowSection {
   requestApproval(approvalParams: ApprovalParams) {
     this.client$.pipe(first()).subscribe(client => {
       assertNonNull(client);
-      this.clientPageGlobalStore.requestApproval({
+      this.clientPageGlobalStore.requestClientApproval({
         clientId: client.clientId,
         approvers: approvalParams.approvers,
         reason: approvalParams.reason,

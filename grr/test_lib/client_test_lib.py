@@ -10,10 +10,8 @@ import tempfile
 import types
 
 from grr_response_client import actions
-from grr_response_client.client_actions import standard
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.util import context
@@ -27,7 +25,8 @@ from grr.test_lib import worker_mocks
 class EmptyActionTest(test_lib.GRRBaseTest):
   """Test the client Actions."""
 
-  def tearDown(self):
+  def setUp(self):
+    super().setUp()
     # Reset the global last progress time to prevent order-dependent tests.
     actions.ActionPlugin.last_progress_time = (
         rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
@@ -90,24 +89,6 @@ class EmptyActionTest(test_lib.GRRBaseTest):
     action.SendReply = types.MethodType(mock_send_reply, action)
 
     return action
-
-
-class OSSpecificClientTests(EmptyActionTest):
-  """OS-specific client action tests.
-
-  We need to temporarily disable the actionplugin class registry to avoid
-  registering actions for other OSes.
-  """
-
-  def setUp(self):
-    super().setUp()
-    action_reg_stubber = utils.Stubber(actions.ActionPlugin, "classes", {})
-    action_reg_stubber.Start()
-    self.addCleanup(action_reg_stubber.Stop)
-    binary_command_stubber = utils.Stubber(standard.ExecuteBinaryCommand,
-                                           "classes", {})
-    binary_command_stubber.Start()
-    self.addCleanup(binary_command_stubber.Stop)
 
 
 # pylint: disable=g-bad-name

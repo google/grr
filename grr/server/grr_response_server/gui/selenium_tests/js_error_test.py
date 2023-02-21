@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test Selenium tests JS errors detection logic."""
 
 from absl import app

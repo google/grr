@@ -17,7 +17,6 @@ from typing import Text
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_core.lib.util import compatibility
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
@@ -774,7 +773,7 @@ class InMemoryDBFlowMixin(object):
     # This is done in order to pass the tests that try to deserialize
     # value of an unrecognized type.
     for r in results:
-      cls_name = compatibility.GetName(r.payload.__class__)
+      cls_name = r.payload.__class__.__name__
       if cls_name not in rdfvalue.RDFValue.classes:
         r.payload = rdf_objects.SerializedValueOfUnrecognizedType(
             type_name=cls_name, value=r.payload.SerializeToBytes())
@@ -784,8 +783,7 @@ class InMemoryDBFlowMixin(object):
 
     if with_type is not None:
       results = [
-          i for i in results
-          if compatibility.GetName(i.payload.__class__) == with_type
+          i for i in results if i.payload.__class__.__name__ == with_type
       ]
 
     if with_substring is not None:
@@ -833,7 +831,7 @@ class InMemoryDBFlowMixin(object):
     """Returns counts of flow results grouped by result type."""
     result = collections.Counter()
     for hr in self.ReadFlowResults(client_id, flow_id, 0, sys.maxsize):
-      key = compatibility.GetName(hr.payload.__class__)
+      key = hr.payload.__class__.__name__
       result[key] += 1
 
     return result
@@ -884,7 +882,7 @@ class InMemoryDBFlowMixin(object):
     """Returns counts of flow errors grouped by error type."""
     result = collections.Counter()
     for hr in self.ReadFlowErrors(client_id, flow_id, 0, sys.maxsize):
-      key = compatibility.GetName(hr.payload.__class__)
+      key = hr.payload.__class__.__name__
       result[key] += 1
 
     return result

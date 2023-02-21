@@ -10,7 +10,7 @@
         },
         "client_id": "C.1000000000000000",
         "creator": "",
-        "error_description": "Cancelled in GUI",
+        "error_description": "Cancelled by user",
         "flow_id": "W:ABCDEF",
         "is_robot": false,
         "last_active_at": 4242000000,
@@ -41,7 +41,7 @@
         "args": {},
         "client_id": "C.1000000000000000",
         "creator": "",
-        "error_description": "Cancelled in GUI",
+        "error_description": "Cancelled by user",
         "flow_id": "W:ABCDEF",
         "is_robot": false,
         "last_active_at": 4242000000,
@@ -56,6 +56,39 @@
         "urn": "aff4:/C.1000000000000000/W:ABCDEF"
       },
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/actions/cancel"
+    }
+  ],
+  "ApiCountHuntResultsByTypeHandler": [
+    {
+      "api_method": "CountHuntResultsByType",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "type": "ApiTypeCount",
+            "value": {
+              "count": {
+                "type": "long",
+                "value": 1
+              },
+              "type": {
+                "type": "unicode",
+                "value": "RDFString"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiCountHuntResultsByTypeRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "count": 1,
+            "type": "RDFString"
+          }
+        ]
+      },
+      "url": "/api/hunts/H:123456/result-counts"
     }
   ],
   "ApiCreateClientApprovalHandler": [
@@ -950,6 +983,10 @@
             "type": "unicode",
             "value": "<message id stub>"
           },
+          "expiration_time_us": {
+            "type": "RDFDatetime",
+            "value": 2419326000000
+          },
           "id": {
             "type": "unicode",
             "value": "approval:112233"
@@ -1172,6 +1209,10 @@
                 "type": "EnumNamedValue",
                 "value": "PAUSED"
               },
+              "state_comment": {
+                "type": "unicode",
+                "value": ""
+              },
               "total_cpu_usage": {
                 "type": "long",
                 "value": 0
@@ -1197,6 +1238,7 @@
           "test@example.com"
         ],
         "email_message_id": "<message id stub>",
+        "expiration_time_us": 2419326000000,
         "id": "approval:112233",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -1264,6 +1306,7 @@
           "remaining_clients_count": 0,
           "results_count": 0,
           "state": "PAUSED",
+          "state_comment": "",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"
@@ -1459,6 +1502,10 @@
             "type": "EnumNamedValue",
             "value": "PAUSED"
           },
+          "state_comment": {
+            "type": "unicode",
+            "value": ""
+          },
           "total_cpu_usage": {
             "type": "long",
             "value": 0
@@ -1526,6 +1573,7 @@
         "remaining_clients_count": 0,
         "results_count": 0,
         "state": "PAUSED",
+        "state_comment": "",
         "total_cpu_usage": 0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"
@@ -4834,6 +4882,10 @@
             "type": "unicode",
             "value": "<message id stub>"
           },
+          "expiration_time_us": {
+            "type": "RDFDatetime",
+            "value": 2419244000000
+          },
           "id": {
             "type": "unicode",
             "value": "approval:111111"
@@ -5052,6 +5104,10 @@
                 "type": "EnumNamedValue",
                 "value": "PAUSED"
               },
+              "state_comment": {
+                "type": "unicode",
+                "value": ""
+              },
               "total_cpu_usage": {
                 "type": "long",
                 "value": 0
@@ -5075,6 +5131,7 @@
         ],
         "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
+        "expiration_time_us": 2419244000000,
         "id": "approval:111111",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -5141,6 +5198,7 @@
           "remaining_clients_count": 0,
           "results_count": 0,
           "state": "PAUSED",
+          "state_comment": "",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"
@@ -5168,6 +5226,10 @@
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
+          },
+          "expiration_time_us": {
+            "type": "RDFDatetime",
+            "value": 2419245000000
           },
           "id": {
             "type": "unicode",
@@ -5383,6 +5445,10 @@
                 "type": "EnumNamedValue",
                 "value": "PAUSED"
               },
+              "state_comment": {
+                "type": "unicode",
+                "value": ""
+              },
               "total_cpu_usage": {
                 "type": "long",
                 "value": 0
@@ -5407,6 +5473,7 @@
         ],
         "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
+        "expiration_time_us": 2419245000000,
         "id": "approval:222222",
         "is_valid": true,
         "notified_users": [
@@ -5472,6 +5539,7 @@
           "remaining_clients_count": 0,
           "results_count": 0,
           "state": "PAUSED",
+          "state_comment": "",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:567890"
@@ -5683,6 +5751,10 @@
                 "type": "EnumNamedValue",
                 "value": "PAUSED"
               },
+              "state_comment": {
+                "type": "unicode",
+                "value": ""
+              },
               "total_cpu_usage": {
                 "type": "long",
                 "value": 0
@@ -5701,6 +5773,10 @@
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
+          },
+          "expiration_time_us": {
+            "type": "RDFDatetime",
+            "value": 2419244000000
           },
           "id": {
             "type": "unicode",
@@ -5952,6 +6028,10 @@
                 "type": "EnumNamedValue",
                 "value": "PAUSED"
               },
+              "state_comment": {
+                "type": "unicode",
+                "value": ""
+              },
               "total_cpu_usage": {
                 "type": "long",
                 "value": 0
@@ -6031,12 +6111,14 @@
           "remaining_clients_count": 0,
           "results_count": 0,
           "state": "PAUSED",
+          "state_comment": "",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:556677"
         },
         "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
+        "expiration_time_us": 2419244000000,
         "id": "approval:333333",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -6114,6 +6196,7 @@
           "remaining_clients_count": 0,
           "results_count": 0,
           "state": "PAUSED",
+          "state_comment": "",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:DDEEFF"
@@ -6199,6 +6282,10 @@
           "email_message_id": {
             "type": "unicode",
             "value": "<message id stub>"
+          },
+          "expiration_time_us": {
+            "type": "RDFDatetime",
+            "value": 2419244000000
           },
           "id": {
             "type": "unicode",
@@ -6458,6 +6545,10 @@
                 "type": "EnumNamedValue",
                 "value": "PAUSED"
               },
+              "state_comment": {
+                "type": "unicode",
+                "value": ""
+              },
               "total_cpu_usage": {
                 "type": "long",
                 "value": 0
@@ -6498,6 +6589,7 @@
         },
         "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
+        "expiration_time_us": 2419244000000,
         "id": "approval:444444",
         "is_valid": false,
         "is_valid_message": "Need at least 1 additional approver for access.",
@@ -6577,6 +6669,7 @@
           "remaining_clients_count": 0,
           "results_count": 0,
           "state": "PAUSED",
+          "state_comment": "",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:667788"
@@ -7067,6 +7160,10 @@
             "type": "EnumNamedValue",
             "value": "PAUSED"
           },
+          "state_comment": {
+            "type": "unicode",
+            "value": ""
+          },
           "total_cpu_usage": {
             "type": "long",
             "value": 0
@@ -7153,6 +7250,7 @@
         "remaining_clients_count": 0,
         "results_count": 0,
         "state": "PAUSED",
+        "state_comment": "",
         "total_cpu_usage": 0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"
@@ -7386,6 +7484,10 @@
             "type": "EnumNamedValue",
             "value": "PAUSED"
           },
+          "state_comment": {
+            "type": "unicode",
+            "value": ""
+          },
           "total_cpu_usage": {
             "type": "long",
             "value": 0
@@ -7470,6 +7572,7 @@
         "remaining_clients_count": 0,
         "results_count": 0,
         "state": "PAUSED",
+        "state_comment": "",
         "total_cpu_usage": 0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"
@@ -7671,6 +7774,10 @@
             "type": "EnumNamedValue",
             "value": "PAUSED"
           },
+          "state_comment": {
+            "type": "unicode",
+            "value": ""
+          },
           "total_cpu_usage": {
             "type": "long",
             "value": 0
@@ -7744,6 +7851,7 @@
         "remaining_clients_count": 0,
         "results_count": 0,
         "state": "PAUSED",
+        "state_comment": "",
         "total_cpu_usage": 0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"
@@ -10314,6 +10422,10 @@
             "type": "unicode",
             "value": "<message id stub>"
           },
+          "expiration_time_us": {
+            "type": "RDFDatetime",
+            "value": 2419244000000
+          },
           "id": {
             "type": "unicode",
             "value": "approval:111111"
@@ -10528,6 +10640,10 @@
                 "type": "EnumNamedValue",
                 "value": "PAUSED"
               },
+              "state_comment": {
+                "type": "unicode",
+                "value": ""
+              },
               "total_cpu_usage": {
                 "type": "long",
                 "value": 0
@@ -10552,6 +10668,7 @@
         ],
         "email_cc_addresses": [],
         "email_message_id": "<message id stub>",
+        "expiration_time_us": 2419244000000,
         "id": "approval:111111",
         "is_valid": true,
         "notified_users": [
@@ -10617,6 +10734,7 @@
           "remaining_clients_count": 0,
           "results_count": 0,
           "state": "PAUSED",
+          "state_comment": "",
           "total_cpu_usage": 0,
           "total_net_usage": 0,
           "urn": "aff4:/hunts/H:123456"
@@ -13446,7 +13564,7 @@
               "plugin_descriptor": {
                 "type": "OutputPluginDescriptor",
                 "value": {
-                  "plugin_args": {
+                  "args": {
                     "type": "EmailOutputPluginArgs",
                     "value": {
                       "email_address": {
@@ -13499,7 +13617,7 @@
           {
             "id": "EmailOutputPlugin_0",
             "plugin_descriptor": {
-              "plugin_args": {
+              "args": {
                 "email_address": "test@localhost",
                 "emails_limit": 42
               },
@@ -14543,6 +14661,10 @@
                 "type": "unicode",
                 "value": "<message id stub>"
               },
+              "expiration_time_us": {
+                "type": "RDFDatetime",
+                "value": 2419243000000
+              },
               "id": {
                 "type": "unicode",
                 "value": "approval:112233"
@@ -14761,6 +14883,10 @@
                     "type": "EnumNamedValue",
                     "value": "PAUSED"
                   },
+                  "state_comment": {
+                    "type": "unicode",
+                    "value": ""
+                  },
                   "total_cpu_usage": {
                     "type": "long",
                     "value": 0
@@ -14788,6 +14914,7 @@
             ],
             "email_cc_addresses": [],
             "email_message_id": "<message id stub>",
+            "expiration_time_us": 2419243000000,
             "id": "approval:112233",
             "is_valid": false,
             "is_valid_message": "Need at least 1 additional approver for access.",
@@ -14854,6 +14981,7 @@
               "remaining_clients_count": 0,
               "results_count": 0,
               "state": "PAUSED",
+              "state_comment": "",
               "total_cpu_usage": 0,
               "total_net_usage": 0,
               "urn": "aff4:/hunts/H:123456"
@@ -15750,7 +15878,7 @@
               "plugin_descriptor": {
                 "type": "OutputPluginDescriptor",
                 "value": {
-                  "plugin_args": {
+                  "args": {
                     "type": "ListProcessesArgs",
                     "value": {
                       "fetch_binaries": {
@@ -15798,7 +15926,7 @@
           {
             "id": "DummyHuntTestOutputPlugin_0",
             "plugin_descriptor": {
-              "plugin_args": {
+              "args": {
                 "fetch_binaries": true,
                 "filename_regex": "blah!"
               },
@@ -16086,7 +16214,7 @@
               },
               "creator": {
                 "type": "unicode",
-                "value": "api_test_user"
+                "value": "GRRWorker"
               },
               "description": {
                 "type": "unicode",
@@ -16102,7 +16230,7 @@
               },
               "is_robot": {
                 "type": "bool",
-                "value": false
+                "value": true
               },
               "state": {
                 "type": "EnumNamedValue",
@@ -16135,11 +16263,11 @@
             "client_limit": 100,
             "client_rate": 0.0,
             "created": 1000000000,
-            "creator": "api_test_user",
+            "creator": "GRRWorker",
             "description": "hunt_0",
             "duration": 1209600,
             "hunt_id": "H:000000",
-            "is_robot": false,
+            "is_robot": true,
             "state": "PAUSED",
             "urn": "aff4:/hunts/H:000000"
           }
@@ -16240,7 +16368,7 @@
               },
               "creator": {
                 "type": "unicode",
-                "value": "api_test_user"
+                "value": "GRRWorker"
               },
               "description": {
                 "type": "unicode",
@@ -16256,7 +16384,7 @@
               },
               "is_robot": {
                 "type": "bool",
-                "value": false
+                "value": true
               },
               "state": {
                 "type": "EnumNamedValue",
@@ -16277,17 +16405,287 @@
             "client_limit": 100,
             "client_rate": 0.0,
             "created": 1000000000,
-            "creator": "api_test_user",
+            "creator": "GRRWorker",
             "description": "hunt_0",
             "duration": 1209600,
             "hunt_id": "H:000000",
-            "is_robot": false,
+            "is_robot": true,
             "state": "PAUSED",
             "urn": "aff4:/hunts/H:000000"
           }
         ]
       },
       "url": "/api/hunts?count=1&offset=1"
+    },
+    {
+      "api_method": "ListHunts",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "type": "ApiHunt",
+            "value": {
+              "client_limit": {
+                "type": "long",
+                "value": 100
+              },
+              "client_rate": {
+                "type": "float",
+                "value": 0.0
+              },
+              "created": {
+                "type": "RDFDatetime",
+                "value": 2000000000
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "description": {
+                "type": "unicode",
+                "value": "hunt_1"
+              },
+              "duration": {
+                "type": "DurationSeconds",
+                "value": 1209600
+              },
+              "hunt_id": {
+                "type": "ApiHuntId",
+                "value": "H:000001"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": false
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "STOPPED"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/hunts/H:000001"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "client_limit": 100,
+            "client_rate": 0.0,
+            "created": 2000000000,
+            "creator": "api_test_user",
+            "description": "hunt_1",
+            "duration": 1209600,
+            "hunt_id": "H:000001",
+            "is_robot": false,
+            "state": "STOPPED",
+            "urn": "aff4:/hunts/H:000001"
+          }
+        ]
+      },
+      "url": "/api/hunts?count=2&offset=0&robot_filter=no_robots"
+    },
+    {
+      "api_method": "ListHunts",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "type": "ApiHunt",
+            "value": {
+              "client_limit": {
+                "type": "long",
+                "value": 100
+              },
+              "client_rate": {
+                "type": "float",
+                "value": 0.0
+              },
+              "created": {
+                "type": "RDFDatetime",
+                "value": 1000000000
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "GRRWorker"
+              },
+              "description": {
+                "type": "unicode",
+                "value": "hunt_0"
+              },
+              "duration": {
+                "type": "DurationSeconds",
+                "value": 1209600
+              },
+              "hunt_id": {
+                "type": "ApiHuntId",
+                "value": "H:000000"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": true
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "PAUSED"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/hunts/H:000000"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "client_limit": 100,
+            "client_rate": 0.0,
+            "created": 1000000000,
+            "creator": "GRRWorker",
+            "description": "hunt_0",
+            "duration": 1209600,
+            "hunt_id": "H:000000",
+            "is_robot": true,
+            "state": "PAUSED",
+            "urn": "aff4:/hunts/H:000000"
+          }
+        ]
+      },
+      "url": "/api/hunts?count=2&offset=0&robot_filter=only_robots"
+    },
+    {
+      "api_method": "ListHunts",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "type": "ApiHunt",
+            "value": {
+              "client_limit": {
+                "type": "long",
+                "value": 100
+              },
+              "client_rate": {
+                "type": "float",
+                "value": 0.0
+              },
+              "created": {
+                "type": "RDFDatetime",
+                "value": 2000000000
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "api_test_user"
+              },
+              "description": {
+                "type": "unicode",
+                "value": "hunt_1"
+              },
+              "duration": {
+                "type": "DurationSeconds",
+                "value": 1209600
+              },
+              "hunt_id": {
+                "type": "ApiHuntId",
+                "value": "H:000001"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": false
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "STOPPED"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/hunts/H:000001"
+              }
+            }
+          },
+          {
+            "type": "ApiHunt",
+            "value": {
+              "client_limit": {
+                "type": "long",
+                "value": 100
+              },
+              "client_rate": {
+                "type": "float",
+                "value": 0.0
+              },
+              "created": {
+                "type": "RDFDatetime",
+                "value": 1000000000
+              },
+              "creator": {
+                "type": "unicode",
+                "value": "GRRWorker"
+              },
+              "description": {
+                "type": "unicode",
+                "value": "hunt_0"
+              },
+              "duration": {
+                "type": "DurationSeconds",
+                "value": 1209600
+              },
+              "hunt_id": {
+                "type": "ApiHuntId",
+                "value": "H:000000"
+              },
+              "is_robot": {
+                "type": "bool",
+                "value": true
+              },
+              "state": {
+                "type": "EnumNamedValue",
+                "value": "PAUSED"
+              },
+              "urn": {
+                "type": "SessionID",
+                "value": "aff4:/hunts/H:000000"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v1",
+      "type_stripped_response": {
+        "items": [
+          {
+            "client_limit": 100,
+            "client_rate": 0.0,
+            "created": 2000000000,
+            "creator": "api_test_user",
+            "description": "hunt_1",
+            "duration": 1209600,
+            "hunt_id": "H:000001",
+            "is_robot": false,
+            "state": "STOPPED",
+            "urn": "aff4:/hunts/H:000001"
+          },
+          {
+            "client_limit": 100,
+            "client_rate": 0.0,
+            "created": 1000000000,
+            "creator": "GRRWorker",
+            "description": "hunt_0",
+            "duration": 1209600,
+            "hunt_id": "H:000000",
+            "is_robot": true,
+            "state": "PAUSED",
+            "urn": "aff4:/hunts/H:000000"
+          }
+        ]
+      },
+      "url": "/api/hunts?count=2&offset=0&robot_filter=unknown"
     }
   ],
   "ApiListKbFieldsHandler": [
@@ -17566,6 +17964,10 @@
             "type": "EnumNamedValue",
             "value": "PAUSED"
           },
+          "state_comment": {
+            "type": "unicode",
+            "value": ""
+          },
           "total_cpu_usage": {
             "type": "long",
             "value": 0
@@ -17640,6 +18042,7 @@
         "remaining_clients_count": 0,
         "results_count": 0,
         "state": "PAUSED",
+        "state_comment": "",
         "total_cpu_usage": 0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"
@@ -17848,6 +18251,10 @@
             "type": "EnumNamedValue",
             "value": "STOPPED"
           },
+          "state_comment": {
+            "type": "unicode",
+            "value": "Cancelled by user"
+          },
           "total_cpu_usage": {
             "type": "long",
             "value": 0
@@ -17922,6 +18329,7 @@
         "remaining_clients_count": 0,
         "results_count": 0,
         "state": "STOPPED",
+        "state_comment": "Cancelled by user",
         "total_cpu_usage": 0,
         "total_net_usage": 0,
         "urn": "aff4:/hunts/H:123456"

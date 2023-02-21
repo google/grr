@@ -3,12 +3,12 @@
 
 import collections
 import random
+from typing import List
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr_response_core.lib.util import compatibility
 from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
@@ -199,6 +199,18 @@ class DatabaseTestHuntMixin(object):
 
     return result
 
+  def _CreateMultipleUsers(self, users: List[str]):
+    for user in users:
+      self.db.WriteGRRUser(user)
+
+  def _CreateMultipleHuntsForUser(self, user: str, count: int):
+    result = []
+    for i in range(count):
+      hunt_obj = rdf_hunt_objects.Hunt(description="foo_%d" % i, creator=user)
+      self.db.WriteHuntObject(hunt_obj)
+      result.append(self.db.ReadHuntObject(hunt_obj.hunt_id))
+    return result
+
   def testReadHuntObjectsWithoutFiltersReadsAllHunts(self):
     expected = self._CreateMultipleHunts()
     got = self.db.ReadHuntObjects(0, db.MAX_COUNT)
@@ -211,6 +223,142 @@ class DatabaseTestHuntMixin(object):
     self.assertListEqual(got, list(reversed(all_hunts[:5])))
 
     got = self.db.ReadHuntObjects(0, db.MAX_COUNT, with_creator="user-b")
+    self.assertListEqual(got, list(reversed(all_hunts[5:])))
+
+  def testReadHuntObjectsWithCreatedByFilterIsAppliedCorrectly(self):
+    self._CreateMultipleUsers(["user-a", "user-b"])
+    all_hunts = self._CreateMultipleHuntsForUser(
+        "user-a", 5
+    ) + self._CreateMultipleHuntsForUser("user-b", 5)
+
+    got = self.db.ReadHuntObjects(0, db.MAX_COUNT, created_by=frozenset([]))
+    self.assertListEqual(got, [])
+
+    got = self.db.ReadHuntObjects(
+        0, db.MAX_COUNT, created_by=frozenset(["user-a"])
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ReadHuntObjects(
+        0, db.MAX_COUNT, created_by=frozenset(["user-b"])
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[5:])))
+
+    got = self.db.ReadHuntObjects(
+        0, db.MAX_COUNT, created_by=frozenset(["user-a", "user-b"])
+    )
+    self.assertListEqual(got, list(reversed(all_hunts)))
+
+  def testReadHuntObjectsWithCreatorAndCreatedByFilterIsAppliedCorrectly(
+      self,
+  ):
+    self._CreateMultipleUsers(["user-a", "user-b"])
+    all_hunts = self._CreateMultipleHuntsForUser(
+        "user-a", 5
+    ) + self._CreateMultipleHuntsForUser("user-b", 5)
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-a",
+        created_by=frozenset(["user-a"]),
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-b",
+        created_by=frozenset(["user-b"]),
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[5:])))
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-a",
+        created_by=frozenset(["user-b"]),
+    )
+    self.assertListEqual(got, [])
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-b",
+        created_by=frozenset(["user-a"]),
+    )
+    self.assertListEqual(got, [])
+
+  def testReadHuntObjectsWithNotCreatedByFilterIsAppliedCorrectly(self):
+    self._CreateMultipleUsers(["user-a", "user-b"])
+    all_hunts = self._CreateMultipleHuntsForUser(
+        "user-a", 5
+    ) + self._CreateMultipleHuntsForUser("user-b", 5)
+
+    got = self.db.ReadHuntObjects(0, db.MAX_COUNT, not_created_by=frozenset([]))
+    self.assertListEqual(got, list(reversed(all_hunts)))
+
+    got = self.db.ReadHuntObjects(
+        0, db.MAX_COUNT, not_created_by=frozenset(["user-a"])
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[5:])))
+
+    got = self.db.ReadHuntObjects(
+        0, db.MAX_COUNT, not_created_by=frozenset(["user-b"])
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ReadHuntObjects(
+        0, db.MAX_COUNT, not_created_by=frozenset(["user-a", "user-b"])
+    )
+    self.assertListEqual(got, [])
+
+  def testReadHuntObjectsWithCreatorAndNotCreatedByFilterIsAppliedCorrectly(
+      self,
+  ):
+    self._CreateMultipleUsers(["user-a", "user-b"])
+    all_hunts = self._CreateMultipleHuntsForUser(
+        "user-a", 5
+    ) + self._CreateMultipleHuntsForUser("user-b", 5)
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-a",
+        not_created_by=frozenset([]),
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-a",
+        not_created_by=frozenset(["user-a"]),
+    )
+    self.assertListEqual(got, [])
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-b",
+        not_created_by=frozenset(["user-b"]),
+    )
+    self.assertListEqual(got, [])
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-a",
+        not_created_by=frozenset(["user-b"]),
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-b",
+        not_created_by=frozenset(["user-a"]),
+    )
     self.assertListEqual(got, list(reversed(all_hunts[5:])))
 
   def testReadHuntObjectsCreatedAfterFilterIsAppliedCorrectly(self):
@@ -279,6 +427,146 @@ class DatabaseTestHuntMixin(object):
     got = self.db.ListHuntObjects(0, db.MAX_COUNT, with_creator="user-b")
     self.assertListEqual(got, list(reversed(all_hunts[5:])))
 
+  def testListHuntObjectsWithCreatedByFilterIsAppliedCorrectly(self):
+    self._CreateMultipleUsers(["user-a", "user-b"])
+    hunts = self._CreateMultipleHuntsForUser(
+        "user-a", 5
+    ) + self._CreateMultipleHuntsForUser("user-b", 5)
+    all_hunts = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in hunts]
+
+    got = self.db.ListHuntObjects(0, db.MAX_COUNT, created_by=frozenset([]))
+    self.assertListEqual(got, [])
+
+    got = self.db.ListHuntObjects(
+        0, db.MAX_COUNT, created_by=frozenset(["user-a"])
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ListHuntObjects(
+        0, db.MAX_COUNT, created_by=frozenset(["user-b"])
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[5:])))
+
+    got = self.db.ListHuntObjects(
+        0, db.MAX_COUNT, created_by=frozenset(["user-a", "user-b"])
+    )
+    self.assertListEqual(got, list(reversed(all_hunts)))
+
+  def testListHuntObjectsWithCreatorAndCreatedByFilterIsAppliedCorrectly(
+      self,
+  ):
+    self._CreateMultipleUsers(["user-a", "user-b"])
+    hunts = self._CreateMultipleHuntsForUser(
+        "user-a", 5
+    ) + self._CreateMultipleHuntsForUser("user-b", 5)
+    all_hunts = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in hunts]
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-a",
+        created_by=frozenset(["user-a"]),
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-b",
+        created_by=frozenset(["user-b"]),
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[5:])))
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-a",
+        created_by=frozenset(["user-b"]),
+    )
+    self.assertListEqual(got, [])
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-b",
+        created_by=frozenset(["user-a"]),
+    )
+    self.assertListEqual(got, [])
+
+  def testListHuntObjectsWithNotCreatedByFilterIsAppliedCorrectly(self):
+    self._CreateMultipleUsers(["user-a", "user-b"])
+    hunts = self._CreateMultipleHuntsForUser(
+        "user-a", 5
+    ) + self._CreateMultipleHuntsForUser("user-b", 5)
+    all_hunts = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in hunts]
+
+    got = self.db.ListHuntObjects(0, db.MAX_COUNT, not_created_by=frozenset([]))
+    self.assertListEqual(got, list(reversed(all_hunts)))
+
+    got = self.db.ListHuntObjects(
+        0, db.MAX_COUNT, not_created_by=frozenset(["user-a"])
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[5:])))
+
+    got = self.db.ListHuntObjects(
+        0, db.MAX_COUNT, not_created_by=frozenset(["user-b"])
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ListHuntObjects(
+        0, db.MAX_COUNT, not_created_by=frozenset(["user-a", "user-b"])
+    )
+    self.assertListEqual(got, [])
+
+  def testListHuntObjectsWithCreatorAndNotCreatedByFilterIsAppliedCorrectly(
+      self,
+  ):
+    self._CreateMultipleUsers(["user-a", "user-b"])
+    hunts = self._CreateMultipleHuntsForUser(
+        "user-a", 5
+    ) + self._CreateMultipleHuntsForUser("user-b", 5)
+    all_hunts = [rdf_hunt_objects.HuntMetadata.FromHunt(h) for h in hunts]
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-a",
+        not_created_by=frozenset([]),
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-a",
+        not_created_by=frozenset(["user-a"]),
+    )
+    self.assertListEqual(got, [])
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-b",
+        not_created_by=frozenset(["user-b"]),
+    )
+    self.assertListEqual(got, [])
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-a",
+        not_created_by=frozenset(["user-b"]),
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[:5])))
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_creator="user-b",
+        not_created_by=frozenset(["user-a"]),
+    )
+    self.assertListEqual(got, list(reversed(all_hunts[5:])))
+
   def testListHuntObjectsCreatedAfterFilterIsAppliedCorrectly(self):
     all_hunts = [
         rdf_hunt_objects.HuntMetadata.FromHunt(h)
@@ -325,8 +613,12 @@ class DatabaseTestHuntMixin(object):
         conditions=dict(
             with_creator="user-a",
             created_after=expected[2].create_time,
-            with_description_match="foo_4"),
-        error_desc="ListHuntObjects")
+            with_description_match="foo_4",
+            created_by=frozenset(["user-a"]),
+            not_created_by=frozenset(["user-b"]),
+        ),
+        error_desc="ListHuntObjects",
+    )
 
   def testWritingAndReadingHuntOutputPluginsStatesWorks(self):
     self.db.WriteGRRUser("user")
@@ -334,14 +626,14 @@ class DatabaseTestHuntMixin(object):
     self.db.WriteHuntObject(hunt_obj)
 
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name=compatibility.GetName(email_plugin.EmailOutputPlugin),
-        plugin_args=email_plugin.EmailOutputPluginArgs(emails_limit=42))
+        plugin_name=email_plugin.EmailOutputPlugin.__name__,
+        args=email_plugin.EmailOutputPluginArgs(emails_limit=42))
     state_1 = rdf_flow_runner.OutputPluginState(
         plugin_descriptor=plugin_descriptor, plugin_state={})
 
     plugin_descriptor = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name=compatibility.GetName(email_plugin.EmailOutputPlugin),
-        plugin_args=email_plugin.EmailOutputPluginArgs(emails_limit=43))
+        plugin_name=email_plugin.EmailOutputPlugin.__name__,
+        args=email_plugin.EmailOutputPluginArgs(emails_limit=43))
     state_2 = rdf_flow_runner.OutputPluginState(
         plugin_descriptor=plugin_descriptor, plugin_state={})
 
@@ -797,14 +1089,11 @@ class DatabaseTestHuntMixin(object):
         hunt_obj.hunt_id,
         0,
         100,
-        with_type=compatibility.GetName(rdf_client.ClientInformation))
+        with_type=rdf_client.ClientInformation.__name__)
     self.assertFalse(results)
 
     results = self.db.ReadHuntResults(
-        hunt_obj.hunt_id,
-        0,
-        100,
-        with_type=compatibility.GetName(rdf_client.ClientSummary))
+        hunt_obj.hunt_id, 0, 100, with_type=rdf_client.ClientSummary.__name__)
     self.assertCountEqual(
         [i.payload for i in results],
         [
@@ -897,7 +1186,7 @@ class DatabaseTestHuntMixin(object):
     types = {
         None:
             list(sample_results),
-        compatibility.GetName(rdf_client.ClientSummary): [
+        rdf_client.ClientSummary.__name__: [
             s for s in sample_results
             if isinstance(s.payload, rdf_client.ClientSummary)
         ]
@@ -934,7 +1223,7 @@ class DatabaseTestHuntMixin(object):
         client_id=client_id, flow_id=flow_id, hunt_id=hunt_obj.hunt_id)
     self._WriteHuntResults(sample_results)
 
-    type_name = compatibility.GetName(rdf_client.ClientSummary)
+    type_name = rdf_client.ClientSummary.__name__
     try:
       cls = rdfvalue.RDFValue.classes.pop(type_name)
 
@@ -995,18 +1284,15 @@ class DatabaseTestHuntMixin(object):
       self._WriteHuntResults(results)
 
     num_results = self.db.CountHuntResults(
-        hunt_obj.hunt_id,
-        with_type=compatibility.GetName(rdf_client.ClientInformation))
+        hunt_obj.hunt_id, with_type=rdf_client.ClientInformation.__name__)
     self.assertEqual(num_results, 0)
 
     num_results = self.db.CountHuntResults(
-        hunt_obj.hunt_id,
-        with_type=compatibility.GetName(rdf_client.ClientSummary))
+        hunt_obj.hunt_id, with_type=rdf_client.ClientSummary.__name__)
     self.assertEqual(num_results, 10)
 
     num_results = self.db.CountHuntResults(
-        hunt_obj.hunt_id,
-        with_type=compatibility.GetName(rdf_client.ClientCrash))
+        hunt_obj.hunt_id, with_type=rdf_client.ClientCrash.__name__)
     self.assertEqual(num_results, 10)
 
   def testCountHuntResultsCorrectlyAppliesWithTagAndWithTypeFilters(self):
@@ -1029,7 +1315,7 @@ class DatabaseTestHuntMixin(object):
     num_results = self.db.CountHuntResults(
         hunt_obj.hunt_id,
         with_tag="tag_1",
-        with_type=compatibility.GetName(rdf_client.ClientSummary))
+        with_type=rdf_client.ClientSummary.__name__)
     self.assertEqual(num_results, 10)
 
   def testCountHuntResultsCorrectlyAppliesWithTimestampFilter(self):
@@ -1074,11 +1360,10 @@ class DatabaseTestHuntMixin(object):
     for key in counts:
       self.assertIsInstance(key, str)
 
-    self.assertEqual(
-        counts, {
-            compatibility.GetName(rdf_client.ClientSummary): 5,
-            compatibility.GetName(rdf_client.ClientCrash): 5
-        })
+    self.assertEqual(counts, {
+        rdf_client.ClientSummary.__name__: 5,
+        rdf_client.ClientCrash.__name__: 5
+    })
 
   def testReadHuntFlowsReturnsEmptyListWhenNoFlows(self):
     self.db.WriteGRRUser("user")

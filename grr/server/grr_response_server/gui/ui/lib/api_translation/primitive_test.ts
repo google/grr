@@ -1,7 +1,7 @@
 import {initTestEnvironment} from '../../testing';
 import {addToMapSetInPlace, camelToSnakeCase} from '../type_utils';
 
-import {bytesToHex, createDate, createIpv4Address, createIpv6Address, createMacAddress, createOptionalDate, createOptionalDateSeconds, decodeBase64, leastSignificantByteToHex} from './primitive';
+import {bytesToHex, createDate, createIpv4Address, createIpv6Address, createMacAddress, createOptionalDate, createOptionalDateSeconds, createOptionalDateTime, decodeBase64, leastSignificantByteToHex} from './primitive';
 
 
 initTestEnvironment();
@@ -72,6 +72,46 @@ describe('createOptionalDateSeconds', () => {
   it('handles unixtimes correctly', () => {
     expect(createOptionalDateSeconds('1579167695'))
         .toEqual(new Date(1579167695000));
+  });
+});
+
+describe('createOptionalDateTime', () => {
+  it('returns undefined for undefined input', () => {
+    expect(createOptionalDateTime(undefined)).toBeUndefined();
+  });
+
+  it('returns undefined for empty string', () => {
+    expect(createOptionalDateTime('')).toBeUndefined();
+  });
+
+  it('throws for invalid string', () => {
+    expect(() => createOptionalDate('123abc')).toThrowError(/invalid/);
+  });
+
+  it('handles unix epoch correctly', () => {
+    const dateTime = createOptionalDateTime('0')!;
+
+    expect(dateTime.toMillis()).toEqual(new Date(0).getTime());
+  });
+
+  it('handles unixtimes correctly', () => {
+    const dateTime = createOptionalDateTime('1579167695123000')!;
+
+    expect(dateTime.toMillis()).toEqual(new Date(1579167695123).getTime());
+  });
+
+  it('truncates microseconds', () => {
+    const dateTime = createOptionalDateTime('1579167695123999')!;
+
+    expect(dateTime.toMillis()).toEqual(new Date(1579167695123).getTime());
+  });
+
+  it('handles future timestamps', () => {
+    const y2100 = 130 * 365 * 86400 * 1000;
+
+    const dateTime = createOptionalDateTime((y2100 * 1000).toString())!;
+
+    expect(dateTime.toMillis()).toEqual(new Date(y2100).getTime());
   });
 });
 

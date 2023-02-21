@@ -14,6 +14,8 @@ import {TextWithLinksModule} from '../../helpers/text_with_links/text_with_links
 import {HumanReadableSizeModule} from '../../human_readable_size/module';
 import {TimestampModule} from '../../timestamp/module';
 import {UserImageModule} from '../../user_image/module';
+import {HuntArguments} from '../hunt_arguments/hunt_arguments';
+import {HuntFlowArguments} from '../hunt_flow_arguments/hunt_flow_arguments';
 
 import {HuntApprovalPage} from './hunt_approval_page';
 import {HuntApprovalPageRoutingModule} from './routing';
@@ -30,7 +32,8 @@ import {HuntApprovalPageRoutingModule} from './routing';
     MatTooltipModule,
     MatChipsModule,
     MatIconModule,
-
+    HuntArguments,
+    HuntFlowArguments,
     HuntApprovalPageRoutingModule,
     TextWithLinksModule,
     UserImageModule,
@@ -39,7 +42,6 @@ import {HuntApprovalPageRoutingModule} from './routing';
     FlowArgsViewModule,
     HelpersModule,
     HumanReadableSizeModule,
-
   ],
   declarations: [HuntApprovalPage],
   exports: [HuntApprovalPage]

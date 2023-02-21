@@ -144,19 +144,19 @@ class HttpConnector(abstract.Connector):
     if validate_version is None:
       validate_version = True
 
-    self.api_endpoint = api_endpoint  # type: str
-    self.auth = auth  # type: Optional[Tuple[str, str]]
-    self.proxies = proxies  # type: Optional[Dict[str, str]]
-    self.verify = verify  # type: bool
-    self.cert = cert  # type: Optional[str]
-    self.trust_env = trust_env  # type: bool
-    self._page_size = page_size  # type: int
+    self.api_endpoint: str = api_endpoint
+    self.auth: Optional[Tuple[str, str]] = auth
+    self.proxies: Optional[Dict[str, str]] = proxies
+    self.verify: bool = verify
+    self.cert: Optional[str] = cert
+    self.trust_env: bool = trust_env
+    self._page_size: int = page_size
 
-    self.csrf_token = None  # type: Optional[str]
-    self.api_methods = {}  # type: Dict[str, reflection_pb2.ApiMethod]
+    self.csrf_token: Optional[str] = None
+    self.api_methods: Dict[str, reflection_pb2.ApiMethod] = {}
 
-    self._server_version = None  # type: Optional[VersionTuple]
-    self._api_client_version = None  # type: Optional[VersionTuple]
+    self._server_version: Optional[VersionTuple] = None
+    self._api_client_version: Optional[VersionTuple] = None
 
     if validate_version:
       self._ValidateVersion()

@@ -3,10 +3,8 @@ CREATE TABLE `blob_encryption_keys` (
   `blob_id` BINARY(32) NOT NULL,
   -- A timestamp at which the association was created.
   `timestamp` TIMESTAMP(6) NOT NULL DEFAULT NOW(6),
-  -- A unique identifier of the key.
-  `key_id` VARCHAR(256) NOT NULL,
-  -- A random 96-bit initialization vector used for encryption.
-  `nonce` BINARY(12) NOT NULL,
+  -- A unique name of the key.
+  `key_name` VARCHAR(256) NOT NULL,
 
   PRIMARY KEY (`blob_id`, `timestamp`)
 );

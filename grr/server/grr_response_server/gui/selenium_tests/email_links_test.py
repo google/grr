@@ -1,14 +1,12 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests email links."""
 
 import re
+from unittest import mock
 from urllib import parse as urlparse
 
 from absl import app
 
-from grr_response_core.lib import utils
-from grr_response_core.lib.util import compatibility
 from grr_response_server import cronjobs
 from grr_response_server import email_alerts
 from grr_response_server.flows.cron import system as cron_system
@@ -31,10 +29,10 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
       del to_addresses, from_address, subject  # Unused.
       self.messages_sent.append(message)
 
-    email_stubber = utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail",
-                                  SendEmailStub)
-    email_stubber.Start()
-    self.addCleanup(email_stubber.Stop)
+    email_stubber = mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail",
+                                      SendEmailStub)
+    email_stubber.start()
+    self.addCleanup(email_stubber.stop)
 
   def _ExtractLinkFromMessage(self, message):
     m = re.search(r"""href=['"](.+?)['"]""", message, re.MULTILINE)
@@ -144,7 +142,7 @@ class TestEmailLinks(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, hunt_id)
 
   def _CreateOSBreakDownCronJobApproval(self):
-    job_name = compatibility.GetName(cron_system.OSBreakDownCronJob)
+    job_name = cron_system.OSBreakDownCronJob.__name__
     cronjobs.ScheduleSystemCronJobs(names=[job_name])
     cronjobs.CronManager().DisableJob(job_name)
     return job_name

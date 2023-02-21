@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test protodict implementation.
 
 An Dict is a generic dictionary implementation which has keys of type

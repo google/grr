@@ -1,10 +1,8 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests Cronjob ACLs."""
 
 from absl import app
 
-from grr_response_core.lib.util import compatibility
 from grr_response_server import cronjobs
 from grr_response_server.flows.cron import system as cron_system
 from grr_response_server.gui import gui_test_lib
@@ -16,7 +14,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
   reason = u"Cóż, po prostu taką miałem zachciankę."
 
   def _ScheduleCronJob(self):
-    cron_job_id = compatibility.GetName(cron_system.OSBreakDownCronJob)
+    cron_job_id = cron_system.OSBreakDownCronJob.__name__
     cronjobs.ScheduleSystemCronJobs(names=[cron_job_id])
     cronjobs.CronManager().DisableJob(cron_job_id)
     return cron_job_id

@@ -13,7 +13,7 @@ from grr_response_server.gui.root import api_root_router
 def RegisterApiCallRouters():
   """Registers all API call routers."""
 
-  # keep-sorted start
+  # keep-sorted start block=yes
   api_call_router_registry.RegisterApiCallRouter(
       "ApiCallRobotRouter", api_call_robot_router.ApiCallRobotRouter)
   api_call_router_registry.RegisterApiCallRouter(

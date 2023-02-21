@@ -32,54 +32,46 @@ class DatabaseTestBlobKeysMixin:
 
   def testReadBlobEncryptionKeysSingle(self):
     blob_id = rdf_objects.BlobID(os.urandom(32))
-    key = abstract_db.EncryptionKey(key_id="foo", nonce=os.urandom(12))
 
-    self.db.WriteBlobEncryptionKeys({blob_id: key})
+    self.db.WriteBlobEncryptionKeys({blob_id: "foo"})
 
     results = self.db.ReadBlobEncryptionKeys([blob_id])
-    self.assertEqual(results, {blob_id: key})
+    self.assertEqual(results, {blob_id: "foo"})
 
   def testReadBlobEncryptionKeysMultiple(self):
     blob_id_1 = rdf_objects.BlobID(os.urandom(32))
     blob_id_2 = rdf_objects.BlobID(os.urandom(32))
     blob_id_3 = rdf_objects.BlobID(os.urandom(32))
 
-    key_1 = abstract_db.EncryptionKey(key_id="foo", nonce=os.urandom(12))
-    key_2 = abstract_db.EncryptionKey(key_id="bar", nonce=os.urandom(12))
-    key_3 = abstract_db.EncryptionKey(key_id="qux", nonce=os.urandom(12))
-
     self.db.WriteBlobEncryptionKeys({
-        blob_id_1: key_1,
-        blob_id_2: key_2,
-        blob_id_3: key_3,
+        blob_id_1: "foo",
+        blob_id_2: "bar",
+        blob_id_3: "quux",
     })
 
     results = self.db.ReadBlobEncryptionKeys([blob_id_1, blob_id_2, blob_id_3])
     self.assertEqual(results, {
-        blob_id_1: key_1,
-        blob_id_2: key_2,
-        blob_id_3: key_3,
+        blob_id_1: "foo",
+        blob_id_2: "bar",
+        blob_id_3: "quux",
     })
 
   def testReadBlobEncryptionKeysOverridden(self):
     blob_id = rdf_objects.BlobID(os.urandom(32))
 
-    key_1 = abstract_db.EncryptionKey(key_id="foo", nonce=os.urandom(12))
-    self.db.WriteBlobEncryptionKeys({blob_id: key_1})
+    self.db.WriteBlobEncryptionKeys({blob_id: "foo"})
 
     results = self.db.ReadBlobEncryptionKeys([blob_id])
-    self.assertEqual(results[blob_id], key_1)
+    self.assertEqual(results[blob_id], "foo")
 
-    key_2 = abstract_db.EncryptionKey(key_id="bar", nonce=os.urandom(12))
-    self.db.WriteBlobEncryptionKeys({blob_id: key_2})
-
-    results = self.db.ReadBlobEncryptionKeys([blob_id])
-    self.assertEqual(results[blob_id], key_2)
-
-    key_3 = abstract_db.EncryptionKey(key_id="baz", nonce=os.urandom(12))
-    self.db.WriteBlobEncryptionKeys({blob_id: key_3})
+    self.db.WriteBlobEncryptionKeys({blob_id: "bar"})
 
     results = self.db.ReadBlobEncryptionKeys([blob_id])
-    self.assertEqual(results[blob_id], key_3)
+    self.assertEqual(results[blob_id], "bar")
+
+    self.db.WriteBlobEncryptionKeys({blob_id: "baz"})
+
+    results = self.db.ReadBlobEncryptionKeys([blob_id])
+    self.assertEqual(results[blob_id], "baz")
 
   # pytype: enable=attribute-error

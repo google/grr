@@ -4,7 +4,7 @@ import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
 import {RouterModule} from '@angular/router';
 
-import {ApprovalChipModule} from '../../../components/client/approval_chip/approval_chip_module';
+import {ApprovalChipModule} from '../../../components/approval_chip/approval_chip_module';
 import {FlowDetailsModule} from '../../flow_details/module';
 import {OnlineChipModule} from '../../online_chip/module';
 

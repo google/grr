@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """A module with utility functions for working with collections."""
 
 import itertools

@@ -19,7 +19,6 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
@@ -172,8 +171,7 @@ class GetClientStats(flow_base.FlowBase, GetClientStatsProcessResponseMixin):
 
   def Start(self):
     self.CallClient(
-        server_stubs.GetClientStats,
-        next_state=compatibility.GetName(self.StoreResults))
+        server_stubs.GetClientStats, next_state=self.StoreResults.__name__)
 
   def StoreResults(self, responses):
     """Stores the responses."""
@@ -217,8 +215,8 @@ class RecursiveBlobUploadMixin:
     # Fail early if the file is not there or empty.
     try:
       file_size = signed_binary_utils.FetchSizeOfSignedBinary(binary_id)
-    except signed_binary_utils.UnknownSignedBinaryError:
-      raise flow_base.FlowError(f"File {binary_id} not found.")
+    except signed_binary_utils.UnknownSignedBinaryError as ex:
+      raise flow_base.FlowError(f"File {binary_id} not found.") from ex
 
     if file_size == 0:
       raise flow_base.FlowError(f"File {binary_id} is empty.")
@@ -290,7 +288,7 @@ class DeleteGRRTempFiles(flow_base.FlowBase):
     self.CallClient(
         server_stubs.DeleteGRRTempFiles,
         self.args.pathspec,
-        next_state=compatibility.GetName(self.Done))
+        next_state=self.Done.__name__)
 
   def Done(self, responses):
     if not responses.success:
@@ -319,8 +317,7 @@ class Uninstall(flow_base.FlowBase):
     system = self.client_os
 
     if system == "Darwin" or system == "Windows":
-      self.CallClient(
-          server_stubs.Uninstall, next_state=compatibility.GetName(self.Kill))
+      self.CallClient(server_stubs.Uninstall, next_state=self.Kill.__name__)
     else:
       self.Log("Unsupported platform for Uninstall")
 
@@ -329,9 +326,7 @@ class Uninstall(flow_base.FlowBase):
     if not responses.success:
       self.Log("Failed to uninstall client.")
     elif self.args.kill:
-      self.CallClient(
-          server_stubs.Kill,
-          next_state=compatibility.GetName(self.Confirmation))
+      self.CallClient(server_stubs.Kill, next_state=self.Confirmation.__name__)
 
   def Confirmation(self, responses):
     """Confirmation of kill."""
@@ -346,8 +341,7 @@ class Kill(flow_base.FlowBase):
 
   def Start(self):
     """Call the kill function on the client."""
-    self.CallClient(
-        server_stubs.Kill, next_state=compatibility.GetName(self.Confirmation))
+    self.CallClient(server_stubs.Kill, next_state=self.Confirmation.__name__)
 
   def Confirmation(self, responses):
     """Confirmation of kill."""
@@ -377,7 +371,7 @@ class UpdateConfiguration(flow_base.FlowBase):
     self.CallClient(
         server_stubs.UpdateConfiguration,
         request=self.args.config,
-        next_state=compatibility.GetName(self.Confirmation))
+        next_state=self.Confirmation.__name__)
 
   def Confirmation(self, responses):
     """Confirmation."""
@@ -414,9 +408,9 @@ class ExecutePythonHack(flow_base.FlowBase):
     try:
       blob_iterator, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
           python_hack_urn)
-    except signed_binary_utils.SignedBinaryNotFoundError:
+    except signed_binary_utils.SignedBinaryNotFoundError as ex:
       raise flow_base.FlowError("Python hack %s not found." %
-                                self.args.hack_name)
+                                self.args.hack_name) from ex
 
     # TODO(amoser): This will break if someone wants to execute lots of Python.
     for python_blob in blob_iterator:
@@ -424,7 +418,7 @@ class ExecutePythonHack(flow_base.FlowBase):
           server_stubs.ExecutePython,
           python_code=python_blob,
           py_args=self.args.py_args,
-          next_state=compatibility.GetName(self.Done))
+          next_state=self.Done.__name__)
 
   def Done(self, responses):
     """Retrieves the output for the hack."""
@@ -461,7 +455,7 @@ class ExecuteCommand(flow_base.FlowBase):
         cmd=self.args.cmd,
         args=shlex.split(self.args.command_line),
         time_limit=self.args.time_limit,
-        next_state=compatibility.GetName(self.Confirmation))
+        next_state=self.Confirmation.__name__)
 
   def Confirmation(self, responses):
     """Confirmation."""
@@ -541,9 +535,7 @@ class OnlineNotification(flow_base.FlowBase):
     if self.args.email is None:
       self.args.email = self.creator
     self.CallClient(
-        server_stubs.Echo,
-        data="Ping",
-        next_state=compatibility.GetName(self.SendMail))
+        server_stubs.Echo, data="Ping", next_state=self.SendMail.__name__)
 
   def SendMail(self, responses):
     """Sends a mail when the client has responded."""
@@ -753,7 +745,7 @@ class ClientStartupHandler(message_handlers.MessageHandler):
     # or the boot time is more than 5 minutes different.
     if (not current_si or current_si.client_info != new_si.client_info or
         not current_si.boot_time or
-        current_si.boot_time - new_si.boot_time > drift):
+        current_si.boot_time.AbsDiff(new_si.boot_time) > drift):
       try:
         data_store.REL_DB.WriteClientStartupInfo(client_id, new_si)
         labels = new_si.client_info.labels
@@ -829,7 +821,7 @@ class KeepAlive(flow_base.FlowBase):
 
   def Start(self):
     self.state.end_time = self.args.duration.Expiry()
-    self.CallStateInline(next_state=compatibility.GetName(self.SendMessage))
+    self.CallStateInline(next_state=self.SendMessage.__name__)
 
   def SendMessage(self, responses):
     if not responses.success:
@@ -837,9 +829,7 @@ class KeepAlive(flow_base.FlowBase):
       raise flow_base.FlowError(responses.status.error_message)
 
     self.CallClient(
-        server_stubs.Echo,
-        data="Wake up!",
-        next_state=compatibility.GetName(self.Sleep))
+        server_stubs.Echo, data="Wake up!", next_state=self.Sleep.__name__)
 
   def Sleep(self, responses):
     if not responses.success:
@@ -849,8 +839,7 @@ class KeepAlive(flow_base.FlowBase):
     if rdfvalue.RDFDatetime.Now() < self.state.end_time - self.sleep_time:
       start_time = rdfvalue.RDFDatetime.Now() + self.sleep_time
       self.CallState(
-          next_state=compatibility.GetName(self.SendMessage),
-          start_time=start_time)
+          next_state=self.SendMessage.__name__, start_time=start_time)
 
 
 class LaunchBinaryArgs(rdf_structs.RDFProtoStruct):

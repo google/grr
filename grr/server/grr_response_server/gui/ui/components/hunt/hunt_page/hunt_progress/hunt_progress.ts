@@ -1,10 +1,9 @@
-import {CommonModule} from '@angular/common';
 import {Component} from '@angular/core';
-import {MatTooltipModule} from '@angular/material/tooltip';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {HuntPageGlobalStore} from '../../../../store/hunt_page_global_store';
+import {ColorScheme} from '../../../flow_details/helpers/result_accordion';
 
 /** Summary describes information in a summary card. */
 interface Summary {
@@ -27,13 +26,9 @@ function getPercentage(part: bigint, all: bigint): bigint {
   selector: 'app-hunt-progress',
   templateUrl: './hunt_progress.ng.html',
   styleUrls: ['./hunt_progress.scss'],
-  imports: [
-    CommonModule,
-    MatTooltipModule,
-  ],
-  standalone: true,
 })
 export class HuntProgress {
+  protected readonly ColorScheme = ColorScheme;
   constructor(private readonly huntPageGlobalStore: HuntPageGlobalStore) {}
 
   protected readonly hunt$ = this.huntPageGlobalStore.selectedHunt$;

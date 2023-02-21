@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Contains tests for api_call_handler_utils."""
 
 from absl import app

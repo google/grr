@@ -6,7 +6,6 @@ import time
 
 from absl import app
 
-from grr_response_core.lib.util import compatibility
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_integration_test_lib
@@ -24,7 +23,7 @@ class ApiClientLibApprovalsTest(api_integration_test_lib.ApiIntegrationTest,
     cls.ClearCache()
 
     config_overrider = test_lib.ConfigOverrider(
-        {"API.DefaultRouter": compatibility.GetName(cls)})
+        {"API.DefaultRouter": cls.__name__})
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
 

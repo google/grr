@@ -10,7 +10,7 @@ import {FileFinderContentsRegexMatchConditionMode} from '../../../lib/api/api_in
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
-import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition, RegexMatchCondition} from './regex_match_condition';
+import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition, RegexMatchCondition, regexMatchConditionFlowArgsToFormValues} from './regex_match_condition';
 
 initTestEnvironment();
 
@@ -89,4 +89,48 @@ describe('formValuesToFileFinderContentsRegexMatchCondition()', () => {
       length: '20000000',
     });
   });
+});
+
+describe('regexMatchConditionFlowArgsToFormValues()', () => {
+  it('correctly converts Regex Match Condition to form value', () => {
+    const source = {
+      regex: 'test',
+      mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
+      length: '20000000',
+    };
+    expect(regexMatchConditionFlowArgsToFormValues(source)).toEqual({
+      regex: atob('test'),
+      mode: FileFinderContentsRegexMatchConditionMode.ALL_HITS,
+      length: 20_000_000,
+    });
+  });
+
+  it('correctly converts Regex Match Condition to form value (empty string)',
+     () => {
+       const source = {
+         regex: '',
+         mode: FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
+         length: '',
+       };
+
+       expect(regexMatchConditionFlowArgsToFormValues(source)).toEqual({
+         regex: '',
+         mode: FileFinderContentsRegexMatchConditionMode.FIRST_HIT,
+         length: undefined,
+       });
+     });
+
+  it('correctly converts Regex Match Condition to form value (undefined)',
+     () => {
+       const source = {
+         regex: undefined,
+         mode: undefined,
+         length: undefined,
+       };
+       expect(regexMatchConditionFlowArgsToFormValues(source)).toEqual({
+         regex: '',
+         mode: undefined,
+         length: undefined,
+       });
+     });
 });

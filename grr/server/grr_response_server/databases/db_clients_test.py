@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 
 from typing import Text
 from unittest import mock
@@ -864,6 +863,68 @@ class DatabaseTestClientsMixin(object):
     self.assertEqual(d.ListClientsForKeywords([temporary_kw])[temporary_kw], [])
     self.assertEqual(d.ListClientsForKeywords(["joe"])["joe"], [client_id])
 
+  def testMultiAddClientKeywordsSingleClientSingleKeyword(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    self.db.MultiAddClientKeywords([client_id], ["foo"])
+
+    foo_clients = self.db.ListClientsForKeywords(["foo"])["foo"]
+    self.assertEqual(foo_clients, [client_id])
+
+  def testMultiAddClientKeywordsSingleClientMultipleKeywords(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    self.db.MultiAddClientKeywords([client_id], ["foo", "bar"])
+
+    foo_clients = self.db.ListClientsForKeywords(["foo"])["foo"]
+    self.assertEqual(foo_clients, [client_id])
+
+    bar_clients = self.db.ListClientsForKeywords(["bar"])["bar"]
+    self.assertEqual(bar_clients, [client_id])
+
+  def testMultiAddClientKeywordsMultipleClientsSingleKeyword(self):
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    self.db.MultiAddClientKeywords([client_id_1, client_id_2], ["foo"])
+
+    foo_clients = self.db.ListClientsForKeywords(["foo"])["foo"]
+    self.assertCountEqual(foo_clients, [client_id_1, client_id_2])
+
+  def testMultiAddClientKeywordsMultipleClientsMultipleKeywords(self):
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    self.db.MultiAddClientKeywords([client_id_1, client_id_2], ["foo", "bar"])
+
+    foo_clients = self.db.ListClientsForKeywords(["foo"])["foo"]
+    self.assertCountEqual(foo_clients, [client_id_1, client_id_2])
+
+    bar_clients = self.db.ListClientsForKeywords(["bar"])["bar"]
+    self.assertCountEqual(bar_clients, [client_id_1, client_id_2])
+
+  def testMultiAddClientKeywordsMultipleClientsNoKeywords(self):
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    # Should not fail.
+    self.db.MultiAddClientKeywords([client_id_1, client_id_2], [])
+
+  def testMultiAddClientKeywordsNoClientsMultipleKeywords(self):
+    self.db.MultiAddClientKeywords([], ["foo", "bar"])
+
+    foo_clients = self.db.ListClientsForKeywords(["foo"])["foo"]
+    self.assertEmpty(foo_clients)
+
+    bar_clients = self.db.ListClientsForKeywords(["bar"])["bar"]
+    self.assertEmpty(bar_clients)
+
+  def testMultiAddClientKeywordsUnknownClient(self):
+    with self.assertRaises(db.AtLeastOneUnknownClientError) as context:
+      self.db.MultiAddClientKeywords(["C.4815162342"], ["foo", "bar"])
+
+    self.assertEqual(context.exception.client_ids, ["C.4815162342"])
+
   def testClientLabels(self):
     d = self.db
 
@@ -956,6 +1017,92 @@ class DatabaseTestClientsMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     with self.assertRaises(ValueError):
       d.AddClientLabels(client_id, "owner1", [label])
+
+  def testMultiAddClientLabelsSingleClientMultipleLabels(self):
+    owner = db_test_utils.InitializeUser(self.db)
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    self.db.MultiAddClientLabels([client_id], owner, ["abc", "def"])
+
+    labels = self.db.MultiReadClientLabels([client_id])[client_id]
+    labels.sort(key=lambda label: label.name)
+
+    self.assertEqual(labels[0].owner, owner)
+    self.assertEqual(labels[0].name, "abc")
+    self.assertEqual(labels[1].owner, owner)
+    self.assertEqual(labels[1].name, "def")
+
+  def testMultiAddClientLabelsMultipleClientsSingleLabel(self):
+    owner = db_test_utils.InitializeUser(self.db)
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    self.db.MultiAddClientLabels([client_id_1, client_id_2], owner, ["abc"])
+
+    labels = self.db.MultiReadClientLabels([client_id_1, client_id_2])
+
+    self.assertEqual(labels[client_id_1][0].owner, owner)
+    self.assertEqual(labels[client_id_1][0].name, "abc")
+
+    self.assertEqual(labels[client_id_2][0].owner, owner)
+    self.assertEqual(labels[client_id_2][0].name, "abc")
+
+  def testMultiAddClientLabelsMultipleClientsMultipleLabels(self):
+    owner = db_test_utils.InitializeUser(self.db)
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    self.db.MultiAddClientLabels(
+        [client_id_1, client_id_2], owner, ["abc", "def"]
+    )
+
+    labels = self.db.MultiReadClientLabels([client_id_1, client_id_2])
+
+    client_1_labels = labels[client_id_1]
+    client_1_labels.sort(key=lambda label: label.name)
+    self.assertEqual(client_1_labels[0].owner, owner)
+    self.assertEqual(client_1_labels[0].name, "abc")
+    self.assertEqual(client_1_labels[1].owner, owner)
+    self.assertEqual(client_1_labels[1].name, "def")
+
+    client_2_labels = labels[client_id_2]
+    client_1_labels.sort(key=lambda label: label.name)
+    self.assertEqual(client_2_labels[0].owner, owner)
+    self.assertEqual(client_2_labels[0].name, "abc")
+    self.assertEqual(client_2_labels[1].owner, owner)
+    self.assertEqual(client_2_labels[1].name, "def")
+
+  def testMultiAddClientLabelsNoClientsMultipleLabels(self):
+    owner = db_test_utils.InitializeUser(self.db)
+
+    self.db.MultiAddClientLabels([], owner, ["abc", "def"])  # Should not fail.
+
+  def testMultiAddClientLabelsMultipleClientsNoLabels(self):
+    owner = db_test_utils.InitializeUser(self.db)
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    self.db.MultiAddClientLabels([client_id_1, client_id_2], owner, [])
+
+    labels = self.db.MultiReadClientLabels([client_id_1, client_id_2])
+    self.assertEqual(labels[client_id_1], [])
+    self.assertEqual(labels[client_id_2], [])
+
+  def testMultiAddClientLabelsUnknownClient(self):
+    owner = db_test_utils.InitializeUser(self.db)
+
+    with self.assertRaises(db.AtLeastOneUnknownClientError) as context:
+      self.db.MultiAddClientLabels(["C.4815162342"], owner, ["foo"])
+
+    self.assertEqual(context.exception.client_ids, ["C.4815162342"])
+
+  def testMultiAddClientLabelsUnknownUser(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    with self.assertRaises(db.UnknownGRRUserError) as context:
+      self.db.MultiAddClientLabels([client_id], "owner", ["foo"])
+
+    self.assertEqual(context.exception.username, "owner")
 
   def testReadAllLabelsReturnsLabelsFromSingleClient(self):
     d = self.db

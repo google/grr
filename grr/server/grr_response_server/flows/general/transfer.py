@@ -1,10 +1,11 @@
 #!/usr/bin/env python
 """These flows are designed for high performance transfers."""
-
+import logging
 import stat
 from typing import Any
 from typing import Mapping
 from typing import Optional
+from typing import Sequence
 import zlib
 
 from grr_response_core.lib import constants
@@ -16,7 +17,6 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import text
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
@@ -90,7 +90,7 @@ class GetFile(flow_base.FlowBase):
       request = rdf_client_action.ListDirRequest(
           pathspec=self.state.target_pathspec)
 
-    self.CallClient(stub, request, next_state=compatibility.GetName(self.Stat))
+    self.CallClient(stub, request, next_state=self.Stat.__name__)
 
   def Stat(self, responses):
     """Fix up the pathspec of the file."""
@@ -165,7 +165,7 @@ class GetFile(flow_base.FlowBase):
       self.CallClient(
           server_stubs.TransferBuffer,
           request,
-          next_state=compatibility.GetName(self.ReadBuffer))
+          next_state=self.ReadBuffer.__name__)
       self.state.current_chunk_number += 1
 
   def _AddFileToFileStore(self):
@@ -425,7 +425,7 @@ class MultiGetFileLogic(object):
     self.CallClient(
         stub,
         request,
-        next_state=compatibility.GetName(self._ReceiveFileStat),
+        next_state=self._ReceiveFileStat.__name__,
         request_data=dict(index=index, request_name=request_name))
 
   def _ScheduleHashFile(self, index: int, pathspec: rdf_paths.PathSpec) -> None:
@@ -453,7 +453,7 @@ class MultiGetFileLogic(object):
     self.CallClient(
         server_stubs.HashFile,
         request,
-        next_state=compatibility.GetName(self._ReceiveFileHash),
+        next_state=self._ReceiveFileHash.__name__,
         request_data=dict(index=index))
 
   def _RemoveCompletedPathspec(self, index):
@@ -746,7 +746,7 @@ class MultiGetFileLogic(object):
             pathspec=file_tracker["stat_entry"].pathspec,
             offset=i * self.CHUNK_SIZE,
             length=length,
-            next_state=compatibility.GetName(self._CheckHash),
+            next_state=self._CheckHash.__name__,
             request_data=dict(index=index))
 
     if self.state.files_hashed % 100 == 0:
@@ -811,14 +811,14 @@ class MultiGetFileLogic(object):
           # If we have the data we may call our state directly.
           self.CallStateInline(
               messages=[hash_response],
-              next_state=compatibility.GetName(self._WriteBuffer),
+              next_state=self._WriteBuffer.__name__,
               request_data=dict(index=index, blob_index=i))
         else:
           # We dont have this blob - ask the client to transmit it.
           self.CallClient(
               server_stubs.TransferBuffer,
               hash_response,
-              next_state=compatibility.GetName(self._WriteBuffer),
+              next_state=self._WriteBuffer.__name__,
               request_data=dict(index=index, blob_index=i))
 
   def _WriteBuffer(self, responses):
@@ -1025,9 +1025,7 @@ class GetMBR(flow_base.FlowBase):
           offset=i * buffer_size,
           length=min(bytes_we_need, buffer_size))
       self.CallClient(
-          server_stubs.ReadBuffer,
-          request,
-          next_state=compatibility.GetName(self.StoreMBR))
+          server_stubs.ReadBuffer, request, next_state=self.StoreMBR.__name__)
       bytes_we_need -= buffer_size
 
   def StoreMBR(self, responses):
@@ -1056,11 +1054,17 @@ class BlobHandler(message_handlers.MessageHandler):
 
   handler_name = "BlobHandler"
 
-  def ProcessMessages(self, msgs):
+  def ProcessMessages(
+      self,
+      msgs: Sequence[rdf_objects.MessageHandlerRequest],
+  ) -> None:
     blobs = []
     for msg in msgs:
       blob = msg.request.payload
+
       data = blob.data
+      logging.info("Received of length %s from '%s'", len(data), msg.client_id)
+
       if not data:
         continue
 
@@ -1096,9 +1100,7 @@ class SendFile(flow_base.FlowBase):
   def Start(self):
     """This issues the sendfile request."""
     self.CallClient(
-        server_stubs.SendFile,
-        self.args,
-        next_state=compatibility.GetName(self.Done))
+        server_stubs.SendFile, self.args, next_state=self.Done.__name__)
 
   def Done(self, responses):
     if not responses.success:

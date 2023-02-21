@@ -22,7 +22,7 @@ REGISTRY = 'registry'
 class _State(object):
 
   def __init__(self) -> None:
-    self.client = None  # type: Optional[grr_colab.Client]
+    self.client: Optional[grr_colab.Client] = None
     self.cur_dir = '/'
 
 

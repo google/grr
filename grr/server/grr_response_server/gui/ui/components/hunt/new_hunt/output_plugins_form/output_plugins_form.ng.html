@@ -32,8 +32,81 @@
         </button>
         <!-- TODO: Add forms for each Output Plugin. -->
 
+        <ng-container
+          *ngSwitchCase="pluginType.BIGQUERY"
+          [ngTemplateOutlet]="annotationForm"
+          [ngTemplateOutletContext]="{
+            title: plugin.get('name')?.value,
+            form: plugin,
+            id: pluginIndex
+          }"
+        >
+        </ng-container>
       </div>
     </div>
   </form>
+  <!-- TODO: Add selection box to add available Output Plugins. -->
 </div>
 
+<ng-template #annotationForm let-title="title" let-form="form" let-id="id">
+  <div class="plugin-title">{{ title }}</div>
+  <div [formGroup]="form">
+    <div
+      *ngFor="
+        let annotation of annotations(id).controls;
+        let annotationIndex = index;
+        let last = last
+      "
+      class="annotation-input-wrapper"
+    >
+      <mat-form-field appearance="outline" class="annotation-name">
+        <mat-label>Table annotation</mat-label>
+        <input
+          [id]="'plugin_' + id + '_annotation_' + annotationIndex"
+          [formControl]="annotation"
+          matInput
+        />
+        <button
+          mat-icon-button
+          matSuffix
+          id="remove-annotation"
+          (click)="removeAnnotation(id, annotationIndex)"
+          type="button"
+          aria-label="Remove"
+          *ngIf="annotations(id).controls.length > 1"
+        >
+          <mat-icon>close</mat-icon>
+        </button>
+      </mat-form-field>
+      <mat-icon
+        matTooltip="This annotation will be added to the exported results."
+        inline
+        class="help-icon"
+      >
+        help_outline
+      </mat-icon>
+      <button
+        mat-icon-button
+        *ngIf="last"
+        id="add-annotation"
+        class="add-annotation-button"
+        (click)="addAnnotation(id)"
+        type="button"
+        aria-label="Add annotation"
+      >
+        <mat-icon>add</mat-icon>
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #enabledForm let-title="title" let-form="form" let-id="id">
+  <div class="plugin-title">{{ title }}</div>
+  <div [formGroup]="form">
+    <mat-checkbox [id]="'plugin_' + id + '_enabled'"
+                checked="true"
+                disabled="true">
+      Enabled
+    </mat-checkbox>
+  </div>
+</ng-template>

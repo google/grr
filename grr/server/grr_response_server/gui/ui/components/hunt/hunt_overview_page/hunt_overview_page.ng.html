@@ -1,18 +1,28 @@
+<mat-form-field appearance="outline">
+  <mat-select [formControl]="huntFiltersForm" name="hunt-filter">
+    <mat-option
+      *ngFor="let huntFilter of HuntFilter | keyvalue"
+      [value]="huntFilter.value"
+    >
+      {{ huntFilter.value }}
+    </mat-option>
+  </mat-select>
+</mat-form-field>
+
 <app-infinite-list
   class="content-list"
   [hasMore]="huntOverviewPageLocalStore.hasMore$ | async"
   [isLoading]="huntOverviewPageLocalStore.isLoading$ | async"
   (loadMore)="huntOverviewPageLocalStore.loadMore(undefined)"
 >
-  <h2>All fleet collections</h2>
+  <h2>{{huntFiltersForm.value}}</h2>
 
-  <mat-card
+  <div
     *ngFor="let hunt of hunts$ | async; trackBy: trackHuntById"
-    class="clickable mat-card-outlined"
-    [routerLink]="['/hunts', hunt.huntId]"
+    class="split-card"
   >
-    <div class="header">
-      <mat-card-title>{{ hunt.description }} </mat-card-title>
+    <div class="header-all" [routerLink]="['/hunts', hunt.huntId]">
+      <div class="header mat-card-title">{{ hunt.description }} </div>
       <div>
         <user-image [username]="hunt.creator" size="16px"></user-image>
         {{hunt.creator}}
@@ -29,6 +39,11 @@
         color="success"
       ></mat-progress-bar>
     </div>
-    {{ hunt.flowName ?? hunt.name }}
-  </mat-card>
+    <div class="mat-small args">{{ hunt.flowName ?? hunt.name }}</div>
+
+    <result-accordion [colorScheme]="ColorScheme.FLOW_ARGS" title="Fleet collection arguments">
+      <hunt-flow-arguments class="args" [hunt]="hunt"></hunt-flow-arguments>
+      <hunt-arguments class="args" [hunt]="hunt"></hunt-arguments>
+    </result-accordion>
+  </div>
 </app-infinite-list>

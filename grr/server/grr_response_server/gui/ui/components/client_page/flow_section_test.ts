@@ -9,7 +9,7 @@ import {newClient} from '../../lib/models/model_test_util';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
 import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
-import {Approval} from '../approval/approval';
+import {ApprovalCard} from '../approval_card/approval_card';
 import {ClientDetailsModule} from '../client_details/module';
 
 import {ClientPageModule} from './client_page_module';
@@ -47,7 +47,8 @@ describe('FlowSection', () => {
         .mockedObservables.approvalsEnabled$.next(true);
     fixture.detectChanges();
 
-    expect(fixture.debugElement.query(By.directive(Approval))).not.toBeNull();
+    expect(fixture.debugElement.query(By.directive(ApprovalCard)))
+        .not.toBeNull();
   });
 
   it('does not show approval if approvalsEnabled$ is false', () => {
@@ -58,7 +59,7 @@ describe('FlowSection', () => {
         .mockedObservables.approvalsEnabled$.next(false);
     fixture.detectChanges();
 
-    expect(fixture.debugElement.query(By.directive(Approval))).toBeNull();
+    expect(fixture.debugElement.query(By.directive(ApprovalCard))).toBeNull();
   });
 
   it('sends request approval when child approval component emits the info',
@@ -75,7 +76,7 @@ describe('FlowSection', () => {
        clientPageGlobalStore.mockedObservables.selectedClient$.next(client);
        fixture.detectChanges();
 
-       fixture.debugElement.query(By.directive(Approval))
+       fixture.debugElement.query(By.directive(ApprovalCard))
            .triggerEventHandler('approvalParams', {
              approvers: ['rick', 'jerry'],
              reason: 'sample reason',
@@ -83,11 +84,12 @@ describe('FlowSection', () => {
            });
        fixture.detectChanges();
 
-       expect(clientPageGlobalStore.requestApproval).toHaveBeenCalledWith({
-         clientId: 'C.1234',
-         approvers: ['rick', 'jerry'],
-         reason: 'sample reason',
-         cc: [],
-       });
+       expect(clientPageGlobalStore.requestClientApproval)
+           .toHaveBeenCalledWith({
+             clientId: 'C.1234',
+             approvers: ['rick', 'jerry'],
+             reason: 'sample reason',
+             cc: [],
+           });
      });
 });

@@ -4,11 +4,11 @@
 import functools
 import http.client
 import itertools
+import json
 import logging
 import time
 import traceback
 from typing import Dict
-from typing import Text
 from typing import Type
 from typing import TypeVar
 
@@ -21,9 +21,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import serialization
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
-from grr_response_core.lib.util.compat import json
 from grr_response_core.stats import metrics
 from grr_response_server import access_control
 from grr_response_server import data_store
@@ -157,7 +155,7 @@ class RouterMatcher(object):
       try:
         if request.content_type and request.content_type.startswith(
             "multipart/form-data;"):
-          payload = json.Parse(request.form["_params_"].decode("utf-8"))
+          payload = json.loads(request.form["_params_"].decode("utf-8"))
           args = method_metadata.args_type()
           args.FromDict(payload)
 
@@ -171,7 +169,7 @@ class RouterMatcher(object):
               args_proto.SerializeToString())
         else:
           json_data = request.get_data(as_text=True) or "{}"
-          payload = json.Parse(json_data)
+          payload = json.loads(json_data)
           args = method_metadata.args_type()
           if payload:
             args.FromDict(payload)
@@ -211,7 +209,7 @@ class RouterMatcher(object):
                                      route_args_dict))
 
 
-class JSONEncoderWithRDFPrimitivesSupport(json.Encoder):
+class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
   """Custom JSON encoder that encodes handlers output.
 
   Custom encoder is required to facilitate usage of primitive values -
@@ -224,18 +222,14 @@ class JSONEncoderWithRDFPrimitivesSupport(json.Encoder):
   from the renderer, but it will make the code look overly verbose and dirty.
   """
 
-  def default(self, obj):
-    if isinstance(obj, rdfvalue.RDFInteger):
-      return int(obj)
+  def default(self, o):
+    if isinstance(o, rdfvalue.RDFInteger):
+      return int(o)
 
-    if isinstance(obj, rdfvalue.RDFString):
-      # TODO: Since we want to this to be a JSON-compatible type,
-      # we cannot call `str` as that would result in `future.newstr` in Python 2
-      # which is not easily serializable. This can be replaced with `str` call
-      # once support for Python 2 is dropped.
-      return Text(obj)
+    if isinstance(o, rdfvalue.RDFString):
+      return str(o)
 
-    return super().default(obj)
+    return super().default(o)
 
 
 class JsonMode(object):
@@ -285,9 +279,7 @@ class HttpRequestHandler(object):
     if format_mode == JsonMode.PROTO3_JSON_MODE:
       json_data = json_format.MessageToJson(
           result.AsPrimitiveProto(), float_precision=8)
-      if compatibility.PY2:
-        json_data = json_data.decode("utf-8")
-      return json.Parse(json_data)
+      return json.loads(json_data)
     elif format_mode == JsonMode.GRR_ROOT_TYPES_STRIPPED_JSON_MODE:
       result_dict = {}
       for field, value in result.ListSetFields():
@@ -342,8 +334,9 @@ class HttpRequestHandler(object):
     # does content sniffing and doesn't respect Content-Disposition header) and
     # IE will treat the document as html and execute arbitrary JS that was
     # passed with the payload.
-    str_data = json.Dump(
-        rendered_data, encoder=JSONEncoderWithRDFPrimitivesSupport)
+    str_data = json.dumps(
+        rendered_data, cls=JSONEncoderWithRDFPrimitivesSupport
+    )
     # XSSI protection and tags escaping
     rendered_str = ")]}'\n" + str_data.replace("<", r"\u003c").replace(
         ">", r"\u003e")
@@ -377,7 +370,7 @@ class HttpRequestHandler(object):
                               method_name=None,
                               context=None):
     """Builds HttpResponse object for streaming."""
-    precondition.AssertType(method_name, Text)
+    precondition.AssertType(method_name, str)
 
     # For the challenges of implementing correct streaming response logic:
     # https://rhodesmill.org/brandon/2013/chunked-wsgi/

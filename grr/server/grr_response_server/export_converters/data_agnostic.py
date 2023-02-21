@@ -4,7 +4,6 @@
 import logging
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_server.export_converters import base
 
 
@@ -24,7 +23,7 @@ class DataAgnosticExportConverter(base.ExportConverter):
   classes_cache = {}
 
   def ExportedClassNameForValue(self, value):
-    return "AutoExported" + compatibility.GetName(value.__class__)
+    return "AutoExported" + value.__class__.__name__
 
   def MakeFlatRDFClass(self, value):
     """Generates flattened RDFValue class definition for the given value."""
@@ -69,7 +68,7 @@ class DataAgnosticExportConverter(base.ExportConverter):
 
     # Create the class as late as possible. This will modify a
     # metaclass registry, we need to make sure there are no problems.
-    output_class = compatibility.MakeType(
+    output_class = type(
         self.ExportedClassNameForValue(value), (AutoExportedProtoStruct,),
         dict(Flatten=Flatten))
 

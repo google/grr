@@ -10,8 +10,6 @@ from typing import Text
 
 import pkg_resources
 
-from grr_response_core.lib.util import compatibility
-
 
 def _GetPkgResources(package_name, filepath):
   """A wrapper for the `pkg_resource.resource_filename` function."""
@@ -72,10 +70,6 @@ def ModulePath(module_name) -> Text:
   """
   module = importlib.import_module(module_name)
   path = inspect.getfile(module)
-  # TODO: In Python 2 `inspect.getfile` returns a byte string, so
-  # we have to decode that in order to be consistent with Python 3.
-  if compatibility.PY2:
-    path = path.decode("utf-8")
 
   # In case of modules with want a path to the directory rather than to the
   # `__init__.py` file itself.

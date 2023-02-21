@@ -1,10 +1,7 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """The MySQL database methods for client handling."""
-
-import collections
 import itertools
-from typing import Iterator, List, Optional, Text
+from typing import Collection, Iterator, List, Optional, Text
 
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
@@ -15,7 +12,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import search as rdf_search
-from grr_response_core.lib.util import collection
 from grr_response_server import fleet_utils
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
@@ -40,7 +36,7 @@ class MySQLDBClientMixin(object):
                           cursor=None):
     """Write metadata about the client."""
     placeholders = []
-    values = collections.OrderedDict()
+    values = dict()
 
     placeholders.append("%(client_id)s")
     values["client_id"] = db_utils.ClientIDToInt(client_id)
@@ -77,7 +73,7 @@ class MySQLDBClientMixin(object):
       values["last_fleetspeak_validation_info"] = None
 
     updates = []
-    for column in values.keys():
+    for column in values:
       updates.append("{column} = VALUES({column})".format(column=column))
 
     query = """
@@ -574,22 +570,36 @@ class MySQLDBClientMixin(object):
     return last_client_id, last_pings
 
   @mysql_utils.WithTransaction()
-  def AddClientKeywords(self, client_id, keywords, cursor=None):
-    """Associates the provided keywords with the client."""
-    cid = db_utils.ClientIDToInt(client_id)
-    keywords = set(keywords)
-    args = [(cid, mysql_utils.Hash(kw), kw) for kw in keywords]
-    args = list(collection.Flatten(args))
+  def MultiAddClientKeywords(
+      self,
+      client_ids: Collection[str],
+      keywords: Collection[str],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
+    """Associates the provided keywords with the specified clients."""
+    # Early return to avoid generating invalid SQL code.
+    if not client_ids or not keywords:
+      return
+
+    args = []
+
+    for client_id in client_ids:
+      int_client_id = db_utils.ClientIDToInt(client_id)
+      for keyword in keywords:
+        keyword_hash = mysql_utils.Hash(keyword)
+        args.append((int_client_id, keyword_hash, keyword))
 
     query = """
         INSERT INTO client_keywords (client_id, keyword_hash, keyword)
         VALUES {}
         ON DUPLICATE KEY UPDATE timestamp = NOW(6)
-            """.format(", ".join(["(%s, %s, %s)"] * len(keywords)))
+            """.format(
+        ", ".join(["(%s, %s, %s)"] * len(args))
+    )
     try:
-      cursor.execute(query, args)
-    except MySQLdb.IntegrityError as e:
-      raise db.UnknownClientError(client_id, cause=e)
+      cursor.execute(query, list(itertools.chain.from_iterable(args)))
+    except MySQLdb.IntegrityError as error:
+      raise db.AtLeastOneUnknownClientError(client_ids) from error
 
   @mysql_utils.WithTransaction()
   def RemoveClientKeyword(self, client_id, keyword, cursor=None):
@@ -624,22 +634,39 @@ class MySQLDBClientMixin(object):
     return result
 
   @mysql_utils.WithTransaction()
-  def AddClientLabels(self, client_id, owner, labels, cursor=None):
-    """Attaches a list of user labels to a client."""
-    cid = db_utils.ClientIDToInt(client_id)
-    labels = set(labels)
-    args = [(cid, mysql_utils.Hash(owner), owner, label) for label in labels]
-    args = list(collection.Flatten(args))
+  def MultiAddClientLabels(
+      self,
+      client_ids: Collection[str],
+      owner: str,
+      labels: Collection[str],
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
+    """Attaches user labels to the specified clients."""
+    # Early return to avoid generating invalid SQL code.
+    if not client_ids or not labels:
+      return
 
-    query = """
-          INSERT IGNORE INTO client_labels
-              (client_id, owner_username_hash, owner_username, label)
-          VALUES {}
-          """.format(", ".join(["(%s, %s, %s, %s)"] * len(labels)))
+    args = []
+    for client_id in client_ids:
+      client_id_int = db_utils.ClientIDToInt(client_id)
+      owner_hash = mysql_utils.Hash(owner)
+
+      for label in labels:
+        args.append((client_id_int, owner_hash, owner, label))
+
+    query = f"""
+     INSERT
+     IGNORE
+       INTO client_labels
+            (client_id, owner_username_hash, owner_username, label)
+     VALUES {", ".join(["(%s, %s, %s, %s)"] * len(args))}
+    """
+
+    args = list(itertools.chain.from_iterable(args))
     try:
       cursor.execute(query, args)
-    except MySQLdb.IntegrityError as e:
-      raise db.UnknownClientError(client_id, cause=e)
+    except MySQLdb.IntegrityError as error:
+      raise db.AtLeastOneUnknownClientError(client_ids) from error
 
   @mysql_utils.WithTransaction(readonly=True)
   def MultiReadClientLabels(self, client_ids, cursor=None):

@@ -11,7 +11,7 @@ import {MatSnackBarModule} from '@angular/material/snack-bar';
 import {MatTooltipModule} from '@angular/material/tooltip';
 import {RouterModule} from '@angular/router';
 
-import {ApprovalChipModule} from '../client/approval_chip/approval_chip_module';
+import {ApprovalChipModule} from '../approval_chip/approval_chip_module';
 import {ClientAddLabelDialogModule} from '../client_add_label_dialog/module';
 import {CopyButtonModule} from '../helpers/copy_button/copy_button_module';
 import {DrawerLinkModule} from '../helpers/drawer_link/drawer_link_module';

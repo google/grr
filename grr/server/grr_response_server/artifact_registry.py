@@ -6,6 +6,8 @@ import logging
 import os
 import threading
 
+import yaml
+
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import objectfilter
@@ -14,7 +16,6 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.util.compat import yaml
 from grr_response_server import data_store
 
 # Names of fields that should no longer be used but might occur in old artifact
@@ -165,7 +166,7 @@ class ArtifactRegistry(object):
   @utils.Synchronized
   def ArtifactsFromYaml(self, yaml_content):
     """Get a list of Artifacts from yaml."""
-    raw_list = yaml.ParseMany(yaml_content)
+    raw_list = list(yaml.safe_load_all(yaml_content))
 
     # TODO(hanuszczak): I am very sceptical about that "doing the right thing"
     # below. What are the real use cases?

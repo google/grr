@@ -72,6 +72,18 @@ export function createOptionalDateSeconds(
   return result;
 }
 
+/**
+ * Constructs a DateTime from a unixtime string.
+ */
+export function createOptionalDateTime(apiTimestamp: RDFDatetime|
+                                       undefined): DateTime|undefined {
+  if (!apiTimestamp) {
+    return undefined;
+  }
+
+  return DateTime.fromJSDate(createDate(apiTimestamp));
+}
+
 
 /** Converts a Date to millseconds since unix epoch. */
 export function toOptionalMillis(date: undefined): undefined;

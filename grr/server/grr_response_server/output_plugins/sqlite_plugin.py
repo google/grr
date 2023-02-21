@@ -1,18 +1,16 @@
 #!/usr/bin/env python
 """Plugin that exports results as SQLite db scripts."""
-
-import collections
 import io
 import os
 import zipfile
 
 import sqlite3
+import yaml
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
-from grr_response_core.lib.util.compat import yaml
 from grr_response_server import instant_output_plugin
 
 
@@ -161,7 +159,7 @@ class SqliteInstantOutputPlugin(
 
   def _GetSqliteSchema(self, proto_struct_class, prefix=""):
     """Returns a mapping of SQLite column names to Converter objects."""
-    schema = collections.OrderedDict()
+    schema = dict()
     for type_info in proto_struct_class.type_infos:
       if type_info.__class__ is rdf_structs.ProtoEmbedded:
         schema.update(
@@ -209,7 +207,7 @@ class SqliteInstantOutputPlugin(
 
   def Finish(self):
     manifest = {"export_stats": self.export_counts}
-    manifest_bytes = yaml.Dump(manifest).encode("utf-8")
+    manifest_bytes = yaml.safe_dump(manifest).encode("utf-8")
 
     header = self.path_prefix + "/MANIFEST"
     yield self.archive_generator.WriteFileHeader(header)

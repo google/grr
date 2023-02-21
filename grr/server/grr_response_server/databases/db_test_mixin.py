@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Mixin class to be used in tests for DB implementations."""
 
 import abc
