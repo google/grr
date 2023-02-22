@@ -116,7 +116,7 @@ jobs:
     runs-on: ubuntu-18.04
     env:
       GCS_TAG: centos_64bit
-      DOCKER_IMG: grrdocker/centos7
+      DOCKER_IMG: grrdocker/centos7-python39
       DOCKER_CONTAINER: centos_64bit_container
       DOCKER_USER: grrbot
     steps:

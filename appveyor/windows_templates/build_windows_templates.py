@@ -147,7 +147,7 @@ class WindowsTemplateBuilder(object):
     self.git = r"git"
 
     self.install_path = r"C:\Windows\System32\GRR"
-    self.service_name = "FleetspeakService"
+    self.service_name = "FleetspeakClientService"
 
     self.expect_service_running = args.expect_service_running
 
