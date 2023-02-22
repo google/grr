@@ -9,6 +9,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 import time
 
 from typing import Callable
@@ -393,6 +394,7 @@ class WindowsTemplateBuilder(object):
 
 
 def main():
+  logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
   WindowsTemplateBuilder().Build()
 
 
