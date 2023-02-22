@@ -121,9 +121,6 @@ jobs:
       DOCKER_USER: grrbot
     steps:
       - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
       - name: Build installers
         run: |
           sudo docker run -dit \
@@ -134,7 +131,7 @@ jobs:
             --name "${DOCKER_CONTAINER}" \
             "${DOCKER_IMG}"
           sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" /usr/local/bin/python3.6 -m venv "/home/${DOCKER_USER}/INSTALL"
+          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" /usr/local/bin/python3.9 -m venv "/home/${DOCKER_USER}/INSTALL"
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" travis/install_client_builder.sh
           sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" travis/build_templates.sh
           sudo docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
