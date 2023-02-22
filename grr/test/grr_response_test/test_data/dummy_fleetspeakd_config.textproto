@@ -1,0 +1,2 @@
+trusted_certs: "-----BEGIN CERTIFICATE"
+servers: "127.0.0.1:443"

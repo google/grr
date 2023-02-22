@@ -269,11 +269,16 @@ class WindowsTemplateBuilder(object):
     template_amd64 = glob.glob(os.path.join(args.output_dir,
                                             "*_amd64*.zip")).pop()
 
+    fleetspeak_config = os.path.join(
+        args.grr_src, 
+        "grr/test/grr_response_test/test_data/dummy_fleetspeakd_config.textproto")
+
     # We put the installers in the output dir so they get stored as build
     # artifacts.
     _VerboseCheckCall([
         self.grr_client_build64, "--verbose", 
         "-p", "ClientBuilder.fleetspeak_bundled=True",
+        "-p", f"ClientBuilder.fleetspeak_client_config={fleetspeak_config}"
         "--secondary_configs",
         dummy_config, "repack", "--template", template_amd64, "--output_dir",
         args.output_dir
@@ -281,6 +286,7 @@ class WindowsTemplateBuilder(object):
     _VerboseCheckCall([
         self.grr_client_build64, "--verbose", 
         "-p", "ClientBuilder.fleetspeak_bundled=True",
+        "-p", f"ClientBuilder.fleetspeak_client_config={fleetspeak_config}"
         "--context", "DebugClientBuild Context", 
         "--secondary_configs", dummy_config,
         "repack", "--template", template_amd64, 
