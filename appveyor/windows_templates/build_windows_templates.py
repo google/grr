@@ -278,19 +278,19 @@ class WindowsTemplateBuilder(object):
     _VerboseCheckCall([
         self.grr_client_build64, "--verbose", 
         "-p", "ClientBuilder.fleetspeak_bundled=True",
-        "-p", f"ClientBuilder.fleetspeak_client_config={fleetspeak_config}"
-        "--secondary_configs",
-        dummy_config, "repack", "--template", template_amd64, "--output_dir",
-        args.output_dir
+        "-p", f"ClientBuilder.fleetspeak_client_config={fleetspeak_config}",
+        "--secondary_configs", dummy_config, 
+        "repack", "--template", template_amd64, 
+        "--output_dir", args.output_dir,
     ])
     _VerboseCheckCall([
         self.grr_client_build64, "--verbose", 
         "-p", "ClientBuilder.fleetspeak_bundled=True",
-        "-p", f"ClientBuilder.fleetspeak_client_config={fleetspeak_config}"
+        "-p", f"ClientBuilder.fleetspeak_client_config={fleetspeak_config}",
         "--context", "DebugClientBuild Context", 
         "--secondary_configs", dummy_config,
         "repack", "--template", template_amd64, 
-        "--output_dir", args.output_dir
+        "--output_dir", args.output_dir,
     ])
 
   def _WaitForServiceToStop(self) -> bool:
