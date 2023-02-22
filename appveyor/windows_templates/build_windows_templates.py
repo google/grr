@@ -323,10 +323,11 @@ class WindowsTemplateBuilder(object):
         # 1060 means: The specified service does not exist as an installed
         # service.
         service_running = False
+        
+        output = subprocess.check_output(["sc", "query"], encoding="utf-8")
+        logging.info("Expected service %s not running, available services: %s",
+            self.service_name, output)
 
-      output = subprocess.check_output(["sc", "query"], encoding="utf-8")
-      logging.info("Expected service %s not running, available services: %s",
-          self.service_name, output)
       else:
         raise
 
