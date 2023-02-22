@@ -272,14 +272,19 @@ class WindowsTemplateBuilder(object):
     # We put the installers in the output dir so they get stored as build
     # artifacts.
     _VerboseCheckCall([
-        self.grr_client_build64, "--verbose", "--secondary_configs",
+        self.grr_client_build64, "--verbose", 
+        "-p", "ClientBuilder.fleetspeak_bundled=True",
+        "--secondary_configs",
         dummy_config, "repack", "--template", template_amd64, "--output_dir",
         args.output_dir
     ])
     _VerboseCheckCall([
-        self.grr_client_build64, "--verbose", "--context",
-        "DebugClientBuild Context", "--secondary_configs", dummy_config,
-        "repack", "--template", template_amd64, "--output_dir", args.output_dir
+        self.grr_client_build64, "--verbose", 
+        "-p", "ClientBuilder.fleetspeak_bundled=True",
+        "--context", "DebugClientBuild Context", 
+        "--secondary_configs", dummy_config,
+        "repack", "--template", template_amd64, 
+        "--output_dir", args.output_dir
     ])
 
   def _WaitForServiceToStop(self) -> bool:
