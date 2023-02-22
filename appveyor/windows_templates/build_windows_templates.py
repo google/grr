@@ -249,6 +249,8 @@ class WindowsTemplateBuilder(object):
     build_args += [
         "-p",
         "ClientBuilder.wix_tools_path=%{" + wix_tools_path + "}",
+        "-p",
+        "ClientBuilder.build_msi=true",
     ]
     _VerboseCheckCall([self.grr_client_build64] + build_args)
 
