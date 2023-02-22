@@ -250,7 +250,9 @@ class WindowsTemplateBuilder(object):
         "-p",
         "ClientBuilder.wix_tools_path=%{" + wix_tools_path + "}",
         "-p",
-        "ClientBuilder.build_msi=true",
+        "ClientBuilder.build_msi=True",
+        "-p",
+        "ClientBuilder.fleetspeak_bundled=True",
     ]
     _VerboseCheckCall([self.grr_client_build64] + build_args)
 
