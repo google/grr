@@ -317,12 +317,16 @@ class WindowsTemplateBuilder(object):
       output = subprocess.check_output(["sc", "query", self.service_name],
                                        encoding="utf-8")
       service_running = "RUNNING" in output
-    except subprocess.CalledProcessError as e:
+    except subprocess.CalledProcessError as e:      
       output = e.output
       if e.returncode == 1060:
         # 1060 means: The specified service does not exist as an installed
         # service.
         service_running = False
+
+      output = subprocess.check_output(["sc", "query"], encoding="utf-8")
+      logging.info("Expected service %s not running, available services: %s",
+          self.service_name, output)
       else:
         raise
 
