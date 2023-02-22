@@ -147,7 +147,7 @@ class WindowsTemplateBuilder(object):
     self.git = r"git"
 
     self.install_path = r"C:\Windows\System32\GRR"
-    self.service_name = "GRR Monitor"
+    self.service_name = "FleetspeakService"
 
     self.expect_service_running = args.expect_service_running
 
@@ -316,6 +316,7 @@ class WindowsTemplateBuilder(object):
                                        encoding="utf-8")
       service_running = "RUNNING" in output
     except subprocess.CalledProcessError as e:
+      output = e.output
       if e.returncode == 1060:
         # 1060 means: The specified service does not exist as an installed
         # service.
