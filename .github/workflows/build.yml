@@ -159,7 +159,6 @@ jobs:
           set -ex
           pip install virtualenv wheel
           python -u appveyor/windows_templates/build_windows_templates.py --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output --test_repack_install
-          python -u appveyor/windows_templates/build_windows_templates.py --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output_msi --test_repack_install --build_msi
 
           mkdir -p gcs_upload_dir
           mv -v output*/* gcs_upload_dir
