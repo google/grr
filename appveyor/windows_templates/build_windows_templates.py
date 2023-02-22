@@ -335,7 +335,7 @@ class WindowsTemplateBuilder(object):
         # service.
         service_running = False
         
-        output = subprocess.check_output(["sc", "query"], encoding="utf-8")
+        output = subprocess.check_output(["sc", "query", "state=", "all"], encoding="utf-8")
         logging.info("Expected service %s not running, available services: %s",
             self.service_name, output)
 
