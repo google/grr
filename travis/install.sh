@@ -40,7 +40,7 @@ pip install -e api_client/python --progress-bar off
 pip install -e grr/client_builder --progress-bar off
 
 # Depends on grr-response-client-builder
-pip install -e grr/server --progress-bar off
+pip install -e grr/server/[mysqldatastore] --progress-bar off
 
 # Depends on grr-api-client and grr-response-proto
 pip install -e colab --progress-bar off
