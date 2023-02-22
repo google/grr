@@ -12,8 +12,8 @@ jobs:
     env:
       CHROME_DEB: google-chrome-stable_current_amd64.deb
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Install
@@ -40,8 +40,8 @@ jobs:
   build-openapi:
     runs-on: ubuntu-18.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Install
@@ -57,7 +57,7 @@ jobs:
           travis/build_api_documentation.sh "_openapi_artifacts/openapi_description/openapi_description.json" "_openapi_artifacts/documentation/openapi_documentation.html"
           ls -la _openapi_artifacts/*
       - name: Upload OpenAPI to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: openapi
           path: _openapi_artifacts/
@@ -68,8 +68,8 @@ jobs:
     env:
       GCS_TAG: ubuntu_64bit
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Set up
@@ -83,7 +83,7 @@ jobs:
           travis/build_templates.sh
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ubuntu-installers
           path: gcs_upload_dir/
@@ -92,8 +92,8 @@ jobs:
   build-osx:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Set up
@@ -106,7 +106,7 @@ jobs:
           travis/build_templates.sh
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: osx-installers
           path: gcs_upload_dir/
@@ -120,7 +120,7 @@ jobs:
       DOCKER_CONTAINER: centos_64bit_container
       DOCKER_USER: grrbot
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Build installers
         run: |
           docker run -dit \
@@ -140,7 +140,7 @@ jobs:
           docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: centos-installers
           path: gcs_upload_dir/
@@ -149,8 +149,8 @@ jobs:
   build-windows:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Build installers
@@ -164,7 +164,7 @@ jobs:
           mv -v output*/* gcs_upload_dir
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: windows-installers
           path: gcs_upload_dir/
@@ -180,7 +180,7 @@ jobs:
       - build-osx
       - build-windows
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Download installers from GitHub artifacts
         id: download
         uses: actions/download-artifact@v2
@@ -207,7 +207,7 @@ jobs:
           travis/build_server_deb.sh
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: server-deb
           path: gcs_upload_dir/
@@ -222,8 +222,8 @@ jobs:
     needs:
       - build-server-deb
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Set up MySQL
@@ -252,7 +252,7 @@ jobs:
           sudo -EH ./appveyor/e2e_tests/run_e2e_tests.sh
           sudo -EH ./appveyor/e2e_tests/test_repack.sh
       - name: Upload logs and configs to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: e2e-test
           path: appveyor_e2e_artifacts/
@@ -267,10 +267,10 @@ jobs:
       - test-ubuntu
       - build-openapi
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Download installers from GitHub artifacts
         id: download
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: server-deb
           path: _artifacts
@@ -280,7 +280,7 @@ jobs:
           ./appveyor/docker_build/build_docker_image.sh
       - if: ${{ github.event_name == 'push' }} 
         name: Log in to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -294,7 +294,7 @@ jobs:
     needs:
       - build-push-docker
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Download installers from GitHub artifacts
         id: download
         uses: actions/download-artifact@v2
