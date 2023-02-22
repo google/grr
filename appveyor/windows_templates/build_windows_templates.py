@@ -60,12 +60,6 @@ parser.add_argument(
     default="",
     help="Path to the config file to be used when building templates.")
 
-parser.add_argument(
-    "--build_msi",
-    dest="build_msi",
-    default=False,
-    action="store_true",
-    help="Enable building of an MSI template.")
 
 args = parser.parse_args()
 
@@ -250,14 +244,12 @@ class WindowsTemplateBuilder(object):
       ]
     else:
       build_args = ["--verbose", "build", "--output", args.output_dir]
-    if args.build_msi:
-      wix_tools_path = self._WixToolsPath()
-      build_args += [
-          "-p",
-          "ClientBuilder.wix_tools_path=%{" + wix_tools_path + "}",
-          "-p",
-          "ClientBuilder.build_msi=true",
-      ]
+
+    wix_tools_path = self._WixToolsPath()
+    build_args += [
+        "-p",
+        "ClientBuilder.wix_tools_path=%{" + wix_tools_path + "}",
+    ]
     _VerboseCheckCall([self.grr_client_build64] + build_args)
 
   def _WixToolsPath(self) -> str:
@@ -303,22 +295,14 @@ class WindowsTemplateBuilder(object):
     logging.info("Stoping service %s.", self.service_name)
     _VerboseCheckCall(["sc", "stop", self.service_name])
 
-    if args.build_msi:
-      msiexec_args = [
-          "msiexec",
-          "/q",
-          "/x",
-          glob.glob(os.path.join(args.output_dir,
-                                 "dbg_*_amd64.msi")).pop().replace("/", "\\"),
-      ]
-      _VerboseCheckCall(msiexec_args)
-    else:
-      self._WaitForServiceToStop()
-      if os.path.exists(self.install_path):
-        _RmTreePseudoTransactional(self.install_path)
-        if os.path.exists(self.install_path):
-          raise RuntimeError("Install path still exists: %s" %
-                             self.install_path)
+    msiexec_args = [
+        "msiexec",
+        "/q",
+        "/x",
+        glob.glob(os.path.join(args.output_dir,
+                                "dbg_*_amd64.msi")).pop().replace("/", "\\"),
+    ]
+    _VerboseCheckCall(msiexec_args)
 
   def _CheckInstallSuccess(self):
     """Checks if the installer installed correctly."""
@@ -350,20 +334,15 @@ class WindowsTemplateBuilder(object):
 
   def _InstallInstallers(self):
     """Install the installer built by RepackTemplates."""
-    if args.build_msi:
-      installer_amd64_args = [
-          "msiexec",
-          "/qn",
-          "/norestart",
-          "/passive",
-          "/i",
-          glob.glob(os.path.join(args.output_dir,
-                                 "dbg_*_amd64.msi")).pop().replace("/", "\\"),
-      ]
-    else:
-      installer_amd64_args = [
-          glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.exe")).pop()
-      ]
+    installer_amd64_args = [
+        "msiexec",
+        "/qn",
+        "/norestart",
+        "/passive",
+        "/i",
+        glob.glob(os.path.join(args.output_dir,
+                                "dbg_*_amd64.msi")).pop().replace("/", "\\"),
+    ]
 
     # The exit code is always 0, test to see if install was actually successful.
     _VerboseCheckCall(installer_amd64_args)
