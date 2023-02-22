@@ -200,7 +200,6 @@ jobs:
 
           mkdir -p grr/config/grr_response_templates/templates
 
-          mv -v ~/_artifacts/windows-installers/GRR_*_amd64.exe.zip grr/config/grr_response_templates/templates
           mv -v ~/_artifacts/windows-installers/GRR_*_amd64.msi.zip grr/config/grr_response_templates/templates
           mv -v ~/_artifacts/ubuntu-installers/grr_*_amd64.deb.zip grr/config/grr_response_templates/templates
           mv -v ~/_artifacts/centos-installers/grr_*_amd64.rpm.zip grr/config/grr_response_templates/templates
