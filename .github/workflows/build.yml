@@ -123,18 +123,21 @@ jobs:
       - uses: actions/checkout@v2
       - name: Build installers
         run: |
-          sudo docker run -dit \
+          docker run -dit \
             --volume "${PWD}:/mnt/grr" \
             --workdir /mnt/grr \
             --env DOCKER_USER="${DOCKER_USER}" \
             --env TRAVIS_OS_NAME="linux" \
             --name "${DOCKER_CONTAINER}" \
             "${DOCKER_IMG}"
-          sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" /usr/local/bin/python3.9 -m venv "/home/${DOCKER_USER}/INSTALL"
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" travis/install_client_builder.sh
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" travis/build_templates.sh
-          sudo docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
+          # Using `bash -l` here and below to make sure devtools
+          # (including the C++ 14 compatible compiler) are properly
+          # registered in the environment variables.
+          docker exec "${DOCKER_CONTAINER}" bash -l travis/set_up_test_user.sh
+          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l /usr/local/bin/python3.9 -m venv "/home/${DOCKER_USER}/INSTALL"
+          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/install_client_builder.sh
+          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/build_templates.sh
+          docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
         uses: actions/upload-artifact@v2
