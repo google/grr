@@ -17,7 +17,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_proto.api import hunt_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
@@ -44,6 +43,14 @@ from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
+
+# pyformat: disable
+
+CANCELLED_BY_USER = "Cancelled by user"
+
+# /grr/server/grr_response_server/hunt.py,
+# //depot/@app/components/hunt/hunt_status_chip/hunt_status_chip.ts)
+# pyformat: enable
 
 
 class HuntNotFoundError(api_call_handler_base.ResourceNotFoundError):
@@ -184,6 +191,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       self.name = "VariableGenericHunt"
       self.hunt_type = self.HuntType.VARIABLE
     self.state = str(hunt_obj.hunt_state)
+    self.state_comment = str(hunt_obj.hunt_state_comment)
     self.crash_limit = hunt_obj.crash_limit
     self.client_limit = hunt_obj.client_limit
     self.client_rate = hunt_obj.client_rate
@@ -320,7 +328,7 @@ class ApiHuntResult(rdf_structs.RDFProtoStruct):
   def InitFromFlowResult(self, flow_result):
     """Init from rdf_flow_objects.FlowResult."""
 
-    self.payload_type = compatibility.GetName(flow_result.payload.__class__)
+    self.payload_type = flow_result.payload.__class__.__name__
     self.payload = flow_result.payload
     self.client_id = flow_result.client_id
     self.timestamp = flow_result.timestamp
@@ -413,6 +421,12 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
   def _CreatedByFilterRelational(self, username, hunt_obj):
     return hunt_obj.creator == username
 
+  def _IsRobotFilterRelational(self, hunt_obj):
+    return hunt_obj.is_robot
+
+  def _IsHumanFilterRelational(self, hunt_obj):
+    return not hunt_obj.is_robot
+
   def _DescriptionContainsFilterRelational(self, substring, hunt_obj):
     return substring in hunt_obj.description
 
@@ -425,16 +439,27 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
   def _BuildFilter(self, args, context):
     filters = []
 
-    if ((args.created_by or args.description_contains) and
-        not args.active_within):
-      raise ValueError("created_by/description_contains filters have to be "
-                       "used together with active_within filter (to prevent "
-                       "queries of death)")
+    if (
+        args.created_by
+        or args.HasField("robot_filter")
+        or args.description_contains
+    ) and not args.active_within:
+      raise ValueError(
+          "created_by/robot_filter/description_contains filters have to be "
+          "used together with active_within filter (to prevent "
+          "queries of death)"
+      )
 
     if args.created_by:
       filters.append(
           functools.partial(self._CreatedByFilterRelational,
                             self._Username(args.created_by, context)))
+
+    if args.HasField("robot_filter"):
+      if args.robot_filter == args.RobotFilter.ONLY_ROBOTS:
+        filters.append(functools.partial(self._IsRobotFilterRelational))
+      elif args.robot_filter == args.RobotFilter.NO_ROBOTS:
+        filters.append(functools.partial(self._IsHumanFilterRelational))
 
     if args.description_contains:
       filters.append(
@@ -462,6 +487,11 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     kw_args = {}
     if args.created_by:
       kw_args["with_creator"] = self._Username(args.created_by, context)
+    if args.HasField("robot_filter"):
+      if args.robot_filter == args.RobotFilter.ONLY_ROBOTS:
+        kw_args["created_by"] = access_control.SYSTEM_USERS
+      elif args.robot_filter == args.RobotFilter.NO_ROBOTS:
+        kw_args["not_created_by"] = access_control.SYSTEM_USERS
     if args.description_contains:
       kw_args["with_description_match"] = args.description_contains
     if args.active_within:
@@ -485,6 +515,28 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
           args.offset, args.count or db.MAX_COUNT, **kw_args)
       items = [ApiHunt().InitFromHuntMetadata(h) for h in hunt_objects]
     return ApiListHuntsResult(items=items)
+
+
+class ApiVerifyHuntAccessArgs(rdf_structs.RDFProtoStruct):
+  protobuf = hunt_pb2.ApiVerifyHuntAccessArgs
+  rdf_deps = [
+      ApiHuntId,
+  ]
+
+
+class ApiVerifyHuntAccessResult(rdf_structs.RDFProtoStruct):
+  protobuf = hunt_pb2.ApiVerifyHuntAccessResult
+  rdf_deps = []
+
+
+class ApiVerifyHuntAccessHandler(api_call_handler_base.ApiCallHandler):
+  """Dummy handler that renders empty message."""
+
+  args_type = ApiVerifyHuntAccessArgs
+  result_type = ApiVerifyHuntAccessResult
+
+  def Handle(self, args, context=None):
+    return ApiVerifyHuntAccessResult()
 
 
 class ApiGetHuntArgs(rdf_structs.RDFProtoStruct):
@@ -513,6 +565,43 @@ class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
                               args.hunt_id)
 
 
+class ApiCountHuntResultsByTypeArgs(rdf_structs.RDFProtoStruct):
+  protobuf = hunt_pb2.ApiCountHuntResultsByTypeArgs
+  rdf_deps = [
+      ApiHuntId,
+  ]
+
+
+class ApiTypeCount(rdf_structs.RDFProtoStruct):
+  protobuf = hunt_pb2.ApiTypeCount
+  rdf_deps = []
+
+
+class ApiCountHuntResultsByTypeResult(rdf_structs.RDFProtoStruct):
+  protobuf = hunt_pb2.ApiCountHuntResultsByTypeResult
+  rdf_deps = [
+      ApiTypeCount,
+  ]
+
+
+class ApiCountHuntResultsByTypeHandler(api_call_handler_base.ApiCallHandler):
+  """Counts all hunt results by type."""
+
+  args_type = ApiCountHuntResultsByTypeArgs
+  result_type = ApiCountHuntResultsByTypeResult
+
+  def Handle(
+      self,
+      args: ApiCountHuntResultsByTypeArgs,
+      context: Optional[api_call_context.ApiCallContext] = None
+  ) -> ApiCountHuntResultsByTypeResult:
+    counts = data_store.REL_DB.CountHuntResultsByType(str(args.hunt_id))
+    return ApiCountHuntResultsByTypeResult(items=[
+        ApiTypeCount(type=type, count=count)
+        for (type, count) in counts.items()
+    ])
+
+
 class ApiListHuntResultsArgs(rdf_structs.RDFProtoStruct):
   protobuf = hunt_pb2.ApiListHuntResultsArgs
   rdf_deps = [
@@ -538,9 +627,12 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
         str(args.hunt_id),
         args.offset,
         args.count or db.MAX_COUNT,
-        with_substring=args.filter or None)
+        with_substring=args.filter or None,
+        with_type=args.with_type or None,
+    )
 
-    total_count = data_store.REL_DB.CountHuntResults(str(args.hunt_id))
+    total_count = data_store.REL_DB.CountHuntResults(
+        str(args.hunt_id), with_type=args.with_type or None)
 
     return ApiListHuntResultsResult(
         items=[ApiHuntResult().InitFromFlowResult(r) for r in results],
@@ -1402,7 +1494,7 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
           raise HuntNotStoppableError(
               "Hunt can only be stopped from STARTED or "
               "PAUSED states.")
-        hunt_obj = hunt.StopHunt(hunt_obj.hunt_id)
+        hunt_obj = hunt.StopHunt(hunt_obj.hunt_id, reason=CANCELLED_BY_USER)
 
       else:
         raise InvalidHuntStateError(

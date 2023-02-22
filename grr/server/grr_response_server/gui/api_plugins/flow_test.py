@@ -24,7 +24,6 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import temp
 from grr_response_server import artifact_registry
@@ -338,7 +337,7 @@ class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
   def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
     with test_lib.FakeTime(42):
       sid = flow_test_lib.TestFlowHelper(
-          compatibility.GetName(flow_test_lib.DummyFlowWithSingleReply),
+          flow_test_lib.DummyFlowWithSingleReply.__name__,
           client_id=self.client_id,
           creator=self.test_username)
 

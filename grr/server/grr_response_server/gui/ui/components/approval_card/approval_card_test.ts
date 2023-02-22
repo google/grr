@@ -6,25 +6,24 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 
-import {ClientApproval} from '../../lib/models/client';
-import {newClient} from '../../lib/models/model_test_util';
-import {ClientPageGlobalStore} from '../../store/client_page_global_store';
-import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
+import {Approval} from '../../lib/models/user';
+import {ApprovalCardLocalStore} from '../../store/approval_card_local_store';
+import {ApprovalCardLocalStoreMock, mockApprovalCardLocalStore} from '../../store/approval_card_local_store_test_util';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 import {initTestEnvironment} from '../../testing';
 
-import {Approval} from './approval';
-import {ApprovalModule} from './module';
+import {ApprovalCard} from './approval_card';
+import {ApprovalCardModule} from './module';
 
 initTestEnvironment();
 
-describe('Approval Component', () => {
-  let clientPageGlobalStore: ClientPageGlobalStoreMock;
+describe('ApprovalCard Component', () => {
+  let approvalCardLocalStore: ApprovalCardLocalStoreMock;
   let configGlobalStore: ConfigGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
-    clientPageGlobalStore = mockClientPageGlobalStore();
+    approvalCardLocalStore = mockApprovalCardLocalStore();
     configGlobalStore = mockConfigGlobalStore();
 
     TestBed
@@ -32,13 +31,9 @@ describe('Approval Component', () => {
           imports: [
             NoopAnimationsModule,
             RouterTestingModule,
-            ApprovalModule,
+            ApprovalCardModule,
           ],
           providers: [
-            {
-              provide: ClientPageGlobalStore,
-              useFactory: () => clientPageGlobalStore
-            },
             {
               provide: ConfigGlobalStore,
               useFactory: () => configGlobalStore,
@@ -47,18 +42,59 @@ describe('Approval Component', () => {
           ],
           teardown: {destroyAfterEach: false}
         })
+        .overrideProvider(
+            ApprovalCardLocalStore, {useFactory: () => approvalCardLocalStore})
         .compileComponents();
   }));
 
 
-  function createComponent(latestApproval: ClientApproval|null = null):
-      ComponentFixture<Approval> {
-    const fixture = TestBed.createComponent(Approval);
+  function createComponent(
+      latestApproval: Approval|null = null, urlTree: string[] = [],
+      validateOnStart = false): ComponentFixture<ApprovalCard> {
+    const fixture = TestBed.createComponent(ApprovalCard);
     fixture.componentInstance.latestApproval = latestApproval;
+    fixture.componentInstance.urlTree = urlTree;
+    fixture.componentInstance.validateOnStart = validateOnStart;
     spyOn(fixture.componentInstance.approvalParams, 'emit');
     fixture.detectChanges();
     return fixture;
   }
+
+  it('validates form reason', () => {
+    const fixture = createComponent();
+
+    configGlobalStore.mockedObservables.approvalConfig$.next({});
+    fixture.detectChanges();
+
+    fixture.debugElement.query(By.css('form'))
+        .triggerEventHandler('submit', null);
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.approvalParams.emit)
+        .not.toHaveBeenCalled();
+    expect(fixture.debugElement.nativeElement.textContent)
+        .toContain('required');
+  });
+
+  it('validateOnStart triggers error message when rendering', () => {
+    const fixture = createComponent(null, [], true);
+
+    configGlobalStore.mockedObservables.approvalConfig$.next({});
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.nativeElement.textContent)
+        .toContain('required');
+  });
+
+  it('FALSE validateOnStart does not show error before touched', () => {
+    const fixture = createComponent();
+
+    configGlobalStore.mockedObservables.approvalConfig$.next({});
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.nativeElement.textContent)
+        .not.toContain('required');
+  });
 
   it('requests approval when form is submitted', () => {
     const fixture = createComponent();
@@ -141,19 +177,13 @@ describe('Approval Component', () => {
   });
 
   it('shows pre-existing approval', () => {
-    const client = newClient({
-      clientId: 'C.1234',
-      ...{},
-    });
-    const latestApproval: ClientApproval = {
+    const latestApproval: Approval = {
       approvalId: '1',
-      clientId: 'C.1234',
       requestor: 'testuser',
       status: {type: 'pending', reason: 'Need at least 1 more approver.'},
       approvers: [],
       reason: 'sample reason',
       requestedApprovers: ['foo'],
-      subject: client,
     };
     const fixture = createComponent(latestApproval);
     fixture.detectChanges();
@@ -164,29 +194,23 @@ describe('Approval Component', () => {
   });
 
   it('allows copying the approval url', () => {
-    const client = newClient({
-      clientId: 'C.1234',
-      ...{},
-    });
-    const latestApproval: ClientApproval = {
-      approvalId: '111',
-      clientId: 'C.1234',
-      requestor: 'testuser',
-      status: {type: 'pending', reason: 'Need at least 1 more approver.'},
+    const urlTree = ['some', 'url'];
+    const latestApproval: Approval = {
+      approvalId: '',
+      requestor: '',
+      status: {type: 'pending', reason: ''},
       approvers: [],
-      reason: 'sample reason',
-      requestedApprovers: ['foo'],
-      subject: client,
+      reason: '',
+      requestedApprovers: [''],
     };
-    const fixture = createComponent(latestApproval);
+    const fixture = createComponent(latestApproval, urlTree);
     fixture.detectChanges();
 
     const directiveEl =
         fixture.debugElement.query(By.directive(CdkCopyToClipboard));
     expect(directiveEl).not.toBeNull();
 
-    const expected =
-        /^https?:\/\/.+\/clients\/C.1234\/users\/testuser\/approvals\/111$/;
+    const expected = /^https?:\/\/.+\/some\/url$/;
     const copyToClipboard = directiveEl.injector.get(CdkCopyToClipboard);
     expect(copyToClipboard.text).toMatch(expected);
   });
@@ -194,16 +218,14 @@ describe('Approval Component', () => {
   it('displays initial autocomplete suggestions', () => {
     const fixture = createComponent();
     fixture.detectChanges();
-    configGlobalStore.mockedObservables.approvalConfig$.next({});
 
-    expect(clientPageGlobalStore.suggestApprovers).toHaveBeenCalledWith('');
-
+    expect(approvalCardLocalStore.suggestApprovers).toHaveBeenCalledWith('');
     const approversInput =
         fixture.debugElement.query(By.css('mat-chip-list input'));
     approversInput.triggerEventHandler('focusin', null);
     fixture.detectChanges();
 
-    clientPageGlobalStore.mockedObservables.approverSuggestions$.next(
+    approvalCardLocalStore.mockedObservables.approverSuggestions$.next(
         ['bar', 'baz']);
     fixture.detectChanges();
 
@@ -221,12 +243,12 @@ describe('Approval Component', () => {
 
     const approversInput =
         fixture.debugElement.query(By.css('mat-chip-list input'));
-    fixture.componentInstance.approversInputControl.setValue('ba');
+    fixture.componentInstance.controls.approvers.setValue('ba');
     approversInput.triggerEventHandler('focusin', null);
     fixture.detectChanges();
 
-    expect(clientPageGlobalStore.suggestApprovers).toHaveBeenCalledWith('ba');
-    clientPageGlobalStore.mockedObservables.approverSuggestions$.next(
+    expect(approvalCardLocalStore.suggestApprovers).toHaveBeenCalledWith('ba');
+    approvalCardLocalStore.mockedObservables.approverSuggestions$.next(
         ['bar', 'baz']);
     fixture.detectChanges();
 
@@ -237,17 +259,9 @@ describe('Approval Component', () => {
   });
 
   it('shows contents on click when closed', () => {
-    const latestApproval: ClientApproval = {
-      approvalId: '1',
-      clientId: 'C.1234',
-      requestor: 'testuser',
-      status: {type: 'valid'},
-      approvers: [],
-      reason: 'sample reason',
-      requestedApprovers: ['foo'],
-      subject: newClient({clientId: 'C.1234'}),
-    };
-    const fixture = createComponent(latestApproval);
+    const fixture = createComponent();
+    fixture.componentInstance.hideContent = true;
+    fixture.detectChanges();
 
     expect(fixture.componentInstance.hideContent).toBeTrue();
 
@@ -258,17 +272,8 @@ describe('Approval Component', () => {
   });
 
   it('toggles contents on click on toggle button', () => {
-    const latestApproval: ClientApproval = {
-      approvalId: '1',
-      clientId: 'C.1234',
-      requestor: 'testuser',
-      status: {type: 'valid'},
-      approvers: [],
-      reason: 'sample reason',
-      requestedApprovers: ['foo'],
-      subject: newClient({clientId: 'C.1234'}),
-    };
-    const fixture = createComponent(latestApproval);
+    const fixture = createComponent();
+    fixture.componentInstance.hideContent = true;
     const button = fixture.debugElement.query(By.css('#approval-card-toggle'));
     fixture.detectChanges();
 
@@ -284,17 +289,8 @@ describe('Approval Component', () => {
   });
 
   it('opens contents on click on header', () => {
-    const latestApproval: ClientApproval = {
-      approvalId: '1',
-      clientId: 'C.1234',
-      requestor: 'testuser',
-      status: {type: 'valid'},
-      approvers: [],
-      reason: 'sample reason',
-      requestedApprovers: ['foo'],
-      subject: newClient({clientId: 'C.1234'}),
-    };
-    const fixture = createComponent(latestApproval);
+    const fixture = createComponent();
+    fixture.componentInstance.hideContent = true;
     const header = fixture.debugElement.query(By.css('.header'));
     fixture.detectChanges();
 
@@ -311,15 +307,13 @@ describe('Approval Component', () => {
   });
 
   it('linkifies tokens starting with http:// in request reason', () => {
-    const latestApproval: ClientApproval = {
+    const latestApproval: Approval = {
       approvalId: '1',
-      clientId: 'C.1234',
       requestor: 'testuser',
       status: {type: 'valid'},
       approvers: [],
       reason: 'sample reason http://example.com',
       requestedApprovers: ['foo'],
-      subject: newClient({clientId: 'C.1234'}),
     };
 
     const fixture = createComponent(latestApproval);

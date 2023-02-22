@@ -13,8 +13,8 @@ class InMemoryDBYaraMixin(object):
 
   def __init__(self):
     super().__init__()
-    self.yara = {}  # type: Dict[bytes, Text]
-    self.users = {}  # type: Dict[Text, rdf_objects.GRRUser]
+    self.yara: Dict[bytes, Text] = {}
+    self.users: Dict[Text, rdf_objects.GRRUser] = {}
 
   def WriteYaraSignatureReference(
       self,

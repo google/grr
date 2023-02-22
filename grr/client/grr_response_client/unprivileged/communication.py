@@ -276,11 +276,11 @@ class SubprocessServer(Server):
       extra_file_descriptors: Extra file desctiptors to map to the subprocess.
     """
     self._args_factory = args_factory
-    self._process = None  # type: Optional[subprocess.Popen]
+    self._process: Optional[subprocess.Popen] = None
     # Omitting type, since the type is conditionally imported on Windows.
     self._process_win = None
-    self._output_r = None  # type: Optional[BinaryIO]
-    self._input_w = None  # type: Optional[BinaryIO]
+    self._output_r: Optional[BinaryIO] = None
+    self._input_w: Optional[BinaryIO] = None
     if extra_file_descriptors is None:
       extra_file_descriptors = []
     self._extra_file_descriptors = extra_file_descriptors

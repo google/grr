@@ -100,6 +100,7 @@ class CheckClientApprovalRequestTest(acl_test_lib.AclTestMixin,
 
   @mock.patch(client_approval_auth.__name__ + ".CLIENT_APPROVAL_AUTH_MGR")
   def testWhenAuthMgrActiveChecksApproversForEachClientLabel(self, mock_mgr):
+    data_store.REL_DB.WriteGRRUser("GRR")
     data_store.REL_DB.AddClientLabels(self.client_id, u"GRR", [u"foo", u"bar"])
 
     approval_request = self._CreateRequest(grants=[
@@ -123,6 +124,7 @@ class CheckClientApprovalRequestTest(acl_test_lib.AclTestMixin,
 
   @mock.patch(client_approval_auth.__name__ + ".CLIENT_APPROVAL_AUTH_MGR")
   def testWhenAuthMgrActiveRaisesIfAuthMgrRaises(self, mock_mgr):
+    data_store.REL_DB.WriteGRRUser("GRR")
     data_store.REL_DB.AddClientLabels(self.client_id, u"GRR", [u"foo"])
 
     approval_request = self._CreateRequest(grants=[

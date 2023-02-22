@@ -32,3 +32,21 @@ export interface Invalid {
 
 /** Status of an Approval. */
 export type ApprovalStatus = Valid|Pending|Expired|Invalid;
+
+/** Approval contins common fields from any approval type. */
+export declare interface Approval {
+  readonly approvalId: string;
+  readonly requestor: string;
+  readonly reason: string;
+  readonly status: ApprovalStatus;
+  readonly requestedApprovers: readonly string[];
+  readonly approvers: readonly string[];
+  readonly expirationTime?: Date;
+}
+
+/** Approval Request. */
+export interface ApprovalRequest {
+  readonly approvers: string[];
+  readonly reason: string;
+  readonly cc: string[];
+}

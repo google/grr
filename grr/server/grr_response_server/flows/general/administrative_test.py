@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for administrative flows."""
 
 import os
 import subprocess
 import sys
 import tempfile
+import time
 from unittest import mock
 
 from absl import app
@@ -15,13 +15,11 @@ from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
 from grr_response_server import action_registry
 from grr_response_server import client_index
@@ -63,7 +61,7 @@ class KeepAliveFlowTest(flow_test_lib.FlowTestsBaseclass):
     client_id = self.SetupClient(0)
     client_mock = action_mocks.ActionMock(admin.Echo)
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(administrative.KeepAlive),
+        administrative.KeepAlive.__name__,
         duration=rdfvalue.Duration.From(1, rdfvalue.SECONDS),
         client_id=client_id,
         client_mock=client_mock,
@@ -106,14 +104,17 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
 
     # Setting config options is disallowed in tests so we need to temporarily
     # revert this.
-    with utils.Stubber(config.CONFIG, "Set", config.CONFIG.Set.old_target):
-      # Write the config.
+    self.config_set_disable.stop()
+    # Write the config.
+    try:
       flow_test_lib.TestFlowHelper(
           administrative.UpdateConfiguration.__name__,
           client_mock,
           client_id=client_id,
           creator=self.test_username,
           config=new_config)
+    finally:
+      self.config_set_disable.start()
 
     # Now retrieve it again to see if it got written.
     flow_test_lib.TestFlowHelper(
@@ -125,14 +126,9 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
     client = data_store.REL_DB.ReadClientSnapshot(client_id)
     config_dat = {item.key: item.value for item in client.grr_configuration}
     # The grr_configuration only contains strings.
-    # TODO: We use eval here, because in Python 2 these server URLs
-    # are a stringified list and have leading 'u' characters (to denote unicode
-    # literals). To overcome this difference in Python versions, we use `eval`
-    # to evaluate these lists. Once support for Python 2 is dropped, this can be
-    # again made an equality check for raw string contents.
     self.assertEqual(
-        eval(config_dat["Client.server_urls"]),  # pylint: disable=eval-used
-        ["http://www.example.com/"])
+        config_dat["Client.server_urls"], "['http://www.example.com/']"
+    )
     self.assertEqual(config_dat["Client.poll_min"], "1.0")
 
   def CheckCrash(self, crash, expected_session_id, client_id):
@@ -154,7 +150,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
       self.email_messages.append(
           dict(address=address, sender=sender, title=title, message=message))
 
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+    with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       client = flow_test_lib.CrashClientMock(client_id)
       flow_id = flow_test_lib.TestFlowHelper(
           flow_test_lib.FlowWithOneClientRequest.__name__,
@@ -334,7 +330,7 @@ magic_return_str = "foo(%s)"
     # This flow has an acl, the user needs to be admin.
     acl_test_lib.CreateAdminUser(self.test_username)
 
-    with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
+    with mock.patch.object(subprocess, "Popen", client_test_lib.Popen):
       flow_test_lib.TestFlowHelper(
           administrative.LaunchBinary.__name__,
           client_mock,
@@ -382,9 +378,9 @@ magic_return_str = "foo(%s)"
     # This flow has an acl, the user needs to be admin.
     acl_test_lib.CreateAdminUser(self.test_username)
 
-    with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
+    with mock.patch.object(subprocess, "Popen", client_test_lib.Popen):
       flow_test_lib.TestFlowHelper(
-          compatibility.GetName(administrative.LaunchBinary),
+          administrative.LaunchBinary.__name__,
           client_mock,
           client_id=self.SetupClient(0),
           binary=upload_path,
@@ -470,7 +466,7 @@ magic_return_str = "foo(%s)"
     acl_test_lib.CreateAdminUser(self.test_username)
 
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(administrative.UpdateClient),
+        administrative.UpdateClient.__name__,
         client_mock,
         client_id=self.SetupClient(0, system=""),
         binary_path=os.path.join(config.CONFIG["Client.platform"], "test.deb"),
@@ -543,7 +539,7 @@ magic_return_str = "foo(%s)"
       self.email_messages.append(
           dict(address=address, sender=sender, title=title, message=message))
 
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+    with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       client_mock = action_mocks.ActionMock(admin.Echo)
       flow_test_lib.TestFlowHelper(
           administrative.OnlineNotification.__name__,
@@ -581,7 +577,8 @@ magic_return_str = "foo(%s)"
 
     # Simulate a reboot.
     current_boot_time = psutil.boot_time()
-    with utils.Stubber(psutil, "boot_time", lambda: current_boot_time + 600):
+    with mock.patch.object(psutil, "boot_time",
+                           lambda: current_boot_time + 600):
 
       # Run it again - this should now update the boot time.
       self._RunSendStartupInfo(client_id)
@@ -591,7 +588,7 @@ magic_return_str = "foo(%s)"
       self.assertNotEqual(new_si.boot_time, si.boot_time)
 
       # Now set a new client build time.
-      build_time = compatibility.FormatTime("%a %b %d %H:%M:%S %Y")
+      build_time = time.strftime("%a %b %d %H:%M:%S %Y")
       with test_lib.ConfigOverrider({"Client.build_time": build_time}):
 
         # Run it again - this should now update the client info.
@@ -602,6 +599,8 @@ magic_return_str = "foo(%s)"
         self.assertNotEqual(new_si.client_info, si.client_info)
 
   def testStartupHandlerNewLabels(self):
+    data_store.REL_DB.WriteGRRUser(self.test_username)
+
     client_id = self.SetupClient(0, labels=[])
     index = client_index.ClientIndex()
 
@@ -776,7 +775,7 @@ magic_return_str = "foo(%s)"
       email_dict.update(
           dict(address=address, sender=sender, title=title, message=message))
 
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+    with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
           rdf_flows.GrrMessage(
               source=client_id,
@@ -797,7 +796,7 @@ magic_return_str = "foo(%s)"
       email_dict.update(
           dict(address=address, sender=sender, title=title, message=message))
 
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+    with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
           rdf_flows.GrrMessage(
               source=client_id,
@@ -825,7 +824,7 @@ magic_return_str = "foo(%s)"
       email_dict.update(
           dict(address=address, sender=sender, title=title, message=message))
 
-    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
+    with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       flow_test_lib.MockClient(client_id, None)._PushHandlerMessage(
           rdf_flows.GrrMessage(
               source=client_id,

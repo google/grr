@@ -6,11 +6,9 @@ import collections
 from typing import Dict, Text
 
 import prometheus_client
-import six
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import stats_collector
 from grr_response_core.stats import stats_utils
@@ -85,8 +83,7 @@ class _Metric(object):
 
   def __repr__(self):
     return "<{} varname={!r} fields={!r} metric={!r}>".format(
-        compatibility.GetName(type(self)), self.metadata.varname, self.fields,
-        self.metric)
+        type(self).__name__, self.metadata.varname, self.fields, self.metric)
 
 
 def _DistributionFromHistogram(metric, values_by_suffix):
@@ -183,7 +180,7 @@ class PrometheusStatsCollector(stats_collector.StatsCollector):
     # TODO(user): decouple validation from implementation.
     # Use validation wrapper approach in StatsCollector (similar to
     # how it's done in REL_DB).
-    precondition.AssertType(value, six.integer_types + (float,))
+    precondition.AssertType(value, (int,) + (float,))
 
     metric = self._metrics[metric_name]
     histogram: prometheus_client.Histogram = metric.ForFields(fields)

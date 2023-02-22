@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 
 from grr_response_core.lib import rdfvalue
 from grr_response_proto import objects_pb2

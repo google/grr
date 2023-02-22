@@ -10,7 +10,6 @@ from typing import Any, Type
 
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_server.export_converters import base
 
@@ -40,9 +39,7 @@ class OsqueryExportConverter(base.ExportConverter):
     except KeyError:
       pass
 
-    rdf_cls = compatibility.MakeType(rdf_cls_name,
-                                     (rdf_structs.RDFProtoStruct,), {})
-
+    rdf_cls = type(rdf_cls_name, (rdf_structs.RDFProtoStruct,), {})
     rdf_cls.AddDescriptor(
         rdf_structs.ProtoEmbedded(
             name="metadata", field_number=1, nested=base.ExportedMetadata))

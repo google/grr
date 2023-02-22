@@ -215,6 +215,16 @@ export declare interface ApiConfigSection {
   readonly options?: readonly ApiConfigOption[];
 }
 
+/** ApiCountHuntResultsByTypeArgs proto mapping. */
+export declare interface ApiCountHuntResultsByTypeArgs {
+  readonly huntId?: string;
+}
+
+/** ApiCountHuntResultsByTypeResult proto mapping. */
+export declare interface ApiCountHuntResultsByTypeResult {
+  readonly items?: readonly ApiTypeCount[];
+}
+
 /** ApiCreateClientApprovalArgs proto mapping. */
 export declare interface ApiCreateClientApprovalArgs {
   readonly clientId?: string;
@@ -1104,6 +1114,7 @@ export declare interface ApiHunt {
   readonly huntType?: ApiHuntHuntType;
   readonly name?: string;
   readonly state?: ApiHuntState;
+  readonly stateComment?: string;
   readonly flowName?: string;
   readonly flowArgs?: Any;
   readonly huntRunnerArgs?: HuntRunnerArgs;
@@ -1159,6 +1170,7 @@ export declare interface ApiHuntApproval {
   readonly approvers?: readonly string[];
   readonly copiedFromHunt?: ApiHunt;
   readonly copiedFromFlow?: ApiFlow;
+  readonly expirationTimeUs?: RDFDatetime;
 }
 
 /** ApiHuntClient proto mapping. */
@@ -1491,6 +1503,7 @@ export declare interface ApiListGrrBinariesResult {
 export declare interface ApiListHuntApprovalsArgs {
   readonly offset?: ProtoInt64;
   readonly count?: ProtoInt64;
+  readonly huntId?: string;
 }
 
 /** ApiListHuntApprovalsResult proto mapping. */
@@ -1605,6 +1618,7 @@ export declare interface ApiListHuntResultsArgs {
   readonly offset?: ProtoInt64;
   readonly count?: ProtoInt64;
   readonly filter?: string;
+  readonly withType?: string;
 }
 
 /** ApiListHuntResultsResult proto mapping. */
@@ -1621,6 +1635,14 @@ export declare interface ApiListHuntsArgs {
   readonly descriptionContains?: string;
   readonly activeWithin?: DurationSeconds;
   readonly withFullSummary?: boolean;
+  readonly robotFilter?: ApiListHuntsArgsRobotFilter;
+}
+
+/** ApiListHuntsArgs.RobotFilter proto mapping. */
+export enum ApiListHuntsArgsRobotFilter {
+  UNKNOWN = 'UNKNOWN',
+  NO_ROBOTS = 'NO_ROBOTS',
+  ONLY_ROBOTS = 'ONLY_ROBOTS',
 }
 
 /** ApiListHuntsResult proto mapping. */
@@ -2034,6 +2056,12 @@ export declare interface ApiTimelineBodyOpts {
   readonly nonPrintableEscape?: boolean;
 }
 
+/** ApiTypeCount proto mapping. */
+export declare interface ApiTypeCount {
+  readonly type?: string;
+  readonly count?: ProtoInt64;
+}
+
 /** ApiUiConfig proto mapping. */
 export declare interface ApiUiConfig {
   readonly heading?: string;
@@ -2087,6 +2115,15 @@ export declare interface ApiVerifyAccessArgs {
 
 /** ApiVerifyAccessResult proto mapping. */
 export declare interface ApiVerifyAccessResult {
+}
+
+/** ApiVerifyHuntAccessArgs proto mapping. */
+export declare interface ApiVerifyHuntAccessArgs {
+  readonly huntId?: string;
+}
+
+/** ApiVerifyHuntAccessResult proto mapping. */
+export declare interface ApiVerifyHuntAccessResult {
 }
 
 /** ApiVfsTimelineItem proto mapping. */

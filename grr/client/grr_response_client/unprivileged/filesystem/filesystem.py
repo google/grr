@@ -100,7 +100,7 @@ class Files:
   """A collection of open files identified by integer ids."""
 
   def __init__(self):
-    self._table = {}  # type: Dict[int, File]
+    self._table: Dict[int, File] = {}
     self._file_id_counter = 0
 
   def Add(self, file: File) -> int:

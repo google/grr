@@ -5,11 +5,11 @@ import io
 import os
 import zipfile
 
+import yaml
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
-from grr_response_core.lib.util.compat import yaml
 from grr_response_server import instant_output_plugin
 
 
@@ -22,7 +22,7 @@ def _SerializeToYaml(value):
   # Produce a YAML list entry in block format.
   # Note that the order of the fields is not guaranteed to correspond to that of
   # other output formats.
-  return yaml.Dump(preserialized)
+  return yaml.safe_dump(preserialized)
 
 
 class YamlInstantOutputPluginWithExportConversion(
@@ -84,7 +84,7 @@ class YamlInstantOutputPluginWithExportConversion(
 
   def Finish(self):
     manifest = {"export_stats": self.export_counts}
-    manifest_bytes = yaml.Dump(manifest).encode("utf-8")
+    manifest_bytes = yaml.safe_dump(manifest).encode("utf-8")
 
     yield self.archive_generator.WriteFileHeader(self.path_prefix + "/MANIFEST")
     yield self.archive_generator.WriteFileChunk(manifest_bytes)

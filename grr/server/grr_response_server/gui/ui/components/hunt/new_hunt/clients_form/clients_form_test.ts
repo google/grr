@@ -1,12 +1,12 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
-import {MatInputHarness} from '@angular/material/input/testing';
 import {MatMenuHarness} from '@angular/material/menu/testing';
 import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
+import {getCheckboxValue, getInputValue, getSelectBoxValue, setInputValue} from '../../../../form_testing';
 import {ForemanClientRuleSetMatchMode, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../../../lib/api/api_interfaces';
 import {ConfigGlobalStore} from '../../../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../../../store/config_global_store_test_util';
@@ -17,22 +17,10 @@ import {ClientsFormModule} from './module';
 
 initTestEnvironment();
 
-async function setInputValue(
-    fixture: ComponentFixture<unknown>, query: string, value: string) {
-  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const inputHarness =
-      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
-  await inputHarness.setValue(value);
-}
-
-async function getInputValue(
-    fixture: ComponentFixture<unknown>, query: string): Promise<string> {
-  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const inputHarness =
-      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
-  return await inputHarness.getValue();
-}
-
+// For unknown reasons, the MatCheckboxHarness must be loaded from the fixture
+// using the harness loader _in this file_. Moving it to `form_testing` makes
+// the test fail even if we provide the loader as a param instead of the
+// fixture.
 async function setCheckboxValue(
     fixture: ComponentFixture<unknown>, query: string, value: boolean) {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
@@ -45,34 +33,26 @@ async function setCheckboxValue(
   }
 }
 
-async function getCheckboxValue(
-    fixture: ComponentFixture<unknown>, query: string): Promise<boolean> {
-  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const checkboxHarness = await harnessLoader.getHarness(
-      MatCheckboxHarness.with({selector: query}));
-  return await checkboxHarness.isChecked();
-}
-
-async function selectMenuOption(menuHarness: MatMenuHarness, index: number) {
+// For unknown reasons, the MatMenuHarness must be loaded in the test function
+// and cannot be loaded in a helper function (like others above). Thus, we
+// always load it in the test function body and then only select the proper
+// option using the helper.
+async function selectMenuOptionAt(menuHarness: MatMenuHarness, index: number) {
   await menuHarness.open();
   const items = await menuHarness.getItems();
   await items[index].click();
 }
 
+// For unknown reasons, the MatSelectHarness must be loaded from the fixture
+// using the harness loader _in this file_. Moving it to `form_testing` makes
+// the test fail even if we provide the loader as a param instead of the
+// fixture.
 async function selectBoxOption(
     fixture: ComponentFixture<unknown>, query: string, value: string) {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
   const selectionBoxHarness =
       await harnessLoader.getHarness(MatSelectHarness.with({selector: query}));
   await selectionBoxHarness.clickOptions({text: value});
-}
-
-async function getSelectBoxValue(
-    fixture: ComponentFixture<unknown>, query: string): Promise<string> {
-  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const selectionBoxHarness =
-      await harnessLoader.getHarness(MatSelectHarness.with({selector: query}));
-  return await selectionBoxHarness.getValueText();
 }
 
 describe('clients form test', () => {
@@ -136,9 +116,7 @@ describe('clients form test', () => {
 
        const loader = TestbedHarnessEnvironment.loader(fixture);
        const menu = await loader.getHarness(MatMenuHarness);
-       await menu.open();
-       const items = await menu.getItems();
-       await items[0].click();
+       await selectMenuOptionAt(menu, 0);
        expect(fixture.debugElement.query(By.css('.match-condition')))
            .not.toBeNull();
      });
@@ -169,9 +147,7 @@ describe('clients form test', () => {
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const menu = await loader.getHarness(MatMenuHarness);
-    await menu.open();
-    const items = await menu.getItems();
-    await items[1].click();
+    await selectMenuOptionAt(menu, 1);  // adds Labels form
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('Label');
     expect(fixture.componentInstance.conditions().controls.length).toBe(2);
@@ -184,9 +160,7 @@ describe('clients form test', () => {
 
        const loader = TestbedHarnessEnvironment.loader(fixture);
        const menu = await loader.getHarness(MatMenuHarness);
-       await menu.open();
-       const items = await menu.getItems();
-       await items[1].click();
+       await selectMenuOptionAt(menu, 1);  // adds Labels form
        const text = fixture.debugElement.nativeElement.textContent;
        expect(text).toContain('Label');
        expect(fixture.componentInstance.conditions().controls.length).toBe(2);
@@ -208,9 +182,7 @@ describe('clients form test', () => {
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const menu = await loader.getHarness(MatMenuHarness);
-    await menu.open();
-    const items = await menu.getItems();
-    await items[4].click();
+    await selectMenuOptionAt(menu, 4);  // adds Client Clock integer form
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('Client Clock');
     expect(fixture.debugElement.query(By.css('.operator'))).not.toBeNull();
@@ -224,9 +196,7 @@ describe('clients form test', () => {
 
        const loader = TestbedHarnessEnvironment.loader(fixture);
        const menu = await loader.getHarness(MatMenuHarness);
-       await menu.open();
-       const items = await menu.getItems();
-       await items[5].click();
+       await selectMenuOptionAt(menu, 5);  // adds Client Description regex form
        const text = fixture.debugElement.nativeElement.textContent;
        expect(text).toContain('Client Description');
        expect(fixture.debugElement.query(By.css('.attribute-regex')))
@@ -240,9 +210,7 @@ describe('clients form test', () => {
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const menu = await loader.getHarness(MatMenuHarness);
-    await menu.open();
-    const items = await menu.getItems();
-    await items[5].click();
+    await selectMenuOptionAt(menu, 5);  // adds Client Description regex form
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('Client Description');
     expect(fixture.debugElement.query(By.css('.attribute-regex')))
@@ -260,7 +228,7 @@ describe('clients form test', () => {
     // OS rule is rendered by default
     await setCheckboxValue(fixture, '[id=condition_0_windows]', true);
 
-    await selectMenuOption(menu, 1);  // adds Labels form
+    await selectMenuOptionAt(menu, 1);  // adds Labels form
     await selectBoxOption(fixture, '[id=condition_1_match_mode]', 'Match any');
     await setInputValue(fixture, 'input[id=condition_1_label_name_0]', 'foo');
     const addLabelButton =
@@ -269,11 +237,11 @@ describe('clients form test', () => {
     fixture.detectChanges();
     await setInputValue(fixture, 'input[id=condition_1_label_name_1]', 'bar');
 
-    await selectMenuOption(menu, 4);  // adds Client Clock integer form
+    await selectMenuOptionAt(menu, 4);  // adds Client Clock integer form
     await selectBoxOption(fixture, '[id=condition_2_operator]', 'Greater Than');
     await setInputValue(fixture, 'input[id=condition_2_integer_value]', '123');
 
-    await selectMenuOption(menu, 5);  // adds Client Description regex form
+    await selectMenuOptionAt(menu, 5);  // adds Client Description regex form
     await setInputValue(
         fixture, 'input[id=condition_3_regex_value]', 'I am a regex');
     fixture.detectChanges();
@@ -328,7 +296,7 @@ describe('clients form test', () => {
     // This only shows when there is more than one condition, so we add one here
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const menu = await loader.getHarness(MatMenuHarness);
-    await selectMenuOption(menu, 1);
+    await selectMenuOptionAt(menu, 1);  // adds Labels form
 
     await selectBoxOption(fixture, '[id=rulesMatchMode]', 'Match Any (or)');
     fixture.detectChanges();
@@ -352,9 +320,7 @@ describe('clients form test', () => {
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const menu = await loader.getHarness(MatMenuHarness);
-    await menu.open();
-    const items = await menu.getItems();
-    await items[1].click();
+    await selectMenuOptionAt(menu, 1);  // adds Labels form
     const labelName = fixture.debugElement.query(By.css('.label-name'))
                           .query(By.css('input'));
     labelName.nativeElement.dispatchEvent(new Event('focusin'));

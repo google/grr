@@ -25,3 +25,16 @@
 .no-data {
   margin-top: 10px;
 }
+
+.button-row {
+  margin-top: 20px;
+  display: flex;
+  column-gap: c.$container-padding;
+}
+
+.dark {
+  &.mat-stroked-button, &button {
+    background-color: mat.get-color-from-palette(c.$primary);
+    color: white;
+  }
+}

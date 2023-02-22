@@ -8,7 +8,6 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util import compatibility
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
@@ -172,9 +171,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
     for pathspec in pathspecs:
       request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
       self.CallClient(
-          stub,
-          request,
-          next_state=compatibility.GetName(self._StatForFileArrived))
+          stub, request, next_state=self._StatForFileArrived.__name__)
 
   def _StatForFileArrived(
       self,
@@ -234,7 +231,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
     self.CallClient(
         server_stubs.Osquery,
         request=action_args,
-        next_state=compatibility.GetName(self.Process))
+        next_state=self.Process.__name__)
 
   def Process(
       self,

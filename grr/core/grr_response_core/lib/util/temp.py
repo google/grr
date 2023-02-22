@@ -9,9 +9,7 @@ from typing import Optional
 from typing import Text
 
 from absl import flags
-from absl import logging
 
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 FLAGS = flags.FLAGS
@@ -21,20 +19,15 @@ def _TestTempRootPath() -> Optional[Text]:
   """Returns a default root path for storing temporary files during tests."""
   # `TEST_TMPDIR` and `FLAGS.test_tmpdir` are only defined only for test
   # environments. For non-test code, we use the default temporary directory.
-  test_tmpdir = compatibility.Environ("TEST_TMPDIR", default=None)
+  test_tmpdir = os.environ.get("TEST_TMPDIR")
   if test_tmpdir is None and hasattr(FLAGS, "test_tmpdir"):
     test_tmpdir = FLAGS.test_tmpdir
 
-  if test_tmpdir is not None and not os.path.exists(test_tmpdir):
-    # TODO: We add a try-catch block to avoid rare race condition.
-    # In Python 3 the exception being thrown is way more specific
-    # (`FileExistsError`) but in Python 2 `OSError` is the best we can do. Once
-    # support for Python 2 is dropped we can switch to catching that and remove
-    # the conditional (EAFP).
+  if test_tmpdir is not None:
     try:
       os.makedirs(test_tmpdir)
-    except OSError as err:
-      logging.error(err)
+    except FileExistsError:
+      pass
 
   # TODO(hanuszczak): Investigate whether this check still makes sense.
   if platform.system() == "Windows":

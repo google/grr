@@ -493,7 +493,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     miss = misses[0]
     self.assertEqual(miss.scan_time_us, 6 * 1e6)
 
-    with test_lib.FakeTime(10000, increment=1):
+    with test_lib.FakeTime(20000, increment=1):
       matches, _, _ = self._RunYaraProcessScan(self.procs, pids=[102])
 
     self.assertLen(matches, 1)
@@ -547,7 +547,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     procs = [
         p for p in self.procs if p.pid in [101, 102, 103, 104, 105, 106, 107]
     ]
-    with utils.Stubber(yara, "compile", lambda source: FakeRules()):
+    with mock.patch.object(yara, "compile", lambda source: FakeRules()):
       self._RunYaraProcessScan(procs, per_process_timeout=50)
 
     self.assertLen(FakeRules.invocations, 7)
@@ -561,7 +561,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     procs = [
         p for p in self.procs if p.pid in [101, 102, 103, 104, 105, 106, 107]
     ]
-    with utils.Stubber(yara, "compile", lambda source: TimeoutRules()):
+    with mock.patch.object(yara, "compile", lambda source: TimeoutRules()):
       matches, errors, misses = self._RunYaraProcessScan(
           procs,
           per_process_timeout=50,
@@ -582,7 +582,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     procs = [
         p for p in self.procs if p.pid in [101, 102, 103, 104, 105, 106, 107]
     ]
-    with utils.Stubber(yara, "compile", lambda source: TooManyHitsRules()):
+    with mock.patch.object(yara, "compile", lambda source: TooManyHitsRules()):
       matches, errors, misses = self._RunYaraProcessScan(
           procs,
           include_errors_in_results="ALL_ERRORS",
@@ -601,7 +601,7 @@ class YaraFlowsTest(BaseYaraFlowsTest):
     procs = [
         p for p in self.procs if p.pid in [101, 102, 103, 104, 105, 106, 107]
     ]
-    with utils.Stubber(yara, "compile", lambda source: FakeRules()):
+    with mock.patch.object(yara, "compile", lambda source: FakeRules()):
       self._RunYaraProcessScan(procs, chunk_size=100, overlap_size=10)
 
     self.assertLen(FakeRules.invocations, 21)

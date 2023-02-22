@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Linux only tests."""
 
 import builtins
 import glob
 import os
+from unittest import mock
 
 from absl import app
 
@@ -60,7 +60,7 @@ class LinuxOnlyTest(client_test_lib.EmptyActionTest):
       mnt_point = "/"
       yield device, fs_type, mnt_point
 
-    with utils.Stubber(linux, "CheckMounts", MockCheckMounts):
+    with mock.patch.object(linux, "CheckMounts", MockCheckMounts):
       results = self.RunAction(linux.EnumerateFilesystems)
 
     expected = rdf_client_fs.Filesystem(

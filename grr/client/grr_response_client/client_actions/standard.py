@@ -10,6 +10,7 @@ import platform
 import socket
 import sys
 from typing import Text
+from unittest import mock
 import zlib
 
 from absl import flags
@@ -22,7 +23,6 @@ from grr_response_client.client_actions import tempfiles
 from grr_response_core import config
 from grr_response_core.lib import constants
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -342,7 +342,7 @@ class ExecutePython(actions.ActionPlugin):
     context["Progress"] = self.Progress
 
     stdout = io.StringIO()
-    with utils.Stubber(sys, "stdout", StdOutHook(stdout)):
+    with mock.patch.object(sys, "stdout", StdOutHook(stdout)):
       exec(args.python_code.data, context)  # pylint: disable=exec-used
 
     stdout_output = stdout.getvalue()

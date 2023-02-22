@@ -5,7 +5,6 @@ import functools
 import sys
 from unittest import mock
 
-from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server.blob_stores import db_blob_store
 from grr_response_server.databases import db as abstract_db
@@ -20,7 +19,7 @@ def TestDatabases(mysql=True):
   def _TestDatabasesDecorator(cls):
     """Decorator that creates additional RELDB-enabled test classes."""
     module = sys.modules[cls.__module__]
-    cls_name = compatibility.GetName(cls)
+    cls_name = cls.__name__
 
     # Prevent MRO issues caused by inheriting the same Mixin multiple times.
     base_classes = ()
@@ -29,11 +28,9 @@ def TestDatabases(mysql=True):
 
     if mysql:
       db_test_cls_name = "{}_MySQLEnabled".format(cls_name)
-      db_test_cls = compatibility.MakeType(
-          name=db_test_cls_name,
-          base_classes=base_classes +
-          (mysql_test.MySQLDatabaseProviderMixin, cls),
-          namespace={})
+      db_test_cls = type(
+          db_test_cls_name,
+          base_classes + (mysql_test.MySQLDatabaseProviderMixin, cls), {})
       setattr(module, db_test_cls_name, db_test_cls)
 
     return cls

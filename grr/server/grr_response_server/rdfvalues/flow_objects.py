@@ -9,7 +9,6 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
 from grr_response_server import action_registry
 from grr_response_server import output_plugin
@@ -272,7 +271,7 @@ def FlowResponseForLegacyResponse(legacy_msg):
 
 def GRRMessageFromClientActionRequest(request):
   stub = action_registry.ACTION_STUB_BY_ID[request.action_identifier]
-  name = compatibility.GetName(stub)
+  name = stub.__name__
 
   return rdf_flows.GrrMessage(
       session_id="%s/%s" % (request.client_id, request.flow_id),

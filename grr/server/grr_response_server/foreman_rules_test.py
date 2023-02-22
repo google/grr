@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test for the foreman client rule classes."""
 
 from absl import app
@@ -371,6 +370,7 @@ class ForemanLabelClientRuleTest(rdf_test_base.RDFValueTestMixin,
   def _Evaluate(self, rule):
     client_id = self.SetupClient(0)
 
+    data_store.REL_DB.WriteGRRUser("GRR")
     data_store.REL_DB.AddClientLabels(client_id, u"GRR", [u"hello", u"world"])
 
     client_info = data_store.REL_DB.ReadClientFullInfo(client_id)
@@ -511,6 +511,7 @@ class ForemanRegexClientRuleTest(test_lib.GRRBaseTest):
   def testLabels(self):
     client_id = self.SetupClient(0, system="Linux")
 
+    data_store.REL_DB.WriteGRRUser("GRR")
     data_store.REL_DB.AddClientLabels(client_id, u"GRR", [u"hello", u"world"])
 
     info = data_store.REL_DB.ReadClientFullInfo(client_id)

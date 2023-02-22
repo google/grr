@@ -16,7 +16,7 @@ package grr;
 // Entities.
 //
 
-// Next id: 33
+// Next id: 34
 message ApiHunt {
   // Enum values here correspond to Hunt.State values.
   enum State {
@@ -43,6 +43,8 @@ message ApiHunt {
 
   optional State state = 4
       [(sem_type) = { description: "Current hunt state." }];
+  optional string state_comment = 33
+      [(sem_type) = { description: "Additional information on hunt state." }];
 
   optional string flow_name = 20
       [(sem_type) = { description: "Hunt flow name." }];
@@ -212,6 +214,16 @@ message ApiListHuntsArgs {
                  "duration."
   }];
   optional bool with_full_summary = 6;
+  enum RobotFilter {
+    UNKNOWN = 0;    // Filter is not applied.
+    NO_ROBOTS = 1;  // Only human creators will be returned (is_robot = false).
+    ONLY_ROBOTS = 2;  // Only robot creators will be returned (is_robot = true).
+  }
+  optional RobotFilter robot_filter = 7 [(sem_type) = {
+    description: "Filters hunt creators based on `is_robot` property. "
+                 "NOTE: this filter can only be used in conjunction with "
+                 "'active_within' filter (to prevent queries of death)."
+  }];
 }
 
 message ApiListHuntsResult {
@@ -219,6 +231,13 @@ message ApiListHuntsResult {
   optional int64 total_count = 2
       [(sem_type) = { description: "Total number of items." }];
 }
+
+message ApiVerifyHuntAccessArgs {
+  optional string hunt_id = 1
+      [(sem_type) = { type: "ApiHuntId", description: "Hunt id." }];
+}
+
+message ApiVerifyHuntAccessResult {}
 
 message ApiGetHuntArgs {
   optional string hunt_id = 1
@@ -312,6 +331,9 @@ message ApiListHuntResultsArgs {
     description: "Return only results whose string representation "
                  "contains given substring."
   }];
+  optional string with_type = 5 [
+    (sem_type) = { description: "Returns only results with the given type" }
+  ];
 }
 
 message ApiListHuntResultsResult {
@@ -320,6 +342,25 @@ message ApiListHuntResultsResult {
 
   optional int64 total_count = 2
       [(sem_type) = { description: "Total count of items." }];
+}
+
+message ApiCountHuntResultsByTypeArgs {
+  optional string hunt_id = 1
+      [(sem_type) = { type: "ApiHuntId", description: "Hunt id." }];
+}
+
+// A tuple describing the count of items of a certain Proto type.
+message ApiTypeCount {
+  optional string type = 1
+      [(sem_type) = { description: "The RDFValue type name." }];
+  optional int64 count = 2 [(sem_type) = {
+    description: "The number of items with the corresponding type."
+  }];
+}
+
+message ApiCountHuntResultsByTypeResult {
+  repeated ApiTypeCount items = 1
+      [(sem_type) = { description: "Hunt result counts by type." }];
 }
 
 message ApiGetHuntResultsExportCommandArgs {

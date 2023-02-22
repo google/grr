@@ -1,6 +1,8 @@
 import {DebugElement, Provider} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 
+import {ApprovalCardLocalStore} from './approval_card_local_store';
+import {mockApprovalCardLocalStore} from './approval_card_local_store_test_util';
 import {ApprovalPageGlobalStore} from './approval_page_global_store';
 import {mockApprovalPageGlobalStore} from './approval_page_global_store_test_util';
 import {ClientDetailsGlobalStore} from './client_details_global_store';
@@ -17,6 +19,8 @@ import {FlowResultsLocalStore} from './flow_results_local_store';
 import {mockFlowResultsLocalStore} from './flow_results_local_store_test_util';
 import {HomePageGlobalStore} from './home_page_global_store';
 import {mockHomePageGlobalStore} from './home_page_global_store_test_util';
+import {HuntApprovalGlobalStore} from './hunt_approval_global_store';
+import {mockHuntApprovalGlobalStore} from './hunt_approval_global_store_test_util';
 import {HuntApprovalPageGlobalStore} from './hunt_approval_page_global_store';
 import {mockHuntApprovalPageGlobalStore} from './hunt_approval_page_global_store_test_util';
 import {HuntOverviewPageLocalStore} from './hunt_overview_page_local_store';
@@ -37,6 +41,7 @@ import {mockVfsViewLocalStore} from './vfs_view_local_store_test_util';
 /** MockStore providers for Stores. */
 export const STORE_PROVIDERS: Provider[] = [
   {provide: ApprovalPageGlobalStore, useFactory: mockApprovalPageGlobalStore},
+  {provide: ApprovalCardLocalStore, useFactory: mockApprovalCardLocalStore},
   {
     provide: HuntApprovalPageGlobalStore,
     useFactory: mockHuntApprovalPageGlobalStore
@@ -60,6 +65,10 @@ export const STORE_PROVIDERS: Provider[] = [
   },
   {provide: UserGlobalStore, useFactory: mockUserGlobalStore},
   {provide: NewHuntLocalStore, useFactory: mockNewHuntLocalStore},
+  {
+    provide: HuntApprovalGlobalStore,
+    useFactory: mockHuntApprovalGlobalStore,
+  },
   {
     provide: HuntOverviewPageLocalStore,
     useFactory: mockHuntOverviewPageLocalStore,

@@ -4,6 +4,7 @@ import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
+import {getInputValue} from '../../../../form_testing';
 import {newOutputPluginDescriptor} from '../../../../lib/models/model_test_util';
 import {OutputPluginDescriptorMap} from '../../../../lib/models/output_plugin';
 import {ConfigGlobalStore} from '../../../../store/config_global_store';
@@ -11,17 +12,9 @@ import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../../../store/co
 import {initTestEnvironment} from '../../../../testing';
 
 import {OutputPluginsFormModule} from './module';
-import {OutputPluginsForm} from './output_plugins_form';
+import {OutputPluginsForm, PluginType} from './output_plugins_form';
 
 initTestEnvironment();
-
-async function getInputValue(
-    fixture: ComponentFixture<unknown>, query: string): Promise<string> {
-  const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const inputHarness =
-      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
-  return await inputHarness.getValue();
-}
 
 describe('output plugins form test', () => {
   let configGlobalStoreMock: ConfigGlobalStoreMock;
@@ -69,5 +62,76 @@ describe('output plugins form test', () => {
     header.triggerEventHandler('click', new MouseEvent('click'));
     fixture.detectChanges();
     expect(fixture.componentInstance.hideContent).toBeFalse();
+  });
+
+  it('builds correct OutputPluginDescriptor using the form values',
+     async () => {
+       const fixture = TestBed.createComponent(OutputPluginsForm);
+       const loader = TestbedHarnessEnvironment.loader(fixture);
+       // TODO: Choose on selection box instead.
+       fixture.componentInstance.addNewPlugin(PluginType.BIGQUERY);
+       fixture.detectChanges();
+
+       const annotationInput = await loader.getHarness(MatInputHarness);
+       await annotationInput.setValue('test');
+       fixture.detectChanges();
+
+       expect(await getInputValue(fixture, '#plugin_0_annotation_0'))
+           .toEqual('test');
+     });
+
+  it('setFormState updates annotation input field', async () => {
+    const fixture = TestBed.createComponent(OutputPluginsForm);
+    const args = {exportOptions: {annotations: ['lalala', 'lelele']}};
+    fixture.componentInstance.setFormState([{
+      pluginName: 'BigQueryOutputPlugin',
+      args,
+    }]);
+    fixture.detectChanges();
+
+    expect(await getInputValue(fixture, '#plugin_0_annotation_0'))
+        .toEqual('lalala');
+    expect(await getInputValue(fixture, '#plugin_0_annotation_1'))
+        .toEqual('lelele');
+  });
+
+  it('adds annotation control', async () => {
+    const fixture = TestBed.createComponent(OutputPluginsForm);
+    // TODO: Choose on selection box instead.
+    fixture.componentInstance.addNewPlugin(PluginType.BIGQUERY);
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('#plugin_0_annotation_0')))
+        .toBeTruthy();
+    expect(fixture.componentInstance.annotations(0).length).toBe(1);
+
+    const addAnnotation = fixture.debugElement.query(By.css('#add-annotation'));
+    addAnnotation.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('#plugin_0_annotation_1')))
+        .toBeTruthy();
+    expect(fixture.componentInstance.annotations(0).length).toBe(2);
+  });
+
+  it('removes annotation control', async () => {
+    const fixture = TestBed.createComponent(OutputPluginsForm);
+    // TODO: Choose on selection box instead.
+    fixture.componentInstance.addNewPlugin(PluginType.BIGQUERY);
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('#plugin_0_annotation_0')))
+        .toBeTruthy();
+    expect(fixture.componentInstance.plugins.length).toBe(1);
+    expect(fixture.componentInstance.annotations(0).length).toBe(1);
+
+    const removeAnnotation =
+        fixture.debugElement.query(By.css('#remove_plugin_0'));
+    removeAnnotation.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('#plugin_0_annotation_0')))
+        .toBeFalsy();
+    expect(fixture.componentInstance.plugins.length).toBe(0);
   });
 });

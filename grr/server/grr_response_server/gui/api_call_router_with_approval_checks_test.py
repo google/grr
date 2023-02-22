@@ -121,6 +121,7 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   ACCESS_CHECKED_METHODS.extend([
       "VerifyAccess",
+      "VerifyHuntAccess",
       "ListFiles",
       "BrowseFilesystem",
       "GetVfsFilesArchive",

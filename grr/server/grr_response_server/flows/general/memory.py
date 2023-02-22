@@ -10,7 +10,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
@@ -76,7 +75,7 @@ class YaraProcessScan(flow_base.FlowBase):
       self.CallClient(
           server_stubs.YaraProcessScan,
           request=self.args,
-          next_state=compatibility.GetName(self.ProcessScanResults))
+          next_state=self.ProcessScanResults.__name__)
       return
 
     if self.args.scan_runtime_limit_us:
@@ -107,7 +106,7 @@ class YaraProcessScan(flow_base.FlowBase):
           server_stubs.YaraProcessScan,
           request=client_request,
           request_data=request_data,
-          next_state=compatibility.GetName(self.ProcessScanResults))
+          next_state=self.ProcessScanResults.__name__)
 
   def ProcessScanResults(
       self,
@@ -160,7 +159,7 @@ class YaraProcessScan(flow_base.FlowBase):
           skip_shared_regions=self.args.skip_shared_regions,
           skip_executable_regions=self.args.skip_executable_regions,
           skip_readonly_regions=self.args.skip_readonly_regions,
-          next_state=compatibility.GetName(self.CheckDumpProcessMemoryResults))
+          next_state=self.CheckDumpProcessMemoryResults.__name__)
 
   def CheckDumpProcessMemoryResults(self, responses: flow_responses.Responses[
       Union[rdf_client_fs.StatEntry, rdf_memory.YaraProcessDumpResponse]]):
@@ -261,7 +260,7 @@ class DumpProcessMemory(flow_base.FlowBase):
     self.CallClient(
         server_stubs.YaraProcessDump,
         request=self.args,
-        next_state=compatibility.GetName(self.ProcessResults))
+        next_state=self.ProcessResults.__name__)
 
   def ProcessResults(
       self,
@@ -296,7 +295,7 @@ class DumpProcessMemory(flow_base.FlowBase):
         pathspecs=dump_files_to_get,
         file_size=1024 * 1024 * 1024,
         use_external_stores=False,
-        next_state=compatibility.GetName(self.ProcessMemoryRegions),
+        next_state=self.ProcessMemoryRegions.__name__,
         request_data={"YaraProcessDumpResponse": response})
 
   def ProcessMemoryRegions(
@@ -323,7 +322,7 @@ class DumpProcessMemory(flow_base.FlowBase):
       self.CallClient(
           server_stubs.DeleteGRRTempFiles,
           response.pathspec,
-          next_state=compatibility.GetName(self.LogDeleteFiles))
+          next_state=self.LogDeleteFiles.__name__)
 
   def LogDeleteFiles(
       self, responses: flow_responses.Responses[rdf_client.LogMessage]):

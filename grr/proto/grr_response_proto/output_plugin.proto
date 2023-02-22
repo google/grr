@@ -24,7 +24,7 @@ message OutputPluginDescriptor {
   }];
 
   optional google.protobuf.Any args = 3 [(sem_type) = {
-    no_dynamic_type_lookup: true,
+    dynamic_type: "GetPluginArgsClass",
     description: "This is a helper field used by ApiCreateHuntHandler. It must "
                  "be an instance of the named plugin's args_type."
   }];

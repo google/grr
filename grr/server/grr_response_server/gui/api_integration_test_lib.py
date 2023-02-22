@@ -14,7 +14,6 @@ import portpicker
 from grr_api_client import api as grr_api
 from grr_api_client import utils as grr_api_utils
 from grr_response_core.lib import utils
-from grr_response_core.lib.util import compatibility
 from grr_response_server.flows.general import registry_init  # pylint: disable=unused-import
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_context
@@ -94,7 +93,7 @@ class RootApiIntegrationTest(ApiIntegrationTest):
 
     default_router = RootApiBinaryManagementTestRouter
     root_api_config_overrider = test_lib.ConfigOverrider(
-        {"API.DefaultRouter": compatibility.GetName(default_router)})
+        {"API.DefaultRouter": default_router.__name__})
     root_api_config_overrider.Start()
     self.addCleanup(root_api_config_overrider.Stop)
 

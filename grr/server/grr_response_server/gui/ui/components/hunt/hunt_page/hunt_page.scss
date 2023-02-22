@@ -28,12 +28,31 @@
     display: flex;
     flex-direction: row;
     column-gap: c.$container-padding;
-    margin-bottom: c.$card-margin;
+    margin-bottom: calc(c.$card-margin / 2);
 
     .key-value-table {
       td:first-of-type {
         min-width: 5em;
       }
+    }
+  }
+
+  .collapsed-info {
+    margin-bottom: c.$card-margin;
+  }
+
+  .flow-params-button {
+    color: mat.get-color-from-palette(mat.$blue-palette, 600);
+    margin: 5px 0;
+    padding-left: 0;
+    background-color: unset;
+
+    &:hover {
+      background-color: mat.get-color-from-palette(
+        mat.$grey-palette,
+        400,
+        0.15
+      );
     }
   }
 

@@ -1,4 +1,5 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
+import {ChangeDetectorRef, Type} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule} from '@angular/forms';
 import {MatInputHarness} from '@angular/material/input/testing';
@@ -6,6 +7,7 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {FlowArgsFormModule} from '../../components/flow_args_form/module';
+import {getInputValue, setInputValue} from '../../form_testing';
 import {ReadLowLevelArgs} from '../../lib/api/api_interfaces';
 import {latestValueFrom} from '../../lib/reactive';
 import {initTestEnvironment} from '../../testing';
@@ -28,7 +30,7 @@ describe('ReadLowLevelForm', () => {
         .compileComponents();
   }));
 
-  it('displays input fields', () => {
+  it('displays input fields with default values', async () => {
     const fixture = TestBed.createComponent(ReadLowLevelForm);
     fixture.detectChanges();
 
@@ -38,16 +40,24 @@ describe('ReadLowLevelForm', () => {
     const lengthInput =
         fixture.debugElement.query(By.css('input[name=length]'));
     expect(lengthInput).toBeTruthy();
+    expect(await getInputValue(fixture, 'input[name=length]')).toBe('42 B');
 
     const offsetInput =
         fixture.debugElement.query(By.css('input[name=offset]'));
     expect(offsetInput).toBeTruthy();
+    expect(await getInputValue(fixture, 'input[name=offset]')).toBe('0 B');
   });
 
-  it('displays error when path and length are EMPTY', () => {
+  it('displays error when path and length are EMPTY', async () => {
     const fixture = TestBed.createComponent(ReadLowLevelForm);
+    fixture.detectChanges();
+    await setInputValue(fixture, 'input[name=path]', '');
+    await setInputValue(fixture, 'input[name=length]', '0');
     fixture.componentInstance.controls.path.markAsTouched();
     fixture.componentInstance.controls.length.markAsTouched();
+    (fixture.debugElement.injector.get(
+         ChangeDetectorRef as Type<ChangeDetectorRef>))
+        .markForCheck();
     fixture.detectChanges();
 
     const pathError =
@@ -55,7 +65,7 @@ describe('ReadLowLevelForm', () => {
     expect(pathError).toBeTruthy();
 
     const lengthError =
-        fixture.debugElement.query(By.css('mat-error[name=reqLength]'));
+        fixture.debugElement.query(By.css('mat-error[name=minLength]'));
     expect(lengthError).toBeTruthy();
   });
 

@@ -12,7 +12,6 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.registry import FlowRegistry
-from grr_response_core.lib.util import compatibility
 from grr_response_core.stats import metrics
 from grr_response_server import access_control
 from grr_response_server import action_registry
@@ -469,7 +468,7 @@ class FlowBase(metaclass=FlowRegistry):
             backtrace: Optional[str] = None,
             status: Optional[rdf_structs.EnumNamedValue] = None) -> None:
     """Terminates this flow with an error."""
-    FLOW_ERRORS.Increment(fields=[compatibility.GetName(self.__class__)])
+    FLOW_ERRORS.Increment(fields=[self.__class__.__name__])
 
     client_id = self.rdf_flow.client_id
     flow_id = self.rdf_flow.flow_id
@@ -560,7 +559,7 @@ class FlowBase(metaclass=FlowRegistry):
 
   def MarkDone(self, status=None):
     """Marks this flow as done."""
-    FLOW_COMPLETIONS.Increment(fields=[compatibility.GetName(self.__class__)])
+    FLOW_COMPLETIONS.Increment(fields=[self.__class__.__name__])
 
     # Notify our parent flow or hunt that we are done (if there's a parent flow
     # or hunt).
@@ -677,10 +676,7 @@ class FlowBase(metaclass=FlowRegistry):
     # We don't know here what exceptions can be thrown in the flow but we have
     # to continue. Thus, we catch everything.
     except Exception as e:  # pylint: disable=broad-except
-      # TODO(amoser): We don't know what's in this exception so we have to deal
-      # with all eventualities. Replace this code with a simple str(e) once
-      # Python 2 support has been dropped.
-      msg = compatibility.NativeStr(e)
+      msg = str(e)
       FLOW_ERRORS.Increment(fields=[self.rdf_flow.flow_class_name])
 
       self.Error(error_message=msg, backtrace=traceback.format_exc())
@@ -884,9 +880,13 @@ class FlowBase(metaclass=FlowRegistry):
         self.rdf_flow.output_plugins_states):
       plugin_descriptor = output_plugin_state.plugin_descriptor
       output_plugin_cls = plugin_descriptor.GetPluginClass()
+      # TODO: Stop reading `plugin_args` at all (no fallback).
+      if plugin_descriptor.HasField("args"):
+        args = plugin_descriptor.args
+      else:
+        args = plugin_descriptor.plugin_args
       output_plugin = output_plugin_cls(
-          source_urn=self.rdf_flow.long_flow_id,
-          args=plugin_descriptor.plugin_args)
+          source_urn=self.rdf_flow.long_flow_id, args=args)
 
       try:
         # TODO(user): refactor output plugins to use FlowResponse

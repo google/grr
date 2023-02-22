@@ -6,7 +6,7 @@ import {DateTime, Duration} from '../../lib/date_time';
 import {KnowledgeBase} from '../api/api_interfaces';
 import {addToMapSetInPlace, camelToSnakeCase} from '../type_utils';
 
-import {ApprovalStatus} from './user';
+import {Approval, ApprovalRequest} from './user';
 
 
 
@@ -235,12 +235,9 @@ export interface Client {
   readonly sourceFlowId?: string;
 }
 
-/** Approval Request. */
-export interface ApprovalRequest {
+/** Approval Request for a client. */
+export interface ClientApprovalRequest extends ApprovalRequest {
   readonly clientId: string;
-  readonly approvers: string[];
-  readonly reason: string;
-  readonly cc: string[];
 }
 
 /** Configuration for Client Approvals. */
@@ -249,16 +246,9 @@ export interface ApprovalConfig {
 }
 
 /** Approval for Client access. */
-export interface ClientApproval {
-  readonly approvalId: string;
+export interface ClientApproval extends Approval {
   readonly clientId: string;
-  readonly requestor: string;
-  readonly reason: string;
-  readonly status: ApprovalStatus;
-  readonly requestedApprovers: ReadonlyArray<string>;
-  readonly approvers: ReadonlyArray<string>;
   readonly subject: Client;
-  readonly expirationTime?: Date;
 }
 
 const ONLINE_THRESHOLD = Duration.fromObject({minutes: 15});

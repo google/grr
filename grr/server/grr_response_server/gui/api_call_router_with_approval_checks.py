@@ -629,6 +629,11 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return self.delegate.ListHunts(args, context=context)
 
+  def VerifyHuntAccess(self, args, context=None):
+    self.access_checker.CheckHuntAccess(context, args.hunt_id)
+
+    return self.delegate.VerifyHuntAccess(args, context=context)
+
   def GetHunt(self, args, context=None):
     # Everybody can get hunt's information.
 
@@ -648,6 +653,11 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can look into hunt's results.
 
     return self.delegate.ListHuntResults(args, context=context)
+
+  def CountHuntResultsByType(self, args, context=None):
+    # Everybody can look into hunt's results.
+
+    return self.delegate.CountHuntResultsByType(args, context=context)
 
   def GetExportedHuntResults(self, args, context=None):
     # Everybody can export hunt's results.

@@ -86,6 +86,16 @@
               >
               List directory &amp; subdirectories
             </button>
+
+            <a
+              mat-stroked-button
+                *ngIf="(isRootSelected$ | async) === true"
+              [href]="downloadAllFromClientURL$ | async"
+              [download]="downloadAllFromClientFileName$ | async"
+            >
+              <mat-icon>download</mat-icon>
+              Download all collected files & metadata
+            </a>
           </mat-card-title>
 
           <div class="card-container">

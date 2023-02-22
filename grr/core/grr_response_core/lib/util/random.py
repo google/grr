@@ -6,8 +6,8 @@ import struct
 import threading
 from typing import Callable, List
 
-_random_buffer_size = 1024  # type: int
-_random_buffer = []  # type: List[int]
+_random_buffer_size: int = 1024
+_random_buffer: List[int] = []
 _mutex = threading.Lock()
 
 

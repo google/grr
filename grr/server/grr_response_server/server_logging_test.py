@@ -4,9 +4,10 @@
 import logging
 
 import time
+from unittest import mock
+
 from absl import app
 
-from grr_response_core.lib import utils
 from grr_response_proto import jobs_pb2
 from grr_response_server import server_logging
 from grr_response_server.gui import api_call_context
@@ -31,9 +32,9 @@ class ApplicationLoggerTests(test_lib.GRRBaseTest):
     self.l = server_logging.GrrApplicationLogger()
 
     self.log = ""
-    log_stubber = utils.Stubber(logging, "info", self.Log)
-    log_stubber.Start()
-    self.addCleanup(log_stubber.Stop)
+    log_stubber = mock.patch.object(logging, "info", self.Log)
+    log_stubber.start()
+    self.addCleanup(log_stubber.stop)
 
   def testGetEventId(self):
     self.assertGreater(

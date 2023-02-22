@@ -334,7 +334,11 @@ export class HuntPageGlobalStore {
     this.store.selectResult(key);
   }
 
-  stopHunt() {
-    this.store.patchHunt({state: HuntState.STOPPED});
+  cancelHunt() {
+    this.store.patchHunt({state: HuntState.CANCELLED});
+  }
+
+  startHunt() {
+    this.store.patchHunt({state: HuntState.RUNNING});
   }
 }

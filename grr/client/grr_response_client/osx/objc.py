@@ -304,9 +304,6 @@ class CFBoolean(CFType):
   def __bool__(self):
     return self.value
 
-  # TODO: Remove after support for Python 2 is dropped.
-  __nonzero__ = __bool__
-
   def __repr__(self):
     return str(self.value)
 

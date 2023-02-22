@@ -21,7 +21,6 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import collection
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import random
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
@@ -1339,7 +1338,7 @@ class MySQLDBFlowMixin(object):
       args.append(
           mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now()))
       args.append(r.payload.SerializeToBytes())
-      args.append(compatibility.GetName(r.payload.__class__))
+      args.append(r.payload.__class__.__name__)
       args.append(r.tag)
 
     query += ",".join(templates)

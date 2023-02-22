@@ -6,10 +6,9 @@ import {catchError, concatMap, distinctUntilChanged, filter, map, scan, shareRep
 import {Any} from '../lib/api/api_interfaces';
 import {HttpApiService, MissingApprovalError} from '../lib/api/http_api_service';
 import {extractErrorMessage, RequestStatus, RequestStatusType, trackRequest} from '../lib/api/track_request';
-import {translateApproval, translateClient} from '../lib/api_translation/client';
+import {translateClient, translateClientApproval} from '../lib/api_translation/client';
 import {translateFlow, translateScheduledFlow} from '../lib/api_translation/flow';
-import {translateApproverSuggestions} from '../lib/api_translation/user';
-import {ApprovalRequest, Client, ClientApproval} from '../lib/models/client';
+import {Client, ClientApproval, ClientApprovalRequest} from '../lib/models/client';
 import {Flow, FlowDescriptor, ScheduledFlow} from '../lib/models/flow';
 import {assertNonNull, isNonNull, isNull} from '../lib/preconditions';
 import {compareDateNewestFirst} from '../lib/type_utils';
@@ -37,7 +36,6 @@ interface ClientPageState {
   readonly flowInConfiguration?: FlowInConfiguration;
   readonly startFlowState?: RequestStatus<StartFlowState, string>;
 
-  readonly approverSuggestions?: ReadonlyArray<string>;
   readonly listFlowsCount: number;
 
   readonly requestApprovalStatus?: RequestStatus<ClientApproval, string>;
@@ -151,14 +149,15 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
           return of(null);
         }
 
-        return this.httpApiService.subscribeToListApprovals(clientId).pipe(
-            map(approvals => approvals?.map(translateApproval)),
-            takeWhile(
-                approvals => !approvals?.find(
-                    approval => approval.status.type === 'valid'),
-                true),
-            startWith(null),
-        );
+        return this.httpApiService.subscribeToListClientApprovals(clientId)
+            .pipe(
+                map(approvals => approvals?.map(translateClientApproval)),
+                takeWhile(
+                    approvals => !approvals?.find(
+                        approval => approval.status.type === 'valid'),
+                    true),
+                startWith(null),
+            );
       }),
   );
 
@@ -172,6 +171,19 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
                   null),
           shareReplay({bufferSize: 1, refCount: true}),
       );
+
+  readonly clientApprovalRoute$: Observable<string[]> =
+      this.latestApproval$.pipe(
+          filter(isNonNull), map((latestApproval: ClientApproval): string[] => {
+            return [
+              'clients',
+              latestApproval.clientId,
+              'users',
+              latestApproval.requestor,
+              'approvals',
+              latestApproval.approvalId,
+            ];
+          }), startWith([]));
 
   readonly hasAccess$: Observable<boolean|null> = this.selectedClientId$.pipe(
       switchMap(
@@ -280,12 +292,12 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
           );
 
   /** An effect requesting a new client approval. */
-  readonly requestApproval = this.effect<ApprovalRequest>(
+  readonly requestClientApproval = this.effect<ClientApprovalRequest>(
       obs$ => obs$.pipe(
           switchMap(
               approvalRequest => trackRequest(
-                  this.httpApiService.requestApproval(approvalRequest)
-                      .pipe(map(translateApproval)))),
+                  this.httpApiService.requestClientApproval(approvalRequest)
+                      .pipe(map(translateClientApproval)))),
           map(extractErrorMessage),
           tap(requestApprovalStatus => {
             this.patchState({requestApprovalStatus});
@@ -359,30 +371,6 @@ class ClientPageComponentStore extends ComponentStore<ClientPageState> {
           }),
           ));
 
-  private readonly updateApproverSuggestions =
-      this.updater<ReadonlyArray<string>>((state, approverSuggestions) => {
-        return {
-          ...state,
-          approverSuggestions,
-        };
-      });
-
-  readonly suggestApprovers = this.effect<string>(
-      obs$ => obs$.pipe(
-          concatMap(
-              (usernameQuery) => trackRequest(
-                  this.httpApiService.suggestApprovers(usernameQuery))),
-          tap((status) => {
-            if (status.status === RequestStatusType.SUCCESS) {
-              this.updateApproverSuggestions(
-                  translateApproverSuggestions(status.data));
-            }
-          }),
-          ));
-
-  readonly approverSuggestions$ =
-      this.select((state) => state.approverSuggestions);
-
   private readonly startFlowConfigurationImpl =
       this.updater<[string, unknown]>((state, [name, initialArgs]) => {
         return {
@@ -454,6 +442,10 @@ export class ClientPageGlobalStore {
   readonly latestApproval$: Observable<ClientApproval|null> =
       this.store.latestApproval$;
 
+  /** An observable emitting latest approval route. */
+  readonly clientApprovalRoute$: Observable<string[]> =
+      this.store.clientApprovalRoute$;
+
   /** An obserable emitting if the user has access to the client. */
   readonly hasAccess$ = this.store.hasAccess$;
 
@@ -490,8 +482,8 @@ export class ClientPageGlobalStore {
   }
 
   /** Requests an approval for the currently selected client. */
-  requestApproval(request: ApprovalRequest): void {
-    this.store.requestApproval(request);
+  requestClientApproval(request: ClientApprovalRequest): void {
+    this.store.requestClientApproval(request);
   }
 
   /** Starts a flow with given arguments. */
@@ -522,12 +514,6 @@ export class ClientPageGlobalStore {
   stopFlowConfiguration() {
     this.store.stopFlowConfiguration();
   }
-
-  suggestApprovers(usernameQuery: string) {
-    this.store.suggestApprovers(usernameQuery);
-  }
-
-  readonly approverSuggestions$ = this.store.approverSuggestions$;
 
   /** Adds a label to the selected client */
   addClientLabel(label: string) {

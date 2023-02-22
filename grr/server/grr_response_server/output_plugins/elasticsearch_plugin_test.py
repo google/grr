@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Tests for Elasticsearch output plugin."""
-
+import json
 from unittest import mock
 
 from absl import app
@@ -11,7 +11,6 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util.compat import json
 from grr_response_server import data_store
 from grr_response_server.output_plugins import elasticsearch_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
@@ -71,13 +70,13 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     split_requests = []
     split_request = request.split('\n')
     for line in split_request:
-        # Skip terminating newlines - which crashes json.Parse
-        if not line:
-            continue
-        split_requests.append(json.Parse(line))
+      # Skip terminating newlines - which crashes `json.loads`
+      if not line:
+        continue
+      split_requests.append(json.loads(line))
     update_pairs = []
     for i in range(0, len(split_requests), 2):
-        update_pairs.append([split_requests[i], split_requests[i + 1]])
+      update_pairs.append([split_requests[i], split_requests[i + 1]])
 
     return update_pairs
 
@@ -159,10 +158,9 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     self.assertFalse(mock_post.call_args[KWARGS]['verify'])
     self.assertEqual(mock_post.call_args[KWARGS]['headers']['Authorization'],
                      'Basic b')
-    self.assertIn(
-        mock_post.call_args[KWARGS]['headers']['Content-Type'],
-        ('application/json', 'application/x-ndjson')
-    )
+
+    self.assertIn(mock_post.call_args[KWARGS]['headers']['Content-Type'],
+                  ('application/json', 'application/x-ndjson'))
 
     bulk_pairs = self._ParseEvents(mock_post)
     self.assertEqual(bulk_pairs[0][0]['index']['_index'], 'e')
@@ -206,14 +204,15 @@ class ElasticsearchOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
             patcher=mock.patch.object(requests, 'post', post))
 
   def testPostDataTerminatingNewline(self):
-      with test_lib.ConfigOverrider({
-          'Elasticsearch.url': 'http://a',
-          'Elasticsearch.token': 'b',
-      }):
-          mock_post = self._CallPlugin(
-              plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(),
-              responses=[rdf_client.Process(pid=42)])
-      self.assertTrue(mock_post.call_args[KWARGS]['data'].endswith('\n'))
+    with test_lib.ConfigOverrider({
+        'Elasticsearch.url': 'http://a',
+        'Elasticsearch.token': 'b',
+    }):
+      mock_post = self._CallPlugin(
+          plugin_args=elasticsearch_plugin.ElasticsearchOutputPluginArgs(),
+          responses=[rdf_client.Process(pid=42)])
+    self.assertEndsWith(mock_post.call_args[KWARGS]['data'], '\n')
+
 
 if __name__ == '__main__':
   app.run(test_lib.main)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Simple parsers for Linux Release files."""
 
 import collections

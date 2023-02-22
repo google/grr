@@ -9,7 +9,6 @@ import traceback
 from absl import flags
 import pytest
 
-from grr_response_core.lib.util import compatibility
 # pylint: disable=g-import-not-at-top
 try:
   # This depends on grr_response_server, which is NOT available on all
@@ -46,9 +45,7 @@ def pytest_cmdline_main(config):
     # result of the execution of pytest_cmdline_main in the main process.
     sys.argv = config.workerinput["mainargv"]
   else:
-    # TODO: `sys.argv` on Python 2 uses `bytes` to represent passed
-    # arguments.
-    sys.argv = [compatibility.NativeStr("pytest")] + test_args
+    sys.argv = ["pytest"] + test_args
 
 
 last_module = None

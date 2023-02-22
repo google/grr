@@ -14,7 +14,7 @@ package grr;
 // Entities.
 //
 
-// Next message id: 13
+// Next message id: 14
 message ApiHuntApproval {
   optional ApiHunt subject = 1 [(sem_type) = {
     description: "A hunt that has to be accessed after this approval "
@@ -67,6 +67,11 @@ message ApiHuntApproval {
   optional ApiFlow copied_from_flow = 10 [(sem_type) = {
     description: "If the hunt was started from a flow, the original "
                  "flow information will be stored here."
+  }];
+
+  optional uint64 expiration_time_us = 13 [(sem_type) = {
+    type: "RDFDatetime",
+    description: "Expiration time for this approval."
   }];
 }
 
@@ -381,6 +386,8 @@ message ApiListHuntApprovalsArgs {
       [(sem_type) = { description: "Approvals starting offset." }];
   optional int64 count = 2
       [(sem_type) = { description: "Number of approvals to fetch." }];
+  optional string hunt_id = 3
+      [(sem_type) = { type: "ApiHuntId", description: "Hunt id." }];
 }
 
 message ApiListHuntApprovalsResult {

@@ -7,12 +7,12 @@ import os
 from unittest import mock
 
 from absl import app
+import yaml
 
 from grr_response_client_builder import build_helpers
 from grr_response_core import config
 from grr_response_core.lib import config_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.util.compat import yaml
 from grr.test_lib import test_lib
 
 
@@ -52,7 +52,7 @@ class BuildTests(test_lib.GRRBaseTest):
       with test_lib.FakeTime(1464120265):
         build_helpers.WriteBuildYaml(fd, context=context)
 
-    self.assertEqual(yaml.Parse(fd.getvalue()), expected)
+    self.assertEqual(yaml.safe_load(fd.getvalue()), expected)
 
   def testGenClientConfig(self):
     with test_lib.ConfigOverrider({"Client.build_environment": "test_env"}):

@@ -1,10 +1,9 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test the fileview interface."""
+from unittest import mock
 
 from absl import app
 
-from grr_response_core.lib import utils
 from grr_response_server import flow_base
 from grr_response_server import notification
 from grr_response_server.flows.general import discovery
@@ -158,7 +157,7 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
 
     with self.DisableHttpErrorChecks():
       # By mocking out Handle, we can force an exception.
-      with utils.Stubber(ApiSearchClientsHandler, "Handle", MockRender):
+      with mock.patch.object(ApiSearchClientsHandler, "Handle", MockRender):
         self.Open("/")
         self.Click("client_query_submit")
 

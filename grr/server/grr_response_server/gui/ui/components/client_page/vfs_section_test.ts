@@ -92,6 +92,71 @@ describe('VfsSection', () => {
     expect(urls[2]).toMatch(/.*%2Ftopdir%2Fsubdir$/);
   });
 
+  it('shows firectory title with actions (not root)', async () => {
+    await TestBed.inject(Router).navigate(
+        ['clients', 'C.1234', 'files', '/topdir']);
+    const fixture = TestBed.createComponent(VfsSection);
+    fixture.detectChanges();
+
+    const vfsViewLocalStore =
+        injectMockStore(VfsViewLocalStore, fixture.debugElement);
+    vfsViewLocalStore.mockedObservables.currentDirectory$.next({
+      path: '/',
+      pathtype: PathSpecPathType.OS,
+      isDirectory: true,
+      name: '/',
+      children: [{
+        path: '/topdir',
+        pathtype: PathSpecPathType.OS,
+        isDirectory: true,
+        name: 'topdir',
+      }],
+    });
+    vfsViewLocalStore.mockedObservables.isRootSelected$.next(false);
+    fixture.detectChanges();
+
+    const directoryTitle =
+        fixture.debugElement.query(By.css('.mat-card-title'));
+    expect(directoryTitle.nativeElement.textContent).toContain('/');
+
+    const buttons = directoryTitle.queryAll(By.css('button'));
+    expect(buttons.length).toBe(2);
+    expect(buttons[0].nativeElement.textContent).toContain('List');
+    expect(buttons[1].nativeElement.textContent).toContain('subdirectories');
+    const downloadButton = directoryTitle.query(By.css('a'));
+    expect(downloadButton).toBeFalsy();
+  });
+
+  it('shows firectory title with actions (ROOT)', async () => {
+    await TestBed.inject(Router).navigate(['clients', 'C.1234', 'files', '/']);
+    const fixture = TestBed.createComponent(VfsSection);
+    fixture.detectChanges();
+
+    const vfsViewLocalStore =
+        injectMockStore(VfsViewLocalStore, fixture.debugElement);
+    vfsViewLocalStore.mockedObservables.currentDirectory$.next({
+      path: '/',
+      pathtype: PathSpecPathType.OS,
+      isDirectory: true,
+      name: '/',
+      children: [],
+    });
+    vfsViewLocalStore.mockedObservables.isRootSelected$.next(true);
+    fixture.detectChanges();
+
+    const directoryTitle =
+        fixture.debugElement.query(By.css('.mat-card-title'));
+    expect(directoryTitle.nativeElement.textContent).toContain('/');
+
+    const buttons = directoryTitle.queryAll(By.css('button'));
+    expect(buttons.length).toBe(2);
+    expect(buttons[0].nativeElement.textContent).toContain('List');
+    expect(buttons[1].nativeElement.textContent).toContain('subdirectories');
+    const downloadButton = directoryTitle.query(By.css('a'));
+    expect(downloadButton).toBeTruthy();
+    expect(downloadButton.nativeElement.textContent).toContain('Download');
+  });
+
   it('shows file details of the selected file', async () => {
     await TestBed.inject(Router).navigate(
         ['clients', 'C.1234', 'files', '/topdir']);

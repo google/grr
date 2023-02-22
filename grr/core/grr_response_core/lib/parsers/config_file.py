@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 """Simple parsers for configuration files."""
-
-import collections
 from collections import abc
 import logging
 import re
@@ -21,8 +19,8 @@ from grr_response_core.lib.rdfvalues import config_file as rdf_config_file
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
+from grr_response_core.lib.util import text
 
 
 def AsIter(arg):
@@ -313,7 +311,7 @@ class KeyValueParser(FieldParser):
     self.fields = []
 
   def ParseToOrderedDict(self, data):
-    result = collections.OrderedDict()
+    result = dict()
     for field in self.ParseEntries(data):
       result.update(field)
     return result
@@ -615,9 +613,9 @@ class MtabParser(parsers.SingleFileParser[rdf_client_fs.Filesystem]):
       if not entry:
         continue
       result = rdf_client_fs.Filesystem()
-      result.device = compatibility.UnescapeString(entry[0])
-      result.mount_point = compatibility.UnescapeString(entry[1])
-      result.type = compatibility.UnescapeString(entry[2])
+      result.device = text.Unescape(entry[0])
+      result.mount_point = text.Unescape(entry[1])
+      result.type = text.Unescape(entry[2])
       options = KeyValueParser(term=",").ParseToOrderedDict(entry[3])
       # Keys without values get assigned [] by default. Because these keys are
       # actually true, if declared, change any [] values to True.
@@ -666,7 +664,7 @@ class RsyslogFieldParser(FieldParser):
   """Field parser for syslog configurations."""
 
   log_rule_re = re.compile(r"([\w,\*]+)\.([\w,!=\*]+)")
-  destinations = collections.OrderedDict([
+  destinations = dict([
       ("TCP", re.compile(r"(?:@@)([^;]*)")),
       ("UDP", re.compile(r"(?:@)([^;]*)")),
       ("PIPE", re.compile(r"(?:\|)([^;]*)")),

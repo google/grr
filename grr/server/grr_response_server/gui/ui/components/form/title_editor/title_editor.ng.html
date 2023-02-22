@@ -1,4 +1,10 @@
+<a
+  *ngIf="route; else noLink"
+  [routerLink]="route"
+>
 <mat-icon>list_alt</mat-icon>
+</a>
+<ng-template #noLink><mat-icon>list_alt</mat-icon></ng-template>
 <mat-icon>chevron_right</mat-icon>
 <div class="wrapper"
      [class.editing]= "editing"

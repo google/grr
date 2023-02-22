@@ -2,13 +2,15 @@
 """Search for certain files, filter them by given criteria and do something."""
 
 import stat
+from typing import Optional
+from typing import Sequence
 
 from grr_response_core.lib import artifact_utils
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util import compatibility
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
@@ -187,7 +189,7 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
     self.CallClient(
         server_stubs.Grep,
         request=grep_spec,
-        next_state=compatibility.GetName(self.ProcessGrep),
+        next_state=self.ProcessGrep.__name__,
         request_data=dict(
             original_result=response, condition_index=condition_index + 1))
 
@@ -213,7 +215,7 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
     self.CallClient(
         server_stubs.Grep,
         request=grep_spec,
-        next_state=compatibility.GetName(self.ProcessGrep),
+        next_state=self.ProcessGrep.__name__,
         request_data=dict(
             original_result=response, condition_index=condition_index + 1))
 
@@ -268,7 +270,7 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
         self.CallClient(
             server_stubs.GetFileStat,
             request,
-            next_state=compatibility.GetName(self.ReceiveFileStat),
+            next_state=self.ReceiveFileStat.__name__,
             request_data=dict(original_result=response))
 
     elif (self.args.process_non_regular_files or
@@ -407,23 +409,43 @@ class ClientFileFinder(flow_base.FlowBase):
     else:
       stub = server_stubs.VfsFileFinder
 
-    interpolated_args = self.args.Copy()
-    interpolated_args.paths = list(
-        self._InterpolatePaths(interpolated_args.paths))
+    if (paths := self._InterpolatePaths(self.args.paths)) is not None:
+      interpolated_args = self.args.Copy()
+      interpolated_args.paths = paths
+      self.CallClient(
+          stub,
+          request=interpolated_args,
+          next_state=self.StoreResults.__name__)
 
-    self.CallClient(
-        stub,
-        request=interpolated_args,
-        next_state=compatibility.GetName(self.StoreResults))
-
-  def _InterpolatePaths(self, globs):
-
+  def _InterpolatePaths(self, globs: Sequence[str]) -> Optional[Sequence[str]]:
     kb = self.client_knowledge_base
 
+    if kb is None:
+      self.Error("No knowledgebase available for path interpolation")
+      return None
+
+    paths = list()
+    missing_attrs = list()
+    unknown_attrs = list()
+
     for glob in globs:
-      param_path = str(glob)
-      for path in artifact_utils.InterpolateKbAttributes(param_path, kb):
-        yield path
+      try:
+        paths.extend(artifact_utils.InterpolateKbAttributes(str(glob), kb))
+      except artifact_utils.KbInterpolationMissingAttributesError as error:
+        missing_attrs.extend(error.attrs)
+        self.Log("Missing knowledgebase attributes: %s", error.attrs)
+      except artifact_utils.KbInterpolationUnknownAttributesError as error:
+        unknown_attrs.extend(error.attrs)
+        self.Log("Unknown knowledgebase attributes: %s", error.attrs)
+
+    if missing_attrs:
+      self.Error(f"Missing knowledgebase attributes: {missing_attrs}")
+      return None
+    if unknown_attrs:
+      self.Error(f"Unknown knowledgebase attributes: {unknown_attrs}")
+      return None
+
+    return paths
 
   def StoreResults(self, responses):
     """Stores the results returned by the client to the db."""
@@ -491,4 +513,5 @@ class ClientFileFinder(flow_base.FlowBase):
   def End(self, responses):
     super().End(responses)
 
-    self.Log("Found and processed %d files.", self.state.files_found)
+    if self.rdf_flow.flow_state != flows_pb2.Flow.ERROR:
+      self.Log("Found and processed %d files.", self.state.files_found)

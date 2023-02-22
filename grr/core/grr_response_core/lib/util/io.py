@@ -40,7 +40,7 @@ def Unchunk(chunks: Iterator[bytes]) -> IO[bytes]:
   return io.BufferedReader(_Unchunked(chunks))  # pylint: disable=abstract-class-instantiated
 
 
-class _Unchunked(io.RawIOBase, IO[bytes]):
+class _Unchunked(io.RawIOBase, IO[bytes]):  # pytype: disable=signature-mismatch  # overriding-return-type-checks
   """A raw file-like object that reads chunk stream on demand."""
 
   def __init__(self, chunks: Iterator[bytes]) -> None:

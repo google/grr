@@ -13,7 +13,7 @@ import re
 import socket
 import struct
 import sys
-from typing import Mapping, Text
+from typing import Mapping
 
 import distro
 import psutil
@@ -26,7 +26,6 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import text
 from grr_response_proto import jobs_pb2
 from grr_response_proto import knowledge_base_pb2
@@ -47,13 +46,6 @@ except ImportError:
 FS_ENCODING = sys.getfilesystemencoding() or sys.getdefaultencoding()
 
 _LOCALHOST = "localhost"
-
-
-def _DecodeArgument(arg) -> Text:
-  if compatibility.PY2:
-    return arg.decode(FS_ENCODING)
-  else:
-    return arg
 
 
 class ClientURN(rdfvalue.RDFURN):
@@ -350,7 +342,7 @@ class Process(rdf_structs.RDFProtoStruct):
           pass
 
       try:
-        response.cmdline = list(map(_DecodeArgument, psutil_process.cmdline()))
+        response.cmdline = list(psutil_process.cmdline())
       except (psutil.NoSuchProcess, psutil.AccessDenied):
         pass
       except Exception as e:  # pylint: disable=broad-except

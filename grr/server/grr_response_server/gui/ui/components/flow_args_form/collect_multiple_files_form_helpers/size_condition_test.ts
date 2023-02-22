@@ -5,10 +5,11 @@ import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
+import {FileFinderSizeCondition} from '../../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../../testing';
 
 import {HelpersModule} from './module';
-import {createSizeFormGroup, SizeCondition} from './size_condition';
+import {createSizeFormGroup, SizeCondition, sizeConditionToFormValue} from './size_condition';
 
 initTestEnvironment();
 
@@ -140,5 +141,59 @@ describe('SizeCondition component', () => {
     const matErrorField = fixture.debugElement.query(By.css('mat-error'));
     expect(matErrorField.nativeElement.textContent.trim())
         .toEqual('Either one or both values must be set.');
+  });
+
+  describe('sizeConditionToFormValue', () => {
+    it('should return undefined', () => {
+      const sizeCondition = undefined;
+
+      expect(sizeConditionToFormValue(sizeCondition)).toBeUndefined();
+    });
+
+    it('should return undefined form values', () => {
+      const sizeCondition: FileFinderSizeCondition = {
+        minFileSize: '',
+        maxFileSize: undefined,
+      };
+
+      expect(sizeConditionToFormValue(sizeCondition)).toEqual({
+        minFileSize: undefined,
+        maxFileSize: undefined,
+      });
+    });
+
+    it('should return a minimum file size form value', () => {
+      const sizeCondition: FileFinderSizeCondition = {
+        minFileSize: '10000000',
+      };
+
+      expect(sizeConditionToFormValue(sizeCondition)).toEqual({
+        minFileSize: 10_000_000,
+        maxFileSize: undefined,
+      });
+    });
+
+    it('should return a maximum file size form value', () => {
+      const sizeCondition: FileFinderSizeCondition = {
+        maxFileSize: '20',
+      };
+
+      expect(sizeConditionToFormValue(sizeCondition)).toEqual({
+        minFileSize: undefined,
+        maxFileSize: 20,
+      });
+    });
+
+    it('should return a mininmum and maximum file size form value', () => {
+      const sizeCondition: FileFinderSizeCondition = {
+        minFileSize: '50000',
+        maxFileSize: '4',
+      };
+
+      expect(sizeConditionToFormValue(sizeCondition)).toEqual({
+        minFileSize: 50_000,
+        maxFileSize: 4,
+      });
+    });
   });
 });

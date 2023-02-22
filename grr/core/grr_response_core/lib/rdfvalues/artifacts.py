@@ -1,17 +1,16 @@
 #!/usr/bin/env python
 """rdf value representation for artifact collector parameters."""
 
-import collections
+import json
 from typing import Type
+
+import yaml
 
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
-from grr_response_core.lib.util.compat import json
-from grr_response_core.lib.util.compat import yaml
 from grr_response_proto import artifact_pb2
 from grr_response_proto import flows_pb2
 
@@ -301,7 +300,7 @@ class Artifact(rdf_structs.RDFProtoStruct):
 
   def ToJson(self):
     artifact_dict = self.ToPrimitiveDict()
-    return json.Dump(artifact_dict)
+    return json.dumps(artifact_dict)
 
   def ToDict(self):
     return self.ToPrimitiveDict()
@@ -345,12 +344,12 @@ class Artifact(rdf_structs.RDFProtoStruct):
 
     # Do some clunky stuff to put the name and doc first in the YAML.
     # Unfortunately PYYaml makes doing this difficult in other ways.
-    ordered_artifact_dict = collections.OrderedDict()
+    ordered_artifact_dict = dict()
     ordered_artifact_dict["name"] = artifact_dict.pop("name")
     ordered_artifact_dict["doc"] = artifact_dict.pop("doc")
     ordered_artifact_dict.update(artifact_dict)
 
-    return yaml.Dump(ordered_artifact_dict)
+    return yaml.safe_dump(ordered_artifact_dict)
 
 
 class ArtifactProcessorDescriptor(rdf_structs.RDFProtoStruct):
@@ -376,10 +375,11 @@ class ArtifactProcessorDescriptor(rdf_structs.RDFProtoStruct):
     else:
       description = ""
 
+    output_types = [t.__name__ for t in parser_cls.output_types]
     return cls(
         name=parser_cls.__name__,
         description=description,
-        output_types=map(compatibility.GetName, parser_cls.output_types))
+        output_types=output_types)
 
 
 class ArtifactDescriptor(rdf_structs.RDFProtoStruct):

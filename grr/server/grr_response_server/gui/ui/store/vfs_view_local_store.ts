@@ -168,6 +168,14 @@ class VfsViewComponentStore extends ComponentStore<State> {
     return null;
   });
 
+  readonly isRootSelected$ = this.currentDirectory$.pipe(map(dir => {
+    if (isNonNull(dir) && dir.path === ROOT.path && dir.name === ROOT.name &&
+        dir.isDirectory === ROOT.isDirectory) {
+      return true;
+    }
+    return false;
+  }));
+
   readonly resetClientId = this.updater<string|null>((state, clientId) => {
     return {
       clientId,
@@ -359,6 +367,8 @@ export class VfsViewLocalStore {
    */
   readonly currentDirectory$: Observable<DirectoryListing|null> =
       this.store.currentDirectory$;
+
+  readonly isRootSelected$: Observable<boolean> = this.store.isRootSelected$;
 
   readonly directoryTree$: Observable<DirectoryNode|null> =
       this.store.directoryTree$;

@@ -7,7 +7,7 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Subject} from 'rxjs';
 
-import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '../../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
+import {createTimeRangeFormGroup, fileFinderAccessTimeConditionToFormValue, fileFinderModificationTimeConditionToFormValue, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '../../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
 import {DateTimeInputHarness} from '../../../components/form/date_time_input/testing/date_time_input_harness';
 import {FileFinderAccessTimeCondition, FileFinderInodeChangeTimeCondition, FileFinderModificationTimeCondition} from '../../../lib/api/api_interfaces';
 import {DateTime} from '../../../lib/date_time';
@@ -168,6 +168,85 @@ describe('formValuesToFileFinderModificationTimeCondition()', () => {
   });
 });
 
+describe('fileFinderModificationTimeConditionToFormValue()', () => {
+  it('correctly converts undefined time condition to form value', () => {
+    const expected = {
+      minTime: undefined,
+      maxTime: undefined,
+    };
+    expect(fileFinderModificationTimeConditionToFormValue(undefined))
+        .toEqual(expected);
+  });
+
+  it('correctly converts unset time condition to form value', () => {
+    const source = {
+      minLastModifiedTime: undefined,
+      maxLastModifiedTime: undefined,
+    };
+    const expected = {
+      minTime: undefined,
+      maxTime: undefined,
+    };
+    expect(fileFinderModificationTimeConditionToFormValue(source))
+        .toEqual(expected);
+  });
+
+  it('correctly converts unset time condition to form value (empty string)',
+     () => {
+       const source = {
+         minLastModifiedTime: '',
+         maxLastModifiedTime: '',
+       };
+       const expected = {
+         minTime: undefined,
+         maxTime: undefined,
+       };
+       expect(fileFinderModificationTimeConditionToFormValue(source))
+           .toEqual(expected);
+     });
+
+  it('correctly converts partially set time condition (only minimum) to form value',
+     () => {
+       const source = {
+         minLastModifiedTime: '4242000000',
+         maxLastModifiedTime: undefined,
+       };
+       const expected = {
+         minTime: DateTime.fromSeconds(4242),
+         maxTime: undefined,
+       };
+       expect(fileFinderModificationTimeConditionToFormValue(source))
+           .toEqual(expected);
+     });
+
+  it('correctly converts partially set time condition (only maximum) to form value',
+     () => {
+       const source = {
+         minLastModifiedTime: undefined,
+         maxLastModifiedTime: '4343000000',
+       };
+       const expected = {
+         minTime: undefined,
+         maxTime: DateTime.fromSeconds(4343),
+       };
+       expect(fileFinderModificationTimeConditionToFormValue(source))
+           .toEqual(expected);
+     });
+
+  it('correctly converts time condition to form value', () => {
+    const source = {
+      minLastModifiedTime: '4242000000',
+      maxLastModifiedTime: '4343000000',
+    };
+    const expected = {
+      minTime: DateTime.fromSeconds(4242),
+      maxTime: DateTime.fromSeconds(4343),
+    };
+    expect(fileFinderModificationTimeConditionToFormValue(source))
+        .toEqual(expected);
+  });
+});
+
 describe('formValuesToFileFinderAccessTimeCondition()', () => {
   it('correctly converts empty form value', () => {
     const source = {
@@ -191,6 +270,69 @@ describe('formValuesToFileFinderAccessTimeCondition()', () => {
       maxLastAccessTime: '4243000000',
     };
     expect(formValuesToFileFinderAccessTimeCondition(source)).toEqual(expected);
+  });
+});
+
+describe('fileFinderAccessTimeConditionToFormValue()', () => {
+  it('correctly converts undefined time confition to form value', () => {
+    const expected = {
+      minTime: undefined,
+      maxTime: undefined,
+    };
+    expect(fileFinderAccessTimeConditionToFormValue(undefined))
+        .toEqual(expected);
+  });
+
+  it('correctly converts unset time condition to form value', () => {
+    const source = {
+      minLastAccessTime: undefined,
+      maxLastAccessTime: undefined,
+    };
+    const expected = {
+      minTime: undefined,
+      maxTime: undefined,
+    };
+    expect(fileFinderAccessTimeConditionToFormValue(source)).toEqual(expected);
+  });
+
+  it('correctly converts partially set time condition (only minimum) to form value',
+     () => {
+       const source = {
+         minLastAccessTime: '4242000000',
+         maxLastAccessTime: undefined,
+       };
+       const expected = {
+         minTime: DateTime.fromSeconds(4242),
+         maxTime: undefined,
+       };
+       expect(fileFinderAccessTimeConditionToFormValue(source))
+           .toEqual(expected);
+     });
+
+  it('correctly converts partially set time condition (only maximum) to form value',
+     () => {
+       const source = {
+         minLastAccessTime: undefined,
+         maxLastAccessTime: '4343000000',
+       };
+       const expected = {
+         minTime: undefined,
+         maxTime: DateTime.fromSeconds(4343),
+       };
+       expect(fileFinderAccessTimeConditionToFormValue(source))
+           .toEqual(expected);
+     });
+
+  it('correctly converts time condition to form value', () => {
+    const source = {
+      minLastAccessTime: '4242000000',
+      maxLastAccessTime: '4343000000',
+    };
+    const expected = {
+      minTime: DateTime.fromSeconds(4242),
+      maxTime: DateTime.fromSeconds(4343),
+    };
+    expect(fileFinderAccessTimeConditionToFormValue(source)).toEqual(expected);
   });
 });
 

@@ -1,6 +1,7 @@
 import * as apiInterfaces from '../api/api_interfaces';
 import {CellComponent, CellData, ColumnDescriptor, PayloadTranslation} from '../models/result';
 
+import {translateHashToHex} from './flow';
 import {getHuntResultKey} from './hunt';
 import {createOptionalBigInt, createOptionalDate} from './primitive';
 
@@ -138,7 +139,7 @@ export function toFileRowFromCollectFilesByKnownPathResult(
     CellData<typeof FILE_COLUMNS> {
   return {
     ...toFileRowFromStatEntry(r.stat ?? {}),
-    'hash': r.hash,
+    'hash': translateHashToHex(r.hash ?? {}),
   };
 }
 
@@ -147,7 +148,7 @@ export function toFileRowFromFileFinderResult(
     ffr: apiInterfaces.FileFinderResult): CellData<typeof FILE_COLUMNS> {
   return {
     ...toFileRowFromStatEntry(ffr.statEntry ?? {}),
-    'hash': ffr.hashEntry,
+    'hash': translateHashToHex(ffr.hashEntry ?? {}),
   };
 }
 

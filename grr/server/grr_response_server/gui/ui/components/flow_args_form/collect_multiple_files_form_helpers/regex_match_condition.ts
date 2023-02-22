@@ -2,7 +2,7 @@ import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular
 import {ControlContainer, FormControl, FormGroup, Validators} from '@angular/forms';
 
 import {FileFinderContentsRegexMatchCondition, FileFinderContentsRegexMatchConditionMode} from '../../../lib/api/api_interfaces';
-import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
+import {decodeBase64ToString, encodeStringToBase64} from '../../../lib/api_translation/primitive';
 
 /** Form that configures a regex match condition. */
 @Component({
@@ -52,5 +52,22 @@ export function formValuesToFileFinderContentsRegexMatchCondition(
     ...rawFormValues,
     regex: encodeStringToBase64(rawFormValues.regex ?? ''),
     length: Math.floor(rawFormValues.length ?? 0).toString(),
+  };
+}
+
+/**
+ * Converts FileFinderContentsRegexMatchCondition to raw form values.
+ */
+export function regexMatchConditionFlowArgsToFormValues(
+    regexMatchFlowArgs?: FileFinderContentsRegexMatchCondition|undefined,
+    ): ReturnType<typeof createRegexMatchFormGroup>['value'] {
+  const noLength = !regexMatchFlowArgs?.length;
+  const regex = regexMatchFlowArgs?.regex;
+
+  return {
+    regex: regex ? decodeBase64ToString(regex) : '',
+    mode: regexMatchFlowArgs?.mode,
+    // We transform '' and undefined length values to undefined:
+    length: noLength ? undefined : Number(regexMatchFlowArgs?.length),
   };
 }

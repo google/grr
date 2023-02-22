@@ -1,11 +1,9 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test the cron_view interface."""
 
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.util import compatibility
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import notification
@@ -90,7 +88,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=#main_bottomPane #Runs")
 
     runs = cronjobs.CronManager().ReadJobRuns(
-        compatibility.GetName(cron_system.OSBreakDownCronJob))
+        cron_system.OSBreakDownCronJob.__name__)
     run_id = runs[0].run_id
 
     self.assertLen(runs, 1)

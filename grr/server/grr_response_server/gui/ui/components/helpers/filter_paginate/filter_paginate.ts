@@ -1,3 +1,4 @@
+import {CommonModule} from '@angular/common';
 import {AfterViewInit, ChangeDetectionStrategy, Component, Input, OnDestroy, ViewChild} from '@angular/core';
 import {FormsModule, ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
@@ -6,6 +7,7 @@ import {MatInputModule} from '@angular/material/input';
 import {MatPaginator, MatPaginatorModule, PageEvent} from '@angular/material/paginator';
 import {MatTableDataSource} from '@angular/material/table';
 
+import {assertNonNull, isNonNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 
 const DEFAULT_PAGE_OPTIONS = [10, 25, 50, 100, 250, 500, 1000];
@@ -20,6 +22,7 @@ const DEFAULT_PAGE_OPTIONS = [10, 25, 50, 100, 250, 500, 1000];
   changeDetection: ChangeDetectionStrategy.OnPush,
   standalone: true,
   imports: [
+    CommonModule,
     FormsModule,
     ReactiveFormsModule,
 
@@ -43,16 +46,21 @@ export class FilterPaginate<T> implements OnDestroy, AfterViewInit {
   pageSizeOptions: number[] = DEFAULT_PAGE_OPTIONS;
 
   private dataLengthInput: number = 0;
+  private dataLengthSet: boolean = false;
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
+  @Input() showFilterInput: boolean = true;
+
   @Input()
   set dataLength(dataLength: number) {
+    this.dataLengthSet = true;
     this.dataLengthInput = dataLength;
   }
 
   get dataLengthValue() {
-    return this.dataLengthInput ?? (this.dataSourceValue?.data?.length ?? 0);
+    return this.dataLengthSet ? this.dataLengthInput ?? 0 :
+                                (this.dataSourceValue?.data?.length ?? 0);
   }
 
   get hideControls() {
@@ -61,7 +69,7 @@ export class FilterPaginate<T> implements OnDestroy, AfterViewInit {
 
   constructor() {
     this.searchStringControl.valueChanges.subscribe(searchString => {
-      if (this.dataSourceValue != null) {
+      if (isNonNull(this.dataSourceValue)) {
         this.dataSourceValue.filter = searchString;
       }
     });
@@ -70,14 +78,15 @@ export class FilterPaginate<T> implements OnDestroy, AfterViewInit {
   @Input()
   set dataSource(dataSource: MatTableDataSource<T>|null) {
     this.dataSourceValue = dataSource;
-    if (this.dataSourceValue != null) {
+    if (isNonNull(this.dataSourceValue)) {
       this.dataSourceValue.paginator = this.topPaginator;
       this.dataSourceValue.filter = this.searchStringControl.value;
     }
   }
 
   ngAfterViewInit() {
-    if (this.dataSourceValue != null) {
+    assertNonNull(this.topPaginator, 'topPaginator');
+    if (isNonNull(this.dataSourceValue)) {
       this.dataSourceValue.paginator = this.topPaginator;
     }
   }

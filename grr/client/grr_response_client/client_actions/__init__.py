@@ -5,7 +5,7 @@ from typing import Dict, Text, Type
 
 from grr_response_client import actions
 
-REGISTRY = {}  # type: Dict[Text, Type[actions.ActionPlugin]]
+REGISTRY: Dict[Text, Type[actions.ActionPlugin]] = {}
 
 
 def Register(name: Text, cls: Type[actions.ActionPlugin]) -> None:

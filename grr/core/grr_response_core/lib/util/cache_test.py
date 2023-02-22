@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import random
 import threading
 from unittest import mock
@@ -8,7 +7,6 @@ from absl.testing import absltest
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import cache
-from grr_response_core.lib.util import compatibility
 from grr.test_lib import test_lib
 
 
@@ -17,7 +15,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
   def setUp(self):
     super().setUp()
     self.mock_fn = mock.Mock(wraps=lambda *_: random.random())
-    compatibility.SetName(self.mock_fn, "foo")  # Expected by functools.wraps.
+    self.mock_fn.__name__ = "foo"  # Expected by functools.wraps.
 
   def testCallsFunctionEveryTimeWhenMinTimeBetweenCallsZero(self):
     decorated = cache.WithLimitedCallFrequency(rdfvalue.Duration(0))(
@@ -151,7 +149,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
 
   def testPropagatesExceptions(self):
     mock_fn = mock.Mock(side_effect=ValueError())
-    compatibility.SetName(mock_fn, "foo")  # Expected by functools.wraps.
+    mock_fn.__name__ = "foo"  # Expected by functools.wraps.
 
     decorated = cache.WithLimitedCallFrequency(
         rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
@@ -162,7 +160,7 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
 
   def testExceptionIsNotCached(self):
     mock_fn = mock.Mock(side_effect=ValueError())
-    compatibility.SetName(mock_fn, "foo")  # Expected by functools.wraps.
+    mock_fn.__name__ = "foo"  # Expected by functools.wraps.
 
     decorated = cache.WithLimitedCallFrequency(
         rdfvalue.Duration.From(30, rdfvalue.SECONDS))(

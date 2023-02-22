@@ -7,11 +7,11 @@ various ways of loading artifacts.
 """
 
 import os
+from unittest import mock
 
 from absl import app
 
 from grr_response_core import config
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
@@ -88,7 +88,7 @@ supported_os: [ "Linux" ]
     test_registry = artifact_registry.ArtifactRegistry()
     test_registry.ClearRegistry()
     test_registry._dirty = False
-    with utils.Stubber(artifact_registry, "REGISTRY", test_registry):
+    with mock.patch.object(artifact_registry, "REGISTRY", test_registry):
       with self.assertRaises(rdf_artifacts.ArtifactNotRegisteredError):
         artifact_registry.REGISTRY.GetArtifact("TestCmdArtifact")
 

@@ -8,10 +8,11 @@
     class="centered-content"
   ></scheduled-flow-list>
 
-  <approval *ngIf="showApprovalView$ | async"
+  <approval-card *ngIf="showApprovalView$ | async"
             [latestApproval]="latestApproval$ | async"
+            [urlTree]="(clientApprovalRoute$ | async) ?? []"
             (approvalParams)="requestApproval($event)"
-            class="centered-content"></approval>
+            class="centered-content"></approval-card>
 
   <flow-list *ngIf="hasAccess$ | async"
              class="centered-content"></flow-list>

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for artifacts."""
 
 import io
@@ -22,7 +21,6 @@ from grr_response_core import config
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import linux_file_parser
 from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
@@ -408,7 +406,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     """Check we can run command based artifacts and get anomalies."""
     client_id = test_lib.TEST_CLIENT_ID
     client_mock = self.MockClient(standard.ExecuteCommand, client_id=client_id)
-    with utils.Stubber(subprocess, "Popen", client_test_lib.Popen):
+    with mock.patch.object(subprocess, "Popen", client_test_lib.Popen):
       session_id = flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,

@@ -5,7 +5,6 @@ import binascii
 
 from typing import Text
 
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 
 
@@ -23,10 +22,7 @@ def Asciify(data: bytes) -> Text:
   """
   precondition.AssertType(data, bytes)
 
-  if compatibility.PY2:
-    return repr(data).decode("utf-8")[1:-1]  # pytype: disable=attribute-error
-  else:
-    return repr(data)[2:-1]
+  return repr(data)[2:-1]
 
 
 def Hexify(data: bytes) -> Text:
@@ -43,3 +39,16 @@ def Hexify(data: bytes) -> Text:
   """
   precondition.AssertType(data, bytes)
   return binascii.hexlify(data).decode("ascii")
+
+
+def Unescape(string: str) -> str:
+  """Evaluates string with escape sequences.
+
+  Args:
+    string: A string with escaped characters to unescape.
+
+  Returns:
+    An unescaped version of the input string.
+  """
+  precondition.AssertType(string, Text)
+  return string.encode("utf-8").decode("unicode_escape")

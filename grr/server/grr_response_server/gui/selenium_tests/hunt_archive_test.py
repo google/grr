@@ -1,12 +1,10 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test the hunt_view interface."""
 
 from unittest import mock
 
 from absl import app
 
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -169,8 +167,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     def RaisingStub(*unused_args, **unused_kwargs):
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(archive_generator.CollectionArchiveGenerator, "Generate",
-                       RaisingStub):
+    with mock.patch.object(archive_generator.CollectionArchiveGenerator,
+                           "Generate", RaisingStub):
       self.Open("/")
       self.Click("css=a[grrtarget=hunts]")
       self.Click("css=td:contains('%s')" % hunt_id)
@@ -190,8 +188,8 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
       yield b"bar"
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(archive_generator.CollectionArchiveGenerator, "Generate",
-                       RaisingStub):
+    with mock.patch.object(archive_generator.CollectionArchiveGenerator,
+                           "Generate", RaisingStub):
       self.Open("/")
       self.Click("css=a[grrtarget=hunts]")
       self.Click("css=td:contains('%s')" % hunt_id)

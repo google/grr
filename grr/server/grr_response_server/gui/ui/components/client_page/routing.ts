@@ -20,6 +20,11 @@ export interface CollapseClientHeader {
  */
 export const CLIENT_PAGE_ROUTES: RoutesWithCustomData = [
   {
+    // @ts-ignore Fix code and remove this comment. Error:
+    // TS2322: Type '{ path: string; component: typeof ClientPage; data: {
+    // legacyLink: string; }; children: ({ path: string; pathMatch: "full";
+    // redirectTo: string; } | { path: string; component: typeof FlowSection;
+    // data: { ...; }; } | ...
     path: 'clients/:id',
     component: ClientPage,
     data: {'legacyLink': '#/clients/:id'},

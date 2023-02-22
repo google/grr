@@ -407,7 +407,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=button[name=cancel_flow]")
 
     # The window should be updated now
-    self.WaitUntil(self.IsTextPresent, "Cancelled in GUI")
+    self.WaitUntil(self.IsTextPresent, "Cancelled by user")
 
   def testFlowListGetsUpdatedWithNewFlows(self):
     flow_1 = flow_test_lib.StartFlow(

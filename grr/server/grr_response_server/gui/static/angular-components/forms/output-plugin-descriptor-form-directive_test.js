@@ -117,12 +117,12 @@ describe('grr-output-plugin-descriptor-form directive', () => {
   it('sets plugin args to default when plugin type is changed', () => {
     const element = renderTestTemplate();
 
-    expect($rootScope.value.value.plugin_args.type).toBe('BarOutputPluginArgs');
+    expect($rootScope.value.value.args.type).toBe('BarOutputPluginArgs');
 
     element.find('select').val(
         element.find('select option[label="FooOutputPlugin"]').val());
     browserTriggerEvent(element.find('select'), 'change');
-    expect($rootScope.value.value.plugin_args.type).toBe('FooOutputPluginArgs');
+    expect($rootScope.value.value.args.type).toBe('FooOutputPluginArgs');
   });
 
   it('delegates current plugin args rendering to grr-form-value', () => {

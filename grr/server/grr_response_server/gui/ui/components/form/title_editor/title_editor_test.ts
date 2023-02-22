@@ -2,6 +2,7 @@ import {Component, ContentChild, EventEmitter, Input, Output} from '@angular/cor
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
+import {RouterTestingModule} from '@angular/router/testing';
 
 import {initTestEnvironment} from '../../../testing';
 
@@ -21,6 +22,15 @@ class TestHostComponent {
   @Output() readonly changed = new EventEmitter<string>();
   @ContentChild(TitleEditorContent) content!: TitleEditorContent;
 }
+
+@Component({
+  template: `<title-editor route="['foo']">
+                    <h1 titleEditable>hello world with link</h1>
+                  </title-editor>`
+})
+class TestHostComponentWithLink {
+}
+
 describe('params form test', () => {
   beforeEach(waitForAsync(() => {
     TestBed
@@ -28,14 +38,35 @@ describe('params form test', () => {
           imports: [
             NoopAnimationsModule,
             TitleEditorModule,
+            RouterTestingModule,
           ],
           declarations: [
             TestHostComponent,
+            TestHostComponentWithLink,
           ],
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
+
+  it('renders link', () => {
+    const fixture = TestBed.createComponent(TestHostComponentWithLink);
+    fixture.detectChanges();
+    const icons = fixture.debugElement.queryAll(By.css('mat-icon'));
+    expect(icons.length).toBe(3);
+    const iconLink = fixture.debugElement.query(By.css('a'));
+    expect(iconLink).toBeTruthy();
+    expect(iconLink.attributes['href']).toContain('foo');
+  });
+
+  it('does not render link', () => {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+    const icons = fixture.debugElement.queryAll(By.css('mat-icon'));
+    expect(icons.length).toBe(3);
+    const iconLink = fixture.debugElement.query(By.css('a'));
+    expect(iconLink).toBeFalsy();
+  });
 
   it('renders the content as if editor is disabled', () => {
     const fixture = TestBed.createComponent(TestHostComponent);

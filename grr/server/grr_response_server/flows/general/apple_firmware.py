@@ -3,7 +3,6 @@
 
 from grr_response_core.lib.parsers import eficheck_parser
 from grr_response_core.lib.rdfvalues import apple_firmware as rdf_apple_firmware
-from grr_response_core.lib.util import compatibility
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.flows.general import transfer
@@ -29,7 +28,7 @@ class CollectEfiHashes(flow_base.FlowBase):
     self.CallClient(
         server_stubs.EficheckCollectHashes,
         cmd_path=self.args.cmd_path,
-        next_state=compatibility.GetName(self.CollectedHashes))
+        next_state=self.CollectedHashes.__name__)
 
   def CollectedHashes(self, responses):
     """Process the output of eficheck."""
@@ -74,7 +73,7 @@ class DumpEfiImage(flow_base.FlowBase):
     self.CallClient(
         server_stubs.EficheckDumpImage,
         cmd_path=self.args.cmd_path,
-        next_state=compatibility.GetName(self.CollectedImage))
+        next_state=self.CollectedImage.__name__)
 
   def CollectedImage(self, responses):
     """Process the output of eficheck."""
@@ -97,7 +96,7 @@ class DumpEfiImage(flow_base.FlowBase):
         self.CallFlow(
             transfer.MultiGetFile.__name__,
             pathspecs=[image_path],
-            next_state=compatibility.GetName(self.DeleteTemporaryDir))
+            next_state=self.DeleteTemporaryDir.__name__)
 
   def DeleteTemporaryDir(self, responses):
     """Remove the temporary image from the client."""
@@ -112,7 +111,7 @@ class DumpEfiImage(flow_base.FlowBase):
     self.CallClient(
         server_stubs.DeleteGRRTempFiles,
         response.pathspec,
-        next_state=compatibility.GetName(self.TemporaryImageRemoved))
+        next_state=self.TemporaryImageRemoved.__name__)
 
   def TemporaryImageRemoved(self, responses):
     """Verify that the temporary image has been removed successfully."""

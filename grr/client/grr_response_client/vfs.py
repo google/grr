@@ -28,9 +28,9 @@ UnsupportedHandlerError = vfs_base.UnsupportedHandlerError
 # A registry of all VFSHandler registered
 # TODO: Dictionary keys are of type rdf_paths.PathSpec.PathType,
 # but this is currently not representable as type information in Python.
-VFS_HANDLERS = {}  # type: Dict[Any, Type[vfs_base.VFSHandler]]
-_VFS_HANDLERS_DIRECT = {}  # type: Dict[Any, Type[vfs_base.VFSHandler]]
-_VFS_HANDLERS_SANDBOX = {}  # type: Dict[Any, Type[vfs_base.VFSHandler]]
+VFS_HANDLERS: Dict[Any, Type[vfs_base.VFSHandler]] = {}
+_VFS_HANDLERS_DIRECT: Dict[Any, Type[vfs_base.VFSHandler]] = {}
+_VFS_HANDLERS_SANDBOX: Dict[Any, Type[vfs_base.VFSHandler]] = {}
 
 # The paths we should use as virtual root for VFS operations.
 _VFS_VIRTUALROOTS = {}

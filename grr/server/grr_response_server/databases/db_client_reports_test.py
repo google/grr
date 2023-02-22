@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for client-reports DB functionality."""
 
 from grr_response_core.lib import rdfvalue

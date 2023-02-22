@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """This modules contains tests for clients API handlers."""
 
 import ipaddress
@@ -152,6 +151,7 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testDoesNotRemoveSystemLabelFromSingleClient(self):
     data_store.REL_DB.WriteClientMetadata(
         self.client_ids[0], fleetspeak_enabled=False)
+    data_store.REL_DB.WriteGRRUser("GRR")
     data_store.REL_DB.AddClientLabels(self.client_ids[0], u"GRR", [u"foo"])
     idx = client_index.ClientIndex()
     idx.AddClientLabels(self.client_ids[0], [u"foo"])
@@ -167,6 +167,9 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(idx.LookupClients(["label:foo"]), [self.client_ids[0]])
 
   def testRemovesUserLabelWhenSystemLabelWithSimilarNameAlsoExists(self):
+    data_store.REL_DB.WriteGRRUser(self.context.username)
+    data_store.REL_DB.WriteGRRUser("GRR")
+
     data_store.REL_DB.WriteClientMetadata(
         self.client_ids[0], fleetspeak_enabled=False)
     data_store.REL_DB.AddClientLabels(self.client_ids[0], self.context.username,
@@ -196,6 +199,10 @@ class ApiLabelsRestrictedSearchClientsHandlerTestRelational(
     super().setUp()
 
     self.client_ids = self.SetupClients(4)
+
+    data_store.REL_DB.WriteGRRUser("david")
+    data_store.REL_DB.WriteGRRUser("peter")
+    data_store.REL_DB.WriteGRRUser("peter_oth")
 
     data_store.REL_DB.AddClientLabels(self.client_ids[0], u"david", [u"foo"])
     data_store.REL_DB.AddClientLabels(self.client_ids[1], u"david",

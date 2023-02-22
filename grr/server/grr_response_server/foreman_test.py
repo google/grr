@@ -1,10 +1,10 @@
 #!/usr/bin/env python
 """Tests for the GRR Foreman."""
+from unittest import mock
 
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_server import data_store
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
@@ -54,8 +54,8 @@ class ForemanTests(test_lib.GRRBaseTest):
     self.SetupClient(2, system="Linux")
     self.SetupClient(3, system="Windows 7")
 
-    with utils.Stubber(hunt, "StartHuntFlowOnClient",
-                       self.StartHuntFlowOnClient):
+    with mock.patch.object(hunt, "StartHuntFlowOnClient",
+                           self.StartHuntFlowOnClient):
       # Now setup the filters
       now = rdfvalue.RDFDatetime.Now()
       expiration_time = now + rdfvalue.Duration.From(1, rdfvalue.HOURS)
@@ -109,8 +109,8 @@ class ForemanTests(test_lib.GRRBaseTest):
     self.SetupClient(0x13, system="Windows 7", install_time=one_week_ago)
     self.SetupClient(0x14, system="Windows 7", last_boot_time=boot_time)
 
-    with utils.Stubber(hunt, "StartHuntFlowOnClient",
-                       self.StartHuntFlowOnClient):
+    with mock.patch.object(hunt, "StartHuntFlowOnClient",
+                           self.StartHuntFlowOnClient):
       now = rdfvalue.RDFDatetime.Now()
       expiration_time = now + rdfvalue.Duration.From(1, rdfvalue.HOURS)
 

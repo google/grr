@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 """GRR authorization manager."""
 
-import collections
 import logging
 
-import yaml as pyyaml
+import yaml
 
-from grr_response_core.lib.util.compat import yaml
 from grr_response_server.authorization import groups
 
 
@@ -27,12 +25,12 @@ class AuthorizationReader(object):
 
   def __init__(self):
     super().__init__()
-    self.auth_objects = collections.OrderedDict()
+    self.auth_objects = dict()
 
   def CreateAuthorizations(self, yaml_data, auth_class):
     try:
-      raw_list = yaml.ParseMany(yaml_data)
-    except (ValueError, pyyaml.YAMLError) as e:
+      raw_list = list(yaml.safe_load_all(yaml_data))
+    except (ValueError, yaml.YAMLError) as e:
       raise InvalidAuthorization("Invalid YAML: %s" % e)
 
     logging.debug("Adding %s authorizations", len(raw_list))
@@ -68,7 +66,7 @@ class AuthorizationManager(object):
   """
 
   def __init__(self, group_access_manager=None):
-    self.authorized_users = collections.OrderedDict()
+    self.authorized_users = dict()
     self.group_access_manager = (group_access_manager or
                                  groups.CreateGroupAccessManager())
     self.Initialize()

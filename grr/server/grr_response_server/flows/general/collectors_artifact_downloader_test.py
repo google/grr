@@ -4,10 +4,10 @@
 These test cover the artifact downloader functionality which downloads files
 referenced by artifacts.
 """
+from unittest import mock
 
 from absl import app
 
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -28,10 +28,10 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
       for r in self.collector_replies:
         this.SendReply(r)
 
-    start_stubber = utils.Stubber(collectors.ArtifactCollectorFlow, "Start",
-                                  ArtifactCollectorStub)
-    start_stubber.Start()
-    self.addCleanup(start_stubber.Stop)
+    start_stubber = mock.patch.object(collectors.ArtifactCollectorFlow, "Start",
+                                      ArtifactCollectorStub)
+    start_stubber.start()
+    self.addCleanup(start_stubber.stop)
 
     self.start_file_fetch_args = []
     self.received_files = []
@@ -51,10 +51,10 @@ class ArtifactFilesDownloaderFlowTest(flow_test_lib.FlowTestsBaseclass):
       for r in self.failed_files:
         this.FileFetchFailed(r, request_data=request_data)
 
-    sff_stubber = utils.Stubber(transfer.MultiGetFileLogic, "StartFileFetch",
-                                StartFileFetch)
-    sff_stubber.Start()
-    self.addCleanup(sff_stubber.Stop)
+    sff_stubber = mock.patch.object(transfer.MultiGetFileLogic,
+                                    "StartFileFetch", StartFileFetch)
+    sff_stubber.start()
+    self.addCleanup(sff_stubber.stop)
 
   def RunFlow(self,
               client_id,

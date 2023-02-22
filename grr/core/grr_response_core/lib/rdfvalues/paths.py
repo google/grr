@@ -15,8 +15,6 @@ handler. The type of the handler is carried by the pathtype parameter.
 On the server the PathSpec is represented as a PathSpec object, and stored
 as an attribute of the AFF4 object. This module defines this abstraction.
 """
-
-import collections
 import itertools
 import posixpath
 import re
@@ -279,7 +277,7 @@ class PathSpec(rdf_structs.RDFProtoStruct):
 
 def _unique(iterable):
   """Returns a list of unique values in preserved order."""
-  return list(collections.OrderedDict.fromkeys(iterable))
+  return list(dict.fromkeys(iterable))
 
 
 class GlobComponentExplanation(rdf_structs.RDFProtoStruct):

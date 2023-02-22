@@ -3,7 +3,7 @@ import {ControlContainer, FormControl, FormGroup} from '@angular/forms';
 
 import {atLeastOneMustBeSet, timesInOrder} from '../../../components/form/validators';
 import {FileFinderAccessTimeCondition, FileFinderInodeChangeTimeCondition, FileFinderModificationTimeCondition} from '../../../lib/api/api_interfaces';
-import {createOptionalApiTimestamp} from '../../../lib/api_translation/primitive';
+import {createOptionalApiTimestamp, createOptionalDateTime} from '../../../lib/api_translation/primitive';
 import {DateTime} from '../../../lib/date_time';
 
 /** Form that configures a modification time condition. */
@@ -48,6 +48,16 @@ export function formValuesToFileFinderModificationTimeCondition(
   };
 }
 
+/** Converts FileFinderModificationTimeCondition to raw form values */
+export function fileFinderModificationTimeConditionToFormValue(
+    timeCondition: FileFinderModificationTimeCondition|
+    undefined): RawFormValues {
+  return {
+    minTime: createOptionalDateTime(timeCondition?.minLastModifiedTime),
+    maxTime: createOptionalDateTime(timeCondition?.maxLastModifiedTime),
+  };
+}
+
 /** Converts raw form values to FileFinderAccessTimeCondition. */
 export function formValuesToFileFinderAccessTimeCondition(
     rawFormValues: RawFormValues): FileFinderAccessTimeCondition {
@@ -57,11 +67,30 @@ export function formValuesToFileFinderAccessTimeCondition(
   };
 }
 
+/** Converts FileFinderAccessTimeCondition to raw form values */
+export function fileFinderAccessTimeConditionToFormValue(
+    timeCondition: FileFinderAccessTimeCondition|undefined): RawFormValues {
+  return {
+    minTime: createOptionalDateTime(timeCondition?.minLastAccessTime),
+    maxTime: createOptionalDateTime(timeCondition?.maxLastAccessTime),
+  };
+}
+
 /** Converts raw form values to FileFinderInodeChangeTimeCondition. */
 export function formValuesToFileFinderInodeChangeTimeCondition(
     rawFormValues: RawFormValues): FileFinderInodeChangeTimeCondition {
   return {
     minLastInodeChangeTime: createOptionalApiTimestamp(rawFormValues.minTime),
     maxLastInodeChangeTime: createOptionalApiTimestamp(rawFormValues.maxTime),
+  };
+}
+
+/** Converts FileFinderInodeChangeTimeCondition to raw form values */
+export function fileFinderInodeChangeTimeConditionToFormValue(
+    timeCondition: FileFinderInodeChangeTimeCondition|
+    undefined): RawFormValues {
+  return {
+    minTime: createOptionalDateTime(timeCondition?.minLastInodeChangeTime),
+    maxTime: createOptionalDateTime(timeCondition?.maxLastInodeChangeTime),
   };
 }

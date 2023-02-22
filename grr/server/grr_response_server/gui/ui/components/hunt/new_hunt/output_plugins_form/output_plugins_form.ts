@@ -6,8 +6,18 @@ import {Any, OutputPluginDescriptor} from '../../../../lib/api/api_interfaces';
 import {toStringFormControls} from '../../../../lib/form';
 import {ConfigGlobalStore} from '../../../../store/config_global_store';
 
+// TODO: Unexport when selection box is in place.
+/** PluginType describes available OutputPlugin types. */
+export enum PluginType {
+  BIGQUERY = 'BigQuery',
+}
 
-enum PluginType {
+interface ExportOptions {
+  annotations?: string[];
+}
+
+interface OutputPluginWithExportOptions {
+  exportOptions?: ExportOptions;
 }
 
 /**
@@ -28,6 +38,25 @@ export class OutputPluginsForm {
     const res: OutputPluginDescriptor[] = [];
     for (const control of this.plugins.controls) {
       switch (control.get('type')!.value) {
+        case PluginType.BIGQUERY: {
+          const annotationsFormArray =
+              control.get('annotations') as FormArray<FormControl<string>>;
+          const annotations =
+              annotationsFormArray.controls.map(formCtrl => formCtrl.value);
+          res.push(
+              {
+                'pluginName': 'BigQueryOutputPlugin',
+                'args': {
+                  '@type':
+                      'type.googleapis.com/grr.BigQueryOutputPluginArgs',
+                  'exportOptions': {
+                    'annotations': annotations,
+                  }
+                } as Any
+              },
+          );
+          break;
+        }
         default: {
           break;
         }
@@ -50,6 +79,10 @@ export class OutputPluginsForm {
 
   addNewPlugin(type: PluginType) {
     switch (type) {
+      case PluginType.BIGQUERY: {
+        this.plugins.push(this.newBigQueryForm());
+        break;
+      }
       default: {
         break;
       }
@@ -74,6 +107,29 @@ export class OutputPluginsForm {
     });
   }
 
+  newEnabledForm(type: PluginType, name: string): FormGroup {
+    return this.fb.group({'type': [type], 'name': [name]});
+  }
+
+  newBigQueryForm(annotations?: string[]|undefined): FormGroup {
+    return this.newTableForm(PluginType.BIGQUERY, 'BigQuery', annotations);
+  }
+
+  annotations(pluginIndex: number): FormArray<FormControl<string>> {
+    return this.plugins.at(pluginIndex).get('annotations') as
+        FormArray<FormControl<string>>;
+  }
+
+  addAnnotation(pluginIndex: number) {
+    this.annotations(pluginIndex).push(new FormControl('', {
+      nonNullable: true
+    }));
+  }
+
+  removeAnnotation(pluginIndex: number, annotationIndex: number) {
+    this.annotations(pluginIndex).removeAt(annotationIndex);
+  }
+
   setFormState(plugins: OutputPluginDescriptor[]) {
     if (plugins.length > 0) {
       this.plugins.clear();
@@ -81,6 +137,14 @@ export class OutputPluginsForm {
       for (let i = 0; i < plugins.length; i++) {
         const plugin = plugins[i];
         switch (plugin.pluginName) {
+          case 'BigQueryOutputPlugin': {
+            const args = plugin.args as OutputPluginWithExportOptions;
+            this.plugins.push(this.newBigQueryForm(
+                args.exportOptions?.annotations ?
+                    args.exportOptions.annotations :
+                    undefined));
+            break;
+          }
           default: {
             break;
           }

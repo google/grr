@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Test client actions."""
 
 import collections
@@ -88,7 +87,7 @@ class ActionTest(client_test_lib.EmptyActionTest):
     def ProcessIter():
       return iter([client_test_lib.MockWindowsProcess()])
 
-    with utils.Stubber(psutil, "process_iter", ProcessIter):
+    with mock.patch.object(psutil, "process_iter", ProcessIter):
       results = self.RunAction(standard.ListProcesses, None)
 
       self.assertLen(results, 1)

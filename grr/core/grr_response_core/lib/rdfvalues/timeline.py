@@ -6,7 +6,6 @@ import os
 from typing import Iterator
 
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import gzchunked
 from grr_response_core.lib.util import statx
 from grr_response_proto import timeline_pb2
@@ -46,16 +45,9 @@ class TimelineEntry(rdf_structs.RDFProtoStruct):
     entry.uid = stat.st_uid
     entry.gid = stat.st_gid
 
-    if compatibility.PY2:
-      entry.atime_ns = round(stat.st_atime * 1e9)
-      entry.mtime_ns = round(stat.st_mtime * 1e9)
-      entry.ctime_ns = round(stat.st_ctime * 1e9)
-    else:
-      # pytype: disable=attribute-error
-      entry.atime_ns = stat.st_atime_ns
-      entry.mtime_ns = stat.st_mtime_ns
-      entry.ctime_ns = stat.st_ctime_ns
-      # pytype: enable=attribute-error
+    entry.atime_ns = stat.st_atime_ns
+    entry.mtime_ns = stat.st_mtime_ns
+    entry.ctime_ns = stat.st_ctime_ns
 
     return entry
 

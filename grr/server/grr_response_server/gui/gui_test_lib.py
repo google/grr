@@ -27,7 +27,6 @@ from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_proto import tests_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
@@ -270,7 +269,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
     # Clear the cache of the approvals-based router.
     acrwac.ApiCallRouterWithApprovalChecks.ClearCache()
 
-    name = compatibility.GetName(acrwac.ApiCallRouterWithApprovalChecks)
+    name = acrwac.ApiCallRouterWithApprovalChecks.__name__
     config_overrider = test_lib.ConfigOverrider({"API.DefaultRouter": name})
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
@@ -759,7 +758,7 @@ class GRRSeleniumHuntTest(hunt_test_lib.StandardHuntTestMixin, GRRSeleniumTest):
 
     self.hunt_urn = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=compatibility.GetName(transfer.GetFile)),
+            flow_name=transfer.GetFile.__name__),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
                 path=path or "/tmp/evil.txt",
@@ -820,7 +819,7 @@ class RecursiveTestFlow(flow_base.FlowBase):
       for i in range(2):
         self.Log("Subflow call %d", i)
         self.CallFlow(
-            compatibility.GetName(self.__class__),
+            self.__class__.__name__,
             depth=self.args.depth + 1,
             next_state="End")
 

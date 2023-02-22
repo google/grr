@@ -2,9 +2,10 @@ import {fakeAsync, TestBed} from '@angular/core/testing';
 import {firstValueFrom} from 'rxjs';
 import {filter} from 'rxjs/operators';
 
-import {ApiFlowState, ApiHuntApproval, ForemanClientRuleSet, ForemanClientRuleSetMatchMode, OutputPluginDescriptor} from '../lib/api/api_interfaces';
+import {ApiFlowState, ApiHuntState, ForemanClientRuleSet, ForemanClientRuleSetMatchMode, OutputPluginDescriptor} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
 import {HttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
+import {translateFlow} from '../lib/api_translation/flow';
 import {Flow, FlowState, FlowWithDescriptor} from '../lib/models/flow';
 import {SafetyLimits} from '../lib/models/hunt';
 import {newFlow, newFlowDescriptorMap} from '../lib/models/model_test_util';
@@ -42,7 +43,8 @@ describe('NewHuntLocalStore', () => {
     newHuntLocalStore = TestBed.inject(NewHuntLocalStore);
   });
 
-  it('calls the fetchFlow API on testFlow$ subscription', fakeAsync(() => {
+  it('verifies access and fetches flow on flowWithDescriptor$ subscription',
+     fakeAsync(() => {
        newHuntLocalStore.selectOriginalFlow('C.1234', 'abcd');
        const sub = newHuntLocalStore.flowWithDescriptor$.subscribe();
        configGlobalStore.mockedObservables.flowDescriptors$.next(
@@ -59,8 +61,36 @@ describe('NewHuntLocalStore', () => {
                  category: 'a',
                  defaultArgs: {},
                }));
-
+       httpApiService.mockedObservables.subscribeToVerifyClientAccess.next(
+           true);
+       expect(httpApiService.subscribeToVerifyClientAccess)
+           .toHaveBeenCalledWith('C.1234');
        expect(httpApiService.fetchFlow).toHaveBeenCalledWith('C.1234', 'abcd');
+       sub.unsubscribe();
+     }));
+
+  it('does not fetch flow when no access', fakeAsync(() => {
+       newHuntLocalStore.selectOriginalFlow('C.1234', 'abcd');
+       const sub = newHuntLocalStore.flowWithDescriptor$.subscribe();
+       configGlobalStore.mockedObservables.flowDescriptors$.next(
+           newFlowDescriptorMap(
+               {
+                 name: 'ClientFileFinder',
+                 friendlyName: 'Client Side File Finder',
+                 category: 'b',
+                 defaultArgs: {},
+               },
+               {
+                 name: 'GetFile',
+                 friendlyName: 'KeepAlive',
+                 category: 'a',
+                 defaultArgs: {},
+               }));
+       httpApiService.mockedObservables.subscribeToVerifyClientAccess.next(
+           false);
+       expect(httpApiService.subscribeToVerifyClientAccess)
+           .toHaveBeenCalledWith('C.1234');
+       expect(httpApiService.fetchFlow).not.toHaveBeenCalled();
        sub.unsubscribe();
      }));
 
@@ -103,6 +133,8 @@ describe('NewHuntLocalStore', () => {
 
        const promise = firstValueFrom(
            newHuntLocalStore.flowWithDescriptor$.pipe(filter(isNonNull)));
+       httpApiService.mockedObservables.subscribeToVerifyClientAccess.next(
+           true);
        httpApiService.mockedObservables.fetchFlow.next({
          flowId: 'abcd',
          clientId: 'C.1234',
@@ -163,8 +195,61 @@ describe('NewHuntLocalStore', () => {
          pluginName: 'some plugin',
        }];
 
+       newHuntLocalStore.selectOriginalHunt('H5678');
        newHuntLocalStore.selectOriginalFlow('C.1234', 'abcd');
        const sub = newHuntLocalStore.flowWithDescriptor$.subscribe();
+       const descriptorMap = newFlowDescriptorMap(
+           {
+             name: 'ClientFileFinder',
+             friendlyName: 'Client Side File Finder',
+           },
+           {
+             name: 'GetFile',
+             friendlyName: 'KeepAlive',
+           });
+       configGlobalStore.mockedObservables.flowDescriptors$.next(descriptorMap);
+       const apiFlow = {
+         flowId: 'abcd',
+         clientId: 'C.1234',
+         lastActiveAt: '999000',
+         startedAt: '789000',
+         creator: 'morty',
+         name: 'GetFile',
+         state: ApiFlowState.RUNNING,
+         isRobot: false,
+       };
+       httpApiService.mockedObservables.subscribeToVerifyClientAccess.next(
+           true);
+       httpApiService.mockedObservables.fetchFlow.next(apiFlow);
+       const expectedFlowWithDescriptors = {
+         flow: translateFlow(apiFlow),
+         descriptor: descriptorMap.get('GetFile'),
+         flowArgType: undefined,
+       };
+
+       newHuntLocalStore.runHunt(
+           'new hunt', safetyLimits, rules, outputPlugins);
+       expect(httpApiService.createHunt)
+           .toHaveBeenCalledWith(
+               'new hunt', expectedFlowWithDescriptors, null, safetyLimits,
+               rules, outputPlugins, 'H5678');
+       sub.unsubscribe();
+     }));
+
+  it('calls the fetchHunt API after selectOriginalHunt', fakeAsync(() => {
+       const sub = newHuntLocalStore.originalHunt$.subscribe();
+       newHuntLocalStore.selectOriginalHunt('H1234');
+
+       expect(httpApiService.fetchHunt).toHaveBeenCalledWith('H1234');
+       sub.unsubscribe();
+     }));
+
+  it('fetches flow if hunt has original flow set', fakeAsync(async () => {
+       newHuntLocalStore.selectOriginalHunt('H1234');
+       const promise = firstValueFrom(
+           newHuntLocalStore.originalHunt$.pipe(filter(isNonNull)));
+
+       expect(httpApiService.fetchHunt).toHaveBeenCalledWith('H1234');
        configGlobalStore.mockedObservables.flowDescriptors$.next(
            newFlowDescriptorMap(
                {
@@ -175,29 +260,37 @@ describe('NewHuntLocalStore', () => {
                  name: 'GetFile',
                  friendlyName: 'KeepAlive',
                }));
-       httpApiService.mockedObservables.fetchFlow.next({
-         flowId: 'abcd',
-         clientId: 'C.1234',
-         lastActiveAt: '999000',
-         startedAt: '789000',
-         creator: 'morty',
-         name: 'GetFile',
-         state: ApiFlowState.RUNNING,
-         isRobot: false,
+       httpApiService.mockedObservables.fetchHunt.next({
+         huntId: 'H1234',
+         originalObject: {
+           flowReference: {
+             flowId: 'abcd',
+             clientId: 'C.1234',
+           },
+         },
+         name: 'Name',
+         created: '123456789',
+         creator: 'foo',
+         state: ApiHuntState.STARTED,
+         huntRunnerArgs: {clientRate: 0},
        });
 
-       newHuntLocalStore.runHunt(
-           'new hunt', safetyLimits, rules, outputPlugins);
-       expect(httpApiService.createHunt).toHaveBeenCalled();
-       sub.unsubscribe();
-     }));
+       // Emits initial hunt arguments
+       expect(await promise).toEqual(jasmine.objectContaining({
+         huntId: 'H1234',
+         name: 'Name',
+         creator: 'foo',
+         flowReference: {
+           flowId: 'abcd',
+           clientId: 'C.1234',
+         },
+       }));
 
-  it('calls request hunt approval', fakeAsync(() => {
-       const approvalArgs: ApiHuntApproval = {
-         id: 'hunt_1234',
-         requestor: 'jake@gmail.com',
-       };
-       newHuntLocalStore.requestHuntApproval('hunt_1234', approvalArgs);
-       expect(httpApiService.requestHuntApproval).toHaveBeenCalled();
+       // Selects original flow based on reference
+       httpApiService.mockedObservables.subscribeToVerifyClientAccess.next(
+           true);
+       expect(httpApiService.subscribeToVerifyClientAccess)
+           .toHaveBeenCalledWith('C.1234');
+       expect(httpApiService.fetchFlow).toHaveBeenCalledWith('C.1234', 'abcd');
      }));
 });

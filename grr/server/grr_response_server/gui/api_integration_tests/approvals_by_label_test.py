@@ -2,12 +2,11 @@
 """Tests for clients with special approval logic."""
 
 import os
+from unittest import mock
 
 from absl import app
 
 from grr_api_client import errors as grr_api_errors
-from grr_response_core.lib import utils
-from grr_response_core.lib.util import compatibility
 from grr_response_server.authorization import client_approval_auth
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_context
@@ -35,7 +34,7 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
     cls.ClearCache()
     approver = test_lib.ConfigOverrider({
         "API.DefaultRouter":
-            compatibility.GetName(cls),
+            cls.__name__,
         "ACL.approvers_config_file":
             os.path.join(self.base_path, "approvers.yaml")
     })
@@ -43,11 +42,11 @@ class ApprovalByLabelE2ETest(api_integration_test_lib.ApiIntegrationTest):
     self.addCleanup(approver.Stop)
 
     # Get a fresh approval manager object and reload with test approvers.
-    approval_manager_stubber = utils.Stubber(
+    approval_manager_stubber = mock.patch.object(
         client_approval_auth, "CLIENT_APPROVAL_AUTH_MGR",
         client_approval_auth.ClientApprovalAuthorizationManager())
-    approval_manager_stubber.Start()
-    self.addCleanup(approval_manager_stubber.Stop)
+    approval_manager_stubber.start()
+    self.addCleanup(approval_manager_stubber.stop)
 
     # Force creation of new APIAuthorizationManager, so that configuration
     # changes are picked up.

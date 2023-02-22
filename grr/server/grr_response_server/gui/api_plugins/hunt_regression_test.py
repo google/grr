@@ -4,6 +4,7 @@
 from absl import app
 
 from grr_response_core.lib import rdfvalue
+from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import hunt
@@ -33,23 +34,55 @@ class ApiListHuntsHandlerRegressionTest(
     replace = {}
     for i in range(0, 2):
       with test_lib.FakeTime((1 + i) * 1000):
-        hunt_id = self.CreateHunt(
-            description="hunt_%d" % i, creator=self.test_username)
         if i % 2:
+          hunt_id = self.CreateHunt(
+              description="hunt_%d" % i, creator=self.test_username
+          )
           hunt.StopHunt(hunt_id)
+        else:
+          hunt_id = self.CreateHunt(
+              description="hunt_%d" % i,
+              creator=access_control._SYSTEM_USERS_LIST[0],
+          )
 
         replace[hunt_id] = "H:00000%d" % i
 
     self.Check(
-        "ListHunts", args=hunt_plugin.ApiListHuntsArgs(), replace=replace)
+        "ListHunts", args=hunt_plugin.ApiListHuntsArgs(), replace=replace
+    )
     self.Check(
-        "ListHunts",
-        args=hunt_plugin.ApiListHuntsArgs(count=1),
-        replace=replace)
+        "ListHunts", args=hunt_plugin.ApiListHuntsArgs(count=1), replace=replace
+    )
     self.Check(
         "ListHunts",
         args=hunt_plugin.ApiListHuntsArgs(offset=1, count=1),
-        replace=replace)
+        replace=replace,
+    )
+    self.Check(
+        "ListHunts",
+        args=hunt_plugin.ApiListHuntsArgs(
+            offset=0,
+            count=2,
+            robot_filter=hunt_plugin.ApiListHuntsArgs.RobotFilter.NO_ROBOTS,
+        ),
+        replace=replace,
+    )
+    self.Check(
+        "ListHunts",
+        args=hunt_plugin.ApiListHuntsArgs(
+            offset=0,
+            count=2,
+            robot_filter=hunt_plugin.ApiListHuntsArgs.RobotFilter.ONLY_ROBOTS,
+        ),
+        replace=replace,
+    )
+    self.Check(
+        "ListHunts",
+        args=hunt_plugin.ApiListHuntsArgs(
+            offset=0, count=2, robot_filter="UNKNOWN"
+        ),
+        replace=replace,
+    )
 
 
 class ApiListHuntResultsRegressionTest(hunt_test_lib.StandardHuntTestMixin,
@@ -103,6 +136,39 @@ class ApiListHuntResultsRegressionTest(hunt_test_lib.StandardHuntTestMixin,
     self.Check(
         "ListHuntResults",
         args=hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id, filter="foo"),
+        replace=replace)
+
+
+class ApiCountHuntResultsByTypeRegressionTest(
+    hunt_test_lib.StandardHuntTestMixin,
+    api_regression_test_lib.ApiRegressionTest):
+
+  api_method = "CountHuntResultsByType"
+  handler = hunt_plugin.ApiCountHuntResultsByTypeHandler
+
+  def Run(self):
+    client_id = self.SetupClient(0)
+
+    hunt_id = self.CreateHunt(creator=self.test_username)
+    flow_id = flow_test_lib.StartFlow(
+        flows_processes.ListProcesses,
+        client_id=client_id,
+        parent=flow.FlowParent.FromHuntID(hunt_id))
+
+    data_store.REL_DB.WriteFlowResults([
+        rdf_flow_objects.FlowResult(
+            client_id=client_id,
+            flow_id=flow_id,
+            hunt_id=hunt_id,
+            payload=rdfvalue.RDFString("blah1"))
+    ])
+
+    # Replace the random hunt id with a constant string to pass the comparison
+    # with the golden test file.
+    replace = {hunt_id: "H:123456"}
+    self.Check(
+        "CountHuntResultsByType",
+        args=hunt_plugin.ApiCountHuntResultsByTypeArgs(hunt_id=hunt_id),
         replace=replace)
 
 
@@ -405,7 +471,7 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
     output_plugins = [
         rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
-            plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
+            args=test_plugins.DummyHuntTestOutputPlugin.args_type(
                 filename_regex="blah!", fetch_binaries=True))
     ]
 
@@ -439,7 +505,7 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
     output_plugins = [
         rdf_output_plugin.OutputPluginDescriptor(
             plugin_name=test_plugins.DummyHuntTestOutputPlugin.__name__,
-            plugin_args=test_plugins.DummyHuntTestOutputPlugin.args_type(
+            args=test_plugins.DummyHuntTestOutputPlugin.args_type(
                 filename_regex="blah!", fetch_binaries=True))
     ]
     with test_lib.FakeTime(42, increment=1):

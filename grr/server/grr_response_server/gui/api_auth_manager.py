@@ -5,11 +5,11 @@ import io
 import logging
 
 from typing import Iterable, Text, Type
-import yaml as pyyaml
+
+import yaml
 
 from grr_response_core import config
 from grr_response_core.lib.util import precondition
-from grr_response_core.lib.util.compat import yaml
 from grr_response_server.authorization import auth_manager
 from grr_response_server.gui import api_call_router
 from grr_response_server.gui import api_call_router_registry
@@ -44,8 +44,8 @@ class APIAuthorization(object):
   def ParseYAMLAuthorizationsList(yaml_data):
     """Parses YAML data into a list of APIAuthorization objects."""
     try:
-      raw_list = yaml.ParseMany(yaml_data)
-    except (ValueError, pyyaml.YAMLError) as e:
+      raw_list = list(yaml.safe_load_all(yaml_data))
+    except (ValueError, yaml.YAMLError) as e:
       raise InvalidAPIAuthorization("Invalid YAML: %s" % e)
 
     result = []

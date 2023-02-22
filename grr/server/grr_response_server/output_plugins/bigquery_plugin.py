@@ -2,6 +2,7 @@
 """BigQuery output plugin."""
 import base64
 import gzip
+import json
 import logging
 import os
 import tempfile
@@ -10,7 +11,6 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util.compat import json
 from grr_response_proto import output_plugin_pb2
 from grr_response_server import bigquery
 from grr_response_server import export
@@ -146,7 +146,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
     try:
       # We write newline-separated dicts of JSON values, so each JSON value is
       # not allowed to contain any newline characters.
-      dumped_json = json.Dump(dct).replace("\n", "")
+      dumped_json = json.dumps(dct).replace("\n", "")
     except UnicodeDecodeError:
       logging.error("Incorrect primitive dict has been built: %r", dct)
       raise

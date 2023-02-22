@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The class encapsulating flow responses."""
 
-from typing import Iterable, Iterator, Optional, TypeVar
+from typing import Any, Iterable, Iterator, Optional, TypeVar
 
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 
@@ -14,6 +14,7 @@ class Responses(Iterable[T]):
 
   def __init__(self):
     self.status: Optional[rdf_flow_objects.FlowStatus] = None
+    self.request_data: Optional[Any] = None
     self.success = True
     self.request = None
     self.responses = []
@@ -51,9 +52,6 @@ class Responses(Iterable[T]):
 
   def __bool__(self) -> bool:
     return bool(self.responses)
-
-  # TODO: Remove after support for Python 2 is dropped.
-  __nonzero__ = __bool__
 
 
 class FakeResponses(Responses):

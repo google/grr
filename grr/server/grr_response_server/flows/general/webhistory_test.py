@@ -7,7 +7,6 @@ from unittest import mock
 from absl import app
 
 from grr_response_client import client_utils
-from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import chrome_history
 from grr_response_core.lib.parsers import firefox3_history
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -40,7 +39,7 @@ class WebHistoryFlowTestMixin(flow_test_lib.FlowTestsBaseclass):
           path=os.path.join(self.base_path, "test_img.dd"),
           mount_point="/"), path
 
-    return utils.Stubber(client_utils, "GetRawDevice", MockGetRawdevice)
+    return mock.patch.object(client_utils, "GetRawDevice", MockGetRawdevice)
 
 
 class TestWebHistory(WebHistoryFlowTestMixin):

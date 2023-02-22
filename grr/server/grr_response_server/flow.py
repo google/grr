@@ -27,7 +27,6 @@ from typing import Optional, Sequence
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib import type_info
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
 from grr_response_server import data_store
@@ -86,8 +85,13 @@ def GetOutputPluginStates(output_plugins, source=None):
   for plugin_descriptor in output_plugins:
     plugin_class = plugin_descriptor.GetPluginClass()
     try:
+      # TODO: Stop reading `plugin_args` at all (no fallback).
+      if plugin_descriptor.HasField("args"):
+        plugin_args = plugin_descriptor.args
+      else:
+        plugin_args = plugin_descriptor.plugin_args
       _, plugin_state = plugin_class.CreatePluginAndDefaultState(
-          source_urn=source, args=plugin_descriptor.plugin_args)
+          source_urn=source, args=plugin_args)
     except Exception as e:  # pylint: disable=broad-except
       raise ValueError("Plugin %s failed to initialize (%s)" %
                        (plugin_class, e))
@@ -326,9 +330,7 @@ def StartFlow(client_id=None,
     except Exception as e:  # pylint: disable=broad-except
       # We catch all exceptions that happen in Start() and mark the flow as
       # failed.
-      msg = compatibility.NativeStr(e)
-      if compatibility.PY2:
-        msg = msg.decode("utf-8", "replace")
+      msg = str(e)
 
       flow_obj.Error(error_message=msg, backtrace=traceback.format_exc())
 

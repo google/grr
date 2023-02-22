@@ -23,7 +23,6 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import text
 from grr_response_proto import objects_pb2
@@ -279,7 +278,7 @@ class HashID(rdfvalue.RDFValue):
     return rdfvalue.HashDigest(self._value)
 
   def __repr__(self):
-    cls_name = compatibility.GetName(self.__class__)
+    cls_name = self.__class__.__name__
     value = text.Hexify(self._value)
     return "{cls_name}('{value}')".format(cls_name=cls_name, value=value)
 

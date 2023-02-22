@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
-
+import csv
+import io
 import itertools
 import os
 import re
@@ -19,9 +20,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import context as context_lib
-from grr_response_core.lib.util.compat import csv
 from grr_response_proto.api import vfs_pb2
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
@@ -211,7 +210,7 @@ def _GenerateApiFileDetails(path_infos):
     # then the value itself.
     # TODO(user): refactor dynamic values logic so that it's not needed,
     # possibly just removing the "type" attribute completely.
-    v.Set("type", compatibility.GetName(value.__class__))
+    v.Set("type", value.__class__.__name__)
     v.value = value
     return v
 
@@ -1085,23 +1084,26 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
   CHUNK_SIZE = 1000
 
   def _GenerateDefaultExport(self, items):
-    writer = csv.Writer()
+    buffer = io.StringIO()
+    writer = csv.writer(buffer, lineterminator="\n")
 
     # Write header. Since we do not stick to a specific timeline format, we
     # can export a format suited for TimeSketch import.
-    writer.WriteRow([u"Timestamp", u"Datetime", u"Message", u"Timestamp_desc"])
+    writer.writerow([u"Timestamp", u"Datetime", u"Message", u"Timestamp_desc"])
 
     for start in range(0, len(items), self.CHUNK_SIZE):
       for item in items[start:start + self.CHUNK_SIZE]:
-        writer.WriteRow([
+        writer.writerow([
             str(item.timestamp.AsMicrosecondsSinceEpoch()),
             str(item.timestamp),
             item.file_path,
             str(item.action),
         ])
 
-      yield writer.Content().encode("utf-8")
-      writer = csv.Writer()
+      yield buffer.getvalue().encode("utf-8")
+
+      buffer = io.StringIO()
+      writer = csv.writer(buffer)
 
   def _HandleDefaultFormat(self, args):
     items = _GetTimelineItems(args.client_id, args.file_path)
@@ -1114,7 +1116,8 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
       if st is None:
         continue
 
-      writer = csv.Writer(delimiter=u"|")
+      buffer = io.StringIO()
+      writer = csv.writer(buffer, delimiter=u"|", lineterminator="\n")
 
       if hash_v and hash_v.md5:
         hash_str = hash_v.md5.HexDigest()
@@ -1124,7 +1127,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
       # Details about Body format:
       # https://wiki.sleuthkit.org/index.php?title=Body_file
       # MD5|name|inode|mode_as_string|UID|GID|size|atime|mtime|ctime|crtime
-      writer.WriteRow([
+      writer.writerow([
           hash_str,
           path,
           str(st.st_ino),
@@ -1138,7 +1141,7 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
           str(int(st.st_btime or 0)),
       ])
 
-      yield writer.Content().encode("utf-8")
+      yield buffer.getvalue().encode("utf-8")
 
   def _HandleBodyFormat(self, args):
     file_infos = _GetTimelineStatEntries(

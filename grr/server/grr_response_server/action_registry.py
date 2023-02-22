@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """A mapping of client action id strings to action stub classes."""
 
-from grr_response_core.lib.util import compatibility
 from grr_response_server import server_stubs
 
 ACTION_STUB_BY_ID = {
@@ -67,7 +66,7 @@ ID_BY_ACTION_STUB = {stub: name for name, stub in ACTION_STUB_BY_ID.items()}
 
 
 def RegisterAdditionalTestClientAction(action_cls):
-  action_name = compatibility.GetName(action_cls)
+  action_name = action_cls.__name__
   if action_name in ACTION_STUB_BY_ID:
     raise ValueError("Action identifier %s already taken." % action_name)
 

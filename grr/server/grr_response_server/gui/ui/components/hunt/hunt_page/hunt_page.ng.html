@@ -1,7 +1,7 @@
 <div class="hunt-overview centered-content">
   <div class="title-chips">
     <title-editor [disabled]="true" class="title">
-      <h1 titleEditable>{{ (hunt$ | async)?.description }}</h1>
+      <h1 titleEditable>{{ (hunt$ | async)?.description || (hunt$ | async)?.name }}</h1>
     </title-editor>
     <div class="chips">
       <mat-chip-list [selectable]="false" [tabIndex]="-1">
@@ -29,22 +29,75 @@
           </span>
         </td>
       </tr>
+      <tr>
+        <td>Flow:</td>
+        <td>
+          <app-copy-button>
+            <span>{{ (flowDescriptor$ | async)?.friendlyName || (hunt$ | async)?.flowName }}</span>
+          </app-copy-button>
+        </td>
+      </tr>
     </table>
+  </div>
+
+  <div class="collapsed-info">
+    <hunt-flow-arguments class="args" [hunt]="hunt$ | async" [hidden]="hideFlowArgs"></hunt-flow-arguments>
+    <button mat-flat-button
+              type="button"
+              class="flow-params-button"
+              (click)="toggleFlowArgs()"
+              aria-label="View/hide flow params">
+        <mat-icon>{{hideFlowArgs ? 'expand_more' : 'expand_less'}}</mat-icon>
+        {{hideFlowArgs ? 'View flow arguments' : 'Hide flow arguments'}}
+    </button>
   </div>
 
   <div class="actions">
     <button
-      *ngIf="(hunt$ | async)?.state === HuntState.STARTED || (hunt$ | async)?.state === HuntState.PAUSED"
       mat-stroked-button
       type="button"
       color="primary"
-      name="stop-button"
-      (click)="stopHunt()"
+      name="copy-button"
+      (click)="copyHunt()"
     >
-      Stop collection
+      Copy and tweak collection
     </button>
+
+    <button
+      *ngIf="(hunt$ | async)?.state === HuntState.RUNNING || (hunt$ | async)?.state === HuntState.PAUSED || (hunt$ | async)?.state === HuntState.NOT_STARTED"
+      mat-stroked-button
+      type="button"
+      color="primary"
+      name="cancel-button"
+      (click)="cancelHunt()"
+    >
+      Cancel collection
+    </button>
+
+    <span matTooltip="You must have approval to start the collection"
+        [matTooltipDisabled]="(hasAccess$ | async) === true">
+      <button
+        *ngIf="(hunt$ | async)?.state === HuntState.PAUSED || (hunt$ | async)?.state === HuntState.NOT_STARTED"
+        mat-stroked-button
+        type="button"
+        color="primary"
+        name="start-button"
+        (click)="startHunt()"
+        [disabled]="(hasAccess$ | async) === false"
+      >
+        Start collection
+      </button>
+    </span>
   </div>
 </div>
+
+<approval-card #approvalCard
+          *ngIf="huntApprovalRequired$ | async"
+          [urlTree]="(huntApprovalRoute$ | async) ?? []"
+          [latestApproval]="latestApproval$ | async"
+          (approvalParams)="requestHuntApproval($event)"
+          class="centered-content">
+</approval-card>
 
 <app-hunt-progress class="centered-content"></app-hunt-progress>
 

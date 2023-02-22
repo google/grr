@@ -7,7 +7,6 @@ from absl import app
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-from grr_response_core.lib.util import compatibility
 from grr_response_server import data_store
 from grr_response_server.flows.general import processes as flow_processes
 from grr.test_lib import action_mocks
@@ -32,7 +31,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     ])
 
     session_id = flow_test_lib.TestFlowHelper(
-        compatibility.GetName(flow_processes.ListProcesses),
+        flow_processes.ListProcesses.__name__,
         client_mock,
         client_id=client_id,
         creator=self.test_username)
@@ -67,7 +66,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     ])
 
     session_id = flow_test_lib.TestFlowHelper(
-        compatibility.GetName(flow_processes.ListProcesses),
+        flow_processes.ListProcesses.__name__,
         client_mock,
         client_id=client_id,
         creator=self.test_username,
@@ -119,7 +118,7 @@ class ListProcessesTest(flow_test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.ListProcessesMock([p1, p2, p3])
 
     session_id = flow_test_lib.TestFlowHelper(
-        compatibility.GetName(flow_processes.ListProcesses),
+        flow_processes.ListProcesses.__name__,
         client_mock,
         client_id=client_id,
         creator=self.test_username,

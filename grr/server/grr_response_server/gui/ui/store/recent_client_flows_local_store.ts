@@ -102,6 +102,8 @@ export class RecentClientFlowsLocalStore {
   readonly flowListEntries$: Observable<FlowListState> =
       this.store.flowListEntries$;
 
+  readonly hasAccess$: Observable<boolean|null> = this.store.hasAccess$;
+
   /** Selects a client with a given id. */
   selectClient(clientId: string): void {
     this.store.selectClient(clientId);

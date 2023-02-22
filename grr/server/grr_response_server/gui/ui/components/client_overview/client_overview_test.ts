@@ -10,7 +10,7 @@ import {newClient, newClientApproval, newFlowDescriptor} from '../../lib/models/
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
 import {STORE_PROVIDERS} from '../../store/store_test_providers';
-import {ApprovalChip} from '../client/approval_chip/approval_chip';
+import {ApprovalChip} from '../approval_chip/approval_chip';
 
 import {ClientOverview} from './client_overview';
 import {ClientOverviewModule} from './module';

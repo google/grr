@@ -2,7 +2,6 @@
 """Test library for blob store-related code."""
 
 from grr_response_core import config
-from grr_response_core.lib.util import compatibility
 from grr_response_server import blob_store
 from grr_response_server.blob_stores import db_blob_store
 
@@ -25,6 +24,5 @@ class TestBlobStore(blob_store.BlobStore):
 
 
 def UseTestBlobStore():
-  config.CONFIG.Set("Blobstore.implementation",
-                    compatibility.GetName(TestBlobStore))
-  blob_store.REGISTRY[compatibility.GetName(TestBlobStore)] = TestBlobStore
+  config.CONFIG.Set("Blobstore.implementation", TestBlobStore.__name__)
+  blob_store.REGISTRY[TestBlobStore.__name__] = TestBlobStore

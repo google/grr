@@ -475,10 +475,11 @@ describe('HttpApiService', () => {
   it('subscribeToListApprovals re-polls after requestApproval()',
      fakeAsync(() => {
        let lastApprovals: ReadonlyArray<ApiClientApproval> = [];
-       const sub = httpApiService.subscribeToListApprovals('C.1234').subscribe(
-           (approvals) => {
-             lastApprovals = approvals;
-           });
+       const sub =
+           httpApiService.subscribeToListClientApprovals('C.1234').subscribe(
+               (approvals) => {
+                 lastApprovals = approvals;
+               });
 
        tick();
 
@@ -490,7 +491,7 @@ describe('HttpApiService', () => {
            .flush({});
 
        httpApiService
-           .requestApproval(
+           .requestClientApproval(
                {approvers: [], cc: [], clientId: 'C.1234', reason: ''})
            .subscribe();
 

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for CSV output plugin."""
 
 import csv
@@ -13,7 +12,6 @@ import yaml
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util.compat import csv as compat_csv
 from grr_response_server.output_plugins import csv_plugin
 from grr_response_server.output_plugins import test_plugins
 from grr.test_lib import export_test_lib
@@ -178,8 +176,9 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
             "%s/ExportedFile/from_StatEntry.csv" % prefix
         ]))
 
-    data = zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix).read()
-    parsed_output = list(compat_csv.Reader(data.decode("utf-8")))
+    data = zip_fd.open("%s/ExportedFile/from_StatEntry.csv" % prefix)
+    data = io.TextIOWrapper(data, encoding="utf-8")
+    parsed_output = list(csv.reader(data))
 
     self.assertLen(parsed_output, 2)
     urn_pos = parsed_output[0].index("urn")
@@ -204,7 +203,8 @@ class CSVInstantOutputPluginTest(test_plugins.InstantOutputPluginTestBase):
     self.assertCountEqual(zip_fd.namelist(), [manifest_path, data_path])
 
     with zip_fd.open(data_path) as data:
-      results = list(compat_csv.Reader(data.read().decode("utf-8")))
+      data = io.TextIOWrapper(data, encoding="utf-8")
+      results = list(csv.reader(data))
 
     self.assertLen(results, 3)
 

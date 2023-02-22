@@ -15,7 +15,6 @@ from grr_response_core.lib.parsers import firefox3_history
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -82,7 +81,7 @@ class ChromeHistory(flow_base.FlowBase):
             paths=[os.path.join(path, fname)],
             pathtype=self.args.pathtype,
             action=rdf_file_finder.FileFinderAction.Download(),
-            next_state=compatibility.GetName(self.ParseFiles))
+            next_state=self.ParseFiles.__name__)
 
   def ParseFiles(self, responses):
     """Take each file we retrieved and get the history from it."""
@@ -194,7 +193,7 @@ class FirefoxHistory(flow_base.FlowBase):
           paths=[os.path.join(path, "**2", filename)],
           pathtype=self.args.pathtype,
           action=rdf_file_finder.FileFinderAction.Download(),
-          next_state=compatibility.GetName(self.ParseFiles))
+          next_state=self.ParseFiles.__name__)
 
   def ParseFiles(self, responses):
     """Take each file we retrieved and get the history from it."""
@@ -340,7 +339,7 @@ class CacheGrep(flow_base.FlowBase):
             pathtype=self.args.pathtype,
             conditions=[condition],
             action=rdf_file_finder.FileFinderAction.Download(),
-            next_state=compatibility.GetName(self.HandleResults))
+            next_state=self.HandleResults.__name__)
 
   def HandleResults(self, responses):
     """Take each file we retrieved and add it to the collection."""

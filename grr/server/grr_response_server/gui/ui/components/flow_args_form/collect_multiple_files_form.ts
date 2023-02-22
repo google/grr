@@ -2,10 +2,10 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {AbstractControl, FormArray, FormControl, ValidationErrors} from '@angular/forms';
 
 import {ExtFlagsCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/ext_flags_condition';
-import {createLiteralMatchFormGroup, formValuesToFileFinderContentsLiteralMatchCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
-import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
-import {createSizeFormGroup} from '../../components/flow_args_form/collect_multiple_files_form_helpers/size_condition';
-import {createTimeRangeFormGroup, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
+import {createLiteralMatchFormGroup, fileFinderContentsLiteralMatchConditionToFormValue, formValuesToFileFinderContentsLiteralMatchCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
+import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition, regexMatchConditionFlowArgsToFormValues} from '../../components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
+import {createSizeFormGroup, sizeConditionToFormValue} from '../../components/flow_args_form/collect_multiple_files_form_helpers/size_condition';
+import {createTimeRangeFormGroup, fileFinderAccessTimeConditionToFormValue, fileFinderInodeChangeTimeConditionToFormValue, fileFinderModificationTimeConditionToFormValue, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
 import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {CollectMultipleFilesArgs, FileFinderSizeCondition} from '../../lib/api/api_interfaces';
 import {isNonNull} from '../../lib/preconditions';
@@ -100,16 +100,59 @@ export class CollectMultipleFilesForm extends
            this.controls.pathExpressions.length) {
       this.addPathExpression();
     }
+
+    if (flowArgs.contentsRegexMatch) {
+      this.addRegexMatchCondition();
+    }
+
+    if (flowArgs.contentsLiteralMatch) {
+      this.addLiteralMatchCondition();
+    }
+
+    if (flowArgs.modificationTime) {
+      this.addModificationTimeCondition();
+    }
+
+    if (flowArgs.accessTime) {
+      this.addAccessTimeCondition();
+    }
+
+    if (flowArgs.inodeChangeTime) {
+      this.addInodeChangeTimeCondition();
+    }
+
+    if (flowArgs.size) {
+      this.addSizeCondition();
+    }
+
     super.resetFlowArgs(flowArgs);
     // TODO: Add flow condition controls if present.
   }
 
-  override convertFlowArgsToFormState(flowArgs: CollectMultipleFilesArgs) {
+  override convertFlowArgsToFormState(
+      flowArgs: CollectMultipleFilesArgs,
+      ): ControlValues<Controls> {
     return {
       // TODO: Add flow condition controls if present.
       pathExpressions: flowArgs.pathExpressions?.length ?
           [...flowArgs.pathExpressions] :
-          ['']
+          [''],
+      contentsRegexMatch: regexMatchConditionFlowArgsToFormValues(
+          flowArgs.contentsRegexMatch,
+          ),
+      contentsLiteralMatch: fileFinderContentsLiteralMatchConditionToFormValue(
+          flowArgs.contentsLiteralMatch,
+          ),
+      modificationTime: fileFinderModificationTimeConditionToFormValue(
+          flowArgs.modificationTime,
+          ),
+      accessTime: fileFinderAccessTimeConditionToFormValue(
+          flowArgs.accessTime,
+          ),
+      inodeChangeTime: fileFinderInodeChangeTimeConditionToFormValue(
+          flowArgs.inodeChangeTime,
+          ),
+      size: sizeConditionToFormValue(flowArgs.size),
     };
   }
 

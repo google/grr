@@ -8,7 +8,6 @@ from absl.testing import absltest
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -120,15 +119,15 @@ class CallLoggedAndAccountedTest(stats_test_lib.StatsTestMixin,
     with self.assertStatsCounterDelta(
         latency_count_increment,
         db_utils.DB_REQUEST_LATENCY,
-        fields=[compatibility.GetName(fn)]):
+        fields=[fn.__name__]):
       with self.assertStatsCounterDelta(
           grr_errors_count_increment,
           db_utils.DB_REQUEST_ERRORS,
-          fields=[compatibility.GetName(fn), "grr"]):
+          fields=[fn.__name__, "grr"]):
         with self.assertStatsCounterDelta(
             db_errors_count_increment,
             db_utils.DB_REQUEST_ERRORS,
-            fields=[compatibility.GetName(fn), "db"]):
+            fields=[fn.__name__, "db"]):
           try:
             fn()
           except Exception:  # pylint: disable=broad-except

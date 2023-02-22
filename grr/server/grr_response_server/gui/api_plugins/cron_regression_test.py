@@ -5,7 +5,6 @@ from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
-from grr_response_core.lib.util import compatibility
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import foreman_rules
@@ -81,8 +80,7 @@ def _GetRunId(cron_job_name):
 def _SetupAndRunVersionBreakDownCronjob():
   with test_lib.FakeTime(44):
     manager = cronjobs.CronManager()
-    cron_job_name = compatibility.GetName(
-        cron_system.GRRVersionBreakDownCronJob)
+    cron_job_name = cron_system.GRRVersionBreakDownCronJob.__name__
     cronjobs.ScheduleSystemCronJobs(names=[cron_job_name])
     manager.RunOnce()
     manager._GetThreadPool().Stop()

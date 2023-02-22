@@ -20,14 +20,12 @@ from grr_response_core.lib import factory
 from grr_response_core.lib import parser
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
@@ -148,8 +146,8 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         self.kwargs = kwargs
 
     mock_call_flow = MockCallFlow()
-    with utils.Stubber(collectors.ArtifactCollectorFlow, "CallFlow",
-                       mock_call_flow.CallFlow):
+    with mock.patch.object(collectors.ArtifactCollectorFlow, "CallFlow",
+                           mock_call_flow.CallFlow):
 
       args = mock.Mock()
       args.ignore_interpolation_errors = False
@@ -270,7 +268,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
   def testRunGrrClientActionArtifact(self):
     """Test we can get a GRR client artifact."""
     client_id = self.SetupClient(0, system="Linux")
-    with utils.Stubber(psutil, "process_iter", ProcessIter):
+    with mock.patch.object(psutil, "process_iter", ProcessIter):
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
 
       coll1 = rdf_artifacts.ArtifactSource(
@@ -292,7 +290,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
   def testConditions(self):
     """Test we can get a GRR client artifact with conditions."""
     client_id = self.SetupClient(0, system="Linux")
-    with utils.Stubber(psutil, "process_iter", ProcessIter):
+    with mock.patch.object(psutil, "process_iter", ProcessIter):
       # Run with false condition.
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
       coll1 = rdf_artifacts.ArtifactSource(
@@ -384,7 +382,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
   def testSupportedOS(self):
     """Test supported_os inside the collector object."""
     client_id = self.SetupClient(0, system="Linux")
-    with utils.Stubber(psutil, "process_iter", ProcessIter):
+    with mock.patch.object(psutil, "process_iter", ProcessIter):
       # Run with false condition.
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
       coll1 = rdf_artifacts.ArtifactSource(
@@ -457,7 +455,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
   def testFlowProgressHasEntryForArtifactWithoutResults(self):
 
     client_id = self.SetupClient(0, system="Linux")
-    with utils.Stubber(psutil, "process_iter", lambda: iter([])):
+    with mock.patch.object(psutil, "process_iter", lambda: iter([])):
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
 
       self.fakeartifact.sources.append(
@@ -485,7 +483,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
       ])
 
     client_id = self.SetupClient(0, system="Linux")
-    with utils.Stubber(psutil, "process_iter", _Iter):
+    with mock.patch.object(psutil, "process_iter", _Iter):
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
 
       self.fakeartifact.sources.append(
@@ -633,7 +631,7 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
   def testRunGrrClientActionArtifactSplit(self):
     """Test that artifacts get split into separate collections."""
     client_id = self.SetupClient(0, system="Linux")
-    with utils.Stubber(psutil, "process_iter", ProcessIter):
+    with mock.patch.object(psutil, "process_iter", ProcessIter):
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
 
       coll1 = rdf_artifacts.ArtifactSource(
@@ -702,7 +700,7 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
 
       artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
       flow_id = flow_test_lib.TestFlowHelper(
-          compatibility.GetName(collectors.ArtifactCollectorFlow),
+          collectors.ArtifactCollectorFlow.__name__,
           client_mock=action_mocks.GlobClientMock(),
           client_id=client_id,
           artifact_list=["Quux"],
@@ -757,7 +755,7 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
 
       artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
       flow_id = flow_test_lib.TestFlowHelper(
-          compatibility.GetName(collectors.ArtifactCollectorFlow),
+          collectors.ArtifactCollectorFlow.__name__,
           client_mock=action_mocks.GlobClientMock(),
           client_id=client_id,
           artifact_list=["Quux"],

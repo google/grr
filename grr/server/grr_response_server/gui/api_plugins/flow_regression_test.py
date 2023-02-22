@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 """This module contains regression tests for flows-related API handlers."""
+from unittest import mock
 
 from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import access_control
@@ -148,9 +148,9 @@ class ApiListFlowRequestsHandlerRegressionTest(
       flow_id = flow_test_lib.StartFlow(
           processes.ListProcesses, client_id, creator=self.test_username)
       test_process = rdf_client.Process(name="test_process")
-      mock = flow_test_lib.MockClient(
+      mock_client = flow_test_lib.MockClient(
           client_id, action_mocks.ListProcessesMock([test_process]))
-      mock.Next()
+      mock_client.Next()
 
     replace = api_regression_test_lib.GetFlowTestReplaceDict(client_id, flow_id)
 
@@ -274,7 +274,7 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
     client_id = self.SetupClient(0)
     email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
-        plugin_args=email_plugin.EmailOutputPluginArgs(
+        args=email_plugin.EmailOutputPluginArgs(
             email_address="test@localhost", emails_limit=42))
 
     with test_lib.FakeTime(42):
@@ -307,7 +307,7 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
     client_id = self.SetupClient(0)
     email_descriptor = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
-        plugin_args=email_plugin.EmailOutputPluginArgs(
+        args=email_plugin.EmailOutputPluginArgs(
             email_address="test@localhost", emails_limit=42))
 
     with test_lib.FakeTime(42):
@@ -423,7 +423,8 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
         file_finder.FileFinder.__name__: file_finder.FileFinder,
     }
 
-    with utils.Stubber(registry.FlowRegistry, "FLOW_REGISTRY", test_registry):
+    with mock.patch.object(registry.FlowRegistry, "FLOW_REGISTRY",
+                           test_registry):
       self.CreateAdminUser(u"test")
       self.Check("ListFlowDescriptors")
 

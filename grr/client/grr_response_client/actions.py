@@ -17,7 +17,6 @@ from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
-from grr_response_core.lib.util import compatibility
 
 # Our first response in the session is this:
 INITIAL_RESPONSE_ID = 1
@@ -320,7 +319,7 @@ class ActionPlugin(object):
 
     if self.runtime_limit and now - self.start_time > self.runtime_limit:
       raise RuntimeExceededError("{} exceeded runtime limit of {}.".format(
-          compatibility.GetName(type(self)), self.runtime_limit))
+          type(self).__name__, self.runtime_limit))
 
     ActionPlugin.last_progress_time = now
 

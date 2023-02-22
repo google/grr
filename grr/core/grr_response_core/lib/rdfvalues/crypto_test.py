@@ -1,11 +1,11 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Crypto rdfvalue tests."""
 
 
 import binascii
 import hashlib
 import os
+from unittest import mock
 
 from absl import app
 
@@ -294,7 +294,7 @@ class RSATest(CryptoTestBase):
     protected_pem = key.AsPassphraseProtectedPEM(passphrase)
     unprotected_pem = key.AsPEM()
 
-    with utils.Stubber(utils, "PassphraseCallback", lambda: passphrase):
+    with mock.patch.object(utils, "PassphraseCallback", lambda: passphrase):
 
       # Key from unprotected PEM should always work.
       rdf_crypto.RSAPrivateKey(unprotected_pem, allow_prompt=False)
@@ -310,8 +310,8 @@ class RSATest(CryptoTestBase):
       with self.assertRaises(type_info.TypeValueError):
         rdf_crypto.RSAPrivateKey(protected_pem)
 
-      with utils.Stubber(config.CONFIG, "context",
-                         config.CONFIG.context + ["Commandline Context"]):
+      with mock.patch.object(config.CONFIG, "context",
+                             config.CONFIG.context + ["Commandline Context"]):
         rdf_crypto.RSAPrivateKey(protected_pem)
 
         # allow_prompt=False even prevents this in the Commandline Context.
@@ -504,10 +504,6 @@ class PasswordTest(CryptoTestBase):
 
 
 def _Tamper(string):
-  # TODO: We convert to `bytes` (from the `future` package) to
-  # have the Python 3 behaviour. Once support for Python 2 is dropped, this
-  # line can be safely removed
-  string = bytes(string)
   return string[:-1] + bytes([string[-1] ^ 1])
 
 

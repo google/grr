@@ -149,6 +149,38 @@ describe('Client Details Component', () => {
        expect(fixture.nativeElement.innerText).toContain('123sourceflowid');
      }));
 
+  it('client does not have fleetspeak enabled', fakeAsync(() => {
+       const fixture = TestBed.createComponent(ClientDetails);
+       fixture.detectChanges();
+
+       store.mockedObservables.selectedClientVersions$.next(getClientVersions([
+         newClient({
+           fleetspeakEnabled: false,
+         }),
+       ]));
+       fixture.detectChanges();
+       tick();
+       fixture.detectChanges();
+
+       expect(fixture.nativeElement.innerText).toContain('Legacy');
+     }));
+
+  it('shows legacy communication when undefined', fakeAsync(() => {
+       const fixture = TestBed.createComponent(ClientDetails);
+       fixture.detectChanges();
+
+       store.mockedObservables.selectedClientVersions$.next(getClientVersions([
+         newClient({
+           fleetspeakEnabled: undefined,
+         }),
+       ]));
+       fixture.detectChanges();
+       tick();
+       fixture.detectChanges();
+
+       expect(fixture.nativeElement.innerText).toContain('Legacy');
+     }));
+
 
   it('getAccordionButtonState() returns the expected state', () => {
     const component = TestBed.createComponent(ClientDetails).componentInstance;

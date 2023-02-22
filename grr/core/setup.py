@@ -65,10 +65,8 @@ class Develop(develop):
 class Sdist(sdist):
   """Build sdist."""
 
-  # TODO: Option name must be a byte string in Python 2. Remove
-  # this call once support for Python 2 is dropped.
   user_options = sdist.user_options + [
-      (str("no-sync-artifacts"), None,
+      ("no-sync-artifacts", None,
        "Don't sync the artifact repo. This is unnecessary for "
        "clients and old client build OSes can't make the SSL connection."),
   ]

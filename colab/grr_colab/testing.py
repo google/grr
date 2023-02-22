@@ -10,7 +10,6 @@ from grr_api_client import flow as api_flow
 from grr_api_client import vfs as api_vfs
 from grr_response_client import client_actions
 from grr_colab import _api
-from grr_response_core.lib.util import compatibility
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import api_integration_test_lib
@@ -123,7 +122,7 @@ def with_approval_checks(func):
     cls.ClearCache()
 
     config_overrider = test_lib.ConfigOverrider(
-        {"API.DefaultRouter": compatibility.GetName(cls)})
+        {"API.DefaultRouter": cls.__name__})
     with config_overrider:
       api_auth_manager.InitializeApiAuthManager()
       func(*args, **kwargs)

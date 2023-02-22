@@ -1,32 +1,20 @@
 #!/usr/bin/env python
 """A module with client action for talking with osquery."""
-
-import collections
+import json
 import os
-
-from typing import Any, Iterator, List, Text
+import subprocess
+from typing import Any, Iterator, List, Optional, Text
 
 from grr_response_client import actions
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.util import precondition
-from grr_response_core.lib.util.compat import json
-
-# pylint: disable=g-import-not-at-top
-try:
-  # TODO: `subprocess32` is a backport of Python 3.2+ `subprocess`
-  # API. Once support for older versions of Python is dropped, this import can
-  # be removed.
-  import subprocess32 as subprocess
-except ImportError:
-  import subprocess
-# pylint: enable=g-import-not-at-top
 
 
 class Error(Exception):
   """A class for all osquery-related exceptions."""
 
-  def __init__(self, message: Text, cause: Exception = None):
+  def __init__(self, message: Text, cause: Optional[Exception] = None):
     if cause is not None:
       message = "{message}: {cause}".format(message=message, cause=cause)
 
@@ -38,7 +26,7 @@ class Error(Exception):
 class TimeoutError(Error):  # pylint: disable=redefined-builtin
   """A class of exceptions raised when a call to osquery timeouts."""
 
-  def __init__(self, cause: Exception = None):
+  def __init__(self, cause: Optional[Exception] = None):
     super().__init__("osquery timeout", cause=cause)
 
 
@@ -68,7 +56,7 @@ class Osquery(actions.ActionPlugin):
 
     output = Query(args)
 
-    json_decoder = json.Decoder(object_pairs_hook=collections.OrderedDict)
+    json_decoder = json.JSONDecoder(object_pairs_hook=dict)
 
     table = ParseTable(json_decoder.decode(output))
     table.query = args.query
@@ -160,7 +148,7 @@ def ParseHeader(table: Any) -> rdf_osquery.OsqueryHeader:
   """
   precondition.AssertIterableType(table, dict)
 
-  prototype = None  # type: List[Text]
+  prototype: List[Text] = None
 
   for row in table:
     columns = list(row.keys())
@@ -211,8 +199,6 @@ def Query(args: rdf_osquery.OsqueryArgs) -> str:
     query is incorrect.
   """
   timeout = args.timeout_millis / 1000  # `subprocess.run` uses seconds.
-  # TODO: pytype is not aware of the backport.
-  # pytype: disable=module-attr
   try:
     # We use `--S` to enforce shell execution. This is because on Windows there
     # is only `osqueryd` and `osqueryi` is not available. However, by passing
@@ -234,16 +220,11 @@ def Query(args: rdf_osquery.OsqueryArgs) -> str:
         check=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE)
-  # TODO: Since we use a backported API, `SubprocessError` is hard
-  # to work with. Until support for Python 2 is dropped we re-raise with simpler
-  # exception type because we don't really care that much (the exception message
-  # should be detailed enough anyway).
   except subprocess.TimeoutExpired as error:
     raise TimeoutError(cause=error)
   except subprocess.CalledProcessError as error:
     stderr = error.stderr.decode("utf-8")
     raise Error(message=f"Osquery error on the client: {stderr}")
-  # pytype: enable=module-attr
 
   stderr = proc.stderr.decode("utf-8").strip()
   if stderr:

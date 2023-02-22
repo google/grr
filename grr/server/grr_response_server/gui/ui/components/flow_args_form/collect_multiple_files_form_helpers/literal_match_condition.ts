@@ -2,7 +2,7 @@ import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular
 import {ControlContainer, FormControl, FormGroup, Validators} from '@angular/forms';
 
 import {FileFinderContentsLiteralMatchCondition, FileFinderContentsLiteralMatchConditionMode} from '../../../lib/api/api_interfaces';
-import {encodeStringToBase64} from '../../../lib/api_translation/primitive';
+import {decodeBase64ToString, encodeStringToBase64} from '../../../lib/api_translation/primitive';
 
 /** Form that configures a literal match condition. */
 @Component({
@@ -46,5 +46,19 @@ export function formValuesToFileFinderContentsLiteralMatchCondition(
   return {
     ...rawFormValues,
     literal: encodeStringToBase64(rawFormValues.literal ?? ''),
+  };
+}
+
+/**
+ * Converts FileFinderContentsRegexMatchCondition to raw form values.
+ */
+export function fileFinderContentsLiteralMatchConditionToFormValue(
+    literalMatchCondition: FileFinderContentsLiteralMatchCondition|
+    undefined): ReturnType<typeof createLiteralMatchFormGroup>['value'] {
+  const literal = literalMatchCondition?.literal;
+
+  return {
+    literal: literal ? decodeBase64ToString(literal) : '',
+    mode: literalMatchCondition?.mode,
   };
 }

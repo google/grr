@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests the client file finder action."""
 
 import contextlib
@@ -27,7 +26,6 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import temp
 from grr.test_lib import client_test_lib
@@ -79,7 +77,7 @@ def _GroupItemsByType(iterable):
   """Returns a dict, grouping items by the name of their type."""
   results = {}
   for item in iterable:
-    results.setdefault(compatibility.GetName(type(item)), []).append(item)
+    results.setdefault(type(item).__name__, []).append(item)
   return results
 
 

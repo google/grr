@@ -4,8 +4,6 @@ import json
 from typing import Iterable, Mapping
 from wsgiref import headers as wsgi_headers
 
-import six
-
 from grr_response_core import config
 
 HEADER_KEY_REPORT_ONLY = "Content-Security-Policy-Report-Only"
@@ -23,7 +21,7 @@ def GetCspHeaderKey(report_only: bool) -> str:
 def BuildPolicy(policy: Mapping[str, Iterable[str]]) -> str:
   """Builds the CSP policy string from the internal representation."""
   csp_directives = [
-      k + " " + " ".join(v) for k, v in six.iteritems(policy) if v is not None
+      k + " " + " ".join(v) for k, v in policy.items() if v is not None
   ]
   return "; ".join(csp_directives)
 

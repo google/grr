@@ -178,7 +178,7 @@ class Dict(rdf_structs.RDFProtoStruct):
   def __init__(self, initializer=None, **kwargs):
     super().__init__(initializer=None)
 
-    self.dat = None  # type: Union[List[KeyValue], rdf_structs.RepeatedFieldHelper]
+    self.dat: Union[List[KeyValue], rdf_structs.RepeatedFieldHelper] = None
 
     # Support initializing from a mapping
     if isinstance(initializer, dict):
@@ -497,9 +497,6 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
 
   def __bool__(self):
     return bool(self.content)
-
-  # TODO: Remove after support for Python 2 is dropped.
-  __nonzero__ = __bool__
 
   def Pop(self, index=0):
     return self.content.Pop(index).GetValue()

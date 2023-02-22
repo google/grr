@@ -10,7 +10,7 @@ import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
-import {ApprovalChipModule} from '../../components/client/approval_chip/approval_chip_module';
+import {ApprovalChipModule} from '../../components/approval_chip/approval_chip_module';
 import {ApiModule} from '../../lib/api/module';
 import {ClientSearchModule} from '../client_search/module';
 import {OnlineChipModule} from '../online_chip/module';

@@ -13,10 +13,8 @@ from unittest import mock
 from absl import app
 
 from grr_response_core.lib import constants
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -71,7 +69,7 @@ class GetMBRFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def _RunAndCheck(self, chunk_size, download_length):
 
-    with utils.Stubber(constants, "CLIENT_MAX_BUFFER_SIZE", chunk_size):
+    with mock.patch.object(constants, "CLIENT_MAX_BUFFER_SIZE", chunk_size):
       flow_id = flow_test_lib.TestFlowHelper(
           transfer.GetMBR.__name__,
           ClientMock(self.mbr),
@@ -1014,7 +1012,7 @@ class MultiGetFileFlowTest(CompareFDsMixin, flow_test_lib.FlowTestsBaseclass):
         path=os.path.join(self.base_path, "test_img.dd"))
 
     flow_test_lib.TestFlowHelper(
-        compatibility.GetName(transfer.GetFile),
+        transfer.GetFile.__name__,
         client_mock,
         creator=self.test_username,
         client_id=self.client_id,

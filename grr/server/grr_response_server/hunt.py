@@ -16,6 +16,13 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 
 MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS = 1000
 
+# pyformat: disable
+
+CANCELLED_BY_USER = "Cancelled by user"
+
+# /grr/server/grr_response_server/gui/api_plugins/hunt.py)
+# pyformat: enable
+
 
 class Error(Exception):
   pass
@@ -325,8 +332,12 @@ def StopHunt(hunt_id, reason=None):
       hunt_id, hunt_state=hunt_obj.HuntState.STOPPED, hunt_state_comment=reason)
   data_store.REL_DB.RemoveForemanRule(hunt_id=hunt_obj.hunt_id)
 
-  if (reason is not None and
-      hunt_obj.creator not in access_control.SYSTEM_USERS):
+  # TODO: Match on reason enum instead of string.
+  if (
+      reason is not None
+      and reason != CANCELLED_BY_USER
+      and hunt_obj.creator not in access_control.SYSTEM_USERS
+  ):
     notification.Notify(
         hunt_obj.creator, rdf_objects.UserNotification.Type.TYPE_HUNT_STOPPED,
         reason,

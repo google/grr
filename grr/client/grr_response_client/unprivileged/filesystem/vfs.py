@@ -266,7 +266,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
   def IsDirectory(self) -> bool:
     return (self._stat_result.st_mode & stat.S_IFDIR) != 0
 
-  def ListFiles(self,
+  def ListFiles(self,  # pytype: disable=signature-mismatch  # overriding-return-type-checks
                 ext_attrs: bool = False) -> Iterator[rdf_client_fs.StatEntry]:
     del ext_attrs  # Unused.
 
@@ -281,7 +281,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
         pathspec.last.stream_name = entry.stream_name
       yield _ConvertStatEntry(entry, pathspec)
 
-  def ListNames(self) -> Iterator[Text]:
+  def ListNames(self) -> Iterator[Text]:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     self._CheckIsDirectory()
     return iter(self.fd.ListNames())
 

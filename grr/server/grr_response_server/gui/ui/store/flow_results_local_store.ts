@@ -5,7 +5,7 @@ import {distinctUntilChanged, filter, map, shareReplay, switchMap, takeWhile} fr
 
 import {HttpApiService} from '../lib/api/http_api_service';
 import {translateFlowResult} from '../lib/api_translation/flow';
-import {FlowResultsQuery, FlowState} from '../lib/models/flow';
+import {FlowResultsQuery, FlowState, ResultQuery} from '../lib/models/flow';
 import {isNonNull} from '../lib/preconditions';
 
 function canMergeQueries(a?: FlowResultsQuery, b?: FlowResultsQuery) {
@@ -67,6 +67,21 @@ class FlowResultsComponentStore extends ComponentStore<FlowResultStoreState> {
     };
   });
 
+  readonly queryPage = this.updater<ResultQuery>((state, pageQuery) => {
+    if (!state.query) {
+      return state;
+    }
+
+    return {
+      ...state,
+      query: {
+        ...state.query,
+        count: pageQuery.count,
+        offset: pageQuery.offset,
+      },
+    };
+  });
+
   /** Observable, emitting the latest results. */
   readonly results$ =
       this.select(state => state.query)
@@ -122,5 +137,9 @@ export class FlowResultsLocalStore {
   /** Queries `additionalCount` more results. */
   queryMore(additionalCount: number) {
     this.store.queryMore(additionalCount);
+  }
+  /** Queries results with a given offset and count. */
+  queryPage(pageQuery: ResultQuery) {
+    this.store.queryPage(pageQuery);
   }
 }

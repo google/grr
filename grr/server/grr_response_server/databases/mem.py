@@ -53,11 +53,11 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
   def _Init(self):
     self.artifacts = {}
     self.approvals_by_username = {}
-    self.blob_keys: dict[rdf_objects.BlobID, db.EncryptionKey] = {}
+    self.blob_keys: dict[rdf_objects.BlobID, str] = {}
     self.clients = {}
     self.client_action_requests = {}
     self.client_action_request_leases = {}
-    self.client_stats = collections.defaultdict(collections.OrderedDict)
+    self.client_stats = collections.defaultdict(dict)
     self.crash_history = {}
     self.cronjob_leases = {}
     self.cronjobs = {}

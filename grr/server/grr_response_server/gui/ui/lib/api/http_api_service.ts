@@ -4,9 +4,9 @@ import {merge, Observable, of, Subject, throwError, timer} from 'rxjs';
 import {catchError, exhaustMap, map, mapTo, shareReplay, switchMap, take, takeLast, takeWhile, tap} from 'rxjs/operators';
 
 import {SnackBarErrorHandler} from '../../components/helpers/error_snackbar/error_handler';
-import {ApprovalConfig, ApprovalRequest} from '../../lib/models/client';
+import {ApprovalConfig, ClientApprovalRequest} from '../../lib/models/client';
 import {FlowWithDescriptor} from '../../lib/models/flow';
-import {HuntApprovalKey, SafetyLimits} from '../../lib/models/hunt';
+import {Hunt, HuntApprovalKey, HuntApprovalRequest, SafetyLimits} from '../../lib/models/hunt';
 import {assertNonNull, isNonNull} from '../preconditions';
 
 import * as apiInterfaces from './api_interfaces';
@@ -133,7 +133,8 @@ export class HttpApiService {
     },
   };
 
-  private readonly triggerApprovalPoll$ = new Subject<void>();
+  private readonly triggerClientApprovalPoll$ = new Subject<void>();
+  private readonly triggerHuntApprovalPoll$ = new Subject<void>();
   private readonly triggerListScheduledFlowsPoll$ = new Subject<void>();
   private readonly triggerListFlowsPoll$ = new Subject<void>();
 
@@ -173,9 +174,10 @@ export class HttpApiService {
   }
 
   /** Requests approval to give the current user access to a client. */
-  requestApproval(args: ApprovalRequest):
+  requestClientApproval(args: ClientApprovalRequest):
       Observable<apiInterfaces.ApiClientApproval> {
     const request: apiInterfaces.ApiCreateClientApprovalArgs = {
+      clientId: args.clientId,
       approval: {
         reason: args.reason,
         notifiedUsers: args.approvers,
@@ -188,7 +190,7 @@ export class HttpApiService {
             `${URL_PREFIX}/users/me/approvals/client/${args.clientId}`, request)
         .pipe(
             tap(() => {
-              this.triggerApprovalPoll$.next();
+              this.triggerClientApprovalPoll$.next();
             }),
         );
   }
@@ -206,8 +208,8 @@ export class HttpApiService {
   }
 
   /** Lists ClientApprovals in reversed chronological order. */
-  private listApprovals(clientId: string):
-      Observable<ReadonlyArray<apiInterfaces.ApiClientApproval>> {
+  private listClientApprovals(clientId: string):
+      Observable<readonly apiInterfaces.ApiClientApproval[]> {
     return this.http
         .get<apiInterfaces.ApiListClientApprovalsResult>(
             `${URL_PREFIX}/users/me/approvals/client/${clientId}`)
@@ -217,10 +219,11 @@ export class HttpApiService {
         );
   }
 
-  subscribeToListApprovals(clientId: string) {
-    return merge(timer(0, this.POLLING_INTERVAL), this.triggerApprovalPoll$)
+  subscribeToListClientApprovals(clientId: string) {
+    return merge(
+               timer(0, this.POLLING_INTERVAL), this.triggerClientApprovalPoll$)
         .pipe(
-            exhaustMap(() => this.listApprovals(clientId)),
+            exhaustMap(() => this.listClientApprovals(clientId)),
             tap(this.showErrors),
         );
   }
@@ -273,10 +276,16 @@ export class HttpApiService {
   }
 
   createHunt(
-      description: string, flowWithDescriptors: FlowWithDescriptor,
-      safetyLimits: SafetyLimits, rules: apiInterfaces.ForemanClientRuleSet,
-      outputPlugins: ReadonlyArray<apiInterfaces.OutputPluginDescriptor>):
-      Observable<apiInterfaces.ApiHunt> {
+      description: string, flowWithDescriptors: FlowWithDescriptor|null,
+      originalHunt: Hunt|null, safetyLimits: SafetyLimits,
+      rules: apiInterfaces.ForemanClientRuleSet,
+      outputPlugins: readonly apiInterfaces.OutputPluginDescriptor[],
+      originalHuntId?: string): Observable<apiInterfaces.ApiHunt> {
+    if (!flowWithDescriptors && !originalHunt) {
+      throwError(`This fleet collection flow is not properly set.
+       Make sure it is based on either an existing flow or fleet collection.`);
+    }
+
     const huntRunnerArgs: apiInterfaces.HuntRunnerArgs = {
       description,
       cpuLimit: safetyLimits.cpuLimit?.toString(),
@@ -294,35 +303,75 @@ export class HttpApiService {
       outputPlugins,
       clientRuleSet: rules,
     };
-    const originalFlow: apiInterfaces.ApiFlowReference = {
-      flowId: flowWithDescriptors.flow.flowId,
-      clientId: flowWithDescriptors.flow.clientId,
+
+    const originalFlowRef: apiInterfaces.ApiFlowReference = {
+      flowId: flowWithDescriptors?.flow?.flowId,
+      clientId: flowWithDescriptors?.flow?.clientId,
     };
-    const request: apiInterfaces.ApiCreateHuntArgs = {
-      flowName: flowWithDescriptors.flow.name,
-      flowArgs: {
+    const flowName = flowWithDescriptors?.flow?.name ?? originalHunt?.flowName;
+    let flowArgs: apiInterfaces.Any|undefined = undefined;
+    if (flowWithDescriptors) {
+      flowArgs = {
         '@type': flowWithDescriptors.flowArgType,
         ...(flowWithDescriptors.flow.args as {}),
-      },
+      };
+    } else {
+      flowArgs = originalHunt?.flowArgs as apiInterfaces.Any;
+    }
+    const originalHuntRef:
+        apiInterfaces.ApiHuntReference = {huntId: originalHuntId};
+    const request: apiInterfaces.ApiCreateHuntArgs = {
+      flowName,
+      flowArgs,
       huntRunnerArgs,
-      originalFlow,
+      originalFlow: originalHuntId ? undefined : originalFlowRef,
+      originalHunt: originalHuntId ? originalHuntRef : undefined,
     };
+
     return this.http.post<apiInterfaces.ApiHunt>(
         `${URL_PREFIX}/hunts`, toJson(request));
   }
 
-  requestHuntApproval(
-      huntId: string, approvalArgs: apiInterfaces.ApiHuntApproval):
+  requestHuntApproval(args: HuntApprovalRequest):
       Observable<apiInterfaces.ApiHuntApproval> {
     const request: apiInterfaces.ApiCreateHuntApprovalArgs = {
-      huntId,
-      approval: approvalArgs,
+      huntId: args.huntId,
+      approval: {
+        reason: args.reason,
+        notifiedUsers: args.approvers,
+        emailCcAddresses: args.cc,
+      }
     };
-    return this.http.post<apiInterfaces.ApiHuntApproval>(
-        `${URL_PREFIX}/users/me/approvals/hunt/${huntId}`, request);
+    return this.http
+        .post<apiInterfaces.ApiHuntApproval>(
+            `${URL_PREFIX}/users/me/approvals/hunt/${args.huntId}`, request)
+        .pipe(tap(() => {
+          this.triggerHuntApprovalPoll$.next();
+        }));
   }
 
-  private fetchHunt(id: string): Observable<apiInterfaces.ApiHunt> {
+  /** Lists HuntApprovals in reversed chronological order. */
+  private listHuntApprovals(huntId: string):
+      Observable<readonly apiInterfaces.ApiHuntApproval[]> {
+    return this.http
+        .get<apiInterfaces.ApiListHuntApprovalsResult>(
+            `${URL_PREFIX}/users/me/approvals/hunt/${huntId}`)
+        .pipe(
+            map(res => res.items ?? []),
+            tap(this.showErrors),
+        );
+  }
+
+  subscribeToListHuntApprovals(huntId: string) {
+    return merge(timer(0, this.POLLING_INTERVAL), this.triggerHuntApprovalPoll$)
+        .pipe(
+            exhaustMap(() => this.listHuntApprovals(huntId)),
+            tap(this.showErrors),
+        );
+  }
+
+  /** Fetches a Hunt. */
+  fetchHunt(id: string): Observable<apiInterfaces.ApiHunt> {
     return this.http.get<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts/${id}`)
         .pipe(tap(this.showErrors));
   }
@@ -332,6 +381,30 @@ export class HttpApiService {
     return timer(0, this.POLLING_INTERVAL)
         .pipe(
             exhaustMap(() => this.fetchHuntApproval(key)),
+            tap(this.showErrors),
+        );
+  }
+
+  private verifyHuntAccess(huntId: string): Observable<boolean> {
+    return this.http.get<{}>(`${URL_PREFIX}/hunts/${huntId}/access`)
+        .pipe(
+            map(() => true),
+            catchError((err: HttpErrorResponse) => {
+              if (err.status === 403) {
+                return of(false);
+              } else {
+                return throwError(err);
+              }
+            }),
+            tap(this.showErrors),
+        );
+  }
+
+  /** Emits true, if the user has access to the hunt, false otherwise. */
+  subscribeToVerifyHuntAccess(huntId: string): Observable<boolean> {
+    return timer(0, this.POLLING_INTERVAL)
+        .pipe(
+            exhaustMap(() => this.verifyHuntAccess(huntId)),
             tap(this.showErrors),
         );
   }
@@ -462,10 +535,16 @@ export class HttpApiService {
   // TODO: GET parameters require snake_case not camelCase
   // parameters. Do not allow createdBy and other camelCase parameters until
   // fixed.
-  private listHunts(args:
-                        Pick<apiInterfaces.ApiListHuntsArgs, 'offset'|'count'>):
+  private listHunts(args: apiInterfaces.ApiListHuntsArgs):
       Observable<apiInterfaces.ApiListHuntsResult> {
-    const params = toHttpParams(args).append('with_full_summary', true);
+    // TODO: Use camelCased field name once the backend converts
+    // camelCased names to their snake_case counterpart.
+    const params = toHttpParams({
+      'offset': args.offset,
+      'count': args.count,
+      'robot_filter': args.robotFilter,
+      'with_full_summary': true,
+    });
     return this.http
         .get<apiInterfaces.ApiListHuntsResult>(`${URL_PREFIX}/hunts`, {params})
         .pipe(tap(this.showErrors));
@@ -488,7 +567,6 @@ export class HttpApiService {
             tap(this.showErrors),
         );
   }
-
 
   /** Grants a ClientApproval. */
   grantClientApproval({clientId, requestor, approvalId}: ClientApprovalKey):
@@ -1147,7 +1225,39 @@ function toJson(data: unknown) {
   return JSON.stringify(data, (k, v) => typeof v === 'bigint' ? `${v}` : v);
 }
 
-/** Gets the URL to download file results. */
+/** Gets the URL to download all client files in the archive. */
+export function getClientArchiveURL(clientId: string) {
+  return `${URL_PREFIX}/clients/${clientId}/vfs-files-archive/`;
+}
+
+/** Gets the URL to download file results in TAR format for a hunt. */
+export function getHuntFilesArchiveTarGzUrl(huntId: string) {
+  return `${URL_PREFIX}/hunts/${
+      huntId}/results/files-archive?archive_format=TAR_GZ`;
+}
+
+/** Gets the URL to download file results in ZIP format for a hunt. */
+export function getHuntFilesArchiveZipUrl(huntId: string) {
+  return `${URL_PREFIX}/hunts/${
+      huntId}/results/files-archive?archive_format=ZIP`;
+}
+
+/** Gets the URL to download results converted to CSV. */
+export function getHuntExportedResultsCsvUrl(huntId: string) {
+  return `${URL_PREFIX}/hunts/${huntId}/exported-results/csv-zip`;
+}
+
+/** Gets the URL to download results converted to YAML. */
+export function getHuntExportedResultsYamlUrl(huntId: string) {
+  return `${URL_PREFIX}/hunts/${huntId}/exported-results/flattened-yaml-zip`;
+}
+
+/** Gets the URL to download results converted to SQLite. */
+export function getHuntExportedResultsSqliteUrl(huntId: string) {
+  return `${URL_PREFIX}/hunts/${huntId}/exported-results/sqlite-zip`;
+}
+
+/** Gets the URL to download file results for a flow. */
 export function getFlowFilesArchiveUrl(clientId: string, flowId: string) {
   return `${URL_PREFIX}/clients/${clientId}/flows/${
       flowId}/results/files-archive`;

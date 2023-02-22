@@ -24,10 +24,10 @@ function makeControls() {
       validators: [Validators.required],
     }),
     // ByteValueAccessor inputs can be null when input is invalid.
-    length: new FormControl<number|null>(null, {
+    length: new FormControl<number>(42, {
       validators: [Validators.required, Validators.min(1)],
     }),
-    offset: new FormControl<number|null>(null),
+    offset: new FormControl<number>(0),
   };
 }
 

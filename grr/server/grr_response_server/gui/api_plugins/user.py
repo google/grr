@@ -445,6 +445,7 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       api_flow.ApiFlow,
       api_hunt.ApiHunt,
+      rdfvalue.RDFDatetime,
   ]
 
   def InitFromDatabaseObject(self, db_obj, approval_subject_obj=None):
@@ -1115,6 +1116,9 @@ class ApiGrantHuntApprovalHandler(ApiGrantApprovalHandlerBase):
 
 class ApiListHuntApprovalsArgs(ApiHuntApprovalArgsBase):
   protobuf = api_user_pb2.ApiListHuntApprovalsArgs
+  rdf_deps = [
+      api_hunt.ApiHuntId,
+  ]
 
 
 class ApiListHuntApprovalsResult(rdf_structs.RDFProtoStruct):
@@ -1131,14 +1135,20 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
   result_type = ApiListHuntApprovalsResult
 
   def Handle(self, args, context=None):
+    subject_id = None
+    if args.hunt_id:
+      subject_id = str(args.hunt_id)
+
     approvals = sorted(
         data_store.REL_DB.ReadApprovalRequests(
             context.username,
             rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT,
-            subject_id=None,
-            include_expired=True),
+            subject_id=subject_id,
+            include_expired=True,
+        ),
         key=lambda ar: ar.timestamp,
-        reverse=True)
+        reverse=True,
+    )
 
     if not args.count:
       end = None

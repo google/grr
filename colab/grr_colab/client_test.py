@@ -245,6 +245,9 @@ class ClientTest(testing.ColabE2ETest):
     system = 'test-os'
     users = ['test-user1', 'test-user2']
 
+    data_store.REL_DB.WriteGRRUser(users[0])
+    data_store.REL_DB.WriteGRRUser(users[1])
+
     data_store.REL_DB.WriteClientMetadata(
         client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
 
@@ -309,6 +312,8 @@ class ClientTest(testing.ColabE2ETest):
   def testLabels(self):
     labels = ['label1', 'label2']
     owner = 'test-user'
+
+    data_store.REL_DB.WriteGRRUser('test-user')
     data_store.REL_DB.WriteClientMetadata(
         client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
     data_store.REL_DB.AddClientLabels(ClientTest.FAKE_CLIENT_ID, owner, labels)

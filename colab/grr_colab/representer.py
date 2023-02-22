@@ -79,7 +79,7 @@ class StatEntryList(_RepresenterList):
 
   def __init__(self, *args, **kwargs) -> None:
     super().__init__(*args, **kwargs)
-    self._hierarchy = None  # type: Optional[Dict[Text, List]]
+    self._hierarchy: Optional[Dict[Text, List]] = None
     self._build_hierarchy()
 
   def _build_hierarchy(self) -> None:

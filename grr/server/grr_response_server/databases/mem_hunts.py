@@ -7,7 +7,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr_response_core.lib.util import compatibility
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
@@ -117,16 +116,24 @@ class InMemoryDBHuntMixin(object):
       raise db.UnknownHuntError(hunt_id)
 
   @utils.Synchronized
-  def ReadHuntObjects(self,
-                      offset,
-                      count,
-                      with_creator=None,
-                      created_after=None,
-                      with_description_match=None):
+  def ReadHuntObjects(
+      self,
+      offset,
+      count,
+      with_creator=None,
+      created_after=None,
+      with_description_match=None,
+      created_by=None,
+      not_created_by=None,
+  ):
     """Reads metadata for hunt objects from the database."""
     filter_fns = []
     if with_creator is not None:
       filter_fns.append(lambda h: h.creator == with_creator)
+    if created_by is not None:
+      filter_fns.append(lambda h: h.creator in created_by)
+    if not_created_by is not None:
+      filter_fns.append(lambda h: h.creator not in not_created_by)
     if created_after is not None:
       filter_fns.append(lambda h: h.create_time > created_after)
     if with_description_match is not None:
@@ -139,16 +146,24 @@ class InMemoryDBHuntMixin(object):
         reverse=True)[offset:offset + (count or db.MAX_COUNT)]
 
   @utils.Synchronized
-  def ListHuntObjects(self,
-                      offset,
-                      count,
-                      with_creator=None,
-                      created_after=None,
-                      with_description_match=None):
+  def ListHuntObjects(
+      self,
+      offset,
+      count,
+      with_creator=None,
+      created_after=None,
+      with_description_match=None,
+      created_by=None,
+      not_created_by=None,
+  ):
     """Reads all hunt objects from the database."""
     filter_fns = []
     if with_creator is not None:
       filter_fns.append(lambda h: h.creator == with_creator)
+    if created_by is not None:
+      filter_fns.append(lambda h: h.creator in created_by)
+    if not_created_by is not None:
+      filter_fns.append(lambda h: h.creator not in not_created_by)
     if created_after is not None:
       filter_fns.append(lambda h: h.create_time > created_after)
     if with_description_match is not None:
@@ -237,7 +252,7 @@ class InMemoryDBHuntMixin(object):
   def CountHuntResultsByType(self, hunt_id):
     result = {}
     for hr in self.ReadHuntResults(hunt_id, 0, sys.maxsize):
-      key = compatibility.GetName(hr.payload.__class__)
+      key = hr.payload.__class__.__name__
       result[key] = result.setdefault(key, 0) + 1
 
     return result

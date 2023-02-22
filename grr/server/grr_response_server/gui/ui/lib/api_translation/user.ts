@@ -1,7 +1,9 @@
-import {ApiGrrUser, ApiListApproverSuggestionsResultApproverSuggestion} from '../../lib/api/api_interfaces';
+import {ApiClientApproval, ApiGrrUser, ApiHuntApproval, ApiListApproverSuggestionsResultApproverSuggestion} from '../../lib/api/api_interfaces';
 import {GrrUser} from '../../lib/models/user';
-import {ApprovalStatus} from '../models/user';
+import {Approval, ApprovalStatus} from '../models/user';
 import {assertKeyTruthy, isNonNull} from '../preconditions';
+
+import {createOptionalDate} from './primitive';
 
 /** Translates API ApiGrrUser object into the model's GrrUser. */
 export function translateGrrUser(apiGrrUser: ApiGrrUser): GrrUser {
@@ -39,4 +41,26 @@ export function translateApprovalStatus(
     status = {type: 'invalid', reason: isValidMessage};
   }
   return status;
+}
+
+/** Translates API Approval object into internal Approval model. */
+export function translateApproval(approval: ApiHuntApproval|
+                                  ApiClientApproval): Approval {
+  assertKeyTruthy(approval, 'id');
+  assertKeyTruthy(approval, 'subject');
+  assertKeyTruthy(approval, 'reason');
+  assertKeyTruthy(approval, 'requestor');
+
+  const status =
+      translateApprovalStatus(approval.isValid, approval.isValidMessage);
+
+  return {
+    status,
+    approvalId: approval.id,
+    reason: approval.reason,
+    requestedApprovers: approval.notifiedUsers ?? [],
+    approvers: (approval.approvers ?? []).filter(u => u !== approval.requestor),
+    requestor: approval.requestor,
+    expirationTime: createOptionalDate(approval.expirationTimeUs),
+  };
 }

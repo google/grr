@@ -316,6 +316,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def ListHunts(self, args, context=None):
     return api_hunt.ApiListHuntsHandler()
 
+  def VerifyHuntAccess(self, args, context=None):
+    return api_hunt.ApiVerifyHuntAccessHandler()
+
   def GetHunt(self, args, context=None):
     return api_hunt.ApiGetHuntHandler()
 
@@ -327,6 +330,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
 
   def ListHuntResults(self, args, context=None):
     return api_hunt.ApiListHuntResultsHandler()
+
+  def CountHuntResultsByType(self, args, context=None):
+    return api_hunt.ApiCountHuntResultsByTypeHandler()
 
   def GetExportedHuntResults(self, args, context=None):
     return api_hunt.ApiGetExportedHuntResultsHandler()

@@ -108,10 +108,8 @@ setup_args = dict(
                       "installfrompip.adoc for installation instructions."),
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
-    # TODO: Clean up str() call after Python 2 support is
-    # dropped ('data_files' elements have to be bytes in Python 2).
     data_files=(find_data_files("templates", prefix="grr-response-templates") +
-                [str("version.ini")]),
+                ["version.ini"]),
     cmdclass={
         "sdist": Sdist,
     })

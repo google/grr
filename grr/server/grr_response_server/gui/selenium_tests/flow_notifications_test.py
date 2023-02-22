@@ -2,10 +2,10 @@
 """Test flow notifications."""
 
 import os
+from unittest import mock
 
 from absl import app
 
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server.flows.general import transfer as flows_transfer
 from grr_response_server.gui import archive_generator
@@ -67,8 +67,8 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
       yield b"bar"
       raise RuntimeError("something went wrong")
 
-    with utils.Stubber(archive_generator.CollectionArchiveGenerator, "Generate",
-                       RaisingStub):
+    with mock.patch.object(archive_generator.CollectionArchiveGenerator,
+                           "Generate", RaisingStub):
       self.Open("/#/clients/%s" % self.client_id)
 
       self.Click("css=a[grrtarget='client.flows']")

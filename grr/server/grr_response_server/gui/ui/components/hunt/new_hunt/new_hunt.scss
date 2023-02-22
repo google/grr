@@ -12,6 +12,10 @@ $horizontal-margin: 19px;
   padding: c.$page-spacing 0 0;
 }
 
+table {
+  margin-bottom: c.$card-margin;
+}
+
 .new-hunt-container {
   .config {
     width: 100%;
@@ -25,7 +29,7 @@ $horizontal-margin: 19px;
     font-size: 16px;
   }
 
-  approval {
+  approval-card {
     margin-top: c.$card-margin;
   }
 }

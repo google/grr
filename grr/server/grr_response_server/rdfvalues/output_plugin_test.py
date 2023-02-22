@@ -32,36 +32,17 @@ class OutputPluginTest(absltest.TestCase):
     del registry.OutputPluginRegistry.PLUGIN_REGISTRY[TestOutputPlugin.__name__]
 
   def testGetArgsField(self):
-    new_args = rdf_structs.AnyValue.Pack(
-        TestOutputPluginArgs(test_message="new"))
+    new_args = TestOutputPluginArgs(test_message="new")
     desc = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=TestOutputPlugin.__name__, args=new_args)
-    self.assertEqual(
-        desc.args.Unpack(desc.GetPluginArgsClass()),
-        TestOutputPluginArgs(test_message="new"))
-
-  def testFallback_BothFields(self):
-    new_args = rdf_structs.AnyValue.Pack(
-        TestOutputPluginArgs(test_message="new"))
-    desc = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name=TestOutputPlugin.__name__,
-        plugin_args=TestOutputPluginArgs(test_message="old"),
-        args=new_args)
-    self.assertEqual(desc.plugin_args, TestOutputPluginArgs(test_message="new"))
+    self.assertEqual(desc.args, TestOutputPluginArgs(test_message="new"))
 
   def testFallback_NewOnly(self):
-    new_args = rdf_structs.AnyValue.Pack(
-        TestOutputPluginArgs(test_message="new"))
+    new_args = TestOutputPluginArgs(test_message="new")
     desc = rdf_output_plugin.OutputPluginDescriptor(
         plugin_name=TestOutputPlugin.__name__, args=new_args)
 
     self.assertEqual(desc.plugin_args, TestOutputPluginArgs(test_message="new"))
-
-  def testFallback_OldOnly(self):
-    desc = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name=TestOutputPlugin.__name__,
-        plugin_args=TestOutputPluginArgs(test_message="old"))
-    self.assertEqual(desc.plugin_args, TestOutputPluginArgs(test_message="old"))
 
 
 if __name__ == "__main__":

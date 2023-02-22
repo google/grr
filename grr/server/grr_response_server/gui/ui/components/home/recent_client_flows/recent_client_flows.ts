@@ -4,6 +4,7 @@ import {map} from 'rxjs/operators';
 
 import {ClientApproval} from '../../../lib/models/client';
 import {FlowWithDescriptor, withDescriptor} from '../../../lib/models/flow';
+import {isNull} from '../../../lib/preconditions';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
 import {RecentClientFlowsLocalStore} from '../../../store/recent_client_flows_local_store';
 
@@ -24,6 +25,20 @@ export class RecentClientFlows {
   ) {}
 
   private readonly approval$ = new BehaviorSubject<ClientApproval|null>(null);
+
+  readonly showApprovalChip$: Observable<boolean> =
+      this.recentClientFlowsLocalStore.hasAccess$.pipe(map((hasAccess => {
+        if (isNull(this.approval) || isNull(hasAccess)) {
+          return false;
+        }
+        const inconsistency1 =
+            (hasAccess === true && this.approval.status.type !== 'valid');
+        const inconsistency2 =
+            (hasAccess === false && this.approval.status.type === 'valid');
+        return !inconsistency1 && !inconsistency2;
+      })));
+
+  readonly hasAccess$ = this.recentClientFlowsLocalStore.hasAccess$;
 
   readonly entries$: Observable<readonly FlowWithDescriptor[]> =
       combineLatest([

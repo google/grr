@@ -2,6 +2,7 @@
 """API handlers for accessing and searching clients and managing labels."""
 import ipaddress
 import re
+import shlex
 from typing import Optional
 
 from urllib import parse as urlparse
@@ -15,7 +16,6 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_proto.api import client_pb2
 from grr_response_server import action_registry
@@ -246,7 +246,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     end = args.count or db.MAX_COUNT
 
-    keywords = compatibility.ShlexSplit(args.query)
+    keywords = shlex.split(args.query)
 
     api_clients = []
 
@@ -327,7 +327,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
       end = db.MAX_COUNT
       batch_size = end
 
-    keywords = compatibility.ShlexSplit(args.query)
+    keywords = shlex.split(args.query)
     api_clients = []
 
     index = client_index.ClientIndex()
@@ -549,7 +549,7 @@ class ApiGetInterrogateOperationStateHandler(
       raise InterrogateOperationNotFoundError("Operation with id %s not found" %
                                               args.operation_id)
 
-    expected_flow_name = compatibility.GetName(discovery.Interrogate)
+    expected_flow_name = discovery.Interrogate.__name__
     if flow_obj.flow_class_name != expected_flow_name:
       raise InterrogateOperationNotFoundError("Operation with id %s not found" %
                                               args.operation_id)
@@ -655,11 +655,13 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiAddClientsLabelsArgs
 
   def Handle(self, args, context=None):
-    for api_client_id in args.client_ids:
-      cid = str(api_client_id)
-      data_store.REL_DB.AddClientLabels(cid, context.username, args.labels)
-      idx = client_index.ClientIndex()
-      idx.AddClientLabels(cid, args.labels)
+    client_ids = list(map(str, args.client_ids))
+    labels = args.labels
+
+    data_store.REL_DB.MultiAddClientLabels(client_ids, context.username, labels)
+
+    idx = client_index.ClientIndex()
+    idx.MultiAddClientLabels(client_ids, args.labels)
 
 
 class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
@@ -753,7 +755,7 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
 
     for r in data_store.REL_DB.ReadAllClientActionRequests(str(args.client_id)):
       stub = action_registry.ACTION_STUB_BY_ID[r.action_identifier]
-      client_action = compatibility.GetName(stub)
+      client_action = stub.__name__
 
       request = ApiClientActionRequest(
           leased_until=r.leased_until,

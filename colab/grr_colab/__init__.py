@@ -104,7 +104,7 @@ class Client(object):
 
   def __init__(self, client_: client.Client) -> None:
     self._client = client_
-    self._summary = None  # type: jobs_pb2.ClientSummary
+    self._summary: jobs_pb2.ClientSummary = None
 
   @classmethod
   def with_id(cls, client_id: Text) -> 'Client':

@@ -7,9 +7,7 @@ libs/server_stubs.py
 """
 
 import binascii
-import ctypes
 import logging
-from typing import Text
 
 import pythoncom
 import win32api
@@ -28,8 +26,6 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
-from grr_response_core.lib.util import compatibility
-from grr_response_core.lib.util import precondition
 
 
 # Properties to remove from results sent to the server.
@@ -38,23 +34,6 @@ IGNORE_PROPS = [
     "CSCreationClassName", "CreationClassName", "OSName", "OSCreationClassName",
     "WindowsVersion", "CSName", "__NAMESPACE", "__SERVER", "__PATH"
 ]
-
-
-def UnicodeFromCodePage(string: bytes) -> Text:
-  """Attempt to coerce string into a unicode object."""
-  precondition.AssertType(string, bytes)
-
-  # get the current code page
-  codepage = ctypes.windll.kernel32.GetOEMCP()
-
-  try:
-    return string.decode("cp%s" % codepage)
-  except UnicodeError:
-    try:
-      return string.decode("utf16", "ignore")
-    except UnicodeError:
-      # Fall back on utf8 but ignore errors
-      return string.decode("utf8", "ignore")
 
 
 class GetInstallDate(actions.ActionPlugin):
@@ -124,9 +103,6 @@ def EnumerateFilesystemsFromClient(args):
       label, _, _, _, fs_type = win32api.GetVolumeInformation(drive)
     except win32api.error:
       continue
-
-    if compatibility.PY2:
-      label = UnicodeFromCodePage(label)
 
     yield rdf_client_fs.Filesystem(
         device=volume,

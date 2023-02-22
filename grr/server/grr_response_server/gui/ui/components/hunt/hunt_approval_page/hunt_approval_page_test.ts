@@ -118,7 +118,7 @@ describe('HuntApprovalPage Component', () => {
     expect(text).toContain('All matching clients');
     expect(text).toContain('200');
     expect(text).toContain('standard');
-    expect(text).toContain('CollectBrowserHistory');
+    expect(text).toContain('Collects Browser History');
     expect(text).toContain('Chrome');
     expect(text).toContain('20');
     expect(text).toContain('40 s');

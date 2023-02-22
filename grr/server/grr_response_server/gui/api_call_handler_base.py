@@ -3,7 +3,6 @@
 
 from typing import Text
 
-from grr_response_core.lib.registry import MetaclassRegistry
 from grr_response_core.lib.util import precondition
 from grr_response_server import access_control
 
@@ -30,9 +29,9 @@ class ApiBinaryStream(object):
 
     Args:
       filename: A file name to be used by the browser when user downloads the
-          file.
-      content_generator: A generator that yields byte chunks (of any size) to
-          be streamed to the user.
+        file.
+      content_generator: A generator that yields byte chunks (of any size) to be
+        streamed to the user.
       content_length: The length of the stream, if known upfront.
 
     Raises:
@@ -57,7 +56,7 @@ class ApiBinaryStream(object):
       yield chunk
 
 
-class ApiCallHandler(metaclass=MetaclassRegistry):
+class ApiCallHandler:
   """Baseclass for restful API renderers."""
 
   # RDFValue type used to handle API renderer arguments. This has to be

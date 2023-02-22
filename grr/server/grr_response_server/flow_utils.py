@@ -5,20 +5,15 @@ import logging
 
 
 def GetUserInfo(knowledge_base, user):
-  # TODO: This docstring cannot be a raw literal because there are
-  # issues with raw unicode literals on Python 2. Once support for Python 2 is
-  # dropped, it can be made raw again.
-  # pylint: disable=g-docstring-has-escape
-  """Get a User protobuf for a specific user.
+  r"""Get a User protobuf for a specific user.
 
   Args:
     knowledge_base: An rdf_client.KnowledgeBase object.
-    user: Username as string. May contain domain like DOMAIN\\user.
+    user: Username as string. May contain domain like DOMAIN\user.
 
   Returns:
     A User rdfvalue or None
   """
-  # pylint: enable=g-docstring-has-escape
   if "\\" in user:
     domain, user = user.split("\\", 1)
     users = [

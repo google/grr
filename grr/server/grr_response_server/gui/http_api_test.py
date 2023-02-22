@@ -1,7 +1,6 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for HTTP API."""
-
+import json
 from unittest import mock
 
 from absl import app
@@ -9,8 +8,6 @@ from absl.testing import absltest
 
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
-from grr_response_core.lib.util.compat import json
 from grr_response_proto import tests_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
@@ -161,7 +158,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
   def setUp(self):
     super().setUp()
     config_overrider = test_lib.ConfigOverrider({
-        "API.DefaultRouter": compatibility.GetName(TestHttpApiRouter),
+        "API.DefaultRouter": TestHttpApiRouter.__name__,
     })
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)
@@ -237,13 +234,13 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest,
     if content.startswith(")]}'\n"):
       content = content[5:]
 
-    return json.Parse(content)
+    return json.loads(content)
 
   def setUp(self):
     super().setUp()
 
     config_overrider = test_lib.ConfigOverrider({
-        "API.DefaultRouter": compatibility.GetName(TestHttpApiRouter),
+        "API.DefaultRouter": TestHttpApiRouter.__name__,
     })
     config_overrider.Start()
     self.addCleanup(config_overrider.Stop)

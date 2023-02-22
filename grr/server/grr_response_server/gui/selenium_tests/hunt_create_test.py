@@ -277,8 +277,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
     # Check that the hunt was created with correct rules
     self.assertLen(hunt_rules, 1)
-    lifetime = hunt_rules[0].GetLifetime()
-    lifetime -= rdfvalue.Duration.From(2, rdfvalue.WEEKS)
+    lifetime = rdfvalue.Duration.From(2, rdfvalue.WEEKS)
+    lifetime -= hunt_rules[0].GetLifetime()
     self.assertLessEqual(lifetime, rdfvalue.Duration.From(1, rdfvalue.SECONDS))
 
     r = hunt_rules[0].client_rule_set
@@ -443,6 +443,9 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   def testLabelsHuntRuleDisplaysAvailableLabels(self):
     client_id = self.SetupClient(0)
 
+    data_store.REL_DB.WriteGRRUser("owner1")
+    data_store.REL_DB.WriteGRRUser("owner2")
+
     self.AddClientLabel(client_id, u"owner1", u"foo")
     self.AddClientLabel(client_id, u"owner2", u"bar")
 
@@ -479,6 +482,10 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
   def testLabelsHuntRuleMatchesCorrectClients(self):
     client_ids = self.SetupClients(10)
+
+    data_store.REL_DB.WriteGRRUser("owner1")
+    data_store.REL_DB.WriteGRRUser("owner2")
+    data_store.REL_DB.WriteGRRUser("GRR")
 
     self.AddClientLabel(client_ids[1], u"owner1", u"foo")
     self.AddClientLabel(client_ids[1], u"owner2", u"bar")
@@ -555,7 +562,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
         output_plugins=[
             rdf_output_plugin.OutputPluginDescriptor(
                 plugin_name="DummyOutputPlugin",
-                plugin_args=gui_test_lib.DummyOutputPlugin.args_type(
+                args=gui_test_lib.DummyOutputPlugin.args_type(
                     filename_regex="blah!", fetch_binaries=True))
         ],
         client_rate=60,

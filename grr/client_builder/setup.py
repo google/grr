@@ -41,9 +41,7 @@ class Sdist(sdist):
         os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
 
 
-# TODO: Clean up str() call after Python 2 support is
-# dropped ('data_files' elements have to be bytes in Python 2).
-data_files = [str("version.ini")]
+data_files = ["version.ini"]
 
 setup_args = dict(
     name="grr-response-client-builder",

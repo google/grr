@@ -17,6 +17,22 @@ $row-padding: 1.5em;
   line-height: 24px;
 }
 
+.ml-2 {
+  margin-left: 2em;
+}
+
+.mr-2 {
+  margin-right: 2em;
+}
+
+.mb-2 {
+  margin-bottom: 2em;
+}
+
+.mb-4 {
+  margin-bottom: 4em;
+}
+
 .wrapper {
   border-radius: 8px;
   border: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
@@ -45,38 +61,24 @@ $row-padding: 1.5em;
     flex-direction: column;
   }
 
-  .param-container {
+  .hunt-param-form-row {
     display: flex;
-    flex-direction: row;
     align-items: center;
-    height: 5em;
+    height: 4em;
+    margin-bottom: 1em;
   }
 
   .param-name {
     color: mat.get-color-from-palette(mat.$grey-palette, 900);
-    margin-bottom: 1.25em;
-  }
-
-  mat-button-toggle-group {
-    margin-bottom: 1.25em;
-    margin-right: 2em;
   }
 
   mat-form-field {
     width: 15em;
-    margin-right: 8px;
+    height: 4em;
   }
 
   .info-icon {
-    margin-right: 100px;
-  }
-
-  .rollout-speed {
     margin-left: 0.5em;
-  }
-
-  .run-on {
-    margin-left: 3.4em;
   }
 
   .params-title {
@@ -84,7 +86,16 @@ $row-padding: 1.5em;
   }
 
   .params-row {
-    margin-top: $row-padding;
+    display: flex;
+    flex-wrap: wrap;
+
+    > div {
+      flex-grow: 1;
+    }
+
+    mat-form-field {
+      margin-top: 1.5em;
+    }
   }
 
   .input-suffix {

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for the FileFinder flow."""
 
 import glob
@@ -15,17 +14,17 @@ from absl import app
 
 from grr_response_client import vfs
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import temp
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
+from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import file_finder
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
@@ -748,7 +747,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
 
   def _RunTSKFileFinder(self, paths):
     image_path = os.path.join(self.base_path, "ntfs_img.dd")
-    with utils.Stubber(
+    with mock.patch.object(
         vfs, "_VFS_VIRTUALROOTS", {
             rdf_paths.PathSpec.PathType.TSK:
                 rdf_paths.PathSpec(
@@ -853,7 +852,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
 
       with mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles") as efs:
         flow_id = flow_test_lib.TestFlowHelper(
-            compatibility.GetName(file_finder.FileFinder),
+            file_finder.FileFinder.__name__,
             self.client_mock,
             client_id=self.client_id,
             paths=paths,
@@ -877,7 +876,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
 
       with mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles") as efs:
         flow_id = flow_test_lib.TestFlowHelper(
-            compatibility.GetName(file_finder.FileFinder),
+            file_finder.FileFinder.__name__,
             self.client_mock,
             client_id=self.client_id,
             paths=paths,
@@ -1050,7 +1049,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     with mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles") as efs:
       flow_id = flow_test_lib.TestFlowHelper(
-          compatibility.GetName(file_finder.ClientFileFinder),
+          file_finder.ClientFileFinder.__name__,
           action_mocks.ClientFileFinderClientMock(),
           client_id=self.client_id,
           paths=paths,
@@ -1068,7 +1067,7 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     with mock.patch.object(file_store.EXTERNAL_FILE_STORE, "AddFiles") as efs:
       flow_id = flow_test_lib.TestFlowHelper(
-          compatibility.GetName(file_finder.ClientFileFinder),
+          file_finder.ClientFileFinder.__name__,
           action_mocks.ClientFileFinderClientMock(),
           client_id=self.client_id,
           paths=paths,
@@ -1284,11 +1283,90 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
       condition = rdf_file_finder.FileFinderCondition.ContentsLiteralMatch(
           literal=b"some")
 
-      # TODO: This fails currently.
-      del path_glob, action, condition
-      # results, _ = self._RunCFF([path_glob], action, conditions=[condition])
+      results, _ = self._RunCFF([path_glob], action, conditions=[condition])
 
-      # self.assertLen(results, 2)
+      self.assertLen(results, 1)
+      self.assertEqual(results[0].stat_entry.pathspec.path, path)
+
+  def testInterpolationMissingAttributes(self):
+    creator = db_test_utils.InitializeUser(data_store.REL_DB)
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    # We need to write some dummy snapshot to ensure the knowledgebase is there.
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.fqdn = "foobar.example.com"
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    flow_args = rdf_file_finder.FileFinderArgs()
+    flow_args.action = rdf_file_finder.FileFinderAction.Stat()
+    flow_args.paths = ["%%environ_path%%", "%%environ_temp%%"]
+
+    flow_id = flow_test_lib.StartFlow(
+        file_finder.ClientFileFinder,
+        creator=creator,
+        client_id=client_id,
+        flow_args=flow_args)
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.ERROR)
+    self.assertIn("Missing knowledgebase attributes", flow_obj.error_message)
+
+    log_entries = data_store.REL_DB.ReadFlowLogEntries(
+        client_id=client_id, flow_id=flow_id, offset=0, count=1024)
+    self.assertLen(log_entries, 2)
+    self.assertIn("environ_path", log_entries[0].message)
+    self.assertIn("environ_temp", log_entries[1].message)
+
+  def testInterpolationUnknownAttributes(self):
+    creator = db_test_utils.InitializeUser(data_store.REL_DB)
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    # We need to write some dummy snapshot to ensure the knowledgebase is there.
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = client_id
+    snapshot.knowledge_base.fqdn = "foobar.example.com"
+    data_store.REL_DB.WriteClientSnapshot(snapshot)
+
+    flow_args = rdf_file_finder.FileFinderArgs()
+    flow_args.action = rdf_file_finder.FileFinderAction.Stat()
+    flow_args.paths = ["%%foo%%", "%%bar%%"]
+
+    flow_id = flow_test_lib.StartFlow(
+        file_finder.ClientFileFinder,
+        creator=creator,
+        client_id=client_id,
+        flow_args=flow_args)
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.ERROR)
+    self.assertIn("Unknown knowledgebase attributes", flow_obj.error_message)
+
+    log_entries = data_store.REL_DB.ReadFlowLogEntries(
+        client_id=client_id, flow_id=flow_id, offset=0, count=1024)
+    self.assertLen(log_entries, 2)
+    self.assertIn("foo", log_entries[0].message)
+    self.assertIn("bar", log_entries[1].message)
+
+  def testInterpolationNoKnowledgebase(self):
+    creator = db_test_utils.InitializeUser(data_store.REL_DB)
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    # We do not write any snapshot not to have any knowledgebase for the client.
+
+    flow_args = rdf_file_finder.FileFinderArgs()
+    flow_args.action = rdf_file_finder.FileFinderAction.Stat()
+    flow_args.paths = ["%%os%%"]
+
+    flow_id = flow_test_lib.StartFlow(
+        file_finder.ClientFileFinder,
+        creator=creator,
+        client_id=client_id,
+        flow_args=flow_args)
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.ERROR)
+    self.assertIn("No knowledgebase available", flow_obj.error_message)
 
 
 def main(argv):

@@ -74,11 +74,13 @@ describe('ClientPageGlobalStore', () => {
   });
 
   it('queries the API on latestApproval$ subscription ', fakeAsync(() => {
-       expect(httpApiService.subscribeToListApprovals).not.toHaveBeenCalled();
+       expect(httpApiService.subscribeToListClientApprovals)
+           .not.toHaveBeenCalled();
 
        const sub = clientPageGlobalStore.latestApproval$.subscribe();
 
-       expect(httpApiService.subscribeToListApprovals).toHaveBeenCalledTimes(1);
+       expect(httpApiService.subscribeToListClientApprovals)
+           .toHaveBeenCalledTimes(1);
        sub.unsubscribe();
      }));
 
@@ -100,7 +102,7 @@ describe('ClientPageGlobalStore', () => {
        const promise = firstValueFrom(
            clientPageGlobalStore.latestApproval$.pipe(filter(isNonNull)));
 
-       httpApiService.mockedObservables.subscribeToListApprovals.next([
+       httpApiService.mockedObservables.subscribeToListClientApprovals.next([
          {
            subject: {
              clientId: 'C.1234',
@@ -163,7 +165,7 @@ describe('ClientPageGlobalStore', () => {
            clientPageGlobalStore.approvalsEnabled$.pipe(filter(isNonNull)));
        httpApiService.mockedObservables.subscribeToVerifyClientAccess.next(
            false);
-       httpApiService.mockedObservables.subscribeToListApprovals.next([]);
+       httpApiService.mockedObservables.subscribeToListClientApprovals.next([]);
        expect(await promise).toBeTrue();
      }));
 
@@ -173,7 +175,7 @@ describe('ClientPageGlobalStore', () => {
            clientPageGlobalStore.approvalsEnabled$.pipe(filter(isNonNull)));
        httpApiService.mockedObservables.subscribeToVerifyClientAccess.next(
            false);
-       httpApiService.mockedObservables.subscribeToListApprovals.next([{
+       httpApiService.mockedObservables.subscribeToListClientApprovals.next([{
          subject: {
            clientId: 'C.1234',
            fleetspeakEnabled: false,
@@ -197,7 +199,7 @@ describe('ClientPageGlobalStore', () => {
            clientPageGlobalStore.approvalsEnabled$.pipe(filter(isNonNull)));
        httpApiService.mockedObservables.subscribeToVerifyClientAccess.next(
            true);
-       httpApiService.mockedObservables.subscribeToListApprovals.next([]);
+       httpApiService.mockedObservables.subscribeToListClientApprovals.next([]);
        expect(await promise).toBeFalse();
      }));
 
@@ -680,22 +682,5 @@ describe('ClientPageGlobalStore', () => {
     httpApiService.mockedObservables.removeClientLabel.next('testlabel2');
 
     expect(lastRemovedClientLabels).toEqual(['testlabel', 'testlabel2']);
-  });
-
-  it('calls the API when suggestApprovers is called', () => {
-    clientPageGlobalStore.suggestApprovers('ba');
-    expect(httpApiService.suggestApprovers).toHaveBeenCalledWith('ba');
-  });
-
-  it('emits approver autocomplete in approverSuggestions$', async () => {
-    clientPageGlobalStore.suggestApprovers('ba');
-
-    const promise = firstValueFrom(
-        clientPageGlobalStore.approverSuggestions$.pipe(filter(isNonNull)));
-
-    httpApiService.mockedObservables.suggestApprovers.next(
-        [{username: 'bar'}, {username: 'baz'}]);
-
-    expect(await promise).toEqual(['bar', 'baz']);
   });
 });

@@ -42,9 +42,6 @@ class MultiContext(ContextManager[Sequence[_T]], Generic[_T]):
   open multiple files.
   """
 
-  # TODO: `Collection` would be a better type here, but it is only
-  # available in Python 3.6+. Once support for Python 2 is dropped, this can be
-  # generalized.
   def __init__(self, managers: Sequence[ContextManager[_T]]) -> None:
     self._managers = managers
 

@@ -66,7 +66,7 @@ class RegistryConfigParser(config_parser.GRRConfigParser):
 
   def ReadData(self) -> Dict[str, Any]:
     """Yields the valus in each section."""
-    result = collections.OrderedDict()
+    result = dict()
 
     i = 0
     while True:

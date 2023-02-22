@@ -1,10 +1,10 @@
-import {ApiHunt, ApiHuntApproval, ApiHuntResult, ApiHuntState, HuntRunnerArgs} from '../api/api_interfaces';
+import {ApiHunt, ApiHuntApproval, ApiHuntResult, ApiHuntState, HuntRunnerArgs, OutputPluginDescriptor} from '../api/api_interfaces';
 import {Hunt, HuntApproval, HuntState, HuntType, SafetyLimits} from '../models/hunt';
 import {ResultKey, toResultKeyString} from '../models/result';
-import {assertEnum, assertKeyNonNull, assertNumber} from '../preconditions';
+import {assertEnum, assertKeyNonNull, assertKeyTruthy, assertNumber} from '../preconditions';
 
 import {createDate, createOptionalDate, createOptionalDuration} from './primitive';
-import {translateApprovalStatus} from './user';
+import {translateApproval} from './user';
 
 const TWO_WEEKS = 2 * 7 * 24 * 60 * 60;
 
@@ -27,6 +27,26 @@ export function translateSafetyLimits(args: HuntRunnerArgs): SafetyLimits {
   };
 }
 
+/** Translates from ApiHuntState enum to internal model HuntState enum. */
+export function translateHuntState(hunt: ApiHunt): HuntState {
+  switch (hunt.state) {
+    case ApiHuntState.PAUSED:
+      if (hunt.initStartTime) {
+        return HuntState.PAUSED;
+      }
+      return HuntState.NOT_STARTED;
+    case ApiHuntState.STARTED:
+      return HuntState.RUNNING;
+    case ApiHuntState.STOPPED:
+      return HuntState.CANCELLED;
+    case ApiHuntState.COMPLETED:
+      return HuntState.COMPLETED;
+    default:
+      // Should be unreachable
+      throw new Error(`Unknown ApiHuntState value: ${hunt.state}.`);
+  }
+}
+
 /** Translates from ApiHunt to internal Hunt model. */
 export function translateHunt(hunt: ApiHunt): Hunt {
   assertKeyNonNull(hunt, 'created');
@@ -39,7 +59,7 @@ export function translateHunt(hunt: ApiHunt): Hunt {
   const huntType = hunt.huntType ?? HuntType.UNSET;
   assertEnum(huntType, HuntType);
 
-  assertEnum(hunt.state, HuntState);
+  assertEnum(hunt.state, ApiHuntState);
 
   return {
     allClientsCount: BigInt(hunt.allClientsCount ?? 0),
@@ -60,38 +80,32 @@ export function translateHunt(hunt: ApiHunt): Hunt {
     name: hunt.name,
     remainingClientsCount: BigInt(hunt.remainingClientsCount ?? 0),
     resultsCount: BigInt(hunt.resultsCount ?? 0),
-    state: hunt.state,
+    state: translateHuntState(hunt),
+    stateComment: hunt.stateComment,
     totalCpuUsage: hunt.totalCpuUsage ?? 0,
     totalNetUsage: BigInt(hunt.totalNetUsage ?? 0),
     safetyLimits: translateSafetyLimits(hunt.huntRunnerArgs),
     flowReference: hunt.originalObject?.flowReference,
     huntReference: hunt.originalObject?.huntReference,
     clientRuleSet: hunt.clientRuleSet,
+    outputPlugins: hunt.huntRunnerArgs.outputPlugins ?
+        hunt.huntRunnerArgs.outputPlugins as OutputPluginDescriptor[] :
+        [],
   };
 }
 
 /** Translates from ApiHuntApproval to internal HuntApproval model */
 export function translateHuntApproval(approval: ApiHuntApproval): HuntApproval {
-  assertKeyNonNull(approval, 'id');
-  assertKeyNonNull(approval, 'subject');
-  assertKeyNonNull(approval, 'reason');
-  assertKeyNonNull(approval, 'requestor');
+  const translatedApproval = translateApproval(approval);
 
+  assertKeyTruthy(approval, 'subject');
   const {subject} = approval;
-  assertKeyNonNull(subject, 'huntId');
-
-  const status =
-      translateApprovalStatus(approval.isValid, approval.isValidMessage);
+  assertKeyTruthy(subject, 'huntId');
 
   return {
-    status,
-    approvalId: approval.id,
+    ...translatedApproval,
     huntId: subject.huntId,
-    reason: approval.reason,
-    requestedApprovers: approval.notifiedUsers ?? [],
-    approvers: (approval.approvers ?? []).filter(u => u !== approval.requestor),
-    requestor: approval.requestor,
-    subject: translateHunt(approval.subject),
+    subject: translateHunt(subject),
   };
 }
 
@@ -108,6 +122,19 @@ export function getHuntResultKey(
 
 /** Translates from HuntState enum to ApiHuntState enum. */
 export function toApiHuntState(state: HuntState): ApiHuntState {
-  assertEnum(state, ApiHuntState);
-  return state;
+  switch (state) {
+    case HuntState.NOT_STARTED:
+      return ApiHuntState.PAUSED;
+    case HuntState.PAUSED:
+      return ApiHuntState.PAUSED;
+    case HuntState.RUNNING:
+      return ApiHuntState.STARTED;
+    case HuntState.CANCELLED:
+      return ApiHuntState.STOPPED;
+    case HuntState.COMPLETED:
+      return ApiHuntState.COMPLETED;
+    default:
+      // Should be unreachable
+      throw new Error(`Unknown HuntState value: ${state}.`);
+  }
 }

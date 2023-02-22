@@ -1,12 +1,19 @@
 <span *ngIf="hunt$ | async" [ngSwitch]="(hunt$ | async)?.state">
+  <mat-chip *ngSwitchCase="HuntState.NOT_STARTED" class="dark-chip" color="custom"
+    [matTooltip]="notStartedTooltip" disabled>
+    <mat-icon class="material-icons">schedule</mat-icon>
+    Collection not started
+  </mat-chip>
+
   <mat-chip *ngSwitchCase="HuntState.PAUSED" class="dark-chip" color="custom" disabled>
     <mat-icon class="material-icons">pause_circle</mat-icon>
     Collection paused
   </mat-chip>
 
-  <mat-chip *ngSwitchCase="HuntState.STOPPED" class="dark-chip" color="custom" disabled>
+  <mat-chip *ngSwitchCase="HuntState.CANCELLED" class="dark-chip" color="custom"
+    [matTooltip]="cancelledTooltip" disabled>
     <mat-icon class="material-icons">stop_circle</mat-icon>
-    Collection stopped
+    Collection cancelled
   </mat-chip>
 
   <mat-chip *ngSwitchCase="HuntState.COMPLETED" class="green-chip" color="custom" disabled>
@@ -14,7 +21,7 @@
     Collection completed
   </mat-chip>
 
-  <mat-chip *ngSwitchCase="HuntState.STARTED" class="green-chip" color="custom" disabled>
+  <mat-chip *ngSwitchCase="HuntState.RUNNING" class="green-chip" color="custom" disabled>
     <mat-spinner diameter="16"></mat-spinner>
     Collection running
     <span class="subtitle">

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- encoding: utf-8 -*-
 """Tests for grr.lib.client_index."""
 
 import binascii
@@ -11,6 +10,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_server import client_index
 from grr_response_server import data_store
+from grr_response_server.databases import db_test_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
@@ -149,6 +149,7 @@ class ClientIndexTest(test_lib.GRRBaseTest):
 
   def testRemoveLabels(self):
     client_id = next(iter(self._SetupClients(1).keys()))
+    data_store.REL_DB.WriteGRRUser("owner")
     data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
     data_store.REL_DB.AddClientLabels(client_id, "owner",
                                       ["testlabel_1", "testlabel_2"])
@@ -170,6 +171,29 @@ class ClientIndexTest(test_lib.GRRBaseTest):
 
     self.assertEqual(index.LookupClients(["testlabel_1"]), [])
     self.assertEqual(index.LookupClients(["testlabel_2"]), [])
+
+  def testMultiAddClientLabels(self):
+    client_id_1 = db_test_utils.InitializeClient(data_store.REL_DB)
+    client_id_2 = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    index = client_index.ClientIndex()
+    index.MultiAddClientLabels([client_id_1, client_id_2], ["foo", "bar"])
+
+    foo_clients = index.LookupClients(["foo"])
+    self.assertIn(client_id_1, foo_clients)
+    self.assertIn(client_id_2, foo_clients)
+
+    bar_clients = index.LookupClients(["bar"])
+    self.assertIn(client_id_1, bar_clients)
+    self.assertIn(client_id_2, bar_clients)
+
+    label_foo_clients = index.LookupClients(["label:foo"])
+    self.assertIn(client_id_1, label_foo_clients)
+    self.assertIn(client_id_2, label_foo_clients)
+
+    label_bar_clients = index.LookupClients(["label:bar"])
+    self.assertIn(client_id_1, label_bar_clients)
+    self.assertIn(client_id_2, label_bar_clients)
 
   def _HostsHaveLabel(self, expected_hosts, label, index):
     client_ids = index.LookupClients(["label:%s" % label])

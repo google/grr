@@ -2,7 +2,7 @@ import {Component, Input} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {newClientApproval} from '../../../lib/models/model_test_util';
+import {newApproval} from '../../lib/models/model_test_util';
 
 import {ApprovalChip} from './approval_chip';
 import {ApprovalChipModule} from './approval_chip_module';
@@ -35,7 +35,7 @@ describe('ApprovalChip', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.approval =
-        newClientApproval({status: {type: 'invalid', reason: ''}});
+        newApproval({status: {type: 'invalid', reason: ''}});
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -46,8 +46,7 @@ describe('ApprovalChip', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.approval =
-        newClientApproval({status: {type: 'valid'}});
+    fixture.componentInstance.approval = newApproval({status: {type: 'valid'}});
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -59,7 +58,7 @@ describe('ApprovalChip', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.approval = newClientApproval({
+    fixture.componentInstance.approval = newApproval({
       status: {type: 'valid'},
       expirationTime: new Date(Date.now() + threeDaysMs)
     });
@@ -74,7 +73,7 @@ describe('ApprovalChip', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.approval =
-        newClientApproval({status: {type: 'invalid', reason: ''}});
+        newApproval({status: {type: 'invalid', reason: ''}});
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -89,7 +88,7 @@ describe('ApprovalChip', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.approval = newClientApproval({
+    fixture.componentInstance.approval = newApproval({
       status: {type: 'valid'},
       expirationTime: new Date(mockExpirationTimeMs)
     });
@@ -106,7 +105,7 @@ describe('ApprovalChip', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.approval = newClientApproval({
+    fixture.componentInstance.approval = newApproval({
       status: {type: 'valid'},
       expirationTime: new Date(mockExpirationTimeMs)
     });

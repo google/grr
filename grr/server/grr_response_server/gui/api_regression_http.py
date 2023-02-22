@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Base test classes for API handlers tests."""
-
+import json
 import logging
 import os
 import threading
@@ -13,9 +13,7 @@ import requests
 from google.protobuf import json_format
 from grr_api_client import connectors
 from grr_response_core.lib import utils
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
-from grr_response_core.lib.util.compat import json
 from grr_response_server import gui
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router
@@ -70,7 +68,7 @@ class HttpApiRegressionTestMixinBase(object):
     if json_str.startswith(xssi_prefix):
       json_str = json_str[len(xssi_prefix):]
 
-    return json.Parse(json_str)
+    return json.loads(json_str)
 
   def _PrepareV1Request(self, method, args=None):
     """Prepares API v1 request for a given method and args."""
@@ -85,10 +83,12 @@ class HttpApiRegressionTestMixinBase(object):
       json_format.Parse(request.data, body_proto)
       body_args = args.__class__.FromSerializedBytes(
           body_proto.SerializeToString())
-      request.data = json.Dump(
+      request.data = json.dumps(
           api_value_renderers.StripTypeInfo(
-              api_value_renderers.RenderValue(body_args)),
-          encoder=http_api.JSONEncoderWithRDFPrimitivesSupport)
+              api_value_renderers.RenderValue(body_args)
+          ),
+          cls=http_api.JSONEncoderWithRDFPrimitivesSupport,
+      )
 
     prepped_request = request.prepare()
 
@@ -130,11 +130,7 @@ class HttpApiRegressionTestMixinBase(object):
     }
 
     if request.data:
-      if compatibility.PY2:
-        data = request.data.decode("utf-8")
-      else:
-        data = request.data
-      request_payload = self._ParseJSON(replace(data))
+      request_payload = self._ParseJSON(replace(request.data))
       if request_payload:
         check_result["request_payload"] = request_payload
 

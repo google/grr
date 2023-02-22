@@ -1,7 +1,7 @@
-import {ApiFlowReference, ApiHuntReference, ForemanClientRuleSet} from '../api/api_interfaces';
+import {ApiFlowReference, ApiHuntReference, ForemanClientRuleSet, OutputPluginDescriptor} from '../api/api_interfaces';
 import {Duration} from '../date_time';
 
-import {ApprovalStatus} from './user';
+import {Approval, ApprovalRequest} from './user';
 
 /** Key used to identify a hunt approval */
 export interface HuntApprovalKey {
@@ -25,9 +25,10 @@ export declare interface SafetyLimits {
 
 /** ApiHunt.State proto mapping. */
 export enum HuntState {
+  NOT_STARTED = 'NOT_STARTED',
   PAUSED = 'PAUSED',
-  STARTED = 'STARTED',
-  STOPPED = 'STOPPED',
+  RUNNING = 'RUNNING',
+  CANCELLED = 'CANCELLED',
   COMPLETED = 'COMPLETED',
 }
 
@@ -59,22 +60,23 @@ export declare interface Hunt {
   readonly remainingClientsCount: bigint;
   readonly resultsCount: bigint;
   readonly state: HuntState;
+  readonly stateComment?: string;
   readonly totalCpuUsage: number;
   readonly totalNetUsage: bigint;
   readonly safetyLimits: SafetyLimits;
   readonly flowReference?: ApiFlowReference;
   readonly huntReference?: ApiHuntReference;
   readonly clientRuleSet?: ForemanClientRuleSet;
+  readonly outputPlugins?: OutputPluginDescriptor[];
 }
 
 /** Approval proto mapping. */
-export declare interface HuntApproval {
-  readonly approvalId: string;
+export declare interface HuntApproval extends Approval {
   readonly huntId: string;
-  readonly requestor: string;
-  readonly reason: string;
-  readonly status: ApprovalStatus;
-  readonly requestedApprovers: readonly string[];
-  readonly approvers: readonly string[];
   readonly subject: Hunt;
+}
+
+/** ApprovalRequest for hunt */
+export interface HuntApprovalRequest extends ApprovalRequest {
+  readonly huntId: string;
 }

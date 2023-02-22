@@ -7,7 +7,6 @@ a logical relational database model.
 
 import abc
 import collections
-import dataclasses
 import re
 from typing import Collection
 from typing import Dict
@@ -32,7 +31,6 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
-from grr_response_core.lib.util import compatibility
 from grr_response_core.lib.util import precondition
 from grr_response_server import fleet_utils
 from grr_response_server import foreman_rules
@@ -549,8 +547,8 @@ class ClientPath(object):
 
   def __repr__(self):
     return "<%s client_id=%r path_type=%r components=%r>" % (
-        compatibility.GetName(
-            self.__class__), self.client_id, self.path_type, self.components)
+        self.__class__.__name__, self.client_id, self.path_type,
+        self.components)
 
 
 class ClientPathHistory(object):
@@ -569,23 +567,6 @@ class ClientPathHistory(object):
     precondition.AssertType(timestamp, rdfvalue.RDFDatetime)
     precondition.AssertType(hash_entry, rdf_crypto.Hash)
     self.hash_entries[timestamp] = hash_entry
-
-
-@dataclasses.dataclass(frozen=True)
-class EncryptionKey:
-  """A database abstraction for keys used to encrypt and decrypt data.
-
-  Attributes:
-    key_id: The identifier of the key.
-    nonce: A 96-bit initialization vector used for encryption.
-  """
-  key_id: str
-  nonce: bytes
-
-  def __post_init__(self):
-    if 8 * len(self.nonce) != 96:
-      raise ValueError(f"Invalid nonce length: "
-                       f"(expected 96, got {8 * len(self.nonce)})")
 
 
 class Database(metaclass=abc.ABCMeta):
@@ -942,7 +923,6 @@ class Database(metaclass=abc.ABCMeta):
       newest entry first.
     """
 
-  @abc.abstractmethod
   def AddClientKeywords(self, client_id: Text,
                         keywords: Iterable[Text]) -> None:
     """Associates the provided keywords with the client.
@@ -953,6 +933,26 @@ class Database(metaclass=abc.ABCMeta):
 
     Raises:
       UnknownClientError: The client_id is not known yet.
+    """
+    try:
+      self.MultiAddClientKeywords([client_id], set(keywords))
+    except AtLeastOneUnknownClientError as error:
+      raise UnknownClientError(client_id) from error
+
+  @abc.abstractmethod
+  def MultiAddClientKeywords(
+      self,
+      client_ids: Collection[str],
+      keywords: Collection[str],
+  ) -> None:
+    """Associates the provided keywords with the specified clients.
+
+    Args:
+      client_ids: A list of client identifiers to associate with the keywords.
+      keywords: A list of keywords to associate with the clients.
+
+    Raises:
+      AtLeastOneUnknownClientError: At least one of the clients is not known.
     """
 
   @abc.abstractmethod
@@ -982,7 +982,6 @@ class Database(metaclass=abc.ABCMeta):
       keyword: The keyword to delete.
     """
 
-  @abc.abstractmethod
   def AddClientLabels(self, client_id: Text, owner: Text,
                       labels: List[Text]) -> None:
     """Attaches a user label to a client.
@@ -991,6 +990,25 @@ class Database(metaclass=abc.ABCMeta):
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
       owner: Username string that owns the created labels.
       labels: The labels to attach as a list of strings.
+    """
+    try:
+      self.MultiAddClientLabels([client_id], owner, labels)
+    except AtLeastOneUnknownClientError as error:
+      raise UnknownClientError(client_id) from error
+
+  @abc.abstractmethod
+  def MultiAddClientLabels(
+      self,
+      client_ids: Collection[str],
+      owner: str,
+      labels: Collection[str],
+  ) -> None:
+    """Attaches user labels to the specified clients.
+
+    Args:
+      client_ids: A list a client identifiers to attach the labels to.
+      owner: A name of the user that owns the attached labels.
+      labels: Labels to attach.
     """
 
   @abc.abstractmethod
@@ -2600,12 +2618,16 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def ReadHuntObjects(self,
-                      offset,
-                      count,
-                      with_creator=None,
-                      created_after=None,
-                      with_description_match=None):
+  def ReadHuntObjects(
+      self,
+      offset,
+      count,
+      with_creator=None,
+      created_after=None,
+      with_description_match=None,
+      created_by=None,
+      not_created_by=None,
+  ):
     """Reads hunt objects from the database.
 
     Args:
@@ -2618,19 +2640,31 @@ class Database(metaclass=abc.ABCMeta):
         hunts with create_time after created_after timestamp will be returned.
       with_description_match: When specified, will only return hunts with
         descriptions containing a given substring.
+      created_by: When specified, should be a list of strings corresponding to
+        GRR usernames. Only metadata for hunts created by the matching users
+        will be returned.
+      not_created_by: When specified, should be a list of strings corresponding
+        to GRR usernames. Only metadata for hunts NOT created by any of the
+        matching users will be returned.
 
     Returns:
       A list of rdf_hunt_objects.Hunt objects sorted by create_time in
       descending order.
     """
 
+  # TODO: Cleanup `with_creator`(single user) in favor of
+  # `created_by`(list).
   @abc.abstractmethod
-  def ListHuntObjects(self,
-                      offset,
-                      count,
-                      with_creator=None,
-                      created_after=None,
-                      with_description_match=None):
+  def ListHuntObjects(
+      self,
+      offset,
+      count,
+      with_creator=None,
+      created_after=None,
+      with_description_match=None,
+      created_by=None,
+      not_created_by=None,
+  ):
     """Reads metadata for hunt objects from the database.
 
     Args:
@@ -2645,6 +2679,12 @@ class Database(metaclass=abc.ABCMeta):
         be returned.
       with_description_match: When specified, will only return metadata for
         hunts with descriptions containing a given substring.
+      created_by: When specified, should be a list of strings corresponding to
+        GRR usernames. Only metadata for hunts created by the matching users
+        will be returned.
+      not_created_by: When specified, should be a list of strings corresponding
+        to GRR usernames. Only metadata for hunts NOT created by any of the
+        matching users will be returned.
 
     Returns:
       A list of rdf_hunt_objects.HuntMetadata objects sorted by create_time in
@@ -2735,7 +2775,7 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def CountHuntResultsByType(self, hunt_id):
+  def CountHuntResultsByType(self, hunt_id: str) -> Dict[str, int]:
     """Returns counts of items in hunt results grouped by type.
 
     Args:
@@ -2989,26 +3029,26 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def WriteBlobEncryptionKeys(
       self,
-      keys: Dict[rdf_objects.BlobID, EncryptionKey],
+      key_names: Dict[rdf_objects.BlobID, str],
   ) -> None:
     """Associates the specified blobs with the given encryption keys.
 
     Args:
-      keys: A mapping from blobs to keys to associate.
+      key_names: A mapping from blobs to key names to associate.
     """
 
   @abc.abstractmethod
   def ReadBlobEncryptionKeys(
       self,
       blob_ids: Collection[rdf_objects.BlobID],
-  ) -> Dict[rdf_objects.BlobID, Optional[EncryptionKey]]:
+  ) -> Dict[rdf_objects.BlobID, Optional[str]]:
     """Retrieves encryption keys associated with blobs.
 
     Args:
-      blob_ids: A collection of blob identifiers to retrieve the keys for.
+      blob_ids: A collection of blob identifiers to retrieve the key names for.
 
     Returns:
-      An mapping from blob to a key associated with it (if available).
+      An mapping from blob to a key name associated with it (if available).
     """
 
 
@@ -3033,36 +3073,14 @@ class DatabaseValidationWrapper(Database):
 
   def ReadArtifact(self, name):
     precondition.AssertType(name, Text)
-    return self._PatchArtifact(self.delegate.ReadArtifact(name))
+    return self.delegate.ReadArtifact(name)
 
   def ReadAllArtifacts(self):
-    return list(map(self._PatchArtifact, self.delegate.ReadAllArtifacts()))
+    return self.delegate.ReadAllArtifacts()
 
   def DeleteArtifact(self, name):
     precondition.AssertType(name, Text)
     return self.delegate.DeleteArtifact(name)
-
-  # TODO: This patching behaviour can be removed once we are sure
-  # that all artifacts have been properly migrated to use Python 3 serialized
-  # representation.
-  def _PatchArtifact(
-      self, artifact: rdf_artifacts.Artifact) -> rdf_artifacts.Artifact:
-    """Patches artifact to not contain byte-string source attributes."""
-    patched = False
-
-    for source in artifact.sources:
-      attributes = source.attributes.ToDict()
-      unicode_attributes = compatibility.UnicodeJson(attributes)
-
-      if attributes != unicode_attributes:
-        source.attributes = unicode_attributes
-        patched = True
-
-    if patched:
-      self.DeleteArtifact(str(artifact.name))
-      self.WriteArtifact(artifact)
-
-    return artifact
 
   def WriteClientMetadata(
       self,
@@ -3215,6 +3233,14 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.AddClientKeywords(client_id, keywords)
 
+  def MultiAddClientKeywords(
+      self,
+      client_ids: Collection[str],
+      keywords: Collection[str],
+  ) -> None:
+    """Associates the provided keywords with the specified clients."""
+    return self.delegate.MultiAddClientKeywords(client_ids, keywords)
+
   def ListClientsForKeywords(
       self,
       keywords: Iterable[Text],
@@ -3247,6 +3273,15 @@ class DatabaseValidationWrapper(Database):
       _ValidateLabel(label)
 
     return self.delegate.AddClientLabels(client_id, owner, labels)
+
+  def MultiAddClientLabels(
+      self,
+      client_ids: Collection[str],
+      owner: str,
+      labels: Collection[str],
+  ) -> None:
+    """Attaches user labels to the specified clients."""
+    return self.delegate.MultiAddClientLabels(client_ids, owner, labels)
 
   def MultiReadClientLabels(
       self,
@@ -4200,43 +4235,65 @@ class DatabaseValidationWrapper(Database):
     _ValidateHuntId(hunt_id)
     return self.delegate.ReadHuntObject(hunt_id)
 
-  def ReadHuntObjects(self,
-                      offset,
-                      count,
-                      with_creator=None,
-                      created_after=None,
-                      with_description_match=None):
+  def ReadHuntObjects(
+      self,
+      offset,
+      count,
+      with_creator=None,
+      created_after=None,
+      with_description_match=None,
+      created_by=None,
+      not_created_by=None,
+  ):
     precondition.AssertOptionalType(offset, int)
     precondition.AssertOptionalType(count, int)
     precondition.AssertOptionalType(with_creator, Text)
     precondition.AssertOptionalType(created_after, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(with_description_match, Text)
+    if created_by is not None:
+      precondition.AssertIterableType(created_by, str)
+    if not_created_by is not None:
+      precondition.AssertIterableType(not_created_by, str)
 
     return self.delegate.ReadHuntObjects(
         offset,
         count,
         with_creator=with_creator,
         created_after=created_after,
-        with_description_match=with_description_match)
+        with_description_match=with_description_match,
+        created_by=created_by,
+        not_created_by=not_created_by,
+    )
 
-  def ListHuntObjects(self,
-                      offset,
-                      count,
-                      with_creator=None,
-                      created_after=None,
-                      with_description_match=None):
+  def ListHuntObjects(
+      self,
+      offset,
+      count,
+      with_creator=None,
+      created_after=None,
+      with_description_match=None,
+      created_by=None,
+      not_created_by=None,
+  ):
     precondition.AssertOptionalType(offset, int)
     precondition.AssertOptionalType(count, int)
     precondition.AssertOptionalType(with_creator, Text)
     precondition.AssertOptionalType(created_after, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(with_description_match, Text)
+    if created_by is not None:
+      precondition.AssertIterableType(created_by, str)
+    if not_created_by is not None:
+      precondition.AssertIterableType(not_created_by, str)
 
     return self.delegate.ListHuntObjects(
         offset,
         count,
         with_creator=with_creator,
         created_after=created_after,
-        with_description_match=with_description_match)
+        with_description_match=with_description_match,
+        created_by=created_by,
+        not_created_by=not_created_by,
+    )
 
   def ReadHuntLogEntries(self, hunt_id, offset, count, with_substring=None):
     _ValidateHuntId(hunt_id)
@@ -4414,17 +4471,17 @@ class DatabaseValidationWrapper(Database):
 
   def WriteBlobEncryptionKeys(
       self,
-      keys: Dict[rdf_objects.BlobID, EncryptionKey],
+      key_names: Dict[rdf_objects.BlobID, str],
   ) -> None:
-    for blob_id in keys.keys():
+    for blob_id in key_names.keys():
       _ValidateBlobID(blob_id)
 
-    return self.delegate.WriteBlobEncryptionKeys(keys)
+    return self.delegate.WriteBlobEncryptionKeys(key_names)
 
   def ReadBlobEncryptionKeys(
       self,
       blob_ids: Collection[rdf_objects.BlobID],
-  ) -> Dict[rdf_objects.BlobID, Optional[EncryptionKey]]:
+  ) -> Dict[rdf_objects.BlobID, Optional[str]]:
     for blob_id in blob_ids:
       _ValidateBlobID(blob_id)
 

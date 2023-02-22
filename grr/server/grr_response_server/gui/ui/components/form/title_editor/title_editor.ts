@@ -79,6 +79,7 @@ export class TitleEditorContent implements AfterViewInit {
 })
 export class TitleEditor implements AfterContentInit, OnChanges {
   @Input() disabled = false;
+  @Input() route: unknown[]|null = null;
   @Output() changed = new EventEmitter<string>();
   @ContentChild(TitleEditorContent) content!: TitleEditorContent;
 
