@@ -188,7 +188,8 @@ jobs:
           path: ~/_artifacts
       - name: Set up
         run: |
-          sudo apt-get install -y fakeroot debhelper libffi-dev libssl-dev python3-dev python3-pip python3-venv wget openjdk-8-jdk zip git devscripts dh-systemd libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
+          sudo apt-get update
+          sudo apt-get install -y fakeroot debhelper libffi-dev libssl-dev python3-dev python3-pip python3-venv wget openjdk-8-jdk zip git devscripts libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
           python3 -m venv "${HOME}/INSTALL"
           "${HOME}/INSTALL/bin/python3" -m pip install --upgrade pip setuptools wheel
       - name: Build
