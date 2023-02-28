@@ -14,7 +14,7 @@
 #    -p 0.0.0.0:8080:8080 \
 #    grrdocker/grr
 
-FROM mariadb:bionic
+FROM mariadb:jammy
 
 LABEL maintainer="grr-dev@googlegroups.com"
 
@@ -41,6 +41,7 @@ RUN apt-get update && \
   python3-dev \
   python3-pip \
   python3-venv \
+  python3-mysqldb \
   rpm \
   wget \
   zip \

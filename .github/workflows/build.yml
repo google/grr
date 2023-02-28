@@ -8,7 +8,7 @@ env:
 jobs:
 
   test-ubuntu:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     env:
       CHROME_DEB: google-chrome-stable_current_amd64.deb
     steps:
@@ -38,7 +38,7 @@ jobs:
           if [ $(google-chrome --version | grep -Eo " [0-9]{1,3}") != "71" ]; then (cd grr/server/grr_response_server/gui/static/ && npm run gulp test); fi
 
   build-openapi:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
       - uses: actions/setup-python@v4
@@ -113,7 +113,7 @@ jobs:
           retention-days: 1
 
   build-centos:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     env:
       GCS_TAG: centos_64bit
       DOCKER_IMG: grrdocker/centos7-python39
@@ -215,7 +215,7 @@ jobs:
 
   test-ubuntu-e2e:
     continue-on-error: true  # Debug follow up step.
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     env:
       GRR_ADMIN_PASS: 'e2e_tests'
       APPVEYOR_MYSQL_PASS: 'root' 
@@ -239,11 +239,11 @@ jobs:
         run: |
           free -hmw
           lscpu
-          sudo apt install -y libmysqlclient-dev
+          sudo apt install -y python3-mysqldb
           if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
             wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
           fi
-          python -m venv "${HOME}/INSTALL"
+          python -m venv --system-site-packages "${HOME}/INSTALL"
           travis/install.sh
           sudo -EH ./appveyor/e2e_tests/install_mem_usage_cron.sh
           sudo -EH ./appveyor/e2e_tests/install_latest_server_deb.sh
@@ -260,7 +260,7 @@ jobs:
 
 
   build-push-docker:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     needs:
       - build-server-deb
       # - test-ubuntu-e2e  # TODO: Comment back in after debugging is finished.
@@ -290,7 +290,7 @@ jobs:
           docker push -a ${{ env.DOCKER_REPOSITORY }}
   upload:
     if: ${{ github.event_name == 'push' }}
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     needs:
       - build-push-docker
     steps:
