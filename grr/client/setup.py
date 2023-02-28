@@ -27,9 +27,9 @@ THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 # package dir.
 os.chdir(THIS_DIRECTORY)
 
-GRPCIO = "grpcio==1.46.3"
-GRPCIO_TOOLS = "grpcio-tools==1.43.0"
-PROTOBUF = "protobuf==3.12.2"
+GRPCIO = "grpcio==1.51.3"
+GRPCIO_TOOLS = "grpcio-tools==1.51.3"
+PROTOBUF = "protobuf==3.20.3"
 
 
 def get_config():
@@ -129,11 +129,11 @@ setup_args = dict(
     include_package_data=True,
     python_requires=">=3.9",
     install_requires=[
-        "absl-py==1.2.0",
+        "absl-py==1.4.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-        "pytsk3==20210419",
+        "pytsk3==20230125",
         "retry==0.9.2",
-        "libfsntfs-python==20210503",
+        "libfsntfs-python==20221023",
         "fleetspeak-client-bin==0.1.11",
     ],
     extras_require={

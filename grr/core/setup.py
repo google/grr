@@ -123,7 +123,7 @@ setup_args = dict(
         "sdist": Sdist,
     },
     install_requires=[
-        "cryptography==3.3.2",
+        "cryptography==3.4.8",
         "distro==1.7.0",
         "fleetspeak==0.1.11",
         "grr-response-proto==%s" % VERSION.get("Version", "packagedepends"),
@@ -132,11 +132,11 @@ setup_args = dict(
         "pip>=21.0.1",
         "psutil==5.8.0",
         "python-crontab==2.5.1",
-        "python-dateutil==2.8.1",
-        "pytz==2020.1",
+        "python-dateutil==2.8.2",
+        "pytz==2022.7.1",
         "PyYAML==5.4.1",
         "requests==2.25.1",
-        "yara-python==4.0.1",
+        "yara-python==4.2.3",
     ],
 
     # Data files used by GRR. Access these via the config_lib "resource" filter.
