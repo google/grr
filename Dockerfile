@@ -47,7 +47,7 @@ RUN apt-get update && \
   zip \
   python3-mysqldb
 
-RUN pip3 install --upgrade setuptools && \
+RUN pip3 install --upgrade setuptools<=58.3.0 && \
     python3 -m venv --system-site-packages $GRR_VENV
 
 RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir pip wheel six setuptools nodeenv && \
