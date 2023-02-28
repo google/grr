@@ -20,11 +20,11 @@ jobs:
         run: |
           free -hmw
           lscpu
-          sudo apt install -y libmysqlclient-dev
+          sudo apt install -y python3-mysqldb
           if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
             wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
           fi
-          python -m venv "${HOME}/INSTALL"
+          python -m venv --system-site-packages "${HOME}/INSTALL" 
           travis/install.sh
       - name: Test
         run: |
@@ -46,8 +46,8 @@ jobs:
           python-version: '3.9'
       - name: Install
         run: |
-          sudo apt install -y libmysqlclient-dev
-          python -m venv "${HOME}/INSTALL"
+          sudo apt install -y python3-mysqldb
+          python -m venv --system-site-packages "${HOME}/INSTALL" 
           travis/install.sh
       - name: Build
         run: |
