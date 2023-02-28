@@ -222,6 +222,11 @@ class _CursorProxy(object):
       if e.args[0] == 1051:
         return None
 
+      # Deprecated syntax. Log, but not fail.
+      if e.args[0] == 1287:
+        logging.warning("MySQL deprecated syntax: %s", e)
+        return None
+
       # TODO: check if newer versions of mysqlclient still report
       # the CONSTRAINT...FOREIGN KEY warning as a warning and not as an
       # integrity error.

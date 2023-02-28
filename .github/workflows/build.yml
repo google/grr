@@ -13,18 +13,15 @@ jobs:
       CHROME_DEB: google-chrome-stable_current_amd64.deb
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
       - name: Install
         run: |
           free -hmw
           lscpu
-          sudo apt install -y python3-mysqldb
+          sudo apt install -y python3-dev python3-pip python3-venv python3-mysqldb
           if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
             wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
           fi
-          python -m venv --system-site-packages "${HOME}/INSTALL" 
+          python3 -m venv --system-site-packages "${HOME}/INSTALL" 
           travis/install.sh
       - name: Test
         run: |
@@ -41,13 +38,10 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
       - name: Install
         run: |
-          sudo apt install -y python3-mysqldb
-          python -m venv --system-site-packages "${HOME}/INSTALL" 
+          sudo apt install -y python3-dev python3-pip python3-venv python3-mysqldb
+          python3 -m venv --system-site-packages "${HOME}/INSTALL" 
           travis/install.sh
       - name: Build
         run: |
@@ -223,9 +217,6 @@ jobs:
       - build-server-deb
     steps:
       - uses: actions/checkout@v3
-      - uses: actions/setup-python@v4
-        with:
-          python-version: '3.9'
       - name: Set up MySQL
         run: |
           sudo /etc/init.d/mysql start
@@ -239,11 +230,11 @@ jobs:
         run: |
           free -hmw
           lscpu
-          sudo apt install -y python3-mysqldb
+          sudo apt install -y python3-mysqldb python3-pip python3-venv
           if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
             wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
           fi
-          python -m venv --system-site-packages "${HOME}/INSTALL"
+          python3 -m venv --system-site-packages "${HOME}/INSTALL"
           travis/install.sh
           sudo -EH ./appveyor/e2e_tests/install_mem_usage_cron.sh
           sudo -EH ./appveyor/e2e_tests/install_latest_server_deb.sh
