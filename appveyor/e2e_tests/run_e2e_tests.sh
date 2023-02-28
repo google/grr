@@ -32,7 +32,7 @@ utmpdump /var/log/wtmp >> wtmp.txt
 utmpdump --reverse < wtmp.txt > /var/log/wtmp
 utmpdump /var/log/wtmp
 
-apt install -y /usr/share/grr-server/executables/installers/grr_*_amd64.deb
+apt install -y /usr/share/grr-server/executables/installers/grr_ubuntu22_*_amd64.deb
 
 CLIENT_ID="$(grr_console --code_to_execute 'from grr_response_test import test_utils; print(test_utils.GetClientId("/etc/grr.local.yaml"))')"
 

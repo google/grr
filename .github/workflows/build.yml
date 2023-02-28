@@ -57,7 +57,7 @@ jobs:
           path: _openapi_artifacts/
           retention-days: 1
 
-  build-linux:
+  build-ubuntu18:
     runs-on: ubuntu-18.04
     env:
       GCS_TAG: ubuntu_64bit
@@ -68,13 +68,41 @@ jobs:
           python-version: '3.9'
       - name: Set up
         run: |
-          sudo apt install fakeroot debhelper libffi-dev libssl-dev
+          sudo apt install fakeroot debhelper libffi-dev libssl-dev rename
           pip install virtualenv
           virtualenv "${HOME}/INSTALL"
       - name: Build
         run: |
           travis/install_client_builder.sh
           travis/build_templates.sh
+          rename 's/grr_/grr_ubuntu18_/' gcs_upload_dir/*
+          ls -la gcs_upload_dir
+      - name: Upload installers to GitHub artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: ubuntu-installers
+          path: gcs_upload_dir/
+          retention-days: 1
+
+  build-ubuntu22:
+    runs-on: ubuntu-22.04
+    env:
+      GCS_TAG: ubuntu_64bit
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - name: Set up
+        run: |
+          sudo apt install fakeroot debhelper libffi-dev libssl-dev rename
+          pip install virtualenv
+          virtualenv "${HOME}/INSTALL"
+      - name: Build
+        run: |
+          travis/install_client_builder.sh
+          travis/build_templates.sh
+          rename 's/grr_/grr_ubuntu22_/' gcs_upload_dir/*
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
         uses: actions/upload-artifact@v3
@@ -170,7 +198,8 @@ jobs:
       GCS_TAG: server_deb
     needs:
       - build-centos
-      - build-linux
+      - build-ubuntu18
+      - build-ubuntu22
       - build-osx
       - build-windows
     steps:
