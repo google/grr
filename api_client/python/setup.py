@@ -63,9 +63,12 @@ setup_args = dict(
     },
     install_requires=[
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
-        "cryptography==3.3.2",
-        "requests==2.25.1",
-        "Werkzeug==2.1.2",
+        # Note: grr-api-client might very much be used as a library and
+        # therefore shouldn't pin dependencies that might be shared with other
+        # pip packages.
+        "cryptography>=3.3.2",
+        "requests>=2.25.1,<3",
+        "Werkzeug>=2.1.2,<3",
     ],
     extra_requires={
         "shell": ["ipython==7.15.0",],
