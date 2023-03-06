@@ -359,7 +359,7 @@ jobs:
           gsutil rm gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/** || true
           gsutil cp -r $OUTPUT_DIR/server_deb/* gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/
       - name: Upload OpenAPI to GCS
-        uses: google-github-actions/upload-cloud-storage@1.0.0
+        uses: google-github-actions/upload-cloud-storage@v1.0.0
         with:
           path: _artifacts/openapi/
           destination: ${{ env.GCS_BUCKET_OPENAPI }}
