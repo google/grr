@@ -57,7 +57,7 @@ jobs:
           path: _openapi_artifacts/
           retention-days: 1
 
-  build-ubuntu22:
+  build-ubuntu:
     runs-on: ubuntu-22.04
     env:
       GCS_TAG: ubuntu_64bit
@@ -170,7 +170,7 @@ jobs:
       GCS_TAG: server_deb
     needs:
       - build-centos
-      - build-ubuntu22
+      - build-ubuntu
       - build-osx
       - build-windows
     steps:
