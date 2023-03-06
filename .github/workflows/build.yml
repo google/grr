@@ -68,14 +68,13 @@ jobs:
           python-version: '3.9'
       - name: Set up
         run: |
-          sudo apt install fakeroot debhelper libffi-dev libssl-dev rename
+          sudo apt install fakeroot debhelper libffi-dev libssl-dev
           pip install virtualenv
           virtualenv "${HOME}/INSTALL"
       - name: Build
         run: |
           travis/install_client_builder.sh
-          travis/build_templates.sh
-          rename 's/grr_/grr_ubuntu18_/' gcs_upload_dir/*
+          travis/build_templates.sh -p Client.prefix=ubuntu18
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
         uses: actions/upload-artifact@v3
@@ -95,14 +94,13 @@ jobs:
           python-version: '3.9'
       - name: Set up
         run: |
-          sudo apt install fakeroot debhelper libffi-dev libssl-dev rename
+          sudo apt install fakeroot debhelper libffi-dev libssl-dev
           pip install virtualenv
           virtualenv "${HOME}/INSTALL"
       - name: Build
         run: |
           travis/install_client_builder.sh
-          travis/build_templates.sh
-          rename 's/grr_/grr_ubuntu22_/' gcs_upload_dir/*
+          travis/build_templates.sh -p Client.prefix=ubuntu22
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
         uses: actions/upload-artifact@v3
