@@ -39,8 +39,7 @@ class Sdist(sdist):
 
   REQUIRED_TEMPLATES = [
       "GRR_maj.minor_amd64.msi.zip",
-      "grr_ubuntu18_maj.minor_amd64.deb.zip",
-      "grr_ubuntu22_maj.minor_amd64.deb.zip",
+      "grr_maj.minor_amd64.deb.zip",
       "grr_maj.minor_amd64.xar.zip",
       "grr_maj.minor_amd64.rpm.zip",
   ]

@@ -4,7 +4,7 @@ set -e
 
 source "${HOME}/INSTALL/bin/activate"
 
-grr_client_build build --output gcs_upload_dir "$@"
+grr_client_build build --output gcs_upload_dir
 
 # We only have one template on linux or OS X so using *.zip is safe here
 grr_client_build \
