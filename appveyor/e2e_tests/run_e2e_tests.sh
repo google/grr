@@ -33,7 +33,7 @@ utmpdump --reverse < wtmp.txt > /var/log/wtmp
 utmpdump /var/log/wtmp
 
 apt install -y /usr/share/grr-server/executables/installers/grr_*_amd64.deb
-
+sleep 15
 CLIENT_ID="C.$(cat /tmp/fleetspeak-client.INFO | grep -o '[a-z0-9]\{16\}')"
 
 echo "Installed GRR client [Id ${CLIENT_ID}]"
