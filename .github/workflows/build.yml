@@ -241,7 +241,7 @@ jobs:
         if: always()
         with:
           name: e2e-test
-          path: appveyor_e2e_artifacts/
+          path: /var/log/grr
           retention-days: 1
 
   build-push-docker:
