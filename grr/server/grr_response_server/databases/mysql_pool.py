@@ -227,6 +227,11 @@ class _CursorProxy(object):
         logging.warning("MySQL deprecated syntax: %s", e)
         return None
 
+      # Memory range optimization warning. Log, but do not fail.
+      if e.args[0] == 3170:
+        logging.warning("MySQL range optimization warning: %s", e)
+        return None
+
       # TODO: check if newer versions of mysqlclient still report
       # the CONSTRAINT...FOREIGN KEY warning as a warning and not as an
       # integrity error.
