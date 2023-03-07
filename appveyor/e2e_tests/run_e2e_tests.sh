@@ -34,15 +34,9 @@ utmpdump /var/log/wtmp
 
 apt install -y /usr/share/grr-server/executables/installers/grr_*_amd64.deb
 
-CLIENT_ID="$(grr_console --code_to_execute 'from grr_response_test import test_utils; print(test_utils.GetClientId("/etc/grr.local.yaml"))')"
+CLIENT_ID="C.$(cat /tmp/fleetspeak-client.INFO | grep -o '[a-z0-9]\{16\}')"
 
 echo "Installed GRR client [Id ${CLIENT_ID}]"
-
-# Enable verbose logging and increase polling frequency so flows
-# get picked up quicker.
-echo -e "Logging.engines: stderr,file\nLogging.verbose: True\nClient.poll_max: 5" >> /etc/grr.local.yaml
-
-systemctl restart grr
 
 grr_end_to_end_tests --verbose \
   --api_password "${GRR_ADMIN_PASS}" \

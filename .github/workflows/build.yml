@@ -230,12 +230,6 @@ jobs:
         run: |
           free -hmw
           lscpu
-          sudo apt install -y python3-mysqldb python3-pip python3-venv
-          if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
-            wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
-          fi
-          python3 -m venv --system-site-packages "${HOME}/INSTALL"
-          travis/install.sh
           sudo -EH ./appveyor/e2e_tests/install_mem_usage_cron.sh
           sudo -EH ./appveyor/e2e_tests/install_latest_server_deb.sh
       - name: Test
@@ -248,7 +242,6 @@ jobs:
           name: e2e-test
           path: appveyor_e2e_artifacts/
           retention-days: 1
-
 
   build-push-docker:
     runs-on: ubuntu-22.04
@@ -279,6 +272,7 @@ jobs:
         name: Push to ${{ env.DOCKER_REPOSITORY }}
         run: |
           docker push -a ${{ env.DOCKER_REPOSITORY }}
+
   upload:
     if: ${{ github.event_name == 'push' }}
     permissions:
