@@ -6,9 +6,9 @@ import {combineLatest, Observable} from 'rxjs';
 import {filter, map, startWith, takeUntil} from 'rxjs/operators';
 
 import {ExportMenuItem} from '../../../../components/flow_details/plugins/plugin';
-import {ApiHuntError} from '../../../../lib/api/api_interfaces';
+import {ApiHuntError, ApiHuntResult} from '../../../../lib/api/api_interfaces';
 import {getHuntExportedResultsCsvUrl, getHuntExportedResultsSqliteUrl, getHuntExportedResultsYamlUrl, getHuntFilesArchiveTarGzUrl, getHuntFilesArchiveZipUrl} from '../../../../lib/api/http_api_service';
-import {orderApiHuntResultColumns, PAYLOAD_TYPE_TRANSLATION, toHuntResultRow} from '../../../../lib/api_translation/result';
+import {ERROR_TAB, orderApiHuntResultColumns, PAYLOAD_TYPE_TRANSLATION, PayloadType, toHuntResultRow} from '../../../../lib/api_translation/result';
 import {CellComponent, ColumnDescriptor} from '../../../../lib/models/result';
 import {isNonNull, isNull} from '../../../../lib/preconditions';
 import {observeOnDestroy} from '../../../../lib/reactive';
@@ -43,6 +43,82 @@ function getLoadMoreState(state: ItemState): LoadMoreState {
   }
 }
 
+function fillWithResults(
+    res: {[key: string]: ResultsDescriptor}, huntId: string,
+    results: {[key: string]: ApiHuntResult}) {
+  for (const [, result] of Object.entries(results)) {
+    const pt = result.payloadType as keyof typeof PAYLOAD_TYPE_TRANSLATION;
+    const curTab = PAYLOAD_TYPE_TRANSLATION[pt]?.tabName ?? pt;
+
+    // Start with default values for all ApiHuntResults.
+    if (!res[curTab]) {
+      res[curTab] = {
+        // `columns` type will always be "the sum" of all possible
+        // columns in PAYLOAD_TYPE_TRANSLATION values. Since we want to
+        // define them as constants, typescript is not picking up that
+        // they're all strings. Creating yet another type abstraction
+        // layer will make this code even harder to read, so we're keeping
+        // ResultsDescriptor.columns keys as string for simplicity.
+        // tslint:disable-next-line:quoted-properties-on-dictionary
+        columns:
+            {...PAYLOAD_TYPE_TRANSLATION[PayloadType.API_HUNT_RESULT].columns},
+        dataSource: new MatTableDataSource(),
+        tabName: curTab,
+      };
+    }
+    // Start with basic fields for every ApiHuntResult
+    const row: {[key: string]: unknown} = toHuntResultRow(result, huntId);
+
+    // Now add complementary information if we have it (based on
+    // type).
+    if (PAYLOAD_TYPE_TRANSLATION[pt]) {
+      res[curTab].columns = {
+        ...res[curTab].columns,
+        ...PAYLOAD_TYPE_TRANSLATION[pt].columns
+      };
+      if (PAYLOAD_TYPE_TRANSLATION[pt].tabName) {
+        res[curTab].tabName = PAYLOAD_TYPE_TRANSLATION[pt].tabName;
+      }
+
+      const translateFunc = PAYLOAD_TYPE_TRANSLATION[pt].translateFn;
+      const trans = translateFunc(result.payload);
+      for (const [key, value] of Object.entries(trans)) {
+        row[key] = value;
+      }
+    }
+
+    // Update tab data
+    res[curTab].dataSource.data.push(row);
+    res[curTab].displayedColumns =
+        orderApiHuntResultColumns(res[curTab].columns);
+  }
+}
+
+function fillWithErrors(
+    res: {[key: string]: ResultsDescriptor}, huntId: string,
+    errors: {[key: string]: ApiHuntError}) {
+  const pt = PayloadType.API_HUNT_ERROR;
+  const tab = PAYLOAD_TYPE_TRANSLATION[pt].tabName;
+  const columns = PAYLOAD_TYPE_TRANSLATION[pt].columns;
+  const translateFn = PAYLOAD_TYPE_TRANSLATION[pt].translateFn;
+
+  if (!res[tab]) {
+    res[tab] = {
+      columns: {...columns},
+      dataSource: new MatTableDataSource(),
+      tabName: tab,
+    };
+  }
+
+  for (const [, error] of Object.entries(errors)) {
+    const row: {[key: string]: unknown} = translateFn(error, huntId);
+    // Update tab data
+    res[tab].dataSource.data.push(row);
+  }
+
+  res[tab].displayedColumns = orderApiHuntResultColumns(res[tab].columns);
+}
+
 /**
  * Provides the forms for new hunt configuration.
  */
@@ -54,11 +130,12 @@ function getLoadMoreState(state: ItemState): LoadMoreState {
 })
 export class HuntResults implements OnDestroy {
   readonly CellComponent = CellComponent;
+  readonly ERROR_TAB = ERROR_TAB;
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  private huntId: string = '';
-  protected copied: boolean = false;
+  private huntId = '';
+  protected copied = false;
 
   constructor(
       private readonly huntPageGlobalStore: HuntPageGlobalStore,
@@ -78,101 +155,76 @@ export class HuntResults implements OnDestroy {
 
   readonly LoadMoreState = LoadMoreState;
 
-  readonly resultsLoadMoreState$ =
-      this.huntPageGlobalStore.huntResults$.pipe(map(getLoadMoreState));
-  readonly errorsLoadMoreState$ =
-      this.huntPageGlobalStore.huntErrors$.pipe(map(getLoadMoreState));
+  readonly resultsLoadMoreState$ = this.huntPageGlobalStore.huntResults$.pipe(
+      map(getLoadMoreState), startWith(LoadMoreState.LOADING));
+  readonly errorsLoadMoreState$ = this.huntPageGlobalStore.huntErrors$.pipe(
+      map(getLoadMoreState), startWith(LoadMoreState.LOADING));
+  readonly combinedLoadMoreState$ = combineLatest([
+                                      this.resultsLoadMoreState$,
+                                      this.errorsLoadMoreState$
+                                    ]).pipe(map(([res, errs]) => {
+    if (res === LoadMoreState.ALL_LOADED && errs === LoadMoreState.ALL_LOADED) {
+      return LoadMoreState.ALL_LOADED;
+    }
+    if (res === LoadMoreState.LOADING || errs === LoadMoreState.LOADING) {
+      return LoadMoreState.LOADING;
+    }
+    if (res === LoadMoreState.HAS_MORE || errs === LoadMoreState.HAS_MORE) {
+      return LoadMoreState.HAS_MORE;
+    }
+    // Should be unreachable, all cases expliticly covered above.
+    return LoadMoreState.HAS_MORE;
+  }));
 
   // Maps payloadType to dataSource and columns.
   readonly resultsMap$: Observable<{[key: string]: ResultsDescriptor}|null> =
       combineLatest([
         this.huntPageGlobalStore.selectedHuntId$,
-        this.huntPageGlobalStore.huntResults$
-      ]).pipe(map(([huntId, state]) => {
-        if (isNull(state?.results) || Object.keys(state.results).length === 0) {
+        this.huntPageGlobalStore.huntResults$.pipe(startWith(null)),
+        this.huntPageGlobalStore.huntErrors$.pipe(startWith(null)),
+      ]).pipe(map(([huntId, resState, errState]) => {
+        if (!huntId) {
           return null;
         }
         // TODO: persist `res` and dataSources in HuntResults,
         // refreshing only the `data` attribute on subscription.
         const res: {[key: string]: ResultsDescriptor} = {};
-
-        for (const [, result] of Object.entries(state.results)) {
-          const pt =
-              result.payloadType as keyof typeof PAYLOAD_TYPE_TRANSLATION;
-          const curTab = PAYLOAD_TYPE_TRANSLATION[pt]?.tabName ?? pt;
-
-          // Start with default values for all ApiHuntResults.
-          if (!res[curTab]) {
-            res[curTab] = {
-              // `columns` type will always be "the sum" of all possible
-              // columns in PAYLOAD_TYPE_TRANSLATION values. Since we want to
-              // define them as constants, typescript is not picking up that
-              // they're all strings. Creating yet another type abstraction
-              // layer will make this code even harder to read, so we're keeping
-              // ResultsDescriptor.columns keys as string for simplicity.
-              // tslint:disable-next-line:quoted-properties-on-dictionary
-              columns: {...PAYLOAD_TYPE_TRANSLATION['ApiHuntResult'].columns},
-              dataSource: new MatTableDataSource(),
-              tabName: curTab,
-            };
-          }
-          // Start with basic fields for every ApiHuntResult
-          const row: {[key: string]: unknown} =
-              toHuntResultRow(result, huntId ?? '');
-
-          // Now add complementary information if we have it (based on
-          // type).
-          if (PAYLOAD_TYPE_TRANSLATION[pt]) {
-            res[curTab].columns = {
-              ...res[curTab].columns,
-              ...PAYLOAD_TYPE_TRANSLATION[pt].columns
-            };
-            if (PAYLOAD_TYPE_TRANSLATION[pt].tabName) {
-              res[curTab].tabName = PAYLOAD_TYPE_TRANSLATION[pt].tabName;
-            }
-
-            const translateFunc = PAYLOAD_TYPE_TRANSLATION[pt].translateFn;
-            const trans = translateFunc(result.payload);
-            for (const [key, value] of Object.entries(trans)) {
-              row[key] = value;
-            }
-          }
-
-          // Update tab data
-          res[curTab].dataSource.data.push(row);
-          res[curTab].displayedColumns =
-              orderApiHuntResultColumns(res[curTab].columns);
+        if (isNonNull(resState?.results) &&
+            Object.keys(resState!.results).length > 0) {
+          fillWithResults(res, huntId, resState!.results);
+        }
+        if (isNonNull(errState?.errors) &&
+            Object.keys(errState!.errors).length > 0) {
+          fillWithErrors(res, huntId, errState!.errors);
         }
 
-        return res;
+        return Object.keys(res).length === 0 ? null : res;
       }));
 
-  readonly displayErrorColumns =
-      ['clientId', 'collectedAt', 'logMessage', 'backtrace'];
-  readonly errorsDataSource$:
-      Observable<MatTableDataSource<ApiHuntError>|null> =
-          this.huntPageGlobalStore.huntErrors$.pipe(map(state => {
-            if (isNull(state?.errors) || state.errors.length === 0) return null;
-            const errorData: ApiHuntError[] = [];
-            const errorDataSource = new MatTableDataSource(errorData);
-            errorDataSource.data = state.errors as ApiHuntError[];
-            return errorDataSource;
-          }));
-
-  readonly loadedResultsDesc$ = combineLatest([
-                                  this.huntPageGlobalStore.huntResults$.pipe(
-                                      map(state => state?.loadedCount)),
-                                  this.huntPageGlobalStore.selectedHunt$.pipe(
-                                      map((hunt) => hunt?.resultsCount))
-                                ]).pipe(map(([loaded, resultsCount]) => {
-    if (isNull(loaded) || isNull(resultsCount)) {
-      return '';
-    }
-    // Sometimes the reported resultsCount in the ApiHunt is smaller than the
-    // slice received in the store. Thus, we get the highest one to present.
-    const total = Math.max(loaded ?? 0, Number(resultsCount) ?? 0);
-    return `(displaying ${loaded} out of ${total})`;
-  }));
+  readonly loadedDesc$ =
+      combineLatest([
+        this.huntPageGlobalStore.huntResults$.pipe(
+            map(state => state?.loadedCount)),
+        this.huntPageGlobalStore.selectedHunt$.pipe(
+            map((hunt) => hunt?.resultsCount)),
+        this.huntPageGlobalStore.huntErrors$.pipe(
+            map(state => state?.loadedCount)),
+        this.huntPageGlobalStore.selectedHunt$.pipe(
+            map((hunt) => (hunt?.failedClientsCount ?? BigInt(0)) +
+                    (hunt?.crashedClientsCount ?? BigInt(0))))
+      ]).pipe(map(([loadedRes, resultsCount, loadedErr, errorsCount]) => {
+        if (isNull(loadedRes) || isNull(resultsCount) || isNull(loadedErr) ||
+            isNull(errorsCount)) {
+          return '';
+        }
+        // Sometimes the reported resultsCount in the ApiHunt is smaller than
+        // the slice received in the store. Thus, we get the highest one to
+        // present.
+        const totalRes = Math.max(loadedRes ?? 0, Number(resultsCount) ?? 0);
+        const totalErr = Math.max(loadedErr ?? 0, Number(errorsCount) ?? 0);
+        return `(displaying ${loadedRes} out of ${totalRes} results, and ${
+            loadedErr} out of ${totalErr} errors)`;
+      }));
 
   readonly allLoading$ =
       combineLatest([
@@ -234,6 +286,10 @@ export class HuntResults implements OnDestroy {
     this.huntPageGlobalStore.loadMoreResults();
   }
   loadMoreErrors() {
+    this.huntPageGlobalStore.loadMoreErrors();
+  }
+  loadMoreResultsAndErrors() {
+    this.huntPageGlobalStore.loadMoreResults();
     this.huntPageGlobalStore.loadMoreErrors();
   }
 }

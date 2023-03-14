@@ -13,9 +13,9 @@ import {ClientVersion, getClientEntriesChanged, getClientVersions} from './clien
 interface ClientDetailsState {
   readonly client?: Client;
   readonly clientId?: string;
-  readonly clientSnapshots?: ReadonlyArray<Client>;
-  readonly clientVersions?: ReadonlyArray<ClientVersion>;
-  readonly clientEntriesChanged?: Map<string, ReadonlyArray<Client>>;
+  readonly clientSnapshots?: readonly Client[];
+  readonly clientVersions?: readonly ClientVersion[];
+  readonly clientEntriesChanged?: Map<string, readonly Client[]>;
 }
 /** ComponentStore implementation used by the ClientDetailsGlobalStore. */
 class ClientDetailsComponentStore extends ComponentStore<ClientDetailsState> {
@@ -55,7 +55,7 @@ class ClientDetailsComponentStore extends ComponentStore<ClientDetailsState> {
 
   /** Reducer updating the selected client versions. */
   private readonly updateClientEntriesChanged =
-      this.updater<Map<string, ReadonlyArray<Client>>>(
+      this.updater<Map<string, readonly Client[]>>(
           (state, clientEntriesChanged) => {
             return {
               ...state,
@@ -94,7 +94,7 @@ class ClientDetailsComponentStore extends ComponentStore<ClientDetailsState> {
       this.select(store => store.clientEntriesChanged)
           .pipe(filter(
               (clientEntriesChanged):
-                  clientEntriesChanged is Map<string, ReadonlyArray<Client>> =>
+                  clientEntriesChanged is Map<string, readonly Client[]> =>
                       clientEntriesChanged !== undefined));
 }
 
@@ -107,15 +107,19 @@ export class ClientDetailsGlobalStore {
 
   private readonly store = new ClientDetailsComponentStore(this.httpApiService);
 
-  /** An observable emitting the client versions of the selected client. */
-  readonly selectedClientVersions$: Observable<ReadonlyArray<ClientVersion>> =
+  /**
+   * An observable emitting the client versions of the
+   * selected client.
+   */
+  readonly selectedClientVersions$: Observable<readonly ClientVersion[]> =
       this.store.selectedClientVersions$;
 
   /**
-   * An observable emitting the client changed entries of the selected client
+   * An observable emitting the client changed entries of
+   * the selected client
    */
   readonly selectedClientEntriesChanged$:
-      Observable<Map<string, ReadonlyArray<Client>>> =
+      Observable<Map<string, readonly Client[]>> =
           this.store.selectedClientEntriesChanged$;
 
   /** Selects a client with a given id. */

@@ -21,7 +21,7 @@ function makeControls() {
         0, {nonNullable: true, validators: [Validators.required]}),
     ignoreStderrErrors: new FormControl(false, {nonNullable: true}),
     fileCollectionColumns:
-        new FormControl<ReadonlyArray<string>>([], {nonNullable: true}),
+        new FormControl<readonly string[]>([], {nonNullable: true}),
   };
 }
 

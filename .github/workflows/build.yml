@@ -8,23 +8,20 @@ env:
 jobs:
 
   test-ubuntu:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     env:
       CHROME_DEB: google-chrome-stable_current_amd64.deb
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
+      - uses: actions/checkout@v3
       - name: Install
         run: |
           free -hmw
           lscpu
-          sudo apt install -y libmysqlclient-dev
+          sudo apt install -y python3-dev python3-pip python3-venv python3-mysqldb
           if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
             wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
           fi
-          python -m venv "${HOME}/INSTALL"
+          python3 -m venv --system-site-packages "${HOME}/INSTALL"
           travis/install.sh
       - name: Test
         run: |
@@ -36,18 +33,14 @@ jobs:
           pytest --verbose -n 3 grr/ --ignore grr/server/grr_response_server/gui/selenium_tests/ --ignore grr/client/grr_response_client/client_actions/windows/
           # jsTree tests seem to fail on Chrome 71 headless due to https://github.com/GoogleChrome/puppeteer/issues/3463
           if [ $(google-chrome --version | grep -Eo " [0-9]{1,3}") != "71" ]; then (cd grr/server/grr_response_server/gui/static/ && npm run gulp test); fi
-
   build-openapi:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
+      - uses: actions/checkout@v3
       - name: Install
         run: |
-          sudo apt install -y libmysqlclient-dev
-          python -m venv "${HOME}/INSTALL"
+          sudo apt install -y python3-dev python3-pip python3-venv python3-mysqldb
+          python3 -m venv --system-site-packages "${HOME}/INSTALL"
           travis/install.sh
       - name: Build
         run: |
@@ -57,19 +50,19 @@ jobs:
           travis/build_api_documentation.sh "_openapi_artifacts/openapi_description/openapi_description.json" "_openapi_artifacts/documentation/openapi_documentation.html"
           ls -la _openapi_artifacts/*
       - name: Upload OpenAPI to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: openapi
           path: _openapi_artifacts/
           retention-days: 1
 
-  build-linux:
-    runs-on: ubuntu-18.04
+  build-ubuntu:
+    runs-on: ubuntu-22.04
     env:
       GCS_TAG: ubuntu_64bit
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Set up
@@ -83,7 +76,7 @@ jobs:
           travis/build_templates.sh
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: ubuntu-installers
           path: gcs_upload_dir/
@@ -92,8 +85,8 @@ jobs:
   build-osx:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Set up
@@ -106,41 +99,41 @@ jobs:
           travis/build_templates.sh
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: osx-installers
           path: gcs_upload_dir/
           retention-days: 1
 
   build-centos:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     env:
       GCS_TAG: centos_64bit
-      DOCKER_IMG: grrdocker/centos7
+      DOCKER_IMG: grrdocker/centos7-python39
       DOCKER_CONTAINER: centos_64bit_container
       DOCKER_USER: grrbot
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
+      - uses: actions/checkout@v3
       - name: Build installers
         run: |
-          sudo docker run -dit \
+          docker run -dit \
             --volume "${PWD}:/mnt/grr" \
             --workdir /mnt/grr \
             --env DOCKER_USER="${DOCKER_USER}" \
             --env TRAVIS_OS_NAME="linux" \
             --name "${DOCKER_CONTAINER}" \
             "${DOCKER_IMG}"
-          sudo docker exec "${DOCKER_CONTAINER}" travis/set_up_test_user.sh
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" /usr/local/bin/python3.6 -m venv "/home/${DOCKER_USER}/INSTALL"
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" travis/install_client_builder.sh
-          sudo docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" travis/build_templates.sh
-          sudo docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
+          # Using `bash -l` here and below to make sure devtools
+          # (including the C++ 14 compatible compiler) are properly
+          # registered in the environment variables.
+          docker exec "${DOCKER_CONTAINER}" bash -l travis/set_up_test_user.sh
+          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l -c '/usr/local/bin/python3.9 -m venv "/home/${DOCKER_USER}/INSTALL"'
+          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/install_client_builder.sh
+          docker exec --user "${DOCKER_USER}" "${DOCKER_CONTAINER}" bash -l travis/build_templates.sh
+          docker exec "${DOCKER_CONTAINER}" rpm -vih gcs_upload_dir/*.rpm
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: centos-installers
           path: gcs_upload_dir/
@@ -149,8 +142,8 @@ jobs:
   build-windows:
     runs-on: windows-2022
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
         with:
           python-version: '3.9'
       - name: Build installers
@@ -159,29 +152,27 @@ jobs:
           set -ex
           pip install virtualenv wheel
           python -u appveyor/windows_templates/build_windows_templates.py --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output --test_repack_install
-          python -u appveyor/windows_templates/build_windows_templates.py --grr_src=$GITHUB_WORKSPACE --output_dir=$GITHUB_WORKSPACE/output_msi --test_repack_install --build_msi
-
           mkdir -p gcs_upload_dir
           mv -v output*/* gcs_upload_dir
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: windows-installers
           path: gcs_upload_dir/
           retention-days: 1
 
   build-server-deb:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     env:
       GCS_TAG: server_deb
     needs:
       - build-centos
-      - build-linux
+      - build-ubuntu
       - build-osx
       - build-windows
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Download installers from GitHub artifacts
         id: download
         uses: actions/download-artifact@v2
@@ -189,26 +180,23 @@ jobs:
           path: ~/_artifacts
       - name: Set up
         run: |
-          sudo apt-get install -y fakeroot debhelper libffi-dev libssl-dev python3-dev python3-pip python3-venv wget openjdk-8-jdk zip git devscripts dh-systemd libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
-          pip3 install --upgrade setuptools virtualenv
-          virtualenv "${HOME}/INSTALL"
+          sudo apt-get update
+          sudo apt-get install -y fakeroot debhelper libffi-dev libssl-dev python3-dev python3-pip python3-venv python3-mysqldb wget openjdk-8-jdk zip git devscripts libmysqlclient-dev dh-virtualenv dh-make libc6-i386 lib32z1
+          python3 -m venv --system-site-packages "${HOME}/INSTALL"
+          "${HOME}/INSTALL/bin/python3" -m pip install --upgrade pip 'setuptools<58.3.1' wheel
       - name: Build
         run: |
           travis/install.sh
-
           mkdir -p grr/config/grr_response_templates/templates
-
-          mv -v ~/_artifacts/windows-installers/GRR_*_amd64.exe.zip grr/config/grr_response_templates/templates
           mv -v ~/_artifacts/windows-installers/GRR_*_amd64.msi.zip grr/config/grr_response_templates/templates
           mv -v ~/_artifacts/ubuntu-installers/grr_*_amd64.deb.zip grr/config/grr_response_templates/templates
           mv -v ~/_artifacts/centos-installers/grr_*_amd64.rpm.zip grr/config/grr_response_templates/templates
           mv -v ~/_artifacts/osx-installers/grr_*_amd64.xar.zip grr/config/grr_response_templates/templates
-
           travis/build_local_pyindex.sh
           travis/build_server_deb.sh
           ls -la gcs_upload_dir
       - name: Upload installers to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
         with:
           name: server-deb
           path: gcs_upload_dir/
@@ -216,17 +204,14 @@ jobs:
 
   test-ubuntu-e2e:
     continue-on-error: true  # Debug follow up step.
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     env:
       GRR_ADMIN_PASS: 'e2e_tests'
-      APPVEYOR_MYSQL_PASS: 'root' 
+      APPVEYOR_MYSQL_PASS: 'root'
     needs:
       - build-server-deb
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
-        with:
-          python-version: '3.9'
+      - uses: actions/checkout@v3
       - name: Set up MySQL
         run: |
           sudo /etc/init.d/mysql start
@@ -240,12 +225,6 @@ jobs:
         run: |
           free -hmw
           lscpu
-          sudo apt install -y libmysqlclient-dev
-          if [[ -z "$(type google-chrome 2>/dev/null)" ]]; then
-            wget "https://dl.google.com/linux/direct/${CHROME_DEB}" && sudo apt install -y "./${CHROME_DEB}";
-          fi
-          python -m venv "${HOME}/INSTALL"
-          travis/install.sh
           sudo -EH ./appveyor/e2e_tests/install_mem_usage_cron.sh
           sudo -EH ./appveyor/e2e_tests/install_latest_server_deb.sh
       - name: Test
@@ -253,25 +232,25 @@ jobs:
           sudo -EH ./appveyor/e2e_tests/run_e2e_tests.sh
           sudo -EH ./appveyor/e2e_tests/test_repack.sh
       - name: Upload logs and configs to GitHub artifacts
-        uses: actions/upload-artifact@v2
+        uses: actions/upload-artifact@v3
+        if: always()
         with:
           name: e2e-test
-          path: appveyor_e2e_artifacts/
+          path: /var/log/grr
           retention-days: 1
 
-
   build-push-docker:
-    runs-on: ubuntu-18.04
+    runs-on: ubuntu-22.04
     needs:
       - build-server-deb
       # - test-ubuntu-e2e  # TODO: Comment back in after debugging is finished.
       - test-ubuntu
       - build-openapi
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Download installers from GitHub artifacts
         id: download
-        uses: actions/download-artifact@v2
+        uses: actions/download-artifact@v3
         with:
           name: server-deb
           path: _artifacts
@@ -279,9 +258,9 @@ jobs:
         run: |
           export BRANCH=$(echo $GITHUB_REF | cut -d'/' -f 3)
           ./appveyor/docker_build/build_docker_image.sh
-      - if: ${{ github.event_name == 'push' }} 
+      - if: ${{ github.event_name == 'push' }}
         name: Log in to Docker Hub
-        uses: docker/login-action@v1
+        uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_PASSWORD }}
@@ -291,11 +270,14 @@ jobs:
           docker push -a ${{ env.DOCKER_REPOSITORY }}
   upload:
     if: ${{ github.event_name == 'push' }}
-    runs-on: ubuntu-18.04
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+    runs-on: ubuntu-22.04
     needs:
       - build-push-docker
     steps:
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v3
       - name: Download installers from GitHub artifacts
         id: download
         uses: actions/download-artifact@v2
@@ -303,33 +285,28 @@ jobs:
           path: _artifacts
       - run: |
           ls -la _artifacts/*/
-
           COMMIT_TIME=$(git show -s --date='format-local:%Y-%m-%dT%H:%M:%SZ' --format="%cd" $GITHUB_SHA)
           OUTPUT_DIR=gcs_upload_dir/${COMMIT_TIME}_${GITHUB_SHA}/
           echo "OUTPUT_DIR=$OUTPUT_DIR" >> $GITHUB_ENV
-
           mkdir -p $OUTPUT_DIR/centos/
           mv -v _artifacts/centos-installers/* $OUTPUT_DIR/centos
-
           mkdir -p $OUTPUT_DIR/ubuntu/
           mv -v _artifacts/ubuntu-installers/* $OUTPUT_DIR/ubuntu
-
           mkdir -p $OUTPUT_DIR/osx/
           mv -v _artifacts/osx-installers/* $OUTPUT_DIR/osx
-
           mkdir -p $OUTPUT_DIR/windows/
           mv -v _artifacts/windows-installers/* $OUTPUT_DIR/windows
-
           mkdir -p $OUTPUT_DIR/server_deb/
           mv -v _artifacts/server-deb/* $OUTPUT_DIR/server_deb
-      - name: Set up Cloud SDK
-        uses: google-github-actions/setup-gcloud@v0.2.1
+      - name: Authenticate
+        uses: 'google-github-actions/auth@v1'
         with:
-          project_id: ${{ secrets.GCP_PROJECT_ID }}
-          service_account_key: ${{ secrets.GCP_SA_KEY }}
-          export_default_credentials: true
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          export_environment_variables: true
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v1.1.0
       - name: Upload installers to GCS
-        uses: google-github-actions/upload-cloud-storage@main
+        uses: google-github-actions/upload-cloud-storage@v1.0.0
         with:
           path: gcs_upload_dir/
           destination: ${{ env.GCS_BUCKET }}
@@ -340,9 +317,10 @@ jobs:
           gsutil rm gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/** || true
           gsutil cp -r $OUTPUT_DIR/server_deb/* gs://${{ env.GCS_BUCKET }}/${{ env.GCS_LATEST_PATH }}/
       - name: Upload OpenAPI to GCS
-        uses: google-github-actions/upload-cloud-storage@main
+        uses: google-github-actions/upload-cloud-storage@v1.0.0
         with:
           path: _artifacts/openapi/
           destination: ${{ env.GCS_BUCKET_OPENAPI }}
           # Omit `path` (e.g. /home/runner/deploy/) in final GCS path.
           parent: false
+

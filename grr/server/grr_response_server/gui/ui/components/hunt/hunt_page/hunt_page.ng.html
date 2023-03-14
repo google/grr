@@ -1,7 +1,7 @@
 <div class="hunt-overview centered-content">
   <div class="title-chips">
-    <title-editor [disabled]="true" class="title">
-      <h1 titleEditable>{{ (hunt$ | async)?.description || (hunt$ | async)?.name }}</h1>
+    <title-editor [disabled]="true" [route]="huntsOverviewRoute" class="title">
+      <h1 titleEditable>{{ getHuntTitle(hunt$ | async) }}</h1>
     </title-editor>
     <div class="chips">
       <mat-chip-list [selectable]="false" [tabIndex]="-1">
@@ -53,6 +53,20 @@
   </div>
 
   <div class="actions">
+    <span matTooltip="You must have approval to change the collection"
+        [matTooltipDisabled]="(hasAccess$ | async) === true">
+      <a
+      *ngIf="(hunt$ | async)?.state === HuntState.PAUSED || (hunt$ | async)?.state === HuntState.NOT_STARTED"
+        mat-stroked-button
+        color="primary"
+        name="modify-button"
+        [drawerLink]="['modify-hunt']"
+        [disabled]="(hasAccess$ | async) === false"
+      >
+        Change rollout parameters and continue
+      </a>
+  </span>
+
     <button
       mat-stroked-button
       type="button"
@@ -77,7 +91,7 @@
     <span matTooltip="You must have approval to start the collection"
         [matTooltipDisabled]="(hasAccess$ | async) === true">
       <button
-        *ngIf="(hunt$ | async)?.state === HuntState.PAUSED || (hunt$ | async)?.state === HuntState.NOT_STARTED"
+        *ngIf="(hunt$ | async)?.state === HuntState.NOT_STARTED || (hunt$ | async)?.state === HuntState.PAUSED"
         mat-stroked-button
         type="button"
         color="primary"
@@ -85,7 +99,12 @@
         (click)="startHunt()"
         [disabled]="(hasAccess$ | async) === false"
       >
-        Start collection
+        <ng-container *ngIf="(hunt$ | async)?.state === HuntState.NOT_STARTED">
+          Start collection
+        </ng-container>
+        <ng-container *ngIf="(hunt$ | async)?.state === HuntState.PAUSED">
+          Restart collection
+        </ng-container>
       </button>
     </span>
   </div>

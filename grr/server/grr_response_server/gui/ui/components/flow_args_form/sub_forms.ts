@@ -5,6 +5,7 @@ import {CollectBrowserHistoryForm} from '../../components/flow_args_form/collect
 import {CollectMultipleFilesForm} from '../../components/flow_args_form/collect_multiple_files_form';
 import {CollectSingleFileForm} from '../../components/flow_args_form/collect_single_file_form';
 import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {FlowType} from '../../lib/models/flow';
 
 import {CollectFilesByKnownPathForm} from './collect_files_by_known_path_form';
 import {DumpProcessMemoryForm} from './dump_process_memory_form';
@@ -23,35 +24,35 @@ import {YaraProcessScanForm} from './yara_process_scan_form';
 
 /** Mapping from flow name to Component class to configure the Flow. */
 // tslint:disable-next-line:no-any Cannot specify a more precise generic type!
-export const FORMS: {[key: string]: Type<FlowArgumentForm<{}, any>>} = {
-  'ArtifactCollectorFlow': ArtifactCollectorFlowForm,
-  'CollectBrowserHistory': CollectBrowserHistoryForm,
-  'CollectFilesByKnownPath': CollectFilesByKnownPathForm,
-  'CollectMultipleFiles': CollectMultipleFilesForm,
-  'CollectSingleFile': CollectSingleFileForm,
-  'DumpProcessMemory': DumpProcessMemoryForm,
-  'ExecutePythonHack': ExecutePythonHackForm,
-  'LaunchBinary': LaunchBinaryForm,
-  'ListDirectory': ListDirectoryForm,
-  'ListNamedPipesFlow': ListNamedPipesForm,
-  'ListProcesses': ListProcessesForm,
-  'Netstat': NetstatForm,
-  'OnlineNotification': OnlineNotificationForm,
-  'OsqueryFlow': OsqueryForm,
-  'ReadLowLevel': ReadLowLevelForm,
-  'TimelineFlow': TimelineForm,
-  'YaraProcessScan': YaraProcessScanForm,
+export const FORMS: {[key in FlowType]?: Type<FlowArgumentForm<{}, any>>} = {
+  [FlowType.ARTIFACT_COLLECTOR_FLOW]: ArtifactCollectorFlowForm,
+  [FlowType.COLLECT_BROWSER_HISTORY]: CollectBrowserHistoryForm,
+  [FlowType.COLLECT_FILES_BY_KNOWN_PATH]: CollectFilesByKnownPathForm,
+  [FlowType.COLLECT_MULTIPLE_FILES]: CollectMultipleFilesForm,
+  [FlowType.COLLECT_SINGLE_FILE]: CollectSingleFileForm,
+  [FlowType.DUMP_PROCESS_MEMORY]: DumpProcessMemoryForm,
+  [FlowType.EXECUTE_PYTHON_HACK]: ExecutePythonHackForm,
+  [FlowType.LAUNCH_BINARY]: LaunchBinaryForm,
+  [FlowType.LIST_DIRECTORY]: ListDirectoryForm,
+  [FlowType.LIST_NAMED_PIPES_FLOW]: ListNamedPipesForm,
+  [FlowType.LIST_PROCESSES]: ListProcessesForm,
+  [FlowType.NETSTAT]: NetstatForm,
+  [FlowType.ONLINE_NOTIFICATION]: OnlineNotificationForm,
+  [FlowType.OS_QUERY_FLOW]: OsqueryForm,
+  [FlowType.READ_LOW_LEVEL]: ReadLowLevelForm,
+  [FlowType.TIMELINE_FLOW]: TimelineForm,
+  [FlowType.YARA_PROCESS_SCAN]: YaraProcessScanForm,
 
   // Show empty form as fallback for flows that typically do not require
   // configuration.
-  'CollectEfiHashes': FallbackFlowArgsForm,
-  'CollectRunKeyBinaries': FallbackFlowArgsForm,
-  'DumpEfiImage': FallbackFlowArgsForm,
-  'DumpFlashImage': FallbackFlowArgsForm,
-  'GetClientStats': FallbackFlowArgsForm,
-  'GetMBR': FallbackFlowArgsForm,
-  'Interrogate': FallbackFlowArgsForm,
-  'ListVolumeShadowCopies': FallbackFlowArgsForm,
+  [FlowType.COLLECT_EFI_HASHES]: FallbackFlowArgsForm,
+  [FlowType.COLLECT_RUNKEY_BINARIES]: FallbackFlowArgsForm,
+  [FlowType.DUMP_EFI_IMAGE]: FallbackFlowArgsForm,
+  [FlowType.DUMP_FLASH_IMAGE]: FallbackFlowArgsForm,
+  [FlowType.GET_CLIENT_STATS]: FallbackFlowArgsForm,
+  [FlowType.GET_MBR]: FallbackFlowArgsForm,
+  [FlowType.INTERROGATE]: FallbackFlowArgsForm,
+  [FlowType.LIST_VOLUME_SHADOW_COPIES]: FallbackFlowArgsForm,
 };
 
 /** Fallback form for Flows without configured form. */

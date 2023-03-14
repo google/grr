@@ -2,7 +2,8 @@
 @use '../../../material-theme' as c;
 
 .condition {
-  border-bottom: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
+  border-bottom: 1px solid
+    mat.get-color-from-palette(c.$foreground, divider-light);
   border-top: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
   display: flex;
   flex-direction: column;
@@ -20,6 +21,7 @@
 
     .title {
       flex-grow: 1;
+      margin-bottom: 2rem;
     }
   }
 }

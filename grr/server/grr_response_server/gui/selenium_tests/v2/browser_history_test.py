@@ -67,7 +67,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         ])):
       self.Open(f"/v2/clients/{self.client_id}")
       # Expand the flow.
-      self.Click("css=.flow-title:contains('Browser History')")
+      self.Click("css=.flow-title:contains('Collect browser history')")
       self.WaitUntil(self.IsElementPresent,
                      "css=.row:contains('Chrome') .in-progress")
       self.WaitUntil(self.IsElementPresent,
@@ -98,7 +98,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         ])):
       self.Open(f"/v2/clients/{self.client_id}")
       # Expand the flow.
-      self.Click("css=.flow-title:contains('Browser History')")
+      self.Click("css=.flow-title:contains('Collect browser history')")
       self.WaitUntil(self.IsElementPresent,
                      "css=.row:contains('Chrome') .success:contains('1 file')")
       # Check that other browsers are not shown.
@@ -128,7 +128,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         ])):
       self.Open(f"/v2/clients/{self.client_id}")
       # Expand the flow.
-      self.Click("css=.flow-title:contains('Browser History')")
+      self.Click("css=.flow-title:contains('Collect browser history')")
       self.WaitUntil(
           self.IsElementPresent,
           "css=.row:contains('Chrome') .warning:contains('No files collected')")
@@ -160,7 +160,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         ])):
       self.Open(f"/v2/clients/{self.client_id}")
       # Expand the flow.
-      self.Click("css=.flow-title:contains('Browser History')")
+      self.Click("css=.flow-title:contains('Collect browser history')")
       self.WaitUntil(
           self.IsElementPresent,
           "css=.row:contains('Chrome') .error:contains('Something went wrong')")
@@ -191,8 +191,10 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         ])):
       self.Open(f"/v2/clients/{self.client_id}")
       # Make sure that the flow panel is already displayed...
-      self.WaitUntil(self.IsElementPresent,
-                     "css=.flow-title:contains('Browser History')")
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=.flow-title:contains('Collect browser history')",
+      )
       # ...and then check for the presence of the 'Download all' button.
       self.WaitUntilNot(self.IsElementPresent,
                         "css=a[mat-stroked-button]:contains('Download all')")
@@ -247,7 +249,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         ])):
       self.Open(f"/v2/clients/{self.client_id}")
       # Expand the flow.
-      self.Click("css=.flow-title:contains('Browser History')")
+      self.Click("css=.flow-title:contains('Collect browser history')")
       # Expand the browser.
       self.Click("css=div.title:contains('Chrome')")
       # Update pagination to display all the results.
@@ -308,7 +310,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         ])):
       self.Open(f"/v2/clients/{self.client_id}")
       # Expand the flow.
-      self.Click("css=.flow-title:contains('Browser History')")
+      self.Click("css=.flow-title:contains('Collect browser history')")
       # Expand the browser.
       self.Click("css=div.title:contains('Chrome')")
       # Hover and click on the copy button.
@@ -356,7 +358,7 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
             )
         ])):
       self.Open(f"/v2/clients/{self.client_id}")
-      self.Click("css=.flow-title:contains('Browser History')")
+      self.Click("css=.flow-title:contains('Collect browser history')")
 
       self.ScrollIntoView("css=div.title:contains('Chrome')")
       self.Click("css=div.title:contains('Chrome')")
@@ -391,8 +393,10 @@ class CollectBrowserHistoryTest(gui_test_lib.GRRSeleniumTest):
         flow_args=flow_args)
 
     self.Open(f"/v2/clients/{self.client_id}")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.flow-title:contains('Browser History')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=.flow-title:contains('Collect browser history')",
+    )
 
     progress_0_results = webhistory.CollectBrowserHistoryProgress(browsers=[
         webhistory.BrowserProgress(

@@ -5,12 +5,13 @@ import {BehaviorSubject, fromEvent, merge, Observable, Subject} from 'rxjs';
 import {debounceTime, filter, map, mapTo, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
 import {FuzzyMatcher, StringWithHighlights, stringWithHighlightsFromMatch} from '../../lib/fuzzy_matcher';
+import {FlowListItem, FlowType} from '../../lib/models/flow';
 import {isNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
 import {compareAlphabeticallyBy} from '../../lib/type_utils';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 
-import {FlowListItem, FlowListItemService, FlowsByCategory} from './flow_list_item';
+import {FlowListItemService, FlowsByCategory} from './flow_list_item';
 
 
 
@@ -21,7 +22,7 @@ interface FlowAutoCompleteOption {
 
 interface FlowAutoCompleteCategory {
   readonly title: StringWithHighlights;
-  readonly options: ReadonlyArray<FlowAutoCompleteOption>;
+  readonly options: readonly FlowAutoCompleteOption[];
 }
 
 function stringWithHighlightsFromString(s: string): StringWithHighlights {
@@ -56,10 +57,12 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
 
   readonly flowsByCategory$ = this.flowListItemService.flowsByCategory$;
 
-  private readonly flowsByName$: Observable<ReadonlyMap<string, FlowListItem>> =
-      this.flowsByCategory$.pipe(map(
-          fbc => new Map(
-              Array.from(fbc.values()).flat().map(fli => [fli.name, fli]))));
+  private readonly flowsByType$:
+      Observable<ReadonlyMap<FlowType, FlowListItem>> =
+          this.flowsByCategory$.pipe(
+              map(fbc => new Map(Array.from(fbc.values())
+                                     .flat()
+                                     .map(fli => [fli.type, fli]))));
 
   // Matcher used to filter flows by title.
   private readonly flowTitlesMatcher$: Observable<FuzzyMatcher> =
@@ -86,13 +89,13 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
 
   private readonly textInputFocused$ = new Subject<boolean>();
 
-  readonly commonFlows$: Observable<ReadonlyArray<FlowListItem>> =
+  readonly commonFlows$: Observable<readonly FlowListItem[]> =
       this.flowListItemService.commonFlowNames$.pipe(
           withLatestFrom(this.flowsByCategory$),
           map(([fNames, flowsByCategory]) => {
             const result = Array.from(flowsByCategory.values())
                                .flat()
-                               .filter(fli => fNames.includes(fli.name));
+                               .filter(fli => fNames.includes(fli.type));
             result.sort(compareAlphabeticallyBy(f => f.friendlyName));
             return result;
           }),
@@ -172,23 +175,21 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
   );
 
   readonly autoCompleteCategories$:
-      Observable<ReadonlyArray<FlowAutoCompleteCategory>> =
-          this.textInput$.pipe(
-              startWith(''),
-              withLatestFrom(
-                  this.flowsByCategory$, this.flowTitlesMatcher$,
-                  this.flowCategoriesMatcher$),
-              map(([v, flowsByCategory, titlesMatcher, categoriesMatcher]) =>
-                      this.buildCategories(
-                          v, flowsByCategory, titlesMatcher,
-                          categoriesMatcher)),
-          );
+      Observable<readonly FlowAutoCompleteCategory[]> = this.textInput$.pipe(
+          startWith(''),
+          withLatestFrom(
+              this.flowsByCategory$, this.flowTitlesMatcher$,
+              this.flowCategoriesMatcher$),
+          map(([v, flowsByCategory, titlesMatcher, categoriesMatcher]) =>
+                  this.buildCategories(
+                      v, flowsByCategory, titlesMatcher, categoriesMatcher)),
+      );
 
 
   private buildCategories(
       query: string, flowsByCategory: FlowsByCategory,
-      titlesMatcher: FuzzyMatcher, categoriesMatcher: FuzzyMatcher):
-      ReadonlyArray<FlowAutoCompleteCategory> {
+      titlesMatcher: FuzzyMatcher,
+      categoriesMatcher: FuzzyMatcher): readonly FlowAutoCompleteCategory[] {
     const acCategories: FlowAutoCompleteCategory[] = [];
     if (query === '') {
       return [];
@@ -238,10 +239,10 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
     this.clientPageGlobalStore.selectedFlowDescriptor$
         .pipe(
             takeUntil(this.ngOnDestroy.triggered$),
-            withLatestFrom(this.flowsByName$),
+            withLatestFrom(this.flowsByType$),
             )
-        .subscribe(([fd, flowsByName]) => {
-          const flowListItem = flowsByName.get(fd?.name ?? '');
+        .subscribe(([fd, flowsByType]) => {
+          const flowListItem = flowsByType.get((fd?.name ?? '') as FlowType);
           if (flowListItem === undefined) {
             this.selectedFlow$.next(undefined);
             this.clearInput();
@@ -256,7 +257,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
   }
 
   trackOption({}, option: FlowAutoCompleteOption): string {
-    return option.flowListItem.name;
+    return option.flowListItem.type;
   }
 
   displayWith(value: FlowListItem): string {
@@ -264,10 +265,10 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
   }
 
   selectFlow(fli: FlowListItem) {
-    if (this.selectedFlow$.value?.name === fli.name || !fli.enabled) {
+    if (this.selectedFlow$.value?.type === fli.type || !fli.enabled) {
       return;
     }
-    this.clientPageGlobalStore.startFlowConfiguration(fli.name);
+    this.clientPageGlobalStore.startFlowConfiguration(fli.type);
     this.markFlowAsSelected(fli);
   }
 

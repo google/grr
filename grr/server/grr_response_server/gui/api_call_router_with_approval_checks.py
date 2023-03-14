@@ -171,6 +171,23 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
 
     return cls.cached_access_checker
 
+  def _CheckFlowOrClientAccess(self, args, context=None):
+    try:
+      flow = data_store.REL_DB.ReadFlowObject(
+          str(args.client_id), str(args.flow_id)
+      )
+    except db.UnknownFlowError as e:
+      raise api_call_handler_base.ResourceNotFoundError(
+          "Flow with client id %s and flow id %s could not be found"
+          % (args.client_id, args.flow_id)
+      ) from e
+
+    # Check for client access if this flow was not scheduled as part of a hunt.
+    # Only top-level hunt flows are allowed, which is what any user can see
+    # as "hunt results" (child flows results are not available for anyone).
+    if flow.parent_hunt_id != flow.flow_id:
+      self.access_checker.CheckClientAccess(context, args.client_id)
+
   def __init__(self,
                params: Optional[ApiCallRouterWithApprovalCheckParams] = None,
                access_checker: Optional[AccessChecker] = None,
@@ -424,7 +441,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.ListFlows(args, context=context)
 
   def GetFlow(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self._CheckFlowOrClientAccess(args, context)
 
     return self.delegate.GetFlow(args, context=context)
 
@@ -446,7 +463,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.ListFlowRequests(args, context=context)
 
   def ListFlowResults(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self._CheckFlowOrClientAccess(args, context)
 
     return self.delegate.ListFlowResults(args, context=context)
 
@@ -455,7 +472,7 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
       args: api_flow.ApiListParsedFlowResultsArgs,
       context: Optional[api_call_context.ApiCallContext] = None,
   ) -> api_flow.ApiListParsedFlowResultsHandler:
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self._CheckFlowOrClientAccess(args, context)
     return self.delegate.ListParsedFlowResults(args, context=context)
 
   def ListFlowApplicableParsers(
@@ -467,17 +484,17 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     return self.delegate.ListFlowApplicableParsers(args, context=context)
 
   def GetExportedFlowResults(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self._CheckFlowOrClientAccess(args, context)
 
     return self.delegate.GetExportedFlowResults(args, context=context)
 
   def GetFlowResultsExportCommand(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self._CheckFlowOrClientAccess(args, context)
 
     return self.delegate.GetFlowResultsExportCommand(args, context=context)
 
   def GetFlowFilesArchive(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
+    self._CheckFlowOrClientAccess(args, context)
 
     return self.delegate.GetFlowFilesArchive(args, context=context)
 

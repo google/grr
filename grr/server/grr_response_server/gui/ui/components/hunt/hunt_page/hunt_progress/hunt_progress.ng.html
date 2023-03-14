@@ -11,6 +11,11 @@
         <span class="relative">{{ summary.relative }} %</span>
         <span class="raw">{{ summary.raw }} clients</span>
       </div>
+      <div *ngFor="let summary of (errorSummaries$ | async)" class="summary error" [matTooltip]="summary?.tooltip ?? '' ">
+        <span class="title">{{ summary.title }}</span>
+        <span class="relative">{{ summary.relative }} %</span>
+        <span class="raw">{{ summary.raw }} clients</span>
+      </div>
     </div>
   </div>
 

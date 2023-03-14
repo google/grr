@@ -1,5 +1,5 @@
-@use "@angular/material" as mat;
-@use "./material-theme" as c;
+@use '@angular/material' as mat;
+@use './material-theme' as c;
 
 @import 'material-theme';
 
@@ -338,6 +338,30 @@ flow-details app-flow-args-view {
   .mat-form-field {
     pointer-events: none;
   }
+
+  /* We are interested in showing the OS file flag buttons in disabled mode: */
+  ext-flags-condition {
+    .mat-button {
+      display: block;
+      pointer-events: none;
+    }
+  }
+}
+
+/* Inserted HTML won't apply Angular's View Encapsulation attributes,
+therefore we need to define these styles outside of the Client Overview Cmp. */
+.client-warnings-container {
+  p {
+    margin-bottom: 0;
+  }
+
+  mat-card {
+    box-shadow: none;
+
+    a {
+      color: mat.get-color-from-palette(mat.$blue-palette, 600);
+    }
+  }
 }
 
 .mat-tree {
@@ -398,8 +422,4 @@ mat-chip-list .mat-button {
   border-radius: 2em;
   line-height: 26px;
   padding: 0 12px 0 6px;
-}
-
-.mt-2 {
-  margin-top: 2em;
 }

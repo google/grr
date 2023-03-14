@@ -1,4 +1,4 @@
-import {Component, ContentChild, EventEmitter, Input, Output} from '@angular/core';
+import {Component, ContentChild, EventEmitter, Input, Output, ViewChild} from '@angular/core';
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -7,13 +7,13 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {initTestEnvironment} from '../../../testing';
 
 import {TitleEditorModule} from './module';
-import {TitleEditorContent} from './title_editor';
+import {TitleEditor, TitleEditorContent} from './title_editor';
 
 initTestEnvironment();
 
 @Component({
   template:
-      `<title-editor [disabled]="disabled" (changed)="changed.emit($event)">
+      `<title-editor [disabled]="disabled" (changed)="changed.emit($event)" #titleEditor>
                <h1 titleEditable>hello world</h1>
              </title-editor>`
 })
@@ -21,6 +21,7 @@ class TestHostComponent {
   @Input() disabled = false;
   @Output() readonly changed = new EventEmitter<string>();
   @ContentChild(TitleEditorContent) content!: TitleEditorContent;
+  @ViewChild('titleEditor', {static: false}) titleEditor?: TitleEditor;
 }
 
 @Component({
@@ -31,7 +32,7 @@ class TestHostComponent {
 class TestHostComponentWithLink {
 }
 
-describe('params form test', () => {
+describe('title-editor test', () => {
   beforeEach(waitForAsync(() => {
     TestBed
         .configureTestingModule({
@@ -144,5 +145,18 @@ describe('params form test', () => {
 
     expect(editatbleEl.textContent).toBe('hello world');
     expect(fixture.debugElement.query(By.css('.editing'))).toBeNull();
+  });
+
+  it('sets title value', () => {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    const editatbleEl = fixture.debugElement.query(By.css('h1')).nativeElement;
+    expect(editatbleEl.textContent).toBe('hello world');
+
+    fixture.componentInstance?.titleEditor?.setText('hasta la vista, baby');
+    fixture.detectChanges();
+
+    expect(editatbleEl.textContent).toBe('hasta la vista, baby');
   });
 });

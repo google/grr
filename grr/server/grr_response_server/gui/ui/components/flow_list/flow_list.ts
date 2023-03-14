@@ -39,7 +39,7 @@ export class FlowList implements OnDestroy {
 
   readonly flowFiltersForm = new FormControl(FlowFilter.ALL_HUMAN_FLOWS);
 
-  readonly entries$: Observable<ReadonlyArray<FlowWithDescriptor>> =
+  readonly entries$: Observable<readonly FlowWithDescriptor[]> =
       combineLatest([
         this.clientPageGlobalStore.flowListEntries$,
         this.configGlobalStore.flowDescriptors$,
@@ -95,7 +95,7 @@ export class FlowList implements OnDestroy {
       private readonly errorHandler: SnackBarErrorHandler,
       viewRef: ViewContainerRef,
   ) {
-    const scrollIntoView = (selectedFlowId: string, timeout: number = 0) => {
+    const scrollIntoView = (selectedFlowId: string, timeout = 0) => {
       if (this.scrollOperationId) {
         // If there is already an existing scrollIntoView operation, cancel it.
         clearTimeout(this.scrollOperationId);

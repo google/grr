@@ -14,7 +14,7 @@
 #    -p 0.0.0.0:8080:8080 \
 #    grrdocker/grr
 
-FROM mariadb:bionic
+FROM mariadb:jammy
 
 LABEL maintainer="grr-dev@googlegroups.com"
 
@@ -41,12 +41,17 @@ RUN apt-get update && \
   python3-dev \
   python3-pip \
   python3-venv \
+  python3-mysqldb \
   rpm \
   wget \
   zip \
   python3-mysqldb
 
-RUN pip3 install --upgrade setuptools && \
+# Limiting setuptools version due to
+# https://github.com/pypa/setuptools/issues/3278
+# (it behaves incorrectly on Ubuntu 22 on virtualenvs with access to
+# globally installed packages).
+RUN pip3 install --upgrade 'setuptools<58.3.1' && \
     python3 -m venv --system-site-packages $GRR_VENV
 
 RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir pip wheel six setuptools nodeenv && \

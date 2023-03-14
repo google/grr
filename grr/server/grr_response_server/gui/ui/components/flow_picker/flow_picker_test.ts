@@ -10,7 +10,8 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {of} from 'rxjs';
 
 import {FlowChips} from '../../components/flow_picker/flow_chips';
-import {FlowListItem, FlowListItemService} from '../../components/flow_picker/flow_list_item';
+import {FlowListItemService} from '../../components/flow_picker/flow_list_item';
+import {FlowListItem, FlowType} from '../../lib/models/flow';
 import {assertNonNull} from '../../lib/preconditions';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
@@ -28,15 +29,15 @@ function getAutocompleteHarness(fixture: ComponentFixture<FlowPicker>) {
       MatAutocompleteHarness);
 }
 
-const COMMON_FILE_FLOWS: ReadonlyArray<FlowListItem> = [
+const COMMON_FILE_FLOWS: readonly FlowListItem[] = [
   {
-    name: 'CollectMultipleFiles',
+    type: FlowType.COLLECT_MULTIPLE_FILES,
     friendlyName: 'Collect multiple files',
     description: 'by search criteria',
     enabled: true,
   },
   {
-    name: 'CollectSingleFile',
+    type: FlowType.COLLECT_SINGLE_FILE,
     friendlyName: 'Collect single file',
     description: 'by well-known path',
     enabled: true,
@@ -58,13 +59,13 @@ describe('FlowPicker Component', () => {
           'Collectors',
           [
             {
-              name: 'ArtifactCollectorFlow',
+              type: FlowType.ARTIFACT_COLLECTOR_FLOW,
               friendlyName: 'Forensic artifacts',
               description: 'Foo',
               enabled: true,
             },
             {
-              name: 'OsqueryFlow',
+              type: FlowType.OS_QUERY_FLOW,
               friendlyName: 'Osquery',
               description: 'Bar',
               enabled: true,
@@ -75,7 +76,7 @@ describe('FlowPicker Component', () => {
           'Browser',
           [
             {
-              name: 'CollectBrowserHistory',
+              type: FlowType.COLLECT_BROWSER_HISTORY,
               friendlyName: 'Collect browser history',
               description: 'Something',
               enabled: true,
@@ -86,7 +87,7 @@ describe('FlowPicker Component', () => {
           'Administrative',
           [
             {
-              name: 'LaunchBinary',
+              type: FlowType.LAUNCH_BINARY,
               friendlyName: 'Launch Binary',
               description: 'Something',
               enabled: false,
@@ -94,7 +95,7 @@ describe('FlowPicker Component', () => {
           ]
         ],
       ])),
-      commonFlowNames$: of(['Osquery']),
+      commonFlowNames$: of([]),
       commonFileFlows$: of(COMMON_FILE_FLOWS),
     };
 
@@ -211,7 +212,7 @@ describe('FlowPicker Component', () => {
     expect(fixture.componentInstance.textInput.value)
         .toBe('Forensic artifacts');
     expect(clientPageGlobalStore.startFlowConfiguration)
-        .toHaveBeenCalledWith('ArtifactCollectorFlow');
+        .toHaveBeenCalledWith(FlowType.ARTIFACT_COLLECTOR_FLOW);
   });
 
   it('filters Flows that match text input', async () => {
@@ -302,7 +303,7 @@ describe('FlowPicker Component', () => {
     await autocompleteHarness.enterText('brows');
 
     const flowListItem: FlowListItem = {
-      name: 'CollectBrowserHistory',
+      type: FlowType.COLLECT_BROWSER_HISTORY,
       friendlyName: 'Collect browser history',
       description: '',
       enabled: true,
@@ -316,7 +317,7 @@ describe('FlowPicker Component', () => {
     fixture.detectChanges();
 
     expect(clientPageGlobalStore.startFlowConfiguration)
-        .toHaveBeenCalledWith('CollectBrowserHistory');
+        .toHaveBeenCalledWith(FlowType.COLLECT_BROWSER_HISTORY);
   });
 
   it('disables restricted flow list entries', async () => {
@@ -341,7 +342,7 @@ describe('FlowPicker Component', () => {
     await autocompleteHarness.enterText('browser');
 
     const flowListItem: FlowListItem = {
-      name: 'CollectBrowserHistory',
+      type: FlowType.COLLECT_BROWSER_HISTORY,
       friendlyName: 'Collect browser history',
       description: '',
       enabled: true,
@@ -355,7 +356,7 @@ describe('FlowPicker Component', () => {
     fixture.detectChanges();
 
     expect(clientPageGlobalStore.startFlowConfiguration)
-        .toHaveBeenCalledWith('CollectBrowserHistory');
+        .toHaveBeenCalledWith(FlowType.COLLECT_BROWSER_HISTORY);
 
     const clearButton =
         fixture.debugElement.query(By.css('.readonly-field button'));
@@ -377,7 +378,7 @@ describe('FlowPicker Component', () => {
        await autocompleteHarness.enterText('browser');
 
        const flowListItem: FlowListItem = {
-         name: 'CollectBrowserHistory',
+         type: FlowType.COLLECT_BROWSER_HISTORY,
          friendlyName: 'Collect browser history',
          description: '',
          enabled: true,
@@ -391,7 +392,7 @@ describe('FlowPicker Component', () => {
        fixture.detectChanges();
 
        expect(clientPageGlobalStore.startFlowConfiguration)
-           .toHaveBeenCalledWith('CollectBrowserHistory');
+           .toHaveBeenCalledWith(FlowType.COLLECT_BROWSER_HISTORY);
 
        clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
            null);
@@ -408,7 +409,7 @@ describe('FlowPicker Component', () => {
     const flowChips: FlowChips =
         fixture.debugElement.query(By.directive(FlowChips)).componentInstance;
     flowChips.flowSelected.emit({
-      name: 'ArtifactCollectorFlow',
+      type: FlowType.ARTIFACT_COLLECTOR_FLOW,
       friendlyName: 'Forensic artifacts',
       description: 'Foo',
       enabled: true,
@@ -418,7 +419,7 @@ describe('FlowPicker Component', () => {
     expect(fixture.componentInstance.textInput.value)
         .toBe('Forensic artifacts');
     expect(clientPageGlobalStore.startFlowConfiguration)
-        .toHaveBeenCalledWith('ArtifactCollectorFlow');
+        .toHaveBeenCalledWith(FlowType.ARTIFACT_COLLECTOR_FLOW);
   });
 
   it('hides FlowChips when a Flow is selected', async () => {
@@ -431,7 +432,7 @@ describe('FlowPicker Component', () => {
 
     clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next({
       category: 'Browser',
-      name: 'CollectBrowserHistory',
+      name: FlowType.COLLECT_BROWSER_HISTORY,
       friendlyName: 'Collect browser history',
       defaultArgs: {},
     });
@@ -462,6 +463,6 @@ describe('FlowPicker Component', () => {
     await renderedMenuItems[1].click();
 
     expect(clientPageGlobalStore.startFlowConfiguration)
-        .toHaveBeenCalledWith(COMMON_FILE_FLOWS[1].name);
+        .toHaveBeenCalledWith(COMMON_FILE_FLOWS[1].type);
   });
 });

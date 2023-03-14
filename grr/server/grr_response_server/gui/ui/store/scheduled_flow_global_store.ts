@@ -30,7 +30,7 @@ export class ScheduledFlowGlobalStore {
     this.store.unscheduleFlow(scheduledFlowId);
   }
 
-  readonly scheduledFlows$: Observable<ReadonlyArray<ScheduledFlow>> =
+  readonly scheduledFlows$: Observable<readonly ScheduledFlow[]> =
       this.store.scheduledFlows$;
 }
 

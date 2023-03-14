@@ -12,7 +12,7 @@ import {Plugin} from './plugin';
 
 const INITIAL_RESULT_COUNT = 1000;
 
-const COLUMNS: ReadonlyArray<string> = [
+const COLUMNS: readonly string[] = [
   'pid',
   'processName',
   'state',
@@ -58,7 +58,7 @@ export class NetstatDetails extends Plugin implements OnDestroy {
 
   readonly dataSource = new MatTableDataSource<ConnectionRow>();
 
-  readonly netstatResults$: Observable<ReadonlyArray<ConnectionRow>> =
+  readonly netstatResults$: Observable<readonly ConnectionRow[]> =
       this.flowResultsLocalStore.results$.pipe(
           map(results =>
                   results?.map((data) => data.payload as NetworkConnection)),

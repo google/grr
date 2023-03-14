@@ -1,0 +1,16 @@
+trusted_certs:
+  "-----BEGIN CERTIFICATE-----\n"
+  "MIIBaDCCAQ6gAwIBAgIRAMh5eU+BV10PgrXCIHyRF9QwCgYIKoZIzj0EAwIwIzEh\n"
+  "MB8GA1UEAxMYRmxlZXRzcGVhayBGbGVldHNwZWFrIENBMB4XDTIwMTIxMTE3MTMy\n"
+  "M1oXDTMwMTIwOTE3MTMyM1owIzEhMB8GA1UEAxMYRmxlZXRzcGVhayBGbGVldHNw\n"
+  "ZWFrIENBMFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEfm7Y3Nn9iOltYPVDw32Q\n"
+  "oWZCo5NB9uRNodzB21+c1vyzFTOv061g9xEfo3JXP2lKDqYqgFaH2/07K57kCDys\n"
+  "WKMjMCEwDgYDVR0PAQH/BAQDAgKEMA8GA1UdEwEB/wQFMAMBAf8wCgYIKoZIzj0E\n"
+  "AwIDSAAwRQIhANQPZ725sitHJftnJdvNZCow/35ircFSVOaWkpr8ukPPAiAbJg3b\n"
+  "EdvBx6IAv9ItS+ebbfytekgNIyoWD2uM31MEFA==\n"
+  "-----END CERTIFICATE-----\n"
+server: "127.0.0.1:4443"
+client_label: ""
+registry_handler: {
+  configuration_key: "HKEY_LOCAL_MACHINE\\SOFTWARE\\FleetspeakClient"
+}

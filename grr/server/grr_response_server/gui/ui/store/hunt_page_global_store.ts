@@ -6,9 +6,15 @@ import {distinctUntilChanged, filter, map, scan, shareReplay, startWith, switchM
 import {ApiHuntError, ApiHuntResult} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
 import {RequestStatus, RequestStatusType, trackRequest} from '../lib/api/track_request';
-import {getHuntResultKey, toApiHuntState, translateHunt} from '../lib/api_translation/hunt';
+import {translateFlow} from '../lib/api_translation/flow';
+import {getHuntResultKey, translateHunt} from '../lib/api_translation/hunt';
+import {FlowWithDescriptor} from '../lib/models/flow';
 import {Hunt, HuntState} from '../lib/models/hunt';
+import {toResultKey} from '../lib/models/result';
 import {isNonNull} from '../lib/preconditions';
+
+import {ConfigGlobalStore} from './config_global_store';
+
 
 interface HuntPageState {
   readonly huntId?: string;
@@ -58,7 +64,7 @@ export interface HuntErrorsState {
    * re-polling of already loaded errors.
    */
   isLoading: boolean;
-  errors?: readonly ApiHuntError[];
+  errors?: {[key: string]: ApiHuntError};
 
   /** Number of errors already loaded. */
   loadedCount?: number;
@@ -70,6 +76,38 @@ export interface HuntErrorsState {
   hasMore?: boolean;
 }
 
+// TODO: Refactor HuntResultsState and HuntErrorsState into a
+// common interface. Consider using and extending `ApiStore`.
+/** Gets selected data (result or error) from a state. */
+function getSelectedData(
+    key: string, state: {isLoading: boolean, hasMore?: boolean},
+    dataMap: {[key: string]: ApiHuntResult|ApiHuntError}|undefined,
+    loadMore: Function): ApiHuntResult|ApiHuntError|null {
+  // No need to fetch if there is no selected key.
+  if (!key) {
+    return null;
+  }
+
+  // If the selected data is already on the map, simply return it.
+  if (dataMap && dataMap[key]) {
+    return dataMap[key];
+  }
+
+  // If we're already loading, wait a little longer.
+  if (state.isLoading) {
+    return null;
+  }
+
+  // If all results are loaded and the key is not there, return.
+  if (dataMap && !state.hasMore && !dataMap[key]) {
+    return null;
+  }
+
+  // If not, then we fetch more results.
+  loadMore();
+  return null;
+}
+
 /** Number of results to fetch per request. */
 export const RESULTS_BATCH_SIZE = 50;
 /** Number of errors to fetch per request. */
@@ -77,7 +115,10 @@ export const ERRORS_BATCH_SIZE = 50;
 
 /** ComponentStore implementation used by the GlobalStore. */
 class HuntPageComponentStore extends ComponentStore<HuntPageState> {
-  constructor(private readonly httpApiService: HttpApiService) {
+  constructor(
+      private readonly httpApiService: HttpApiService,
+      private readonly configGlobalStore: ConfigGlobalStore,
+  ) {
     super({
       // Start without results and let the hunt results component `loadMore`.
       listResultsCount: 0,
@@ -167,7 +208,7 @@ class HuntPageComponentStore extends ComponentStore<HuntPageState> {
                     .subscribeToResultsForHunt(
                         {huntId, count: count.toString()})
                     .pipe(
-                        map((apiHuntResults: ReadonlyArray<ApiHuntResult>) => {
+                        map((apiHuntResults: readonly ApiHuntResult[]) => {
                           const res: {[key: string]: ApiHuntResult} = {};
                           for (const result of apiHuntResults) {
                             res[getHuntResultKey(result, huntId)] = result;
@@ -205,34 +246,41 @@ class HuntPageComponentStore extends ComponentStore<HuntPageState> {
           .pipe(distinctUntilChanged());
 
   readonly selectedHuntResult$: Observable<ApiHuntResult|null> =
-      combineLatest([
-        this.huntResults$, this.selectedHuntResultId$
-      ]).pipe(map(([resultState, resultId]) => {
-        // No need to fetch if there is no selected key.
-        if (!resultId) {
-          return null;
-        }
+      combineLatest([this.huntResults$, this.selectedHuntResultId$])
+          .pipe(
+              map(([resultState, resultId]) => getSelectedData(
+                      resultId, resultState, resultState.results,
+                      this.loadMoreResults)));
 
-        // If the selected result is already on the map, simply return it.
-        if (resultState.results && resultState.results[resultId]) {
-          return resultState.results[resultId];
-        }
-
-        // If we're already loading, wait a little longer.
-        if (resultState.isLoading) {
-          return null;
-        }
-
-        // If all results are loaded and the key is not there, return.
-        if (resultState.results && !resultState.hasMore &&
-            !resultState.results[resultId]) {
-          throw new Error(`Result not found: ${resultId}`);
-        }
-
-        // If not, then we fetch more results.
-        this.loadMoreResults();
-        return null;
-      }));
+  readonly selectedResultFlowWithDescriptor$:
+      Observable<FlowWithDescriptor|null> =
+          combineLatest([
+            this.selectedHuntResultId$.pipe(
+                filter(key => key ? true : false), map(id => toResultKey(id))),
+            this.configGlobalStore.flowDescriptors$
+          ])
+              .pipe(
+                  switchMap(([resultKey, fds]) => {
+                    return this.httpApiService
+                        .fetchFlow(resultKey.clientId, resultKey.flowId)
+                        .pipe(
+                            map(apiFlow => {
+                              if (apiFlow) {
+                                const type = apiFlow.args?.['@type'];
+                                return {
+                                  flow: translateFlow(apiFlow),
+                                  descriptor: fds.get(apiFlow.name ?? ''),
+                                  flowArgType: typeof type === 'string' ?
+                                      type :
+                                      undefined,
+                                };
+                              }
+                              return null;
+                            }),
+                        );
+                  }),
+                  startWith(null),
+              );
 
   readonly selectResult = this.updater<string>(
       (state, key) => {
@@ -254,12 +302,18 @@ class HuntPageComponentStore extends ComponentStore<HuntPageState> {
                 this.httpApiService
                     .subscribeToErrorsForHunt({huntId, count: count.toString()})
                     .pipe(
-                        map((apiHuntErrors: readonly ApiHuntError[]) => ({
-                              isLoading: false,
-                              errors: apiHuntErrors,
-                              loadedCount: apiHuntErrors.length,
-                              hasMore: count <= apiHuntErrors.length,
-                            })),
+                        map((apiHuntErrors: readonly ApiHuntError[]) => {
+                          const errors: {[key: string]: ApiHuntResult} = {};
+                          for (const error of apiHuntErrors) {
+                            errors[getHuntResultKey(error, huntId)] = error;
+                          }
+                          return {
+                            isLoading: false,
+                            errors,
+                            loadedCount: apiHuntErrors.length,
+                            hasMore: count <= apiHuntErrors.length,
+                          };
+                        }),
                         ))),
         // Re-emit old results while new results are being loaded to prevent the
         // UI from showing a blank state after triggering loading of more flows.
@@ -278,19 +332,24 @@ class HuntPageComponentStore extends ComponentStore<HuntPageState> {
       shareReplay({bufferSize: 1, refCount: true}),
   );
 
+  readonly selectedHuntError$: Observable<ApiHuntError|null> =
+      combineLatest([this.huntErrors$, this.selectedHuntResultId$])
+          .pipe(
+              map(([errorState, resultId]) => getSelectedData(
+                      resultId, errorState, errorState.errors,
+                      this.loadMoreResults)));
+
   /**
    * An effect requesting to update the hunt state.
    */
-  readonly patchHunt = this.effect<{state: HuntState}>(
+  readonly patchHunt = this.effect<
+      {state?: HuntState, clientLimit?: bigint, clientRate?: number}>(
       obs$ => obs$.pipe(
           withLatestFrom(this.state$),
           switchMap(
-              ([patch, storeState]) =>
-                  trackRequest(this.httpApiService
-                                   .patchHunt(
-                                       storeState.huntId ?? '',
-                                       {state: toApiHuntState(patch.state)})
-                                   .pipe(map(hunt => translateHunt(hunt)))),
+              ([patch, storeState]) => trackRequest(
+                  this.httpApiService.patchHunt(storeState.huntId ?? '', patch)
+                      .pipe(map(hunt => translateHunt(hunt)))),
               ),
           tap((patchHuntRequestStatus) => {
             this.patchState({patchHuntRequestStatus});
@@ -303,9 +362,15 @@ class HuntPageComponentStore extends ComponentStore<HuntPageState> {
   providedIn: 'root',
 })
 export class HuntPageGlobalStore {
-  constructor(private readonly httpApiService: HttpApiService) {}
+  constructor(
+      private readonly httpApiService: HttpApiService,
+      private readonly configGlobalStore: ConfigGlobalStore,
+  ) {}
 
-  private readonly store = new HuntPageComponentStore(this.httpApiService);
+  private readonly store = new HuntPageComponentStore(
+      this.httpApiService,
+      this.configGlobalStore,
+  );
 
   /** Selects a hunt with a given id. */
   selectHunt(huntId: string): void {
@@ -317,6 +382,9 @@ export class HuntPageGlobalStore {
 
   readonly selectedHuntResultId$ = this.store.selectedHuntResultId$;
   readonly selectedHuntResult$ = this.store.selectedHuntResult$;
+  readonly selectedHuntError$ = this.store.selectedHuntError$;
+  readonly selectedResultFlowWithDescriptor$ =
+      this.store.selectedResultFlowWithDescriptor$;
 
   readonly huntResults$ = this.store.huntResults$;
   readonly huntErrors$ = this.store.huntErrors$;
@@ -340,5 +408,9 @@ export class HuntPageGlobalStore {
 
   startHunt() {
     this.store.patchHunt({state: HuntState.RUNNING});
+  }
+
+  modifyAndStartHunt(params: {clientLimit: bigint, clientRate: number}) {
+    this.store.patchHunt({...params, state: HuntState.RUNNING});
   }
 }

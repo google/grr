@@ -9,6 +9,7 @@ import {MatListModule} from '@angular/material/list';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {RouterModule} from '@angular/router';
 
+import {FlowDetailsModule} from '../../../flow_details/module';
 import {TimestampModule} from '../../../timestamp/module';
 
 import {HuntResultDetails} from './hunt_result_details';
@@ -20,6 +21,7 @@ import {HuntResultDetailsRoutingModule} from './routing';
 @NgModule({
   imports: [
     CommonModule,
+    FlowDetailsModule,
     RouterModule,
     MatButtonModule,
     MatChipsModule,

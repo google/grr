@@ -9,7 +9,7 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {DefaultDetails} from '../../components/flow_details/plugins/default_details';
 import {MultiGetFileDetails} from '../../components/flow_details/plugins/multi_get_file_details';
 import {getExportedResultsCsvUrl} from '../../lib/api/http_api_service';
-import {Flow, FlowDescriptor, FlowState} from '../../lib/models/flow';
+import {Flow, FLOW_LIST_ITEMS_BY_TYPE, FlowDescriptor, FlowState, FlowType} from '../../lib/models/flow';
 import {newFlow} from '../../lib/models/model_test_util';
 import {STORE_PROVIDERS} from '../../store/store_test_providers';
 import {DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER, initTestEnvironment} from '../../testing';
@@ -73,27 +73,77 @@ describe('FlowDetails Component', () => {
     return fixture;
   }
 
+  const sampleFlowName = 'SampleFlow' as FlowType;
+
   const SAMPLE_FLOW_LIST_ENTRY = Object.freeze(newFlow({
     flowId: '42',
     lastActiveAt: new Date('2019-09-23T12:00:00+0000'),
     startedAt: new Date('2019-08-23T12:00:00+0000'),
-    name: 'SampleFlow',
+    name: sampleFlowName,
     creator: 'testuser',
     resultCounts: [],
   }));
 
   const SAMPLE_FLOW_DESCRIPTOR = Object.freeze({
-    name: 'SampleFlow',
+    name: sampleFlowName,
     friendlyName: 'Sample Flow',
     category: 'Some category',
     defaultArgs: {},
   });
 
+  it('displays flow item name when a flow item exists for a given flow', () => {
+    const SAMPLE_FLOW_LIST_ITEM = {
+      type: sampleFlowName,
+      friendlyName: 'Sample Flow List Item',
+      description: '',
+      enabled: true,
+    };
+
+    FLOW_LIST_ITEMS_BY_TYPE[sampleFlowName] = SAMPLE_FLOW_LIST_ITEM;
+
+    const fixture =
+        createComponent(SAMPLE_FLOW_LIST_ENTRY, SAMPLE_FLOW_DESCRIPTOR);
+
+    const text = fixture.debugElement.nativeElement.textContent;
+    expect(text).toContain(SAMPLE_FLOW_LIST_ITEM.friendlyName);
+
+    delete FLOW_LIST_ITEMS_BY_TYPE[sampleFlowName];
+  });
+
+  it('displays flow descriptor friendly name when a flow item does not contain a friendly name',
+     () => {
+       const SAMPLE_FLOW_LIST_ITEM = {
+         type: sampleFlowName,
+         friendlyName: '',
+         description: '',
+         enabled: true,
+       };
+
+       FLOW_LIST_ITEMS_BY_TYPE[sampleFlowName] = SAMPLE_FLOW_LIST_ITEM;
+
+       const fixture =
+           createComponent(SAMPLE_FLOW_LIST_ENTRY, SAMPLE_FLOW_DESCRIPTOR);
+
+       const text = fixture.debugElement.nativeElement.textContent;
+       expect(text).toContain(SAMPLE_FLOW_DESCRIPTOR.friendlyName);
+
+       delete FLOW_LIST_ITEMS_BY_TYPE[sampleFlowName];
+     });
+
+  it('displays flow descriptor friendly name when a flow item does not exist for a given flow',
+     () => {
+       const fixture =
+           createComponent(SAMPLE_FLOW_LIST_ENTRY, SAMPLE_FLOW_DESCRIPTOR);
+
+       const text = fixture.debugElement.nativeElement.textContent;
+       expect(text).toContain(SAMPLE_FLOW_DESCRIPTOR.friendlyName);
+     });
+
   it('displays flow name when flow descriptor is not set', () => {
     const fixture = createComponent(SAMPLE_FLOW_LIST_ENTRY);
 
     const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).toContain('SampleFlow');
+    expect(text).toContain(sampleFlowName);
     expect(text).toContain('2019');
     expect(text).toContain('testuser');
   });
@@ -103,7 +153,7 @@ describe('FlowDetails Component', () => {
         createComponent(SAMPLE_FLOW_LIST_ENTRY, SAMPLE_FLOW_DESCRIPTOR);
 
     const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).not.toContain('SampleFlow');
+    expect(text).not.toContain(sampleFlowName);
     expect(text).toContain('Sample Flow');
   });
 
@@ -115,7 +165,7 @@ describe('FlowDetails Component', () => {
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).not.toContain('SampleFlow');
+    expect(text).not.toContain(sampleFlowName);
     expect(text).toContain('AnotherFlow');
   });
 
@@ -127,8 +177,7 @@ describe('FlowDetails Component', () => {
   });
 
   it('uses dedicated plugin if available', () => {
-    FLOW_DETAILS_PLUGIN_REGISTRY[SAMPLE_FLOW_LIST_ENTRY.name] =
-        MultiGetFileDetails;
+    FLOW_DETAILS_PLUGIN_REGISTRY[sampleFlowName] = MultiGetFileDetails;
 
     const fixture = createComponent(SAMPLE_FLOW_LIST_ENTRY);
 
@@ -138,8 +187,7 @@ describe('FlowDetails Component', () => {
   });
 
   it('falls back to default view if result metadata is not present', () => {
-    FLOW_DETAILS_PLUGIN_REGISTRY[SAMPLE_FLOW_LIST_ENTRY.name] =
-        MultiGetFileDetails;
+    FLOW_DETAILS_PLUGIN_REGISTRY[sampleFlowName] = MultiGetFileDetails;
 
     const entry = {
       ...SAMPLE_FLOW_LIST_ENTRY,
@@ -276,7 +324,7 @@ describe('FlowDetails Component', () => {
   });
 
   afterEach(() => {
-    delete FLOW_DETAILS_PLUGIN_REGISTRY[SAMPLE_FLOW_LIST_ENTRY.name];
+    delete FLOW_DETAILS_PLUGIN_REGISTRY[sampleFlowName];
   });
 
   it('displays flow context menu button', () => {

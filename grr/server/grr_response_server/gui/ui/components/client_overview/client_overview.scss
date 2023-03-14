@@ -81,6 +81,30 @@ $width: 80%;
     display: flex;
     column-gap: c.$container-padding;
   }
+
+  .client-warnings-container mat-card {
+    background-color: mat.get-color-from-palette(c.$background, danger-light);
+
+    mat-card-content {
+      display: flex;
+
+      > mat-icon {
+        flex-shrink: 0;
+        color: mat.get-color-from-palette(c.$foreground, danger-light);
+      }
+
+      .close-client-warning {
+        padding: 0;
+        min-width: unset;
+        height: 24px;
+        line-height: unset;
+      }
+
+      .text-container {
+        margin: 0 1rem;
+      }
+    }
+  }
 }
 
 .no-padding {

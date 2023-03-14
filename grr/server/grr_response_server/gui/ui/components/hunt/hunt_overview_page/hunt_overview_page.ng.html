@@ -21,25 +21,41 @@
     *ngFor="let hunt of hunts$ | async; trackBy: trackHuntById"
     class="split-card"
   >
-    <div class="header-all" [routerLink]="['/hunts', hunt.huntId]">
-      <div class="header mat-card-title">{{ hunt.description }} </div>
-      <div>
-        <user-image [username]="hunt.creator" size="16px"></user-image>
-        {{hunt.creator}}
+    <div class="header-all">
+      <div class="top-row">
+        <a class="header mat-card-title" name="cardTitle" [routerLink]="['/hunts', hunt.huntId]">{{ getHuntTitle(hunt) }} </a>
+        <div>
+          <user-image [username]="hunt.creator" size="16px"></user-image>
+          {{hunt.creator}}
+        </div>
+        <div>
+          <app-timestamp [date]="hunt.created"></app-timestamp>
+        </div>
+        <div>{{ hunt.completedClientsCount }} of {{ hunt.allClientsCount }}</div>
+        <mat-chip-list [selectable]="false" [tabIndex]="-1">
+          <app-hunt-status-chip [hunt]="hunt"></app-hunt-status-chip>
+        </mat-chip-list>
       </div>
-      <div>
-        <app-timestamp [date]="hunt.created"></app-timestamp>
+      <div class="bottom-row">
+        <div class="left">
+          <app-copy-button class="mat-small monospace subtitle">
+            {{ hunt.huntId }}
+          </app-copy-button>
+          <app-copy-button class="mat-small subtitle">
+            {{ hunt.flowName }}
+          </app-copy-button>
+        </div>
+        <mat-progress-bar
+            *ngIf="huntStarted(hunt)"
+            [mode]="isRunning(hunt) ? 'buffer' : 'determinate'"
+            [value]="getHuntProgress(hunt)"
+            [bufferValue]="getHuntBufferProgress(hunt)"
+            [matTooltip]="getHuntProgressTooltip(hunt)"
+            color="success"
+            class = "right"
+          ></mat-progress-bar>
       </div>
-      <div>{{ hunt.completedClientsCount }} of {{ hunt.allClientsCount }}</div>
-      <mat-progress-bar
-        [mode]="isRunning(hunt) ? 'buffer' : 'determinate'"
-        [value]="getHuntProgress(hunt)"
-        [bufferValue]="getHuntBufferProgress(hunt)"
-        [matTooltip]="getHuntProgressTooltip(hunt)"
-        color="success"
-      ></mat-progress-bar>
     </div>
-    <div class="mat-small args">{{ hunt.flowName ?? hunt.name }}</div>
 
     <result-accordion [colorScheme]="ColorScheme.FLOW_ARGS" title="Fleet collection arguments">
       <hunt-flow-arguments class="args" [hunt]="hunt"></hunt-flow-arguments>

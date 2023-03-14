@@ -23,8 +23,8 @@ class TestStore extends ApiCollectionStore<ApiResult, StoreArgs> {
     super(mockHttpApiService() as unknown as HttpApiService);
   }
 
-  apiResults$: Observable<ReadonlyArray<ApiResult>> =
-      new Subject<ReadonlyArray<ApiResult>>();
+  apiResults$: Observable<readonly ApiResult[]> =
+      new Subject<readonly ApiResult[]>();
   api = jasmine.createSpy('api').and.callFake(() => this.apiResults$);
 
   protected loadResults(args: StoreArgs, paginationArgs: PaginationArgs):
@@ -66,7 +66,7 @@ describe('ApiCollectionStore', () => {
     const store = new TestStore();
     store.setArgs({payload: ''});
 
-    const resultSource = new Subject<ReadonlyArray<ApiResult>>();
+    const resultSource = new Subject<readonly ApiResult[]>();
     store.apiResults$ = resultSource;
     const results = latestValueFrom(store.results$);
 
@@ -85,7 +85,7 @@ describe('ApiCollectionStore', () => {
     const store = new TestStore();
     store.setArgs({payload: ''});
 
-    const resultSource = new Subject<ReadonlyArray<ApiResult>>();
+    const resultSource = new Subject<readonly ApiResult[]>();
     store.apiResults$ = resultSource;
     const results = latestValueFrom(store.results$);
 
@@ -104,7 +104,7 @@ describe('ApiCollectionStore', () => {
     const store = new TestStore();
     store.setArgs({payload: ''});
 
-    const resultSource = new Subject<ReadonlyArray<ApiResult>>();
+    const resultSource = new Subject<readonly ApiResult[]>();
     store.apiResults$ = resultSource;
     const results = latestValueFrom(store.results$);
 

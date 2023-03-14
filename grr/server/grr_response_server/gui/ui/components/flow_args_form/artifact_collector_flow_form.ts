@@ -39,16 +39,16 @@ declare interface SampleSource {
 declare interface SourceNode {
   readonly type: SourceType;
   readonly name: string;
-  readonly values: ReadonlyArray<string>;
-  readonly children: ReadonlyArray<SourceNode>;
+  readonly values: readonly string[];
+  readonly children: readonly SourceNode[];
 }
 
 declare interface ArtifactListEntry extends ArtifactDescriptor {
-  readonly readableSources: ReadonlyMap<SourceType, ReadonlyArray<string>>;
+  readonly readableSources: ReadonlyMap<SourceType, readonly string[]>;
   readonly totalSources: number;
   readonly sampleSource?: SampleSource;
   readonly availableOnClient: boolean;
-  readonly searchStrings: ReadonlyArray<string>;
+  readonly searchStrings: readonly string[];
 }
 
 function getOrSet<K, V>(map: Map<K, V>, key: K, factory: () => V): V {
@@ -60,7 +60,7 @@ function getOrSet<K, V>(map: Map<K, V>, key: K, factory: () => V): V {
   return value;
 }
 
-function getReadableSources(source: ArtifactSource): ReadonlyArray<string> {
+function getReadableSources(source: ArtifactSource): readonly string[] {
   switch (source.type) {
     case SourceType.ARTIFACT_GROUP:
     case SourceType.ARTIFACT_FILES:
@@ -147,7 +147,7 @@ function matches(entry: ArtifactListEntry, searchString: string): boolean {
 
 function readableSourceToNodes(
     entries: Map<string, ArtifactListEntry>, type: SourceType,
-    readableSources: ReadonlyArray<string>): SourceNode[] {
+    readableSources: readonly string[]): SourceNode[] {
   if (type === SourceType.ARTIFACT || type === SourceType.ARTIFACT_FILES ||
       type === SourceType.ARTIFACT_GROUP) {
     return readableSources.map(source => ({

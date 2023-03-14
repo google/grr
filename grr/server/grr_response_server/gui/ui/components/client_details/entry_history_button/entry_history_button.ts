@@ -28,7 +28,7 @@ export class EntryHistoryButton {
   readonly clientEntryChanges$ =
       this.clientDetailsGlobalStore.selectedClientEntriesChanged$;
 
-  openEntryHistoryDialog(clientVersions: ReadonlyArray<Client>) {
+  openEntryHistoryDialog(clientVersions: readonly Client[]) {
     const data: EntryHistoryDialogParams = {
       path: this.path.split('.'),
       clientVersions,

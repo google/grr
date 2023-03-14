@@ -6,7 +6,7 @@
         class="flow-title text-link-hover"
         [routerLink]="['/clients', flow?.clientId, 'flows', flow?.flowId]"
       >
-        {{flowDescriptor?.friendlyName || flow?.name}}
+        {{flowTitle$|async}}
       </a>
       <app-copy-button class="mat-small monospace flow-id">
         {{flow?.flowId}}

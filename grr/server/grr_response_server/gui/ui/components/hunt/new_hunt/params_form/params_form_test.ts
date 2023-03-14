@@ -1,6 +1,4 @@
-import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -85,7 +83,6 @@ describe('params form test', () => {
     });
     fixture.detectChanges();
     const component = fixture.componentInstance;
-    expect(component.form.controls['clientRate'].value).toBe(200.0);
     expect(component.form.controls['expiryTime'].value).toBe(BigInt(1209600));
     expect(component.form.controls['crashLimit'].value).toBe(BigInt(100));
     expect(component.form.controls['avgResultsPerClientLimit'].value)
@@ -94,25 +91,6 @@ describe('params form test', () => {
         .toBe(BigInt(60));
     expect(component.form.controls['avgNetworkBytesPerClientLimit'].value)
         .toBe(BigInt(10485760));
-  });
-
-
-  it('only renders custom input when select custom', async () => {
-    const fixture = TestBed.createComponent(ParamsForm);
-    const loader = TestbedHarnessEnvironment.loader(fixture);
-    fixture.detectChanges();
-    const clientRate = await loader.getAllHarnesses(
-        MatInputHarness.with({selector: '[name=customClientLimit]'}));
-    expect(clientRate.length).toBe(0);
-    const customClientRateButton = fixture.debugElement.query(By.css('.run-on'))
-                                       .children[2]
-                                       .query(By.css('button'));
-    customClientRateButton.triggerEventHandler(
-        'click', new MouseEvent('click'));
-    fixture.detectChanges();
-    const newClientRate = await loader.getAllHarnesses(
-        MatInputHarness.with({selector: '[name=customClientLimit]'}));
-    expect(newClientRate.length).toBe(1);
   });
 
   it('buildSafetyLimits builds SafetyLimits using the form values',

@@ -21,8 +21,8 @@ def _GetProcessNameRegex(client):
   return "^%s$" % _GetBinaryName(client)
 
 
-class TestYaraScan(test_base.EndToEndTest):
-  """YaraScan test."""
+class TestYaraScanSignature(test_base.EndToEndTest):
+  """YaraScanSignature test."""
 
   platforms = test_base.EndToEndTest.Platform.ALL
 
@@ -77,7 +77,16 @@ rule test_rule {
       # 20 seconds seems reasonable here, actual values are 0.5s.
       self.assertLess(process_scan_match.scan_time_us, 20 * 1e6)
 
-  def testYaraSignatureReference(self):
+
+class TestYaraScanSignatureReference(test_base.EndToEndTest):
+  """TestYaraScanSignatureReference test."""
+
+  platforms = [
+      test_base.EndToEndTest.Platform.LINUX,
+      test_base.EndToEndTest.Platform.WINDOWS,
+  ]
+
+  def testYaraScanSignatureReference(self):
     text = "".join(random.choice(string.ascii_letters) for _ in range(256))
 
     signature = """\

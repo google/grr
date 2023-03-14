@@ -107,7 +107,7 @@ export abstract class ApiCollectionStore<Result, Args extends {} = {}>
    * concurrent polling for different pages.
    */
   protected abstract loadResults(args: Args, paginationArgs: PaginationArgs):
-      Observable<ReadonlyArray<Result>>;
+      Observable<readonly Result[]>;
 
   /**
    * Compares two result items for ordering of the results$ array.

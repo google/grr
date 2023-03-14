@@ -50,7 +50,7 @@ export declare interface PathSpecSegment {
 export declare interface PathSpec extends PathSpecSegment {
   readonly path: string;
   readonly pathtype: PathSpecPathType;
-  readonly segments: ReadonlyArray<PathSpecSegment>;
+  readonly segments: readonly PathSpecSegment[];
 }
 
 /** StatEntry mapping. */
@@ -83,7 +83,7 @@ export declare interface FileIdentifier {
 }
 
 /** Splits a path "/foo/bar" into segments ["/", "/foo", "/foo/bar"]. */
-export const scanPath = (path: string): ReadonlyArray<string> => {
+export function scanPath(path: string): readonly string[] {
   if (!path.startsWith('/')) {
     throw new Error(`Expected path to start with "/", got "${path}"`);
   }
@@ -103,7 +103,7 @@ export const scanPath = (path: string): ReadonlyArray<string> => {
   parts[0] = '/';
 
   return parts;
-};
+}
 
 /**
  * Returns true if `child` is a sub-directory of `parent`, e.g. `/foo` is a

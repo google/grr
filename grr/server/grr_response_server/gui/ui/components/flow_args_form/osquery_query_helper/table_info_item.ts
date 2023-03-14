@@ -23,7 +23,7 @@ export class TableInfoItem {
 
   convertToHighlightedParts(
       subject: string,
-      ): ReadonlyArray<StringWithHighlightsPart> {
+      ): readonly StringWithHighlightsPart[] {
     const matchResult = this.matchMap?.get(subject);
 
     if (matchResult) {

@@ -58,6 +58,10 @@
     .raw {
       line-height: initial;
     }
+
+    &.error, &.error .title {
+      color: mat.get-color-from-palette(c.$foreground, danger);
+    }
   }
 }
 

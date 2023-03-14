@@ -14,7 +14,7 @@ function isRegistryValue(row: RegistryRow): row is RegistryValue {
   return row.type !== 'REG_KEY';
 }
 
-function hasRegistryValue(rows: ReadonlyArray<RegistryRow>) {
+function hasRegistryValue(rows: readonly RegistryRow[]) {
   return rows.length > 0 && rows.some(isRegistryValue);
 }
 
@@ -28,13 +28,13 @@ function hasRegistryValue(rows: ReadonlyArray<RegistryRow>) {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RegistryResultsTable implements AfterViewInit {
-  readonly results$ = new BehaviorSubject<ReadonlyArray<RegistryRow>>([]);
+  readonly results$ = new BehaviorSubject<readonly RegistryRow[]>([]);
   readonly dataSource = new MatTableDataSource<RegistryRow>();
   @ViewChild(MatSort) sort!: MatSort;
 
   readonly totalCount$ = new BehaviorSubject<number|null>(null);
 
-  readonly displayedColumns$: Observable<ReadonlyArray<string>> =
+  readonly displayedColumns$: Observable<readonly string[]> =
       this.results$.pipe(map(results => {
         if (hasRegistryValue(results)) {
           return ['path', 'type', 'size'];
@@ -54,7 +54,7 @@ export class RegistryResultsTable implements AfterViewInit {
           );
 
   @Input()
-  set results(value: ReadonlyArray<RegistryRow>|null) {
+  set results(value: readonly RegistryRow[]|null) {
     this.results$.next(value ?? []);
     this.dataSource.data = (value ?? []) as RegistryRow[];
   }

@@ -10,6 +10,7 @@ import {MatTooltipModule} from '@angular/material/tooltip';
 
 import {ByteComponentsModule} from '../../../../components/form/byte_input/module';
 import {DurationComponentsModule} from '../../../../components/form/duration_input/module';
+import {RolloutFormModule} from '../../../../components/hunt/rollout_form/module';
 
 import {ParamsForm} from './params_form';
 
@@ -27,6 +28,7 @@ import {ParamsForm} from './params_form';
     ByteComponentsModule,
     DurationComponentsModule,
     MatTooltipModule,
+    RolloutFormModule,
   ],
   declarations: [
     ParamsForm,

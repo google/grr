@@ -68,6 +68,7 @@ override_dh_strip:
 # A fleetspeak client installation is obsolete in the server DEB.
 override_dh_virtualenv:
 	dh_virtualenv --python python3 \
+		--builtin-venv \
 		--use-system-packages \
 		--extra-pip-arg "--ignore-installed" \
 		--extra-pip-arg "--no-cache-dir" \

@@ -128,8 +128,9 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
 
     self.WaitUntilNot(self.GetVisibleElement, 'css=scheduled-flow-list')
     self.WaitUntilContains('All human flows', self.GetText, 'css=flow-list')
-    self.WaitUntilContains('Collect multiple files', self.GetText,
-                           'css=flow-details')
+    self.WaitUntilContains(
+        'Collect files by search criteria', self.GetText, 'css=flow-details'
+    )
     self.WaitUntil(self.GetVisibleElement, 'css=flow-details .in-progress')
 
     self.assertEmpty(_ListScheduledFlows(self.client_id, self.test_username))
@@ -162,8 +163,9 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.Click('css=flow-form button:contains("Start")')
 
     self.WaitUntilContains('All human flows', self.GetText, 'css=flow-list')
-    self.WaitUntilContains('Collect multiple files', self.GetText,
-                           'css=flow-details')
+    self.WaitUntilContains(
+        'Collect files by search criteria', self.GetText, 'css=flow-details'
+    )
     self.WaitUntil(self.GetVisibleElement, 'css=flow-details .in-progress')
 
     self.assertEmpty(_ListScheduledFlows(self.client_id, self.test_username))
@@ -550,8 +552,9 @@ class FlowCreationTestWithApprovalsDisabled(gui_test_lib.GRRSeleniumTest):
     self.Click('css=flow-form button:contains("Start")')
 
     self.WaitUntilContains('All human flows', self.GetText, 'css=flow-list')
-    self.WaitUntilContains('Collect multiple files', self.GetText,
-                           'css=flow-details')
+    self.WaitUntilContains(
+        'Collect files by search criteria', self.GetText, 'css=flow-details'
+    )
     self.WaitUntil(self.GetVisibleElement, 'css=flow-details .in-progress')
 
     self.assertEmpty(_ListScheduledFlows(self.client_id, self.test_username))

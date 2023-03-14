@@ -54,8 +54,9 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
                     type=rdf_client_fs.StatEntry.__name__, count=1)
             ])):
       self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=.flow-title:contains('ListDirectory')")
+      self.WaitUntil(
+          self.IsElementPresent, "css=.flow-title:contains('List directory')"
+      )
 
       flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
           rdf_client_fs.StatEntry(
@@ -83,8 +84,9 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
                     type=rdf_client_fs.StatEntry.__name__, count=1)
             ])):
       self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=.flow-title:contains('ListDirectory')")
+      self.WaitUntil(
+          self.IsElementPresent, "css=.flow-title:contains('List directory')"
+      )
 
       flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
           rdf_client_fs.StatEntry(
@@ -117,8 +119,9 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
                     type=rdf_client_fs.StatEntry.__name__, count=1)
             ])):
       self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=.flow-title:contains('ListDirectory')")
+      self.WaitUntil(
+          self.IsElementPresent, "css=.flow-title:contains('List directory')"
+      )
 
       flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
           rdf_client_fs.StatEntry(
@@ -153,8 +156,9 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
                     type=rdf_client_fs.StatEntry.__name__, count=1)
             ])):
       self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=.flow-title:contains('ListDirectory')")
+      self.WaitUntil(
+          self.IsElementPresent, "css=.flow-title:contains('List directory')"
+      )
 
       flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
           rdf_client_fs.StatEntry(
@@ -195,8 +199,9 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
                     type=rdf_client_fs.StatEntry.__name__, count=1)
             ])):
       self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=.flow-title:contains('ListDirectory')")
+      self.WaitUntil(
+          self.IsElementPresent, "css=.flow-title:contains('List directory')"
+      )
 
       flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
           rdf_client_fs.StatEntry(
@@ -237,8 +242,9 @@ class ListDirectoryTest(gui_test_lib.GRRSeleniumTest):
         pathspec=rdf_paths.PathSpec.OS(path="/path"))
 
     self.Open(f"/v2/clients/{self.client_id}")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.flow-title:contains('ListDirectory')")
+    self.WaitUntil(
+        self.IsElementPresent, "css=.flow-title:contains('List directory')"
+    )
 
     self.Click("css=result-accordion .title:contains('Flow arguments')")
 

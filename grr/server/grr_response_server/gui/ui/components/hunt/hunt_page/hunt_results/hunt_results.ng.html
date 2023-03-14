@@ -1,10 +1,13 @@
 <div class="card">
   <div class="header">Results</div>
 
-  <div class="content" *ngIf="(resultsMap$ | async) ?? (errorsDataSource$ | async)">
+  <div class="content" *ngIf="(resultsMap$ | async) as resultMap">
     <mat-tab-group>
-      <mat-tab *ngFor="let result of resultsMap$ | async | keyvalue; trackBy: trackByIndex">
-        <ng-template mat-tab-label>{{ result.value.tabName }}</ng-template>
+      <mat-tab *ngFor="let result of resultMap | keyvalue; trackBy: trackByIndex">
+        <ng-template mat-tab-label>
+          <mat-icon *ngIf="result.value.tabName === ERROR_TAB">warning</mat-icon>
+          {{ result.value.tabName }}
+        </ng-template>
 
         <app-filter-paginate [dataSource]="result.value.dataSource">
           <mat-table [dataSource]="result.value.dataSource" [trackBy]="trackByIndex">
@@ -68,106 +71,34 @@
             <mat-row *matRowDef="let row; columns: result.value.displayedColumns"></mat-row>
           </mat-table>
         </app-filter-paginate>
-        <div>
-          <!-- TODO: Extract load more button to a separate template. -->
-          <button
-            mat-stroked-button
-            type="button"
-            color="primary"
-            class="progress-spinner-button icon-align"
-            (click)="loadMoreResults()"
-            [ngSwitch]="resultsLoadMoreState$ | async"
-            [disabled]="(resultsLoadMoreState$ | async) !== LoadMoreState.HAS_MORE"
-            name="loadMoreResultsButton"
-          >
-            <span *ngSwitchCase="LoadMoreState.LOADING">
-              <mat-spinner diameter="24"></mat-spinner>
-              Loading more results
-            </span>
-
-            <span *ngSwitchCase="LoadMoreState.HAS_MORE">
-              <mat-icon>refresh</mat-icon>
-              Load more results
-            </span>
-
-            <span *ngSwitchCase="LoadMoreState.ALL_LOADED"> Nothing more to load </span>
-          </button>
-          <span class="subtitle">{{ loadedResultsDesc$ | async }}</span>
-        </div>
-      </mat-tab>
-
-      <mat-tab *ngIf="errorsDataSource$ | async as dataSource">
-        <ng-template mat-tab-label> <mat-icon>warning</mat-icon> Errors </ng-template>
-
-        <app-filter-paginate [dataSource]="dataSource">
-          <mat-table [dataSource]="dataSource" [trackBy]="trackByIndex">
-            <ng-container matColumnDef="clientId" class="result-table default-wrap">
-              <mat-header-cell *matHeaderCellDef>Client ID</mat-header-cell>
-
-              <mat-cell *matCellDef="let element">
-                <ng-container>
-                  <app-copy-button *ngIf="element.clientId">{{ element.clientId }}</app-copy-button>
-                </ng-container>
-              </mat-cell>
-            </ng-container>
-
-            <ng-container matColumnDef="collectedAt" class="result-table timestamp">
-              <mat-header-cell *matHeaderCellDef>Collected At</mat-header-cell>
-
-              <mat-cell *matCellDef="let element">
-                <app-timestamp [date]="element.timestamp"></app-timestamp>
-              </mat-cell>
-            </ng-container>
-
-            <ng-container matColumnDef="logMessage" class="result-table">
-              <mat-header-cell *matHeaderCellDef>Log Message</mat-header-cell>
-
-              <mat-cell *matCellDef="let element">
-                <app-copy-button>{{ element.logMessage }}</app-copy-button>
-              </mat-cell>
-            </ng-container>
-
-            <ng-container matColumnDef="backtrace" class="result-table">
-              <mat-header-cell *matHeaderCellDef>Backtrace</mat-header-cell>
-
-              <mat-cell *matCellDef="let element">
-                <app-copy-button>{{ element.backtrace }}</app-copy-button>
-              </mat-cell>
-            </ng-container>
-
-            <!-- TODO: Add view details column to errors. -->
-
-            <mat-header-row *matHeaderRowDef="displayErrorColumns"></mat-header-row>
-            <mat-row *matRowDef="let row; columns: displayErrorColumns"></mat-row>
-          </mat-table>
-        </app-filter-paginate>
-        <!-- TODO:Extract load more button to a separate template. -->
-        <div>
-          <button
-            mat-stroked-button
-            type="button"
-            color="primary"
-            class="progress-spinner-button icon-align"
-            (click)="loadMoreErrors()"
-            [ngSwitch]="errorsLoadMoreState$ | async"
-            [disabled]="(errorsLoadMoreState$ | async) !== LoadMoreState.HAS_MORE"
-            name="loadMoreErrorsButton"
-          >
-            <span *ngSwitchCase="LoadMoreState.LOADING">
-              <mat-spinner diameter="24"></mat-spinner>
-              Loading more errors
-            </span>
-
-            <span *ngSwitchCase="LoadMoreState.HAS_MORE">
-              <mat-icon>refresh</mat-icon>
-              Load more errors
-            </span>
-
-            <span *ngSwitchCase="LoadMoreState.ALL_LOADED"> Nothing more to load </span>
-          </button>
-        </div>
       </mat-tab>
     </mat-tab-group>
+    <div>
+      <!-- TODO: Extract load more button to a separate template. -->
+      <button
+        mat-stroked-button
+        type="button"
+        color="primary"
+        class="progress-spinner-button icon-align"
+        (click)="loadMoreResultsAndErrors()"
+        [ngSwitch]="combinedLoadMoreState$ | async"
+        [disabled]="(combinedLoadMoreState$ | async) !== LoadMoreState.HAS_MORE"
+        name="combinedLoadMoreButton"
+      >
+        <span *ngSwitchCase="LoadMoreState.LOADING">
+          <mat-spinner diameter="24"></mat-spinner>
+          Loading more
+        </span>
+
+        <span *ngSwitchCase="LoadMoreState.HAS_MORE">
+          <mat-icon>refresh</mat-icon>
+          Load more
+        </span>
+
+        <span *ngSwitchCase="LoadMoreState.ALL_LOADED"> Nothing more to load </span>
+      </button>
+      <span class="subtitle">{{ loadedDesc$ | async }}</span>
+    </div>
 
     <div class="button-row">
       <div
@@ -219,10 +150,10 @@
   </div>
 
   <mat-spinner
-    *ngIf="(allLoading$ | async) && !(resultsMap$ | async) && !(errorsDataSource$ | async)"
+    *ngIf="(allLoading$ | async) && !(resultsMap$ | async)"
   ></mat-spinner>
   <div
-    *ngIf="!(allLoading$ | async) && !(resultsMap$ | async) && !(errorsDataSource$ | async)"
+    *ngIf="!(allLoading$ | async) && !(resultsMap$ | async)"
     class="no-data"
   >
     Nothing to show

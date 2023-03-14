@@ -8,6 +8,7 @@ from grr_response_core.lib import config_lib
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
+from grr_response_core.lib.rdfvalues import config as rdf_config
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto.api import config_pb2
@@ -267,6 +268,7 @@ class ApiUiConfig(rdf_structs.RDFProtoStruct):
   protobuf = config_pb2.ApiUiConfig
   rdf_deps = [
       rdf_hunts.HuntRunnerArgs,
+      rdf_config.AdminUIClientWarningsConfigOption,
   ]
 
 
@@ -285,4 +287,5 @@ class ApiGetUiConfigHandler(api_call_handler_base.ApiCallHandler):
         grr_version=config.CONFIG["Source.version_string"],
         profile_image_url=config.CONFIG["AdminUI.profile_image_url"],
         default_hunt_runner_args=rdf_hunts.HuntRunnerArgs(),
+        client_warnings=config.CONFIG["AdminUI.client_warnings"],
     )

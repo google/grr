@@ -1,4 +1,4 @@
-import {ApiHunt, ApiHuntApproval, ApiHuntResult, ApiHuntState, HuntRunnerArgs, OutputPluginDescriptor} from '../api/api_interfaces';
+import {ApiHunt, ApiHuntApproval, ApiHuntState, HuntRunnerArgs, OutputPluginDescriptor} from '../api/api_interfaces';
 import {Hunt, HuntApproval, HuntState, HuntType, SafetyLimits} from '../models/hunt';
 import {ResultKey, toResultKeyString} from '../models/result';
 import {assertEnum, assertKeyNonNull, assertKeyTruthy, assertNumber} from '../preconditions';
@@ -65,6 +65,8 @@ export function translateHunt(hunt: ApiHunt): Hunt {
     allClientsCount: BigInt(hunt.allClientsCount ?? 0),
     clientsWithResultsCount: BigInt(hunt.clientsWithResultsCount ?? 0),
     completedClientsCount: BigInt(hunt.completedClientsCount ?? 0),
+    crashedClientsCount: BigInt(hunt.crashedClientsCount ?? 0),
+    failedClientsCount: BigInt(hunt.failedClientsCount ?? 0),
     created: createDate(hunt.created),
     creator: hunt.creator,
     description: hunt.description ?? '',
@@ -111,7 +113,7 @@ export function translateHuntApproval(approval: ApiHuntApproval): HuntApproval {
 
 /** Builds a string result key for the hunt result. */
 export function getHuntResultKey(
-    result: ApiHuntResult, huntId: string): string {
+    result: {clientId?: string, timestamp?: string}, huntId: string): string {
   const key: ResultKey = {
     clientId: result.clientId ?? '',
     flowId: huntId,

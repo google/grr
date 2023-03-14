@@ -9,7 +9,7 @@ import {FlowResultMapFunction, FlowResultsQueryWithAdapter} from '../helpers/loa
 
 import {Plugin} from './plugin';
 
-const ADAPTER: FlowResultMapFunction<ReadonlyArray<FlowFileResult>|undefined> =
+const ADAPTER: FlowResultMapFunction<readonly FlowFileResult[]|undefined> =
     (results) => results?.map(item => item.payload as ApiStatEntry)
                      .map(translateStatEntry)
                      .map(res => flowFileResultFromStatEntry(res, {}));
@@ -42,6 +42,6 @@ export class ListDirectoryDetails extends Plugin {
       map(args => args?.pathspec?.path ?? 'No paths specified'));
 
   readonly query$: Observable<
-      FlowResultsQueryWithAdapter<ReadonlyArray<FlowFileResult>|undefined>> =
+      FlowResultsQueryWithAdapter<readonly FlowFileResult[]|undefined>> =
       this.flow$.pipe(map(flow => ({flow, resultMapper: ADAPTER})));
 }

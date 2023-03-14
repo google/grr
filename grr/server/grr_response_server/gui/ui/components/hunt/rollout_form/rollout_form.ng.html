@@ -1,0 +1,74 @@
+<form>
+<div>
+  <div class="param-name">Pause collection after running on</div>
+  <div class="hunt-param-form-row">
+    <mat-button-toggle-group class="run-on" [formControl]="controls.runOn">
+      <mat-button-toggle class="run-on-option" [value]="RunOn.ALL_CLIENTS"
+        >All matching clients</mat-button-toggle
+      >
+      <mat-button-toggle
+        class="run-on-option"
+        [value]="RunOn.SAMPLE"
+        matTooltip="Will run on 1k matching clients."
+        >Small client sample</mat-button-toggle
+      >
+      <mat-button-toggle class="run-on-option" [value]="RunOn.CUSTOM"
+        >Custom</mat-button-toggle
+      >
+    </mat-button-toggle-group>
+    <mat-form-field appearance="outline" class="ml-2" *ngIf="controls.runOn.value === RunOn.CUSTOM">
+      <mat-label>Number of clients</mat-label>
+      <input
+        matInput
+        [formControl]="controls.clientLimit"
+        name="customClientLimit"
+        type="number"
+        autocomplete="off"
+      />
+    </mat-form-field>
+  </div>
+</div>
+<div>
+  <div class="param-name">Rollout speed</div>
+  <div class="hunt-param-form-row">
+    <mat-button-toggle-group [formControl]="controls.rolloutSpeed">
+      <mat-button-toggle
+        class="rollout-speed-option"
+        [value]="RolloutSpeed.UNLIMITED"
+        matTooltip="Expacting total traffic below 10MB per client or less than 1000 results per client"
+      >
+        Unlimited
+      </mat-button-toggle>
+      <mat-button-toggle
+        class="rollout-speed-option"
+        [value]="RolloutSpeed.STANDARD"
+        matTooltip="Expacting total traffic above 10MB or more than 1000 results per client"
+      >
+        Standard
+      </mat-button-toggle>
+      <mat-button-toggle
+        class="rollout-speed-option"
+        [value]="RolloutSpeed.CUSTOM"
+        matTooltip="Set your own rollout speed"
+      >
+        Custom
+      </mat-button-toggle>
+    </mat-button-toggle-group>
+    <mat-form-field
+      appearance="outline"
+      class="ml-2"
+      *ngIf="controls.rolloutSpeed.value === RolloutSpeed.CUSTOM"
+    >
+      <mat-label>Client rate</mat-label>
+      <input matInput [formControl]="controls.clientRate" name="clientRate" type="number" autocomplete="off" />
+    </mat-form-field>
+    <mat-icon
+      matTooltip="The fleet collection will pause when this threshold is reached.
+          You can edit and restart the collection."
+      class="info-icon"
+    >
+      info_outline
+    </mat-icon>
+  </div>
+</div>
+</form>

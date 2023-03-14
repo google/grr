@@ -12,12 +12,12 @@ export interface OsqueryColumnSpec {
 export interface OsqueryTableSpec {
   readonly name: string;
   readonly description: string;
-  readonly columns: ReadonlyArray<OsqueryColumnSpec>;
-  readonly platforms: ReadonlyArray<string>;
+  readonly columns: readonly OsqueryColumnSpec[];
+  readonly platforms: readonly string[];
 }
 
 /** Up-to-date Osquery spec. */
-export const allTableSpecs: ReadonlyArray<OsqueryTableSpec> = tableSpecs451;
+export const allTableSpecs: readonly OsqueryTableSpec[] = tableSpecs451;
 
 /** Returns a table spec corresponding to a given name. */
 export function nameToTable(name: string): OsqueryTableSpec|undefined {

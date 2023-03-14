@@ -11,13 +11,13 @@ import {FlowResultMapFunction, FlowResultsQueryWithAdapter} from '../helpers/loa
 
 import {Plugin} from './plugin';
 
-function getResults(results: ReadonlyArray<FlowResult>, typeName: 'StatEntry'):
-    ReadonlyArray<StatEntry>;
+function getResults(results: readonly FlowResult[], typeName: 'StatEntry'):
+    readonly StatEntry[];
 function getResults(
-    results: ReadonlyArray<FlowResult>,
-    typeName: 'ExecuteResponse'): ReadonlyArray<ExecuteResponse>;
+    results: readonly FlowResult[],
+    typeName: 'ExecuteResponse'): readonly ExecuteResponse[];
 function getResults(
-    results: ReadonlyArray<FlowResult>, typeName: string): ReadonlyArray<{}> {
+    results: readonly FlowResult[], typeName: string): ReadonlyArray<{}> {
   return results.filter(item => item.payloadType === typeName)
       .map(item => item.payload as {});
 }
@@ -52,9 +52,9 @@ function toRow(flow: Flow, artifact: ArtifactProgress): ArtifactRow {
 }
 
 interface ArtifactResults {
-  readonly fileResults: ReadonlyArray<FlowFileResult>;
+  readonly fileResults: readonly FlowFileResult[];
   readonly registryResults: ReadonlyArray<RegistryKey|RegistryValue>;
-  readonly executeResponseResults: ReadonlyArray<ExecuteResponse>;
+  readonly executeResponseResults: readonly ExecuteResponse[];
   readonly unknownResultCount: number;
 }
 

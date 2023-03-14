@@ -57,7 +57,7 @@ export class ClientSearchLocalStore {
 
   private readonly store = new ClientSearchStore(this.httpApiService);
 
-  readonly clients$: Observable<ReadonlyArray<Client>|undefined> =
+  readonly clients$: Observable<readonly Client[]|undefined> =
       this.store.results$;
 
   readonly isLoading$ = this.store.isLoading$;

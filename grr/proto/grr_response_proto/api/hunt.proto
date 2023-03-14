@@ -16,7 +16,7 @@ package grr;
 // Entities.
 //
 
-// Next id: 34
+// Next id: 36
 message ApiHunt {
   // Enum values here correspond to Hunt.State values.
   enum State {
@@ -63,6 +63,12 @@ message ApiHunt {
   }];
   optional int64 completed_clients_count = 9 [(sem_type) = {
     description: "Count of completed clients.",
+  }];
+  optional int64 failed_clients_count = 34 [(sem_type) = {
+    description: "Count of failed clients.",
+  }];
+  optional int64 crashed_clients_count = 35 [(sem_type) = {
+    description: "Count of crashed clients.",
   }];
   optional int64 crash_limit = 22 [(sem_type) = {
     description: "Crash limit.",

@@ -8,6 +8,7 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {Browser, ForemanClientRuleSetMatchMode, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../../lib/api/api_interfaces';
 import {ApiModule} from '../../../lib/api/module';
 import {RequestStatusType} from '../../../lib/api/track_request';
+import {getHuntTitle} from '../../../lib/models/hunt';
 import {newFlowDescriptorMap, newHunt, newHuntApproval, newSafetyLimits} from '../../../lib/models/model_test_util';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../../store/config_global_store_test_util';
@@ -134,6 +135,48 @@ describe('HuntApprovalPage Component', () => {
     expect(text).toContain('pending');
     expect(text).toContain('approver1');
     expect(text).toContain('approver2');
+  });
+
+  it('displays correct hunt title', () => {
+    const fixture = TestBed.createComponent(HuntApprovalPage);
+    fixture.detectChanges();
+
+    configGlobalStore.mockedObservables.flowDescriptors$.next(
+        newFlowDescriptorMap({
+          name: 'CollectBrowserHistory',
+          friendlyName: 'Collects Browser History',
+          category: 'b',
+          defaultArgs: {},
+        }));
+
+    const huntWithNameNoDesc = newHunt({
+      name: 'Get_free_bitcoin',
+      description: undefined,
+      flowName: 'CollectBrowserHistory',
+    });
+    injectMockStore(HuntApprovalPageGlobalStore)
+        .mockedObservables.approval$.next(newHuntApproval({
+          subject: huntWithNameNoDesc,
+        }));
+    fixture.detectChanges();
+
+    const title = fixture.debugElement.query(By.css('[name=approvalTitle]'));
+    expect(title.nativeElement.textContent)
+        .toContain(getHuntTitle(huntWithNameNoDesc));
+
+    const huntNoNameNoDesc = newHunt({
+      name: undefined,
+      description: undefined,
+      flowName: 'CollectBrowserHistory',
+    });
+    injectMockStore(HuntApprovalPageGlobalStore)
+        .mockedObservables.approval$.next(newHuntApproval({
+          subject: huntNoNameNoDesc,
+        }));
+    fixture.detectChanges();
+
+    expect(title.nativeElement.textContent)
+        .toContain(getHuntTitle(huntNoNameNoDesc));
   });
 
   it('grants approval on button click', () => {

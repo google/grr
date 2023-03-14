@@ -13,7 +13,7 @@ import {Approval, ApprovalRequest} from './user';
 /** A KnowledgeBase key (e.g. `users.internet_cache`) with example values. */
 export interface KnowledgeBaseExample {
   readonly key: string;
-  readonly examples: ReadonlyArray<string>;
+  readonly examples: readonly string[];
 }
 
 /**
@@ -51,7 +51,7 @@ function compileExamples(
  * Windows specific volume details.
  */
 export interface WindowsVolume {
-  readonly attributes?: ReadonlyArray<string>;
+  readonly attributes?: readonly string[];
   readonly driveLetter?: string;
   readonly driveType?: string;
 }
@@ -122,7 +122,7 @@ export interface NetworkAddress {
 export interface NetworkInterface {
   readonly macAddress?: string;
   readonly interfaceName: string;
-  readonly addresses: ReadonlyArray<NetworkAddress>;
+  readonly addresses: readonly NetworkAddress[];
 }
 
 /**
@@ -145,6 +145,14 @@ export interface AgentInfo {
 export interface ClientLabel {
   readonly owner: string;
   readonly name: string;
+}
+
+/**
+ * Client Warning.
+ */
+export interface ClientWarning {
+  htmlSnippet: string;
+  isClosed: boolean;
 }
 
 /** GoogleCloudInstance proto mapping. */
@@ -211,11 +219,11 @@ export interface Client {
   /** Data about the system of the client */
   readonly osInfo: OsInfo;
   /** Users on the client */
-  readonly users: ReadonlyArray<User>;
+  readonly users: readonly User[];
   /** Network interfaces of the client */
-  readonly networkInterfaces: ReadonlyArray<NetworkInterface>;
+  readonly networkInterfaces: readonly NetworkInterface[];
   /** Storage volumes available to the client */
-  readonly volumes: ReadonlyArray<StorageVolume>;
+  readonly volumes: readonly StorageVolume[];
   /** Memory available to this client */
   readonly memorySize?: bigint;
   /** When the client was first seen. */
@@ -227,7 +235,7 @@ export interface Client {
   /** Last reported client clock time. */
   readonly lastClock?: Date;
   /** List of ClientLabels */
-  readonly labels: ReadonlyArray<ClientLabel>;
+  readonly labels: readonly ClientLabel[];
   /** The time when this client info was born */
   readonly age?: Date;
   readonly cloudInstance?: CloudInstance;

@@ -81,7 +81,7 @@ export abstract class Plugin implements OnDestroy {
    * If the flow is still running or reports no results in the metadata, no
    * export/download buttons will be shown.
    */
-  getExportMenuItems(flow: Flow): ReadonlyArray<ExportMenuItem> {
+  getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
     const clientId = flow.clientId.replace('.', '_');
     const items: ExportMenuItem[] = [];
 

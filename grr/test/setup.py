@@ -59,12 +59,12 @@ setup_args = dict(
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
     install_requires=[
-        "absl-py==1.2.0",
-        "flaky==3.6.1",
-        "pytest==6.2.2",
-        "responses==0.12.1",
+        "absl-py==1.4.0",
+        "flaky==3.7.0",
+        "pytest==7.2.1",
+        "responses==0.22.0",
         "selenium==3.141.0",
-        "google-api-python-client==1.9.3",
+        "google-api-python-client==1.12.11",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-server==%s" % VERSION.get("Version", "packagedepends"),
@@ -74,13 +74,20 @@ setup_args = dict(
     include_package_data=True,
     entry_points={
         "console_scripts": [
-            "grr_end_to_end_tests = "
-            "grr_response_test.distro_entry:EndToEndTests",
-            "grr_api_regression_generate = "
-            "grr_response_test.distro_entry:ApiRegressionTestsGenerate",
-            "grr_dump_mysql_schema = "
-            "grr_response_test.distro_entry:DumpMySQLSchema"
+            (
+                "grr_end_to_end_tests = "
+                "grr_response_test.distro_entry:EndToEndTests"
+            ),
+            (
+                "grr_api_regression_generate = "
+                "grr_response_test.distro_entry:ApiRegressionTestsGenerate"
+            ),
+            (
+                "grr_dump_mysql_schema = "
+                "grr_response_test.distro_entry:DumpMySQLSchema"
+            ),
         ]
-    })
+    },
+)
 
 setup(**setup_args)

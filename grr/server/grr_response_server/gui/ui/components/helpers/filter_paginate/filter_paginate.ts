@@ -41,16 +41,16 @@ export class FilterPaginate<T> implements OnDestroy, AfterViewInit {
   private dataSourceValue: MatTableDataSource<T>|null = null;
 
   /** pageSizeOptions to be displayed in the paginators. */
-  // Use ReadonlyArray<number> type once MatPaginator supports it:
+  // Use readonly number [] type once MatPaginator supports it:
   // https://github.com/angular/components/issues/24050
   pageSizeOptions: number[] = DEFAULT_PAGE_OPTIONS;
 
-  private dataLengthInput: number = 0;
-  private dataLengthSet: boolean = false;
+  private dataLengthInput = 0;
+  private dataLengthSet = false;
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  @Input() showFilterInput: boolean = true;
+  @Input() showFilterInput = true;
 
   @Input()
   set dataLength(dataLength: number) {

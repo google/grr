@@ -9,6 +9,7 @@ import logging
 import os
 import shutil
 import subprocess
+import sys
 import time
 
 from typing import Callable
@@ -59,12 +60,6 @@ parser.add_argument(
     default="",
     help="Path to the config file to be used when building templates.")
 
-parser.add_argument(
-    "--build_msi",
-    dest="build_msi",
-    default=False,
-    action="store_true",
-    help="Enable building of an MSI template.")
 
 args = parser.parse_args()
 
@@ -152,7 +147,7 @@ class WindowsTemplateBuilder(object):
     self.git = r"git"
 
     self.install_path = r"C:\Windows\System32\GRR"
-    self.service_name = "GRR Monitor"
+    self.service_name = "FleetspeakService"
 
     self.expect_service_running = args.expect_service_running
 
@@ -249,14 +244,16 @@ class WindowsTemplateBuilder(object):
       ]
     else:
       build_args = ["--verbose", "build", "--output", args.output_dir]
-    if args.build_msi:
-      wix_tools_path = self._WixToolsPath()
-      build_args += [
-          "-p",
-          "ClientBuilder.wix_tools_path=%{" + wix_tools_path + "}",
-          "-p",
-          "ClientBuilder.build_msi=true",
-      ]
+
+    wix_tools_path = self._WixToolsPath()
+    build_args += [
+        "-p",
+        "ClientBuilder.wix_tools_path=%{" + wix_tools_path + "}",
+        "-p",
+        "ClientBuilder.build_msi=True",
+        "-p",
+        "ClientBuilder.fleetspeak_bundled=True",
+    ]
     _VerboseCheckCall([self.grr_client_build64] + build_args)
 
   def _WixToolsPath(self) -> str:
@@ -272,17 +269,44 @@ class WindowsTemplateBuilder(object):
     template_amd64 = glob.glob(os.path.join(args.output_dir,
                                             "*_amd64*.zip")).pop()
 
+    fleetspeak_config = os.path.join(
+        args.grr_src,
+        "grr/test/grr_response_test/test_data/dummy_fleetspeakd_config.textproto",
+    )
+
     # We put the installers in the output dir so they get stored as build
     # artifacts.
     _VerboseCheckCall([
-        self.grr_client_build64, "--verbose", "--secondary_configs",
-        dummy_config, "repack", "--template", template_amd64, "--output_dir",
-        args.output_dir
+        self.grr_client_build64,
+        "--verbose",
+        "-p",
+        "ClientBuilder.fleetspeak_bundled=True",
+        "-p",
+        f"ClientBuilder.fleetspeak_client_config={fleetspeak_config}",
+        "--secondary_configs",
+        dummy_config,
+        "repack",
+        "--template",
+        template_amd64,
+        "--output_dir",
+        args.output_dir,
     ])
     _VerboseCheckCall([
-        self.grr_client_build64, "--verbose", "--context",
-        "DebugClientBuild Context", "--secondary_configs", dummy_config,
-        "repack", "--template", template_amd64, "--output_dir", args.output_dir
+        self.grr_client_build64,
+        "--verbose",
+        "-p",
+        "ClientBuilder.fleetspeak_bundled=True",
+        "-p",
+        f"ClientBuilder.fleetspeak_client_config={fleetspeak_config}",
+        "--context",
+        "DebugClientBuild Context",
+        "--secondary_configs",
+        dummy_config,
+        "repack",
+        "--template",
+        template_amd64,
+        "--output_dir",
+        args.output_dir,
     ])
 
   def _WaitForServiceToStop(self) -> bool:
@@ -302,22 +326,15 @@ class WindowsTemplateBuilder(object):
     logging.info("Stoping service %s.", self.service_name)
     _VerboseCheckCall(["sc", "stop", self.service_name])
 
-    if args.build_msi:
-      msiexec_args = [
-          "msiexec",
-          "/q",
-          "/x",
-          glob.glob(os.path.join(args.output_dir,
-                                 "dbg_*_amd64.msi")).pop().replace("/", "\\"),
-      ]
-      _VerboseCheckCall(msiexec_args)
-    else:
-      self._WaitForServiceToStop()
-      if os.path.exists(self.install_path):
-        _RmTreePseudoTransactional(self.install_path)
-        if os.path.exists(self.install_path):
-          raise RuntimeError("Install path still exists: %s" %
-                             self.install_path)
+    msiexec_args = [
+        "msiexec",
+        "/q",
+        "/x",
+        glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi"))
+        .pop()
+        .replace("/", "\\"),
+    ]
+    _VerboseCheckCall(msiexec_args)
 
   def _CheckInstallSuccess(self):
     """Checks if the installer installed correctly."""
@@ -329,10 +346,21 @@ class WindowsTemplateBuilder(object):
                                        encoding="utf-8")
       service_running = "RUNNING" in output
     except subprocess.CalledProcessError as e:
+      output = e.output
       if e.returncode == 1060:
         # 1060 means: The specified service does not exist as an installed
         # service.
         service_running = False
+
+        output = subprocess.check_output(
+            ["sc", "query", "state=", "all"], encoding="utf-8"
+        )
+        logging.info(
+            "Expected service %s not running, available services: %s",
+            self.service_name,
+            output,
+        )
+
       else:
         raise
 
@@ -349,20 +377,16 @@ class WindowsTemplateBuilder(object):
 
   def _InstallInstallers(self):
     """Install the installer built by RepackTemplates."""
-    if args.build_msi:
-      installer_amd64_args = [
-          "msiexec",
-          "/qn",
-          "/norestart",
-          "/passive",
-          "/i",
-          glob.glob(os.path.join(args.output_dir,
-                                 "dbg_*_amd64.msi")).pop().replace("/", "\\"),
-      ]
-    else:
-      installer_amd64_args = [
-          glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.exe")).pop()
-      ]
+    installer_amd64_args = [
+        "msiexec",
+        "/qn",
+        "/norestart",
+        "/passive",
+        "/i",
+        glob.glob(os.path.join(args.output_dir, "dbg_*_amd64.msi"))
+        .pop()
+        .replace("/", "\\"),
+    ]
 
     # The exit code is always 0, test to see if install was actually successful.
     _VerboseCheckCall(installer_amd64_args)
@@ -393,6 +417,7 @@ class WindowsTemplateBuilder(object):
 
 
 def main():
+  logging.basicConfig(stream=sys.stderr, level=logging.DEBUG)
   WindowsTemplateBuilder().Build()
 
 

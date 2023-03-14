@@ -29,7 +29,7 @@ export class ExpandableHash {
     return this.hashesWithNames.length;
   }
 
-  get hashesWithNames(): ReadonlyArray<HashEntry> {
+  get hashesWithNames(): readonly HashEntry[] {
     // Return hashes in order of most usage:
     return [
       {name: hashName('sha256'), hash: this.hashes?.sha256 ?? ''},

@@ -2,6 +2,9 @@
 @use '../../../material-theme' as c;
 @use '../../../main' as main;
 
+$column-gap: c.$container-padding;
+$left-right-padding: c.$card-margin;
+
 :host {
   @extend .centered-content;
   padding: c.$page-spacing 0;
@@ -13,16 +16,16 @@ mat-form-field {
 
 .args {
   display: block;
-  margin: 0 c.$card-margin c.$container-padding c.$card-margin;
+  margin: 0 $left-right-padding c.$container-padding $left-right-padding;
 }
 
 .header-all {
   display: flex;
-  align-items: center;
-  column-gap: c.$container-padding;
-  padding: 0.5em c.$card-margin;
+  flex-direction: column;
+  row-gap: 0.5em;
+  padding: c.$container-padding $left-right-padding;
 
-  & > .mat-card-title {
+  .mat-card-title {
     margin-bottom: 0;
     flex: 1;
     overflow: hidden;
@@ -30,11 +33,30 @@ mat-form-field {
     white-space: nowrap;
   }
 
-  & > * {
+  * {
     white-space: nowrap;
   }
 
-  & > .mat-progress-bar {
-    max-width: 100px;
+  .mat-progress-bar {
+    width: 160px;
+    height: 10px;
+    border-radius: 8px;
+  }
+
+  .top-row{
+    display: flex;
+    align-items: center;
+    column-gap: $column-gap;
+  }
+
+  .bottom-row{
+    display: flex;
+    justify-content: space-between;
+
+    .left {
+      display: flex;
+      flex-direction: column;
+      row-gap: 0.5em;
+    }
   }
 }

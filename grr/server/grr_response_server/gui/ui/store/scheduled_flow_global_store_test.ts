@@ -70,7 +70,7 @@ describe('ScheduledFlowGlobalStore', () => {
        scheduledFlowGlobalStore.selectSource(
            {clientId: 'C.1234', creator: 'testuser'});
 
-       let results: ReadonlyArray<ScheduledFlow> = [];
+       let results: readonly ScheduledFlow[] = [];
        scheduledFlowGlobalStore.scheduledFlows$.subscribe(scheduledFlows => {
          results = scheduledFlows;
        });

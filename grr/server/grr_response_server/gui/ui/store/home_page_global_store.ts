@@ -9,7 +9,7 @@ import {ClientApproval} from '../lib/models/client';
 import {isNonNull} from '../lib/preconditions';
 
 interface HomePageState {
-  readonly recentClientApprovals?: ReadonlyArray<ClientApproval>;
+  readonly recentClientApprovals?: readonly ClientApproval[];
 }
 
 /** ComponentStore implementation used by the HomePageGlobalStore. */
@@ -42,7 +42,7 @@ class HomePageComponentStore extends ComponentStore<HomePageState> {
 
 
   private readonly updateRecentApprovals =
-      this.updater<ReadonlyArray<ClientApproval>>(
+      this.updater<readonly ClientApproval[]>(
           (state, recentClientApprovals) => {
             return {...state, recentClientApprovals};
           });
@@ -57,6 +57,6 @@ export class HomePageGlobalStore {
 
   private readonly store = new HomePageComponentStore(this.httpApiService);
 
-  readonly recentClientApprovals$: Observable<ReadonlyArray<ClientApproval>> =
+  readonly recentClientApprovals$: Observable<readonly ClientApproval[]> =
       this.store.recentClientApprovals$;
 }

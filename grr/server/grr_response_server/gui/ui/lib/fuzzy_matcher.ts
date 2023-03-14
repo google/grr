@@ -15,7 +15,7 @@ export interface Match {
   /** Subject to match. */
   readonly subject: string;
   /** Character ranges inside subject that triggered the match. */
-  readonly matchRanges: ReadonlyArray<MatchRange>;
+  readonly matchRanges: readonly MatchRange[];
 }
 
 /**
@@ -124,7 +124,7 @@ export class FuzzyMatcher {
   private readonly prefixMatchMap = new Map<PrefixMatchData, string>();
 
   constructor(/** A list of strings to be checked against user input. */
-              private readonly subjects: ReadonlyArray<string>) {
+              private readonly subjects: readonly string[]) {
     for (const subject of this.subjects) {
       this.prefixMatchMap.set(new PrefixMatchData(subject), subject);
     }
@@ -266,7 +266,7 @@ export interface StringWithHighlightsPart {
  */
 export interface StringWithHighlights {
   readonly value: string;
-  readonly parts: ReadonlyArray<StringWithHighlightsPart>;
+  readonly parts: readonly StringWithHighlightsPart[];
 }
 
 /**

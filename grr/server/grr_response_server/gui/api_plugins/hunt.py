@@ -213,6 +213,8 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
 
       if with_full_summary:
         self.all_clients_count = hunt_counters.num_clients
+        self.failed_clients_count = hunt_counters.num_failed_clients
+        self.crashed_clients_count = hunt_counters.num_crashed_clients
         self.completed_clients_count = (
             hunt_counters.num_successful_clients +
             hunt_counters.num_failed_clients)
@@ -225,6 +227,8 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
 
       if with_full_summary:
         self.all_clients_count = 0
+        self.failed_clients_count = 0
+        self.crashed_clients_count = 0
         self.completed_clients_count = 0
 
     if hunt_obj.original_object.object_type != "UNKNOWN":

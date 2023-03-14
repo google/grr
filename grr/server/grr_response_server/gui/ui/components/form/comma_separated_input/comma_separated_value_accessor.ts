@@ -15,7 +15,7 @@ export const COMMA_SEPARATED_NUMBER_VALUE_ACCESSOR = {
   multi: true
 };
 
-type OnChangeFn<T> = (value: ReadonlyArray<T>) => void;
+type OnChangeFn<T> = (value: readonly T[]) => void;
 type OnTouchedFn = () => void;
 
 /** ControlValueAccessor for handling comma-separated values. */

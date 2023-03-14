@@ -304,30 +304,20 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
   ACCESS_CHECKED_METHODS.extend([
       "ListFlows",
-      "GetFlow",
       "CreateFlow",
       "CancelFlow",
       "ListFlowRequests",
-      "ListFlowResults",
-      "ListParsedFlowResults",
       "ListFlowApplicableParsers",
-      "GetExportedFlowResults",
-      "GetFlowResultsExportCommand",
-      "GetFlowFilesArchive",
       "ListFlowOutputPlugins",
       "ListFlowOutputPluginLogs",
       "ListFlowOutputPluginErrors",
       "ListFlowLogs",
   ])
 
-  def testAllClientFlowsMethodsAreAccessChecked(self):
+  def testClientFlowsMethodsAreAccessChecked(self):
     args = api_flow.ApiListFlowsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
         self.router.ListFlows, "CheckClientAccess", args=args)
-
-    args = api_flow.ApiGetFlowArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFlow, "CheckClientAccess", args=args)
 
     args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
@@ -342,22 +332,6 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     args = api_flow.ApiListFlowRequestsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
         self.router.ListFlowRequests, "CheckClientAccess", args=args)
-
-    args = api_flow.ApiListFlowResultsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.ListFlowResults, "CheckClientAccess", args=args)
-
-    args = api_flow.ApiGetExportedFlowResultsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetExportedFlowResults, "CheckClientAccess", args=args)
-
-    args = api_flow.ApiGetFlowResultsExportCommandArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFlowResultsExportCommand, "CheckClientAccess", args=args)
-
-    args = api_flow.ApiGetFlowFilesArchiveArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFlowFilesArchive, "CheckClientAccess", args=args)
 
     args = api_flow.ApiListFlowOutputPluginsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
@@ -374,6 +348,151 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
     args = api_flow.ApiListFlowLogsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
         self.router.ListFlowLogs, "CheckClientAccess", args=args)
+
+  ACCESS_CHECKED_METHODS.extend([
+      "GetFlow",
+      "ListFlowResults",
+      "ListParsedFlowResults",
+      "GetExportedFlowResults",
+      "GetFlowResultsExportCommand",
+      "GetFlowFilesArchive",
+  ])
+
+  def testHuntFlowExceptionsRaisesRaisesIfFlowIsNotFound(self):
+    args = api_flow.ApiGetFlowArgs(client_id=self.client_id, flow_id="12345678")
+    with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
+      self.router.GetFlow(args, context=self.context)
+
+    args = api_flow.ApiListFlowResultsArgs(
+        client_id=self.client_id, flow_id="12345678"
+    )
+    with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
+      self.router.ListFlowResults(args, context=self.context)
+
+    args = api_flow.ApiListParsedFlowResultsArgs(
+        client_id=self.client_id, flow_id="12345678"
+    )
+    with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
+      self.router.ListParsedFlowResults(args, context=self.context)
+
+    args = api_flow.ApiGetExportedFlowResultsArgs(
+        client_id=self.client_id, flow_id="12345678"
+    )
+    with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
+      self.router.GetExportedFlowResults(args, context=self.context)
+
+    args = api_flow.ApiGetFlowResultsExportCommandArgs(
+        client_id=self.client_id, flow_id="12345678"
+    )
+    with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
+      self.router.GetFlowResultsExportCommand(args, context=self.context)
+
+    args = api_flow.ApiGetFlowFilesArchiveArgs(
+        client_id=self.client_id, flow_id="12345678"
+    )
+    with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
+      self.router.GetFlowFilesArchive(args, context=self.context)
+
+  def testHuntFlowExceptionsGrantsAccessIfPartOfHunt(self):
+    client_id = self.SetupClient(0)
+    hunt_id = self.CreateHunt()
+    flow_id = flow_test_lib.StartFlow(
+        timeline.TimelineFlow,
+        client_id=client_id,
+        parent=flow.FlowParent.FromHuntID(hunt_id),
+    )
+
+    args = api_flow.ApiGetFlowArgs(client_id=self.client_id, flow_id=flow_id)
+    self.CheckMethodIsNotAccessChecked(self.router.GetFlow, args=args)
+
+    args = api_flow.ApiListFlowResultsArgs(
+        client_id=self.client_id, flow_id=flow_id
+    )
+    self.CheckMethodIsNotAccessChecked(self.router.ListFlowResults, args=args)
+
+    args = api_flow.ApiListParsedFlowResultsArgs(
+        client_id=self.client_id, flow_id=flow_id
+    )
+    self.CheckMethodIsNotAccessChecked(
+        self.router.ListParsedFlowResults, args=args
+    )
+
+    args = api_flow.ApiGetExportedFlowResultsArgs(
+        client_id=self.client_id, flow_id=flow_id
+    )
+    self.CheckMethodIsNotAccessChecked(
+        self.router.GetExportedFlowResults, args=args
+    )
+
+    args = api_flow.ApiGetFlowResultsExportCommandArgs(
+        client_id=self.client_id, flow_id=flow_id
+    )
+    self.CheckMethodIsNotAccessChecked(
+        self.router.GetFlowResultsExportCommand, args=args
+    )
+
+    args = api_flow.ApiGetFlowFilesArchiveArgs(
+        client_id=self.client_id, flow_id=flow_id
+    )
+    self.CheckMethodIsNotAccessChecked(
+        self.router.GetFlowFilesArchive, args=args
+    )
+
+  def testHuntFlowExceptionsChecksClientAccessIfNotPartOfHunt(self):
+    client_id = self.SetupClient(0)
+    flow_id = flow_test_lib.StartFlow(
+        timeline.TimelineFlow, client_id=client_id
+    )
+
+    args = api_flow.ApiGetFlowArgs(client_id=self.client_id, flow_id=flow_id)
+    self.CheckMethodIsAccessChecked(
+        self.router.GetFlow, "CheckClientAccess", args=args
+    )
+
+    args = api_flow.ApiListFlowResultsArgs(
+        client_id=self.client_id, flow_id=flow_id
+    )
+    self.CheckMethodIsAccessChecked(
+        self.router.ListFlowResults,
+        "CheckClientAccess",
+        args=args,
+    )
+
+    args = api_flow.ApiListParsedFlowResultsArgs(
+        client_id=self.client_id, flow_id=flow_id
+    )
+    self.CheckMethodIsAccessChecked(
+        self.router.ListParsedFlowResults,
+        "CheckClientAccess",
+        args=args,
+    )
+
+    args = api_flow.ApiGetExportedFlowResultsArgs(
+        client_id=self.client_id, flow_id=flow_id
+    )
+    self.CheckMethodIsAccessChecked(
+        self.router.GetExportedFlowResults,
+        "CheckClientAccess",
+        args=args,
+    )
+
+    args = api_flow.ApiGetFlowResultsExportCommandArgs(
+        client_id=self.client_id, flow_id=flow_id
+    )
+    self.CheckMethodIsAccessChecked(
+        self.router.GetFlowResultsExportCommand,
+        "CheckClientAccess",
+        args=args,
+    )
+
+    args = api_flow.ApiGetFlowFilesArchiveArgs(
+        client_id=self.client_id, flow_id=flow_id
+    )
+    self.CheckMethodIsAccessChecked(
+        self.router.GetFlowFilesArchive,
+        "CheckClientAccess",
+        args=args,
+    )
 
   ACCESS_CHECKED_METHODS.extend([
       "ForceRunCronJob",

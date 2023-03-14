@@ -7,7 +7,7 @@
     <mat-icon class="computer-icon">computer</mat-icon>
     Client: {{ clientId$ | async }}
   </h3>
-  <table class="section">
+  <table class="section" name="overview">
     <tr>
       <td class="description">Source flow</td>
       <td class="value">
@@ -39,8 +39,16 @@
     </tr>
   </table>
 
-  <h3 class="section-title">Result</h3>
-  <table class="section">
+  <h3 class="section-title">Source Flow Results</h3>
+  <flow-details
+    [flow]="(selectedResultFlowWithDescriptor$ | async)?.flow"
+    [flowDescriptor]="(selectedResultFlowWithDescriptor$ | async)?.descriptor"
+    [showContextMenu]="false"
+  >
+  </flow-details>
+
+  <h3 class="section-title">Raw data</h3>
+  <table class="section" name="rawData">
     <tr>
       <td class="monospace payload">
         <pre>{{ payload$ | async }}</pre>

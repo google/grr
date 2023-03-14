@@ -306,10 +306,12 @@
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
+          "crashedClientsCount": "0",
           "created": "42000000",
           "creator": "api_test_user",
           "description": "foo",
           "duration": "1209600",
+          "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
             "pathspec": {
@@ -381,9 +383,11 @@
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
+        "crashedClientsCount": "0",
         "creator": "api_test_user",
         "description": "Per-client file collection",
         "duration": "1209600",
+        "failedClientsCount": "0",
         "flowArgs": {
           "@type": "type.googleapis.com/grr.HuntArgumentsVariable",
           "flowGroups": [
@@ -1504,10 +1508,12 @@
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
+          "crashedClientsCount": "0",
           "created": "42000000",
           "creator": "api_test_user",
           "description": "hunt1",
           "duration": "1209600",
+          "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
             "pathspec": {
@@ -1589,10 +1595,12 @@
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
+          "crashedClientsCount": "0",
           "created": "42000000",
           "creator": "api_test_user",
           "description": "hunt2",
           "duration": "1209600",
+          "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
             "pathspec": {
@@ -1664,10 +1672,12 @@
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
+          "crashedClientsCount": "0",
           "created": "42000000",
           "creator": "api_test_user",
           "description": "original hunt",
           "duration": "1209600",
+          "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
             "pathspec": {
@@ -1739,9 +1749,11 @@
           "completedClientsCount": "0",
           "crashLimit": "100",
           "created": "42000000",
+          "crashedClientsCount": "0",
           "creator": "api_test_user",
           "description": "copied hunt",
           "duration": "1209600",
+          "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
             "pathspec": {
@@ -1853,10 +1865,12 @@
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
+          "crashedClientsCount": "0",
           "created": "42000000",
           "creator": "api_test_user",
           "description": "hunt started from flow",
           "duration": "1209600",
+          "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
             "pathspec": {
@@ -2185,10 +2199,12 @@
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
+        "crashedClientsCount": "0",
         "created": "42000000",
         "creator": "api_test_user",
         "description": "the hunt",
         "duration": "1209600",
+        "failedClientsCount": "0",
         "flowArgs": {
           "@type": "type.googleapis.com/grr.GetFileArgs",
           "pathspec": {
@@ -2268,10 +2284,12 @@
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
+        "crashedClientsCount": "0",
         "created": "42000000",
         "creator": "api_test_user",
         "description": "the hunt",
         "duration": "1209600",
+        "failedClientsCount": "0",
         "flowArgs": {
           "@type": "type.googleapis.com/grr.GetFileArgs",
           "pathspec": {
@@ -2349,10 +2367,12 @@
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
+        "crashedClientsCount": "0",
         "created": "42000000",
         "creator": "api_test_user",
         "description": "the hunt",
         "duration": "1209600",
+        "failedClientsCount": "0",
         "flowArgs": {
           "@type": "type.googleapis.com/grr.GetFileArgs",
           "pathspec": {
@@ -3325,10 +3345,12 @@
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
+          "crashedClientsCount": "0",
           "created": "42000000",
           "creator": "api_test_user",
           "description": "a hunt",
           "duration": "1209600",
+          "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
             "pathspec": {
@@ -4547,10 +4569,12 @@
               "clientsWithResultsCount": "0",
               "completedClientsCount": "0",
               "crashLimit": "100",
+              "crashedClientsCount": "0",
               "created": "42000000",
               "creator": "api_test_user",
               "description": "foo",
               "duration": "1209600",
+              "failedClientsCount": "0",
               "flowArgs": {
                 "@type": "type.googleapis.com/grr.GetFileArgs",
                 "pathspec": {
@@ -5444,10 +5468,12 @@
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
+        "crashedClientsCount": "0",
         "created": "42000000",
         "creator": "api_test_user",
         "description": "the hunt",
         "duration": "1209600",
+        "failedClientsCount": "0",
         "flowArgs": {
           "@type": "type.googleapis.com/grr.GetFileArgs",
           "pathspec": {
@@ -5518,10 +5544,12 @@
         "clientsWithResultsCount": "0",
         "completedClientsCount": "0",
         "crashLimit": "100",
+        "crashedClientsCount": "0",
         "created": "42000000",
         "creator": "api_test_user",
         "description": "the hunt",
         "duration": "1209600",
+        "failedClientsCount": "0",
         "flowArgs": {
           "@type": "type.googleapis.com/grr.GetFileArgs",
           "pathspec": {

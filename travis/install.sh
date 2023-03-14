@@ -5,7 +5,11 @@
 set -ex
 
 source "${HOME}/INSTALL/bin/activate"
-pip install --upgrade pip wheel six setuptools nodeenv
+# Limiting setuptools version due to
+# https://github.com/pypa/setuptools/issues/3278
+# (it behaves incorrectly on Ubuntu 22 on virtualenvs with access to
+# globally installed packages).
+pip install --upgrade pip wheel six 'setuptools<58.3.1' nodeenv
 
 # Install the latest version of nodejs. Some packages
 # may not be compatible with the version.
@@ -40,7 +44,7 @@ pip install -e api_client/python --progress-bar off
 pip install -e grr/client_builder --progress-bar off
 
 # Depends on grr-response-client-builder
-pip install -e grr/server/[mysqldatastore] --progress-bar off
+pip install -e grr/server --progress-bar off
 
 # Depends on grr-api-client and grr-response-proto
 pip install -e colab --progress-bar off

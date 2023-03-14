@@ -4,7 +4,7 @@ import {Observable} from 'rxjs';
 import {tap} from 'rxjs/operators';
 
 import {ApiListHuntsArgsRobotFilter} from '../../../lib/api/api_interfaces';
-import {Hunt, HuntState} from '../../../lib/models/hunt';
+import {getHuntTitle, Hunt, HuntState} from '../../../lib/models/hunt';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {HuntOverviewPageLocalStore} from '../../../store/hunt_overview_page_local_store';
 import {ColorScheme} from '../../flow_details/helpers/result_accordion';
@@ -29,6 +29,7 @@ export class HuntOverviewPage implements OnDestroy {
   protected readonly HuntState = HuntState;
   protected readonly ColorScheme = ColorScheme;
   protected readonly HuntFilter = HuntFilter;
+  protected readonly getHuntTitle = getHuntTitle;
 
   readonly huntFiltersForm = new FormControl(HuntFilter.ALL_HUMAN_HUNTS);
 
@@ -113,7 +114,9 @@ export class HuntOverviewPage implements OnDestroy {
       case HuntState.COMPLETED:
         return 'Completed';
       case HuntState.CANCELLED:
-        return 'Stopped';
+        return 'Cancelled';
+      case HuntState.NOT_STARTED:
+        return 'Not started';
       case HuntState.PAUSED:
         return 'Paused';
       default:
@@ -123,5 +126,8 @@ export class HuntOverviewPage implements OnDestroy {
 
   isRunning(hunt: Hunt) {
     return hunt.state === HuntState.RUNNING;
+  }
+  huntStarted(hunt: Hunt) {
+    return hunt.state !== HuntState.NOT_STARTED;
   }
 }

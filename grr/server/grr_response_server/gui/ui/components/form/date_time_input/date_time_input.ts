@@ -20,7 +20,7 @@ type OnChangeFn = (value?: DateTime) => void;
 type OnTouchedFn = () => void;
 
 
-function generateMenuTimes(): ReadonlyArray<string> {
+function generateMenuTimes(): readonly string[] {
   const result: string[] = [];
   for (let hour = 0; hour < 24; ++hour) {
     for (let minute = 0; minute < 60; minute += 15) {

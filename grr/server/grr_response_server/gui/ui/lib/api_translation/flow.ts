@@ -45,7 +45,7 @@ export function translateFlow(apiFlow: apiInterfaces.ApiFlow): Flow {
   assertKeyNonNull(apiFlow, 'state');
   assertKeyNonNull(apiFlow, 'isRobot');
 
-  let resultCounts: ReadonlyArray<FlowResultCount>|undefined;
+  let resultCounts: readonly FlowResultCount[]|undefined;
 
   // For legacy flows where isMetadataSet is unset, we need to be careful to
   // differentiate between a flow that has no numResultsPerTypeTag because it

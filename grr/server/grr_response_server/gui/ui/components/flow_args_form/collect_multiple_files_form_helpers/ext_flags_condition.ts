@@ -1,4 +1,4 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Output} from '@angular/core';
+import {ChangeDetectionStrategy, Component, EventEmitter, OnInit, Output} from '@angular/core';
 import {ControlContainer, FormControl, FormGroup} from '@angular/forms';
 import {distinctUntilChanged, map, startWith} from 'rxjs/operators';
 
@@ -7,7 +7,8 @@ import {OperatingSystem} from '../../../lib/models/flow';
 import {Flag, LINUX_FLAGS_ORDERED, OSX_FLAGS} from '../../../lib/models/os_extended_flags';
 import {ClientPageGlobalStore} from '../../../store/client_page_global_store';
 
-enum MaskCondition {
+/** Different possible statuses of OS file flags */
+export enum MaskCondition {
   IGNORE,
   REQUIRE_SET,
   REQUIRE_UNSET,
@@ -41,12 +42,12 @@ type Controls = ReturnType<typeof makeControls>;
   styleUrls: ['./ext_flags_condition.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ExtFlagsCondition {
+export class ExtFlagsCondition implements OnInit {
   constructor(
       private readonly controlContainer: ControlContainer,
       private readonly clientPageGlobalStore: ClientPageGlobalStore) {}
 
-  @Output() conditionRemoved = new EventEmitter<void>();
+  @Output() readonly conditionRemoved = new EventEmitter<void>();
 
   readonly LINUX_FLAGS = LINUX_FLAGS_ORDERED;
   readonly OSX_FLAGS = OSX_FLAGS;
@@ -56,10 +57,10 @@ export class ExtFlagsCondition {
     [MaskCondition.REQUIRE_UNSET]: 'block',
   };
 
-  readonly linuxFlags: ReadonlyArray<FlagWithCondition> = this.LINUX_FLAGS.map(
+  readonly linuxFlags: readonly FlagWithCondition[] = this.LINUX_FLAGS.map(
       flag => ({...flag, condition: MaskCondition.IGNORE}));
 
-  readonly osxFlags: ReadonlyArray<FlagWithCondition> =
+  readonly osxFlags: readonly FlagWithCondition[] =
       this.OSX_FLAGS.map(flag => ({...flag, condition: MaskCondition.IGNORE}));
 
   private readonly os$ = this.clientPageGlobalStore.selectedClient$.pipe(
@@ -81,6 +82,10 @@ export class ExtFlagsCondition {
 
   static createFormGroup() {
     return makeControls();
+  }
+
+  ngOnInit() {
+    this.updateFlagConditions(this.formGroup.value);
   }
 
   toggleFlag(flag: FlagWithCondition) {
@@ -110,10 +115,46 @@ export class ExtFlagsCondition {
         return `Ignore flag ${name}`;
     }
   }
+
+  private updateFlagConditions(mask: Controls['value']): void {
+    // Set the condition as "REQUIRE_SET" for checked Linux flag elements
+    updateFlagConditionsForOS(
+        this.linuxFlags, mask.linuxBitsSet || 0, MaskCondition.REQUIRE_SET);
+
+    // Set the condition as "REQUIRE_UNSET" for unchecked Linux flag elements
+    updateFlagConditionsForOS(
+        this.linuxFlags, mask.linuxBitsUnset || 0, MaskCondition.REQUIRE_UNSET);
+
+    // Set the condition as "REQUIRE_SET" for checked macOS flag elements
+    updateFlagConditionsForOS(
+        this.osxFlags, mask.osxBitsSet || 0, MaskCondition.REQUIRE_SET);
+
+    // Set the condition as "REQUIRE_UNSET" for unchecked macOS flag elements
+    updateFlagConditionsForOS(
+        this.osxFlags, mask.osxBitsUnset || 0, MaskCondition.REQUIRE_UNSET);
+  }
+}
+
+/**
+ * Mutates @param flags to update the "condition" property for each element if
+ * if any of the bits collide with the mask.
+ */
+export function updateFlagConditionsForOS(
+    flags: readonly FlagWithCondition[],
+    mask: number,
+    condition: MaskCondition,
+    ): void {
+  flags.forEach(flag => {
+    const maskBitCollision = flag.mask & mask;
+
+    if (maskBitCollision > 0) {
+      flag.condition = condition;
+    }
+  });
 }
 
 function computeMask(
-    flags: ReadonlyArray<FlagWithCondition>, value: MaskCondition) {
+    flags: readonly FlagWithCondition[], value: MaskCondition) {
   return flags.filter(f => f.condition === value)
       .reduce((acc, flag) => acc | flag.mask, 0);
 }

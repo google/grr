@@ -6,11 +6,13 @@ import {ContentFetchMode, FileDetailsLocalStore} from '../../../store/file_detai
 
 const LINE_LENGTH = 16;
 
-const toHex = (i: number) => i.toString(16).toUpperCase();
+function toHex(i: number) {
+  return i.toString(16).toUpperCase();
+}
 
 interface Row {
-  readonly hex: ReadonlyArray<string>;
-  readonly chars: ReadonlyArray<string>;
+  readonly hex: readonly string[];
+  readonly chars: readonly string[];
 }
 
 /** Component to show hex-encoded file contents. */

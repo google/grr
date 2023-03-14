@@ -18,7 +18,7 @@ initTestEnvironment();
 describe('Client Add Label Dialog', () => {
   let fixture: ComponentFixture<ClientAddLabelDialog>;
   let component: ClientAddLabelDialog;
-  const clientLabels: ReadonlyArray<ClientLabel> =
+  const clientLabels: readonly ClientLabel[] =
       [{owner: '', name: 'label1'}, {owner: '', name: 'testlabel'}];
 
   let configGlobalStoreMock: ConfigGlobalStoreMock;

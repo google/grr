@@ -1,10 +1,11 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, ViewChild} from '@angular/core';
+import {Title} from '@angular/platform-browser';
 import {ActivatedRoute, Router} from '@angular/router';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {filter, map, startWith, takeUntil} from 'rxjs/operators';
 
 import {ColorScheme} from '../../../components/flow_details/helpers/result_accordion';
-import {Hunt, HuntState} from '../../../lib/models/hunt';
+import {getHuntTitle, Hunt, HuntState} from '../../../lib/models/hunt';
 import {isNonNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
@@ -26,6 +27,7 @@ export class HuntPage implements OnDestroy {
 
   protected readonly colorScheme = ColorScheme;
   protected readonly HuntState = HuntState;
+  protected readonly getHuntTitle = getHuntTitle;
 
   readonly hunt$: Observable<Hunt|null> =
       this.huntPageGlobalStore.selectedHunt$;
@@ -44,6 +46,8 @@ export class HuntPage implements OnDestroy {
   private huntId: string = '';
   protected hideFlowArgs = true;
 
+  protected readonly huntsOverviewRoute = ['/hunts'];
+
   constructor(
       private readonly activatedRoute: ActivatedRoute,
       private readonly router: Router,
@@ -51,6 +55,7 @@ export class HuntPage implements OnDestroy {
       private readonly huntApprovalGlobalStore: HuntApprovalGlobalStore,
       private readonly configGlobalStore: ConfigGlobalStore,
       private readonly userGlobalStore: UserGlobalStore,
+      private readonly title: Title,
   ) {
     this.activatedRoute.paramMap
         .pipe(
@@ -81,6 +86,20 @@ export class HuntPage implements OnDestroy {
               });
             },
         );
+
+    this.huntPageGlobalStore.selectedHunt$
+        .pipe(
+            takeUntil(this.ngOnDestroy.triggered$),
+            )
+        .subscribe(hunt => {
+          if (hunt) {
+            const desc = getHuntTitle(hunt);
+            const info = desc ? `${desc} (${hunt.huntId})` : hunt.huntId;
+            this.title.setTitle(`GRR | ${info}`);
+          } else {
+            this.title.setTitle('GRR');
+          }
+        });
   }
 
   protected readonly flowDescriptor$ =

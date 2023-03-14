@@ -5,9 +5,9 @@ import {FuzzyMatcher, Match, stringWithHighlightsFromMatch} from './fuzzy_matche
 initTestEnvironment();
 
 describe('FuzzyMatcher', () => {
-  const SINGLE_STRING_SET: ReadonlyArray<string> = ['blah and wah'];
+  const SINGLE_STRING_SET: readonly string[] = ['blah and wah'];
 
-  const MULTIPLE_STRINGS_SET: ReadonlyArray<string> = [
+  const MULTIPLE_STRINGS_SET: readonly string[] = [
     'foo bar',
     'blah and wah1',
     'blah and wah2',

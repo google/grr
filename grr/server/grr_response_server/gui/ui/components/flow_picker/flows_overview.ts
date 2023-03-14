@@ -2,12 +2,13 @@ import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@
 import {BehaviorSubject, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {FlowListItem, FlowsByCategory} from '../../components/flow_picker/flow_list_item';
+import {FlowsByCategory} from '../../components/flow_picker/flow_list_item';
+import {FlowListItem} from '../../lib/models/flow';
 import {compareAlphabeticallyBy} from '../../lib/type_utils';
 
 interface FlowOverviewCategory {
   readonly title: string;
-  readonly items: ReadonlyArray<FlowListItem>;
+  readonly items: readonly FlowListItem[];
 }
 
 /**
@@ -32,7 +33,7 @@ export class FlowsOverview {
   private readonly flowsByCategory$ =
       new BehaviorSubject<FlowsByCategory|null>(null);
 
-  readonly categories$: Observable<ReadonlyArray<FlowOverviewCategory>> =
+  readonly categories$: Observable<readonly FlowOverviewCategory[]> =
       this.flowsByCategory$.pipe(
           map(fbc => {
             const result = Array.from(fbc?.entries() ?? [])
@@ -53,13 +54,13 @@ export class FlowsOverview {
   /**
    * Event that is triggered when a flow is selected.
    */
-  @Output() flowSelected = new EventEmitter<FlowListItem>();
+  @Output() readonly flowSelected = new EventEmitter<FlowListItem>();
 
   trackByCategoryTitle(index: number, category: FlowOverviewCategory): string {
     return category.title;
   }
 
-  trackByFlowName(index: number, fli: FlowListItem): string {
-    return fli.name;
+  trackByFlowType(index: number, fli: FlowListItem): string {
+    return fli.type;
   }
 }

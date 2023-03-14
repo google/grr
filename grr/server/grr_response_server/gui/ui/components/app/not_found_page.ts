@@ -5,7 +5,7 @@ import {makeLegacyLink} from '../../lib/routing';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 
 // The not found page displays a random entry of these one-line ASCII arts.
-const ASCII_ARTS: ReadonlyArray<string> = [
+const ASCII_ARTS: readonly string[] = [
   '(╯°□°)╯︵ ┻━┻',
   '(ノಠ益ಠ)ノ',
   '¯\\(◉‿◉)/¯',

@@ -14,7 +14,7 @@ import {HelpersModule} from './module';
 
 @Component({selector: 'test-inner', template: ''})
 class InnerComponent {
-  @Input() results!: ReadonlyArray<FlowResult>;
+  @Input() results!: readonly FlowResult[];
   @Input() queryMore!: (c: number) => void;
 }
 

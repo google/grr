@@ -11,7 +11,7 @@ import {ClientPageGlobalStore} from '../../../store/client_page_global_store';
 import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../../store/client_page_global_store_test_util';
 import {initTestEnvironment} from '../../../testing';
 
-import {ExtFlagsCondition} from './ext_flags_condition';
+import {ExtFlagsCondition, MaskCondition, updateFlagConditionsForOS} from './ext_flags_condition';
 import {HelpersModule} from './module';
 
 initTestEnvironment();
@@ -219,4 +219,101 @@ describe('ExtFlagsCondition component', () => {
     expect(fixture.nativeElement.textContent).toContain('Linux');
     expect(fixture.nativeElement.textContent).toContain('T');
   });
+});
+
+describe('updateFlagConditionsForOS', () => {
+  it('should set the condition of elements with a bit mask of 4 to 1', () => {
+    const testFlags = [
+      {
+        name: 'test',
+        identifier: 'test',
+        mask: 4,  // 100
+        description: 'test',
+        condition: 0,
+      },
+    ];
+
+    updateFlagConditionsForOS(testFlags, 4, MaskCondition.REQUIRE_SET);
+
+    expect(testFlags[0].condition).toEqual(MaskCondition.REQUIRE_SET);
+  });
+
+  it('should set the condition of elements with a bit mask of 2 to 2', () => {
+    const testFlags = [
+      {
+        name: 'test',
+        identifier: 'test',
+        mask: 2,  // 10
+        description: 'test',
+        condition: 0,
+      },
+    ];
+
+    updateFlagConditionsForOS(testFlags, 2, MaskCondition.REQUIRE_UNSET);
+
+    expect(testFlags[0].condition).toEqual(MaskCondition.REQUIRE_UNSET);
+  });
+
+  it('should set the condition of elements with a bit mask of 1 to 3', () => {
+    const testFlags = [
+      {
+        name: 'test',
+        identifier: 'test',
+        mask: 17,  // 10001
+        description: 'test',
+        condition: 0,
+      },
+      {
+        name: 'test',
+        identifier: 'test',
+        mask: 1,  // 1
+        description: 'test',
+        condition: 0,
+      },
+    ];
+
+    updateFlagConditionsForOS(testFlags, 1, MaskCondition.REQUIRE_SET);
+
+    expect(testFlags[0].condition).toEqual(MaskCondition.REQUIRE_SET);
+    expect(testFlags[1].condition).toEqual(MaskCondition.REQUIRE_SET);
+  });
+
+  it('should set the condition of elements with a bit mask of 32 to 5 (there are none)',
+     () => {
+       const testFlags = [
+         {
+           name: 'test',
+           identifier: 'test',
+           mask: 2,  // 10
+           description: 'test',
+           condition: 0,
+         },
+         {
+           name: 'test',
+           identifier: 'test',
+           mask: 17,  // 10001
+           description: 'test',
+           condition: 0,
+         },
+         {
+           name: 'test',
+           identifier: 'test',
+           mask: 4,  // 100
+           description: 'test',
+           condition: 0,
+         },
+         {
+           name: 'test',
+           identifier: 'test',
+           mask: 1,  // 1
+           description: 'test',
+           condition: 0,
+         },
+       ];
+
+       updateFlagConditionsForOS(testFlags, 32, MaskCondition.REQUIRE_SET);
+
+       expect(testFlags.find(f => f.condition === MaskCondition.REQUIRE_SET))
+           .toBeUndefined();
+     });
 });

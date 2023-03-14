@@ -126,7 +126,7 @@ describe('queuedExhaustMap', () => {
 });
 
 function emittedValuesWatcher<T>(observable$: Observable<T>): () =>
-    ReadonlyArray<T> {
+    readonly T[] {
   const emittedValues: T[] = [];
 
   observable$.subscribe((value) => {

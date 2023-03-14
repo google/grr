@@ -18,7 +18,7 @@ interface ClientGlobExpression {
 export class ExplainGlobExpressionService {
   private readonly input$ = new ReplaySubject<ClientGlobExpression>(1);
 
-  readonly explanation$: Observable<ReadonlyArray<GlobComponentExplanation>> =
+  readonly explanation$: Observable<readonly GlobComponentExplanation[]> =
       this.input$.pipe(
           debounceTime(500),
           concatMap(

@@ -184,6 +184,7 @@ describe('new hunt test', () => {
 
     newHuntLocalStore.mockedObservables.originalHunt$.next(newHunt({
       huntId: 'H1234',
+      description: 'A hunt',
       clientRuleSet: {
         matchMode: ForemanClientRuleSetMatchMode.MATCH_ANY,  // NOT Default
         rules: [
@@ -227,6 +228,10 @@ describe('new hunt test', () => {
     }));
     newHuntLocalStore.mockedObservables.huntId$.next('H1234');
     fixture.detectChanges();
+
+    // Check title was copied.
+    const huntTitle = fixture.debugElement.query(By.css('title-editor'));
+    expect(huntTitle.nativeElement.textContent).toContain('A hunt (copy)');
 
     const referencesSection = fixture.debugElement.query(By.css('table'));
     expect(referencesSection.nativeElement.textContent)
