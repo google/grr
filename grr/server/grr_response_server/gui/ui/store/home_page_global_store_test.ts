@@ -12,7 +12,7 @@ initTestEnvironment();
 describe('HomePageGlobalStore', () => {
   let httpApiService: Partial<HttpApiService>;
   let store: HomePageGlobalStore;
-  let apiListRecentClientApprovals$: Subject<ReadonlyArray<ApiClientApproval>>;
+  let apiListRecentClientApprovals$: Subject<readonly ApiClientApproval[]>;
 
   beforeEach(() => {
     apiListRecentClientApprovals$ = new Subject();

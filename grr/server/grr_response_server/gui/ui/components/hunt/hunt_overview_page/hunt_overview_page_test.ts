@@ -6,7 +6,7 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
 import {ApiListHuntsArgsRobotFilter} from '../../../lib/api/api_interfaces';
-import {HuntState} from '../../../lib/models/hunt';
+import {getHuntTitle, HuntState} from '../../../lib/models/hunt';
 import {newHunt, newSafetyLimits} from '../../../lib/models/model_test_util';
 import {HuntOverviewPageLocalStore} from '../../../store/hunt_overview_page_local_store';
 import {injectMockStore, mockHuntOverviewPageLocalStore, STORE_PROVIDERS} from '../../../store/store_test_providers';
@@ -97,18 +97,25 @@ describe('app-hunt-overview-page', () => {
 
     expect(huntPageLocalStore.setArgs).toHaveBeenCalled();
 
-    huntPageLocalStore.mockedObservables.results$.next([newHunt({
+    const hunt = newHunt({
+      huntId: 'H1234',
       description: 'Collect foobar',
       creator: 'baz',
       created: new Date('1/1/1900'),
       flowName: 'SomeFlow',
+      state: HuntState.RUNNING,
       safetyLimits: newSafetyLimits({clientLimit: BigInt(1000)}),
-    })]);
+    });
+    huntPageLocalStore.mockedObservables.results$.next([hunt]);
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('Collect foobar');
+    const cardTitle = fixture.debugElement.query(By.css('[name="cardTitle"]'));
+    expect(cardTitle.nativeElement.textContent).toContain(getHuntTitle(hunt));
     expect(fixture.debugElement.nativeElement.textContent).toContain('baz');
+    expect(fixture.debugElement.nativeElement.textContent).toContain('H1234');
+    expect(fixture.debugElement.nativeElement.textContent)
+        .toContain('SomeFlow');
+    expect(fixture.debugElement.nativeElement.textContent).toContain('running');
     expect(fixture.debugElement.nativeElement.textContent)
         .toContain('1900-01-01');
 

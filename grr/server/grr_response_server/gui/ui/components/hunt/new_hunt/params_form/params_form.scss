@@ -61,17 +61,6 @@ $row-padding: 1.5em;
     flex-direction: column;
   }
 
-  .hunt-param-form-row {
-    display: flex;
-    align-items: center;
-    height: 4em;
-    margin-bottom: 1em;
-  }
-
-  .param-name {
-    color: mat.get-color-from-palette(mat.$grey-palette, 900);
-  }
-
   mat-form-field {
     width: 15em;
     height: 4em;

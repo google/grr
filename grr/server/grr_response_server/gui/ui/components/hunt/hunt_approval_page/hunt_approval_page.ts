@@ -5,6 +5,7 @@ import {combineLatest} from 'rxjs';
 import {map, takeUntil} from 'rxjs/operators';
 
 import {RequestStatusType} from '../../../lib/api/track_request';
+import {getHuntTitle} from '../../../lib/models/hunt';
 import {assertNonNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {HuntApprovalPageGlobalStore} from '../../../store/hunt_approval_page_global_store';
@@ -19,6 +20,7 @@ import {UserGlobalStore} from '../../../store/user_global_store';
 export class HuntApprovalPage implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
 
+  protected readonly getHuntTitle = getHuntTitle;
   protected readonly approval$ = this.huntApprovalPageGlobalStore.approval$;
 
   private readonly canGrant$ =

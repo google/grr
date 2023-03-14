@@ -22,8 +22,8 @@ export interface ConfigState {
   readonly outputPluginDescriptors?: OutputPluginDescriptorMap;
   readonly approvalConfig?: ApprovalConfig;
   readonly uiConfig?: ApiUiConfig;
-  readonly clientsLabels?: ReadonlyArray<string>;
-  readonly binaries?: ReadonlyArray<Binary>;
+  readonly clientsLabels?: readonly string[];
+  readonly binaries?: readonly Binary[];
 }
 
 /** ComponentStore implementation for the config store. */
@@ -33,7 +33,7 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
   }
 
   private readonly updateFlowDescriptors =
-      this.updater<ReadonlyArray<FlowDescriptor>>((state, descriptors) => {
+      this.updater<readonly FlowDescriptor[]>((state, descriptors) => {
         return {
           ...state,
           flowDescriptors: new Map(descriptors.map(fd => [fd.name, fd])),
@@ -41,7 +41,7 @@ class ConfigComponentStore extends ComponentStore<ConfigState> {
       });
 
   private readonly updateArtifactDescriptors =
-      this.updater<ReadonlyArray<ArtifactDescriptor>>((state, descriptors) => {
+      this.updater<readonly ArtifactDescriptor[]>((state, descriptors) => {
         return {
           ...state,
           artifactDescriptors: new Map(descriptors.map(ad => [ad.name, ad])),
@@ -247,7 +247,7 @@ export class ConfigGlobalStore {
   readonly artifactDescriptors$: Observable<ArtifactDescriptorMap> =
       this.store.artifactDescriptors$;
 
-  readonly binaries$: Observable<ReadonlyArray<Binary>> = this.store.binaries$;
+  readonly binaries$: Observable<readonly Binary[]> = this.store.binaries$;
 
   readonly outputPluginDescriptors$: Observable<OutputPluginDescriptorMap> =
       this.store.outputPluginDescriptors$;

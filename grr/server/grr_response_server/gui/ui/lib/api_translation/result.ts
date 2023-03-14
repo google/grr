@@ -167,49 +167,91 @@ export function toFileRowFromStatEntry(se: apiInterfaces.StatEntry):
   };
 }
 
-const FILE_TAB = 'Files';
+/** ERROR_COLUMNS describes how to render a HuntErrorRow. */
+export const ERROR_COLUMNS = {
+  ...HUNT_RESULT_COLUMNS,
+  'logMessage': {title: 'Log'},
+  'backtrace': {title: 'Backtrace'},
+} as const;
 
+/** Constructs a HuntErrorRow from an ApiHuntError. */
+export function toHuntErrorRow(err: apiInterfaces.ApiHuntError, huntId: string):
+    CellData<typeof ERROR_COLUMNS> {
+  const key = getHuntResultKey(err, huntId);
+  return {
+    'clientId': err.clientId,
+    'payloadType': PayloadType.API_HUNT_ERROR,
+    'collectedAt': createOptionalDate(err.timestamp),
+    'detailsLink': ['result-details', key ?? ''],
+    'logMessage': err.logMessage,
+    'backtrace': err.backtrace,
+  };
+}
+
+const FILE_TAB = 'Files';
 const CLIENT_INFO_TAB = 'Client Info';
+/** ERROR_TAB is used to identify error results tab. */
+export const ERROR_TAB = 'Errors';
+
+/** PayloadType maps types of result payloads. */
+export enum PayloadType {
+  ANOMALY = 'Anomaly',
+  API_HUNT_RESULT = 'ApiHuntResult',
+  CLIENT_SUMMARY = 'ClientSummary',
+  COLLECT_FILES_BY_KNOWN_PATH_RESULT = 'CollectFilesByKnownPathResult',
+  FILE_FINDER_RESULT = 'FileFinderResult',
+  KNOWLEDGE_BASE = 'KnowledgeBase',
+  STAT_ENTRY = 'StatEntry',
+  USER = 'User',
+  API_HUNT_ERROR = 'ApiHuntError',
+}
 
 /** Maps PayloadType to corresponding translation information. */
-export const PAYLOAD_TYPE_TRANSLATION = {
-  'Anomaly': {
+export const PAYLOAD_TYPE_TRANSLATION: {
+  [key in PayloadType]: PayloadTranslation<{[key: string]: ColumnDescriptor}>
+} = {
+  [PayloadType.ANOMALY]: {
     translateFn: toAnomalyRow,
     columns: ANOMALY_COLUMNS,
   } as PayloadTranslation<typeof ANOMALY_COLUMNS>,
-  'ApiHuntResult': {
+  [PayloadType.API_HUNT_RESULT]: {
     tabName: 'N/A',
     translateFn: toHuntResultRow,
     columns: HUNT_RESULT_COLUMNS
   } as PayloadTranslation<typeof HUNT_RESULT_COLUMNS>,
-  'ClientSummary': {
+  [PayloadType.CLIENT_SUMMARY]: {
     tabName: CLIENT_INFO_TAB,
     translateFn: toClientInfoRowFromClientSummary,
     columns: CLIENT_INFO_COLUMNS,
   } as PayloadTranslation<typeof CLIENT_INFO_COLUMNS>,
-  'CollectFilesByKnownPathResult': {
+  [PayloadType.COLLECT_FILES_BY_KNOWN_PATH_RESULT]: {
     tabName: FILE_TAB,
     translateFn: toFileRowFromCollectFilesByKnownPathResult,
     columns: FILE_COLUMNS,
   } as PayloadTranslation<typeof FILE_COLUMNS>,
-  'FileFinderResult': {
+  [PayloadType.FILE_FINDER_RESULT]: {
     tabName: FILE_TAB,
     translateFn: toFileRowFromFileFinderResult,
     columns: FILE_COLUMNS,
   } as PayloadTranslation<typeof FILE_COLUMNS>,
-  'KnowledgeBase': {
+  [PayloadType.KNOWLEDGE_BASE]: {
     tabName: CLIENT_INFO_TAB,
     translateFn: toClientInfoRowFromKnowledgeBase,
     columns: CLIENT_INFO_COLUMNS,
   } as PayloadTranslation<typeof CLIENT_INFO_COLUMNS>,
-  'StatEntry': {
+  [PayloadType.STAT_ENTRY]: {
     tabName: FILE_TAB,
     translateFn: toFileRowFromStatEntry,
     columns: FILE_COLUMNS,
   } as PayloadTranslation<typeof FILE_COLUMNS>,
-  'User': {
+  [PayloadType.USER]: {
     tabName: 'Users',
     translateFn: toUserRow,
     columns: USER_COLUMNS,
   } as PayloadTranslation<typeof USER_COLUMNS>,
+  [PayloadType.API_HUNT_ERROR]: {
+    tabName: ERROR_TAB,
+    translateFn: toHuntErrorRow,
+    columns: ERROR_COLUMNS,
+  } as PayloadTranslation<typeof ERROR_COLUMNS>,
 } as const;

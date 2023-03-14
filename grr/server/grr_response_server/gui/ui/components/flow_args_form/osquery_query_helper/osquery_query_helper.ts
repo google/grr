@@ -1,13 +1,13 @@
 import {Component, OnDestroy, ViewEncapsulation} from '@angular/core';
 import {FormControl} from '@angular/forms';
 import {Observable} from 'rxjs';
-import {debounceTime, distinctUntilChanged, filter, map, shareReplay, startWith, takeUntil,} from 'rxjs/operators';
+import {debounceTime, distinctUntilChanged, filter, map, shareReplay, startWith, takeUntil} from 'rxjs/operators';
 
 import {FuzzyMatcher, Match} from '../../../lib/fuzzy_matcher';
 import {isNonNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 
-import {TableCategory, tableCategoryFromNames, tableCategoryFromSpecs, TableCategoryWithMatchMap,} from './osquery_helper_model';
+import {TableCategory, tableCategoryFromNames, tableCategoryFromSpecs, TableCategoryWithMatchMap} from './osquery_helper_model';
 import {allTableSpecs, nameToTable, OsqueryTableSpec} from './osquery_table_specs';
 import {constructSelectAllFromTable} from './query_composer';
 
@@ -70,12 +70,12 @@ export class OsqueryQueryHelper implements OnDestroy {
     tableCategoryFromSpecs('All tables', allTableSpecs),
   ];
 
-  private readonly allStringToMatch: ReadonlyArray<string> =
+  private readonly allStringToMatch: readonly string[] =
       this.tableCategories.map(category => category.subjects).flat();
   private readonly fuzzyMatcher = new FuzzyMatcher(this.allStringToMatch);
 
   readonly filteredCategories$:
-      Observable<ReadonlyArray<TableCategoryWithMatchMap>> =
+      Observable<readonly TableCategoryWithMatchMap[]> =
           this.searchValues$.pipe(
               map(keyword => {
                 const matchMap = this.computeMatchMap(keyword);

@@ -9,7 +9,7 @@ import {ApiHuntState, Browser} from '../../../lib/api/api_interfaces';
 import {HttpApiService} from '../../../lib/api/http_api_service';
 import {mockHttpApiService} from '../../../lib/api/http_api_service_test_util';
 import {translateHuntApproval} from '../../../lib/api_translation/hunt';
-import {HuntState} from '../../../lib/models/hunt';
+import {getHuntTitle, HuntState} from '../../../lib/models/hunt';
 import {newFlowDescriptorMap, newHunt} from '../../../lib/models/model_test_util';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
 import {mockConfigGlobalStore} from '../../../store/config_global_store_test_util';
@@ -21,6 +21,7 @@ import {injectMockStore, STORE_PROVIDERS} from '../../../store/store_test_provid
 import {UserGlobalStore} from '../../../store/user_global_store';
 import {mockUserGlobalStore} from '../../../store/user_global_store_test_util';
 import {getActivatedChildRoute, initTestEnvironment} from '../../../testing';
+import {MODIFY_HUNT_ROUTES} from '../modify_hunt/routing';
 import {NEW_HUNT_ROUTES} from '../new_hunt/routing';
 
 import {HuntPage} from './hunt_page';
@@ -36,8 +37,9 @@ describe('hunt page test', () => {
           imports: [
             NoopAnimationsModule,
             HuntPageModule,
-            RouterTestingModule.withRoutes(
-                [...HUNT_PAGE_ROUTES, ...NEW_HUNT_ROUTES]),
+            RouterTestingModule.withRoutes([
+              ...HUNT_PAGE_ROUTES, ...NEW_HUNT_ROUTES, ...MODIFY_HUNT_ROUTES
+            ]),
           ],
           providers: [
             ...STORE_PROVIDERS,
@@ -73,19 +75,26 @@ describe('hunt page test', () => {
     fixture.detectChanges();
     const huntPageLocalStore =
         injectMockStore(HuntPageGlobalStore, fixture.debugElement);
-    huntPageLocalStore.mockedObservables.selectedHunt$.next(newHunt({
+    const hunt = newHunt({
       huntId: '1984',
       description: 'Ghost',
       creator: 'buster',
       state: HuntState.NOT_STARTED,
       flowName: 'MadeUpFlow',
-    }));
+    });
+    huntPageLocalStore.mockedObservables.selectedHunt$.next(hunt);
     fixture.detectChanges();
+
+    const huntOverviewLink =
+        fixture.debugElement.query(By.css('title-editor a'));
+    expect(huntOverviewLink.attributes['href']).toBe('/hunts');
 
     const overviewSection =
         fixture.debugElement.query(By.css('.hunt-overview'));
+    expect(
+        overviewSection.query(By.css('title-editor')).nativeElement.textContent)
+        .toContain(getHuntTitle(hunt));
     const text = overviewSection.nativeElement.textContent;
-    expect(text).toContain('Ghost');
     expect(text).toContain('1984');
     expect(text).toContain('buster');
     expect(text).toContain('Collection not started');
@@ -95,6 +104,7 @@ describe('hunt page test', () => {
     // hunt state is NOT_STARTED
     expect(text).toContain('Cancel collection');
     expect(text).toContain('Start collection');
+    expect(text).toContain('Change rollout parameters and continue');
   });
 
   it('displays hunt overview information - PAUSED', async () => {
@@ -103,19 +113,26 @@ describe('hunt page test', () => {
     fixture.detectChanges();
     const huntPageLocalStore =
         injectMockStore(HuntPageGlobalStore, fixture.debugElement);
-    huntPageLocalStore.mockedObservables.selectedHunt$.next(newHunt({
+    const hunt = newHunt({
       huntId: '1984',
-      description: 'Ghost',
+      description: undefined,
       creator: 'buster',
       state: HuntState.PAUSED,
       flowName: 'MadeUpFlow',
-    }));
+    });
+    huntPageLocalStore.mockedObservables.selectedHunt$.next(hunt);
     fixture.detectChanges();
+
+    const huntOverviewLink =
+        fixture.debugElement.query(By.css('title-editor a'));
+    expect(huntOverviewLink.attributes['href']).toBe('/hunts');
 
     const overviewSection =
         fixture.debugElement.query(By.css('.hunt-overview'));
+    expect(
+        overviewSection.query(By.css('title-editor')).nativeElement.textContent)
+        .toContain(getHuntTitle(hunt));
     const text = overviewSection.nativeElement.textContent;
-    expect(text).toContain('Ghost');
     expect(text).toContain('1984');
     expect(text).toContain('buster');
     expect(text).toContain('Collection paused');
@@ -124,7 +141,8 @@ describe('hunt page test', () => {
     expect(text).toContain('Copy and tweak');
     // hunt state is PAUSED
     expect(text).toContain('Cancel collection');
-    expect(text).toContain('Start collection');
+    expect(text).toContain('Restart collection');
+    expect(text).toContain('Change rollout parameters and continue');
   });
 
   it('displays hunt overview information - STARTED', async () => {
@@ -133,19 +151,27 @@ describe('hunt page test', () => {
     fixture.detectChanges();
     const huntPageLocalStore =
         injectMockStore(HuntPageGlobalStore, fixture.debugElement);
-    huntPageLocalStore.mockedObservables.selectedHunt$.next(newHunt({
+    const hunt = newHunt({
       huntId: '1984',
-      description: 'Ghost',
+      description: undefined,
+      name: 'GenericHunt',
       creator: 'buster',
       state: HuntState.RUNNING,
       flowName: 'MadeUpFlow',
-    }));
+    });
+    huntPageLocalStore.mockedObservables.selectedHunt$.next(hunt);
     fixture.detectChanges();
+
+    const huntOverviewLink =
+        fixture.debugElement.query(By.css('title-editor a'));
+    expect(huntOverviewLink.attributes['href']).toBe('/hunts');
 
     const overviewSection =
         fixture.debugElement.query(By.css('.hunt-overview'));
+    expect(
+        overviewSection.query(By.css('title-editor')).nativeElement.textContent)
+        .toContain(getHuntTitle(hunt));
     const text = overviewSection.nativeElement.textContent;
-    expect(text).toContain('Ghost');
     expect(text).toContain('1984');
     expect(text).toContain('buster');
     expect(text).toContain('Collection running');
@@ -156,6 +182,7 @@ describe('hunt page test', () => {
     // hunt state is STARTED
     expect(text).toContain('Cancel collection');
     expect(text).not.toContain('Start collection');
+    expect(text).not.toContain('Change rollout parameters and continue');
   });
 
   it('displays hunt overview information - CANCELLED', async () => {
@@ -164,19 +191,23 @@ describe('hunt page test', () => {
     fixture.detectChanges();
     const huntPageLocalStore =
         injectMockStore(HuntPageGlobalStore, fixture.debugElement);
-    huntPageLocalStore.mockedObservables.selectedHunt$.next(newHunt({
+    const hunt = newHunt({
       huntId: '1984',
-      description: 'Ghost',
+      description: undefined,
+      name: 'Ghost',
       creator: 'buster',
       state: HuntState.CANCELLED,
       flowName: 'MadeUpFlow',
-    }));
+    });
+    huntPageLocalStore.mockedObservables.selectedHunt$.next(hunt);
     fixture.detectChanges();
 
     const overviewSection =
         fixture.debugElement.query(By.css('.hunt-overview'));
+    expect(
+        overviewSection.query(By.css('title-editor')).nativeElement.textContent)
+        .toContain(getHuntTitle(hunt));
     const text = overviewSection.nativeElement.textContent;
-    expect(text).toContain('Ghost');
     expect(text).toContain('1984');
     expect(text).toContain('buster');
     expect(text).toContain('Collection cancelled');
@@ -186,6 +217,7 @@ describe('hunt page test', () => {
     // hunt state is CANCELLED
     expect(text).not.toContain('Cancel collection');
     expect(text).not.toContain('Start collection');
+    expect(text).not.toContain('Change rollout parameters and continue');
   });
 
   it('expands flow arguments on overview section', async () => {
@@ -290,7 +322,34 @@ describe('hunt page test', () => {
     expect(text).toContain('10 %');  // With results
   });
 
-  it('Copy button navigatest to new hunt page with correct param',
+  it('modify hunt button navigates to modify hunt drawer',
+     fakeAsync(async () => {
+       await TestBed.inject(Router).navigate(['hunts/1984']);
+       const location: Location = TestBed.inject(Location);
+
+       const fixture = TestBed.createComponent(HuntPage);
+       fixture.detectChanges();
+       const huntPageLocalStore =
+           injectMockStore(HuntPageGlobalStore, fixture.debugElement);
+       huntPageLocalStore.mockedObservables.selectedHunt$.next(newHunt({
+         huntId: '1984',
+         description: 'Ghost',
+         creator: 'buster',
+         state: HuntState.PAUSED,
+       }));
+       fixture.detectChanges();
+
+       const modifyHuntButton =
+           fixture.debugElement.query(By.css('a[name=modify-button]'));
+       modifyHuntButton.nativeElement.click();
+
+       fixture.detectChanges();
+       tick();  // after tick(), URL changes will have taken into effect.
+
+       expect(location.path()).toBe('/hunts/1984(drawer:modify-hunt)');
+     }));
+
+  it('Copy button navigates to new hunt page with correct param',
      fakeAsync(async () => {
        await TestBed.inject(Router).navigate(['hunts/1984']);
        const location: Location = TestBed.inject(Location);

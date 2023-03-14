@@ -629,9 +629,132 @@ describe('CollectMultipleFilesForm', () => {
       expect(fileSizeBlocks.length).toBe(0);
     });
 
+    it('should show the correct status for the Linux flags', fakeAsync(() => {
+         const fixture = TestBed.createComponent(CollectMultipleFilesForm);
+         fixture.detectChanges();
+
+         const linuxBitsSet = 3;  // 1 & 2
+         const checkedFlagIndexes = [0, 1];
+         const linuxBitsUnset = 4;  // 4
+         const blockedFlagIndexes = [8];
+
+         const testFlowArgs: CollectMultipleFilesArgs = {
+           extFlags: {
+             linuxBitsSet,
+             linuxBitsUnset,
+           },
+         };
+
+         fixture.componentInstance.resetFlowArgs(testFlowArgs);
+
+         // Child form components get rendered
+         fixture.detectChanges();
+
+         tick();
+
+         // Child form components are populated with the patched values
+         fixture.detectChanges();
+
+         const extFlagsBlocks =
+             fixture.debugElement.queryAll(By.css('ext-flags-condition'));
+
+         expect(extFlagsBlocks.length).toBe(1);
+
+         const extLinuxFlagsBlocks = fixture.debugElement.queryAll(
+             By.css('ext-flags-condition [name="linuxFileFlags"]'));
+
+         expect(extLinuxFlagsBlocks.length).toBe(1);
+
+         const linuxFlags = fixture.debugElement.queryAll(
+             By.css('ext-flags-condition [name="linuxFileFlags"] mat-icon'));
+
+         for (const index of checkedFlagIndexes) {
+           expect(linuxFlags[index].nativeElement.innerText).toBe('check');
+         }
+
+         for (const index of blockedFlagIndexes) {
+           expect(linuxFlags[index].nativeElement.innerText).toBe('block');
+         }
+       }));
+
+    it('should show the correct status for the macOS flags', fakeAsync(() => {
+         const fixture = TestBed.createComponent(CollectMultipleFilesForm);
+         fixture.detectChanges();
+
+         const osxBitsSet = 24;  // 8 & 16
+         const checkedFlagIndexes = [3];
+         const osxBitsUnset = 7;  // 1 & 2 & 4
+         const blockedFlagIndexes = [0, 1, 2];
+
+         const testFlowArgs: CollectMultipleFilesArgs = {
+           extFlags: {
+             osxBitsSet,
+             osxBitsUnset,
+           },
+         };
+
+         fixture.componentInstance.resetFlowArgs(testFlowArgs);
+
+         // Child form components get rendered
+         fixture.detectChanges();
+
+         tick();
+
+         // Child form components are populated with the patched values
+         fixture.detectChanges();
+
+         const extFlagsBlocks =
+             fixture.debugElement.queryAll(By.css('ext-flags-condition'));
+
+         expect(extFlagsBlocks.length).toBe(1);
+
+         const extOSXFlagsBlocks = fixture.debugElement.queryAll(
+             By.css('ext-flags-condition [name="osxFileFlags"]'));
+
+         expect(extOSXFlagsBlocks.length).toBe(1);
+
+         const osxFlags = fixture.debugElement.queryAll(
+             By.css('ext-flags-condition [name="osxFileFlags"] mat-icon'));
+
+         for (const index of checkedFlagIndexes) {
+           expect(osxFlags[index].nativeElement.innerText).toBe('check');
+         }
+
+         for (const index of blockedFlagIndexes) {
+           expect(osxFlags[index].nativeElement.innerText).toBe('block');
+         }
+       }));
+
+    it('should not show an OS file flag condition', () => {
+      const fixture = TestBed.createComponent(CollectMultipleFilesForm);
+      fixture.detectChanges();
+
+      const testFlowArgs: CollectMultipleFilesArgs = {
+        extFlags: undefined,
+      };
+
+      fixture.componentInstance.resetFlowArgs(testFlowArgs);
+
+      fixture.detectChanges();
+
+      const extFlagsBlocks =
+          fixture.debugElement.queryAll(By.css('ext-flags-condition'));
+
+      expect(extFlagsBlocks.length).toBe(0);
+    });
+
     it('should add multiple form elements', fakeAsync(() => {
          const fixture = TestBed.createComponent(CollectMultipleFilesForm);
          fixture.detectChanges();
+
+         const linuxBitsSet = 3;  // 1 & 2
+         const checkedLinuxFlagIndexes = [0, 1];
+         const linuxBitsUnset = 4;  // 4
+         const blockedLinuxFlagIndexes = [8];
+         const osxBitsSet = 1;  // 1
+         const checkedOSXFlagIndexes = [0];
+         const osxBitsUnset = 2;  // 2
+         const blockedOSXFlagIndexes = [1];
 
          const testFlowArgs: CollectMultipleFilesArgs = {
            pathExpressions: ['expressionTest1'],
@@ -659,6 +782,12 @@ describe('CollectMultipleFilesForm', () => {
            size: {
              minFileSize: '10000',
              maxFileSize: '20000000',
+           },
+           extFlags: {
+             linuxBitsSet,
+             linuxBitsUnset,
+             osxBitsSet,
+             osxBitsUnset,
            },
          };
 
@@ -730,6 +859,45 @@ describe('CollectMultipleFilesForm', () => {
          const maxFileSize = fixture.debugElement.query(
              By.css('size-condition input[name=maxFileSize]'));
          expect(maxFileSize.nativeElement.value).toBe('20 MB');
+
+         const extFlagsBlocks =
+             fixture.debugElement.queryAll(By.css('ext-flags-condition'));
+
+         expect(extFlagsBlocks.length).toBe(1);
+
+         // Linux Ext. Flags
+         const extLinuxFlagsBlocks = fixture.debugElement.queryAll(
+             By.css('ext-flags-condition [name="linuxFileFlags"]'));
+
+         expect(extLinuxFlagsBlocks.length).toBe(1);
+
+         const linuxFlags = fixture.debugElement.queryAll(
+             By.css('ext-flags-condition [name="linuxFileFlags"] mat-icon'));
+
+         for (const index of checkedLinuxFlagIndexes) {
+           expect(linuxFlags[index].nativeElement.innerText).toBe('check');
+         }
+
+         for (const index of blockedLinuxFlagIndexes) {
+           expect(linuxFlags[index].nativeElement.innerText).toBe('block');
+         }
+
+         // OSX Ext. Flags
+         const extOSXFlagsBlocks = fixture.debugElement.queryAll(
+             By.css('ext-flags-condition [name="osxFileFlags"]'));
+
+         expect(extOSXFlagsBlocks.length).toBe(1);
+
+         const osxFlags = fixture.debugElement.queryAll(
+             By.css('ext-flags-condition [name="osxFileFlags"] mat-icon'));
+
+         for (const index of checkedOSXFlagIndexes) {
+           expect(osxFlags[index].nativeElement.innerText).toBe('check');
+         }
+
+         for (const index of blockedOSXFlagIndexes) {
+           expect(osxFlags[index].nativeElement.innerText).toBe('block');
+         }
        }));
   });
 });

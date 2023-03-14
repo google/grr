@@ -33,8 +33,9 @@ class ListProcessesTest(gui_test_lib.GRRSeleniumTest):
                     type=rdf_client.Process.__name__, count=1)
             ])):
       self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=.flow-title:contains('Process')")
+      self.WaitUntil(
+          self.IsElementPresent, "css=.flow-title:contains('List processes')"
+      )
 
       flow_test_lib.AddResultsToFlow(self.client_id, flow_id, [
           rdf_client.Process(

@@ -12,7 +12,7 @@ import {firstValueFrom, ReplaySubject, Subject} from 'rxjs';
 import {FlowArgsFormModule} from '../../components/flow_args_form/module';
 import {ArtifactCollectorFlowArgs, Browser, CollectBrowserHistoryArgs, CollectFilesByKnownPathArgsCollectionLevel, ExecutePythonHackArgs, GlobComponentExplanation, LaunchBinaryArgs, ListNamedPipesFlowArgsPipeEndFilter, ListNamedPipesFlowArgsPipeTypeFilter, TimelineArgs} from '../../lib/api/api_interfaces';
 import {ApiModule} from '../../lib/api/module';
-import {BinaryType, FlowDescriptor, OperatingSystem, SourceType} from '../../lib/models/flow';
+import {BinaryType, FlowDescriptor, FlowType, OperatingSystem, SourceType} from '../../lib/models/flow';
 import {newArtifactDescriptorMap, newClient} from '../../lib/models/model_test_util';
 import {ExplainGlobExpressionService} from '../../lib/service/explain_glob_expression_service/explain_glob_expression_service';
 import {deepFreeze} from '../../lib/type_utils';
@@ -28,7 +28,7 @@ initTestEnvironment();
 
 const TEST_FLOW_DESCRIPTORS = deepFreeze({
   ArtifactCollectorFlow: {
-    name: 'ArtifactCollectorFlow',
+    name: FlowType.ARTIFACT_COLLECTOR_FLOW,
     friendlyName: 'Collect artifact',
     category: 'Collector',
     defaultArgs: {
@@ -36,7 +36,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   CollectBrowserHistory: {
-    name: 'CollectBrowserHistory',
+    name: FlowType.COLLECT_BROWSER_HISTORY,
     friendlyName: 'Browser History',
     category: 'Browser',
     defaultArgs: {
@@ -44,7 +44,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   CollectFilesByKnownPath: {
-    name: 'CollectFilesByKnownPath',
+    name: FlowType.COLLECT_FILES_BY_KNOWN_PATH,
     friendlyName: 'Collect Files based on their absolute path',
     category: 'Filesystem',
     defaultArgs: {
@@ -53,7 +53,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   CollectSingleFile: {
-    name: 'CollectSingleFile',
+    name: FlowType.COLLECT_SINGLE_FILE,
     friendlyName: 'Collect Single File',
     category: 'Filesystem',
     defaultArgs: {
@@ -62,7 +62,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   CollectMultipleFiles: {
-    name: 'CollectMultipleFiles',
+    name: FlowType.COLLECT_MULTIPLE_FILES,
     friendlyName: 'Collect Multiple Files',
     category: 'Filesystem',
     defaultArgs: {
@@ -70,7 +70,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   ListDirectory: {
-    name: 'ListDirectory',
+    name: FlowType.LIST_DIRECTORY,
     friendlyName: 'List Directory',
     category: 'Filesystem',
     defaultArgs: {
@@ -78,7 +78,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   ListNamedPipes: {
-    name: 'ListNamedPipesFlow',
+    name: FlowType.LIST_NAMED_PIPES_FLOW,
     friendlyName: 'List named pipes',
     category: 'Processes',
     defaultArgs: {
@@ -89,7 +89,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   ListProcesses: {
-    name: 'ListProcesses',
+    name: FlowType.LIST_PROCESSES,
     friendlyName: 'List processes',
     category: 'Processes',
     defaultArgs: {
@@ -100,7 +100,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   Netstat: {
-    name: 'Netstat',
+    name: FlowType.NETSTAT,
     friendlyName: 'List active network connections on a system.',
     category: 'Network',
     defaultArgs: {
@@ -108,19 +108,19 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   ReadLowLevel: {
-    name: 'ReadLowLevel',
+    name: FlowType.READ_LOW_LEVEL,
     friendlyName: 'Read device low level',
     category: 'Filesystem',
     defaultArgs: {},
   },
   TimelineFlow: {
-    name: 'TimelineFlow',
+    name: FlowType.TIMELINE_FLOW,
     friendlyName: 'Collect path timeline',
     category: 'Filesystem',
     defaultArgs: {},
   },
   ExecutePythonHack: {
-    name: 'ExecutePythonHack',
+    name: FlowType.EXECUTE_PYTHON_HACK,
     friendlyName: 'Execute Python Hack',
     category: 'Administrative',
     defaultArgs: {
@@ -128,7 +128,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   LaunchBinary: {
-    name: 'LaunchBinary',
+    name: FlowType.LAUNCH_BINARY,
     friendlyName: 'Launch Binary',
     category: 'Administrative',
     defaultArgs: {
@@ -136,7 +136,7 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   OnlineNotification: {
-    name: 'OnlineNotification',
+    name: FlowType.ONLINE_NOTIFICATION,
     friendlyName: 'Online Notification',
     category: 'Administrative',
     defaultArgs: {
@@ -144,13 +144,13 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     },
   },
   DumpProcessMemory: {
-    name: 'DumpProcessMemory',
+    name: FlowType.DUMP_PROCESS_MEMORY,
     friendlyName: 'Dump Process Memory',
     category: 'Memory',
     defaultArgs: {},
   },
   YaraProcessScan: {
-    name: 'YaraProcessScan',
+    name: FlowType.YARA_PROCESS_SCAN,
     friendlyName: 'Yara Process Scan',
     category: 'Memory',
     defaultArgs: {},
@@ -346,7 +346,7 @@ describe(`FlowArgForm CollectSingleFile`, () => {
 describe(`FlowArgForm CollectMultipleFiles`, () => {
   let clientPageGlobalStore: ClientPageGlobalStoreMock;
   let explainGlobExpressionService: Partial<ExplainGlobExpressionService>;
-  let explanation$: Subject<ReadonlyArray<GlobComponentExplanation>>;
+  let explanation$: Subject<readonly GlobComponentExplanation[]>;
 
   beforeEach(() => {
     clientPageGlobalStore = mockClientPageGlobalStore();

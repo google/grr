@@ -250,6 +250,8 @@ export function newHunt(hunt: Partial<Hunt>): Hunt {
     allClientsCount: hunt.allClientsCount ?? BigInt(123),
     clientsWithResultsCount: hunt.clientsWithResultsCount ?? BigInt(10),
     completedClientsCount: hunt.completedClientsCount ?? BigInt(5),
+    crashedClientsCount: hunt.crashedClientsCount ?? BigInt(77),
+    failedClientsCount: hunt.failedClientsCount ?? BigInt(15),
     created: hunt.created ?? new Date(),
     creator: hunt.creator ?? 'foouser',
     description: hunt.description ?? 'test',

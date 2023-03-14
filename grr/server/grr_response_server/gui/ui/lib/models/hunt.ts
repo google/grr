@@ -44,6 +44,8 @@ export declare interface Hunt {
   readonly allClientsCount: bigint;
   readonly clientsWithResultsCount: bigint;
   readonly completedClientsCount: bigint;
+  readonly crashedClientsCount: bigint;
+  readonly failedClientsCount: bigint;
   readonly created: Date;
   readonly creator: string;
   readonly description: string;
@@ -79,4 +81,12 @@ export declare interface HuntApproval extends Approval {
 /** ApprovalRequest for hunt */
 export interface HuntApprovalRequest extends ApprovalRequest {
   readonly huntId: string;
+}
+
+/** Gets the hunt title to be displayed across different pages */
+export function getHuntTitle(hunt: Hunt|null): string {
+  const name = hunt?.name === 'GenericHunt' ? '' : hunt?.name;
+  return hunt?.description || name ||
+      'Untitled fleet collection' +
+      (hunt?.flowName ? ': ' + hunt.flowName : '');
 }

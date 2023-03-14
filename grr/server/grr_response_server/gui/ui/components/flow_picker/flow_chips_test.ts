@@ -3,7 +3,7 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {FlowChips} from '../../components/flow_picker/flow_chips';
-import {FlowListItem} from '../../components/flow_picker/flow_list_item';
+import {FlowListItem, FlowType} from '../../lib/models/flow';
 import {initTestEnvironment} from '../../testing';
 
 import {FlowPickerModule} from './module';
@@ -27,15 +27,15 @@ describe('FlowChips component', () => {
         .compileComponents();
   }));
 
-  const flows: ReadonlyArray<FlowListItem> = [
+  const flows: readonly FlowListItem[] = [
     {
-      name: 'ArtifactCollectorFlow',
+      type: FlowType.ARTIFACT_COLLECTOR_FLOW,
       friendlyName: 'Forensic artifacts',
       description: 'Foo',
       enabled: true,
     },
     {
-      name: 'OsqueryFlow',
+      type: FlowType.OS_QUERY_FLOW,
       friendlyName: 'Osquery',
       description: 'Bar',
       enabled: true,

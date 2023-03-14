@@ -98,20 +98,16 @@ export class CollectFilesByKnownPathDetails extends Plugin {
     }
   }));
 
-  readonly successFiles$ =
-      new BehaviorSubject<ReadonlyArray<FlowFileResult>>([]);
-  readonly errorFiles$ =
-      new BehaviorSubject<ReadonlyArray<FailedFileResult>>([]);
+  readonly successFiles$ = new BehaviorSubject<readonly FlowFileResult[]>([]);
+  readonly errorFiles$ = new BehaviorSubject<readonly FailedFileResult[]>([]);
 
-  readonly errorFilesColumns: ReadonlyArray<string> =
-      ['path', 'error', 'status'];
+  readonly errorFilesColumns: readonly string[] = ['path', 'error', 'status'];
 
-  readonly fileResults$:
-      Observable<ReadonlyArray<CollectFilesByKnownPathResult>> =
-          this.flowResultsLocalStore.results$.pipe(
-              map(results => results?.map(
-                      (data) => data.payload as CollectFilesByKnownPathResult)),
-          );
+  readonly fileResults$: Observable<readonly CollectFilesByKnownPathResult[]> =
+      this.flowResultsLocalStore.results$.pipe(
+          map(results => results?.map(
+                  (data) => data.payload as CollectFilesByKnownPathResult)),
+      );
 
   constructor(
       private readonly flowResultsLocalStore: FlowResultsLocalStore,
@@ -159,7 +155,7 @@ export class CollectFilesByKnownPathDetails extends Plugin {
     return super.getResultDescription(flow);
   }
 
-  override getExportMenuItems(flow: Flow): ReadonlyArray<ExportMenuItem> {
+  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
     const downloadItem = this.getDownloadFilesExportMenuItem(flow);
     const items = super.getExportMenuItems(flow);
 

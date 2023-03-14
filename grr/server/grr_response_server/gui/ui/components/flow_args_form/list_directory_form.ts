@@ -4,7 +4,7 @@ import {FormControl} from '@angular/forms';
 import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {ListDirectoryArgs, PathSpecPathType} from '../../lib/api/api_interfaces';
 
-const COLLECTION_METHODS: ReadonlyArray<PathSpecPathType> =
+const COLLECTION_METHODS: readonly PathSpecPathType[] =
     [PathSpecPathType.OS, PathSpecPathType.TSK, PathSpecPathType.NTFS];
 
 function makeControls() {

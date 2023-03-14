@@ -11,7 +11,7 @@ const {diff} = DeepDiff;
 /** Client Version */
 export interface ClientVersion {
   client: Client;
-  changes: ReadonlyArray<string>;
+  changes: readonly string[];
 }
 
 /**
@@ -111,8 +111,7 @@ function classifyDiffItem(
  *     "added")
  */
 function getChangeDescriptions(
-    changesMap: Map<string, number>,
-    changeKeyword: string): ReadonlyArray<string> {
+    changesMap: Map<string, number>, changeKeyword: string): readonly string[] {
   const changeDescriptions: string[] = [];
 
   changesMap.forEach((occurrences, label) => {
@@ -143,7 +142,7 @@ function getNumEntriesChanged(changesMap: Map<string, number>): number {
  */
 function aggregateDiffs(differences?: ReadonlyArray<Diff<Client>>):
     // tslint:disable-next-line:array-type
-    [number, ReadonlyArray<string>] {
+    [number, readonly string[]] {
   if (differences === undefined) {
     return [0, []];
   }
@@ -174,8 +173,7 @@ function aggregateDiffs(differences?: ReadonlyArray<Diff<Client>>):
  * snapshots provided.
  * When there are no relevant changes, the array will be empty.
  */
-function getSnapshotChanges(
-    current: Client, old?: Client): ReadonlyArray<string> {
+function getSnapshotChanges(current: Client, old?: Client): readonly string[] {
   if (old === undefined) {
     return ['Client first seen'];
   }
@@ -195,7 +193,7 @@ function getSnapshotChanges(
  * @param clientSnapshots an array of chronologically reverse ordered client
  *     snapshots
  */
-export function getClientVersions(clientSnapshots: ReadonlyArray<Client>):
+export function getClientVersions(clientSnapshots: readonly Client[]):
     ClientVersion[] {
   const clientChanges: ClientVersion[] = [];
 
@@ -239,7 +237,7 @@ function getStringsJoinedPath(path: any[]): string {
   return path.filter(val => typeof val === 'string').join('.');
 }
 
-function pairwise<T>(arr: ReadonlyArray<T>): ReadonlyArray<[T, T]> {
+function pairwise<T>(arr: readonly T[]): ReadonlyArray<[T, T]> {
   const pairwiseArray: Array<[T, T]> = [];
   for (let i = 0; i < arr.length - 1; i++) {
     pairwiseArray.push([arr[i], arr[i + 1]]);
@@ -249,7 +247,7 @@ function pairwise<T>(arr: ReadonlyArray<T>): ReadonlyArray<[T, T]> {
 }
 
 function getPathsOfChangedEntries(differences: ReadonlyArray<Diff<Client>>):
-    ReadonlyArray<string> {
+    readonly string[] {
   const changedPaths = new Set<string>();
 
   differences.filter(diffItem => diffItem.path !== undefined)
@@ -274,8 +272,8 @@ function getPathsOfChangedEntries(differences: ReadonlyArray<Diff<Client>>):
  * @param clientSnapshots an array of chronologically reverse ordered client
  *     snapshots
  */
-export function getClientEntriesChanged(clientSnapshots: ReadonlyArray<Client>):
-    Map<string, ReadonlyArray<Client>> {
+export function getClientEntriesChanged(clientSnapshots: readonly Client[]):
+    Map<string, readonly Client[]> {
   const clientChangedEntries = new Map<string, Client[]>();
 
   pairwise(clientSnapshots).forEach(([newerClient, olderClient]) => {

@@ -10,8 +10,8 @@ import {nameToTable, OsqueryColumnSpec, OsqueryTableSpec} from './osquery_table_
  */
 export interface TableCategory {
   readonly categoryName: string;
-  readonly tableSpecs: ReadonlyArray<OsqueryTableSpec>;
-  readonly subjects: ReadonlyArray<string>;
+  readonly tableSpecs: readonly OsqueryTableSpec[];
+  readonly subjects: readonly string[];
 }
 
 /**
@@ -23,14 +23,14 @@ export interface TableCategoryWithMatchMap extends TableCategory {
 }
 
 function columnSpecsToSubjects(
-    columnSpecs: ReadonlyArray<OsqueryColumnSpec>,
-    ): ReadonlyArray<string> {
+    columnSpecs: readonly OsqueryColumnSpec[],
+    ): readonly string[] {
   return columnSpecs.map(column => column.name);
 }
 
 function tableSpecsToSubjects(
-    tableSpecs: ReadonlyArray<OsqueryTableSpec>,
-    ): ReadonlyArray<string> {
+    tableSpecs: readonly OsqueryTableSpec[],
+    ): readonly string[] {
   const names = tableSpecs.map(spec => spec.name);
   const descriptions = tableSpecs.map(spec => spec.description);
   const columns = tableSpecs.map(spec => columnSpecsToSubjects(spec.columns));
@@ -48,7 +48,7 @@ function tableSpecsToSubjects(
  */
 export function tableCategoryToSubjects(
     category: TableCategory,
-    ): ReadonlyArray<string> {
+    ): readonly string[] {
   return [
     category.categoryName,
     ...tableSpecsToSubjects(category.tableSpecs),
@@ -62,7 +62,7 @@ export function tableCategoryToSubjects(
  */
 export function tableCategoryFromSpecs(
     categoryName: string,
-    tableSpecs: ReadonlyArray<OsqueryTableSpec>,
+    tableSpecs: readonly OsqueryTableSpec[],
     ): TableCategory {
   const subjects = [
     categoryName,
@@ -83,7 +83,7 @@ export function tableCategoryFromSpecs(
  */
 export function tableCategoryFromNames(
     categoryName: string,
-    tableNames: ReadonlyArray<string>,
+    tableNames: readonly string[],
     ): TableCategory {
   const tableSpecs = tableNames.map(tableName => {
     const tableSpec = nameToTable(tableName);

@@ -43,6 +43,12 @@ export class TitleEditorContent implements AfterViewInit {
     return this.element.nativeElement.textContent;
   }
 
+  setText(text: string) {
+    this.element.nativeElement.textContent = text;
+    this.parent.save(text);
+    this.parent.markForCheck();
+  }
+
   cancelEditing() {
     if (!this.contenteditable) {
       return;
@@ -97,6 +103,10 @@ export class TitleEditor implements AfterContentInit, OnChanges {
     if (this.disabled && this.editing) {
       this.content?.cancelEditing();
     }
+  }
+
+  setText(text: string) {
+    this.content.setText(text);
   }
 
   startEdit() {

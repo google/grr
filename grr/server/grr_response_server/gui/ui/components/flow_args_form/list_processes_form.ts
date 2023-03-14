@@ -9,9 +9,9 @@ import {ListProcessesArgs, NetworkConnectionState} from '../../lib/api/api_inter
 
 function makeControls() {
   return {
-    pids: new FormControl<ReadonlyArray<number>>(
+    pids: new FormControl<readonly number[]>(
         [], {nonNullable: true, validators: [integerArrayValidator()]}),
-    connectionStates: new FormControl<ReadonlyArray<NetworkConnectionState>>(
+    connectionStates: new FormControl<readonly NetworkConnectionState[]>(
         [], {nonNullable: true}),
     filenameRegex: new FormControl('', {nonNullable: true}),
     fetchBinaries: new FormControl(false, {nonNullable: true}),

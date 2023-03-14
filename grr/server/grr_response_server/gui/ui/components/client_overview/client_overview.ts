@@ -1,15 +1,17 @@
 import {ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit} from '@angular/core';
 import {MatDialog} from '@angular/material/dialog';
 import {MatSnackBar} from '@angular/material/snack-bar';
-import {combineLatest, firstValueFrom} from 'rxjs';
-import {filter, map, takeUntil, withLatestFrom} from 'rxjs/operators';
+import {combineLatest, firstValueFrom, Observable} from 'rxjs';
+import {distinctUntilKeyChanged, filter, map, takeUntil, withLatestFrom} from 'rxjs/operators';
 
-import {OnlineNotificationArgs} from '../../lib/api/api_interfaces';
-import {ClientLabel, isClientOnline, User} from '../../lib/models/client';
+import {AdminUIClientWarningRule, OnlineNotificationArgs} from '../../lib/api/api_interfaces';
+import {ClientLabel, ClientWarning, isClientOnline, User} from '../../lib/models/client';
 import {FlowState} from '../../lib/models/flow';
 import {isNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
+import {MarkdownPipe} from '../../pipes/markdown/markdown_pipe';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {ConfigGlobalStore} from '../../store/config_global_store';
 import {UserGlobalStore} from '../../store/user_global_store';
 import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_dialog';
 
@@ -21,6 +23,7 @@ import {ClientAddLabelDialog} from '../client_add_label_dialog/client_add_label_
   templateUrl: './client_overview.ng.html',
   styleUrls: ['./client_overview.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [MarkdownPipe],
 })
 export class ClientOverview implements OnInit, OnDestroy {
   private static readonly LABEL_REMOVED_SNACKBAR_DURATION_MS = 4000;
@@ -53,13 +56,31 @@ export class ClientOverview implements OnInit, OnDestroy {
           map(flow => flow?.args as OnlineNotificationArgs | undefined),
       );
 
-  @Input() collapsed: boolean = false;
+  readonly clientWarnings$: Observable<ClientWarning[]> =
+      combineLatest([
+        this.configGlobalStore.uiConfig$.pipe(
+            map(c => c.clientWarnings?.rules || [])),
+        this.client$.pipe(
+            filter(isNonNull), distinctUntilKeyChanged('clientId'),
+            map(client => client.labels || [])),
+      ])
+          .pipe(
+              filter(([clientWarnings, clientLabels]) => {
+                return clientWarnings.length > 0 && clientLabels.length > 0;
+              }),
+              map(([clientWarnings, clientLabels]) =>
+                      this.getWarningsForClientByLabel(
+                          clientWarnings, clientLabels)));
+
+  @Input() collapsed = false;
 
   constructor(
       private readonly userGlobalStore: UserGlobalStore,
       private readonly clientPageGlobalStore: ClientPageGlobalStore,
+      private readonly configGlobalStore: ConfigGlobalStore,
       private readonly dialog: MatDialog,
       private readonly snackBar: MatSnackBar,
+      private readonly markdownPipe: MarkdownPipe,
   ) {}
 
   ngOnInit() {
@@ -77,7 +98,7 @@ export class ClientOverview implements OnInit, OnDestroy {
     return item.name;
   }
 
-  openAddLabelDialog(clientLabels: ReadonlyArray<ClientLabel>) {
+  openAddLabelDialog(clientLabels: readonly ClientLabel[]) {
     const addLabelDialog = this.dialog.open(ClientAddLabelDialog, {
       data: clientLabels,
     });
@@ -111,11 +132,15 @@ export class ClientOverview implements OnInit, OnDestroy {
     this.clientPageGlobalStore.addClientLabel(label);
   }
 
-  formatUsers(users: ReadonlyArray<User>) {
+  formatUsers(users: readonly User[]) {
     if (!users || !users.length) {
       return '(None)';
     }
     return users.map(user => user.username).join(', ');
+  }
+
+  closeWarning(clientWarning: ClientWarning): void {
+    clientWarning.isClosed = true;
   }
 
   async triggerOnlineNotification() {
@@ -124,5 +149,39 @@ export class ClientOverview implements OnInit, OnDestroy {
         this.clientPageGlobalStore.selectedFlowDescriptor$.pipe(
             filter(isNonNull)));
     this.clientPageGlobalStore.startFlow(flowDescriptor.defaultArgs);
+  }
+
+  private getWarningsForClientByLabel(
+      clientWarningRules: readonly AdminUIClientWarningRule[],
+      clientLabels: readonly ClientLabel[]): ClientWarning[] {
+    const clientLabelNames = new Set<string>(
+        [...clientLabels.map(label => label.name)],
+    );
+
+    return clientWarningRules
+        .filter(cwr => {
+          const clientWarningLabels = cwr.withLabels || [];
+
+          const showWarningForClient =
+              clientWarningLabels.some(label => clientLabelNames.has((label)));
+
+          return showWarningForClient && cwr.message;
+        })
+        .map(warning => ({
+               htmlSnippet: this.getHtmlFromMarkdown(warning.message as string),
+               isClosed: false,
+             }));
+  }
+
+  private getHtmlFromMarkdown(markdown: string): string {
+    const html = this.markdownPipe.transform(markdown);
+    const anchorTag = '<a';
+    // We pass 'g' as a flag because we want to replace all occurrences:
+    const regex = new RegExp(anchorTag, 'g');
+    const replaceBy = `${anchorTag} target="_blank"`;
+
+    // We want links to open in a new browser tab when clicked. Therefore
+    // we replace anchor tags (if any) to fit the purpose.
+    return html.replace(regex, replaceBy);
   }
 }

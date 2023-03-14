@@ -57,6 +57,22 @@
     </div>
   </div>
 
+  <ng-container *ngIf="clientWarnings$ | async as clientWarnings">
+    <div class="client-warnings-container" name="clientWarnings" *ngIf="clientWarnings.length > 0">
+      <ng-container *ngFor="let warning of clientWarnings">
+        <mat-card *ngIf="!warning.isClosed">
+          <mat-card-content>
+            <mat-icon>info</mat-icon>
+            <div class="text-container" [innerHTML]="warning.htmlSnippet | sanitize"></div>
+            <button mat-button class="close-client-warning" (click)="closeWarning(warning)">
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-card-content>
+        </mat-card>
+      </ng-container>
+    </div>
+  </ng-container>
+
   <ng-container *ngIf="!collapsed">
     <div class="chips labels">
       <mat-chip-list>

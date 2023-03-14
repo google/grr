@@ -11,7 +11,7 @@ import {FlowResultMapFunction, FlowResultsQueryWithAdapter} from '../helpers/loa
 import {ExportMenuItem, Plugin} from './plugin';
 
 
-const ADAPTER: FlowResultMapFunction<ReadonlyArray<FlowFileResult>|undefined> =
+const ADAPTER: FlowResultMapFunction<readonly FlowFileResult[]|undefined> =
     (results) =>
         results?.map(item => item.payload as CollectMultipleFilesResult)
             .map(
@@ -45,7 +45,7 @@ export class CollectMultipleFilesDetails extends Plugin {
       map((progress) => Number(progress?.numCollected ?? 0)));
 
   readonly query$: Observable<
-      FlowResultsQueryWithAdapter<ReadonlyArray<FlowFileResult>|undefined>> =
+      FlowResultsQueryWithAdapter<readonly FlowFileResult[]|undefined>> =
       this.flow$.pipe(map(flow => ({flow, resultMapper: ADAPTER})));
 
   readonly description$ = this.args$.pipe(map(args => {
@@ -57,7 +57,7 @@ export class CollectMultipleFilesDetails extends Plugin {
     }
   }));
 
-  override getExportMenuItems(flow: Flow): ReadonlyArray<ExportMenuItem> {
+  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
     const downloadItem = this.getDownloadFilesExportMenuItem(flow);
     const items = super.getExportMenuItems(flow);
 

@@ -21,20 +21,38 @@ import {HuntResultsModule} from './module';
 
 initTestEnvironment();
 
+const TEST_HUNT_ID = 'XXX';
+
+function toResultMap(data: readonly ApiHuntResult[]|readonly ApiHuntError[]) {
+  const map: {[key: string]: ApiHuntResult|ApiHuntError} = {};
+  for (const d of data) {
+    map[getHuntResultKey(d, TEST_HUNT_ID)] = d;
+  }
+  return map;
+}
+
 function receiveResults(
     huntPageGlobalStore: HuntPageGlobalStoreMock,
-    res: ReadonlyArray<ApiHuntResult>) {
-  const huntId = 'XXX';
-  const results: {[key: string]: ApiHuntResult} = {};
-  for (const result of res) {
-    results[getHuntResultKey(result, huntId)] = result;
-  }
+    res: readonly ApiHuntResult[]) {
+  const results = toResultMap(res);
 
   huntPageGlobalStore.mockedObservables.huntResults$.next({
     isLoading: false,
     results,
   });
-  huntPageGlobalStore.mockedObservables.selectedHuntId$.next(huntId);
+  huntPageGlobalStore.mockedObservables.selectedHuntId$.next(TEST_HUNT_ID);
+}
+
+function receiveErrors(
+    huntPageGlobalStore: HuntPageGlobalStoreMock,
+    errs: readonly ApiHuntError[]) {
+  const errors = toResultMap(errs);
+
+  huntPageGlobalStore.mockedObservables.huntErrors$.next({
+    isLoading: false,
+    errors,
+  });
+  huntPageGlobalStore.mockedObservables.selectedHuntId$.next(TEST_HUNT_ID);
 }
 
 describe('HuntResults', () => {
@@ -87,7 +105,7 @@ describe('HuntResults', () => {
     huntPageGlobalStore.mockedObservables.huntResults$.next(
         {isLoading: true, results: {}});
     huntPageGlobalStore.mockedObservables.huntErrors$.next(
-        {isLoading: false, hasMore: false, errors: []});
+        {isLoading: false, hasMore: false, errors: {}});
     fixture.detectChanges();
 
     const downloadButton =
@@ -104,7 +122,7 @@ describe('HuntResults', () => {
     huntPageGlobalStore.mockedObservables.huntResults$.next(
         {isLoading: true, results: {}});
     huntPageGlobalStore.mockedObservables.huntErrors$.next(
-        {isLoading: false, hasMore: false, errors: [{}]});
+        {isLoading: false, hasMore: false, errors: {'': {}}});
     fixture.detectChanges();
 
     const downloadButton =
@@ -140,7 +158,7 @@ describe('HuntResults', () => {
     huntPageGlobalStore.mockedObservables.huntResults$.next(
         {isLoading: true, results: {}});
     huntPageGlobalStore.mockedObservables.huntErrors$.next(
-        {isLoading: false, hasMore: false, errors: []});
+        {isLoading: false, hasMore: false, errors: {}});
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Nothing to show');
   });
@@ -153,75 +171,137 @@ describe('HuntResults', () => {
     huntPageGlobalStore.mockedObservables.huntResults$.next(
         {isLoading: false, hasMore: false, results: {'-': {}}});
     huntPageGlobalStore.mockedObservables.huntErrors$.next(
-        {isLoading: true, errors: []});
+        {isLoading: true, errors: {}});
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).not.toContain('Nothing to show');
 
     huntPageGlobalStore.mockedObservables.huntResults$.next(
         {isLoading: true, results: {}});
     huntPageGlobalStore.mockedObservables.huntErrors$.next(
-        {isLoading: false, hasMore: false, errors: [{}]});
+        {isLoading: false, hasMore: false, errors: {'': {}}});
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).not.toContain('Nothing to show');
   });
 
-  it('displays load more RESULTS button when loading', () => {
+  it('load more button - LOADING', () => {
     const fixture = TestBed.createComponent(HuntResults);
     fixture.detectChanges();
 
+    // Both loading
     huntPageGlobalStore.mockedObservables.selectedHuntId$.next('XXX');
     huntPageGlobalStore.mockedObservables.huntResults$.next(
         {isLoading: true, results: {'-': {}}});
+    huntPageGlobalStore.mockedObservables.huntErrors$.next(
+        {isLoading: true, errors: {'-': {}}});
     fixture.detectChanges();
+
     const button =
-        fixture.debugElement.query(By.css('[name=loadMoreResultsButton]'));
+        fixture.debugElement.query(By.css('[name=combinedLoadMoreButton]'));
     expect(button.nativeElement.querySelectorAll('mat-spinner').length).toBe(1);
-    expect(button.nativeElement.textContent).toContain('Loading more results');
+    expect(button.nativeElement.textContent).toContain('Loading more');
 
+    // Only results
+    huntPageGlobalStore.mockedObservables.selectedHuntId$.next('XXX');
     huntPageGlobalStore.mockedObservables.huntResults$.next(
-        {isLoading: false, hasMore: true, results: {'-': {}}});
+        {isLoading: true, results: {'-': {}}});
+    huntPageGlobalStore.mockedObservables.huntErrors$.next(
+        {isLoading: false, errors: {'-': {}}});
     fixture.detectChanges();
-    expect(button.nativeElement.querySelectorAll('mat-icon').length).toBe(1);
-    expect(button.nativeElement.textContent).toContain('Load more results');
 
+    expect(button.nativeElement.textContent).toContain('Loading more');
+
+    // Only errors
+    huntPageGlobalStore.mockedObservables.selectedHuntId$.next('XXX');
     huntPageGlobalStore.mockedObservables.huntResults$.next(
-        {isLoading: false, hasMore: false, results: {'-': {}}});
+        {isLoading: false, results: {'-': {}}});
+    huntPageGlobalStore.mockedObservables.huntErrors$.next(
+        {isLoading: true, errors: {'-': {}}});
     fixture.detectChanges();
-    expect(button.nativeElement.getAttribute('disabled')).toEqual('true');
-    expect(button.nativeElement.textContent).toContain('Nothing');
+
+    expect(button.nativeElement.textContent).toContain('Loading more');
   });
 
-  it('displays load more ERRORS button when loading', () => {
+  it('load more button - NO MORE', () => {
     const fixture = TestBed.createComponent(HuntResults);
     fixture.detectChanges();
 
+    // Both false
     huntPageGlobalStore.mockedObservables.selectedHuntId$.next('XXX');
+    huntPageGlobalStore.mockedObservables.huntResults$.next(
+        {isLoading: false, hasMore: false, results: {'-': {}}});
     huntPageGlobalStore.mockedObservables.huntErrors$.next(
-        {isLoading: true, errors: [{}]});
+        {isLoading: false, hasMore: false, errors: {'-': {}}});
     fixture.detectChanges();
+
     const button =
-        fixture.debugElement.query(By.css('[name=loadMoreErrorsButton]'));
-    expect(button.nativeElement.querySelectorAll('mat-spinner').length).toBe(1);
-    expect(button.nativeElement.textContent).toContain('Loading more errors');
-
-    huntPageGlobalStore.mockedObservables.huntErrors$.next(
-        {isLoading: false, hasMore: true, errors: [{}]});
-    fixture.detectChanges();
-    expect(button.nativeElement.querySelectorAll('mat-icon').length).toBe(1);
-    expect(button.nativeElement.textContent).toContain('Load more errors');
-
-    huntPageGlobalStore.mockedObservables.huntErrors$.next(
-        {isLoading: false, hasMore: false, errors: [{}]});
-    fixture.detectChanges();
+        fixture.debugElement.query(By.css('[name=combinedLoadMoreButton]'));
     expect(button.nativeElement.getAttribute('disabled')).toEqual('true');
     expect(button.nativeElement.textContent).toContain('Nothing');
+
+    // Only results
+    huntPageGlobalStore.mockedObservables.selectedHuntId$.next('XXX');
+    huntPageGlobalStore.mockedObservables.huntResults$.next(
+        {isLoading: false, hasMore: false, results: {'-': {}}});
+    huntPageGlobalStore.mockedObservables.huntErrors$.next(
+        {isLoading: false, hasMore: true, errors: {'-': {}}});
+    fixture.detectChanges();
+    expect(button.nativeElement.getAttribute('disabled')).toBeFalsy();
+    expect(button.nativeElement.textContent).not.toContain('Nothing');
+
+    // Only errors
+    huntPageGlobalStore.mockedObservables.selectedHuntId$.next('XXX');
+    huntPageGlobalStore.mockedObservables.huntResults$.next(
+        {isLoading: false, hasMore: false, results: {'-': {}}});
+    huntPageGlobalStore.mockedObservables.huntErrors$.next(
+        {isLoading: false, hasMore: true, errors: {'-': {}}});
+    fixture.detectChanges();
+    expect(button.nativeElement.getAttribute('disabled')).toBeFalsy();
+    expect(button.nativeElement.textContent).not.toContain('Nothing');
+  });
+
+  it('load more button - LOAD MORE', () => {
+    const fixture = TestBed.createComponent(HuntResults);
+    fixture.detectChanges();
+
+    // Both false
+    huntPageGlobalStore.mockedObservables.selectedHuntId$.next('XXX');
+    huntPageGlobalStore.mockedObservables.huntResults$.next(
+        {isLoading: false, hasMore: true, results: {'-': {}}});
+    huntPageGlobalStore.mockedObservables.huntErrors$.next(
+        {isLoading: false, hasMore: true, errors: {'-': {}}});
+    fixture.detectChanges();
+
+    const button =
+        fixture.debugElement.query(By.css('[name=combinedLoadMoreButton]'));
+    expect(button.nativeElement.getAttribute('disabled')).toBeFalsy();
+    expect(button.nativeElement.textContent).toContain('Load more');
+
+    // Only results
+    huntPageGlobalStore.mockedObservables.selectedHuntId$.next('XXX');
+    huntPageGlobalStore.mockedObservables.huntResults$.next(
+        {isLoading: false, hasMore: false, results: {'-': {}}});
+    huntPageGlobalStore.mockedObservables.huntErrors$.next(
+        {isLoading: false, hasMore: true, errors: {'-': {}}});
+    fixture.detectChanges();
+    expect(button.nativeElement.getAttribute('disabled')).toBeFalsy();
+    expect(button.nativeElement.textContent).toContain('Load more');
+
+    // Only errors
+    huntPageGlobalStore.mockedObservables.selectedHuntId$.next('XXX');
+    huntPageGlobalStore.mockedObservables.huntResults$.next(
+        {isLoading: false, hasMore: false, results: {'-': {}}});
+    huntPageGlobalStore.mockedObservables.huntErrors$.next(
+        {isLoading: false, hasMore: true, errors: {'-': {}}});
+    fixture.detectChanges();
+    expect(button.nativeElement.getAttribute('disabled')).toBeFalsy();
+    expect(button.nativeElement.textContent).toContain('Load more');
   });
 
   it('displays hunt RESULTS from store using appropriate components', () => {
     const fixture = TestBed.createComponent(HuntResults);
     fixture.detectChanges();
 
-    const res: ReadonlyArray<ApiHuntResult> = [
+    const res: readonly ApiHuntResult[] = [
       {clientId: 'C.1234', timestamp: '1234', payloadType: 'foo'},
       {clientId: 'C.5678', timestamp: '5678', payloadType: 'foo'}
     ];
@@ -256,34 +336,48 @@ describe('HuntResults', () => {
     const fixture = TestBed.createComponent(HuntResults);
     fixture.detectChanges();
 
-    const res: readonly ApiHuntError[] = [
+    const errs: readonly ApiHuntError[] = [
       {clientId: 'C.1234', logMessage: 'fooLog', backtrace: 'fooTrace'},
       {clientId: 'C.5678', logMessage: 'barLog', backtrace: 'barTrace'}
     ];
-    huntPageGlobalStore.mockedObservables.huntErrors$.next(
-        {isLoading: false, hasMore: true, errors: res});
+    receiveErrors(huntPageGlobalStore, errs);
     fixture.detectChanges();
 
     const rows = fixture.nativeElement.querySelectorAll('mat-row');
     expect(rows.length).toBe(2);
 
-    enum CellIndexOf { CLIENT_ID = 0, TIMESTAMP, LOG_MESSAGE, BACKTRACE }
+    enum CellIndexOf {
+      CLIENT_ID = 0,
+      TIMESTAMP,
+      PAYLOAD_TYPE,
+      LOG_MESSAGE,
+      BACKTRACE,
+      DETAILS_BUTTON
+    }
 
     let cells = rows[0].querySelectorAll('mat-cell');
     expect(cells[CellIndexOf.CLIENT_ID].innerText.trim()).toContain('C.1234');
     expect(
         cells[CellIndexOf.TIMESTAMP].querySelectorAll('app-timestamp').length)
         .toBe(1);
+    expect(cells[CellIndexOf.PAYLOAD_TYPE].innerText.trim())
+        .toContain('ApiHuntError');
     expect(cells[CellIndexOf.LOG_MESSAGE].innerText.trim()).toContain('fooLog');
     expect(cells[CellIndexOf.BACKTRACE].innerText.trim()).toContain('fooTrace');
+    expect(cells[CellIndexOf.DETAILS_BUTTON].innerText.trim())
+        .toContain('View details');
 
     cells = rows[1].querySelectorAll('mat-cell');
     expect(cells[CellIndexOf.CLIENT_ID].innerText.trim()).toContain('C.5678');
     expect(
         cells[CellIndexOf.TIMESTAMP].querySelectorAll('app-timestamp').length)
         .toBe(1);
+    expect(cells[CellIndexOf.PAYLOAD_TYPE].innerText.trim())
+        .toContain('ApiHuntError');
     expect(cells[CellIndexOf.LOG_MESSAGE].innerText.trim()).toContain('barLog');
     expect(cells[CellIndexOf.BACKTRACE].innerText.trim()).toContain('barTrace');
+    expect(cells[CellIndexOf.DETAILS_BUTTON].innerText.trim())
+        .toContain('View details');
   });
 
   it('displays app-filter-paginate when enough results are shown', () => {
@@ -308,7 +402,7 @@ describe('HuntResults', () => {
     const fixture = TestBed.createComponent(HuntResults);
     fixture.detectChanges();
 
-    const res: ReadonlyArray<ApiHuntResult> = [
+    const res: readonly ApiHuntResult[] = [
       {clientId: 'C.1234', payloadType: 'foo'},
       {clientId: 'C.5678', payloadType: 'bar'}
     ];
@@ -332,7 +426,7 @@ describe('HuntResults', () => {
     const fixture = TestBed.createComponent(HuntResults);
     fixture.detectChanges();
 
-    const res: ReadonlyArray<ApiHuntResult> = [
+    const res: readonly ApiHuntResult[] = [
       {
         clientId: 'C.1234',
         payloadType: 'ClientSummary',
@@ -408,7 +502,7 @@ describe('HuntResults', () => {
     const fixture = TestBed.createComponent(HuntResults);
     fixture.detectChanges();
 
-    const res: ReadonlyArray<ApiHuntResult> = [
+    const res: readonly ApiHuntResult[] = [
       {
         clientId: 'C.1234',
         payloadType: 'Anomaly',
@@ -437,7 +531,7 @@ describe('HuntResults', () => {
     const fixture = TestBed.createComponent(HuntResults);
     fixture.detectChanges();
 
-    const res: ReadonlyArray<ApiHuntResult> = [
+    const res: readonly ApiHuntResult[] = [
       {
         clientId: 'C.0',
         payloadType: 'CollectFilesByKnownPathResult',
@@ -532,7 +626,7 @@ describe('HuntResults', () => {
     const fixture = TestBed.createComponent(HuntResults);
     fixture.detectChanges();
 
-    const res: ReadonlyArray<ApiHuntResult> = [
+    const res: readonly ApiHuntResult[] = [
       {
         clientId: 'C.1234',
         payloadType: 'ClientSummary',
@@ -595,7 +689,7 @@ describe('HuntResults', () => {
     const fixture = TestBed.createComponent(HuntResults);
     fixture.detectChanges();
 
-    const res: ReadonlyArray<ApiHuntResult> = [
+    const res: readonly ApiHuntResult[] = [
       {
         clientId: 'C.1234',
         payloadType: 'User',

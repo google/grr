@@ -45,6 +45,17 @@ export declare interface Any {
   readonly [key: string]: undefined|null|string|number|boolean|object;
 }
 
+/** AdminUIClientWarningRule proto mapping. */
+export declare interface AdminUIClientWarningRule {
+  readonly withLabels?: readonly string[];
+  readonly message?: string;
+}
+
+/** AdminUIClientWarningsConfigOption proto mapping. */
+export declare interface AdminUIClientWarningsConfigOption {
+  readonly rules?: readonly AdminUIClientWarningRule[];
+}
+
 /** AmazonCloudInstance proto mapping. */
 export declare interface AmazonCloudInstance {
   readonly instanceId?: string;
@@ -1121,6 +1132,8 @@ export declare interface ApiHunt {
   readonly allClientsCount?: ProtoInt64;
   readonly remainingClientsCount?: ProtoInt64;
   readonly completedClientsCount?: ProtoInt64;
+  readonly failedClientsCount?: ProtoInt64;
+  readonly crashedClientsCount?: ProtoInt64;
   readonly crashLimit?: ProtoInt64;
   readonly clientLimit?: ProtoInt64;
   readonly clientRate?: ProtoFloat;
@@ -2070,6 +2083,7 @@ export declare interface ApiUiConfig {
   readonly grrVersion?: string;
   readonly profileImageUrl?: string;
   readonly defaultHuntRunnerArgs?: HuntRunnerArgs;
+  readonly clientWarnings?: AdminUIClientWarningsConfigOption;
 }
 
 /** ApiUnscheduleFlowArgs proto mapping. */

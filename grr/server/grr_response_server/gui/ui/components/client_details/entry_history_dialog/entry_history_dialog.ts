@@ -8,9 +8,9 @@ export type EntryType =
 
 /** Parameters required to open an EntryHistoryDialog */
 export interface EntryHistoryDialogParams {
-  readonly path: ReadonlyArray<string>;
+  readonly path: readonly string[];
   readonly type: EntryType;
-  readonly clientVersions: ReadonlyArray<Client>;
+  readonly clientVersions: readonly Client[];
 }
 
 interface EntryHistoryTableRow<T> {

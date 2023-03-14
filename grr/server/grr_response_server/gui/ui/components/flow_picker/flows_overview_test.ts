@@ -2,8 +2,9 @@ import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {FlowListItem, FlowsByCategory} from '../../components/flow_picker/flow_list_item';
+import {FlowsByCategory} from '../../components/flow_picker/flow_list_item';
 import {FlowsOverview} from '../../components/flow_picker/flows_overview';
+import {FlowListItem, FlowType} from '../../lib/models/flow';
 import {initTestEnvironment} from '../../testing';
 
 import {FlowPickerModule} from './module';
@@ -32,13 +33,13 @@ describe('FlowsOverview component', () => {
       'Collectors',
       [
         {
-          name: 'ArtifactCollectorFlow',
+          type: FlowType.ARTIFACT_COLLECTOR_FLOW,
           friendlyName: 'Forensic artifacts',
           description: 'Foo',
           enabled: true,
         },
         {
-          name: 'OsqueryFlow',
+          type: FlowType.OS_QUERY_FLOW,
           friendlyName: 'Osquery',
           description: 'Bar',
           enabled: true,
@@ -49,7 +50,7 @@ describe('FlowsOverview component', () => {
       'Browser',
       [
         {
-          name: 'CollectBrowserHistory',
+          type: FlowType.COLLECT_BROWSER_HISTORY,
           friendlyName: 'Collect browser history',
           description: 'Something',
           enabled: true,

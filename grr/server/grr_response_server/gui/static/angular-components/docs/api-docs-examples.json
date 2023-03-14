@@ -1073,6 +1073,10 @@
                 "type": "long",
                 "value": 100
               },
+              "crashed_clients_count": {
+                "type": "long",
+                "value": 0
+              },
               "created": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -1088,6 +1092,10 @@
               "duration": {
                 "type": "DurationSeconds",
                 "value": 1209600
+              },
+              "failed_clients_count": {
+                "type": "long",
+                "value": 0
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -1266,10 +1274,12 @@
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
+          "crashed_clients_count": 0,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "foo",
           "duration": 1209600,
+          "failed_clients_count": 0,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -1362,6 +1372,10 @@
             "type": "long",
             "value": 100
           },
+          "crashed_clients_count": {
+            "type": "long",
+            "value": 0
+          },
           "creator": {
             "type": "unicode",
             "value": "api_test_user"
@@ -1373,6 +1387,10 @@
           "duration": {
             "type": "DurationSeconds",
             "value": 1209600
+          },
+          "failed_clients_count": {
+            "type": "long",
+            "value": 0
           },
           "flow_args": {
             "type": "HuntArgumentsVariable",
@@ -1529,9 +1547,11 @@
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
+        "crashed_clients_count": 0,
         "creator": "api_test_user",
         "description": "Per-client file collection",
         "duration": 1209600,
+        "failed_clients_count": 0,
         "flow_args": {
           "flow_groups": [
             {
@@ -4968,6 +4988,10 @@
                 "type": "long",
                 "value": 100
               },
+              "crashed_clients_count": {
+                "type": "long",
+                "value": 0
+              },
               "created": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -4983,6 +5007,10 @@
               "duration": {
                 "type": "DurationSeconds",
                 "value": 1209600
+              },
+              "failed_clients_count": {
+                "type": "long",
+                "value": 0
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -5158,10 +5186,12 @@
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
+          "crashed_clients_count": 0,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt1",
           "duration": 1209600,
+          "failed_clients_count": 0,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -5309,6 +5339,10 @@
                 "type": "long",
                 "value": 100
               },
+              "crashed_clients_count": {
+                "type": "long",
+                "value": 0
+              },
               "created": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -5324,6 +5358,10 @@
               "duration": {
                 "type": "DurationSeconds",
                 "value": 1209600
+              },
+              "failed_clients_count": {
+                "type": "long",
+                "value": 0
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -5499,10 +5537,12 @@
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
+          "crashed_clients_count": 0,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt2",
           "duration": 1209600,
+          "failed_clients_count": 0,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -5615,6 +5655,10 @@
                 "type": "long",
                 "value": 100
               },
+              "crashed_clients_count": {
+                "type": "long",
+                "value": 0
+              },
               "created": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -5630,6 +5674,10 @@
               "duration": {
                 "type": "DurationSeconds",
                 "value": 1209600
+              },
+              "failed_clients_count": {
+                "type": "long",
+                "value": 0
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -5860,6 +5908,10 @@
                 "type": "long",
                 "value": 100
               },
+              "crashed_clients_count": {
+                "type": "long",
+                "value": 0
+              },
               "created": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -5875,6 +5927,10 @@
               "duration": {
                 "type": "DurationSeconds",
                 "value": 1209600
+              },
+              "failed_clients_count": {
+                "type": "long",
+                "value": 0
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -6071,10 +6127,12 @@
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
+          "crashed_clients_count": 0,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "original hunt",
           "duration": 1209600,
+          "failed_clients_count": 0,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -6145,10 +6203,12 @@
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
+          "crashed_clients_count": 0,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "copied hunt",
           "duration": 1209600,
+          "failed_clients_count": 0,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -6369,6 +6429,10 @@
                 "type": "long",
                 "value": 100
               },
+              "crashed_clients_count": {
+                "type": "long",
+                "value": 0
+              },
               "created": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -6384,6 +6448,10 @@
               "duration": {
                 "type": "DurationSeconds",
                 "value": 1209600
+              },
+              "failed_clients_count": {
+                "type": "long",
+                "value": 0
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -6616,10 +6684,12 @@
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
+          "crashed_clients_count": 0,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "hunt started from flow",
           "duration": 1209600,
+          "failed_clients_count": 0,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -6984,6 +7054,10 @@
             "type": "long",
             "value": 100
           },
+          "crashed_clients_count": {
+            "type": "long",
+            "value": 0
+          },
           "created": {
             "type": "RDFDatetime",
             "value": 42000000
@@ -6999,6 +7073,10 @@
           "duration": {
             "type": "DurationSeconds",
             "value": 1209600
+          },
+          "failed_clients_count": {
+            "type": "long",
+            "value": 0
           },
           "flow_args": {
             "type": "GetFileArgs",
@@ -7197,10 +7275,12 @@
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
+        "crashed_clients_count": 0,
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
         "duration": 1209600,
+        "failed_clients_count": 0,
         "flow_args": {
           "pathspec": {
             "path": "/tmp/evil.txt",
@@ -7316,6 +7396,10 @@
             "type": "long",
             "value": 100
           },
+          "crashed_clients_count": {
+            "type": "long",
+            "value": 0
+          },
           "created": {
             "type": "RDFDatetime",
             "value": 42000000
@@ -7331,6 +7415,10 @@
           "duration": {
             "type": "DurationSeconds",
             "value": 1209600
+          },
+          "failed_clients_count": {
+            "type": "long",
+            "value": 0
           },
           "flow_args": {
             "type": "GetFileArgs",
@@ -7521,10 +7609,12 @@
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
+        "crashed_clients_count": 0,
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
         "duration": 1209600,
+        "failed_clients_count": 0,
         "flow_args": {
           "pathspec": {
             "path": "/tmp/evil.txt",
@@ -7638,6 +7728,10 @@
             "type": "long",
             "value": 100
           },
+          "crashed_clients_count": {
+            "type": "long",
+            "value": 0
+          },
           "created": {
             "type": "RDFDatetime",
             "value": 42000000
@@ -7653,6 +7747,10 @@
           "duration": {
             "type": "DurationSeconds",
             "value": 1209600
+          },
+          "failed_clients_count": {
+            "type": "long",
+            "value": 0
           },
           "flow_args": {
             "type": "GetFileArgs",
@@ -7811,10 +7909,12 @@
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
+        "crashed_clients_count": 0,
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
         "duration": 1209600,
+        "failed_clients_count": 0,
         "flow_args": {
           "pathspec": {
             "path": "/tmp/evil.txt",
@@ -10504,6 +10604,10 @@
                 "type": "long",
                 "value": 100
               },
+              "crashed_clients_count": {
+                "type": "long",
+                "value": 0
+              },
               "created": {
                 "type": "RDFDatetime",
                 "value": 42000000
@@ -10519,6 +10623,10 @@
               "duration": {
                 "type": "DurationSeconds",
                 "value": 1209600
+              },
+              "failed_clients_count": {
+                "type": "long",
+                "value": 0
               },
               "flow_args": {
                 "type": "GetFileArgs",
@@ -10694,10 +10802,12 @@
           "clients_with_results_count": 0,
           "completed_clients_count": 0,
           "crash_limit": 100,
+          "crashed_clients_count": 0,
           "created": 42000000,
           "creator": "api_test_user",
           "description": "a hunt",
           "duration": 1209600,
+          "failed_clients_count": 0,
           "flow_args": {
             "pathspec": {
               "path": "/tmp/evil.txt",
@@ -14747,6 +14857,10 @@
                     "type": "long",
                     "value": 100
                   },
+                  "crashed_clients_count": {
+                    "type": "long",
+                    "value": 0
+                  },
                   "created": {
                     "type": "RDFDatetime",
                     "value": 42000000
@@ -14762,6 +14876,10 @@
                   "duration": {
                     "type": "DurationSeconds",
                     "value": 1209600
+                  },
+                  "failed_clients_count": {
+                    "type": "long",
+                    "value": 0
                   },
                   "flow_args": {
                     "type": "GetFileArgs",
@@ -14941,10 +15059,12 @@
               "clients_with_results_count": 0,
               "completed_clients_count": 0,
               "crash_limit": 100,
+              "crashed_clients_count": 0,
               "created": 42000000,
               "creator": "api_test_user",
               "description": "foo",
               "duration": 1209600,
+              "failed_clients_count": 0,
               "flow_args": {
                 "pathspec": {
                   "path": "/tmp/evil.txt",
@@ -17824,6 +17944,10 @@
             "type": "long",
             "value": 100
           },
+          "crashed_clients_count": {
+            "type": "long",
+            "value": 0
+          },
           "created": {
             "type": "RDFDatetime",
             "value": 42000000
@@ -17839,6 +17963,10 @@
           "duration": {
             "type": "DurationSeconds",
             "value": 1209600
+          },
+          "failed_clients_count": {
+            "type": "long",
+            "value": 0
           },
           "flow_args": {
             "type": "GetFileArgs",
@@ -18001,10 +18129,12 @@
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
+        "crashed_clients_count": 0,
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
         "duration": 1209600,
+        "failed_clients_count": 0,
         "flow_args": {
           "pathspec": {
             "path": "/tmp/evil.txt",
@@ -18111,6 +18241,10 @@
             "type": "long",
             "value": 100
           },
+          "crashed_clients_count": {
+            "type": "long",
+            "value": 0
+          },
           "created": {
             "type": "RDFDatetime",
             "value": 42000000
@@ -18126,6 +18260,10 @@
           "duration": {
             "type": "DurationSeconds",
             "value": 1209600
+          },
+          "failed_clients_count": {
+            "type": "long",
+            "value": 0
           },
           "flow_args": {
             "type": "GetFileArgs",
@@ -18288,10 +18426,12 @@
         "clients_with_results_count": 0,
         "completed_clients_count": 0,
         "crash_limit": 100,
+        "crashed_clients_count": 0,
         "created": 42000000,
         "creator": "api_test_user",
         "description": "the hunt",
         "duration": 1209600,
+        "failed_clients_count": 0,
         "flow_args": {
           "pathspec": {
             "path": "/tmp/evil.txt",

@@ -152,7 +152,7 @@ describe('HttpApiService', () => {
      }));
 
   it('subscribeToResultsForFlow polls listResultsForFlow', fakeAsync(() => {
-       const values: Array<ReadonlyArray<ApiFlowResult>> = [];
+       const values: Array<readonly ApiFlowResult[]> = [];
        const sub = httpApiService
                        .subscribeToResultsForFlow(
                            {clientId: 'C.1234', flowId: '5678', count: 10})
@@ -194,7 +194,7 @@ describe('HttpApiService', () => {
 
   it('subscribeToResultsForFlow waits for result before re-polling',
      fakeAsync(() => {
-       const values: Array<ReadonlyArray<ApiFlowResult>> = [];
+       const values: Array<readonly ApiFlowResult[]> = [];
        const sub = httpApiService
                        .subscribeToResultsForFlow(
                            {clientId: 'C.1234', flowId: '5678', count: 10})
@@ -223,7 +223,7 @@ describe('HttpApiService', () => {
      }));
 
   it('subscribeToResultsForHunt polls listResultsForHunt', fakeAsync(() => {
-       const values: Array<ReadonlyArray<ApiHuntResult>> = [];
+       const values: Array<readonly ApiHuntResult[]> = [];
        const sub = httpApiService
                        .subscribeToResultsForHunt({huntId: '1234', count: '10'})
                        .subscribe(result => {
@@ -266,7 +266,7 @@ describe('HttpApiService', () => {
 
   it('subscribeToResultsForHunt waits for result before re-polling',
      fakeAsync(() => {
-       const values: Array<ReadonlyArray<ApiHuntResult>> = [];
+       const values: Array<readonly ApiHuntResult[]> = [];
        const sub = httpApiService
                        .subscribeToResultsForHunt({huntId: '1234', count: '10'})
                        .subscribe(result => {
@@ -296,7 +296,7 @@ describe('HttpApiService', () => {
 
   it('subscribeToScheduledFlowsForClient re-polls after scheduleFlow()',
      fakeAsync(() => {
-       let lastFlows: ReadonlyArray<ApiScheduledFlow> = [];
+       let lastFlows: readonly ApiScheduledFlow[] = [];
        const sub = httpApiService
                        .subscribeToScheduledFlowsForClient('C.1234', 'testuser')
                        .subscribe((flows) => {
@@ -345,7 +345,7 @@ describe('HttpApiService', () => {
      }));
 
   it('subscribeToFlowsForClient re-polls after startFlow()', fakeAsync(() => {
-       let lastFlows: ReadonlyArray<ApiFlow> = [];
+       let lastFlows: readonly ApiFlow[] = [];
        const sub =
            httpApiService
                .subscribeToFlowsForClient({clientId: 'C.1234', count: '10'})
@@ -393,7 +393,7 @@ describe('HttpApiService', () => {
      }));
 
   it('subscribeToFlowsForClient re-polls after cancelFlow()', fakeAsync(() => {
-       let lastFlows: ReadonlyArray<ApiFlow> = [];
+       let lastFlows: readonly ApiFlow[] = [];
        const sub =
            httpApiService
                .subscribeToFlowsForClient({clientId: 'C.1234', count: '10'})
@@ -433,7 +433,7 @@ describe('HttpApiService', () => {
 
   it('subscribeToScheduledFlowsForClient re-polls after unscheduleFlow()',
      fakeAsync(() => {
-       let lastFlows: ReadonlyArray<ApiScheduledFlow> = [];
+       let lastFlows: readonly ApiScheduledFlow[] = [];
        const sub = httpApiService
                        .subscribeToScheduledFlowsForClient('C.1234', 'testuser')
                        .subscribe((flows) => {
@@ -474,7 +474,7 @@ describe('HttpApiService', () => {
 
   it('subscribeToListApprovals re-polls after requestApproval()',
      fakeAsync(() => {
-       let lastApprovals: ReadonlyArray<ApiClientApproval> = [];
+       let lastApprovals: readonly ApiClientApproval[] = [];
        const sub =
            httpApiService.subscribeToListClientApprovals('C.1234').subscribe(
                (approvals) => {

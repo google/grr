@@ -18,7 +18,7 @@ export class ClientAddLabelDialog {
   constructor(
       private readonly dialogRef: MatDialogRef<ClientAddLabelDialog>,
       @Inject(MAT_DIALOG_DATA) private readonly clientLabels:
-          ReadonlyArray<ClientLabel>,
+          readonly ClientLabel[],
       private readonly configGlobalStore: ConfigGlobalStore) {}
 
   readonly labelInputControl =

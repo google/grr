@@ -43,7 +43,7 @@ export class CollectSingleFileDetails extends Plugin {
         }
       }));
 
-  fileResults$: Observable<ReadonlyArray<FlowFileResult>> = this.progress$.pipe(
+  fileResults$: Observable<readonly FlowFileResult[]> = this.progress$.pipe(
       map((progress) => progress?.result),
       filter(isNonNull),
       map((result) => [flowFileResultFromStatEntry(
@@ -72,7 +72,7 @@ export class CollectSingleFileDetails extends Plugin {
     return super.getResultDescription(flow);
   }
 
-  override getExportMenuItems(flow: Flow): ReadonlyArray<ExportMenuItem> {
+  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
     const downloadItem = this.getDownloadFilesExportMenuItem(flow);
     const items = super.getExportMenuItems(flow);
 

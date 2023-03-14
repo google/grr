@@ -3,7 +3,7 @@ import {Observable, ReplaySubject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
 import {DEFAULT_FORM, FORMS} from '../../components/flow_args_form/sub_forms';
-import {FlowDescriptor} from '../../lib/models/flow';
+import {FlowDescriptor, FlowType} from '../../lib/models/flow';
 import {observeOnDestroy} from '../../lib/reactive';
 
 import {FlowArgumentForm} from './form_interface';
@@ -58,7 +58,8 @@ export class FlowArgsForm implements OnChanges, AfterViewInit, OnDestroy {
       return;
     }
 
-    const componentClass = FORMS[this.flowDescriptor.name] || DEFAULT_FORM;
+    const componentClass =
+        FORMS[this.flowDescriptor.name as FlowType] || DEFAULT_FORM;
 
     if (this.formComponent instanceof componentClass) {
       return;

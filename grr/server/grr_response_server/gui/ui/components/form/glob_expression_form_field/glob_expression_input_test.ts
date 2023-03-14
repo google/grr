@@ -31,7 +31,7 @@ class TestHostComponent {
 describe('app-glob-expression-input', () => {
   let fixture: ComponentFixture<TestHostComponent>;
   let explainGlobExpressionService: Partial<ExplainGlobExpressionService>;
-  let explanation$: Subject<ReadonlyArray<GlobComponentExplanation>>;
+  let explanation$: Subject<readonly GlobComponentExplanation[]>;
 
   beforeEach(waitForAsync(() => {
     explanation$ = new ReplaySubject(1);

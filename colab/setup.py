@@ -59,8 +59,9 @@ setup(
     install_requires=[
         "grr_api_client==%s" % VERSION.get("Version", "packagedepends"),
         "grr_response_proto==%s" % VERSION.get("Version", "packagedepends"),
-        "humanize==2.4.0",
+        "humanize==2.6.0",
         "ipython==7.15.0",
-        "numpy==1.21.5",
-        "pandas==1.1.5",
-    ])
+        "numpy==1.24.2",
+        "pandas==1.5.3",
+    ],
+)

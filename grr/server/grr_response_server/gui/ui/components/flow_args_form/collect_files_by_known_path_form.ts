@@ -10,7 +10,7 @@ interface CollectionLevel {
   readonly label: string;
 }
 
-const COLLECTION_LEVELS: ReadonlyArray<CollectionLevel> = [
+const COLLECTION_LEVELS: readonly CollectionLevel[] = [
   {
     value: CollectFilesByKnownPathArgsCollectionLevel.CONTENT,
     label: 'Collect entire file(s) (stat & hash included)'

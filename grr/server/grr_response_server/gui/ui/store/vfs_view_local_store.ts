@@ -13,7 +13,7 @@ import {addToMap, deepFreeze, mergeMaps, toMap, transformMapValues} from '../lib
 /**
  * A hierarchy of directories with children.
  */
-export type Hierarchy = ReadonlyArray<DirectoryListing>;
+export type Hierarchy = readonly DirectoryListing[];
 
 interface State {
   readonly clientId: string|null;
@@ -32,7 +32,7 @@ interface State {
   // concurrent queries, the children data might arrive before the parent
   // directory.
   /** Map from parent path -> child paths. */
-  readonly children: ReadonlyMap<string, ReadonlyArray<string>>;
+  readonly children: ReadonlyMap<string, readonly string[]>;
 
   readonly isLoadingDirectory: ReadonlyMap<string, boolean>;
 
@@ -52,7 +52,7 @@ export interface DirectoryListing extends Directory {
 
 /** A node in a tree containing directories and their subdirectories. */
 export interface DirectoryNode extends Directory {
-  readonly children?: ReadonlyArray<DirectoryNode>;
+  readonly children?: readonly DirectoryNode[];
   readonly loading: boolean;
 }
 
@@ -63,25 +63,26 @@ const ROOT = deepFreeze<Directory>({
   pathtype: PathSpecPathType.OS,
 });
 
-const toPathMap = (entries: ReadonlyArray<Directory|File>) =>
-    toMap(entries, (entry) => entry.path);
+function toPathMap(entries: ReadonlyArray<Directory|File>) {
+  return toMap(entries, (entry) => entry.path);
+}
 
-const listDirectory =
-    (path: string|null, state: State): File|DirectoryListing|null => {
-      const dir = path ? state.entries.get(path) : null;
-      if (!dir || !dir.isDirectory) {
-        return dir ?? null;
-      }
-      const childPaths = state.children.get(dir.path) ?? [];
-      const children =
-          childPaths.map(path => state.entries.get(path)).filter(isNonNull);
-      return {
-        ...dir,
-        children,
-      };
-    };
+function listDirectory(path: string|null, state: State): File|DirectoryListing|
+    null {
+  const dir = path ? state.entries.get(path) : null;
+  if (!dir || !dir.isDirectory) {
+    return dir ?? null;
+  }
+  const childPaths = state.children.get(dir.path) ?? [];
+  const children =
+      childPaths.map(path => state.entries.get(path)).filter(isNonNull);
+  return {
+    ...dir,
+    children,
+  };
+}
 
-const toTree = (path: string|null, state: State): DirectoryNode|null => {
+function toTree(path: string|null, state: State): DirectoryNode|null {
   const dir = path ? state.entries.get(path) : null;
   if (!path || !dir || !dir.isDirectory) {
     return null;
@@ -96,7 +97,7 @@ const toTree = (path: string|null, state: State): DirectoryNode|null => {
     children,
     loading: state.isLoadingDirectory.get(path) ?? false,
   };
-};
+}
 
 class VfsViewComponentStore extends ComponentStore<State> {
   constructor(
@@ -244,7 +245,7 @@ class VfsViewComponentStore extends ComponentStore<State> {
           }),
           ));
 
-  readonly expandDirectories = this.effect<ReadonlyArray<string>>(
+  readonly expandDirectories = this.effect<readonly string[]>(
       obs$ => obs$.pipe(
           tap((paths) => {
             this.patchState(
@@ -266,7 +267,7 @@ class VfsViewComponentStore extends ComponentStore<State> {
           }),
           ));
 
-  readonly collapseDirectories = this.updater<ReadonlyArray<string>>(
+  readonly collapseDirectories = this.updater<readonly string[]>(
       (state, paths) => ({
         ...state,
         expanded: mergeMaps(
@@ -389,11 +390,11 @@ export class VfsViewLocalStore {
     this.store.resetClientId(clientId);
   }
 
-  expandDirectories(paths: ReadonlyArray<string>) {
+  expandDirectories(paths: readonly string[]) {
     this.store.expandDirectories(paths);
   }
 
-  collapseDirectories(paths: ReadonlyArray<string>) {
+  collapseDirectories(paths: readonly string[]) {
     this.store.collapseDirectories(paths);
   }
 }

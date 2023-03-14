@@ -9,9 +9,11 @@ import {ApprovalCardModule} from '../../approval_card/module';
 import {HelpersModule} from '../../flow_details/helpers/module';
 import {TitleEditorModule} from '../../form/title_editor/module';
 import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';
+import {DrawerLinkModule} from '../../helpers/drawer_link/drawer_link_module';
 import {UserImageModule} from '../../user_image/module';
 import {HuntFlowArguments} from '../hunt_flow_arguments/hunt_flow_arguments';
 import {HuntStatusChipModule} from '../hunt_status_chip/module';
+import {ModifyHuntModule} from '../modify_hunt/module';
 
 import {HuntPage} from './hunt_page';
 import {HuntProgressModule} from './hunt_progress/module';
@@ -27,6 +29,7 @@ import {HuntPageRoutingModule} from './routing';
     ApprovalCardModule,
     CommonModule,
     CopyButtonModule,
+    DrawerLinkModule,
     HelpersModule,
     HuntFlowArguments,
     HuntPageRoutingModule,
@@ -38,6 +41,7 @@ import {HuntPageRoutingModule} from './routing';
     MatChipsModule,
     MatIconModule,
     MatTooltipModule,
+    ModifyHuntModule,
     TitleEditorModule,
     UserImageModule,
   ],

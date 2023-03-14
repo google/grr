@@ -68,7 +68,7 @@ function download_packages() {
   pip download --find-links=local_pypi --dest=local_pypi idna==2.7
 
   # This is needed to build some of the wheels.
-  pip download --find-links=local_pypi --dest=local_pypi wheel setuptools
+  pip download --find-links=local_pypi --dest=local_pypi wheel setuptools Cython
 }
 
 function verify_packages() {

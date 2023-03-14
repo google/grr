@@ -7,8 +7,11 @@ import {RouterTestingModule} from '@angular/router/testing';
 
 import {ApiModule} from '../../lib/api/module';
 import {newClient, newClientApproval, newFlowDescriptor} from '../../lib/models/model_test_util';
+import {MarkdownPipe} from '../../pipes/markdown/markdown_pipe';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
+import {ConfigGlobalStore} from '../../store/config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../store/config_global_store_test_util';
 import {STORE_PROVIDERS} from '../../store/store_test_providers';
 import {ApprovalChip} from '../approval_chip/approval_chip';
 
@@ -20,14 +23,16 @@ import {ClientOverviewModule} from './module';
   template: `<client-overview [collapsed]="collapsed"></client-overview>`,
 })
 class TestHostComponent {
-  @Input() collapsed: boolean = false;
+  @Input() collapsed = false;
 }
 
 describe('Client Overview', () => {
   let store: ClientPageGlobalStoreMock;
+  let configStore: ConfigGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
     store = mockClientPageGlobalStore();
+    configStore = mockConfigGlobalStore();
 
     TestBed
         .configureTestingModule({
@@ -46,6 +51,11 @@ describe('Client Overview', () => {
               provide: ClientPageGlobalStore,
               useFactory: () => store,
             },
+            {
+              provide: ConfigGlobalStore,
+              useFactory: () => configStore,
+            },
+            MarkdownPipe,
           ],
         })
         .compileComponents();
@@ -249,4 +259,198 @@ describe('Client Overview', () => {
 
        discardPeriodicTasks();
      }));
+
+  describe('Client warnings', () => {
+    it('Do not display warnings if there is no client warning configured',
+       () => {
+         const fixture = TestBed.createComponent(ClientOverview);
+         fixture.detectChanges();
+
+         const clientLabel = 'foo';
+         store.mockedObservables.selectedClient$.next(newClient({
+           labels: [{name: clientLabel, owner: 'test-client'}],
+         }));
+
+         configStore.mockedObservables.uiConfig$.next({
+           clientWarnings: {rules: []},
+         });
+
+         fixture.detectChanges();
+
+         const clientWarningsContainer =
+             fixture.debugElement.query(By.css('[name="clientWarnings"]'));
+
+         expect(clientWarningsContainer).toBeNull();
+       });
+
+    it('Do not display warnings if there is no warning targeted to the client',
+       () => {
+         const fixture = TestBed.createComponent(ClientOverview);
+         fixture.detectChanges();
+
+         const clientLabel = 'foo';
+         store.mockedObservables.selectedClient$.next(newClient({
+           labels: [{name: clientLabel, owner: 'test-client'}],
+         }));
+
+         configStore.mockedObservables.uiConfig$.next({
+           clientWarnings: {rules: [{withLabels: ['baz'], message: '**bar**'}]},
+         });
+
+         fixture.detectChanges();
+
+         const clientWarningsContainer =
+             fixture.debugElement.query(By.css('[name="clientWarnings"]'));
+
+         expect(clientWarningsContainer).toBeNull();
+       });
+
+    it('Displays a warning when there is a warning targeted to the client',
+       () => {
+         const fixture = TestBed.createComponent(ClientOverview);
+         fixture.detectChanges();  // Ensure ngOnInit hook completes.
+
+         const clientLabel = 'foo';
+         store.mockedObservables.selectedClient$.next(newClient({
+           labels: [{name: clientLabel, owner: 'test-client'}],
+         }));
+
+         configStore.mockedObservables.uiConfig$.next({
+           clientWarnings: {
+             rules: [
+               {withLabels: [clientLabel], message: '**bar**'},
+             ],
+           },
+         });
+
+         fixture.detectChanges();
+
+         const clientWarningsContainer =
+             fixture.debugElement.query(By.css('[name="clientWarnings"]'));
+
+         expect(clientWarningsContainer).not.toBeNull();
+
+         const clientWarnings = fixture.debugElement.queryAll(
+             By.css('[name="clientWarnings"] .text-container'));
+
+         expect(clientWarnings.length).toBe(1);
+         expect(clientWarnings[0].nativeElement.innerHTML.trim())
+             .toBe('<p><strong>bar</strong></p>');
+       });
+
+    it('Displays a warning when there is one warning targeted to the client',
+       () => {
+         const fixture = TestBed.createComponent(ClientOverview);
+         fixture.detectChanges();  // Ensure ngOnInit hook completes.
+
+         const clientLabel = 'foo';
+         store.mockedObservables.selectedClient$.next(newClient({
+           labels: [{name: clientLabel, owner: 'test-client'}],
+         }));
+
+         configStore.mockedObservables.uiConfig$.next({
+           clientWarnings: {
+             rules: [
+               {withLabels: [clientLabel], message: '**bar**'},
+               {withLabels: ['another-client-label'], message: '*baz*'},
+             ],
+           },
+         });
+
+         fixture.detectChanges();
+
+         const clientWarningsContainer =
+             fixture.debugElement.query(By.css('[name="clientWarnings"]'));
+
+         expect(clientWarningsContainer).not.toBeNull();
+
+         const clientWarnings = fixture.debugElement.queryAll(
+             By.css('[name="clientWarnings"] .text-container'));
+
+         expect(clientWarnings.length).toBe(1);
+         expect(clientWarnings[0].nativeElement.innerHTML.trim())
+             .toBe('<p><strong>bar</strong></p>');
+       });
+
+    it('No longer displays a warning after closing it', () => {
+      const fixture = TestBed.createComponent(ClientOverview);
+      fixture.detectChanges();  // Ensure ngOnInit hook completes.
+
+      const clientLabel = 'foo';
+      store.mockedObservables.selectedClient$.next(newClient({
+        labels: [{name: clientLabel, owner: 'test-client'}],
+      }));
+
+      configStore.mockedObservables.uiConfig$.next({
+        clientWarnings: {
+          rules: [
+            {withLabels: [clientLabel], message: '**bar**'},
+            {withLabels: ['another-client-label'], message: '*baz*'},
+          ],
+        },
+      });
+
+      fixture.detectChanges();
+
+      const clientWarningsContainer =
+          fixture.debugElement.query(By.css('[name="clientWarnings"]'));
+
+      expect(clientWarningsContainer).not.toBeNull();
+
+      let clientWarnings = fixture.debugElement.queryAll(
+          By.css('[name="clientWarnings"] .text-container'));
+
+      expect(clientWarnings.length).toBe(1);
+
+      const closeButtons = fixture.debugElement.queryAll(
+          By.css('[name="clientWarnings"] .close-client-warning'));
+
+      expect(closeButtons.length).toBe(1);
+
+      closeButtons[0].nativeElement.click();
+
+      fixture.detectChanges();
+
+      clientWarnings = fixture.debugElement.queryAll(
+          By.css('[name="clientWarnings"] .text-container'));
+
+      expect(clientWarnings.length).toBe(0);
+    });
+
+    it('Opens links in a new page', () => {
+      const fixture = TestBed.createComponent(ClientOverview);
+      fixture.detectChanges();  // Ensure ngOnInit hook completes.
+
+      const clientLabel = 'foo';
+      store.mockedObservables.selectedClient$.next(newClient({
+        labels: [{name: clientLabel, owner: 'test-client'}],
+      }));
+
+      configStore.mockedObservables.uiConfig$.next({
+        clientWarnings: {
+          rules: [
+            {
+              withLabels: [clientLabel],
+              message: '[Google](https://google.com)'
+            },
+          ],
+        },
+      });
+
+      fixture.detectChanges();
+
+      const clientWarningsContainer =
+          fixture.debugElement.query(By.css('[name="clientWarnings"]'));
+
+      expect(clientWarningsContainer).not.toBeNull();
+
+      const clientWarnings = fixture.debugElement.queryAll(
+          By.css('[name="clientWarnings"] .text-container'));
+
+      expect(clientWarnings.length).toBe(1);
+      expect(clientWarnings[0].nativeElement.innerHTML.trim())
+          .toBe(
+              '<p><a target="_blank" href="https://google.com">Google</a></p>');
+    });
+  });
 });

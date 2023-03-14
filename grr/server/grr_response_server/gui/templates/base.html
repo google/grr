@@ -2,13 +2,15 @@
 <html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" ng-app="grrUi.appController" ng-controller="GrrUiAppController">
 <head>
 
-<script type="text/javascript">
+<script>
   window.CLOSURE_NO_DEPS = true;
+  window.CLOSURE_UNCOMPILED_DEFINES = window.CLOSURE_UNCOMPILED_DEFINES || {};
+  window.CLOSURE_UNCOMPILED_DEFINES['goog.ENABLE_DEBUG_LOADER'] = true;
 </script>
 
-<link rel="stylesheet" type="text/css" href="/static/dist/third-party.bundle.css?timestamp={{timestamp}}" />
+<link rel="stylesheet" href="/static/dist/third-party.bundle.css?timestamp={{timestamp}}" />
 <script src="/static/dist/third-party.bundle.js?timestamp={{timestamp}}"></script>
-<link rel="stylesheet" type="text/css" href="/static/dist/grr-ui.bundle.css?timestamp={{timestamp}}" />
+<link rel="stylesheet" href="/static/dist/grr-ui.bundle.css?timestamp={{timestamp}}" />
 
 {% if use_precompiled_js %}
 <script src="/static/dist/grr-ui.bundle.js?timestamp={{timestamp}}"></script>

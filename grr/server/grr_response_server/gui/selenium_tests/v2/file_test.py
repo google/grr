@@ -239,8 +239,10 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
         file.CollectFilesByKnownPath,
         rdf_file_finder.CollectFilesByKnownPathProgress(num_in_progress=1)):
       self.Open(f"/v2/clients/{self.client_id}")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=.flow-title:contains('File contents by exact path')")
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=.flow-title:contains('Collect files from exact paths')",
+      )
       self.WaitUntil(
           self.IsElementPresent,
           "css=collect-files-by-known-path-details result-accordion:contains('/file0')"
@@ -409,8 +411,10 @@ class CollectFilesByKnownPathTest(gui_test_lib.GRRSeleniumTest):
         flow_args=flow_args)
 
     self.Open(f"/v2/clients/{self.client_id}")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.flow-title:contains('File contents by exact path')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=.flow-title:contains('Collect files from exact paths')",
+    )
 
     self.Click("css=result-accordion .title:contains('Flow arguments')")
 

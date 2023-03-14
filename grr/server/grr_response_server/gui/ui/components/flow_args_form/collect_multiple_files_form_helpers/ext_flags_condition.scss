@@ -2,24 +2,21 @@
 
 .mat-button {
   overflow: hidden;
+  padding: 1rem;
 }
 
 .mat-h3 {
   margin: 0;
 }
 
-.stretch {
-  align-items: stretch;
-
-  .mat-button {
-    padding: 0;
-    flex: 1;
-    min-width: 0;
-  }
-}
-
 .flags {
   display: flex;
+  flex-wrap: wrap;
+  margin-bottom: 2rem;
+  justify-content: center;
+  align-self: center;
+  /* We don't need all the flags to be displayed in one line: */
+  max-width: 900px;
 
   .flag-content {
     display: flex;

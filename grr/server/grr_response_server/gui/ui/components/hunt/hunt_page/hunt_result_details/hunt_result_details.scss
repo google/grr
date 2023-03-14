@@ -1,5 +1,5 @@
-@use "@angular/material" as mat;
-@use "../../../../material-theme" as c;
+@use '@angular/material' as mat;
+@use '../../../../material-theme' as c;
 
 :host {
   box-sizing: border-box;
@@ -49,5 +49,10 @@
       c.$background,
       darker-background
     );
+
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+    }
   }
 }

@@ -1,6 +1,137 @@
 import {Directive, Injectable} from '@angular/core';
 import {Observable} from 'rxjs';
 
+/** Flow type identificators */
+export enum FlowType {
+  ARTIFACT_COLLECTOR_FLOW = 'ArtifactCollectorFlow',
+  OS_QUERY_FLOW = 'OsqueryFlow',
+  COLLECT_BROWSER_HISTORY = 'CollectBrowserHistory',
+  COLLECT_EFI_HASHES = 'CollectEfiHashes',
+  DUMP_ACPI_TABLE = 'DumpACPITable',
+  DUMP_EFI_IMAGE = 'DumpEfiImage',
+  DUMP_FLASH_IMAGE = 'DumpFlashImage',
+  GET_MBR = 'GetMBR',
+  COLLECT_FILES_BY_KNOWN_PATH = 'CollectFilesByKnownPath',
+  COLLECT_MULTIPLE_FILES = 'CollectMultipleFiles',
+  LIST_DIRECTORY = 'ListDirectory',
+  TIMELINE_FLOW = 'TimelineFlow',
+  READ_LOW_LEVEL = 'ReadLowLevel',
+  ONLINE_NOTIFICATION = 'OnlineNotification',
+  EXECUTE_PYTHON_HACK = 'ExecutePythonHack',
+  INTERROGATE = 'Interrogate',
+  KILL = 'Kill',
+  LAUNCH_BINARY = 'LaunchBinary',
+  LIST_PROCESSES = 'ListProcesses',
+  LIST_NAMED_PIPES_FLOW = 'ListNamedPipesFlow',
+  DUMP_PROCESS_MEMORY = 'DumpProcessMemory',
+  YARA_PROCESS_SCAN = 'YaraProcessScan',
+  NETSTAT = 'Netstat',
+  COLLECT_SINGLE_FILE = 'CollectSingleFile',
+  COLLECT_RUNKEY_BINARIES = 'CollectRunKeyBinaries',
+  GET_CLIENT_STATS = 'GetClientStats',
+  LIST_VOLUME_SHADOW_COPIES = 'ListVolumeShadowCopies',
+  CLIENT_FILE_FINDER = 'ClientFileFinder',
+  FILE_FINDER = 'FileFinder',
+  MULTI_GET_FILE = 'MultiGetFile',
+  RECURSIVE_LIST_DIRECTORY = 'RecursiveListDirectory',
+  YARA_PROCESS_SCAN_WITH_PMI_EXPORT = 'YaraProcessScanWithPMIExport',
+}
+
+/**
+ * FlowListItem encapsulates flow-related information.
+ */
+export interface FlowListItem {
+  readonly type: FlowType;
+  readonly friendlyName: string;
+  readonly description: string;
+  readonly enabled: boolean;
+}
+
+function fli(
+    type: FlowType, friendlyName: string, description = ''): FlowListItem {
+  return {
+    type,
+    friendlyName,
+    description,
+    enabled: true,
+  };
+}
+
+/**
+ * Map of flow types to flow list items.
+ */
+export type FlowsByTypeMap = {
+  [key in FlowType]?: FlowListItem
+};
+
+/**
+ * Flow list items, indexed by their names.
+ */
+export const FLOW_LIST_ITEMS_BY_TYPE: FlowsByTypeMap = {
+  [FlowType.ARTIFACT_COLLECTOR_FLOW]:
+      fli(FlowType.ARTIFACT_COLLECTOR_FLOW, 'Collect forensic artifacts'),
+  [FlowType.OS_QUERY_FLOW]:
+      fli(FlowType.OS_QUERY_FLOW, 'Osquery', 'Execute a query using osquery'),
+  [FlowType.COLLECT_BROWSER_HISTORY]: fli(
+      FlowType.COLLECT_BROWSER_HISTORY, 'Collect browser history',
+      'Collect browsing and download history from Chrome, Firefox, Edge & Safari'),
+  [FlowType.COLLECT_EFI_HASHES]:
+      fli(FlowType.COLLECT_EFI_HASHES, 'Collect EFI hashes',
+          'Collect EFI volume hashes on macOS using eficheck'),
+  [FlowType.DUMP_ACPI_TABLE]:
+      fli(FlowType.DUMP_ACPI_TABLE, 'Dump ACPI table',
+          'Dump ACPI tables using chipsec'),
+  [FlowType.DUMP_EFI_IMAGE]:
+      fli(FlowType.DUMP_EFI_IMAGE, 'Dump EFI image',
+          'Dump the flash image on macOS using eficheck'),
+  [FlowType.DUMP_FLASH_IMAGE]:
+      fli(FlowType.DUMP_FLASH_IMAGE, 'Dump flash image',
+          'Dump the flash image (BIOS)'),
+  [FlowType.GET_MBR]: fli(
+      FlowType.GET_MBR, 'Dump MBR', 'Dump the Master Boot Record on Windows'),
+  [FlowType.COLLECT_FILES_BY_KNOWN_PATH]: fli(
+      FlowType.COLLECT_FILES_BY_KNOWN_PATH, 'Collect files from exact paths',
+      'Collect one or more files based on their absolute paths'),
+  [FlowType.COLLECT_MULTIPLE_FILES]:
+      fli(FlowType.COLLECT_MULTIPLE_FILES, 'Collect files by search criteria',
+          'Search for and collect files based on their path, content or stat'),
+  [FlowType.LIST_DIRECTORY]:
+      fli(FlowType.LIST_DIRECTORY, 'List directory',
+          'Lists and stats all immediate files in directory'),
+  [FlowType.TIMELINE_FLOW]: fli(
+      FlowType.TIMELINE_FLOW, 'Collect path timeline',
+      'Collect metadata information for all files under the specified directory'),
+  [FlowType.READ_LOW_LEVEL]:
+      fli(FlowType.READ_LOW_LEVEL, 'Read raw bytes from device',
+          'Read raw data from a device - e.g. from a particular disk sector'),
+  [FlowType.ONLINE_NOTIFICATION]:
+      fli(FlowType.ONLINE_NOTIFICATION, 'Online notification',
+          'Notify via email when the client comes online'),
+  [FlowType.EXECUTE_PYTHON_HACK]:
+      fli(FlowType.EXECUTE_PYTHON_HACK, 'Execute Python hack',
+          'Execute a one-off Python script'),
+  [FlowType.INTERROGATE]: fli(
+      FlowType.INTERROGATE, 'Interrogate',
+      'Collect general metadata about the client (e.g. operating system details, users, ...)'),
+  [FlowType.KILL]: fli(FlowType.KILL, 'Kill GRR process'),
+  [FlowType.LAUNCH_BINARY]:
+      fli(FlowType.LAUNCH_BINARY, 'Execute binary hack',
+          'Executes a binary from an allowlisted path'),
+  [FlowType.LIST_PROCESSES]:
+      fli(FlowType.LIST_PROCESSES, 'List processes',
+          'Collects metadata about running processes'),
+  [FlowType.LIST_NAMED_PIPES_FLOW]:
+      fli(FlowType.LIST_NAMED_PIPES_FLOW, 'List named pipes',
+          'Collects metadata about named pipes open on the system'),
+  [FlowType.DUMP_PROCESS_MEMORY]:
+      fli(FlowType.DUMP_PROCESS_MEMORY, 'Dump process memory',
+          'Dump the process memory of one ore more processes'),
+  [FlowType.YARA_PROCESS_SCAN]:
+      fli(FlowType.YARA_PROCESS_SCAN, 'Scan process memory with YARA',
+          'Scan and optionally dump process memory using Yara'),
+  [FlowType.NETSTAT]: fli(
+      FlowType.NETSTAT, 'Netstat', 'Enumerate all open network connections'),
+};
 
 /** Descriptor containing information about a flow class. */
 export declare interface FlowDescriptor {
@@ -38,7 +169,7 @@ export declare interface Flow<Args extends {}|unknown = unknown> {
    * Counts of flow Results. undefined for legacy flows where we don't know
    * about result metadata.
    */
-  readonly resultCounts: ReadonlyArray<FlowResultCount>|undefined;
+  readonly resultCounts: readonly FlowResultCount[]|undefined;
 }
 
 /**
@@ -109,11 +240,11 @@ export interface ArtifactDescriptor {
   readonly name: string;
   readonly doc?: string;
   readonly supportedOs: ReadonlySet<OperatingSystem>;
-  readonly urls: ReadonlyArray<string>;
-  readonly provides: ReadonlyArray<string>;
-  readonly sources: ReadonlyArray<ArtifactSource>;
-  readonly dependencies: ReadonlyArray<string>;
-  readonly pathDependencies: ReadonlyArray<string>;
+  readonly urls: readonly string[];
+  readonly provides: readonly string[];
+  readonly sources: readonly ArtifactSource[];
+  readonly dependencies: readonly string[];
+  readonly pathDependencies: readonly string[];
   readonly isCustom?: boolean;
 }
 
@@ -146,8 +277,8 @@ export enum OperatingSystem {
 /** Artifact source. */
 interface BaseArtifactSource {
   readonly type: SourceType;
-  readonly conditions: ReadonlyArray<string>;
-  readonly returnedTypes: ReadonlyArray<string>;
+  readonly conditions: readonly string[];
+  readonly returnedTypes: readonly string[];
   readonly supportedOs: ReadonlySet<OperatingSystem>;
 }
 
@@ -157,7 +288,7 @@ export type AnyMap = ReadonlyMap<unknown, unknown>;
 /** Artifact source that delegates to other artifacts. */
 export interface ChildArtifactSource extends BaseArtifactSource {
   readonly type: SourceType.ARTIFACT_GROUP|SourceType.ARTIFACT_FILES;
-  readonly names: ReadonlyArray<string>;
+  readonly names: readonly string[];
 }
 
 /** Artifact source that delegates to a ClientAction. */
@@ -176,19 +307,19 @@ export interface CommandSource extends BaseArtifactSource {
 export interface FileSource extends BaseArtifactSource {
   readonly type: SourceType.DIRECTORY|SourceType.FILE|SourceType.GREP|
       SourceType.PATH;
-  readonly paths: ReadonlyArray<string>;
+  readonly paths: readonly string[];
 }
 
 /** Artifact source that reads Windows Registry keys. */
 export interface RegistryKeySource extends BaseArtifactSource {
   readonly type: SourceType.REGISTRY_KEY;
-  readonly keys: ReadonlyArray<string>;
+  readonly keys: readonly string[];
 }
 
 /** Artifact source that reads Windows Registry values. */
 export interface RegistryValueSource extends BaseArtifactSource {
   readonly type: SourceType.REGISTRY_VALUE;
-  readonly values: ReadonlyArray<string>;
+  readonly values: readonly string[];
 }
 
 /** Artifact source that queries WMI. */
@@ -210,7 +341,7 @@ export type ArtifactSource =
 /** ExecuteRequest proto mapping. */
 export declare interface ExecuteRequest {
   readonly cmd: string;
-  readonly args: ReadonlyArray<string>;
+  readonly args: readonly string[];
   readonly timeLimitSeconds: number;
 }
 
@@ -279,9 +410,9 @@ const HASH_NAMES: {readonly[key in keyof HexHash]: string} = {
 /**
  * Returns a readable name (e.g. SHA-256) of an internal hash name ("sha256").
  */
-export const hashName = (hashKey: keyof HexHash|string) => {
+export function hashName(hashKey: keyof HexHash|string): string {
   return HASH_NAMES[hashKey as keyof HexHash] ?? hashKey;
-};
+}
 
 /** Type of executable binaries. */
 export enum BinaryType {
@@ -299,7 +430,7 @@ export declare interface Binary {
 
 /** Counts flow results matching a type and/or tag. */
 export function countFlowResults(
-    resultCounts: ReadonlyArray<FlowResultCount>,
+    resultCounts: readonly FlowResultCount[],
     match: {type?: string, tag?: string}) {
   let count = 0;
 

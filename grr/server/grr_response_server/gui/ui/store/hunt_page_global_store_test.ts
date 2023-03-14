@@ -1,13 +1,18 @@
 import {fakeAsync, TestBed} from '@angular/core/testing';
-import {BehaviorSubject, firstValueFrom, of} from 'rxjs';
+import {firstValueFrom, of} from 'rxjs';
 import {filter} from 'rxjs/operators';
 
-import {ApiHuntResult, ApiHuntState} from '../lib/api/api_interfaces';
+import {ApiFlowState, ApiHuntState} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
 import {HttpApiServiceMock, mockHttpApiService} from '../lib/api/http_api_service_test_util';
+import {translateFlow} from '../lib/api_translation/flow';
+import {HuntState} from '../lib/models/hunt';
+import {newFlowDescriptor, newFlowDescriptorMap} from '../lib/models/model_test_util';
 import {isNonNull} from '../lib/preconditions';
 import {initTestEnvironment} from '../testing';
 
+import {ConfigGlobalStore} from './config_global_store';
+import {ConfigGlobalStoreMock, mockConfigGlobalStore} from './config_global_store_test_util';
 import {HuntPageGlobalStore, RESULTS_BATCH_SIZE} from './hunt_page_global_store';
 
 initTestEnvironment();
@@ -16,15 +21,18 @@ initTestEnvironment();
 describe('HuntPageGlobalStore', () => {
   let httpApiService: HttpApiServiceMock;
   let huntPageGlobalStore: HuntPageGlobalStore;
+  let configGlobalStore: ConfigGlobalStoreMock;
 
   beforeEach(() => {
     httpApiService = mockHttpApiService();
+    configGlobalStore = mockConfigGlobalStore();
     TestBed
         .configureTestingModule({
           imports: [],
           providers: [
             HuntPageGlobalStore,
             {provide: HttpApiService, useFactory: () => httpApiService},
+            {provide: ConfigGlobalStore, useFactory: () => configGlobalStore},
           ],
           teardown: {destroyAfterEach: false}
         })
@@ -143,6 +151,60 @@ describe('HuntPageGlobalStore', () => {
            .toEqual({'clientId': 'C.1234', 'payloadType': 'foo'});
      }));
 
+  it('returns hunt error when key is selected', fakeAsync(async () => {
+       // Skip the first emitted entry, which is undefined.
+       const promise = firstValueFrom(
+           huntPageGlobalStore.selectedHuntError$.pipe(filter(isNonNull)));
+
+       huntPageGlobalStore.selectHunt('XXX');
+       huntPageGlobalStore.selectResult('C.1234-XXX-');
+
+       httpApiService.mockedObservables.subscribeToErrorsForHunt.next([
+         {'clientId': 'C.1234', 'backtrace': 'foo'},
+         {'clientId': 'C.5678', 'backtrace': 'bar'}
+       ]);
+       huntPageGlobalStore.loadMoreResults();
+
+       expect(await promise)
+           .toEqual({'clientId': 'C.1234', 'backtrace': 'foo'});
+     }));
+
+  it('returns flow when result key is selected', fakeAsync(async () => {
+       // Skip the first emitted entry, which is null.
+       const promise = firstValueFrom(
+           huntPageGlobalStore.selectedResultFlowWithDescriptor$.pipe(
+               filter(isNonNull)));
+
+       huntPageGlobalStore.selectHunt('XXX');
+       huntPageGlobalStore.selectResult('C.1234-XXX-');
+
+       configGlobalStore.mockedObservables.flowDescriptors$.next(
+           newFlowDescriptorMap(
+               {name: 'SomeFlow'},
+               ));
+       httpApiService.mockedObservables.subscribeToResultsForHunt.next([
+         {'clientId': 'C.1234', 'payloadType': 'foo'},
+         {'clientId': 'C.5678', 'payloadType': 'bar'}
+       ]);
+       const apiFlow = {
+         flowId: 'XXX',
+         clientId: 'C.1234',
+         name: 'SomeFlow',
+         lastActiveAt: '1234',
+         startedAt: '1234',
+         state: ApiFlowState.RUNNING,
+         isRobot: false,
+       };
+       httpApiService.mockedObservables.fetchFlow.next(apiFlow);
+       huntPageGlobalStore.loadMoreResults();
+
+       expect(await promise).toEqual({
+         flow: translateFlow(apiFlow),
+         descriptor: newFlowDescriptor({name: 'SomeFlow'}),
+         flowArgType: undefined,
+       });
+     }));
+
   it('loads more results when selected result is on a different page',
      fakeAsync(async () => {
        const onePage = RESULTS_BATCH_SIZE;
@@ -194,31 +256,13 @@ describe('HuntPageGlobalStore', () => {
        ]);
      }));
 
-  it('throws error if result not found', fakeAsync(async () => {
-       // Always emit the same single result.
-       httpApiService.mockedObservables.subscribeToResultsForHunt =
-           new BehaviorSubject(
-               [{'clientId': 'C.5678', 'payloadType': 'bar'}] as
-               readonly ApiHuntResult[]);
-
-       // Skip the first emitted entry, which is undefined.
-       const promise = firstValueFrom(
-           huntPageGlobalStore.selectedHuntResult$.pipe(filter(isNonNull)));
-
-       huntPageGlobalStore.selectHunt('XXX');
-       huntPageGlobalStore.selectResult('C.1234-XXX-');
-
-       await expectAsync(promise).toBeRejectedWithError(
-           'Result not found: C.1234-XXX-');
-     }));
-
   it('stopHunt calls http api service', fakeAsync(() => {
        huntPageGlobalStore.selectHunt('456');
        huntPageGlobalStore.cancelHunt();
        expect(httpApiService.patchHunt)
            .toHaveBeenCalledWith(
                '456',
-               {state: ApiHuntState.STOPPED},
+               {state: HuntState.CANCELLED},
            );
      }));
 
@@ -228,7 +272,22 @@ describe('HuntPageGlobalStore', () => {
        expect(httpApiService.patchHunt)
            .toHaveBeenCalledWith(
                '456',
-               {state: ApiHuntState.STARTED},
+               {state: HuntState.RUNNING},
+           );
+     }));
+
+  it('modifyAndStartHunt calls http api service', fakeAsync(() => {
+       huntPageGlobalStore.selectHunt('456');
+       huntPageGlobalStore.modifyAndStartHunt(
+           {clientRate: 123, clientLimit: BigInt(456)});
+       expect(httpApiService.patchHunt)
+           .toHaveBeenCalledWith(
+               '456',
+               {
+                 clientRate: 123,
+                 clientLimit: BigInt(456),
+                 state: HuntState.RUNNING
+               },
            );
      }));
 });

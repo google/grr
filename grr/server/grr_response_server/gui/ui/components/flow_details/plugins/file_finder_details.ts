@@ -11,7 +11,7 @@ import {FlowResultMapFunction, FlowResultsQueryWithAdapter} from '../helpers/loa
 import {ExportMenuItem, Plugin} from './plugin';
 
 
-const ADAPTER: FlowResultMapFunction<ReadonlyArray<FlowFileResult>|undefined> =
+const ADAPTER: FlowResultMapFunction<readonly FlowFileResult[]|undefined> =
     (results) => results?.map(item => item.payload as FileFinderResult)
                      .map(
                          res => flowFileResultFromStatEntry(
@@ -38,7 +38,7 @@ export class FileFinderDetails extends Plugin {
                     ?.count));
 
   readonly query$: Observable<
-      FlowResultsQueryWithAdapter<ReadonlyArray<FlowFileResult>|undefined>> =
+      FlowResultsQueryWithAdapter<readonly FlowFileResult[]|undefined>> =
       this.flow$.pipe(map(flow => ({flow, resultMapper: ADAPTER})));
 
   readonly description$ = this.args$.pipe(map(args => {
@@ -50,7 +50,7 @@ export class FileFinderDetails extends Plugin {
     }
   }));
 
-  override getExportMenuItems(flow: Flow): ReadonlyArray<ExportMenuItem> {
+  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
     const items = super.getExportMenuItems(flow);
 
     const args = flow.args as FileFinderArgs;

@@ -3,7 +3,7 @@ import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
 import {ExportMenuItem, Plugin as FlowDetailsPlugin} from '../../components/flow_details/plugins/plugin';
-import {Flow, FlowDescriptor, FlowState} from '../../lib/models/flow';
+import {Flow, FLOW_LIST_ITEMS_BY_TYPE, FlowDescriptor, FlowState, FlowType} from '../../lib/models/flow';
 import {isNonNull} from '../../lib/preconditions';
 import {FlowResultsLocalStore} from '../../store/flow_results_local_store';
 import {UserGlobalStore} from '../../store/user_global_store';
@@ -57,6 +57,15 @@ export class FlowDetails implements OnChanges {
               }),
               startWith(null));
 
+  readonly flowTitle$: Observable<string|undefined> =
+      combineLatest([
+        this.flow$, this.flowDescriptor$
+      ]).pipe(map(([flow, fd]) => {
+        const flowItem = FLOW_LIST_ITEMS_BY_TYPE[flow?.name as FlowType];
+
+        return flowItem?.friendlyName || fd?.friendlyName || flow?.name;
+      }));
+
   /**
    * Flow list entry to display.
    */
@@ -90,7 +99,7 @@ export class FlowDetails implements OnChanges {
   /**
    * Event that is triggered when a flow context menu action is selected.
    */
-  @Output() menuActionTriggered = new EventEmitter<FlowMenuAction>();
+  @Output() readonly menuActionTriggered = new EventEmitter<FlowMenuAction>();
 
   @ViewChild('detailsContainer', {read: ViewContainerRef, static: true})
   detailsContainer!: ViewContainerRef;
@@ -108,7 +117,8 @@ export class FlowDetails implements OnChanges {
       return;
     }
 
-    let componentClass = FLOW_DETAILS_PLUGIN_REGISTRY[this.flow.name];
+    let componentClass =
+        FLOW_DETAILS_PLUGIN_REGISTRY[this.flow.name as FlowType];
 
     // As fallback for flows without details plugin and flows that do not report
     // resultCount metadata, show a default view that links to the old UI.

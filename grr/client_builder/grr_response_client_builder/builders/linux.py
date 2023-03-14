@@ -53,6 +53,16 @@ def _CopyFleetspeakDpkgFiles(package_dir, context=None):
       fleetspeak_dir)
 
 
+def _CopyNonFleetspeakDpkgFiles(dist_dir):
+  """Copies non-Fleetspeak DPKG files to template directory."""
+
+  # Copy the wrapper script.
+  shutil.copy(
+      package.ResourcePath("grr-response-core", "install_data/wrapper.sh.in"),
+      dist_dir,
+  )
+
+
 def _CopyBundledFleetspeakFiles(src_dir, package_dir):
   """Copies the bundled fleetspeak installation into the package dir."""
   files = [
@@ -124,6 +134,7 @@ class DebianClientBuilder(build.ClientBuilder):
     _StripLibraries(output_dir)
 
     _CopyFleetspeakDpkgFiles(self.package_dir, context=self.context)
+    _CopyNonFleetspeakDpkgFiles(output_dir)
     _CopyBundledFleetspeakFiles(self.fleetspeak_install_dir, self.package_dir)
 
     _MakeZip(self.package_dir, output_file)

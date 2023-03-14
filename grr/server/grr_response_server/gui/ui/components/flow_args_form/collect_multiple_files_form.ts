@@ -125,15 +125,17 @@ export class CollectMultipleFilesForm extends
       this.addSizeCondition();
     }
 
+    if (flowArgs.extFlags) {
+      this.addExtFlagsCondition();
+    }
+
     super.resetFlowArgs(flowArgs);
-    // TODO: Add flow condition controls if present.
   }
 
   override convertFlowArgsToFormState(
       flowArgs: CollectMultipleFilesArgs,
       ): ControlValues<Controls> {
     return {
-      // TODO: Add flow condition controls if present.
       pathExpressions: flowArgs.pathExpressions?.length ?
           [...flowArgs.pathExpressions] :
           [''],
@@ -153,6 +155,7 @@ export class CollectMultipleFilesForm extends
           flowArgs.inodeChangeTime,
           ),
       size: sizeConditionToFormValue(flowArgs.size),
+      extFlags: flowArgs.extFlags,
     };
   }
 

@@ -19,8 +19,7 @@ declare interface BrowserRow {
   progress: BrowserProgress;
   status?: ResultAccordionStatus;
   description: string;
-  resultQuery:
-      FlowResultsQueryWithAdapter<ReadonlyArray<FlowFileResult>|undefined>;
+  resultQuery: FlowResultsQueryWithAdapter<readonly FlowFileResult[]|undefined>;
 }
 
 
@@ -117,7 +116,7 @@ export class CollectBrowserHistoryDetails extends Plugin {
     };
   }
 
-  override getExportMenuItems(flow: Flow): ReadonlyArray<ExportMenuItem> {
+  override getExportMenuItems(flow: Flow): readonly ExportMenuItem[] {
     const items = super.getExportMenuItems(flow);
     const downloadItem = this.getDownloadFilesExportMenuItem(flow);
 
@@ -131,8 +130,8 @@ export class CollectBrowserHistoryDetails extends Plugin {
   }
 }
 
-function mapFlowResults(results?: ReadonlyArray<FlowResult>):
-    ReadonlyArray<FlowFileResult>|undefined {
+function mapFlowResults(results?: readonly FlowResult[]):
+    readonly FlowFileResult[]|undefined {
   return results?.map(
       r => flowFileResultFromStatEntry(translateStatEntry(
           (r.payload as CollectBrowserHistoryResult).statEntry!)));

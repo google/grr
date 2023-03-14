@@ -15,7 +15,7 @@ initTestEnvironment();
 describe('ClientDetailsGlobalStore', () => {
   let httpApiService: Partial<HttpApiService>;
   let clientDetailsGlobalStore: ClientDetailsGlobalStore;
-  let apiFetchClientVersions$: Subject<ReadonlyArray<ApiClient>>;
+  let apiFetchClientVersions$: Subject<readonly ApiClient[]>;
 
   beforeEach(() => {
     apiFetchClientVersions$ = new Subject();

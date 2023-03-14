@@ -4,9 +4,10 @@ import {merge, Observable, of, Subject, throwError, timer} from 'rxjs';
 import {catchError, exhaustMap, map, mapTo, shareReplay, switchMap, take, takeLast, takeWhile, tap} from 'rxjs/operators';
 
 import {SnackBarErrorHandler} from '../../components/helpers/error_snackbar/error_handler';
+import {toApiHuntState} from '../../lib/api_translation/hunt';
 import {ApprovalConfig, ClientApprovalRequest} from '../../lib/models/client';
 import {FlowWithDescriptor} from '../../lib/models/flow';
-import {Hunt, HuntApprovalKey, HuntApprovalRequest, SafetyLimits} from '../../lib/models/hunt';
+import {Hunt, HuntApprovalKey, HuntApprovalRequest, HuntState, SafetyLimits} from '../../lib/models/hunt';
 import {assertNonNull, isNonNull} from '../preconditions';
 
 import * as apiInterfaces from './api_interfaces';
@@ -28,7 +29,7 @@ export interface FlowResultsParams {
  */
 export interface FlowResultsWithSourceParams {
   readonly params: FlowResultsParams;
-  readonly results: ReadonlyArray<apiInterfaces.ApiFlowResult>;
+  readonly results: readonly apiInterfaces.ApiFlowResult[];
 }
 
 /**
@@ -328,8 +329,11 @@ export class HttpApiService {
       originalHunt: originalHuntId ? originalHuntRef : undefined,
     };
 
-    return this.http.post<apiInterfaces.ApiHunt>(
-        `${URL_PREFIX}/hunts`, toJson(request));
+    return this.http
+        .post<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts`, toJson(request))
+        .pipe(
+            tap(this.showErrors),
+        );
   }
 
   requestHuntApproval(args: HuntApprovalRequest):
@@ -437,9 +441,16 @@ export class HttpApiService {
         );
   }
 
-  patchHunt(huntId: string, patch: {state: apiInterfaces.ApiHuntState}):
-      Observable<apiInterfaces.ApiHunt> {
-    const params: apiInterfaces.ApiModifyHuntArgs = {...patch};
+  patchHunt(huntId: string, patch: {
+    state?: HuntState,
+    clientLimit?: bigint,
+    clientRate?: number
+  }): Observable<apiInterfaces.ApiHunt> {
+    const params: apiInterfaces.ApiHunt = {
+      'state': patch.state ? toApiHuntState(patch.state) : undefined,
+      'clientLimit': patch.clientLimit?.toString(),
+      'clientRate': patch.clientRate,
+    };
     return this.http
         .patch<apiInterfaces.ApiHunt>(`${URL_PREFIX}/hunts/${huntId}`, params)
         .pipe(tap(this.showErrors));
@@ -447,7 +458,7 @@ export class HttpApiService {
 
   /** Lists results of the given hunt. */
   listResultsForHunt(params: apiInterfaces.ApiListHuntResultsArgs):
-      Observable<ReadonlyArray<apiInterfaces.ApiHuntResult>> {
+      Observable<readonly apiInterfaces.ApiHuntResult[]> {
     const huntId = params.huntId;
     assertNonNull(huntId);
 
@@ -481,7 +492,7 @@ export class HttpApiService {
   }
 
   subscribeToResultsForHunt(params: apiInterfaces.ApiListHuntResultsArgs):
-      Observable<ReadonlyArray<apiInterfaces.ApiHuntResult>> {
+      Observable<readonly apiInterfaces.ApiHuntResult[]> {
     return timer(0, this.POLLING_INTERVAL)
         .pipe(
             exhaustMap(() => this.listResultsForHunt(params)),
@@ -588,12 +599,12 @@ export class HttpApiService {
           );
 
   listFlowDescriptors():
-      Observable<ReadonlyArray<apiInterfaces.ApiFlowDescriptor>> {
+      Observable<readonly apiInterfaces.ApiFlowDescriptor[]> {
     return this.flowDescriptors$;
   }
 
   listArtifactDescriptors():
-      Observable<ReadonlyArray<apiInterfaces.ArtifactDescriptor>> {
+      Observable<readonly apiInterfaces.ArtifactDescriptor[]> {
     return this.http
         .get<apiInterfaces.ApiListArtifactsResult>(`${URL_PREFIX}/artifacts`)
         .pipe(
@@ -615,7 +626,7 @@ export class HttpApiService {
   }
 
   private listFlowsForClient(args: apiInterfaces.ApiListFlowsArgs):
-      Observable<ReadonlyArray<apiInterfaces.ApiFlow>> {
+      Observable<readonly apiInterfaces.ApiFlow[]> {
     const clientId = args.clientId;
     assertNonNull(clientId);
 
@@ -648,7 +659,7 @@ export class HttpApiService {
 
   /** Lists the latest Flows for the given Client. */
   subscribeToFlowsForClient(args: apiInterfaces.ApiListFlowsArgs):
-      Observable<ReadonlyArray<apiInterfaces.ApiFlow>> {
+      Observable<readonly apiInterfaces.ApiFlow[]> {
     return merge(timer(0, this.POLLING_INTERVAL), this.triggerListFlowsPoll$)
         .pipe(
             exhaustMap(() => this.listFlowsForClient(args)),
@@ -657,7 +668,7 @@ export class HttpApiService {
   }
 
   subscribeToScheduledFlowsForClient(clientId: string, creator: string):
-      Observable<ReadonlyArray<apiInterfaces.ApiScheduledFlow>> {
+      Observable<readonly apiInterfaces.ApiScheduledFlow[]> {
     return merge(
                timer(0, this.POLLING_INTERVAL),
                this.triggerListScheduledFlowsPoll$)
@@ -670,7 +681,7 @@ export class HttpApiService {
 
   /** Lists all scheduled flows for the given client and user. */
   private listScheduledFlows(clientId: string, creator: string):
-      Observable<ReadonlyArray<apiInterfaces.ApiScheduledFlow>> {
+      Observable<readonly apiInterfaces.ApiScheduledFlow[]> {
     return this.http
         .get<apiInterfaces.ApiListScheduledFlowsResult>(
             // TODO: Remove trailing slash once redirect protocol
@@ -685,7 +696,7 @@ export class HttpApiService {
 
   /** Lists results of the given flow. */
   listResultsForFlow(params: FlowResultsParams):
-      Observable<ReadonlyArray<apiInterfaces.ApiFlowResult>> {
+      Observable<readonly apiInterfaces.ApiFlowResult[]> {
     const options: {[key: string]: string} = {};
     if (params.withTag) {
       options['with_tag'] = params.withTag;
@@ -715,7 +726,7 @@ export class HttpApiService {
 
   /** Continuously lists results for the given flow, e.g. by polling. */
   subscribeToResultsForFlow(params: FlowResultsParams):
-      Observable<ReadonlyArray<apiInterfaces.ApiFlowResult>> {
+      Observable<readonly apiInterfaces.ApiFlowResult[]> {
     return timer(0, this.POLLING_INTERVAL)
         .pipe(
             exhaustMap(() => this.listResultsForFlow(params)),
@@ -831,7 +842,7 @@ export class HttpApiService {
   explainGlobExpression(
       clientId: string, globExpression: string,
       {exampleCount}: {exampleCount: number}):
-      Observable<ReadonlyArray<apiInterfaces.GlobComponentExplanation>> {
+      Observable<readonly apiInterfaces.GlobComponentExplanation[]> {
     const url = `${URL_PREFIX}/clients/${clientId}/glob-expressions:explain`;
     const args: apiInterfaces.ApiExplainGlobExpressionArgs = {
       globExpression,
@@ -879,8 +890,7 @@ export class HttpApiService {
     );
   }
 
-  fetchAllClientsLabels():
-      Observable<ReadonlyArray<apiInterfaces.ClientLabel>> {
+  fetchAllClientsLabels(): Observable<readonly apiInterfaces.ClientLabel[]> {
     const url = `${URL_PREFIX}/clients/labels`;
     return this.http.get<apiInterfaces.ApiListClientsLabelsResult>(url).pipe(
         map(clientsLabels => clientsLabels.items ?? []),
@@ -889,7 +899,7 @@ export class HttpApiService {
   }
 
   fetchClientVersions(clientId: string, start?: Date, end?: Date):
-      Observable<ReadonlyArray<apiInterfaces.ApiClient>> {
+      Observable<readonly apiInterfaces.ApiClient[]> {
     const url = `${URL_PREFIX}/clients/${clientId}/versions`;
 
     const params = new HttpParams({
@@ -908,8 +918,8 @@ export class HttpApiService {
         );
   }
 
-  suggestApprovers(usernameQuery: string): Observable<ReadonlyArray<
-      apiInterfaces.ApiListApproverSuggestionsResultApproverSuggestion>> {
+  suggestApprovers(usernameQuery: string): Observable < readonly
+  apiInterfaces.ApiListApproverSuggestionsResultApproverSuggestion[] > {
     const params = new HttpParams().set('username_query', usernameQuery);
     return this.http
         .get<apiInterfaces.ApiListApproverSuggestionsResult>(
@@ -921,7 +931,7 @@ export class HttpApiService {
   }
 
   listRecentClientApprovals(parameters: {count?: number}):
-      Observable<ReadonlyArray<apiInterfaces.ApiClientApproval>> {
+      Observable<readonly apiInterfaces.ApiClientApproval[]> {
     return this.http
         .get<apiInterfaces.ApiListClientApprovalsResult>(
             `${URL_PREFIX}/users/me/approvals/client`,
@@ -1211,7 +1221,7 @@ function objectToHttpParams(obj: HttpParamObject): HttpParams {
 }
 
 function findFlowDescriptor(flowName: string):
-    (fds: ReadonlyArray<apiInterfaces.ApiFlowDescriptor>) =>
+    (fds: readonly apiInterfaces.ApiFlowDescriptor[]) =>
         apiInterfaces.ApiFlowDescriptor {
   return fds => {
     const fd = fds.find(fd => fd.name === flowName);

@@ -27,7 +27,7 @@ function getLinuxFlagByIdentifier(identifier: string) {
  * @param flags An array of flags to search.
  * @return A flag with specified name.
  */
-function getFlagByName(name: string, flags: ReadonlyArray<Flag>) {
+function getFlagByName(name: string, flags: readonly Flag[]) {
   const result = flags.find((flag) => flag.name === name);
   if (result === undefined) {
     throw new Error(`flag with name '${name}' not found`);
@@ -81,7 +81,7 @@ function getOsxFlagMaskByName(name: string) {
  * @param names A set of names to calculate the mask for.
  * @return A mask corresponding to the set of specified names.
  */
-export function getLinuxFlagMaskByNames(names: ReadonlyArray<string>) {
+export function getLinuxFlagMaskByNames(names: readonly string[]) {
   return names.map(getLinuxFlagMaskByName).reduce((acc, mask) => acc | mask);
 }
 
@@ -91,7 +91,7 @@ export function getLinuxFlagMaskByNames(names: ReadonlyArray<string>) {
  * @param names A set of names to calculate the mask for.
  * @return A mask corresponding to the set of specified names.
  */
-export function getOsxFlagMaskByNames(names: ReadonlyArray<string>) {
+export function getOsxFlagMaskByNames(names: readonly string[]) {
   return names.map(getOsxFlagMaskByName).reduce((acc, mask) => acc | mask);
 }
 
@@ -103,7 +103,7 @@ export function getOsxFlagMaskByNames(names: ReadonlyArray<string>) {
  *
  * https://github.com/torvalds/linux/blob/master/include/linux/fs.h
  */
-export const LINUX_FLAGS: ReadonlyArray<Flag> = [
+export const LINUX_FLAGS: readonly Flag[] = [
   {
     name: 'FS_SECRM_FL',
     identifier: 's',
@@ -254,7 +254,7 @@ export const LINUX_FLAGS: ReadonlyArray<Flag> = [
  * https://github.com/mozilla-b2g/busybox/blob/master/e2fsprogs/old_e2fsprogs/e2p/pf.c
  * https://sourcecodebrowser.com/ldiskfsprogs/1.41.10/pf_8c_source.html
  */
-export const LINUX_FLAGS_ORDERED: ReadonlyArray<Flag> =
+export const LINUX_FLAGS_ORDERED: readonly Flag[] =
     'suSDiadAcBZXEjItTehC'.split('').map(getLinuxFlagByIdentifier);
 
 /**
@@ -264,7 +264,7 @@ export const LINUX_FLAGS_ORDERED: ReadonlyArray<Flag> =
  *
  * https://github.com/apple/darwin-xnu/blob/master/bsd/sys/stat.h
  */
-export const OSX_FLAGS: ReadonlyArray<Flag> = [
+export const OSX_FLAGS: readonly Flag[] = [
   {
     name: 'UF_NODUMP',
     identifier: 'nodump',

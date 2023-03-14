@@ -191,7 +191,7 @@ describe('NewHuntLocalStore', () => {
          matchMode: ForemanClientRuleSetMatchMode.MATCH_ALL
        };
 
-       const outputPlugins: ReadonlyArray<OutputPluginDescriptor> = [{
+       const outputPlugins: readonly OutputPluginDescriptor[] = [{
          pluginName: 'some plugin',
        }];
 

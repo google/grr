@@ -37,7 +37,7 @@ export class DumpProcessMemoryDetails extends Plugin {
     return parts.join(', ');
   }));
 
-  readonly query$: Observable<FlowResultsQueryWithAdapter<ReadonlyArray<Row>>> =
+  readonly query$: Observable<FlowResultsQueryWithAdapter<readonly Row[]>> =
       this.flow$.pipe(map(flow => ({
                             flow,
                             withType: 'YaraProcessDumpResponse',
@@ -71,7 +71,7 @@ declare interface Row {
   memoryRegionsCount: string;
 }
 
-const resultMapper: FlowResultMapFunction<ReadonlyArray<Row>> = (results) => {
+const resultMapper: FlowResultMapFunction<readonly Row[]> = (results) => {
   return results?.map(res => res.payload as YaraProcessDumpResponse)
              .flatMap(
                  res => [...res.dumpedProcesses ?? [], ...res.errors ?? []])

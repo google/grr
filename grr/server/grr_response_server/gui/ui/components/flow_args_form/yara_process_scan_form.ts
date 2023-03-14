@@ -19,7 +19,7 @@ function makeControls() {
     filterMode: new FormControl(FilterMode.ALL, {nonNullable: true}),
     processRegex: new FormControl('', {nonNullable: true}),
     cmdlineRegex: new FormControl('', {nonNullable: true}),
-    pids: new FormControl<ReadonlyArray<number>>([], {nonNullable: true}),
+    pids: new FormControl<readonly number[]>([], {nonNullable: true}),
     skipSpecialRegions: new FormControl(false, {nonNullable: true}),
     skipMappedFiles: new FormControl(false, {nonNullable: true}),
     skipSharedRegions: new FormControl(false, {nonNullable: true}),

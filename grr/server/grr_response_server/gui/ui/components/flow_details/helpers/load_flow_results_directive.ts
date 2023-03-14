@@ -5,7 +5,7 @@ import {FlowResult, FlowResultsQuery} from '../../../lib/models/flow';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 
-interface Context<R = ReadonlyArray<FlowResult>> {
+interface Context<R = readonly FlowResult[]> {
   results?: R;
   queryMore: (additionalCount: number) => void;
 }
@@ -23,15 +23,14 @@ export declare interface FlowResultsQueryWithAdapter<R> extends
     FlowResultsQuery, WithAdapter<R> {}
 
 /** Function that maps optional FlowResults[] to a desired data type.  */
-export type FlowResultMapFunction<R> = (results?: ReadonlyArray<FlowResult>) =>
-    R;
+export type FlowResultMapFunction<R> = (results?: readonly FlowResult[]) => R;
 
 /** Directive that loads flow results and has callbacks to load more. */
 @Directive({
   selector: '[loadFlowResults]',
   providers: [FlowResultsLocalStore],
 })
-export class LoadFlowResultsDirective<R = ReadonlyArray<FlowResult>> implements
+export class LoadFlowResultsDirective<R = readonly FlowResult[]> implements
     OnDestroy {
   private readonly context: Context<R>;
   private resultMapper?: FlowResultMapFunction<R>;

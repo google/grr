@@ -9,11 +9,11 @@ export class OsqueryResultsTableDOM {
   readonly queryText = this.queryDiv?.nativeElement.innerText;
 
   readonly columnElements = this.rootElement?.queryAll(By.css('th'));
-  readonly columnsText?: ReadonlyArray<string> = this.columnElements?.map(
+  readonly columnsText?: readonly string[] = this.columnElements?.map(
       columnElement => columnElement.nativeElement.innerText);
 
   readonly cellDivs = this.rootElement?.queryAll(By.css('td'));
-  readonly cellsText?: ReadonlyArray<string> =
+  readonly cellsText?: readonly string[] =
       this.cellDivs?.map(cellDiv => cellDiv.nativeElement.innerText);
 
   get rowsLength() {
@@ -34,8 +34,8 @@ export class OsqueryResultsTableDOM {
  */
 export function newOsqueryTable(
     query: string,
-    columns: ReadonlyArray<string>,
-    rows: ReadonlyArray<ReadonlyArray<string>>,
+    columns: readonly string[],
+    rows: ReadonlyArray<readonly string[]>,
     ): OsqueryTable {
   return {
     query,

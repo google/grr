@@ -6,7 +6,7 @@
     <div class="title">{{ category.title }}</div>
     <div
       class="item"
-      *ngFor="let item of category.items; trackBy: trackByFlowName"
+      *ngFor="let item of category.items; trackBy: trackByFlowType"
     >
       <a
         (click)="item.enabled && flowSelected.emit(item)"

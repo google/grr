@@ -141,8 +141,8 @@ describe('OsqueryResultsTable Component', () => {
   describe('results filtering', () => {
     const rowNumber = 10;
     const columnNumber = 1;
-    let columns: ReadonlyArray<string>;
-    let values: ReadonlyArray<ReadonlyArray<string>>;
+    let columns: readonly string[];
+    let values: ReadonlyArray<readonly string[]>;
     let table: OsqueryTable;
     let fixture: ComponentFixture<OsqueryResultsTable>;
     let osqueryResultsTable: DebugElement;

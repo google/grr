@@ -5,6 +5,7 @@ import {filter, map, shareReplay, startWith, switchMap, takeWhile, tap, withLate
 
 import {ApiHunt, ForemanClientRuleSet, OutputPluginDescriptor} from '../lib/api/api_interfaces';
 import {HttpApiService} from '../lib/api/http_api_service';
+import {RequestStatusType, trackRequest} from '../lib/api/track_request';
 import {translateFlow} from '../lib/api_translation/flow';
 import {translateHunt, translateSafetyLimits} from '../lib/api_translation/hunt';
 import {FlowWithDescriptor} from '../lib/models/flow';
@@ -118,19 +119,24 @@ class NewHuntComponentStore extends ComponentStore<NewHuntState> {
     description: string,
     safetyLimits: SafetyLimits,
     rules: ForemanClientRuleSet,
-    outputPlugins: ReadonlyArray<OutputPluginDescriptor>
+    outputPlugins: readonly OutputPluginDescriptor[]
   }>(obs$ =>
          obs$.pipe(
              withLatestFrom(
-                 this.flowWithDescriptor$, this.originalHunt$, this.state$),
-             switchMap(
-                 ([opts, flowWithDescriptors, originalHunt, state]) =>
-                     this.httpApiService.createHunt(
-                         opts.description, flowWithDescriptors, originalHunt,
-                         opts.safetyLimits, opts.rules, opts.outputPlugins,
-                         state.originalHuntId)),
-             tap(hunt => {
-               this.updateHuntId(hunt?.huntId);
+                 this.flowWithDescriptor$,
+                 this.originalHunt$,
+                 this.state$,
+                 ),
+             switchMap(([opts, flowWithDescriptors, originalHunt, state]) => {
+               return trackRequest(this.httpApiService.createHunt(
+                   opts.description, flowWithDescriptors, originalHunt,
+                   opts.safetyLimits, opts.rules, opts.outputPlugins,
+                   state.originalHuntId));
+             }),
+             tap((status) => {
+               if (status.status === RequestStatusType.SUCCESS) {
+                 this.updateHuntId(status.data?.huntId);
+               }
              }),
              ));
 

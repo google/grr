@@ -18,7 +18,7 @@ export interface OnDestroyObserver {
  * Then, add `readonly ngOnDestroy = observeOnDestroy(this);`. You can now use
  * it like: `myObservable.pipe(takeUntil(this.ngOnDestroy.triggered$))`.
  *
- * @param ngOnDestroy an optional callback
+ * @param callback an optional callback
  * @return ngOnDestroy function with `triggered$` property.
  */
 export function observeOnDestroy(
@@ -42,8 +42,7 @@ export function observeOnDestroy(
 }
 
 /** Returns a Promise that resolves to an Array of all emitted values. */
-export function allValuesFrom<T>(obs: Observable<T>):
-    Promise<ReadonlyArray<T>> {
+export function allValuesFrom<T>(obs: Observable<T>): Promise<readonly T[]> {
   return new Promise((resolve, reject) => {
     const data: T[] = [];
     obs.subscribe({

@@ -145,52 +145,45 @@ setup_args = dict(
     maintainer="GRR Development Team",
     maintainer_email="grr-dev@googlegroups.com",
     url="https://github.com/google/grr",
-    cmdclass={
-        "sdist": Sdist,
-        "develop": Develop
-    },
+    cmdclass={"sdist": Sdist, "develop": Develop},
     packages=find_packages(),
     entry_points={
         "console_scripts": [
-            "grr_console = "
-            "grr_response_server.distro_entry:Console",
-            "grr_api_shell_raw_access = "
-            "grr_response_server.distro_entry:ApiShellRawAccess",
-            "grr_config_updater = "
-            "grr_response_server.distro_entry:ConfigUpdater",
-            "grr_frontend = "
-            "grr_response_server.distro_entry:GrrFrontend",
-            "grr_server = "
-            "grr_response_server.distro_entry:GrrServer",
-            "grr_worker = "
-            "grr_response_server.distro_entry:Worker",
-            "grr_admin_ui = "
-            "grr_response_server.distro_entry:AdminUI",
-            "fleetspeak_server = "
-            "grr_response_server.distro_entry:FleetspeakServer",
+            "grr_console = grr_response_server.distro_entry:Console",
+            (
+                "grr_api_shell_raw_access = "
+                "grr_response_server.distro_entry:ApiShellRawAccess"
+            ),
+            (
+                "grr_config_updater = "
+                "grr_response_server.distro_entry:ConfigUpdater"
+            ),
+            "grr_frontend = grr_response_server.distro_entry:GrrFrontend",
+            "grr_server = grr_response_server.distro_entry:GrrServer",
+            "grr_worker = grr_response_server.distro_entry:Worker",
+            "grr_admin_ui = grr_response_server.distro_entry:AdminUI",
+            (
+                "fleetspeak_server = "
+                "grr_response_server.distro_entry:FleetspeakServer"
+            ),
         ]
     },
     install_requires=[
-        "google-api-python-client==1.9.3",
-        "google-auth==1.18.0",
+        "google-api-python-client==1.12.11",
+        "google-auth==1.35.0",
         "grr-api-client==%s" % VERSION.get("Version", "packagedepends"),
-        "grr-response-client-builder==%s" %
-        VERSION.get("Version", "packagedepends"),
+        "grr-response-client-builder==%s"
+        % VERSION.get("Version", "packagedepends"),
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "ipython==7.15.0",
-        "Jinja2==2.11.3",
-        # TODO: This should be 2.1
-        # If the version of MarkupSafe with Jinja2 dependency is greater than
-        # 2.0.1 an issue occurs. Therefore, we are currently fixing the version
-        # to 2.0.1, but it will be fixed later when the issue is resolved.
-        "MarkupSafe==2.0.1",
+        "Jinja2==3.1.2",
         "pexpect==4.8.0",
-        "portpicker==1.3.1",
-        "prometheus_client==0.8.0",
-        "pyjwt==1.7.1",
-        "pyOpenSSL==19.1.0",  # https://github.com/google/grr/issues/704
+        "portpicker==1.6.0b1",
+        "prometheus_client==0.16.0",
+        "pyjwt==2.6.0",
+        "pyOpenSSL==21.0.0",  # https://github.com/google/grr/issues/704
         "python-crontab==2.5.1",
-        "python-debian==0.1.37",
+        "python-debian==0.1.49",
         "Werkzeug==2.1.2",
     ],
     extras_require={
@@ -201,12 +194,16 @@ setup_args = dict(
         # incompatibilities between the system mysqlclient/mariadbclient and the
         # Python library otherwise. Thus, this version has to be equal to the
         # python-mysqldb version of the system we support. This is currently
-        # Ubuntu Bionic, see https://packages.ubuntu.com/bionic/python-mysqldb
-        "mysqldatastore": ["mysqlclient==1.3.10"],
+        # Ubuntu Jammy, see
+        # https://packages.ubuntu.com/en/jammy/python3-mysqldb
+        "mysqldatastore": ["mysqlclient>=1.3.10,<=1.4.6"],
         # TODO: We currently release fleetspeak-server-bin packages
         # for Linux only.
-        ":sys_platform==\"linux\"": ["fleetspeak-server-bin==0.1.11",],
+        ':sys_platform=="linux"': [
+            "fleetspeak-server-bin==0.1.11",
+        ],
     },
-    data_files=data_files)
+    data_files=data_files,
+)
 
 setup(**setup_args)

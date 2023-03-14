@@ -23,7 +23,7 @@ export class YaraProcessScanDetails extends Plugin {
   readonly title$ = this.flowArgs$.pipe(map(
       args => `Processes matching ${args.yaraSignature ?? '(no YARA rule)'}`));
 
-  readonly query$: Observable<FlowResultsQueryWithAdapter<ReadonlyArray<Row>>> =
+  readonly query$: Observable<FlowResultsQueryWithAdapter<readonly Row[]>> =
       this.flow$.pipe(map(flow => ({
                             flow,
                             withType: 'YaraProcessScanMatch',
@@ -59,7 +59,7 @@ declare interface Row {
   data: string;
 }
 
-const resultMapper: FlowResultMapFunction<ReadonlyArray<Row>> = (results) =>
+const resultMapper: FlowResultMapFunction<readonly Row[]> = (results) =>
     (results ?? [])
         .map(res => res.payload as YaraProcessScanMatch)
         .flatMap(

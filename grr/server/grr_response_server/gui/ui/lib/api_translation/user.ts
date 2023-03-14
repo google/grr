@@ -19,9 +19,8 @@ export function translateGrrUser(apiGrrUser: ApiGrrUser): GrrUser {
 
 /** Extracts usernames from API ApproverSuggestions. */
 export function translateApproverSuggestions(
-    suggestions:
-        ReadonlyArray<ApiListApproverSuggestionsResultApproverSuggestion>):
-    ReadonlyArray<string> {
+    suggestions: readonly ApiListApproverSuggestionsResultApproverSuggestion[]):
+    readonly string[] {
   return suggestions.map(suggestion => suggestion.username).filter(isNonNull);
 }
 

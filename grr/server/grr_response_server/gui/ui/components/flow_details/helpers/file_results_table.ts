@@ -116,7 +116,7 @@ export declare interface TableRow {
   readonly status?: Status;
 }
 
-const BASE_COLUMNS: ReadonlyArray<string> = [
+const BASE_COLUMNS: readonly string[] = [
   'ficon',
   'path',
   'mode',
@@ -141,7 +141,7 @@ export class FileResultsTable implements OnDestroy, AfterViewInit {
   readonly IN_PROGRESS = StatusIcon.IN_PROGRESS;
 
   /** Subject corresponding to "results" binding. */
-  readonly results$ = new BehaviorSubject<ReadonlyArray<FlowFileResult>>([]);
+  readonly results$ = new BehaviorSubject<readonly FlowFileResult[]>([]);
 
   /** Subject corresponding to "totalCount" binding. */
   readonly totalCount$ = new BehaviorSubject<number>(0);
@@ -171,7 +171,7 @@ export class FileResultsTable implements OnDestroy, AfterViewInit {
   /** dataSource used as input for mat-table. */
   readonly dataSource = new MatTableDataSource<TableRow>();
   /** Subject producting table rows data provided to dataSource. */
-  readonly rows$: Observable<ReadonlyArray<TableRow>> =
+  readonly rows$: Observable<readonly TableRow[]> =
       this.results$.pipe(map((entries) => {
         return entries.map((e) => {
           return {
@@ -203,11 +203,11 @@ export class FileResultsTable implements OnDestroy, AfterViewInit {
       ]).pipe(map(([results, count]) => results.length < count));
 
   @Input()
-  set results(value: ReadonlyArray<FlowFileResult>|null) {
+  set results(value: readonly FlowFileResult[]|null) {
     this.results$.next(value ?? []);
   }
 
-  get results(): ReadonlyArray<FlowFileResult> {
+  get results(): readonly FlowFileResult[] {
     return this.results$.value;
   }
 

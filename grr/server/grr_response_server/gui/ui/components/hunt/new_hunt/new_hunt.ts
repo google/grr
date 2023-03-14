@@ -4,7 +4,7 @@ import {BehaviorSubject, combineLatest, Observable, of} from 'rxjs';
 import {filter, map, startWith, switchMap, takeUntil, tap} from 'rxjs/operators';
 
 import {FlowWithDescriptor} from '../../../lib/models/flow';
-import {Hunt} from '../../../lib/models/hunt';
+import {getHuntTitle, Hunt} from '../../../lib/models/hunt';
 import {isNonNull, isNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {HuntApprovalGlobalStore} from '../../../store/hunt_approval_global_store';
@@ -53,15 +53,7 @@ export class NewHunt implements AfterViewInit {
   readonly ngOnDestroy = observeOnDestroy(this);
 
   huntName = '';
-  protected readonly huntsOverviewRoute = [
-    '', {
-      outlets: {
-        'primary': [
-          'hunts',
-        ]
-      }
-    }
-  ];
+  protected readonly huntsOverviewRoute = ['/hunts'];
 
   readonly hasOrigin$ =
       combineLatest([this.flowWithDescriptor$, this.originalHunt$])
@@ -154,9 +146,9 @@ export class NewHunt implements AfterViewInit {
               if (isNull(v)) {
                 return;
               }
-              if (v.description) {
-                this.huntName = v.description;
-              }
+
+              this.titleEditor?.setText(getHuntTitle(v) + ' (copy)');
+
               if (v.clientRuleSet) {
                 this.clientsForm.setFormState(v.clientRuleSet);
               }

@@ -18,7 +18,11 @@ const BIG_ZERO = BigInt(0);
 function getPercentage(part: bigint, all: bigint): bigint {
   if (part === BIG_ZERO || all === BIG_ZERO) return BIG_ZERO;
 
-  return part * BigInt(100) / all;
+  return getPositiveOrZero(part * BigInt(100) / all);
+}
+
+function getPositiveOrZero(num: bigint): bigint {
+  return num < BIG_ZERO ? BIG_ZERO : num;
 }
 
 /** Provides progress information for the current hunt. */
@@ -43,14 +47,14 @@ export class HuntProgress {
             tooltip: 'Clients that have finished the collection.',
             relative:
                 getPercentage(hunt.completedClientsCount, hunt.allClientsCount),
-            raw: hunt.completedClientsCount,
+            raw: getPositiveOrZero(hunt.completedClientsCount),
           },
           {
             title: 'In progress',
             tooltip: 'Scheduled clients (collection running).',
             relative:
                 getPercentage(hunt.remainingClientsCount, hunt.allClientsCount),
-            raw: hunt.remainingClientsCount,
+            raw: getPositiveOrZero(hunt.remainingClientsCount),
           },
           {
             title: 'Without results',
@@ -58,14 +62,32 @@ export class HuntProgress {
             relative: getPercentage(
                 hunt.completedClientsCount - hunt.clientsWithResultsCount,
                 hunt.allClientsCount),
-            raw: hunt.completedClientsCount - hunt.clientsWithResultsCount,
+            raw: getPositiveOrZero(
+                hunt.completedClientsCount - hunt.clientsWithResultsCount),
           },
           {
             title: 'With results',
             tooltip: 'Clients that finished with result',
             relative: getPercentage(
                 hunt.clientsWithResultsCount, hunt.allClientsCount),
-            raw: hunt.clientsWithResultsCount,
+            raw: getPositiveOrZero(hunt.clientsWithResultsCount),
+          },
+        ];
+      }));
+
+  protected errorSummaries$: Observable<readonly Summary[]> =
+      this.hunt$.pipe(map(hunt => {
+        if (!hunt) return [];
+
+        return [
+          {
+            title: 'Errors and Crashes',
+            tooltip: 'Clients that had problems in the collection.',
+            relative: getPercentage(
+                hunt.crashedClientsCount + hunt.failedClientsCount,
+                hunt.allClientsCount),
+            raw: getPositiveOrZero(
+                hunt.crashedClientsCount + hunt.failedClientsCount),
           },
         ];
       }));

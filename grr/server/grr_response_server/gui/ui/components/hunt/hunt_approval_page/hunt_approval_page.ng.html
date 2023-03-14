@@ -2,9 +2,9 @@
   <div class="wrapper">
     <mat-card>
       <mat-card-header>
-        <mat-card-title>
+        <mat-card-title name="approvalTitle">
           Approval request for fleet collection:
-          {{ approval.subject.name }}
+          {{ getHuntTitle(approval.subject) }}
         </mat-card-title>
         <mat-card-title
           ><app-copy-button class="mat-small monospace id">{{

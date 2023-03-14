@@ -38,7 +38,6 @@ class Sdist(sdist):
   """Make a sdist release."""
 
   REQUIRED_TEMPLATES = [
-      "GRR_maj.minor_amd64.exe.zip",
       "GRR_maj.minor_amd64.msi.zip",
       "grr_maj.minor_amd64.deb.zip",
       "grr_maj.minor_amd64.xar.zip",

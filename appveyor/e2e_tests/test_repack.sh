@@ -18,8 +18,8 @@ grr_client_build --verbose \
   --output_dir=.
 
 declare -A client_installers
-client_installers['Windows_64bit']='GRR_*_amd64.exe'
-client_installers['Windows_64bit_debug']='dbg_GRR_*_amd64.exe'
+client_installers['Windows_64bit']='GRR_*_amd64.msi'
+client_installers['Windows_64bit_debug']='dbg_GRR_*_amd64.msi'
 client_installers['Ubuntu_64bit']='grr_*_amd64.deb'
 client_installers['MacOS']='grr_*_amd64.pkg'
 

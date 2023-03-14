@@ -193,7 +193,8 @@ class _CursorProxy(object):
       # is done at a later stage), so there's practically no danger of a false
       # positive in this check.
       raise SemicolonNotAllowedInQueryError(
-          "cursor.execute() can execute a single SQL statement only")
+          "cursor.execute() can execute a single SQL statement only"
+      )
 
     try:
       result = self._forward(self.cursor.execute, query, args=args)
@@ -222,11 +223,24 @@ class _CursorProxy(object):
       if e.args[0] == 1051:
         return None
 
+      # Deprecated syntax error. Log, but don't fail.
+      if e.args[0] == 1287:
+        logging.warning("MySQL deprecated syntax: %s", e)
+        return None
+
+      # Memory range optimization warning. Log, but do not fail.
+      if e.args[0] == 3170:
+        logging.warning("MySQL range optimization warning: %s", e)
+        return None
+
       # TODO: check if newer versions of mysqlclient still report
       # the CONSTRAINT...FOREIGN KEY warning as a warning and not as an
       # integrity error.
-      if (isinstance(e.args[0], str) and "CONSTRAINT" in e.args[0] and
-          "FOREIGN KEY" in e.args[0]):
+      if (
+          isinstance(e.args[0], str)
+          and "CONSTRAINT" in e.args[0]
+          and "FOREIGN KEY" in e.args[0]
+      ):
         raise MySQLdb.IntegrityError(str(e))
 
       raise
