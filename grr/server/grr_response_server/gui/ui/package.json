@@ -26,7 +26,7 @@
     "angular-split": "^3.0.1",
     "codemirror": "^5.58.3",
     "deep-diff": "^1.0.2",
-    "luxon": "^1.25.0",
+    "luxon": "^1.28.1",
     "marked": "^0.7.0",
     "rxjs": "^7.0.0-beta.10",
     "tslib": "^2.3.0",
