@@ -4,7 +4,7 @@ env:
   GCS_BUCKET: autobuilds.grr-response.com
   GCS_BUCKET_OPENAPI: autobuilds-grr-openapi
   GCS_LATEST_PATH: _latest_server_deb
-  DOCKER_REPOSITORY: grrdocker/grr
+  DOCKER_REPOSITORY: ghcr.io/google/grr
 jobs:
 
   test-ubuntu:
@@ -268,7 +268,7 @@ jobs:
       - if: ${{ github.event_name == 'push' }}
         name: Push to GitHub Container registry
         run: |
-          docker push ghcr.io/google/grr:latest
+          docker push -a ${{ env.DOCKER_REPOSITORY }}
   upload:
     if: ${{ github.event_name == 'push' }}
     permissions:
