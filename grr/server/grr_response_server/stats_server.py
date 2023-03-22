@@ -3,6 +3,7 @@
 
 import errno
 from http import server as http_server
+import ipaddress
 import logging
 import socket
 import threading
@@ -16,13 +17,14 @@ from grr_response_server import base_stats_server
 StatsServerHandler = prometheus_client.MetricsHandler
 
 
-# Python's standard HTTP server implementation is broken and will work through
-# a IPv4 socket. This means, that on IPv6 only environment, the code will fail
-# to create the socket and fail in mysterious ways.
+# Python's standard HTTP server implementation works through a IPv4 socket.
+# This means, that on IPv6 only environment, the code will fail to create
+# the socket and fail in mysterious ways.
 #
-# We hack around this by overriding the `address_family` that `HTTPServer` uses
-# to create the socket and always use IPv6 (it was introduced in 1995, so it is
-# safe to expect that every modern stack will support it already).
+# We work around this by overriding the `address_family` that `HTTPServer` uses
+# to create the socket and always use IPv6 (it was introduced in 1995, but
+# there are a lot of modern environments still using IPv4 - Cloud environments,
+# for example).
 class IPv6HTTPServer(http_server.HTTPServer):
 
   address_family = socket.AF_INET6
@@ -44,9 +46,17 @@ class StatsServer(base_stats_server.BaseStatsServer):
 
   def Start(self):
     """Start HTTPServer."""
+    ip = ipaddress.ip_address(self.address)
+    if ip.version == 4:
+      server_cls = http_server.HTTPServer
+    else:
+      server_cls = IPv6HTTPServer
+
     try:
-      self._http_server = IPv6HTTPServer((self.address, self.port),
-                                         StatsServerHandler)
+      self._http_server = server_cls(
+          (self.address, self.port),
+          StatsServerHandler,
+      )
     except socket.error as e:
       if e.errno == errno.EADDRINUSE:
         raise base_stats_server.PortInUseError(self.port)

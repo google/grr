@@ -1408,8 +1408,11 @@ class ApiListAndResetUserNotificationsHandler(
 
   def Handle(self, args, context=None):
     """Fetches the user notifications."""
-    back_timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
-        2 * 52, rdfvalue.WEEKS)
+    back_timestamp = max(
+        rdfvalue.RDFDatetime.Now()
+        - rdfvalue.Duration.From(2 * 52, rdfvalue.WEEKS),
+        data_store.REL_DB.MinTimestamp(),
+    )
     ns = data_store.REL_DB.ReadUserNotifications(
         context.username, timerange=(back_timestamp, None))
 

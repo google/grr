@@ -711,4 +711,54 @@ describe('HuntResults', () => {
     expect(rows[0].innerText.trim()).toContain('banana');
     expect(rows[0].innerText.trim()).toContain('1970-01-01 00:00:00 UTC');
   });
+
+  it('expands ExecutePythonHackResult type', () => {
+    const fixture = TestBed.createComponent(HuntResults);
+    fixture.detectChanges();
+
+    const res: readonly ApiHuntResult[] = [
+      {
+        clientId: 'C.1234',
+        payloadType: 'ExecuteBinaryResponse',
+        payload: {
+          'exitStatus': 0,
+          'stdout': btoa('I\'m out'),
+          'stderr': btoa('I\'m groot'),
+        }
+      },
+    ];
+    receiveResults(huntPageGlobalStore, res);
+    fixture.detectChanges();
+
+    const rows = fixture.nativeElement.querySelectorAll('mat-row');
+    expect(rows.length).toBe(1);
+
+    expect(rows[0].innerText.trim()).toContain('C.1234');
+    expect(rows[0].innerText.trim()).toContain('0');
+    expect(rows[0].innerText.trim()).toContain('I\'m out');
+    expect(rows[0].innerText.trim()).toContain('I\'m groot');
+  });
+
+  it('expands ExecutePythonHackResult type', () => {
+    const fixture = TestBed.createComponent(HuntResults);
+    fixture.detectChanges();
+
+    const res: readonly ApiHuntResult[] = [
+      {
+        clientId: 'C.1234',
+        payloadType: 'ExecutePythonHackResult',
+        payload: {
+          'resultString': 'potato',
+        }
+      },
+    ];
+    receiveResults(huntPageGlobalStore, res);
+    fixture.detectChanges();
+
+    const rows = fixture.nativeElement.querySelectorAll('mat-row');
+    expect(rows.length).toBe(1);
+
+    expect(rows[0].innerText.trim()).toContain('C.1234');
+    expect(rows[0].innerText.trim()).toContain('potato');
+  });
 });

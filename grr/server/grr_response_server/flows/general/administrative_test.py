@@ -505,8 +505,9 @@ magic_return_str = "foo(%s)"
 
     samples = data_store.REL_DB.ReadClientStats(
         client_id=client_id,
-        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
-        max_timestamp=rdfvalue.RDFDatetime.Now())
+        min_timestamp=data_store.REL_DB.MinTimestamp(),
+        max_timestamp=rdfvalue.RDFDatetime.Now(),
+    )
     self.assertNotEmpty(samples)
     sample = samples[0]
 

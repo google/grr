@@ -578,6 +578,16 @@ class Database(metaclass=abc.ABCMeta):
   def Now(self) -> rdfvalue.RDFDatetime:
     """Retrieves current time as reported by the database."""
 
+  # Different DB engines might make different assumptions about what a valid
+  # minimal timestamp is.
+  # For example, MySQL doesn't handle sub second fractional timestamps well:
+  # Per https://dev.mysql.com/doc/refman/8.0/en/datetime.html:
+  # "the range for TIMESTAMP values is '1970-01-01 00:00:01.000000' to
+  # '2038-01-19 03:14:07.999999'".
+  @abc.abstractmethod
+  def MinTimestamp(self) -> rdfvalue.RDFDatetime:
+    """Returns minimal timestamp allowed by the DB."""
+
   @abc.abstractmethod
   def WriteArtifact(self, artifact):
     """Writes new artifact to the database.
@@ -3062,6 +3072,9 @@ class DatabaseValidationWrapper(Database):
   def Now(self) -> rdfvalue.RDFDatetime:
     return self.delegate.Now()
 
+  def MinTimestamp(self) -> rdfvalue.RDFDatetime:
+    return self.delegate.MinTimestamp()
+
   def WriteArtifact(self, artifact):
     precondition.AssertType(artifact, rdf_artifacts.Artifact)
     if not artifact.name:
@@ -3185,7 +3198,7 @@ class DatabaseValidationWrapper(Database):
   def ReadClientSnapshotHistory(self, client_id, timerange=None):
     precondition.ValidateClientId(client_id)
     if timerange is not None:
-      _ValidateTimeRange(timerange)
+      self._ValidateTimeRange(timerange)
 
     return self.delegate.ReadClientSnapshotHistory(
         client_id, timerange=timerange)
@@ -3205,7 +3218,7 @@ class DatabaseValidationWrapper(Database):
   def ReadClientStartupInfoHistory(self, client_id, timerange=None):
     precondition.ValidateClientId(client_id)
     if timerange is not None:
-      _ValidateTimeRange(timerange)
+      self._ValidateTimeRange(timerange)
 
     return self.delegate.ReadClientStartupInfoHistory(
         client_id, timerange=timerange)
@@ -3250,7 +3263,7 @@ class DatabaseValidationWrapper(Database):
     keywords = set(keywords)
 
     if start_time:
-      _ValidateTimestamp(start_time)
+      self._ValidateTimestamp(start_time)
 
     result = self.delegate.ListClientsForKeywords(
         keywords, start_time=start_time)
@@ -3324,12 +3337,12 @@ class DatabaseValidationWrapper(Database):
     if min_timestamp is None:
       min_timestamp = rdfvalue.RDFDatetime.Now() - CLIENT_STATS_RETENTION
     else:
-      _ValidateTimestamp(min_timestamp)
+      self._ValidateTimestamp(min_timestamp)
 
     if max_timestamp is None:
       max_timestamp = rdfvalue.RDFDatetime.Now()
     else:
-      _ValidateTimestamp(max_timestamp)
+      self._ValidateTimestamp(max_timestamp)
 
     return self.delegate.ReadClientStats(client_id, min_timestamp,
                                          max_timestamp)
@@ -3475,7 +3488,7 @@ class DatabaseValidationWrapper(Database):
     _ValidatePathComponents(components)
 
     if timestamp is not None:
-      _ValidateTimestamp(timestamp)
+      self._ValidateTimestamp(timestamp)
 
     return self.delegate.ReadPathInfo(
         client_id, path_type, components, timestamp=timestamp)
@@ -3525,7 +3538,7 @@ class DatabaseValidationWrapper(Database):
     precondition.ValidateClientId(client_id)
 
     if timestamp is not None:
-      _ValidateTimestamp(timestamp)
+      self._ValidateTimestamp(timestamp)
 
     return self.delegate.FindPathInfoByPathID(  # pytype: disable=attribute-error
         client_id, path_type, path_id, timestamp=timestamp)
@@ -3596,7 +3609,7 @@ class DatabaseValidationWrapper(Database):
   def ReadUserNotifications(self, username, state=None, timerange=None):
     _ValidateUsername(username)
     if timerange is not None:
-      _ValidateTimeRange(timerange)
+      self._ValidateTimeRange(timerange)
     if state is not None:
       _ValidateNotificationState(state)
 
@@ -3759,7 +3772,7 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadCronJobRuns(job_id)
 
   def DeleteOldCronJobRuns(self, cutoff_timestamp):
-    _ValidateTimestamp(cutoff_timestamp)
+    self._ValidateTimestamp(cutoff_timestamp)
     return self.delegate.DeleteOldCronJobRuns(cutoff_timestamp)
 
   def WriteHashBlobReferences(self, references_by_hash):
@@ -3880,10 +3893,10 @@ class DatabaseValidationWrapper(Database):
       precondition.AssertType(client_crash_info, rdf_client.ClientCrash)
     if processing_since != Database.unchanged:
       if processing_since is not None:
-        _ValidateTimestamp(processing_since)
+        self._ValidateTimestamp(processing_since)
     if processing_deadline != Database.unchanged:
       if processing_deadline is not None:
-        _ValidateTimestamp(processing_deadline)
+        self._ValidateTimestamp(processing_deadline)
     return self.delegate.UpdateFlow(
         client_id,
         flow_id,
@@ -4487,6 +4500,33 @@ class DatabaseValidationWrapper(Database):
 
     return self.delegate.ReadBlobEncryptionKeys(blob_ids)
 
+  # Minimal allowed timestamp is DB-specific. Thus the validation code for
+  # timestamps is DB-specific as well.
+  def _ValidateTimeRange(
+      self, timerange: Tuple[rdfvalue.RDFDatetime, rdfvalue.RDFDatetime]
+  ):
+    """Parses a timerange argument and always returns non-None timerange."""
+    if len(timerange) != 2:
+      raise ValueError("Timerange should be a sequence with 2 items.")
+
+    (start, end) = timerange
+    precondition.AssertOptionalType(start, rdfvalue.RDFDatetime)
+    precondition.AssertOptionalType(end, rdfvalue.RDFDatetime)
+    if start is not None:
+      self._ValidateTimestamp(start)
+    if end is not None:
+      self._ValidateTimestamp(end)
+
+  # Minimal allowed timestamp is DB-specific. Thus the validation code for
+  # timestamps is DB-specific as well.
+  def _ValidateTimestamp(self, timestamp: rdfvalue.RDFDatetime):
+    precondition.AssertType(timestamp, rdfvalue.RDFDatetime)
+    if timestamp < self.delegate.MinTimestamp():
+      raise ValueError(
+          "Timestamp is less than the minimal timestamp allowed by the DB: "
+          f"{timestamp} < {self.delegate.MinTimestamp()}."
+      )
+
 
 def _ValidateEnumType(value, expected_enum_type):
   if value not in expected_enum_type.reverse_enum:
@@ -4606,33 +4646,8 @@ def _ValidateNotificationState(notification_state):
     raise ValueError("notification_state can't be STATE_UNSET")
 
 
-def _ValidateTimeRange(timerange):
-  """Parses a timerange argument and always returns non-None timerange."""
-  if len(timerange) != 2:
-    raise ValueError("Timerange should be a sequence with 2 items.")
-
-  (start, end) = timerange
-  precondition.AssertOptionalType(start, rdfvalue.RDFDatetime)
-  precondition.AssertOptionalType(end, rdfvalue.RDFDatetime)
-
-
-def _ValidateClosedTimeRange(time_range):
-  """Checks that a time-range has both start and end timestamps set."""
-  time_range_start, time_range_end = time_range
-  _ValidateTimestamp(time_range_start)
-  _ValidateTimestamp(time_range_end)
-  if time_range_start > time_range_end:
-    raise ValueError("Invalid time-range: %d > %d." %
-                     (time_range_start.AsMicrosecondsSinceEpoch(),
-                      time_range_end.AsMicrosecondsSinceEpoch()))
-
-
 def _ValidateDuration(duration):
   precondition.AssertType(duration, rdfvalue.Duration)
-
-
-def _ValidateTimestamp(timestamp):
-  precondition.AssertType(timestamp, rdfvalue.RDFDatetime)
 
 
 def _ValidateClientPathID(client_path_id):

@@ -48,6 +48,14 @@
                   {{ element[colDesc.key] }}
                 </span>
 
+                <ng-container
+                  *ngSwitchCase="CellComponent.TRACE" >
+                  <app-copy-button
+                      [innerText]="element[colDesc.key]"
+                      class="monospace">
+                  </app-copy-button>
+                </ng-container>
+
                 <a
                   mat-stroked-button
                   *ngSwitchCase="CellComponent.DRAWER_LINK"
@@ -60,7 +68,7 @@
                 </a>
 
                 <ng-container *ngSwitchDefault class="default-wrap">
-                  <app-copy-button *ngIf="element[colDesc.key]">{{
+                  <app-copy-button *ngIf="element[colDesc.key]?.toString()">{{
                     element[colDesc.key]
                   }}</app-copy-button>
                 </ng-container>

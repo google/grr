@@ -4,6 +4,7 @@
 import contextlib
 import logging
 import os
+import re
 import time
 from typing import Callable, Optional, Sequence, Text
 
@@ -106,5 +107,24 @@ def DumpCurrentSchema(cursor: Cursor) -> Text:
     cursor.execute("SHOW CREATE TABLE `{}`".format(table))
     rows = cursor.fetchall()
     defs.append(rows[0][1])
+
+  cursor.execute("""
+      SELECT TRIGGER_NAME FROM INFORMATION_SCHEMA.TRIGGERS
+      WHERE trigger_schema = (SELECT DATABASE())
+  """)
+  for (trigger,) in sorted(cursor.fetchall()):
+    cursor.execute(f"SHOW CREATE TRIGGER `{trigger}`")
+    rows = cursor.fetchall()
+
+    # `SHOW CREATE TRIGGER` will return the concrete definer of the trigger,
+    # so we need to patch its output here to show the default `CURRENT_USER`.
+    trigger_def = re.sub(
+        r"^CREATE\s+DEFINER\s*=\s*`[^`]+`(@`[^`]+`)?\s*TRIGGER",
+        "CREATE DEFINER = CURRENT_USER TRIGGER",
+        rows[0][2],
+        count=1,
+        flags=re.DOTALL | re.MULTILINE,
+    )
+    defs.append(trigger_def)
 
   return "\n\n".join(defs)

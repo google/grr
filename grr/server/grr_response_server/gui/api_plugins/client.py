@@ -439,8 +439,10 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, context=None):
     end_time = args.end or rdfvalue.RDFDatetime.Now()
-    start_time = args.start or end_time - rdfvalue.Duration.From(
-        3, rdfvalue.MINUTES)
+    start_time = max(
+        args.start or end_time - rdfvalue.Duration.From(3, rdfvalue.MINUTES),
+        data_store.REL_DB.MinTimestamp(),
+    )
     items = []
 
     client_id = str(args.client_id)

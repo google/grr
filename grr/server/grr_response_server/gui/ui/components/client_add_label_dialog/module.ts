@@ -18,24 +18,19 @@ import {ClientAddLabelDialog} from './client_add_label_dialog';
   imports: [
     CommonModule,
     ReactiveFormsModule,
-
     MatAutocompleteModule,
     MatButtonModule,
     MatDialogModule,
     MatInputModule,
     MatTooltipModule,
-
     SubmitOnMetaEnterModule,
   ],
   declarations: [
     ClientAddLabelDialog,
   ],
-  entryComponents: [
-    ClientAddLabelDialog,
-  ],
   exports: [
     ClientAddLabelDialog,
-  ],
+  ]
 })
 export class ClientAddLabelDialogModule {
 }

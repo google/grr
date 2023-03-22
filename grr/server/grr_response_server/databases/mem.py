@@ -160,3 +160,6 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
   def Now(self) -> rdfvalue.RDFDatetime:
     del self  # Unused.
     return rdfvalue.RDFDatetime.Now()
+
+  def MinTimestamp(self) -> rdfvalue.RDFDatetime:
+    return rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)

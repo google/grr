@@ -302,12 +302,12 @@ class DatabaseTestFlowMixin(object):
 
     self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
 
-    before_timestamp = rdfvalue.RDFDatetime.Now()
+    before_timestamp = self.db.Now()
 
     flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
     self.db.WriteFlowObject(flow_obj)
 
-    after_timestamp = rdfvalue.RDFDatetime.Now()
+    after_timestamp = self.db.Now()
 
     flow_obj = self.db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
     self.assertBetween(flow_obj.create_time, before_timestamp, after_timestamp)
@@ -318,13 +318,13 @@ class DatabaseTestFlowMixin(object):
 
     self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
 
-    before_timestamp = rdfvalue.RDFDatetime.Now()
+    before_timestamp = self.db.Now()
 
     flow_obj = rdf_flow_objects.Flow(client_id=client_id, flow_id=flow_id)
     flow_obj.create_time = None
     self.db.WriteFlowObject(flow_obj)
 
-    after_timestamp = rdfvalue.RDFDatetime.Now()
+    after_timestamp = self.db.Now()
 
     flow_obj = self.db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
     self.assertBetween(flow_obj.create_time, before_timestamp, after_timestamp)
@@ -698,7 +698,7 @@ class DatabaseTestFlowMixin(object):
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
 
-    now = rdfvalue.RDFDatetime.Now()
+    now = self.db.Now()
     deadline = now + rdfvalue.Duration.From(6, rdfvalue.HOURS)
     self.db.UpdateFlow(
         client_id,
@@ -1530,10 +1530,10 @@ class DatabaseTestFlowMixin(object):
   def testFlowLastUpdateTime(self):
     processing_time = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
 
-    t0 = rdfvalue.RDFDatetime.Now()
+    t0 = self.db.Now()
     client_id = db_test_utils.InitializeClient(self.db)
     flow_id = db_test_utils.InitializeFlow(self.db, client_id)
-    t1 = rdfvalue.RDFDatetime.Now()
+    t1 = self.db.Now()
 
     read_flow = self.db.ReadFlowObject(client_id, flow_id)
 
@@ -1543,9 +1543,9 @@ class DatabaseTestFlowMixin(object):
         client_id, flow_id, processing_time)
     self.assertBetween(flow_for_processing.last_update_time, t0, t1)
 
-    t2 = rdfvalue.RDFDatetime.Now()
+    t2 = self.db.Now()
     self.db.ReleaseProcessedFlow(flow_for_processing)
-    t3 = rdfvalue.RDFDatetime.Now()
+    t3 = self.db.Now()
 
     read_flow = self.db.ReadFlowObject(client_id, flow_id)
     self.assertBetween(read_flow.last_update_time, t2, t3)

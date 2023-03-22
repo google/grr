@@ -79,7 +79,6 @@ const FORMS = [
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
-
     CdkTreeModule,
     MatAutocompleteModule,
     MatButtonModule,
@@ -95,9 +94,7 @@ const FORMS = [
     MatSelectModule,
     MatTreeModule,
     MatTooltipModule,
-
     CodeEditorModule,
-
     ByteComponentsModule,
     CommaSeparatedInputModule,
     DateTimeInputModule,
@@ -108,10 +105,9 @@ const FORMS = [
     ValidationModule,
   ],
   declarations: FORMS,
-  entryComponents: FORMS,
   exports: [
     FlowArgsForm,
-  ],
+  ]
 })
 export class FlowArgsFormModule {
 }

@@ -278,6 +278,8 @@ class MySQLDBPathMixin(object):
       cursor.executemany(query, parent_path_info_values)
 
     if stat_entry_values:
+      # Note: `client_paths.last_stat_entry_timestamp` will get updated via
+      # a DB trigger during the execution of this query.
       query = """
         INSERT INTO client_path_stat_entries(client_id, path_type, path_id,
                                              timestamp,
@@ -286,19 +288,9 @@ class MySQLDBPathMixin(object):
       """
       cursor.executemany(query, stat_entry_values)
 
-      query = """
-        UPDATE client_paths
-        FORCE INDEX (PRIMARY)
-        SET last_stat_entry_timestamp = FROM_UNIXTIME(%s)
-        WHERE (client_id, path_type, path_id) IN ({})
-      """.format(
-          ",".join(["(%s, %s, %s)"] * len(stat_entry_values))
-      )
-
-      params = [mysql_utils.RDFDatetimeToTimestamp(now)] + stat_entry_keys
-      cursor.execute(query, params)
-
     if hash_entry_values:
+      # Note: `client_paths.last_hash_entry_timestamp` will get updated via
+      # a DB trigger during the execution of this query.
       query = """
         INSERT INTO client_path_hash_entries(client_id, path_type, path_id,
                                              timestamp,
@@ -306,18 +298,6 @@ class MySQLDBPathMixin(object):
         VALUES (%s, %s, %s, FROM_UNIXTIME(%s), %s, %s)
       """
       cursor.executemany(query, hash_entry_values)
-
-      query = """
-        UPDATE client_paths
-        FORCE INDEX (PRIMARY)
-        SET last_hash_entry_timestamp = FROM_UNIXTIME(%s)
-        WHERE (client_id, path_type, path_id) IN ({})
-      """.format(
-          ",".join(["(%s, %s, %s)"] * len(hash_entry_values))
-      )
-
-      params = [mysql_utils.RDFDatetimeToTimestamp(now)] + hash_entry_keys
-      cursor.execute(query, params)
 
   @mysql_utils.WithTransaction(readonly=True)
   def ListDescendantPathInfos(self,

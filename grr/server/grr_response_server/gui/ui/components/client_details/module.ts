@@ -28,14 +28,12 @@ import {VolumesDetailsModule} from './volumes_details/module';
   imports: [
     CommonModule,
     RouterModule,
-
     MatButtonModule,
     MatChipsModule,
     MatDialogModule,
     MatDividerModule,
     MatIconModule,
     MatListModule,
-
     ClientDetailsRoutingModule,
     CopyButtonModule,
     EntryHistoryButtonModule,
@@ -48,9 +46,6 @@ import {VolumesDetailsModule} from './volumes_details/module';
   ],
   declarations: [
     ClientDetails,
-  ],
-  entryComponents: [
-    EntryHistoryDialog,
   ],
   exports: [
     ClientDetails,

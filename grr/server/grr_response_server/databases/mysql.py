@@ -594,3 +594,9 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     [(timestamp,)] = cursor.fetchall()
 
     return mysql_utils.TimestampToRDFDatetime(timestamp)
+
+  def MinTimestamp(self) -> rdfvalue.RDFDatetime:
+    # Per https://dev.mysql.com/doc/refman/8.0/en/datetime.html:
+    # "the range for TIMESTAMP values is '1970-01-01 00:00:01.000000' to
+    # '2038-01-19 03:14:07.999999'".
+    return rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1)

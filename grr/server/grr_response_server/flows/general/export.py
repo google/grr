@@ -36,6 +36,12 @@ def CollectionItemToClientPath(item, client_id=None):
     return db.ClientPath.FromPathSpec(client_id, item.pathspec)
   elif isinstance(item, rdf_file_finder.FileFinderResult):
     return db.ClientPath.FromPathSpec(client_id, item.stat_entry.pathspec)
+  elif isinstance(item, rdf_file_finder.CollectSingleFileResult):
+    return db.ClientPath.FromPathSpec(client_id, item.stat.pathspec)
+  elif isinstance(item, rdf_file_finder.CollectMultipleFilesResult):
+    return db.ClientPath.FromPathSpec(client_id, item.stat.pathspec)
+  elif isinstance(item, rdf_file_finder.CollectFilesByKnownPathResult):
+    return db.ClientPath.FromPathSpec(client_id, item.stat.pathspec)
   elif isinstance(item, collectors.ArtifactFilesDownloaderResult):
     if item.HasField("downloaded_file"):
       return db.ClientPath.FromPathSpec(client_id,
