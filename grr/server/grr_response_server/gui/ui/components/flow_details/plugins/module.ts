@@ -81,7 +81,6 @@ const COMPONENTS = [
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
-
     CdkTreeModule,
     MatButtonModule,
     MatCardModule,
@@ -99,7 +98,6 @@ const COMPONENTS = [
     MatTabsModule,
     MatSortModule,
     MatTreeModule,
-
     CopyButtonModule,
     DrawerLinkModule,
     HelpersModule,
@@ -107,8 +105,7 @@ const COMPONENTS = [
     FilterPaginate,
   ],
   declarations: COMPONENTS,
-  exports: COMPONENTS,
-  entryComponents: COMPONENTS
+  exports: COMPONENTS
 })
 export class PluginsModule {
 }

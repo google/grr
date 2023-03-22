@@ -181,8 +181,8 @@ class SystemCronJobTest(test_lib.GRRBaseTest):
         data_store.REL_DB.WriteClientStats(client_id, st)
 
     stat_entries = data_store.REL_DB.ReadClientStats(
-        client_id=client_id,
-        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
+        client_id=client_id, min_timestamp=data_store.REL_DB.MinTimestamp()
+    )
 
     self.assertCountEqual([1 * max_age, 1.5 * max_age, 2 * max_age],
                           [e.RSS_size for e in stat_entries])

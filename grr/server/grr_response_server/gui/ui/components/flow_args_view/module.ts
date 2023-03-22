@@ -25,12 +25,9 @@ import {FlowArgsView} from './flow_args_view';
   declarations: [
     FlowArgsView,
   ],
-  entryComponents: [
-    FlowArgsView,
-  ],
   exports: [
     FlowArgsView,
-  ],
+  ]
 })
 export class FlowArgsViewModule {
 }

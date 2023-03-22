@@ -12,6 +12,7 @@ export enum CellComponent {
   HASH,
   HUMAN_READABLE_SIZE,
   TIMESTAMP,  // Takes in a Date object (see ComponentToType below)
+  TRACE,
   USERNAME,
 }
 
@@ -35,6 +36,7 @@ export declare interface ComponentToType {
   [CellComponent.HASH]: HexHash|undefined;
   [CellComponent.HUMAN_READABLE_SIZE]: bigint|undefined;
   [CellComponent.TIMESTAMP]: Date|undefined;
+  [CellComponent.TRACE]: string|undefined;
   [CellComponent.USERNAME]: string|undefined;
 }
 

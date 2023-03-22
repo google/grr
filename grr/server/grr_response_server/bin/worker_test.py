@@ -45,8 +45,9 @@ class GrrWorkerTest(flow_test_lib.FlowTestsBaseclass):
 
     results = data_store.REL_DB.ReadClientStats(
         client_id=client_id,
-        min_timestamp=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0),
-        max_timestamp=rdfvalue.RDFDatetime.Now())
+        min_timestamp=data_store.REL_DB.MinTimestamp(),
+        max_timestamp=rdfvalue.RDFDatetime.Now(),
+    )
     self.assertLen(results, 1)
     stats = results[0]
 

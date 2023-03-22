@@ -32,9 +32,6 @@ import {TableInfoItem} from './table_info_item';
   ],
   exports: [
     OsqueryQueryHelper,
-  ],
-  entryComponents: [
-    OsqueryQueryHelper,
   ]
 })
 export class OsqueryQueryHelperModule {

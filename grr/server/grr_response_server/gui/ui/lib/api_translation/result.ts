@@ -1,7 +1,7 @@
 import * as apiInterfaces from '../api/api_interfaces';
 import {CellComponent, CellData, ColumnDescriptor, PayloadTranslation} from '../models/result';
 
-import {translateHashToHex} from './flow';
+import {translateExecuteBinaryResponse, translateHashToHex} from './flow';
 import {getHuntResultKey} from './hunt';
 import {createOptionalBigInt, createOptionalDate} from './primitive';
 
@@ -188,6 +188,31 @@ export function toHuntErrorRow(err: apiInterfaces.ApiHuntError, huntId: string):
   };
 }
 
+/** EXECUTE_BINARY_COLUMNS describes how to render an ExecuteBinaryRow. */
+export const EXECUTE_BINARY_COLUMNS = {
+  'exitStatus': {title: 'Exit status'},
+  'stdout': {title: 'Standard output', component: CellComponent.TRACE},
+  'stderr': {title: 'Error output', component: CellComponent.TRACE},
+} as const;
+
+/** Constructs an ExecuteBinaryRow from an ExecuteBinaryResponse. */
+export function toExecuteBinaryRow(e: apiInterfaces.ExecuteBinaryResponse):
+    CellData<typeof EXECUTE_BINARY_COLUMNS> {
+  return translateExecuteBinaryResponse(e);
+}
+
+/** EXECUTE_PYTHON_HACK_COLUMNS describes how to render an ExecuteBinaryRow. */
+export const EXECUTE_PYTHON_HACK_COLUMNS = {
+  'result': {title: 'Result', component: CellComponent.TRACE},
+} as const;
+
+/** Constructs an ExecutePythonHackRow from an ExecutePythonHackResult. */
+export function toExecutePythonHackRow(
+    e: apiInterfaces.ExecutePythonHackResult):
+    CellData<typeof EXECUTE_PYTHON_HACK_COLUMNS> {
+  return {'result': e.resultString};
+}
+
 const FILE_TAB = 'Files';
 const CLIENT_INFO_TAB = 'Client Info';
 /** ERROR_TAB is used to identify error results tab. */
@@ -204,6 +229,8 @@ export enum PayloadType {
   STAT_ENTRY = 'StatEntry',
   USER = 'User',
   API_HUNT_ERROR = 'ApiHuntError',
+  EXECUTE_BINARY_RESPONSE = 'ExecuteBinaryResponse',
+  EXECUTE_PYTHON_HACK_RESULT = 'ExecutePythonHackResult',
 }
 
 /** Maps PayloadType to corresponding translation information. */
@@ -254,4 +281,14 @@ export const PAYLOAD_TYPE_TRANSLATION: {
     translateFn: toHuntErrorRow,
     columns: ERROR_COLUMNS,
   } as PayloadTranslation<typeof ERROR_COLUMNS>,
+  [PayloadType.EXECUTE_BINARY_RESPONSE]: {
+    tabName: 'Binary execution',
+    translateFn: toExecuteBinaryRow,
+    columns: EXECUTE_BINARY_COLUMNS,
+  } as PayloadTranslation<typeof EXECUTE_BINARY_COLUMNS>,
+  [PayloadType.EXECUTE_PYTHON_HACK_RESULT]: {
+    tabName: 'Python execution',
+    translateFn: toExecutePythonHackRow,
+    columns: EXECUTE_PYTHON_HACK_COLUMNS,
+  } as PayloadTranslation<typeof EXECUTE_PYTHON_HACK_COLUMNS>,
 } as const;
