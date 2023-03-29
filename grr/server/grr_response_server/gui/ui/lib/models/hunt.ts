@@ -83,6 +83,15 @@ export interface HuntApprovalRequest extends ApprovalRequest {
   readonly huntId: string;
 }
 
+/** Data format for rows in the Hunt Completion Progress table */
+export interface HuntCompletionProgressTableRow {
+  timestamp: number;
+  completedClients?: bigint;
+  scheduledClients?: bigint;
+  completedClientsPct?: bigint;
+  scheduledClientsPct?: bigint;
+}
+
 /** Gets the hunt title to be displayed across different pages */
 export function getHuntTitle(hunt: Hunt|null): string {
   const name = hunt?.name === 'GenericHunt' ? '' : hunt?.name;

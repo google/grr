@@ -125,6 +125,7 @@ class InMemoryDBHuntMixin(object):
       with_description_match=None,
       created_by=None,
       not_created_by=None,
+      with_states=None,
   ):
     """Reads metadata for hunt objects from the database."""
     filter_fns = []
@@ -138,6 +139,8 @@ class InMemoryDBHuntMixin(object):
       filter_fns.append(lambda h: h.create_time > created_after)
     if with_description_match is not None:
       filter_fns.append(lambda h: with_description_match in h.description)
+    if with_states is not None:
+      filter_fns.append(lambda h: h.hunt_state in with_states)
     filter_fn = lambda h: all(f(h) for f in filter_fns)
 
     result = [self._DeepCopy(h) for h in self.hunts.values() if filter_fn(h)]
@@ -155,6 +158,7 @@ class InMemoryDBHuntMixin(object):
       with_description_match=None,
       created_by=None,
       not_created_by=None,
+      with_states=None,
   ):
     """Reads all hunt objects from the database."""
     filter_fns = []
@@ -168,6 +172,8 @@ class InMemoryDBHuntMixin(object):
       filter_fns.append(lambda h: h.create_time > created_after)
     if with_description_match is not None:
       filter_fns.append(lambda h: with_description_match in h.description)
+    if with_states is not None:
+      filter_fns.append(lambda h: h.hunt_state in with_states)
     filter_fn = lambda h: all(f(h) for f in filter_fns)
 
     result = []

@@ -21,11 +21,6 @@ if [[ "%(ClientBuilder.fleetspeak_bundled)" != "True" ]]; then
     systemctl --system daemon-reload >/dev/null 2>&1 || true
   fi
 
-  # Delete upstart config file.
-  if [[ -e "/etc/init/%(ClientBuilder.package_name).conf" ]]; then
-    rm -f "/etc/init/%(ClientBuilder.package_name).conf" >/dev/null 2>&1 || true
-  fi
-
   # Delete sysvinit service file, and all its /etc/rc${runlevel}.d links.
   if [[ -e "/etc/init.d/%(ClientBuilder.package_name)" ]]; then
     rm -f "/etc/init.d/%(ClientBuilder.package_name)" >/dev/null 2>&1 || true
@@ -39,8 +34,6 @@ if [[ "%(ClientBuilder.fleetspeak_bundled)" != "True" ]]; then
   # Fleetspeak currently only supports platforms using Upstart or systemd.
   if [[ -d /run/systemd/system ]]; then
     deb-systemd-invoke restart "%(Client.fleetspeak_service_name).service" || true
-  elif [[ -e "/etc/init/%(Client.fleetspeak_service_name).conf" ]]; then
-    invoke-rc.d "%(Client.fleetspeak_service_name)" restart || true
   fi
 fi
 

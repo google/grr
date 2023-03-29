@@ -211,6 +211,14 @@ class DatabaseTestHuntMixin(object):
       result.append(self.db.ReadHuntObject(hunt_obj.hunt_id))
     return result
 
+  def _CreateHuntWithState(
+      self, creator: str, state: rdf_hunt_objects.Hunt.HuntState
+  ) -> rdf_hunt_objects.Hunt:
+    hunt_obj = rdf_hunt_objects.Hunt(creator=creator)
+    self.db.WriteHuntObject(hunt_obj)
+    self.db.UpdateHuntObject(hunt_obj.hunt_id, hunt_state=state)
+    return self.db.ReadHuntObject(hunt_obj.hunt_id)
+
   def testReadHuntObjectsWithoutFiltersReadsAllHunts(self):
     expected = self._CreateMultipleHunts()
     got = self.db.ReadHuntObjects(0, db.MAX_COUNT)
@@ -393,6 +401,46 @@ class DatabaseTestHuntMixin(object):
     got = self.db.ReadHuntObjects(
         0, db.MAX_COUNT, with_description_match="foo_3")
     self.assertListEqual(got, [all_hunts[3]])
+
+  def testReadHuntObjectsWithStatesFilterIsAppliedCorrectly(self):
+    creator = "testuser"
+    self.db.WriteGRRUser(creator)
+    paused_hunt = self._CreateHuntWithState(
+        creator, rdf_hunt_objects.Hunt.HuntState.PAUSED
+    )
+    self._CreateHuntWithState(creator, rdf_hunt_objects.Hunt.HuntState.STARTED)
+    stopped_hunt = self._CreateHuntWithState(
+        creator, rdf_hunt_objects.Hunt.HuntState.STOPPED
+    )
+    self._CreateHuntWithState(
+        creator, rdf_hunt_objects.Hunt.HuntState.COMPLETED
+    )
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_states=[
+            rdf_hunt_objects.Hunt.HuntState.PAUSED,
+        ],
+    )
+    self.assertListEqual(got, [paused_hunt])
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_states=[
+            rdf_hunt_objects.Hunt.HuntState.PAUSED,
+            rdf_hunt_objects.Hunt.HuntState.STOPPED,
+        ],
+    )
+    self.assertCountEqual(got, [paused_hunt, stopped_hunt])
+
+    got = self.db.ReadHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_states=[],
+    )
+    self.assertListEqual(got, [])
 
   def testReadHuntObjectsCombinationsOfFiltersAreAppliedCorrectly(self):
     expected = self._CreateMultipleHunts()
@@ -595,16 +643,63 @@ class DatabaseTestHuntMixin(object):
     ]
 
     got = self.db.ListHuntObjects(
-        0, db.MAX_COUNT, with_description_match="foo_")
+        0, db.MAX_COUNT, with_description_match="foo_"
+    )
     self.assertListEqual(got, list(reversed(all_hunts)))
 
     got = self.db.ListHuntObjects(
-        0, db.MAX_COUNT, with_description_match="blah")
+        0, db.MAX_COUNT, with_description_match="blah"
+    )
     self.assertEmpty(got)
 
     got = self.db.ListHuntObjects(
-        0, db.MAX_COUNT, with_description_match="foo_3")
+        0, db.MAX_COUNT, with_description_match="foo_3"
+    )
     self.assertListEqual(got, [all_hunts[3]])
+
+  def testListHuntObjectsWithStatesFilterIsAppliedCorrectly(self):
+    creator = "testuser"
+    self.db.WriteGRRUser(creator)
+    paused_hunt_metadata = rdf_hunt_objects.HuntMetadata.FromHunt(
+        self._CreateHuntWithState(
+            creator, rdf_hunt_objects.Hunt.HuntState.PAUSED
+        )
+    )
+    self._CreateHuntWithState(creator, rdf_hunt_objects.Hunt.HuntState.STARTED)
+    stopped_hunt_metadata = rdf_hunt_objects.HuntMetadata.FromHunt(
+        self._CreateHuntWithState(
+            creator, rdf_hunt_objects.Hunt.HuntState.STOPPED
+        )
+    )
+    self._CreateHuntWithState(
+        creator, rdf_hunt_objects.Hunt.HuntState.COMPLETED
+    )
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_states=[
+            rdf_hunt_objects.Hunt.HuntState.PAUSED,
+        ],
+    )
+    self.assertCountEqual(got, [paused_hunt_metadata])
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_states=[
+            rdf_hunt_objects.Hunt.HuntState.PAUSED,
+            rdf_hunt_objects.Hunt.HuntState.STOPPED,
+        ],
+    )
+    self.assertCountEqual(got, [paused_hunt_metadata, stopped_hunt_metadata])
+
+    got = self.db.ListHuntObjects(
+        0,
+        db.MAX_COUNT,
+        with_states=[],
+    )
+    self.assertListEqual(got, [])
 
   def testListHuntObjectsCombinationsOfFiltersAreAppliedCorrectly(self):
     expected = self._CreateMultipleHunts()
@@ -616,6 +711,7 @@ class DatabaseTestHuntMixin(object):
             with_description_match="foo_4",
             created_by=frozenset(["user-a"]),
             not_created_by=frozenset(["user-b"]),
+            with_states=[rdf_hunt_objects.Hunt.HuntState.PAUSED],
         ),
         error_desc="ListHuntObjects",
     )

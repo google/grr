@@ -77,16 +77,20 @@
       Copy and tweak collection
     </button>
 
-    <button
-      *ngIf="(hunt$ | async)?.state === HuntState.RUNNING || (hunt$ | async)?.state === HuntState.PAUSED || (hunt$ | async)?.state === HuntState.NOT_STARTED"
-      mat-stroked-button
-      type="button"
-      color="primary"
-      name="cancel-button"
-      (click)="cancelHunt()"
-    >
-      Cancel collection
-    </button>
+    <span matTooltip="You must have approval to stop the collection"
+        [matTooltipDisabled]="(hasAccess$ | async) === true">
+      <button
+        *ngIf="(hunt$ | async)?.state === HuntState.RUNNING || (hunt$ | async)?.state === HuntState.PAUSED || (hunt$ | async)?.state === HuntState.NOT_STARTED"
+        mat-stroked-button
+        type="button"
+        color="primary"
+        name="cancel-button"
+        (click)="cancelHunt()"
+        [disabled]="(hasAccess$ | async) === false"
+      >
+        Cancel collection
+      </button>
+    </span>
 
     <span matTooltip="You must have approval to start the collection"
         [matTooltipDisabled]="(hasAccess$ | async) === true">
@@ -114,6 +118,7 @@
           *ngIf="huntApprovalRequired$ | async"
           [urlTree]="(huntApprovalRoute$ | async) ?? []"
           [latestApproval]="latestApproval$ | async"
+          [hideContent]="(hideApprovalCardContentByDefault$ | async) === true"
           (approvalParams)="requestHuntApproval($event)"
           class="centered-content">
 </approval-card>

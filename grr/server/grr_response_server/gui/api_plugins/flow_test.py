@@ -207,6 +207,90 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(manifest["processed_files"], 1)
     self.assertEqual(manifest["ignored_files"], 0)
 
+  def testGeneratesZipArchiveForCollectFilesByKnownPath(self):
+    client_mock = action_mocks.FileFinderClientMockWithTimestamps()
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dir:
+      temp_filepath = os.path.join(temp_dir, "foo.txt")
+      with open(temp_filepath, mode="w") as temp_file:
+        temp_file.write("Lorem ipsum.")
+
+      flow_id = flow_test_lib.TestFlowHelper(
+          file.CollectFilesByKnownPath.__name__,
+          client_mock,
+          client_id=self.client_id,
+          paths=[temp_filepath],
+          creator=self.test_username,
+      )
+
+    result = self.handler.Handle(
+        flow_plugin.ApiGetFlowFilesArchiveArgs(
+            client_id=self.client_id, flow_id=flow_id, archive_format="ZIP"
+        ),
+        context=self.context,
+    )
+    manifest = self._GetZipManifest(result)
+
+    self.assertEqual(manifest["archived_files"], 1)
+    self.assertEqual(manifest["failed_files"], 0)
+    self.assertEqual(manifest["processed_files"], 1)
+    self.assertEqual(manifest["ignored_files"], 0)
+
+  def testGeneratesZipArchiveForCollectSingleFile(self):
+    client_mock = action_mocks.FileFinderClientMockWithTimestamps()
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dir:
+      temp_filepath = os.path.join(temp_dir, "foo.txt")
+      with open(temp_filepath, mode="w") as temp_file:
+        temp_file.write("Lorem ipsum.")
+
+      flow_id = flow_test_lib.TestFlowHelper(
+          file.CollectSingleFile.__name__,
+          client_mock,
+          client_id=self.client_id,
+          path=temp_filepath,
+          creator=self.test_username,
+      )
+
+    result = self.handler.Handle(
+        flow_plugin.ApiGetFlowFilesArchiveArgs(
+            client_id=self.client_id, flow_id=flow_id, archive_format="ZIP"
+        ),
+        context=self.context,
+    )
+    manifest = self._GetZipManifest(result)
+
+    self.assertEqual(manifest["archived_files"], 1)
+    self.assertEqual(manifest["failed_files"], 0)
+    self.assertEqual(manifest["processed_files"], 1)
+    self.assertEqual(manifest["ignored_files"], 0)
+
+  def testGeneratesZipArchiveForCollectMultipleFiles(self):
+    client_mock = action_mocks.CollectMultipleFilesClientMock()
+    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dir:
+      temp_filepath = os.path.join(temp_dir, "foo.txt")
+      with open(temp_filepath, mode="w") as temp_file:
+        temp_file.write("Lorem ipsum.")
+
+      flow_id = flow_test_lib.TestFlowHelper(
+          file.CollectMultipleFiles.__name__,
+          client_mock,
+          client_id=self.client_id,
+          path_expressions=[temp_filepath],
+          creator=self.test_username,
+      )
+
+    result = self.handler.Handle(
+        flow_plugin.ApiGetFlowFilesArchiveArgs(
+            client_id=self.client_id, flow_id=flow_id, archive_format="ZIP"
+        ),
+        context=self.context,
+    )
+    manifest = self._GetZipManifest(result)
+
+    self.assertEqual(manifest["archived_files"], 1)
+    self.assertEqual(manifest["failed_files"], 0)
+    self.assertEqual(manifest["processed_files"], 1)
+    self.assertEqual(manifest["ignored_files"], 0)
+
   def testIgnoresFileNotMatchingPathGlobsInclusionList(self):
     handler = flow_plugin.ApiGetFlowFilesArchiveHandler(
         exclude_path_globs=[],

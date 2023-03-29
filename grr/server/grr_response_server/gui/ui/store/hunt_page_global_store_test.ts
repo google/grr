@@ -290,4 +290,22 @@ describe('HuntPageGlobalStore', () => {
                },
            );
      }));
+
+  it('fetches hunt progress data from api', fakeAsync(() => {
+       const sub = huntPageGlobalStore.huntProgress$.subscribe();
+       httpApiService.mockedObservables.subscribeToHuntClientCompletionStats
+           .next({
+             startPoints: [
+               {xValue: 1669026000, yValue: 10},
+             ],
+             completePoints: [
+               {xValue: 1669026000, yValue: 5},
+             ],
+           });
+
+       huntPageGlobalStore.selectHunt('1984');
+       expect(httpApiService.subscribeToHuntClientCompletionStats)
+           .toHaveBeenCalledWith({huntId: '1984', size: '1000'});
+       sub.unsubscribe();
+     }));
 });

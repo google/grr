@@ -5,14 +5,14 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
-import {ApiListHuntsArgsRobotFilter} from '../../../lib/api/api_interfaces';
+import {ApiHuntState, ApiListHuntsArgsRobotFilter} from '../../../lib/api/api_interfaces';
 import {getHuntTitle, HuntState} from '../../../lib/models/hunt';
 import {newHunt, newSafetyLimits} from '../../../lib/models/model_test_util';
 import {HuntOverviewPageLocalStore} from '../../../store/hunt_overview_page_local_store';
 import {injectMockStore, mockHuntOverviewPageLocalStore, STORE_PROVIDERS} from '../../../store/store_test_providers';
 import {initTestEnvironment} from '../../../testing';
 
-import {HuntFilter, HuntOverviewPage} from './hunt_overview_page';
+import {HuntCreatorFilter, HuntOverviewPage, HuntStateFilter} from './hunt_overview_page';
 import {HuntOverviewPageModule} from './module';
 
 initTestEnvironment();
@@ -60,12 +60,12 @@ describe('app-hunt-overview-page', () => {
     expect(cards[0].nativeElement.textContent).toContain('human');
   });
 
-  it('filter updates list', async () => {
+  it('creator filter updates list', async () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const huntFilterHarness = await loader.getHarness(
-        MatSelectHarness.with({selector: '[name="hunt-filter"]'}));
-    await huntFilterHarness.clickOptions({text: HuntFilter.ALL_HUNTS});
+        MatSelectHarness.with({selector: '[name="hunt-creator-filter"]'}));
+    await huntFilterHarness.clickOptions({text: HuntCreatorFilter.ALL_HUNTS});
     fixture.detectChanges();
     const huntPageLocalStore =
         injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
@@ -87,6 +87,36 @@ describe('app-hunt-overview-page', () => {
     expect(cards.length).toEqual(2);
     expect(cards[0].nativeElement.textContent).toContain('human');
     expect(cards[1].nativeElement.textContent).toContain('robot');
+  });
+
+  it('state filter updates list and filters store responses', async () => {
+    const fixture = TestBed.createComponent(HuntOverviewPage);
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const huntFilterHarness = await loader.getHarness(
+        MatSelectHarness.with({selector: '[name="hunt-state-filter"]'}));
+    await huntFilterHarness.clickOptions({text: HuntStateFilter.RUNNING});
+    fixture.detectChanges();
+    const huntPageLocalStore =
+        injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
+
+    expect(huntPageLocalStore.setArgs).toHaveBeenCalledWith({
+      robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS,
+      withState: ApiHuntState.STARTED
+    });
+
+    huntPageLocalStore.mockedObservables.results$.next([
+      newHunt({creator: 'human', isRobot: false, state: HuntState.PAUSED}),
+      newHunt({creator: 'robot', isRobot: true, state: HuntState.RUNNING})
+    ]);
+    fixture.detectChanges();
+
+    const title = fixture.debugElement.query(By.css('h2'));
+    expect(title.nativeElement.textContent).toContain('All');
+
+    const cards = fixture.debugElement.queryAll(By.css('.split-card'));
+    expect(cards.length).toEqual(1);
+    expect(cards[0].nativeElement.textContent).not.toContain('human');
+    expect(cards[0].nativeElement.textContent).toContain('robot');
   });
 
   it('displays hunt information', () => {

@@ -31,6 +31,7 @@ from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_server import fleet_utils
 from grr_response_server import foreman_rules
@@ -2637,6 +2638,7 @@ class Database(metaclass=abc.ABCMeta):
       with_description_match=None,
       created_by=None,
       not_created_by=None,
+      with_states=None,
   ):
     """Reads hunt objects from the database.
 
@@ -2656,6 +2658,8 @@ class Database(metaclass=abc.ABCMeta):
       not_created_by: When specified, should be a list of strings corresponding
         to GRR usernames. Only metadata for hunts NOT created by any of the
         matching users will be returned.
+      with_states: When specified should be a list of `Hunt.HuntState`s. Only
+        metadata for hunts with states on the list will be returned.
 
     Returns:
       A list of rdf_hunt_objects.Hunt objects sorted by create_time in
@@ -2674,6 +2678,7 @@ class Database(metaclass=abc.ABCMeta):
       with_description_match=None,
       created_by=None,
       not_created_by=None,
+      with_states=None,
   ):
     """Reads metadata for hunt objects from the database.
 
@@ -2695,6 +2700,8 @@ class Database(metaclass=abc.ABCMeta):
       not_created_by: When specified, should be a list of strings corresponding
         to GRR usernames. Only metadata for hunts NOT created by any of the
         matching users will be returned.
+      with_states: When specified should be a list of `Hunt.HuntState`s. Only
+        metadata for hunts with states on the list will be returned.
 
     Returns:
       A list of rdf_hunt_objects.HuntMetadata objects sorted by create_time in
@@ -4257,6 +4264,7 @@ class DatabaseValidationWrapper(Database):
       with_description_match=None,
       created_by=None,
       not_created_by=None,
+      with_states=None,
   ):
     precondition.AssertOptionalType(offset, int)
     precondition.AssertOptionalType(count, int)
@@ -4267,6 +4275,8 @@ class DatabaseValidationWrapper(Database):
       precondition.AssertIterableType(created_by, str)
     if not_created_by is not None:
       precondition.AssertIterableType(not_created_by, str)
+    if with_states is not None:
+      precondition.AssertIterableType(with_states, rdf_structs.EnumNamedValue)
 
     return self.delegate.ReadHuntObjects(
         offset,
@@ -4276,6 +4286,7 @@ class DatabaseValidationWrapper(Database):
         with_description_match=with_description_match,
         created_by=created_by,
         not_created_by=not_created_by,
+        with_states=with_states,
     )
 
   def ListHuntObjects(
@@ -4287,6 +4298,7 @@ class DatabaseValidationWrapper(Database):
       with_description_match=None,
       created_by=None,
       not_created_by=None,
+      with_states=None,
   ):
     precondition.AssertOptionalType(offset, int)
     precondition.AssertOptionalType(count, int)
@@ -4297,6 +4309,8 @@ class DatabaseValidationWrapper(Database):
       precondition.AssertIterableType(created_by, str)
     if not_created_by is not None:
       precondition.AssertIterableType(not_created_by, str)
+    if with_states is not None:
+      precondition.AssertIterableType(with_states, rdf_structs.EnumNamedValue)
 
     return self.delegate.ListHuntObjects(
         offset,
@@ -4306,6 +4320,7 @@ class DatabaseValidationWrapper(Database):
         with_description_match=with_description_match,
         created_by=created_by,
         not_created_by=not_created_by,
+        with_states=with_states,
     )
 
   def ReadHuntLogEntries(self, hunt_id, offset, count, with_substring=None):

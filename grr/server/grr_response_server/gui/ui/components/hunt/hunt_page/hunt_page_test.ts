@@ -297,6 +297,31 @@ describe('hunt page test', () => {
     expect(huntPageLocalStore.startHunt).toHaveBeenCalledTimes(1);
   });
 
+  it('Cancel and Start buttons are disabled when no access', async () => {
+    await TestBed.inject(Router).navigate(['hunts/1984']);
+    const fixture = TestBed.createComponent(HuntPage);
+    fixture.detectChanges();
+    const huntPageLocalStore =
+        injectMockStore(HuntPageGlobalStore, fixture.debugElement);
+    huntPageLocalStore.mockedObservables.selectedHunt$.next(newHunt({
+      huntId: '1984',
+      description: 'Ghost',
+      creator: 'buster',
+      state: HuntState.PAUSED,
+    }));
+    const huntApprovalGlobalStore =
+        injectMockStore(HuntApprovalGlobalStore, fixture.debugElement);
+    huntApprovalGlobalStore.mockedObservables.hasAccess$.next(false);
+    fixture.detectChanges();
+
+    const cancelButton =
+        fixture.debugElement.query(By.css('button[name=cancel-button]'));
+    expect(cancelButton.nativeElement.disabled).toBe(true);
+    const startButton =
+        fixture.debugElement.query(By.css('button[name=start-button]'));
+    expect(startButton.nativeElement.disabled).toBe(true);
+  });
+
   it('displays hunt progress information', async () => {
     await TestBed.inject(Router).navigate(['hunts/1984']);
     const fixture = TestBed.createComponent(HuntPage);
@@ -450,4 +475,77 @@ describe('hunt page test', () => {
     expect(fixture.nativeElement.textContent).toContain('Pending reason');
     expect(fixture.nativeElement.textContent).toContain('Send new request');
   });
+
+  it('Hides approval card content by default if there is no approval',
+     async () => {
+       await TestBed.inject(Router).navigate(['hunts/1984']);
+       const fixture = TestBed.createComponent(HuntPage);
+       fixture.detectChanges();
+
+       injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
+         name: 'approver',
+         canaryMode: false,
+         huntApprovalRequired: true,
+       });
+
+       fixture.detectChanges();
+
+       injectMockStore(HuntApprovalGlobalStore)
+           .mockedObservables.latestApproval$.next(null);
+
+       fixture.detectChanges();
+
+       const approvalCard = fixture.componentInstance.approvalCard;
+
+       expect(approvalCard).toBeDefined();
+
+       const approvalCardContent =
+           fixture.debugElement.query(By.css('approval-card .content'));
+
+       expect(approvalCardContent.nativeNode.clientHeight).toBe(0);
+     });
+
+  it('Does not close the approval card after receiving a polled empty-approval',
+     async () => {
+       await TestBed.inject(Router).navigate(['hunts/1984']);
+       const fixture = TestBed.createComponent(HuntPage);
+       fixture.detectChanges();
+
+       injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
+         name: 'approver',
+         canaryMode: false,
+         huntApprovalRequired: true,
+       });
+
+       fixture.detectChanges();
+
+       const mockHuntApprovalStore = injectMockStore(HuntApprovalGlobalStore);
+       mockHuntApprovalStore.mockedObservables.latestApproval$.next(null);
+
+       fixture.detectChanges();
+
+       const approvalCard = fixture.componentInstance.approvalCard;
+
+       expect(approvalCard).toBeDefined();
+
+       const approvalCardContent =
+           fixture.debugElement.query(By.css('approval-card .content'));
+
+       expect(approvalCardContent.nativeNode.clientHeight).toBe(0);
+
+       const approvalCardHeader =
+           fixture.debugElement.query(By.css('approval-card .header'));
+       expect(approvalCardHeader).toBeDefined();
+       approvalCardHeader.nativeElement.click();
+
+       fixture.detectChanges();
+
+       expect(approvalCardContent.nativeNode.clientHeight).not.toBe(0);
+
+       mockHuntApprovalStore.mockedObservables.latestApproval$.next(null);
+
+       fixture.detectChanges();
+
+       expect(approvalCardContent.nativeNode.clientHeight).not.toBe(0);
+     });
 });

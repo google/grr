@@ -113,6 +113,9 @@ export const RESULTS_BATCH_SIZE = 50;
 /** Number of errors to fetch per request. */
 export const ERRORS_BATCH_SIZE = 50;
 
+/** Maximum number of progress data-points to fetch per Hunt */
+const MAX_HUNT_COMPLETION_PROGRESS_DATAPOINTS = 1_000;
+
 /** ComponentStore implementation used by the GlobalStore. */
 class HuntPageComponentStore extends ComponentStore<HuntPageState> {
   constructor(
@@ -171,6 +174,9 @@ class HuntPageComponentStore extends ComponentStore<HuntPageState> {
               shareReplay({bufferSize: 1, refCount: true}),
           );
 
+  private readonly filteredSelectedHuntId$ =
+      this.selectedHuntId$.pipe(filter(isNonNull));
+
   private readonly periodicallyPolledHunt$ = this.selectedHuntId$.pipe(
       switchMap(
           huntId => huntId ? this.httpApiService.subscribeToHunt(huntId).pipe(
@@ -180,6 +186,18 @@ class HuntPageComponentStore extends ComponentStore<HuntPageState> {
       map(hunt => hunt ? translateHunt(hunt) : null),
       shareReplay({bufferSize: 1, refCount: true}),
   );
+
+  private readonly periodicallyPolledHuntProgress$ =
+      this.filteredSelectedHuntId$.pipe(
+          switchMap(
+              huntId =>
+                  this.httpApiService.subscribeToHuntClientCompletionStats({
+                    huntId,
+                    size: `${MAX_HUNT_COMPLETION_PROGRESS_DATAPOINTS}`
+                  })),
+      );
+
+  readonly huntProgress$ = this.periodicallyPolledHuntProgress$;
 
   readonly patchHuntRequestStatus$ =
       this.select(state => state.patchHuntRequestStatus);
@@ -385,6 +403,7 @@ export class HuntPageGlobalStore {
   readonly selectedHuntError$ = this.store.selectedHuntError$;
   readonly selectedResultFlowWithDescriptor$ =
       this.store.selectedResultFlowWithDescriptor$;
+  readonly huntProgress$ = this.store.huntProgress$;
 
   readonly huntResults$ = this.store.huntResults$;
   readonly huntErrors$ = this.store.huntErrors$;
