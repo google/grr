@@ -58,7 +58,6 @@ class HuntApprovalComponentStore extends ComponentStore<HuntApprovalState> {
                 (approvals: HuntApproval[]) => !approvals?.find(
                     approval => approval.status.type === 'valid'),
                 true),
-            startWith(null),
         );
       }),
   );

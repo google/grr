@@ -10,9 +10,9 @@ from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-def CreateUser(username):
+def CreateUser(username) -> None:
   """Creates a user."""
-  data_store.REL_DB.WriteGRRUser(username)
+  data_store.REL_DB.WriteGRRUser(username, canary_mode=True)
 
 
 def CreateAdminUser(username):

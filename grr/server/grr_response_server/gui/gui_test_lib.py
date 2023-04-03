@@ -450,6 +450,11 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     return result
 
+  def GetCurrentUrlQuery(self) -> str:
+    url = urlparse.urlparse(self.driver.current_url)
+
+    return url.query
+
   def GetElement(self, target):
     try:
       return self._FindElement(target)

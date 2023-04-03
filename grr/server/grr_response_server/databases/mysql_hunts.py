@@ -226,6 +226,7 @@ class MySQLDBHuntMixin(object):
       with_description_match=None,
       created_by=None,
       not_created_by=None,
+      with_states=None,
       cursor=None,
   ):
     """Reads multiple hunt objects from the database."""
@@ -262,6 +263,12 @@ class MySQLDBHuntMixin(object):
       components.append("description LIKE %s")
       args.append("%" + with_description_match + "%")
 
+    if with_states is not None:
+      if not with_states:
+        return []
+      components.append("hunt_state IN %s ")
+      args.append([int(state) for state in with_states])
+
     if components:
       query += "WHERE " + " AND ".join(components)
 
@@ -282,6 +289,7 @@ class MySQLDBHuntMixin(object):
       with_description_match=None,
       created_by=None,
       not_created_by=None,
+      with_states=None,
       cursor=None,
   ):
     """Reads metadata for hunt objects from the database."""
@@ -331,6 +339,12 @@ class MySQLDBHuntMixin(object):
     if with_description_match is not None:
       components.append("description LIKE %s")
       args.append("%" + with_description_match + "%")
+
+    if with_states is not None:
+      if not with_states:
+        return []
+      components.append("hunt_state IN %s ")
+      args.append([int(state) for state in with_states])
 
     if components:
       query += "WHERE " + " AND ".join(components)

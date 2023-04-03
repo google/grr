@@ -6,7 +6,7 @@ import {lastValueFrom} from 'rxjs';
 import {ErrorSnackBar} from '../../components/helpers/error_snackbar/error_snackbar';
 import {initTestEnvironment} from '../../testing';
 
-import {ApiBrowseFilesystemResult, ApiClientApproval, ApiFlow, ApiFlowResult, ApiGetFileDetailsResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGetVfsRefreshOperationStateResult, ApiGetVfsRefreshOperationStateResultState, ApiHuntResult, ApiListClientApprovalsResult, ApiListFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListHuntResultsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiUpdateVfsFileContentResult, PathSpecPathType} from './api_interfaces';
+import {ApiBrowseFilesystemResult, ApiClientApproval, ApiFlow, ApiFlowResult, ApiGetFileDetailsResult, ApiGetHuntClientCompletionStatsResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGetVfsRefreshOperationStateResult, ApiGetVfsRefreshOperationStateResultState, ApiHuntResult, ApiListClientApprovalsResult, ApiListFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListHuntResultsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiUpdateVfsFileContentResult, PathSpecPathType} from './api_interfaces';
 import {HttpApiService, URL_PREFIX} from './http_api_service';
 import {ApiModule} from './module';
 
@@ -575,6 +575,105 @@ describe('HttpApiService', () => {
        expect(req).toBeTruthy();
        req.flush({});
      }));
+
+  describe('subscribeToHuntClientCompletionStats', () => {
+    it(`Doesn't send a "size" HTTPParam if not specified`, fakeAsync(() => {
+         const sub = httpApiService
+                         .subscribeToHuntClientCompletionStats(
+                             {huntId: '1234', size: undefined})
+                         .subscribe();
+
+         tick();
+
+         httpMock.expectOne({
+           method: 'GET',
+           url: `${URL_PREFIX}/hunts/1234/client-completion-stats`,
+         });
+
+         sub.unsubscribe();
+       }));
+
+    it('polls getHuntClientCompletionStats', fakeAsync(() => {
+         const values: ApiGetHuntClientCompletionStatsResult[] = [];
+         const sub = httpApiService
+                         .subscribeToHuntClientCompletionStats(
+                             {huntId: '1234', size: '10'})
+                         .subscribe(result => {
+                           values.push(result);
+                         });
+
+         tick();
+
+         const req1 = httpMock.expectOne({
+           method: 'GET',
+           url: `${URL_PREFIX}/hunts/1234/client-completion-stats?size=10`,
+         });
+
+         const resp1: ApiGetHuntClientCompletionStatsResult = {
+           completePoints: [{xValue: 1678380000, yValue: 1}],
+           startPoints: [{xValue: 1678380000, yValue: 1}],
+         };
+
+         req1.flush(resp1);
+
+         expect(values.length).toEqual(1);
+         expect(values).toEqual([resp1]);
+
+         tick(httpApiService.POLLING_INTERVAL);
+
+         const req2 = httpMock.expectOne({
+           method: 'GET',
+           url: `${URL_PREFIX}/hunts/1234/client-completion-stats?size=10`,
+         });
+
+         const resp2: ApiGetHuntClientCompletionStatsResult = {
+           completePoints: [{xValue: 1678380001, yValue: 1}],
+           startPoints: [{xValue: 1678380001, yValue: 1}],
+         };
+
+         req2.flush(resp2);
+
+         expect(values.length).toEqual(2);
+         expect(values[1]).toEqual(resp2);
+
+         sub.unsubscribe();
+
+         tick(httpApiService.POLLING_INTERVAL * 2);
+         // afterEach() verifies that no further request was launched.
+       }));
+
+    it('Waits for result before re-polling', fakeAsync(() => {
+         const values: ApiGetHuntClientCompletionStatsResult[] = [];
+         const sub = httpApiService
+                         .subscribeToHuntClientCompletionStats(
+                             {huntId: '1234', size: '10'})
+                         .subscribe(result => {
+                           values.push(result);
+                         });
+
+         tick();
+
+         const req1 = httpMock.expectOne({
+           method: 'GET',
+           url: `${URL_PREFIX}/hunts/1234/client-completion-stats?size=10`,
+         });
+
+         tick(httpApiService.POLLING_INTERVAL * 2);
+
+         httpMock.verify();
+
+         const resp1: ApiGetHuntClientCompletionStatsResult = {
+           completePoints: [{xValue: 1678380000, yValue: 1}],
+           startPoints: [{xValue: 1678380000, yValue: 1}],
+         };
+
+         req1.flush(resp1);
+         expect(values.length).toEqual(1);
+         expect(values).toEqual([resp1]);
+
+         sub.unsubscribe();
+       }));
+  });
 
   afterEach(() => {
     httpMock.verify();

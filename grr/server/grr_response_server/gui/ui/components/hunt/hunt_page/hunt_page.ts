@@ -2,11 +2,11 @@ import {ChangeDetectionStrategy, Component, OnDestroy, ViewChild} from '@angular
 import {Title} from '@angular/platform-browser';
 import {ActivatedRoute, Router} from '@angular/router';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
-import {filter, map, startWith, takeUntil} from 'rxjs/operators';
+import {filter, map, startWith, take, takeUntil} from 'rxjs/operators';
 
 import {ColorScheme} from '../../../components/flow_details/helpers/result_accordion';
 import {getHuntTitle, Hunt, HuntState} from '../../../lib/models/hunt';
-import {isNonNull} from '../../../lib/preconditions';
+import {isNonNull, isNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
 import {HuntApprovalGlobalStore} from '../../../store/hunt_approval_global_store';
@@ -36,6 +36,14 @@ export class HuntPage implements OnDestroy {
   private readonly approvalParams$ =
       new BehaviorSubject<ApprovalParams|null>(null);
   readonly latestApproval$ = this.huntApprovalGlobalStore.latestApproval$;
+  readonly hideApprovalCardContentByDefault$ = this.latestApproval$.pipe(
+      map(approval => isNull(approval)),
+      // we are only interested in the first emission, as we don't want
+      // the approval card content to be hidden dynamically, only by
+      // default:
+      take(1),
+      startWith(true),
+  );
   protected readonly hasAccess$ = this.huntApprovalGlobalStore.hasAccess$;
   protected readonly huntApprovalRoute$ =
       this.huntApprovalGlobalStore.huntApprovalRoute$;
@@ -43,7 +51,7 @@ export class HuntPage implements OnDestroy {
       this.userGlobalStore.currentUser$.pipe(
           map(user => user.huntApprovalRequired));
 
-  private huntId: string = '';
+  private huntId = '';
   protected hideFlowArgs = true;
 
   protected readonly huntsOverviewRoute = ['/hunts'];

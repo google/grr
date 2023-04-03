@@ -1,19 +1,58 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, TrackByFunction} from '@angular/core';
 import {FormControl} from '@angular/forms';
-import {Observable} from 'rxjs';
-import {tap} from 'rxjs/operators';
+import {combineLatest, Observable} from 'rxjs';
+import {map, startWith, takeUntil, tap} from 'rxjs/operators';
 
-import {ApiListHuntsArgsRobotFilter} from '../../../lib/api/api_interfaces';
+import {ApiHuntState, ApiListHuntsArgsRobotFilter} from '../../../lib/api/api_interfaces';
 import {getHuntTitle, Hunt, HuntState} from '../../../lib/models/hunt';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {HuntOverviewPageLocalStore} from '../../../store/hunt_overview_page_local_store';
 import {ColorScheme} from '../../flow_details/helpers/result_accordion';
 
-/** Hunt filter enum used for classifying the hunts. */
-export enum HuntFilter {
+/** Hunt creator filter enum used for classifying the hunts. */
+export enum HuntCreatorFilter {
   ALL_HUMAN_HUNTS = 'All human fleet collections',
   ALL_ROBOT_HUNTS = 'All robot fleet collections',
   ALL_HUNTS = 'All fleet collections',
+}
+
+function toRobotFilter(creatorFilter: HuntCreatorFilter):
+    ApiListHuntsArgsRobotFilter {
+  switch (creatorFilter) {
+    case HuntCreatorFilter.ALL_HUMAN_HUNTS:
+      return ApiListHuntsArgsRobotFilter.NO_ROBOTS;
+    case HuntCreatorFilter.ALL_ROBOT_HUNTS:
+      return ApiListHuntsArgsRobotFilter.ONLY_ROBOTS;
+    default:
+      return ApiListHuntsArgsRobotFilter.UNKNOWN;
+  }
+}
+
+/** Hunt state filter enum used for classifying the hunts. */
+export enum HuntStateFilter {
+  ANY = 'Any',
+  NOT_STARTED = 'Not started',
+  PAUSED = 'Paused',
+  RUNNING = 'Running',
+  CANCELLED = 'Cancelled',
+  COMPLETED = 'Completed',
+}
+
+function toApiHuntState(state: HuntStateFilter): ApiHuntState|undefined {
+  switch (state) {
+    case HuntStateFilter.NOT_STARTED:
+      return ApiHuntState.PAUSED;
+    case HuntStateFilter.PAUSED:
+      return ApiHuntState.PAUSED;
+    case HuntStateFilter.RUNNING:
+      return ApiHuntState.STARTED;
+    case HuntStateFilter.CANCELLED:
+      return ApiHuntState.STOPPED;
+    case HuntStateFilter.COMPLETED:
+      return ApiHuntState.COMPLETED;
+    default:
+      return undefined;
+  }
 }
 
 /** Page showing an overview of recent hunts. */
@@ -26,38 +65,68 @@ export enum HuntFilter {
 })
 export class HuntOverviewPage implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
-  protected readonly HuntState = HuntState;
   protected readonly ColorScheme = ColorScheme;
-  protected readonly HuntFilter = HuntFilter;
+  protected readonly HuntCreatorFilter = HuntCreatorFilter;
+  protected readonly HuntStateFilter = HuntStateFilter;
   protected readonly getHuntTitle = getHuntTitle;
 
-  readonly huntFiltersForm = new FormControl(HuntFilter.ALL_HUMAN_HUNTS);
+  protected readonly huntCreatorDefault = HuntCreatorFilter.ALL_HUMAN_HUNTS;
+  readonly huntCreatorFilterForm = new FormControl(this.huntCreatorDefault);
+  protected readonly huntStateDefault = HuntStateFilter.ANY;
+  readonly huntStateFilterForm = new FormControl(this.huntStateDefault);
 
   protected readonly hunts$: Observable<readonly Hunt[]> =
-      this.huntOverviewPageLocalStore.results$;
+      this.huntOverviewPageLocalStore.results$.pipe(
+          map(hunts => hunts.filter(hunt => {
+            // We need this filter on top because hunt states in the backend
+            // and frontend don't correspond to each other. Thus, if the user
+            // selected `NOT_STARTED`, we will have both `NOT_STARTED` and
+            // `PAUSED` in the results.
+            switch (this.huntStateFilterForm.value) {
+              case HuntStateFilter.NOT_STARTED:
+                return hunt.state === HuntState.NOT_STARTED;
+              case HuntStateFilter.PAUSED:
+                return hunt.state === HuntState.PAUSED;
+              case HuntStateFilter.RUNNING:
+                return hunt.state === HuntState.RUNNING;
+              case HuntStateFilter.CANCELLED:
+                return hunt.state === HuntState.CANCELLED;
+              case HuntStateFilter.COMPLETED:
+                return hunt.state === HuntState.COMPLETED;
+              default:
+                return true;
+            }
+          })));
 
   constructor(protected readonly huntOverviewPageLocalStore:
                   HuntOverviewPageLocalStore) {
     huntOverviewPageLocalStore.setArgs(
         {robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS});
 
-    this.huntFiltersForm.valueChanges
-        .pipe(tap(filterType => {
-          switch (filterType) {
-            case HuntFilter.ALL_HUMAN_HUNTS:
-              huntOverviewPageLocalStore.setArgs(
-                  {robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS});
-              break;
-            case HuntFilter.ALL_ROBOT_HUNTS:
-              huntOverviewPageLocalStore.setArgs(
-                  {robotFilter: ApiListHuntsArgsRobotFilter.ONLY_ROBOTS});
-              break;
-            default:
-              huntOverviewPageLocalStore.setArgs(
-                  {robotFilter: ApiListHuntsArgsRobotFilter.UNKNOWN});
-              break;
-          }
-        }))
+    combineLatest([
+      this.huntCreatorFilterForm.valueChanges.pipe(
+          startWith(this.huntCreatorDefault)),
+      this.huntStateFilterForm.valueChanges.pipe(
+          startWith(this.huntStateDefault))
+    ])
+        .pipe(
+            takeUntil(this.ngOnDestroy.triggered$),
+            tap(([creatorFilter, stateFilter]) => {
+              const args: {
+                robotFilter?: ApiListHuntsArgsRobotFilter,
+                withState?: ApiHuntState
+              } = {};
+              if (creatorFilter) {
+                args.robotFilter = toRobotFilter(creatorFilter);
+              }
+              if (stateFilter) {
+                const translatedState = toApiHuntState(stateFilter);
+                if (translatedState) {
+                  args.withState = translatedState;
+                }
+              }
+              huntOverviewPageLocalStore.setArgs(args);
+            }))
         .subscribe();
   }
 

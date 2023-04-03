@@ -1649,6 +1649,7 @@ export declare interface ApiListHuntsArgs {
   readonly activeWithin?: DurationSeconds;
   readonly withFullSummary?: boolean;
   readonly robotFilter?: ApiListHuntsArgsRobotFilter;
+  readonly withState?: ApiHuntState;
 }
 
 /** ApiListHuntsArgs.RobotFilter proto mapping. */

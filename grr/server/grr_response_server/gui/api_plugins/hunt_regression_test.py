@@ -83,6 +83,20 @@ class ApiListHuntsHandlerRegressionTest(
         ),
         replace=replace,
     )
+    self.Check(
+        "ListHunts",
+        args=hunt_plugin.ApiListHuntsArgs(
+            offset=0, count=2, with_state=hunt_plugin.ApiHunt.State.PAUSED
+        ),
+        replace=replace,
+    )
+    self.Check(
+        "ListHunts",
+        args=hunt_plugin.ApiListHuntsArgs(
+            offset=0, count=2, with_state=hunt_plugin.ApiHunt.State.STARTED
+        ),
+        replace=replace,
+    )
 
 
 class ApiListHuntResultsRegressionTest(hunt_test_lib.StandardHuntTestMixin,

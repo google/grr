@@ -87,6 +87,7 @@
     <button
       *ngIf="showContextMenu"
       class="menu-button"
+      name="flowContextMenu"
       [matMenuTriggerFor]="menu"
       mat-icon-button
       aria-label="Flow menu"
@@ -111,11 +112,11 @@
         <span>Duplicate flow</span>
       </button>
       <button
-        *ngIf="canaryMode$ | async"
+        name="createHunt"
         mat-menu-item
         (click)="triggerMenuEvent(flowMenuAction.CREATE_HUNT)"
       >
-        <span>Create a hunt (canary feature)</span>
+        <span>Create a hunt</span>
       </button>
     </mat-menu>
   </div>

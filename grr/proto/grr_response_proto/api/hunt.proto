@@ -230,6 +230,11 @@ message ApiListHuntsArgs {
                  "NOTE: this filter can only be used in conjunction with "
                  "'active_within' filter (to prevent queries of death)."
   }];
+  optional ApiHunt.State with_state = 8 [(sem_type) = {
+    description: "Filters huntd based on `state` property. "
+                 "NOTE: this filter can only be used in conjunction with "
+                 "'active_within' filter (to prevent queries of death)."
+  }];
 }
 
 message ApiListHuntsResult {

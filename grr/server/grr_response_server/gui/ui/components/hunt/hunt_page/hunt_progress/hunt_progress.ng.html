@@ -21,6 +21,10 @@
 
   <div class="content divider-top">
     <!-- TODO: Add chart -->
+    <app-hunt-progress-table
+      [completionProgressData]="huntProgressTableData$ | async"
+      [totalClients]="(hunt$ | async)?.allClientsCount"
+    ></app-hunt-progress-table>
   </div>
 
   <result-accordion [colorScheme]="ColorScheme.FLOW_ARGS" title="Fleet collection arguments">

@@ -19,6 +19,11 @@ mat-form-field {
   margin: 0 $left-right-padding c.$container-padding $left-right-padding;
 }
 
+.filters {
+  display: flex;
+  column-gap: $column-gap;
+}
+
 .header-all {
   display: flex;
   flex-direction: column;

@@ -543,6 +543,29 @@ export class HttpApiService {
         );
   }
 
+  subscribeToHuntClientCompletionStats(
+      args: apiInterfaces.ApiGetHuntClientCompletionStatsArgs,
+      ): Observable<apiInterfaces.ApiGetHuntClientCompletionStatsResult> {
+    return timer(0, this.POLLING_INTERVAL)
+        .pipe(
+            exhaustMap(() => this.getHuntClientCompletionStats(args)),
+            tap(this.showErrors),
+        );
+  }
+
+  private getHuntClientCompletionStats(
+      args: apiInterfaces.ApiGetHuntClientCompletionStatsArgs,
+      ): Observable<apiInterfaces.ApiGetHuntClientCompletionStatsResult> {
+    const httpParams =
+        args.size ? new HttpParams({fromObject: {'size': args.size}}) : {};
+
+    return this.http
+        .get<apiInterfaces.ApiGetHuntClientCompletionStatsResult>(
+            `${URL_PREFIX}/hunts/${args.huntId}/client-completion-stats`,
+            {params: httpParams})
+        .pipe(tap(this.showErrors));
+  }
+
   // TODO: GET parameters require snake_case not camelCase
   // parameters. Do not allow createdBy and other camelCase parameters until
   // fixed.
@@ -554,6 +577,7 @@ export class HttpApiService {
       'offset': args.offset,
       'count': args.count,
       'robot_filter': args.robotFilter,
+      'with_state': args.withState,
       'with_full_summary': true,
     });
     return this.http

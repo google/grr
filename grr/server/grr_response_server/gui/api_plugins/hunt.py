@@ -447,11 +447,12 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
         args.created_by
         or args.HasField("robot_filter")
         or args.description_contains
+        or args.HasField("with_state")
     ) and not args.active_within:
       raise ValueError(
-          "created_by/robot_filter/description_contains filters have to be "
-          "used together with active_within filter (to prevent "
-          "queries of death)"
+          "created_by/robot_filter/description_contains/with_state filters"
+          " have to be used together with active_within filter (to prevent"
+          " queries of death)"
       )
 
     if args.created_by:
@@ -470,6 +471,9 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
           functools.partial(self._DescriptionContainsFilterRelational,
                             args.description_contains))
 
+    if args.HasField("with_state"):
+      filters.append(lambda hunt_obj: hunt_obj.state == args.with_state)
+
     if filters:
 
       def Filter(x):
@@ -482,6 +486,18 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
       return Filter
     else:
       return None
+
+  def _ApiToObjectHuntState(self, state):
+    if state == ApiHunt.State.PAUSED:
+      return rdf_hunt_objects.Hunt.HuntState.PAUSED
+    elif state == ApiHunt.State.STARTED:
+      return rdf_hunt_objects.Hunt.HuntState.STARTED
+    elif state == ApiHunt.State.STOPPED:
+      return rdf_hunt_objects.Hunt.HuntState.STOPPED
+    elif state == ApiHunt.State.COMPLETED:
+      return rdf_hunt_objects.Hunt.HuntState.COMPLETED
+    else:
+      return rdf_hunt_objects.Hunt.HuntState.UNKNOWN
 
   def Handle(self, args, context=None):
     if args.description_contains and not args.active_within:
@@ -500,6 +516,8 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
       kw_args["with_description_match"] = args.description_contains
     if args.active_within:
       kw_args["created_after"] = rdfvalue.RDFDatetime.Now() - args.active_within
+    if args.with_state:
+      kw_args["with_states"] = [self._ApiToObjectHuntState(args.with_state)]
 
     # TODO(user): total_count is not returned by the current implementation.
     # It's not clear, if it's needed - GRR UI doesn't show total number of

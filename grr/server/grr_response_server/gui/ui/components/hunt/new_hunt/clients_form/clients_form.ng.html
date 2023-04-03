@@ -25,6 +25,7 @@
       </mat-form-field>
       <div class="rules-container">
         <div *ngFor="let condition of conditions().controls; let conditionIndex=index"
+             [attr.name]="'condition_'+conditionIndex"
              [ngSwitch]="condition.get('type')?.value"
              [formGroup]="conditionGroup(conditionIndex)"
              [ngClass]="{'without-seperation':conditionIndex===0,'with-seperation':conditionIndex!==0}">
@@ -57,6 +58,7 @@
       </div>
       <button mat-flat-button
               type="button"
+              name="addCondition"
               [matMenuTriggerFor]="addConditionMenu"
               class="dropdown-button">
         Add Condition

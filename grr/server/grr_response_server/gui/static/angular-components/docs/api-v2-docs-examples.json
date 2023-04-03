@@ -31,14 +31,7 @@
     {
       "api_method": "CountHuntResultsByType",
       "method": "GET",
-      "response": {
-        "items": [
-          {
-            "count": "1",
-            "type": "RDFString"
-          }
-        ]
-      },
+      "response": { "items": [{ "count": "1", "type": "RDFString" }] },
       "test_class": "ApiCountHuntResultsByTypeRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/result-counts"
     }
@@ -49,32 +42,20 @@
       "method": "POST",
       "request_payload": {
         "approval": {
-          "emailCcAddresses": [
-            "test@example.com"
-          ],
-          "notifiedUsers": [
-            "approver1",
-            "approver2"
-          ],
+          "emailCcAddresses": ["test@example.com"],
+          "notifiedUsers": ["approver1", "approver2"],
           "reason": "really important reason!"
         }
       },
       "response": {
-        "approvers": [
-          "api_test_user"
-        ],
-        "emailCcAddresses": [
-          "test@example.com"
-        ],
+        "approvers": ["api_test_user"],
+        "emailCcAddresses": ["test@example.com"],
         "emailMessageId": "<message id stub>",
         "expirationTimeUs": "2419326000000",
         "id": "approval:112233",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
-        "notifiedUsers": [
-          "approver1",
-          "approver2"
-        ],
+        "notifiedUsers": ["approver1", "approver2"],
         "reason": "really important reason!",
         "requestor": "api_test_user",
         "subject": {
@@ -83,10 +64,7 @@
             "buildTime": "1980-01-01",
             "clientName": "GRR Monitor",
             "clientVersion": 1234,
-            "labels": [
-              "label1",
-              "label2"
-            ]
+            "labels": ["label1", "label2"]
           },
           "clientId": "C.1000000000000000",
           "fleetspeakEnabled": false,
@@ -97,10 +75,7 @@
           "interfaces": [
             {
               "addresses": [
-                {
-                  "addressType": "INET",
-                  "packedBytes": "wKgAAA=="
-                },
+                { "addressType": "INET", "packedBytes": "wKgAAA==" },
                 {
                   "addressType": "INET6",
                   "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
@@ -108,26 +83,13 @@
               ],
               "ifname": "if0"
             },
-            {
-              "ifname": "if1",
-              "macAddress": "qrvM3e4A"
-            },
-            {
-              "ifname": "if2",
-              "macAddress": "u8zd7v8A"
-            }
+            { "ifname": "if1", "macAddress": "qrvM3e4A" },
+            { "ifname": "if2", "macAddress": "u8zd7v8A" }
           ],
           "knowledgeBase": {
             "fqdn": "Host-0.example.com",
             "os": "Linux",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "users": [{ "username": "user1" }, { "username": "user2" }]
           },
           "lastSeenAt": "42000000",
           "osInfo": {
@@ -138,14 +100,7 @@
             "version": "buster/sid"
           },
           "urn": "aff4:/C.1000000000000000",
-          "users": [
-            {
-              "username": "user1"
-            },
-            {
-              "username": "user2"
-            }
-          ]
+          "users": [{ "username": "user1" }, { "username": "user2" }]
         }
       },
       "test_class": "ApiCreateClientApprovalHandlerRegressionTest_http_v2",
@@ -158,31 +113,19 @@
       "method": "POST",
       "request_payload": {
         "approval": {
-          "emailCcAddresses": [
-            "test@example.com"
-          ],
-          "notifiedUsers": [
-            "approver1",
-            "approver2"
-          ],
+          "emailCcAddresses": ["test@example.com"],
+          "notifiedUsers": ["approver1", "approver2"],
           "reason": "really important reason!"
         }
       },
       "response": {
-        "approvers": [
-          "api_test_user"
-        ],
-        "emailCcAddresses": [
-          "test@example.com"
-        ],
+        "approvers": ["api_test_user"],
+        "emailCcAddresses": ["test@example.com"],
         "emailMessageId": "<message id stub>",
         "id": "approval:112233",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
-        "notifiedUsers": [
-          "approver1",
-          "approver2"
-        ],
+        "notifiedUsers": ["approver1", "approver2"],
         "reason": "really important reason!",
         "requestor": "api_test_user",
         "subject": {
@@ -224,9 +167,7 @@
             "filenameRegex": "."
           },
           "name": "ListProcesses",
-          "runnerArgs": {
-            "notifyToUser": true
-          }
+          "runnerArgs": { "notifyToUser": true }
         }
       },
       "response": {
@@ -260,32 +201,20 @@
       "method": "POST",
       "request_payload": {
         "approval": {
-          "emailCcAddresses": [
-            "test@example.com"
-          ],
-          "notifiedUsers": [
-            "approver1",
-            "approver2"
-          ],
+          "emailCcAddresses": ["test@example.com"],
+          "notifiedUsers": ["approver1", "approver2"],
           "reason": "really important reason!"
         }
       },
       "response": {
-        "approvers": [
-          "api_test_user"
-        ],
-        "emailCcAddresses": [
-          "test@example.com"
-        ],
+        "approvers": ["api_test_user"],
+        "emailCcAddresses": ["test@example.com"],
         "emailMessageId": "<message id stub>",
         "expirationTimeUs": "2419326000000",
         "id": "approval:112233",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
-        "notifiedUsers": [
-          "approver1",
-          "approver2"
-        ],
+        "notifiedUsers": ["approver1", "approver2"],
         "reason": "really important reason!",
         "requestor": "api_test_user",
         "subject": {
@@ -295,10 +224,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -314,10 +240,7 @@
           "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
           },
           "flowName": "GetFile",
           "huntId": "H:123456",
@@ -329,10 +252,7 @@
             "clientRuleSet": {
               "rules": [
                 {
-                  "regex": {
-                    "attributeRegex": "GRR",
-                    "field": "CLIENT_NAME"
-                  },
+                  "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                   "ruleType": "REGEX"
                 }
               ]
@@ -368,10 +288,7 @@
         "perClientArgs": [
           {
             "clientId": "C.1000000000000000",
-            "paths": [
-              "/etc/hosts",
-              "/foo/bar"
-            ]
+            "paths": ["/etc/hosts", "/foo/bar"]
           }
         ]
       },
@@ -392,20 +309,12 @@
           "@type": "type.googleapis.com/grr.HuntArgumentsVariable",
           "flowGroups": [
             {
-              "clientIds": [
-                "C.1000000000000000"
-              ],
+              "clientIds": ["C.1000000000000000"],
               "flowArgs": {
                 "@type": "type.googleapis.com/grr.MultiGetFileArgs",
                 "pathspecs": [
-                  {
-                    "path": "/etc/hosts",
-                    "pathtype": "OS"
-                  },
-                  {
-                    "path": "/foo/bar",
-                    "pathtype": "OS"
-                  }
+                  { "path": "/etc/hosts", "pathtype": "OS" },
+                  { "path": "/foo/bar", "pathtype": "OS" }
                 ]
               },
               "flowName": "MultiGetFile"
@@ -444,13 +353,8 @@
     {
       "api_method": "CreateVfsRefreshOperation",
       "method": "POST",
-      "request_payload": {
-        "filePath": "fs/os/Users/Shared",
-        "maxDepth": "1"
-      },
-      "response": {
-        "operationId": "ABCDEF"
-      },
+      "request_payload": { "filePath": "fs/os/Users/Shared", "maxDepth": "1" },
+      "response": { "operationId": "ABCDEF" },
       "test_class": "ApiCreateVfsRefreshOperationHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations"
     }
@@ -459,9 +363,7 @@
     {
       "api_method": "DeleteHunt",
       "method": "DELETE",
-      "response": {
-        "status": "OK"
-      },
+      "response": { "status": "OK" },
       "test_class": "ApiDeleteHuntHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456"
     }
@@ -470,18 +372,9 @@
     {
       "api_method": "ExplainGlobExpression",
       "method": "POST",
-      "request_payload": {
-        "globExpression": "/foo/*"
-      },
+      "request_payload": { "globExpression": "/foo/*" },
       "response": {
-        "components": [
-          {
-            "globExpression": "/foo/"
-          },
-          {
-            "globExpression": "*"
-          }
-        ]
+        "components": [{ "globExpression": "/foo/" }, { "globExpression": "*" }]
       },
       "test_class": "ApiExplainGlobExpressionHandlerTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/glob-expressions:explain"
@@ -491,9 +384,7 @@
     {
       "api_method": "ForceRunCronJob",
       "method": "POST",
-      "response": {
-        "status": "OK"
-      },
+      "response": { "status": "OK" },
       "test_class": "ApiForceRunCronJobRegressionTest_http_v2",
       "url": "/api/v2/cron-jobs/FileFinder/actions/force-run"
     }
@@ -503,17 +394,13 @@
       "api_method": "GetClientApproval",
       "method": "GET",
       "response": {
-        "approvers": [
-          "api_test_user"
-        ],
+        "approvers": ["api_test_user"],
         "emailMessageId": "<message id stub>",
         "expirationTimeUs": "2419244000000",
         "id": "approval:111111",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
-        "notifiedUsers": [
-          "approver"
-        ],
+        "notifiedUsers": ["approver"],
         "reason": "foo",
         "requestor": "api_test_user",
         "subject": {
@@ -522,10 +409,7 @@
             "buildTime": "1980-01-01",
             "clientName": "GRR Monitor",
             "clientVersion": 1234,
-            "labels": [
-              "label1",
-              "label2"
-            ]
+            "labels": ["label1", "label2"]
           },
           "clientId": "C.1000000000000000",
           "fleetspeakEnabled": false,
@@ -536,10 +420,7 @@
           "interfaces": [
             {
               "addresses": [
-                {
-                  "addressType": "INET",
-                  "packedBytes": "wKgAAA=="
-                },
+                { "addressType": "INET", "packedBytes": "wKgAAA==" },
                 {
                   "addressType": "INET6",
                   "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
@@ -547,26 +428,13 @@
               ],
               "ifname": "if0"
             },
-            {
-              "ifname": "if1",
-              "macAddress": "qrvM3e4A"
-            },
-            {
-              "ifname": "if2",
-              "macAddress": "u8zd7v8A"
-            }
+            { "ifname": "if1", "macAddress": "qrvM3e4A" },
+            { "ifname": "if2", "macAddress": "u8zd7v8A" }
           ],
           "knowledgeBase": {
             "fqdn": "Host-0.example.com",
             "os": "Linux",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "users": [{ "username": "user1" }, { "username": "user2" }]
           },
           "lastSeenAt": "42000000",
           "osInfo": {
@@ -577,14 +445,7 @@
             "version": "buster/sid"
           },
           "urn": "aff4:/C.1000000000000000",
-          "users": [
-            {
-              "username": "user1"
-            },
-            {
-              "username": "user2"
-            }
-          ]
+          "users": [{ "username": "user1" }, { "username": "user2" }]
         }
       },
       "test_class": "ApiGetClientApprovalHandlerRegressionTest_http_v2",
@@ -594,17 +455,12 @@
       "api_method": "GetClientApproval",
       "method": "GET",
       "response": {
-        "approvers": [
-          "api_test_user",
-          "approver"
-        ],
+        "approvers": ["api_test_user", "approver"],
         "emailMessageId": "<message id stub>",
         "expirationTimeUs": "2419245000000",
         "id": "approval:222222",
         "isValid": true,
-        "notifiedUsers": [
-          "approver"
-        ],
+        "notifiedUsers": ["approver"],
         "reason": "bar",
         "requestor": "api_test_user",
         "subject": {
@@ -613,10 +469,7 @@
             "buildTime": "1980-01-01",
             "clientName": "GRR Monitor",
             "clientVersion": 1234,
-            "labels": [
-              "label1",
-              "label2"
-            ]
+            "labels": ["label1", "label2"]
           },
           "clientId": "C.1000000000000001",
           "fleetspeakEnabled": false,
@@ -627,10 +480,7 @@
           "interfaces": [
             {
               "addresses": [
-                {
-                  "addressType": "INET",
-                  "packedBytes": "wKgAAQ=="
-                },
+                { "addressType": "INET", "packedBytes": "wKgAAQ==" },
                 {
                   "addressType": "INET6",
                   "packedBytes": "IAGrzQAAAAAAAAAAAAAAAQ=="
@@ -638,26 +488,13 @@
               ],
               "ifname": "if0"
             },
-            {
-              "ifname": "if1",
-              "macAddress": "qrvM3e4B"
-            },
-            {
-              "ifname": "if2",
-              "macAddress": "u8zd7v8B"
-            }
+            { "ifname": "if1", "macAddress": "qrvM3e4B" },
+            { "ifname": "if2", "macAddress": "u8zd7v8B" }
           ],
           "knowledgeBase": {
             "fqdn": "Host-1.example.com",
             "os": "Linux",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "users": [{ "username": "user1" }, { "username": "user2" }]
           },
           "lastSeenAt": "42000000",
           "osInfo": {
@@ -668,14 +505,7 @@
             "version": "buster/sid"
           },
           "urn": "aff4:/C.1000000000000001",
-          "users": [
-            {
-              "username": "user1"
-            },
-            {
-              "username": "user2"
-            }
-          ]
+          "users": [{ "username": "user1" }, { "username": "user2" }]
         }
       },
       "test_class": "ApiGetClientApprovalHandlerRegressionTest_http_v2",
@@ -692,10 +522,7 @@
           "buildTime": "1980-01-01",
           "clientName": "GRR Monitor",
           "clientVersion": 1234,
-          "labels": [
-            "label1",
-            "label2"
-          ]
+          "labels": ["label1", "label2"]
         },
         "clientId": "C.1000000000000000",
         "fleetspeakEnabled": false,
@@ -706,10 +533,7 @@
         "interfaces": [
           {
             "addresses": [
-              {
-                "addressType": "INET",
-                "packedBytes": "wKgAAA=="
-              },
+              { "addressType": "INET", "packedBytes": "wKgAAA==" },
               {
                 "addressType": "INET6",
                 "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
@@ -717,26 +541,13 @@
             ],
             "ifname": "if0"
           },
-          {
-            "ifname": "if1",
-            "macAddress": "qrvM3e4A"
-          },
-          {
-            "ifname": "if2",
-            "macAddress": "u8zd7v8A"
-          }
+          { "ifname": "if1", "macAddress": "qrvM3e4A" },
+          { "ifname": "if2", "macAddress": "u8zd7v8A" }
         ],
         "knowledgeBase": {
           "fqdn": "Host-0.example.com",
           "os": "Linux",
-          "users": [
-            {
-              "username": "user1"
-            },
-            {
-              "username": "user2"
-            }
-          ]
+          "users": [{ "username": "user1" }, { "username": "user2" }]
         },
         "lastSeenAt": "42000000",
         "memorySize": "4294967296",
@@ -748,14 +559,7 @@
           "version": "buster/sid"
         },
         "urn": "aff4:/C.1000000000000000",
-        "users": [
-          {
-            "username": "user1"
-          },
-          {
-            "username": "user2"
-          }
-        ]
+        "users": [{ "username": "user1" }, { "username": "user2" }]
       },
       "test_class": "ApiGetClientHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000"
@@ -767,14 +571,8 @@
       "method": "GET",
       "response": {
         "dataPoints": [
-          {
-            "timestamp": "10000000",
-            "value": 10.0
-          },
-          {
-            "timestamp": "20000000",
-            "value": 11.0
-          }
+          { "timestamp": "10000000", "value": 10.0 },
+          { "timestamp": "20000000", "value": 11.0 }
         ]
       },
       "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v2",
@@ -785,14 +583,8 @@
       "method": "GET",
       "response": {
         "dataPoints": [
-          {
-            "timestamp": "10000000",
-            "value": 10.0
-          },
-          {
-            "timestamp": "20000000",
-            "value": 12.0
-          }
+          { "timestamp": "10000000", "value": 10.0 },
+          { "timestamp": "20000000", "value": 12.0 }
         ]
       },
       "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v2",
@@ -811,10 +603,7 @@
               "buildTime": "1980-01-01",
               "clientName": "GRR Monitor",
               "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
+              "labels": ["label1", "label2"]
             },
             "clientId": "C.1000000000000000",
             "hardwareInfo": {
@@ -824,10 +613,7 @@
             "interfaces": [
               {
                 "addresses": [
-                  {
-                    "addressType": "INET",
-                    "packedBytes": "wKgAAA=="
-                  },
+                  { "addressType": "INET", "packedBytes": "wKgAAA==" },
                   {
                     "addressType": "INET6",
                     "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
@@ -835,26 +621,13 @@
                 ],
                 "ifname": "if0"
               },
-              {
-                "ifname": "if1",
-                "macAddress": "qrvM3e4A"
-              },
-              {
-                "ifname": "if2",
-                "macAddress": "u8zd7v8A"
-              }
+              { "ifname": "if1", "macAddress": "qrvM3e4A" },
+              { "ifname": "if2", "macAddress": "u8zd7v8A" }
             ],
             "knowledgeBase": {
               "fqdn": "Host-0.example.com",
               "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
+              "users": [{ "username": "user1" }, { "username": "user2" }]
             },
             "memorySize": "4294967296",
             "osInfo": {
@@ -865,14 +638,7 @@
               "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "users": [{ "username": "user1" }, { "username": "user2" }]
           },
           {
             "age": "45000000",
@@ -880,10 +646,7 @@
               "buildTime": "1980-01-01",
               "clientName": "GRR Monitor",
               "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
+              "labels": ["label1", "label2"]
             },
             "clientId": "C.1000000000000000",
             "hardwareInfo": {
@@ -893,10 +656,7 @@
             "interfaces": [
               {
                 "addresses": [
-                  {
-                    "addressType": "INET",
-                    "packedBytes": "wKgAAA=="
-                  },
+                  { "addressType": "INET", "packedBytes": "wKgAAA==" },
                   {
                     "addressType": "INET6",
                     "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
@@ -904,26 +664,13 @@
                 ],
                 "ifname": "if0"
               },
-              {
-                "ifname": "if1",
-                "macAddress": "qrvM3e4A"
-              },
-              {
-                "ifname": "if2",
-                "macAddress": "u8zd7v8A"
-              }
+              { "ifname": "if1", "macAddress": "qrvM3e4A" },
+              { "ifname": "if2", "macAddress": "u8zd7v8A" }
             ],
             "knowledgeBase": {
               "fqdn": "some-other-hostname.org",
               "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
+              "users": [{ "username": "user1" }, { "username": "user2" }]
             },
             "memorySize": "4294967296",
             "osInfo": {
@@ -934,14 +681,7 @@
               "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "users": [{ "username": "user1" }, { "username": "user2" }]
           }
         ]
       },
@@ -959,10 +699,7 @@
               "buildTime": "1980-01-01",
               "clientName": "GRR Monitor",
               "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
+              "labels": ["label1", "label2"]
             },
             "clientId": "C.1000000000000000",
             "hardwareInfo": {
@@ -972,10 +709,7 @@
             "interfaces": [
               {
                 "addresses": [
-                  {
-                    "addressType": "INET",
-                    "packedBytes": "wKgAAA=="
-                  },
+                  { "addressType": "INET", "packedBytes": "wKgAAA==" },
                   {
                     "addressType": "INET6",
                     "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
@@ -983,26 +717,13 @@
                 ],
                 "ifname": "if0"
               },
-              {
-                "ifname": "if1",
-                "macAddress": "qrvM3e4A"
-              },
-              {
-                "ifname": "if2",
-                "macAddress": "u8zd7v8A"
-              }
+              { "ifname": "if1", "macAddress": "qrvM3e4A" },
+              { "ifname": "if2", "macAddress": "u8zd7v8A" }
             ],
             "knowledgeBase": {
               "fqdn": "Host-0.example.com",
               "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
+              "users": [{ "username": "user1" }, { "username": "user2" }]
             },
             "memorySize": "4294967296",
             "osInfo": {
@@ -1013,14 +734,7 @@
               "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "users": [{ "username": "user1" }, { "username": "user2" }]
           }
         ]
       },
@@ -1038,10 +752,7 @@
               "buildTime": "1980-01-01",
               "clientName": "GRR Monitor",
               "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
+              "labels": ["label1", "label2"]
             },
             "clientId": "C.1000000000000000",
             "hardwareInfo": {
@@ -1051,10 +762,7 @@
             "interfaces": [
               {
                 "addresses": [
-                  {
-                    "addressType": "INET",
-                    "packedBytes": "wKgAAA=="
-                  },
+                  { "addressType": "INET", "packedBytes": "wKgAAA==" },
                   {
                     "addressType": "INET6",
                     "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
@@ -1062,26 +770,13 @@
                 ],
                 "ifname": "if0"
               },
-              {
-                "ifname": "if1",
-                "macAddress": "qrvM3e4A"
-              },
-              {
-                "ifname": "if2",
-                "macAddress": "u8zd7v8A"
-              }
+              { "ifname": "if1", "macAddress": "qrvM3e4A" },
+              { "ifname": "if2", "macAddress": "u8zd7v8A" }
             ],
             "knowledgeBase": {
               "fqdn": "some-other-hostname.org",
               "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
+              "users": [{ "username": "user1" }, { "username": "user2" }]
             },
             "memorySize": "4294967296",
             "osInfo": {
@@ -1092,14 +787,7 @@
               "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "users": [{ "username": "user1" }, { "username": "user2" }]
           }
         ]
       },
@@ -1112,16 +800,12 @@
       "api_method": "GetCronJobApproval",
       "method": "GET",
       "response": {
-        "approvers": [
-          "api_test_user"
-        ],
+        "approvers": ["api_test_user"],
         "emailMessageId": "<message id stub>",
         "id": "approval:111111",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
-        "notifiedUsers": [
-          "approver"
-        ],
+        "notifiedUsers": ["approver"],
         "reason": "foo",
         "requestor": "api_test_user",
         "subject": {
@@ -1154,16 +838,11 @@
       "api_method": "GetCronJobApproval",
       "method": "GET",
       "response": {
-        "approvers": [
-          "api_test_user",
-          "approver"
-        ],
+        "approvers": ["api_test_user", "approver"],
         "emailMessageId": "<message id stub>",
         "id": "approval:222222",
         "isValid": true,
-        "notifiedUsers": [
-          "approver"
-        ],
+        "notifiedUsers": ["approver"],
         "reason": "bar",
         "requestor": "api_test_user",
         "subject": {
@@ -1223,30 +902,21 @@
     {
       "api_method": "GetFileText",
       "method": "GET",
-      "response": {
-        "content": "Goodbye World",
-        "totalSize": "13"
-      },
+      "response": { "content": "Goodbye World", "totalSize": "13" },
       "test_class": "ApiGetFileTextHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt"
     },
     {
       "api_method": "GetFileText",
       "method": "GET",
-      "response": {
-        "content": "dby",
-        "totalSize": "13"
-      },
+      "response": { "content": "dby", "totalSize": "13" },
       "test_class": "ApiGetFileTextHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt?length=3&offset=3"
     },
     {
       "api_method": "GetFileText",
       "method": "GET",
-      "response": {
-        "content": "Hello World",
-        "totalSize": "11"
-      },
+      "response": { "content": "Hello World", "totalSize": "11" },
       "test_class": "ApiGetFileTextHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt?timestamp=86400000042"
     }
@@ -1255,12 +925,7 @@
     {
       "api_method": "GetFileVersionTimes",
       "method": "GET",
-      "response": {
-        "times": [
-          "172800000042",
-          "86400000042"
-        ]
-      },
+      "response": { "times": ["172800000042", "86400000042"] },
       "test_class": "ApiGetFileVersionTimesHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-version-times/fs/os/c/Downloads/a.txt"
     }
@@ -1275,9 +940,7 @@
         },
         "clientId": "C.1000000000000000",
         "context": {
-          "clientResources": {
-            "cpuUsage": {}
-          },
+          "clientResources": { "cpuUsage": {} },
           "createTime": "42000000",
           "creator": "api_test_user",
           "currentState": "Start",
@@ -1294,9 +957,7 @@
         "progress": {
           "@type": "type.googleapis.com/grr.DefaultFlowProgress"
         },
-        "resultMetadata": {
-          "isMetadataSet": true
-        },
+        "resultMetadata": { "isMetadataSet": true },
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "Interrogate",
@@ -1320,19 +981,11 @@
               "value": {
                 "@type": "type.googleapis.com/grr.ClientSnapshot",
                 "clientId": "C.1000000000000000",
-                "metadata": {
-                  "sourceFlowId": "F:ABCDEF12"
-                }
+                "metadata": { "sourceFlowId": "F:ABCDEF12" }
               }
             },
-            {
-              "invalid": true,
-              "key": "fqdn"
-            },
-            {
-              "invalid": true,
-              "key": "os"
-            }
+            { "invalid": true, "key": "fqdn" },
+            { "invalid": true, "key": "os" }
           ]
         },
         "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
@@ -1349,9 +1002,7 @@
         },
         "clientId": "C.1000000000000000",
         "context": {
-          "clientResources": {
-            "cpuUsage": {}
-          },
+          "clientResources": { "cpuUsage": {} },
           "createTime": "42000000",
           "creator": "api_test_user",
           "currentState": "Start",
@@ -1370,9 +1021,7 @@
         "progress": {
           "@type": "type.googleapis.com/grr.DefaultFlowProgress"
         },
-        "resultMetadata": {
-          "isMetadataSet": true
-        },
+        "resultMetadata": { "isMetadataSet": true },
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "Interrogate",
@@ -1396,19 +1045,11 @@
               "value": {
                 "@type": "type.googleapis.com/grr.ClientSnapshot",
                 "clientId": "C.1000000000000000",
-                "metadata": {
-                  "sourceFlowId": "F:ABCDEF13"
-                }
+                "metadata": { "sourceFlowId": "F:ABCDEF13" }
               }
             },
-            {
-              "invalid": true,
-              "key": "fqdn"
-            },
-            {
-              "invalid": true,
-              "key": "os"
-            }
+            { "invalid": true, "key": "fqdn" },
+            { "invalid": true, "key": "os" }
           ]
         },
         "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF13"
@@ -1477,17 +1118,13 @@
       "api_method": "GetHuntApproval",
       "method": "GET",
       "response": {
-        "approvers": [
-          "api_test_user"
-        ],
+        "approvers": ["api_test_user"],
         "emailMessageId": "<message id stub>",
         "expirationTimeUs": "2419244000000",
         "id": "approval:111111",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
-        "notifiedUsers": [
-          "approver"
-        ],
+        "notifiedUsers": ["approver"],
         "reason": "foo",
         "requestor": "api_test_user",
         "subject": {
@@ -1497,10 +1134,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -1516,10 +1150,7 @@
           "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
           },
           "flowName": "GetFile",
           "huntId": "H:123456",
@@ -1531,10 +1162,7 @@
             "clientRuleSet": {
               "rules": [
                 {
-                  "regex": {
-                    "attributeRegex": "GRR",
-                    "field": "CLIENT_NAME"
-                  },
+                  "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                   "ruleType": "REGEX"
                 }
               ]
@@ -1564,17 +1192,12 @@
       "api_method": "GetHuntApproval",
       "method": "GET",
       "response": {
-        "approvers": [
-          "api_test_user",
-          "approver"
-        ],
+        "approvers": ["api_test_user", "approver"],
         "emailMessageId": "<message id stub>",
         "expirationTimeUs": "2419245000000",
         "id": "approval:222222",
         "isValid": true,
-        "notifiedUsers": [
-          "approver"
-        ],
+        "notifiedUsers": ["approver"],
         "reason": "bar",
         "requestor": "api_test_user",
         "subject": {
@@ -1584,10 +1207,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -1603,10 +1223,7 @@
           "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
           },
           "flowName": "GetFile",
           "huntId": "H:567890",
@@ -1618,10 +1235,7 @@
             "clientRuleSet": {
               "rules": [
                 {
-                  "regex": {
-                    "attributeRegex": "GRR",
-                    "field": "CLIENT_NAME"
-                  },
+                  "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                   "ruleType": "REGEX"
                 }
               ]
@@ -1651,9 +1265,7 @@
       "api_method": "GetHuntApproval",
       "method": "GET",
       "response": {
-        "approvers": [
-          "api_test_user"
-        ],
+        "approvers": ["api_test_user"],
         "copiedFromHunt": {
           "allClientsCount": "0",
           "clientLimit": "100",
@@ -1661,10 +1273,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -1680,10 +1289,7 @@
           "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
           },
           "flowName": "GetFile",
           "huntId": "H:556677",
@@ -1695,10 +1301,7 @@
             "clientRuleSet": {
               "rules": [
                 {
-                  "regex": {
-                    "attributeRegex": "GRR",
-                    "field": "CLIENT_NAME"
-                  },
+                  "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                   "ruleType": "REGEX"
                 }
               ]
@@ -1725,9 +1328,7 @@
         "id": "approval:333333",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
-        "notifiedUsers": [
-          "approver"
-        ],
+        "notifiedUsers": ["approver"],
         "reason": "foo",
         "requestor": "api_test_user",
         "subject": {
@@ -1737,10 +1338,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -1748,18 +1346,15 @@
           "clientsWithResultsCount": "0",
           "completedClientsCount": "0",
           "crashLimit": "100",
-          "created": "42000000",
           "crashedClientsCount": "0",
+          "created": "42000000",
           "creator": "api_test_user",
           "description": "copied hunt",
           "duration": "1209600",
           "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
           },
           "flowName": "GetFile",
           "huntId": "H:DDEEFF",
@@ -1771,10 +1366,7 @@
             "clientRuleSet": {
               "rules": [
                 {
-                  "regex": {
-                    "attributeRegex": "GRR",
-                    "field": "CLIENT_NAME"
-                  },
+                  "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                   "ruleType": "REGEX"
                 }
               ]
@@ -1784,9 +1376,7 @@
             "expiryTime": "1209600",
             "huntName": "GenericHunt",
             "originalObject": {
-              "huntReference": {
-                "huntId": "H:556677"
-              },
+              "huntReference": { "huntId": "H:556677" },
               "objectType": "HUNT_REFERENCE"
             }
           },
@@ -1794,9 +1384,7 @@
           "isRobot": false,
           "name": "GenericHunt",
           "originalObject": {
-            "huntReference": {
-              "huntId": "H:556677"
-            },
+            "huntReference": { "huntId": "H:556677" },
             "objectType": "HUNT_REFERENCE"
           },
           "remainingClientsCount": "0",
@@ -1815,9 +1403,7 @@
       "api_method": "GetHuntApproval",
       "method": "GET",
       "response": {
-        "approvers": [
-          "api_test_user"
-        ],
+        "approvers": ["api_test_user"],
         "copiedFromFlow": {
           "args": {
             "@type": "type.googleapis.com/grr.InterrogateArgs"
@@ -1842,9 +1428,7 @@
         "id": "approval:444444",
         "isValid": false,
         "isValidMessage": "Need at least 1 additional approver for access.",
-        "notifiedUsers": [
-          "approver"
-        ],
+        "notifiedUsers": ["approver"],
         "reason": "foo",
         "requestor": "api_test_user",
         "subject": {
@@ -1854,10 +1438,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -1873,10 +1454,7 @@
           "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
           },
           "flowName": "GetFile",
           "huntId": "H:667788",
@@ -1888,10 +1466,7 @@
             "clientRuleSet": {
               "rules": [
                 {
-                  "regex": {
-                    "attributeRegex": "GRR",
-                    "field": "CLIENT_NAME"
-                  },
+                  "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                   "ruleType": "REGEX"
                 }
               ]
@@ -1937,96 +1512,30 @@
       "method": "GET",
       "response": {
         "completePoints": [
-          {
-            "xValue": 44.0,
-            "yValue": 0.0
-          },
-          {
-            "xValue": 45.0,
-            "yValue": 1.0
-          },
-          {
-            "xValue": 55.0,
-            "yValue": 2.0
-          },
-          {
-            "xValue": 65.0,
-            "yValue": 3.0
-          },
-          {
-            "xValue": 75.0,
-            "yValue": 4.0
-          },
-          {
-            "xValue": 85.0,
-            "yValue": 5.0
-          },
-          {
-            "xValue": 95.0,
-            "yValue": 6.0
-          },
-          {
-            "xValue": 105.0,
-            "yValue": 7.0
-          },
-          {
-            "xValue": 115.0,
-            "yValue": 8.0
-          },
-          {
-            "xValue": 125.0,
-            "yValue": 9.0
-          },
-          {
-            "xValue": 135.0,
-            "yValue": 10.0
-          }
+          { "xValue": 44.0, "yValue": 0.0 },
+          { "xValue": 45.0, "yValue": 1.0 },
+          { "xValue": 55.0, "yValue": 2.0 },
+          { "xValue": 65.0, "yValue": 3.0 },
+          { "xValue": 75.0, "yValue": 4.0 },
+          { "xValue": 85.0, "yValue": 5.0 },
+          { "xValue": 95.0, "yValue": 6.0 },
+          { "xValue": 105.0, "yValue": 7.0 },
+          { "xValue": 115.0, "yValue": 8.0 },
+          { "xValue": 125.0, "yValue": 9.0 },
+          { "xValue": 135.0, "yValue": 10.0 }
         ],
         "startPoints": [
-          {
-            "xValue": 44.0,
-            "yValue": 0.0
-          },
-          {
-            "xValue": 45.0,
-            "yValue": 1.0
-          },
-          {
-            "xValue": 55.0,
-            "yValue": 2.0
-          },
-          {
-            "xValue": 65.0,
-            "yValue": 3.0
-          },
-          {
-            "xValue": 75.0,
-            "yValue": 4.0
-          },
-          {
-            "xValue": 85.0,
-            "yValue": 5.0
-          },
-          {
-            "xValue": 95.0,
-            "yValue": 6.0
-          },
-          {
-            "xValue": 105.0,
-            "yValue": 7.0
-          },
-          {
-            "xValue": 115.0,
-            "yValue": 8.0
-          },
-          {
-            "xValue": 125.0,
-            "yValue": 9.0
-          },
-          {
-            "xValue": 135.0,
-            "yValue": 10.0
-          }
+          { "xValue": 44.0, "yValue": 0.0 },
+          { "xValue": 45.0, "yValue": 1.0 },
+          { "xValue": 55.0, "yValue": 2.0 },
+          { "xValue": 65.0, "yValue": 3.0 },
+          { "xValue": 75.0, "yValue": 4.0 },
+          { "xValue": 85.0, "yValue": 5.0 },
+          { "xValue": 95.0, "yValue": 6.0 },
+          { "xValue": 105.0, "yValue": 7.0 },
+          { "xValue": 115.0, "yValue": 8.0 },
+          { "xValue": 125.0, "yValue": 9.0 },
+          { "xValue": 135.0, "yValue": 10.0 }
         ]
       },
       "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest_http_v2",
@@ -2037,40 +1546,16 @@
       "method": "GET",
       "response": {
         "completePoints": [
-          {
-            "xValue": 66.75,
-            "yValue": 3.0
-          },
-          {
-            "xValue": 89.5,
-            "yValue": 5.0
-          },
-          {
-            "xValue": 112.25,
-            "yValue": 7.0
-          },
-          {
-            "xValue": 135.0,
-            "yValue": 10.0
-          }
+          { "xValue": 66.75, "yValue": 3.0 },
+          { "xValue": 89.5, "yValue": 5.0 },
+          { "xValue": 112.25, "yValue": 7.0 },
+          { "xValue": 135.0, "yValue": 10.0 }
         ],
         "startPoints": [
-          {
-            "xValue": 66.75,
-            "yValue": 3.0
-          },
-          {
-            "xValue": 89.5,
-            "yValue": 5.0
-          },
-          {
-            "xValue": 112.25,
-            "yValue": 7.0
-          },
-          {
-            "xValue": 135.0,
-            "yValue": 10.0
-          }
+          { "xValue": 66.75, "yValue": 3.0 },
+          { "xValue": 89.5, "yValue": 5.0 },
+          { "xValue": 112.25, "yValue": 7.0 },
+          { "xValue": 135.0, "yValue": 10.0 }
         ]
       },
       "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest_http_v2",
@@ -2081,96 +1566,30 @@
       "method": "GET",
       "response": {
         "completePoints": [
-          {
-            "xValue": 44.0,
-            "yValue": 0.0
-          },
-          {
-            "xValue": 45.0,
-            "yValue": 1.0
-          },
-          {
-            "xValue": 55.0,
-            "yValue": 2.0
-          },
-          {
-            "xValue": 65.0,
-            "yValue": 3.0
-          },
-          {
-            "xValue": 75.0,
-            "yValue": 4.0
-          },
-          {
-            "xValue": 85.0,
-            "yValue": 5.0
-          },
-          {
-            "xValue": 95.0,
-            "yValue": 6.0
-          },
-          {
-            "xValue": 105.0,
-            "yValue": 7.0
-          },
-          {
-            "xValue": 115.0,
-            "yValue": 8.0
-          },
-          {
-            "xValue": 125.0,
-            "yValue": 9.0
-          },
-          {
-            "xValue": 135.0,
-            "yValue": 10.0
-          }
+          { "xValue": 44.0, "yValue": 0.0 },
+          { "xValue": 45.0, "yValue": 1.0 },
+          { "xValue": 55.0, "yValue": 2.0 },
+          { "xValue": 65.0, "yValue": 3.0 },
+          { "xValue": 75.0, "yValue": 4.0 },
+          { "xValue": 85.0, "yValue": 5.0 },
+          { "xValue": 95.0, "yValue": 6.0 },
+          { "xValue": 105.0, "yValue": 7.0 },
+          { "xValue": 115.0, "yValue": 8.0 },
+          { "xValue": 125.0, "yValue": 9.0 },
+          { "xValue": 135.0, "yValue": 10.0 }
         ],
         "startPoints": [
-          {
-            "xValue": 44.0,
-            "yValue": 0.0
-          },
-          {
-            "xValue": 45.0,
-            "yValue": 1.0
-          },
-          {
-            "xValue": 55.0,
-            "yValue": 2.0
-          },
-          {
-            "xValue": 65.0,
-            "yValue": 3.0
-          },
-          {
-            "xValue": 75.0,
-            "yValue": 4.0
-          },
-          {
-            "xValue": 85.0,
-            "yValue": 5.0
-          },
-          {
-            "xValue": 95.0,
-            "yValue": 6.0
-          },
-          {
-            "xValue": 105.0,
-            "yValue": 7.0
-          },
-          {
-            "xValue": 115.0,
-            "yValue": 8.0
-          },
-          {
-            "xValue": 125.0,
-            "yValue": 9.0
-          },
-          {
-            "xValue": 135.0,
-            "yValue": 10.0
-          }
+          { "xValue": 44.0, "yValue": 0.0 },
+          { "xValue": 45.0, "yValue": 1.0 },
+          { "xValue": 55.0, "yValue": 2.0 },
+          { "xValue": 65.0, "yValue": 3.0 },
+          { "xValue": 75.0, "yValue": 4.0 },
+          { "xValue": 85.0, "yValue": 5.0 },
+          { "xValue": 95.0, "yValue": 6.0 },
+          { "xValue": 105.0, "yValue": 7.0 },
+          { "xValue": 115.0, "yValue": 8.0 },
+          { "xValue": 125.0, "yValue": 9.0 },
+          { "xValue": 135.0, "yValue": 10.0 }
         ]
       },
       "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest_http_v2",
@@ -2188,10 +1607,7 @@
         "clientRuleSet": {
           "rules": [
             {
-              "regex": {
-                "attributeRegex": "GRR",
-                "field": "CLIENT_NAME"
-              },
+              "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
               "ruleType": "REGEX"
             }
           ]
@@ -2207,10 +1623,7 @@
         "failedClientsCount": "0",
         "flowArgs": {
           "@type": "type.googleapis.com/grr.GetFileArgs",
-          "pathspec": {
-            "path": "/tmp/evil.txt",
-            "pathtype": "OS"
-          }
+          "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
         },
         "flowName": "GetFile",
         "huntId": "H:123456",
@@ -2222,10 +1635,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -2273,10 +1683,7 @@
         "clientRuleSet": {
           "rules": [
             {
-              "regex": {
-                "attributeRegex": "GRR",
-                "field": "CLIENT_NAME"
-              },
+              "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
               "ruleType": "REGEX"
             }
           ]
@@ -2292,10 +1699,7 @@
         "failedClientsCount": "0",
         "flowArgs": {
           "@type": "type.googleapis.com/grr.GetFileArgs",
-          "pathspec": {
-            "path": "/tmp/evil.txt",
-            "pathtype": "OS"
-          }
+          "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
         },
         "flowName": "GetFile",
         "huntId": "H:123456",
@@ -2307,10 +1711,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -2320,9 +1721,7 @@
           "expiryTime": "1209600",
           "huntName": "GenericHunt",
           "originalObject": {
-            "huntReference": {
-              "huntId": "H:332211"
-            },
+            "huntReference": { "huntId": "H:332211" },
             "objectType": "HUNT_REFERENCE"
           }
         },
@@ -2330,9 +1729,7 @@
         "isRobot": false,
         "name": "GenericHunt",
         "originalObject": {
-          "huntReference": {
-            "huntId": "H:332211"
-          },
+          "huntReference": { "huntId": "H:332211" },
           "objectType": "HUNT_REFERENCE"
         },
         "remainingClientsCount": "0",
@@ -2356,10 +1753,7 @@
         "clientRuleSet": {
           "rules": [
             {
-              "regex": {
-                "attributeRegex": "GRR",
-                "field": "CLIENT_NAME"
-              },
+              "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
               "ruleType": "REGEX"
             }
           ]
@@ -2375,10 +1769,7 @@
         "failedClientsCount": "0",
         "flowArgs": {
           "@type": "type.googleapis.com/grr.GetFileArgs",
-          "pathspec": {
-            "path": "/tmp/evil.txt",
-            "pathtype": "OS"
-          }
+          "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
         },
         "flowName": "GetFile",
         "huntId": "H:123456",
@@ -2390,10 +1781,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -2439,61 +1827,24 @@
           "networkBytesSentStats": {
             "histogram": {
               "bins": [
-                {
-                  "num": "1",
-                  "rangeMaxValue": 16.0
-                },
-                {
-                  "rangeMaxValue": 32.0
-                },
-                {
-                  "rangeMaxValue": 64.0
-                },
-                {
-                  "rangeMaxValue": 128.0
-                },
-                {
-                  "rangeMaxValue": 256.0
-                },
-                {
-                  "rangeMaxValue": 512.0
-                },
-                {
-                  "rangeMaxValue": 1024.0
-                },
-                {
-                  "rangeMaxValue": 2048.0
-                },
-                {
-                  "rangeMaxValue": 4096.0
-                },
-                {
-                  "rangeMaxValue": 8192.0
-                },
-                {
-                  "rangeMaxValue": 16384.0
-                },
-                {
-                  "rangeMaxValue": 32768.0
-                },
-                {
-                  "rangeMaxValue": 65536.0
-                },
-                {
-                  "rangeMaxValue": 131072.0
-                },
-                {
-                  "rangeMaxValue": 262144.0
-                },
-                {
-                  "rangeMaxValue": 524288.0
-                },
-                {
-                  "rangeMaxValue": 1048576.0
-                },
-                {
-                  "rangeMaxValue": 2097152.0
-                }
+                { "num": "1", "rangeMaxValue": 16.0 },
+                { "rangeMaxValue": 32.0 },
+                { "rangeMaxValue": 64.0 },
+                { "rangeMaxValue": 128.0 },
+                { "rangeMaxValue": 256.0 },
+                { "rangeMaxValue": 512.0 },
+                { "rangeMaxValue": 1024.0 },
+                { "rangeMaxValue": 2048.0 },
+                { "rangeMaxValue": 4096.0 },
+                { "rangeMaxValue": 8192.0 },
+                { "rangeMaxValue": 16384.0 },
+                { "rangeMaxValue": 32768.0 },
+                { "rangeMaxValue": 65536.0 },
+                { "rangeMaxValue": 131072.0 },
+                { "rangeMaxValue": 262144.0 },
+                { "rangeMaxValue": 524288.0 },
+                { "rangeMaxValue": 1048576.0 },
+                { "rangeMaxValue": 2097152.0 }
               ]
             },
             "num": "1",
@@ -2503,67 +1854,26 @@
           "systemCpuStats": {
             "histogram": {
               "bins": [
-                {
-                  "rangeMaxValue": 0.1
-                },
-                {
-                  "rangeMaxValue": 0.2
-                },
-                {
-                  "rangeMaxValue": 0.30000001
-                },
-                {
-                  "rangeMaxValue": 0.40000001
-                },
-                {
-                  "rangeMaxValue": 0.5
-                },
-                {
-                  "rangeMaxValue": 0.75
-                },
-                {
-                  "rangeMaxValue": 1.0
-                },
-                {
-                  "rangeMaxValue": 1.5
-                },
-                {
-                  "rangeMaxValue": 2.0
-                },
-                {
-                  "num": "1",
-                  "rangeMaxValue": 2.5
-                },
-                {
-                  "rangeMaxValue": 3.0
-                },
-                {
-                  "rangeMaxValue": 4.0
-                },
-                {
-                  "rangeMaxValue": 5.0
-                },
-                {
-                  "rangeMaxValue": 6.0
-                },
-                {
-                  "rangeMaxValue": 7.0
-                },
-                {
-                  "rangeMaxValue": 8.0
-                },
-                {
-                  "rangeMaxValue": 9.0
-                },
-                {
-                  "rangeMaxValue": 10.0
-                },
-                {
-                  "rangeMaxValue": 15.0
-                },
-                {
-                  "rangeMaxValue": 20.0
-                }
+                { "rangeMaxValue": 0.1 },
+                { "rangeMaxValue": 0.2 },
+                { "rangeMaxValue": 0.30000001 },
+                { "rangeMaxValue": 0.40000001 },
+                { "rangeMaxValue": 0.5 },
+                { "rangeMaxValue": 0.75 },
+                { "rangeMaxValue": 1.0 },
+                { "rangeMaxValue": 1.5 },
+                { "rangeMaxValue": 2.0 },
+                { "num": "1", "rangeMaxValue": 2.5 },
+                { "rangeMaxValue": 3.0 },
+                { "rangeMaxValue": 4.0 },
+                { "rangeMaxValue": 5.0 },
+                { "rangeMaxValue": 6.0 },
+                { "rangeMaxValue": 7.0 },
+                { "rangeMaxValue": 8.0 },
+                { "rangeMaxValue": 9.0 },
+                { "rangeMaxValue": 10.0 },
+                { "rangeMaxValue": 15.0 },
+                { "rangeMaxValue": 20.0 }
               ]
             },
             "num": "1",
@@ -2573,67 +1883,26 @@
           "userCpuStats": {
             "histogram": {
               "bins": [
-                {
-                  "rangeMaxValue": 0.1
-                },
-                {
-                  "rangeMaxValue": 0.2
-                },
-                {
-                  "rangeMaxValue": 0.30000001
-                },
-                {
-                  "rangeMaxValue": 0.40000001
-                },
-                {
-                  "rangeMaxValue": 0.5
-                },
-                {
-                  "rangeMaxValue": 0.75
-                },
-                {
-                  "rangeMaxValue": 1.0
-                },
-                {
-                  "num": "1",
-                  "rangeMaxValue": 1.5
-                },
-                {
-                  "rangeMaxValue": 2.0
-                },
-                {
-                  "rangeMaxValue": 2.5
-                },
-                {
-                  "rangeMaxValue": 3.0
-                },
-                {
-                  "rangeMaxValue": 4.0
-                },
-                {
-                  "rangeMaxValue": 5.0
-                },
-                {
-                  "rangeMaxValue": 6.0
-                },
-                {
-                  "rangeMaxValue": 7.0
-                },
-                {
-                  "rangeMaxValue": 8.0
-                },
-                {
-                  "rangeMaxValue": 9.0
-                },
-                {
-                  "rangeMaxValue": 10.0
-                },
-                {
-                  "rangeMaxValue": 15.0
-                },
-                {
-                  "rangeMaxValue": 20.0
-                }
+                { "rangeMaxValue": 0.1 },
+                { "rangeMaxValue": 0.2 },
+                { "rangeMaxValue": 0.30000001 },
+                { "rangeMaxValue": 0.40000001 },
+                { "rangeMaxValue": 0.5 },
+                { "rangeMaxValue": 0.75 },
+                { "rangeMaxValue": 1.0 },
+                { "num": "1", "rangeMaxValue": 1.5 },
+                { "rangeMaxValue": 2.0 },
+                { "rangeMaxValue": 2.5 },
+                { "rangeMaxValue": 3.0 },
+                { "rangeMaxValue": 4.0 },
+                { "rangeMaxValue": 5.0 },
+                { "rangeMaxValue": 6.0 },
+                { "rangeMaxValue": 7.0 },
+                { "rangeMaxValue": 8.0 },
+                { "rangeMaxValue": 9.0 },
+                { "rangeMaxValue": 10.0 },
+                { "rangeMaxValue": 15.0 },
+                { "rangeMaxValue": 20.0 }
               ]
             },
             "num": "1",
@@ -2643,10 +1912,7 @@
           "worstPerformers": [
             {
               "clientId": "aff4:/C.1000000000000000",
-              "cpuUsage": {
-                "systemCpuTime": 2.0,
-                "userCpuTime": 1.0
-              },
+              "cpuUsage": { "systemCpuTime": 2.0, "userCpuTime": 1.0 },
               "networkBytesSent": "3",
               "sessionId": "<replaced session value>"
             }
@@ -2694,10 +1960,7 @@
           "uploadArtifactActionEnabled": true,
           "uploadBinaryActionEnabled": true
         },
-        "settings": {
-          "canaryMode": true,
-          "mode": "ADVANCED"
-        },
+        "settings": { "canaryMode": true, "mode": "ADVANCED" },
         "userType": "USER_TYPE_STANDARD",
         "username": "api_test_user"
       },
@@ -2727,10 +1990,7 @@
           "uploadArtifactActionEnabled": true,
           "uploadBinaryActionEnabled": true
         },
-        "settings": {
-          "canaryMode": true,
-          "mode": "ADVANCED"
-        },
+        "settings": { "canaryMode": true, "mode": "ADVANCED" },
         "userType": "USER_TYPE_ADMIN",
         "username": "api_test_user"
       },
@@ -2742,9 +2002,7 @@
     {
       "api_method": "GetPendingUserNotificationsCount",
       "method": "GET",
-      "response": {
-        "count": "2"
-      },
+      "response": { "count": "2" },
       "test_class": "ApiGetPendingUserNotificationsCountHandlerRegressionTest_http_v2",
       "url": "/api/v2/users/me/notifications/pending/count"
     }
@@ -2857,26 +2115,10 @@
           },
           {
             "allowedValues": [
-              {
-                "doc": "",
-                "name": "RUNNING",
-                "value": "0"
-              },
-              {
-                "doc": "",
-                "name": "TERMINATED",
-                "value": "1"
-              },
-              {
-                "doc": "",
-                "name": "ERROR",
-                "value": "3"
-              },
-              {
-                "doc": "",
-                "name": "CLIENT_CRASHED",
-                "value": "4"
-              }
+              { "doc": "", "name": "RUNNING", "value": "0" },
+              { "doc": "", "name": "TERMINATED", "value": "1" },
+              { "doc": "", "name": "ERROR", "value": "3" },
+              { "doc": "", "name": "CLIENT_CRASHED", "value": "4" }
             ],
             "default": {
               "@type": "type.googleapis.com/google.protobuf.Int64Value",
@@ -2979,9 +2221,7 @@
             "dynamic": false,
             "friendlyName": "Original flow",
             "index": 13,
-            "labels": [
-              "HIDDEN"
-            ],
+            "labels": ["HIDDEN"],
             "name": "original_flow",
             "repeated": false,
             "type": "ApiFlowReference"
@@ -3026,22 +2266,10 @@
               {
                 "label": "Bar",
                 "points": [
-                  {
-                    "x": 5.0,
-                    "y": 3.0
-                  },
-                  {
-                    "x": 8.0,
-                    "y": 4.0
-                  },
-                  {
-                    "x": 13.0,
-                    "y": 5.0
-                  },
-                  {
-                    "x": 21.0,
-                    "y": 6.0
-                  }
+                  { "x": 5.0, "y": 3.0 },
+                  { "x": 8.0, "y": 4.0 },
+                  { "x": 13.0, "y": 5.0 },
+                  { "x": 21.0, "y": 6.0 }
                 ]
               }
             ]
@@ -3063,36 +2291,28 @@
     {
       "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
-      "response": {
-        "state": "RUNNING"
-      },
+      "response": { "state": "RUNNING" },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update/ABCDEF"
     },
     {
       "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
-      "response": {
-        "state": "FINISHED"
-      },
+      "response": { "state": "FINISHED" },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update/ABCDEF"
     },
     {
       "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
-      "response": {
-        "message": "Operation with id ABCDEF not found"
-      },
+      "response": { "message": "Operation with id ABCDEF not found" },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update/ABCDEF"
     },
     {
       "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
-      "response": {
-        "message": "Flow id has incorrect format: `ABCDEF`"
-      },
+      "response": { "message": "Flow id has incorrect format: `ABCDEF`" },
       "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update/ABCDEF"
     }
@@ -3101,36 +2321,28 @@
     {
       "api_method": "GetVfsRefreshOperationState",
       "method": "GET",
-      "response": {
-        "state": "RUNNING"
-      },
+      "response": { "state": "RUNNING" },
       "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/ABCDEF"
     },
     {
       "api_method": "GetVfsRefreshOperationState",
       "method": "GET",
-      "response": {
-        "state": "FINISHED"
-      },
+      "response": { "state": "FINISHED" },
       "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/ABCDEF"
     },
     {
       "api_method": "GetVfsRefreshOperationState",
       "method": "GET",
-      "response": {
-        "message": "Operation with id ABCDEF not found"
-      },
+      "response": { "message": "Operation with id ABCDEF not found" },
       "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/ABCDEF"
     },
     {
       "api_method": "GetVfsRefreshOperationState",
       "method": "GET",
-      "response": {
-        "message": "Operation with id ABCDEF not found"
-      },
+      "response": { "message": "Operation with id ABCDEF not found" },
       "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/ABCDEF"
     }
@@ -3143,27 +2355,27 @@
         "items": [
           {
             "action": "MODIFICATION",
-            "filePath": "fs/os/Users/中国新闻网新闻中/Shared/a.txt",
+            "filePath": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
             "timestamp": "4000000"
           },
           {
             "action": "MODIFICATION",
-            "filePath": "fs/os/Users/中国新闻网新闻中/Shared/a.txt",
+            "filePath": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
             "timestamp": "3000000"
           },
           {
             "action": "MODIFICATION",
-            "filePath": "fs/os/Users/中国新闻网新闻中/Shared/a.txt",
+            "filePath": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
             "timestamp": "2000000"
           },
           {
             "action": "MODIFICATION",
-            "filePath": "fs/os/Users/中国新闻网新闻中/Shared/a.txt",
+            "filePath": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
             "timestamp": "1000000"
           },
           {
             "action": "MODIFICATION",
-            "filePath": "fs/os/Users/中国新闻网新闻中/Shared/a.txt",
+            "filePath": "fs/os/Users/\u4e2d\u56fd\u65b0\u95fb\u7f51\u65b0\u95fb\u4e2d/Shared/a.txt",
             "timestamp": "0"
           }
         ]
@@ -3177,17 +2389,12 @@
       "api_method": "GrantClientApproval",
       "method": "POST",
       "response": {
-        "approvers": [
-          "api_test_user",
-          "requestor"
-        ],
+        "approvers": ["api_test_user", "requestor"],
         "emailMessageId": "<message id stub>",
         "expirationTimeUs": "2419244000000",
         "id": "approval:111111",
         "isValid": true,
-        "notifiedUsers": [
-          "api_test_user"
-        ],
+        "notifiedUsers": ["api_test_user"],
         "reason": "foo",
         "requestor": "requestor",
         "subject": {
@@ -3196,10 +2403,7 @@
             "buildTime": "1980-01-01",
             "clientName": "GRR Monitor",
             "clientVersion": 1234,
-            "labels": [
-              "label1",
-              "label2"
-            ]
+            "labels": ["label1", "label2"]
           },
           "clientId": "C.1000000000000000",
           "fleetspeakEnabled": false,
@@ -3210,10 +2414,7 @@
           "interfaces": [
             {
               "addresses": [
-                {
-                  "addressType": "INET",
-                  "packedBytes": "wKgAAA=="
-                },
+                { "addressType": "INET", "packedBytes": "wKgAAA==" },
                 {
                   "addressType": "INET6",
                   "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
@@ -3221,26 +2422,13 @@
               ],
               "ifname": "if0"
             },
-            {
-              "ifname": "if1",
-              "macAddress": "qrvM3e4A"
-            },
-            {
-              "ifname": "if2",
-              "macAddress": "u8zd7v8A"
-            }
+            { "ifname": "if1", "macAddress": "qrvM3e4A" },
+            { "ifname": "if2", "macAddress": "u8zd7v8A" }
           ],
           "knowledgeBase": {
             "fqdn": "Host-0.example.com",
             "os": "Linux",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "users": [{ "username": "user1" }, { "username": "user2" }]
           },
           "lastSeenAt": "42000000",
           "osInfo": {
@@ -3251,14 +2439,7 @@
             "version": "buster/sid"
           },
           "urn": "aff4:/C.1000000000000000",
-          "users": [
-            {
-              "username": "user1"
-            },
-            {
-              "username": "user2"
-            }
-          ]
+          "users": [{ "username": "user1" }, { "username": "user2" }]
         }
       },
       "test_class": "ApiGrantClientApprovalHandlerRegressionTest_http_v2",
@@ -3270,16 +2451,11 @@
       "api_method": "GrantCronJobApproval",
       "method": "POST",
       "response": {
-        "approvers": [
-          "api_test_user",
-          "requestor"
-        ],
+        "approvers": ["api_test_user", "requestor"],
         "emailMessageId": "<message id stub>",
         "id": "approval:111111",
         "isValid": true,
-        "notifiedUsers": [
-          "api_test_user"
-        ],
+        "notifiedUsers": ["api_test_user"],
         "reason": "foo",
         "requestor": "requestor",
         "subject": {
@@ -3314,17 +2490,12 @@
       "api_method": "GrantHuntApproval",
       "method": "POST",
       "response": {
-        "approvers": [
-          "api_test_user",
-          "requestor"
-        ],
+        "approvers": ["api_test_user", "requestor"],
         "emailMessageId": "<message id stub>",
         "expirationTimeUs": "2419244000000",
         "id": "approval:111111",
         "isValid": true,
-        "notifiedUsers": [
-          "api_test_user"
-        ],
+        "notifiedUsers": ["api_test_user"],
         "reason": "foo",
         "requestor": "requestor",
         "subject": {
@@ -3334,10 +2505,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -3353,10 +2521,7 @@
           "failedClientsCount": "0",
           "flowArgs": {
             "@type": "type.googleapis.com/grr.GetFileArgs",
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
           },
           "flowName": "GetFile",
           "huntId": "H:123456",
@@ -3368,10 +2533,7 @@
             "clientRuleSet": {
               "rules": [
                 {
-                  "regex": {
-                    "attributeRegex": "GRR",
-                    "field": "CLIENT_NAME"
-                  },
+                  "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                   "ruleType": "REGEX"
                 }
               ]
@@ -3422,9 +2584,7 @@
             "message": "Host-0.example.com: <some message>",
             "notificationType": "TYPE_CLIENT_INTERROGATED",
             "reference": {
-              "client": {
-                "clientId": "C.1000000000000000"
-              },
+              "client": { "clientId": "C.1000000000000000" },
               "type": "CLIENT"
             },
             "timestamp": "42000000"
@@ -3438,10 +2598,7 @@
     {
       "api_method": "ListAndResetUserNotifications",
       "method": "POST",
-      "request_payload": {
-        "count": "1",
-        "offset": "1"
-      },
+      "request_payload": { "count": "1", "offset": "1" },
       "response": {
         "items": [
           {
@@ -3449,9 +2606,7 @@
             "message": "Host-0.example.com: <some message>",
             "notificationType": "TYPE_CLIENT_INTERROGATED",
             "reference": {
-              "client": {
-                "clientId": "C.1000000000000000"
-              },
+              "client": { "clientId": "C.1000000000000000" },
               "type": "CLIENT"
             },
             "timestamp": "42000000"
@@ -3465,9 +2620,7 @@
     {
       "api_method": "ListAndResetUserNotifications",
       "method": "POST",
-      "request_payload": {
-        "filter": "other"
-      },
+      "request_payload": { "filter": "other" },
       "response": {
         "items": [
           {
@@ -3503,15 +2656,9 @@
       "method": "GET",
       "response": {
         "suggestions": [
-          {
-            "username": "sanchezmorty"
-          },
-          {
-            "username": "sanchezrick"
-          },
-          {
-            "username": "sanchezsummer"
-          }
+          { "username": "sanchezmorty" },
+          { "username": "sanchezrick" },
+          { "username": "sanchezsummer" }
         ]
       },
       "test_class": "ApiListApproverSuggestionsHandlerRegressionTest_http_v2",
@@ -3526,9 +2673,7 @@
         "items": [
           {
             "artifact": {
-              "conditions": [
-                "os_major_version >= 6"
-              ],
+              "conditions": ["os_major_version >= 6"],
               "doc": "Extract the installed drivers on Windows via WMI.",
               "name": "TestDrivers",
               "sources": [
@@ -3536,24 +2681,16 @@
                   "attributes": {
                     "dat": [
                       {
-                        "k": {
-                          "string": "query"
-                        },
-                        "v": {
-                          "string": "SELECT * from Win32_SystemDriver"
-                        }
+                        "k": { "string": "query" },
+                        "v": { "string": "SELECT * from Win32_SystemDriver" }
                       }
                     ]
                   },
                   "type": "WMI"
                 }
               ],
-              "supportedOs": [
-                "Windows"
-              ],
-              "urls": [
-                "http://www.example.com"
-              ]
+              "supportedOs": ["Windows"],
+              "urls": ["http://www.example.com"]
             },
             "errorMessage": "",
             "isCustom": false
@@ -3624,17 +2761,12 @@
       "response": {
         "items": [
           {
-            "approvers": [
-              "api_test_user",
-              "approver"
-            ],
+            "approvers": ["api_test_user", "approver"],
             "emailMessageId": "<message id stub>",
             "expirationTimeUs": "2419245000000",
             "id": "approval:222222",
             "isValid": true,
-            "notifiedUsers": [
-              "approver"
-            ],
+            "notifiedUsers": ["approver"],
             "reason": "Running tests",
             "requestor": "api_test_user",
             "subject": {
@@ -3643,10 +2775,7 @@
                 "buildTime": "1980-01-01",
                 "clientName": "GRR Monitor",
                 "clientVersion": 1234,
-                "labels": [
-                  "label1",
-                  "label2"
-                ]
+                "labels": ["label1", "label2"]
               },
               "clientId": "C.1000000000000001",
               "fleetspeakEnabled": false,
@@ -3657,10 +2786,7 @@
               "interfaces": [
                 {
                   "addresses": [
-                    {
-                      "addressType": "INET",
-                      "packedBytes": "wKgAAQ=="
-                    },
+                    { "addressType": "INET", "packedBytes": "wKgAAQ==" },
                     {
                       "addressType": "INET6",
                       "packedBytes": "IAGrzQAAAAAAAAAAAAAAAQ=="
@@ -3668,26 +2794,13 @@
                   ],
                   "ifname": "if0"
                 },
-                {
-                  "ifname": "if1",
-                  "macAddress": "qrvM3e4B"
-                },
-                {
-                  "ifname": "if2",
-                  "macAddress": "u8zd7v8B"
-                }
+                { "ifname": "if1", "macAddress": "qrvM3e4B" },
+                { "ifname": "if2", "macAddress": "u8zd7v8B" }
               ],
               "knowledgeBase": {
                 "fqdn": "Host-1.example.com",
                 "os": "Linux",
-                "users": [
-                  {
-                    "username": "user1"
-                  },
-                  {
-                    "username": "user2"
-                  }
-                ]
+                "users": [{ "username": "user1" }, { "username": "user2" }]
               },
               "lastSeenAt": "42000000",
               "osInfo": {
@@ -3698,28 +2811,17 @@
                 "version": "buster/sid"
               },
               "urn": "aff4:/C.1000000000000001",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
+              "users": [{ "username": "user1" }, { "username": "user2" }]
             }
           },
           {
-            "approvers": [
-              "api_test_user"
-            ],
+            "approvers": ["api_test_user"],
             "emailMessageId": "<message id stub>",
             "expirationTimeUs": "2419244000000",
             "id": "approval:111111",
             "isValid": false,
             "isValidMessage": "Need at least 1 additional approver for access.",
-            "notifiedUsers": [
-              "approver"
-            ],
+            "notifiedUsers": ["approver"],
             "reason": "Running tests",
             "requestor": "api_test_user",
             "subject": {
@@ -3728,10 +2830,7 @@
                 "buildTime": "1980-01-01",
                 "clientName": "GRR Monitor",
                 "clientVersion": 1234,
-                "labels": [
-                  "label1",
-                  "label2"
-                ]
+                "labels": ["label1", "label2"]
               },
               "clientId": "C.1000000000000000",
               "fleetspeakEnabled": false,
@@ -3742,10 +2841,7 @@
               "interfaces": [
                 {
                   "addresses": [
-                    {
-                      "addressType": "INET",
-                      "packedBytes": "wKgAAA=="
-                    },
+                    { "addressType": "INET", "packedBytes": "wKgAAA==" },
                     {
                       "addressType": "INET6",
                       "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
@@ -3753,26 +2849,13 @@
                   ],
                   "ifname": "if0"
                 },
-                {
-                  "ifname": "if1",
-                  "macAddress": "qrvM3e4A"
-                },
-                {
-                  "ifname": "if2",
-                  "macAddress": "u8zd7v8A"
-                }
+                { "ifname": "if1", "macAddress": "qrvM3e4A" },
+                { "ifname": "if2", "macAddress": "u8zd7v8A" }
               ],
               "knowledgeBase": {
                 "fqdn": "Host-0.example.com",
                 "os": "Linux",
-                "users": [
-                  {
-                    "username": "user1"
-                  },
-                  {
-                    "username": "user2"
-                  }
-                ]
+                "users": [{ "username": "user1" }, { "username": "user2" }]
               },
               "lastSeenAt": "42000000",
               "osInfo": {
@@ -3783,14 +2866,7 @@
                 "version": "buster/sid"
               },
               "urn": "aff4:/C.1000000000000000",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
+              "users": [{ "username": "user1" }, { "username": "user2" }]
             }
           }
         ]
@@ -3804,17 +2880,13 @@
       "response": {
         "items": [
           {
-            "approvers": [
-              "api_test_user"
-            ],
+            "approvers": ["api_test_user"],
             "emailMessageId": "<message id stub>",
             "expirationTimeUs": "2419244000000",
             "id": "approval:111111",
             "isValid": false,
             "isValidMessage": "Need at least 1 additional approver for access.",
-            "notifiedUsers": [
-              "approver"
-            ],
+            "notifiedUsers": ["approver"],
             "reason": "Running tests",
             "requestor": "api_test_user",
             "subject": {
@@ -3823,10 +2895,7 @@
                 "buildTime": "1980-01-01",
                 "clientName": "GRR Monitor",
                 "clientVersion": 1234,
-                "labels": [
-                  "label1",
-                  "label2"
-                ]
+                "labels": ["label1", "label2"]
               },
               "clientId": "C.1000000000000000",
               "fleetspeakEnabled": false,
@@ -3837,10 +2906,7 @@
               "interfaces": [
                 {
                   "addresses": [
-                    {
-                      "addressType": "INET",
-                      "packedBytes": "wKgAAA=="
-                    },
+                    { "addressType": "INET", "packedBytes": "wKgAAA==" },
                     {
                       "addressType": "INET6",
                       "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
@@ -3848,26 +2914,13 @@
                   ],
                   "ifname": "if0"
                 },
-                {
-                  "ifname": "if1",
-                  "macAddress": "qrvM3e4A"
-                },
-                {
-                  "ifname": "if2",
-                  "macAddress": "u8zd7v8A"
-                }
+                { "ifname": "if1", "macAddress": "qrvM3e4A" },
+                { "ifname": "if2", "macAddress": "u8zd7v8A" }
               ],
               "knowledgeBase": {
                 "fqdn": "Host-0.example.com",
                 "os": "Linux",
-                "users": [
-                  {
-                    "username": "user1"
-                  },
-                  {
-                    "username": "user2"
-                  }
-                ]
+                "users": [{ "username": "user1" }, { "username": "user2" }]
               },
               "lastSeenAt": "42000000",
               "osInfo": {
@@ -3878,14 +2931,7 @@
                 "version": "buster/sid"
               },
               "urn": "aff4:/C.1000000000000000",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
+              "users": [{ "username": "user1" }, { "username": "user2" }]
             }
           }
         ]
@@ -3906,10 +2952,7 @@
               "buildTime": "1980-01-01",
               "clientName": "GRR Monitor",
               "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
+              "labels": ["label1", "label2"]
             },
             "crashMessage": "Client killed during transaction",
             "crashType": "Client Crash",
@@ -3933,10 +2976,7 @@
               "buildTime": "1980-01-01",
               "clientName": "GRR Monitor",
               "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
+              "labels": ["label1", "label2"]
             },
             "crashMessage": "Client killed during transaction",
             "crashType": "Client Crash",
@@ -3952,9 +2992,7 @@
     {
       "api_method": "ListClientCrashes",
       "method": "GET",
-      "response": {
-        "totalCount": "1"
-      },
+      "response": { "totalCount": "1" },
       "test_class": "ApiListClientCrashesHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/crashes?count=1&offset=1"
     }
@@ -3963,16 +3001,7 @@
     {
       "api_method": "ListClientsLabels",
       "method": "GET",
-      "response": {
-        "items": [
-          {
-            "name": "bar"
-          },
-          {
-            "name": "foo"
-          }
-        ]
-      },
+      "response": { "items": [{ "name": "bar" }, { "name": "foo" }] },
       "test_class": "ApiListClientsLabelsHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/labels"
     }
@@ -4142,10 +3171,7 @@
         "items": [
           {
             "argsType": "FileFinderArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC"
-            ],
+            "behaviours": ["ADVANCED", "BASIC"],
             "category": "Filesystem",
             "defaultArgs": {
               "@type": "type.googleapis.com/grr.FileFinderArgs"
@@ -4156,10 +3182,7 @@
           },
           {
             "argsType": "ListProcessesArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC"
-            ],
+            "behaviours": ["ADVANCED", "BASIC"],
             "category": "Processes",
             "defaultArgs": {
               "@type": "type.googleapis.com/grr.ListProcessesArgs"
@@ -4274,10 +3297,7 @@
           {
             "payload": {
               "@type": "type.googleapis.com/grr.StatEntry",
-              "pathspec": {
-                "path": "/tmp/evil.txt",
-                "pathtype": "OS"
-              },
+              "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" },
               "stAtime": "1336469177",
               "stCtime": "1336129892",
               "stDev": "64512",
@@ -4366,9 +3386,7 @@
             "progress": {
               "@type": "type.googleapis.com/grr.DefaultFlowProgress"
             },
-            "resultMetadata": {
-              "isMetadataSet": true
-            },
+            "resultMetadata": { "isMetadataSet": true },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "ListProcesses",
@@ -4391,9 +3409,7 @@
             "progress": {
               "@type": "type.googleapis.com/grr.DefaultFlowProgress"
             },
-            "resultMetadata": {
-              "isMetadataSet": true
-            },
+            "resultMetadata": { "isMetadataSet": true },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "Interrogate",
@@ -4426,9 +3442,7 @@
             "progress": {
               "@type": "type.googleapis.com/grr.DefaultFlowProgress"
             },
-            "resultMetadata": {
-              "isMetadataSet": true
-            },
+            "resultMetadata": { "isMetadataSet": true },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "ListProcesses",
@@ -4461,9 +3475,7 @@
             "progress": {
               "@type": "type.googleapis.com/grr.DefaultFlowProgress"
             },
-            "resultMetadata": {
-              "isMetadataSet": true
-            },
+            "resultMetadata": { "isMetadataSet": true },
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
               "flowName": "Interrogate",
@@ -4538,17 +3550,13 @@
       "response": {
         "items": [
           {
-            "approvers": [
-              "api_test_user"
-            ],
+            "approvers": ["api_test_user"],
             "emailMessageId": "<message id stub>",
             "expirationTimeUs": "2419243000000",
             "id": "approval:112233",
             "isValid": false,
             "isValidMessage": "Need at least 1 additional approver for access.",
-            "notifiedUsers": [
-              "approver"
-            ],
+            "notifiedUsers": ["approver"],
             "reason": "Running tests",
             "requestor": "api_test_user",
             "subject": {
@@ -4577,10 +3585,7 @@
               "failedClientsCount": "0",
               "flowArgs": {
                 "@type": "type.googleapis.com/grr.GetFileArgs",
-                "pathspec": {
-                  "path": "/tmp/evil.txt",
-                  "pathtype": "OS"
-                }
+                "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
               },
               "flowName": "GetFile",
               "huntId": "H:123456",
@@ -4630,26 +3635,11 @@
       "method": "GET",
       "response": {
         "items": [
-          {
-            "clientId": "C.1000000000000000",
-            "flowId": "H:123456"
-          },
-          {
-            "clientId": "C.1000000000000001",
-            "flowId": "H:123456"
-          },
-          {
-            "clientId": "C.1000000000000002",
-            "flowId": "H:123456"
-          },
-          {
-            "clientId": "C.1000000000000003",
-            "flowId": "H:123456"
-          },
-          {
-            "clientId": "C.1000000000000004",
-            "flowId": "H:123456"
-          }
+          { "clientId": "C.1000000000000000", "flowId": "H:123456" },
+          { "clientId": "C.1000000000000001", "flowId": "H:123456" },
+          { "clientId": "C.1000000000000002", "flowId": "H:123456" },
+          { "clientId": "C.1000000000000003", "flowId": "H:123456" },
+          { "clientId": "C.1000000000000004", "flowId": "H:123456" }
         ],
         "totalCount": "5"
       },
@@ -4661,22 +3651,10 @@
       "method": "GET",
       "response": {
         "items": [
-          {
-            "clientId": "C.1000000000000000",
-            "flowId": "H:123456"
-          },
-          {
-            "clientId": "C.1000000000000001",
-            "flowId": "H:123456"
-          },
-          {
-            "clientId": "C.1000000000000002",
-            "flowId": "H:123456"
-          },
-          {
-            "clientId": "C.1000000000000003",
-            "flowId": "H:123456"
-          }
+          { "clientId": "C.1000000000000000", "flowId": "H:123456" },
+          { "clientId": "C.1000000000000001", "flowId": "H:123456" },
+          { "clientId": "C.1000000000000002", "flowId": "H:123456" },
+          { "clientId": "C.1000000000000003", "flowId": "H:123456" }
         ],
         "totalCount": "4"
       },
@@ -4687,12 +3665,7 @@
       "api_method": "ListHuntClients",
       "method": "GET",
       "response": {
-        "items": [
-          {
-            "clientId": "C.1000000000000004",
-            "flowId": "H:123456"
-          }
-        ],
+        "items": [{ "clientId": "C.1000000000000004", "flowId": "H:123456" }],
         "totalCount": "1"
       },
       "test_class": "ApiListHuntClientsHandlerRegressionTest_http_v2",
@@ -4711,10 +3684,7 @@
               "buildTime": "1980-01-01",
               "clientName": "GRR Monitor",
               "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
+              "labels": ["label1", "label2"]
             },
             "crashMessage": "Client killed during transaction",
             "crashType": "Client Crash",
@@ -4738,10 +3708,7 @@
               "buildTime": "1980-01-01",
               "clientName": "GRR Monitor",
               "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
+              "labels": ["label1", "label2"]
             },
             "crashMessage": "Client killed during transaction",
             "crashType": "Client Crash",
@@ -4757,9 +3724,7 @@
     {
       "api_method": "ListHuntCrashes",
       "method": "GET",
-      "response": {
-        "totalCount": "1"
-      },
+      "response": { "totalCount": "1" },
       "test_class": "ApiListHuntCrashesHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts/H:123456/crashes?count=1&offset=1"
     }
@@ -5131,6 +4096,47 @@
       },
       "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
       "url": "/api/v2/hunts?count=2&offset=0&robot_filter=unknown"
+    },
+    {
+      "api_method": "ListHunts",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientLimit": "100",
+            "clientRate": 0.0,
+            "created": "2000000000",
+            "creator": "api_test_user",
+            "description": "hunt_1",
+            "duration": "1209600",
+            "huntId": "H:000001",
+            "isRobot": false,
+            "state": "STOPPED",
+            "urn": "aff4:/hunts/H:000001"
+          },
+          {
+            "clientLimit": "100",
+            "clientRate": 0.0,
+            "created": "1000000000",
+            "creator": "GRRWorker",
+            "description": "hunt_0",
+            "duration": "1209600",
+            "huntId": "H:000000",
+            "isRobot": true,
+            "state": "PAUSED",
+            "urn": "aff4:/hunts/H:000000"
+          }
+        ]
+      },
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts?count=2&offset=0&with_state=paused"
+    },
+    {
+      "api_method": "ListHunts",
+      "method": "GET",
+      "response": {},
+      "test_class": "ApiListHuntsHandlerRegressionTest_http_v2",
+      "url": "/api/v2/hunts?count=2&offset=0&with_state=started"
     }
   ],
   "ApiListKbFieldsHandler": [
@@ -5291,9 +4297,7 @@
             "message": "Host-0.example.com: <some message>",
             "notificationType": "TYPE_CLIENT_INTERROGATED",
             "reference": {
-              "client": {
-                "clientId": "C.1000000000000000"
-              },
+              "client": { "clientId": "C.1000000000000000" },
               "type": "CLIENT"
             },
             "timestamp": "42000000"
@@ -5381,9 +4385,7 @@
     {
       "api_method": "ModifyCronJob",
       "method": "PATCH",
-      "request_payload": {
-        "enabled": true
-      },
+      "request_payload": { "enabled": true },
       "response": {
         "allowOverruns": false,
         "args": {
@@ -5413,9 +4415,7 @@
     {
       "api_method": "ModifyCronJob",
       "method": "PATCH",
-      "request_payload": {
-        "enabled": false
-      },
+      "request_payload": { "enabled": false },
       "response": {
         "allowOverruns": false,
         "args": {
@@ -5447,9 +4447,7 @@
     {
       "api_method": "ModifyHunt",
       "method": "PATCH",
-      "request_payload": {
-        "clientLimit": "142"
-      },
+      "request_payload": { "clientLimit": "142" },
       "response": {
         "allClientsCount": "0",
         "clientLimit": "142",
@@ -5457,10 +4455,7 @@
         "clientRuleSet": {
           "rules": [
             {
-              "regex": {
-                "attributeRegex": "GRR",
-                "field": "CLIENT_NAME"
-              },
+              "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
               "ruleType": "REGEX"
             }
           ]
@@ -5476,10 +4471,7 @@
         "failedClientsCount": "0",
         "flowArgs": {
           "@type": "type.googleapis.com/grr.GetFileArgs",
-          "pathspec": {
-            "path": "/tmp/evil.txt",
-            "pathtype": "OS"
-          }
+          "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
         },
         "flowName": "GetFile",
         "huntId": "H:123456",
@@ -5492,10 +4484,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -5523,9 +4512,7 @@
     {
       "api_method": "ModifyHunt",
       "method": "PATCH",
-      "request_payload": {
-        "state": "STOPPED"
-      },
+      "request_payload": { "state": "STOPPED" },
       "response": {
         "allClientsCount": "0",
         "clientLimit": "142",
@@ -5533,10 +4520,7 @@
         "clientRuleSet": {
           "rules": [
             {
-              "regex": {
-                "attributeRegex": "GRR",
-                "field": "CLIENT_NAME"
-              },
+              "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
               "ruleType": "REGEX"
             }
           ]
@@ -5552,10 +4536,7 @@
         "failedClientsCount": "0",
         "flowArgs": {
           "@type": "type.googleapis.com/grr.GetFileArgs",
-          "pathspec": {
-            "path": "/tmp/evil.txt",
-            "pathtype": "OS"
-          }
+          "pathspec": { "path": "/tmp/evil.txt", "pathtype": "OS" }
         },
         "flowName": "GetFile",
         "huntId": "H:123456",
@@ -5568,10 +4549,7 @@
           "clientRuleSet": {
             "rules": [
               {
-                "regex": {
-                  "attributeRegex": "GRR",
-                  "field": "CLIENT_NAME"
-                },
+                "regex": { "attributeRegex": "GRR", "field": "CLIENT_NAME" },
                 "ruleType": "REGEX"
               }
             ]
@@ -5609,10 +4587,7 @@
               "buildTime": "1980-01-01",
               "clientName": "GRR Monitor",
               "clientVersion": 1234,
-              "labels": [
-                "label1",
-                "label2"
-              ]
+              "labels": ["label1", "label2"]
             },
             "clientId": "C.1000000000000000",
             "fleetspeakEnabled": false,
@@ -5623,10 +4598,7 @@
             "interfaces": [
               {
                 "addresses": [
-                  {
-                    "addressType": "INET",
-                    "packedBytes": "wKgAAA=="
-                  },
+                  { "addressType": "INET", "packedBytes": "wKgAAA==" },
                   {
                     "addressType": "INET6",
                     "packedBytes": "IAGrzQAAAAAAAAAAAAAAAA=="
@@ -5634,26 +4606,13 @@
                 ],
                 "ifname": "if0"
               },
-              {
-                "ifname": "if1",
-                "macAddress": "qrvM3e4A"
-              },
-              {
-                "ifname": "if2",
-                "macAddress": "u8zd7v8A"
-              }
+              { "ifname": "if1", "macAddress": "qrvM3e4A" },
+              { "ifname": "if2", "macAddress": "u8zd7v8A" }
             ],
             "knowledgeBase": {
               "fqdn": "Host-0.example.com",
               "os": "Linux",
-              "users": [
-                {
-                  "username": "user1"
-                },
-                {
-                  "username": "user2"
-                }
-              ]
+              "users": [{ "username": "user1" }, { "username": "user2" }]
             },
             "lastSeenAt": "42000000",
             "osInfo": {
@@ -5664,14 +4623,7 @@
               "version": "buster/sid"
             },
             "urn": "aff4:/C.1000000000000000",
-            "users": [
-              {
-                "username": "user1"
-              },
-              {
-                "username": "user2"
-              }
-            ]
+            "users": [{ "username": "user1" }, { "username": "user2" }]
           }
         ]
       },
@@ -5683,12 +4635,8 @@
     {
       "api_method": "UpdateVfsFileContent",
       "method": "POST",
-      "request_payload": {
-        "filePath": "fs/os/c/bin/bash"
-      },
-      "response": {
-        "operationId": "ABCDEF"
-      },
+      "request_payload": { "filePath": "fs/os/c/bin/bash" },
+      "response": { "operationId": "ABCDEF" },
       "test_class": "ApiUpdateVfsFileContentHandlerRegressionTest_http_v2",
       "url": "/api/v2/clients/C.1000000000000000/vfs-update"
     }

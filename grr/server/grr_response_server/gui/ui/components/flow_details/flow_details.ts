@@ -6,7 +6,6 @@ import {ExportMenuItem, Plugin as FlowDetailsPlugin} from '../../components/flow
 import {Flow, FLOW_LIST_ITEMS_BY_TYPE, FlowDescriptor, FlowState, FlowType} from '../../lib/models/flow';
 import {isNonNull} from '../../lib/preconditions';
 import {FlowResultsLocalStore} from '../../store/flow_results_local_store';
-import {UserGlobalStore} from '../../store/user_global_store';
 import {FlowArgsViewData} from '../flow_args_view/flow_args_view';
 
 import {ColorScheme} from './helpers/result_accordion';
@@ -103,13 +102,6 @@ export class FlowDetails implements OnChanges {
 
   @ViewChild('detailsContainer', {read: ViewContainerRef, static: true})
   detailsContainer!: ViewContainerRef;
-
-  readonly canaryMode$ = this.userGlobalStore.currentUser$.pipe(
-      map(user => user.canaryMode),
-      startWith(false),
-  );
-
-  constructor(private readonly userGlobalStore: UserGlobalStore) {}
 
   ngOnChanges(changes: SimpleChanges) {
     if (!this.flow) {

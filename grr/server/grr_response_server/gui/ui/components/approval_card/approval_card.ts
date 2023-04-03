@@ -34,14 +34,7 @@ export declare interface ApprovalParams {
 export class ApprovalCard implements OnDestroy, AfterViewInit {
   readonly separatorKeysCodes: number[] = [ENTER, COMMA, SPACE];
 
-  // TODO: Update hideContent default according to context.
-  // For valid approvals, hide (first time, not at every poll).
-  // For pending approvals, do not hide (so copy button is shown).
-  // For when you do not have approval, then:
-  //   - Show if client page, or new hunt page
-  //   - Hide on the hunt page
-  @HostBinding('class.closed') hideContent = false;
-
+  @Input() @HostBinding('class.closed') hideContent = false;
   @Input() requestFormOnly = false;
   @Input() latestApproval: Approval|null = null;
   @Input() showSubmitButton = true;
