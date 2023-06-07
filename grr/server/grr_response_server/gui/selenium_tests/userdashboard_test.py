@@ -12,7 +12,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
   """Tests for user dashboard shown on the home page."""
 
   def testShowsNothingByDefault(self):
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(
         self.IsElementPresent, "css=grr-user-dashboard "
         "div[name=RecentlyAccessedClients]:contains('None')")
@@ -23,7 +23,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
   def testShowsHuntCreatedByCurrentUser(self):
     self.CreateSampleHunt("foo-description", creator=self.test_username)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(
         self.IsElementPresent, "css=grr-user-dashboard "
         "div[name=RecentlyCreatedHunts]:contains('foo-description')")
@@ -31,7 +31,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
   def testDoesNotShowHuntCreatedByAnotherUser(self):
     self.CreateSampleHunt("foo", creator="another")
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(
         self.IsElementPresent, "css=grr-user-dashboard "
         "div[name=RecentlyCreatedHunts]:contains('None')")
@@ -39,7 +39,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
   def testClickingOnTheHuntRedirectsToThisHunt(self):
     self.CreateSampleHunt("foo-description", creator=self.test_username)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=grr-user-dashboard "
                "div[name=RecentlyCreatedHunts] td:contains('foo-description')")
     self.WaitUntil(self.IsElementPresent, "css=grr-hunts-view")
@@ -61,7 +61,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
           creator = self.test_username
         self.CreateSampleHunt(descr, creator=creator)
 
-    self.Open("/")
+    self.Open("/legacy")
     for i in range(11, 20, 2):
       self.WaitUntil(
           self.IsElementPresent, "css=grr-user-dashboard "
@@ -80,7 +80,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
       self.CreateSampleHunt("bar", creator=self.test_username)
 
     with test_lib.FakeTime(now):
-      self.Open("/")
+      self.Open("/legacy")
       self.WaitUntil(
           self.IsElementPresent, "css=grr-user-dashboard "
           "div[name=RecentlyCreatedHunts]:contains('foo')")
@@ -93,7 +93,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
     client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(
         self.IsElementPresent, "css=grr-user-dashboard "
         "div[name=RecentlyAccessedClients]"
@@ -106,7 +106,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
     self.RequestAndGrantClientApproval(
         client_id, requestor=self.test_username, reason="bar-reason")
 
-    self.Open("/")
+    self.Open("/legacy")
     # Later approval request should take precedence.
     self.WaitUntil(
         self.IsElementPresent, "css=grr-user-dashboard "
@@ -122,7 +122,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
       for client_id in client_ids:
         self.RequestAndGrantClientApproval(client_id)
 
-    self.Open("/")
+    self.Open("/legacy")
     for client_id in client_ids[3:]:
       self.WaitUntil(
           self.IsElementPresent, "css=grr-user-dashboard "
@@ -139,7 +139,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
     client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(
         self.IsElementPresent, "css=grr-user-dashboard "
         "div[name=RecentlyAccessedClients] "
@@ -157,7 +157,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
         approver=u"approver",
         requestor=self.test_username)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(
         self.IsElementPresent, "css=grr-user-dashboard "
         "div[name=RecentlyAccessedClients] "
@@ -167,7 +167,7 @@ class TestUserDashboard(gui_test_lib.SearchClientTestBase):
     client_id = self.SetupClient(0)
     self.RequestAndGrantClientApproval(client_id)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=grr-user-dashboard "
                "div[name=RecentlyAccessedClients] "
                "tr:contains('%s')" % client_id)

@@ -1,12 +1,12 @@
 import {CommonModule} from '@angular/common';
 import {ErrorHandler, NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule, MatIconRegistry} from '@angular/material/icon';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacySnackBarModule} from '@angular/material/legacy-snack-bar';
+import {MatLegacyTabsModule} from '@angular/material/legacy-tabs';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {MatSidenavModule} from '@angular/material/sidenav';
-import {MatSnackBarModule} from '@angular/material/snack-bar';
-import {MatTabsModule} from '@angular/material/tabs';
 import {MatToolbarModule} from '@angular/material/toolbar';
-import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouteReuseStrategy} from '@angular/router';
 
@@ -14,6 +14,7 @@ import {ClientPageModule} from '../../components/client_page/client_page_module'
 import {ClientSearchModule} from '../../components/client_search/module';
 import {HomeModule} from '../../components/home/module';
 import {HuntApprovalPageModule} from '../../components/hunt/hunt_approval_page/hunt_approval_page_module';
+import {HuntHelpModule} from '../../components/hunt/hunt_help/module';
 import {HuntPageModule} from '../../components/hunt/hunt_page/module';
 import {NewHuntModule} from '../../components/hunt/new_hunt/module';
 import {UserMenuModule} from '../../components/user_menu/module';
@@ -32,13 +33,13 @@ import {AppRoutingModule} from './routing';
 
 
 const ANGULAR_MATERIAL_MODULES = [
-  MatButtonModule,
+  MatLegacyButtonModule,
   MatIconModule,
   MatSidenavModule,
-  MatSnackBarModule,
-  MatTabsModule,
+  MatLegacySnackBarModule,
+  MatLegacyTabsModule,
   MatToolbarModule,
-  MatTooltipModule,
+  MatLegacyTooltipModule,
 ];
 
 const GRR_MODULES = [
@@ -55,6 +56,7 @@ const GRR_MODULES = [
   HuntFlowArguments,
   HuntPageModule,
   HuntApprovalPageModule,
+  HuntHelpModule,
 ];
 
 /**

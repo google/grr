@@ -7,6 +7,13 @@ initTestEnvironment();
 describe('toDurationString', () => {
   it('correctly renders short format', () => {
     expect(toDurationString(3600)).toEqual('1 h');
+
+    expect(toDurationString(0)).toEqual('0 s');
+
+    expect(toDurationString(0.1111111)).toEqual('0 s');
+    expect(toDurationString(0.7999999821186066)).toEqual('1 s');
+    expect(toDurationString(1.002)).toEqual('1 s');
+    expect(toDurationString(1.7999999821186066)).toEqual('2 s');
   });
 
   it('correctly renders long format', () => {

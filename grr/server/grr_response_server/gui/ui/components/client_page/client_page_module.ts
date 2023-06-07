@@ -1,11 +1,11 @@
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
-import {MatCardModule} from '@angular/material/card';
 import {MatIconModule} from '@angular/material/icon';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyCardModule} from '@angular/material/legacy-card';
+import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
+import {MatLegacyTableModule} from '@angular/material/legacy-table';
+import {MatLegacyTabsModule} from '@angular/material/legacy-tabs';
 import {MatSidenavModule} from '@angular/material/sidenav';
-import {MatTableModule} from '@angular/material/table';
-import {MatTabsModule} from '@angular/material/tabs';
 import {MatTreeModule} from '@angular/material/tree';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
@@ -33,10 +33,10 @@ import {VfsSection} from './vfs_section';
   imports: [
     BrowserAnimationsModule, RouterModule,
 
-    MatButtonModule,         MatCardModule,
-    MatIconModule,           MatProgressSpinnerModule,
-    MatSidenavModule,        MatTableModule,
-    MatTabsModule,           MatTreeModule,
+    MatLegacyButtonModule,   MatLegacyCardModule,
+    MatIconModule,           MatLegacyProgressSpinnerModule,
+    MatSidenavModule,        MatLegacyTableModule,
+    MatLegacyTabsModule,     MatTreeModule,
 
     AngularSplitModule,
 

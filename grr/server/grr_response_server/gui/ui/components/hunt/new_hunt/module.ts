@@ -1,16 +1,19 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatFormFieldModule} from '@angular/material/form-field';
+import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatIconModule} from '@angular/material/icon';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
+import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
+import {MatLegacyInputModule} from '@angular/material/legacy-input';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 
 import {ApprovalCardModule} from '../../approval_card/module';
 import {FlowDetailsModule} from '../../flow_details/module';
-import {TitleEditorModule} from '../../form/title_editor/module';
 import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';
 import {HuntFlowArguments} from '../hunt_flow_arguments/hunt_flow_arguments';
+import {HuntHelpModule} from '../hunt_help/module';
+import {HuntOriginalReference} from '../hunt_original_reference/hunt_original_reference';
 
 import {ClientsFormModule} from './clients_form/module';
 import {NewHunt} from './new_hunt';
@@ -23,21 +26,30 @@ import {NewHuntRoutingModule} from './routing';
  */
 @NgModule({
   imports: [
-    NewHuntRoutingModule,
-    ClientsFormModule,
-    CopyButtonModule,
-    OutputPluginsFormModule,
-    FlowDetailsModule,
-    CommonModule,
-    ParamsFormModule,
-    HuntFlowArguments,
+    // TODO: Re-enable tslint after migration is complete.
+    // tslint:disable:deprecation
+    // keep-sorted start block=yes
     ApprovalCardModule,
-    TitleEditorModule,
-    MatButtonModule,
-    MatChipsModule,
+    ClientsFormModule,
+    CommonModule,
+    CopyButtonModule,
+    FlowDetailsModule,
+    FormsModule,
+    HuntFlowArguments,
+    HuntHelpModule,
+    HuntOriginalReference,
     MatIconModule,
-    MatTooltipModule,
-    MatFormFieldModule,
+    MatLegacyButtonModule,
+    MatLegacyChipsModule,
+    MatLegacyFormFieldModule,
+    MatLegacyInputModule,
+    MatLegacyTooltipModule,
+    NewHuntRoutingModule,
+    OutputPluginsFormModule,
+    ParamsFormModule,
+    ReactiveFormsModule,
+    // keep-sorted end
+    // tslint:enable:deprecation
   ],
   declarations: [NewHunt],
 })

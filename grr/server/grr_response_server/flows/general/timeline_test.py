@@ -7,10 +7,14 @@ from absl.testing import absltest
 
 from grr_response_client.client_actions import timeline as timeline_action
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import temp
 from grr_response_proto import timeline_pb2
+from grr_response_server import blob_store as abstract_bs
+from grr_response_server import flow_responses
 from grr_response_server.databases import db as abstract_db
+from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import timeline as timeline_flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -19,6 +23,7 @@ from grr.test_lib import db_test_lib
 from grr.test_lib import filesystem_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import testing_startup
+from grr_response_proto.rrg.action import get_filesystem_timeline_pb2 as rrg_get_filesystem_timeline_pb2
 
 
 class TimelineTest(flow_test_lib.FlowTestsBaseclass):
@@ -198,6 +203,46 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     flow_test_lib.FinishAllFlowsOnClient(self.client_id)
 
     return timeline_flow.ProtoEntries(client_id=self.client_id, flow_id=flow_id)
+
+  @db_test_lib.WithDatabase
+  @db_test_lib.WithDatabaseBlobstore
+  def testHandleRRGGetFilesystemTimeline(
+      self,
+      db: abstract_db.Database,
+      bs: abstract_bs.BlobStore,
+  ):
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    args = rdf_timeline.TimelineArgs()
+    args.root = b"/foo/bar"
+
+    result = rrg_get_filesystem_timeline_pb2.Result()
+    result.blob_sha256 = bs.WriteBlobWithUnknownHash(os.urandom(1024)).AsBytes()
+    result.entry_count = 1337
+
+    result_response = rdf_flow_objects.FlowResponse()
+    result_response.any_payload = rdf_structs.AnyValue.PackProto2(result)
+
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    responses = flow_responses.Responses.FromResponsesProto2Any([
+        result_response,
+        status_response,
+    ])
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = timeline_flow.TimelineFlow.__name__
+    rdf_flow.args = args
+
+    flow = timeline_flow.TimelineFlow(rdf_flow)
+    flow.Start()
+    flow.HandleRRGGetFilesystemTimeline(responses)
+
+    self.assertEqual(flow.state.progress.total_entry_count, 1337)
 
 
 class FilesystemTypeTest(absltest.TestCase):

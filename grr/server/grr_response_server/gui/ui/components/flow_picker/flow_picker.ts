@@ -1,6 +1,6 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild} from '@angular/core';
 import {UntypedFormControl} from '@angular/forms';
-import {MatAutocompleteTrigger} from '@angular/material/autocomplete';
+import {MatLegacyAutocompleteTrigger} from '@angular/material/legacy-autocomplete';
 import {BehaviorSubject, fromEvent, merge, Observable, Subject} from 'rxjs';
 import {debounceTime, filter, map, mapTo, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
@@ -103,8 +103,8 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
 
   readonly commonFileFlows$ = this.flowListItemService.commonFileFlows$;
 
-  @ViewChild(MatAutocompleteTrigger, {static: false})
-  autocompleteTrigger!: MatAutocompleteTrigger;
+  @ViewChild(MatLegacyAutocompleteTrigger, {static: false})
+  autocompleteTrigger!: MatLegacyAutocompleteTrigger;
 
   @ViewChild('textInputElement')
   textInputElement!: ElementRef<HTMLInputElement>;

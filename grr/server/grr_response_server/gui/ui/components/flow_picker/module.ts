@@ -2,14 +2,14 @@ import {OverlayModule} from '@angular/cdk/overlay';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {MatAutocompleteModule} from '@angular/material/autocomplete';
-import {MatButtonModule} from '@angular/material/button';
-import {MatCardModule} from '@angular/material/card';
-import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatInputModule} from '@angular/material/input';
-import {MatMenuModule} from '@angular/material/menu';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatLegacyAutocompleteModule} from '@angular/material/legacy-autocomplete';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyCardModule} from '@angular/material/legacy-card';
+import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
+import {MatLegacyInputModule} from '@angular/material/legacy-input';
+import {MatLegacyMenuModule} from '@angular/material/legacy-menu';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -35,14 +35,14 @@ import {FlowPicker} from './flow_picker';
     OverlayModule,
 
     // Angular Material modules.
-    MatAutocompleteModule,
-    MatButtonModule,
-    MatCardModule,
+    MatLegacyAutocompleteModule,
+    MatLegacyButtonModule,
+    MatLegacyCardModule,
     MatIconModule,
-    MatFormFieldModule,
-    MatInputModule,
-    MatMenuModule,
-    MatTooltipModule,
+    MatLegacyFormFieldModule,
+    MatLegacyInputModule,
+    MatLegacyMenuModule,
+    MatLegacyTooltipModule,
   ],
   declarations: [
     FlowPicker,

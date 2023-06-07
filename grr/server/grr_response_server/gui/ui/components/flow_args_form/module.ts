@@ -2,19 +2,19 @@ import {CdkTreeModule} from '@angular/cdk/tree';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {MatAutocompleteModule} from '@angular/material/autocomplete';
-import {MatButtonModule} from '@angular/material/button';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
-import {MatCheckboxModule} from '@angular/material/checkbox';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatDialogModule} from '@angular/material/dialog';
-import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatInputModule} from '@angular/material/input';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
-import {MatRadioModule} from '@angular/material/radio';
-import {MatSelectModule} from '@angular/material/select';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatLegacyAutocompleteModule} from '@angular/material/legacy-autocomplete';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyCheckboxModule} from '@angular/material/legacy-checkbox';
+import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
+import {MatLegacyDialogModule} from '@angular/material/legacy-dialog';
+import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
+import {MatLegacyInputModule} from '@angular/material/legacy-input';
+import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
+import {MatLegacyRadioModule} from '@angular/material/legacy-radio';
+import {MatLegacySelectModule} from '@angular/material/legacy-select';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {MatTreeModule} from '@angular/material/tree';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
@@ -80,20 +80,20 @@ const FORMS = [
     ReactiveFormsModule,
     RouterModule,
     CdkTreeModule,
-    MatAutocompleteModule,
-    MatButtonModule,
+    MatLegacyAutocompleteModule,
+    MatLegacyButtonModule,
     MatButtonToggleModule,
-    MatCheckboxModule,
-    MatChipsModule,
-    MatDialogModule,
-    MatFormFieldModule,
+    MatLegacyCheckboxModule,
+    MatLegacyChipsModule,
+    MatLegacyDialogModule,
+    MatLegacyFormFieldModule,
     MatIconModule,
-    MatInputModule,
-    MatProgressSpinnerModule,
-    MatRadioModule,
-    MatSelectModule,
+    MatLegacyInputModule,
+    MatLegacyProgressSpinnerModule,
+    MatLegacyRadioModule,
+    MatLegacySelectModule,
     MatTreeModule,
-    MatTooltipModule,
+    MatLegacyTooltipModule,
     CodeEditorModule,
     ByteComponentsModule,
     CommaSeparatedInputModule,

@@ -6,25 +6,36 @@ import io
 import itertools
 import os
 import platform
+import stat
 import struct
 import unittest
 from unittest import mock
 
 from absl import app
+from absl.testing import absltest
 
 from grr_response_core.lib import constants
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import temp
+from grr_response_server import blob_store
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
+from grr_response_server import flow_responses
 from grr_response_server.databases import db
+from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import transfer
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
+from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
+from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
+from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 
 # pylint:mode=test
 
@@ -1280,6 +1291,104 @@ class MultiGetFileLogicTest(flow_test_lib.FlowTestsBaseclass):
             self.assertTrue(mock_failure.called)
             self.assertEqual(mock_failure.call_args[0][0].path, path)
             self.assertEqual(mock_failure.call_args[0][0].pathtype, pathtype)
+
+
+class GetFileThroughRRGTest(absltest.TestCase):
+
+  @db_test_lib.WithDatabase
+  def testHandleGetFileMetadata(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeClient(rel_db)
+    flow_id = db_test_utils.InitializeFlow(rel_db, client_id)
+
+    rel_db.WriteClientMetadata(client_id, rrg_support=True)
+
+    args = transfer.GetFileThroughRRG.GetDefaultArgs()
+    args.pathspec.path = "/foo/bar/baz"
+
+    result = rrg_get_file_metadata_pb2.Result()
+    result.path.raw_bytes = "/foo/bar/baz".encode("utf-8")
+    result.metadata.type = rrg_fs_pb2.FileMetadata.Type.FILE
+    result.metadata.size = 1337
+
+    result_response = rdf_flow_objects.FlowResponse()
+    result_response.any_payload = rdf_structs.AnyValue.PackProto2(result)
+
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    responses = flow_responses.Responses.FromResponsesProto2Any([
+        result_response,
+        status_response,
+    ])
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = transfer.GetFileThroughRRG.__name__
+    rdf_flow.args = args
+
+    flow = transfer.GetFileThroughRRG(rdf_flow)
+    flow.Start()
+    flow.HandleGetFileMetadata(responses)
+
+    stat_entry = flow.state.path_info.stat_entry
+    self.assertEqual(stat_entry.pathspec.path, "/foo/bar/baz")
+    self.assertEqual(stat_entry.st_mode, stat.S_IFREG)
+    self.assertEqual(stat_entry.st_size, 1337)
+
+  @db_test_lib.WithDatabase
+  @db_test_lib.WithDatabaseBlobstore
+  def testHandleGetFileContents(
+      self,
+      rel_db: db.Database,
+      bs: blob_store.BlobStore,
+  ) -> None:
+    client_id = db_test_utils.InitializeClient(rel_db)
+    flow_id = db_test_utils.InitializeFlow(rel_db, client_id)
+
+    rel_db.WriteClientMetadata(client_id, rrg_support=True)
+
+    blob_data = os.urandom(1337)
+    bs.WriteBlobWithUnknownHash(blob_data)
+
+    args = transfer.GetFileArgs()
+    args.pathspec.path = "/foo/bar/baz"
+    args.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+
+    result = rrg_get_file_contents_pb2.Result()
+    result.blob_sha256 = hashlib.sha256(blob_data).digest()
+    result.offset = 0
+    result.length = len(blob_data)
+
+    result_response = rdf_flow_objects.FlowResponse()
+    result_response.any_payload = rdf_structs.AnyValue.PackProto2(result)
+
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    responses = flow_responses.Responses.FromResponsesProto2Any([
+        result_response,
+        status_response,
+    ])
+
+    path_info = rdf_objects.PathInfo.FromPathSpec(args.pathspec)
+    path_info.stat_entry.st_size = len(blob_data)
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = transfer.GetFileThroughRRG.__name__
+    rdf_flow.args = args
+
+    flow = transfer.GetFileThroughRRG(rdf_flow)
+    flow.Start()
+    flow.state.path_info = path_info
+
+    flow.HandleGetFileContents(responses)
+
+    # Testing the results is borderline impossible with the way things are set
+    # up right now, so we skip it. We just verify that the code executes and no
+    # errors are raised.
 
 
 def main(argv):

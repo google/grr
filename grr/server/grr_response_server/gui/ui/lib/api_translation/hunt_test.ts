@@ -39,7 +39,7 @@ describe('Hunt translation test', () => {
     expect(translateHuntState({
       state: ApiHuntState.PAUSED,
       initStartTime: '1234',
-    })).toEqual(HuntState.PAUSED);
+    })).toEqual(HuntState.REACHED_CLIENT_LIMIT);
 
     expect(translateHuntState({
       state: ApiHuntState.PAUSED,
@@ -59,14 +59,16 @@ describe('Hunt translation test', () => {
 
     expect(translateHuntState({
       state: ApiHuntState.COMPLETED
-    })).toEqual(HuntState.COMPLETED);
+    })).toEqual(HuntState.REACHED_TIME_LIMIT);
   });
 
   it('converts to ApiHuntState correctly', () => {
     expect(toApiHuntState(HuntState.NOT_STARTED)).toEqual(ApiHuntState.PAUSED);
-    expect(toApiHuntState(HuntState.PAUSED)).toEqual(ApiHuntState.PAUSED);
+    expect(toApiHuntState(HuntState.REACHED_CLIENT_LIMIT))
+        .toEqual(ApiHuntState.PAUSED);
     expect(toApiHuntState(HuntState.RUNNING)).toEqual(ApiHuntState.STARTED);
     expect(toApiHuntState(HuntState.CANCELLED)).toEqual(ApiHuntState.STOPPED);
-    expect(toApiHuntState(HuntState.COMPLETED)).toEqual(ApiHuntState.COMPLETED);
+    expect(toApiHuntState(HuntState.REACHED_TIME_LIMIT))
+        .toEqual(ApiHuntState.COMPLETED);
   });
 });

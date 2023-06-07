@@ -13,6 +13,7 @@ from typing import Dict
 from typing import Iterable
 from typing import Iterator
 from typing import List
+from typing import Mapping
 from typing import NamedTuple
 from typing import Optional
 from typing import Sequence
@@ -40,6 +41,7 @@ from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 CLIENT_STATS_RETENTION = rdfvalue.Duration.From(31, rdfvalue.DAYS)
 
@@ -632,15 +634,17 @@ class Database(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def WriteClientMetadata(
       self,
-      client_id,
-      certificate=None,
-      fleetspeak_enabled=None,
-      first_seen=None,
-      last_ping=None,
-      last_clock=None,
-      last_ip=None,
-      last_foreman=None,
-      fleetspeak_validation_info: Optional[Dict[str, str]] = None):
+      client_id: str,
+      certificate: Optional[rdf_crypto.RDFX509Cert] = None,
+      fleetspeak_enabled: Optional[bool] = None,
+      first_seen: Optional[rdfvalue.RDFDatetime] = None,
+      last_ping: Optional[rdfvalue.RDFDatetime] = None,
+      last_clock: Optional[rdfvalue.RDFDatetime] = None,
+      last_ip: Optional[rdf_client_network.NetworkAddress] = None,
+      last_foreman: Optional[rdfvalue.RDFDatetime] = None,
+      fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
+      rrg_support: Optional[bool] = None,
+  ) -> None:
     """Write metadata about the client.
 
     Updates one or more client metadata fields for the given client_id. Any of
@@ -664,6 +668,7 @@ class Database(metaclass=abc.ABCMeta):
       last_foreman: An rdfvalue.Datetime, indicating the last time that the
         client sent a foreman message to the server.
       fleetspeak_validation_info: A dict with validation info from Fleetspeak.
+      rrg_support: Whether the agent supports the RRG protocol.
     """
 
   @abc.abstractmethod
@@ -866,6 +871,22 @@ class Database(metaclass=abc.ABCMeta):
 
     Raises:
       UnknownClientError: The client_id is not known yet.
+    """
+
+  @abc.abstractmethod
+  def WriteClientRRGStartup(
+      self,
+      client_id: str,
+      startup: rrg_startup_pb2.Startup,
+  ) -> None:
+    """Writes a new RRG startup entry to the database.
+
+    Args:
+      client_id: An identifier of the client that started the agent.
+      startup: A startup entry to write.
+
+    Raises:
+      UnknownClientError: If the client is not known.
     """
 
   @abc.abstractmethod
@@ -3104,15 +3125,17 @@ class DatabaseValidationWrapper(Database):
 
   def WriteClientMetadata(
       self,
-      client_id,
-      certificate=None,
-      fleetspeak_enabled=None,
-      first_seen=None,
-      last_ping=None,
-      last_clock=None,
-      last_ip=None,
-      last_foreman=None,
-      fleetspeak_validation_info: Optional[Dict[str, str]] = None):
+      client_id: str,
+      certificate: Optional[rdf_crypto.RDFX509Cert] = None,
+      fleetspeak_enabled: Optional[bool] = None,
+      first_seen: Optional[rdfvalue.RDFDatetime] = None,
+      last_ping: Optional[rdfvalue.RDFDatetime] = None,
+      last_clock: Optional[rdfvalue.RDFDatetime] = None,
+      last_ip: Optional[rdf_client_network.NetworkAddress] = None,
+      last_foreman: Optional[rdfvalue.RDFDatetime] = None,
+      fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
+      rrg_support: Optional[bool] = None,
+  ) -> None:
     precondition.ValidateClientId(client_id)
     precondition.AssertOptionalType(certificate, rdf_crypto.RDFX509Cert)
     precondition.AssertOptionalType(fleetspeak_enabled, bool)
@@ -3134,7 +3157,9 @@ class DatabaseValidationWrapper(Database):
         last_clock=last_clock,
         last_ip=last_ip,
         last_foreman=last_foreman,
-        fleetspeak_validation_info=fleetspeak_validation_info)
+        fleetspeak_validation_info=fleetspeak_validation_info,
+        rrg_support=rrg_support,
+    )
 
   def DeleteClient(self, client_id):
     precondition.ValidateClientId(client_id)
@@ -3215,6 +3240,13 @@ class DatabaseValidationWrapper(Database):
     precondition.ValidateClientId(client_id)
 
     return self.delegate.WriteClientStartupInfo(client_id, startup_info)
+
+  def WriteClientRRGStartup(
+      self,
+      client_id: str,
+      startup: rrg_startup_pb2.Startup,
+  ) -> None:
+    return self.delegate.WriteClientRRGStartup(client_id, startup)
 
   def ReadClientStartupInfo(self,
                             client_id: str) -> Optional[rdf_client.StartupInfo]:

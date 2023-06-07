@@ -3,6 +3,7 @@
 
 import queue
 import random
+import threading
 import time
 from unittest import mock
 
@@ -949,6 +950,54 @@ class DatabaseTestFlowMixin(object):
     self.assertLen(read, 1)
     request, responses = read[0]
     self.assertLen(responses, 1)
+
+  def testWriteResponsesConcurrent(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
+
+    request = rdf_flow_objects.FlowRequest()
+    request.client_id = client_id
+    request.flow_id = flow_id
+    request.request_id = 1
+    request.next_state = "FOO"
+    self.db.WriteFlowRequests([request])
+
+    response = rdf_flow_objects.FlowResponse()
+    response.client_id = client_id
+    response.flow_id = flow_id
+    response.request_id = 1
+    response.response_id = 1
+
+    status = rdf_flow_objects.FlowStatus()
+    status.client_id = client_id
+    status.flow_id = flow_id
+    status.request_id = 1
+    status.response_id = 2
+
+    def ResponseThread():
+      self.db.WriteFlowResponses([response])
+
+    def StatusThread():
+      self.db.WriteFlowResponses([status])
+
+    response_thread = threading.Thread(target=ResponseThread)
+    status_thread = threading.Thread(target=StatusThread)
+
+    response_thread.start()
+    status_thread.start()
+
+    response_thread.join()
+    status_thread.join()
+
+    ready_requests = self.db.ReadFlowRequestsReadyForProcessing(
+        client_id=client_id,
+        flow_id=flow_id,
+        next_needed_request=1,
+    )
+    self.assertIn(request.request_id, ready_requests)
+
+    request, _ = ready_requests[request.request_id]
+    self.assertTrue(request.needs_processing)
 
   def testStatusForUnknownRequest(self):
     client_id = db_test_utils.InitializeClient(self.db)

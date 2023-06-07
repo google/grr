@@ -1,16 +1,16 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ComponentFixture} from '@angular/core/testing';
 import {MatButtonToggleHarness} from '@angular/material/button-toggle/testing';
-import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
-import {MatInputHarness} from '@angular/material/input/testing';
-import {MatSelectHarness} from '@angular/material/select/testing';
+import {MatLegacyCheckboxHarness} from '@angular/material/legacy-checkbox/testing';
+import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
+import {MatLegacySelectHarness} from '@angular/material/legacy-select/testing';
 
 /** Sets the value for the input element matching the query in the fixture. */
 export async function setInputValue(
     fixture: ComponentFixture<unknown>, query: string, value: string) {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const inputHarness =
-      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
+  const inputHarness = await harnessLoader.getHarness(
+      MatLegacyInputHarness.with({selector: query}));
   await inputHarness.setValue(value);
 }
 
@@ -18,8 +18,8 @@ export async function setInputValue(
 export async function getInputValue(
     fixture: ComponentFixture<unknown>, query: string): Promise<string> {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const inputHarness =
-      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
+  const inputHarness = await harnessLoader.getHarness(
+      MatLegacyInputHarness.with({selector: query}));
   return await inputHarness.getValue();
 }
 
@@ -30,7 +30,7 @@ export async function getCheckboxValue(
     fixture: ComponentFixture<unknown>, query: string): Promise<boolean> {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
   const checkboxHarness = await harnessLoader.getHarness(
-      MatCheckboxHarness.with({selector: query}));
+      MatLegacyCheckboxHarness.with({selector: query}));
   return await checkboxHarness.isChecked();
 }
 
@@ -63,7 +63,7 @@ export async function isButtonToggleSelected(
 export async function getSelectBoxValue(
     fixture: ComponentFixture<unknown>, query: string): Promise<string> {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const selectionBoxHarness =
-      await harnessLoader.getHarness(MatSelectHarness.with({selector: query}));
+  const selectionBoxHarness = await harnessLoader.getHarness(
+      MatLegacySelectHarness.with({selector: query}));
   return await selectionBoxHarness.getValueText();
 }

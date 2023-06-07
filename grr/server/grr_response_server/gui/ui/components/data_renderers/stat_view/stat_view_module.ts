@@ -1,5 +1,5 @@
 import {NgModule} from '@angular/core';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 
 import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';
@@ -12,7 +12,7 @@ import {StatView} from './stat_view';
   imports: [
     BrowserAnimationsModule,
 
-    MatTooltipModule,
+    MatLegacyTooltipModule,
 
     CopyButtonModule,
     HumanReadableSizeModule,

@@ -1,0 +1,72 @@
+// Copyright 2023 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.fs;
+
+import "google/protobuf/timestamp.proto";
+
+// Path in the filesystem.
+message Path {
+    // Raw bytes representing the path.
+    //
+    // Different operating systems represent paths differently and have varying
+    // capabilities. In most general case, Linux systems allow paths with pretty
+    // much arbitrary bytes and so we need to support this case.
+    //
+    // On Windows, where paths are stored using UCS-2 encoding (that is 16-bit),
+    // represent paths with the WTF-8 encoding [1]: an "almost UTF-8". So, even
+    // if the language does not have support for WTF-8, we can treat it as UTF-8
+    // and still get more-or-less meaningful results.
+    //
+    // [1]: https://simonsapin.github.io/wtf-8
+    bytes raw_bytes = 1;
+}
+
+// Metadata associated with a specific file.
+message FileMetadata {
+    // List of different file types.
+    enum Type {
+        // Unknown (or unspecified).
+        UNKNOWN = 0;
+        // Regular file.
+        FILE = 1;
+        // Directory.
+        DIR = 2;
+        // Symbolic link.
+        SYMLINK = 3;
+    }
+
+    // Type of the file.
+    Type type = 1;
+    // Size of the file in bytes.
+    uint64 size = 2;
+    // Time at which the file was last accessed.
+    google.protobuf.Timestamp access_time = 3;
+    // Time at which the file was last modified.
+    google.protobuf.Timestamp modification_time = 4;
+    // Time at which the file was created.
+    google.protobuf.Timestamp creation_time = 5;
+}
+
+// Extended attribute of a file.
+//
+// Note that extended attributes are not available on Windows and there are some
+// differences between how they work on macOS and Linux. See the [Wikipedia][1]
+// article for more details.
+//
+// [Wikipedia]: https://en.wikipedia.org/wiki/Extended_file_attributes
+message FileExtAttr {
+    // A name of the article.
+    //
+    // On macOS this is an UTF-8 encoded string, but on Linux it can consist of
+    // arbitrary byte sequence (although most probably it will be also an UTF-8
+    // string).
+    bytes name = 1;
+    // A value of the attribute.
+    //
+    // This can be an arbitrary sequence of bytes both on macOS and Linux.
+    bytes value = 2;
+}

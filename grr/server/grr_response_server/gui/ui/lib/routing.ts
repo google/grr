@@ -1,29 +1,41 @@
 import {Injectable} from '@angular/core';
-import {ActivatedRouteSnapshot, BaseRouteReuseStrategy, Routes} from '@angular/router';
+import {ActivatedRouteSnapshot, BaseRouteReuseStrategy, Route} from '@angular/router';
 
+/** Prefix of the legacy UI route. */
+export const LEGACY_ROUTE_PREFIX = '/legacy';
 
-/** A Route with a template string ('#/clients/:id') to link to the old UI. */
-export declare interface RouteWithLegacyLink {
-  data?: {legacyLink: string;};
+declare interface LegacyLink {
+  legacyLink: string;
 }
 
-/** Routes with `data.legacyLink` that link to the old UI. */
-export type RoutesWithLegacyLinks = RouteWithLegacyLink[];
+declare interface ReuseComponent {
+  reuseComponent?: boolean;
+}
 
+declare interface RouteWithGenericData<T extends Route['data']> extends Route {
+  data?: T;
+}
+
+/** A Route with a template string ('#/clients/:id') to link to the old UI. */
+export type RouteWithLegacyLink = RouteWithGenericData<LegacyLink>;
 /**
  * A Route that can specify to reuse its component if the next Route would use
  * the same.
  */
-export declare interface RouteWithReuseComponent {
-  data?: {reuseComponent?: boolean};
-}
+export type RouteWithReuseComponent = RouteWithGenericData<ReuseComponent>;
+
+/** Routes with `data.legacyLink` that link to the old UI. */
+export type RoutesWithLegacyLinks = RouteWithLegacyLink[];
 
 /** Routes with `data.legacyLink` that link to the old UI. */
 export type RoutesWithReuseComponent = RouteWithReuseComponent[];
 
 /** Routes with custom data to specify legacy links & reusing components. */
-export type RoutesWithCustomData =
-    Routes&RoutesWithLegacyLinks&RoutesWithReuseComponent;
+export type RouteWithCustomData =
+    RouteWithGenericData<LegacyLink&ReuseComponent>;
+
+/** Routes with custom data to specify legacy links & reusing components. */
+export type RoutesWithCustomData = RouteWithCustomData[];
 
 /**
  * Strategy to reuse Components if two Routes declare the same component and
@@ -67,7 +79,7 @@ export function makeLegacyLinkFromRoute(route: ActivatedRouteSnapshot): string {
 /** Returns a link to the old UI, e.g. provide '#/clients/'. */
 export function makeLegacyLink(suffix: string = ''): string {
   const url = new URL(window.location.origin);
-  url.pathname = '/';
+  url.pathname = LEGACY_ROUTE_PREFIX;
   url.hash = '';
   return url.toString() + suffix;
 }

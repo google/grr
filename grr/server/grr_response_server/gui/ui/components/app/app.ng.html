@@ -10,8 +10,16 @@
       </div>
     </a>
 
-    <nav mat-tab-nav-bar [disablePagination]="true">
-      <a mat-tab-link routerLink="/" [active]="true">Collect from client</a>
+    <nav mat-tab-nav-bar [disablePagination]="true" class="app-navigation">
+      <a mat-tab-link
+        routerLink="/"
+        [routerLinkActiveOptions]="{ exact: true }"
+        routerLinkActive #rla="routerLinkActive"
+        [active]="rla.isActive || (isClientsPath$ | async)">Collect from client</a>
+      <a mat-tab-link
+        routerLink="/hunts"
+        routerLinkActive #rla2="routerLinkActive"
+        [active]="rla2.isActive">Collect from fleet</a>
     </nav>
 
     <span class="spacer"></span>
@@ -21,6 +29,7 @@
       mat-button
       color="primary"
       href="{{fallbackLink$ | async}}"
+      (click)="registerRedirect()"
     >
       <mat-icon>launch</mat-icon>
       Use the old UI

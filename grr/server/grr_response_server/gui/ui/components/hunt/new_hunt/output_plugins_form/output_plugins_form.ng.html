@@ -1,51 +1,53 @@
-<div class="header" (click)="showContent($event)">
-  Export Data
-  <button
-    id="output-plugins-form-toggle"
-    mat-icon-button
-    class="corner-button"
-    (click)="toggleContent($event)"
-    aria-label="View/hide export data form (output plugins)"
-  >
-    <mat-icon>{{ hideContent ? "expand_less" : "expand_more" }}</mat-icon>
-  </button>
-</div>
+<div class="wrapper">
+  <div class="header" (click)="showContent($event)">
+    Export data
+    <button
+      id="output-plugins-form-toggle"
+      mat-icon-button
+      class="corner-button"
+      (click)="toggleContent($event)"
+      aria-label="View/hide export data form (output plugins)"
+    >
+      <mat-icon>{{ hideContent ? "expand_less" : "expand_more" }}</mat-icon>
+    </button>
+  </div>
 
-<div class="content">
-  <form autocomplete="off" spellcheck="false" [formGroup]="outputPluginsForm">
-    <div class="plugins-container">
-      <div
-        *ngFor="let plugin of plugins.controls; let pluginIndex = index"
-        [ngSwitch]="plugin.get('type')?.value"
-        [formGroup]="pluginGroup(pluginIndex)"
-        class="plugin-content"
-      >
-        <button
-          mat-icon-button
-          [id]="'remove_plugin_' + pluginIndex"
-          class="remove-button"
-          (click)="removePlugin(pluginIndex)"
-          type="button"
-          [attr.aria-label]="removePlugin"
+  <div class="content">
+    <form autocomplete="off" spellcheck="false" [formGroup]="outputPluginsForm">
+      <div class="plugins-container">
+        <div
+          *ngFor="let plugin of plugins.controls; let pluginIndex = index"
+          [ngSwitch]="plugin.get('type')?.value"
+          [formGroup]="pluginGroup(pluginIndex)"
+          class="plugin-content"
         >
-          <mat-icon>close</mat-icon>
-        </button>
-        <!-- TODO: Add forms for each Output Plugin. -->
+          <button
+            mat-icon-button
+            [id]="'remove_plugin_' + pluginIndex"
+            class="remove-button"
+            (click)="removePlugin(pluginIndex)"
+            type="button"
+            [attr.aria-label]="removePlugin"
+          >
+            <mat-icon>close</mat-icon>
+          </button>
+          <!-- TODO: Add forms for each Output Plugin. -->
 
-        <ng-container
-          *ngSwitchCase="pluginType.BIGQUERY"
-          [ngTemplateOutlet]="annotationForm"
-          [ngTemplateOutletContext]="{
-            title: plugin.get('name')?.value,
-            form: plugin,
-            id: pluginIndex
-          }"
-        >
-        </ng-container>
+          <ng-container
+            *ngSwitchCase="pluginType.BIGQUERY"
+            [ngTemplateOutlet]="annotationForm"
+            [ngTemplateOutletContext]="{
+              title: plugin.get('name')?.value,
+              form: plugin,
+              id: pluginIndex
+            }"
+          >
+          </ng-container>
+        </div>
       </div>
-    </div>
-  </form>
-  <!-- TODO: Add selection box to add available Output Plugins. -->
+    </form>
+    <!-- TODO: Add selection box to add available Output Plugins. -->
+  </div>
 </div>
 
 <ng-template #annotationForm let-title="title" let-form="form" let-id="id">

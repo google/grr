@@ -8,6 +8,7 @@ import {RouterTestingModule} from '@angular/router/testing';
 import {Browser, ForemanClientRuleSetMatchMode, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../../lib/api/api_interfaces';
 import {ApiModule} from '../../../lib/api/module';
 import {RequestStatusType} from '../../../lib/api/track_request';
+import {getFlowTitleFromFlowName} from '../../../lib/models/flow';
 import {getHuntTitle} from '../../../lib/models/hunt';
 import {newFlowDescriptorMap, newHunt, newHuntApproval, newSafetyLimits} from '../../../lib/models/model_test_util';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
@@ -70,9 +71,10 @@ describe('HuntApprovalPage Component', () => {
     const fixture = TestBed.createComponent(HuntApprovalPage);
     fixture.detectChanges();
 
+    const flowName = 'CollectBrowserHistory';
     configGlobalStore.mockedObservables.flowDescriptors$.next(
         newFlowDescriptorMap({
-          name: 'CollectBrowserHistory',
+          name: flowName,
           friendlyName: 'Collects Browser History',
           category: 'b',
           defaultArgs: {},
@@ -86,7 +88,7 @@ describe('HuntApprovalPage Component', () => {
             name: 'Get_free_bitcoin',
             description: 'testing',
             huntId: '1234',
-            flowName: 'CollectBrowserHistory',
+            flowName,
             flowArgs: {
               '@type':
                   'type.googleapis.com/grr.CollectBrowserHistoryArgs',
@@ -103,6 +105,8 @@ describe('HuntApprovalPage Component', () => {
               networkBytesLimit: BigInt(60),
               expiryTime: BigInt(TWO_DAYS),
             }),
+            huntReference: {huntId: 'HHHHH'},
+            flowReference: {clientId: 'CCCCC', flowId: 'FFFFF'}
           }),
           requestor: 'testuser',
           reason: 'I am dummy reason',
@@ -113,13 +117,15 @@ describe('HuntApprovalPage Component', () => {
     fixture.detectChanges();
 
     const text = fixture.nativeElement.textContent;
+    expect(text).toContain('HHHHH');
+    expect(text).toContain('FFFFF');
     expect(text).toContain('Get_free_bitcoin');
     expect(text).toContain('testing');
     expect(text).toContain('1234');
     expect(text).toContain('All matching clients');
     expect(text).toContain('200');
     expect(text).toContain('standard');
-    expect(text).toContain('Collects Browser History');
+    expect(text).toContain(getFlowTitleFromFlowName(flowName));
     expect(text).toContain('Chrome');
     expect(text).toContain('20');
     expect(text).toContain('40 s');
@@ -430,13 +436,14 @@ describe('HuntApprovalPage Component', () => {
     const fixture = TestBed.createComponent(HuntApprovalPage);
     fixture.detectChanges();
 
+    const flowName = 'CollectBrowserHistory';
     injectMockStore(HuntApprovalPageGlobalStore)
         .mockedObservables.approval$.next(newHuntApproval({
           subject: newHunt({
             name: 'Get_free_bitcoin',
             description: 'testing',
             huntId: '1234',
-            flowName: 'CollectBrowserHistory',
+            flowName,
             flowReference: {flowId: '0C1DAF7B93B10ACB', clientId: 'C.1234'},
           }),
           requestor: 'msan',
@@ -444,10 +451,11 @@ describe('HuntApprovalPage Component', () => {
         }));
     fixture.detectChanges();
 
-    const link = fixture.debugElement.query(By.css('a'));
+    const link = fixture.debugElement.query(By.css('hunt-flow-arguments a'));
     expect(link.attributes['href'])
         .toContain('clients/C.1234/flows/0C1DAF7B93B10ACB');
-    expect(link.nativeElement.textContent).toContain('CollectBrowserHistory');
+    expect(link.nativeElement.textContent)
+        .toContain(getFlowTitleFromFlowName(flowName));
 
     expect(fixture.debugElement.nativeElement.textContent)
         .toContain('0C1DAF7B93B10ACB');

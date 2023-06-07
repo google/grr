@@ -20,7 +20,6 @@ from grr_response_server import prometheus_stats_collector
 from grr_response_server import server_logging
 from grr_response_server import stats_server
 from grr_response_server.authorization import client_approval_auth
-from grr_response_server.check_lib import checks
 from grr_response_server.gui import http_api
 from grr_response_server.gui import registry_init as gui_api_registry_init
 from grr_response_server.gui import webauth
@@ -29,9 +28,11 @@ from grr.test_lib import blob_store_test_lib
 # Make sure we do not reinitialize multiple times.
 INIT_RAN = False
 
-flags.DEFINE_string(
-    "test_data_store", None, "The data store implementation to use for running "
-    "the tests.")
+_TEST_DATA_STORE = flags.DEFINE_string(
+    "test_data_store",
+    None,
+    "The data store implementation to use for running the tests.",
+)
 
 
 def TestInit():
@@ -80,7 +81,6 @@ def TestInit():
   data_store.InitializeDataStore()
 
   artifact.LoadArtifactsOnce()
-  checks.LoadChecksFromFilesystemOnce()
   client_approval_auth.InitializeClientApprovalAuthorizationManagerOnce()
   email_alerts.InitializeEmailAlerterOnce()
   http_api.InitializeHttpRequestHandlerOnce()

@@ -1,7 +1,7 @@
 import {Clipboard} from '@angular/cdk/clipboard';
 import {Component, Input} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
-import {MatSnackBarModule} from '@angular/material/snack-bar';
+import {MatLegacySnackBarModule} from '@angular/material/legacy-snack-bar';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -35,7 +35,7 @@ describe('CopyButton component', () => {
     TestBed
         .configureTestingModule({
           imports: [
-            MatSnackBarModule, CopyButtonModule,
+            MatLegacySnackBarModule, CopyButtonModule,
             NoopAnimationsModule,  // This makes test faster and more stable.
           ],
           declarations:

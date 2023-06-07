@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """The MySQL database methods for client handling."""
 import itertools
-from typing import Collection, Iterator, List, Optional, Text
+from typing import Collection, Iterator, List, Mapping, Optional, Text
 
 import MySQLdb
 from MySQLdb.constants import ER as mysql_error_constants
@@ -11,29 +11,35 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_server import fleet_utils
 from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import rrg as rdf_rrg
+from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
 class MySQLDBClientMixin(object):
   """MySQLDataStore mixin for client related functions."""
 
   @mysql_utils.WithTransaction()
-  def WriteClientMetadata(self,
-                          client_id,
-                          certificate=None,
-                          fleetspeak_enabled=None,
-                          first_seen=None,
-                          last_ping=None,
-                          last_clock=None,
-                          last_ip=None,
-                          last_foreman=None,
-                          fleetspeak_validation_info=None,
-                          cursor=None):
+  def WriteClientMetadata(
+      self,
+      client_id: str,
+      certificate: Optional[rdf_crypto.RDFX509Cert] = None,
+      fleetspeak_enabled: Optional[bool] = None,
+      first_seen: Optional[rdfvalue.RDFDatetime] = None,
+      last_ping: Optional[rdfvalue.RDFDatetime] = None,
+      last_clock: Optional[rdfvalue.RDFDatetime] = None,
+      last_ip: Optional[rdf_client_network.NetworkAddress] = None,
+      last_foreman: Optional[rdfvalue.RDFDatetime] = None,
+      fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
+      rrg_support: Optional[bool] = None,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
     """Write metadata about the client."""
     placeholders = []
     values = dict()
@@ -62,6 +68,9 @@ class MySQLDBClientMixin(object):
     if last_foreman:
       placeholders.append("FROM_UNIXTIME(%(last_foreman)s)")
       values["last_foreman"] = mysql_utils.RDFDatetimeToTimestamp(last_foreman)
+    if rrg_support is not None:
+      placeholders.append("%(rrg_support)s")
+      values["rrg_support"] = rrg_support
 
     placeholders.append("%(last_fleetspeak_validation_info)s")
     if fleetspeak_validation_info:
@@ -103,7 +112,8 @@ class MySQLDBClientMixin(object):
         UNIX_TIMESTAMP(first_seen),
         UNIX_TIMESTAMP(last_crash_timestamp),
         UNIX_TIMESTAMP(last_startup_timestamp),
-        last_fleetspeak_validation_info
+        last_fleetspeak_validation_info,
+        rrg_support
       FROM
         clients
       WHERE
@@ -114,18 +124,21 @@ class MySQLDBClientMixin(object):
       row = cursor.fetchone()
       if not row:
         break
-      cid, fs, crt, ping, clk, ip, foreman, first, lct, lst, fsvi = row
+      cid, fs, crt, ping, clk, ip, foreman, first, lct, lst, fsvi, rrg = row
       metadata = rdf_objects.ClientMetadata(
           certificate=crt,
           fleetspeak_enabled=fs,
           first_seen=mysql_utils.TimestampToRDFDatetime(first),
           ping=mysql_utils.TimestampToRDFDatetime(ping),
           clock=mysql_utils.TimestampToRDFDatetime(clk),
-          ip=mysql_utils.StringToRDFProto(rdf_client_network.NetworkAddress,
-                                          ip),
+          ip=mysql_utils.StringToRDFProto(
+              rdf_client_network.NetworkAddress, ip
+          ),
           last_foreman_time=mysql_utils.TimestampToRDFDatetime(foreman),
           startup_info_timestamp=mysql_utils.TimestampToRDFDatetime(lst),
-          last_crash_timestamp=mysql_utils.TimestampToRDFDatetime(lct))
+          last_crash_timestamp=mysql_utils.TimestampToRDFDatetime(lct),
+          rrg_support=rrg,
+      )
 
       if fsvi:
         metadata.last_fleetspeak_validation_info = (
@@ -345,6 +358,29 @@ class MySQLDBClientMixin(object):
     except MySQLdb.IntegrityError as e:
       raise db.UnknownClientError(client_id, cause=e)
 
+  @mysql_utils.WithTransaction()
+  def WriteClientRRGStartup(
+      self,
+      client_id: str,
+      startup: rrg_startup_pb2.Startup,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> None:
+    """Writes a new RRG startup entry to the database."""
+    query = """
+    INSERT
+      INTO client_rrg_startup_history (client_id, timestamp, startup)
+    VALUES (%(client_id)s, NOW(6), %(startup)s)
+    """
+    params = {
+        "client_id": db_utils.ClientIDToInt(client_id),
+        "startup": startup.SerializeToString(),
+    }
+
+    try:
+      cursor.execute(query, params)
+    except MySQLdb.IntegrityError as error:
+      raise db.UnknownClientError(client_id) from error
+
   @mysql_utils.WithTransaction(readonly=True)
   def ReadClientStartupInfo(
       self,
@@ -352,13 +388,18 @@ class MySQLDBClientMixin(object):
       cursor: Optional[MySQLdb.cursors.Cursor] = None
   ) -> Optional[rdf_client.StartupInfo]:
     """Reads the latest client startup record for a single client."""
-    query = (
-        "SELECT startup_info, UNIX_TIMESTAMP(timestamp) "
-        "FROM clients, client_startup_history "
-        "WHERE clients.last_startup_timestamp=client_startup_history.timestamp "
-        "AND clients.client_id=client_startup_history.client_id "
-        "AND clients.client_id=%s")
-    cursor.execute(query, [db_utils.ClientIDToInt(client_id)])
+    query = """
+    SELECT startup_info, UNIX_TIMESTAMP(timestamp)
+      FROM clients, client_startup_history
+     WHERE clients.last_startup_timestamp = client_startup_history.timestamp
+       AND clients.client_id = client_startup_history.client_id
+       AND clients.client_id = %(client_id)s
+    """
+    params = {
+        "client_id": db_utils.ClientIDToInt(client_id),
+    }
+    cursor.execute(query, params)
+
     row = cursor.fetchone()
     if row is None:
       return None
@@ -409,9 +450,25 @@ class MySQLDBClientMixin(object):
     c_full_info = None
     prev_cid = None
     for row in response:
-      (cid, fs, crt, ping, clk, ip, foreman, first, last_client_ts,
-       last_crash_ts, last_startup_ts, client_obj, client_startup_obj,
-       last_startup_obj, label_owner, label_name) = row
+      (
+          cid,
+          fs,
+          crt,
+          ip,
+          ping,
+          clk,
+          foreman,
+          first,
+          last_client_ts,
+          last_crash_ts,
+          last_startup_ts,
+          client_obj,
+          client_startup_obj,
+          last_startup_obj,
+          last_rrg_startup_obj,
+          label_owner,
+          label_name,
+      ) = row
 
       if cid != prev_cid:
         if c_full_info:
@@ -451,12 +508,21 @@ class MySQLDBClientMixin(object):
         else:
           startup_info = None
 
+        if last_rrg_startup_obj is not None:
+          last_rrg_startup = rdf_rrg.Startup.FromSerializedBytes(
+              last_rrg_startup_obj,
+          )
+        else:
+          last_rrg_startup = None
+
         prev_cid = cid
         c_full_info = rdf_objects.ClientFullInfo(
             metadata=metadata,
             labels=[],
             last_snapshot=l_snapshot,
-            last_startup_info=startup_info)
+            last_startup_info=startup_info,
+            last_rrg_startup=last_rrg_startup,
+        )
 
       if label_owner and label_name:
         c_full_info.labels.append(
@@ -474,30 +540,37 @@ class MySQLDBClientMixin(object):
     if not client_ids:
       return {}
 
-    query = (
-        "SELECT "
-        "c.client_id, c.fleetspeak_enabled, c.certificate, "
-        "UNIX_TIMESTAMP(c.last_ping), UNIX_TIMESTAMP(c.last_clock), "
-        "c.last_ip, UNIX_TIMESTAMP(c.last_foreman), "
-        "UNIX_TIMESTAMP(c.first_seen), "
-        "UNIX_TIMESTAMP(c.last_snapshot_timestamp), "
-        "UNIX_TIMESTAMP(c.last_crash_timestamp), "
-        "UNIX_TIMESTAMP(c.last_startup_timestamp), "
-        "h.client_snapshot, s.startup_info, s_last.startup_info, "
-        "l.owner_username, l.label "
-        "FROM clients as c "
-        "FORCE INDEX (PRIMARY) "
-        "LEFT JOIN client_snapshot_history as h FORCE INDEX (PRIMARY) ON ( "
-        "c.client_id = h.client_id AND "
-        "h.timestamp = c.last_snapshot_timestamp) "
-        "LEFT JOIN client_startup_history as s FORCE INDEX (PRIMARY) ON ( "
-        "c.client_id = s.client_id AND "
-        "s.timestamp = c.last_snapshot_timestamp) "
-        "LEFT JOIN client_startup_history as s_last FORCE INDEX (PRIMARY) ON ( "
-        "c.client_id = s_last.client_id "
-        "AND s_last.timestamp = c.last_startup_timestamp) "
-        "LEFT JOIN client_labels AS l FORCE INDEX (PRIMARY) "
-        "ON (c.client_id = l.client_id) ")
+    query = """
+    SELECT c.client_id, c.fleetspeak_enabled, c.certificate, c.last_ip,
+           UNIX_TIMESTAMP(c.last_ping),
+           UNIX_TIMESTAMP(c.last_clock),
+           UNIX_TIMESTAMP(c.last_foreman),
+           UNIX_TIMESTAMP(c.first_seen),
+           UNIX_TIMESTAMP(c.last_snapshot_timestamp),
+           UNIX_TIMESTAMP(c.last_crash_timestamp),
+           UNIX_TIMESTAMP(c.last_startup_timestamp),
+           h.client_snapshot,
+           s.startup_info, s_last.startup_info, rrg_s_last.startup,
+           l.owner_username, l.label
+      FROM clients AS c FORCE INDEX (PRIMARY)
+           LEFT JOIN client_snapshot_history AS h FORCE INDEX (PRIMARY)
+                  ON c.client_id = h.client_id
+                 AND c.last_snapshot_timestamp = h.timestamp
+           LEFT JOIN client_startup_history AS s FORCE INDEX (PRIMARY)
+                  ON c.client_id = s.client_id
+                 AND c.last_snapshot_timestamp = s.timestamp
+           LEFT JOIN client_startup_history AS s_last FORCE INDEX (PRIMARY)
+                  ON c.client_id = s_last.client_id
+                 AND c.last_startup_timestamp = s_last.timestamp
+           LEFT JOIN client_rrg_startup_history AS rrg_s_last
+                  ON rrg_s_last.id = (SELECT id
+                                        FROM client_rrg_startup_history
+                                       WHERE client_id = c.client_id
+                                    ORDER BY timestamp DESC
+                                       LIMIT 1)
+           LEFT JOIN client_labels AS l FORCE INDEX (PRIMARY)
+                  ON c.client_id = l.client_id
+    """
 
     query += "WHERE c.client_id IN (%s) " % ", ".join(["%s"] * len(client_ids))
 

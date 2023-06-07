@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {ControlContainer} from '@angular/forms';
-import {MatInputHarness} from '@angular/material/input/testing';
+import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -56,9 +56,9 @@ describe('SizeCondition component', () => {
        fixture.detectChanges();
 
        const minFileSizeHarness = await loader.getHarness(
-           MatInputHarness.with({selector: '[name="minFileSize"]'}));
+           MatLegacyInputHarness.with({selector: '[name="minFileSize"]'}));
        const maxFileSizeHarness = await loader.getHarness(
-           MatInputHarness.with({selector: '[name="maxFileSize"]'}));
+           MatLegacyInputHarness.with({selector: '[name="maxFileSize"]'}));
        await minFileSizeHarness.setValue('10 MB');
        await maxFileSizeHarness.setValue('');
 
@@ -80,9 +80,9 @@ describe('SizeCondition component', () => {
        fixture.detectChanges();
 
        const minFileSizeHarness = await loader.getHarness(
-           MatInputHarness.with({selector: '[name="minFileSize"]'}));
+           MatLegacyInputHarness.with({selector: '[name="minFileSize"]'}));
        const maxFileSizeHarness = await loader.getHarness(
-           MatInputHarness.with({selector: '[name="maxFileSize"]'}));
+           MatLegacyInputHarness.with({selector: '[name="maxFileSize"]'}));
        await minFileSizeHarness.setValue('10 MB');
        await maxFileSizeHarness.setValue('10 GiB');
 
@@ -105,9 +105,9 @@ describe('SizeCondition component', () => {
     fixture.detectChanges();
 
     const minFileSizeHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[name="minFileSize"]'}));
+        MatLegacyInputHarness.with({selector: '[name="minFileSize"]'}));
     const maxFileSizeHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[name="maxFileSize"]'}));
+        MatLegacyInputHarness.with({selector: '[name="maxFileSize"]'}));
     await minFileSizeHarness.setValue('0');
     await maxFileSizeHarness.setValue('2 GiB');
 
@@ -129,9 +129,9 @@ describe('SizeCondition component', () => {
     fixture.detectChanges();
 
     const minFileSizeHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[name="minFileSize"]'}));
+        MatLegacyInputHarness.with({selector: '[name="minFileSize"]'}));
     const maxFileSizeHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[name="maxFileSize"]'}));
+        MatLegacyInputHarness.with({selector: '[name="maxFileSize"]'}));
     await minFileSizeHarness.setValue('');
     await maxFileSizeHarness.setValue('');
 

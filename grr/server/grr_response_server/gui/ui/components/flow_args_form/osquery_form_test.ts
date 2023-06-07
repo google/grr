@@ -1,8 +1,8 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule} from '@angular/forms';
-import {MatButtonHarness} from '@angular/material/button/testing';
-import {MatChipListHarness} from '@angular/material/chips/testing';
+import {MatLegacyButtonHarness} from '@angular/material/legacy-button/testing';
+import {MatLegacyChipListHarness} from '@angular/material/legacy-chips/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -63,7 +63,8 @@ describe('OsqueryForm', () => {
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
 
        const expandButtonHarness = await harnessLoader.getHarness(
-           MatButtonHarness.with({text: /Show file collection settings.*/}),
+           MatLegacyButtonHarness.with(
+               {text: /Show file collection settings.*/}),
        );
        await expandButtonHarness.click();
 
@@ -78,7 +79,7 @@ describe('OsqueryForm', () => {
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
 
        const expandButtonHarness = await harnessLoader.getHarness(
-           MatButtonHarness.with({text: /Show low-level settings.*/}),
+           MatLegacyButtonHarness.with({text: /Show low-level settings.*/}),
        );
        await expandButtonHarness.click();
 
@@ -119,12 +120,12 @@ describe('OsqueryForm', () => {
     // do. At the moment of writing this, it is not strictly needed, since
     // the harnesses would find the elements even if it is collapsed.
     const expandButtonHarness = await harnessLoader.getHarness(
-        MatButtonHarness.with({text: /Show file collection settings.*/}),
+        MatLegacyButtonHarness.with({text: /Show file collection settings.*/}),
     );
     await expandButtonHarness.click();
 
     const collectionListHarness =
-        await harnessLoader.getHarness(MatChipListHarness);
+        await harnessLoader.getHarness(MatLegacyChipListHarness);
 
     const inputHarness = await collectionListHarness.getInput();
     await inputHarness.setValue('column1');
@@ -146,12 +147,12 @@ describe('OsqueryForm', () => {
     // do. At the moment of writing this, it is not strictly needed, since
     // the harnesses would find the elements even if it is collapsed.
     const expandButtonHarness = await harnessLoader.getHarness(
-        MatButtonHarness.with({text: /Show file collection settings.*/}),
+        MatLegacyButtonHarness.with({text: /Show file collection settings.*/}),
     );
     await expandButtonHarness.click();
 
     const collectionListHarness =
-        await harnessLoader.getHarness(MatChipListHarness);
+        await harnessLoader.getHarness(MatLegacyChipListHarness);
 
     const inputHarness = await collectionListHarness.getInput();
     await inputHarness.setValue('column1');

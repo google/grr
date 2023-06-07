@@ -7,7 +7,9 @@
  */
 syntax = "proto2";
 
+import "grr_response_proto/anomaly.proto";
 import "grr_response_proto/jobs.proto";
+import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/output_plugin.proto";
 import "grr_response_proto/semantic.proto";
 
@@ -369,4 +371,100 @@ message ACLToken {
 
 message PendingFlowTermination {
   reserved 1;
+}
+
+message PlistValueFilterArgs {
+  optional PlistRequest request = 1;
+}
+
+message PlistRequest {
+  optional PathSpec pathspec = 1;
+  optional string context = 2;
+  optional string query = 3;
+}
+
+
+enum Match {
+  // Quantifies how many results indicate a problem.
+  NONE = 0;  // No tested items match.
+  ONE = 1;   // Only one tested item matches.
+  ANY = 2;   // One or more tested items match.
+  ALL = 3;   // All tested items match.
+  SOME = 4;  // More than one tested item matches.
+}
+
+message Check {
+  optional string check_id = 1;
+  repeated Method method = 2;
+  repeated Match match = 3;
+  optional Target target = 4;
+  optional Hint hint = 5;
+}
+
+message Method {
+  repeated Probe probe = 1;
+  repeated Match match = 2;
+  repeated Dict resource = 3;
+  optional Target target = 4;
+  optional Hint hint = 5;
+}
+
+message Probe {
+  enum Mode {
+    SERIAL = 0;
+    PARALLEL = 1;
+  }
+  enum ResultContext {
+    UNKNOWN_RESULT_CONTEXT = 0;
+    PARSER = 1;
+    ANOMALY = 2;
+    RAW = 3;
+  }
+  optional string artifact = 1;
+  repeated string parser = 2;
+  optional Mode mode = 3;
+  repeated Filter baseline = 4;
+  repeated Filter filters = 5;
+  repeated Match match = 6;
+  optional Target target = 7;
+  optional Hint hint = 8;
+  optional ResultContext result_context = 9;
+}
+
+message Filter {
+  optional string type = 1;
+  optional string expression = 2;
+  optional Hint hint = 5;
+}
+
+message CheckResult {
+  optional string check_id = 1;
+  repeated Anomaly anomaly = 2;
+}
+
+message CheckResults {
+  optional KnowledgeBase kb = 1;
+  repeated CheckResult result = 2;
+}
+
+message Hint {
+  optional string problem = 1;
+  optional string fix = 2;
+  optional string format = 3;
+  optional string summary = 4;
+  optional uint64 max_results = 5;
+}
+
+message Target {
+  repeated string cpe = 1;
+  repeated string os = 2;
+  repeated string label = 3;
+}
+
+message CheckFlowArgs {
+  repeated string only_os = 1;
+  repeated string only_cpe = 2;
+  repeated string only_label = 3;
+  repeated uint64 max_findings = 4;
+  repeated string restrict_checks = 5;
 }

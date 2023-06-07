@@ -1,169 +1,80 @@
-<div class="card">
+<div class="card no-side-paddings">
   <div class="header">Results</div>
 
-  <div class="content" *ngIf="(resultsMap$ | async) as resultMap">
-    <mat-tab-group>
-      <mat-tab *ngFor="let result of resultMap | keyvalue; trackBy: trackByIndex">
-        <ng-template mat-tab-label>
-          <mat-icon *ngIf="result.value.tabName === ERROR_TAB">warning</mat-icon>
-          {{ result.value.tabName }}
-        </ng-template>
+  <div class="content">
 
-        <app-filter-paginate [dataSource]="result.value.dataSource">
-          <mat-table [dataSource]="result.value.dataSource" [trackBy]="trackByIndex">
-            <ng-container
-              *ngFor="let colDesc of result.value.columns | keyvalue; trackBy: trackByKey"
-              [matColumnDef]="colDesc.key"
-              class="result-table"
-            >
-              <mat-header-cell *matHeaderCellDef>{{ colDesc.value.title }}</mat-header-cell>
-
-              <mat-cell
-                *matCellDef="let element"
-                [ngSwitch]="colDesc.value.component"
-                [ngClass]="{
-                  'timestamp': colDesc.value.component === CellComponent.TIMESTAMP,
-                  'number': colDesc.value.component === CellComponent.FILE_MODE
-                }"
-              >
-                <app-timestamp
-                  *ngSwitchCase="CellComponent.TIMESTAMP"
-                  [date]="element[colDesc.key]"
-                ></app-timestamp>
-
-                <expandable-hash *ngSwitchCase="CellComponent.HASH" [hashes]="element[colDesc.key]">
-                </expandable-hash>
-
-                <human-readable-size
-                  *ngSwitchCase="CellComponent.HUMAN_READABLE_SIZE"
-                  [size]="element[colDesc.key]"
-                ></human-readable-size>
-
-                <ng-container *ngSwitchCase="CellComponent.FILE_MODE">{{
-                  element[colDesc.key] | fileMode
-                }}</ng-container>
-
-                <span *ngSwitchCase="CellComponent.USERNAME">
-                  <user-image [username]="element[colDesc.key]" size="16px"></user-image>
-                  {{ element[colDesc.key] }}
-                </span>
-
-                <ng-container
-                  *ngSwitchCase="CellComponent.TRACE" >
-                  <app-copy-button
-                      [innerText]="element[colDesc.key]"
-                      class="monospace">
-                  </app-copy-button>
-                </ng-container>
-
-                <a
-                  mat-stroked-button
-                  *ngSwitchCase="CellComponent.DRAWER_LINK"
-                  color="primary"
-                  name="details-link"
-                  [drawerLink]="element[colDesc.key]"
-                >
-                  <mat-icon>menu_open</mat-icon>
-                  View details
-                </a>
-
-                <ng-container *ngSwitchDefault class="default-wrap">
-                  <app-copy-button *ngIf="element[colDesc.key]?.toString()">{{
-                    element[colDesc.key]
-                  }}</app-copy-button>
-                </ng-container>
-              </mat-cell>
-            </ng-container>
-
-            <mat-header-row *matHeaderRowDef="result.value.displayedColumns"></mat-header-row>
-            <mat-row *matRowDef="let row; columns: result.value.displayedColumns"></mat-row>
-          </mat-table>
-        </app-filter-paginate>
-      </mat-tab>
-    </mat-tab-group>
-    <div>
-      <!-- TODO: Extract load more button to a separate template. -->
-      <button
-        mat-stroked-button
-        type="button"
-        color="primary"
-        class="progress-spinner-button icon-align"
-        (click)="loadMoreResultsAndErrors()"
-        [ngSwitch]="combinedLoadMoreState$ | async"
-        [disabled]="(combinedLoadMoreState$ | async) !== LoadMoreState.HAS_MORE"
-        name="combinedLoadMoreButton"
-      >
-        <span *ngSwitchCase="LoadMoreState.LOADING">
-          <mat-spinner diameter="24"></mat-spinner>
-          Loading more
-        </span>
-
-        <span *ngSwitchCase="LoadMoreState.HAS_MORE">
-          <mat-icon>refresh</mat-icon>
-          Load more
-        </span>
-
-        <span *ngSwitchCase="LoadMoreState.ALL_LOADED"> Nothing more to load </span>
-      </button>
-      <span class="subtitle">{{ loadedDesc$ | async }}</span>
+    <div class="no-data" *ngIf="tabsConfig.length === 0">
+      <mat-spinner *ngIf="isLoading"></mat-spinner>
+      <h3 *ngIf="!isLoading" class="no-data">Nothing to show</h3>
     </div>
 
-    <div class="button-row">
-      <div
-      class="button-group"
-      *ngIf="exportMenuItems?.length as length"
-        id="downloadButton"
-    >
-      <a
-        *ngIf="exportMenuItems?.[0] as item"
-        mat-stroked-button
-        [download]="item.downloadName"
-        [href]="item.url"
-        class="export-button dark"
+    <ng-container *ngIf="tabsConfig.length > 0">
+
+      <mat-tab-group>
+        <mat-tab *ngFor="let tabConfig of tabsConfig; trackBy: trackByPayloadType">
+          <ng-template mat-tab-label>
+            <mat-icon class="error-tab-icon" *ngIf="tabConfig.tabName === ERROR_TAB">warning</mat-icon>
+            {{ tabConfig.tabName }}
+          </ng-template>
+
+          <app-hunt-results-table
+            [huntId]="huntId"
+            [totalResultsCount]="tabConfig.totalResultsCount"
+            [resultType]="tabConfig.payloadType"
+            (selectedHuntResult)="emitSelectedHuntResult($event, tabConfig.payloadType)">
+          </app-hunt-results-table>
+        </mat-tab>
+      </mat-tab-group>
+
+      <div class="button-row">
+        <div
+        class="button-group"
+        *ngIf="exportMenuItems?.length as length"
+          id="downloadButton"
       >
-        {{ item.title }}
-      </a>
-      <button
-        mat-stroked-button
-        *ngIf="length > 1"
-        [matMenuTriggerFor]="exportMenu"
-        class="dropdown-button dark"
-      >
-        <mat-icon>arrow_drop_down</mat-icon>
-      </button>
-      <mat-menu #exportMenu="matMenu">
         <a
-          *ngFor="let item of exportMenuItems | slice:1; trackBy: trackExportMenuItem"
-          mat-menu-item
-          [href]="item.url"
+          *ngIf="exportMenuItems?.[0] as item"
+          mat-stroked-button
           [download]="item.downloadName"
+          [href]="item.url"
+          class="export-button dark"
         >
           {{ item.title }}
         </a>
-      </mat-menu>
+        <button
+          mat-stroked-button
+          *ngIf="length > 1"
+          [matMenuTriggerFor]="exportMenu"
+          class="dropdown-button dark"
+        >
+          <mat-icon>arrow_drop_down</mat-icon>
+        </button>
+        <mat-menu #exportMenu="matMenu">
+          <a
+            *ngFor="let item of exportMenuItems | slice:1; trackBy: trackExportMenuItem"
+            mat-menu-item
+            [href]="item.url"
+            [download]="item.downloadName"
+          >
+            {{ item.title }}
+          </a>
+        </mat-menu>
+      </div>
+
+      <button
+      mat-stroked-button
+      type="button"
+      color="primary"
+      (click)="exportCommand()"
+      name="copyExportCommand"
+    >
+        <mat-icon aria-hidden="true" [inline]="true">{{ copied ? 'check' : 'content_copy' }}</mat-icon>
+        Copy export command
+      </button>
     </div>
 
-    <button
-    mat-stroked-button
-    type="button"
-    color="primary"
-    (click)="exportCommand()"
-    name="copyExportCommand"
-  >
-      <mat-icon aria-hidden="true" [inline]="true">{{ copied ? 'check' : 'content_copy' }}</mat-icon>
-      Copy export command
-    </button>
-  </div>
+    </ng-container>
 
   </div>
 
-  <mat-spinner
-    *ngIf="(allLoading$ | async) && !(resultsMap$ | async)"
-  ></mat-spinner>
-  <div
-    *ngIf="!(allLoading$ | async) && !(resultsMap$ | async)"
-    class="no-data"
-  >
-    Nothing to show
-  </div>
 </div>

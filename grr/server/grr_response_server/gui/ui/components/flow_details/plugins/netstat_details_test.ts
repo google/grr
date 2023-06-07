@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {MatPaginatorHarness} from '@angular/material/paginator/testing';
+import {MatLegacyPaginatorHarness} from '@angular/material/legacy-paginator/testing';
 import {MatSortHarness} from '@angular/material/sort/testing';
 import {By} from '@angular/platform-browser';
 
@@ -264,9 +264,9 @@ describe('NetstatDetails component', () => {
     fixture.detectChanges();
 
     const paginatorTop = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.top-paginator'}));
+        MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
     const paginatorBottom = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+        MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
 
     // Paginators start with default values, process0-9 are shown, but 10 isn't.
     expect(await paginatorTop.getPageSize()).toBe(10);
@@ -294,9 +294,9 @@ describe('NetstatDetails component', () => {
        fixture.detectChanges();
        const paginatorTop = await harnessLoader.getHarness(
 
-           MatPaginatorHarness.with({selector: '.top-paginator'}));
+           MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
        const paginatorBottom = await harnessLoader.getHarness(
-           MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+           MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
 
        // Change page size on top paginator should update the bottom paginator.
        await paginatorTop.setPageSize(50);
@@ -326,9 +326,9 @@ describe('NetstatDetails component', () => {
        fixture.detectChanges();
        const paginatorTop = await harnessLoader.getHarness(
 
-           MatPaginatorHarness.with({selector: '.top-paginator'}));
+           MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
        const paginatorBottom = await harnessLoader.getHarness(
-           MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+           MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
 
        // Change page size on bottom paginator should update the top paginator.
        await paginatorBottom.setPageSize(50);

@@ -4,26 +4,30 @@
 import collections
 import io
 import itertools
+import os
 from typing import Mapping
 from typing import Type
 
 from grr_response_client import actions
 from grr_response_client import client_actions
+from grr_response_client import vfs
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import osquery
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
+from grr_response_client.client_actions import vfs_file_finder
+from grr_response_client.client_actions.file_finder_utils import globbing
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import action_registry
 from grr_response_server import client_fixture
@@ -240,22 +244,124 @@ class GetFileWithFailingStatClientMock(ActionMock):
     raise RuntimeError("stat is intentionally failing")
 
 
-class FileFinderClientMock(ActionMock):
+# NB: horrible hack ahead! Do not rely on this for new tests! This hack is only
+# needed to make the overrides in `vfs_test_lib` work in the tests that rely on
+# them. These tests circumvent mock object implementation by using the real
+# client action code, and only implementing a mock VFS layer.
+# New tests should implement and/or use proper mock objects, as VFS is all but
+# obsolete.
+#
+# TODO: remove this hack once we drop `FileFinder` altogether.
+class ClientFileFinderWithVFS(ActionMock):
+  """Mock action allowing ClientFileFinder to work with VFS.
+
+  This mock action intercepts `FileFinderOS` calls and resolves them via
+  `VfsFileFinder` instead. A few patches to the client-side VFS code are
+  required for this to work, since the `VfsFileFinder` implementation employs a
+  couple of optimizations that circumvent VFS handler code when dealing with OS
+  paths. These patches are applied before handing the request to `VfsFileFinder`
+  and removed before returning the results to the caller.
+  """
 
   def __init__(self, *args, **kwargs):
-    super(FileFinderClientMock,
-          self).__init__(file_fingerprint.FingerprintFile, searching.Find,
-                         searching.Grep, standard.HashBuffer, standard.HashFile,
-                         standard.GetFileStat, standard.TransferBuffer, *args,
-                         **kwargs)
+    super().__init__(vfs_file_finder.VfsFileFinder, *args, **kwargs)
+
+  def _PatchVFS(self):
+    """Patch the client-side VFS code to remove OS path shortcuts.
+
+    This forces all path resolution to go through the VFS layer. Without that,
+    the testing setup done by `vfs_test_lib` wouldn't work for
+    `ClientFileFinder`.
+    """
+    # pylint: disable=protected-access
+
+    # `globbing._ListDir` takes a shortcut to `os.listdir` for OS paths.
+    # We can't have that, so we override it here with a version that goes
+    # through the VFS layer.
+    def ListDir(dirpath, pathtype, implementation_type):
+      pathspec = rdf_paths.PathSpec(
+          path=dirpath,
+          pathtype=pathtype,
+          implementation_type=implementation_type,
+      )
+      childpaths = []
+      try:
+        with vfs.VFSOpen(pathspec) as filedesc:
+          for path in filedesc.ListNames():
+            if pathtype != rdf_paths.PathSpec.PathType.REGISTRY or path:
+              childpaths.append(path)
+      except IOError:
+        pass
+      return childpaths
+
+    # `GlobComponent._GenerateLiteralMatch` also circumvents the VFS layer for
+    # OS paths.
+    def GenerateLiteralMatch(inner_self, dirpath):
+      if os.path.join(dirpath, inner_self._glob) == "/":
+        return ""
+      if inner_self._glob in ListDir(
+          dirpath, inner_self.opts.pathtype, inner_self.opts.implementation_type
+      ):
+        return inner_self._glob
+      return None
+
+    self._old_list_dir = globbing._ListDir
+    globbing._ListDir = ListDir
+    self._old_generate_literal_match = (
+        globbing.GlobComponent._GenerateLiteralMatch
+    )
+    globbing.GlobComponent._GenerateLiteralMatch = GenerateLiteralMatch
+    self._old_is_absolute_path = globbing._IsAbsolutePath
+    globbing._IsAbsolutePath = lambda *_a, **_kwa: True
+
+  def _UnpatchVFS(self):
+    """Revert client-side VFS patches."""
+
+    # pylint: disable=protected-access
+
+    globbing._IsAbsolutePath = self._old_is_absolute_path
+    globbing.GlobComponent._GenerateLiteralMatch = (
+        self._old_generate_literal_match
+    )
+    globbing._ListDir = self._old_list_dir
+
+  def HandleMessage(self, message):
+    if message.name == "FileFinderOS":
+      message.name = "VfsFileFinder"
+      self._PatchVFS()
+      try:
+        ret = super().HandleMessage(message)
+      finally:
+        self._UnpatchVFS()
+    else:
+      ret = super().HandleMessage(message)
+
+    return ret
+
+
+class FileFinderClientMock(ClientFileFinderWithVFS):
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(
+        file_finder.FileFinderOS,
+        file_fingerprint.FingerprintFile,
+        searching.Find,
+        searching.Grep,
+        standard.HashBuffer,
+        standard.HashFile,
+        standard.GetFileStat,
+        standard.ListDirectory,
+        standard.TransferBuffer,
+        *args,
+        **kwargs,
+    )
 
 
 class FileFinderClientMockWithTimestamps(FileFinderClientMock):
   """A mock for the FileFinder that adds timestamps to some files."""
 
   def HandleMessage(self, message):
-    responses = super(FileFinderClientMockWithTimestamps,
-                      self).HandleMessage(message)
+    responses = super().HandleMessage(message)
 
     predefined_values = {
         "auth.log": (1333333330, 1333333332, 1333333334),
@@ -314,7 +420,7 @@ class MultiGetFileClientMock(ActionMock):
                          file_fingerprint.FingerprintFile, *args, **kwargs)
 
 
-class ListDirectoryClientMock(ActionMock):
+class ListDirectoryClientMock(ClientFileFinderWithVFS):
 
   def __init__(self, *args, **kwargs):
     super(ListDirectoryClientMock,
@@ -388,7 +494,7 @@ class UpdateAgentClientMock(ActionMock):
     return bytes_buffer.getvalue()
 
 
-class InterrogatedClient(ActionMock):
+class InterrogatedClient(ClientFileFinderWithVFS):
   """A mock of client state."""
 
   LABEL1 = "GRRLabel1"
@@ -396,13 +502,19 @@ class InterrogatedClient(ActionMock):
   LABEL3 = "[broken]"
 
   def __init__(self, *args, **kwargs):
-    super(InterrogatedClient,
-          self).__init__(admin.GetLibraryVersions,
-                         file_fingerprint.FingerprintFile, searching.Find,
-                         standard.GetMemorySize, standard.HashBuffer,
-                         standard.HashFile, standard.ListDirectory,
-                         standard.GetFileStat, standard.TransferBuffer, *args,
-                         **kwargs)
+    super().__init__(
+        admin.GetLibraryVersions,
+        file_fingerprint.FingerprintFile,
+        searching.Find,
+        standard.GetMemorySize,
+        standard.HashBuffer,
+        standard.HashFile,
+        standard.ListDirectory,
+        standard.GetFileStat,
+        standard.TransferBuffer,
+        *args,
+        **kwargs,
+    )
 
   def InitializeClient(self,
                        system="Linux",

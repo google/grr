@@ -24,7 +24,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
                      "test_artifact.json"))
 
   def testArtifactUpload(self):
-    self.Open("/#main=ArtifactManagerView")
+    self.Open("/legacy#main=ArtifactManagerView")
 
     self.WaitUntil(self.IsTextPresent, "Artifact Details")
 
@@ -47,7 +47,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     # Load the artifact directly from the file.
     artifact_registry.REGISTRY.AddFileSource(self.json_file)
 
-    self.Open("/#main=ArtifactManagerView")
+    self.Open("/legacy#main=ArtifactManagerView")
 
     self.WaitUntil(self.IsTextPresent, "Artifact Details")
 
@@ -73,7 +73,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     self.RequestAndGrantClientApproval(client_id)
 
     # Test that we have no TestDrivers.
-    self.Open("/#/clients/%s/launch-flow" % client_id)
+    self.Open("/legacy#/clients/%s/launch-flow" % client_id)
     self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
     self.WaitUntil(self.IsTextPresent, "Artifact list")
@@ -100,7 +100,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     with io.open(self.json_file, mode="r", encoding="utf-8") as fd:
       artifact.UploadArtifactYamlFile(fd.read())
 
-    self.Open("/#main=ArtifactManagerView")
+    self.Open("/legacy#main=ArtifactManagerView")
 
     # Check that test artifact is displayed.
     self.WaitUntil(self.IsTextPresent, "TestDrivers")
@@ -131,7 +131,7 @@ class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
     self.RequestAndGrantClientApproval(client_id)
 
     # Test that we have TestDrivers available.
-    self.Open("/#/clients/%s/launch-flow" % client_id)
+    self.Open("/legacy#/clients/%s/launch-flow" % client_id)
     self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
     self.WaitUntil(self.IsTextPresent, "TestDrivers")

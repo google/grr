@@ -1,0 +1,184 @@
+// Copyright 2023 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg;
+
+import "google/protobuf/any.proto";
+import "google/protobuf/duration.proto";
+import "google/protobuf/timestamp.proto";
+
+// List of all actions supported by the agent.
+enum Action {
+  UNKNOWN = 0;
+
+  // Get medatadata about the operating system and the machine.
+  GET_SYSTEM_METADATA = 1;
+  // Get metadata of the specified file.
+  GET_FILE_METADATA = 2;
+  // Get contents of the specified file.
+  GET_FILE_CONTENTS = 3;
+  // Get hash of the specified file.
+  GET_FILE_HASH = 4;
+  // List contents of a directory.
+  LIST_DIRECTORY = 5;
+  // List processes available on the system.
+  LIST_PROCESSES = 6;
+  // List connections available on the system.
+  LIST_CONNECTIONS = 7;
+  // List named pipes available on the system (Windows-only).
+  LIST_NAMED_PIPES = 8;
+  // List users available on the system.
+  LIST_USERS = 9;
+  // Get the snapshot of the entire filesystem.
+  GET_FILESYSTEM_TIMELINE = 10;
+
+  // TODO: Define more actions that should be supported.
+
+  // TODO(user): Uncomment once `reserved` is supported in enums.
+  // Reserved for user-defined actions.
+  // reserved 1024 to 2048;
+}
+
+// An action request issued by the GRR server.
+message Request {
+  // An identifier of the flow issuing the request.
+  uint64 flow_id = 1;
+  // A server-issued identifier of the request (unique within the flow).
+  uint64 request_id = 2;
+
+  // An action to invoke.
+  Action action = 3;
+  // Arguments to invoke the action with.
+  //
+  // The type of the arguments has to correspond to the type the
+  // invoked action expects.
+  google.protobuf.Any args = 4;
+
+  // A limit on number of bytes sent by the action over the network.
+  //
+  // If the limit is reached, action execution is aborted.
+  uint64 network_bytes_sent_limit = 5;
+
+  // A limit of CPU time spent on executing the action.
+  //
+  // If the limit is reached, action execution is aborted.
+  google.protobuf.Duration cpu_time_limit = 6;
+
+  // A limit of real (wall) time spent on executing the action.
+  //
+  // If the limit is reached, action execution is aborted.
+  google.protobuf.Duration real_time_limit = 7;
+
+  // Verbosity level at which the agent should send logs to the server.
+  //
+  // Note that this flag only affects logs sent to the server. On-host logging
+  // still happens according to the rules specified through the startup flags.
+  //
+  // Leaving this value unset correspnds to the "off" level, meaning that no
+  // logs are sent to the server.
+  Log.Level log_level = 8;
+}
+
+// An action response sent by the agent back to the flow.
+message Response {
+  // An identifier of the flow of the request this is a response to.
+  uint64 flow_id = 1;
+  // A server-issued identifier of the request this is a response to.
+  uint64 request_id = 2;
+  // An agent-issued unique identifier of the response.
+  uint64 response_id = 3;
+
+  oneof response {
+    // A status message, sent only as the last response.
+    Status status = 4;
+    // A result message, sent each time the action yields an result.
+    google.protobuf.Any result = 5;
+    // A log message, sent at various points of action execution.
+    Log log = 6;
+  }
+}
+
+// Summary of the action execution.
+message Status {
+  // Information about action invocation failure.
+  message Error {
+    // List of all possible error types that can occur.
+    enum Type {
+      UNSET = 0;
+      // Specified action is not known.
+      UNKNOWN_ACTION = 1;
+      // Specified action is not supported.
+      UNSUPPORTED_ACTION = 2;
+      // Action was invoked with invalid arguments.
+      INVALID_ARGS = 3;
+      // Network bytes sent treshold has been reached.
+      NETWORK_BYTES_SENT_LIMIT_EXCEEDED = 4;
+      // CPU time usage treshhold has been reached.
+      CPU_TIME_LIMIT_EXCEEDED = 5;
+      // Elapsed real (wall) time treshhold has been reached.
+      REAL_TIME_LIMIT_EXCEEDED = 6;
+      // Action-specific error occurred.
+      ACTION_FAILURE = 7;
+    }
+
+    // Type of the error.
+    Type type = 1;
+    // Additional human-friendly context about the error.
+    string message = 2;
+  }
+
+  // An error that occurred during action execution.
+  //
+  // This field is set only if the action execution failed and can be
+  // used to determine whether it actually succeeded or not.
+  Error error = 1;
+
+  // Total number of bytes sent by the action over the network.
+  uint64 network_bytes_sent = 2;
+  // Total time CPU spent on executing the action.
+  google.protobuf.Duration cpu_time = 3;
+  // Total real (wall) time elapsed until the action to finished executing.
+  google.protobuf.Duration real_time = 4;
+}
+
+// Log message that agent can send to inform of certain events.
+message Log {
+  // List of all available verbosity levels.
+  enum Level {
+    UNSET = 0;
+    ERROR = 1;
+    WARN = 2;
+    INFO = 3;
+    DEBUG = 4;
+  }
+
+  // The verbosity (or "importance") level of the log message.
+  Level level = 1;
+  // The time at which the message was logged.
+  google.protobuf.Timestamp timestamp = 2;
+  // The actual content of the logged message.
+  string message = 3;
+}
+
+// List of all sinks that the agent can send parcels to.
+enum Sink {
+  UNSET = 0;
+  // Accepts metadata about agent startup.
+  STARTUP = 1;
+  // Accepts binary blobs (e.g. fragments of files).
+  BLOB = 2;
+}
+
+// An action response-like object not directed at any particular flow.
+message Parcel {
+  // A sink to deliver the parcel to.
+  Sink sink = 1;
+  // The actual content of the parcel.
+  //
+  // The type of the payload has to correspond to the type the target
+  // sink expects.
+  google.protobuf.Any payload = 2;
+}

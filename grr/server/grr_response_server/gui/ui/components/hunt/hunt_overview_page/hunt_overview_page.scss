@@ -22,13 +22,24 @@ mat-form-field {
 .filters {
   display: flex;
   column-gap: $column-gap;
+  flex-grow: 2;
+}
+
+.top {
+  display: flex;
+  align-items: center;
+}
+
+.help a {
+  display: flex;
+  align-items: flex-end;
+  color: mat.get-color-from-palette(mat.$blue-palette, 600);
 }
 
 .header-all {
   display: flex;
-  flex-direction: column;
-  row-gap: 0.5em;
   padding: c.$container-padding $left-right-padding;
+  column-gap: $column-gap;
 
   .mat-card-title {
     margin-bottom: 0;
@@ -38,23 +49,18 @@ mat-form-field {
     white-space: nowrap;
   }
 
-  * {
-    white-space: nowrap;
-  }
-
-  .mat-progress-bar {
+  .mat-mdc-progress-bar {
     width: 160px;
-    height: 10px;
     border-radius: 8px;
   }
 
-  .top-row{
+  .top-row {
     display: flex;
     align-items: center;
     column-gap: $column-gap;
   }
 
-  .bottom-row{
+  .bottom-row {
     display: flex;
     justify-content: space-between;
 
@@ -62,6 +68,24 @@ mat-form-field {
       display: flex;
       flex-direction: column;
       row-gap: 0.5em;
+    }
+  }
+
+  .left-of-menu {
+    display: flex;
+    flex-direction: column;
+    flex-grow: 1;
+    row-gap: 0.5em;
+  }
+
+  .menu-button {
+    background-color: none;
+    .menu-icon {
+      opacity: 0.2;
+      font-size: 24px;
+      position: relative;
+      left: -5.5px;
+      vertical-align: middle;
     }
   }
 }

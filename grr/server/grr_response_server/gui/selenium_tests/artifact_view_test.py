@@ -47,7 +47,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
   def testArtifactRendering(self):
     self._LoadSystemArtifacts()
 
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Type("client_query", self.client_id)
     self.Click("client_query_submit")
@@ -93,7 +93,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
   def testSystemArtifactsAreNotMarkedInStartFlowForm(self):
     self._LoadSystemArtifacts()
 
-    self.Open("/#/clients/%s/launch-flow" % self.client_id)
+    self.Open("/legacy#/clients/%s/launch-flow" % self.client_id)
     self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 
@@ -105,7 +105,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
   def testCustomArtifactsAreMarkedInStartFlowForm(self):
     self._UploadCustomArtifacts()
 
-    self.Open("/#/clients/%s/launch-flow" % self.client_id)
+    self.Open("/legacy#/clients/%s/launch-flow" % self.client_id)
     self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 
@@ -116,7 +116,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
   def testSystemArtifactsAreNotMarkedInFlowArguments(self):
     self._UploadCustomArtifacts()
 
-    self.Open("/#/clients/%s/launch-flow" % self.client_id)
+    self.Open("/legacy#/clients/%s/launch-flow" % self.client_id)
     self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 
@@ -132,7 +132,7 @@ class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
   def testCustomArtifactsAreMarkedInFlowArguments(self):
     self._UploadCustomArtifacts()
 
-    self.Open("/#/clients/%s/launch-flow" % self.client_id)
+    self.Open("/legacy#/clients/%s/launch-flow" % self.client_id)
     self.Click("css=#_Collectors a")
     self.Click("link=ArtifactCollectorFlow")
 

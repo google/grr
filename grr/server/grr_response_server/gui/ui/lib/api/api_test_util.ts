@@ -20,9 +20,9 @@ export function createStatEntry(index: number): StatEntry {
     stDev: (16777220 + index).toString(),
     stNlink: (1 + index).toString(),
     stSize: `${index + 1}42`,
-    stAtime: `${index + 1}40000`,
-    stMtime: `${index + 1}400000`,
-    stCtime: `${index + 1}4000000`,
-    stBtime: `${index + 1}40000000`,
+    stAtime: `16801${index + 1}0`,
+    stMtime: `16801${index + 1}1`,
+    stCtime: `16801${index + 1}2`,
+    stBtime: `16801${index + 1}3`,
   });
 }

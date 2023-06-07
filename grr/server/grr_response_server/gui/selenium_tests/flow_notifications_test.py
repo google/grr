@@ -25,7 +25,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
     self.action_mock = action_mocks.FileFinderClientMock()
 
   def testNotificationPointingToFlowIsShownOnFlowCompletion(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
@@ -47,8 +47,10 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
 
     # Check that clicking on a notification changes the location and shows
     # the flow page.
-    self.WaitUntilEqual("/#/clients/%s/flows/%s" % (self.client_id, session_id),
-                        self.GetCurrentUrlPath)
+    self.WaitUntilEqual(
+        "/legacy#/clients/%s/flows/%s" % (self.client_id, session_id),
+        self.GetCurrentUrlPath,
+    )
     self.WaitUntil(self.IsTextPresent, session_id)
 
   def testShowsNotificationIfArchiveStreamingFailsInProgress(self):
@@ -69,7 +71,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
 
     with mock.patch.object(archive_generator.CollectionArchiveGenerator,
                            "Generate", RaisingStub):
-      self.Open("/#/clients/%s" % self.client_id)
+      self.Open("/legacy#/clients/%s" % self.client_id)
 
       self.Click("css=a[grrtarget='client.flows']")
       self.Click("css=td:contains('GetFile')")
@@ -94,7 +96,7 @@ class TestFlowNotifications(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
 
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('GetFile')")

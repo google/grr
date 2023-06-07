@@ -21,9 +21,11 @@ from grr_response_server.databases import mysql_utils
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 
-flags.DEFINE_string(
-    "slow_query_log", "",
-    "Filename. If given, generates a log of all queries not using an index.")
+_SLOW_QUERY_LOG = flags.DEFINE_string(
+    "slow_query_log",
+    "",
+    "Filename. If given, generates a log of all queries not using an index.",
+)
 
 
 def _GetEnvironOrSkip(key):

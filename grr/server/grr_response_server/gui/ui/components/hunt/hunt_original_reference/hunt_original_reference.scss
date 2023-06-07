@@ -1,0 +1,5 @@
+@use '../../../material-theme' as c;
+
+:host {
+  margin-bottom: c.$card-margin;
+}

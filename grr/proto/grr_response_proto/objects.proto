@@ -5,6 +5,7 @@ import "grr_response_proto/knowledge_base.proto";
 import "grr_response_proto/semantic.proto";
 import "grr_response_proto/sysinfo.proto";
 import "grr_response_proto/user.proto";
+import "grr_response_proto/rrg/startup.proto";
 
 package grr;
 
@@ -120,6 +121,13 @@ message ClientMetadata {
                  "this client.",
   }];
   optional FleetspeakValidationInfo last_fleetspeak_validation_info = 10;
+
+  // Whether the client supports the RRG protocol.
+  //
+  // In reality, this field indicates whether the client has the RRG agent
+  // installed and running. This makes it possible to route certain action
+  // requests to the new agent.
+  optional bool rrg_support = 11;
 }
 
 message ClientFullInfo {
@@ -127,6 +135,12 @@ message ClientFullInfo {
   optional ClientSnapshot last_snapshot = 2;
   optional StartupInfo last_startup_info = 3;
   repeated ClientLabel labels = 4;
+
+  // A RRG startup information.
+  //
+  // This field is set only for RRG-supported clients when reading the latest
+  // startup record from the database.
+  optional rrg.startup.Startup last_rrg_startup = 5;
 }
 
 // Next field id: 7

@@ -9,6 +9,8 @@ from typing import Text
 from absl import app
 from absl.testing import absltest
 
+from google.protobuf import any_pb2
+from google.protobuf import wrappers_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import type_info
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -1101,6 +1103,19 @@ class NoDynamicTypeLookupTest(absltest.TestCase):
 
 class AnyValueTest(absltest.TestCase):
 
+  def testFromProto2(self):
+    string = wrappers_pb2.StringValue(value="Lorem ipsum.")
+
+    string_proto2_any = any_pb2.Any()
+    string_proto2_any.Pack(string)
+
+    string_rdf_any = rdf_structs.AnyValue.FromProto2(string_proto2_any)
+
+    unpacked_string = wrappers_pb2.StringValue()
+    unpacked_string.ParseFromString(string_rdf_any.value)
+
+    self.assertEqual(unpacked_string, string)
+
   def testPack(self):
     user = rdf_client.User()
     user.username = "foo"
@@ -1129,6 +1144,26 @@ class AnyValueTest(absltest.TestCase):
 
     unpacked = proto.Unpack(rdf_client.User)
     self.assertEqual(unpacked.username, "foo")
+
+  def testPackProto2(self):
+    string = wrappers_pb2.StringValue(value="Lorem ipsum.")
+
+    packed_string = rdf_structs.AnyValue.PackProto2(string)
+    self.assertIn("StringValue", packed_string.type_url)
+
+    unpacked_string = wrappers_pb2.StringValue()
+    unpacked_string.ParseFromString(packed_string.value)
+
+    self.assertEqual(unpacked_string, string)
+
+  def testPackProto2RDFValue(self):
+    user = rdf_client.User()
+    user.username = "foo"
+
+    packed_user = rdf_structs.AnyValue.PackProto2(user.AsPrimitiveProto())
+
+    unpacked_user = packed_user.Unpack(rdf_client.User)
+    self.assertEqual(unpacked_user, user)
 
 
 class VarintTest(absltest.TestCase):

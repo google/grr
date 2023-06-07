@@ -1,9 +1,9 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
-import {MatCardModule} from '@angular/material/card';
 import {MatIconModule} from '@angular/material/icon';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyCardModule} from '@angular/material/legacy-card';
+import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
 import {MatSidenavModule} from '@angular/material/sidenav';
 
 import {ClientDetailsModule} from '../client_details/module';
@@ -18,8 +18,8 @@ import {ApprovalRoutingModule} from './routing';
 
 @NgModule({
   imports: [
-    CommonModule, MatButtonModule, MatCardModule, MatIconModule,
-    MatProgressSpinnerModule, MatSidenavModule,
+    CommonModule, MatLegacyButtonModule, MatLegacyCardModule, MatIconModule,
+    MatLegacyProgressSpinnerModule, MatSidenavModule,
 
     ApprovalRoutingModule, ClientDetailsModule, ClientOverviewModule,
     DrawerLinkModule, ScheduledFlowListModule, UserImageModule,

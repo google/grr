@@ -8,6 +8,11 @@
         color="primary"
         (click)="modifyAndContinue()"
         id="modifyAndContinue"
-        aria-label="Save changes">
-  Continue collection
+        aria-label="Save changes and continue">
+  <ng-container *ngIf="(hunt$ | async)?.state === HuntState.NOT_STARTED">
+    Start collection
+  </ng-container>
+  <ng-container *ngIf="(hunt$ | async)?.state === HuntState.REACHED_CLIENT_LIMIT">
+    Continue collection
+  </ng-container>
 </button>

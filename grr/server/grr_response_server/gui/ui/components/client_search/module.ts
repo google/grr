@@ -1,14 +1,14 @@
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {MatAutocompleteModule} from '@angular/material/autocomplete';
-import {MatButtonModule} from '@angular/material/button';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatInputModule} from '@angular/material/input';
+import {MatLegacyAutocompleteModule} from '@angular/material/legacy-autocomplete';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
+import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
+import {MatLegacyInputModule} from '@angular/material/legacy-input';
+import {MatLegacyTableModule} from '@angular/material/legacy-table';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {MatSidenavModule} from '@angular/material/sidenav';
-import {MatTableModule} from '@angular/material/table';
-import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -33,15 +33,15 @@ import {SearchBox} from './search_box';
     ReactiveFormsModule,
 
     // Angular Material modules.
-    MatAutocompleteModule,
-    MatButtonModule,
-    MatChipsModule,
-    MatFormFieldModule,
+    MatLegacyAutocompleteModule,
+    MatLegacyButtonModule,
+    MatLegacyChipsModule,
+    MatLegacyFormFieldModule,
     MatIconModule,
-    MatInputModule,
+    MatLegacyInputModule,
     MatSidenavModule,
-    MatTableModule,
-    MatTooltipModule,
+    MatLegacyTableModule,
+    MatLegacyTooltipModule,
 
     // GRR modules.
     ClientSearchRoutingModule,

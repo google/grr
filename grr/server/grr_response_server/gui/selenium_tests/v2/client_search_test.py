@@ -17,6 +17,14 @@ class ClientSearchTest(gui_test_lib.GRRSeleniumTest):
     for cid in client_ids:
       self.WaitUntil(self.IsElementPresent, f"css=tr:contains('{cid}')")
 
+  def testBackButtonNavigatesToOldUi(self):
+    self.Open("/v2/clients?q=client_id")
+
+    self.WaitUntil(self.IsElementPresent, "css=a#fallback-link")
+    self.Click("css=a#fallback-link")
+
+    self.WaitUntilEqual("/legacy#/search?q=client_id", self.GetCurrentUrlPath)
+
 
 if __name__ == "__main__":
   app.run(test_lib.main)

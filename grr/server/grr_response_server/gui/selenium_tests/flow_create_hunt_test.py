@@ -39,7 +39,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
         output_plugins=[email_descriptor])
 
     # Navigate to client and select newly created flow.
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('ListProcesses')")
 
@@ -99,7 +99,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
         client_id=self.client_id,
         output_plugins=[email_descriptor])
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('ListProcesses')")
 
@@ -129,8 +129,10 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
         approver=self.test_username)
 
     # Open the approval page.
-    self.Open("/#/users/%s/approvals/hunt/%s/%s" %
-              (self.test_username, h.hunt_id, approval_id))
+    self.Open(
+        "/legacy#/users/%s/approvals/hunt/%s/%s"
+        % (self.test_username, h.hunt_id, approval_id)
+    )
     self.WaitUntil(self.IsElementPresent,
                    "css=div.panel-body:contains('This hunt was created from')")
 
@@ -139,7 +141,7 @@ class TestFlowCreateHunt(gui_test_lib.GRRSeleniumTest,
         gui_test_lib.RecursiveTestFlow, client_id=self.client_id)
 
     # Open client and find the flow.
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
 
     # No flow selected, so the button should be disabled.

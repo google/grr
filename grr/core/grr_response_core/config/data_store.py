@@ -38,6 +38,18 @@ config_lib.DEFINE_integer(
     help="The maximum number of open connections to keep available in the pool."
 )
 
+config_lib.DEFINE_integer(
+    "Mysql.flow_processing_threads_min",
+    default=1,
+    help="The minimum number of flow-processing worker threads.",
+)
+
+config_lib.DEFINE_integer(
+    "Mysql.flow_processing_threads_max",
+    default=20,
+    help="The maximum number of flow-processing worker threads.",
+)
+
 config_lib.DEFINE_string(
     "Mysql.migrations_dir", "%(grr_response_server/databases/mysql_migrations@"
     "grr-response-server|resource)", "Folder with MySQL migrations files.")

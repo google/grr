@@ -1,11 +1,13 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
+import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
 import {ExecuteResponse, PathSpecPathType, StatEntry, StatEntryRegistryType} from '../../../lib/api/api_interfaces';
 import {FlowState} from '../../../lib/models/flow';
 import {newFlow, newFlowResult} from '../../../lib/models/model_test_util';
+import {MetricsService} from '../../../lib/service/metrics_service/metrics_service';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
 import {initTestEnvironment} from '../../../testing';
@@ -30,7 +32,7 @@ describe('app-artifact-collector-flow-details component', () => {
             PluginsModule,
             RouterTestingModule,
           ],
-          providers: [],
+          providers: [MetricsService],
           teardown: {destroyAfterEach: false}
         })
         // Override ALL providers to mock the GlobalStore that is provided by
@@ -175,7 +177,11 @@ describe('app-artifact-collector-flow-details component', () => {
   it('displays fallback link for unknown results', async () => {
     const fixture = TestBed.createComponent(ArtifactCollectorFlowDetails);
 
+    const flowId = 'ABCD';
+    const clientId = 'C.1234';
     fixture.componentInstance.flow = newFlow({
+      flowId,
+      clientId,
       state: FlowState.FINISHED,
       args: {artifactList: ['foobar']},
       progress: {artifacts: [{name: 'foobar', numResults: 1}]},
@@ -192,5 +198,8 @@ describe('app-artifact-collector-flow-details component', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('old UI');
+    expect(fixture.debugElement.query(By.css('a[name=fallback]'))
+               .nativeElement.href)
+        .toContain(`/clients/${clientId}/flows/${flowId}/results`);
   });
 });

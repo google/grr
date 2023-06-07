@@ -1,8 +1,37 @@
 <ng-container *ngIf="explanation$ | async as explanation; else fallback">
-  <span *ngFor="let component of explanation" class="monospace">{{
-    component.examples ? component.examples[0] : component.globExpression
-  }}</span>
+  <ng-container *ngFor="let component of explanation">
+    <ng-container [ngSwitch]="explanationMode">
+      <ng-container *ngSwitchCase="GlobExplanationMode.ONE_EXAMPLE_VISIBLE"
+                    [ngTemplateOutlet]="exampleVisible"
+                    [ngTemplateOutletContext]="{substitutionHappening: component.examples ? true : false, component: component}">
+      </ng-container>
+
+      <ng-container *ngSwitchCase="GlobExplanationMode.ONLY_GLOB_VISIBLE"
+                    [ngTemplateOutlet]="examplesOnDemand"
+                    [ngTemplateOutletContext]="{hasExamples: component.examples ? true : false, component: component}">
+      </ng-container>
+    </ng-container>
+    </ng-container>
 </ng-container>
+
 <ng-template #fallback>
   <span class="monospace">{{this.globExpression}}</span>
+</ng-template>
+
+<ng-template #exampleVisible let-substitutionHappening="substitutionHappening" let-component="component">
+  <span [matTooltip]="'This is an example for original glob: ' + component.globExpression"
+    [matTooltipDisabled]="!substitutionHappening"
+    class="monospace"
+    [ngClass]="{'highlight': substitutionHappening}">{{
+      substitutionHappening ? component.examples[0] : component.globExpression
+  }}</span>
+</ng-template>
+
+<ng-template #examplesOnDemand let-hasExamples="hasExamples" let-component="component">
+  <span [matTooltip]="'Examples: ' + component.examples"
+    [matTooltipDisabled]="!hasExamples"
+    class="monospace"
+    [ngClass]="{'highlight': hasExamples}">{{
+      component.globExpression
+  }}</span>
 </ng-template>

@@ -12,13 +12,17 @@ import win32event
 import win32service
 import win32serviceutil
 
-flags.DEFINE_string(
-    "command", "",
-    "Command passed directly to win32serviceutil.HandleCommandLine.")
+_COMMAND = flags.DEFINE_string(
+    "command",
+    "",
+    "Command passed directly to win32serviceutil.HandleCommandLine.",
+)
 
-flags.DEFINE_string("logfile", "", "File to log start/stop events to.")
+_LOGFILE = flags.DEFINE_string(
+    "logfile", "", "File to log start/stop events to."
+)
 
-flags.DEFINE_string("service_name", "", "Windows service name,")
+_SERVICE_NAME = flags.DEFINE_string("service_name", "", "Windows service name,")
 
 
 class FakeFleetspeakSvc(win32serviceutil.ServiceFramework):
@@ -32,15 +36,15 @@ class FakeFleetspeakSvc(win32serviceutil.ServiceFramework):
 
   @classmethod
   def ParseFlags(cls):
-    cls._svc_name_ = flags.FLAGS.service_name
-    cls._svc_display_name_ = flags.FLAGS.service_name
+    cls._svc_name_ = _SERVICE_NAME.value
+    cls._svc_display_name_ = _SERVICE_NAME.value
     cls._exe_args_ = subprocess.list2cmdline([
         "-m",
         "grr_response_client_builder.fake_fleetspeak_windows_service",
         "--logfile",
-        flags.FLAGS.logfile,
+        _LOGFILE.value,
         "--service_name",
-        flags.FLAGS.service_name,
+        _SERVICE_NAME.value,
     ])
 
   def __init__(self, args):
@@ -58,21 +62,22 @@ class FakeFleetspeakSvc(win32serviceutil.ServiceFramework):
     self.main()
 
   def main(self):
-    with open(flags.FLAGS.logfile, "a") as f:
+    with open(_LOGFILE.value, "a") as f:
       print("start", file=f)
     rc = None
     while rc != win32event.WAIT_OBJECT_0:
       rc = win32event.WaitForSingleObject(self._h_wait_stop, (20 * 1000))
-    with open(flags.FLAGS.logfile, "a") as f:
+    with open(_LOGFILE.value, "a") as f:
       print("stop", file=f)
 
 
 def main(argv):
   del argv  # Unused
   FakeFleetspeakSvc.ParseFlags()
-  if flags.FLAGS.command:
+  if _COMMAND.value:
     win32serviceutil.HandleCommandLine(
-        FakeFleetspeakSvc, argv=[sys.argv[0], flags.FLAGS.command])
+        FakeFleetspeakSvc, argv=[sys.argv[0], _COMMAND.value]
+    )
   else:
     servicemanager.Initialize()
     servicemanager.PrepareToHostSingle(FakeFleetspeakSvc)

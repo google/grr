@@ -45,12 +45,12 @@ export class ClientSearch implements OnDestroy {
       );
 
   /**
-   * Table rows for the MatTable component.
+   * Table rows for the MatLegacyTable component.
    */
   protected readonly rows$ = this.clientSearchLocalStore.clients$.pipe(
       map(clients => clients?.map(toRow) ?? []));
   /**
-   * Table columns for the MatTable component.
+   * Table columns for the MatLegacyTable component.
    */
   protected readonly columns =
       ['clientId', 'fqdn', 'users', 'labels', 'online', 'lastSeenAt'] as const;

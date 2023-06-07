@@ -1,6 +1,6 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, OnDestroy, Output, ViewChild} from '@angular/core';
 import {FormControl} from '@angular/forms';
-import {MatAutocompleteTrigger} from '@angular/material/autocomplete';
+import {MatLegacyAutocompleteTrigger} from '@angular/material/legacy-autocomplete';
 import {combineLatest, Subject} from 'rxjs';
 import {debounceTime, distinctUntilChanged, filter, map, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
@@ -70,7 +70,8 @@ export class SearchBox implements AfterViewInit, OnDestroy {
               map(([query, allLabels]) => this.filterLabels(query, allLabels)),
           );
 
-  @ViewChild(MatAutocompleteTrigger) autocomplete!: MatAutocompleteTrigger;
+  @ViewChild(MatLegacyAutocompleteTrigger)
+  autocomplete!: MatLegacyAutocompleteTrigger;
 
   ngAfterViewInit() {
     this.inputFormControl.setValue(this.value ?? '');

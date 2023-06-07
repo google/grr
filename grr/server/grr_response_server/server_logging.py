@@ -23,11 +23,12 @@ except ImportError:
 # Global Application Logger.
 LOGGER = None
 
-flags.DEFINE_bool(
+_VERBOSE = flags.DEFINE_bool(
     "verbose",
     default=False,
     help="Turn on verbose logging.",
-    allow_override=True)
+    allow_override=True,
+)
 
 
 class GrrApplicationLogger(object):
@@ -137,7 +138,7 @@ VERBOSE_LOG_LEVELS = {
 def SetLogLevels():
   logger = logging.getLogger()
 
-  if config.CONFIG["Logging.verbose"] or flags.FLAGS.verbose:
+  if config.CONFIG["Logging.verbose"] or _VERBOSE.value:
     logging.root.setLevel(logging.DEBUG)
     levels = VERBOSE_LOG_LEVELS
   else:
@@ -237,7 +238,9 @@ def AppLogInit():
 def ServerLoggingStartupInit():
   """Initialize the server logging configuration."""
   global LOGGER
-  if local_log:
+  # `local_log` requires `Logging.path` configuration variable to be set. If it
+  # is not, we fallback to normal logging (as specified in the config or flags).
+  if local_log and config.CONFIG["Logging.path"]:
     logging.debug("Using local LogInit from %s", local_log)
     local_log.LogInit()
     logging.debug("Using local AppLogInit from %s", local_log)
@@ -253,7 +256,7 @@ def SetTestVerbosity():
     return
 
   # Test logging. This is only to stderr, adjust the levels according to flags
-  if flags.FLAGS.verbose:
+  if _VERBOSE.value:
     logging.root.setLevel(logging.DEBUG)
   else:
     logging.root.setLevel(logging.WARN)

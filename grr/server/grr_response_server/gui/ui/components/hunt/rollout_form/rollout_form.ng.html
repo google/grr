@@ -9,14 +9,14 @@
       <mat-button-toggle
         class="run-on-option"
         [value]="RunOn.SAMPLE"
-        matTooltip="Will run on 1k matching clients."
+        [matTooltip]="'Will run on '+SAMPLE_SIZE+' matching clients.'"
         >Small client sample</mat-button-toggle
       >
       <mat-button-toggle class="run-on-option" [value]="RunOn.CUSTOM"
         >Custom</mat-button-toggle
       >
     </mat-button-toggle-group>
-    <mat-form-field appearance="outline" class="ml-2" *ngIf="controls.runOn.value === RunOn.CUSTOM">
+    <mat-form-field appearance="outline" class="ml-2 mt-1" *ngIf="controls.runOn.value === RunOn.CUSTOM">
       <mat-label>Number of clients</mat-label>
       <input
         matInput
@@ -26,6 +26,13 @@
         autocomplete="off"
       />
     </mat-form-field>
+    <mat-icon
+      [matTooltip]="clientLimitTooltip"
+      class="info-icon"
+      name="runOnHelp"
+    >
+      info_outline
+    </mat-icon>
   </div>
 </div>
 <div>
@@ -56,16 +63,16 @@
     </mat-button-toggle-group>
     <mat-form-field
       appearance="outline"
-      class="ml-2"
+      class="ml-2 mt-1"
       *ngIf="controls.rolloutSpeed.value === RolloutSpeed.CUSTOM"
     >
       <mat-label>Client rate</mat-label>
       <input matInput [formControl]="controls.clientRate" name="clientRate" type="number" autocomplete="off" />
     </mat-form-field>
     <mat-icon
-      matTooltip="The fleet collection will pause when this threshold is reached.
-          You can edit and restart the collection."
+      [matTooltip]="clientRateTooltip"
       class="info-icon"
+      name="rolloutSpeedHelp"
     >
       info_outline
     </mat-icon>

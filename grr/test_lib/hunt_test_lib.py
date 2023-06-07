@@ -46,11 +46,7 @@ class SampleHuntMock(action_mocks.ActionMock):
     self.network_bytes_sent = network_bytes_sent
 
   def GetFileStat(self, args):
-    return self.StatFile(args)
-
-  # TODO(hanuszczak): Remove this once `StatFile` is deprecated.
-  def StatFile(self, args):
-    """StatFile action mock."""
+    """`GetFileStat` action mock."""
     response = rdf_client_fs.StatEntry(
         pathspec=args.pathspec,
         st_mode=33184,
@@ -78,7 +74,7 @@ class SampleHuntMock(action_mocks.ActionMock):
     status = rdf_flows.GrrStatus(
         status=status or rdf_flows.GrrStatus.ReturnedStatus.OK)
 
-    if message.name in ["StatFile", "GetFileStat"]:
+    if message.name == "GetFileStat":
       # Create status message to report sample resource usage
       if self.user_cpu_time is None:
         status.cpu_time_used.user_cpu_time = self.responses

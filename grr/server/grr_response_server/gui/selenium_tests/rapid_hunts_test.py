@@ -22,7 +22,7 @@ class HuntsWithRapidHuntingDisabledTest(gui_test_lib.GRRSeleniumHuntTest):
     self.addCleanup(config_overrider.Stop)
 
   def testNewHuntWizardDoesNotSetClientRateOrMentionRapidHunts(self):
-    self.Open("/#/hunts")
+    self.Open("/legacy#/hunts")
 
     # Open up "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")
@@ -76,7 +76,7 @@ class HuntsWithRapidHuntingDisabledTest(gui_test_lib.GRRSeleniumHuntTest):
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/evil.txt"]))
 
-    self.Open("/#/hunts/%s" % hunt_id)
+    self.Open("/legacy#/hunts/%s" % hunt_id)
 
     self.WaitUntil(self.IsElementPresent,
                    "css=dt:contains('Client Rate') + dd:contains(0)")
@@ -96,7 +96,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
     self.addCleanup(config_overrider.Stop)
 
   def testClientRateSetTo0WhenFlowIsEligible(self):
-    self.Open("/#/hunts")
+    self.Open("/legacy#/hunts")
 
     # Open up "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")
@@ -160,7 +160,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
                    "css=grr-wizard-form:contains('What to run?')")
 
   def testRapidHuntEligibilityNoteShownForEligibleHunt(self):
-    self.Open("/#/hunts")
+    self.Open("/legacy#/hunts")
 
     # Open up "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")
@@ -181,7 +181,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
     self.assertEqual(self.GetText("css=td:contains('Client rate') + td"), "0")
 
   def testRapidHuntEligibilityNoteShownForNonEligibleHunt(self):
-    self.Open("/#/hunts")
+    self.Open("/legacy#/hunts")
 
     # Open up "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")
@@ -205,7 +205,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         str(int(config.CONFIG["Hunt.default_client_rate"])))
 
   def testRapidHuntEligibilityNoteDynamicallyChanges(self):
-    self.Open("/#/hunts")
+    self.Open("/legacy#/hunts")
 
     # Open up "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")
@@ -244,7 +244,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         self.GetText("css=td:contains('Client rate') + td"), "0")
 
   def testRapidHuntClientRateCanBeManuallyOverridden(self):
-    self.Open("/#/hunts")
+    self.Open("/legacy#/hunts")
 
     # Open up "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")
@@ -287,7 +287,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/evil.txt"]))
 
-    self.Open("/#/hunts/%s" % hunt_id)
+    self.Open("/legacy#/hunts/%s" % hunt_id)
 
     self.WaitUntil(
         self.IsElementPresent, "css=dt:contains('Client Rate') + "
@@ -306,7 +306,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
             flow_name=file_finder.FileFinder.__name__),
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/**"]))
 
-    self.Open("/#/hunts/%s" % hunt_id)
+    self.Open("/legacy#/hunts/%s" % hunt_id)
 
     self.WaitUntil(
         self.IsElementPresent, "css=dt:contains('Client Rate') + "
@@ -321,7 +321,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/foo"]),
         client_rate=42)
 
-    self.Open("/#/hunts/%s" % hunt_id)
+    self.Open("/legacy#/hunts/%s" % hunt_id)
 
     self.WaitUntil(self.IsElementPresent, "css=dt:contains('Client Rate')")
     self.WaitUntilNot(
@@ -335,7 +335,7 @@ class HuntsWithRapidHuntingEnabledTest(gui_test_lib.GRRSeleniumHuntTest):
         flow_args=rdf_file_finder.FileFinderArgs(paths=["/tmp/**"]),
         client_rate=42)
 
-    self.Open("/#/hunts/%s" % hunt_id)
+    self.Open("/legacy#/hunts/%s" % hunt_id)
 
     self.WaitUntil(self.IsElementPresent, "css=dt:contains('Client Rate')")
     self.WaitUntilNot(

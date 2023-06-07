@@ -1,6 +1,6 @@
 <div class="wrapper">
   <h1 class="header" (click)="showForm($event)">
-    Rollout Parameters
+    Rollout parameters
     <button
       mat-icon-button
       id="param-form-toggle"
@@ -16,17 +16,33 @@
     <form>
       <div class="basic-params">
         <app-rollout-form #rolloutForm></app-rollout-form>
-        <mat-form-field appearance="outline" class="mb-2">
-          <mat-label>Active for</mat-label>
-          <input
-            matInput
-            durationInput
-            [formControl]="controls.expiryTime"
-            name="activeFor"
-            autocomplete="off"
-          />
-        </mat-form-field>
+        <div class="basic-params-row">
+          <mat-form-field appearance="outline" class="mb-2 mt-1">
+            <mat-label>Active for</mat-label>
+            <input
+              matInput
+              durationInput
+              [formControl]="controls.expiryTime"
+              name="activeFor"
+              autocomplete="off"
+            />
+            <mat-hint>
+              Will expire in {{ durationFormattedNumber$ | async }} {{ durationFormattedUnit$ | async }}
+            </mat-hint>
+          </mat-form-field>
+          <mat-icon
+            matTooltip="week (w), day (d), hour (h), minute (m), second (s)"
+            class="info-icon"
+          >
+            info_outline
+          </mat-icon>
+        </div>
       </div>
+
+      <ng-container [ngTemplateOutlet]="toggleAdvanceParamsButton"
+          [ngTemplateOutletContext]="{name:'toggle-advance-params-top', class:'ml-container'}">
+      </ng-container>
+
       <div class="advanced-params" [hidden]="hideAdvancedParams">
         <h1 class="params-title">Cancel fleet collection if…</h1>
         <div class="params-row">
@@ -168,18 +184,24 @@
             </mat-icon>
           </div>
         </div>
+
+        <ng-container [ngTemplateOutlet]="toggleAdvanceParamsButton"
+          [ngTemplateOutletContext]="{name:'toggle-advance-params-bottom'}"></ng-container>
       </div>
-      <button
-        mat-flat-button
-        type="button"
-        id="toggle-advance-params"
-        class="advance-params-button"
-        (click)="toggleAdvancedParams()"
-        aria-label="View/hide advanced params"
-      >
-        <mat-icon>{{ hideAdvancedParams ? "expand_more" : "expand_less" }}</mat-icon>
-        {{ hideAdvancedParams ? "Show safety limits" : "Hide safety limits" }}
-      </button>
     </form>
   </div>
 </div>
+
+<ng-template #toggleAdvanceParamsButton let-name="name" let-class="class">
+  <button
+    mat-flat-button
+    type="button"
+    [name]="name"
+    [class]="'advance-params-button ' + class"
+    (click)="toggleAdvancedParams()"
+    aria-label="View/hide advanced params"
+  >
+    <mat-icon>{{ hideAdvancedParams ? "expand_more" : "expand_less" }}</mat-icon>
+    {{ hideAdvancedParams ? "Show safety limits" : "Hide safety limits" }}
+  </button>
+</ng-template>

@@ -456,6 +456,24 @@ export class HttpApiService {
         .pipe(tap(this.showErrors));
   }
 
+  /** Polls for Hunt Results count by type */
+  subscribeToHuntResultsCountByType(huntId: string):
+      Observable<apiInterfaces.ApiCountHuntResultsByTypeResult> {
+    return timer(0, this.POLLING_INTERVAL)
+        .pipe(
+            exhaustMap(() => this.getHuntResultsByType(huntId)),
+            tap(this.showErrors),
+        );
+  }
+
+  private getHuntResultsByType(huntId: string):
+      Observable<apiInterfaces.ApiCountHuntResultsByTypeResult> {
+    return this.http
+        .get<apiInterfaces.ApiCountHuntResultsByTypeResult>(
+            `${URL_PREFIX}/hunts/${huntId}/result-counts`)
+        .pipe(tap(this.showErrors));
+  }
+
   /** Lists results of the given hunt. */
   listResultsForHunt(params: apiInterfaces.ApiListHuntResultsArgs):
       Observable<readonly apiInterfaces.ApiHuntResult[]> {
@@ -465,6 +483,16 @@ export class HttpApiService {
     const options: {[key: string]: number|string} = {};
     if (params.count) {
       options['count'] = params.count;
+    }
+
+    if (params.withType) {
+      // TODO: Use camelCased field name once the backend converts
+      // camelCased names to their snake_case counterpart.
+      options['with_type'] = params.withType;
+    }
+
+    if (params.offset) {
+      options['offset'] = params.offset;
     }
 
     const httpParams = new HttpParams({
@@ -509,6 +537,10 @@ export class HttpApiService {
     const options: {[key: string]: number|string} = {};
     if (params.count) {
       options['count'] = params.count;
+    }
+
+    if (params.offset) {
+      options['offset'] = params.offset;
     }
 
     const httpParams = new HttpParams({
@@ -1198,6 +1230,12 @@ export class HttpApiService {
   listBinaries() {
     return this.http.get<apiInterfaces.ApiListGrrBinariesResult>(
         `${URL_PREFIX}/config/binaries`);
+  }
+
+  increaseCounterMetric(args: apiInterfaces.ApiIncrementCounterMetricArgs):
+      Observable<apiInterfaces.ApiIncrementCounterMetricResult> {
+    return this.http.post<apiInterfaces.ApiIncrementCounterMetricResult>(
+        `${URL_PREFIX}/stats/increment_counter`, args);
   }
 }
 

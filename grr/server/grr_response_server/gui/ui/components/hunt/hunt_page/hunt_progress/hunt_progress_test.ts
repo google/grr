@@ -1,7 +1,10 @@
+import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
+import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
+import {ResultAccordionHarness} from '../../../../components/flow_details/helpers/testing/result_accordion_harness';
 import {newHunt} from '../../../../lib/models/model_test_util';
 import {HuntPageGlobalStore} from '../../../../store/hunt_page_global_store';
 import {HuntPageGlobalStoreMock, mockHuntPageGlobalStore} from '../../../../store/hunt_page_global_store_test_util';
@@ -38,6 +41,27 @@ describe('HuntProgress Component', () => {
     fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Total progress');
     expect(fixture.nativeElement.textContent).toContain('~ unknown clients');
+  });
+
+  it('displays arguments', async () => {
+    const fixture = TestBed.createComponent(HuntProgress);
+    huntPageGlobalStore.mockedObservables.selectedHunt$.next(newHunt({}));
+    fixture.detectChanges();
+
+    const accordion = fixture.debugElement.query(By.css('result-accordion'));
+    expect(accordion.nativeElement.textContent).toContain('arguments');
+
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const resultAccordionHarness =
+        await harnessLoader.getHarness(ResultAccordionHarness);
+    await resultAccordionHarness.toggle();
+    fixture.detectChanges();
+
+    expect(fixture.debugElement.query(By.css('hunt-original-reference')))
+        .toBeTruthy();
+    expect(fixture.debugElement.query(By.css('hunt-flow-arguments')))
+        .toBeTruthy();
+    expect(fixture.debugElement.query(By.css('hunt-arguments'))).toBeTruthy();
   });
 
   it('displays summaries based on store', () => {
@@ -156,7 +180,10 @@ describe('HuntProgress Component', () => {
            allClientsCount: BigInt(0),
          }));
 
-         huntPageGlobalStore.mockedObservables.huntProgress$.next(undefined);
+         huntPageGlobalStore.mockedObservables.huntProgress$.next({
+           startPoints: [],
+           completePoints: [],
+         });
 
          fixture.detectChanges();
 

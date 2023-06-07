@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, ViewChild} from '@angular/core';
-import {MatSelectionList} from '@angular/material/list';
+import {MatLegacySelectionList} from '@angular/material/legacy-list';
 import {ActivatedRoute} from '@angular/router';
 import {combineLatest} from 'rxjs';
 import {filter, map, startWith, take, takeUntil} from 'rxjs/operators';
@@ -36,7 +36,7 @@ export class ClientDetails implements OnDestroy {
   currentNumInterfacesShown = this.INITIAL_NUM_INTERFACES_SHOWN;
   currentNumVolumesShown = this.INITIAL_NUM_VOLUMES_SHOWN;
 
-  @ViewChild('timeline') timeline!: MatSelectionList;
+  @ViewChild('timeline') timeline!: MatLegacySelectionList;
 
   readonly canStartFlow$ = this.clientPageGlobalStore.hasAccess$;
 

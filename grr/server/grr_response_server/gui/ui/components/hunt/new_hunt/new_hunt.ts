@@ -1,17 +1,18 @@
-import {AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, ViewChild} from '@angular/core';
+import {ChangeDetectionStrategy, Component, ViewChild} from '@angular/core';
+import {FormControl} from '@angular/forms';
 import {ActivatedRoute, Router} from '@angular/router';
 import {BehaviorSubject, combineLatest, Observable, of} from 'rxjs';
 import {filter, map, startWith, switchMap, takeUntil, tap} from 'rxjs/operators';
 
+import {ApiFlowReference, ApiHuntReference} from '../../../lib/api/api_interfaces';
 import {FlowWithDescriptor} from '../../../lib/models/flow';
 import {getHuntTitle, Hunt} from '../../../lib/models/hunt';
 import {isNonNull, isNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
-import {HuntApprovalGlobalStore} from '../../../store/hunt_approval_global_store';
+import {HuntApprovalLocalStore} from '../../../store/hunt_approval_local_store';
 import {NewHuntLocalStore} from '../../../store/new_hunt_local_store';
 import {UserGlobalStore} from '../../../store/user_global_store';
 import {ApprovalCard, ApprovalParams} from '../../approval_card/approval_card';
-import {TitleEditor} from '../../form/title_editor/title_editor';
 
 import {ClientsForm} from './clients_form/clients_form';
 import {OutputPluginsForm} from './output_plugins_form/output_plugins_form';
@@ -24,35 +25,39 @@ import {ParamsForm} from './params_form/params_form';
   templateUrl: './new_hunt.ng.html',
   styleUrls: ['./new_hunt.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [NewHuntLocalStore],
+  providers: [NewHuntLocalStore, HuntApprovalLocalStore],
 })
-export class NewHunt implements AfterViewInit {
+export class NewHunt {
   @ViewChild('clientsForm', {static: false}) clientsForm!: ClientsForm;
   @ViewChild('paramsForm', {static: false}) paramsForm!: ParamsForm;
   @ViewChild('outputPluginsForm', {static: false})
   outputPluginsForm!: OutputPluginsForm;
   @ViewChild('approvalCard', {static: false}) approvalCard?: ApprovalCard;
-  @ViewChild('titleEditor', {static: false}) titleEditor?: TitleEditor;
 
   readonly flowWithDescriptor$: Observable<FlowWithDescriptor|null> =
       this.newHuntLocalStore.flowWithDescriptor$;
   readonly originalHunt$: Observable<Hunt|null> =
       this.newHuntLocalStore.originalHunt$;
+  protected originalHuntRef: ApiHuntReference|undefined = undefined;
+  protected originalFlowRef: ApiFlowReference|undefined = undefined;
+
   readonly huntId$ = this.newHuntLocalStore.huntId$;
   readonly huntApprovalRequired$ = this.userGlobalStore.currentUser$.pipe(
       map(user => user.huntApprovalRequired));
   protected readonly latestApproval$ =
-      this.huntApprovalGlobalStore.latestApproval$;
+      this.huntApprovalLocalStore.latestApproval$;
   protected readonly huntApprovalRoute$ =
-      this.huntApprovalGlobalStore.huntApprovalRoute$;
+      this.huntApprovalLocalStore.huntApprovalRoute$;
   private readonly approvalParams$ =
       new BehaviorSubject<ApprovalParams|null>(null);
   private readonly requestApprovalStatus$ =
-      this.huntApprovalGlobalStore.requestApprovalStatus$;
+      this.huntApprovalLocalStore.requestApprovalStatus$;
+  protected hasOriginInput: boolean|undefined = undefined;
+
+  titleControl = new FormControl('');
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  huntName = '';
   protected readonly huntsOverviewRoute = ['/hunts'];
 
   readonly hasOrigin$ =
@@ -69,20 +74,12 @@ export class NewHunt implements AfterViewInit {
 
   readonly canCreateHunt$ = this.hasOrigin$;
 
-  ngAfterViewInit() {
-    if (this.titleEditor) {
-      this.titleEditor.startEdit();
-      this.changeDetectorRef.detectChanges();
-    }
-  }
-
   constructor(
       private readonly route: ActivatedRoute,
       private readonly newHuntLocalStore: NewHuntLocalStore,
-      private readonly huntApprovalGlobalStore: HuntApprovalGlobalStore,
+      private readonly huntApprovalLocalStore: HuntApprovalLocalStore,
       private readonly router: Router,
       private readonly userGlobalStore: UserGlobalStore,
-      private readonly changeDetectorRef: ChangeDetectorRef,
   ) {
     this.route.queryParams.pipe(takeUntil(this.ngOnDestroy.triggered$))
         .subscribe(params => {
@@ -92,16 +89,19 @@ export class NewHunt implements AfterViewInit {
 
           if (clientId && flowId) {
             this.newHuntLocalStore.selectOriginalFlow(clientId, flowId);
+            this.hasOriginInput = true;
+            this.originalFlowRef = {clientId, flowId};
             return;
           }
 
           if (huntId) {
             this.newHuntLocalStore.selectOriginalHunt(huntId);
+            this.hasOriginInput = true;
+            this.originalHuntRef = {huntId};
             return;
           }
 
-          throw new Error(
-              'Must provide either a base Hunt or Test Flow, but nothing was provided.');
+          this.hasOriginInput = false;
         });
 
     combineLatest([this.approvalParams$, this.huntId$])
@@ -112,7 +112,7 @@ export class NewHunt implements AfterViewInit {
                     isNonNull(approvalParams) && isNonNull(huntId)))
         .subscribe(
             ([approvalParams, huntId]) => {
-              this.huntApprovalGlobalStore.requestHuntApproval({
+              this.huntApprovalLocalStore.requestHuntApproval({
                 huntId: huntId!,
                 approvers: approvalParams!.approvers,
                 reason: approvalParams!.reason,
@@ -147,7 +147,7 @@ export class NewHunt implements AfterViewInit {
                 return;
               }
 
-              this.titleEditor?.setText(getHuntTitle(v) + ' (copy)');
+              this.titleControl.setValue(getHuntTitle(v) + ' (copy)');
 
               if (v.clientRuleSet) {
                 this.clientsForm.setFormState(v.clientRuleSet);
@@ -161,10 +161,17 @@ export class NewHunt implements AfterViewInit {
             }),
             )
         .subscribe();
-  }
 
-  updateTitle(title: string) {
-    this.huntName = title;
+    this.newHuntLocalStore.flowWithDescriptor$
+        .pipe(tap((fwd => {
+          if (fwd?.flow) {
+            this.originalFlowRef = {
+              clientId: fwd.flow.clientId,
+              flowId: fwd.flow.flowId
+            };
+          }
+        })))
+        .subscribe();
   }
 
   runHunt() {
@@ -172,7 +179,7 @@ export class NewHunt implements AfterViewInit {
     const rules = this.clientsForm.buildRules();
     const outputPlugins = this.outputPluginsForm.buildOutputPlugins();
     this.newHuntLocalStore.runHunt(
-        this.huntName, safetyLimits, rules, outputPlugins);
+        this.titleControl.value ?? '', safetyLimits, rules, outputPlugins);
     // approval's submitRequest() method will trigger an emits of parameters
     // needed for request approval to new_hunt component. This is handled in
     // requestHuntApproval() method in new_hunt.

@@ -83,6 +83,17 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.GetVisibleElement, "css=app-vfs-section")
 
+  def testBackButtonNavigatesToOldUi(self):
+    client_id = self.SetupClient(0)
+    self.Open(f"/v2/clients/{client_id}")
+
+    self.WaitUntil(self.IsElementPresent, "css=a#fallback-link")
+    self.Click("css=a#fallback-link")
+
+    self.WaitUntilEqual(
+        f"/legacy#/clients/{client_id}/host-info", self.GetCurrentUrlPath
+    )
+
 
 if __name__ == "__main__":
   app.run(test_lib.main)

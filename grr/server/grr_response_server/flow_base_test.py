@@ -1,12 +1,20 @@
 #!/usr/bin/env python
 from absl.testing import absltest
 
+from google.protobuf import any_pb2
+from google.protobuf import empty_pb2
+from google.protobuf import wrappers_pb2
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_core.stats import default_stats_collector
+from grr_response_core.stats import stats_collector_instance
 from grr_response_server import flow_base
+from grr_response_server import flow_responses
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import db_test_lib
+from grr_response_proto import rrg_pb2
 
 
 class FlowBaseTest(absltest.TestCase):
@@ -77,6 +85,18 @@ class FlowBaseTest(absltest.TestCase):
     flow = FlowBaseTest.Flow(flow)
     self.assertIsInstance(flow.client_info, rdf_client.ClientInformation)
     self.assertEmpty(flow.client_info.client_name)
+
+  @db_test_lib.WithDatabase
+  def testRrgSupport(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+    db.WriteClientMetadata(client_id, rrg_support=True)
+
+    flow = rdf_flow_objects.Flow()
+    flow.client_id = client_id
+    flow.flow_id = self._FLOW_ID
+
+    flow = FlowBaseTest.Flow(flow)
+    self.assertTrue(flow.rrg_support, True)
 
   @db_test_lib.WithDatabase
   def testReturnsDefaultFlowProgressForEmptyFlow(self,
@@ -190,6 +210,98 @@ class FlowBaseTest(absltest.TestCase):
                      "ClientInformation")
     self.assertEqual(result_metadata.num_results_per_type_tag[0].tag, "")
     self.assertEqual(result_metadata.num_results_per_type_tag[0].count, 1)
+
+  def testRunStateMethodStaticAnyResponse(self):
+    # TODO: Remove once the "default" instance is actually default.
+    try:
+      instance = stats_collector_instance.Get()
+      self.addCleanup(lambda: stats_collector_instance.Set(instance))
+    except stats_collector_instance.StatsNotInitializedError:
+      pass
+    stats_collector_instance.Set(
+        default_stats_collector.DefaultStatsCollector()
+    )
+
+    client_id = "C.0123456789ABCDEF"
+    flow_id = "ABCDEFABCDEF"
+
+    # A response to which `HandleFakeResponses` should put unpacked response.
+    expected_response = wrappers_pb2.StringValue(value="Lorem ipsum.")
+    handled_response = wrappers_pb2.StringValue()
+
+    # TODO: Ideally, this should be named as `FakeFlow`, but some
+    # other tests may already used this name and because of the magic of the
+    # metaclass registry we cannot reuse class names, we have to be a bit more
+    # inventive here.
+    class FakeStateMethodFlow(flow_base.FlowBase):
+
+      @flow_base.UseProto2AnyResponses
+      def FakeState(
+          self,
+          responses: flow_responses.Responses[any_pb2.Any],
+      ) -> None:
+        if not responses.success:
+          raise AssertionError("Unsuccessful responses")
+
+        if len(responses) != 1:
+          raise AssertionError("Unexpected number of responses")
+
+        handled_response.ParseFromString(list(responses)[0].value)
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+
+    flow = FakeStateMethodFlow(rdf_flow)
+
+    response = rdf_flow_objects.FlowResponse()
+    response.any_payload = rdf_structs.AnyValue.PackProto2(expected_response)
+
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    responses = [
+        response,
+        status_response,
+    ]
+    flow.RunStateMethod(FakeStateMethodFlow.FakeState.__name__, None, responses)
+
+    self.assertEqual(handled_response, expected_response)
+
+  @db_test_lib.WithDatabase
+  def testCallRRGUnsupported(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    db.WriteClientMetadata(client_id, rrg_support=False)
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+
+    flow = FlowBaseTest.Flow(rdf_flow)
+
+    with self.assertRaises(flow_base.RRGUnsupportedError):
+      flow.CallRRG(rrg_pb2.GET_SYSTEM_METADATA, empty_pb2.Empty())
+
+  @db_test_lib.WithDatabase
+  def testCallRRGSupported(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    db.WriteClientMetadata(client_id, rrg_support=True)
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+
+    flow = FlowBaseTest.Flow(rdf_flow)
+
+    # We do not make any explicit assertions on particular flow requests or RRG
+    # requests being somewhere or not as these should be considered details of
+    # the implementation of the flow runner—we just want to have reasonable code
+    # coverage and ensure that the call does not fail.
+    flow.CallRRG(rrg_pb2.GET_SYSTEM_METADATA, empty_pb2.Empty())
 
 
 if __name__ == "__main__":

@@ -1,8 +1,8 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {ControlContainer} from '@angular/forms';
-import {MatInputHarness} from '@angular/material/input/testing';
-import {MatSelectHarness} from '@angular/material/select/testing';
+import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
+import {MatLegacySelectHarness} from '@angular/material/legacy-select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -60,12 +60,12 @@ describe('RegexMatchCondition component', () => {
     fixture.detectChanges();
 
     const regexFieldHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[name="regex"]'}));
+        MatLegacyInputHarness.with({selector: '[name="regex"]'}));
     await regexFieldHarness.setValue('test');
-    const modeFieldHarness = await loader.getHarness(MatSelectHarness);
+    const modeFieldHarness = await loader.getHarness(MatLegacySelectHarness);
     await modeFieldHarness.clickOptions({text: 'All Hits'});
     const lengthFieldHarness = await loader.getHarness(
-        MatInputHarness.with({selector: '[name="length"]'}));
+        MatLegacyInputHarness.with({selector: '[name="length"]'}));
     await lengthFieldHarness.setValue('30000000');
 
     expect(control.value).toEqual({

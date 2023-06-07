@@ -3,7 +3,6 @@
 
 from grr_response_test.end_to_end_tests.tests import administrative
 from grr_response_test.end_to_end_tests.tests import artifacts
-from grr_response_test.end_to_end_tests.tests import checks
 from grr_response_test.end_to_end_tests.tests import discovery
 from grr_response_test.end_to_end_tests.tests import file_finder
 from grr_response_test.end_to_end_tests.tests import filesystem

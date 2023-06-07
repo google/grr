@@ -15,7 +15,6 @@ from absl import app
 from absl.testing import absltest
 
 from grr_response_client import actions
-from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import parser
@@ -184,16 +183,7 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     """Make sure things are initialized."""
     super().setUp()
-    # Common group of mocks used by lots of tests.
-    self.client_mock = action_mocks.ActionMock(
-        searching.Find,
-        searching.Grep,
-        standard.HashBuffer,
-        standard.HashFile,
-        standard.ListDirectory,
-        standard.GetFileStat,
-        standard.TransferBuffer,
-    )
+    self.client_mock = action_mocks.FileFinderClientMock()
 
     patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
     patcher.start()
@@ -460,8 +450,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
   def testArtifactOutput(self):
     """Check we can run command based artifacts."""
     client_id = test_lib.TEST_CLIENT_ID
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                   vfs_test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.FakeTestDataVFSOverrider():
       # Will raise if something goes wrong.
       self.RunCollectorAndGetResults(["TestFilesArtifact"],
                                      client_mock=self.client_mock,

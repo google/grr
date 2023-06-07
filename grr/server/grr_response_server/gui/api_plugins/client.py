@@ -195,6 +195,11 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     if client_info.last_startup_info.client_info:
       self.agent_info = client_info.last_startup_info.client_info
 
+    if client_info.HasField("last_rrg_startup"):
+      version = client_info.last_rrg_startup.metadata.version
+      self.rrg_version = f"{version.major}.{version.minor}.{version.patch}"
+      self.rrg_args = client_info.last_rrg_startup.args
+
     md = client_info.metadata
     if md:
       if md.first_seen:

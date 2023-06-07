@@ -59,8 +59,10 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
   def testTimelineContainsAllChangesForDirectory(self):
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
-              "&t=_fs-os-c-proc")
+    self.Open(
+        "/legacy#c=C.0000000000000001&main=VirtualFileSystemView"
+        "&t=_fs-os-c-proc"
+    )
 
     # We have to wait until the "proc" node gets highlighted in the tree,
     # as the tree expansion may take time and happen in multiple steps.
@@ -78,8 +80,10 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
   def testTimelineShowsClosestFileVersionOnFileSelection(self):
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
-              "&t=_fs-os-c-proc")
+    self.Open(
+        "/legacy#c=C.0000000000000001&main=VirtualFileSystemView"
+        "&t=_fs-os-c-proc"
+    )
 
     # We have to wait until the "proc" node gets highlighted in the tree,
     # as the tree expansion may take time and happen in multiple steps.
@@ -114,8 +118,10 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
   def testSearchInputFiltersTimeline(self):
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
-              "&t=_fs-os-c-proc")
+    self.Open(
+        "/legacy#c=C.0000000000000001&main=VirtualFileSystemView"
+        "&t=_fs-os-c-proc"
+    )
 
     # We have to wait until the "proc" node gets highlighted in the tree,
     # as the tree expansion may take time and happen in multiple steps.
@@ -143,8 +149,10 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
   def testSearchInputAllowsFilteringTimelineByActionType(self):
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
-              "&t=_fs-os-c-proc")
+    self.Open(
+        "/legacy#c=C.0000000000000001&main=VirtualFileSystemView"
+        "&t=_fs-os-c-proc"
+    )
 
     # We have to wait until the "proc" node gets highlighted in the tree,
     # as the tree expansion may take time and happen in multiple steps.
@@ -173,8 +181,10 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
 
   def testClickingOnTreeNodeRefreshesTimeline(self):
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
-              "&t=_fs-os-c-proc")
+    self.Open(
+        "/legacy#c=C.0000000000000001&main=VirtualFileSystemView"
+        "&t=_fs-os-c-proc"
+    )
 
     # We have to wait until the "proc" node gets highlighted in the tree,
     # as the tree expansion may take time and happen in multiple steps.
@@ -210,8 +220,10 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
   def testClickingOnDownloadTimelineInGrrFormatButtonInitiatesDownload(
       self, mock_method):
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
-              "&t=_fs-os-c-proc")
+    self.Open(
+        "/legacy#c=C.0000000000000001&main=VirtualFileSystemView"
+        "&t=_fs-os-c-proc"
+    )
 
     self.Click("css=button[name=timelineDropdown]:not([disabled])")
     self.Click("css=a[name=downloadTimelineGrrFormat]")
@@ -233,8 +245,10 @@ class TestTimeline(gui_test_lib.GRRSeleniumTest):
   def testClickingOnDownloadTimelineInBodyFormatButtonInitiatesDownload(
       self, mock_method):
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
-              "&t=_fs-os-c-proc")
+    self.Open(
+        "/legacy#c=C.0000000000000001&main=VirtualFileSystemView"
+        "&t=_fs-os-c-proc"
+    )
 
     self.Click("css=button[name=timelineDropdown]:not([disabled])")
     self.Click("css=a[name=downloadTimelineBodyFormat]")

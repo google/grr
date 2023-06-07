@@ -4,9 +4,11 @@
 import io
 import os
 import platform
+import stat
 from unittest import mock
 
 from absl import app
+from absl.testing import absltest
 
 from grr_response_core.lib import utils
 from grr_response_core.lib.parsers import windows_registry_parser as winreg_parser
@@ -14,11 +16,14 @@ from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import temp
 from grr_response_server import data_store
 from grr_response_server import file_store
+from grr_response_server import flow_responses
 from grr_response_server import notification
 from grr_response_server.databases import db
+from grr_response_server.databases import db_test_utils
 # TODO(user): break the dependency cycle described in filesystem.py and
 # and remove this import.
 # pylint: disable=unused-import
@@ -26,13 +31,17 @@ from grr_response_server.flows.general import collectors
 # pylint: enable=unused-import
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
+from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
+from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 
 
 class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
@@ -618,7 +627,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
         # Check for duplicate client calls. There might be duplicates that are
         # very cheap when we look for a wildcard (* or **) first and later in
         # the pattern for a group of files ({}).
-        for method in "StatFile", "Find":
+        for method in "GetFileStat", "Find":
           stat_args = client_mock.recorded_args.get(method, [])
           stat_paths = [c.pathspec.CollapsePath() for c in stat_args]
           self.assertCountEqual(stat_paths, set(stat_paths))
@@ -957,6 +966,56 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
                      rdf_objects.PathInfo.PathType.REGISTRY)
     self.assertEqual(n.reference.vfs_file.path_components,
                      ["HKEY_LOCAL_MACHINE", "SOFTWARE", "ListingTest"])
+
+
+class ListDirectoryTest(absltest.TestCase):
+
+  @db_test_lib.WithDatabase
+  def testHandleRRGGetFileMetadata(self, rel_db: db.Database):
+    client_id = db_test_utils.InitializeClient(rel_db)
+    flow_id = db_test_utils.InitializeFlow(rel_db, client_id)
+
+    rel_db.WriteClientMetadata(client_id, rrg_support=True)
+
+    args = filesystem.ListDirectoryArgs()
+    args.pathspec.path = "/foo/bar/baz"
+
+    result = rrg_get_file_metadata_pb2.Result()
+    result.path.raw_bytes = "/foo/bar/baz".encode("utf-8")
+    result.metadata.type = rrg_fs_pb2.FileMetadata.Type.DIR
+    result.metadata.size = 1337
+    result.metadata.access_time.seconds = 1001
+    result.metadata.modification_time.seconds = 1002
+    result.metadata.creation_time.seconds = 1003
+
+    result_response = rdf_flow_objects.FlowResponse()
+    result_response.any_payload = rdf_structs.AnyValue.PackProto2(result)
+
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    responses = flow_responses.Responses.FromResponsesProto2Any([
+        result_response,
+        status_response,
+    ])
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = filesystem.ListDirectory.__name__
+    rdf_flow.args = args
+
+    flow = filesystem.ListDirectory(rdf_flow)
+    flow.Start()
+    flow.HandleRRGGetFileMetadata(responses)
+
+    self.assertEqual(flow.state.stat.pathspec.path, "/foo/bar/baz")
+    self.assertEqual(flow.state.stat.st_mode, stat.S_IFDIR)
+    self.assertEqual(flow.state.stat.st_size, 1337)
+    self.assertEqual(flow.state.stat.st_atime.AsSecondsSinceEpoch(), 1001)
+    self.assertEqual(flow.state.stat.st_mtime.AsSecondsSinceEpoch(), 1002)
+    self.assertEqual(flow.state.stat.st_btime.AsSecondsSinceEpoch(), 1003)
+    self.assertEqual(flow.state.urn, f"aff4:/{client_id}/fs/os/foo/bar/baz")
 
 
 def main(argv):

@@ -2,6 +2,7 @@ import {ChangeDetectionStrategy, Component, Input, OnDestroy} from '@angular/cor
 import {BehaviorSubject} from 'rxjs';
 import {tap} from 'rxjs/operators';
 
+import {toDurationUnit} from '../../../components/form/duration_input/duration_conversion';
 import {DateTime} from '../../../lib/date_time';
 import {Hunt, HuntState} from '../../../lib/models/hunt';
 import {GrrUser} from '../../../lib/models/user';
@@ -63,7 +64,6 @@ export class HuntStatusChip implements OnDestroy {
 
   get timeUntilExpiry() {
     const hunt = this.hunt$.getValue();
-
     if (!hunt || !hunt.initStartTime || !hunt.duration) {
       return '';
     }
@@ -78,5 +78,30 @@ export class HuntStatusChip implements OnDestroy {
     }
 
     return ` –  ${expiryTime.toRelative()!.replace('in ', '')} left`;
+  }
+
+  get duration() {
+    const hunt = this.hunt$.getValue();
+    if (!hunt || !hunt.safetyLimits.expiryTime) {
+      return '';
+    }
+
+    const durationFormattedParts =
+        toDurationUnit(Number(hunt.safetyLimits.expiryTime), 'long');
+    const durationFormattedNumber = durationFormattedParts[0].toLocaleString();
+    const durationFormattedUnit = durationFormattedParts[1];
+
+    return ` (${durationFormattedNumber} ${durationFormattedUnit})`;
+  }
+
+  get limit() {
+    const hunt = this.hunt$.getValue();
+    if (!hunt || !hunt.safetyLimits.clientLimit) {
+      return '';
+    }
+
+    const limit = Number(hunt.safetyLimits.clientLimit);
+    const plural = limit === 1 ? '' : 's';
+    return `(${limit} client${plural})`;
   }
 }

@@ -33,7 +33,7 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     # Make "test" user an admin.
     self.CreateAdminUser(u"test")
 
-    self.Open("/#/stats/")
+    self.Open("/legacy#/stats/")
 
     # Go to reports.
     self.Click("css=#MostActiveUsersReportPlugin_anchor i.jstree-icon")
@@ -52,7 +52,7 @@ class TestReports(gui_test_lib.GRRSeleniumTest):
     data_store.REL_DB.WriteGRRUser("owner")
     self.AddClientLabel(client_id, "owner", "bar")
 
-    self.Open("/#/stats/")
+    self.Open("/legacy#/stats/")
 
     # Go to reports.
     self.Click("css=#MostActiveUsersReportPlugin_anchor i.jstree-icon")
@@ -108,7 +108,7 @@ class TestDateTimeInput(gui_test_lib.GRRSeleniumTest):
     self.CreateAdminUser(u"test")
 
     # Open any page that shows the datetime-form-directive.
-    self.Open("/#/stats/HuntApprovalsReportPlugin")
+    self.Open("/legacy#/stats/HuntApprovalsReportPlugin")
 
     datetime_input = self.WaitUntil(self.GetVisibleElement,
                                     "css=grr-form-datetime input")

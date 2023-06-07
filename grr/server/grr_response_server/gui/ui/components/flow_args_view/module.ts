@@ -1,10 +1,10 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {MatAutocompleteModule} from '@angular/material/autocomplete';
-import {MatButtonModule} from '@angular/material/button';
-import {MatDialogModule} from '@angular/material/dialog';
-import {MatInputModule} from '@angular/material/input';
+import {MatLegacyAutocompleteModule} from '@angular/material/legacy-autocomplete';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyDialogModule} from '@angular/material/legacy-dialog';
+import {MatLegacyInputModule} from '@angular/material/legacy-input';
 
 import {FlowArgsFormModule} from '../flow_args_form/module';
 
@@ -14,10 +14,10 @@ import {FlowArgsView} from './flow_args_view';
 @NgModule({
   imports: [
     CommonModule,
-    MatButtonModule,
-    MatDialogModule,
-    MatInputModule,
-    MatAutocompleteModule,
+    MatLegacyButtonModule,
+    MatLegacyDialogModule,
+    MatLegacyInputModule,
+    MatLegacyAutocompleteModule,
     ReactiveFormsModule,
     FlowArgsFormModule,
     FormsModule,

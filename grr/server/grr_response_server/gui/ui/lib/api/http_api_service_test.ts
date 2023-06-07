@@ -1,12 +1,12 @@
 import {HttpClientTestingModule, HttpTestingController} from '@angular/common/http/testing';
 import {fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {MatSnackBar} from '@angular/material/snack-bar';
+import {MatLegacySnackBar} from '@angular/material/legacy-snack-bar';
 import {lastValueFrom} from 'rxjs';
 
 import {ErrorSnackBar} from '../../components/helpers/error_snackbar/error_snackbar';
 import {initTestEnvironment} from '../../testing';
 
-import {ApiBrowseFilesystemResult, ApiClientApproval, ApiFlow, ApiFlowResult, ApiGetFileDetailsResult, ApiGetHuntClientCompletionStatsResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGetVfsRefreshOperationStateResult, ApiGetVfsRefreshOperationStateResultState, ApiHuntResult, ApiListClientApprovalsResult, ApiListFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListHuntResultsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiUpdateVfsFileContentResult, PathSpecPathType} from './api_interfaces';
+import {ApiBrowseFilesystemResult, ApiClientApproval, ApiCountHuntResultsByTypeResult, ApiFlow, ApiFlowResult, ApiGetFileDetailsResult, ApiGetHuntClientCompletionStatsResult, ApiGetVfsFileContentUpdateStateResult, ApiGetVfsFileContentUpdateStateResultState, ApiGetVfsRefreshOperationStateResult, ApiGetVfsRefreshOperationStateResultState, ApiHuntResult, ApiListClientApprovalsResult, ApiListFlowDescriptorsResult, ApiListFlowResultsResult, ApiListFlowsResult, ApiListHuntResultsResult, ApiListScheduledFlowsResult, ApiScheduledFlow, ApiUpdateVfsFileContentResult, PathSpecPathType} from './api_interfaces';
 import {HttpApiService, URL_PREFIX} from './http_api_service';
 import {ApiModule} from './module';
 
@@ -16,17 +16,17 @@ initTestEnvironment();
 describe('HttpApiService', () => {
   let httpApiService: HttpApiService;
   let httpMock: HttpTestingController;
-  let snackbar: Partial<MatSnackBar>;
+  let snackbar: Partial<MatLegacySnackBar>;
 
   beforeEach(() => {
-    snackbar = jasmine.createSpyObj('MatSnackBar', ['openFromComponent']);
+    snackbar = jasmine.createSpyObj('MatLegacySnackBar', ['openFromComponent']);
 
     TestBed.configureTestingModule({
       imports: [
         ApiModule,
         HttpClientTestingModule,
       ],
-      providers: [{provide: MatSnackBar, useFactory: () => snackbar}],
+      providers: [{provide: MatLegacySnackBar, useFactory: () => snackbar}],
       teardown: {destroyAfterEach: false}
     });
 
@@ -673,6 +673,262 @@ describe('HttpApiService', () => {
 
          sub.unsubscribe();
        }));
+  });
+
+  describe('subscribeToHuntResultsCountByType', () => {
+    it('polls getHuntResultsByType', fakeAsync(() => {
+         const huntId = '1234';
+         let resultsByType: ApiCountHuntResultsByTypeResult = {};
+         const sub =
+             httpApiService.subscribeToHuntResultsCountByType(huntId).subscribe(
+                 result => {
+                   resultsByType = result;
+                 });
+
+         tick();
+
+         const req1 = httpMock.expectOne({
+           method: 'GET',
+           url: `${URL_PREFIX}/hunts/${huntId}/result-counts`,
+         });
+
+         const resp1: ApiCountHuntResultsByTypeResult = {
+           items: [
+             {
+               type: 'FileFinderResult',
+               count: '10',
+             },
+           ]
+         };
+
+         req1.flush(resp1);
+
+         expect(resultsByType?.items?.length).toEqual(1);
+         expect(resultsByType).toEqual(resp1);
+
+         tick(httpApiService.POLLING_INTERVAL);
+
+         const req2 = httpMock.expectOne({
+           method: 'GET',
+           url: `${URL_PREFIX}/hunts/${huntId}/result-counts`,
+         });
+
+         const resp2: ApiCountHuntResultsByTypeResult = {
+           items: [
+             {
+               type: 'FileFinderResult',
+               count: '20',
+             },
+             {
+               type: 'User',
+               count: '5',
+             },
+           ]
+         };
+
+         req2.flush(resp2);
+
+         expect(resultsByType?.items?.length).toEqual(2);
+         expect(resultsByType).toEqual(resp2);
+
+         sub.unsubscribe();
+
+         tick(httpApiService.POLLING_INTERVAL * 2);
+         // afterEach() verifies that no further request was launched.
+       }));
+
+    it('Waits for result before re-polling', fakeAsync(() => {
+         const huntId = '1234';
+         let resultsByType: ApiCountHuntResultsByTypeResult = {};
+         const sub =
+             httpApiService.subscribeToHuntResultsCountByType(huntId).subscribe(
+                 result => {
+                   resultsByType = result;
+                 });
+
+         tick(httpApiService.POLLING_INTERVAL * 2);
+
+         const req1 = httpMock.expectOne({
+           method: 'GET',
+           url: `${URL_PREFIX}/hunts/${huntId}/result-counts`,
+         });
+
+         const resp1: ApiCountHuntResultsByTypeResult = {
+           items: [
+             {
+               type: 'FileFinderResult',
+               count: '10',
+             },
+           ]
+         };
+
+         req1.flush(resp1);
+
+         expect(resultsByType?.items?.length).toEqual(1);
+         expect(resultsByType).toEqual(resp1);
+
+         sub.unsubscribe();
+       }));
+  });
+
+  describe('listResultsForHunt', () => {
+    it('calls http service\'s GET with the huntId', () => {
+      const huntId = '1234';
+
+      httpApiService.listResultsForHunt({huntId}).subscribe();
+
+      httpMock.expectOne({
+        method: 'GET',
+        // Note: camelCase works due to the following being a GET request. It
+        // wouldn't work on a POST one due to TODO
+        url: `${URL_PREFIX}/hunts/${huntId}/results?huntId=${huntId}`,
+      });
+    });
+
+    it('calls http service\'s GET with the huntId and count', () => {
+      const huntId = '1234';
+      const count = '10';
+
+      httpApiService.listResultsForHunt({huntId, count}).subscribe();
+
+      httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/hunts/${huntId}/results?huntId=${huntId}&count=${
+            count}`,
+      });
+    });
+
+    it('calls http service\'s GET with the huntId and count', () => {
+      const huntId = '1234';
+      const count = '10';
+
+      httpApiService.listResultsForHunt({huntId, count}).subscribe();
+
+      httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/hunts/${huntId}/results?huntId=${huntId}&count=${
+            count}`,
+      });
+    });
+
+    it('calls http service\'s GET with the huntId, count and payload type',
+       () => {
+         const huntId = '1234';
+         const count = '10';
+         const payloadType = 'FileFinderResult';
+
+         httpApiService
+             .listResultsForHunt({
+               huntId,
+               count,
+               withType: payloadType,
+             })
+             .subscribe();
+
+         httpMock.expectOne({
+           method: 'GET',
+           url: `${URL_PREFIX}/hunts/${huntId}/results?huntId=${huntId}&count=${
+               count}&with_type=${payloadType}`,
+         });
+       });
+
+    it('calls http service\'s GET with the huntId, count, payload type and offset',
+       () => {
+         const huntId = '1234';
+         const count = '10';
+         const payloadType = 'FileFinderResult';
+         const offset = '5';
+
+         httpApiService
+             .listResultsForHunt({
+               huntId,
+               count,
+               withType: payloadType,
+               offset,
+             })
+             .subscribe();
+
+         httpMock.expectOne({
+           method: 'GET',
+           url: `${URL_PREFIX}/hunts/${huntId}/results?huntId=${huntId}&count=${
+               count}&with_type=${payloadType}&offset=${offset}`,
+         });
+       });
+
+    it('does not call http service\'s GET if no huntId is specified', () => {
+      const huntId = undefined;
+
+      expect(() => httpApiService.listResultsForHunt({huntId}))
+          .toThrow(new Error(
+              'Expected value to be non-nullable, but got undefined of type undefined.'));
+    });
+  });
+
+  describe('listErrorsForHunt', () => {
+    it('calls http service\'s GET with the huntId', () => {
+      const huntId = '1234';
+
+      httpApiService.listErrorsForHunt({huntId}).subscribe();
+
+      httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/hunts/${huntId}/errors?huntId=${huntId}`,
+      });
+    });
+
+    it('calls http service\'s GET with the huntId and count', () => {
+      const huntId = '1234';
+      const count = '10';
+
+      httpApiService.listErrorsForHunt({huntId, count}).subscribe();
+
+      httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/hunts/${huntId}/errors?huntId=${huntId}&count=${
+            count}`,
+      });
+    });
+
+    it('calls http service\'s GET with the huntId and count', () => {
+      const huntId = '1234';
+      const count = '10';
+
+      httpApiService.listErrorsForHunt({huntId, count}).subscribe();
+
+      httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/hunts/${huntId}/errors?huntId=${huntId}&count=${
+            count}`,
+      });
+    });
+
+    it('calls http service\'s GET with the huntId, count and offset', () => {
+      const huntId = '1234';
+      const count = '10';
+      const offset = '5';
+
+      httpApiService
+          .listErrorsForHunt({
+            huntId,
+            count,
+            offset,
+          })
+          .subscribe();
+
+      httpMock.expectOne({
+        method: 'GET',
+        url: `${URL_PREFIX}/hunts/${huntId}/errors?huntId=${huntId}&count=${
+            count}&offset=${offset}`,
+      });
+    });
+
+    it('does not call http service\'s GET if no huntId is specified', () => {
+      const huntId = undefined;
+
+      expect(() => httpApiService.listErrorsForHunt({huntId}))
+          .toThrow(new Error(
+              'Expected value to be non-nullable, but got undefined of type undefined.'));
+    });
   });
 
   afterEach(() => {

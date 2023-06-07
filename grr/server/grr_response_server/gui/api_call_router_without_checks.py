@@ -401,6 +401,13 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouterStub):
   def GetReport(self, args, context=None):
     return api_stats.ApiGetReportHandler()
 
+  def IncrementCounterMetric(
+      self,
+      args: api_stats.ApiIncrementCounterMetricArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_stats.ApiIncrementCounterMetricHandler:
+    return api_stats.ApiIncrementCounterMetricHandler()
+
   # Approvals methods.
   # =================
   #

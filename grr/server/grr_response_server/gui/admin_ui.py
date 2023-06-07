@@ -19,17 +19,18 @@ from grr_response_server import server_plugins
 from grr_response_server import server_startup
 from grr_response_server.gui import wsgiapp
 
-flags.DEFINE_bool(
+_VERSION = flags.DEFINE_bool(
     "version",
     default=False,
     allow_override=True,
-    help="Print the GRR admin UI version number and exit immediately.")
+    help="Print the GRR admin UI version number and exit immediately.",
+)
 
 
 def main(_):
   """Run the main test harness."""
 
-  if flags.FLAGS.version:
+  if _VERSION.value:
     print("GRR Admin UI {}".format(config_server.VERSION["packageversion"]))
     return
 

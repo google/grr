@@ -2,7 +2,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ChangeDetectorRef, Type} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule} from '@angular/forms';
-import {MatInputHarness} from '@angular/material/input/testing';
+import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -76,11 +76,11 @@ describe('ReadLowLevelForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const pathInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=path]'}));
+        MatLegacyInputHarness.with({selector: 'input[name=path]'}));
     await pathInputHarness.setValue('/some/path');
     fixture.componentInstance.controls.path.markAsTouched();
     const lengthInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=length]'}));
+        MatLegacyInputHarness.with({selector: 'input[name=length]'}));
     await lengthInputHarness.setValue('0');
     fixture.componentInstance.controls.length.markAsTouched();
     fixture.detectChanges();
@@ -100,7 +100,7 @@ describe('ReadLowLevelForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const lengthInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=length]'}));
+        MatLegacyInputHarness.with({selector: 'input[name=length]'}));
     await lengthInputHarness.setValue('0');
     await lengthInputHarness.blur();
 
@@ -115,7 +115,7 @@ describe('ReadLowLevelForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const lengthInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=length]'}));
+        MatLegacyInputHarness.with({selector: 'input[name=length]'}));
     await lengthInputHarness.setValue('1');
     fixture.componentInstance.controls.length.markAsTouched();
     fixture.detectChanges();
@@ -137,13 +137,13 @@ describe('ReadLowLevelForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const pathInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=path]'}));
+        MatLegacyInputHarness.with({selector: 'input[name=path]'}));
     await pathInputHarness.setValue('/some/path');
     const lengthInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=length]'}));
+        MatLegacyInputHarness.with({selector: 'input[name=length]'}));
     await lengthInputHarness.setValue('3 KiB');
     const offsetInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=offset]'}));
+        MatLegacyInputHarness.with({selector: 'input[name=offset]'}));
     await offsetInputHarness.setValue('6 B');
 
     expect(latestValue).toEqual({
@@ -161,7 +161,7 @@ describe('ReadLowLevelForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const pathInputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input[name=path]'}));
+        MatLegacyInputHarness.with({selector: 'input[name=path]'}));
     await pathInputHarness.setValue('   /spaces\n\t');
 
     expect(latestValue.get()).toEqual(jasmine.objectContaining({

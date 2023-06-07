@@ -12,10 +12,10 @@
       <ng-container matColumnDef="completedClients">
         <mat-header-cell *matHeaderCellDef>Completed clients</mat-header-cell>
         <mat-cell *matCellDef="let row" class="hunt-progress-cell">
-          <span>{{row.completedClients}}</span>
-          <span *ngIf="totalClients && row.completedClients >= 0"
+          <span>{{row['completedClients']}}</span>
+          <span *ngIf="totalClients && row['completedClients'] >= 0"
             [matTooltip]="'Out of all scheduled clients: ' + totalClients">
-            ({{ row.completedClientsPct }}%)
+            ({{ row['completedClientsPct'] }}%)
           </span>
         </mat-cell>
       </ng-container>
@@ -23,10 +23,10 @@
       <ng-container matColumnDef="scheduledClients">
         <mat-header-cell *matHeaderCellDef>Scheduled clients</mat-header-cell>
         <mat-cell *matCellDef="let row" class="hunt-progress-cell">
-          <span>{{row.scheduledClients}}</span>
-          <span *ngIf="totalClients && row.scheduledClients >= 0"
+          <span>{{row['scheduledClients']}}</span>
+          <span *ngIf="totalClients && row['scheduledClients'] >= 0"
             [matTooltip]="'Out of all scheduled clients: ' + totalClients">
-            ({{ row.scheduledClientsPct }}%)
+            ({{ row['scheduledClientsPct'] }}%)
           </span>
         </mat-cell>
       </ng-container>

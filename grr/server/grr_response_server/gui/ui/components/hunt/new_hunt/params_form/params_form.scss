@@ -1,5 +1,5 @@
-@use "@angular/material" as mat;
-@use "../../../../material-theme" as c;
+@use '@angular/material' as mat;
+@use '../../../../material-theme' as c;
 
 $container-padding: 30px;
 $row-padding: 1.5em;
@@ -19,6 +19,10 @@ $row-padding: 1.5em;
 
 .ml-2 {
   margin-left: 2em;
+}
+
+.mt-1 {
+  margin-top: 1em;
 }
 
 .mr-2 {
@@ -51,7 +55,6 @@ $row-padding: 1.5em;
 
   .advance-params-button {
     color: mat.get-color-from-palette(mat.$blue-palette, 600);
-    margin-left: $container-padding;
     margin-bottom: 5px;
     padding-left: 0;
   }
@@ -100,5 +103,16 @@ $row-padding: 1.5em;
 
   .basic-params {
     padding-left: $container-padding;
+  }
+
+  .ml-container {
+    margin-left: $container-padding;
+  }
+
+  .basic-params-row {
+    display: flex;
+    align-items: center;
+    height: 4em;
+    margin: 2em 0;
   }
 }

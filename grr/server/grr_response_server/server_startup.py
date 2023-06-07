@@ -26,7 +26,6 @@ from grr_response_server import server_plugins  # pylint: disable=unused-import
 from grr_response_server import stats_server
 from grr_response_server.authorization import client_approval_auth
 from grr_response_server.blob_stores import registry_init as bs_registry_init
-from grr_response_server.check_lib import checks
 from grr_response_server.decoders import all as all_decoders
 from grr_response_server.export_converters import registry_init as ec_registry_init
 from grr_response_server.gui import api_auth_manager
@@ -95,7 +94,6 @@ def Init():
     api_auth_manager.InitializeApiAuthManager()
 
   artifact.LoadArtifactsOnce()  # Requires aff4.AFF4Init.
-  checks.LoadChecksFromFilesystemOnce()
   client_approval_auth.InitializeClientApprovalAuthorizationManagerOnce()
   cronjobs.InitializeCronWorkerOnce()
   email_alerts.InitializeEmailAlerterOnce()

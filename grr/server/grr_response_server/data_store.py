@@ -45,7 +45,9 @@ from grr_response_server import blob_store
 from grr_response_server.databases import db
 from grr_response_server.databases import registry_init
 
-flags.DEFINE_bool("list_storage", False, "List all storage subsystems present.")
+_LIST_STORAGE = flags.DEFINE_bool(
+    "list_storage", False, "List all storage subsystems present."
+)
 
 # The global relational db handle.
 REL_DB: Optional[db.Database] = None
@@ -67,7 +69,7 @@ def InitializeDataStore():
   global REL_DB  # pylint: disable=global-statement
   global BLOBS  # pylint: disable=global-statement
 
-  if flags.FLAGS.list_storage:
+  if _LIST_STORAGE.value:
     _ListStorageOptions()
     sys.exit(0)
 

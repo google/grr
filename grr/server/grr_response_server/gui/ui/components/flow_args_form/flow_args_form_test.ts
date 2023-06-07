@@ -1,10 +1,10 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, Input, ViewChild} from '@angular/core';
 import {ComponentFixture, fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
-import {MatButtonHarness} from '@angular/material/button/testing';
-import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
-import {MatInputHarness} from '@angular/material/input/testing';
+import {MatLegacyAutocompleteHarness} from '@angular/material/legacy-autocomplete/testing';
+import {MatLegacyButtonHarness} from '@angular/material/legacy-button/testing';
+import {MatLegacyCheckboxHarness} from '@angular/material/legacy-checkbox/testing';
+import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {firstValueFrom, ReplaySubject, Subject} from 'rxjs';
@@ -588,7 +588,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
        fixture.detectChanges();
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const autocompleteHarness =
-           await harnessLoader.getHarness(MatAutocompleteHarness);
+           await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
        await autocompleteHarness.focus();
        const options = await autocompleteHarness.getOptions();
        expect(options.length).toEqual(3);
@@ -614,7 +614,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatAutocompleteHarness);
+        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
     await autocompleteHarness.enterText('aa');
     const options = await autocompleteHarness.getOptions();
     expect(options.length).toEqual(2);
@@ -647,7 +647,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatAutocompleteHarness);
+        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
     await autocompleteHarness.enterText('SaMpLe');
     const options = await autocompleteHarness.getOptions();
     expect(options.length).toEqual(1);
@@ -666,7 +666,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatAutocompleteHarness);
+        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
     await autocompleteHarness.selectOption({text: /bar/});
 
     const flowArgValues =
@@ -698,7 +698,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const autocompleteHarness =
-           await harnessLoader.getHarness(MatAutocompleteHarness);
+           await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
        await autocompleteHarness.focus();
        const options = await autocompleteHarness.getOptions();
        // Unavailable artifacts should still be shown for discoverability.
@@ -745,7 +745,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatAutocompleteHarness);
+        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
     await autocompleteHarness.selectOption({text: /foo/});
 
     const text = fixture.nativeElement.innerText;
@@ -772,10 +772,11 @@ describe(`FlowArgForm ListProcesses`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatAutocompleteHarness);
+        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
     await autocompleteHarness.selectOption({text: 'CLOSING'});
 
-    const checkboxHarness = await harnessLoader.getHarness(MatCheckboxHarness);
+    const checkboxHarness =
+        await harnessLoader.getHarness(MatLegacyCheckboxHarness);
     await checkboxHarness.check();
 
     const values = await firstValueFrom(
@@ -807,8 +808,8 @@ describe(`FlowArgForm ListProcesses`, () => {
 async function setInputValue(
     fixture: ComponentFixture<unknown>, query: string, value: string) {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const inputHarness =
-      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
+  const inputHarness = await harnessLoader.getHarness(
+      MatLegacyInputHarness.with({selector: query}));
   await inputHarness.setValue(value);
 }
 
@@ -870,7 +871,7 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
        fixture.detectChanges();
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const autocompleteHarness =
-           await harnessLoader.getHarness(MatAutocompleteHarness);
+           await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
 
        await autocompleteHarness.focus();
 
@@ -903,7 +904,7 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatAutocompleteHarness);
+        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
 
     await autocompleteHarness.enterText('fo');
 
@@ -936,7 +937,7 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatAutocompleteHarness);
+        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
 
     await autocompleteHarness.selectOption({text: /foo/});
 
@@ -956,7 +957,7 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const buttonHarness = await harnessLoader.getHarness(
-        MatButtonHarness.with({text: 'Add argument'}));
+        MatLegacyButtonHarness.with({text: 'Add argument'}));
 
     expect((await getArgs()).pyArgs ?? {}).toEqual({});
 
@@ -964,7 +965,7 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
     await buttonHarness.click();
 
     const inputs = await harnessLoader.getAllHarnesses(
-        MatInputHarness.with({ancestor: '.key-value-group'}));
+        MatLegacyInputHarness.with({ancestor: '.key-value-group'}));
     await inputs[0].setValue('key1');
     await inputs[1].setValue('val1');
     await inputs[2].setValue('key2');
@@ -988,20 +989,20 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const buttonHarness = await harnessLoader.getHarness(
-        MatButtonHarness.with({text: 'Add argument'}));
+        MatLegacyButtonHarness.with({text: 'Add argument'}));
 
     await buttonHarness.click();
     await buttonHarness.click();
 
     const inputs = await harnessLoader.getAllHarnesses(
-        MatInputHarness.with({ancestor: '.key-value-group'}));
+        MatLegacyInputHarness.with({ancestor: '.key-value-group'}));
     await inputs[0].setValue('key1');
     await inputs[1].setValue('val1');
     await inputs[2].setValue('key2');
     await inputs[3].setValue('val2');
 
     const removeButton = await harnessLoader.getHarness(
-        MatButtonHarness.with({selector: '.remove-button'}));
+        MatLegacyButtonHarness.with({selector: '.remove-button'}));
     await removeButton.click();
 
     expect((await getArgs()).pyArgs).toEqual({
@@ -1068,7 +1069,7 @@ describe(`FlowArgForm LaunchBinary`, () => {
        fixture.detectChanges();
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const autocompleteHarness =
-           await harnessLoader.getHarness(MatAutocompleteHarness);
+           await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
 
        await autocompleteHarness.focus();
 
@@ -1101,7 +1102,7 @@ describe(`FlowArgForm LaunchBinary`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatAutocompleteHarness);
+        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
 
     await autocompleteHarness.enterText('fo');
 
@@ -1135,7 +1136,7 @@ describe(`FlowArgForm LaunchBinary`, () => {
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const autocompleteHarness =
-           await harnessLoader.getHarness(MatAutocompleteHarness);
+           await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
 
        await autocompleteHarness.selectOption({text: /foo/});
 

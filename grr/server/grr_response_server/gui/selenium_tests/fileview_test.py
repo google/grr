@@ -39,17 +39,19 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
     self.RequestAndGrantClientApproval(self.client_id)
 
   def testOpeningVfsOfUnapprovedClientRedirectsToHostInfoPage(self):
-    self.Open("/#/clients/%s/vfs/" % self.unapproved_client_id)
+    self.Open("/legacy#/clients/%s/vfs/" % self.unapproved_client_id)
 
     # As we don't have an approval for unapproved_client_id, we should be
     # redirected to the host info page.
-    self.WaitUntilEqual("/#/clients/%s/host-info" % self.unapproved_client_id,
-                        self.GetCurrentUrlPath)
+    self.WaitUntilEqual(
+        "/legacy#/clients/%s/host-info" % self.unapproved_client_id,
+        self.GetCurrentUrlPath,
+    )
     self.WaitUntil(self.IsTextPresent,
                    "You do not have an approval for this client.")
 
   def testPageTitleChangesAccordingToSelectedFile(self):
-    self.Open("/#/clients/%s/vfs/" % self.client_id)
+    self.Open("/legacy#/clients/%s/vfs/" % self.client_id)
     self.WaitUntilEqual("GRR | %s | /" % self.client_id, self.GetPageTitle)
 
     # Select a folder in the tree.
@@ -74,8 +76,10 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
         content=self.content_2)
 
     # Open a URL pointing to file "a".
-    self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download" %
-              self.client_id)
+    self.Open(
+        "/legacy#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download"
+        % self.client_id
+    )
     self.WaitUntil(
         self.IsElementPresent, "css=tr:contains('Sha256') td:contains('%s')" %
         text.Hexify(self.content_1_hash))
@@ -100,8 +104,10 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
           content=self.content_2)
 
     # Open a URL corresponding to a HEAD version of the file.
-    self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download" %
-              self.client_id)
+    self.Open(
+        "/legacy#/clients/%s/vfs/fs/os/c/Downloads/a.txt?tab=download"
+        % self.client_id
+    )
     # Make sure displayed hash value is correct.
     self.WaitUntil(
         self.IsElementPresent, "css=tr:contains('Sha256') td:contains('%s')" %
@@ -118,7 +124,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
   def testVersionDropDownChangesFileContentAndDownloads(self):
     """Test the fileview interface."""
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
 
     # Go to Browse VFS.
     self.Click("css=a[grrtarget='client.vfs']")
@@ -211,7 +217,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
         db.ClientPath.OS(self.client_id, ["proc", "10", "cmdline"]),
         content=content)
 
-    self.Open("/#clients/%s/vfs/fs/os/proc/10/" % self.client_id)
+    self.Open("/legacy#clients/%s/vfs/fs/os/proc/10/" % self.client_id)
 
     self.Click("css=td:contains(\"cmdline\")")
     self.Click("css=li[heading=HexView]:not(.disabled)")
@@ -233,7 +239,9 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
 
   def testSearchInputFiltersFileList(self):
     # Open VFS view for client 1.
-    self.Open("/#c=%s&main=VirtualFileSystemView&t=_fs-os-c" % self.client_id)
+    self.Open(
+        "/legacy#c=%s&main=VirtualFileSystemView&t=_fs-os-c" % self.client_id
+    )
 
     # Navigate to the bin C.0000000000000001 directory
     self.Click("link=bin %s" % self.client_id)
@@ -276,7 +284,7 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
       self.Click("css=button:contains(\"Collect from the client\")")
 
   def testExportToolHintIsDisplayed(self):
-    self.Open("/#/clients/%s/vfs/" % self.client_id)
+    self.Open("/legacy#/clients/%s/vfs/" % self.client_id)
 
     self.Click("css=li#_fs i.jstree-icon")
     self.Click("css=li#_fs-os i.jstree-icon")
@@ -296,7 +304,9 @@ class TestFileView(gui_test_lib.GRRSeleniumTest):
         "WriteToFile(\"./a.txt\")'" % self.client_id)
 
   def testTimestampsAreCorrectlyDisplayedInFileDetails(self):
-    self.Open("/#/clients/%s/vfs/fs/os/c/Downloads/a.txt" % self.client_id)
+    self.Open(
+        "/legacy#/clients/%s/vfs/fs/os/c/Downloads/a.txt" % self.client_id
+    )
 
     self.WaitUntil(
         self.IsElementPresent,

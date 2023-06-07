@@ -1,13 +1,15 @@
 import {NgModule} from '@angular/core';
-import {RouterModule, Routes} from '@angular/router';
+import {RouterModule} from '@angular/router';
+
+import {RoutesWithLegacyLinks} from '../../../lib/routing';
 
 import {HuntPage} from './hunt_page';
 
 /**
  * Hunt page routes.
  */
-export const HUNT_PAGE_ROUTES: Routes = [
-  {path: 'hunts/:id', component: HuntPage},
+export const HUNT_PAGE_ROUTES: RoutesWithLegacyLinks = [
+  {path: 'hunts/:id', component: HuntPage, data: {legacyLink: '#/hunts/:id'}},
 ];
 /**
  * Routing module for the hunt home page.

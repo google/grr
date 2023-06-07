@@ -9,7 +9,6 @@ import os
 
 from absl import app
 
-from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib.parsers import windows_registry_parser
 from grr_response_core.lib.parsers import wmi_parser
@@ -46,8 +45,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
 
   def _CheckDriveAndRoot(self):
     client_id = self.SetupClient(0, system="Windows", os_version="6.2")
-    client_mock = action_mocks.ActionMock(standard.GetFileStat,
-                                          standard.ListDirectory)
+    client_mock = action_mocks.ListDirectoryClientMock()
 
     session_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
@@ -81,7 +79,7 @@ class TestArtifactCollectorsRealArtifacts(flow_test_lib.FlowTestsBaseclass):
 
     class BrokenClientMock(action_mocks.ActionMock):
 
-      def StatFile(self, _):
+      def GetFileStat(self, _):
         raise IOError
 
       def ListDirectory(self, _):

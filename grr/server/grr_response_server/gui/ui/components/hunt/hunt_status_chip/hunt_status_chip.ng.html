@@ -5,9 +5,12 @@
     Collection not started
   </mat-chip>
 
-  <mat-chip *ngSwitchCase="HuntState.PAUSED" class="dark-chip" color="custom" disabled>
+  <mat-chip *ngSwitchCase="HuntState.REACHED_CLIENT_LIMIT" class="green-chip" color="custom" disabled>
     <mat-icon class="material-icons">pause_circle</mat-icon>
-    Collection paused
+    Reached client limit
+    <span class="subtitle">
+      {{ limit }}
+    </span>
   </mat-chip>
 
   <mat-chip *ngSwitchCase="HuntState.CANCELLED" class="dark-chip" color="custom"
@@ -16,9 +19,12 @@
     Collection cancelled
   </mat-chip>
 
-  <mat-chip *ngSwitchCase="HuntState.COMPLETED" class="green-chip" color="custom" disabled>
+  <mat-chip *ngSwitchCase="HuntState.REACHED_TIME_LIMIT" class="green-chip" color="custom" disabled>
     <mat-icon>check</mat-icon>
-    Collection completed
+    Reached time limit
+    <span class="subtitle">
+      {{ duration }}
+    </span>
   </mat-chip>
 
   <mat-chip *ngSwitchCase="HuntState.RUNNING" class="green-chip" color="custom" disabled>

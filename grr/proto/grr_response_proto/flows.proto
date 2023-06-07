@@ -877,41 +877,6 @@ message FirefoxHistoryArgs {
   }];
 }
 
-// Next field ID: 8
-message CacheGrepArgs {
-  repeated string grep_users = 1 [(sem_type) = {
-    description: "A list of users to check. Default all users on the system.",
-  }];
-
-  optional PathSpec.PathType pathtype = 2 [
-    (sem_type) = { description: "Type of path access to use." },
-    default = OS
-  ];
-
-  optional bytes data_regex = 3;
-
-  optional bool check_chrome = 5 [
-    (sem_type) = {
-      description: "Check Chrome",
-    },
-    default = true
-  ];
-
-  optional bool check_firefox = 6 [
-    (sem_type) = {
-      description: "Check Firefox",
-    },
-    default = true
-  ];
-
-  optional bool check_ie = 7 [
-    (sem_type) = {
-      description: "Check Internet Explorer (Not implemented yet)",
-    },
-    default = true
-  ];
-}
-
 // Next field ID: 2
 message ListDirectoryArgs {
   optional PathSpec pathspec = 1
@@ -1245,13 +1210,6 @@ message CronJobRun {
   optional CronJobRunStatus status = 5 [default = UNSET];
   optional string log_message = 6;
   optional string backtrace = 7;
-}
-
-// Next field ID: 2
-message PlistValueFilterArgs {
-  optional PlistRequest request = 1 [(sem_type) = {
-    description: "A request for the client to parse a plist file.",
-  }];
 }
 
 // Next field ID: 3
@@ -2173,29 +2131,6 @@ message DiskVolumeInfoArgs {
   ];
 }
 
-// Next field ID: 6
-message CheckFlowArgs {
-  repeated string only_os = 1 [(sem_type) = {
-    description: "Limit checks to hosts of OS type(s) [Linux|OSX|Windows]",
-    label: ADVANCED
-  }];
-  repeated string only_cpe = 2 [(sem_type) = {
-    description: "Limit checks to hosts with cpe strings.",
-    label: ADVANCED
-  }];
-  repeated string only_label = 3 [(sem_type) = {
-    description: "Limit checks to hosts with label strings.",
-    label: ADVANCED
-  }];
-  repeated uint64 max_findings = 4 [(sem_type) = {
-    description: "Summarize checks with more than N individual findings.",
-    label: ADVANCED
-  }];
-  repeated string restrict_checks = 5 [(sem_type) = {
-    description: "Only run checks with the specified check_ids.",
-  }];
-}
-
 // Next field ID: 5
 message DumpFlashImageArgs {
   optional uint32 log_level = 1 [(sem_type) = {
@@ -2616,7 +2551,7 @@ message FlowRequest {
   optional uint64 next_response_id = 10;
 }
 
-// Next id: 8
+// Next id: 9
 message FlowResponse {
   optional string client_id = 1;
   optional string flow_id = 2;
@@ -2625,6 +2560,18 @@ message FlowResponse {
   optional uint64 response_id = 4;
   optional google.protobuf.Any payload = 5;
   optional string tag = 6;
+  // An actual content of this response.
+  //
+  // This field is like `payload` but does not use dynamic type lookup "feature"
+  // and requires types to be known upfront. This way, flow state methods will
+  // receive raw `Any` response and unpack it to appropriate type.
+  //
+  // Once all flow state methods are migrated (this will likely take years) to
+  // use static payload, the old `payload` field can be removed and this one can
+  // be renamed to `payload` as it should have been from the very beginning.
+  optional google.protobuf.Any any_payload = 8 [(sem_type) = {
+    no_dynamic_type_lookup: true,
+  }];
 }
 
 // Next id: 7

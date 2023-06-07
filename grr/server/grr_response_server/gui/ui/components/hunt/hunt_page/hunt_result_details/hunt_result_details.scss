@@ -53,6 +53,11 @@
     pre {
       white-space: pre-wrap;
       overflow-wrap: anywhere;
+      margin: 1rem;
     }
   }
+}
+
+.flow-loading-spinner {
+  margin: auto;
 }

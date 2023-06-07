@@ -1,0 +1,103 @@
+// Copyright 2023 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.get_filesystem_timeline;
+
+import "grr_response_proto/rrg/fs.proto";
+
+message Args {
+  // Absolute path to the root directory to get the timeline of.
+  rrg.fs.Path root = 1;
+}
+
+message Result {
+  // A SHA-256 hash of the timeline batch sent to the blob sink.
+  //
+  // Because the entire timeline can easily have millions of entries, it could
+  // quickly exceed the maximum allowed size for a message. This is why entries
+  // are batched, gzipped and then send as blobs to the blobstore.
+  bytes blob_sha256 = 1;
+
+  // The total number of entries in the chunk.
+  //
+  // This number includes only entries contained in the chunk corresponding to
+  // this result, not the total number of entries the action execution processed
+  // so far.
+  uint64 entry_count = 2;
+}
+
+// An individual entry of the timeline.
+//
+// Note that this type does not use wrappers such as `rrg.fs.FileMetadata` or
+// `google.protobuf.Timestamp`. There are two reasons for this: performance and
+// compatibility.
+//
+// To avoid unnecessary nesting that has performance implications (both in terms
+// of CPU, memory and network utilization) this message is allowed to have only
+// primitive fields.
+//
+// Moreover, because timeline is stored in binary form we should consider it to
+// be a file format on its own. This, this structure should be in-sync with what
+// GRR currently uses to represent timeline [1].
+//
+// The message itself is based on the POSIX definition of stat [2] and is typed
+// according to the POSIX standard [3].
+//
+// [1]: https://github.com/google/grr/blob/cab3a1fe590a72862ed42ef92a6a57fd831a5783/grr/proto/grr_response_proto/timeline.proto#L49-L91
+// [2]: http://pubs.opengroup.org/onlinepubs/009695399/basedefs/sys/stat.h.html
+// [3]: http://pubs.opengroup.org/onlinepubs/009695399/basedefs/sys/types.h.html
+message Entry {
+  // An absolute path to the file this entry corresponds to.
+  //
+  // This field uses the same path encoding as the `raw_bytes` field of the
+  // `rrg.fs.Path` message.
+  optional bytes path = 1;
+
+  // Mode of the file defined as standard POSIX bitmask.
+  //
+  // Unix-only.
+  optional int64 unix_mode = 2;
+
+  // Size of the file in bytes.
+  optional uint64 size = 3;
+
+  // Identifier of the device containing the file.
+  //
+  // Unix-only.
+  optional int64 unix_dev = 4;
+
+  // Serial number of the file.
+  //
+  // This field is set only on Unix-like systems.
+  optional uint64 unix_ino = 5;
+
+  // Identifier of the user owning the file.
+  //
+  // Unix-only.
+  optional int64 unix_uid = 6;
+
+  // Identifier of the group owning the file.
+  //
+  // Unix-only.
+  optional int64 unix_gid = 7;
+
+  // Time of the last access of the file in nanoseconds since epoch.
+  optional int64 atime_nanos = 8;
+
+  // Time of the last data change of the file in nanoseconds since epoch.
+  optional int64 mtime_nanos = 9;
+
+  // Time of the last status change of the file in nanoseconds since epoch.
+  optional int64 ctime_nanos = 10;
+
+  // Time of the file creation in nanoseconds since epoch.
+  optional int64 btime_nanos = 11;
+
+  // Extra file attributes.
+  //
+  // Windows-only.
+  optional uint64 windows_attributes = 12;
+}

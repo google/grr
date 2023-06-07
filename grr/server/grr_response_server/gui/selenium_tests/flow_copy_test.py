@@ -48,7 +48,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
         output_plugins=[self.email_descriptor])
 
     # Navigate to client and select newly created flow.
-    self.Open("/#/clients/C.0000000000000001/flows")
+    self.Open("/legacy#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('ListProcesses')")
 
     # Open wizard and check if flow arguments are copied.
@@ -78,7 +78,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
         flows_processes.ListProcesses, flow_args=args, client_id=self.client_id)
 
     # Navigate to client and select newly created flow.
-    self.Open("/#/clients/C.0000000000000001/flows")
+    self.Open("/legacy#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('ListProcesses')")
 
     # Check that there's only one ListProcesses flow.
@@ -105,7 +105,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
         flows_processes.ListProcesses, flow_args=args, client_id=self.client_id)
 
     # Navigate to client and select newly created flow.
-    self.Open("/#/clients/C.0000000000000001/flows")
+    self.Open("/legacy#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('ListProcesses')")
 
     # Open wizard and check if flow arguments are copied.
@@ -125,7 +125,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
         output_plugins=[self.email_descriptor])
 
     # Navigate to client and select newly created flow.
-    self.Open("/#/clients/C.0000000000000001/flows")
+    self.Open("/legacy#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('ListProcesses')")
 
     # Open wizard and change the arguments.
@@ -175,7 +175,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     self.RunHunt(client_ids=[self.client_id], failrate=-1)
 
     # Navigate to client and select newly created hunt flow.
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
 
     # StartHunt creates a hunt with a GetFile flow, so selecting a GetFile row.
@@ -203,7 +203,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
         flows_file_finder.FileFinder, flow_args=args, client_id=self.client_id)
 
     # Navigate to client and select newly created flow.
-    self.Open("/#/clients/C.0000000000000001/flows")
+    self.Open("/legacy#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('FileFinder')")
 
     # Open wizard and launch the copy flow.
@@ -224,7 +224,7 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
         flows_file_finder.FileFinder, flow_args=args, client_id=self.client_id)
 
     # Navigate to client and select newly created flow.
-    self.Open("/#/clients/C.0000000000000001/flows")
+    self.Open("/legacy#/clients/C.0000000000000001/flows")
     self.Click("css=td:contains('FileFinder')")
 
     # Stub out the API handler to guarantee failure.

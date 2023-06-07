@@ -6,6 +6,7 @@ import {combineLatest} from 'rxjs';
 import {distinctUntilChanged, map, startWith, takeUntil} from 'rxjs/operators';
 
 import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {GlobExplanationMode} from '../../components/form/glob_expression_form_field/glob_expression_explanation';
 import {ArtifactCollectorFlowArgs} from '../../lib/api/api_interfaces';
 import {safeTranslateOperatingSystem} from '../../lib/api_translation/flow';
 import {ArtifactDescriptor, ArtifactSource, OperatingSystem, SourceType} from '../../lib/models/flow';
@@ -198,6 +199,7 @@ export class ArtifactCollectorFlowForm extends
     FlowArgumentForm<ArtifactCollectorFlowArgs, Controls> {
   readonly SourceType = SourceType;
   readonly readableSourceName = READABLE_SOURCE_NAME;
+  protected readonly GlobExplanationMode = GlobExplanationMode;
 
   override makeControls() {
     return makeControls();

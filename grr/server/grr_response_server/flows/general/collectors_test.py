@@ -424,7 +424,9 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         artifact_list=artifact_list,
         creator=self.test_username,
         client_id=client_id,
-        implementation_type=implementation_type)
+        implementation_type=implementation_type,
+        use_raw_filesystem_access=(implementation_type is not None),
+    )
 
     return flow_test_lib.GetFlowResults(client_id, flow_id)
 
@@ -533,7 +535,7 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
     self.assertLen(results, 1)
     self.assertEqual(results[0].pid, 123)
 
-  def testGrep_withImplementationType(self):
+  def testGrep2(self):
     client_id = self.SetupClient(0, system="Linux")
     client_mock = action_mocks.FileFinderClientMock()
     with temp.AutoTempFilePath() as temp_file_path:
@@ -543,65 +545,55 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
           type=rdf_artifacts.ArtifactSource.SourceType.GREP,
           attributes={
               "paths": [temp_file_path],
-              "content_regex_list": ["."]
-          })
+              "content_regex_list": ["f|o+"],
+          },
+      )
       self.fakeartifact.sources.append(coll1)
       results = self._RunClientActionArtifact(
-          client_id,
-          client_mock, ["FakeArtifact"],
-          implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT)
-    self.assertTrue(results)
-    for file_finder_result in results:
-      self.assertEqual(
-          file_finder_result.stat_entry.pathspec.implementation_type,
-          rdf_paths.PathSpec.ImplementationType.DIRECT)
-      for buffer_reference in file_finder_result.matches:
-        self.assertEqual(buffer_reference.pathspec.implementation_type,
-                         rdf_paths.PathSpec.ImplementationType.DIRECT)
+          client_id, client_mock, ["FakeArtifact"]
+      )
+    matches = [r.matches[0].data for r in results]
+    expected_matches = [b"f", b"oo"]
+    self.assertCountEqual(matches, expected_matches)
 
-  def testDirectory_withImplementationType(self):
+  def testDirectory(self):
     client_id = self.SetupClient(0, system="Linux")
-    client_mock = action_mocks.GlobClientMock()
+    client_mock = action_mocks.FileFinderClientMock()
     with temp.AutoTempDirPath() as temp_dir_path:
       coll1 = rdf_artifacts.ArtifactSource(
           type=rdf_artifacts.ArtifactSource.SourceType.PATH,
-          attributes={"paths": [temp_dir_path]})
+          attributes={"paths": [temp_dir_path]},
+      )
       self.fakeartifact.sources.append(coll1)
       results = self._RunClientActionArtifact(
-          client_id,
-          client_mock, ["FakeArtifact"],
-          implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT)
-    self.assertTrue(results)
+          client_id, client_mock, ["FakeArtifact"]
+      )
+      self.assertLen(results, 1)
+      self.assertEqual(results[0].pathspec.path, temp_dir_path)
 
-    for stat_entry in results:
-      self.assertEqual(stat_entry.pathspec.implementation_type,
-                       rdf_paths.PathSpec.ImplementationType.DIRECT)
-
-  def testFile_withImplementationType(self):
+  def testFile(self):
     client_id = self.SetupClient(0, system="Linux")
     client_mock = action_mocks.FileFinderClientMock()
     with temp.AutoTempFilePath() as temp_file_path:
       coll1 = rdf_artifacts.ArtifactSource(
           type=rdf_artifacts.ArtifactSource.SourceType.FILE,
-          attributes={"paths": [temp_file_path]})
+          attributes={"paths": [temp_file_path]},
+      )
       self.fakeartifact.sources.append(coll1)
       results = self._RunClientActionArtifact(
-          client_id,
-          client_mock, ["FakeArtifact"],
-          implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT)
-    self.assertTrue(results)
+          client_id, client_mock, ["FakeArtifact"]
+      )
+      self.assertLen(results, 1)
+      self.assertEqual(results[0].pathspec.path, temp_file_path)
 
-    for stat_entry in results:
-      self.assertEqual(stat_entry.pathspec.implementation_type,
-                       rdf_paths.PathSpec.ImplementationType.DIRECT)
-
-  def testArtifactFilesDownloaderFlow_withImplementationType(self):
+  def testArtifactFilesDownloaderFlow(self):
     client_id = self.SetupClient(0, system="Linux")
     client_mock = action_mocks.FileFinderClientMock()
     with temp.AutoTempFilePath() as temp_file_path:
       coll1 = rdf_artifacts.ArtifactSource(
           type=rdf_artifacts.ArtifactSource.SourceType.FILE,
-          attributes={"paths": [temp_file_path]})
+          attributes={"paths": [temp_file_path]},
+      )
       self.fakeartifact.sources.append(coll1)
 
       flow_id = flow_test_lib.TestFlowHelper(
@@ -610,19 +602,53 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
           artifact_list=["FakeArtifact"],
           creator=self.test_username,
           client_id=client_id,
-          implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT)
-
+      )
       results = flow_test_lib.GetFlowResults(client_id, flow_id)
+      self.assertLen(results, 1)
+      self.assertEqual(results[0].downloaded_file.pathspec.path, temp_file_path)
 
-    self.assertLen(results, 1)
+  def testLegacyFileFinderSetting(self):
+    """Test that ArtifactCollectorFlow can use the legacy FileFinder flow."""
 
-    result = results[0]
-    self.assertEqual(result.downloaded_file.pathspec.implementation_type,
-                     rdf_paths.PathSpec.ImplementationType.DIRECT)
-    self.assertEqual(result.found_pathspec.implementation_type,
-                     rdf_paths.PathSpec.ImplementationType.DIRECT)
-    self.assertEqual(result.original_result.pathspec.implementation_type,
-                     rdf_paths.PathSpec.ImplementationType.DIRECT)
+    def _RunCollectorFlow(client_id, client_mock):
+      with vfs_test_lib.FakeTestDataVFSOverrider():
+        flow_id = flow_test_lib.TestFlowHelper(
+            collectors.ArtifactCollectorFlow.__name__,
+            client_mock,
+            artifact_list=["TestFilesArtifact"],
+            creator=self.test_username,
+            client_id=client_id,
+        )
+        _ = flow_test_lib.GetFlowResults(client_id, flow_id)
+
+    class _ClientMock(action_mocks.ActionMock):
+
+      def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.called_actions = set()
+
+      def FileFinderOS(self, _):
+        self.called_actions.add("FileFinderOS")
+        return []
+
+      def GetFileStat(self, _):
+        self.called_actions.add("GetFileStat")
+        return []
+
+    client_id = self.SetupClient(0, system="Linux")
+
+    client_mock = _ClientMock()
+    _RunCollectorFlow(client_id, client_mock)
+    self.assertIn("FileFinderOS", client_mock.called_actions)
+    self.assertNotIn("GetFileStat", client_mock.called_actions)
+
+    with test_lib.ConfigOverrider(
+        {"Server.internal_artifactcollector_use_legacy_filefinder": True}
+    ):
+      client_mock = _ClientMock()
+      _RunCollectorFlow(client_id, client_mock)
+      self.assertIn("GetFileStat", client_mock.called_actions)
+      self.assertNotIn("FileFinderOS", client_mock.called_actions)
 
 
 class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
@@ -701,11 +727,12 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
       artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
       flow_id = flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
-          client_mock=action_mocks.GlobClientMock(),
+          client_mock=action_mocks.FileFinderClientMock(),
           client_id=client_id,
           artifact_list=["Quux"],
           old_client_snapshot_fallback=True,
-          creator=self.test_username)
+          creator=self.test_username,
+      )
 
     results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
     self.assertNotEmpty(results)
@@ -756,11 +783,12 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
       artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
       flow_id = flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
-          client_mock=action_mocks.GlobClientMock(),
+          client_mock=action_mocks.FileFinderClientMock(),
           client_id=client_id,
           artifact_list=["Quux"],
           old_client_snapshot_fallback=True,
-          creator=self.test_username)
+          creator=self.test_username,
+      )
 
     results = flow_test_lib.GetFlowResults(client_id=client_id, flow_id=flow_id)
     self.assertNotEmpty(results)
@@ -1470,6 +1498,7 @@ sources:
         artifact_collector.ArtifactCollector,
         artifact_list,
         apply_parsers=False)
+
     self.assertLen(cac_results, 1)
     artifact_response = cac_results[0]
     self.assertEqual(artifact_response.pathspec.path, expected.pathspec.path)

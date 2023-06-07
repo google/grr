@@ -1,7 +1,7 @@
 import {OverlayContainer} from '@angular/cdk/overlay';
 import {ComponentFixture, inject, TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule} from '@angular/forms';
-import {MAT_DIALOG_DATA, MatDialogModule, MatDialogRef} from '@angular/material/dialog';
+import {MAT_LEGACY_DIALOG_DATA, MatLegacyDialogModule, MatLegacyDialogRef} from '@angular/material/legacy-dialog';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -37,11 +37,11 @@ describe('Client Add Label Dialog', () => {
             ClientAddLabelDialogModule,
             NoopAnimationsModule,
             ReactiveFormsModule,
-            MatDialogModule,
+            MatLegacyDialogModule,
           ],
           providers: [
-            {provide: MatDialogRef, useFactory: () => dialogRefMock},
-            {provide: MAT_DIALOG_DATA, useFactory: () => clientLabels}, {
+            {provide: MatLegacyDialogRef, useFactory: () => dialogRefMock},
+            {provide: MAT_LEGACY_DIALOG_DATA, useFactory: () => clientLabels}, {
               provide: ConfigGlobalStore,
               useFactory: () => configGlobalStoreMock
             }

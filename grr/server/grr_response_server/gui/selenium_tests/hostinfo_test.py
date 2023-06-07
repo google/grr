@@ -40,7 +40,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
                               12884901888)
 
   def testClickingOnInterrogateStartsInterrogateFlow(self):
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
 
     # A click on the Interrogate button starts a flow, disables the button and
     # shows a loading icon within the button.
@@ -66,7 +66,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
         "~ td.proto_value")
 
   def testChangingVersionDropdownChangesClientInformation(self):
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
 
     # Check that the newest version is selected.
     self.WaitUntilContains(
@@ -97,7 +97,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "4GiB")
 
   def testClickingOnHistoryButtonOpensAttributeHistoryDialog(self):
-    self.Open("/#/clients/" + self.client_id)
+    self.Open("/legacy#/clients/" + self.client_id)
 
     # Wait until client information appears and click on 'Full details' button.
     self.WaitUntil(self.IsTextPresent, "Hostname T2")
@@ -130,7 +130,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
   def testSidebarWarningIsNotShownIfClientHasNoLabels(self):
     with test_lib.ConfigOverrider(
         {"AdminUI.client_warnings": self.WARNINGS_OPTION}):
-      self.Open("/#/clients/" + self.client_id)
+      self.Open("/legacy#/clients/" + self.client_id)
 
       self.WaitUntil(self.IsElementPresent,
                      "css=grr-client-summary:contains('Hostname T2')")
@@ -142,7 +142,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
 
     with test_lib.ConfigOverrider(
         {"AdminUI.client_warnings": self.WARNINGS_OPTION}):
-      self.Open("/#/clients/" + self.client_id)
+      self.Open("/legacy#/clients/" + self.client_id)
 
       self.WaitUntil(self.IsElementPresent,
                      "css=grr-client-summary:contains('Hostname T2')")
@@ -154,7 +154,7 @@ class TestHostInformation(gui_test_lib.GRRSeleniumTest):
 
     with test_lib.ConfigOverrider(
         {"AdminUI.client_warnings": self.WARNINGS_OPTION}):
-      self.Open("/#/clients/" + self.client_id)
+      self.Open("/legacy#/clients/" + self.client_id)
 
       self.WaitUntil(
           self.IsElementPresent,

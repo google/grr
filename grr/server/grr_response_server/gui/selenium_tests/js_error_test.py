@@ -11,7 +11,7 @@ class JavascriptErrorTest(gui_test_lib.GRRSeleniumTest):
   """Tests that Javascript errors are caught in Selenium tests."""
 
   def testJavascriptErrorTriggersPythonException(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     # Erase global Angular object.
     # Things are guaranteed to stop working correctly after this.
@@ -30,7 +30,7 @@ class JavascriptErrorTest(gui_test_lib.GRRSeleniumTest):
     # the Angular object is valid again which means no more errors and
     # also clear the list of recorded errors in case there have been
     # any in the meantime.
-    self.Open("/")
+    self.Open("/legacy")
 
 
 if __name__ == "__main__":

@@ -1,11 +1,11 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatDialogModule} from '@angular/material/dialog';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
-import {MatListModule} from '@angular/material/list';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
+import {MatLegacyDialogModule} from '@angular/material/legacy-dialog';
+import {MatLegacyListModule} from '@angular/material/legacy-list';
 import {RouterModule} from '@angular/router';
 
 import {CopyButtonModule} from '../helpers/copy_button/copy_button_module';
@@ -28,12 +28,12 @@ import {VolumesDetailsModule} from './volumes_details/module';
   imports: [
     CommonModule,
     RouterModule,
-    MatButtonModule,
-    MatChipsModule,
-    MatDialogModule,
+    MatLegacyButtonModule,
+    MatLegacyChipsModule,
+    MatLegacyDialogModule,
     MatDividerModule,
     MatIconModule,
-    MatListModule,
+    MatLegacyListModule,
     ClientDetailsRoutingModule,
     CopyButtonModule,
     EntryHistoryButtonModule,

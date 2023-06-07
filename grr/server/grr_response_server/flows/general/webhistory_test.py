@@ -52,8 +52,9 @@ class TestWebHistory(WebHistoryFlowTestMixin):
         rdf_client.User(
             username="test",
             full_name="test user",
-            homedir="/home/test/",
-            last_logon=250)
+            homedir="/home/test",
+            last_logon=250,
+        )
     ]
     self.client_id = self.SetupClient(0, system="Linux", users=users)
 
@@ -122,30 +123,6 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     self.assertNotEqual(data.find("Welcome to Firefox"), -1)
     self.assertNotEqual(data.find("sport.orf.at"), -1)
 
-  def testCacheGrep(self):
-    """Test the Cache Grep plugin."""
-    with self.MockClientRawDevWithImage():
-      # Run the flow in the simulated way
-      session_id = flow_test_lib.TestFlowHelper(
-          webhistory.CacheGrep.__name__,
-          self.client_mock,
-          check_flow_errors=False,
-          client_id=self.client_id,
-          grep_users=["test"],
-          data_regex=b"ENIAC",
-          pathtype=rdf_paths.PathSpec.PathType.TSK,
-          creator=self.test_username)
-
-    # Check if the collection file was created.
-    hits = flow_test_lib.GetFlowResults(self.client_id, session_id)
-    # There should be one hit.
-    self.assertLen(hits, 1)
-
-    # Get the first hit.
-    self.assertIsInstance(hits[0], rdf_client_fs.StatEntry)
-    self.assertEqual(hits[0].pathspec.last.path,
-                     "/home/test/.config/google-chrome/Default/Cache/data_1")
-
 
 class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
   """Test the browser history flows."""
@@ -156,8 +133,9 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTestMixin):
         rdf_client.User(
             username="test",
             full_name="test user",
-            homedir="/home/test/",
-            last_logon=250)
+            homedir="/home/test",
+            last_logon=250,
+        )
     ]
     self.client_id = self.SetupClient(
         0, system="Linux", os_version="12.04", users=users)

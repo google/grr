@@ -15,7 +15,7 @@ package grr;
 // Entities.
 //
 
-// Next id: 22
+// Next id: 24
 message ApiClient {
   optional string client_id = 18
       [(sem_type) = { type: "ApiClientId", description: "Client id." }];
@@ -62,6 +62,11 @@ message ApiClient {
   optional string source_flow_id = 21 [(sem_type) = {
     description: "The Flow ID that collected the underlying client data.",
   }];
+
+  // Version of the RRG agent (if available).
+  optional string rrg_version = 22;
+  // Command-line arguments the RRG agent was invoked with (if available).
+  repeated string rrg_args = 23;
 }
 
 message ApiClientActionRequest {

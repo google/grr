@@ -39,36 +39,61 @@ class MySQLDBPathMixin(object):
 
       return path_info
 
+    # If/when support for MySQL 5.x is dropped, this query can be cleaned up
+    # with a common table expression (CTE).
+    # The joining below is just a way to run multiple (independent) queries in a
+    # single go, and merge their results. We are doing multiple selects over a
+    # single unique key (client_id, path_type, path_id). This can be expressed
+    # more cleanly with a CTE:
+    #
+    # ```
+    # WITH
+    #   stat_entry AS (SELECT stat_entry FROM ...
+    #     WHERE timestamp < %(timestamp)s ... LIMIT 1),
+    #   last_stat_entry_timestamp AS (SELECT timestamp FROM ...
+    #     WHERE ... ORDER BY timestamp DESC LIMIT 1)
+    #   ...
+    # SELECT stat_entry, last_stat_entry_timestamp, ...
+    # FROM client_paths
+    # WHERE ...
+    # ```
     query = """
-    SELECT directory, UNIX_TIMESTAMP(p.timestamp),
-           stat_entry, UNIX_TIMESTAMP(last_stat_entry_timestamp),
-           hash_entry, UNIX_TIMESTAMP(last_hash_entry_timestamp)
+    SELECT p.directory, UNIX_TIMESTAMP(p.timestamp),
+           s.stat_entry, UNIX_TIMESTAMP(ls.timestamp),
+           h.hash_entry, UNIX_TIMESTAMP(lh.timestamp)
       FROM client_paths as p
- LEFT JOIN (SELECT client_id, path_type, path_id, stat_entry
+ LEFT JOIN (SELECT stat_entry
               FROM client_path_stat_entries
-             WHERE client_id = %(client_id)s
-               AND path_type = %(path_type)s
-               AND path_id = %(path_id)s
+             WHERE (client_id, path_type, path_id) =
+                   (%(client_id)s, %(path_type)s, %(path_id)s)
                AND UNIX_TIMESTAMP(timestamp) <= %(timestamp)s
           ORDER BY timestamp DESC
              LIMIT 1) AS s
-        ON p.client_id = s.client_id
-       AND p.path_type = s.path_type
-       AND p.path_id = s.path_id
- LEFT JOIN (SELECT client_id, path_type, path_id, hash_entry
+        ON TRUE
+ LEFT JOIN (SELECT timestamp
+              FROM client_path_stat_entries
+             WHERE (client_id, path_type, path_id) =
+                   (%(client_id)s, %(path_type)s, %(path_id)s)
+          ORDER BY timestamp DESC
+             LIMIT 1) AS ls
+        ON TRUE
+ LEFT JOIN (SELECT hash_entry
               FROM client_path_hash_entries
-             WHERE client_id = %(client_id)s
-               AND path_type = %(path_type)s
-               AND path_id = %(path_id)s
+             WHERE (client_id, path_type, path_id) =
+                   (%(client_id)s, %(path_type)s, %(path_id)s)
                AND UNIX_TIMESTAMP(timestamp) <= %(timestamp)s
           ORDER BY timestamp DESC
              LIMIT 1) AS h
-        ON p.client_id = h.client_id
-       AND p.path_type = h.path_type
-       AND p.path_id = h.path_id
-     WHERE p.client_id = %(client_id)s
-       AND p.path_type = %(path_type)s
-       AND p.path_id = %(path_id)s
+        ON TRUE
+ LEFT JOIN (SELECT timestamp
+              FROM client_path_hash_entries
+             WHERE (client_id, path_type, path_id) =
+                   (%(client_id)s, %(path_type)s, %(path_id)s)
+          ORDER BY timestamp DESC
+             LIMIT 1) AS lh
+        ON TRUE
+     WHERE (p.client_id, p.path_type, p.path_id) =
+           (%(client_id)s, %(path_type)s, %(path_id)s)
     """
     values = {
         "client_id": db_utils.ClientIDToInt(client_id),
@@ -122,23 +147,27 @@ class MySQLDBPathMixin(object):
     path_infos = {components: None for components in components_list}
 
     query = """
-    SELECT path, directory, UNIX_TIMESTAMP(client_paths.timestamp),
-           stat_entry, UNIX_TIMESTAMP(last_stat_entry_timestamp),
-           hash_entry, UNIX_TIMESTAMP(last_hash_entry_timestamp)
-      FROM client_paths
- LEFT JOIN client_path_stat_entries ON
-           (client_paths.client_id = client_path_stat_entries.client_id AND
-            client_paths.path_type = client_path_stat_entries.path_type AND
-            client_paths.path_id = client_path_stat_entries.path_id AND
-            client_paths.last_stat_entry_timestamp = client_path_stat_entries.timestamp)
- LEFT JOIN client_path_hash_entries ON
-           (client_paths.client_id = client_path_hash_entries.client_id AND
-            client_paths.path_type = client_path_hash_entries.path_type AND
-            client_paths.path_id = client_path_hash_entries.path_id AND
-            client_paths.last_hash_entry_timestamp = client_path_hash_entries.timestamp)
-     WHERE client_paths.client_id = %s
-       AND client_paths.path_type = %s
-       AND client_paths.path_id IN ({})
+    SELECT p.path, p.directory, UNIX_TIMESTAMP(p.timestamp),
+           ls.stat_entry, UNIX_TIMESTAMP(ls.timestamp),
+           lh.hash_entry, UNIX_TIMESTAMP(lh.timestamp)
+      FROM client_paths AS p
+ LEFT JOIN client_path_stat_entries AS ls
+        ON ls.id = (SELECT id
+                      FROM client_path_stat_entries
+                     WHERE (client_id, path_type, path_id) =
+                           (p.client_id, p.path_type, p.path_id)
+                  ORDER BY timestamp DESC
+                     LIMIT 1)
+ LEFT JOIN client_path_hash_entries AS lh
+        ON lh.id = (SELECT id
+                      FROM client_path_hash_entries
+                     WHERE (client_id, path_type, path_id) =
+                           (p.client_id, p.path_type, p.path_id)
+                  ORDER BY timestamp DESC
+                     LIMIT 1)
+     WHERE p.client_id = %s
+       AND p.path_type = %s
+       AND p.path_id IN ({})
     """.format(", ".join(["%s"] * len(path_ids)))
     # NOTE: passing tuples as cursor.execute arguments is broken in
     # mysqldbclient==1.3.10
@@ -278,8 +307,6 @@ class MySQLDBPathMixin(object):
       cursor.executemany(query, parent_path_info_values)
 
     if stat_entry_values:
-      # Note: `client_paths.last_stat_entry_timestamp` will get updated via
-      # a DB trigger during the execution of this query.
       query = """
         INSERT INTO client_path_stat_entries(client_id, path_type, path_id,
                                              timestamp,
@@ -289,8 +316,6 @@ class MySQLDBPathMixin(object):
       cursor.executemany(query, stat_entry_values)
 
     if hash_entry_values:
-      # Note: `client_paths.last_hash_entry_timestamp` will get updated via
-      # a DB trigger during the execution of this query.
       query = """
         INSERT INTO client_path_hash_entries(client_id, path_type, path_id,
                                              timestamp,
@@ -321,56 +346,69 @@ class MySQLDBPathMixin(object):
         "path": path,
     }
 
-    query += """
-    SELECT path, directory, UNIX_TIMESTAMP(p.timestamp),
-           stat_entry, UNIX_TIMESTAMP(last_stat_entry_timestamp),
-           hash_entry, UNIX_TIMESTAMP(last_hash_entry_timestamp)
-      FROM client_paths AS p
-    """
+    # Hint: the difference between the below two queries is the data source used
+    # to fetch the stat/hash entry details. `last_{stat,hash}_entry_timestamp`
+    # will always be fetched from the latest stat/hash entry in the DB. However,
+    # if a max timestamp is given, then the full stat/hash entry details will be
+    # fetched from the latest entry only up to that timestamp.
     if timestamp is None:
       query += """
-      LEFT JOIN client_path_stat_entries AS s ON
-                (p.client_id = s.client_id AND
-                 p.path_type = s.path_type AND
-                 p.path_id = s.path_id AND
-                 p.last_stat_entry_timestamp = s.timestamp)
-      LEFT JOIN client_path_hash_entries AS h ON
-                (p.client_id = h.client_id AND
-                 p.path_type = h.path_type AND
-                 p.path_id = h.path_id AND
-                 p.last_hash_entry_timestamp = h.timestamp)
+      SELECT path, directory, UNIX_TIMESTAMP(p.timestamp),
+             ls.stat_entry, UNIX_TIMESTAMP(ls.timestamp),
+             lh.hash_entry, UNIX_TIMESTAMP(lh.timestamp)
+        FROM client_paths AS p
+   LEFT JOIN client_path_stat_entries AS ls
+          ON ls.id = (SELECT id
+                       FROM client_path_stat_entries
+                      WHERE (client_id, path_type, path_id) =
+                            (p.client_id, p.path_type, p.path_id)
+                   ORDER BY timestamp DESC
+                      LIMIT 1)
+   LEFT JOIN client_path_hash_entries AS lh
+          ON lh.id = (SELECT id
+                       FROM client_path_hash_entries
+                      WHERE (client_id, path_type, path_id) =
+                            (p.client_id, p.path_type, p.path_id)
+                   ORDER BY timestamp DESC
+                      LIMIT 1)
       """
       only_explicit = False
     else:
       query += """
-      LEFT JOIN (SELECT sr.client_id, sr.path_type, sr.path_id, sr.stat_entry
-                   FROM client_path_stat_entries AS sr
-             INNER JOIN (SELECT client_id, path_type, path_id,
-                                MAX(timestamp) AS max_timestamp
-                           FROM client_path_stat_entries
-                          WHERE UNIX_TIMESTAMP(timestamp) <= %(timestamp)s
-                       GROUP BY client_id, path_type, path_id) AS st
-                     ON sr.client_id = st.client_id
-                    AND sr.path_type = st.path_type
-                    AND sr.path_id = st.path_id
-                    AND sr.timestamp = st.max_timestamp) AS s
-             ON (p.client_id = s.client_id AND
-                 p.path_type = s.path_type AND
-                 p.path_id = s.path_id)
-      LEFT JOIN (SELECT hr.client_id, hr.path_type, hr.path_id, hr.hash_entry
-                   FROM client_path_hash_entries AS hr
-             INNER JOIN (SELECT client_id, path_type, path_id,
-                                MAX(timestamp) AS max_timestamp
-                           FROM client_path_hash_entries
-                          WHERE UNIX_TIMESTAMP(timestamp) <= %(timestamp)s
-                       GROUP BY client_id, path_type, path_id) AS ht
-                     ON hr.client_id = ht.client_id
-                    AND hr.path_type = ht.path_type
-                    AND hr.path_id = ht.path_id
-                    AND hr.timestamp = ht.max_timestamp) AS h
-             ON (p.client_id = h.client_id AND
-                 p.path_type = h.path_type AND
-                 p.path_id = h.path_id)
+      SELECT path, directory, UNIX_TIMESTAMP(p.timestamp),
+             s.stat_entry, UNIX_TIMESTAMP(ls.timestamp),
+             h.hash_entry, UNIX_TIMESTAMP(lh.timestamp)
+        FROM client_paths AS p
+   LEFT JOIN client_path_stat_entries AS ls
+          ON ls.id = (SELECT id
+                       FROM client_path_stat_entries
+                      WHERE (client_id, path_type, path_id) =
+                            (p.client_id, p.path_type, p.path_id)
+                   ORDER BY timestamp DESC
+                      LIMIT 1)
+   LEFT JOIN client_path_hash_entries AS lh
+          ON lh.id = (SELECT id
+                       FROM client_path_hash_entries
+                      WHERE (client_id, path_type, path_id) =
+                            (p.client_id, p.path_type, p.path_id)
+                   ORDER BY timestamp DESC
+                      LIMIT 1)
+   LEFT JOIN client_path_stat_entries AS s
+          ON s.id = (SELECT id
+                       FROM client_path_stat_entries
+                      WHERE (client_id, path_type, path_id) =
+                            (p.client_id, p.path_type, p.path_id)
+                        AND UNIX_TIMESTAMP(timestamp) <= %(timestamp)s
+                   ORDER BY timestamp DESC
+                      LIMIT 1)
+   LEFT JOIN client_path_hash_entries AS h
+          ON h.id = (SELECT id
+                       FROM client_path_hash_entries
+                      WHERE (client_id, path_type, path_id) =
+                            (p.client_id, p.path_type, p.path_id)
+                        AND UNIX_TIMESTAMP(timestamp) <= %(timestamp)s
+                   ORDER BY timestamp DESC
+                      LIMIT 1)
       """
       values["timestamp"] = mysql_utils.RDFDatetimeToTimestamp(timestamp)
       only_explicit = True

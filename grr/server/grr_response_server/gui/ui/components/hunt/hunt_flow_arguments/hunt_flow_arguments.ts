@@ -4,6 +4,7 @@ import {RouterModule} from '@angular/router';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
+import {getFlowTitleFromFlowName} from '../../../lib/models/flow';
 import {Hunt} from '../../../lib/models/hunt';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
 import {FlowArgsViewData} from '../../flow_args_view/flow_args_view';
@@ -61,4 +62,12 @@ export class HuntFlowArguments {
                       }),
               startWith(null as FlowArgsViewData|null),
           );
+
+  protected readonly huntFlowName$ =
+      combineLatest([
+        this.hunt$, this.flowArgsViewData$.pipe(map(vd => vd?.flowDescriptor))
+      ])
+          .pipe(
+              map(([hunt, descriptor]) =>
+                      getFlowTitleFromFlowName(hunt?.flowName, descriptor)));
 }

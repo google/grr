@@ -3,6 +3,7 @@ import {Router} from '@angular/router';
 import {filter, take, tap} from 'rxjs/operators';
 
 import {RolloutForm} from '../../../components/hunt/rollout_form/rollout_form';
+import {HuntState} from '../../../lib/models/hunt';
 import {isNonNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {HuntPageGlobalStore} from '../../../store/hunt_page_global_store';
@@ -18,6 +19,7 @@ import {HuntPageGlobalStore} from '../../../store/hunt_page_global_store';
 })
 export class ModifyHunt implements OnDestroy, AfterViewInit {
   readonly ngOnDestroy = observeOnDestroy(this);
+  protected readonly HuntState = HuntState;
 
   @ViewChild('rolloutForm', {static: false}) rolloutForm!: RolloutForm;
 
@@ -26,6 +28,8 @@ export class ModifyHunt implements OnDestroy, AfterViewInit {
       private readonly changeDetection: ChangeDetectorRef,
       private readonly router: Router,
   ) {}
+
+  protected readonly hunt$ = this.huntPageGlobalStore.selectedHunt$;
 
   ngAfterViewInit() {
     this.huntPageGlobalStore.selectedHunt$

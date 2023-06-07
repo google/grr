@@ -1,6 +1,7 @@
 import {ApiFlowReference, ApiHuntReference, ForemanClientRuleSet, OutputPluginDescriptor} from '../api/api_interfaces';
 import {Duration} from '../date_time';
 
+import {getFlowTitleFromFlowName} from './flow';
 import {Approval, ApprovalRequest} from './user';
 
 /** Key used to identify a hunt approval */
@@ -26,10 +27,10 @@ export declare interface SafetyLimits {
 /** ApiHunt.State proto mapping. */
 export enum HuntState {
   NOT_STARTED = 'NOT_STARTED',
-  PAUSED = 'PAUSED',
   RUNNING = 'RUNNING',
+  REACHED_CLIENT_LIMIT = 'REACHED_CLIENT_LIMIT',
   CANCELLED = 'CANCELLED',
-  COMPLETED = 'COMPLETED',
+  REACHED_TIME_LIMIT = 'REACHED_TIME_LIMIT',
 }
 
 /** ApiHunt.HuntType proto mapping. */
@@ -37,6 +38,12 @@ export enum HuntType {
   UNSET = 'UNSET',
   STANDARD = 'STANDARD',
   VARIABLE = 'VARIABLE',
+}
+
+/** Resource Usage for this hunt. */
+export declare interface HuntResourceUsage {
+  totalCPUTime?: number;  // This can be a float
+  totalNetworkTraffic?: bigint;
 }
 
 /** Hunt proto mapping. */
@@ -63,13 +70,12 @@ export declare interface Hunt {
   readonly resultsCount: bigint;
   readonly state: HuntState;
   readonly stateComment?: string;
-  readonly totalCpuUsage: number;
-  readonly totalNetUsage: bigint;
   readonly safetyLimits: SafetyLimits;
   readonly flowReference?: ApiFlowReference;
   readonly huntReference?: ApiHuntReference;
   readonly clientRuleSet?: ForemanClientRuleSet;
   readonly outputPlugins?: OutputPluginDescriptor[];
+  readonly resourceUsage?: HuntResourceUsage;
 }
 
 /** Approval proto mapping. */
@@ -97,5 +103,5 @@ export function getHuntTitle(hunt: Hunt|null): string {
   const name = hunt?.name === 'GenericHunt' ? '' : hunt?.name;
   return hunt?.description || name ||
       'Untitled fleet collection' +
-      (hunt?.flowName ? ': ' + hunt.flowName : '');
+      (hunt?.flowName ? ': ' + getFlowTitleFromFlowName(hunt.flowName) : '');
 }

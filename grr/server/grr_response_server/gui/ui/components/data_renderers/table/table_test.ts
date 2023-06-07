@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {MatPaginatorHarness} from '@angular/material/paginator/testing';
+import {MatLegacyPaginatorHarness} from '@angular/material/legacy-paginator/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 import {ReplaySubject} from 'rxjs';
@@ -98,7 +98,7 @@ describe('DataTableView component', () => {
     expect(cells[CellIndexOf.FILE_MODE].innerText).toContain('-rw-r--r--');
     expect(cells[CellIndexOf.HUMAN_READABLE_SIZE].innerText).toContain('442 B');
     expect(cells[CellIndexOf.TIMESTAMP].innerText)
-        .toContain('1970-01-01 00:07:20 UTC');
+        .toContain('2023-03-30 01:33:20 UTC');
 
     cells = rows[1].querySelectorAll('mat-cell');
     expect(cells[CellIndexOf.PATH].innerText).toContain('/bar');
@@ -110,11 +110,12 @@ describe('DataTableView component', () => {
     fixture.detectChanges();
 
     // For unknown, mystical, and elusive reasons, Angular's MatPaginator keeps
-    // showing "0 of 0" unless the MatPaginatorHarness is loaded. MatPaginator
-    // should show the count of 123 in tests without it, but weirdly doesn't.
-    // Also, loading the harness should be a no-op, but also isn't.
+    // showing "0 of 0" unless the MatLegacyPaginatorHarness is loaded.
+    // MatPaginator should show the count of 123 in tests without it, but
+    // weirdly doesn't. Also, loading the harness should be a no-op, but also
+    // isn't.
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    await harnessLoader.getHarness(MatPaginatorHarness);
+    await harnessLoader.getHarness(MatLegacyPaginatorHarness);
 
     expect(fixture.debugElement.nativeElement.textContent).toContain('123');
   });
@@ -126,7 +127,7 @@ describe('DataTableView component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginationHarness =
-        await harnessLoader.getHarness(MatPaginatorHarness);
+        await harnessLoader.getHarness(MatLegacyPaginatorHarness);
     const pageSize = await paginationHarness.getPageSize();
 
     expect(resultSource.loadResults)
@@ -140,7 +141,7 @@ describe('DataTableView component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginationHarness =
-        await harnessLoader.getHarness(MatPaginatorHarness);
+        await harnessLoader.getHarness(MatLegacyPaginatorHarness);
     await paginationHarness.goToNextPage();
 
     const pageSize = await paginationHarness.getPageSize();

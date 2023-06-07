@@ -1,15 +1,15 @@
 import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
-import {MatCardModule} from '@angular/material/card';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatDialogModule} from '@angular/material/dialog';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
-import {MatSnackBarModule} from '@angular/material/snack-bar';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyCardModule} from '@angular/material/legacy-card';
+import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
+import {MatLegacyDialogModule} from '@angular/material/legacy-dialog';
+import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
+import {MatLegacySnackBarModule} from '@angular/material/legacy-snack-bar';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {RouterModule} from '@angular/router';
 
 import {SanitizerPipeModule} from '../../pipes/sanitizer/module';
@@ -31,15 +31,15 @@ import {ClientOverview} from './client_overview';
     CommonModule,
     RouterModule,
 
-    MatButtonModule,
-    MatCardModule,
-    MatChipsModule,
-    MatDialogModule,
+    MatLegacyButtonModule,
+    MatLegacyCardModule,
+    MatLegacyChipsModule,
+    MatLegacyDialogModule,
     MatDividerModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatSnackBarModule,
-    MatTooltipModule,
+    MatLegacyProgressSpinnerModule,
+    MatLegacySnackBarModule,
+    MatLegacyTooltipModule,
 
     ApprovalChipModule,
     CopyButtonModule,

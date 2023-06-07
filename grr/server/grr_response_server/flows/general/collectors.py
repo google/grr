@@ -215,12 +215,21 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         # [1]: https://github.com/ForensicArtifacts/artifacts/pull/475
         elif (type_name == source_type.DIRECTORY or
               type_name == source_type.PATH):
-          self.Glob(source, _GetPathType(self.args, self.client_os),
-                    _GetImplementationType(self.args))
+          self.GetPaths(
+              source,
+              _GetPathType(self.args, self.client_os),
+              _GetImplementationType(self.args),
+              rdf_file_finder.FileFinderAction.Stat(),
+          )
         elif type_name == source_type.FILE:
-          self.GetFiles(source, _GetPathType(self.args, self.client_os),
-                        _GetImplementationType(self.args),
-                        self.args.max_file_size)
+          self.GetPaths(
+              source,
+              _GetPathType(self.args, self.client_os),
+              _GetImplementationType(self.args),
+              rdf_file_finder.FileFinderAction.Download(
+                  max_size=self.args.max_file_size
+              ),
+          )
         elif type_name == source_type.GREP:
           self.Grep(source, _GetPathType(self.args, self.client_os),
                     _GetImplementationType(self.args))
@@ -255,35 +264,23 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         return False
     return True
 
-  def GetFiles(self, source, path_type, implementation_type, max_size):
+  def GetPaths(self, source, path_type, implementation_type, action):
     """Get a set of files."""
-    new_path_list = []
-    for path in source.attributes["paths"]:
-      try:
-        interpolated = artifact_utils.InterpolateKbAttributes(
-            path, self.state.knowledge_base)
-      except artifact_utils.KbInterpolationMissingAttributesError as error:
-        logging.error(str(error))
-        if not self.args.ignore_interpolation_errors:
-          raise
-        else:
-          interpolated = []
-
-      new_path_list.extend(interpolated)
-
-    action = rdf_file_finder.FileFinderAction.Download(max_size=max_size)
-
+    file_finder_cls = file_finder.ClientFileFinder
+    if config.CONFIG["Server.internal_artifactcollector_use_legacy_filefinder"]:
+      file_finder_cls = file_finder.FileFinder
     self.CallFlow(
-        file_finder.FileFinder.__name__,
-        paths=new_path_list,
+        file_finder_cls.__name__,
+        paths=self.InterpolateList(source.attributes.get("paths", [])),
         pathtype=path_type,
         implementation_type=implementation_type,
         action=action,
         request_data={
             "artifact_name": self.current_artifact_name,
-            "source": source.ToPrimitiveDict()
+            "source": source.ToPrimitiveDict(),
         },
-        next_state=self.ProcessFileFinderResults.__name__)
+        next_state=self.ProcessFileFinderResults.__name__,
+    )
 
   def ProcessFileFinderResults(self, responses):
     if not responses.success:
@@ -429,23 +426,15 @@ class ArtifactCollectorFlow(flow_base.FlowBase):
         pathspec = rdf_paths.PathSpec(
             path=new_path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
 
-        # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
-        # This conditional should be removed after that date.
-        if not self.client_version or self.client_version >= 3221:
-          stub = server_stubs.GetFileStat
-          request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
-        else:
-          stub = server_stubs.StatFile
-          request = rdf_client_action.ListDirRequest(pathspec=pathspec)
-
         self.CallClient(
-            stub,
-            request,
+            server_stubs.GetFileStat,
+            rdf_client_action.GetFileStatRequest(pathspec=pathspec),
             request_data={
                 "artifact_name": self.current_artifact_name,
-                "source": source.ToPrimitiveDict()
+                "source": source.ToPrimitiveDict(),
             },
-            next_state=self.ProcessCollectedRegistryStatEntry.__name__)
+            next_state=self.ProcessCollectedRegistryStatEntry.__name__,
+        )
 
   def _StartSubArtifactCollector(self, artifact_list, source, next_state):
     self.CallFlow(

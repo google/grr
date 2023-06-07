@@ -22,7 +22,6 @@ from grr_response_core.lib.rdfvalues import large_file as rdf_large_file
 from grr_response_core.lib.rdfvalues import memory as rdf_memory
 from grr_response_core.lib.rdfvalues import osquery as rdf_osquery
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import plist as rdf_plist
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import read_low_level as rdf_read_low_level
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
@@ -182,14 +181,6 @@ class SendStartupInfo(ClientActionStub):
   out_rdfvalues = [rdf_client.StartupInfo]
 
 
-# from plist.py
-class PlistQuery(ClientActionStub):
-  """Parses the plist request specified and returns the results."""
-
-  in_rdfvalue = rdf_plist.PlistRequest
-  out_rdfvalues = [rdf_protodict.RDFValueArray]
-
-
 # from standard.py
 class ReadBuffer(ClientActionStub):
   """Reads a buffer from a file and returns it to a server callback."""
@@ -221,20 +212,6 @@ class HashFile(ClientActionStub):
 
 class ListDirectory(ClientActionStub):
   """Lists all the files in a directory."""
-
-  in_rdfvalue = rdf_client_action.ListDirRequest
-  out_rdfvalues = [rdf_client_fs.StatEntry]
-
-
-# DEPRECATED.
-#
-# This action was replaced by newer `GetFileStat` action. This stub is left for
-# compatibility with old clients. After the transition period all clients should
-# support new action and this class should be removed.
-#
-# TODO(hanuszczak): Remove this class after 2021-01-01.
-class StatFile(ClientActionStub):
-  """Sends a StatEntry for a single file."""
 
   in_rdfvalue = rdf_client_action.ListDirRequest
   out_rdfvalues = [rdf_client_fs.StatEntry]

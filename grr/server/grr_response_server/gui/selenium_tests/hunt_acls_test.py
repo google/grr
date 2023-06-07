@@ -31,7 +31,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     hunt_id = self.StartHunt(paused=True, creator=self.test_username)
 
     # Open up and click on View Hunts.
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
 
@@ -61,7 +61,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     self.WaitForNotification(self.test_username)
-    self.Open("/")
+    self.Open("/legacy")
 
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
 
@@ -81,7 +81,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.WaitUntil(self.IsTextPresent, "Approval granted.")
 
     self.WaitForNotification(self.test_username)
-    self.Open("/")
+    self.Open("/legacy")
 
     # We should be notified that we have an approval
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
@@ -111,7 +111,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         admin=False)
 
     self.WaitForNotification(self.test_username)
-    self.Open("/")
+    self.Open("/legacy")
 
     # We should be notified that we have an approval
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
@@ -136,7 +136,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
     self.CreateAdminUser(u"approver")
 
     # Check if we see that the approval has already been granted.
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("notification_button")
 
     self.Click("css=td:contains('Please grant access to hunt')")
@@ -145,7 +145,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
                    "This approval has already been granted!")
 
     # And try again
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
 
@@ -184,7 +184,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
   def testHuntApprovalsArePerHunt(self):
     hunt1_id, hunt2_id = self.Create2HuntsForDifferentUsers()
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
 
@@ -301,7 +301,7 @@ class TestHuntACLWorkflow(gui_test_lib.GRRSeleniumHuntTest):
         requestor=self.test_username)
 
     self.WaitForNotification(self.test_username)
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
     self.Click("notification_button")
     self.Click("css=td:contains('Please grant access to hunt')")

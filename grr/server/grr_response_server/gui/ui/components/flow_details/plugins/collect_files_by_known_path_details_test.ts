@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {MatTabGroupHarness} from '@angular/material/tabs/testing';
+import {MatLegacyTabGroupHarness} from '@angular/material/legacy-tabs/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
@@ -105,7 +105,7 @@ describe('CollectFilesByKnownPathDetails component', () => {
         .toContain(
             '1 file fetched by parsing the raw disk image with libtsk or libfsntfs.');
 
-    const tabsHarness = await harnessLoader.getHarness(MatTabGroupHarness)
+    const tabsHarness = await harnessLoader.getHarness(MatLegacyTabGroupHarness)
                             .then(group => group.getTabs());
     expect(tabsHarness.length).toEqual(2);
 
@@ -163,7 +163,7 @@ describe('CollectFilesByKnownPathDetails component', () => {
     ]);
     fixture.detectChanges();
 
-    const tabsHarness = await harnessLoader.getHarness(MatTabGroupHarness)
+    const tabsHarness = await harnessLoader.getHarness(MatLegacyTabGroupHarness)
                             .then(group => group.getTabs());
     expect(tabsHarness.length).toEqual(1);
 
@@ -206,7 +206,7 @@ describe('CollectFilesByKnownPathDetails component', () => {
     ]);
     fixture.detectChanges();
 
-    const tabsHarness = await harnessLoader.getHarness(MatTabGroupHarness)
+    const tabsHarness = await harnessLoader.getHarness(MatLegacyTabGroupHarness)
                             .then(group => group.getTabs());
     expect(tabsHarness.length).toEqual(1);
 
@@ -244,7 +244,7 @@ describe('CollectFilesByKnownPathDetails component', () => {
 
     fixture.detectChanges();
 
-    const tabsHarness = await harnessLoader.getHarness(MatTabGroupHarness)
+    const tabsHarness = await harnessLoader.getHarness(MatLegacyTabGroupHarness)
                             .then(group => group.getTabs());
     expect(tabsHarness.length).toEqual(2);
 
@@ -283,7 +283,7 @@ describe('CollectFilesByKnownPathDetails component', () => {
 
     fixture.detectChanges();
 
-    const tabsHarness = await harnessLoader.getHarness(MatTabGroupHarness)
+    const tabsHarness = await harnessLoader.getHarness(MatLegacyTabGroupHarness)
                             .then(group => group.getTabs());
     expect(tabsHarness.length).toEqual(2);
 

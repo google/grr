@@ -40,21 +40,8 @@
   }
 }
 
-.key-value-table {
-  td {
-    font-size: 14px;
-  }
-}
-
-.section-title,
-h4 {
-  color: mat.get-color-from-palette(c.$foreground, text);
-  font-family: c.$google-sans-display-family;
-  font-size: 14px;
-  font-weight: 500;
-  display: flex;
-  margin-top: 0.7em;
-  margin-bottom: 0em;
+hunt-original-reference {
+  display: block;
 }
 
 .mat-chip-list {
@@ -63,9 +50,4 @@ h4 {
   .yellow-chip {
     font-weight: bold;
   }
-}
-
-.id {
-  font-size: 10px;
-  color: mat.get-color-from-palette(c.$foreground, text-light);
 }

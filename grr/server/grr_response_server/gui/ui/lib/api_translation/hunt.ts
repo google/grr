@@ -32,7 +32,7 @@ export function translateHuntState(hunt: ApiHunt): HuntState {
   switch (hunt.state) {
     case ApiHuntState.PAUSED:
       if (hunt.initStartTime) {
-        return HuntState.PAUSED;
+        return HuntState.REACHED_CLIENT_LIMIT;
       }
       return HuntState.NOT_STARTED;
     case ApiHuntState.STARTED:
@@ -40,7 +40,7 @@ export function translateHuntState(hunt: ApiHunt): HuntState {
     case ApiHuntState.STOPPED:
       return HuntState.CANCELLED;
     case ApiHuntState.COMPLETED:
-      return HuntState.COMPLETED;
+      return HuntState.REACHED_TIME_LIMIT;
     default:
       // Should be unreachable
       throw new Error(`Unknown ApiHuntState value: ${hunt.state}.`);
@@ -84,8 +84,10 @@ export function translateHunt(hunt: ApiHunt): Hunt {
     resultsCount: BigInt(hunt.resultsCount ?? 0),
     state: translateHuntState(hunt),
     stateComment: hunt.stateComment,
-    totalCpuUsage: hunt.totalCpuUsage ?? 0,
-    totalNetUsage: BigInt(hunt.totalNetUsage ?? 0),
+    resourceUsage: {
+      totalCPUTime: hunt.totalCpuUsage ?? 0,
+      totalNetworkTraffic: BigInt(hunt.totalNetUsage ?? 0),
+    },
     safetyLimits: translateSafetyLimits(hunt.huntRunnerArgs),
     flowReference: hunt.originalObject?.flowReference,
     huntReference: hunt.originalObject?.huntReference,
@@ -127,13 +129,13 @@ export function toApiHuntState(state: HuntState): ApiHuntState {
   switch (state) {
     case HuntState.NOT_STARTED:
       return ApiHuntState.PAUSED;
-    case HuntState.PAUSED:
+    case HuntState.REACHED_CLIENT_LIMIT:
       return ApiHuntState.PAUSED;
     case HuntState.RUNNING:
       return ApiHuntState.STARTED;
     case HuntState.CANCELLED:
       return ApiHuntState.STOPPED;
-    case HuntState.COMPLETED:
+    case HuntState.REACHED_TIME_LIMIT:
       return ApiHuntState.COMPLETED;
     default:
       // Should be unreachable

@@ -3,7 +3,6 @@
 
 from grr_response_server import export_converters_registry
 from grr_response_server.export_converters import buffer_reference
-from grr_response_server.export_converters import check_result
 from grr_response_server.export_converters import client_summary
 from grr_response_server.export_converters import cron_tab_file
 from grr_response_server.export_converters import execute_response
@@ -26,7 +25,6 @@ def RegisterExportConverters():
   # keep-sorted start
   export_converters_registry.Register(
       buffer_reference.BufferReferenceToExportedMatchConverter)
-  export_converters_registry.Register(check_result.CheckResultConverter)
   export_converters_registry.Register(
       client_summary.ClientSummaryToExportedClientConverter)
   export_converters_registry.Register(

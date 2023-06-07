@@ -14,21 +14,26 @@ from grr_response_server import server_startup
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-flags.DEFINE_list(
+_TARGET = flags.DEFINE_list(
     "target",
     default=None,
-    help="Benchmark the given BlobStore implementation classes. "
-    "Separate multiple by comma.")
+    help=(
+        "Benchmark the given BlobStore implementation classes. "
+        "Separate multiple by comma."
+    ),
+)
 
-flags.DEFINE_list(
+_SIZES = flags.DEFINE_list(
     "sizes",
     default=["500K", "200K", "100K", "50K", "5K", "500", "50"],
-    help="Use the given blob sizes for the benchmark.")
+    help="Use the given blob sizes for the benchmark.",
+)
 
-flags.DEFINE_integer(
+_PER_SIZE_DURATION_SECONDS = flags.DEFINE_integer(
     "per_size_duration_seconds",
     default=30,
-    help="Benchmark duration per blob size in seconds.")
+    help="Benchmark duration per blob size in seconds.",
+)
 
 
 def _MakeBlobStore(blobstore_name):
@@ -90,25 +95,23 @@ def main(argv):
   # Initialise flows and config_lib
   server_startup.Init()
 
-  if not flags.FLAGS.target:
+  if not _TARGET.value:
     store_names = ", ".join(sorted(blob_store.REGISTRY.keys()))
     print("Missing --target. Use one or multiple of: {}.".format(store_names))
     exit(1)
 
-  stores = [
-      _MakeBlobStore(blobstore_name) for blobstore_name in flags.FLAGS.target
-  ]
+  stores = [_MakeBlobStore(blobstore_name) for blobstore_name in _TARGET.value]
 
   with io.open("/dev/urandom", "rb") as random_fd:
-    for blobstore_name, bs in zip(flags.FLAGS.target, stores):
+    for blobstore_name, bs in zip(_TARGET.value, stores):
       print()
       print(blobstore_name)
       print("size\ttotal\tnum\tqps\t  b/sec\tp50\tp90\tp95\tp99")
-      for size in flags.FLAGS.sizes:
+      for size in _SIZES.value:
         size_b = rdfvalue.ByteSize(size)
-        durations = _RunBenchmark(bs, size_b,
-                                  flags.FLAGS.per_size_duration_seconds,
-                                  random_fd)
+        durations = _RunBenchmark(
+            bs, size_b, _PER_SIZE_DURATION_SECONDS.value, random_fd
+        )
         _PrintStats(size, size_b, durations)
 
 

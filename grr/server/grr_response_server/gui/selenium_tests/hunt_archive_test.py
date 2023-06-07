@@ -25,7 +25,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -37,7 +37,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testDoesNotShowGenerateArchiveButtonWhenResultCollectionIsEmpty(self):
     hunt_id, _ = self.CreateGenericHuntWithCollection([])
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -54,7 +54,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -72,7 +72,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -88,7 +88,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
-    self.Open("/#/hunts/%s/results" % hunt_id)
+    self.Open("/legacy#/hunts/%s/results" % hunt_id)
     self.Click("link=Show export command")
 
     self.WaitUntil(
@@ -100,7 +100,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testExportCommandIsNotShownWhenNoResults(self):
     hunt_id, _ = self.CreateGenericHuntWithCollection([])
 
-    self.Open("/#/hunts/%s/results" % hunt_id)
+    self.Open("/legacy#/hunts/%s/results" % hunt_id)
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-hunt-results:contains('Value')")
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
@@ -110,7 +110,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
-    self.Open("/#/hunts/%s/results" % hunt_id)
+    self.Open("/legacy#/hunts/%s/results" % hunt_id)
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-hunt-results:contains('Value')")
     self.WaitUntilNot(self.IsTextPresent, "Show export command")
@@ -123,7 +123,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -135,7 +135,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     hunt_id = self._CreateHuntWithDownloadedFile()
     self.RequestAndGrantHuntApproval(hunt_id)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -148,7 +148,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     hunt_id = self._CreateHuntWithDownloadedFile()
     self.RequestAndGrantHuntApproval(hunt_id)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -169,7 +169,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     with mock.patch.object(archive_generator.CollectionArchiveGenerator,
                            "Generate", RaisingStub):
-      self.Open("/")
+      self.Open("/legacy")
       self.Click("css=a[grrtarget=hunts]")
       self.Click("css=td:contains('%s')" % hunt_id)
       self.Click("css=li[heading=Results]")
@@ -190,7 +190,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     with mock.patch.object(archive_generator.CollectionArchiveGenerator,
                            "Generate", RaisingStub):
-      self.Open("/")
+      self.Open("/legacy")
       self.Click("css=a[grrtarget=hunts]")
       self.Click("css=td:contains('%s')" % hunt_id)
       self.Click("css=li[heading=Results]")
@@ -207,7 +207,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -225,7 +225,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -243,7 +243,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     hunt_id, _ = self.CreateGenericHuntWithCollection(values=values)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -254,7 +254,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
   def testHuntAuthorizationIsRequiredToDownloadSingleHuntFile(self):
     hunt_id = self._CreateHuntWithDownloadedFile()
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -268,7 +268,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     self.RequestAndGrantHuntApproval(hunt_id)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")
@@ -292,7 +292,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
 
     self.RequestAndGrantHuntApproval(hunt_id)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Results]")

@@ -62,6 +62,7 @@
     <tr
       mat-row
       *matRowDef="let row; columns: columns"
+      role="link"
       [routerLink]="['/clients/', row.clientId]"
       [queryParams]="clientLinkParams$ | async"
     ></tr>

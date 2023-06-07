@@ -20,17 +20,13 @@ class LinuxOnlyTest(client_test_lib.EmptyActionTest):
   def testEnumerateUsersLinux(self):
     """Enumerate users from the wtmp file."""
 
-    def MockedOpen(requested_path, mode="rb", buffering=-1):
+    def MockedOpen(requested_path, mode="rb"):
       try:
         fixture_path = os.path.join(self.base_path, "VFSFixture",
                                     requested_path.lstrip("/"))
-        return builtins.open.old_target(
-            fixture_path, mode=mode, buffering=buffering
-        )
+        return builtins.open.old_target(fixture_path, mode)
       except IOError:
-        return builtins.open.old_target(
-            requested_path, mode=mode, buffering=buffering
-        )
+        return builtins.open.old_target(requested_path, mode)
 
     with utils.MultiStubber((builtins, "open", MockedOpen),
                             (glob, "glob", lambda x: ["/var/log/wtmp"])):

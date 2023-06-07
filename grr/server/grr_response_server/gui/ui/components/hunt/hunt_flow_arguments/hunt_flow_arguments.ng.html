@@ -20,9 +20,9 @@
         }
       ]"
     >
-      {{ (flowArgsViewData$ | async)?.flowDescriptor?.friendlyName || hunt.flowName}}
+      {{ (huntFlowName$ | async)}}
     </a>
-    <ng-template #noLink>{{ (flowArgsViewData$ | async)?.flowDescriptor?.friendlyName || hunt.flowName}}</ng-template>
+    <ng-template #noLink>{{ (huntFlowName$ | async)}}</ng-template>
     <app-copy-button
       *ngIf="hunt.flowReference?.flowId"
       class="mat-small monospace id"

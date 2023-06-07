@@ -1,9 +1,9 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {MatMenuModule} from '@angular/material/menu';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyMenuModule} from '@angular/material/legacy-menu';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -18,10 +18,10 @@ import {ScheduledFlowList} from './scheduled_flow_list';
   imports: [
     BrowserAnimationsModule,
     CommonModule,
-    MatButtonModule,
+    MatLegacyButtonModule,
     MatIconModule,
-    MatMenuModule,
-    MatTooltipModule,
+    MatLegacyMenuModule,
+    MatLegacyTooltipModule,
     RouterModule,
     UserImageModule,
   ],

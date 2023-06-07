@@ -1,11 +1,11 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
-import {MatCardModule} from '@angular/material/card';
-import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyCardModule} from '@angular/material/legacy-card';
+import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
+import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 
 import {FlowArgsViewModule} from '../../flow_args_view/module';
 import {HelpersModule} from '../../flow_details/helpers/module';
@@ -16,6 +16,7 @@ import {TimestampModule} from '../../timestamp/module';
 import {UserImageModule} from '../../user_image/module';
 import {HuntArguments} from '../hunt_arguments/hunt_arguments';
 import {HuntFlowArguments} from '../hunt_flow_arguments/hunt_flow_arguments';
+import {HuntOriginalReference} from '../hunt_original_reference/hunt_original_reference';
 
 import {HuntApprovalPage} from './hunt_approval_page';
 import {HuntApprovalPageRoutingModule} from './routing';
@@ -25,23 +26,16 @@ import {HuntApprovalPageRoutingModule} from './routing';
  */
 @NgModule({
   imports: [
-    CommonModule,
-    MatButtonModule,
-    MatCardModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule,
-    MatChipsModule,
-    MatIconModule,
-    HuntArguments,
-    HuntFlowArguments,
-    HuntApprovalPageRoutingModule,
-    TextWithLinksModule,
-    UserImageModule,
-    CopyButtonModule,
-    TimestampModule,
-    FlowArgsViewModule,
-    HelpersModule,
-    HumanReadableSizeModule,
+    // TODO: Re-enable tslint after migration is complete.
+    // tslint:disable:deprecation
+    // keep-sorted start block=yes
+    CommonModule, MatLegacyButtonModule, MatLegacyCardModule, CopyButtonModule,
+    HuntApprovalPageRoutingModule, TextWithLinksModule, UserImageModule,
+    HuntFlowArguments, MatLegacyProgressSpinnerModule, MatLegacyTooltipModule,
+    HuntOriginalReference, MatLegacyChipsModule, MatIconModule, HuntArguments,
+    TimestampModule, FlowArgsViewModule, HelpersModule, HumanReadableSizeModule,
+    // keep-sorted end
+    // tslint:enable:deprecation
   ],
   declarations: [HuntApprovalPage],
   exports: [HuntApprovalPage]

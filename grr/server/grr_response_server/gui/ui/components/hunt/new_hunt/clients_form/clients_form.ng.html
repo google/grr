@@ -1,6 +1,6 @@
 <div class="wrapper">
   <div class="header" (click)="showContent($event)">
-      Select Client
+      Select client
     <button id="client-form-toggle"
             mat-icon-button
             class="corner-button"
@@ -23,7 +23,7 @@
           <mat-option [value]="RuleSetMatchMode.MATCH_ANY">Match Any (or)</mat-option>
         </mat-select>
       </mat-form-field>
-      <div class="rules-container">
+      <div *ngIf="conditions().controls.length > 0" class="rules-container">
         <div *ngFor="let condition of conditions().controls; let conditionIndex=index"
              [attr.name]="'condition_'+conditionIndex"
              [ngSwitch]="condition.get('type')?.value"

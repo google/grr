@@ -16,6 +16,29 @@ table {
   margin-bottom: c.$card-margin;
 }
 
+.title-section{
+  display:flex;
+  align-items:center;
+  margin-bottom: c.$card-margin;
+
+  form {
+    flex-grow:1;
+
+    mat-form-field {
+      width: 100%;
+    }
+
+    ::ng-deep .mat-form-field-outline {
+      background-color: white;
+      border-radius: 8px;
+    }
+  }
+}
+
+.mt-1 {
+  margin-top: 1em;
+}
+
 .new-hunt-container {
   .config {
     width: 100%;

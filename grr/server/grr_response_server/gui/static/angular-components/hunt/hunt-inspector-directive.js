@@ -22,7 +22,7 @@ const HuntInspectorController = class {
     /** @type {string} */
     this.activeTab = '';
 
-    /** type {Object<string, boolean>} */
+    /** @type {Object<string, boolean>} */
     this.tabsShown = {};
 
     this.scope_.$watchGroup(

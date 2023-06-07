@@ -37,12 +37,13 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testOpeningManageFlowsOfUnapprovedClientRedirectsToHostInfoPage(self):
     client_id = self.SetupClient(1)
-    self.Open("/#/clients/%s/flows/" % client_id)
+    self.Open("/legacy#/clients/%s/flows/" % client_id)
 
     # As we don't have an approval for the client, we should be
     # redirected to the host info page.
-    self.WaitUntilEqual("/#/clients/%s/host-info" % client_id,
-                        self.GetCurrentUrlPath)
+    self.WaitUntilEqual(
+        "/legacy#/clients/%s/host-info" % client_id, self.GetCurrentUrlPath
+    )
     self.WaitUntil(self.IsTextPresent,
                    "You do not have an approval for this client.")
 
@@ -57,7 +58,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         flow_args=args,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s/flows/" % self.client_id)
+    self.Open("/legacy#/clients/%s/flows/" % self.client_id)
 
     self.WaitUntilEqual("GRR | %s | Flows" % self.client_id, self.GetPageTitle)
 
@@ -67,7 +68,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
   def testFlowManagement(self):
     """Test that scheduling flows works."""
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Type("client_query", self.client_id)
     self.Click("client_query_submit")
@@ -155,7 +156,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
 
     # There should be a RecursiveTestFlow in the list. Expand nested flows.
@@ -172,7 +173,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.assertGreaterEqual(len(flow_id), 8)
 
   def testNestedFlowsAppearCorrectlyAfterAutoRefresh(self):
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
@@ -231,7 +232,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     self.RunHunt(failrate=2, client_ids=[self.client_id])
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
 
     # There should be a RecursiveTestFlow in the list. Expand nested flows.
@@ -249,7 +250,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneLogStatement')")
     self.Click("css=li[heading=Log]")
@@ -263,7 +264,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
           self.client_id,
           creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneLogStatement')")
     self.Click("css=li[heading=Log]")
@@ -276,7 +277,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
@@ -290,7 +291,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
@@ -304,7 +305,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneHashEntryResult')")
     self.Click("css=li[heading=Results]")
@@ -323,7 +324,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s/flows/%s/api" % (self.client_id, flow_id))
+    self.Open("/legacy#/clients/%s/flows/%s/api" % (self.client_id, flow_id))
 
     self.WaitUntil(self.IsTextPresent,
                    "HTTP (authentication details are omitted)")
@@ -340,7 +341,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.client_id,
         creator=self.test_username)
 
-    base_url = "/#/clients/%s/flows/%s" % (self.client_id, flow_id)
+    base_url = "/legacy#/clients/%s/flows/%s" % (self.client_id, flow_id)
 
     self.Open(base_url)
 
@@ -365,7 +366,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.client_id,
         creator=self.test_username)
 
-    base_url = "/#/clients/%s/flows/%s" % (self.client_id, flow_id)
+    base_url = "/legacy#/clients/%s/flows/%s" % (self.client_id, flow_id)
 
     self.Open(base_url + "/requests")
     self.WaitUntil(self.IsElementPresent, "css=li.active[heading=Requests]")
@@ -394,7 +395,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         creator=self.test_username)
 
     # Open client and find the flow
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Type("client_query", self.client_id)
     self.Click("client_query_submit")
@@ -415,7 +416,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
@@ -445,7 +446,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.flow.flowsListDirective.setAutoRefreshInterval(1000);")
@@ -469,7 +470,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.flow.flowOverviewDirective.setAutoRefreshInterval(1000);")
@@ -506,7 +507,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     self._AddLogToFlow(flow_id, "foo-log")
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.flow.flowLogDirective.setAutoRefreshInterval(1000);")
@@ -540,7 +541,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     self._AddResultToFlow(flow_id, rdfvalue.RDFString("foo-result"))
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")
@@ -569,7 +570,7 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
 
     self._AddResultToFlow(flow_id, rdfvalue.RDFString("foo-result"))
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")

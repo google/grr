@@ -89,8 +89,9 @@ class ApprovalTest(gui_test_lib.GRRSeleniumTest):
     self.Click("css=a#fallback-link")
 
     self.WaitUntilEqual(
-        f"/#/users/requestrick/approvals/client/{client_id}/{approval_id}",
-        self.GetCurrentUrlPath)
+        f"/legacy#/users/requestrick/approvals/client/{client_id}/{approval_id}",
+        self.GetCurrentUrlPath,
+    )
 
 
 if __name__ == "__main__":

@@ -1,4 +1,5 @@
-@use "@angular/material" as mat;
+@use '@angular/material' as mat-deprecated;
+@use '@angular/material' as mat;
 
 // Angular Material theme definition.
 $primary: mat.define-palette(mat.$blue-palette, 600, 400);
@@ -76,13 +77,13 @@ $theme: map-merge(
 $foreground: map-get(mat.get-color-config($theme), foreground);
 $background: map-get(mat.get-color-config($theme), background);
 
-$google-sans-display-family: Google Sans Display, "Helvetica Neue", sans-serif;
-$google-sans-family: Google Sans, "Helvetica Neue", sans-serif;
-$roboto-family: Roboto, "Helvetica Neue", sans-serif;
+$google-sans-display-family: Google Sans Display, 'Helvetica Neue', sans-serif;
+$google-sans-family: Google Sans, 'Helvetica Neue', sans-serif;
+$roboto-family: Roboto, 'Helvetica Neue', sans-serif;
 $google-sans-display-family-str: 'Google Sans Display, "Helvetica Neue", sans-serif';
 $google-sans-family-str: 'Google Sans, "Helvetica Neue", sans-serif';
 $roboto-family-str: 'Roboto, "Helvetica Neue", sans-serif';
-$custom-typography: mat.define-typography-config(
+$custom-typography: mat-deprecated.define-legacy-typography-config(
   $display-1:
     mat.define-typography-level(
       64px,
@@ -134,7 +135,7 @@ $custom-typography: mat.define-typography-config(
   $caption:
     mat.define-typography-level(12px, 16px, 400, $roboto-family-str, 0.3px),
 );
-@include mat.all-component-typographies($custom-typography);
+@include mat-deprecated.all-legacy-component-typographies($custom-typography);
 
 $button-horizontal-padding: 16px;
 
@@ -167,7 +168,7 @@ $page-spacing: 16px;
 }
 
 body .mat-button-toggle-group,
-body .mat-button-toggle-group:not([class*="mat-elevation-z"]),
+body .mat-button-toggle-group:not([class*='mat-elevation-z']),
 body mat-button-toggle-group.mat-button-toggle-group {
   border-radius: 4px;
   box-shadow: none;
@@ -182,4 +183,22 @@ body mat-button-toggle-group.mat-button-toggle-group {
     background-color: mat.get-color-from-palette(mat.$grey-palette, 700);
     color: white;
   }
+}
+
+.mat-tab-links .mat-tab-link,
+.mat-tab-labels .mat-tab-label {
+  opacity: 1;
+
+  &.mat-tab-disabled {
+    opacity: 0.6;
+  }
+}
+
+.mat-tab-link[routerlinkactive].mat-tab-label-active,
+.mat-tab-label.mat-tab-label-active {
+  color: mat.get-color-from-palette(mat.$blue-palette, 700);
+}
+
+.mat-paginator-page-size .mat-paginator-page-size-select {
+  margin: 0px 0px 10px 10px;
 }

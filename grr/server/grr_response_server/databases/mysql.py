@@ -511,7 +511,9 @@ class MysqlDB(mysql_artifacts.MySQLDBArtifactsMixin,
     self.flow_processing_request_handler_stop = None
     self.flow_processing_request_handler_pool = (
         threadpool.ThreadPool.Factory(
-            "flow_processing_pool", min_threads=2, max_threads=50))
+            "flow_processing_pool",
+            min_threads=config.CONFIG["Mysql.flow_processing_threads_min"],
+            max_threads=config.CONFIG["Mysql.flow_processing_threads_max"]))
     self.flow_processing_request_handler_pool.Start()
 
   def _Connect(self):

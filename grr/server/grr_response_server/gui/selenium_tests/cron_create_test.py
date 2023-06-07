@@ -12,7 +12,7 @@ class TestCronCreation(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def testHuntSchedulingWorksCorrectly(self):
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
 
     self.Click("css=button[name=ScheduleHuntCronJob]")

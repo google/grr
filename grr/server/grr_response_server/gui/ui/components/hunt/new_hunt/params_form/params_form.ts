@@ -1,9 +1,12 @@
-import {AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, HostBinding, HostListener, ViewChild} from '@angular/core';
+import {AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, HostBinding, HostListener, OnDestroy, ViewChild} from '@angular/core';
 import {FormControl, FormGroup} from '@angular/forms';
 import {Observable} from 'rxjs';
+import {filter, map} from 'rxjs/operators';
 
+import {toDurationUnit} from '../../../../components/form/duration_input/duration_conversion';
 import {RolloutForm} from '../../../../components/hunt/rollout_form/rollout_form';
 import {SafetyLimits} from '../../../../lib/models/hunt';
+import {observeOnDestroy} from '../../../../lib/reactive';
 import {NewHuntLocalStore} from '../../../../store/new_hunt_local_store';
 
 
@@ -17,7 +20,9 @@ import {NewHuntLocalStore} from '../../../../store/new_hunt_local_store';
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [NewHuntLocalStore],
 })
-export class ParamsForm implements AfterViewInit {
+export class ParamsForm implements AfterViewInit, OnDestroy {
+  readonly ngOnDestroy = observeOnDestroy(this);
+
   @HostBinding('class.closed') hideContent = false;
   @ViewChild('rolloutForm', {static: false}) rolloutForm!: RolloutForm;
 
@@ -38,6 +43,20 @@ export class ParamsForm implements AfterViewInit {
     'networkBytesLimit': new FormControl(BigInt(0), {nonNullable: true}),
   };
   readonly form = new FormGroup(this.controls);
+
+  readonly formExpiryTimeSeconds$ = this.form.valueChanges.pipe(
+      // durationInput is guaranteed to return a number.
+      // It uses `parseDurationString` from
+      // ../form/duration_input/duration_conversion.
+      map(values => Number(values.expiryTime)),
+      filter(time => time !== undefined && time !== null),
+  );
+  readonly durationFormattedParts$ = this.formExpiryTimeSeconds$.pipe(
+      map(formTimeNumber => toDurationUnit(formTimeNumber, 'long')));
+  readonly durationFormattedNumber$ = this.durationFormattedParts$.pipe(
+      map(([durationOnly]) => durationOnly.toLocaleString()));
+  readonly durationFormattedUnit$ =
+      this.durationFormattedParts$.pipe(map(([, unitOnly]) => unitOnly));
 
   constructor(
       private readonly changeDetection: ChangeDetectorRef,

@@ -1,9 +1,9 @@
 import {OverlayContainer} from '@angular/cdk/overlay';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ComponentFixture, inject, TestBed, waitForAsync} from '@angular/core/testing';
-import {MatAutocomplete, MatAutocompleteSelectedEvent} from '@angular/material/autocomplete';
-import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
-import {MatMenuHarness} from '@angular/material/menu/testing';
+import {MatLegacyAutocomplete, MatLegacyAutocompleteSelectedEvent} from '@angular/material/legacy-autocomplete';
+import {MatLegacyAutocompleteHarness} from '@angular/material/legacy-autocomplete/testing';
+import {MatLegacyMenuHarness} from '@angular/material/legacy-menu/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
@@ -26,7 +26,7 @@ initTestEnvironment();
 
 function getAutocompleteHarness(fixture: ComponentFixture<FlowPicker>) {
   return TestbedHarnessEnvironment.loader(fixture).getHarness(
-      MatAutocompleteHarness);
+      MatLegacyAutocompleteHarness);
 }
 
 const COMMON_FILE_FLOWS: readonly FlowListItem[] = [
@@ -308,12 +308,12 @@ describe('FlowPicker Component', () => {
       description: '',
       enabled: true,
     };
-    const matAutocomplete: MatAutocomplete =
-        fixture.debugElement.query(By.directive(MatAutocomplete))
+    const matAutocomplete: MatLegacyAutocomplete =
+        fixture.debugElement.query(By.directive(MatLegacyAutocomplete))
             .componentInstance;
     matAutocomplete.optionSelected.emit({
       option: {value: flowListItem},
-    } as MatAutocompleteSelectedEvent);
+    } as MatLegacyAutocompleteSelectedEvent);
     fixture.detectChanges();
 
     expect(clientPageGlobalStore.startFlowConfiguration)
@@ -347,12 +347,12 @@ describe('FlowPicker Component', () => {
       description: '',
       enabled: true,
     };
-    const matAutocomplete: MatAutocomplete =
-        fixture.debugElement.query(By.directive(MatAutocomplete))
+    const matAutocomplete: MatLegacyAutocomplete =
+        fixture.debugElement.query(By.directive(MatLegacyAutocomplete))
             .componentInstance;
     matAutocomplete.optionSelected.emit({
       option: {value: flowListItem},
-    } as MatAutocompleteSelectedEvent);
+    } as MatLegacyAutocompleteSelectedEvent);
     fixture.detectChanges();
 
     expect(clientPageGlobalStore.startFlowConfiguration)
@@ -383,12 +383,12 @@ describe('FlowPicker Component', () => {
          description: '',
          enabled: true,
        };
-       const matAutocomplete: MatAutocomplete =
-           fixture.debugElement.query(By.directive(MatAutocomplete))
+       const matAutocomplete: MatLegacyAutocomplete =
+           fixture.debugElement.query(By.directive(MatLegacyAutocomplete))
                .componentInstance;
        matAutocomplete.optionSelected.emit({
          option: {value: flowListItem},
-       } as MatAutocompleteSelectedEvent);
+       } as MatLegacyAutocompleteSelectedEvent);
        fixture.detectChanges();
 
        expect(clientPageGlobalStore.startFlowConfiguration)
@@ -448,7 +448,7 @@ describe('FlowPicker Component', () => {
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const menu = await loader.getHarness(
-        MatMenuHarness.with({triggerText: /Collect files/}));
+        MatLegacyMenuHarness.with({triggerText: /Collect files/}));
     await menu.open();
     const renderedMenuItems = await menu.getItems();
     expect(renderedMenuItems.length)

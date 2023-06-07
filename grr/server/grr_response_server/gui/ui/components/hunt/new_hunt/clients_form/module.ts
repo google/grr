@@ -1,30 +1,30 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {MatAutocompleteModule} from '@angular/material/autocomplete';
-import {MatButtonModule} from '@angular/material/button';
-import {MatCheckboxModule} from '@angular/material/checkbox';
-import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatInputModule} from '@angular/material/input';
-import {MatMenuModule} from '@angular/material/menu';
-import {MatSelectModule} from '@angular/material/select';
+import {MatLegacyAutocompleteModule} from '@angular/material/legacy-autocomplete';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyCheckboxModule} from '@angular/material/legacy-checkbox';
+import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
+import {MatLegacyInputModule} from '@angular/material/legacy-input';
+import {MatLegacyMenuModule} from '@angular/material/legacy-menu';
+import {MatLegacySelectModule} from '@angular/material/legacy-select';
 
 import {ClientsForm} from './clients_form';
 
 
 @NgModule({
   imports: [
-    MatAutocompleteModule,
-    MatButtonModule,
-    MatFormFieldModule,
+    MatLegacyAutocompleteModule,
+    MatLegacyButtonModule,
+    MatLegacyFormFieldModule,
     MatIconModule,
-    MatInputModule,
-    MatCheckboxModule,
-    MatMenuModule,
+    MatLegacyInputModule,
+    MatLegacyCheckboxModule,
+    MatLegacyMenuModule,
     ReactiveFormsModule,
     CommonModule,
-    MatSelectModule,
+    MatLegacySelectModule,
     FormsModule,
   ],
   declarations: [

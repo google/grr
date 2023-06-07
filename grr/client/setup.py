@@ -138,7 +138,7 @@ setup_args = dict(
         "pytsk3==20230125",
         "retry==0.9.2",
         "libfsntfs-python==20221023",
-        "fleetspeak-client-bin==0.1.11",
+        "fleetspeak-client-bin==0.1.12",
     ],
     extras_require={
         # The following requirements are needed in Windows.

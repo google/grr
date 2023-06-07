@@ -263,7 +263,6 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
         "parser_test/lsb-release*",
         # Some directories.
         "a",
-        "checks",
         "profiles"
     ]
 
@@ -278,7 +277,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
     expected_paths.append("/bin")
 
     # Make sure all the files still exist.
-    self.assertLen(expected_paths, 9)
+    self.assertLen(expected_paths, 8)
 
     results = self.RunFlow(
         action=rdf_file_finder.FileFinderAction(
@@ -1091,7 +1090,12 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
               components=original_path.strip("/").split("/")))
 
       with io.open(original_path, "rb") as orig_fd:
-        self.assertEqual(fd.read(), orig_fd.read())
+        orig_content = orig_fd.read()
+
+      orig_sha256 = hashlib.sha256(orig_content).digest()
+
+      self.assertEqual(fd.read(), orig_content)
+      self.assertEqual(r.hash_entry.sha256, orig_sha256)
 
   def testFileWithMoreThanOneChunk(self):
     path = os.path.join(self.base_path, "History.plist")

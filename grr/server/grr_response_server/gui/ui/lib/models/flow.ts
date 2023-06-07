@@ -133,6 +133,24 @@ export const FLOW_LIST_ITEMS_BY_TYPE: FlowsByTypeMap = {
       FlowType.NETSTAT, 'Netstat', 'Enumerate all open network connections'),
 };
 
+/** Unknown flow title, used as fallback in case there is no name. */
+export const UNKNOWN_FLOW_TITLE = 'Unknown flow';
+
+/** Gets the flow title to be displayed across different pages */
+export function getFlowTitleFromFlowName(
+    flowName: string|undefined, desc?: FlowDescriptor|null): string {
+  const flowItem = FLOW_LIST_ITEMS_BY_TYPE[flowName as FlowType];
+
+  return flowItem?.friendlyName || desc?.friendlyName || flowName ||
+      UNKNOWN_FLOW_TITLE;
+}
+
+/** Gets the flow title to be displayed across different pages */
+export function getFlowTitleFromFlow(
+    flow: Flow|null, desc: FlowDescriptor|null): string {
+  return getFlowTitleFromFlowName(flow?.name, desc);
+}
+
 /** Descriptor containing information about a flow class. */
 export declare interface FlowDescriptor {
   readonly name: string;

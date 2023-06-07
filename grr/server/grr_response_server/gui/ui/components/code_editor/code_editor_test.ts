@@ -1,7 +1,7 @@
 import {Component} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
-import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -36,7 +36,7 @@ describe('CodeEditor Component', () => {
         .configureTestingModule({
           imports: [
             CodeEditorModule,
-            MatFormFieldModule,
+            MatLegacyFormFieldModule,
             ReactiveFormsModule,
             NoopAnimationsModule,
           ],

@@ -1,9 +1,9 @@
 import * as apiInterfaces from '../api/api_interfaces';
-import {CellComponent, CellData, ColumnDescriptor, PayloadTranslation} from '../models/result';
+import {CellComponent, CellData, ColumnDescriptor, PayloadTranslation, PayloadType} from '../models/result';
 
 import {translateExecuteBinaryResponse, translateHashToHex} from './flow';
 import {getHuntResultKey} from './hunt';
-import {createOptionalBigInt, createOptionalDate} from './primitive';
+import {createOptionalBigInt, createOptionalDate, createOptionalDateSeconds} from './primitive';
 
 /** HUNT_RESULT_COLUMNS describes how to render HuntResultRow. */
 export const HUNT_RESULT_COLUMNS = {
@@ -160,10 +160,10 @@ export function toFileRowFromStatEntry(se: apiInterfaces.StatEntry):
     'hash': undefined,
     'mode': createOptionalBigInt(se.stMode),
     'size': createOptionalBigInt(se.stSize),
-    'atime': createOptionalDate(se.stAtime),
-    'mtime': createOptionalDate(se.stMtime),
-    'ctime': createOptionalDate(se.stCtime),
-    'btime': createOptionalDate(se.stBtime),
+    'atime': createOptionalDateSeconds(se.stAtime),
+    'mtime': createOptionalDateSeconds(se.stMtime),
+    'ctime': createOptionalDateSeconds(se.stCtime),
+    'btime': createOptionalDateSeconds(se.stBtime),
   };
 }
 
@@ -213,25 +213,8 @@ export function toExecutePythonHackRow(
   return {'result': e.resultString};
 }
 
-const FILE_TAB = 'Files';
-const CLIENT_INFO_TAB = 'Client Info';
 /** ERROR_TAB is used to identify error results tab. */
 export const ERROR_TAB = 'Errors';
-
-/** PayloadType maps types of result payloads. */
-export enum PayloadType {
-  ANOMALY = 'Anomaly',
-  API_HUNT_RESULT = 'ApiHuntResult',
-  CLIENT_SUMMARY = 'ClientSummary',
-  COLLECT_FILES_BY_KNOWN_PATH_RESULT = 'CollectFilesByKnownPathResult',
-  FILE_FINDER_RESULT = 'FileFinderResult',
-  KNOWLEDGE_BASE = 'KnowledgeBase',
-  STAT_ENTRY = 'StatEntry',
-  USER = 'User',
-  API_HUNT_ERROR = 'ApiHuntError',
-  EXECUTE_BINARY_RESPONSE = 'ExecuteBinaryResponse',
-  EXECUTE_PYTHON_HACK_RESULT = 'ExecutePythonHackResult',
-}
 
 /** Maps PayloadType to corresponding translation information. */
 export const PAYLOAD_TYPE_TRANSLATION: {
@@ -247,27 +230,27 @@ export const PAYLOAD_TYPE_TRANSLATION: {
     columns: HUNT_RESULT_COLUMNS
   } as PayloadTranslation<typeof HUNT_RESULT_COLUMNS>,
   [PayloadType.CLIENT_SUMMARY]: {
-    tabName: CLIENT_INFO_TAB,
+    tabName: 'Client Info',
     translateFn: toClientInfoRowFromClientSummary,
     columns: CLIENT_INFO_COLUMNS,
   } as PayloadTranslation<typeof CLIENT_INFO_COLUMNS>,
   [PayloadType.COLLECT_FILES_BY_KNOWN_PATH_RESULT]: {
-    tabName: FILE_TAB,
+    tabName: 'Files By Known Path',
     translateFn: toFileRowFromCollectFilesByKnownPathResult,
     columns: FILE_COLUMNS,
   } as PayloadTranslation<typeof FILE_COLUMNS>,
   [PayloadType.FILE_FINDER_RESULT]: {
-    tabName: FILE_TAB,
+    tabName: 'File Finder',
     translateFn: toFileRowFromFileFinderResult,
     columns: FILE_COLUMNS,
   } as PayloadTranslation<typeof FILE_COLUMNS>,
   [PayloadType.KNOWLEDGE_BASE]: {
-    tabName: CLIENT_INFO_TAB,
+    tabName: 'Knowledge Base',
     translateFn: toClientInfoRowFromKnowledgeBase,
     columns: CLIENT_INFO_COLUMNS,
   } as PayloadTranslation<typeof CLIENT_INFO_COLUMNS>,
   [PayloadType.STAT_ENTRY]: {
-    tabName: FILE_TAB,
+    tabName: 'Stat Entry',
     translateFn: toFileRowFromStatEntry,
     columns: FILE_COLUMNS,
   } as PayloadTranslation<typeof FILE_COLUMNS>,

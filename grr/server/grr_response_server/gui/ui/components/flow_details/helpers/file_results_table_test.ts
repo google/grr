@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {MatPaginatorHarness} from '@angular/material/paginator/testing';
+import {MatLegacyPaginatorHarness} from '@angular/material/legacy-paginator/testing';
 import {MatSortHarness} from '@angular/material/sort/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -83,13 +83,13 @@ describe('FileResultsTable Component', () => {
     expect(cells[CellIndexOf.MODE].innerText).toContain('-rw-r--r--');
     expect(cells[CellIndexOf.SIZE].innerText).toContain('142 B');
     expect(cells[CellIndexOf.ATIME].innerText)
-        .toContain('1970-01-02 14:53:20 UTC');
+        .toContain('1970-01-20 10:41:50 UTC');
     expect(cells[CellIndexOf.MTIME].innerText)
-        .toContain('1970-01-17 04:53:20 UTC');
+        .toContain('1970-01-20 10:41:51 UTC');
     expect(cells[CellIndexOf.CTIME].innerText)
-        .toContain('1970-06-12 00:53:20 UTC');
+        .toContain('1970-01-20 10:41:52 UTC');
     expect(cells[CellIndexOf.BTIME].innerText)
-        .toContain('1974-06-09 08:53:20 UTC');
+        .toContain('1970-01-20 10:41:53 UTC');
   });
 
   it('correctly presents 2 rows - Default Hash column', () => {
@@ -114,13 +114,13 @@ describe('FileResultsTable Component', () => {
     expect(cells[CellIndexOf.MODE].innerText).toContain('-rw-r--r--');
     expect(cells[CellIndexOf.SIZE].innerText).toContain('142 B');
     expect(cells[CellIndexOf.ATIME].innerText)
-        .toContain('1970-01-02 14:53:20 UTC');
+        .toContain('1970-01-20 10:41:50 UTC');
     expect(cells[CellIndexOf.MTIME].innerText)
-        .toContain('1970-01-17 04:53:20 UTC');
+        .toContain('1970-01-20 10:41:51 UTC');
     expect(cells[CellIndexOf.CTIME].innerText)
-        .toContain('1970-06-12 00:53:20 UTC');
+        .toContain('1970-01-20 10:41:52 UTC');
     expect(cells[CellIndexOf.BTIME].innerText)
-        .toContain('1974-06-09 08:53:20 UTC');
+        .toContain('1970-01-20 10:41:53 UTC');
 
     cells = rows[2].querySelectorAll('td');
     expect(cells[CellIndexOf.PATH].innerText.trim())
@@ -129,13 +129,13 @@ describe('FileResultsTable Component', () => {
     expect(cells[CellIndexOf.MODE].innerText).toContain('-rw-r--r--');
     expect(cells[CellIndexOf.SIZE].innerText).toContain('242 B');
     expect(cells[CellIndexOf.ATIME].innerText)
-        .toContain('1970-01-03 18:40:00 UTC');
+        .toContain('1970-01-20 10:42:00 UTC');
     expect(cells[CellIndexOf.MTIME].innerText)
-        .toContain('1970-01-28 18:40:00 UTC');
+        .toContain('1970-01-20 10:42:01 UTC');
     expect(cells[CellIndexOf.CTIME].innerText)
-        .toContain('1970-10-05 18:40:00 UTC');
+        .toContain('1970-01-20 10:42:02 UTC');
     expect(cells[CellIndexOf.BTIME].innerText)
-        .toContain('1977-08-09 18:40:00 UTC');
+        .toContain('1970-01-20 10:42:03 UTC');
   });
 
   it('correctly presents 2 rows - Status column', () => {
@@ -169,13 +169,13 @@ describe('FileResultsTable Component', () => {
     expect(cells[CellIndexOf.MODE].innerText).toContain('-rw-r--r--');
     expect(cells[CellIndexOf.SIZE].innerText).toContain('142 B');
     expect(cells[CellIndexOf.ATIME].innerText)
-        .toContain('1970-01-02 14:53:20 UTC');
+        .toContain('1970-01-20 10:41:50 UTC');
     expect(cells[CellIndexOf.MTIME].innerText)
-        .toContain('1970-01-17 04:53:20 UTC');
+        .toContain('1970-01-20 10:41:51 UTC');
     expect(cells[CellIndexOf.CTIME].innerText)
-        .toContain('1970-06-12 00:53:20 UTC');
+        .toContain('1970-01-20 10:41:52 UTC');
     expect(cells[CellIndexOf.BTIME].innerText)
-        .toContain('1974-06-09 08:53:20 UTC');
+        .toContain('1970-01-20 10:41:53 UTC');
     expect(cells[CellIndexOf.STATUS].querySelector('mat-progress-spinner'))
         .not.toBe(null);
     expect(cells[CellIndexOf.STATUS].querySelector('mat-icon')).toBe(null);
@@ -186,13 +186,13 @@ describe('FileResultsTable Component', () => {
     expect(cells[CellIndexOf.MODE].innerText).toContain('-rw-r--r--');
     expect(cells[CellIndexOf.SIZE].innerText).toContain('242 B');
     expect(cells[CellIndexOf.ATIME].innerText)
-        .toContain('1970-01-03 18:40:00 UTC');
+        .toContain('1970-01-20 10:42:00 UTC');
     expect(cells[CellIndexOf.MTIME].innerText)
-        .toContain('1970-01-28 18:40:00 UTC');
+        .toContain('1970-01-20 10:42:01 UTC');
     expect(cells[CellIndexOf.CTIME].innerText)
-        .toContain('1970-10-05 18:40:00 UTC');
+        .toContain('1970-01-20 10:42:02 UTC');
     expect(cells[CellIndexOf.BTIME].innerText)
-        .toContain('1977-08-09 18:40:00 UTC');
+        .toContain('1970-01-20 10:42:03 UTC');
     expect(cells[CellIndexOf.STATUS].innerText).toContain('check');
     expect(cells[CellIndexOf.STATUS].querySelector('mat-progress-spinner'))
         .toBe(null);
@@ -369,9 +369,9 @@ describe('FileResultsTable Component', () => {
     );
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.top-paginator'}));
+        MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
     const paginatorBottom = await harnessLoader.getHarness(
-        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+        MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
 
     // Paginators start with default values, 0-9 are shown, but 10 isn't.
     expect(await paginatorTop.getPageSize()).toBe(10);
@@ -391,9 +391,9 @@ describe('FileResultsTable Component', () => {
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const paginatorTop = await harnessLoader.getHarness(
-           MatPaginatorHarness.with({selector: '.top-paginator'}));
+           MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
        const paginatorBottom = await harnessLoader.getHarness(
-           MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+           MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
 
        // Change page size on top paginator should update the bottom paginator.
        await paginatorTop.setPageSize(50);
@@ -416,9 +416,9 @@ describe('FileResultsTable Component', () => {
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const paginatorTop = await harnessLoader.getHarness(
-           MatPaginatorHarness.with({selector: '.top-paginator'}));
+           MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
        const paginatorBottom = await harnessLoader.getHarness(
-           MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+           MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
 
        // Change page size on bottom paginator should update the top paginator.
        await paginatorBottom.setPageSize(50);
