@@ -1,9 +1,9 @@
 import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {MatMenuModule} from '@angular/material/menu';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyMenuModule} from '@angular/material/legacy-menu';
 
 import {ExpandableHash} from './expandable_hash';
 
@@ -12,8 +12,8 @@ import {ExpandableHash} from './expandable_hash';
   imports: [
     CommonModule,
     ClipboardModule,
-    MatButtonModule,
-    MatMenuModule,
+    MatLegacyButtonModule,
+    MatLegacyMenuModule,
     MatIconModule,
   ],
   declarations: [

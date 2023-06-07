@@ -18,7 +18,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
   def testUserLabelIsShownAsBootstrapSuccessLabel(self):
     self.AddClientLabel(self.client_ids[0], self.test_username, u"foo")
 
-    self.Open("/#/search?q=.")
+    self.Open("/legacy#/search?q=.")
 
     self.WaitUntil(
         self.IsVisible, "css=tr:contains('%s') "
@@ -28,24 +28,24 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
     data_store.REL_DB.WriteGRRUser("GRR")
     self.AddClientLabel(self.client_ids[0], u"GRR", u"bar")
 
-    self.Open("/#/search?q=.")
+    self.Open("/legacy#/search?q=.")
     self.WaitUntil(
         self.IsVisible, "css=tr:contains('%s') "
         "span.label:not(.label-success):contains('bar')" % self.client_ids[0])
 
   def testLabelButtonIsDisabledByDefault(self):
-    self.Open("/#/search?q=.")
+    self.Open("/legacy#/search?q=.")
     self.WaitUntil(self.IsVisible, "css=button[name=AddLabels][disabled]")
 
   def testLabelButtonIsEnabledWhenClientIsSelected(self):
-    self.Open("/#/search?q=.")
+    self.Open("/legacy#/search?q=.")
 
     self.WaitUntil(self.IsVisible, "css=button[name=AddLabels][disabled]")
     self.Click("css=input.client-checkbox[client_id='%s']" % self.client_ids[0])
     self.WaitUntilNot(self.IsVisible, "css=button[name=AddLabels][disabled]")
 
   def testAddClientsLabelsDialogShowsListOfSelectedClients(self):
-    self.Open("/#/search?q=.")
+    self.Open("/legacy#/search?q=.")
 
     # Select 3 clients and click 'Add Label' button.
     self.Click("css=input.client-checkbox[client_id='%s']" % self.client_ids[0])
@@ -65,7 +65,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
         "contains('%s')" % self.client_ids[6])
 
   def testLabelIsAppliedCorrectlyViaAddClientsLabelsDialog(self):
-    self.Open("/#/search?q=.")
+    self.Open("/legacy#/search?q=.")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox[client_id='%s']" % self.client_ids[0])
@@ -93,7 +93,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
         "span.label-success:contains('issue 42')" % self.client_ids[0])
 
   def testAppliedLabelBecomesSearchableImmediately(self):
-    self.Open("/#/search?q=.")
+    self.Open("/legacy#/search?q=.")
 
     # Select 2 clients and click 'Add Label' button.
     self.Click("css=input.client-checkbox[client_id='%s']" % self.client_ids[0])
@@ -117,7 +117,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
     self.WaitUntilNot(self.IsVisible, "css=*[name=AddClientsLabelsDialog]")
 
     # Search using the new label and check that the labeled clients are shown.
-    self.Open("/#main=HostTable&q=label:\"issue 42\"")
+    self.Open('/legacy#main=HostTable&q=label:"issue 42"')
     self.WaitUntil(self.IsTextPresent, "%s" % self.client_ids[0])
     self.WaitUntil(self.IsTextPresent, "%s" % self.client_ids[1])
 
@@ -133,14 +133,14 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
 
     # Open client search with label and check that labeled client is not shown
     # anymore.
-    self.Open("/#main=HostTable&q=label:\"issue 42\"")
+    self.Open('/legacy#main=HostTable&q=label:"issue 42"')
 
     self.WaitUntil(self.IsTextPresent, self.client_ids[1])
     # This client must not be in the results anymore.
     self.assertFalse(self.IsTextPresent(self.client_ids[0]))
 
   def testSelectionIsPreservedWhenAddClientsLabelsDialogIsCancelled(self):
-    self.Open("/#/search?q=.")
+    self.Open("/legacy#/search?q=.")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox[client_id='%s']" % self.client_ids[0])
@@ -156,7 +156,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
         "client_id='%s']:checked" % self.client_ids[0])
 
   def testSelectionIsResetWhenLabelIsAppliedViaAddClientsLabelsDialog(self):
-    self.Open("/#/search?q=.")
+    self.Open("/legacy#/search?q=.")
 
     # Select 1 client and click 'Add Label' button.
     self.Click("css=input.client-checkbox[client_id='%s']" % self.client_ids[0])
@@ -174,7 +174,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
         "client_id='%s']:not(:checked)" % self.client_ids[0])
 
   def testCheckAllCheckboxSelectsAllClients(self):
-    self.Open("/#/search?q=.")
+    self.Open("/legacy#/search?q=.")
 
     self.WaitUntil(self.IsTextPresent, self.client_ids[0])
 
@@ -218,7 +218,7 @@ class TestHostTable(gui_test_lib.SearchClientTestBase):
         "client_id='%s']:not(:checked)" % self.client_ids[6])
 
   def testClientsSelectedWithSelectAllAreShownInAddClientsLabelsDialog(self):
-    self.Open("/#/search?q=.")
+    self.Open("/legacy#/search?q=.")
 
     self.WaitUntil(self.IsTextPresent, self.client_ids[0])
 

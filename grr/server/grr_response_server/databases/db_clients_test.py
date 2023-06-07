@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 from typing import Text
 from unittest import mock
 
@@ -16,6 +15,7 @@ from grr_response_server.databases import db_test_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
+from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 CERT = rdf_crypto.RDFX509Cert(b"""-----BEGIN CERTIFICATE-----
 MIIF7zCCA9egAwIBAgIBATANBgkqhkiG9w0BAQUFADA+MQswCQYDVQQGEwJVUzEM
@@ -199,6 +199,27 @@ class DatabaseTestClientsMixin(object):
     with self.assertRaises(TypeError):
       d.WriteClientMetadata(
           client_id, fleetspeak_enabled=True, last_ip="127.0.0.1")
+
+  def testClientMetadataRrgSupportUnset(self):
+    client_id = "C.1234567890abcdef"
+    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+
+    metadata = self.db.ReadClientMetadata(client_id)
+    self.assertFalse(metadata.rrg_support)
+
+  def testClientMetadataRrgSupportFalse(self):
+    client_id = "C.1234567890abcdef"
+    self.db.WriteClientMetadata(client_id, rrg_support=False)
+
+    metadata = self.db.ReadClientMetadata(client_id)
+    self.assertFalse(metadata.rrg_support)
+
+  def testClientMetadataRrgSupportTrue(self):
+    client_id = "C.1234567890abcdef"
+    self.db.WriteClientMetadata(client_id, rrg_support=True)
+
+    metadata = self.db.ReadClientMetadata(client_id)
+    self.assertTrue(metadata.rrg_support)
 
   def testReadAllClientIDsEmpty(self):
     result = list(self.db.ReadAllClientIDs())
@@ -1288,6 +1309,74 @@ class DatabaseTestClientsMixin(object):
     self.assertLen(hist, 2)
     self.assertEqual(hist[0].boot_time, 2)
     self.assertEqual(hist[1].boot_time, 1)
+
+  def testWriteClientRRGStartupUnknownClient(self):
+    client_id = "C.1234567890ABCDEF"
+
+    startup = rrg_startup_pb2.Startup()
+
+    with self.assertRaises(db.UnknownClientError) as context:
+      self.db.WriteClientRRGStartup(client_id, startup)
+
+    self.assertEqual(context.exception.client_id, client_id)
+
+  def testWriteClientRRGStartupNone(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    info = self.db.ReadClientFullInfo(client_id)
+    self.assertFalse(info.HasField("last_rrg_startup"))
+
+  def testWriteClientRRGStartupSingle(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    startup = rrg_startup_pb2.Startup()
+    startup.metadata.version.major = 1
+    startup.metadata.version.minor = 2
+    startup.metadata.version.patch = 3
+    self.db.WriteClientRRGStartup(client_id, startup)
+
+    info = self.db.ReadClientFullInfo(client_id)
+    self.assertEqual(info.last_rrg_startup.AsPrimitiveProto(), startup)
+
+  def testWriteClientRRGStartupMultipleStartups(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    startup_1 = rrg_startup_pb2.Startup()
+    startup_1.metadata.version.major = 1
+    startup_1.metadata.version.minor = 2
+    startup_1.metadata.version.patch = 3
+    self.db.WriteClientRRGStartup(client_id, startup_1)
+
+    startup_2 = rrg_startup_pb2.Startup()
+    startup_2.metadata.version.major = 4
+    startup_2.metadata.version.minor = 5
+    startup_2.metadata.version.patch = 6
+    self.db.WriteClientRRGStartup(client_id, startup_2)
+
+    info = self.db.ReadClientFullInfo(client_id)
+    self.assertEqual(info.last_rrg_startup.AsPrimitiveProto(), startup_2)
+
+  def testWriteClientRRGStartupMultipleClients(self):
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    startup_1 = rrg_startup_pb2.Startup()
+    startup_1.metadata.version.major = 1
+    startup_1.metadata.version.minor = 2
+    startup_1.metadata.version.patch = 3
+    self.db.WriteClientRRGStartup(client_id_1, startup_1)
+
+    startup_2 = rrg_startup_pb2.Startup()
+    startup_2.metadata.version.major = 4
+    startup_2.metadata.version.minor = 5
+    startup_2.metadata.version.patch = 6
+    self.db.WriteClientRRGStartup(client_id_2, startup_2)
+
+    info_1 = self.db.ReadClientFullInfo(client_id_1)
+    self.assertEqual(info_1.last_rrg_startup.AsPrimitiveProto(), startup_1)
+
+    info_2 = self.db.ReadClientFullInfo(client_id_2)
+    self.assertEqual(info_2.last_rrg_startup.AsPrimitiveProto(), startup_2)
 
   def testCrashHistory(self):
     d = self.db

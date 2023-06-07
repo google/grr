@@ -485,9 +485,10 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
   @property
   def review_url_path(self):
-    # TODO: Set to new UI after implementing approval view for
-    # hunts.
-    return self.review_url_path_legacy
+    return (
+        f"/v2/hunts/{self.subject.hunt_id}/users/{self.requestor}/"
+        f"approvals/{self.id}"
+    )
 
   @property
   def review_url_path_legacy(self):
@@ -496,7 +497,7 @@ class ApiHuntApproval(rdf_structs.RDFProtoStruct):
 
   @property
   def subject_url_path(self):
-    return self.subject_url_path_legacy
+    return f"/v2/hunts/{self.subject.hunt_id}"
 
   @property
   def subject_url_path_legacy(self):

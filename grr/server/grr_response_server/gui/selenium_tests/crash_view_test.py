@@ -26,12 +26,13 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testOpeningCrashesOfUnapprovedClientRedirectsToHostInfoPage(self):
     client_id = self.SetupClient(0)
-    self.Open("/#/clients/%s/crashes" % client_id)
+    self.Open("/legacy#/clients/%s/crashes" % client_id)
 
     # As we don't have an approval for the client, we should be
     # redirected to the host info page.
-    self.WaitUntilEqual("/#/clients/%s/host-info" % client_id,
-                        self.GetCurrentUrlPath)
+    self.WaitUntilEqual(
+        "/legacy#/clients/%s/host-info" % client_id, self.GetCurrentUrlPath
+    )
     self.WaitUntil(self.IsTextPresent,
                    "You do not have an approval for this client.")
 
@@ -39,7 +40,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
     self.SetUpCrashedFlow()
     self.RequestAndGrantClientApproval(self.client_id)
 
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Type("client_query", self.client_id)
     self.Click("client_query_submit")
@@ -77,7 +78,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
   def testClientCrashedFlowInHunt(self):
     hunt_id, client_ids = self.SetUpCrashedFlowInHunt()
 
-    self.Open("/")
+    self.Open("/legacy")
 
     # Go to hunt manager and select a hunt.
     self.Click("css=a[grrtarget=hunts]")
@@ -113,7 +114,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumHuntTest):
   def testHuntClientCrashesTabShowsDatesInUTC(self):
     hunt_id, _ = self.SetUpCrashedFlowInHunt()
 
-    self.Open("/")
+    self.Open("/legacy")
 
     # Go to hunt manager, select a hunt, open "Crashes" tab.
     self.Click("css=a[grrtarget=hunts]")

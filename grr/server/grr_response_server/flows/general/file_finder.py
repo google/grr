@@ -461,17 +461,45 @@ class ClientFileFinder(flow_base.FlowBase):
       elif response.HasField("stat_entry"):
         stat_entries.append(response.stat_entry)
 
-    self._WriteFilesContent(transferred_file_responses)
+    client_path_hash_id = self._WriteFilesContent(transferred_file_responses)
 
     self._WriteStatEntries(stat_entries)
 
     for response in responses:
+      pathspec = response.stat_entry.pathspec
+      client_path = db.ClientPath.FromPathSpec(self.client_id, pathspec)
+
+      try:
+        # For files written to the file store we have their SHA-256 hash and can
+        # put it into the response (as some systems depend on this information).
+        #
+        # Note that it is possible (depending on the agent implementation) that
+        # the response already contains a SHA-256: in that case, it will just
+        # get overridden which should not do any harm. In fact, it is better not
+        # to trust the endpoint with this as the hash might have changed during
+        # the transfer procedure and we will end up with inconsistent data.
+        response.hash_entry.sha256 = client_path_hash_id[client_path].AsBytes()
+      except KeyError:
+        pass
+
       self.SendReply(response)
 
-  def _WriteFilesContent(self, responses):
-    """Writes file contents of multiple files to the relational database."""
+  def _WriteFilesContent(
+      self,
+      responses: list[rdf_file_finder.FileFinderResult],
+  ) -> dict[db.ClientPath, rdf_objects.SHA256HashID]:
+    """Writes file contents of multiple files to the relational database.
+
+    Args:
+      responses: A list of file finder results to write to the file store.
+
+    Returns:
+      A mapping from paths to the SHA-256 hashes of the files written to the
+      file store.
+    """
     client_path_blob_refs = dict()
     client_path_path_info = dict()
+    client_path_hash_id = dict()
     client_path_sizes = dict()
 
     for response in responses:
@@ -506,6 +534,8 @@ class ClientFileFinder(flow_base.FlowBase):
 
     path_infos = list(client_path_path_info.values())
     data_store.REL_DB.WritePathInfos(self.client_id, path_infos)
+
+    return client_path_hash_id
 
   def _WriteStatEntries(self, stat_entries):
     filesystem.WriteStatEntries(stat_entries, client_id=self.client_id)

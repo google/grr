@@ -1,9 +1,9 @@
 import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {Subject} from 'rxjs';
 
 import {CopyButtonModule} from '../helpers/copy_button/copy_button_module';
@@ -17,9 +17,9 @@ import {Timestamp, TimestampRefreshTimer} from './timestamp';
   imports: [
     // Angular builtin modules.
     CommonModule,
-    MatTooltipModule,
+    MatLegacyTooltipModule,
     MatIconModule,
-    MatButtonModule,
+    MatLegacyButtonModule,
     ClipboardModule,
     CopyButtonModule,
   ],

@@ -2,6 +2,7 @@
 """Tests for frontend server, client communicator, and the GRRHTTPClient."""
 
 import array
+import datetime
 import logging
 import pdb
 import time
@@ -10,8 +11,13 @@ import zlib
 
 from absl import app
 from absl import flags
+from absl.testing import absltest
+from cryptography import x509
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives.asymmetric import rsa
 import requests
 
+from google.protobuf import wrappers_pb2
 from grr_response_client import comms
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
@@ -30,16 +36,22 @@ from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import frontend_lib
 from grr_response_server import maintenance_utils
+from grr_response_server import sinks
+from grr_response_server.databases import db as abstract_db
+from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import ca_enroller
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.sinks import test_lib as sinks_test_lib
 from grr.test_lib import client_action_test_lib
 from grr.test_lib import client_test_lib
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import worker_mocks
+from grr_response_proto import rrg_pb2
 
 
 class SendingTestFlow(flow_base.FlowBase):
@@ -1043,6 +1055,196 @@ class HTTPClientTests(client_action_test_lib.WithAllClientActionsMixin,
       client_obj.Run()
 
       self.assertEqual(client_obj.http_manager.consecutive_connection_errors, 9)
+
+
+class FrontEndServerTest(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+
+    private_key = rsa.generate_private_key(65537, 2048)
+    certificate = x509.CertificateBuilder(
+        subject_name=x509.Name([
+            x509.NameAttribute(x509.NameOID.COMMON_NAME, "GRR Frontend"),
+        ]),
+        issuer_name=x509.Name([
+            x509.NameAttribute(x509.NameOID.COMMON_NAME, "GRR"),
+        ]),
+        serial_number=x509.random_serial_number(),
+        not_valid_before=datetime.datetime.now() - datetime.timedelta(days=1),
+        not_valid_after=datetime.datetime.now() + datetime.timedelta(days=1),
+        public_key=private_key.public_key(),
+    ).sign(private_key, hashes.SHA256())
+
+    rdf_private_key = rdf_crypto.RSAPrivateKey(private_key)
+    rdf_certificate = rdf_crypto.RDFX509Cert(certificate)
+
+    self.server = frontend_lib.FrontEndServer(
+        private_key=rdf_private_key,
+        certificate=rdf_certificate,
+    )
+
+  @db_test_lib.WithDatabase
+  def testReceiveRRGResponseStatusOK(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request.client_id = client_id
+    flow_request.flow_id = flow_id
+    flow_request.request_id = 1337
+    db.WriteFlowRequests([flow_request])
+
+    response = rrg_pb2.Response()
+    response.flow_id = int(flow_id, 16)
+    response.request_id = 1337
+    response.response_id = 42
+    response.status.network_bytes_sent = 4 * 1024 * 1024
+
+    self.server.ReceiveRRGResponse(client_id, response)
+
+    flow_responses = db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
+    self.assertLen(flow_responses, 1)
+
+    flow_response = flow_responses[0][1][response.response_id]
+    self.assertIsInstance(flow_response, rdf_flow_objects.FlowStatus)
+    self.assertEqual(flow_response.client_id, client_id)
+    self.assertEqual(flow_response.flow_id, flow_id)
+    self.assertEqual(flow_response.request_id, 1337)
+    self.assertEqual(flow_response.response_id, 42)
+
+    self.assertEqual(
+        flow_response.status,
+        rdf_flow_objects.FlowStatus.Status.OK,
+    )
+    self.assertEqual(flow_response.network_bytes_sent, 4 * 1024 * 1024)
+
+  @db_test_lib.WithDatabase
+  def testReceiveRRGResponseStatusError(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request.client_id = client_id
+    flow_request.flow_id = flow_id
+    flow_request.request_id = 1337
+    db.WriteFlowRequests([flow_request])
+
+    response = rrg_pb2.Response()
+    response.flow_id = int(flow_id, 16)
+    response.request_id = 1337
+    response.response_id = 42
+    response.status.error.type = rrg_pb2.Status.Error.UNSUPPORTED_ACTION
+    response.status.error.message = "foobar"
+
+    self.server.ReceiveRRGResponse(client_id, response)
+
+    flow_responses = db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
+    self.assertLen(flow_responses, 1)
+
+    flow_response = flow_responses[0][1][response.response_id]
+    self.assertIsInstance(flow_response, rdf_flow_objects.FlowStatus)
+    self.assertEqual(flow_response.client_id, client_id)
+    self.assertEqual(flow_response.flow_id, flow_id)
+    self.assertEqual(flow_response.request_id, 1337)
+    self.assertEqual(flow_response.response_id, 42)
+
+    self.assertEqual(
+        flow_response.status,
+        rdf_flow_objects.FlowStatus.Status.ERROR,
+    )
+    self.assertEqual(flow_response.error_message, "foobar")
+
+  @db_test_lib.WithDatabase
+  def testReceiveRRGResponseResult(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request.client_id = client_id
+    flow_request.flow_id = flow_id
+    flow_request.request_id = 1337
+    db.WriteFlowRequests([flow_request])
+
+    response = rrg_pb2.Response()
+    response.flow_id = int(flow_id, 16)
+    response.request_id = 1337
+    response.response_id = 42
+    response.result.Pack(wrappers_pb2.StringValue(value="foobar"))
+
+    self.server.ReceiveRRGResponse(client_id, response)
+
+    flow_responses = db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
+    self.assertLen(flow_responses, 1)
+
+    flow_response = flow_responses[0][1][response.response_id]
+    self.assertIsInstance(flow_response, rdf_flow_objects.FlowResponse)
+    self.assertEqual(flow_response.client_id, client_id)
+    self.assertEqual(flow_response.flow_id, flow_id)
+    self.assertEqual(flow_response.request_id, 1337)
+    self.assertEqual(flow_response.response_id, 42)
+
+    string = wrappers_pb2.StringValue()
+    string.ParseFromString(flow_response.any_payload.value)
+    self.assertEqual(string.value, "foobar")
+
+  @db_test_lib.WithDatabase
+  def testReceiveRRGResponseUnexpected(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request.client_id = client_id
+    flow_request.flow_id = flow_id
+    flow_request.request_id = 1337
+    db.WriteFlowRequests([flow_request])
+
+    response = rrg_pb2.Response()
+    response.flow_id = int(flow_id, 16)
+    response.request_id = 1337
+    response.response_id = 42
+
+    with self.assertRaisesRegex(ValueError, "Unexpected response"):
+      self.server.ReceiveRRGResponse(client_id, response)
+
+  def testReceiveRRGParcelOK(self):
+    client_id = "C.1234567890ABCDEF"
+
+    sink = sinks_test_lib.FakeSink()
+
+    with mock.patch.object(sinks, "REGISTRY", {rrg_pb2.STARTUP: sink}):
+      parcel = rrg_pb2.Parcel()
+      parcel.sink = rrg_pb2.STARTUP
+      parcel.payload.value = b"FOO"
+      self.server.ReceiveRRGParcel(client_id, parcel)
+
+      parcel = rrg_pb2.Parcel()
+      parcel.sink = rrg_pb2.STARTUP
+      parcel.payload.value = b"BAR"
+      self.server.ReceiveRRGParcel(client_id, parcel)
+
+    parcels = sink.Parcels(client_id)
+    self.assertLen(parcels, 2)
+    self.assertEqual(parcels[0].payload.value, b"FOO")
+    self.assertEqual(parcels[1].payload.value, b"BAR")
+
+  def testReceiveRRGParcelError(self):
+    class FakeSink(sinks.Sink):
+
+      # TODO: Add the `@override` annotation [1] once we are can
+      # use Python 3.12 features.
+      #
+      # [1]: https://peps.python.org/pep-0698/
+      def Accept(self, client_id: str, parcel: rrg_pb2.Parcel) -> None:
+        del client_id, parcel  # Unused.
+        raise RuntimeError()
+
+    with mock.patch.object(sinks, "REGISTRY", {rrg_pb2.STARTUP: FakeSink()}):
+      parcel = rrg_pb2.Parcel()
+      parcel.sink = rrg_pb2.STARTUP
+      parcel.payload.value = b"FOO"
+      # Should not raise.
+      self.server.ReceiveRRGParcel("C.1234567890ABCDEF", parcel)
 
 
 def main(args):

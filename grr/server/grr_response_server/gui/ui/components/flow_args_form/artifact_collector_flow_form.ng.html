@@ -61,6 +61,7 @@
               <glob-expression-explanation
                 [globExpression]="source"
                 [clientId]="clientId$ | async"
+                [explanationMode]="GlobExplanationMode.ONLY_GLOB_VISIBLE"
               ></glob-expression-explanation>
             </ng-container>
             <ng-template #fallback>{{source}}</ng-template>

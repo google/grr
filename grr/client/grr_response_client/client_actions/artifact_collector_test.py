@@ -121,17 +121,13 @@ class ArtifactCollectorTest(client_test_lib.EmptyActionTest):
   def testGRRClientActionEnumerateUsers(self):
     """Test the GRR Client Action EnumerateUsers."""
 
-    def MockedOpen(requested_path, mode="rb", buffering=-1):
+    def MockedOpen(requested_path, mode="rb"):
       try:
         fixture_path = os.path.join(self.base_path, "VFSFixture",
                                     requested_path.lstrip("/"))
-        return builtins.open.old_target(
-            fixture_path, mode=mode, buffering=buffering
-        )
+        return builtins.open.old_target(fixture_path, mode)
       except IOError:
-        return builtins.open.old_target(
-            requested_path, mode=mode, buffering=buffering
-        )
+        return builtins.open.old_target(requested_path, mode)
 
     source = rdf_artifact.ArtifactSource(
         type=self.source_type.GRR_CLIENT_ACTION,

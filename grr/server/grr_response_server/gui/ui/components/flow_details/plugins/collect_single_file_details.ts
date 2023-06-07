@@ -7,6 +7,7 @@ import {CollectSingleFileArgs, CollectSingleFileProgress, CollectSingleFileProgr
 import {translateHashToHex, translateStatEntry} from '../../../lib/api_translation/flow';
 import {Flow} from '../../../lib/models/flow';
 import {isNonNull} from '../../../lib/preconditions';
+import {MetricsService, UiRedirectDirection, UiRedirectSource} from '../../../lib/service/metrics_service/metrics_service';
 
 import {ExportMenuItem, Plugin} from './plugin';
 
@@ -23,6 +24,15 @@ import {ExportMenuItem, Plugin} from './plugin';
 })
 export class CollectSingleFileDetails extends Plugin {
   pathSpecPathType = PathSpecPathType;
+
+  fallbackUrlClicked() {
+    this.metricsService.registerUIRedirect(
+        UiRedirectDirection.NEW_TO_OLD, UiRedirectSource.RESULT_DETAILS_BUTTON);
+  }
+
+  constructor(private readonly metricsService: MetricsService) {
+    super();
+  }
 
   progress$: Observable<CollectSingleFileProgress|undefined> = this.flow$.pipe(
       map((flow) => flow.progress as CollectSingleFileProgress | undefined),

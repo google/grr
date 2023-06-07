@@ -1,6 +1,6 @@
 import {OverlayContainer} from '@angular/cdk/overlay';
 import {ComponentFixture, inject, TestBed, waitForAsync} from '@angular/core/testing';
-import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
+import {MAT_LEGACY_DIALOG_DATA, MatLegacyDialogModule} from '@angular/material/legacy-dialog';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -47,10 +47,10 @@ describe('Entry History Dialog', () => {
           imports: [
             EntryHistoryDialogModule,
             NoopAnimationsModule,
-            MatDialogModule,
+            MatLegacyDialogModule,
           ],
           providers: [
-            {provide: MAT_DIALOG_DATA, useFactory: () => providedData},
+            {provide: MAT_LEGACY_DIALOG_DATA, useFactory: () => providedData},
           ],
           teardown: {destroyAfterEach: false}
         })

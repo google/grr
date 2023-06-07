@@ -6,6 +6,7 @@ import {ExecuteResponse, StatEntry} from '../../../lib/api/api_interfaces';
 import {isRegistryEntry, isStatEntry, translateArtifactCollectorFlowProgress, translateExecuteResponse, translateVfsStatEntry} from '../../../lib/api_translation/flow';
 import {ArtifactProgress, Flow, FlowResult, RegistryKey, RegistryValue} from '../../../lib/models/flow';
 import {isNull} from '../../../lib/preconditions';
+import {MetricsService, UiRedirectDirection, UiRedirectSource} from '../../../lib/service/metrics_service/metrics_service';
 import {Writable} from '../../../lib/type_utils';
 import {FlowResultMapFunction, FlowResultsQueryWithAdapter} from '../helpers/load_flow_results_directive';
 
@@ -95,4 +96,13 @@ export class ArtifactCollectorFlowDetails extends Plugin {
 
   readonly trackArtifactByName: TrackByFunction<ArtifactRow> =
       (index, artifact) => artifact.name;
+
+  fallbackUrlClicked() {
+    this.metricsService.registerUIRedirect(
+        UiRedirectDirection.NEW_TO_OLD, UiRedirectSource.RESULT_DETAILS_BUTTON);
+  }
+
+  constructor(private readonly metricsService: MetricsService) {
+    super();
+  }
 }

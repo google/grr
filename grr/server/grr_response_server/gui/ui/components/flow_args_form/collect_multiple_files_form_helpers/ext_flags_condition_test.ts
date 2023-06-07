@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {ControlContainer} from '@angular/forms';
-import {MatButtonHarness} from '@angular/material/button/testing';
+import {MatLegacyButtonHarness} from '@angular/material/legacy-button/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {FileFinderExtFlagsCondition} from '../../../lib/api/api_interfaces';
@@ -51,7 +51,7 @@ describe('ExtFlagsCondition component', () => {
     fixture.detectChanges();
 
     const button =
-        await loader.getHarness(MatButtonHarness.with({text: /nodump/}));
+        await loader.getHarness(MatLegacyButtonHarness.with({text: /nodump/}));
     await button.click();
 
     const expected: FileFinderExtFlagsCondition = {
@@ -70,7 +70,7 @@ describe('ExtFlagsCondition component', () => {
     fixture.detectChanges();
 
     const button =
-        await loader.getHarness(MatButtonHarness.with({text: /nodump/}));
+        await loader.getHarness(MatLegacyButtonHarness.with({text: /nodump/}));
     await button.click();
     await button.click();
 
@@ -90,7 +90,7 @@ describe('ExtFlagsCondition component', () => {
     fixture.detectChanges();
 
     const button =
-        await loader.getHarness(MatButtonHarness.with({text: /nodump/}));
+        await loader.getHarness(MatLegacyButtonHarness.with({text: /nodump/}));
     await button.click();
     await button.click();
     await button.click();
@@ -111,10 +111,11 @@ describe('ExtFlagsCondition component', () => {
     fixture.detectChanges();
 
     let button =
-        await loader.getHarness(MatButtonHarness.with({text: /nodump/}));
+        await loader.getHarness(MatLegacyButtonHarness.with({text: /nodump/}));
     await button.click();
 
-    button = await loader.getHarness(MatButtonHarness.with({text: /opaque/}));
+    button =
+        await loader.getHarness(MatLegacyButtonHarness.with({text: /opaque/}));
     await button.click();
 
     const expected: FileFinderExtFlagsCondition = {
@@ -133,10 +134,11 @@ describe('ExtFlagsCondition component', () => {
     fixture.detectChanges();
 
     let button =
-        await loader.getHarness(MatButtonHarness.with({text: /nodump/}));
+        await loader.getHarness(MatLegacyButtonHarness.with({text: /nodump/}));
     await button.click();
 
-    button = await loader.getHarness(MatButtonHarness.with({text: /opaque/}));
+    button =
+        await loader.getHarness(MatLegacyButtonHarness.with({text: /opaque/}));
     await button.click();
     await button.click();
 
@@ -155,10 +157,12 @@ describe('ExtFlagsCondition component', () => {
     const loader = TestbedHarnessEnvironment.loader(fixture);
     fixture.detectChanges();
 
-    let button = await loader.getHarness(MatButtonHarness.with({text: /T/}));
+    let button =
+        await loader.getHarness(MatLegacyButtonHarness.with({text: /T/}));
     await button.click();
 
-    button = await loader.getHarness(MatButtonHarness.with({text: /nodump/}));
+    button =
+        await loader.getHarness(MatLegacyButtonHarness.with({text: /nodump/}));
     await button.click();
     await button.click();
 

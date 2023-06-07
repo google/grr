@@ -1,6 +1,6 @@
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -9,7 +9,7 @@ import {TitleEditor, TitleEditorContent} from './title_editor';
 @NgModule({
   imports: [
     BrowserAnimationsModule,
-    MatButtonModule,
+    MatLegacyButtonModule,
     MatIconModule,
     RouterModule,
   ],

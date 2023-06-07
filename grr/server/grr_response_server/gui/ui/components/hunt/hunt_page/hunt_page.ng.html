@@ -1,128 +1,179 @@
-<div class="hunt-overview centered-content">
-  <div class="title-chips">
-    <title-editor [disabled]="true" [route]="huntsOverviewRoute" class="title">
-      <h1 titleEditable>{{ getHuntTitle(hunt$ | async) }}</h1>
-    </title-editor>
-    <div class="chips">
-      <mat-chip-list [selectable]="false" [tabIndex]="-1">
-        <app-hunt-status-chip [hunt]="hunt$ | async"></app-hunt-status-chip>
-      </mat-chip-list>
+<div class="centered-content extra-scrolling-space">
+  <div class="hunt-overview">
+    <div class="title-chips">
+      <title-editor [disabled]="true" [route]="huntsOverviewRoute" class="title">
+        <h1 titleEditable>{{ getHuntTitle(hunt$ | async) }}</h1>
+      </title-editor>
+      <div class="chips">
+        <mat-chip-list [selectable]="false" [tabIndex]="-1">
+          <app-hunt-status-chip [hunt]="hunt$ | async"></app-hunt-status-chip>
+        </mat-chip-list>
+      </div>
+    </div>
+
+    <div class="info">
+      <table class="key-value-table">
+        <tr>
+          <td>ID:</td>
+          <td>
+            <app-copy-button>
+              <span>{{ (hunt$ | async)?.huntId }}</span>
+            </app-copy-button>
+          </td>
+        </tr>
+        <tr>
+          <td>Creator:</td>
+          <td>
+            <span class="user-name">
+              <user-image [username]="(hunt$ | async)?.creator" size="16px"></user-image>
+              {{ (hunt$ | async)?.creator }}
+            </span>
+          </td>
+        </tr>
+        <tr>
+          <td>Flow:</td>
+          <td>
+            <app-copy-button>
+              <span>{{ flowTitle$ | async }}</span>
+            </app-copy-button>
+          </td>
+        </tr>
+      </table>
+
+      <table class="key-value-table">
+        <tr>
+          <td>Resource usage</td>
+          <td>
+          </td>
+        </tr>
+        <tr>
+          <td>Total CPU time:</td>
+          <td>
+            <app-copy-button
+              ><span> {{ huntTotalCPU$ | async }}</span>
+            </app-copy-button>
+          </td>
+        </tr>
+        <tr>
+          <td>Total network traffic:</td>
+          <td>
+            <app-copy-button
+              ><human-readable-size [size]="(hunt$ | async)?.resourceUsage?.totalNetworkTraffic">
+              </human-readable-size>
+            </app-copy-button>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="collapsed-info">
+      <hunt-flow-arguments class="args" [hunt]="hunt$ | async" [hidden]="hideFlowArgs"></hunt-flow-arguments>
+      <button mat-flat-button
+                type="button"
+                class="flow-params-button"
+                (click)="toggleFlowArgs()"
+                aria-label="View/hide flow params">
+          <mat-icon>{{hideFlowArgs ? 'expand_more' : 'expand_less'}}</mat-icon>
+          {{hideFlowArgs ? 'View flow arguments' : 'Hide flow arguments'}}
+      </button>
+    </div>
+
+    <div class="actions mb-1">
+      <span matTooltip="You must have approval to start the collection"
+          [matTooltipDisabled]="(hasAccess$ | async) === true">
+        <button
+          *ngIf="(hunt$ | async)?.state === HuntState.NOT_STARTED"
+          mat-flat-button
+          type="button"
+          color="primary"
+          name="start-button"
+          (click)="startHunt()"
+          [disabled]="(hasAccess$ | async) === false"
+        >
+          Start collection
+        </button>
+      </span>
+
+      <span matTooltip="You must have approval to change the collection"
+          [matTooltipDisabled]="(hasAccess$ | async) === true">
+        <a
+        *ngIf="(hunt$ | async)?.state === HuntState.REACHED_CLIENT_LIMIT || (hunt$ | async)?.state === HuntState.NOT_STARTED"
+          name="modify-button"
+          [drawerLink]="['modify-hunt']"
+        >
+          <button mat-stroked-button color="primary"
+              *ngIf="(hunt$ | async)?.state === HuntState.NOT_STARTED"
+              [disabled]="(hasAccess$ | async) === false"
+            >Change rollout parameters and start</button>
+          <button mat-flat-button color="primary"
+              *ngIf="(hunt$ | async)?.state === HuntState.REACHED_CLIENT_LIMIT"
+              [disabled]="(hasAccess$ | async) === false"
+            >Change rollout parameters and continue</button>
+        </a>
+      </span>
+
+      <span matTooltip="You must have approval to stop the collection"
+          [matTooltipDisabled]="(hasAccess$ | async) === true">
+        <button
+          *ngIf="(hunt$ | async)?.state === HuntState.RUNNING || (hunt$ | async)?.state === HuntState.REACHED_CLIENT_LIMIT || (hunt$ | async)?.state === HuntState.NOT_STARTED"
+          mat-stroked-button
+          type="button"
+          color="primary"
+          name="cancel-button"
+          (click)="cancelHunt()"
+          [disabled]="(hasAccess$ | async) === false"
+        >
+          Cancel collection
+        </button>
+      </span>
+
+      <span>
+        <button
+          mat-stroked-button
+          type="button"
+          color="primary"
+          name="copy-button"
+          (click)="copyHunt()"
+        >
+          Copy and tweak collection
+        </button>
+      </span>
     </div>
   </div>
 
-  <div class="info">
-    <table class="key-value-table">
-      <tr>
-        <td>ID:</td>
-        <td>
-          <app-copy-button>
-            <span>{{ (hunt$ | async)?.huntId }}</span>
-          </app-copy-button>
-        </td>
-      </tr>
-      <tr>
-        <td>Creator:</td>
-        <td>
-          <span class="user-name">
-            <user-image [username]="(hunt$ | async)?.creator" size="16px"></user-image>
-            {{ (hunt$ | async)?.creator }}
-          </span>
-        </td>
-      </tr>
-      <tr>
-        <td>Flow:</td>
-        <td>
-          <app-copy-button>
-            <span>{{ (flowDescriptor$ | async)?.friendlyName || (hunt$ | async)?.flowName }}</span>
-          </app-copy-button>
-        </td>
-      </tr>
-    </table>
-  </div>
+  <approval-card #approvalCard
+            *ngIf="huntApprovalRequired$ | async"
+            [urlTree]="(huntApprovalRoute$ | async) ?? []"
+            [latestApproval]="latestApproval$ | async"
+            [hideContent]="(hideApprovalCardContentByDefault$ | async) === true"
+            (approvalParams)="requestHuntApproval($event)">
+  </approval-card>
 
-  <div class="collapsed-info">
-    <hunt-flow-arguments class="args" [hunt]="hunt$ | async" [hidden]="hideFlowArgs"></hunt-flow-arguments>
-    <button mat-flat-button
-              type="button"
-              class="flow-params-button"
-              (click)="toggleFlowArgs()"
-              aria-label="View/hide flow params">
-        <mat-icon>{{hideFlowArgs ? 'expand_more' : 'expand_less'}}</mat-icon>
-        {{hideFlowArgs ? 'View flow arguments' : 'Hide flow arguments'}}
-    </button>
-  </div>
+  <ng-container *ngIf="hunt$ | async as hunt">
 
-  <div class="actions">
-    <span matTooltip="You must have approval to change the collection"
-        [matTooltipDisabled]="(hasAccess$ | async) === true">
-      <a
-      *ngIf="(hunt$ | async)?.state === HuntState.PAUSED || (hunt$ | async)?.state === HuntState.NOT_STARTED"
-        mat-stroked-button
-        color="primary"
-        name="modify-button"
-        [drawerLink]="['modify-hunt']"
-        [disabled]="(hasAccess$ | async) === false"
-      >
-        Change rollout parameters and continue
-      </a>
-  </span>
+    <ng-container *ngIf="hunt.state !== HuntState.NOT_STARTED">
+      <app-hunt-progress></app-hunt-progress>
+      <app-hunt-results
+        [huntId]="huntId"
+        [tabsConfig]="(huntResultTabs$ | async) ?? []"
+        [isLoading]="(huntResultsByTypeCountLoading$ | async) === true"
+        (selectedHuntResult)="openHuntResultDetailsInDrawer($event)">
+      </app-hunt-results>
+    </ng-container>
 
-    <button
-      mat-stroked-button
-      type="button"
-      color="primary"
-      name="copy-button"
-      (click)="copyHunt()"
-    >
-      Copy and tweak collection
-    </button>
+    <ng-container *ngIf="hunt.state === HuntState.NOT_STARTED">
+      <mat-chip-list class="m1">
+        <mat-chip
+            class="yellow-chip"
+            color="custom"
+            matTooltip="This fleet cllection has not started yet! To start it, click the 'Start collection' button above."
+            disabled
+            ><mat-icon>warning</mat-icon>This collection has not started yet! To start it, click the "Start collection" button. </mat-chip
+          >
+      </mat-chip-list>
+      <hunt-flow-arguments [hunt]="hunt$ | async"></hunt-flow-arguments>
+      <hunt-arguments [hunt]="hunt$ | async"></hunt-arguments>
+    </ng-container>
 
-    <span matTooltip="You must have approval to stop the collection"
-        [matTooltipDisabled]="(hasAccess$ | async) === true">
-      <button
-        *ngIf="(hunt$ | async)?.state === HuntState.RUNNING || (hunt$ | async)?.state === HuntState.PAUSED || (hunt$ | async)?.state === HuntState.NOT_STARTED"
-        mat-stroked-button
-        type="button"
-        color="primary"
-        name="cancel-button"
-        (click)="cancelHunt()"
-        [disabled]="(hasAccess$ | async) === false"
-      >
-        Cancel collection
-      </button>
-    </span>
-
-    <span matTooltip="You must have approval to start the collection"
-        [matTooltipDisabled]="(hasAccess$ | async) === true">
-      <button
-        *ngIf="(hunt$ | async)?.state === HuntState.NOT_STARTED || (hunt$ | async)?.state === HuntState.PAUSED"
-        mat-stroked-button
-        type="button"
-        color="primary"
-        name="start-button"
-        (click)="startHunt()"
-        [disabled]="(hasAccess$ | async) === false"
-      >
-        <ng-container *ngIf="(hunt$ | async)?.state === HuntState.NOT_STARTED">
-          Start collection
-        </ng-container>
-        <ng-container *ngIf="(hunt$ | async)?.state === HuntState.PAUSED">
-          Restart collection
-        </ng-container>
-      </button>
-    </span>
-  </div>
+  </ng-container>
 </div>
-
-<approval-card #approvalCard
-          *ngIf="huntApprovalRequired$ | async"
-          [urlTree]="(huntApprovalRoute$ | async) ?? []"
-          [latestApproval]="latestApproval$ | async"
-          [hideContent]="(hideApprovalCardContentByDefault$ | async) === true"
-          (approvalParams)="requestHuntApproval($event)"
-          class="centered-content">
-</approval-card>
-
-<app-hunt-progress class="centered-content"></app-hunt-progress>
-
-<app-hunt-results class="centered-content"></app-hunt-results>

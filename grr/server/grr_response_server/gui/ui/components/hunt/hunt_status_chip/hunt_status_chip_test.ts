@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, Input} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {MatTooltipHarness} from '@angular/material/tooltip/testing';
+import {MatLegacyTooltipHarness} from '@angular/material/legacy-tooltip/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {Duration} from '../../../lib/date_time';
@@ -56,7 +56,7 @@ describe('HuntStatusChip', () => {
        expect(text).toContain('Collection not started');
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-       const harness = await harnessLoader.getHarness(MatTooltipHarness);
+       const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
        await harness.show();
        expect(await harness.getTooltipText()).toContain('approval');
      });
@@ -72,20 +72,21 @@ describe('HuntStatusChip', () => {
     expect(text).toContain('Collection not started');
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatTooltipHarness);
+    const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
     await harness.show();
     expect(await harness.getTooltipText()).not.toContain('approval');
   });
 
-  it('shows "Collection paused" for "Paused" hunt', () => {
+  it('shows correct text for "Reached client limit" hunt', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.hunt = newHunt({state: HuntState.PAUSED});
+    fixture.componentInstance.hunt =
+        newHunt({state: HuntState.REACHED_CLIENT_LIMIT});
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).toContain('Collection paused');
+    expect(text).toContain('Reached client limit  (200 clients)');
   });
 
   it('shows "Collection cancelled" for "Cancelled" hunt', async () => {
@@ -99,7 +100,7 @@ describe('HuntStatusChip', () => {
     expect(text).toContain('Collection cancelled');
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatTooltipHarness);
+    const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
     await harness.show();
     expect(await harness.getTooltipText()).toEqual('Cancelled by user');
   });
@@ -116,7 +117,7 @@ describe('HuntStatusChip', () => {
     expect(text).toContain('Collection cancelled');
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatTooltipHarness);
+    const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
     await harness.show();
     expect(await harness.getTooltipText()).toEqual('Cancelled by user');
   });
@@ -133,20 +134,21 @@ describe('HuntStatusChip', () => {
     expect(text).toContain('Collection cancelled');
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatTooltipHarness);
+    const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
     await harness.show();
     expect(await harness.getTooltipText()).toEqual('Something went wrong');
   });
 
-  it('shows "Collection completed" for "Completed" hunt', () => {
+  it('shows correct text "Collection completed" hunt', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.hunt = newHunt({state: HuntState.COMPLETED});
+    fixture.componentInstance.hunt =
+        newHunt({state: HuntState.REACHED_TIME_LIMIT});
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).toContain('Collection completed');
+    expect(text).toContain('Reached time limit   (32 seconds)');
   });
 
   it('shows "Collection running" for "Started" hunt', () => {

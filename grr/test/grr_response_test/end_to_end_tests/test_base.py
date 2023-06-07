@@ -12,12 +12,15 @@ from absl.testing import absltest
 
 from grr_api_client import errors
 
-flags.DEFINE_integer("flow_timeout_secs", 650,
-                     "How long to wait for flows to finish.")
+_FLOW_TIMEOUT_SECS = flags.DEFINE_integer(
+    "flow_timeout_secs", 650, "How long to wait for flows to finish."
+)
 
-flags.DEFINE_integer(
-    "flow_results_sla_secs", 60,
-    "How long to wait for flow results to be available after a flow completes.")
+_FLOW_RESULTS_SLA_SECS = flags.DEFINE_integer(
+    "flow_results_sla_secs",
+    60,
+    "How long to wait for flow results to be available after a flow completes.",
+)
 
 
 class Error(Exception):
@@ -129,10 +132,11 @@ class WaitForNewFileContextManager(object):
             new_file.data.age > self.prev_file.data.age):
           return
 
-      if time.time() - start_time > flags.FLAGS.flow_results_sla_secs:
+      if time.time() - start_time > _FLOW_RESULTS_SLA_SECS.value:
         raise RuntimeError(
-            "File couldn't be found after %d seconds of trying." %
-            flags.FLAGS.flow_results_sla_secs)
+            "File couldn't be found after %d seconds of trying."
+            % _FLOW_RESULTS_SLA_SECS.value
+        )
 
       time.sleep(EndToEndTest.RETRY_DELAY)
 
@@ -198,7 +202,7 @@ class EndToEndTest(absltest.TestCase, metaclass=EndToEndTestMetaclass):
     logging.info("Started flow %s with id %s.", flow_name, flow.flow_id)
 
     try:
-      return flow.WaitUntilDone(flags.FLAGS.flow_timeout_secs)
+      return flow.WaitUntilDone(_FLOW_TIMEOUT_SECS.value)
     except (errors.PollTimeoutError, errors.FlowFailedError) as e:
       flow = self.client.Flow(flow.flow_id).Get()
       raise RunFlowAndWaitError(str(e), flow) from e

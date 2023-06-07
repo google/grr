@@ -1,8 +1,8 @@
 import {CommonModule, KeyValue} from '@angular/common';
 import {AfterViewInit, ChangeDetectionStrategy, Component, OnDestroy, TrackByFunction} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {MatTableDataSource, MatTableModule} from '@angular/material/table';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyTableDataSource, MatLegacyTableModule} from '@angular/material/legacy-table';
 import {combineLatest, Observable} from 'rxjs';
 import {filter, map, takeUntil} from 'rxjs/operators';
 
@@ -24,7 +24,7 @@ import {FileModeModule} from '../file_mode/file_mode_module';
  * A DataSource filled null elements, only to be used for the MatPaginator
  * components.
  */
-class PlaceholderDataSource extends MatTableDataSource<null> {
+class PlaceholderDataSource extends MatLegacyTableDataSource<null> {
   fillWithNullElements(totalCount: number) {
     this.data = Array.from({length: totalCount}).map(() => null);
   }
@@ -40,9 +40,9 @@ class PlaceholderDataSource extends MatTableDataSource<null> {
   imports: [
     CommonModule,
 
-    MatButtonModule,
+    MatLegacyButtonModule,
     MatIconModule,
-    MatTableModule,
+    MatLegacyTableModule,
 
     FilterPaginate,
     TimestampModule,
@@ -60,7 +60,7 @@ export class DataTableView<T> extends PaginatedResultView<T> implements
 
   /**
    * A DataSource filled with `totalCount` null elements, only to be used for
-   * the MatPaginator components.
+   * the MatLegacyPaginatorModule components.
    */
   protected readonly paginationDataSource = new PlaceholderDataSource();
 

@@ -1403,22 +1403,6 @@ message FindSpec {
   optional bool collect_ext_attrs = 18 [default = false];
 }
 
-message PlistRequest {
-  optional PathSpec pathspec = 1 [(sem_type) = {
-    description: "The pathspec for the plist file to query.",
-  }];
-
-  optional string context = 2 [(sem_type) = {
-    description: "A path into the plist to base the filter on",
-  }];
-
-  optional string query = 3 [(sem_type) = {
-    type: "PlistQuery",
-    description: "A filter query to match the contents of the plist "
-                 "at the base_context.",
-  }];
-}
-
 message GetClientStatsRequest {
   optional uint64 start_time = 5 [
     (sem_type) = {

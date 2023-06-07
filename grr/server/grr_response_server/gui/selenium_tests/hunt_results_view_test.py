@@ -20,7 +20,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
   def testHuntResultsView(self):
     hunt_id, _ = self.CreateGenericHuntWithCollection()
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
 
@@ -45,7 +45,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
     hunt_id, client_id = self.CreateGenericHuntWithCollection(
         [rdfvalue.RDFString("foo-result")])
 
-    self.Open("/#/hunts/%s/results" % hunt_id)
+    self.Open("/legacy#/hunts/%s/results" % hunt_id)
     self.Click("css=td:contains('%s') button:has(.fa-info-circle)" %
                self.client_ids[0])
 
@@ -56,7 +56,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
     hunt_id, client_id = self.CreateGenericHuntWithCollection(
         [rdfvalue.RDFString("foo-result")])
 
-    self.Open("/")
+    self.Open("/legacy")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.core.resultsCollectionDirective.setAutoRefreshInterval(1000);")
@@ -79,7 +79,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
   def testDownloadAsPanelNotShownForEmptyHuntResults(self):
     hunt_id, _ = self.CreateGenericHuntWithCollection([])
 
-    self.Open("/#/hunts/%s/results" % hunt_id)
+    self.Open("/legacy#/hunts/%s/results" % hunt_id)
 
     self.WaitUntil(self.IsTextPresent, "Value")
     self.WaitUntilNot(self.IsElementPresent, "css=grr-download-collection-as")
@@ -116,7 +116,7 @@ class TestHuntResultsView(gui_test_lib.GRRSeleniumHuntTest):
                                             plugin_display_name):
     hunt_id, _ = self.CreateGenericHuntWithCollection()
 
-    self.Open("/#/hunts/%s/results" % hunt_id)
+    self.Open("/legacy#/hunts/%s/results" % hunt_id)
     self.Select("id=plugin-select", plugin_display_name)
     self.Click("css=grr-download-collection-as button[name='download-as']")
 

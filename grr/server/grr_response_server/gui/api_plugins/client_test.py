@@ -50,6 +50,19 @@ class ApiClientTest(absltest.TestCase):
 
     self.assertEqual(client.age, first_seen_time)
 
+  def testInitFromClientInfoRRG(self):
+    info = rdf_objects.ClientFullInfo()
+    info.last_rrg_startup.args = ["--foo", "--bar", "--baz"]
+    info.last_rrg_startup.metadata.version.major = 1
+    info.last_rrg_startup.metadata.version.minor = 2
+    info.last_rrg_startup.metadata.version.patch = 3
+
+    api_client = client_plugin.ApiClient()
+    api_client.InitFromClientInfo("C.0123456789ABCDEF", info)
+
+    self.assertEqual(api_client.rrg_version, "1.2.3")
+    self.assertEqual(api_client.rrg_args, ["--foo", "--bar", "--baz"])
+
 
 class ApiClientIdTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   """Test for ApiClientId."""

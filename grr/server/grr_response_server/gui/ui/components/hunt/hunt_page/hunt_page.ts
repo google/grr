@@ -5,14 +5,19 @@ import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {filter, map, startWith, take, takeUntil} from 'rxjs/operators';
 
 import {ColorScheme} from '../../../components/flow_details/helpers/result_accordion';
+import {getHuntResultKey} from '../../../lib/api_translation/hunt';
+import {getFlowTitleFromFlowName} from '../../../lib/models/flow';
 import {getHuntTitle, Hunt, HuntState} from '../../../lib/models/hunt';
+import {TypedHuntResultOrError} from '../../../lib/models/result';
 import {isNonNull, isNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
-import {HuntApprovalGlobalStore} from '../../../store/hunt_approval_global_store';
+import {HuntApprovalLocalStore} from '../../../store/hunt_approval_local_store';
 import {HuntPageGlobalStore} from '../../../store/hunt_page_global_store';
+import {HuntResultDetailsGlobalStore} from '../../../store/hunt_result_details_global_store';
 import {UserGlobalStore} from '../../../store/user_global_store';
 import {ApprovalCard, ApprovalParams} from '../../approval_card/approval_card';
+import {toDurationString} from '../../form/duration_input/duration_conversion';
 
 /**
  * Provides the new hunt creation page.
@@ -21,6 +26,7 @@ import {ApprovalCard, ApprovalParams} from '../../approval_card/approval_card';
   templateUrl: './hunt_page.ng.html',
   styleUrls: ['./hunt_page.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
+  providers: [HuntApprovalLocalStore],
 })
 export class HuntPage implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
@@ -32,10 +38,14 @@ export class HuntPage implements OnDestroy {
   readonly hunt$: Observable<Hunt|null> =
       this.huntPageGlobalStore.selectedHunt$;
 
+  readonly huntTotalCPU$: Observable<string> = this.hunt$.pipe(
+      map(hunt => toDurationString(
+              hunt?.resourceUsage?.totalCPUTime ?? 0, 'long')));
+
   @ViewChild('approvalCard', {static: false}) approvalCard?: ApprovalCard;
   private readonly approvalParams$ =
       new BehaviorSubject<ApprovalParams|null>(null);
-  readonly latestApproval$ = this.huntApprovalGlobalStore.latestApproval$;
+  readonly latestApproval$ = this.huntApprovalLocalStore.latestApproval$;
   readonly hideApprovalCardContentByDefault$ = this.latestApproval$.pipe(
       map(approval => isNull(approval)),
       // we are only interested in the first emission, as we don't want
@@ -44,14 +54,17 @@ export class HuntPage implements OnDestroy {
       take(1),
       startWith(true),
   );
-  protected readonly hasAccess$ = this.huntApprovalGlobalStore.hasAccess$;
+  protected readonly hasAccess$ = this.huntApprovalLocalStore.hasAccess$;
   protected readonly huntApprovalRoute$ =
-      this.huntApprovalGlobalStore.huntApprovalRoute$;
+      this.huntApprovalLocalStore.huntApprovalRoute$;
   protected readonly huntApprovalRequired$ =
       this.userGlobalStore.currentUser$.pipe(
           map(user => user.huntApprovalRequired));
+  protected readonly huntResultTabs$ = this.huntPageGlobalStore.huntResultTabs$;
+  readonly huntResultsByTypeCountLoading$ =
+      this.huntPageGlobalStore.huntResultsByTypeCountLoading$;
 
-  private huntId = '';
+  huntId = '';
   protected hideFlowArgs = true;
 
   protected readonly huntsOverviewRoute = ['/hunts'];
@@ -60,9 +73,11 @@ export class HuntPage implements OnDestroy {
       private readonly activatedRoute: ActivatedRoute,
       private readonly router: Router,
       private readonly huntPageGlobalStore: HuntPageGlobalStore,
-      private readonly huntApprovalGlobalStore: HuntApprovalGlobalStore,
+      private readonly huntApprovalLocalStore: HuntApprovalLocalStore,
       private readonly configGlobalStore: ConfigGlobalStore,
       private readonly userGlobalStore: UserGlobalStore,
+      private readonly huntResultDetailsGlobalStore:
+          HuntResultDetailsGlobalStore,
       private readonly title: Title,
   ) {
     this.activatedRoute.paramMap
@@ -74,7 +89,7 @@ export class HuntPage implements OnDestroy {
         .subscribe(huntId => {
           this.huntId = huntId;
           this.huntPageGlobalStore.selectHunt(huntId);
-          this.huntApprovalGlobalStore.selectHunt(huntId);
+          this.huntApprovalLocalStore.selectHunt(huntId);
         });
 
     combineLatest(
@@ -86,7 +101,7 @@ export class HuntPage implements OnDestroy {
                     isNonNull(approvalParams) && isNonNull(huntId)))
         .subscribe(
             ([approvalParams, huntId]) => {
-              this.huntApprovalGlobalStore.requestHuntApproval({
+              this.huntApprovalLocalStore.requestHuntApproval({
                 huntId: huntId!,
                 approvers: approvalParams!.approvers,
                 reason: approvalParams!.reason,
@@ -123,9 +138,25 @@ export class HuntPage implements OnDestroy {
                 return fds.get(flowName);
               }),
               startWith(null));
+  protected readonly flowTitle$ =
+      combineLatest([
+        this.hunt$, this.flowDescriptor$
+      ]).pipe(map(([hunt,
+                    desc]) => getFlowTitleFromFlowName(hunt?.flowName, desc)));
 
   requestHuntApproval(approvalParams: ApprovalParams) {
     this.approvalParams$.next(approvalParams);
+  }
+
+  openHuntResultDetailsInDrawer(resultOrErrorDetails: TypedHuntResultOrError):
+      void {
+    this.huntResultDetailsGlobalStore.selectHuntResultOrError(
+        resultOrErrorDetails.value, this.huntId);
+
+    const resultKey = getHuntResultKey(resultOrErrorDetails.value, this.huntId);
+    const drawerURl =
+        `result-details/${resultKey}/${resultOrErrorDetails.payloadType}`;
+    this.router.navigate([{outlets: {'drawer': drawerURl}}]);
   }
 
   cancelHunt() {

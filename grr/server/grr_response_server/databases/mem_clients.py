@@ -1,33 +1,40 @@
 #!/usr/bin/env python
 """The in memory database methods for client handling."""
 import sys
-from typing import Collection, Iterator, Optional, List, Text
+from typing import Collection, Iterator, Mapping, Optional, List, Text
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
+from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.util import collection
 from grr_response_server import fleet_utils
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import rrg as rdf_rrg
+from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
 class InMemoryDBClientMixin(object):
   """InMemoryDB mixin for client related functions."""
 
   @utils.Synchronized
-  def WriteClientMetadata(self,
-                          client_id,
-                          certificate=None,
-                          fleetspeak_enabled=None,
-                          first_seen=None,
-                          last_ping=None,
-                          last_clock=None,
-                          last_ip=None,
-                          fleetspeak_validation_info=None,
-                          last_foreman=None):
+  def WriteClientMetadata(
+      self,
+      client_id: str,
+      certificate: Optional[rdf_crypto.RDFX509Cert] = None,
+      fleetspeak_enabled: Optional[bool] = None,
+      first_seen: Optional[rdfvalue.RDFDatetime] = None,
+      last_ping: Optional[rdfvalue.RDFDatetime] = None,
+      last_clock: Optional[rdfvalue.RDFDatetime] = None,
+      last_ip: Optional[rdf_client_network.NetworkAddress] = None,
+      last_foreman: Optional[rdfvalue.RDFDatetime] = None,
+      fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
+      rrg_support: Optional[bool] = None,
+  ) -> None:
     """Write metadata about the client."""
     md = {}
     if certificate is not None:
@@ -59,6 +66,9 @@ class InMemoryDBClientMixin(object):
       # Write null for empty or non-existent validation info.
       md["last_fleetspeak_validation_info"] = None
 
+    if rrg_support is not None:
+      md["rrg_support"] = rrg_support
+
     self.metadatas.setdefault(client_id, {}).update(md)
 
   @utils.Synchronized
@@ -79,7 +89,9 @@ class InMemoryDBClientMixin(object):
           ip=md.get("ip"),
           last_foreman_time=md.get("last_foreman_time"),
           last_crash_timestamp=md.get("last_crash_timestamp"),
-          startup_info_timestamp=md.get("startup_info_timestamp"))
+          startup_info_timestamp=md.get("startup_info_timestamp"),
+          rrg_support=bool(md.get("rrg_support")),
+      )
 
       fsvi = md.get("last_fleetspeak_validation_info")
       if fsvi is not None:
@@ -151,6 +163,15 @@ class InMemoryDBClientMixin(object):
             client_id=client_id)
       else:
         full_info.last_snapshot = last_snapshot
+
+      if self.rrg_startups[client_id]:
+        last_rrg_startup = self.rrg_startups[client_id][-1]
+        last_rrg_startup_bytes = last_rrg_startup.SerializeToString()
+
+        full_info.last_rrg_startup = rdf_rrg.Startup.FromSerializedBytes(
+            last_rrg_startup_bytes,
+        )
+
       res[client_id] = full_info
     return res
 
@@ -313,6 +334,23 @@ class InMemoryDBClientMixin(object):
     history[ts] = startup_info.SerializeToBytes()
 
   @utils.Synchronized
+  def WriteClientRRGStartup(
+      self,
+      client_id: str,
+      startup: rrg_startup_pb2.Startup,
+  ) -> None:
+    """Writes a new RRG startup entry to the database."""
+    if client_id not in self.metadatas:
+      raise db.UnknownClientError(client_id)
+
+    # We want to store a copy as messages are mutable and we don't want anyone
+    # to be able to mutate anything that is stored in the database.
+    startup_copy = rrg_startup_pb2.Startup()
+    startup_copy.CopyFrom(startup)
+
+    self.rrg_startups[client_id].append(startup_copy)
+
+  @utils.Synchronized
   def ReadClientStartupInfo(self,
                             client_id: str) -> Optional[rdf_client.StartupInfo]:
     """Reads the latest client startup record for a single client."""
@@ -323,6 +361,7 @@ class InMemoryDBClientMixin(object):
     ts = max(history)
     res = rdf_client.StartupInfo.FromSerializedBytes(history[ts])
     res.timestamp = ts
+
     return res
 
   @utils.Synchronized

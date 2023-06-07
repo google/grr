@@ -1,13 +1,14 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
+import {MatLegacyCheckboxHarness} from '@angular/material/legacy-checkbox/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 
 import {Browser} from '../../../lib/api/api_interfaces';
+import {getFlowTitleFromFlowName} from '../../../lib/models/flow';
 import {newFlowDescriptorMap, newHunt} from '../../../lib/models/model_test_util';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../../store/config_global_store_test_util';
@@ -23,7 +24,7 @@ async function getCheckboxValue(
     fixture: ComponentFixture<unknown>, query: string): Promise<boolean> {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
   const checkboxHarness = await harnessLoader.getHarness(
-      MatCheckboxHarness.with({selector: query}));
+      MatLegacyCheckboxHarness.with({selector: query}));
   return await checkboxHarness.isChecked();
 }
 
@@ -64,9 +65,10 @@ describe('HuntFlowArguments test', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
+    const flowName = 'CollectBrowserHistory';
     fixture.componentInstance.hunt = newHunt({
       flowReference: {clientId: 'C1234', flowId: 'F5678'},
-      flowName: 'CollectBrowserHistory',
+      flowName,
       flowArgs: {
         '@type':
             'type.googleapis.com/grr.CollectBrowserHistoryArgs',
@@ -76,7 +78,7 @@ describe('HuntFlowArguments test', () => {
     fixture.detectChanges();
     configGlobalStore.mockedObservables.flowDescriptors$.next(
         newFlowDescriptorMap({
-          name: 'CollectBrowserHistory',
+          name: flowName,
           friendlyName: 'Browser History',
         }));
     fixture.detectChanges();
@@ -84,7 +86,8 @@ describe('HuntFlowArguments test', () => {
     expect(fixture.nativeElement).toBeTruthy();
     const flowLink = fixture.debugElement.query(By.css('.header a'));
     expect(flowLink.attributes['href']).toContain('clients/C1234/flows/F5678');
-    expect(flowLink.nativeElement.textContent).toContain('Browser History');
+    expect(flowLink.nativeElement.textContent)
+        .toContain(getFlowTitleFromFlowName(flowName));
 
     const flowID =
         fixture.debugElement.query(By.css('.header app-copy-button'));
@@ -113,8 +116,9 @@ describe('HuntFlowArguments test', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
+    const flowName = 'CollectBrowserHistory';
     fixture.componentInstance.hunt = newHunt({
-      flowName: 'CollectBrowserHistory',
+      flowName,
       flowArgs: {
         '@type':
             'type.googleapis.com/grr.CollectBrowserHistoryArgs',
@@ -124,23 +128,25 @@ describe('HuntFlowArguments test', () => {
     fixture.detectChanges();
     configGlobalStore.mockedObservables.flowDescriptors$.next(
         newFlowDescriptorMap({
-          name: 'CollectBrowserHistory',
+          name: flowName,
           friendlyName: 'Browser History',
         }));
     fixture.detectChanges();
 
     expect(fixture.nativeElement).toBeTruthy();
     const header = fixture.debugElement.query(By.css('.header'));
-    expect(header.nativeElement.textContent).toContain('Browser History');
+    expect(header.nativeElement.textContent)
+        .toContain(getFlowTitleFromFlowName(flowName));
   });
 
   it('WITHOUT flowDescriptor', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
+    const flowName = 'CollectBrowserHistory';
     fixture.componentInstance.hunt = newHunt({
       flowReference: {clientId: 'C1234', flowId: 'F5678'},
-      flowName: 'CollectBrowserHistory',
+      flowName,
       flowArgs: {
         '@type':
             'type.googleapis.com/grr.CollectBrowserHistoryArgs',
@@ -154,7 +160,7 @@ describe('HuntFlowArguments test', () => {
     const flowLink = fixture.debugElement.query(By.css('.header a'));
     expect(flowLink.attributes['href']).toContain('clients/C1234/flows/F5678');
     expect(flowLink.nativeElement.textContent)
-        .toContain('CollectBrowserHistory');
+        .toContain(getFlowTitleFromFlowName(flowName));
 
     const flowID =
         fixture.debugElement.query(By.css('.header app-copy-button'));

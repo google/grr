@@ -995,8 +995,9 @@ class ApiGrantHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     send_fn.assert_called_once()
     message = send_fn.call_args[1]["message"]
-    self.assertNotIn(
-        (f"href=\"http://localhost:8000/v2/hunts/{self.hunt_id}\""), message)
+    self.assertIn(
+        f'href="http://localhost:8000/v2/hunts/{self.hunt_id}"', message
+    )
     # Check for correct link to legacy UI.
     # TODO: Remove once new UI is stable.
     self.assertIn(f"href=\"http://localhost:8000/#/hunts/{self.hunt_id}\"",

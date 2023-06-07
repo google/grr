@@ -156,7 +156,6 @@ export class NewHuntLocalStore {
 
   private readonly store =
       new NewHuntComponentStore(this.httpApiService, this.configGlobalStore);
-
   /** Selects a flow with a given parameters. */
   selectOriginalFlow(clientId: string, flowId: string): void {
     this.store.selectOriginalFlow({clientId, flowId});

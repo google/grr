@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {MatSelectHarness} from '@angular/material/select/testing';
+import {MatLegacySelectHarness} from '@angular/material/legacy-select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
@@ -63,8 +63,9 @@ describe('app-hunt-overview-page', () => {
   it('creator filter updates list', async () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     const loader = TestbedHarnessEnvironment.loader(fixture);
-    const huntFilterHarness = await loader.getHarness(
-        MatSelectHarness.with({selector: '[name="hunt-creator-filter"]'}));
+    const huntFilterHarness =
+        await loader.getHarness(MatLegacySelectHarness.with(
+            {selector: '[name="hunt-creator-filter"]'}));
     await huntFilterHarness.clickOptions({text: HuntCreatorFilter.ALL_HUNTS});
     fixture.detectChanges();
     const huntPageLocalStore =
@@ -93,7 +94,7 @@ describe('app-hunt-overview-page', () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const huntFilterHarness = await loader.getHarness(
-        MatSelectHarness.with({selector: '[name="hunt-state-filter"]'}));
+        MatLegacySelectHarness.with({selector: '[name="hunt-state-filter"]'}));
     await huntFilterHarness.clickOptions({text: HuntStateFilter.RUNNING});
     fixture.detectChanges();
     const huntPageLocalStore =
@@ -105,7 +106,11 @@ describe('app-hunt-overview-page', () => {
     });
 
     huntPageLocalStore.mockedObservables.results$.next([
-      newHunt({creator: 'human', isRobot: false, state: HuntState.PAUSED}),
+      newHunt({
+        creator: 'human',
+        isRobot: false,
+        state: HuntState.REACHED_CLIENT_LIMIT
+      }),
       newHunt({creator: 'robot', isRobot: true, state: HuntState.RUNNING})
     ]);
     fixture.detectChanges();
@@ -177,8 +182,8 @@ describe('app-hunt-overview-page', () => {
        })]);
        fixture.detectChanges();
 
-       // Getting MatProgressBarHarness times out for unknown reasons, so we
-       // read the progress bar state from ARIA:
+       // Getting MatProgressBarHarness times out for unknown reasons, so
+       // we read the progress bar state from ARIA:
        const progressBar =
            fixture.debugElement.query(By.css('mat-progress-bar'));
        expect(Number(progressBar.attributes['aria-valuenow'])).toEqual(0);
@@ -194,7 +199,7 @@ describe('app-hunt-overview-page', () => {
       description: 'Collect foobar',
       allClientsCount: BigInt(10),
       completedClientsCount: BigInt(10),
-      state: HuntState.PAUSED,
+      state: HuntState.REACHED_CLIENT_LIMIT,
       safetyLimits: newSafetyLimits({clientLimit: BigInt(99)}),
     })]);
     fixture.detectChanges();
@@ -224,8 +229,8 @@ describe('app-hunt-overview-page', () => {
        const completePercent = 7 / 10 * 100;
        const padding = completePercent * .1;
 
-       // Getting MatProgressBarHarness times out for unknown reasons, so we
-       // read the progress bar state from ARIA:
+       // Getting MatProgressBarHarness times out for unknown reasons, so
+       // we read the progress bar state from ARIA:
        const progressBar =
            fixture.debugElement.query(By.css('mat-progress-bar'));
        expect(Math.trunc(Number(progressBar.attributes['aria-valuenow'])))
@@ -252,5 +257,34 @@ describe('app-hunt-overview-page', () => {
     const progressBar = fixture.debugElement.query(By.css('mat-progress-bar'));
     expect(Math.trunc(Number(progressBar.attributes['aria-valuenow'])))
         .toEqual(7 / 20 * 100);
+  });
+
+  it('displays context menu button', async () => {
+    const fixture = TestBed.createComponent(HuntOverviewPage);
+    fixture.detectChanges();
+
+    const huntPageLocalStore =
+        injectMockStore(HuntOverviewPageLocalStore, fixture.debugElement);
+    huntPageLocalStore.mockedObservables.results$.next([newHunt({
+      description: 'Collect foobar',
+      allClientsCount: BigInt(10),
+      completedClientsCount: BigInt(7),
+      state: HuntState.RUNNING,
+      safetyLimits: newSafetyLimits({clientLimit: BigInt(20)}),
+    })]);
+    fixture.detectChanges();
+
+    const contextMenuButton =
+        fixture.debugElement.query(By.css('.context-menu button'));
+    expect(contextMenuButton).toBeTruthy();
+    await contextMenuButton.nativeElement.click();
+    fixture.detectChanges();
+
+    // We query the document because the options are shown in an overlay.
+    // For unknown reasons, finding
+    // MatLegacyMenuHarness/MatLegacyMenuItemHarness both time out the test
+    // without finding the menus.
+    expect(document.querySelector('.mat-menu-content')?.textContent)
+        .toContain('Duplicate');
   });
 });

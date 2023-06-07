@@ -1,8 +1,8 @@
 import {NestedTreeControl} from '@angular/cdk/tree';
 import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input, OnChanges} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
 import {MatTreeModule} from '@angular/material/tree';
 
 import {Process} from '../../../lib/api/api_interfaces';
@@ -58,7 +58,7 @@ function toTrees(processes: readonly Process[]): ProcessNode[] {
   standalone: true,
   imports: [
     CommonModule,
-    MatButtonModule,
+    MatLegacyButtonModule,
     MatIconModule,
     MatTreeModule,
     TimestampModule,

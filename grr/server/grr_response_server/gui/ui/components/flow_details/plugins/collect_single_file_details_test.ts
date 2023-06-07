@@ -1,10 +1,12 @@
 import {TestBed, waitForAsync} from '@angular/core/testing';
+import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 
 import {CollectSingleFileDetails} from '../../../components/flow_details/plugins/collect_single_file_details';
 import {CollectSingleFileArgs, CollectSingleFileProgress, CollectSingleFileProgressStatus, PathSpecPathType} from '../../../lib/api/api_interfaces';
 import {newFlow} from '../../../lib/models/model_test_util';
+import {MetricsService} from '../../../lib/service/metrics_service/metrics_service';
 import {initTestEnvironment} from '../../../testing';
 
 import {PluginsModule} from './module';
@@ -22,19 +24,26 @@ describe('collect-single-file-details component', () => {
             PluginsModule,
             RouterTestingModule,
           ],
-          providers: [],
+          providers: [MetricsService],
           teardown: {destroyAfterEach: false}
         })
         .compileComponents();
   }));
 
-  it('shows message if progress is not reported', () => {
+  it('shows legacy link if progress is not reported', () => {
     const fixture = TestBed.createComponent(CollectSingleFileDetails);
 
-    fixture.componentInstance.flow = newFlow({name: 'CollectSingleFile'});
+    const flowId = 'ABCD';
+    const clientId = 'C.1234';
+    fixture.componentInstance.flow = newFlow({
+      flowId,
+      clientId,
+    });
     fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('legacy UI');
+    expect(fixture.debugElement.query(By.css('.fallback a')).nativeElement.href)
+        .toContain(`/clients/${clientId}/flows/${flowId}`);
   });
 
   it('does not show download button when result is reported', () => {

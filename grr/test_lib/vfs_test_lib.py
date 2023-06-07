@@ -328,7 +328,8 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
       ps = self.pathspec.Copy()
       ps.last.path = os.path.join(ps.last.path, f)
       yield client_utils.StatEntryFromPath(
-          self._AbsPath(f), self.pathspec, ext_attrs=ext_attrs)
+          self._AbsPath(f), ps, ext_attrs=ext_attrs
+      )
 
 
 class RegistryFake(FakeRegistryVFSHandler):

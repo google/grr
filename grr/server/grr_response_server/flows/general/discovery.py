@@ -6,6 +6,7 @@ from typing import Any
 from typing import List
 from typing import Sequence
 
+from google.protobuf import any_pb2
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
@@ -23,11 +24,15 @@ from grr_response_server import events
 from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import flow_base
+from grr_response_server import flow_responses
 from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
+from grr_response_proto.rrg.action import get_system_metadata_pb2 as rrg_get_system_metadata_pb2
 
 FLEETSPEAK_UNLABELED_CLIENTS = metrics.Counter("fleetspeak_unlabeled_clients")
 CLOUD_METADATA_COLLECTION_ERRORS = metrics.Counter(
@@ -54,16 +59,34 @@ class Interrogate(flow_base.FlowBase):
     self.state.fqdn = None
     self.state.os = None
 
-    # ClientInfo should be collected early on since we might need the client
-    # version later on to know what actions a client supports.
-    self.CallClient(
-        server_stubs.GetClientInfo, next_state=self.ClientInfo.__name__)
-    self.CallClient(
-        server_stubs.GetPlatformInfo, next_state=self.Platform.__name__)
+    # We have a RRG-supported client, so we can use it instead of the Python
+    # agent to get basic system metadata.
+    #
+    # Note that `CallRRG` calls have to happen before any of the `CallClient`
+    # calls: because response processing is sequential, in case there is only
+    # RRG agent is running, flow executor will wait for responses that are not
+    # going to come, never processing responses from the RRG agent.
+    if self.rrg_support:
+      self.CallRRG(
+          action=rrg_pb2.Action.GET_SYSTEM_METADATA,
+          args=rrg_get_system_metadata_pb2.Args(),
+          next_state=self.HandleRRGGetSystemMetadata.__name__,
+      )
+    else:
+      # ClientInfo should be collected early on since we might need the client
+      # version later on to know what actions a client supports.
+      self.CallClient(
+          server_stubs.GetClientInfo, next_state=self.ClientInfo.__name__
+      )
+      self.CallClient(
+          server_stubs.GetPlatformInfo, next_state=self.Platform.__name__
+      )
+      self.CallClient(
+          server_stubs.GetInstallDate, next_state=self.InstallDate.__name__
+      )
+
     self.CallClient(
         server_stubs.GetMemorySize, next_state=self.StoreMemorySize.__name__)
-    self.CallClient(
-        server_stubs.GetInstallDate, next_state=self.InstallDate.__name__)
     self.CallClient(
         server_stubs.GetConfiguration,
         next_state=self.ClientConfiguration.__name__)
@@ -84,6 +107,71 @@ class Interrogate(flow_base.FlowBase):
           artifact_list=config.CONFIG["Artifacts.edr_agents"],
           dependencies=flow_args_cls.Dependency.IGNORE_DEPS,
           next_state=self.ProcessEdrAgents.__name__)
+
+  @flow_base.UseProto2AnyResponses
+  def HandleRRGGetSystemMetadata(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    """Handles responses from RRG `GET_SYSTEM_METADATA` action."""
+    if not responses.success:
+      message = f"RRG system metadata collection failed: {responses.status}"
+      raise flow_base.FlowError(message)
+
+    if len(responses) != 1:
+      message = (
+          "Unexpected number of RRG system metadata responses: "
+          f"{len(responses)}"
+      )
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_system_metadata_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    if result.type == rrg_os_pb2.Type.LINUX:
+      self.state.client.knowledge_base.os = "Linux"
+    elif result.type == rrg_os_pb2.Type.MACOS:
+      self.state.client.knowledge_base.os = "Darwin"
+    elif result.type == rrg_os_pb2.Type.WINDOWS:
+      self.state.client.knowledge_base.os = "Windows"
+    else:
+      self.Log("Unexpected operating system: %s", result.type)
+
+    self.state.client.knowledge_base.fqdn = result.fqdn
+    self.state.client.os_version = result.version
+    self.state.client.install_time = rdfvalue.RDFDatetime.FromDatetime(
+        result.install_time.ToDatetime()
+    )
+
+    # TODO: Remove these lines.
+    #
+    # At the moment `ProcessKnowledgeBase` uses `state.fqdn` and `state.os` for
+    # knowledgebase and overrides everything else. The code should be refactored
+    # to merge knowledgebase from individual client calls and the knowledgebase
+    # initialization flow.
+    self.state.fqdn = self.state.client.knowledge_base.fqdn
+    self.state.os = self.state.client.knowledge_base.os
+
+    # We should not assume that the GRR client is running if we got responses
+    # from RRG. It means, that GRR-only requests will never be delivered and
+    # the flow will get stuck never reaching executing it's `End` method. To
+    # still preserve information in such cases, we write the snapshot right now.
+    # If GRR is running and adds more complete data, this information will be
+    # just overridden.
+    data_store.REL_DB.WriteClientSnapshot(self.state.client)
+
+    # We replicate behaviour of Python-based agents: once the operating system
+    # is known, we can start the knowledgebase initialization flow.
+    if self.state.client.knowledge_base.os:
+      args = artifact.KnowledgeBaseInitializationArgs()
+      args.require_complete = False  # Not all dependencies are known yet.
+      args.lightweight = self.args.lightweight
+
+      self.CallFlow(
+          flow_name=artifact.KnowledgeBaseInitializationFlow.__name__,
+          flow_args=args,
+          next_state=self.ProcessKnowledgeBase.__name__,
+      )
 
   def CloudMetadata(self, responses):
     """Process cloud metadata and store in the client."""

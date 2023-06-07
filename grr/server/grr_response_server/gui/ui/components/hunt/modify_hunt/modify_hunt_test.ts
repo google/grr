@@ -3,6 +3,7 @@ import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {getInputValue, isButtonToggleSelected, selectButtonToggle, setInputValue} from '../../../form_testing';
+import {HuntState} from '../../../lib/models/hunt';
 import {newHunt, newSafetyLimits} from '../../../lib/models/model_test_util';
 import {HuntPageGlobalStore} from '../../../store/hunt_page_global_store';
 import {HuntPageGlobalStoreMock, mockHuntPageGlobalStore} from '../../../store/hunt_page_global_store_test_util';
@@ -53,6 +54,28 @@ describe('modify hunt', () => {
         .toBe(true);
     expect(await getInputValue(fixture, '[name=customClientLimit]'))
         .toBe('1234');
+  });
+
+  it('button label - not started', async () => {
+    const fixture = TestBed.createComponent(ModifyHunt);
+    fixture.detectChanges();
+
+    huntPageGlobalStore.mockedObservables.selectedHunt$.next(newHunt({
+      state: HuntState.NOT_STARTED,
+    }));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.innerText).toContain('Start collection');
+  });
+
+  it('button label - reached client limit', async () => {
+    const fixture = TestBed.createComponent(ModifyHunt);
+    fixture.detectChanges();
+
+    huntPageGlobalStore.mockedObservables.selectedHunt$.next(newHunt({
+      state: HuntState.REACHED_CLIENT_LIMIT,
+    }));
+    fixture.detectChanges();
 
     expect(fixture.nativeElement.innerText).toContain('Continue collection');
   });

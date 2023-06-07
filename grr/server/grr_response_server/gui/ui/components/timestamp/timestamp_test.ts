@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {fakeAsync, TestBed, waitForAsync} from '@angular/core/testing';
-import {MatTooltipHarness} from '@angular/material/tooltip/testing';
+import {MatLegacyTooltipHarness} from '@angular/material/legacy-tooltip/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Subject} from 'rxjs';
 
@@ -94,7 +94,7 @@ describe('Timestamp Component', () => {
        fixture.detectChanges();
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-       const harness = await harnessLoader.getHarness(MatTooltipHarness);
+       const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
        await harness.show();
        expect(await harness.getTooltipText()).toEqual('10 minutes ago');
      }));

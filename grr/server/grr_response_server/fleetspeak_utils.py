@@ -18,6 +18,7 @@ from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
+from grr_response_proto import rrg_pb2
 
 
 FLEETSPEAK_CALL_LATENCY = metrics.Event(
@@ -73,6 +74,41 @@ def SendGrrMessageThroughFleetspeak(grr_id: str,
       fs_msg,
       single_try_timeout=WRITE_SINGLE_TRY_TIMEOUT,
       timeout=WRITE_TOTAL_TIMEOUT)
+
+
+@FLEETSPEAK_CALL_LATENCY.Timed(fields=["InsertMessage"])
+def SendRrgRequest(
+    client_id: str,
+    request: rrg_pb2.Request,
+) -> None:
+  """Sends a RRG action request to the specified endpoint.
+
+  Args:
+    client_id: A unique endpoint identifier as recognized by GRR.
+    request: A request to send to the endpoint.
+  """
+  message = fs_common_pb2.Message()
+  message.message_type = "rrg.Request"
+  message.destination.service_name = "RRG"
+  message.destination.client_id = GRRIDToFleetspeakID(client_id)
+  message.data.Pack(request)
+
+  # It is not entirely clear to me why we set these annotations below, but
+  # messages sent to Python agents do it, so we should do it as well.
+  message.annotations.entries.add(
+      key="flow_id",
+      value=str(request.flow_id),
+  )
+  message.annotations.entries.add(
+      key="request_id",
+      value=str(request.request_id),
+  )
+
+  fleetspeak_connector.CONN.outgoing.InsertMessage(
+      message,
+      single_try_timeout=WRITE_SINGLE_TRY_TIMEOUT,
+      timeout=WRITE_TOTAL_TIMEOUT,
+  )
 
 
 @FLEETSPEAK_CALL_LATENCY.Timed(fields=["InsertMessage"])

@@ -45,7 +45,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
   # doesn't get updated.
   @flaky
   def testRefreshFileStartsFlow(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/Downloads/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/Downloads/")
 
     # Select a file and start a flow by requesting a newer version.
     self.Click("css=tr:contains(\"a.txt\")")
@@ -115,7 +115,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
 
   def testRefreshDirectoryStartsFlow(self):
     # Open VFS view for client 1.
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/Users/Shared/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/Users/Shared/")
 
     # Grab the root directory again - should produce an Interrogate flow.
     self.Click("css=button#refresh-dir:not([disabled])")
@@ -139,7 +139,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
   # reenabled.
   @flaky
   def testRefreshButtonGetsDisabledWhileUpdateIsRunning(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     self.Click("css=button[id=refresh-dir]:not([disabled])")
     # Check that the button got disabled.
@@ -154,7 +154,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
                       "css=button[id=refresh-dir][disabled]")
 
   def testSwitchingFoldersWhileRefreshingEnablesRefreshButton(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     self.Click("css=button[id=refresh-dir]:not([disabled])")
     # Check that the button got disabled.
@@ -172,7 +172,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
   # get updated in time.
   @flaky
   def testTreeAndFileListRefreshedWhenRefreshCompletes(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     self.Click("css=button[id=refresh-dir]:not([disabled])")
     self.WaitUntil(self.IsElementPresent,
@@ -189,7 +189,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
 
   def testTreeAndFileListRefreshedWhenRefreshCompletesWhenSelectionChanged(
       self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.Click("css=button[id=refresh-dir]:not([disabled])")
 
     # Change the selection while the update is in progress.
@@ -208,7 +208,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
                    "css=#_fs-os-c-TestFolder i.jstree-icon")
 
   def testClickingOnTreeNodeRefreshesChildrenFoldersList(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.WaitUntilNot(self.IsElementPresent, "link=foo")
 
     gui_test_lib.CreateFolder(
@@ -218,7 +218,7 @@ class DirRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "link=foo")
 
   def testClickingOnTreeNodeArrowRefreshesChildrenFoldersList(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.WaitUntil(self.IsElementPresent, "link=Downloads")
     self.WaitUntilNot(self.IsElementPresent, "link=foo")
 

@@ -25,7 +25,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s/flows" % self.client_id)
+    self.Open("/legacy#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
     self.Click("link=Show export command")
@@ -49,7 +49,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s/flows" % self.client_id)
+    self.Open("/legacy#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('RecursiveTestFlow')")
     self.Click("css=li[heading=Results]")
     self.WaitUntil(self.IsElementPresent,
@@ -63,7 +63,7 @@ class TestFlowExport(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s/flows" % self.client_id)
+    self.Open("/legacy#/clients/%s/flows" % self.client_id)
     self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")
     self.Click("css=li[heading=Results]")
     self.WaitUntil(self.IsElementPresent,

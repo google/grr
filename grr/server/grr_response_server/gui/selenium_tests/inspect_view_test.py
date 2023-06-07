@@ -33,14 +33,14 @@ class TestClientLoadView(TestInspectViewBase):
   def testNoClientActionIsDisplayed(self):
     self.RequestAndGrantClientApproval(self.client_id)
 
-    self.Open("/#/clients/%s/load-stats" % self.client_id)
+    self.Open("/legacy#/clients/%s/load-stats" % self.client_id)
     self.WaitUntil(self.IsTextPresent, "No actions currently in progress.")
 
   def testClientActionIsDisplayedWhenItReceiveByTheClient(self):
     self.RequestAndGrantClientApproval(self.client_id)
     self.CreateLeasedClientRequest(client_id=self.client_id)
 
-    self.Open("/#/clients/%s/load-stats" % self.client_id)
+    self.Open("/legacy#/clients/%s/load-stats" % self.client_id)
     self.WaitUntil(self.IsTextPresent, processes.ListProcesses.__name__)
     self.WaitUntil(self.IsTextPresent, "Leased until")
 
@@ -60,7 +60,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
         client_id=client_id, flow_id=flow_id, request_id=1, response_id=2)
     data_store.REL_DB.WriteFlowResponses([status])
 
-    self.Open("/#/clients/%s/debug-requests" % client_id)
+    self.Open("/legacy#/clients/%s/debug-requests" % client_id)
 
     # Check that the we can see both requests and responses.
     self.WaitUntil(self.IsTextPresent, "GetPlatformInfo")

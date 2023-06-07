@@ -175,3 +175,24 @@ message ApiListReportsResult {
   repeated ApiReport reports = 1
       [(sem_type) = { description: "The report list." }];
 }
+
+message FieldValue {
+  enum FieldType {
+    UNKNOWN = 0;
+    STRING = 2;
+    NUMBER = 1;
+  }
+  optional FieldType field_type = 1;
+  optional string string_value = 2;
+  optional int64 number_value = 3;
+}
+
+message ApiIncrementCounterMetricArgs {
+  optional string metric_name = 1
+      [(sem_type) = { description: "Unique name for the counter metric." }];
+
+  repeated FieldValue field_values = 2
+      [(sem_type) = { description: "Metric field values." }];
+}
+
+message ApiIncrementCounterMetricResult {}

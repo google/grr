@@ -21,7 +21,7 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
     api_auth_manager.InitializeApiAuthManager()
 
   def testHostInformationDoesNotAskForApproval(self):
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
 
     # Make sure "Host Information" tab got shown.
     self.WaitUntil(self.IsTextPresent, "Last Local Clock")
@@ -31,7 +31,7 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
                       "css=h3:contains('Create a new approval')")
 
   def testBrowseVirtualFileSystemDoesNotAskForApproval(self):
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
 
     # Clicking on the navigator link explicitly to make sure it's not disabled.
     self.Click("css=a[grrtarget='client.vfs']")
@@ -45,7 +45,7 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
                       "css=h3:contains('Create a new approval')")
 
   def testStartFlowDoesNotAskForApproval(self):
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
 
     # Clicking on the navigator link explicitly to make sure it's not disabled.
     self.Click("css=a[grrtarget='client.launchFlows']")
@@ -57,7 +57,7 @@ class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
                       "css=h3:contains('Create a new approval')")
 
   def testManageLaunchedFlowsDoesNotAskForApproval(self):
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
 
     # Clicking on the navigator link explicitly to make sure it's not disabled.
     self.Click("css=a[grrtarget='client.flows']")

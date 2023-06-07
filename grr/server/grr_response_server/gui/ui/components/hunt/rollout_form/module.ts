@@ -3,8 +3,8 @@ import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
 import {MatIconModule} from '@angular/material/icon';
-import {MatInputModule} from '@angular/material/input';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatLegacyInputModule} from '@angular/material/legacy-input';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 
 import {RolloutForm} from './rollout_form';
 
@@ -15,8 +15,8 @@ import {RolloutForm} from './rollout_form';
     ReactiveFormsModule,
     FormsModule,
     MatIconModule,
-    MatInputModule,
-    MatTooltipModule,
+    MatLegacyInputModule,
+    MatLegacyTooltipModule,
   ],
   declarations: [
     RolloutForm,

@@ -1,4 +1,21 @@
+import {ApiHuntError, ApiHuntResult} from '../api/api_interfaces';
+
 import {HexHash} from './flow';
+
+/** PayloadType maps types of result payloads. */
+export enum PayloadType {
+  ANOMALY = 'Anomaly',
+  API_HUNT_RESULT = 'ApiHuntResult',
+  CLIENT_SUMMARY = 'ClientSummary',
+  COLLECT_FILES_BY_KNOWN_PATH_RESULT = 'CollectFilesByKnownPathResult',
+  FILE_FINDER_RESULT = 'FileFinderResult',
+  KNOWLEDGE_BASE = 'KnowledgeBase',
+  STAT_ENTRY = 'StatEntry',
+  USER = 'User',
+  API_HUNT_ERROR = 'ApiHuntError',
+  EXECUTE_BINARY_RESPONSE = 'ExecuteBinaryResponse',
+  EXECUTE_PYTHON_HACK_RESULT = 'ExecutePythonHackResult',
+}
 
 /**
  * Component describes which component that will be used to render the
@@ -94,6 +111,19 @@ export declare interface PayloadTranslation<
   tabName: string;
 }
 
+/**
+ * HuntResultsTableTabConfig configures the tabs/tables to be displayed for
+ * each Hunt Result type.
+ */
+export declare interface HuntResultsTableTabConfig {
+  tabName: string;
+  totalResultsCount: number;
+  payloadType: PayloadType;
+}
+
+/** Union of Hunt Results and Hunt Errors in a single type */
+export declare type HuntResultOrError = ApiHuntResult | ApiHuntError;
+
 /** ResultKey describes the primary keys for a Result */
 export declare interface ResultKey {
   clientId: string;
@@ -102,11 +132,24 @@ export declare interface ResultKey {
 }
 
 /**
+ * TypedHuntResultOrError is used as an auxiliary type in the Hunt Page
+ * Component tree when emitting the selected Hunt Result to parent components.
+ */
+export declare interface TypedHuntResultOrError {
+  value: HuntResultOrError;
+  payloadType: PayloadType;
+}
+
+/** Character that separates the different parts of a stringified ResultKey */
+export const RESULT_KEY_SEPARATOR = '-';
+
+/**
  * Transforms a ResultKey into a string representation of it to be used for
  * indexing/representing results.
  */
 export function toResultKeyString(r: ResultKey): string {
-  return `${r.clientId}-${r.flowId}-${r.timestamp}`;
+  return `${r.clientId}${RESULT_KEY_SEPARATOR}${r.flowId}${
+      RESULT_KEY_SEPARATOR}${r.timestamp}`;
 }
 
 /**
@@ -114,7 +157,7 @@ export function toResultKeyString(r: ResultKey): string {
  * the individual parts.
  */
 export function toResultKey(s: string): ResultKey {
-  const parts = s.split('-');
+  const parts = s.split(RESULT_KEY_SEPARATOR);
   if (parts.length !== 3) {
     throw new Error(`Error parsing result key "${s}": got length ${
         parts.length}; expected 3`);

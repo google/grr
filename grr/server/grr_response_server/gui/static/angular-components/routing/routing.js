@@ -65,8 +65,8 @@ exports.routingModule
                 return 'Client List';
               }
             },
-            newUiUrl: (params) =>
-                '/v2/clients?q=' + encodeURIComponent(params['q']),
+            newUiUrl: (params) => '/v2/clients?q=' +
+                encodeURIComponent(params['q'] + '&source=redirect_button'),
           })
           .state('apiDocs', {
             url: '/api-docs',
@@ -86,14 +86,20 @@ exports.routingModule
             newUiUrl: (params) => '/v2/clients/' +
                 encodeURIComponent(params['clientId']) + '/users/' +
                 encodeURIComponent(params['username']) + '/approvals/' +
-                encodeURIComponent(params['approvalId']),
+                encodeURIComponent(params['approvalId']) +
+                '?source=redirect_button',
           })
           .state('huntApproval', {
             url: '/users/:username/approvals/hunt/:huntId/:approvalId',
             template: '<grr-hunt-approval-view />',
             title: function(params) {
               return ['Approvals', params['username'], params['huntId']];
-            }
+            },
+            newUiUrl: (params) => '/v2/hunts/' +
+                encodeURIComponent(params['huntId']) + '/users/' +
+                encodeURIComponent(params['username']) + '/approvals/' +
+                encodeURIComponent(params['approvalId']) +
+                '?source=redirect_button',
           })
           .state('cronJobApproval', {
             url: '/users/:username/approvals/cron-job/:cronJobId/:approvalId',
@@ -134,6 +140,15 @@ exports.routingModule
                 return params['huntId'];
               } else {
                 return 'Hunts';
+              }
+            },
+            newUiUrl: function(params) {
+              if (params['huntId']) {
+                return '/v2/hunts/' + encodeURIComponent(params['huntId']) +
+                    '?source=redirect_button';
+              } else {
+                return '/v2/hunts' +
+                    '?source=redirect_button';
               }
             }
           })
@@ -178,22 +193,25 @@ exports.routingModule
             title: function(params) {
               return params['clientId'];
             },
-            newUiUrl: (params) =>
-                '/v2/clients/' + encodeURIComponent(params['clientId']),
+            newUiUrl: (params) => '/v2/clients/' +
+                encodeURIComponent(params['clientId']) +
+                '?source=redirect_button',
           })
           .state('client.hostInfo', {
             url: '/host-info?reason',
             template: '<grr-host-info />',
             title: 'Host Information',
-            newUiUrl: (params) =>
-                '/v2/clients/' + encodeURIComponent(params['clientId']),
+            newUiUrl: (params) => '/v2/clients/' +
+                encodeURIComponent(params['clientId']) +
+                '?source=redirect_button',
           })
           .state('client.launchFlows', {
             url: '/launch-flow',
             template: '<grr-start-flow-view />',
             title: 'Launch Flows',
-            newUiUrl: (params) =>
-                '/v2/clients/' + encodeURIComponent(params['clientId']),
+            newUiUrl: (params) => '/v2/clients/' +
+                encodeURIComponent(params['clientId']) +
+                '?source=redirect_button',
           })
           .state('client.vfs', {
             url: '/vfs/{path:pathWithUnescapedSlashes}?version&mode&tab',
@@ -206,7 +224,8 @@ exports.routingModule
                   (params['path'] || '').match(/\/?fs\/\w+(\/.*)/);
               const path = pathMatch ? pathMatch[1] : '';
               return '/v2/clients/' + encodeURIComponent(params['clientId']) +
-                  '/files/' + encodeURIComponent(path);
+                  '/files/' + encodeURIComponent(path) +
+                  '?source=redirect_button';
             },
           })
           .state('client.flows', {
@@ -225,14 +244,16 @@ exports.routingModule
             },
             newUiUrl: (params) => '/v2/clients/' +
                 encodeURIComponent(params['clientId']) + '/flows/' +
-                encodeURIComponent(params['flowId'] || ''),
+                encodeURIComponent(params['flowId'] || '') +
+                '?source=redirect_button',
           })
           .state('client.crashes', {
             url: '/crashes',
             template: '<grr-client-crashes />',
             title: 'Crashes',
-            newUiUrl: (params) =>
-                '/v2/clients/' + encodeURIComponent(params['clientId']),
+            newUiUrl: (params) => '/v2/clients/' +
+                encodeURIComponent(params['clientId']) +
+                '?source=redirect_button',
           })
           .state('client.debugRequests', {
             url: '/debug-requests',
@@ -245,8 +266,9 @@ exports.routingModule
             url: '/load-stats',
             template: '<grr-client-load-view />',
             title: 'Load Stats',
-            newUiUrl: (params) =>
-                '/v2/clients/' + encodeURIComponent(params['clientId']),
+            newUiUrl: (params) => '/v2/clients/' +
+                encodeURIComponent(params['clientId']) +
+                '?source=redirect_button',
           });
     })
     .run(function($rootScope, $location, $state, $urlRouter, $document) {

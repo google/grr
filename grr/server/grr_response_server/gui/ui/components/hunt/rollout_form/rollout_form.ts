@@ -9,11 +9,13 @@ enum RolloutSpeed {
   CUSTOM = 'Custom',
 }
 
+const STANDARD_RATE = 200;
+
 function getSpeed(rate: number): RolloutSpeed {
   switch (rate) {
     case 0:
       return RolloutSpeed.UNLIMITED;
-    case 200:
+    case STANDARD_RATE:
       return RolloutSpeed.STANDARD;
     default:
       return RolloutSpeed.CUSTOM;
@@ -25,7 +27,7 @@ function getRate(speed: RolloutSpeed, rate: number): number {
     case RolloutSpeed.UNLIMITED:
       return 0;
     case RolloutSpeed.STANDARD:
-      return 200;
+      return STANDARD_RATE;
     default:
       return rate;
   }
@@ -37,7 +39,7 @@ enum RunOn {
   CUSTOM = 'Custom',
 }
 
-const SAMPLE_SIZE = 1000;
+const SAMPLE_SIZE = 100;
 
 function getRunOn(limit: bigint): RunOn {
   switch (limit) {
@@ -74,6 +76,7 @@ type ControlNames = 'rolloutSpeed'|'clientRate'|'runOn'|'clientLimit';
 export class RolloutForm {
   readonly RolloutSpeed = RolloutSpeed;
   readonly RunOn = RunOn;
+  readonly SAMPLE_SIZE = SAMPLE_SIZE;
 
   defaultRolloutSpeed = RolloutSpeed.STANDARD;
   customClientRate = -1;
@@ -105,11 +108,37 @@ export class RolloutForm {
     const clientRate = getRate(
         this.controls.rolloutSpeed.value, this.controls.clientRate.value);
     const clientLimit = getLimit(
-        this.controls.runOn.value, BigInt(this.controls.clientLimit.value));
+        this.controls.runOn.value,
+        BigInt(this.controls.clientLimit.value ?? 0));
     return {clientRate, clientLimit};
   }
 
   constructor(
       private readonly changeDetection: ChangeDetectorRef,
   ) {}
+
+  get clientLimitTooltip() {
+    const runOn = this.controls.runOn.value;
+    switch (runOn) {
+      case RunOn.ALL_CLIENTS:
+        return 'GRR will schedule as many clients as possible. The fleet collection will pause when this threshold is reached. You can edit this limit and restart the collection.';
+      default:
+        const clientLimit = this.getPartialLimits().clientLimit;
+        return `GRR will try to schedule around ${
+            clientLimit} clients to run this collection in total - at most, around ${
+            clientLimit} will run this collection while it is active. The fleet collection will pause when this threshold is reached. You can edit this limit and restart the collection. Precision is not guaranteed.`;
+    }
+  }
+  get clientRateTooltip() {
+    const rolloutSpeed = this.controls.rolloutSpeed.value;
+    switch (rolloutSpeed) {
+      case RolloutSpeed.UNLIMITED:
+        return 'GRR will schedule as many clients as possible per minute.';
+      default:
+        const clientRate = this.getPartialLimits().clientRate;
+        return `GRR will try to schedule around ${
+            clientRate} clients per minute to run this collection - at most, around ${
+            clientRate} will be running the collection at the same time. Precision is not guaranteed.`;
+    }
+  }
 }

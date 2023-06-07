@@ -1,5 +1,5 @@
-@use "@angular/material" as mat;
-@use "../../../../material-theme" as c;
+@use '@angular/material' as mat;
+@use '../../../../material-theme' as c;
 
 .mat-cell {
   border-color: mat.get-color-from-palette(c.$foreground, divider-light);
@@ -8,6 +8,9 @@
 
 .header {
   align-items: center;
+  margin-bottom: 10px;
+  font-size: 24px;
+  padding: 0 30px;
 }
 
 .subtitle {
@@ -23,17 +26,24 @@
 }
 
 .no-data {
-  margin-top: 10px;
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
 }
 
 .button-row {
-  margin-top: 20px;
+  margin: 20px 20px 0;
   display: flex;
   column-gap: c.$container-padding;
 }
 
+.error-tab-icon {
+  color: mat.get-color-from-palette(c.$foreground, danger-light);
+}
+
 .dark {
-  &.mat-stroked-button, &button {
+  &.mat-stroked-button,
+  &button {
     background-color: mat.get-color-from-palette(c.$primary);
     color: white;
   }

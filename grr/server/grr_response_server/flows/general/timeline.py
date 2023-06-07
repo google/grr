@@ -5,6 +5,7 @@ from typing import Iterator
 from typing import Optional
 from typing import Text
 
+from google.protobuf import any_pb2
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import timeline
@@ -14,6 +15,8 @@ from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg.action import get_filesystem_timeline_pb2 as rrg_get_filesystem_timeline_pb2
 
 
 class TimelineFlow(flow_base.FlowBase):
@@ -52,10 +55,21 @@ class TimelineFlow(flow_base.FlowBase):
 
     self.state.progress = rdf_timeline.TimelineProgress()
 
-    self.CallClient(
-        action_cls=server_stubs.Timeline,
-        request=self.args,
-        next_state=self.Process.__name__)
+    if self.rrg_support:
+      args = rrg_get_filesystem_timeline_pb2.Args()
+      args.root.raw_bytes = self.args.root
+
+      self.CallRRG(
+          action=rrg_pb2.Action.GET_FILESYSTEM_TIMELINE,
+          args=args,
+          next_state=self.HandleRRGGetFilesystemTimeline.__name__,
+      )
+    else:
+      self.CallClient(
+          action_cls=server_stubs.Timeline,
+          request=self.args,
+          next_state=self.Process.__name__,
+      )
 
   def Process(
       self,
@@ -74,6 +88,37 @@ class TimelineFlow(flow_base.FlowBase):
     for response in responses:
       self.SendReply(response)
       self.state.progress.total_entry_count += response.entry_count
+
+  @flow_base.UseProto2AnyResponses
+  def HandleRRGGetFilesystemTimeline(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      message = f"Timeline collection failure: {responses.status}"
+      raise flow_base.FlowError(message)
+
+    blob_ids: list[rdf_objects.BlobID] = []
+    flow_results: list[rdf_timeline.TimelineResult] = []
+
+    # TODO: Add support for streaming responses in RRG.
+    for response in responses:
+      result = rrg_get_filesystem_timeline_pb2.Result()
+      result.ParseFromString(response.value)
+
+      blob_ids.append(rdf_objects.BlobID(result.blob_sha256))
+
+      flow_result = rdf_timeline.TimelineResult()
+      flow_result.entry_batch_blob_ids = [result.blob_sha256]
+      flow_result.entry_count = result.entry_count
+      flow_results.append(flow_result)
+
+      self.state.progress.total_entry_count += result.entry_count
+
+    data_store.BLOBS.WaitForBlobs(blob_ids, timeout=_BLOB_STORE_TIMEOUT)
+
+    for flow_result in flow_results:
+      self.SendReply(flow_result)
 
   def GetProgress(self) -> rdf_timeline.TimelineProgress:
     return self.state.progress

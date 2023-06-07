@@ -153,16 +153,21 @@ supported_os: [ "Linux" ]
     client_mock = action_mocks.FileFinderClientMock()
 
     artifact_list = ["BadPathspecArtifact"]
-    with test_lib.Instrument(transfer.MultiGetFile,
-                             "Start") as getfile_instrument:
-      flow_test_lib.TestFlowHelper(
-          collectors.ArtifactCollectorFlow.__name__,
-          client_mock,
-          artifact_list=artifact_list,
-          knowledge_base=self._GetKB(),
-          creator=self.test_username,
-          client_id=self.client_id,
-          split_output_by_artifact=True)
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.OS, vfs_test_lib.ClientVFSHandlerFixture
+    ):
+      with test_lib.Instrument(
+          transfer.MultiGetFile, "Start"
+      ) as getfile_instrument:
+        flow_test_lib.TestFlowHelper(
+            collectors.ArtifactCollectorFlow.__name__,
+            client_mock,
+            artifact_list=artifact_list,
+            knowledge_base=self._GetKB(),
+            creator=self.test_username,
+            client_id=self.client_id,
+            split_output_by_artifact=True,
+        )
 
       self.assertFalse(getfile_instrument.args)
 

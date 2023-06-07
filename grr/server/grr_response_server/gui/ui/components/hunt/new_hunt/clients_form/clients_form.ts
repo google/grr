@@ -324,17 +324,6 @@ export class ClientsForm {
             this.conditions().push(f);
             break;
           }
-          case ForemanClientRuleType.OS: {
-            const ruleName = this.findName(ForemanClientRuleType.OS);
-            const options = {
-              'Windows': rule.os?.osWindows ?? false,
-              'Linux': rule.os?.osLinux ?? false,
-              'Darwin': rule.os?.osDarwin ?? false
-            };
-            const f = this.newOsForm(ruleName, options);
-            this.conditions().push(f);
-            break;
-          }
           case ForemanClientRuleType.INTEGER: {
             const ruleName = this.findName(
                 ForemanClientRuleType.INTEGER, rule.integer?.field);
@@ -352,7 +341,17 @@ export class ClientsForm {
             this.conditions().push(f);
             break;
           }
+          // By default, the type should be OS.
+          case ForemanClientRuleType.OS:
           default: {
+            const ruleName = this.findName(ForemanClientRuleType.OS);
+            const options = {
+              'Windows': rule.os?.osWindows ?? false,
+              'Linux': rule.os?.osLinux ?? false,
+              'Darwin': rule.os?.osDarwin ?? false
+            };
+            const f = this.newOsForm(ruleName, options);
+            this.conditions().push(f);
             break;
           }
         }

@@ -268,8 +268,10 @@ export function newHunt(hunt: Partial<Hunt>): Hunt {
     remainingClientsCount: hunt.remainingClientsCount ?? BigInt(190),
     resultsCount: hunt.resultsCount ?? BigInt(55),
     state: hunt.state ?? HuntState.RUNNING,
-    totalCpuUsage: hunt.totalCpuUsage ?? 0,
-    totalNetUsage: hunt.totalNetUsage ?? BigInt(0),
+    resourceUsage: {
+      totalCPUTime: hunt.resourceUsage?.totalCPUTime ?? 12.3,
+      totalNetworkTraffic: BigInt(hunt.resourceUsage?.totalNetworkTraffic ?? 0),
+    },
     safetyLimits: newSafetyLimits(hunt.safetyLimits ?? {}),
     ...hunt,
   };

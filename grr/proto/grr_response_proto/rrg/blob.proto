@@ -1,0 +1,27 @@
+// Copyright 2023 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.fs;
+
+// Binary data object.
+//
+// Blobs are used mostly (but not exclusively) to represent contents of files:
+// sending an entire file in one Protocol Buffers message is not feasible, so we
+// divide files to smaller portions and deliver it to the server one by one.
+//
+// On the server, the blob sink stores blobs immediately in a blobstore instead
+// of storing it in the database to be later picked up by a worker for further
+// processing.
+message Blob {
+  // Binary data that the blob represents.
+  bytes data = 1;
+
+  // TODO: Consider adding compression.
+  //
+  // When transferring blobs, GRR offers optional compression layer. This is not
+  // that important since messages sent by Fleetspeak are compressed anyway, but
+  // may reduce amount of communication to and from Fleetspeak.
+}

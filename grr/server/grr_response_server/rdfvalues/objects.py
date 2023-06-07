@@ -26,6 +26,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import text
 from grr_response_proto import objects_pb2
+from grr_response_server.rdfvalues import rrg as rdf_rrg
 
 _UNKNOWN_GRR_VERSION = "Unknown-GRR-version"
 
@@ -179,6 +180,7 @@ class ClientFullInfo(rdf_structs.RDFProtoStruct):
       ClientSnapshot,
       ClientLabel,
       rdf_client.StartupInfo,
+      rdf_rrg.Startup,
   ]
 
   def GetLabelsNames(self, owner=None):

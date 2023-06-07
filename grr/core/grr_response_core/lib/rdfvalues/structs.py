@@ -11,6 +11,7 @@ from typing import ByteString, Iterator, Optional, Sequence, Text, Type, TypeVar
 
 from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
+from google.protobuf import message as proto2_message
 from google.protobuf import text_format
 from grr_response_core import _semantic
 from grr_response_core.lib import rdfvalue
@@ -2189,6 +2190,29 @@ class AnyValue(RDFProtoStruct):
   """Protobuf with arbitrary serialized proto and its type."""
   protobuf = any_pb2.Any
   allow_custom_class_name = True
+
+  @classmethod
+  def FromProto2(cls, proto2_any: any_pb2.Any) -> "AnyValue":
+    """Converts a proto2 `Any` message to the RDF wrapper."""
+    result = cls()
+    result.type_url = proto2_any.type_url
+    result.value = proto2_any.value
+    return result
+
+  @classmethod
+  def PackProto2(cls, message: proto2_message.Message) -> "AnyValue":
+    """Packs the given proto2 message into the `Any` RDF wrapper.
+
+    Args:
+      message: A message to pack.
+
+    Returns:
+      An instance of RD wrapper for `Any` with packaged message.
+    """
+    proto2_any = any_pb2.Any()
+    proto2_any.Pack(message)
+
+    return cls.FromProto2(proto2_any)
 
   @classmethod
   def Pack(cls, value: RDFProtoStruct) -> "AnyValue":

@@ -27,8 +27,14 @@
     ></app-hunt-progress-table>
   </div>
 
-  <result-accordion [colorScheme]="ColorScheme.FLOW_ARGS" title="Fleet collection arguments">
-    <hunt-flow-arguments class="args" [hunt]="hunt$ | async"></hunt-flow-arguments>
-    <hunt-arguments class="args" [hunt]="hunt$ | async"></hunt-arguments>
+  <result-accordion [colorScheme]="ColorScheme.FLOW_ARGS" title="Fleet collection arguments" #accordion>
+    <ng-container *ngIf="accordion.isOpen">
+      <hunt-original-reference class="args"
+        [huntRef]="(hunt$ | async)?.huntReference"
+        [flowRef]="(hunt$ | async)?.flowReference">
+      </hunt-original-reference>
+      <hunt-flow-arguments class="args" [hunt]="hunt$ | async"></hunt-flow-arguments>
+      <hunt-arguments class="args" [hunt]="hunt$ | async"></hunt-arguments>
+    </ng-container>
   </result-accordion>
 </div>

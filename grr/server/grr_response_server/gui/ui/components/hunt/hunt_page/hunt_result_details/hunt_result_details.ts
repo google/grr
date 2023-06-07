@@ -1,15 +1,11 @@
 import {ChangeDetectionStrategy, Component, OnDestroy} from '@angular/core';
 import {ActivatedRoute} from '@angular/router';
-import {combineLatest} from 'rxjs';
-import {filter, map, startWith, takeUntil} from 'rxjs/operators';
+import {filter, map, takeUntil} from 'rxjs/operators';
 
-import {createOptionalDate} from '../../../../lib/api_translation/primitive';
-import {toResultKey} from '../../../../lib/models/result';
+import {PayloadType} from '../../../../lib/models/result';
 import {isNonNull} from '../../../../lib/preconditions';
 import {observeOnDestroy} from '../../../../lib/reactive';
-import {HuntPageGlobalStore} from '../../../../store/hunt_page_global_store';
-
-const STRINGIFY_EMPTY = JSON.stringify({}, null, 2);
+import {HuntResultDetailsGlobalStore} from '../../../../store/hunt_result_details_global_store';
 
 /**
  * Component displaying the details for a single hunt result.
@@ -22,50 +18,36 @@ const STRINGIFY_EMPTY = JSON.stringify({}, null, 2);
 })
 export class HuntResultDetails implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
+  readonly huntId$ = this.huntResultDetailsGlobalStore.huntId$;
+  readonly clientId$ = this.huntResultDetailsGlobalStore.clientId$;
+  readonly timestamp$ = this.huntResultDetailsGlobalStore.timestamp$;
+  readonly resultOrErrorDisplay$ =
+      this.huntResultDetailsGlobalStore.resultOrErrorDisplay$;
+  readonly flowWithDescriptor$ =
+      this.huntResultDetailsGlobalStore.flowWithDescriptor$;
+  readonly isFlowLoading$ = this.huntResultDetailsGlobalStore.isFlowLoading$;
+  readonly isHuntResultLoading$ =
+      this.huntResultDetailsGlobalStore.isHuntResultLoading$;
 
   constructor(
       private readonly activatedRoute: ActivatedRoute,
-      private readonly huntPageGlobalStore: HuntPageGlobalStore) {
+      private readonly huntResultDetailsGlobalStore:
+          HuntResultDetailsGlobalStore) {
     this.activatedRoute.paramMap
         .pipe(
             takeUntil(this.ngOnDestroy.triggered$),
-            map(params => params.get('key')),
-            filter(isNonNull),
+            map(params => ({
+                  key: params.get('key'),
+                  payloadType:
+                      params.get('payloadType') as PayloadType ?? undefined,
+                })),
+            filter((r) => isNonNull(r.key)),
             )
-        .subscribe(key => {
-          this.huntPageGlobalStore.selectResult(key);
+        .subscribe(r => {
+          this.huntResultDetailsGlobalStore.selectHuntResultId(
+              r.key!,
+              r.payloadType,
+          );
         });
   }
-
-  readonly isLoading$ =
-      this.huntPageGlobalStore.huntResults$.pipe(map(state => state.isLoading));
-
-  readonly huntId$ = this.huntPageGlobalStore.selectedHuntResultId$.pipe(
-      map(r => toResultKey(r).flowId ?? 'Unknown'));
-  readonly clientId$ = this.huntPageGlobalStore.selectedHuntResultId$.pipe(
-      map(r => toResultKey(r).clientId ?? 'Unknown'));
-  readonly timestamp$ = this.huntPageGlobalStore.selectedHuntResultId$.pipe(
-      map(r => createOptionalDate(toResultKey(r).timestamp ?? '')));
-
-  readonly payload$ =
-      combineLatest([
-        this.huntPageGlobalStore.selectedHuntResult$.pipe(
-            map(r => JSON.stringify(r?.payload, null, 2)),
-            startWith(STRINGIFY_EMPTY)),
-        this.huntPageGlobalStore.selectedHuntError$.pipe(
-            map(e => JSON.stringify(
-                    {logMessage: e?.logMessage, backtrace: e?.backtrace}, null,
-                    2)),
-            startWith(STRINGIFY_EMPTY)),
-      ]).pipe(map(([res, err]) => {
-        if (res && res !== STRINGIFY_EMPTY) {
-          return res;
-        } else if (err && err !== STRINGIFY_EMPTY) {
-          return err;
-        } else {
-          return 'Data not found';
-        }
-      }));
-  readonly selectedResultFlowWithDescriptor$ =
-      this.huntPageGlobalStore.selectedResultFlowWithDescriptor$;
 }

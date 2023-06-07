@@ -49,30 +49,30 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
   def testReasonIsShown(self):
     client_id = self.CreateClient(reason="foobazzle")
-    self.Open("/#c=" + str(client_id))
+    self.Open("/legacy#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Access reason: foobazzle")
 
   def testOnlineClientStatus(self):
     client_id = self.CreateClient()
-    self.Open("/#c=" + str(client_id))
+    self.Open("/legacy#c=" + str(client_id))
     self.WaitUntil(self.IsElementPresent, "css=img[src$='online.png']")
 
   def testOneDayClientStatus(self):
     client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
                                   rdfvalue.Duration.From(1, rdfvalue.HOURS))
-    self.Open("/#c=" + str(client_id))
+    self.Open("/legacy#c=" + str(client_id))
     self.WaitUntil(self.IsElementPresent, "css=img[src$='online-1d.png']")
 
   def testOfflineClientStatus(self):
     client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
                                   rdfvalue.Duration.From(1, rdfvalue.DAYS))
-    self.Open("/#c=" + str(client_id))
+    self.Open("/legacy#c=" + str(client_id))
     self.WaitUntil(self.IsElementPresent, "css=img[src$='offline.png']")
 
   def testOnlineClientStatusInClientSearch(self):
     client_id = self.CreateClient()
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
@@ -84,7 +84,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
     client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
                                   rdfvalue.Duration.From(1, rdfvalue.HOURS))
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
@@ -96,7 +96,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
     client_id = self.CreateClient(last_ping=rdfvalue.RDFDatetime.Now() -
                                   rdfvalue.Duration.From(1, rdfvalue.DAYS))
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
@@ -106,7 +106,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
   def testLatestCrashesStatusIsNotDisplayedWhenThereAreNoCrashes(self):
     client_id = self.CreateClient()
-    self.Open("/#c=" + str(client_id))
+    self.Open("/legacy#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Host-0")
     self.WaitUntilNot(self.IsTextPresent, "Last crash")
 
@@ -117,7 +117,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
                      timestamp - rdfvalue.Duration.From(5, rdfvalue.SECONDS))
     self.RequestAndGrantClientApproval(client_id)
 
-    self.Open("/#c=" + str(client_id))
+    self.Open("/legacy#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Last crash")
     self.WaitUntilContains("seconds", self.GetText,
                            "css=grr-client-summary .last-crash")
@@ -131,7 +131,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
                      timestamp - rdfvalue.Duration.From(5, rdfvalue.SECONDS))
     self.RequestAndGrantClientApproval(client_id)
 
-    self.Open("/#c=" + str(client_id))
+    self.Open("/legacy#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Last crash")
     self.WaitUntilContains("seconds", self.GetText,
                            "css=grr-client-summary .last-crash")
@@ -143,7 +143,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
                      timestamp - rdfvalue.Duration.From(8, rdfvalue.DAYS))
     self.RequestAndGrantClientApproval(client_id)
 
-    self.Open("/#c=" + str(client_id))
+    self.Open("/legacy#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Host-0")
     # This one is not displayed, because it happened more than 24 hours ago.
     self.WaitUntilNot(self.IsTextPresent, "Last crash")
@@ -151,7 +151,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
   def testCrashIconDoesNotAppearInClientSearchWhenClientDidNotCrash(self):
     client_id = self.CreateClient()
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
@@ -168,7 +168,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
         client_id,
         rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(25, rdfvalue.HOURS))
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
@@ -184,7 +184,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
     client_id = self.CreateClient()
     self.RecordCrash(client_id, timestamp)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
@@ -197,7 +197,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
   def testDiskIconDoesNotAppearInClientSearchIfDiskIsNotFull(self):
     client_id = self.CreateClientWithVolumes()
-    self.Open("/")
+    self.Open("/legacy")
     self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
@@ -211,7 +211,7 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
   def testDiskIconDoesAppearsInClientSearchIfDiskIsFull(self):
     client_id = self.CreateClientWithVolumes(available=1)
-    self.Open("/")
+    self.Open("/legacy")
     self.Type("client_query", client_id)
     self.Click("client_query_submit")
 
@@ -225,14 +225,14 @@ class TestNavigatorView(gui_test_lib.SearchClientTestBase):
 
   def testDiskWarningIsNotDisplayed(self):
     client_id = self.CreateClientWithVolumes()
-    self.Open("/#c=" + str(client_id))
+    self.Open("/legacy#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Host-0")
     self.WaitUntilNot(self.IsElementPresent,
                       "css=img[name='clientDiskWarnings']")
 
   def testDiskWarningIsDisplayed(self):
     client_id = self.CreateClientWithVolumes(available=1)
-    self.Open("/#c=" + str(client_id))
+    self.Open("/legacy#c=" + str(client_id))
     self.WaitUntil(self.IsTextPresent, "Host-0")
     self.WaitUntil(self.IsElementPresent, "css=img[name='clientDiskWarnings']")
 

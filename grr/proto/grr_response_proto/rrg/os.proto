@@ -1,0 +1,15 @@
+// Copyright 2023 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.os;
+
+// List of all the operating systems supported by the agent.
+enum Type {
+  UNKNOWN = 0;
+  LINUX = 1;
+  MACOS = 2;
+  WINDOWS = 3;
+}

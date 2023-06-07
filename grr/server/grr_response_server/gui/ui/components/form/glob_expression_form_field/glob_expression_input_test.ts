@@ -2,8 +2,8 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
-import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
-import {MatInputHarness} from '@angular/material/input/testing';
+import {MatLegacyAutocompleteHarness} from '@angular/material/legacy-autocomplete/testing';
+import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ReplaySubject, Subject} from 'rxjs';
 
@@ -69,13 +69,13 @@ describe('app-glob-expression-input', () => {
     fixture.detectChanges();
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
-    const inputHarness = await loader.getHarness(MatInputHarness);
+    const inputHarness = await loader.getHarness(MatLegacyInputHarness);
     expect(await inputHarness.getValue()).toEqual('/foo');
   });
 
   it('emits the input field value as FormControl value', async () => {
     const loader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await loader.getHarness(MatAutocompleteHarness);
+    const harness = await loader.getHarness(MatLegacyAutocompleteHarness);
     await harness.enterText('/foo');
     fixture.detectChanges();
 
@@ -95,7 +95,7 @@ describe('app-glob-expression-input', () => {
        fixture.detectChanges();
 
        const loader = TestbedHarnessEnvironment.loader(fixture);
-       const harness = await loader.getHarness(MatAutocompleteHarness);
+       const harness = await loader.getHarness(MatLegacyAutocompleteHarness);
 
        await harness.enterText('/prefix/%');
        expect(await harness.isOpen()).toBeFalse();
@@ -124,7 +124,7 @@ describe('app-glob-expression-input', () => {
        fixture.detectChanges();
 
        const loader = TestbedHarnessEnvironment.loader(fixture);
-       const harness = await loader.getHarness(MatAutocompleteHarness);
+       const harness = await loader.getHarness(MatLegacyAutocompleteHarness);
 
        await harness.enterText('/prefix/%%');
 
@@ -150,7 +150,7 @@ describe('app-glob-expression-input', () => {
        fixture.detectChanges();
 
        const loader = TestbedHarnessEnvironment.loader(fixture);
-       const harness = await loader.getHarness(MatAutocompleteHarness);
+       const harness = await loader.getHarness(MatLegacyAutocompleteHarness);
 
        await harness.enterText('/prefix/%%');
 

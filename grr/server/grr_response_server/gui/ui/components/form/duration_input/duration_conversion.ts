@@ -69,7 +69,8 @@ export function toDurationUnit(
  */
 export function toDurationString(
     duration: number, mode: 'short'|'long' = 'short') {
-  const [durationAtUnit, unit] = toDurationUnit(duration, mode);
+  const roundedNoDecimal = Math.round(duration);
+  const [durationAtUnit, unit] = toDurationUnit(roundedNoDecimal, mode);
   return `${durationAtUnit} ${unit}`;
 }
 

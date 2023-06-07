@@ -16,7 +16,7 @@ class TestSettingsView(gui_test_lib.GRRSeleniumTest):
         "ACL.group_access_manager_class": "Foo bar.",
         "AdminUI.bind": "127.0.0.1"
     }):
-      self.Open("/#/config")
+      self.Open("/legacy#/config")
 
       self.WaitUntil(self.IsTextPresent, "Configuration")
 
@@ -37,7 +37,7 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
     self.SetUpBinaries()
 
   def testNotAccessibleForNonAdmins(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     self.WaitUntil(self.IsElementPresent,
                    "css=li[grr-nav-link]:contains('Binaries') i.fa-lock")
@@ -45,7 +45,7 @@ class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
   def testEachBinaryIsCorrectlyShown(self):
     self.CreateAdminUser(u"gui_user")
 
-    self.Open("/#/manage-binaries")
+    self.Open("/legacy#/manage-binaries")
 
     self.WaitUntil(self.IsElementPresent,
                    "css=li[grr-nav-link]:contains('Binaries')")

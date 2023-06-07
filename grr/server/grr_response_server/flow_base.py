@@ -1,11 +1,13 @@
 #!/usr/bin/env python
 """The base class for flow objects."""
-
 import collections
+import functools
 import logging
 import traceback
-from typing import Any, Iterator, Mapping, NamedTuple, Optional, Sequence, Tuple, Type
+from typing import Any, Callable, Iterator, Mapping, NamedTuple, Optional, Sequence, Tuple, Type
 
+from google.protobuf import any_pb2
+from google.protobuf import message as pb_message
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -28,6 +30,7 @@ from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_proto import rrg_pb2
 
 FLOW_STARTS = metrics.Counter("flow_starts", fields=[("flow", str)])
 FLOW_ERRORS = metrics.Counter("flow_errors", fields=[("flow", str)])
@@ -45,6 +48,10 @@ class Error(Exception):
 
 class FlowError(Error):
   """A generic flow error."""
+
+
+class RRGUnsupportedError(Error):
+  """Raised when a RRG action was invoked on a client without RRG support."""
 
 
 # TODO(hanuszczak): Consider refactoring the interface of this class.
@@ -137,6 +144,7 @@ class FlowBase(metaclass=FlowRegistry):
     self.rdf_flow = rdf_flow
     self.flow_requests = []
     self.flow_responses = []
+    self.rrg_requests: list[rrg_pb2.Request] = []
     self.client_action_requests = []
     self.completed_requests = []
     self.replies_to_process = []
@@ -148,6 +156,7 @@ class FlowBase(metaclass=FlowRegistry):
     self._client_os = None
     self._client_knowledge_base = None
     self._client_info: Optional[rdf_client.ClientInformation] = None
+    self._rrg_support: Optional[bool] = None
 
     self._num_replies_per_type_tag = collections.Counter()
 
@@ -206,6 +215,48 @@ class FlowBase(metaclass=FlowRegistry):
       responses = flow_responses.FakeResponses(messages, request_data)
 
     getattr(self, next_state)(responses)
+
+  def CallRRG(
+      self,
+      action: rrg_pb2.Action,
+      args: pb_message.Message,
+      next_state: Optional[str] = None,
+  ) -> None:
+    """Invokes a RRG action.
+
+    This method will send a request to invoke the specified action on the
+    corresponding endpoint. The action results will be queued by the framework
+    until a status response is sent back by the agent.
+
+    Args:
+      action: The action to invoke on the endpoint.
+      args: Arguments to invoke the action with.
+      next_state: A flow state method to call with action results.
+
+    Raises:
+      RRGUnsupportedError: If the target client does not support RRG.
+    """
+    if not self.rrg_support:
+      raise RRGUnsupportedError()
+
+    request_id = self.GetNextOutboundId()
+
+    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request.client_id = self.rdf_flow.client_id
+    flow_request.flow_id = self.rdf_flow.flow_id
+    flow_request.request_id = request_id
+    flow_request.next_state = next_state
+
+    rrg_request = rrg_pb2.Request()
+    rrg_request.flow_id = int(self.rdf_flow.flow_id, 16)
+    rrg_request.request_id = request_id
+    rrg_request.action = action
+    rrg_request.args.Pack(args)
+
+    # TODO: Add support for limits.
+
+    self.flow_requests.append(flow_request)
+    self.rrg_requests.append(rrg_request)
 
   def CallClient(self,
                  action_cls: Type[server_stubs.ClientActionStub],
@@ -426,7 +477,7 @@ class FlowBase(metaclass=FlowRegistry):
     key = (type(response).__name__, tag or "")
     self._num_replies_per_type_tag[key] += 1
 
-  def SaveResourceUsage(self, status: rdf_flows.GrrStatus) -> None:
+  def SaveResourceUsage(self, status: rdf_flow_objects.FlowStatus) -> None:
     """Method to tally resources."""
     user_cpu = status.cpu_time_used.user_cpu_time
     system_cpu = status.cpu_time_used.system_cpu_time
@@ -646,8 +697,15 @@ class FlowBase(metaclass=FlowRegistry):
                          (self.__class__.__name__, method_name))
 
       # Prepare a responses object for the state method to use:
-      responses = flow_responses.Responses.FromResponses(
-          request=request, responses=responses)
+      if (
+          hasattr(method, "_proto2_any_responses")
+          and method._proto2_any_responses  # pylint: disable=protected-access
+      ):
+        responses = flow_responses.Responses.FromResponsesProto2Any(responses)
+      else:
+        responses = flow_responses.Responses.FromResponses(
+            request=request, responses=responses
+        )
 
       if responses.status is not None:
         self.SaveResourceUsage(responses.status)
@@ -820,6 +878,11 @@ class FlowBase(metaclass=FlowRegistry):
         data_store.REL_DB.WriteClientActionRequests(self.client_action_requests)
 
       self.client_action_requests = []
+
+    for request in self.rrg_requests:
+      fleetspeak_utils.SendRrgRequest(self.rdf_flow.client_id, request)
+
+    self.rrg_requests = []
 
     if self.completed_requests:
       data_store.REL_DB.DeleteFlowRequests(self.completed_requests)
@@ -1060,6 +1123,14 @@ class FlowBase(metaclass=FlowRegistry):
     return client_info
 
   @property
+  def rrg_support(self) -> bool:
+    if self._rrg_support is None:
+      metadata = data_store.REL_DB.ReadClientMetadata(self.client_id)
+      self._rrg_support = metadata.rrg_support
+
+    return self._rrg_support
+
+  @property
   def creator(self) -> str:
     return self.rdf_flow.creator
 
@@ -1072,6 +1143,34 @@ class FlowBase(metaclass=FlowRegistry):
   def CreateFlowInstance(cls, flow_object: rdf_flow_objects.Flow) -> "FlowBase":
     flow_cls = FlowRegistry.FlowClassByName(flow_object.flow_class_name)
     return flow_cls(flow_object)
+
+
+def UseProto2AnyResponses(
+    state_method: Callable[
+        [FlowBase, flow_responses.Responses[any_pb2.Any]], None
+    ],
+) -> Callable[[FlowBase, flow_responses.Responses[any_pb2.Any]], None]:
+  """Instructs flow execution not to use RDF magic for unpacking responses.
+
+  The current default behaviour of the flow execution is to do type lookup and
+  automagically unpack flow responses to "appropriate" type. This behaviour is
+  problematic for many reasons and methods that do not need to rely on it should
+  use this annotation.
+
+  Args:
+    state_method: A flow state method to annotate.
+
+  Returns:
+    A flow state method that will not have the problematic behaviour.
+  """
+
+  @functools.wraps(state_method)
+  def Wrapper(self, responses: flow_responses.Responses) -> None:
+    return state_method(self, responses)
+
+  Wrapper._proto2_any_responses = True  # pylint: disable=protected-access
+
+  return Wrapper
 
 
 def _TerminateFlow(

@@ -1,3 +1,4 @@
+@use '@angular/material' as mat-deprecated;
 @use '@angular/material' as mat;
 @use './material-theme' as c;
 
@@ -5,12 +6,15 @@
 
 // Initialize Angular material theme.
 // Include non-theme styles for core.
-@include mat.all-component-typographies($custom-typography);
+@include mat-deprecated.all-legacy-component-typographies($custom-typography);
 @include mat.core();
 // Include all theme-styles for the components based on the current theme.
-@include mat.all-component-themes($theme);
+@include mat-deprecated.all-legacy-component-themes($theme);
+@include mat.progress-bar-theme($theme);
 
 $toolbar-height: 64px;
+
+$success-progress-bar-color: mat.get-color-from-palette(c.$foreground, success);
 
 app,
 body,
@@ -62,13 +66,9 @@ html {
   margin-right: $button-horizontal-padding;
 }
 
-.mat-progress-bar.mat-success {
-  .mat-progress-bar-fill::after {
-    background-color: mat.get-color-from-palette(c.$foreground, success);
-  }
-  .mat-progress-bar-background {
-    fill: mat.get-color-from-palette(c.$foreground, success);
-  }
+mat-progress-bar.mat-success {
+  --mdc-linear-progress-active-indicator-color: #{$success-progress-bar-color};
+  --mdc-linear-progress-track-color: #{$success-progress-bar-color};
 }
 
 .clickable {
@@ -381,6 +381,11 @@ therefore we need to define these styles outside of the Client Overview Cmp. */
     font-size: 18px;
     line-height: 24px;
   }
+
+  &.no-side-paddings {
+    padding-left: 0;
+    padding-right: 0;
+  }
 }
 
 // Cards with dividers should not have the padding set, so dividers meet the
@@ -422,4 +427,8 @@ mat-chip-list .mat-button {
   border-radius: 2em;
   line-height: 26px;
   padding: 0 12px 0 6px;
+}
+
+.extra-scrolling-space {
+  padding-bottom: 200px;
 }

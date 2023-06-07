@@ -41,11 +41,12 @@ class ErrorDuringRepacking(Error):
 
 
 # This is an absl flag, and not an argparse flag, for backwards compatibility.
-flags.DEFINE_bool(
+_VERBOSE = flags.DEFINE_bool(
     "verbose",
     default=False,
     help="Turn on verbose logging.",
-    allow_override=True)
+    allow_override=True,
+)
 
 parser = argparse_flags.ArgumentParser(
     description="A tool for building client binaries.")
@@ -423,7 +424,7 @@ def main(args):
   # Use basic console output logging so we can see what is happening.
   logger = logging.getLogger()
   handler = logging.StreamHandler()
-  handler.setLevel(logging.DEBUG if FLAGS.verbose else logging.INFO)
+  handler.setLevel(logging.DEBUG if _VERBOSE.value else logging.INFO)
   logger.handlers = [handler]
 
   if args.subparser_name == "build":

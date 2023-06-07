@@ -8,6 +8,7 @@ from typing import Optional
 from typing import Sequence
 import zlib
 
+from google.protobuf import any_pb2
 from grr_response_core.lib import constants
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -22,12 +23,17 @@ from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
+from grr_response_server import flow_responses
 from grr_response_server import message_handlers
 from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
+from grr_response_proto.rrg.action import get_file_contents_pb2 as rrg_get_file_contents_pb2
+from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
 
 
 class GetFileArgs(rdf_structs.RDFProtoStruct):
@@ -35,6 +41,126 @@ class GetFileArgs(rdf_structs.RDFProtoStruct):
   rdf_deps = [
       rdf_paths.PathSpec,
   ]
+
+
+class GetFileThroughRRG(flow_base.FlowBase):
+  """An experimental flow for transferring files on RRG-supported clients.
+
+  Note that this flow is not production-ready and shouldn't be used for anything
+  other than experimentation.
+
+  The reason for its existence is to enable playing with new functionality but
+  without breaking any existing behaviour. Plugging RRG actions into existing
+  flows is difficult because of how much technical debt they contain.
+  """
+
+  category = "/Filesystem/"
+  args_type = GetFileArgs
+
+  @classmethod
+  def GetDefaultArgs(cls, username: Optional[str] = None) -> GetFileArgs:
+    del username  # Unused.
+
+    args = GetFileArgs()
+    args.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+
+    return args
+
+  def Start(self) -> None:
+    if not self.rrg_support:
+      raise flow_base.FlowError("RRG not supported on the client")
+
+    args = rrg_get_file_metadata_pb2.Args()
+    args.path.raw_bytes = self.args.pathspec.path.encode("utf-8")
+
+    self.CallRRG(
+        rrg_pb2.Action.GET_FILE_METADATA,
+        args,
+        next_state=self.HandleGetFileMetadata.__name__,
+    )
+
+  @flow_base.UseProto2AnyResponses
+  def HandleGetFileMetadata(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      message = f"File metadata collection failure: {responses.status}"
+      raise flow_base.FlowError(message)
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_file_metadata_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    if result.metadata.type != rrg_fs_pb2.FileMetadata.FILE:
+      message = f"Unsupported file type: {result.metadata.type}"
+      raise flow_base.FlowError(message)
+
+    # TODO: This is a duplication with the `ListDirectory` flow.
+    #
+    # We should refactor all RRG-to-GRR proto conversions to a separate module.
+    stat_entry = rdf_client_fs.StatEntry()
+    stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+    stat_entry.pathspec.path = (
+        # Paths coming from RRG use WTF-8 encoding, so they are almost UTF-8 but
+        # with some caveats. For now, we just replace non-UTF-8 bytes, but in
+        # the future we should have a utility for working with WTF-8 paths.
+        result.path.raw_bytes.decode("utf-8", "backslashreplace")
+    )
+    stat_entry.st_mode = stat.S_IFREG
+    stat_entry.st_size = result.metadata.size
+    stat_entry.st_atime = result.metadata.access_time.seconds
+    stat_entry.st_mtime = result.metadata.modification_time.seconds
+    stat_entry.st_btime = result.metadata.creation_time.seconds
+
+    path_info = rdf_objects.PathInfo.FromPathSpec(self.args.pathspec)
+    path_info.stat_entry = stat_entry
+
+    self.state.path_info = path_info
+
+    args = rrg_get_file_contents_pb2.Args()
+    args.path.CopyFrom(result.path)
+
+    self.CallRRG(
+        rrg_pb2.Action.GET_FILE_CONTENTS,
+        args,
+        next_state=self.HandleGetFileContents.__name__,
+    )
+
+  @flow_base.UseProto2AnyResponses
+  def HandleGetFileContents(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      message = f"File contents collection failure: {responses.status}"
+      raise flow_base.FlowError(message)
+
+    blob_refs: list[rdf_objects.BlobReference] = []
+
+    for response in responses:
+      result = rrg_get_file_contents_pb2.Result()
+      result.ParseFromString(response.value)
+
+      blob_ref = rdf_objects.BlobReference()
+      blob_ref.offset = result.offset
+      blob_ref.size = result.length
+      blob_ref.blob_id = rdf_objects.BlobID(result.blob_sha256)
+
+      blob_refs.append(blob_ref)
+
+    client_path = db.ClientPath.FromPathSpec(self.client_id, self.args.pathspec)
+    hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
+
+    path_info = self.state.path_info
+    path_info.hash_entry.sha256 = hash_id.AsBytes()
+    path_info.hash_entry.num_bytes = sum(_.size for _ in blob_refs)
+    data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
+
+    self.SendReply(self.state.path_info.stat_entry)
 
 
 class GetFile(flow_base.FlowBase):
@@ -79,18 +205,15 @@ class GetFile(flow_base.FlowBase):
     self.state.num_bytes_collected = 0
     self.state.target_pathspec = self.args.pathspec.Copy()
 
-    # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
-    # This conditional should be removed after that date.
-    if not self.client_version or self.client_version >= 3221:
-      stub = server_stubs.GetFileStat
-      request = rdf_client_action.GetFileStatRequest(
-          pathspec=self.state.target_pathspec, follow_symlink=True)
-    else:
-      stub = server_stubs.StatFile
-      request = rdf_client_action.ListDirRequest(
-          pathspec=self.state.target_pathspec)
-
-    self.CallClient(stub, request, next_state=self.Stat.__name__)
+    request = rdf_client_action.GetFileStatRequest(
+        pathspec=self.state.target_pathspec,
+        follow_symlink=True,
+    )
+    self.CallClient(
+        server_stubs.GetFileStat,
+        request,
+        next_state=self.Stat.__name__,
+    )
 
   def Stat(self, responses):
     """Fix up the pathspec of the file."""
@@ -410,23 +533,16 @@ class MultiGetFileLogic(object):
     # stat comes back.
     self.state.pending_stats[index] = {"index": index}
 
-    # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
-    # This conditional should be removed after that date.
-    if not self.client_version or self.client_version >= 3221:
-      stub = server_stubs.GetFileStat
-      request = rdf_client_action.GetFileStatRequest(pathspec=pathspec)
-      request.follow_symlink = True
-      request_name = "GetFileStat"
-    else:
-      stub = server_stubs.StatFile
-      request = rdf_client_action.ListDirRequest(pathspec=pathspec)
-      request_name = "StatFile"
-
+    request = rdf_client_action.GetFileStatRequest(
+        pathspec=pathspec,
+        follow_symlink=True,
+    )
     self.CallClient(
-        stub,
+        server_stubs.GetFileStat,
         request,
         next_state=self._ReceiveFileStat.__name__,
-        request_data=dict(index=index, request_name=request_name))
+        request_data=dict(index=index, request_name="GetFileStat"),
+    )
 
   def _ScheduleHashFile(self, index: int, pathspec: rdf_paths.PathSpec) -> None:
     """Schedules the HashFile Client Action.

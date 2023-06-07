@@ -832,6 +832,9 @@ class IncrementalResponseHandlingTest(BasicFlowTest):
   def testIncrementalCallbackReturnsResultsBeforeStatus(self, m):
     # Mocks don't have names by default.
     m.__name__ = "ReceiveHelloCallback"
+    # Because mocks automagically create non-existing properties, we have to set
+    # explicitly `_proto2_any_responses` to falsy value.
+    m._proto2_any_responses = False
 
     flow_id = flow_test_lib.StartAndRunFlow(
         FlowWithIncrementalCallback,

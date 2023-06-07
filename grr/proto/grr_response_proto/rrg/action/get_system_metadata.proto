@@ -1,0 +1,44 @@
+// Copyright 2023 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.get_system_metadata;
+
+import "google/protobuf/timestamp.proto";
+import "grr_response_proto/rrg/os.proto";
+
+message Args {
+}
+
+message Result {
+  // The type of the operating system.
+  rrg.os.Type type = 1;
+
+  // A system version string (e.g. `Darwin Kernel Version 21.6.0: Mon Dec 19
+  // 20:44:01 PST 2022; root:xnu-8020.240.18~2/RELEASE_X86_64`).
+  //
+  // No assumptions on the specific format of this string should be made.
+  string version = 2;
+
+  // CPU architecture of the operating system (e.g. `x86_64`).
+  //
+  // No assumptions on the specific format of this string should be made.
+  string arch = 6;
+
+  // The hostname of the operating system.
+  string hostname = 4;
+
+  // The FQDN of the operating system.
+  //
+  // Note that depending on the specific operating system configuration this
+  // value might be sometimes reported as just a hostname.
+  string fqdn = 5;
+
+  // The time at which the operating system was installed.
+  //
+  // Note that this data is based on various heuristics and might not be very
+  // accurate.
+  google.protobuf.Timestamp install_time = 3;
+}

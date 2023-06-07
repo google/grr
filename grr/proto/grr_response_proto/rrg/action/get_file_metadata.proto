@@ -1,0 +1,39 @@
+// Copyright 2023 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.action.get_file_metadata;
+
+import "grr_response_proto/rrg/fs.proto";
+
+message Args {
+  // Path to the file to get the metadata for.
+  //
+  // Note that if a path points to a symbolic link, the metadata associated
+  // with the link itself will be returned, not the metadata of the file that
+  // the link points to.
+  rrg.fs.Path path = 1;
+}
+
+message Result {
+  // Canonical path of the file.
+  rrg.fs.Path path = 1;
+
+  // Metadata of the file.
+  rrg.fs.FileMetadata metadata = 2;
+
+  // Extended attributes of the file.
+  //
+  // This field is supported only on Linux and macOS.
+  repeated rrg.fs.FileExtAttr ext_attrs = 3;
+
+  // A symlink value of the file.
+  //
+  // This field is set only if the file is a symlink.
+  //
+  // Note that this path might be relative. Moreover, it is not canonicalized
+  // in any way and might not even exist (a dangling symlink).
+  rrg.fs.Path symlink = 4;
+}

@@ -100,7 +100,7 @@ describe('ClientSearch Component', () => {
 
     // Using nativeElement here instead of queryAll, since queryAll does
     // not go into child components DOM (in this case we're interested in
-    // what's inside MatTable).
+    // what's inside MatLegacyTable).
     const de: HTMLElement = fixture.debugElement.nativeElement;
     const rows = de.getElementsByTagName('tr');
     // First row is the header, two others are data.

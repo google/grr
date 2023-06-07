@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {MatMenuHarness} from '@angular/material/menu/testing';
+import {MatLegacyMenuHarness} from '@angular/material/legacy-menu/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -65,7 +65,7 @@ describe('ScheduledFlowList Component', () => {
     fixture.detectChanges();
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
-    const menu = await loader.getHarness(MatMenuHarness);
+    const menu = await loader.getHarness(MatLegacyMenuHarness);
     await menu.open();
     const items = await menu.getItems();
     await items[0].click();

@@ -1,5 +1,6 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, TrackByFunction} from '@angular/core';
 import {FormControl} from '@angular/forms';
+import {Router} from '@angular/router';
 import {combineLatest, Observable} from 'rxjs';
 import {map, startWith, takeUntil, tap} from 'rxjs/operators';
 
@@ -86,20 +87,21 @@ export class HuntOverviewPage implements OnDestroy {
               case HuntStateFilter.NOT_STARTED:
                 return hunt.state === HuntState.NOT_STARTED;
               case HuntStateFilter.PAUSED:
-                return hunt.state === HuntState.PAUSED;
+                return hunt.state === HuntState.REACHED_CLIENT_LIMIT;
               case HuntStateFilter.RUNNING:
                 return hunt.state === HuntState.RUNNING;
               case HuntStateFilter.CANCELLED:
                 return hunt.state === HuntState.CANCELLED;
               case HuntStateFilter.COMPLETED:
-                return hunt.state === HuntState.COMPLETED;
+                return hunt.state === HuntState.REACHED_TIME_LIMIT;
               default:
                 return true;
             }
           })));
 
-  constructor(protected readonly huntOverviewPageLocalStore:
-                  HuntOverviewPageLocalStore) {
+  constructor(
+      protected readonly huntOverviewPageLocalStore: HuntOverviewPageLocalStore,
+      private readonly router: Router) {
     huntOverviewPageLocalStore.setArgs(
         {robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS});
 
@@ -180,13 +182,13 @@ export class HuntOverviewPage implements OnDestroy {
 
   getHuntProgressTooltip(hunt: Hunt): string {
     switch (hunt.state) {
-      case HuntState.COMPLETED:
+      case HuntState.REACHED_TIME_LIMIT:
         return 'Completed';
       case HuntState.CANCELLED:
         return 'Cancelled';
       case HuntState.NOT_STARTED:
         return 'Not started';
-      case HuntState.PAUSED:
+      case HuntState.REACHED_CLIENT_LIMIT:
         return 'Paused';
       default:
         return 'Waiting for clients';
@@ -198,5 +200,9 @@ export class HuntOverviewPage implements OnDestroy {
   }
   huntStarted(hunt: Hunt) {
     return hunt.state !== HuntState.NOT_STARTED;
+  }
+
+  duplicateHunt(huntId: string) {
+    this.router.navigate(['/new-hunt'], {queryParams: {'huntId': huntId}});
   }
 }

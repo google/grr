@@ -1208,6 +1208,19 @@ class ApiCallRouterStub(ApiCallRouter):
 
     raise NotImplementedError()
 
+  @Category("Other")
+  @ArgsType(api_stats.ApiIncrementCounterMetricArgs)
+  @ResultType(api_stats.ApiIncrementCounterMetricResult)
+  @Http("POST", "/api/stats/increment_counter")
+  def IncrementCounterMetric(
+      self,
+      args: api_stats.ApiIncrementCounterMetricArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_stats.ApiIncrementCounterMetricHandler:
+    """Increment a given counter with field values."""
+
+    raise NotImplementedError()
+
   # Approvals methods.
   # =================
   #

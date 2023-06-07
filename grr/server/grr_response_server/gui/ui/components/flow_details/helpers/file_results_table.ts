@@ -1,8 +1,8 @@
 
 
 import {AfterViewInit, ChangeDetectionStrategy, Component, EventEmitter, Input, OnDestroy, Output, ViewChild} from '@angular/core';
+import {MatLegacyTableDataSource} from '@angular/material/legacy-table';
 import {MatSort} from '@angular/material/sort';
-import {MatTableDataSource} from '@angular/material/table';
 import {ActivatedRoute} from '@angular/router';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {map, startWith, takeUntil} from 'rxjs/operators';
@@ -169,7 +169,7 @@ export class FileResultsTable implements OnDestroy, AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   /** dataSource used as input for mat-table. */
-  readonly dataSource = new MatTableDataSource<TableRow>();
+  readonly dataSource = new MatLegacyTableDataSource<TableRow>();
   /** Subject producting table rows data provided to dataSource. */
   readonly rows$: Observable<readonly TableRow[]> =
       this.results$.pipe(map((entries) => {

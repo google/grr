@@ -1,12 +1,12 @@
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatInputModule} from '@angular/material/input';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
+import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
+import {MatLegacyInputModule} from '@angular/material/legacy-input';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {MatSidenavModule} from '@angular/material/sidenav';
 import {MatToolbarModule} from '@angular/material/toolbar';
-import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -31,14 +31,14 @@ import {HomeRoutingModule} from './routing';
     RouterModule,
 
     // Angular Material modules.
-    MatButtonModule,
-    MatChipsModule,
+    MatLegacyButtonModule,
+    MatLegacyChipsModule,
     MatIconModule,
-    MatInputModule,
-    MatFormFieldModule,
+    MatLegacyInputModule,
+    MatLegacyFormFieldModule,
     MatSidenavModule,
     MatToolbarModule,
-    MatTooltipModule,
+    MatLegacyTooltipModule,
 
     // GRR modules.
     ApprovalChipModule,

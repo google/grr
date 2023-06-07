@@ -24,7 +24,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     cron_job_id = self._ScheduleCronJob()
 
     # Open up and click on Cron Job Viewer.
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=crons]")
 
@@ -52,7 +52,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     # "Request Approval" dialog should go away
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.Open("/")
+    self.Open("/legacy")
 
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
 
@@ -73,7 +73,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Approval granted.")
 
     # Now test starts up
-    self.Open("/")
+    self.Open("/legacy")
 
     # We should be notified that we have an approval
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
@@ -106,7 +106,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
         admin=False)
 
     # Now test starts up
-    self.Open("/")
+    self.Open("/legacy")
 
     # We should be notified that we have an approval
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
@@ -133,7 +133,7 @@ class TestCronACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.CreateAdminUser(u"approver")
 
     # And try again
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
 
     # Select and enable OSBreakDownCronJob.

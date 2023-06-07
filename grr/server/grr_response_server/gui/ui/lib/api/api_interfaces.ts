@@ -185,6 +185,8 @@ export declare interface ApiClient {
   readonly age?: RDFDatetime;
   readonly cloudInstance?: CloudInstance;
   readonly sourceFlowId?: string;
+  readonly rrgVersion?: string;
+  readonly rrgArgs?: readonly string[];
 }
 
 /** ApiClientActionRequest proto mapping. */
@@ -1220,6 +1222,16 @@ export declare interface ApiHuntResult {
   readonly payload?: Any;
   readonly payloadType?: string;
   readonly timestamp?: RDFDatetime;
+}
+
+/** ApiIncrementCounterMetricArgs proto mapping. */
+export declare interface ApiIncrementCounterMetricArgs {
+  readonly metricName?: string;
+  readonly fieldValues?: readonly FieldValue[];
+}
+
+/** ApiIncrementCounterMetricResult proto mapping. */
+export declare interface ApiIncrementCounterMetricResult {
 }
 
 /** ApiInterrogateClientArgs proto mapping. */
@@ -2377,16 +2389,6 @@ export declare interface CAEnrolerArgs {
   readonly csr?: Certificate;
 }
 
-/** CacheGrepArgs proto mapping. */
-export declare interface CacheGrepArgs {
-  readonly grepUsers?: readonly string[];
-  readonly pathtype?: PathSpecPathType;
-  readonly dataRegex?: ProtoBytes;
-  readonly checkChrome?: boolean;
-  readonly checkFirefox?: boolean;
-  readonly checkIe?: boolean;
-}
-
 /** Certificate proto mapping. */
 export declare interface Certificate {
   readonly type?: CertificateType;
@@ -2399,21 +2401,6 @@ export enum CertificateType {
   CSR = 'CSR',
   CRT = 'CRT',
   CA = 'CA',
-}
-
-/** CheckFlowArgs proto mapping. */
-export declare interface CheckFlowArgs {
-  readonly onlyOs?: readonly string[];
-  readonly onlyCpe?: readonly string[];
-  readonly onlyLabel?: readonly string[];
-  readonly maxFindings?: readonly ProtoUint64[];
-  readonly restrictChecks?: readonly string[];
-}
-
-/** CheckResult proto mapping. */
-export declare interface CheckResult {
-  readonly checkId?: string;
-  readonly anomaly?: readonly Anomaly[];
 }
 
 /** ChromeHistoryArgs proto mapping. */
@@ -2835,6 +2822,20 @@ export declare interface ExecuteResponse {
   readonly stdout?: ProtoBytes;
   readonly stderr?: ProtoBytes;
   readonly timeUsed?: ProtoInt32;
+}
+
+/** FieldValue proto mapping. */
+export declare interface FieldValue {
+  readonly fieldType?: FieldValueFieldType;
+  readonly stringValue?: string;
+  readonly numberValue?: ProtoInt64;
+}
+
+/** FieldValue.FieldType proto mapping. */
+export enum FieldValueFieldType {
+  UNKNOWN = 'UNKNOWN',
+  STRING = 'STRING',
+  NUMBER = 'NUMBER',
 }
 
 /** FileFinderAccessTimeCondition proto mapping. */
@@ -3856,18 +3857,6 @@ export declare interface PerClientFileCollectionArgs {
   readonly clientId?: string;
   readonly pathType?: PathSpecPathType;
   readonly paths?: readonly string[];
-}
-
-/** PlistRequest proto mapping. */
-export declare interface PlistRequest {
-  readonly pathspec?: PathSpec;
-  readonly context?: string;
-  readonly query?: string;
-}
-
-/** PlistValueFilterArgs proto mapping. */
-export declare interface PlistValueFilterArgs {
-  readonly request?: PlistRequest;
 }
 
 /** Process proto mapping. */

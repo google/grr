@@ -51,16 +51,19 @@ describe('params form test', () => {
     const fixture = TestBed.createComponent(ParamsForm);
     fixture.detectChanges();
 
-    const button = fixture.debugElement.query(By.css('#toggle-advance-params'));
-    expect(button.nativeElement.textContent)
+    const buttonTop =
+        fixture.debugElement.query(By.css('[name=toggle-advance-params-top]'));
+    expect(buttonTop.nativeElement.textContent)
         .toContain('expand_more Show safety limits ');
     const element =
         fixture.debugElement.query(By.css('.advanced-params')).nativeElement;
     expect(getComputedStyle(element).display).toEqual('none');
 
-    button.triggerEventHandler('click', new MouseEvent('click'));
+    const buttonBottom = fixture.debugElement.query(
+        By.css('[name=toggle-advance-params-bottom]'));
+    buttonBottom.triggerEventHandler('click', new MouseEvent('click'));
     fixture.detectChanges();
-    expect(button.nativeElement.textContent)
+    expect(buttonBottom.nativeElement.textContent)
         .toContain('expand_less Hide safety limits ');
     expect(getComputedStyle(element).display).not.toEqual('none');
   });
@@ -104,8 +107,8 @@ describe('params form test', () => {
        await setInputValue(fixture, '[name=customClientLimit]', '2022');
        await setInputValue(fixture, '[name=activeFor]', '1 h');
 
-       const toggleAdvancedButton =
-           fixture.debugElement.query(By.css('#toggle-advance-params'));
+       const toggleAdvancedButton = fixture.debugElement.query(
+           By.css('[name=toggle-advance-params-top]'));
        toggleAdvancedButton.triggerEventHandler(
            'click', new MouseEvent('click'));
        fixture.detectChanges();
@@ -156,7 +159,7 @@ describe('params form test', () => {
     expect(await getInputValue(fixture, '[name=activeFor]')).toBe('1 h');
 
     const toggleAdvancedButton =
-        fixture.debugElement.query(By.css('#toggle-advance-params'));
+        fixture.debugElement.query(By.css('[name=toggle-advance-params-top]'));
     toggleAdvancedButton.triggerEventHandler('click', new MouseEvent('click'));
     fixture.detectChanges();
 

@@ -20,7 +20,7 @@
 <ng-template #noProgress>
   <div class="fallback">
   View
-  <a href="{{fallbackUrl$ | async}}">
+  <a href="{{fallbackUrl$ | async}}" (click)="fallbackUrlClicked()">
     Flow
     <span class="monospace">{{ (flow$ | async)?.flowId }}</span>
   </a>

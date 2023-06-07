@@ -37,7 +37,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")
     self.Click("link=Results")
@@ -53,7 +53,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('RecursiveTestFlow')")
     self.Click("link=Results")
@@ -73,7 +73,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('GetFile')")
     self.Click("link=Results")
@@ -92,7 +92,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         pathspec=pathspec,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s" % self.client_id)
+    self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('GetFile')")
     self.Click("link=Results")
@@ -118,7 +118,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
 
     with mock.patch.object(archive_generator.CollectionArchiveGenerator,
                            "Generate", RaisingStub):
-      self.Open("/#/clients/%s" % self.client_id)
+      self.Open("/legacy#/clients/%s" % self.client_id)
 
       self.Click("css=a[grrtarget='client.flows']")
       self.Click("css=td:contains('GetFile')")
@@ -169,7 +169,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s/flows/%s" % (self.client_id, session_id))
+    self.Open("/legacy#/clients/%s/flows/%s" % (self.client_id, session_id))
     self.Click("link=Results")
     self.Select("id=plugin-select", plugin_display_name)
     self.Click("css=grr-download-collection-as button[name='download-as']")
@@ -198,7 +198,7 @@ class TestFlowArchive(gui_test_lib.GRRSeleniumTest):
         client_id=self.client_id,
         creator=self.test_username)
 
-    self.Open("/#/clients/%s/flows/%s" % (self.client_id, session_id))
+    self.Open("/legacy#/clients/%s/flows/%s" % (self.client_id, session_id))
     self.Click("link=Results")
 
     self.WaitUntil(self.IsTextPresent, "Value")

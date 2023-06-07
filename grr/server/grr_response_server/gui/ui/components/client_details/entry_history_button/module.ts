@@ -1,7 +1,7 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
-import {MatDialogModule} from '@angular/material/dialog';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyDialogModule} from '@angular/material/legacy-dialog';
 
 import {EntryHistoryDialogModule} from '../entry_history_dialog/module';
 
@@ -13,8 +13,8 @@ import {EntryHistoryButton} from './entry_history_button';
 @NgModule({
   imports: [
     CommonModule,
-    MatButtonModule,
-    MatDialogModule,
+    MatLegacyButtonModule,
+    MatLegacyDialogModule,
     EntryHistoryDialogModule,
   ],
   declarations: [

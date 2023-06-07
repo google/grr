@@ -42,7 +42,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
   def testCopyHuntPrefillsNewHuntWizard(self):
     self.CreateSampleHunt("model hunt")
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
     self.Click("css=button[name=CopyHunt]:not([disabled])")
 
@@ -126,7 +126,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
   def testCopyHuntCreatesExactCopyWithChangedDescription(self):
     self.CreateSampleHunt("model hunt")
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
     self.Click("css=button[name=CopyHunt]:not([disabled])")
 
@@ -173,7 +173,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
   def testCopyHuntRespectsUserChanges(self):
     self.CreateSampleHunt("model hunt")
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
     self.Click("css=button[name=CopyHunt]:not([disabled])")
 
@@ -297,7 +297,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
             ],
             paths=["/tmp/evil.txt"]))
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
     self.Click("css=button[name=CopyHunt]:not([disabled])")
 
@@ -367,7 +367,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
         ]),
         creator=self.test_username)
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
     self.Click("css=button[name=CopyHunt]:not([disabled])")
 
@@ -389,7 +389,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
 
   def testRuleTypeChangeClearsItsProto(self):
     # Open up and click on View Hunts.
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
 
     # Open up "New Hunt" wizard
@@ -461,7 +461,7 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
   def testApprovalIndicatesThatHuntWasCopiedFromAnotherHunt(self):
     self.CreateSampleHunt("model hunt", creator=self.test_username)
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
 
     # Open the wizard.
@@ -492,8 +492,10 @@ class HuntCopyTest(gui_test_lib.GRRSeleniumHuntTest):
         approver=self.test_username)
 
     # Open the approval page.
-    self.Open("/#/users/%s/approvals/hunt/%s/%s" %
-              (self.test_username, h.hunt_id, approval_id))
+    self.Open(
+        "/legacy#/users/%s/approvals/hunt/%s/%s"
+        % (self.test_username, h.hunt_id, approval_id)
+    )
     self.WaitUntil(self.IsElementPresent,
                    "css=div.panel-body:contains('This hunt was copied from')")
 

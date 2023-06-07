@@ -57,8 +57,8 @@ class HuntCreationTest(
     )
 
     # Make sure original flow information is displayed.
-    self.WaitUntil(self.IsElementPresent, "css=title-editor")
-    self.WaitUntil(self.IsElementPresent, "css=td:contains('Based on flow')")
+    self.WaitUntil(self.IsElementPresent, "css=[name=titleInput]")
+    self.WaitUntil(self.IsElementPresent, "css=td:contains('Original flow')")
     self.WaitUntil(
         self.IsElementPresent, "css=flow-details:contains('Netstat')"
     )
@@ -132,12 +132,13 @@ class HuntCreationTest(
     self.WaitUntilEqual(f"huntId={original_hunt_id}", self.GetCurrentUrlQuery)
 
     # Make sure original hunt information is displayed.
-    self.WaitUntil(
-        self.IsElementPresent,
-        f"css=title-editor:contains('{original_hunt_description} (copy)')",
+    self.WaitUntilEqual(
+        f"{original_hunt_description} (copy)",
+        self.GetValue,
+        "css=[name=titleInput]",
     )
     self.WaitUntil(
-        self.IsElementPresent, "css=td:contains('Based on fleet collection')"
+        self.IsElementPresent, "css=td:contains('Original fleet collection')"
     )
     self.WaitUntil(
         self.IsElementPresent, "css=hunt-flow-arguments:contains('GetFile')"

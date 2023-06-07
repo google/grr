@@ -2,11 +2,11 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Location} from '@angular/common';
 import {Component} from '@angular/core';
 import {ComponentFixture, fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
-import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
 import {MatButtonToggleHarness} from '@angular/material/button-toggle/testing';
-import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
-import {MatInputHarness} from '@angular/material/input/testing';
-import {MatSelectHarness} from '@angular/material/select/testing';
+import {MatLegacyAutocompleteHarness} from '@angular/material/legacy-autocomplete/testing';
+import {MatLegacyCheckboxHarness} from '@angular/material/legacy-checkbox/testing';
+import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
+import {MatLegacySelectHarness} from '@angular/material/legacy-select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute, Router} from '@angular/router';
@@ -19,7 +19,8 @@ import {ApprovalCardLocalStore} from '../../../store/approval_card_local_store';
 import {ApprovalCardLocalStoreMock, mockApprovalCardLocalStore} from '../../../store/approval_card_local_store_test_util';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
 import {ConfigGlobalStoreMock, mockConfigGlobalStore} from '../../../store/config_global_store_test_util';
-import {HuntApprovalGlobalStore} from '../../../store/hunt_approval_global_store';
+import {HuntApprovalLocalStore} from '../../../store/hunt_approval_local_store';
+import {mockHuntApprovalLocalStore} from '../../../store/hunt_approval_local_store_test_util';
 import {NewHuntLocalStore} from '../../../store/new_hunt_local_store';
 import {mockNewHuntLocalStore} from '../../../store/new_hunt_local_store_test_util';
 import {injectMockStore, STORE_PROVIDERS} from '../../../store/store_test_providers';
@@ -38,23 +39,23 @@ async function getCheckboxValue(
     fixture: ComponentFixture<unknown>, query: string): Promise<boolean> {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
   const checkboxHarness = await harnessLoader.getHarness(
-      MatCheckboxHarness.with({selector: query}));
+      MatLegacyCheckboxHarness.with({selector: query}));
   return await checkboxHarness.isChecked();
 }
 
 async function getSelectBoxValue(
     fixture: ComponentFixture<unknown>, query: string): Promise<string> {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const selectionBoxHarness =
-      await harnessLoader.getHarness(MatSelectHarness.with({selector: query}));
+  const selectionBoxHarness = await harnessLoader.getHarness(
+      MatLegacySelectHarness.with({selector: query}));
   return await selectionBoxHarness.getValueText();
 }
 
 async function getInputValue(
     fixture: ComponentFixture<unknown>, query: string): Promise<string> {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const inputHarness =
-      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
+  const inputHarness = await harnessLoader.getHarness(
+      MatLegacyInputHarness.with({selector: query}));
   return await inputHarness.getValue();
 }
 
@@ -103,21 +104,48 @@ describe('new hunt test', () => {
         .overrideProvider(
             NewHuntLocalStore, {useFactory: mockNewHuntLocalStore})
         .overrideProvider(
+            HuntApprovalLocalStore, {useFactory: mockHuntApprovalLocalStore})
+        .overrideProvider(
             ApprovalCardLocalStore, {useFactory: () => approvalCardLocalStore})
         .compileComponents();
   }));
 
-  it('starts with editable title', async () => {
+  it('calls store with the proper title', async () => {
     await TestBed.inject(Router).navigate(
         ['new-hunt'], {queryParams: {'flowId': 'F1234', 'clientId': 'C1234'}});
     const fixture = TestBed.createComponent(NewHunt);
+    const newHuntLocalStore =
+        injectMockStore(NewHuntLocalStore, fixture.debugElement);
+    newHuntLocalStore.mockedObservables.originalHunt$.next(null);
+    newHuntLocalStore.mockedObservables.flowWithDescriptor$.next({
+      flow: newFlow({
+        name: 'KeepAlive',
+        creator: 'morty',
+      }),
+      descriptor: {
+        name: 'KeepAlive',
+        friendlyName: 'KeepAlive',
+        category: 'a',
+        defaultArgs: {},
+      },
+      flowArgType: 'someType',
+    });
     fixture.detectChanges();
 
-    const editButton = fixture.debugElement.query(By.css('button[name=edit]'));
-    expect(editButton).toBeFalsy();
+    // For some reason, loading the input harness is timing out.
+    // Thus, setting the title here to test it does call the api with
+    // the right value.
+    fixture.componentInstance.titleControl.setValue('I am a title');
+    fixture.detectChanges();
 
-    const title = fixture.debugElement.query(By.css('h1'));
-    expect(title.attributes['contenteditable']).not.toBeFalse();
+    const button = fixture.debugElement.query(By.css('#runHunt'));
+    button.triggerEventHandler('click', new MouseEvent('click'));
+    fixture.detectChanges();
+
+    expect(newHuntLocalStore.runHunt)
+        .toHaveBeenCalledWith(
+            'I am a title', jasmine.objectContaining({}),
+            jasmine.objectContaining({}), jasmine.objectContaining({}));
   });
 
   it('loads and displays original Flow', async () => {
@@ -230,12 +258,13 @@ describe('new hunt test', () => {
     fixture.detectChanges();
 
     // Check title was copied.
-    const huntTitle = fixture.debugElement.query(By.css('title-editor'));
-    expect(huntTitle.nativeElement.textContent).toContain('A hunt (copy)');
+    expect(await getInputValue(fixture, '[name=titleInput]'))
+        .toBe('A hunt (copy)');
 
-    const referencesSection = fixture.debugElement.query(By.css('table'));
+    const referencesSection =
+        fixture.debugElement.query(By.css('hunt-original-reference'));
     expect(referencesSection.nativeElement.textContent)
-        .toContain('Based on fleet collection');
+        .toContain('fleet collection');
     expect(referencesSection.query(By.css('a')).nativeElement.textContent)
         .toContain('H1234');
 
@@ -282,9 +311,8 @@ describe('new hunt test', () => {
         .toEqual('lelele');
   });
 
-  it('displays errors if no flow or hunt are selected', async () => {
-    await TestBed.inject(Router).navigate(
-        ['new-hunt'], {queryParams: {'flowId': 'F1234', 'clientId': 'C1234'}});
+  it('displays chip and help if no flow or hunt are selected', async () => {
+    await TestBed.inject(Router).navigate(['new-hunt']);
 
     const fixture = TestBed.createComponent(NewHunt);
     fixture.detectChanges();
@@ -293,12 +321,8 @@ describe('new hunt test', () => {
     expect(chip).toBeTruthy();
     expect(chip.nativeElement.textContent).toContain('MUST');
 
-    const button = fixture.debugElement.query(By.css('#runHunt'));
-    expect(button.attributes['disabled']).toBe('true');
-
-    const error = fixture.debugElement.query(By.css('mat-error'));
-    expect(error).toBeTruthy();
-    expect(error.nativeElement.textContent).toContain('must use an existing');
+    const help = fixture.debugElement.query(By.css('hunt-help'));
+    expect(help).toBeTruthy();
   });
 
   it('does NOT display chip if flow is selected', async () => {
@@ -366,7 +390,8 @@ describe('new hunt test', () => {
        fixture.detectChanges();
        const newHuntLocalStore =
            injectMockStore(NewHuntLocalStore, fixture.debugElement);
-       const huntApprovalGlobalStore = injectMockStore(HuntApprovalGlobalStore);
+       const huntApprovalLocalStore =
+           injectMockStore(HuntApprovalLocalStore, fixture.debugElement);
        fixture.detectChanges();
 
        injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
@@ -389,14 +414,14 @@ describe('new hunt test', () => {
            ['user@gmail.com']);
        fixture.detectChanges();
 
-       const input = await loader.getHarness(MatAutocompleteHarness);
+       const input = await loader.getHarness(MatLegacyAutocompleteHarness);
        await input.enterText('user');
        const options = await input.getOptions();
        await options[0].click();
        fixture.detectChanges();
 
        const reason = await loader.getHarness(
-           MatInputHarness.with({selector: '[name=reason]'}));
+           MatLegacyInputHarness.with({selector: '[name=reason]'}));
        await reason.setValue('sample reason');
        fixture.detectChanges();
        const button = fixture.debugElement.query(By.css('#runHunt'));
@@ -408,13 +433,12 @@ describe('new hunt test', () => {
        newHuntLocalStore.mockedObservables.huntId$.next('h1234');
        fixture.detectChanges();
 
-       expect(huntApprovalGlobalStore.requestHuntApproval)
-           .toHaveBeenCalledWith({
-             huntId: 'h1234',
-             approvers: ['user@gmail.com'],
-             reason: 'sample reason',
-             cc: ['foo@example.org'],
-           });
+       expect(huntApprovalLocalStore.requestHuntApproval).toHaveBeenCalledWith({
+         huntId: 'h1234',
+         approvers: ['user@gmail.com'],
+         reason: 'sample reason',
+         cc: ['foo@example.org'],
+       });
      });
 
   it('changes the route when finishes sending request', fakeAsync(async () => {
@@ -425,6 +449,8 @@ describe('new hunt test', () => {
        fixture.detectChanges();
        const newHuntLocalStore =
            injectMockStore(NewHuntLocalStore, fixture.debugElement);
+       const huntApprovalLocalStore =
+           injectMockStore(HuntApprovalLocalStore, fixture.debugElement);
        fixture.detectChanges();
 
        injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
@@ -435,9 +461,8 @@ describe('new hunt test', () => {
 
        newHuntLocalStore.mockedObservables.huntId$.next('h1234');
        fixture.detectChanges();
-       injectMockStore(HuntApprovalGlobalStore, fixture.debugElement)
-           .mockedObservables.requestApprovalStatus$.next(
-               {status: RequestStatusType.SENT});
+       huntApprovalLocalStore.mockedObservables.requestApprovalStatus$.next(
+           {status: RequestStatusType.SENT});
        fixture.detectChanges();
        tick();
 

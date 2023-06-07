@@ -134,7 +134,7 @@ exports.RoutingService = class {
     if (this.state_.current.newUiUrl) {
       return this.state_.current.newUiUrl(this.state_.params);
     } else {
-      return '/v2/';
+      return '/v2/?source=redirect_button';
     }
   }
 };

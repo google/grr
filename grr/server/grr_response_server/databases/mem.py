@@ -24,6 +24,7 @@ from grr_response_server.databases import mem_signed_binaries
 from grr_response_server.databases import mem_users
 from grr_response_server.databases import mem_yara
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
 # pyformat: disable
@@ -44,6 +45,8 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
                  db.Database):
   """An in memory database implementation used for testing."""
   # pyformat: enable
+
+  rrg_startups: dict[str, list[rrg_startup_pb2.Startup]]
 
   def __init__(self):
     super().__init__()
@@ -69,6 +72,7 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
     self.metadatas = {}
     self.notifications_by_username = {}
     self.startup_history = {}
+    self.rrg_startups = collections.defaultdict(list)
     # TODO(hanuszczak): Consider changing this to nested dicts for improved
     # debugging experience.
     # Maps (client_id, path_type, components) to a path record.

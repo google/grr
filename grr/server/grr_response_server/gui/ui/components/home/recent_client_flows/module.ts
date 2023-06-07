@@ -1,7 +1,7 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
+import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
 import {RouterModule} from '@angular/router';
 
 import {ApprovalChipModule} from '../../../components/approval_chip/approval_chip_module';
@@ -20,7 +20,7 @@ import {RecentClientFlows} from './recent_client_flows';
     RouterModule,
 
     // Angular Material modules.
-    MatChipsModule,
+    MatLegacyChipsModule,
     MatIconModule,
 
     // GRR modules.

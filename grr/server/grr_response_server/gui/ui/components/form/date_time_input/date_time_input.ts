@@ -2,8 +2,8 @@ import {FocusMonitor} from '@angular/cdk/a11y';
 import {coerceBooleanProperty} from '@angular/cdk/coercion';
 import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, forwardRef, HostBinding, Input, OnDestroy, Optional, Self, ViewChild} from '@angular/core';
 import {ControlValueAccessor, NgControl} from '@angular/forms';
-import {MatFormFieldControl} from '@angular/material/form-field';
-import {MatMenu, MatMenuTrigger} from '@angular/material/menu';
+import {MatLegacyFormFieldControl} from '@angular/material/legacy-form-field';
+import {MatLegacyMenu, MatLegacyMenuTrigger} from '@angular/material/legacy-menu';
 import {Subject} from 'rxjs';
 
 import {DateTime} from '../../../lib/date_time';
@@ -12,7 +12,7 @@ import {isNonNull} from '../../../lib/preconditions';
 
 
 const DATE_TIME_MAT_FORM_FIELD = {
-  provide: MatFormFieldControl,
+  provide: MatLegacyFormFieldControl,
   useExisting: forwardRef(() => DateTimeInput)
 };
 
@@ -48,7 +48,8 @@ export const DATE_TIME_FORMAT = 'yyyy-MM-dd HH:mm:ss';
   ],
 })
 export class DateTimeInput implements ControlValueAccessor,
-                                      MatFormFieldControl<DateTime>, OnDestroy {
+                                      MatLegacyFormFieldControl<DateTime>,
+                                      OnDestroy {
   private onChange: OnChangeFn = () => {};
   private inputStringInternal = '';
   onTouched: OnTouchedFn = () => {};
@@ -60,10 +61,10 @@ export class DateTimeInput implements ControlValueAccessor,
     second: 0,
     millisecond: 0,
   });
-  @ViewChild('calendarMenu') calendarMenu!: MatMenu;
-  @ViewChild('clockMenu') clockMenu!: MatMenu;
-  @ViewChild('calendarMenuTrigger') calendarMenuTrrigger!: MatMenuTrigger;
-  @ViewChild('clockMenuTrigger') clockMenuTrigger!: MatMenuTrigger;
+  @ViewChild('calendarMenu') calendarMenu!: MatLegacyMenu;
+  @ViewChild('clockMenu') clockMenu!: MatLegacyMenu;
+  @ViewChild('calendarMenuTrigger') calendarMenuTrrigger!: MatLegacyMenuTrigger;
+  @ViewChild('clockMenuTrigger') clockMenuTrigger!: MatLegacyMenuTrigger;
 
   menuTimes = generateMenuTimes();
 
@@ -177,7 +178,7 @@ export class DateTimeInput implements ControlValueAccessor,
     this.onTouched = fn;
   }
 
-  // MatFormFieldControl implementation.
+  // MatLegacyFormFieldControl implementation.
   stateChanges = new Subject<void>();
   private placeholderInternal = 'Input date/time';
   focused = false;

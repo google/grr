@@ -95,7 +95,11 @@
     </h4>
   </div>
 
-  <div *ngIf="approval.subject as hunt" class="key-value-table centered-content">
+  <div *ngIf="approval.subject as hunt" class="centered-content">
+    <hunt-original-reference class="extra-margin"
+        [huntRef]="hunt.huntReference"
+        [flowRef]="hunt.flowReference">
+      </hunt-original-reference>
     <hunt-flow-arguments [hunt]=hunt></hunt-flow-arguments>
     <hunt-arguments [hunt]=hunt></hunt-arguments>
   </div>

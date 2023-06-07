@@ -46,7 +46,9 @@
       mat-button
       *ngIf="results?.unknownResultCount"
       href="{{fallbackUrl$ | async}}/results"
+      (click)="fallbackUrlClicked()"
       class="result"
+      name="fallback"
     >
       View {{ results.unknownResultCount | i18nPlural: {'=1': '1 parsed result',
       'other': '# parsed results'} }} in old UI

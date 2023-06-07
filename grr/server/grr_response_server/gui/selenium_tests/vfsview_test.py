@@ -27,7 +27,7 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
   def testUnicodeContentIsShownInTree(self):
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#clients/C.0000000000000001/vfs/fs/os/c/Downloads/")
+    self.Open("/legacy#clients/C.0000000000000001/vfs/fs/os/c/Downloads/")
 
     # Click on the file containing unicode characters.
     self.Click(u"css=tr:contains(\"中.txt\")")
@@ -38,7 +38,9 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
 
   def testFolderPathCanContainUnicodeCharacters(self):
     # Open VFS view for client 1 on a location containing unicode characters.
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/中国新闻网新闻中/")
+    self.Open(
+        "/legacy#/clients/C.0000000000000001/vfs/fs/os/c/中国新闻网新闻中/"
+    )
 
     # Check that the correct file is listed.
     self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"bzcmp\")")
@@ -62,7 +64,7 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
         timestamp=gui_test_lib.TIME_1)
 
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     # Wait until the folder gets selected and its information displayed in
     # the details pane.
@@ -91,8 +93,10 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
         timestamp=gui_test_lib.TIME_1)
 
     # Open VFS view for client 1 on a location containing unicode characters.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c"
-              "-foo_3Fbar_26oh")
+    self.Open(
+        "/legacy#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c"
+        "-foo_3Fbar_26oh"
+    )
 
     # Check that the correct file is listed.
     self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"a&=?b.txt\")")
@@ -100,7 +104,7 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
   def testDoubleClickGoesInsideDirectory(self):
     """Tests that double click in FileTable goes inside the directory."""
 
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
@@ -132,8 +136,10 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
   def testClickingOnDownloadCurrentFolderButtonStartsDownload(
       self, mock_method):
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
-              "&t=_fs-os-c-proc")
+    self.Open(
+        "/legacy#c=C.0000000000000001&main=VirtualFileSystemView"
+        "&t=_fs-os-c-proc"
+    )
 
     self.Click("css=grr-vfs-files-archive-button")
     self.Click("css=a[name=downloadCurrentFolder]")
@@ -152,8 +158,10 @@ class VFSViewTest(gui_test_lib.GRRSeleniumTest):
       return_value=api_vfs.ApiGetVfsFilesArchiveHandler())
   def testClickingOnDownloadEverythingButtonStartsDownload(self, mock_method):
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
-              "&t=_fs-os-c-proc")
+    self.Open(
+        "/legacy#c=C.0000000000000001&main=VirtualFileSystemView"
+        "&t=_fs-os-c-proc"
+    )
 
     self.Click("css=grr-vfs-files-archive-button")
     self.Click("css=a[name=downloadEverything]:not([disabled])")

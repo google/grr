@@ -27,6 +27,7 @@ from grr_response_core.config import contexts
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
 from grr_response_server import server_logging
+from grr_response_server.gui import admin_ui_metrics
 from grr_response_server.gui import csp
 from grr_response_server.gui import http_api
 from grr_response_server.gui import http_response
@@ -202,9 +203,20 @@ class AdminUIApp(object):
     self.routing_map = werkzeug_routing.Map()
     self.routing_map.add(
         werkzeug_routing.Rule(
+            "/legacy",
+            methods=["HEAD", "GET"],
+            endpoint=EndpointWrapper(self._HandleLegacyHomepage),
+        )
+    )
+
+    self.routing_map.add(
+        werkzeug_routing.Rule(
             "/",
             methods=["HEAD", "GET"],
-            endpoint=EndpointWrapper(self._HandleHomepage)))
+            endpoint=EndpointWrapper(self._HandleDefaultHomepage),
+        )
+    )
+
     self.routing_map.add(
         werkzeug_routing.Rule(
             "/api/<path:path>",
@@ -221,12 +233,26 @@ class AdminUIApp(object):
           werkzeug_routing.Rule(
               v2_route,
               methods=["HEAD", "GET"],
-              endpoint=EndpointWrapper(self._HandleHomepageV2)))
+              endpoint=EndpointWrapper(self._HandleV2Homepage),
+          )
+      )
 
   def _BuildRequest(self, environ):
     return HttpRequest(environ)
 
-  def _HandleHomepage(self, request):
+  def _HandleLegacyHomepage(self, request):
+    admin_ui_metrics.WSGI_ROUTE.Increment(fields=["legacy"])
+    return self._HandleHomepageV1(request)
+
+  def _HandleDefaultHomepage(self, request):
+    admin_ui_metrics.WSGI_ROUTE.Increment(fields=["default"])
+    return self._HandleHomepageV2(request)
+
+  def _HandleV2Homepage(self, request):
+    admin_ui_metrics.WSGI_ROUTE.Increment(fields=["v2"])
+    return self._HandleHomepageV2(request)
+
+  def _HandleHomepageV1(self, request):
     """Renders GRR home page by rendering base.html Jinja template."""
 
     _ = request
@@ -274,8 +300,6 @@ class AdminUIApp(object):
   def _HandleHomepageV2(self, request):
     """Renders GRR home page for the next-get UI (v2)."""
 
-    del request  # Unused.
-
     context = {
         "is_development": contexts.DEBUG_CONTEXT in config.CONFIG.context,
         "is_test": contexts.TEST_CONTEXT in config.CONFIG.context,
@@ -288,6 +312,11 @@ class AdminUIApp(object):
     template = env.get_template("base-v2.html")
     response = http_response.HttpResponse(
         template.render(context), mimetype="text/html")
+
+    try:
+      StoreCSRFCookie(request.user, response)
+    except RequestHasNoUser:
+      pass
 
     return response
 

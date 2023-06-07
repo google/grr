@@ -5,9 +5,7 @@ import os
 
 from absl import app
 
-from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import searching
-from grr_response_client.client_actions import standard
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -296,11 +294,7 @@ class TestRegistryFlows(RegistryFlowTest):
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                    vfs_test_lib.FakeFullVFSHandler):
 
-      client_mock = action_mocks.ActionMock(
-          file_fingerprint.FingerprintFile,
-          searching.Find,
-          standard.GetFileStat,
-      )
+      client_mock = action_mocks.FileFinderClientMock()
 
       # Get KB initialized
       session_id = flow_test_lib.TestFlowHelper(

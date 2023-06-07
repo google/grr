@@ -36,7 +36,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     cronjobs.ScheduleSystemCronJobs(cron_job_names)
 
   def testCronView(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=crons]")
@@ -59,7 +59,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
                    "css=#main_bottomPane dd:contains('OSBreakDownCronJob')")
 
   def testMessageIsShownWhenNoCronJobSelected(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=crons]")
@@ -73,7 +73,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     manager.RunOnce()
     manager._GetThreadPool().Stop()
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDownCronJob')")
 
@@ -97,7 +97,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
   def testToolbarStateForDisabledCronJob(self):
     cronjobs.CronManager().DisableJob(job_id=u"OSBreakDownCronJob")
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDownCronJob')")
 
@@ -111,7 +111,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
   def testToolbarStateForEnabledCronJob(self):
     cronjobs.CronManager().EnableJob(job_id=u"OSBreakDownCronJob")
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDownCronJob')")
 
@@ -127,7 +127,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(
         len(self.ListCronJobApprovals(requestor=self.test_username)), 0)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDownCronJob')")
 
@@ -152,7 +152,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
   def testEnableCronJob(self):
     cronjobs.CronManager().DisableJob(job_id=u"OSBreakDownCronJob")
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDownCronJob')")
 
@@ -191,7 +191,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # TODO(amoser): The lower pane does not refresh automatically so we need to
     # workaround. Remove when we have implemented this auto refresh.
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDownCronJob')")
 
@@ -202,7 +202,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
   def testDisableCronJob(self):
     cronjobs.CronManager().EnableJob(job_id=u"OSBreakDownCronJob")
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDownCronJob')")
 
@@ -239,7 +239,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     # TODO(amoser): The lower pane does not refresh automatically so we need to
     # workaround. Remove when we have implemented this auto refresh.
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDownCronJob')")
 
@@ -250,7 +250,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
   def testDeleteCronJob(self):
     cronjobs.CronManager().EnableJob(job_id=u"OSBreakDownCronJob")
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDownCronJob')")
 
@@ -300,7 +300,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
         # 2274264646 corresponds to Sat, 25 Jan 2042 12:10:46 GMT.
         rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2274264646),
         increment=1e-6):
-      self.Open("/")
+      self.Open("/legacy")
       self.Click("css=a[grrtarget=crons]")
       self.Click("css=td:contains('OSBreakDownCronJob')")
 
@@ -343,7 +343,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
       # TODO(amoser): The lower pane does not refresh automatically so we need
       # to workaround. Remove when we have implemented this auto refresh.
-      self.Open("/")
+      self.Open("/legacy")
       self.Click("css=a[grrtarget=crons]")
       self.Click("css=td:contains('OSBreakDownCronJob')")
 
@@ -364,7 +364,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
       self.AddJobStatus(u"OSBreakDownCronJob",
                         rdf_cronjobs.CronJobRunStatus.Status.OK)
 
-    self.Open("/")
+    self.Open("/legacy")
 
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=crons]")
@@ -387,7 +387,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.AddJobStatus(u"OSBreakDownCronJob",
                       rdf_cronjobs.CronJobRunStatus.Status.ERROR)
 
-    self.Open("/")
+    self.Open("/legacy")
 
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=crons]")
@@ -410,7 +410,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
             cron_job=rdf_objects.CronJobReference(
                 cron_job_id=u"OSBreakDownCronJob")))
 
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Click("css=button[id=notification_button]")
     self.Click("css=a:contains('Test CronJob notification')")

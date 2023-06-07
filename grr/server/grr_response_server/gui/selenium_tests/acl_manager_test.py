@@ -21,7 +21,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.client_id_2 = self.SetupClient(1)
 
   def testNavigatorLinksDisabledForClientWithoutApproval(self):
-    self.Open("/#/clients/%s?navigator-test" % self.client_id_1)
+    self.Open("/legacy#/clients/%s?navigator-test" % self.client_id_1)
 
     self.WaitUntil(self.IsElementPresent,
                    "css=a[grrtarget='client.vfs'].disabled")
@@ -35,13 +35,13 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
                    "css=a[grrtarget='client.hostInfo']:not(.disabled)")
 
   def testApprovalNotificationIsShownInHostInfoForUnapprovedClient(self):
-    self.Open("/#/clients/%s" % self.client_id_1)
+    self.Open("/legacy#/clients/%s" % self.client_id_1)
 
     self.WaitUntil(self.IsTextPresent,
                    "You do not have an approval for this client.")
 
   def testClickingOnRequestApprovalShowsApprovalDialog(self):
-    self.Open("/#/clients/%s" % self.client_id_1)
+    self.Open("/legacy#/clients/%s" % self.client_id_1)
 
     self.Click("css=button[name=requestApproval]")
 
@@ -49,7 +49,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
                    "css=h3:contains('Create a new approval')")
 
   def testClientACLWorkflow(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Type("client_query", self.client_id_1)
     self.Click("client_query_submit")
@@ -76,7 +76,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
 
     self.WaitForNotification(self.test_username)
     # User test logs in as an approver.
-    self.Open("/")
+    self.Open("/legacy")
 
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
 
@@ -94,7 +94,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Approval granted.")
 
     self.WaitForNotification(self.test_username)
-    self.Open("/")
+    self.Open("/legacy")
 
     # We should be notified that we have an approval
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
@@ -116,7 +116,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
         approver=u"approver")
 
     # Check if we see that the approval has already been granted.
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Click("notification_button")
 
@@ -126,7 +126,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
                    "This approval has already been granted!")
 
     # Try again:
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Click("notification_button")
 
@@ -140,7 +140,7 @@ class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
     self.assertLen(self.emails_sent, 3)
 
   def testRecentReasonBox(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     test_reason = u"ástæða"
     self.RequestAndGrantClientApproval(self.client_id_2, reason=test_reason)

@@ -1,9 +1,9 @@
 import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {MatSnackBarModule} from '@angular/material/snack-bar';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacySnackBarModule} from '@angular/material/legacy-snack-bar';
 
 import {SnackBarErrorHandler} from './error_handler';
 import {ErrorSnackBar, WINDOW} from './error_snackbar';
@@ -13,8 +13,8 @@ import {ErrorSnackBar, WINDOW} from './error_snackbar';
     CommonModule,
     ClipboardModule,
     MatIconModule,
-    MatButtonModule,
-    MatSnackBarModule,
+    MatLegacyButtonModule,
+    MatLegacySnackBarModule,
   ],
   declarations: [ErrorSnackBar],
   providers: [

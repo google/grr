@@ -69,7 +69,7 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
 
   def testNotifications(self):
     """Test the notifications interface."""
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
 
     # There should be 5 notifications, 4 that we generate + 1 about
@@ -91,7 +91,7 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilEqual("0", self.GetText, "css=button[id=notification_button]")
 
     # Notifications should be clear even after we reload the page.
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.WaitUntilEqual("0", self.GetText, "css=button[id=notification_button]")
 
@@ -132,7 +132,7 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
 
   def testUserSettings(self):
     """Tests that user settings UI is working."""
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
 
     mode_selector = "css=.form-group:has(label:contains('Mode')) select"
@@ -158,7 +158,7 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
     with self.DisableHttpErrorChecks():
       # By mocking out Handle, we can force an exception.
       with mock.patch.object(ApiSearchClientsHandler, "Handle", MockRender):
-        self.Open("/")
+        self.Open("/legacy")
         self.Click("client_query_submit")
 
         # Open server error dialog.

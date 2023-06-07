@@ -1,19 +1,19 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
+import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 
 import {HuntStatusChip} from './hunt_status_chip';
 
 @NgModule({
   imports: [
     CommonModule,
-    MatChipsModule,
+    MatLegacyChipsModule,
     MatIconModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule,
+    MatLegacyProgressSpinnerModule,
+    MatLegacyTooltipModule,
   ],
   declarations: [HuntStatusChip],
   exports: [HuntStatusChip]

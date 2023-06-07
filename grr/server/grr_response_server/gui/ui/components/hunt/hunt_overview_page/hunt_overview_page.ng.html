@@ -1,25 +1,30 @@
-<div class="filters">
-  <mat-form-field appearance="outline">
-    <mat-select [formControl]="huntCreatorFilterForm" name="hunt-creator-filter">
-      <mat-option
-        *ngFor="let huntCreatorFilter of HuntCreatorFilter | keyvalue"
-        [value]="huntCreatorFilter.value"
-      >
-        {{ huntCreatorFilter.value }}
-      </mat-option>
-    </mat-select>
-  </mat-form-field>
+<div class="top">
+  <div class="filters">
+    <mat-form-field appearance="outline">
+      <mat-select [formControl]="huntCreatorFilterForm" name="hunt-creator-filter">
+        <mat-option
+          *ngFor="let huntCreatorFilter of HuntCreatorFilter | keyvalue"
+          [value]="huntCreatorFilter.value"
+        >
+          {{ huntCreatorFilter.value }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
 
-  <mat-form-field appearance="outline">
-    <mat-select [formControl]="huntStateFilterForm" name="hunt-state-filter">
-      <mat-option
-        *ngFor="let huntStateFilter of HuntStateFilter | keyvalue"
-        [value]="huntStateFilter.value"
-      >
-        {{ huntStateFilter.value }}
-      </mat-option>
-    </mat-select>
-  </mat-form-field>
+    <mat-form-field appearance="outline">
+      <mat-select [formControl]="huntStateFilterForm" name="hunt-state-filter">
+        <mat-option
+          *ngFor="let huntStateFilter of HuntStateFilter | keyvalue"
+          [value]="huntStateFilter.value"
+        >
+          {{ huntStateFilter.value }}
+        </mat-option>
+      </mat-select>
+    </mat-form-field>
+  </div>
+  <div class="help">
+    <a [drawerLink]="['help']" type="button"><mat-icon>add</mat-icon><span>New fleet collection</span></a>
+  </div>
 </div>
 
 <app-infinite-list
@@ -35,44 +40,67 @@
     class="split-card"
   >
     <div class="header-all">
-      <div class="top-row">
-        <a class="header mat-card-title" name="cardTitle" [routerLink]="['/hunts', hunt.huntId]">{{ getHuntTitle(hunt) }} </a>
-        <div>
-          <user-image [username]="hunt.creator" size="16px"></user-image>
-          {{hunt.creator}}
+      <div class="left-of-menu">
+        <div class="top-row">
+          <a class="header mat-card-title" name="cardTitle" [routerLink]="['/hunts', hunt.huntId]">{{ getHuntTitle(hunt) }} </a>
+          <div>
+            <user-image [username]="hunt.creator" size="16px"></user-image>
+            {{hunt.creator}}
+          </div>
+          <div>
+            <app-timestamp [date]="hunt.created"></app-timestamp>
+          </div>
+          <div>{{ hunt.completedClientsCount }} of {{ hunt.allClientsCount }}</div>
+          <mat-chip-list [selectable]="false" [tabIndex]="-1">
+            <app-hunt-status-chip [hunt]="hunt"></app-hunt-status-chip>
+          </mat-chip-list>
         </div>
-        <div>
-          <app-timestamp [date]="hunt.created"></app-timestamp>
+        <div class="bottom-row">
+          <div class="left">
+            <app-copy-button class="mat-small monospace subtitle">
+              {{ hunt.huntId }}
+            </app-copy-button>
+            <app-copy-button class="mat-small subtitle">
+              {{ hunt.flowName }}
+            </app-copy-button>
+          </div>
+          <mat-progress-bar
+              *ngIf="huntStarted(hunt)"
+              [mode]="isRunning(hunt) ? 'buffer' : 'determinate'"
+              [value]="getHuntProgress(hunt)"
+              [bufferValue]="getHuntBufferProgress(hunt)"
+              [matTooltip]="getHuntProgressTooltip(hunt)"
+              color="success"
+              class = "right"
+            ></mat-progress-bar>
         </div>
-        <div>{{ hunt.completedClientsCount }} of {{ hunt.allClientsCount }}</div>
-        <mat-chip-list [selectable]="false" [tabIndex]="-1">
-          <app-hunt-status-chip [hunt]="hunt"></app-hunt-status-chip>
-        </mat-chip-list>
       </div>
-      <div class="bottom-row">
-        <div class="left">
-          <app-copy-button class="mat-small monospace subtitle">
-            {{ hunt.huntId }}
-          </app-copy-button>
-          <app-copy-button class="mat-small subtitle">
-            {{ hunt.flowName }}
-          </app-copy-button>
-        </div>
-        <mat-progress-bar
-            *ngIf="huntStarted(hunt)"
-            [mode]="isRunning(hunt) ? 'buffer' : 'determinate'"
-            [value]="getHuntProgress(hunt)"
-            [bufferValue]="getHuntBufferProgress(hunt)"
-            [matTooltip]="getHuntProgressTooltip(hunt)"
-            color="success"
-            class = "right"
-          ></mat-progress-bar>
+      <div class="context-menu">
+        <button
+          class="menu-button"
+          name="huntContextMenu"
+          [matMenuTriggerFor]="menu"
+          mat-icon-button
+          aria-label="Hunt menu"
+        >
+          <mat-icon class="menu-icon">more_vert</mat-icon>
+        </button>
+        <mat-menu #menu="matMenu">
+          <button
+            mat-menu-item
+            (click)="duplicateHunt(hunt.huntId)"
+          >
+            <span>Duplicate fleet collection</span>
+          </button>
+        </mat-menu>
       </div>
     </div>
 
-    <result-accordion [colorScheme]="ColorScheme.FLOW_ARGS" title="Fleet collection arguments">
-      <hunt-flow-arguments class="args" [hunt]="hunt"></hunt-flow-arguments>
-      <hunt-arguments class="args" [hunt]="hunt"></hunt-arguments>
+    <result-accordion [colorScheme]="ColorScheme.FLOW_ARGS" title="Fleet collection arguments" #accordion>
+      <ng-container *ngIf="accordion.isOpen">
+        <hunt-flow-arguments class="args" [hunt]="hunt"></hunt-flow-arguments>
+        <hunt-arguments class="args" [hunt]="hunt"></hunt-arguments>
+      </ng-container>
     </result-accordion>
   </div>
 </app-infinite-list>

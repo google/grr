@@ -1,12 +1,13 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule} from '@angular/forms';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatNativeDateModule} from '@angular/material/core';
 import {MatDatepickerModule} from '@angular/material/datepicker';
 import {MatIconModule} from '@angular/material/icon';
-import {MatInputModule} from '@angular/material/input';
-import {MatMenuModule} from '@angular/material/menu';
+import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
+import {MatLegacyNativeDateModule} from '@angular/material/legacy-core';
+import {MatLegacyInputModule} from '@angular/material/legacy-input';
+import {MatLegacyMenuModule} from '@angular/material/legacy-menu';
+
 import {DateTimeInput} from './date_time_input';
 import {DateTimeInputToggle} from './date_time_input_toggle';
 
@@ -17,12 +18,12 @@ import {DateTimeInputToggle} from './date_time_input_toggle';
   imports: [
     CommonModule,
     FormsModule,
-    MatChipsModule,
+    MatLegacyChipsModule,
     MatIconModule,
-    MatInputModule,
+    MatLegacyInputModule,
     MatDatepickerModule,
-    MatNativeDateModule,
-    MatMenuModule,
+    MatLegacyNativeDateModule,
+    MatLegacyMenuModule,
   ],
   declarations: [
     DateTimeInput,

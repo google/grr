@@ -6,6 +6,7 @@ import re
 import stat
 from typing import Iterable, Union
 
+from google.protobuf import any_pb2
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -14,9 +15,14 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
+from grr_response_server import flow_responses
 from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_proto import rrg_pb2
+from grr_response_proto.rrg import fs_pb2 as rrg_fs_pb2
+from grr_response_proto.rrg.action import get_file_metadata_pb2 as rrg_get_file_metadata_pb2
+
 
 # This is all bits that define the type of the file in the stat mode. Equal to
 # 0b1111000000000000.
@@ -108,23 +114,76 @@ class ListDirectory(flow_base.FlowBase):
     """Issue a request to list the directory."""
     self.state.urn = None
 
-    # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
-    # This conditional should be removed after that date.
-    if not self.client_version or self.client_version >= 3221:
-      stub = server_stubs.GetFileStat
-      request = rdf_client_action.GetFileStatRequest(
-          pathspec=self.args.pathspec, follow_symlink=True)
-    else:
-      stub = server_stubs.StatFile
-      request = rdf_client_action.ListDirRequest(pathspec=self.args.pathspec)
+    if self.rrg_support:
+      args = rrg_get_file_metadata_pb2.Args()
+      args.path.raw_bytes = self.args.pathspec.path.encode("utf-8")
 
-    self.CallClient(stub, request, next_state=self.Stat.__name__)
+      self.CallRRG(
+          action=rrg_pb2.Action.GET_FILE_METADATA,
+          args=args,
+          next_state=self.HandleRRGGetFileMetadata.__name__,
+      )
+    else:
+      request = rdf_client_action.GetFileStatRequest(
+          pathspec=self.args.pathspec,
+          follow_symlink=True,
+      )
+      self.CallClient(
+          server_stubs.GetFileStat,
+          request,
+          next_state=self.Stat.__name__,
+      )
 
     # We use data to pass the path to the callback:
     self.CallClient(
         server_stubs.ListDirectory,
         pathspec=self.args.pathspec,
         next_state=self.List.__name__)
+
+  @flow_base.UseProto2AnyResponses
+  def HandleRRGGetFileMetadata(
+      self,
+      responses: flow_responses.Responses[any_pb2.Any],
+  ) -> None:
+    if not responses.success:
+      message = f"File metadata collection failure: {responses.status}"
+      raise flow_base.FlowError(message)
+
+    if len(responses) != 1:
+      message = f"Unexpected number of responses: {len(responses)}"
+      raise flow_base.FlowError(message)
+
+    result = rrg_get_file_metadata_pb2.Result()
+    result.ParseFromString(list(responses)[0].value)
+
+    if result.metadata.type == rrg_fs_pb2.FileMetadata.DIR:
+      mode = stat.S_IFDIR
+    elif result.metadata.type == rrg_fs_pb2.FileMetadata.SYMLINK:
+      mode = stat.S_IFLNK
+    else:
+      message = f"Unexpected file type: {result.metadata.type}"
+      raise flow_base.FlowError(message)
+
+    stat_entry = rdf_client_fs.StatEntry()
+    stat_entry.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
+    stat_entry.pathspec.path = (
+        # Paths coming from RRG use WTF-8 encoding, so they are almost UTF-8 but
+        # with some caveats. For now, we just replace non-UTF-8 bytes, but in
+        # the future we should have a utility for working with WTF-8 paths.
+        result.path.raw_bytes.decode("utf-8", "backslashreplace")
+    )
+    stat_entry.symlink = (
+        # See the comment above on why we do `backslashreplace`.
+        result.path.raw_bytes.decode("utf-8", "backslashreplace")
+    )
+    stat_entry.st_mode = mode
+    stat_entry.st_size = result.metadata.size
+    stat_entry.st_atime = result.metadata.access_time.seconds
+    stat_entry.st_mtime = result.metadata.modification_time.seconds
+    stat_entry.st_btime = result.metadata.creation_time.seconds
+
+    self.state.stat = stat_entry
+    self.state.urn = stat_entry.pathspec.AFF4Path(self.client_urn)
 
   def Stat(self, responses):
     """Save stat information on the directory."""
@@ -619,24 +678,17 @@ class GlobLogic(object):
               # directory. In this case, response will be None but we still need
               # to stat it.
 
-              # TODO(hanuszczak): Support for old clients ends on 2021-01-01.
-              # This conditional should be removed after that date.
-              if not self.client_version or self.client_version >= 3221:
-                stub = server_stubs.GetFileStat
-                request = rdf_client_action.GetFileStatRequest(
-                    pathspec=self._PathSpecForClient(pathspec),
-                    collect_ext_attrs=self.state.collect_ext_attrs,
-                    follow_symlink=True)
-              else:
-                stub = server_stubs.StatFile
-                request = rdf_client_action.ListDirRequest(
-                    pathspec=self._PathSpecForClient(pathspec))
-
+              request = rdf_client_action.GetFileStatRequest(
+                  pathspec=self._PathSpecForClient(pathspec),
+                  collect_ext_attrs=self.state.collect_ext_attrs,
+                  follow_symlink=True,
+              )
               self.CallClient(
-                  stub,
+                  server_stubs.GetFileStat,
                   request,
                   next_state=self._ProcessEntry.__name__,
-                  request_data=dict(component_path=next_component))
+                  request_data=dict(component_path=next_component),
+              )
           else:
             # There is no need to go back to the client for intermediate
             # paths in the prefix tree, just emulate this by recursively

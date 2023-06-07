@@ -1,31 +1,35 @@
-<span *ngIf="isLoading$ | async; else details">
-  <h1><mat-spinner></mat-spinner>LOADING...</h1>
+<span *ngIf="isHuntResultLoading$ | async; else details">
+  <mat-spinner></mat-spinner>
 </span>
 
 <ng-template #details>
   <h3 class="section-title client-title">
     <mat-icon class="computer-icon">computer</mat-icon>
-    Client: {{ clientId$ | async }}
+    Client: {{ (clientId$ | async) || 'Unknown' }}
   </h3>
   <table class="section" name="overview">
     <tr>
       <td class="description">Source flow</td>
       <td class="value">
         <!-- Navigate to flow and close drawer. -->
-        <a
+        <a *ngIf="((clientId$ | async) && (huntId$ | async)) as huntId; else noFlowLink" name="sourceFlow"
           [routerLink]="[
             '',
             {
               outlets: {
-                'primary': ['clients', clientId$ | async, 'flows', huntId$ | async],
+                'primary': ['clients', clientId$ | async, 'flows', huntId],
                 'drawer': null
               }
             }
           ]"
           class="text-link"
         >
-          {{ huntId$ | async }}
+          {{ huntId }}
         </a>
+
+        <ng-template #noFlowLink>
+          <span name="unknownFlow">{{ (huntId$ | async) || 'Unknown' }}</span>
+        </ng-template>
       </td>
     </tr>
     <tr>
@@ -40,18 +44,24 @@
   </table>
 
   <h3 class="section-title">Source Flow Results</h3>
-  <flow-details
-    [flow]="(selectedResultFlowWithDescriptor$ | async)?.flow"
-    [flowDescriptor]="(selectedResultFlowWithDescriptor$ | async)?.descriptor"
-    [showContextMenu]="false"
-  >
-  </flow-details>
+
+  <ng-container *ngIf="isFlowLoading$ | async; else flowDetails">
+    <mat-spinner class="flow-loading-spinner"></mat-spinner>
+  </ng-container>
+
+  <ng-template #flowDetails>
+    <flow-details
+      [flow]="(flowWithDescriptor$ | async)?.flow"
+      [flowDescriptor]="(flowWithDescriptor$ | async)?.descriptor"
+      [showContextMenu]="false">
+    </flow-details>
+  </ng-template>
 
   <h3 class="section-title">Raw data</h3>
   <table class="section" name="rawData">
     <tr>
       <td class="monospace payload">
-        <pre>{{ payload$ | async }}</pre>
+        <pre>{{ (resultOrErrorDisplay$ | async) || 'Data not found' }}</pre>
       </td>
     </tr>
   </table>

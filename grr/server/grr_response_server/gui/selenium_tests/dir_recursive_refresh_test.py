@@ -33,7 +33,7 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
     self.RequestAndGrantClientApproval(self.client_id)
 
   def testRecursiveRefreshButtonGetsDisabledWhileUpdateIsRunning(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.Click("css=button[name=Proceed]")
@@ -54,7 +54,7 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
                       "css=button[name=RecursiveRefresh][disabled]")
 
   def testRecursiveRefreshButtonGetsReenabledWhenUpdateEnds(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.Click("css=button[name=Proceed]")
@@ -73,7 +73,7 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
                    "css=button[name=RecursiveRefresh]:not([disabled])")
 
   def testSwitchingFoldersReEnablesRecursiveRefreshButton(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.Click("css=button[name=Proceed]")
@@ -90,7 +90,7 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
                       "css=button[name=RecursiveRefresh][disabled]")
 
   def testTreeAndFileListRefreshedWhenRecursiveRefreshCompletes(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.Click("css=button[name=Proceed]")
@@ -109,7 +109,7 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
                    "css=#_fs-os-c-TestFolder i.jstree-icon")
 
   def testViewUpdatedWhenRecursiveUpdateCompletesAfterSelectionChange(self):
-    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Open("/legacy#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.Click("css=button[name=Proceed]")
@@ -136,7 +136,7 @@ class DirRecursiveRefreshTest(gui_test_lib.GRRSeleniumTest):
 
   def testRecursiveListDirectory(self):
     """Tests that Recursive Refresh button triggers correct flow."""
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")

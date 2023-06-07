@@ -44,7 +44,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def testPageTitleReflectsSelectedHunt(self):
     hunt_id = self.CreateSampleHunt(stopped=True)
 
-    self.Open("/#/hunts")
+    self.Open("/legacy#/hunts")
     self.WaitUntilEqual("GRR | Hunts", self.GetPageTitle)
 
     self.Click("css=td:contains('%s')" % hunt_id)
@@ -55,7 +55,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     hunt_id = self.SetupTestHuntView()
 
     # Open up and click on View Hunts.
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, hunt_id)
@@ -92,7 +92,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     hunt_id = self._CreateHuntWithDownloadedFile()
 
     # Open up and click on View Hunts then the first Hunt.
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
 
@@ -132,7 +132,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     data_store.REL_DB.WriteFlowObject(rdf_flow)
 
     # Open up and click on View Hunts then the first Hunt.
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
 
@@ -157,7 +157,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     rdf_flow.network_bytes_sent = 1000000
     data_store.REL_DB.WriteFlowObject(rdf_flow)
 
-    self.Open("/")
+    self.Open("/legacy")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.hunt.huntOverviewDirective.setAutoRefreshInterval(1000);")
@@ -191,7 +191,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     hunt_id = self.CreateHunt(duration=duration)
 
     # Navigate to the hunt view.
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, hunt_id)
@@ -236,7 +236,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     hunt_2_id = self.CreateHunt(duration=hunt_2_duration)
 
     # Navigate to the hunt list.
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, hunt_1_id)
@@ -268,7 +268,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def testHuntStatsView(self):
     hunt_id = self.SetupTestHuntView()
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
 
@@ -305,7 +305,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.RequestAndGrantHuntApproval(hunt_id)
 
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Click("css=#notification_button")
     self.Click("css=a:contains('has granted you access')")
@@ -317,7 +317,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def testLogsTabShowsLogsFromAllClients(self):
     hunt_id = self.SetupHuntDetailView(failrate=-1)
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Log]")
 
@@ -332,7 +332,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     hunt_id = self.CreateSampleHunt()
     self.AddLogToHunt(hunt_id, self.client_ids[0], "foo-log")
 
-    self.Open("/")
+    self.Open("/legacy")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.hunt.huntLogDirective.setAutoRefreshInterval(1000);")
@@ -354,7 +354,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def testLogsTabFiltersLogsByString(self):
     hunt_id = self.SetupHuntDetailView(failrate=-1)
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Log]")
 
@@ -378,7 +378,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     with test_lib.FakeTime(42):
       self.AddLogToHunt(hunt_id, self.client_ids[0], "I do log.")
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Log]")
 
@@ -387,7 +387,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def testErrorsTabShowsErrorsFromAllClients(self):
     hunt_id = self.SetupHuntDetailView(failrate=1)
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Errors]")
 
@@ -399,7 +399,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.AddErrorToHunt(hunt_id, self.client_ids[0], "foo-error",
                         traceback.format_exc())
 
-    self.Open("/")
+    self.Open("/legacy")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.hunt.huntErrorsDirective.setAutoRefreshInterval(1000);")
@@ -425,7 +425,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
       self.AddErrorToHunt(hunt_id, self.client_ids[0], "Client Error 1",
                           traceback.format_exc())
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Errors]")
 
@@ -434,7 +434,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def testErrorsTabFiltersErrorsByString(self):
     hunt_id = self.SetupHuntDetailView(failrate=1)
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Errors]")
 
@@ -449,7 +449,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
   def testCrashesTabShowsNoErrorWhenCrashesAreMissing(self):
     hunt_id = self.SetupHuntDetailView()
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Crashes]")
 
@@ -462,7 +462,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.RunHuntWithClientCrashes([client_ids[0]])
 
-    self.Open("/")
+    self.Open("/legacy")
     # Ensure auto-refresh updates happen every second.
     self.GetJavaScriptValue(
         "grrUi.hunt.huntCrashesDirective.setAutoRefreshInterval(1000);")
@@ -488,7 +488,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.RequestAndGrantClientApproval(self.client_ids[0])
 
-    self.Open("/#c=" + self.client_ids[0])
+    self.Open("/legacy#c=" + self.client_ids[0])
     self.Click("css=a:contains('Manage launched flows')")
 
     self.Click("css=grr-client-flows-list tr:contains('GetFile')")
@@ -508,7 +508,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.AssignTasksToClients(client_ids=outstanding_client_ids)
     self.RunHunt(failrate=2, client_ids=finished_client_ids)
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading=Clients]")
 
@@ -524,7 +524,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     # Create some clients and a hunt to view.
     hunt_id = self.CreateSampleHunt()
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
     self.Click("css=li[heading='Context Details']")
 
@@ -547,7 +547,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     for client_id in self.SetupClients(3):
       self.RunHuntWithClientCrashes([client_id])
 
-    self.Open("/")
+    self.Open("/legacy")
 
     # Wait until the notification is there and show the notifications list.
     self.WaitUntilEqual("1", self.GetText, "css=button[id=notification_button]")

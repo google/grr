@@ -13,7 +13,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
   def testToolbarStateForStoppedHunt(self):
     hunt_id = self.CreateSampleHunt(stopped=True)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, hunt_id)
@@ -35,7 +35,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
   def testToolbarStateForRunningHunt(self):
     hunt_id = self.CreateSampleHunt(stopped=False)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, hunt_id)
@@ -57,7 +57,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
   def testRunHunt(self):
     hunt_id = self.CreateSampleHunt(stopped=True)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, hunt_id)
@@ -105,7 +105,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
   def testStopHunt(self):
     hunt_id = self.CreateSampleHunt(stopped=False)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, hunt_id)
@@ -154,7 +154,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
   def testModifyHunt(self):
     hunt_id = self.CreateSampleHunt(stopped=True)
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, hunt_id)
@@ -221,7 +221,7 @@ class TestHuntControl(gui_test_lib.GRRSeleniumHuntTest):
     # approval dialog.
     hunt_id = self.CreateSampleHunt(stopped=True, creator="random user")
 
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, hunt_id)

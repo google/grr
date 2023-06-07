@@ -159,6 +159,7 @@ exe = EXE\(
     upx=False,
     embed_manifest=False,
     console=True,
+    target_arch=r"%(PyInstaller.target_arch)" or None,
     version=os.path.join\(r"%(PyInstaller.build_dir)", "version.txt"\),
     icon=os.path.join\(r"%(PyInstaller.build_dir)", "grr.ico"\)\)
 
@@ -182,7 +183,8 @@ coll = COLLECT\(
     upx=False,
     name="grr-client"
 \)
-""")
+""",
+)
 
 config_lib.DEFINE_string(
     name="PyInstaller.distpath",
@@ -231,6 +233,20 @@ config_lib.DEFINE_string(
     "PyInstaller.workpath_dir",
     default="%(ClientBuilder.build_root_dir)/workpath",
     help="Pyinstaller working directory.")
+
+config_lib.DEFINE_string(
+    "PyInstaller.target_arch",
+    default="",
+    help=(
+        "Pyinstaller target architecture (for macOS builds only). Defaults to "
+        "a default PyInstaller behavior: producing non-unversal binary with "
+        "the current machine's architecture. Set this option to 'universal2' "
+        "to make PyInstaller produce universal binaries (you have to run on "
+        "universal Python binary then). Set to 'x86_64' or 'arm64' to force "
+        "a particular architecture. For details see: "
+        "https://pyinstaller.org/en/stable/man/pyinstaller.html?highlight=universal2#mac-os-specific-options"
+    ),
+)
 
 config_lib.DEFINE_string(
     name="Client.prefix",

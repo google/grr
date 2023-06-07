@@ -3,9 +3,9 @@ import {Component} from '@angular/core';
 import {ComponentFixture, fakeAsync, TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
 import {MatCalendarHarness} from '@angular/material/datepicker/testing';
-import {MatFormFieldModule} from '@angular/material/form-field';
-import {MatInputHarness} from '@angular/material/input/testing';
-import {MatMenuItemHarness} from '@angular/material/menu/testing';
+import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
+import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
+import {MatLegacyMenuItemHarness} from '@angular/material/legacy-menu/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -38,7 +38,7 @@ describe('DateTimeInput Component', () => {
           imports: [
             NoopAnimationsModule,
             ReactiveFormsModule,
-            MatFormFieldModule,
+            MatLegacyFormFieldModule,
             DateTimeInputModule,
           ],
           declarations: [
@@ -102,7 +102,8 @@ describe('DateTimeInput Component', () => {
         DateTime.fromISO('2020-07-01T03:04:05.000Z', {zone: 'UTC'}));
     fixture.detectChanges();
 
-    const input = await loader.getHarness<MatInputHarness>(MatInputHarness);
+    const input =
+        await loader.getHarness<MatLegacyInputHarness>(MatLegacyInputHarness);
     expect(await input.getValue()).toBe('2020-07-01 03:04:05');
   });
 
@@ -140,8 +141,8 @@ describe('DateTimeInput Component', () => {
        clockMenuButton.nativeElement.click();
        fixture.detectChanges();
 
-       const menuItem = await loader.getHarness<MatMenuItemHarness>(
-           MatMenuItemHarness.with({text: '12:45'}));
+       const menuItem = await loader.getHarness<MatLegacyMenuItemHarness>(
+           MatLegacyMenuItemHarness.with({text: '12:45'}));
        await menuItem.click();
        fixture.detectChanges();
 
@@ -195,8 +196,8 @@ describe('DateTimeInput Component', () => {
        clockMenuButton.nativeElement.click();
        fixture.detectChanges();
 
-       const menuItem = await loader.getHarness<MatMenuItemHarness>(
-           MatMenuItemHarness.with({text: '12:45'}));
+       const menuItem = await loader.getHarness<MatLegacyMenuItemHarness>(
+           MatLegacyMenuItemHarness.with({text: '12:45'}));
        await menuItem.click();
        fixture.detectChanges();
 

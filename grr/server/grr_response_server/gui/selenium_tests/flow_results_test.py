@@ -34,7 +34,9 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
             client_id=self.client_id, flow_id=flow_id, payload=response)
     ])
 
-    self.Open("/#/clients/%s/flows/%s/results" % (self.client_id, flow_id))
+    self.Open(
+        "/legacy#/clients/%s/flows/%s/results" % (self.client_id, flow_id)
+    )
     # jQuery treats the backslash ('\') character as a special one, hence we
     # have to escape it twice: once for Javascript itself and second time
     # for jQuery.

@@ -20,8 +20,9 @@ config_lib.DEFINE_bool(
 
 config_lib.DEFINE_string(
     "Logging.path",
-    "%(Config.prefix)/var/log/",
-    help="Path to log file directory.")
+    "",
+    help="Path to log file directory.",
+)
 
 config_lib.DEFINE_string(
     "Logging.syslog_path",

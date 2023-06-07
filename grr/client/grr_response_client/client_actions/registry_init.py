@@ -14,7 +14,6 @@ from grr_response_client.client_actions import large_file
 from grr_response_client.client_actions import memory
 from grr_response_client.client_actions import network
 from grr_response_client.client_actions import osquery
-from grr_response_client.client_actions import plist
 from grr_response_client.client_actions import read_low_level
 from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
@@ -58,7 +57,6 @@ def RegisterClientActions():
                           network.ListNetworkConnections)
   client_actions.Register("ListProcesses", standard.ListProcesses)
   client_actions.Register("Osquery", osquery.Osquery)
-  client_actions.Register("PlistQuery", plist.PlistQuery)
   client_actions.Register("ReadBuffer", standard.ReadBuffer)
   client_actions.Register("ReadLowLevel", read_low_level.ReadLowLevel)
   client_actions.Register("Segfault", standard.Segfault)

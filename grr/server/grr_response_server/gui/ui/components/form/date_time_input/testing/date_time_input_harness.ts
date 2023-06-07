@@ -1,5 +1,5 @@
 import {BaseHarnessFilters, ComponentHarness, HarnessPredicate} from '@angular/cdk/testing';
-import {MatInputHarness} from '@angular/material/input/testing';
+import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
 
 import {DATE_TIME_FORMAT} from '../../../../components/form/date_time_input/date_time_input';
 import {DateTime} from '../../../../lib/date_time';
@@ -12,8 +12,8 @@ export interface DateTimeInputHarnessFilters extends BaseHarnessFilters {}
 export class DateTimeInputHarness extends ComponentHarness {
   static hostSelector = 'date-time-input';
 
-  private async getInput(): Promise<MatInputHarness> {
-    return this.locatorFor(MatInputHarness)();
+  private async getInput(): Promise<MatLegacyInputHarness> {
+    return this.locatorFor(MatLegacyInputHarness)();
   }
 
   static with(options: DateTimeInputHarnessFilters):

@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """Tests for Interrogate."""
-
+import datetime
 import platform
 import socket
 from typing import Iterable
@@ -17,21 +17,28 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_server import artifact_registry
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import fleetspeak_utils
+from grr_response_server import flow_responses
+from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import discovery
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
+from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import notification_test_lib
 from grr.test_lib import parser_test_lib
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
+from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
+from grr_response_proto.rrg.action import get_system_metadata_pb2 as rrg_get_system_metadata_pb2
 
 
 class DiscoveryTestEventListener(events.EventListener):
@@ -350,8 +357,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
         release="Ubuntu",
         version="14.4")
 
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                   vfs_test_lib.FakeTestDataVFSHandler):
+    with vfs_test_lib.FakeTestDataVFSOverrider():
       flow_test_lib.TestFlowHelper(
           discovery.Interrogate.__name__,
           client_mock,
@@ -475,6 +481,52 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     client = self._OpenClient(client_id)
     self.assertNotEmpty(client.metadata.source_flow_id)
     self.assertEqual(client.metadata.source_flow_id, flow_id)
+
+  @db_test_lib.WithDatabase
+  def testHandleRRGGetSystemMetadata(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    db.WriteClientMetadata(client_id, rrg_support=True)
+
+    result = rrg_get_system_metadata_pb2.Result()
+    result.type = rrg_os_pb2.Type.LINUX
+    result.version = "1.2.3-alpha"
+    result.fqdn = "foo.example.com"
+    result.install_time.FromDatetime(datetime.datetime.now())
+
+    result_response = rdf_flow_objects.FlowResponse()
+    result_response.any_payload = rdf_structs.AnyValue.PackProto2(result)
+
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    responses = flow_responses.Responses.FromResponsesProto2Any([
+        result_response,
+        status_response,
+    ])
+
+    flow_args = discovery.InterrogateArgs()
+    flow_args.lightweight = False
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = discovery.Interrogate.__name__
+    rdf_flow.args = flow_args
+
+    flow = discovery.Interrogate(rdf_flow)
+    flow.Start()
+    flow.HandleRRGGetSystemMetadata(responses)
+
+    self.assertEqual(flow.state.client.knowledge_base.os, "Linux")
+    self.assertEqual(flow.state.client.knowledge_base.fqdn, "foo.example.com")
+    self.assertEqual(flow.state.client.os_version, "1.2.3-alpha")
+
+    snapshot = db.ReadClientSnapshot(client_id)
+    self.assertEqual(snapshot.knowledge_base.os, "Linux")
+    self.assertEqual(snapshot.knowledge_base.fqdn, "foo.example.com")
+    self.assertEqual(snapshot.os_version, "1.2.3-alpha")
 
 
 def main(argv):

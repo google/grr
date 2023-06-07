@@ -2,16 +2,16 @@ import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {MatAutocompleteModule} from '@angular/material/autocomplete';
-import {MatButtonModule} from '@angular/material/button';
-import {MatCardModule} from '@angular/material/card';
-import {MatCheckboxModule} from '@angular/material/checkbox';
-import {MatChipsModule} from '@angular/material/chips';
-import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatInputModule} from '@angular/material/input';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
-import {MatTooltipModule} from '@angular/material/tooltip';
+import {MatLegacyAutocompleteModule} from '@angular/material/legacy-autocomplete';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyCardModule} from '@angular/material/legacy-card';
+import {MatLegacyCheckboxModule} from '@angular/material/legacy-checkbox';
+import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
+import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
+import {MatLegacyInputModule} from '@angular/material/legacy-input';
+import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
+import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -34,16 +34,16 @@ import {ApprovalCard} from './approval_card';
     ReactiveFormsModule,
     RouterModule,
 
-    MatAutocompleteModule,
-    MatButtonModule,
-    MatCardModule,
-    MatCheckboxModule,
-    MatChipsModule,
-    MatFormFieldModule,
+    MatLegacyAutocompleteModule,
+    MatLegacyButtonModule,
+    MatLegacyCardModule,
+    MatLegacyCheckboxModule,
+    MatLegacyChipsModule,
+    MatLegacyFormFieldModule,
     MatIconModule,
-    MatInputModule,
-    MatProgressSpinnerModule,
-    MatTooltipModule,
+    MatLegacyInputModule,
+    MatLegacyProgressSpinnerModule,
+    MatLegacyTooltipModule,
 
     ApprovalChipModule,
     UserImageModule,

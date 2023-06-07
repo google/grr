@@ -969,20 +969,27 @@ class MySQLDBFlowMixin(object):
       # Each iteration might delete more than BATCH_SIZE flow_responses.
       # This is acceptable, because batching should only prevent the statement
       # size from growing too large.
-      conditions = []
       args = []
 
       for r in batch:
-        conditions.append("(client_id=%s AND flow_id=%s AND request_id=%s)")
         args.append(db_utils.ClientIDToInt(r.client_id))
         args.append(db_utils.FlowIDToInt(r.flow_id))
         args.append(r.request_id)
 
-      req_query = "DELETE FROM flow_requests WHERE " + " OR ".join(conditions)
-      res_query = "DELETE FROM flow_responses WHERE " + " OR ".join(conditions)
+      key_match_list = ", ".join(("(%s, %s, %s)",) * len(batch))
+      request_query = f"""
+        DELETE
+          FROM flow_requests
+         WHERE (client_id, flow_id, request_id) IN ({key_match_list})
+      """
+      response_query = f"""
+        DELETE
+          FROM flow_responses
+         WHERE (client_id, flow_id, request_id) IN ({key_match_list})
+      """
 
-      cursor.execute(res_query, args)
-      cursor.execute(req_query, args)
+      cursor.execute(response_query, args)
+      cursor.execute(request_query, args)
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadAllFlowRequestsAndResponses(self, client_id, flow_id, cursor=None):
@@ -1219,7 +1226,7 @@ class MySQLDBFlowMixin(object):
     cursor.execute(query)
 
   @mysql_utils.WithTransaction()
-  def _LeaseFlowProcessingReqests(self, cursor=None):
+  def _LeaseFlowProcessingRequests(self, limit, cursor=None):
     """Leases a number of flow processing requests."""
     now = rdfvalue.RDFDatetime.Now()
     expiry = now + rdfvalue.Duration.From(10, rdfvalue.MINUTES)
@@ -1243,7 +1250,7 @@ class MySQLDBFlowMixin(object):
     args = {
         "expiry": expiry_str,
         "id": id_str,
-        "limit": 50,
+        "limit": limit,
     }
 
     updated = cursor.execute(query, args)
@@ -1282,8 +1289,13 @@ class MySQLDBFlowMixin(object):
   def _FlowProcessingRequestHandlerLoop(self, handler):
     """The main loop for the flow processing request queue."""
     while not self.flow_processing_request_handler_stop:
+      thread_pool = self.flow_processing_request_handler_pool
+      free_threads = thread_pool.max_threads - thread_pool.busy_threads
+      if free_threads == 0:
+        time.sleep(self._FLOW_REQUEST_POLL_TIME_SECS)
+        continue
       try:
-        msgs = self._LeaseFlowProcessingReqests()
+        msgs = self._LeaseFlowProcessingRequests(free_threads)
         if msgs:
           for m in msgs:
             self.flow_processing_request_handler_pool.AddTask(

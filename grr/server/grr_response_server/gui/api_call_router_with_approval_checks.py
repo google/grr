@@ -26,6 +26,7 @@ from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
 from grr_response_server.gui.api_plugins import metadata as api_metadata
 from grr_response_server.gui.api_plugins import osquery as api_osquery
+from grr_response_server.gui.api_plugins import stats as api_stats
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
@@ -801,6 +802,15 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     # Everybody can get report data.
 
     return self.delegate.GetReport(args, context=context)
+
+  def IncrementCounterMetric(
+      self,
+      args: api_stats.ApiIncrementCounterMetricArgs,
+      context: Optional[api_call_context.ApiCallContext] = None,
+  ) -> api_stats.ApiIncrementCounterMetricHandler:
+    # Everybody can increase metrics.
+
+    return self.delegate.IncrementCounterMetric(args, context=context)
 
   # Approvals methods.
   # =================

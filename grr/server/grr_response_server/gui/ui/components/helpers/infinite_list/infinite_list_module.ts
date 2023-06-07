@@ -1,7 +1,7 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatButtonModule} from '@angular/material/button';
-import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatLegacyButtonModule} from '@angular/material/legacy-button';
+import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
 import {RouterModule} from '@angular/router';
 
 import {InfiniteList} from './infinite_list';
@@ -13,8 +13,8 @@ import {InfiniteList} from './infinite_list';
   imports: [
     CommonModule,
     RouterModule,
-    MatProgressSpinnerModule,
-    MatButtonModule,
+    MatLegacyProgressSpinnerModule,
+    MatLegacyButtonModule,
   ],
   declarations: [
     InfiniteList,

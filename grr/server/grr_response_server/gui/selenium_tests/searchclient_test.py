@@ -60,18 +60,18 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
           "css=grr-clients-list tbody > tr:not(:contains('Loading...'))")
 
   def testPageTitleChangesAccordingToQuery(self):
-    self.Open("/#/search?q=foo")
+    self.Open("/legacy#/search?q=foo")
     self.WaitUntilEqual("GRR | Search for \"foo\"", self.GetPageTitle)
 
     self.Type("client_query", text="host:Host-1", end_with_enter=True)
     self.WaitUntilEqual("GRR | Search for \"host:Host-1\"", self.GetPageTitle)
 
     # Not entering any search term checks for all clients.
-    self.Open("/#/search")
+    self.Open("/legacy#/search")
     self.WaitUntilEqual("GRR | Client List", self.GetPageTitle)
 
   def testEmptySearchShowsAllClients(self):
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("client_query_submit")
 
     # All 15 clients (10 default clients + 5 from setUp()) need to be found.
@@ -80,7 +80,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
   def testSearchByClientId(self):
     client_name = self.client_ids[0]
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Type("client_query", text=client_name, end_with_enter=True)
 
     self.WaitUntil(self.IsElementPresent,
@@ -88,7 +88,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self._WaitForSearchResults(target_count=1)
 
   def testSearchWithHostKeyword(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     # Host-1 exists, so we should find exactly one item.
     self.Type("client_query", text="host:Host-1", end_with_enter=True)
@@ -113,7 +113,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self._WaitForSearchResults(target_count=0)
 
   def testSearchWithLabelKeyword(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     # Several client have this label, so we should find them all.
     self.Type(
@@ -133,7 +133,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self._WaitForSearchResults(target_count=0)
 
   def testSearchWithIPKeyword(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     # IP contains the client number, so we should find exactly one item.
     self.Type("client_query", text="ip:192.168.0.1", end_with_enter=True)
@@ -146,7 +146,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self._WaitForSearchResults(target_count=0)
 
   def testSearchWithMacKeyword(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     # Mac contains the client number, so we should find exactly one item.
     self.Type("client_query", text="aabbccddee01", end_with_enter=True)
@@ -159,7 +159,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self._WaitForSearchResults(target_count=0)
 
   def testSearchWithUserKeyword(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     self.Type(
         "client_query", text="user:" + self.test_username, end_with_enter=True)
@@ -174,14 +174,14 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
   def testSearchingForHuntIdOpensHunt(self):
     hunt_id = self.StartHunt(description="demo hunt")
 
-    self.Open("/")
+    self.Open("/legacy")
     self.Type("client_query", text=hunt_id, end_with_enter=True)
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     # This checks that Overview tab actually got updated.
     self.WaitUntil(self.IsTextPresent, "Total Network Traffic")
 
   def testSearchingForNonExistingHuntIdPerformsClientSearch(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     # Hunt does not exist, so a client search should be performed.
     self.Type("client_query", text="H:12345678", end_with_enter=True)
@@ -189,7 +189,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
     self._WaitForSearchResults(target_count=0)
 
   def testSearchingForLabelOpensTypeAheadDropdown(self):
-    self.Open("/")
+    self.Open("/legacy")
 
     # We need to retry the whole sequence of "clear->type->wait for dropdown",
     # as there's a potential race when we start typing before the
@@ -213,7 +213,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
 
     client_name = self.client_ids[0]
 
-    self.Open("/#/clients/" + client_name)
+    self.Open("/legacy#/clients/" + client_name)
     self.WaitUntil(self.IsTextPresent, client_name)
     # Check that correct navigation link is selected.
     self.WaitUntil(self.IsElementPresent,
@@ -242,7 +242,7 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
   def testSuggestedReasonIsPropagatedFromSearchToApproval(self):
     client_id = self.SetupClient(0)
 
-    self.Open("/#/search?q=.&reason=t123")
+    self.Open("/legacy#/search?q=.&reason=t123")
     self.WaitUntilEqual("GRR | Search for \".\"", self.GetPageTitle)
 
     self.Click("css=tr:contains('{}')".format(client_id))
@@ -257,7 +257,9 @@ class TestDefaultGUISettings(gui_test_lib.GRRSeleniumTest):
   def testDefaultGUISettingsWork(self):
     data_store.REL_DB.DeleteGRRUser(self.test_username)
 
-    self.Open("/")  # The ui displays an error here if the settings are invalid.
+    self.Open(
+        "/legacy"
+    )  # The ui displays an error here if the settings are invalid.
 
     self.WaitUntil(self.IsTextPresent, "Welcome to GRR")
 

@@ -17,7 +17,7 @@ const FlowInspectorController = function($scope) {
   /** @type {string} */
   this.activeTab = '';
 
-  /** type {Object<string, boolean>} */
+  /** @type {Object<string, boolean>} */
   this.tabsShown = {};
 
   this.scope_.$watch('activeTab', this.onDirectiveArgumentsChange_.bind(this));

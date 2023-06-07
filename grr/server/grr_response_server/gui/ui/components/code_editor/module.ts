@@ -1,11 +1,12 @@
 import {NgModule} from '@angular/core';
-import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
+
 import {CodeEditor} from './code_editor';
 
 /** Module for the CodeEditor component. */
 @NgModule({
   imports: [
-    MatFormFieldModule,
+    MatLegacyFormFieldModule,
   ],
   declarations: [
     CodeEditor,

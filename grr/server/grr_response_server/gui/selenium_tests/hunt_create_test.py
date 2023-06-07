@@ -29,7 +29,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
   def testNewHuntWizard(self):
     # Open up and click on View Hunts.
-    self.Open("/")
+    self.Open("/legacy")
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.WaitUntil(self.IsElementPresent, "css=a[grrtarget=hunts]")
     self.Click("css=a[grrtarget=hunts]")
@@ -308,7 +308,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
   def testWizardStepCounterIsShownCorrectly(self):
     # Open up and click on View Hunts.
-    self.Open("/#/hunts")
+    self.Open("/legacy#/hunts")
 
     # Open up "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")
@@ -333,7 +333,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     """Literals are raw bytes. Testing that raw bytes are processed right."""
 
     # Open up and click on View Hunts.
-    self.Open("/")
+    self.Open("/legacy")
     self.Click("css=a[grrtarget=hunts]")
 
     # Open up "New Hunt" wizard
@@ -399,7 +399,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
                      b"foo\x0d\xc8bar")
 
   def testOutputPluginsListEmptyWhenNoDefaultOutputPluginSet(self):
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
 
     # Select "List Processes" flow.
@@ -421,7 +421,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   def testDefaultOutputPluginIsCorrectlyAddedToThePluginsList(self):
     with test_lib.ConfigOverrider(
         {"AdminUI.new_hunt_wizard.default_output_plugin": "DummyOutputPlugin"}):
-      self.Open("/#main=ManageHunts")
+      self.Open("/legacy#main=ManageHunts")
       self.Click("css=button[name=NewHunt]")
 
       # Select "List Processes" flow.
@@ -449,7 +449,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.AddClientLabel(client_id, u"owner1", u"foo")
     self.AddClientLabel(client_id, u"owner2", u"bar")
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
 
     # Select "List Processes" flow.
@@ -491,7 +491,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
     self.AddClientLabel(client_ids[1], u"owner2", u"bar")
     self.AddClientLabel(client_ids[7], u"GRR", u"bar")
 
-    self.Open("/#main=ManageHunts")
+    self.Open("/legacy#main=ManageHunts")
     self.Click("css=button[name=NewHunt]")
 
     # Select "List Processes" flow.
@@ -571,7 +571,7 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
   def testPathAutocomplete(self):
     # Open Hunts
-    self.Open("/#/hunts")
+    self.Open("/legacy#/hunts")
 
     # Open "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")

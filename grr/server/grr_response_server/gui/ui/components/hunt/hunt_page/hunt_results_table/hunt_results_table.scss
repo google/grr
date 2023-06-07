@@ -1,0 +1,23 @@
+.view-details-button {
+  padding: 0 12px;
+}
+
+.load-more-container {
+  padding: 0 20px;
+
+  .subtitle {
+    margin: 0 20px;
+    font-size: 14px;
+  }
+}
+
+.no-data {
+  display: flex;
+  justify-content: center;
+  margin: 30px 0;
+}
+
+.loading-results {
+  display: inline-flex;
+  align-items: center;
+}

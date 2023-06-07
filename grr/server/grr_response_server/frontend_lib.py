@@ -3,13 +3,14 @@
 import logging
 import time
 
-from typing import Iterable
+from typing import Sequence
 
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
@@ -17,11 +18,13 @@ from grr_response_server import communicator
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import message_handlers
+from grr_response_server import sinks
 from grr_response_server import worker_lib
 from grr_response_server.databases import db
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_proto import rrg_pb2
 
 
 CLIENT_PINGS_BY_LABEL = metrics.Counter(
@@ -45,6 +48,15 @@ GRR_FRONTENDSERVER_HANDLE_TIME = metrics.Event("grr_frontendserver_handle_time")
 GRR_FRONTENDSERVER_HANDLE_NUM = metrics.Counter("grr_frontendserver_handle_num")
 GRR_MESSAGES_SENT = metrics.Counter("grr_messages_sent")
 GRR_UNIQUE_CLIENTS = metrics.Counter("grr_unique_clients")
+
+RRG_PARCEL_COUNT = metrics.Counter(
+    name="rrg_parcel_count",
+    fields=[("sink", str)],
+)
+RRG_PARCEL_ACCEPT_ERRORS = metrics.Counter(
+    name="rrg_parcel_accept_errors",
+    fields=[("sink", str)],
+)
 
 FRONTEND_USERNAME = "GRRFrontEnd"
 
@@ -319,8 +331,11 @@ class FrontEndServer(object):
   # logic depends on blobs being in the blob store to do file hashing.
   _SHORTCUT_HANDLERS = frozenset([transfer.BlobHandler.handler_name])
 
-  def ReceiveMessages(self, client_id: str,
-                      messages: Iterable[rdf_flows.GrrMessage]):
+  def ReceiveMessages(
+      self,
+      client_id: str,
+      messages: Sequence[rdf_flows.GrrMessage],
+  ) -> None:
     """Receives and processes the messages.
 
     For each message we update the request object, and place the
@@ -411,3 +426,66 @@ class FrontEndServer(object):
     logging.debug("Received %s messages from %s in %s sec", len(messages),
                   client_id,
                   time.time() - now)
+
+  def ReceiveRRGResponse(
+      self,
+      client_id: str,
+      response: rrg_pb2.Response,
+  ) -> None:
+    """Receives a processes a response from the RRG agent.
+
+    Args:
+      client_id: An identifier of the client for which we process the response.
+      response: A response to process.
+    """
+    flow_response: rdf_flow_objects.FlowMessage
+
+    if response.HasField("status"):
+      flow_response = rdf_flow_objects.FlowStatus()
+      flow_response.network_bytes_sent = response.status.network_bytes_sent
+      # TODO: Populate `cpu_time_used` and `runtime_us`
+
+      if response.status.HasField("error"):
+        # TODO: Convert RRG error types to GRR error types.
+        flow_response.status = rdf_flow_objects.FlowStatus.Status.ERROR
+        flow_response.error_message = response.status.error.message
+      else:
+        flow_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    elif response.HasField("result"):
+      packed_result = rdf_structs.AnyValue.FromProto2(response.result)
+
+      flow_response = rdf_flow_objects.FlowResponse()
+      flow_response.any_payload = packed_result
+    elif response.HasField("log"):
+      # TODO: Add support for logs.
+      logging.warning("Dropping a log from '%s': %s", client_id, response)
+      return
+    else:
+      raise ValueError(f"Unexpected response: {response}")
+
+    flow_response.client_id = client_id
+    flow_response.flow_id = f"{response.flow_id:016X}"
+    flow_response.request_id = response.request_id
+    flow_response.response_id = response.response_id
+    data_store.REL_DB.WriteFlowResponses([flow_response])
+
+  def ReceiveRRGParcel(
+      self,
+      client_id: str,
+      parcel: rrg_pb2.Parcel,
+  ) -> None:
+    """Receives a processes a parcel from the RRG agent.
+
+    Args:
+      client_id: An identifier of the client for which we process the response.
+      parcel: A parcel to process.
+    """
+    sink_name = rrg_pb2.Sink.Name(parcel.sink)
+
+    RRG_PARCEL_COUNT.Increment(fields=[sink_name])
+    try:
+      sinks.Accept(client_id, parcel)
+    except Exception:  # pylint: disable=broad-exception-caught
+      RRG_PARCEL_ACCEPT_ERRORS.Increment(fields=[sink_name])
+      logging.exception("Failed to process parcel for '%s'", client_id)

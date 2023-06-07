@@ -6,6 +6,7 @@ from absl import app
 
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_server import hunt
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import gui_test_lib
@@ -86,34 +87,23 @@ class HuntPageTest(
         self.IsElementPresent, "css=approval-card:contains('Access approval')"
     )
 
-    # The hunt has not started yet.
+    # The hunt has not started yet. No progress or results are shown.
+    self.WaitUntilNot(self.IsElementPresent, "css=app-hunt-progress")
+    self.WaitUntilNot(self.IsElementPresent, "css=app-hunt-results")
+
+    # The hunt has not started yet. Arguments are visible.
     self.WaitUntil(
         self.IsElementPresent,
-        (
-            "css=app-hunt-progress .summary:nth-child(1):contains('Complete0 %0"
-            " clients')"
-        ),
+        "css=hunt-flow-arguments:contains('GetFile')",
     )
     self.WaitUntil(
         self.IsElementPresent,
-        "css=result-accordion:contains('Fleet collection')",
-    )
-    self.Click("css=result-accordion:contains('Fleet collection')")
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=app-hunt-progress hunt-flow-arguments:contains('GetFile')",
-    )
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=app-hunt-progress hunt-arguments:contains('60 clients/min')",
+        "css=hunt-arguments:contains('60 clients/min')",
     )
 
-    # There are no results yet.
-    self.WaitUntil(
-        self.IsElementPresent, "css=app-hunt-results:contains('Nothing')"
-    )
-
+    # Start hunt and add results and errors.
     client_ids = self.SetupClients(2)
+    hunt.StartHunt(hunt_id)
     self.RunHuntWithClientCrashes([client_ids[0]])
     error_msg = "Client Error"
     self.AddErrorToHunt(
@@ -169,7 +159,7 @@ class HuntPageTest(
         self.IsElementPresent,
         f"css=app-hunt-results mat-row:contains('{client_ids[0]}')",
     )
-    self.Click("css=app-hunt-results mat-row a:contains('View details')")
+    self.Click("css=app-hunt-results mat-row button:contains('View details')")
     self.WaitUntil(
         self.IsElementPresent,
         f"css=hunt-result-details h3:contains('Client: {client_ids[0]}')",
@@ -189,14 +179,14 @@ class HuntPageTest(
 
     self.WaitUntil(
         self.IsElementPresent,
-        "css=app-hunt-results .mat-tab-label:contains('Files')",
+        "css=app-hunt-results .mat-tab-label:contains('File Finder')",
     )
-    self.Click("css=app-hunt-results .mat-tab-label:contains('Files')")
+    self.Click("css=app-hunt-results .mat-tab-label:contains('File Finder')")
     self.WaitUntil(
         self.IsElementPresent,
         f"css=app-hunt-results mat-row:contains('{client_ids[1]}')",
     )
-    self.Click("css=app-hunt-results mat-row a:contains('View details')")
+    self.Click("css=app-hunt-results mat-row button:contains('View details')")
 
     self.WaitUntil(
         self.IsElementPresent,
@@ -343,6 +333,7 @@ class HuntPageTest(
             )
         ],
         client_rate=60,
+        client_limit=0,
         creator=self.test_username,
     )
 
@@ -357,7 +348,7 @@ class HuntPageTest(
     self.assertLen(hunts, 1)
     self.assertEqual(hunts[0].state, api_hunt.ApiHunt.State.PAUSED)
     self.assertEqual(hunts[0].hunt_runner_args.client_rate, 60)
-    self.assertEqual(hunts[0].hunt_runner_args.client_limit, 100)
+    self.assertEqual(hunts[0].hunt_runner_args.client_limit, 0)
 
     self.RequestAndGrantHuntApproval(hunt_id, requestor=self.test_username)
     self.WaitUntil(
@@ -385,7 +376,58 @@ class HuntPageTest(
     self.assertLen(hunts, 1)
     self.assertEqual(hunts[0].state, api_hunt.ApiHunt.State.STARTED)
     self.assertEqual(hunts[0].hunt_runner_args.client_rate, 0)
-    self.assertEqual(hunts[0].hunt_runner_args.client_limit, 1000)
+    self.assertEqual(hunts[0].hunt_runner_args.client_limit, 100)
+
+  def testBackButtonNavigatesToOldUi(self):
+    hunt_description = "Dummy hunt"
+    hunt_flow_args = transfer.GetFileArgs(
+        pathspec=rdf_paths.PathSpec(
+            path="/tmp/evil.txt",
+            pathtype=rdf_paths.PathSpec.PathType.NTFS,
+        )
+    )
+    hunt_id = self.CreateHunt(
+        description=hunt_description,
+        flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
+            flow_name=transfer.GetFile.__name__
+        ),
+        flow_args=hunt_flow_args,
+        client_rule_set=self._CreateForemanClientRuleSet(),
+        output_plugins=[
+            rdf_output_plugin.OutputPluginDescriptor(
+                plugin_name="DummyOutputPlugin",
+                args=gui_test_lib.DummyOutputPlugin.args_type(
+                    filename_regex="blah!", fetch_binaries=True
+                ),
+            )
+        ],
+        client_rate=60,
+        client_limit=0,
+        creator=self.test_username,
+    )
+
+    self.Open(f"/v2/hunts/{hunt_id}")
+    self.WaitUntilEqual(f"/v2/hunts/{hunt_id}", self.GetCurrentUrlPath)
+
+    self.WaitUntil(self.IsElementPresent, "css=a#fallback-link")
+    self.Click("css=a#fallback-link")
+
+    self.WaitUntilEqual(f"/legacy#/hunts/{hunt_id}", self.GetCurrentUrlPath)
+
+
+class HuntOverviewPageTest(
+    hunt_test_lib.StandardHuntTestMixin, gui_test_lib.GRRSeleniumTest
+):
+  """Tests the hunt overview page."""
+
+  def testBackButtonNavigatesToOldUi(self):
+    self.Open("/v2/hunts")
+    self.WaitUntilEqual("/v2/hunts", self.GetCurrentUrlPath)
+
+    self.WaitUntil(self.IsElementPresent, "css=a#fallback-link")
+    self.Click("css=a#fallback-link")
+
+    self.WaitUntilEqual("/legacy#/hunts", self.GetCurrentUrlPath)
 
 
 if __name__ == "__main__":

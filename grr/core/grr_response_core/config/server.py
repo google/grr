@@ -79,17 +79,12 @@ config_lib.DEFINE_bool("Cron.active", False,
                        "Set to true to run a cron thread on this binary.")
 
 config_lib.DEFINE_list(
-    "Cron.disabled_system_jobs", [],
-    "Normally, all subclasses of SystemCronFlow are "
-    "considered system jobs and run automatically. System "
-    "jobs listed here will not be run. Many system jobs are "
+    "Cron.disabled_cron_jobs",
+    [],
+    "Cron jobs listed here will not be run. Many system jobs are "
     "important. Leave empty unless you are sure that you "
-    "know what you are doing.")
-
-config_lib.DEFINE_list(
-    "Cron.disabled_cron_jobs", [],
-    "This is the equivalent setting to disabled_system_jobs "
-    "when using the relational database.")
+    "know what you are doing.",
+)
 
 config_lib.DEFINE_integer(
     "Cron.interrogate_crash_limit", 500,
@@ -339,3 +334,12 @@ config_lib.DEFINE_semantic_enum(
 config_lib.DEFINE_boolean(
     "Server.grr_binaries_readonly", False,
     "When set to True, uploaded GRR binaries can't be deleted or overwritten.")
+
+config_lib.DEFINE_boolean(
+    "Server.internal_artifactcollector_use_legacy_filefinder",
+    False,
+    "Force ArtifactCollectorFlow to use the legacy FileFinder flow. "
+    "Unless this is set to True, the more efficient ClientFileFinder flow "
+    "will be used instead. "
+    "NB: internal option, subject to change without notice.",
+)

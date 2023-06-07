@@ -579,6 +579,7 @@ class Uname(rdf_structs.RDFProtoStruct):
 
 
 class StartupInfo(rdf_structs.RDFProtoStruct):
+  """Information about the startup of a GRR agent."""
   protobuf = jobs_pb2.StartupInfo
   rdf_deps = [
       ClientInformation,

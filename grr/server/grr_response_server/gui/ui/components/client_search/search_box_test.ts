@@ -2,7 +2,7 @@ import {OverlayContainer} from '@angular/cdk/overlay';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {discardPeriodicTasks, fakeAsync, inject, TestBed, tick} from '@angular/core/testing';
 import {ReactiveFormsModule} from '@angular/forms';
-import {MatInputHarness} from '@angular/material/input/testing';
+import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -85,7 +85,7 @@ describe('SearchBox Component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const inputHarness = await harnessLoader.getHarness(
-        MatInputHarness.with({selector: 'input'}));
+        MatLegacyInputHarness.with({selector: 'input'}));
     await inputHarness.setValue('foo');
 
     const form = fixture.debugElement.query(By.css('form')).nativeElement;
@@ -119,7 +119,7 @@ describe('SearchBox Component', () => {
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const input = await harnessLoader.getHarness(
-           MatInputHarness.with({selector: 'input'}));
+           MatLegacyInputHarness.with({selector: 'input'}));
        await input.setValue('foo');
        await input.blur();
 
