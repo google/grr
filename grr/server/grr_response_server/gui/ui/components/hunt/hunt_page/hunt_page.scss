@@ -15,6 +15,10 @@
     display: flex;
     margin-left: -36px;
 
+    .title {
+      margin-top: 8px;
+    }
+
     .computer-icon {
       margin-right: 10px;
     }
@@ -41,21 +45,6 @@
     margin-bottom: c.$card-margin;
   }
 
-  .flow-params-button {
-    color: mat.get-color-from-palette(mat.$blue-palette, 600);
-    margin: 5px 0;
-    padding-left: 0;
-    background-color: unset;
-
-    &:hover {
-      background-color: mat.get-color-from-palette(
-        mat.$grey-palette,
-        400,
-        0.15
-      );
-    }
-  }
-
   .actions {
     display: flex;
     column-gap: c.$container-padding;
@@ -68,4 +57,9 @@
 
 .mb-1 {
   margin-bottom: 1em;
+}
+
+hunt-flow-arguments {
+  margin-bottom: 20px;
+  display: block;
 }

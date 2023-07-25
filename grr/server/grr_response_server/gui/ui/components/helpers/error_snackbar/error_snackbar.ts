@@ -1,6 +1,6 @@
 import {Clipboard} from '@angular/cdk/clipboard';
 import {Component, Inject, InjectionToken} from '@angular/core';
-import {MAT_LEGACY_SNACK_BAR_DATA} from '@angular/material/legacy-snack-bar';
+import {MAT_SNACK_BAR_DATA} from '@angular/material/snack-bar';
 
 /** InjectionToken to allow mocking the browser window in tests. */
 export const WINDOW = new InjectionToken<Window>('Window');
@@ -16,7 +16,7 @@ export class ErrorSnackBar {
 
   constructor(
       private readonly clipboard: Clipboard,
-      @Inject(MAT_LEGACY_SNACK_BAR_DATA) readonly error: string,
+      @Inject(MAT_SNACK_BAR_DATA) readonly error: string,
       @Inject(WINDOW) private readonly window: Window,
   ) {}
 

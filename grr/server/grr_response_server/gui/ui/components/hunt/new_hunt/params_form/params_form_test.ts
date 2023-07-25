@@ -80,9 +80,9 @@ describe('params form test', () => {
       avgResultsPerClientLimit: BigInt(1000),
       avgCpuSecondsPerClientLimit: BigInt(60),
       avgNetworkBytesPerClientLimit: BigInt(10485760),
-      cpuLimit: BigInt(0),
+      perClientCpuLimit: BigInt(0),
+      perClientNetworkBytesLimit: BigInt(0),
       expiryTime: BigInt(1209600),
-      networkBytesLimit: BigInt(0),
     });
     fixture.detectChanges();
     const component = fixture.componentInstance;
@@ -117,8 +117,8 @@ describe('params form test', () => {
        await setInputValue(fixture, '[name=aveResults]', '34');
        await setInputValue(fixture, '[name=aveCPU]', '56');
        await setInputValue(fixture, '[name=aveNetwork]', '78');
-       await setInputValue(fixture, '[name=cpuLimit]', '90');
-       await setInputValue(fixture, '[name=networkLimit]', '13');
+       await setInputValue(fixture, '[name=perClientCpuLimit]', '90');
+       await setInputValue(fixture, '[name=perClientNetworkBytesLimit]', '13');
 
        expect(fixture.componentInstance.buildSafetyLimits()).toEqual({
          clientRate: 0,
@@ -128,8 +128,8 @@ describe('params form test', () => {
          avgResultsPerClientLimit: BigInt(34),
          avgCpuSecondsPerClientLimit: BigInt(56),
          avgNetworkBytesPerClientLimit: BigInt(78),
-         cpuLimit: BigInt(90),
-         networkBytesLimit: BigInt(13),
+         perClientCpuLimit: BigInt(90),
+         perClientNetworkBytesLimit: BigInt(13),
        });
      });
 
@@ -145,8 +145,8 @@ describe('params form test', () => {
       avgResultsPerClientLimit: BigInt(34),
       avgCpuSecondsPerClientLimit: BigInt(56),
       avgNetworkBytesPerClientLimit: BigInt(78),
-      cpuLimit: BigInt(90),
-      networkBytesLimit: BigInt(13),
+      perClientCpuLimit: BigInt(90),
+      perClientNetworkBytesLimit: BigInt(13),
     });
 
     expect(await isButtonToggleSelected(
@@ -167,7 +167,9 @@ describe('params form test', () => {
     expect(await getInputValue(fixture, '[name=aveResults]')).toBe('34');
     expect(await getInputValue(fixture, '[name=aveCPU]')).toBe('56 s');
     expect(await getInputValue(fixture, '[name=aveNetwork]')).toBe('78 B');
-    expect(await getInputValue(fixture, '[name=cpuLimit]')).toBe('90 s');
-    expect(await getInputValue(fixture, '[name=networkLimit]')).toBe('13 B');
+    expect(await getInputValue(fixture, '[name=perClientCpuLimit]'))
+        .toBe('90 s');
+    expect(await getInputValue(fixture, '[name=perClientNetworkBytesLimit]'))
+        .toBe('13 B');
   });
 });

@@ -23,7 +23,10 @@
     </mat-form-field>
   </div>
   <div class="help">
-    <a [drawerLink]="['help']" type="button"><mat-icon>add</mat-icon><span>New fleet collection</span></a>
+    <a mat-button [drawerLink]="['help']" type="button" color="primary">
+      <mat-icon>add</mat-icon>
+      <span>New fleet collection</span>
+    </a>
   </div>
 </div>
 
@@ -51,9 +54,9 @@
             <app-timestamp [date]="hunt.created"></app-timestamp>
           </div>
           <div>{{ hunt.completedClientsCount }} of {{ hunt.allClientsCount }}</div>
-          <mat-chip-list [selectable]="false" [tabIndex]="-1">
+          <mat-chip-set [tabIndex]="-1" role="list">
             <app-hunt-status-chip [hunt]="hunt"></app-hunt-status-chip>
-          </mat-chip-list>
+          </mat-chip-set>
         </div>
         <div class="bottom-row">
           <div class="left">

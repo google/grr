@@ -295,7 +295,13 @@ class ApiRegressionGoldenOutputGenerator(object):
           except Exception as e:  # pylint: disable=broad-except
             logging.exception(e)
 
-    json_sample_data = json.dumps(sample_data, sort_keys=True)
+    json_sample_data = json.dumps(
+        sample_data,
+        indent=2,
+        ensure_ascii=False,
+        separators=(",", ": "),
+        sort_keys=True,
+    )
     sys.stdout.buffer.write(json_sample_data.encode("utf-8"))
 
 

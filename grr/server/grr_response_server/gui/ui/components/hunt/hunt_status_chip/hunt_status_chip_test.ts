@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, Input} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {MatLegacyTooltipHarness} from '@angular/material/legacy-tooltip/testing';
+import {MatTooltipHarness} from '@angular/material/tooltip/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {Duration} from '../../../lib/date_time';
@@ -56,7 +56,7 @@ describe('HuntStatusChip', () => {
        expect(text).toContain('Collection not started');
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-       const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
+       const harness = await harnessLoader.getHarness(MatTooltipHarness);
        await harness.show();
        expect(await harness.getTooltipText()).toContain('approval');
      });
@@ -72,7 +72,7 @@ describe('HuntStatusChip', () => {
     expect(text).toContain('Collection not started');
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
+    const harness = await harnessLoader.getHarness(MatTooltipHarness);
     await harness.show();
     expect(await harness.getTooltipText()).not.toContain('approval');
   });
@@ -100,7 +100,7 @@ describe('HuntStatusChip', () => {
     expect(text).toContain('Collection cancelled');
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
+    const harness = await harnessLoader.getHarness(MatTooltipHarness);
     await harness.show();
     expect(await harness.getTooltipText()).toEqual('Cancelled by user');
   });
@@ -117,7 +117,7 @@ describe('HuntStatusChip', () => {
     expect(text).toContain('Collection cancelled');
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
+    const harness = await harnessLoader.getHarness(MatTooltipHarness);
     await harness.show();
     expect(await harness.getTooltipText()).toEqual('Cancelled by user');
   });
@@ -134,7 +134,7 @@ describe('HuntStatusChip', () => {
     expect(text).toContain('Collection cancelled');
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
+    const harness = await harnessLoader.getHarness(MatTooltipHarness);
     await harness.show();
     expect(await harness.getTooltipText()).toEqual('Something went wrong');
   });

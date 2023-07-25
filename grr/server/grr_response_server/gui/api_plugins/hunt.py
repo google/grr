@@ -191,6 +191,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       self.name = "VariableGenericHunt"
       self.hunt_type = self.HuntType.VARIABLE
     self.state = str(hunt_obj.hunt_state)
+    self.state_reason = str(hunt_obj.hunt_state_reason)
     self.state_comment = str(hunt_obj.hunt_state_comment)
     self.crash_limit = hunt_obj.crash_limit
     self.client_limit = hunt_obj.client_limit
@@ -262,7 +263,7 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       if hunt_obj.HasField("per_client_cpu_limit"):
         hra.per_client_cpu_limit = hunt_obj.per_client_cpu_limit
 
-      if hunt_obj.HasField("per_client_network_limit_bytes"):
+      if hunt_obj.HasField("per_client_network_bytes_limit"):
         hra.per_client_network_limit_bytes = (
             hunt_obj.per_client_network_bytes_limit)
 
@@ -1430,6 +1431,10 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
         creator=context.username,
     )
 
+    # Avoid messing with default values by checking presence first:
+    if hra.HasField("network_bytes_limit"):
+      hunt_obj.total_network_bytes_limit = hra.network_bytes_limit
+
     if args.original_hunt and args.original_flow:
       raise ValueError(
           "A hunt can't be a copy of a flow and a hunt at the same time.")
@@ -1499,32 +1504,41 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
         data_store.REL_DB.UpdateHuntObject(hunt_id, **kw_args)
         hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
     except db.UnknownHuntError:
-      raise HuntNotFoundError("Hunt with id %s could not be found" %
-                              args.hunt_id)
+      raise HuntNotFoundError(
+          "Hunt with id %s could not be found" % args.hunt_id
+      ) from None
 
     if args.HasField("state"):
       if args.state == ApiHunt.State.STARTED:
         if hunt_obj.hunt_state != hunt_obj.HuntState.PAUSED:
           raise HuntNotStartableError(
-              "Hunt can only be started from PAUSED state.")
+              "Hunt can only be started from PAUSED state."
+          )
         hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
 
       elif args.state == ApiHunt.State.STOPPED:
         if hunt_obj.hunt_state not in [
-            hunt_obj.HuntState.PAUSED, hunt_obj.HuntState.STARTED
+            hunt_obj.HuntState.PAUSED,
+            hunt_obj.HuntState.STARTED,
         ]:
           raise HuntNotStoppableError(
-              "Hunt can only be stopped from STARTED or "
-              "PAUSED states.")
-        hunt_obj = hunt.StopHunt(hunt_obj.hunt_id, reason=CANCELLED_BY_USER)
+              "Hunt can only be stopped from STARTED or PAUSED states."
+          )
+        hunt_obj = hunt.StopHunt(
+            hunt_obj.hunt_id,
+            hunt_state_reason=rdf_hunt_objects.Hunt.HuntStateReason.TRIGGERED_BY_USER,
+            reason_comment=CANCELLED_BY_USER,
+        )
 
       else:
         raise InvalidHuntStateError(
-            "Hunt's state can only be updated to STARTED or STOPPED")
+            "Hunt's state can only be updated to STARTED or STOPPED"
+        )
 
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_obj.hunt_id)
     return ApiHunt().InitFromHuntObject(
-        hunt_obj, hunt_counters=hunt_counters, with_full_summary=True)
+        hunt_obj, hunt_counters=hunt_counters, with_full_summary=True
+    )
 
 
 class ApiDeleteHuntArgs(rdf_structs.RDFProtoStruct):

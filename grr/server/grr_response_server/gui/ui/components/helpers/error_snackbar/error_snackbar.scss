@@ -7,4 +7,9 @@
     overflow: hidden;
     text-overflow: ellipsis;
   }
+
+  [mat-button],
+  [mat-icon-button] {
+    color: inherit;
+  }
 }

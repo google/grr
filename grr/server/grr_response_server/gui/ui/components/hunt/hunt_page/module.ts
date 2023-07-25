@@ -1,9 +1,9 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
+import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 import {ApprovalCardModule} from '../../approval_card/module';
 import {HelpersModule} from '../../flow_details/helpers/module';
@@ -21,28 +21,36 @@ import {HuntPage} from './hunt_page';
 import {HuntProgressModule} from './hunt_progress/module';
 import {HuntResultDetailsModule} from './hunt_result_details/module';
 import {HuntResultsModule} from './hunt_results/module';
-import {HuntPageRoutingModule} from './routing';
 
 /**
  * Module for hunt view page.
  */
 @NgModule({
   imports: [
-    // TODO: Re-enable tslint after migration is complete.
-    // tslint:disable:deprecation
+    // TODO: re-enable clang format when solved.
+    // clang-format off
     // keep-sorted start block=yes
-    ApprovalCardModule,    CommonModule,
-    CopyButtonModule,      DrawerLinkModule,
-    HelpersModule,         HuntArguments,
-    HuntFlowArguments,     HuntPageRoutingModule,
-    HuntProgressModule,    HuntResultDetailsModule,
-    HuntResultsModule,     HuntStatusChipModule,
-    MatIconModule,         MatLegacyTooltipModule,
-    MatLegacyButtonModule, MatLegacyChipsModule,
-    ModifyHuntModule,      TitleEditorModule,
-    UserImageModule,       HumanReadableSizeModule,
+    ApprovalCardModule,
+    CommonModule,
+    CopyButtonModule,
+    DrawerLinkModule,
+    HelpersModule,
+    HumanReadableSizeModule,
+    HuntArguments,
+    HuntFlowArguments,
+    HuntProgressModule,
+    HuntResultDetailsModule,
+    HuntResultsModule,
+    HuntStatusChipModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatIconModule,
+    MatTooltipModule,
+    ModifyHuntModule,
+    TitleEditorModule,
+    UserImageModule,
     // keep-sorted end
-    // tslint:enable:deprecation
+    // clang-format on
   ],
   declarations: [HuntPage],
 })

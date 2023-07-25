@@ -11,6 +11,7 @@ from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class InMemoryDBHuntMixin(object):
@@ -102,10 +103,24 @@ class InMemoryDBHuntMixin(object):
 
   @utils.Synchronized
   def DeleteHuntObject(self, hunt_id):
+    """Deletes a hunt object with a given id."""
     try:
       del self.hunts[hunt_id]
     except KeyError:
       raise db.UnknownHuntError(hunt_id)
+
+    for approvals in self.approvals_by_username.values():
+      # We use `list` around dictionary items iterator to avoid errors about
+      # dictionary modification during iteration.
+      for approval_id, approval in list(approvals.items()):
+        if (
+            approval.approval_type
+            != rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
+        ):
+          continue
+        if approval.subject_id != hunt_id:
+          continue
+        del approvals[approval_id]
 
   @utils.Synchronized
   def ReadHuntObject(self, hunt_id):

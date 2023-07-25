@@ -5,7 +5,7 @@
   color: mat.get-color-from-palette(c.$foreground, text-light);
 }
 
-.mat-cell {
+.mat-mdc-cell {
   border-color: mat.get-color-from-palette(c.$foreground, divider-light);
   color: mat.get-color-from-palette(c.$foreground, text-light);
 }
@@ -17,20 +17,20 @@ table {
   width: 100%;
   padding: 0 24px;
 
-  th.mat-header-cell {
+  th.mat-mdc-header-cell {
     border-bottom: none;
     font-weight: 500;
     font-size: inherit;
     padding: 0.5em 0.5em 0.5em 0;
   }
 
-  td.mat-cell {
+  td.mat-mdc-cell {
     border-bottom: none;
     vertical-align: top;
     padding: 0.5em 0.5em 0.5em 0;
   }
 
-  tr:last-child td.mat-cell {
+  tr:last-child td.mat-mdc-cell {
     border-bottom: none;
   }
 

@@ -25,12 +25,10 @@ import {injectMockStore, STORE_PROVIDERS} from '../../../store/store_test_provid
 import {UserGlobalStore} from '../../../store/user_global_store';
 import {mockUserGlobalStore} from '../../../store/user_global_store_test_util';
 import {getActivatedChildRoute, initTestEnvironment} from '../../../testing';
-import {MODIFY_HUNT_ROUTES} from '../modify_hunt/routing';
-import {NEW_HUNT_ROUTES} from '../new_hunt/routing';
+import {HUNT_ROUTES} from '../../app/routing';
 
 import {HuntPage} from './hunt_page';
 import {HuntPageModule} from './module';
-import {HUNT_PAGE_ROUTES} from './routing';
 
 initTestEnvironment();
 
@@ -70,9 +68,7 @@ describe('hunt page test', () => {
           imports: [
             NoopAnimationsModule,
             HuntPageModule,
-            RouterTestingModule.withRoutes([
-              ...HUNT_PAGE_ROUTES, ...NEW_HUNT_ROUTES, ...MODIFY_HUNT_ROUTES
-            ]),
+            RouterTestingModule.withRoutes([...HUNT_ROUTES]),
           ],
           providers: [
             ...STORE_PROVIDERS,

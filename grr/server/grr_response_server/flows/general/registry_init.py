@@ -7,7 +7,6 @@ from grr_response_server.flows import file
 from grr_response_server.flows.general import administrative
 from grr_response_server.flows.general import apple_firmware
 from grr_response_server.flows.general import artifact_fallbacks
-from grr_response_server.flows.general import ca_enroller
 from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import discovery
 from grr_response_server.flows.general import export

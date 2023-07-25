@@ -1,10 +1,10 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, Input, ViewChild} from '@angular/core';
-import {ComponentFixture, fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {MatLegacyAutocompleteHarness} from '@angular/material/legacy-autocomplete/testing';
-import {MatLegacyButtonHarness} from '@angular/material/legacy-button/testing';
-import {MatLegacyCheckboxHarness} from '@angular/material/legacy-checkbox/testing';
-import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
+import {ComponentFixture, fakeAsync, flush, TestBed, tick} from '@angular/core/testing';
+import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
+import {MatButtonHarness} from '@angular/material/button/testing';
+import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
+import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {firstValueFrom, ReplaySubject, Subject} from 'rxjs';
@@ -50,15 +50,6 @@ const TEST_FLOW_DESCRIPTORS = deepFreeze({
     defaultArgs: {
       collectionLevel: CollectFilesByKnownPathArgsCollectionLevel.CONTENT,
       paths: [],
-    },
-  },
-  CollectSingleFile: {
-    name: FlowType.COLLECT_SINGLE_FILE,
-    friendlyName: 'Collect Single File',
-    category: 'Filesystem',
-    defaultArgs: {
-      path: '/foo',
-      maxSizeBytes: 1024,
     },
   },
   CollectMultipleFiles: {
@@ -252,7 +243,7 @@ describe('FlowArgsForm Component', () => {
     fixture.detectChanges();
 
     fixture.componentInstance.flowDescriptor =
-        TEST_FLOW_DESCRIPTORS.CollectSingleFile;
+        TEST_FLOW_DESCRIPTORS.ReadLowLevel;
     fixture.detectChanges();
 
     const byteInput = fixture.debugElement.query(By.css('input[byteInput]'));
@@ -319,29 +310,6 @@ for (const fd of Object.values(TEST_FLOW_DESCRIPTORS)) {
     });
   });
 }
-
-describe(`FlowArgForm CollectSingleFile`, () => {
-  beforeEach(setUp);
-
-  it('explains the byte input size', async () => {
-    const fixture = TestBed.createComponent(TestHostComponent);
-    fixture.detectChanges();
-
-    fixture.componentInstance.flowDescriptor =
-        TEST_FLOW_DESCRIPTORS.CollectSingleFile;
-    fixture.detectChanges();
-
-    // Verify that defaultFlowArgs are rendered properly as hint.
-    let text = fixture.debugElement.nativeElement.innerText;
-    expect(text).toContain('1,024 bytes');
-
-    await setInputValue(fixture, 'input[byteInput]', '2 kib');
-
-    text = fixture.debugElement.nativeElement.innerText;
-    expect(text).toContain('2 kibibytes ');
-    expect(text).toContain('2,048 bytes');
-  });
-});
 
 describe(`FlowArgForm CollectMultipleFiles`, () => {
   let clientPageGlobalStore: ClientPageGlobalStoreMock;
@@ -588,7 +556,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
        fixture.detectChanges();
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const autocompleteHarness =
-           await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+           await harnessLoader.getHarness(MatAutocompleteHarness);
        await autocompleteHarness.focus();
        const options = await autocompleteHarness.getOptions();
        expect(options.length).toEqual(3);
@@ -614,7 +582,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+        await harnessLoader.getHarness(MatAutocompleteHarness);
     await autocompleteHarness.enterText('aa');
     const options = await autocompleteHarness.getOptions();
     expect(options.length).toEqual(2);
@@ -647,7 +615,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+        await harnessLoader.getHarness(MatAutocompleteHarness);
     await autocompleteHarness.enterText('SaMpLe');
     const options = await autocompleteHarness.getOptions();
     expect(options.length).toEqual(1);
@@ -666,7 +634,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+        await harnessLoader.getHarness(MatAutocompleteHarness);
     await autocompleteHarness.selectOption({text: /bar/});
 
     const flowArgValues =
@@ -698,7 +666,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const autocompleteHarness =
-           await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+           await harnessLoader.getHarness(MatAutocompleteHarness);
        await autocompleteHarness.focus();
        const options = await autocompleteHarness.getOptions();
        // Unavailable artifacts should still be shown for discoverability.
@@ -745,7 +713,7 @@ describe(`FlowArgForm ArtifactCollectorFlowForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+        await harnessLoader.getHarness(MatAutocompleteHarness);
     await autocompleteHarness.selectOption({text: /foo/});
 
     const text = fixture.nativeElement.innerText;
@@ -772,11 +740,10 @@ describe(`FlowArgForm ListProcesses`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+        await harnessLoader.getHarness(MatAutocompleteHarness);
     await autocompleteHarness.selectOption({text: 'CLOSING'});
 
-    const checkboxHarness =
-        await harnessLoader.getHarness(MatLegacyCheckboxHarness);
+    const checkboxHarness = await harnessLoader.getHarness(MatCheckboxHarness);
     await checkboxHarness.check();
 
     const values = await firstValueFrom(
@@ -808,8 +775,8 @@ describe(`FlowArgForm ListProcesses`, () => {
 async function setInputValue(
     fixture: ComponentFixture<unknown>, query: string, value: string) {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const inputHarness = await harnessLoader.getHarness(
-      MatLegacyInputHarness.with({selector: query}));
+  const inputHarness =
+      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
   await inputHarness.setValue(value);
 }
 
@@ -871,7 +838,7 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
        fixture.detectChanges();
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const autocompleteHarness =
-           await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+           await harnessLoader.getHarness(MatAutocompleteHarness);
 
        await autocompleteHarness.focus();
 
@@ -904,7 +871,7 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+        await harnessLoader.getHarness(MatAutocompleteHarness);
 
     await autocompleteHarness.enterText('fo');
 
@@ -937,7 +904,7 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+        await harnessLoader.getHarness(MatAutocompleteHarness);
 
     await autocompleteHarness.selectOption({text: /foo/});
 
@@ -957,7 +924,7 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const buttonHarness = await harnessLoader.getHarness(
-        MatLegacyButtonHarness.with({text: 'Add argument'}));
+        MatButtonHarness.with({text: 'Add argument'}));
 
     expect((await getArgs()).pyArgs ?? {}).toEqual({});
 
@@ -965,7 +932,7 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
     await buttonHarness.click();
 
     const inputs = await harnessLoader.getAllHarnesses(
-        MatLegacyInputHarness.with({ancestor: '.key-value-group'}));
+        MatInputHarness.with({ancestor: '.key-value-group'}));
     await inputs[0].setValue('key1');
     await inputs[1].setValue('val1');
     await inputs[2].setValue('key2');
@@ -989,20 +956,20 @@ describe(`FlowArgForm ExecutePythonHackForm`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const buttonHarness = await harnessLoader.getHarness(
-        MatLegacyButtonHarness.with({text: 'Add argument'}));
+        MatButtonHarness.with({text: 'Add argument'}));
 
     await buttonHarness.click();
     await buttonHarness.click();
 
     const inputs = await harnessLoader.getAllHarnesses(
-        MatLegacyInputHarness.with({ancestor: '.key-value-group'}));
+        MatInputHarness.with({ancestor: '.key-value-group'}));
     await inputs[0].setValue('key1');
     await inputs[1].setValue('val1');
     await inputs[2].setValue('key2');
     await inputs[3].setValue('val2');
 
     const removeButton = await harnessLoader.getHarness(
-        MatLegacyButtonHarness.with({selector: '.remove-button'}));
+        MatButtonHarness.with({selector: '.remove-button'}));
     await removeButton.click();
 
     expect((await getArgs()).pyArgs).toEqual({
@@ -1069,7 +1036,7 @@ describe(`FlowArgForm LaunchBinary`, () => {
        fixture.detectChanges();
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const autocompleteHarness =
-           await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+           await harnessLoader.getHarness(MatAutocompleteHarness);
 
        await autocompleteHarness.focus();
 
@@ -1102,7 +1069,7 @@ describe(`FlowArgForm LaunchBinary`, () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const autocompleteHarness =
-        await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+        await harnessLoader.getHarness(MatAutocompleteHarness);
 
     await autocompleteHarness.enterText('fo');
 
@@ -1136,7 +1103,7 @@ describe(`FlowArgForm LaunchBinary`, () => {
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const autocompleteHarness =
-           await harnessLoader.getHarness(MatLegacyAutocompleteHarness);
+           await harnessLoader.getHarness(MatAutocompleteHarness);
 
        await autocompleteHarness.selectOption({text: /foo/});
 
@@ -1210,6 +1177,20 @@ describe(`FlowArgForm TimelineFlow`, () => {
                fixture.componentInstance.flowArgsForm.flowArgValues$) as
            TimelineArgs;
        expect(flowArgValues.root).toEqual('L2Zvby9iYXI=');
+
+       /* We need to flush due to getting the following error otherwise:
+
+       `Error: 1 timer(s) still in the queue`
+
+       This happens due to MatFormFieldFloatingLabel running the
+       following:
+
+       `setTimeout(() => this._parent._handleLabelResized());`
+
+       When TimelineForm component gets rendered, as we autofocus the Input
+       component through FlowArgumentForm Component.
+       */
+       flush();
      }));
 
   it('emits the empty string for empty root path', fakeAsync(async () => {

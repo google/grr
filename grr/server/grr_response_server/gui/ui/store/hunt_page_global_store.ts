@@ -29,14 +29,18 @@ function toHuntResultsTableTabConfig(
     resultCount: string,
     ): HuntResultsTableTabConfig {
   return {
-    tabName: PAYLOAD_TYPE_TRANSLATION[pt].tabName || pt,
+    tabName: PAYLOAD_TYPE_TRANSLATION[pt]?.tabName || pt,
     payloadType: pt,
     totalResultsCount: Number(resultCount),
   };
 }
 
-function generateResultTabConfigList(
-    hunt: Hunt,
+/**
+ * Function that generates the Hunt Result Tab configuration list, to be
+ * consumed by the HuntResults component.
+ */
+export function generateResultTabConfigList(
+    hunt: Pick<Hunt, 'failedClientsCount'|'crashedClientsCount'>,
     resultCountPerType: readonly ApiTypeCount[],
     ): HuntResultsTableTabConfig[] {
   const tabs: HuntResultsTableTabConfig[] = [];

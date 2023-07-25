@@ -1,7 +1,7 @@
 @use '@angular/material' as mat;
 @use '../../../../material-theme' as c;
 
-.mat-cell {
+.mat-mdc-cell {
   border-color: mat.get-color-from-palette(c.$foreground, divider-light);
   color: mat.get-color-from-palette(c.$foreground, text-light);
 }
@@ -41,10 +41,10 @@
   color: mat.get-color-from-palette(c.$foreground, danger-light);
 }
 
-.dark {
-  &.mat-stroked-button,
-  &button {
-    background-color: mat.get-color-from-palette(c.$primary);
-    color: white;
+.dropdown-button {
+  margin-left: 1px;
+
+  .mat-icon {
+    margin-left: 8px;
   }
 }

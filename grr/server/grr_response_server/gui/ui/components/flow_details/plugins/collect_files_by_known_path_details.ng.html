@@ -6,7 +6,7 @@
     {{ retriesLabel$ | async }}
   </div>
 
-  <mat-tab-group [selectedIndex]="0" *ngIf="anyResults$ | async; else noData">
+  <mat-tab-group [selectedIndex]="0" *ngIf="anyResults$ | async; else noData" [mat-stretch-tabs]="false">
 
     <mat-tab *ngIf="((successTotal$ | async) ?? 0 > 0)">
       <ng-template mat-tab-label *ngIf="successTotal$ | async as count">

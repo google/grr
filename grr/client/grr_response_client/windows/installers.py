@@ -23,17 +23,19 @@ import shutil
 import subprocess
 import sys
 import time
-from typing import Callable, Iterable
+from typing import Iterable
+import winreg
+
 from absl import flags
 import pywintypes
 import win32process
 import win32service
 import win32serviceutil
 import winerror
-import winreg
 
 from grr_response_client.windows import regconfig
 from grr_response_core import config
+from grr_response_core.lib.util import retry
 
 
 SERVICE_RESTART_DELAY_MSEC = 120 * 1000
@@ -198,9 +200,6 @@ def _StopPreviousService():
       service_name=config.CONFIG["Nanny.service_name"],
       service_binary_name=config.CONFIG["Nanny.service_binary_name"])
 
-  if not config.CONFIG["Client.fleetspeak_enabled"]:
-    return
-
   _StopService(service_name=config.CONFIG["Client.fleetspeak_service_name"])
 
 
@@ -222,37 +221,30 @@ def _DeleteGrrFleetspeakService():
       raise
 
 
-def _FileRetryLoop(path: str, f: Callable[[], None]) -> None:
-  """If `path` exists, calls `f` in a retry loop."""
-  if not os.path.exists(path):
-    return
-  attempts = 0
-  while True:
-    try:
-      f()
-      return
-    except OSError as e:
-      attempts += 1
-      if e.errno == errno.EACCES and attempts < 10:
-        # The currently installed GRR process may stick around for a few
-        # seconds after the service is terminated (keeping the contents of
-        # the installation directory locked).
-        logging.warning(
-            "Encountered permission-denied error while trying to process "
-            "'%s'. Retrying...",
-            path,
-            exc_info=True)
-        time.sleep(3)
-      else:
-        raise
-
-
+@retry.When(
+    OSError,
+    lambda error: error.errno == errno.EACCES,
+    opts=retry.Opts(
+        attempts=10,
+        init_delay=datetime.timedelta(seconds=3),
+    ),
+)
 def _RmTree(path: str) -> None:
-  _FileRetryLoop(path, lambda: shutil.rmtree(path))
+  if os.path.exists(path):
+    shutil.rmtree(path)
 
 
+@retry.When(
+    OSError,
+    lambda error: error.errno == errno.EACCES,
+    opts=retry.Opts(
+        attempts=10,
+        init_delay=datetime.timedelta(seconds=3),
+    ),
+)
 def _Rename(src: str, dst: str) -> None:
-  _FileRetryLoop(src, lambda: os.rename(src, dst))
+  if os.path.exists(src):
+    os.rename(src, dst)
 
 
 def _RmTreePseudoTransactional(path: str) -> None:
@@ -341,29 +333,6 @@ _NANNY_OPTIONS = frozenset([
 _LEGACY_OPTIONS = frozenset(
     itertools.chain(_NANNY_OPTIONS,
                     ["Nanny.status", "Nanny.heartbeat", "Client.labels"]))
-
-
-def _InstallNanny():
-  """Installs the nanny program."""
-  # We need to copy the nanny sections to the registry to ensure the
-  # service is correctly configured.
-  new_config = config.CONFIG.MakeNewConfig()
-  new_config.SetWriteBack(config.CONFIG["Config.writeback"])
-
-  for option in _NANNY_OPTIONS:
-    new_config.Set(option, config.CONFIG.Get(option))
-
-  new_config.Write()
-
-  args = [
-      config.CONFIG["Nanny.binary"], "--service_key",
-      config.CONFIG["Client.config_key"], "install"
-  ]
-
-  logging.debug("Calling %s", (args,))
-  output = subprocess.check_output(
-      args, shell=True, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
-  logging.debug("%s", output)
 
 
 def _DeleteLegacyConfigOptions(registry_key_uri):
@@ -484,11 +453,6 @@ def _Run():
   except:
     _StartServices(STOPPED_SERVICES)
     raise
-
-  if not config.CONFIG["Client.fleetspeak_enabled"]:
-    logging.info("Fleetspeak not enabled, installing nanny.")
-    _InstallNanny()
-    return
 
   # Remove the Nanny service for the legacy GRR since it will
   # not be needed any more.

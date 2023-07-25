@@ -2,19 +2,19 @@ import {CdkTreeModule} from '@angular/cdk/tree';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {MatButtonModule} from '@angular/material/button';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
+import {MatCheckboxModule} from '@angular/material/checkbox';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatDialogModule} from '@angular/material/dialog';
+import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyAutocompleteModule} from '@angular/material/legacy-autocomplete';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyCheckboxModule} from '@angular/material/legacy-checkbox';
-import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
-import {MatLegacyDialogModule} from '@angular/material/legacy-dialog';
-import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
-import {MatLegacyInputModule} from '@angular/material/legacy-input';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
-import {MatLegacyRadioModule} from '@angular/material/legacy-radio';
-import {MatLegacySelectModule} from '@angular/material/legacy-select';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatInputModule} from '@angular/material/input';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatRadioModule} from '@angular/material/radio';
+import {MatSelectModule} from '@angular/material/select';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {MatTreeModule} from '@angular/material/tree';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
@@ -23,7 +23,6 @@ import {ArtifactCollectorFlowForm} from '../../components/flow_args_form/artifac
 import {CollectBrowserHistoryForm} from '../../components/flow_args_form/collect_browser_history_form';
 import {CollectMultipleFilesForm} from '../../components/flow_args_form/collect_multiple_files_form';
 import {HelpersModule} from '../../components/flow_args_form/collect_multiple_files_form_helpers/module';
-import {CollectSingleFileForm} from '../../components/flow_args_form/collect_single_file_form';
 import {DumpProcessMemoryForm} from '../../components/flow_args_form/dump_process_memory_form';
 import {ByteComponentsModule} from '../../components/form/byte_input/module';
 import {DateTimeInputModule} from '../../components/form/date_time_input/module';
@@ -54,7 +53,6 @@ const FORMS = [
   CollectBrowserHistoryForm,
   CollectFilesByKnownPathForm,
   CollectMultipleFilesForm,
-  CollectSingleFileForm,
   DumpProcessMemoryForm,
   ExecutePythonHackForm,
   FallbackFlowArgsForm,
@@ -74,35 +72,40 @@ const FORMS = [
 /** Module for the FlowArgsForm component. */
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     BrowserAnimationsModule,
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    RouterModule,
-    CdkTreeModule,
-    MatLegacyAutocompleteModule,
-    MatLegacyButtonModule,
-    MatButtonToggleModule,
-    MatLegacyCheckboxModule,
-    MatLegacyChipsModule,
-    MatLegacyDialogModule,
-    MatLegacyFormFieldModule,
-    MatIconModule,
-    MatLegacyInputModule,
-    MatLegacyProgressSpinnerModule,
-    MatLegacyRadioModule,
-    MatLegacySelectModule,
-    MatTreeModule,
-    MatLegacyTooltipModule,
-    CodeEditorModule,
     ByteComponentsModule,
+    CdkTreeModule,
+    CodeEditorModule,
     CommaSeparatedInputModule,
+    CommonModule,
     DateTimeInputModule,
+    FormsModule,
     GlobExpressionExplanationModule,
     HelpersModule,
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatButtonToggleModule,
+    MatCheckboxModule,
+    MatChipsModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatProgressSpinnerModule,
+    MatRadioModule,
+    MatSelectModule,
+    MatTooltipModule,
+    MatTreeModule,
     OsqueryQueryHelperModule,
+    ReactiveFormsModule,
+    RouterModule,
     TimestampModule,
     ValidationModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: FORMS,
   exports: [

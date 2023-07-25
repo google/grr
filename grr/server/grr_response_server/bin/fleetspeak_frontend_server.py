@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This is the GRR frontend FS Server."""
 import logging
-
 from typing import Sequence
 
 import grpc
@@ -22,12 +21,27 @@ INCOMING_FLEETSPEAK_MESSAGES = metrics.Counter(
     "incoming_fleetspeak_messages", fields=[("status", str)]
 )
 
+FRONTEND_REQUEST_COUNT = metrics.Counter(
+    "frontend_request_count", fields=[("source", str)]
+)
+
+FRONTEND_REQUEST_LATENCY = metrics.Event(
+    "frontend_request_latency", fields=[("source", str)]
+)
+
 
 # TODO: remove after the issue is fixed.
 CLIENT_ID_SKIP_LIST = frozenset(
     [
     ]
 )
+
+
+MIN_DELAY_BETWEEN_METADATA_UPDATES = rdfvalue.Duration.From(
+    30, rdfvalue.SECONDS
+)
+
+WARN_IF_PROCESSING_LONGER_THAN = rdfvalue.Duration.From(30, rdfvalue.SECONDS)
 
 
 class GRRFSServer:
@@ -39,17 +53,22 @@ class GRRFSServer:
 
   def __init__(self):
     self.frontend = frontend_lib.FrontEndServer(
-        certificate=config.CONFIG["Frontend.certificate"],
-        private_key=config.CONFIG["PrivateKeys.server_key"],
         max_queue_size=config.CONFIG["Frontend.max_queue_size"],
         message_expiry_time=config.CONFIG["Frontend.message_expiry_time"],
         max_retransmission_time=config
         .CONFIG["Frontend.max_retransmission_time"])
 
-  @frontend_lib.FRONTEND_REQUEST_COUNT.Counted(fields=["fleetspeak"])
-  @frontend_lib.FRONTEND_REQUEST_LATENCY.Timed(fields=["fleetspeak"])
+  @FRONTEND_REQUEST_COUNT.Counted(fields=["fleetspeak"])
+  @FRONTEND_REQUEST_LATENCY.Timed(fields=["fleetspeak"])
   def Process(self, fs_msg: common_pb2.Message, context: grpc.ServicerContext):
     """Processes a single fleetspeak message."""
+    request_start_time = rdfvalue.RDFDatetime.Now()
+    logged_actions = []
+
+    def _LogDelayed(msg: str) -> None:
+      elapsed = rdfvalue.RDFDatetime.Now() - request_start_time
+      logged_actions.append((elapsed, msg))
+
     fs_client_id = fs_msg.source.client_id
     grr_client_id = fleetspeak_utils.FleetspeakIDToGRRID(fs_client_id)
 
@@ -65,34 +84,39 @@ class GRRFSServer:
     validation_info = dict(fs_msg.validation_info.tags)
 
     try:
-      if fs_msg.source.service_name == "RRG":
-        rrg_support = True
-      else:
-        # `None` leaves the bit as it is stored in the database and `False` sets
-        # it to false. Since the server can receive messages from both agents,
-        # we don't want to set the `rrg_support` bit to `False` each time the
-        # Python agent sends something.
-        rrg_support = None
-
-      client_is_new = self.frontend.EnrolFleetspeakClient(grr_client_id)
-      # TODO: We want to update metadata even if client is not new
-      # but is RRG-supported to set the `rrg_support` bit for older clients. In
-      # the future we should devise a smarter way of doing this but for now the
-      # amount of RRG-supported clients should be neglegible.
-      if not client_is_new or rrg_support:
-        data_store.REL_DB.WriteClientMetadata(
-            grr_client_id,
-            last_ping=rdfvalue.RDFDatetime.Now(),
-            fleetspeak_validation_info=validation_info,
-            rrg_support=rrg_support,
-        )
+      _LogDelayed("Enrolling Fleetspeak client")
+      existing_client_mdata = self.frontend.EnrollFleetspeakClientIfNeeded(
+          grr_client_id
+      )
+      _LogDelayed(f"Enrolled fleetspeak client: {existing_client_mdata}")
+      # Only update the client metadata if the client exists and the last
+      # update happened more than MIN_DELAY_BETWEEN_METADATA_UPDATES ago.
+      now = rdfvalue.RDFDatetime.Now()
+      if (
+          existing_client_mdata is not None
+          and existing_client_mdata.ping is not None
+      ):
+        time_since_last_ping = now - existing_client_mdata.ping
+        if time_since_last_ping > MIN_DELAY_BETWEEN_METADATA_UPDATES:
+          _LogDelayed(
+              "Writing client metadata for existing client "
+              f"(time_since_last_ping={time_since_last_ping}"
+          )
+          data_store.REL_DB.WriteClientMetadata(
+              grr_client_id,
+              last_ping=now,
+              fleetspeak_validation_info=validation_info,
+          )
+          _LogDelayed("Written client metadata for existing client")
 
       if fs_msg.message_type == "GrrMessage":
         INCOMING_FLEETSPEAK_MESSAGES.Increment(fields=["PROCESS_GRR"])
 
         grr_message = rdf_flows.GrrMessage.FromSerializedBytes(
             fs_msg.data.value)
+        _LogDelayed("Starting processing GRR message")
         self._ProcessGRRMessages(grr_client_id, [grr_message])
+        _LogDelayed("Finished processing GRR message")
       elif fs_msg.message_type == "MessageList":
         INCOMING_FLEETSPEAK_MESSAGES.Increment(
             fields=["PROCESS_GRR_MESSAGE_LIST"]
@@ -102,21 +126,27 @@ class GRRFSServer:
             fs_msg.data.value)
         message_list = communicator.Communicator.DecompressMessageList(
             packed_messages)
+        _LogDelayed("Starting processing GRR message list")
         self._ProcessGRRMessages(grr_client_id, message_list.job)
+        _LogDelayed("Finished processing GRR message list")
       elif fs_msg.message_type == "rrg.Response":
         INCOMING_FLEETSPEAK_MESSAGES.Increment(fields=["PROCESS_RRG_RESPONSE"])
 
         rrg_response = rrg_pb2.Response()
         rrg_response.ParseFromString(fs_msg.data.value)
 
+        _LogDelayed("Starting processing RRG response")
         self.frontend.ReceiveRRGResponse(grr_client_id, rrg_response)
+        _LogDelayed("Finished processing RRG response")
       elif fs_msg.message_type == "rrg.Parcel":
         INCOMING_FLEETSPEAK_MESSAGES.Increment(fields=["PROCESS_RRG_PARCEL"])
 
         rrg_parcel = rrg_pb2.Parcel()
         rrg_parcel.ParseFromString(fs_msg.data.value)
 
+        _LogDelayed("Starting processing RRG parcel")
         self.frontend.ReceiveRRGParcel(grr_client_id, rrg_parcel)
+        _LogDelayed("Finished processing RRG parcel")
       else:
         INCOMING_FLEETSPEAK_MESSAGES.Increment(fields=["INVALID"])
 
@@ -126,6 +156,18 @@ class GRRFSServer:
     except Exception:
       logging.exception("Exception processing message: %s", fs_msg)
       raise
+    finally:
+      total_elapsed = rdfvalue.RDFDatetime.Now() - request_start_time
+      if total_elapsed > WARN_IF_PROCESSING_LONGER_THAN:
+        logged_str = "\n".join(
+            "\t[{elapsed}]: {msg}".format(elapsed=elapsed, msg=msg)
+            for elapsed, msg in logged_actions
+        )
+        logging.warning(
+            "Handling Fleetspeak frontend RPC took %s:\n%s",
+            total_elapsed,
+            logged_str,
+        )
 
   def _ProcessGRRMessages(
       self,

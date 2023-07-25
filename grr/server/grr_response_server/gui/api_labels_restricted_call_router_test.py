@@ -263,8 +263,9 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest,
         self.assertTrue(status,
                         "%s must be permitted, but it's not" % method_name)
       else:
-        self.assertFalse(status,
-                         "%s mut not be permitted, but it is" % method_name)
+        self.assertFalse(
+            status, "%s must not be permitted, but it is" % method_name
+        )
 
   def testReturnsCustomHandlerForSearchClients(self):
     router = api_router.ApiLabelsRestrictedCallRouter()

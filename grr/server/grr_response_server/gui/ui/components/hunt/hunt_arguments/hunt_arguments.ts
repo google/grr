@@ -1,9 +1,9 @@
 import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
+import {MatCardModule} from '@angular/material/card';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyCardModule} from '@angular/material/legacy-card';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {RouterModule} from '@angular/router';
 
 import {ForemanClientRuleSetMatchMode, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../../lib/api/api_interfaces';
@@ -29,10 +29,10 @@ import {UserImageModule} from '../../user_image/module';
     CopyButtonModule,
     HumanReadableSizeModule,
     RouterModule,
-    MatLegacyCardModule,
+    MatCardModule,
     MatIconModule,
     MatProgressBarModule,
-    MatLegacyTooltipModule,
+    MatTooltipModule,
     InfiniteListModule,
     TimestampModule,
     UserImageModule,

@@ -76,7 +76,7 @@
         padding-right: 10px;
       }
 
-      .mat-progress-spinner::ng-deep circle {
+      .mat-mdc-progress-spinner::ng-deep circle {
         stroke: mat.get-color-from-palette(c.$foreground, success);
       }
 
@@ -93,10 +93,11 @@
     .menu-button {
       .menu-icon {
         opacity: 0.2;
-        font-size: 250%;
-        position: relative;
-        left: -5.5px;
       }
+    }
+
+    .dropdown-button mat-icon {
+      margin-left: 8px;
     }
   }
 

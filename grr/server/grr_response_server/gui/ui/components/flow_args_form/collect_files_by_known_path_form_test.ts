@@ -1,9 +1,9 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule} from '@angular/forms';
-import {MatLegacyButtonHarness} from '@angular/material/legacy-button/testing';
-import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
-import {MatLegacyRadioButtonHarness} from '@angular/material/legacy-radio/testing';
+import {MatButtonHarness} from '@angular/material/button/testing';
+import {MatInputHarness} from '@angular/material/input/testing';
+import {MatRadioButtonHarness} from '@angular/material/radio/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -53,7 +53,7 @@ describe('CollectFilesByKnownPathForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const inputHarness = await harnessLoader.getHarness(
-        MatLegacyInputHarness.with({selector: 'textarea[name=paths]'}));
+        MatInputHarness.with({selector: 'textarea[name=paths]'}));
     await inputHarness.setValue('/some/path');
 
     const error = fixture.debugElement.query(By.css('mat-error'));
@@ -72,7 +72,7 @@ describe('CollectFilesByKnownPathForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const inputHarness = await harnessLoader.getHarness(
-        MatLegacyInputHarness.with({selector: 'textarea[name=paths]'}));
+        MatInputHarness.with({selector: 'textarea[name=paths]'}));
     await inputHarness.setValue('/some/path');
 
     expect(latestValue).toEqual({
@@ -93,7 +93,7 @@ describe('CollectFilesByKnownPathForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const inputHarness = await harnessLoader.getHarness(
-        MatLegacyInputHarness.with({selector: 'textarea[name=paths]'}));
+        MatInputHarness.with({selector: 'textarea[name=paths]'}));
     await inputHarness.setValue('    /spaces  \n\t/tab\n\t\n\n/after/empty');
 
     expect(latestValue).toEqual({
@@ -108,12 +108,12 @@ describe('CollectFilesByKnownPathForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const expandButtonHarness = await harnessLoader.getHarness(
-        MatLegacyButtonHarness.with({selector: '.advanced-params-button'}),
+        MatButtonHarness.with({selector: '.advanced-params-button'}),
     );
     await expandButtonHarness.click();
 
     const radioButtons =
-        await harnessLoader.getAllHarnesses(MatLegacyRadioButtonHarness);
+        await harnessLoader.getAllHarnesses(MatRadioButtonHarness);
     expect(await radioButtons[0].isChecked()).toBeTrue();
   });
 
@@ -130,16 +130,16 @@ describe('CollectFilesByKnownPathForm', () => {
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const inputHarness = await harnessLoader.getHarness(
-           MatLegacyInputHarness.with({selector: 'textarea[name=paths]'}));
+           MatInputHarness.with({selector: 'textarea[name=paths]'}));
        await inputHarness.setValue('/some/path');
 
        const expandButtonHarness = await harnessLoader.getHarness(
-           MatLegacyButtonHarness.with({selector: '.advanced-params-button'}),
+           MatButtonHarness.with({selector: '.advanced-params-button'}),
        );
        await expandButtonHarness.click();
 
        const radioButtons =
-           await harnessLoader.getAllHarnesses(MatLegacyRadioButtonHarness);
+           await harnessLoader.getAllHarnesses(MatRadioButtonHarness);
        await radioButtons[2].check();
 
        expect(latestValue).toEqual({

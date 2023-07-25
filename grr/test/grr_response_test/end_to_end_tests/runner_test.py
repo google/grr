@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 import sys
 import unittest
@@ -144,7 +143,7 @@ class E2ETestRunnerTest(test_lib.GRRBaseTest):
   def testRetryDeadline(self):
     """Tests enforcing of connection-retry deadlines."""
     self.api_init_http.return_value = FakeApi(raise_conn_error=True)
-    e2e_runner = self._CreateE2ETestRunner()  # Default deadline of zero secs.
+    e2e_runner = self._CreateE2ETestRunner(api_retry_deadline_secs=0.0)
     with self.assertRaises(requests.ConnectionError):
       e2e_runner.Initialize()
 

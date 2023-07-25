@@ -17,7 +17,6 @@ $container-padding-minus-header: c.$container-padding - math.div(40 - 24, 2);
   border-radius: 8px;
   border: 1px solid mat.get-color-from-palette(c.$foreground, divider-light);
   background: white;
-  font-family: c.$google-sans-family;
   padding: $container-padding-minus-header c.$container-padding
     c.$container-padding;
   color: mat.get-color-from-palette(mat.$grey-palette, 800);
@@ -33,6 +32,7 @@ $container-padding-minus-header: c.$container-padding - math.div(40 - 24, 2);
 
 :host .content {
   display: block;
+  margin-top: 20px;
 }
 
 .latest-approval {
@@ -63,6 +63,7 @@ form {
     mat-checkbox {
       position: relative;
       left: 3px;
+      margin-bottom: 20px;
     }
   }
 
@@ -76,29 +77,19 @@ form {
 }
 
 .header {
+  position: relative;
   display: flex;
-  justify-content: space-between;
+  justify-content: start;
   align-items: center;
-}
+  column-gap: 20px;
+  margin: 10px 0;
 
-h1 {
-  margin-bottom: 0;
-
-  & > mat-icon {
-    display: inline;
-    font-size: inherit;
-    vertical-align: -2px;
-    margin-right: 0.5em;
-  }
-
-  app-approval-chip {
-    margin-left: 0.75em;
-    pointer-events: none;
+  h1 {
+    margin-bottom: 0;
   }
 
   .corner-button {
     position: absolute;
-    right: 20px;
-    top: 12px;
+    right: 0;
   }
 }

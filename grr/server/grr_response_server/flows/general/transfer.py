@@ -116,10 +116,7 @@ class GetFileThroughRRG(flow_base.FlowBase):
     stat_entry.st_mtime = result.metadata.modification_time.seconds
     stat_entry.st_btime = result.metadata.creation_time.seconds
 
-    path_info = rdf_objects.PathInfo.FromPathSpec(self.args.pathspec)
-    path_info.stat_entry = stat_entry
-
-    self.state.path_info = path_info
+    self.state.path_info = rdf_objects.PathInfo.FromStatEntry(stat_entry)
 
     args = rrg_get_file_contents_pb2.Args()
     args.path.CopyFrom(result.path)
@@ -152,15 +149,16 @@ class GetFileThroughRRG(flow_base.FlowBase):
 
       blob_refs.append(blob_ref)
 
-    client_path = db.ClientPath.FromPathSpec(self.client_id, self.args.pathspec)
+    path_info = self.state.path_info
+
+    client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
     hash_id = file_store.AddFileWithUnknownHash(client_path, blob_refs)
 
-    path_info = self.state.path_info
     path_info.hash_entry.sha256 = hash_id.AsBytes()
     path_info.hash_entry.num_bytes = sum(_.size for _ in blob_refs)
     data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
-    self.SendReply(self.state.path_info.stat_entry)
+    self.SendReply(path_info.stat_entry)
 
 
 class GetFile(flow_base.FlowBase):
@@ -502,7 +500,7 @@ class MultiGetFileLogic(object):
 
     # First stat the file, then hash the file if needed.
     self._ScheduleStatFile(index, pathspec)
-    if getattr(self.state, "stop_at_stat", False):
+    if self.state.stop_at_stat:
       return
 
     self._ScheduleHashFile(index, pathspec)
@@ -663,7 +661,7 @@ class MultiGetFileLogic(object):
     request_data = self.state.request_data_list[index]
     self.ReceiveFetchedFileStat(stat_entry, request_data)
 
-    if getattr(self.state, "stop_at_stat", False):
+    if self.state.stop_at_stat:
       self._RemoveCompletedPathspec(index)
       return
 
@@ -733,7 +731,7 @@ class MultiGetFileLogic(object):
     request_data = self.state.request_data_list[index]
     self.ReceiveFetchedFileHash(stat_entry, hash_obj, request_data)
 
-    if getattr(self.state, "stop_at_hash", False):
+    if self.state.stop_at_hash:
       self._RemoveCompletedPathspec(index)
       return
 

@@ -66,11 +66,10 @@
           (click)="grantApproval()"
           class="grant-button progress-spinner-button"
         >
-          <mat-spinner
-            *ngIf="requestInProgress$ | async"
-            diameter="24"
-          ></mat-spinner>
-          Grant full access
+          <div class="progress-spinner-button-label-container">
+            <mat-spinner diameter="20" *ngIf="requestInProgress$ | async"></mat-spinner>
+            <span>Grant full access</span>
+          </div>
         </button>
         <div class="explanation">
           This will grant rights to run flows, collect arbitrary data, and view
@@ -85,6 +84,7 @@
       mat-stroked-button
       [routerLink]="['/clients', approval.subject.clientId]"
       color="primary"
+      class="white-background"
     >
       Go to client
     </a>

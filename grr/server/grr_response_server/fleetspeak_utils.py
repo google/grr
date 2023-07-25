@@ -12,7 +12,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.util import text
 from grr_response_core.stats import metrics
-from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.src.common.proto.fleetspeak import system_pb2 as fs_system_pb2
@@ -29,17 +28,6 @@ WRITE_TOTAL_TIMEOUT = datetime.timedelta(seconds=300)
 
 READ_SINGLE_TRY_TIMEOUT = datetime.timedelta(seconds=60)
 READ_TOTAL_TIMEOUT = datetime.timedelta(seconds=120)
-
-
-def IsFleetspeakEnabledClient(grr_id):
-  """Returns whether the provided GRR id is a Fleetspeak client."""
-  if grr_id is None:
-    return False
-
-  md = data_store.REL_DB.ReadClientMetadata(grr_id)
-  if not md:
-    return False
-  return md.fleetspeak_enabled
 
 
 @FLEETSPEAK_CALL_LATENCY.Timed(fields=["InsertMessage"])

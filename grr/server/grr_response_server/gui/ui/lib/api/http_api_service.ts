@@ -289,18 +289,19 @@ export class HttpApiService {
 
     const huntRunnerArgs: apiInterfaces.HuntRunnerArgs = {
       description,
-      cpuLimit: safetyLimits.cpuLimit?.toString(),
-      networkBytesLimit: safetyLimits.networkBytesLimit?.toString(),
       clientRate: safetyLimits.clientRate,
+      clientLimit: safetyLimits.clientLimit?.toString(),
       crashLimit: safetyLimits.crashLimit?.toString(),
+      expiryTime: safetyLimits.expiryTime?.toString(),
       avgResultsPerClientLimit:
           safetyLimits.avgResultsPerClientLimit?.toString(),
       avgCpuSecondsPerClientLimit:
           safetyLimits.avgCpuSecondsPerClientLimit?.toString(),
       avgNetworkBytesPerClientLimit:
           safetyLimits.avgNetworkBytesPerClientLimit?.toString(),
-      expiryTime: safetyLimits.expiryTime?.toString(),
-      clientLimit: safetyLimits.clientLimit?.toString(),
+      perClientCpuLimit: safetyLimits.perClientCpuLimit?.toString(),
+      perClientNetworkLimitBytes:
+          safetyLimits.perClientNetworkBytesLimit?.toString(),
       outputPlugins,
       clientRuleSet: rules,
     };

@@ -4,16 +4,11 @@
 :host {
   display: block;
 
-  .mat-form-field {
+  .mat-mdc-form-field {
     width: 100%;
 
     &[hidden] {
       display: none;
-    }
-
-    .mat-form-field-wrapper {
-      margin-bottom: 0;
-      padding-bottom: 0;
     }
 
     mat-icon {
@@ -35,8 +30,28 @@ mat-form-field {
   font-weight: 900;
 }
 
-.category-title {
-  font-size: 12px;
+.flow-search-results {
+  // We want to override an internal Angular Material class:
+  ::ng-deep .mat-mdc-optgroup-label {
+    background-color: mat.get-color-from-palette(
+      c.$background,
+      darker-background
+    );
+    min-height: auto;
+  }
+
+  .category-title {
+    font-size: 12px;
+    color: mat.get-color-from-palette(c.$foreground, text-light);
+    display: inline-block;
+    margin: 5px 0;
+  }
+
+  .mat-mdc-optgroup .mat-mdc-option:not(.mat-option-multiple) {
+    padding-left: 16px;
+    height: 50px;
+    line-height: 24px;
+  }
 }
 
 .flow-title {
@@ -59,5 +74,8 @@ mat-form-field {
   .row {
     display: flex;
     column-gap: 12px;
+    /* If the buttons overflow, they will jump to the following line: */
+    flex-wrap: wrap;
+    row-gap: 12px;
   }
 }

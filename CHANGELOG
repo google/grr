@@ -2,6 +2,14 @@
 
 ## Upcoming release
 
+* Renamed AdminUI.new_hunt_wizard.default_output_plugin to
+  AdminUI.new_hunt_wizard.default_output_plugins (note the "s" in the end).
+  The new option accepts a comma-separated list of names.
+* Fully removed deprecated use_tsk flag.
+* Removed deprecated plugin_args field from OutputPluginDescriptor.
+
+## 3.4.6.7
+
 * Introduced Server.grr_binaries_readonly configuration option (set to False
   by default). When set to True, binaries and python hacks can't be overriden
   or deleted.

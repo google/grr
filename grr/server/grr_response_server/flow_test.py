@@ -17,6 +17,7 @@ from grr_response_server import action_registry
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import flow_base
+from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server import worker_lib
 from grr_response_server.databases import db
@@ -66,6 +67,44 @@ class CallStateFlow(flow_base.FlowBase):
   def ReceiveHello(self, responses):
 
     CallStateFlow.success = True
+
+
+class CallStateFlowWithResponses(flow_base.FlowBase):
+  """Test flow that calls its own state and passes responses."""
+
+  # This is a global flag which will be set when the flow runs.
+  success = False
+
+  def Start(self) -> None:
+    responses = [
+        rdf_paths.PathSpec(
+            path=f"/tmp/{i}.txt", pathtype=rdf_paths.PathSpec.PathType.OS
+        )
+        for i in range(10)
+    ]
+    # Calling the state a little in the future to avoid inline processing done
+    # by the flow test library. Inline processing will break the CallState
+    # logic: responses are written after requests, but the inline processing
+    # is triggered already when requests are written. Inline processing
+    # doesn't happen if flow requests are scheduled in the future.
+    self.CallState(
+        next_state=self.ReceiveHello.__name__,
+        responses=responses,
+        start_time=rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1s"),
+    )
+
+  def ReceiveHello(self, responses: flow_responses.Responses) -> None:
+    if len(responses) != 10:
+      raise RuntimeError(f"Expected 10 responses, got: {len(responses)}")
+
+    for i, r in enumerate(sorted(responses)):
+      expected = rdf_paths.PathSpec(
+          path=f"/tmp/{i}.txt", pathtype=rdf_paths.PathSpec.PathType.OS
+      )
+      if r != expected:
+        raise RuntimeError(f"Unexpected response: {r}, expected: {expected}")
+
+    CallStateFlowWithResponses.success = True
 
 
 class BasicFlowTest(flow_test_lib.FlowTestsBaseclass):
@@ -252,6 +291,15 @@ class GeneralFlowsTest(notification_test_lib.NotificationTestMixin,
     # Run the flow in the simulated way
     flow_test_lib.StartAndRunFlow(CallStateFlow, client_id=self.client_id)
 
+    self.assertEqual(CallStateFlow.success, True)
+
+  def testCallStateWithResponses(self):
+    """Test the ability to chain flows."""
+    CallStateFlowWithResponses.success = False
+    # Run the flow in the simulated way
+    flow_test_lib.StartAndRunFlow(
+        CallStateFlowWithResponses, client_id=self.client_id
+    )
     self.assertEqual(CallStateFlow.success, True)
 
   def testChainedFlow(self):
@@ -557,14 +605,14 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
 
   def ScheduleFlow(self, **kwargs):
     merged_kwargs = {
-        "flow_name":
-            file.CollectSingleFile.__name__,
-        "flow_args":
-            rdf_file_finder.CollectSingleFileArgs(
-                path="/foo{}".format(random.randint(0, 1000))),
-        "runner_args":
-            rdf_flow_runner.FlowRunnerArgs(cpu_limit=random.randint(0, 60)),
-        **kwargs
+        "flow_name": file.CollectFilesByKnownPath.__name__,
+        "flow_args": rdf_file_finder.CollectFilesByKnownPathArgs(
+            paths=["/foo{}".format(random.randint(0, 1000))]
+        ),
+        "runner_args": rdf_flow_runner.FlowRunnerArgs(
+            cpu_limit=random.randint(0, 60)
+        ),
+        **kwargs,
     }
 
     return flow.ScheduleFlow(**merged_kwargs)
@@ -591,9 +639,10 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.ScheduleFlow(
         client_id=client_id,
         creator=username,
-        flow_name=file.CollectSingleFile.__name__,
-        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))
+        flow_name=file.CollectFilesByKnownPath.__name__,
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+    )
 
     flow.StartScheduledFlows(client_id, username)
 
@@ -602,10 +651,13 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
 
     self.assertEqual(flows[0].client_id, client_id)
     self.assertEqual(flows[0].creator, username)
-    self.assertEqual(flows[0].flow_class_name, file.CollectSingleFile.__name__)
-    self.assertEqual(flows[0].args.path, "/foo")
-    self.assertEqual(flows[0].flow_state,
-                     rdf_flow_objects.Flow.FlowState.RUNNING)
+    self.assertEqual(
+        flows[0].flow_class_name, file.CollectFilesByKnownPath.__name__
+    )
+    self.assertEqual(flows[0].args.paths, ["/foo"])
+    self.assertEqual(
+        flows[0].flow_state, rdf_flow_objects.Flow.FlowState.RUNNING
+    )
     self.assertEqual(flows[0].cpu_limit, 60)
 
   def testStartScheduledFlowsDeletesScheduledFlows(self):
@@ -654,13 +706,16 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.ScheduleFlow(
         client_id=client_id,
         creator=username,
-        flow_name=file.CollectSingleFile.__name__,
-        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))
+        flow_name=file.CollectFilesByKnownPath.__name__,
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+    )
 
     with mock.patch.object(
-        file.CollectSingleFile, "__init__",
-        side_effect=ValueError("foobazzle")):
+        file.CollectFilesByKnownPath,
+        "__init__",
+        side_effect=ValueError("foobazzle"),
+    ):
       flow.StartScheduledFlows(client_id, username)
 
     self.assertEmpty(data_store.REL_DB.ReadAllFlowObjects(client_id))
@@ -676,14 +731,16 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.ScheduleFlow(
         client_id=client_id,
         creator=username,
-        flow_name=file.CollectSingleFile.__name__,
-        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))
+        flow_name=file.CollectFilesByKnownPath.__name__,
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+    )
 
     with mock.patch.object(
-        rdf_file_finder.CollectSingleFileArgs,
+        rdf_file_finder.CollectFilesByKnownPathArgs,
         "Validate",
-        side_effect=ValueError("foobazzle")):
+        side_effect=ValueError("foobazzle"),
+    ):
       flow.StartScheduledFlows(client_id, username)
 
     self.assertEmpty(data_store.REL_DB.ReadAllFlowObjects(client_id))
@@ -699,21 +756,24 @@ class ScheduleFlowTest(flow_test_lib.FlowTestsBaseclass):
     self.ScheduleFlow(
         client_id=client_id,
         creator=username,
-        flow_name=file.CollectSingleFile.__name__,
-        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))
+        flow_name=file.CollectFilesByKnownPath.__name__,
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+    )
 
     self.ScheduleFlow(
         client_id=client_id,
         creator=username,
-        flow_name=file.CollectSingleFile.__name__,
-        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))
+        flow_name=file.CollectFilesByKnownPath.__name__,
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+    )
 
     with mock.patch.object(
-        rdf_file_finder.CollectSingleFileArgs,
+        rdf_file_finder.CollectFilesByKnownPathArgs,
         "Validate",
-        side_effect=[ValueError("foobazzle"), mock.DEFAULT]):
+        side_effect=[ValueError("foobazzle"), mock.DEFAULT],
+    ):
       flow.StartScheduledFlows(client_id, username)
 
     self.assertLen(data_store.REL_DB.ReadAllFlowObjects(client_id), 1)

@@ -38,7 +38,7 @@
 </app-filter-paginate>
 
 <div *ngIf="shouldShowLoadMoreButton$ | async">
-  <button class="load-more" mat-button (click)="loadMoreClicked()">
+  <button class="load-more" mat-button (click)="loadMoreClicked()" color="primary">
     Load More
   </button>
 </div>

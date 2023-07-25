@@ -1,10 +1,10 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {MatLegacyAutocompleteModule} from '@angular/material/legacy-autocomplete';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyDialogModule} from '@angular/material/legacy-dialog';
-import {MatLegacyInputModule} from '@angular/material/legacy-input';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {MatButtonModule} from '@angular/material/button';
+import {MatDialogModule} from '@angular/material/dialog';
+import {MatInputModule} from '@angular/material/input';
 
 import {FlowArgsFormModule} from '../flow_args_form/module';
 
@@ -13,14 +13,19 @@ import {FlowArgsView} from './flow_args_view';
 /** Angular Module. */
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     CommonModule,
-    MatLegacyButtonModule,
-    MatLegacyDialogModule,
-    MatLegacyInputModule,
-    MatLegacyAutocompleteModule,
-    ReactiveFormsModule,
     FlowArgsFormModule,
     FormsModule,
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatInputModule,
+    ReactiveFormsModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     FlowArgsView,

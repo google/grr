@@ -3,13 +3,11 @@
     { "type": "WMI",
       "attributes": { "query": "SELECT * from Win32_SystemDriver"
       },
-      "conditions": [],
       "returned_types": []
     }
   ],
   "doc": "Extract the installed drivers on Windows via WMI.",
   "labels": [ "Software" ],
   "supported_os": [ "Windows" ],
-  "urls": ["http://www.example.com"],
-  "conditions": [ "os_major_version >= 6" ]
+  "urls": ["http://www.example.com"]
 }

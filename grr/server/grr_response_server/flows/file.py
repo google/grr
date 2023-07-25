@@ -20,91 +20,6 @@ _MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10  # 10 GiB.
 # it seems to be best choice to fetch the stat, hashes, and contents of a file.
 # At the time of writing, none of the flows exposed all three to the caller in
 # a sensible way.
-class CollectSingleFile(transfer.MultiGetFileLogic, flow_base.FlowBase):
-  """Fetches contents of a single file from the specified absolute path."""
-  friendly_name = "File content"
-  category = "/Filesystem/"
-  args_type = rdf_file_finder.CollectSingleFileArgs
-  result_types = (rdf_file_finder.CollectSingleFileResult,)
-  progress_type = rdf_file_finder.CollectSingleFileProgress
-  behaviours = flow_base.BEHAVIOUR_DEBUG
-
-  def GetProgress(self) -> rdf_file_finder.CollectSingleFileProgress:
-    return self.state.progress
-
-  def Start(self):
-    super().Start(file_size=self.args.max_size_bytes)
-
-    self.state.progress = rdf_file_finder.CollectSingleFileProgress(
-        status=rdf_file_finder.CollectSingleFileProgress.Status.IN_PROGRESS)
-
-    pathspec = rdf_paths.PathSpec.OS(path=self.args.path)
-    self.StartFileFetch(pathspec)
-
-  def ReceiveFetchedFile(self,
-                         stat_entry,
-                         hash_obj,
-                         request_data=None,
-                         is_duplicate=False):
-    """See MultiGetFileLogic."""
-    del request_data, is_duplicate  # Unused.
-
-    result = rdf_file_finder.CollectSingleFileResult(
-        stat=stat_entry, hash=hash_obj)
-    self.SendReply(result)
-
-    self.state.progress.result = result
-    self.state.progress.status = (
-        rdf_file_finder.CollectSingleFileProgress.Status.COLLECTED)
-
-  def FileFetchFailed(self,
-                      pathspec: rdf_paths.PathSpec,
-                      request_data: Any = None,
-                      status: Optional[rdf_flow_objects.FlowStatus] = None):
-    """See MultiGetFileLogic."""
-    if (self.client_os == "Windows" and
-        pathspec.pathtype == rdf_paths.PathSpec.PathType.OS):
-      # Retry with raw filesystem access on Windows,
-      # the file might be locked for reads.
-      raw_pathspec = rdf_paths.PathSpec(
-          path=self.args.path,
-          pathtype=config.CONFIG["Server.raw_filesystem_access_pathtype"])
-      self.StartFileFetch(raw_pathspec)
-    elif status is not None and status.error_message:
-      error_description = "{} when fetching {} with {}".format(
-          status.error_message, pathspec.path, pathspec.pathtype)
-
-      # TODO: this is a really bad hack and should be fixed by
-      # passing the 'not found' status in a more structured way.
-      if "File not found" in status.error_message:
-        self.state.progress.status = rdf_file_finder.CollectSingleFileProgress.Status.NOT_FOUND
-      else:
-        self.state.progress.status = rdf_file_finder.CollectSingleFileProgress.Status.FAILED
-        self.state.progress.error_description = error_description
-
-      raise flow_base.FlowError(error_description)
-    else:
-      error_description = (
-          "File {} could not be fetched with {} due to an unknown error. "
-          "Check the flow logs.".format(pathspec.path, pathspec.pathtype))
-
-      self.state.progress.status = rdf_file_finder.CollectSingleFileProgress.Status.FAILED
-      self.state.progress.error_description = error_description
-
-      raise flow_base.FlowError(error_description)
-
-  @classmethod
-  def GetDefaultArgs(cls, username=None):
-    """See base class."""
-    del username  # Unused.
-    return rdf_file_finder.CollectSingleFileArgs(
-        path="", max_size_bytes="1 GiB")
-
-
-# Although MultiGetFileLogic is a leaky, complex, and overall problematic Mixin
-# it seems to be best choice to fetch the stat, hashes, and contents of a file.
-# At the time of writing, none of the flows exposed all three to the caller in
-# a sensible way.
 class CollectFilesByKnownPath(transfer.MultiGetFileLogic, flow_base.FlowBase):
   """Fetches specified absolute path file contents."""
 
@@ -291,61 +206,27 @@ class CollectMultipleFiles(transfer.MultiGetFileLogic, flow_base.FlowBase):
         num_failed=0,
     )
 
-    conditions = []
-
-    if self.args.HasField("modification_time"):
-      conditions.append(
-          rdf_file_finder.FileFinderCondition(
-              condition_type=rdf_file_finder.FileFinderCondition.Type
-              .MODIFICATION_TIME,
-              modification_time=self.args.modification_time,
-          ))
-
-    if self.args.HasField("access_time"):
-      conditions.append(
-          rdf_file_finder.FileFinderCondition(
-              condition_type=rdf_file_finder.FileFinderCondition.Type
-              .ACCESS_TIME,
-              access_time=self.args.access_time,
-          ))
-
-    if self.args.HasField("inode_change_time"):
-      conditions.append(
-          rdf_file_finder.FileFinderCondition(
-              condition_type=rdf_file_finder.FileFinderCondition.Type
-              .INODE_CHANGE_TIME,
-              inode_change_time=self.args.inode_change_time,
-          ))
-
-    if self.args.HasField("size"):
-      conditions.append(
-          rdf_file_finder.FileFinderCondition(
-              condition_type=rdf_file_finder.FileFinderCondition.Type.SIZE,
-              size=self.args.size,
-          ))
-
-    if self.args.HasField("ext_flags"):
-      conditions.append(
-          rdf_file_finder.FileFinderCondition(
-              condition_type=rdf_file_finder.FileFinderCondition.Type.EXT_FLAGS,
-              ext_flags=self.args.ext_flags,
-          ))
-
-    if self.args.HasField("contents_regex_match"):
-      conditions.append(
-          rdf_file_finder.FileFinderCondition(
-              condition_type=rdf_file_finder.FileFinderCondition.Type
-              .CONTENTS_REGEX_MATCH,
-              contents_regex_match=self.args.contents_regex_match,
-          ))
-
-    if self.args.HasField("contents_literal_match"):
-      conditions.append(
-          rdf_file_finder.FileFinderCondition(
-              condition_type=rdf_file_finder.FileFinderCondition.Type
-              .CONTENTS_LITERAL_MATCH,
-              contents_literal_match=self.args.contents_literal_match,
-          ))
+    conditions = BuildClientFileFinderConditions(
+        modification_time=self.args.modification_time
+        if self.args.HasField("modification_time")
+        else None,
+        access_time=self.args.access_time
+        if self.args.HasField("access_time")
+        else None,
+        inode_change_time=self.args.inode_change_time
+        if self.args.HasField("inode_change_time")
+        else None,
+        size=self.args.size if self.args.HasField("size") else None,
+        ext_flags=self.args.ext_flags
+        if self.args.HasField("ext_flags")
+        else None,
+        contents_regex_match=self.args.contents_regex_match
+        if self.args.HasField("contents_regex_match")
+        else None,
+        contents_literal_match=self.args.contents_literal_match
+        if self.args.HasField("contents_literal_match")
+        else None,
+    )
 
     file_finder_args = rdf_file_finder.FileFinderArgs(
         paths=self.args.path_expressions,
@@ -364,60 +245,379 @@ class CollectMultipleFiles(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
     for response in responses:
       pathspec = response.stat_entry.pathspec
-      self.StartFileFetch(pathspec, request_data=dict(original_result=response))
+      self.StartFileFetch(
+          pathspec, request_data=dict(original_pathspec=pathspec)
+      )
       self.state.progress.num_found += 1
       self.state.progress.num_in_progress += 1
 
-  def ReceiveFetchedFile(self,
-                         stat_entry,
-                         hash_obj,
-                         request_data=None,
-                         is_duplicate=False):
+  def ReceiveFetchedFile(
+      self, stat_entry, hash_obj, request_data=None, is_duplicate=False
+  ):
     """See MultiGetFileLogic."""
     del request_data, is_duplicate  # Unused.
+
+    self.state.progress.num_in_progress = max(
+        0, self.state.progress.num_in_progress - 1
+    )
+    self.state.progress.num_collected += 1
 
     result = rdf_file_finder.CollectMultipleFilesResult(
         stat=stat_entry,
         hash=hash_obj,
-        status=rdf_file_finder.CollectMultipleFilesResult.Status.COLLECTED)
+        status=rdf_file_finder.CollectMultipleFilesResult.Status.COLLECTED,
+    )
     self.SendReply(result)
 
-    self.state.progress.num_in_progress = max(
-        0, self.state.progress.num_in_progress - 1)
-    self.state.progress.num_collected += 1
-
-  def FileFetchFailed(self,
-                      pathspec: rdf_paths.PathSpec,
-                      request_data: Any = None,
-                      status: Optional[rdf_flow_objects.FlowStatus] = None):
+  def FileFetchFailed(
+      self,
+      pathspec: rdf_paths.PathSpec,
+      request_data: Any = None,
+      status: Optional[rdf_flow_objects.FlowStatus] = None,
+  ):
     """See MultiGetFileLogic."""
-    original_result = request_data["original_result"]
+    original_pathspec = pathspec
+    if request_data is not None and request_data["original_pathspec"]:
+      original_pathspec = request_data["original_pathspec"]
 
-    if (self.client_os == "Windows" and
-        pathspec.pathtype == rdf_paths.PathSpec.PathType.OS):
+    if (
+        self.client_os == "Windows"
+        and pathspec.pathtype == rdf_paths.PathSpec.PathType.OS
+    ):
       # Retry with raw filesystem access on Windows,
       # the file might be locked for reads.
       raw_pathspec = rdf_paths.PathSpec(
-          path=self.args.path,
-          pathtype=config.CONFIG["Server.raw_filesystem_access_pathtype"])
-      self.StartFileFetch(raw_pathspec)
+          path=original_pathspec.path,
+          pathtype=config.CONFIG["Server.raw_filesystem_access_pathtype"],
+      )
+      self.StartFileFetch(
+          raw_pathspec, request_data=dict(original_pathspec=raw_pathspec)
+      )
 
       self.state.progress.num_raw_fs_access_retries += 1
     else:
       if status is not None and status.error_message:
         error_description = "{} when fetching {} with {}".format(
-            status.error_message, pathspec.path, pathspec.pathtype)
+            status.error_message, pathspec.path, pathspec.pathtype
+        )
       else:
         error_description = (
             "File {} could not be fetched with {} due to an unknown error. "
-            "Check the flow logs.".format(pathspec.path, pathspec.pathtype))
+            "Check the flow logs.".format(pathspec.path, pathspec.pathtype)
+        )
+
+      self.state.progress.num_in_progress = max(
+          0, self.state.progress.num_in_progress - 1
+      )
+      self.state.progress.num_failed += 1
 
       result = rdf_file_finder.CollectMultipleFilesResult(
-          stat=original_result.stat_entry,
+          stat=rdf_client_fs.StatEntry(pathspec=original_pathspec),
           error=error_description,
           status=rdf_file_finder.CollectMultipleFilesResult.Status.FAILED,
       )
       self.SendReply(result)
 
+
+class StatMultipleFiles(flow_base.FlowBase):
+  """Fetches file stats by searching for path expressions."""
+
+  friendly_name = "Collect file stats"
+  category = "/Filesystem/"
+  behaviours = flow_base.BEHAVIOUR_BASIC
+
+  args_type = rdf_file_finder.StatMultipleFilesArgs
+  result_types = (rdf_client_fs.StatEntry,)
+
+  def Start(self):
+    conditions = BuildClientFileFinderConditions(
+        modification_time=self.args.modification_time
+        if self.args.HasField("modification_time")
+        else None,
+        access_time=self.args.access_time
+        if self.args.HasField("access_time")
+        else None,
+        inode_change_time=self.args.inode_change_time
+        if self.args.HasField("inode_change_time")
+        else None,
+        size=self.args.size if self.args.HasField("size") else None,
+        ext_flags=self.args.ext_flags
+        if self.args.HasField("ext_flags")
+        else None,
+        contents_regex_match=self.args.contents_regex_match
+        if self.args.HasField("contents_regex_match")
+        else None,
+        contents_literal_match=self.args.contents_literal_match
+        if self.args.HasField("contents_literal_match")
+        else None,
+    )
+
+    file_finder_args = rdf_file_finder.FileFinderArgs(
+        paths=self.args.path_expressions,
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        conditions=conditions,
+        action=rdf_file_finder.FileFinderAction.Stat(),
+    )
+
+    self.CallFlow(
+        file_finder.ClientFileFinder.__name__,
+        flow_args=file_finder_args,
+        next_state=self.ProcessResponses.__name__,
+    )
+
+  def ProcessResponses(self, responses):
+    if not responses.success:
+      raise flow_base.FlowError(responses.status.error_message)
+
+    for response in responses:
+      result = rdf_client_fs.StatEntry(pathspec=response.stat_entry.pathspec)
+
+      self.SendReply(result)
+
+
+class HashMultipleFiles(transfer.MultiGetFileLogic, flow_base.FlowBase):
+  """Fetches file hashes and stats by searching for path expressions."""
+
+  friendly_name = "Collect file hashes"
+  category = "/Filesystem/"
+  behaviours = flow_base.BEHAVIOUR_BASIC
+
+  args_type = rdf_file_finder.HashMultipleFilesArgs
+  result_types = (rdf_file_finder.CollectMultipleFilesResult,)
+  progress_type = rdf_file_finder.HashMultipleFilesProgress
+
+  MAX_FILE_SIZE = 1024 * 1024 * 1024 * 10  # 10GiB
+
+  def GetProgress(self) -> rdf_file_finder.HashMultipleFilesProgress:
+    return self.state.progress
+
+  def Start(self):
+    """See base class."""
+    super().Start(file_size=self.MAX_FILE_SIZE)
+
+    self.state.progress = rdf_file_finder.HashMultipleFilesProgress(
+        num_found=0,
+        num_in_progress=0,
+        num_raw_fs_access_retries=0,
+        num_hashed=0,
+        num_failed=0,
+    )
+
+    # Set the collection level for MultiGetFileLogic mixin, as the default
+    # one is collecting the file contents
+    self.state.stop_at_hash = True
+
+    conditions = BuildClientFileFinderConditions(
+        modification_time=self.args.modification_time
+        if self.args.HasField("modification_time")
+        else None,
+        access_time=self.args.access_time
+        if self.args.HasField("access_time")
+        else None,
+        inode_change_time=self.args.inode_change_time
+        if self.args.HasField("inode_change_time")
+        else None,
+        size=self.args.size if self.args.HasField("size") else None,
+        ext_flags=self.args.ext_flags
+        if self.args.HasField("ext_flags")
+        else None,
+        contents_regex_match=self.args.contents_regex_match
+        if self.args.HasField("contents_regex_match")
+        else None,
+        contents_literal_match=self.args.contents_literal_match
+        if self.args.HasField("contents_literal_match")
+        else None,
+    )
+
+    file_finder_args = rdf_file_finder.FileFinderArgs(
+        paths=self.args.path_expressions,
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        conditions=conditions,
+        action=rdf_file_finder.FileFinderAction.Hash(),
+    )
+
+    self.CallFlow(
+        file_finder.ClientFileFinder.__name__,
+        flow_args=file_finder_args,
+        next_state=self.ProcessResponses.__name__,
+    )
+
+  def ProcessResponses(self, responses):
+    if not responses.success:
+      raise flow_base.FlowError(responses.status.error_message)
+
+    for response in responses:
+      pathspec = response.stat_entry.pathspec
+      self.StartFileFetch(
+          pathspec, request_data=dict(original_pathspec=pathspec)
+      )
+      self.state.progress.num_found += 1
+      self.state.progress.num_in_progress += 1
+
+  def FileFetchFailed(
+      self,
+      pathspec: rdf_paths.PathSpec,
+      request_data: Any = None,
+      status: Optional[rdf_flow_objects.FlowStatus] = None,
+  ):
+    """See MultiGetFileLogic."""
+    original_pathspec = pathspec
+    if request_data is not None and request_data["original_pathspec"]:
+      original_pathspec = request_data["original_pathspec"]
+
+    if (
+        self.client_os == "Windows"
+        and pathspec.pathtype == rdf_paths.PathSpec.PathType.OS
+    ):
+      # Retry with raw filesystem access on Windows,
+      # the file might be locked for reads.
+      raw_pathspec = rdf_paths.PathSpec(
+          path=original_pathspec.path,
+          pathtype=config.CONFIG["Server.raw_filesystem_access_pathtype"],
+      )
+      self.StartFileFetch(
+          raw_pathspec, request_data=dict(original_pathspec=raw_pathspec)
+      )
+
+      self.state.progress.num_raw_fs_access_retries += 1
+    else:
+      if status is not None and status.error_message:
+        error_description = "{} when fetching {} with {}".format(
+            status.error_message, pathspec.path, pathspec.pathtype
+        )
+      else:
+        error_description = (
+            "File {} could not be fetched with {} due to an unknown error. "
+            "Check the flow logs.".format(pathspec.path, pathspec.pathtype)
+        )
+
       self.state.progress.num_in_progress = max(
-          0, self.state.progress.num_in_progress - 1)
+          0, self.state.progress.num_in_progress - 1
+      )
+      self.state.progress.num_failed += 1
+
+      result = rdf_file_finder.CollectMultipleFilesResult(
+          stat=rdf_client_fs.StatEntry(pathspec=original_pathspec),
+          error=error_description,
+          status=rdf_file_finder.CollectMultipleFilesResult.Status.FAILED,
+      )
+      self.SendReply(result)
+
+  def ReceiveFetchedFileHash(
+      self,
+      stat_entry: rdf_client_fs.StatEntry,
+      file_hash: rdf_crypto.Hash,
+      request_data: Optional[Mapping[str, Any]] = None,
+  ):
+    """This method will be called for each new file hash successfully fetched.
+
+    Args:
+      stat_entry: rdf_client_fs.StatEntry object describing the file.
+      file_hash: rdf_crypto.Hash object with file hashes.
+      request_data: Arbitrary dictionary that was passed to the corresponding
+        StartFileFetch call.
+    """
+    del request_data  # Unused.
+
+    self.state.progress.num_in_progress -= 1
+    self.state.progress.num_hashed += 1
+
+    result = rdf_file_finder.CollectMultipleFilesResult(
+        stat=stat_entry,
+        hash=file_hash,
+        status=rdf_file_finder.CollectMultipleFilesResult.Status.COLLECTED,
+    )
+
+    self.SendReply(result)
+
+
+def BuildClientFileFinderConditions(
+    modification_time: Optional[
+        rdf_file_finder.FileFinderModificationTimeCondition
+    ] = None,
+    access_time: Optional[rdf_file_finder.FileFinderAccessTimeCondition] = None,
+    inode_change_time: Optional[
+        rdf_file_finder.FileFinderInodeChangeTimeCondition
+    ] = None,
+    size: Optional[rdf_file_finder.FileFinderSizeCondition] = None,
+    ext_flags: Optional[rdf_file_finder.FileFinderExtFlagsCondition] = None,
+    contents_regex_match: Optional[
+        rdf_file_finder.FileFinderContentsRegexMatchCondition
+    ] = None,
+    contents_literal_match: Optional[
+        rdf_file_finder.FileFinderContentsLiteralMatchCondition
+    ] = None,
+) -> list[rdf_file_finder.FileFinderCondition]:
+  """Constructs the list of conditions to be applied to ClientFileFinder flow.
+
+  Args:
+    modification_time: Min/max last modification time of the file(s).
+    access_time: Min/max last access time of the file(s).
+    inode_change_time: Min/max last inode time of the file(s).
+    size: Min/max file size.
+    ext_flags: Linux and/or macOS file flags.
+    contents_regex_match: regex rule to match in the file contents.
+    contents_literal_match: string literal to match in the file contents.
+
+  Returns:
+    List of file conditions for ClientFileFinder flow.
+  """
+  conditions = []
+
+  if modification_time is not None:
+    conditions.append(
+        rdf_file_finder.FileFinderCondition(
+            condition_type=rdf_file_finder.FileFinderCondition.Type.MODIFICATION_TIME,
+            modification_time=modification_time,
+        )
+    )
+
+  if access_time is not None:
+    conditions.append(
+        rdf_file_finder.FileFinderCondition(
+            condition_type=rdf_file_finder.FileFinderCondition.Type.ACCESS_TIME,
+            access_time=access_time,
+        )
+    )
+
+  if inode_change_time is not None:
+    conditions.append(
+        rdf_file_finder.FileFinderCondition(
+            condition_type=rdf_file_finder.FileFinderCondition.Type.INODE_CHANGE_TIME,
+            inode_change_time=inode_change_time,
+        )
+    )
+
+  if size is not None:
+    conditions.append(
+        rdf_file_finder.FileFinderCondition(
+            condition_type=rdf_file_finder.FileFinderCondition.Type.SIZE,
+            size=size,
+        )
+    )
+
+  if ext_flags is not None:
+    conditions.append(
+        rdf_file_finder.FileFinderCondition(
+            condition_type=rdf_file_finder.FileFinderCondition.Type.EXT_FLAGS,
+            ext_flags=ext_flags,
+        )
+    )
+
+  if contents_regex_match is not None:
+    conditions.append(
+        rdf_file_finder.FileFinderCondition(
+            condition_type=rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH,
+            contents_regex_match=contents_regex_match,
+        )
+    )
+
+  if contents_literal_match is not None:
+    conditions.append(
+        rdf_file_finder.FileFinderCondition(
+            condition_type=rdf_file_finder.FileFinderCondition.Type.CONTENTS_LITERAL_MATCH,
+            contents_literal_match=contents_literal_match,
+        )
+    )
+
+  return conditions

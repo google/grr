@@ -2,10 +2,10 @@
 """Search for certain files, filter them by given criteria and do something."""
 
 import stat
-from typing import Optional
-from typing import Sequence
+from typing import Collection, Optional, Sequence, Set, Tuple
 
 from grr_response_core.lib import artifact_utils
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -14,6 +14,7 @@ from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server import flow_base
+from grr_response_server import flow_responses
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.flows.general import filesystem
@@ -392,6 +393,51 @@ class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
     self.Log("Found and processed %d files.", self.state.files_found)
 
 
+def _GetPendingBlobIDs(
+    responses: Collection[rdf_file_finder.FileFinderResult],
+) -> Sequence[Tuple[rdf_file_finder.FileFinderResult, Set[rdf_objects.BlobID]]]:
+  """For each FileFinderResult get reported but not yet stored blobs.
+
+  Args:
+    responses: A collection of FileFinderResults containing transferred file
+      chunks.
+
+  Returns:
+      A sequence of tuples (<FileFinderResult, set of pending blob ids>).
+      Even though returning a dict would be more correct conceptually, this
+      is not possible as FileFinderResult is not hashable and can't be used
+      as a key.
+  """
+  response_blob_ids = {}
+  blob_id_responses = {}
+  blob_ids = set()
+  for idx, r in enumerate(responses):
+    # Store the total number of chunks per response.
+    response_blob_ids[idx] = set()
+    for c in r.transferred_file.chunks:
+      blob_id = rdf_objects.BlobID.FromSerializedBytes(c.digest)
+      blob_ids.add(blob_id)
+      response_blob_ids[idx].add(blob_id)
+
+      # For each blob store a set of indexes of responses that have it.
+      # Note that the same blob may be present in more than one response
+      # (blobs are just data).
+      blob_id_responses.setdefault(blob_id, set()).add(idx)
+
+  blobs_present = data_store.BLOBS.CheckBlobsExist(blob_ids)
+  for blob_id, is_present in blobs_present.items():
+    if not is_present:
+      continue
+
+    # If the blob is present, decrement counters for relevant responses.
+    for response_idx in blob_id_responses[blob_id]:
+      response_blob_ids[response_idx].remove(blob_id)
+
+  return [
+      (responses[idx], blob_ids) for idx, blob_ids in response_blob_ids.items()
+  ]
+
+
 class ClientFileFinder(flow_base.FlowBase):
   """A client side file finder flow."""
 
@@ -399,6 +445,9 @@ class ClientFileFinder(flow_base.FlowBase):
   category = "/Filesystem/"
   args_type = rdf_file_finder.FileFinderArgs
   behaviours = flow_base.BEHAVIOUR_BASIC
+
+  BLOB_CHECK_DELAY = rdfvalue.Duration("60s")
+  MAX_BLOB_CHECKS = 60
 
   def Start(self):
     """Issue the find request."""
@@ -415,7 +464,10 @@ class ClientFileFinder(flow_base.FlowBase):
       self.CallClient(
           stub,
           request=interpolated_args,
-          next_state=self.StoreResults.__name__)
+          next_state=self.StoreResultsWithoutBlobs.__name__,
+      )
+
+    self.state.num_blob_waits = 0
 
   def _InterpolatePaths(self, globs: Sequence[str]) -> Optional[Sequence[str]]:
     kb = self.client_knowledge_base
@@ -447,25 +499,58 @@ class ClientFileFinder(flow_base.FlowBase):
 
     return paths
 
-  def StoreResults(self, responses):
+  def StoreResultsWithoutBlobs(
+      self,
+      responses: flow_responses.Responses[rdf_file_finder.FileFinderResult],
+  ) -> None:
     """Stores the results returned by the client to the db."""
     if not responses.success:
       raise flow_base.FlowError(responses.status)
 
     self.state.files_found = len(responses)
     transferred_file_responses = []
-    stat_entries = []
+    stat_entry_responses = []
+    # Split the responses into the ones that just contain file stats
+    # and the ones actually referencing uploaded chunks.
     for response in responses:
       if response.HasField("transferred_file"):
         transferred_file_responses.append(response)
       elif response.HasField("stat_entry"):
-        stat_entries.append(response.stat_entry)
+        stat_entry_responses.append(response)
 
-    client_path_hash_id = self._WriteFilesContent(transferred_file_responses)
+    self._WriteStatEntries([r.stat_entry for r in stat_entry_responses])
+    for r in stat_entry_responses:
+      self.SendReply(r)
 
-    self._WriteStatEntries(stat_entries)
+    if transferred_file_responses:
+      self.CallStateInline(
+          next_state=self.StoreResultsWithBlobs.__name__,
+          messages=transferred_file_responses,
+      )
 
-    for response in responses:
+  def StoreResultsWithBlobs(
+      self,
+      responses: flow_responses.Responses[rdf_file_finder.FileFinderResult],
+  ) -> None:
+    """Stores the results returned by the client to the db."""
+    complete_responses = []
+    incomplete_responses = []
+
+    response_pending_blob_ids = _GetPendingBlobIDs(list(responses))
+    # Needed in case we need to report an error (see below).
+    sample_pending_blob_id = None
+    num_pending_blobs = 0
+    for response, pending_blob_ids in response_pending_blob_ids:
+      if not pending_blob_ids:
+        complete_responses.append(response)
+      else:
+        incomplete_responses.append(response)
+        sample_pending_blob_id = list(pending_blob_ids)[0]
+        num_pending_blobs += len(pending_blob_ids)
+
+    client_path_hash_id = self._WriteFilesContent(complete_responses)
+
+    for response in complete_responses:
       pathspec = response.stat_entry.pathspec
       client_path = db.ClientPath.FromPathSpec(self.client_id, pathspec)
 
@@ -484,25 +569,52 @@ class ClientFileFinder(flow_base.FlowBase):
 
       self.SendReply(response)
 
+    if incomplete_responses:
+      self.state.num_blob_waits += 1
+
+      self.Log(
+          "Waiting for blobs to be written to the blob store. Iteration: %d out"
+          " of %d. Blobs pending: %d",
+          self.state.num_blob_waits,
+          self.MAX_BLOB_CHECKS,
+          num_pending_blobs,
+      )
+
+      if self.state.num_blob_waits > self.MAX_BLOB_CHECKS:
+        self.Error(
+            "Could not find one of referenced blobs "
+            f"(sample id: {sample_pending_blob_id}). "
+            "This is a sign of datastore inconsistency."
+        )
+        return
+
+      start_time = rdfvalue.RDFDatetime.Now() + self.BLOB_CHECK_DELAY
+      self.CallState(
+          next_state=self.StoreResultsWithBlobs.__name__,
+          responses=incomplete_responses,
+          start_time=start_time,
+      )
+
   def _WriteFilesContent(
       self,
-      responses: list[rdf_file_finder.FileFinderResult],
+      complete_responses: list[rdf_file_finder.FileFinderResult],
   ) -> dict[db.ClientPath, rdf_objects.SHA256HashID]:
     """Writes file contents of multiple files to the relational database.
 
     Args:
-      responses: A list of file finder results to write to the file store.
+      complete_responses: A list of file finder results to write to the file
+        store.
 
     Returns:
-      A mapping from paths to the SHA-256 hashes of the files written to the
-      file store.
+        A mapping from paths to the SHA-256 hashes of the files written
+        to the file store.
     """
     client_path_blob_refs = dict()
     client_path_path_info = dict()
     client_path_hash_id = dict()
     client_path_sizes = dict()
 
-    for response in responses:
+    for response in complete_responses:
       path_info = rdf_objects.PathInfo.FromStatEntry(response.stat_entry)
 
       chunks = response.transferred_file.chunks

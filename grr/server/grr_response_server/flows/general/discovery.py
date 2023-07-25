@@ -59,14 +59,26 @@ class Interrogate(flow_base.FlowBase):
     self.state.fqdn = None
     self.state.os = None
 
-    # We have a RRG-supported client, so we can use it instead of the Python
-    # agent to get basic system metadata.
+    # There are three possible scenarios:
     #
-    # Note that `CallRRG` calls have to happen before any of the `CallClient`
-    # calls: because response processing is sequential, in case there is only
-    # RRG agent is running, flow executor will wait for responses that are not
-    # going to come, never processing responses from the RRG agent.
+    #   1. Only Python agent is supported.
+    #   2. Only RRG is supported.
+    #   3. Both RRG and Python agent are supported.
+    #
+    # Additionally, for backward compatibility we assume that if RRG is not
+    # explicitly supported, then GRR is definitely supported. This assumption
+    # may be revisited in the future.
+    #
+    # Anyway, if both agents are supported we need to get metadata about both
+    # of them. If only one is supported we need to get metadata about that one
+    # and only that one. It is important not to issue the request to the other
+    # one as the flow will get stuck awaiting the response to come.
     if self.rrg_support:
+      if self.python_agent_support:
+        self.CallClient(
+            server_stubs.GetClientInfo,
+            next_state=self.ClientInfo.__name__,
+        )
       self.CallRRG(
           action=rrg_pb2.Action.GET_SYSTEM_METADATA,
           args=rrg_get_system_metadata_pb2.Args(),
@@ -159,6 +171,16 @@ class Interrogate(flow_base.FlowBase):
     # If GRR is running and adds more complete data, this information will be
     # just overridden.
     data_store.REL_DB.WriteClientSnapshot(self.state.client)
+
+    # Cloud VM metadata collection is not supported in RRG at the moment but we
+    # still need it, so we fall back to the Python agent. This is the same call
+    # that we make in the `Interrogate.Platform` method handler.
+    if result.type in [rrg_os_pb2.Type.LINUX, rrg_os_pb2.Type.WINDOWS]:
+      self.CallClient(
+          server_stubs.GetCloudVMMetadata,
+          rdf_cloud.BuildCloudMetadataRequests(),
+          next_state=self.CloudMetadata.__name__,
+      )
 
     # We replicate behaviour of Python-based agents: once the operating system
     # is known, we can start the knowledgebase initialization flow.
@@ -359,20 +381,20 @@ class Interrogate(flow_base.FlowBase):
 
     response = responses.First()
 
-    if fleetspeak_utils.IsFleetspeakEnabledClient(self.client_id):
-      # Fetch labels for the client from Fleetspeak. If Fleetspeak doesn't
-      # have any labels for the GRR client, fall back to labels reported by
-      # the client.
-      fleetspeak_labels = fleetspeak_utils.GetLabelsFromFleetspeak(
-          self.client_id)
-      if fleetspeak_labels:
-        response.labels = fleetspeak_labels
-        data_store.REL_DB.AddClientLabels(
-            client_id=self.client_id, owner="GRR", labels=fleetspeak_labels)
-      else:
-        FLEETSPEAK_UNLABELED_CLIENTS.Increment()
-        logging.warning("Failed to get labels for Fleetspeak client %s.",
-                        self.client_id)
+    # Fetch labels for the client from Fleetspeak. If Fleetspeak doesn't
+    # have any labels for the GRR client, fall back to labels reported by
+    # the client.
+    fleetspeak_labels = fleetspeak_utils.GetLabelsFromFleetspeak(self.client_id)
+    if fleetspeak_labels:
+      response.labels = fleetspeak_labels
+      data_store.REL_DB.AddClientLabels(
+          client_id=self.client_id, owner="GRR", labels=fleetspeak_labels
+      )
+    else:
+      FLEETSPEAK_UNLABELED_CLIENTS.Increment()
+      logging.warning(
+          "Failed to get labels for Fleetspeak client %s.", self.client_id
+      )
 
     sanitized_labels = []
     for label in response.labels:

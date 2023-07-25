@@ -67,14 +67,14 @@
           (click)="grantApproval()"
           class="grant-button progress-spinner-button"
         >
-          <mat-spinner *ngIf="requestInProgress$ | async" diameter="24"></mat-spinner>
-          <span
-            matTooltip="You cannot approve this fleet collection.
-              Either you are the requestor or the approval has already been granted"
-            [matTooltipDisabled]="!(disabled$ | async)"
-          >
-            Approve this fleet collection
-          </span>
+          <div class="progress-spinner-button-label-container">
+            <mat-spinner diameter="20" *ngIf="requestInProgress$ | async"></mat-spinner>
+            <span matTooltip="You cannot approve this fleet collection.
+                Either you are the requestor or the approval has already been granted"
+              [matTooltipDisabled]="!(disabled$ | async)">
+              Approve this fleet collection
+            </span>
+          </div>
         </button>
       </mat-card-actions>
     </mat-card>
@@ -83,15 +83,15 @@
   <div class="centered-content">
     <h4>
       Configuration details for fleet collection: {{ approval.subject.name }}
-      <mat-chip-list *ngIf="!approval.subject.flowReference && !approval.subject.huntReference">
+      <mat-chip-set *ngIf="!approval.subject.flowReference && !approval.subject.huntReference" role="list">
         <mat-chip
           class="yellow-chip"
-          color="custom"
+          role="listitem"
           matTooltip="This hunt is new. It wasn't copied from another hunt and wasn't created from a flow. Make sure it is safe to run!"
-          disabled
+          [disableRipple]="true"
           ><mat-icon>warning</mat-icon>New Configuration</mat-chip
         >
-      </mat-chip-list>
+      </mat-chip-set>
     </h4>
   </div>
 

@@ -5,7 +5,7 @@
 <ng-container *ngIf="showTable; else noResults">
   <ng-container *ngIf="dataSource.data.length > 0">
     <app-filter-paginate [dataSource]="dataSource">
-      <mat-table [dataSource]="dataSource" [trackBy]="trackByIndex">
+      <mat-table [dataSource]="dataSource" [trackBy]="trackByIndex" class="no-intra-cell-paddings">
         <ng-container
           *ngFor="let colDesc of columnDescriptors | keyvalue; trackBy: trackByKey"
           [matColumnDef]="colDesc.key"
@@ -81,14 +81,12 @@
         (click)="loadMoreResults()"
         [disabled]="!hasMore || (isLoading$ | async)"
         name="LoadMoreButton">
-        <span class="loading-results" *ngIf="isLoading$ | async; else notLoading">
-          <mat-spinner diameter="24"></mat-spinner>
-          Loading more
-        </span>
-
-        <ng-template #notLoading>
-          <span>{{ loadMoreButtonText }}</span>
-        </ng-template>
+        <div class="progress-spinner-button-label-container">
+          <mat-spinner diameter="20" *ngIf="isLoading$ | async"></mat-spinner>
+          <span>
+            {{ (isLoading$ | async) ? 'Loading more' : loadMoreButtonText }}
+          </span>
+        </div>
       </button>
       <span class="subtitle">{{ loadedResultsSubtitle }}</span>
     </div>

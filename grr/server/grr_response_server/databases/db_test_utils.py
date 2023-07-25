@@ -4,13 +4,13 @@
 import itertools
 import random
 import string
-
 from typing import Any, Callable, Dict, Iterable, Optional, Text
 
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
 
 class QueryTestHelpersMixin(object):
@@ -178,7 +178,32 @@ def InitializeClient(
     for _ in range(16):
       client_id += random.choice("0123456789abcdef")
 
-  db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+  db.WriteClientMetadata(client_id)
+  return client_id
+
+
+def InitializeRRGClient(
+    db: abstract_db.Database,
+    client_id: Optional[str] = None,
+) -> str:
+  """Initialize a test client that supports RRG.
+
+  Args:
+    db: A database object.
+    client_id: A specific client id to use for initialized client. If none is
+      provided a randomly generated one is used.
+
+  Returns:
+    A client id for the initialized client.
+  """
+  client_id = InitializeClient(db, client_id)
+
+  startup = rrg_startup_pb2.Startup()
+  startup.metadata.version.major = 1
+  startup.metadata.version.minor = 2
+  startup.metadata.version.patch = 3
+  db.WriteClientRRGStartup(client_id, startup)
+
   return client_id
 
 

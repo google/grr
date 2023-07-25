@@ -1,6 +1,6 @@
 import {ChangeDetectionStrategy, Component, OnDestroy, ViewChild} from '@angular/core';
-import {MatLegacyTableDataSource} from '@angular/material/legacy-table';
 import {MatSort} from '@angular/material/sort';
+import {MatTableDataSource} from '@angular/material/table';
 import {Observable} from 'rxjs';
 import {map, takeUntil} from 'rxjs/operators';
 
@@ -56,7 +56,7 @@ export class NetstatDetails extends Plugin implements OnDestroy {
 
   @ViewChild(MatSort) sort!: MatSort;
 
-  readonly dataSource = new MatLegacyTableDataSource<ConnectionRow>();
+  readonly dataSource = new MatTableDataSource<ConnectionRow>();
 
   readonly netstatResults$: Observable<readonly ConnectionRow[]> =
       this.flowResultsLocalStore.results$.pipe(

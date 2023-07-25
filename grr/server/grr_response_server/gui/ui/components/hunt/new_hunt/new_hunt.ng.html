@@ -10,7 +10,7 @@
       <ng-template #noLink><mat-icon>list_alt</mat-icon></ng-template>
       <mat-icon>chevron_right</mat-icon>
       <form>
-        <mat-form-field appearance="outline" class="mt-1">
+        <mat-form-field appearance="outline" class="mt-1" subscriptSizing="dynamic">
           <input
             matInput
             [formControl]="titleControl"
@@ -25,15 +25,15 @@
     </div>
 
     <ng-container *ngIf="hasOriginInput === false">
-      <mat-chip-list>
+      <mat-chip-set role="list">
         <mat-chip
             class="yellow-chip"
-            color="custom"
+            role="listitem"
             matTooltip="It wasn't created from an existing fleet collection or flow."
-            disabled
+            [disableRipple]="true"
             ><mat-icon>warning</mat-icon>The fleet collection MUST be created from an existing fleet collection or flow</mat-chip
           >
-      </mat-chip-list>
+      </mat-chip-set>
       <hunt-help></hunt-help>
     </ng-container>
 

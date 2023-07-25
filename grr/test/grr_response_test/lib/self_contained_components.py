@@ -4,7 +4,6 @@
 import atexit
 import collections
 import os
-import platform
 import shutil
 import signal
 import subprocess
@@ -121,7 +120,7 @@ def _GetRunEndToEndTestsArgs(
   return args
 
 
-def _StartBinary(binary_path: str, args: List[str]) -> subprocess.Popen:
+def _StartBinary(binary_path: str, args: List[str]) -> subprocess.Popen[bytes]:
   """Starts a new process with a given binary and args.
 
   Started subprocess will be killed automatically on exit.
@@ -150,7 +149,9 @@ def _StartBinary(binary_path: str, args: List[str]) -> subprocess.Popen:
   return process
 
 
-def _StartComponent(main_package: str, args: List[str]) -> subprocess.Popen:
+def _StartComponent(
+    main_package: str, args: List[str]
+) -> subprocess.Popen[bytes]:
   """Starts a new process with a given component.
 
   This starts a Python interpreter with a "-u" argument (to turn off output
@@ -188,12 +189,13 @@ GRRConfigs = collections.namedtuple("GRRConfigs", [
 ])
 
 
-def InitGRRConfigs(mysql_database: str,
-                   mysql_username: Optional[str] = None,
-                   mysql_password: Optional[str] = None,
-                   logging_path: Optional[str] = None,
-                   osquery_path: Optional[str] = None,
-                   with_fleetspeak: bool = False) -> GRRConfigs:
+def InitGRRConfigs(
+    mysql_database: str,
+    mysql_username: Optional[str] = None,
+    mysql_password: Optional[str] = None,
+    logging_path: Optional[str] = None,
+    osquery_path: Optional[str] = None,
+) -> GRRConfigs:
   """Initializes server and client config files."""
 
   # Create 2 temporary files to contain server and client configuration files
@@ -236,9 +238,6 @@ def InitGRRConfigs(mysql_database: str,
   if osquery_path is not None:
     config_writer_flags.extend(["--config_osquery_path", osquery_path])
 
-  if with_fleetspeak:
-    config_writer_flags.extend(["--config_with_fleetspeak"])
-
   p = _StartComponent(
       "grr_response_test.lib.self_contained_config_writer",
       config_writer_flags)
@@ -249,18 +248,24 @@ def InitGRRConfigs(mysql_database: str,
   return GRRConfigs(built_server_config_path, built_client_config_path)
 
 
-FleetspeakConfigs = collections.namedtuple("FleetspeakConfigs", [
-    "server_components_config",
-    "server_services_config",
-    "client_config",
-])
+FleetspeakConfigs = collections.namedtuple(
+    "FleetspeakConfigs",
+    [
+        "server_components_config",
+        "server_services_config",
+        "client_config",
+        "logging_path",
+    ],
+)
 
 
 def InitFleetspeakConfigs(
     grr_configs: GRRConfigs,
     mysql_database: str,
     mysql_username: Optional[str] = None,
-    mysql_password: Optional[str] = None) -> FleetspeakConfigs:
+    mysql_password: Optional[str] = None,
+    logging_path: Optional[str] = None,
+) -> FleetspeakConfigs:
   """Initializes Fleetspeak server and client configs."""
 
   fs_frontend_port, fs_admin_port = api_helpers.GetFleetspeakPortsFromConfig(
@@ -279,9 +284,6 @@ def InitFleetspeakConfigs(
       mysql_username, mysql_password, mysql_database)
   cp.components_config.https_config.listen_address = "localhost:%d" % portpicker.pick_unused_port(
   )
-  # TODO(user): Use streaming connections by default. At the moment
-  # a few tests are failing with MySQL errors when streaming is used.
-  cp.components_config.https_config.disable_streaming = True
   cp.components_config.admin_config.listen_address = ("localhost:%d" %
                                                       fs_admin_port)
   cp.public_host_port.append(cp.components_config.https_config.listen_address)
@@ -320,17 +322,18 @@ def InitFleetspeakConfigs(
   service_conf = system_pb2.ClientServiceConfig(name="GRR", factory="Daemon")
   payload = daemonservice_config_pb2.Config()
   payload.argv.extend([
-      sys.executable, "-u", "-m",
+      sys.executable,
+      "-u",
+      "-m",
       "grr_response_client.grr_fs_client",
-      "--config", grr_configs.client_config
+      "--config",
+      grr_configs.client_config,
+      "--verbose",
   ])
 
-  # TODO(user): remove this condition when Fleetspeak is used as a nanny
-  # on all platforms.
-  if platform.system() == "Windows":
-    payload.monitor_heartbeats = True
-    payload.heartbeat_unresponsive_grace_period_seconds = 45
-    payload.heartbeat_unresponsive_kill_period_seconds = 15
+  payload.monitor_heartbeats = True
+  payload.heartbeat_unresponsive_grace_period_seconds = 45
+  payload.heartbeat_unresponsive_kill_period_seconds = 120
   service_conf.config.Pack(payload)
 
   os.mkdir(TempPath("textservices"))
@@ -352,70 +355,74 @@ def InitFleetspeakConfigs(
       built_server_services_config_path, mode="w", encoding="utf-8") as fd:
     fd.write(text_format.MessageToString(server_conf))
 
-  return FleetspeakConfigs(cp.server_component_configuration_file,
-                           built_server_services_config_path,
-                           cp.linux_client_configuration_file)
+  return FleetspeakConfigs(
+      cp.server_component_configuration_file,
+      built_server_services_config_path,
+      cp.linux_client_configuration_file,
+      logging_path,
+  )
 
 
 def StartServerProcesses(
     grr_configs: GRRConfigs,
-    fleetspeak_configs: Optional[FleetspeakConfigs] = None,
+    fleetspeak_configs: FleetspeakConfigs,
 ) -> List[subprocess.Popen]:
   """Starts GRR server processes (optionally behind Fleetspeak frontend)."""
 
-  def Args():
+  fleetspeak_server_args = [
+      "-v",
+      "2",
+      "-components_config",
+      fleetspeak_configs.server_components_config,
+      "-services_config",
+      fleetspeak_configs.server_services_config,
+  ]
+  if fleetspeak_configs.logging_path is not None:
+    fleetspeak_server_args.extend(["-log_dir", fleetspeak_configs.logging_path])
+
+  def GrrArgs():
     return _GetServerComponentArgs(grr_configs.server_config)
 
-  if fleetspeak_configs is None:
-    return [
-        _StartComponent(
-            "grr_response_server.gui.admin_ui",
-            Args()),
-        _StartComponent(
-            "grr_response_server.bin.frontend",
-            Args()),
-        _StartComponent(
-            "grr_response_server.bin.worker",
-            Args()),
-    ]
-  else:
-    return [
-        _StartBinary("fleetspeak-server", [
-            "-logtostderr",
-            "-components_config",
-            fleetspeak_configs.server_components_config,
-            "-services_config",
-            fleetspeak_configs.server_services_config,
-        ]),
-        _StartComponent(
-            "grr_response_server.bin.fleetspeak_frontend",
-            Args()),
-        _StartComponent(
-            "grr_response_server.gui.admin_ui",
-            Args()),
-        _StartComponent(
-            "grr_response_server.bin.worker",
-            Args()),
-    ]
+  return [
+      _StartBinary(
+          "fleetspeak-server",
+          fleetspeak_server_args,
+      ),
+      _StartComponent(
+          "grr_response_server.bin.fleetspeak_frontend",
+          GrrArgs(),
+      ),
+      _StartComponent(
+          "grr_response_server.gui.admin_ui",
+          GrrArgs(),
+      ),
+      _StartComponent(
+          "grr_response_server.bin.worker",
+          GrrArgs(),
+      ),
+  ]
 
 
-def StartClientProcess(grr_configs: GRRConfigs,
-                       fleetspeak_configs: Optional[FleetspeakConfigs] = None,
-                       verbose: bool = False) -> subprocess.Popen:
+def StartClientProcess(
+    fleetspeak_configs: FleetspeakConfigs,
+) -> subprocess.Popen[bytes]:
   """Starts a GRR client or Fleetspeak client configured to run GRR."""
 
-  if fleetspeak_configs is None:
-    return _StartComponent(
-        "grr_response_client.client",
-        ["--config", grr_configs.client_config] +
-        (["--verbose"] if verbose else []))
-  else:
-    return _StartBinary("fleetspeak-client", [
-        "-logtostderr",
-        "-std_forward",
-        "-config",
-        fleetspeak_configs.client_config,
-    ])
+  fleetspeak_client_args = [
+      "-v",
+      "2",
+      "-std_forward",
+      "-config",
+      fleetspeak_configs.client_config,
+  ]
+
+  if fleetspeak_configs.logging_path is not None:
+    fleetspeak_client_args.extend(["-log_dir", fleetspeak_configs.logging_path])
+
+  return _StartBinary(
+      "fleetspeak-client",
+      fleetspeak_client_args,
+  )
 
 
 def RunEndToEndTests(client_id: str,

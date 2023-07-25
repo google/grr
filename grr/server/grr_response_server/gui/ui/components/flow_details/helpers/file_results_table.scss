@@ -1,8 +1,8 @@
 @use '@angular/material' as mat;
 @use '../../../material-theme' as c;
 
-.mat-cell,
-.mat-header-cell {
+.mat-mdc-cell,
+.mat-mdc-header-cell {
   border-color: mat.get-color-from-palette(c.$foreground, divider-light);
   color: mat.get-color-from-palette(c.$foreground, text-light);
   padding: 0.5em 0.25em;

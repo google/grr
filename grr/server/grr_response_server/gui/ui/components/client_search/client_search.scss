@@ -6,12 +6,12 @@
   padding: 50px 50px 0;
 }
 
-.mat-row:hover {
+.mat-mdc-row:hover {
   cursor: pointer;
   background: #f0f0f0;
 }
 
-td mat-chip-list {
+td mat-chip-set {
   display: inline-block;
   /* When clicking on a label/online-indicator, do not intercept the click but
      pass it through to the row, which links to the client. */

@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """Helper for running end-to-end tests."""
+import datetime
 import getpass
 import inspect
 import logging
+import math
 import os
+import sys
 import time
 import unittest
 
@@ -12,6 +15,7 @@ import requests
 
 from grr_api_client import api
 from grr_response_core.lib import package
+from grr_response_core.lib.util import retry
 from grr_response_server import maintenance_utils
 from grr_response_test.end_to_end_tests import test_base
 
@@ -116,19 +120,26 @@ class E2ETestRunner(object):
 
   def _GetUploadedBinaries(self):
     """Fetches all binaries that have been uploaded to GRR."""
-    start_time = time.time()
-    while True:
-      try:
-        return {item.path for item in self._grr_api.ListGrrBinaries()}
-      except requests.ConnectionError as e:
-        if time.time() - start_time > self._api_retry_deadline_secs:
-          logging.error("Timeout of %d seconds exceeded.",
-                        self._api_retry_deadline_secs)
-          raise
-        logging.error("Encountered error trying to connect to GRR API: %s",
-                      e.args)
-      logging.info("Retrying in %d seconds...", self._api_retry_period_secs)
-      time.sleep(self._api_retry_period_secs)
+    if self._api_retry_deadline_secs == 0.0:
+      attempts = 1
+    elif self._api_retry_period_secs == 0.0:
+      attempts = sys.maxsize
+    else:
+      attempts = math.ceil(
+          self._api_retry_deadline_secs / self._api_retry_period_secs
+      )
+
+    @retry.On(
+        requests.ConnectionError,
+        opts=retry.Opts(
+            attempts=attempts,
+            init_delay=datetime.timedelta(seconds=self._api_retry_period_secs),
+        ),
+    )
+    def Retry():
+      return {item.path for item in self._grr_api.ListGrrBinaries()}
+
+    return Retry()
 
   def _UploadBinary(self, bin_name, server_path):
     """Uploads a binary from the GRR installation dir to the datastore."""
@@ -218,31 +229,35 @@ class E2ETestRunner(object):
     def DeadlineExceeded():
       return time.time() - start_time > self._api_retry_deadline_secs
 
-    while True:
-      try:
-        client = self._grr_api.Client(client_id).Get()
+    @retry.When(
+        requests.ConnectionError,
+        lambda _: not DeadlineExceeded(),
+        opts=retry.Opts(
+            attempts=sys.maxsize,  # Limited by deadline.
+            init_delay=datetime.timedelta(seconds=self._api_retry_period_secs),
+        ),
+    )
+    def Retry():
+      client = self._grr_api.Client(client_id).Get()
 
-        # Even though an interrogate will be launched when client enrolls,
-        # make sure that it's interrogated when running our tests.
-        interrogate_flow = client.CreateFlow(
-            name="Interrogate",
-            runner_args=self._grr_api.types.CreateFlowRunnerArgs())
-        logging.info(
-            "Launched Interrogate flow (%s) to retrieve system info "
-            "from %s.", interrogate_flow.flow_id, client.client_id)
-        interrogate_flow.WaitUntilDone(timeout=self._api_retry_deadline_secs)
+      # Even though an interrogate will be launched when client enrolls,
+      # make sure that it's interrogated when running our tests.
+      interrogate_flow = client.CreateFlow(
+          name="Interrogate",
+          runner_args=self._grr_api.types.CreateFlowRunnerArgs(),
+      )
+      logging.info(
+          "Launched Interrogate flow (%s) to retrieve system info from %s.",
+          interrogate_flow.flow_id,
+          client.client_id,
+      )
+      interrogate_flow.WaitUntilDone(timeout=self._api_retry_deadline_secs)
 
-        # Return the client object with fresh information that should
-        # be up-to-date after the Interrogate is done.
-        return client.Get()
-      except requests.ConnectionError as e:
-        if DeadlineExceeded():
-          raise
-        logging.error("Encountered error trying to connect to GRR API: %s",
-                      e.args)
+      # Return the client object with fresh information that should
+      # be up-to-date after the Interrogate is done.
+      return client.Get()
 
-      logging.info("Retrying in %d seconds...", self._api_retry_period_secs)
-      time.sleep(self._api_retry_period_secs)
+    return Retry()
 
   def _GetApplicableTests(self, client):
     """Returns all e2e test methods that should be run against the client."""

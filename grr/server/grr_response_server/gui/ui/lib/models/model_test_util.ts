@@ -1,6 +1,6 @@
 /** Test helpers. */
 // tslint:disable:enforce-comments-on-exported-symbols
-import {ForemanClientRuleSet, ForemanClientRuleSetMatchMode, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../lib/api/api_interfaces';
+import {ApiHuntStateReason, ForemanClientRuleSet, ForemanClientRuleSetMatchMode, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../lib/api/api_interfaces';
 import {Client, ClientApproval} from '../../lib/models/client';
 import {Approval} from '../../lib/models/user';
 import {Duration} from '../date_time';
@@ -24,7 +24,6 @@ function randomHex(length: number): string {
 export function newClient(args: Partial<Client> = {}): Client {
   return {
     clientId: 'C.1234567890',
-    fleetspeakEnabled: true,
     knowledgeBase: {},
     osInfo: {},
     agentInfo: {},
@@ -232,15 +231,20 @@ export function newClientRuleSet(clientRuleSet: Partial<ForemanClientRuleSet>):
 
 export function newSafetyLimits(limits: Partial<SafetyLimits>): SafetyLimits {
   return {
-    cpuLimit: limits.cpuLimit ?? BigInt(33),
-    networkBytesLimit: limits.networkBytesLimit ?? BigInt(345),
     clientRate: limits.clientRate ?? 60,
+    expiryTime: limits.expiryTime ?? BigInt(32),
     clientLimit: limits.clientLimit ?? BigInt(200),
     crashLimit: limits.crashLimit ?? BigInt(55),
-    avgResultsPerClientLimit: limits.cpuLimit ?? BigInt(99),
-    avgCpuSecondsPerClientLimit: limits.cpuLimit ?? BigInt(20),
-    avgNetworkBytesPerClientLimit: limits.cpuLimit ?? BigInt(59),
-    expiryTime: limits.expiryTime ?? BigInt(32),
+
+    avgResultsPerClientLimit: limits.avgResultsPerClientLimit ?? BigInt(99),
+    avgCpuSecondsPerClientLimit:
+        limits.avgCpuSecondsPerClientLimit ?? BigInt(20),
+    avgNetworkBytesPerClientLimit:
+        limits.avgNetworkBytesPerClientLimit ?? BigInt(59),
+
+    perClientCpuLimit: limits.perClientCpuLimit ?? BigInt(345),
+    perClientNetworkBytesLimit:
+        limits.perClientNetworkBytesLimit ?? BigInt(345),
     ...limits,
   };
 }
@@ -268,6 +272,7 @@ export function newHunt(hunt: Partial<Hunt>): Hunt {
     remainingClientsCount: hunt.remainingClientsCount ?? BigInt(190),
     resultsCount: hunt.resultsCount ?? BigInt(55),
     state: hunt.state ?? HuntState.RUNNING,
+    stateReason: hunt.stateReason ?? ApiHuntStateReason.UNKNOWN,
     resourceUsage: {
       totalCPUTime: hunt.resourceUsage?.totalCPUTime ?? 12.3,
       totalNetworkTraffic: BigInt(hunt.resourceUsage?.totalNetworkTraffic ?? 0),

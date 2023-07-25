@@ -1,4 +1,3 @@
-@use '@angular/material' as mat-deprecated;
 @use '@angular/material' as mat;
 @use './material-theme' as c;
 
@@ -6,15 +5,16 @@
 
 // Initialize Angular material theme.
 // Include non-theme styles for core.
-@include mat-deprecated.all-legacy-component-typographies($custom-typography);
 @include mat.core();
 // Include all theme-styles for the components based on the current theme.
-@include mat-deprecated.all-legacy-component-themes($theme);
-@include mat.progress-bar-theme($theme);
+@include mat.all-component-themes($theme);
+// Include typography for the components.
+@include mat.all-component-typographies(c.$custom-mdc-typography);
 
 $toolbar-height: 64px;
 
 $success-progress-bar-color: mat.get-color-from-palette(c.$foreground, success);
+$chips-icon-size: 20px;
 
 app,
 body,
@@ -23,6 +23,8 @@ html {
   height: 100%;
   margin: 0;
   width: 100%;
+  /* Fallback font family: */
+  font-family: c.$roboto-family;
 }
 
 .flow-details-summary-actions {
@@ -33,37 +35,45 @@ html {
 }
 
 .monospace,
-.mat-input-element.monospace {
+input.mat-mdc-input-element.monospace,
+input.mat-mdc-form-field-input-control.monospace {
   font-family: 'Roboto Mono', monospace;
 }
 
-// Flow search results appear on a CDK overlay layer, so their styling has
-// to be defined globally.
-.flow-search-results {
-  .mat-optgroup-label {
-    background-color: mat.get-color-from-palette(
-      $background,
-      darker-background
-    );
-    line-height: 24px;
-    height: 24px;
-  }
-
-  .mat-optgroup .mat-option:not(.mat-option-multiple) {
-    padding-left: 16px;
-    height: 50px;
-    line-height: 24px;
-  }
+/* We remove the padding for Angular Material Autocomplete and Select
+components' List Options container */
+.mat-mdc-autocomplete-panel.mat-mdc-autocomplete-visible,
+.mat-mdc-select-panel.mat-mdc-select-panel {
+  padding: 0;
 }
 
-.mat-error {
+.mat-mdc-option.mat-mdc-option-active.mat-mdc-option-active,
+.mat-mdc-option:hover:not([disabled="false"]) {
+  background-color: mat.get-color-from-palette(c.$background, hover);
+}
+
+/* Angular material Form Field overrides */
+/* By default Form Field inputs inherit the `subtitle-1` typography level,
+which is supposed to be used only for <h3> elements, as mentioned here:
+- https://material.angular.io/guide/typography#typography-levels
+We override this for the input fonts not to look gigantic.*/
+input.mat-mdc-form-field-input-control.mat-mdc-input-element {
+  font-weight: 400;
+  font-size: 14px;
+}
+
+.mat-mdc-form-field-error {
   font-family: $google-sans-display-family;
 }
 
-.progress-spinner-button .mat-progress-spinner,
-.progress-spinner-button mat-spinner {
-  display: inline-block;
-  margin-right: $button-horizontal-padding;
+.progress-spinner-button .progress-spinner-button-label-container {
+  display: flex;
+  align-items: center;
+  column-gap: 10px;
+}
+
+.mat-mdc-outlined-button.white-background {
+  background-color: white;
 }
 
 mat-progress-bar.mat-success {
@@ -79,13 +89,17 @@ mat-progress-bar.mat-success {
   }
 }
 
-.mat-card.mat-card-outlined {
-  border: 1px solid #d8dade;
-  box-shadow: none;
-  border-radius: 8px;
+.mat-mdc-card {
+  padding: 16px;
+
+  &.mat-card-outlined {
+    border: 1px solid #d8dade;
+    box-shadow: none;
+    border-radius: 8px;
+  }
 }
 
-a:any-link {
+a:any-link:not(.mat-mdc-button-base) {
   color: inherit;
   text-decoration: none;
 }
@@ -100,8 +114,8 @@ a.text-link-hover:hover {
   white-space: nowrap;
   display: flex;
 
-  & > .mat-stroked-button,
-  & > .mat-button-base {
+  & > .mat-mdc-outlined-button,
+  & > .mat-mdc-button-base {
     &:first-child:not(:last-child) {
       border-top-right-radius: 0;
       border-bottom-right-radius: 0;
@@ -121,22 +135,27 @@ a.text-link-hover:hover {
   }
 }
 
-.mat-chip,
-.mat-chip.mat-standard-chip {
-  min-height: 26px;
-  font-size: 13px;
-  line-height: 15px;
-  font-weight: 500;
+.mat-mdc-form-field [mat-icon-button] .mat-icon {
+  font-size: 24px;
+  line-height: 1;
+}
 
-  mat-icon {
-    font-size: 14px;
-    height: 14px;
-    width: 14px;
+/* Angular Material Chip component overrides: */
+.mat-mdc-chip {
+  .mat-mdc-chip-action-label {
+    display: inline-flex;
+  }
+
+  mat-icon:not(.mat-mdc-chip-remove) {
+    font-size: $chips-icon-size;
+    height: $chips-icon-size;
+    width: $chips-icon-size;
     margin-right: 0.3em;
   }
 
   mat-spinner {
-    margin-right: 0.3em;
+    margin-right: 10px;
+    top: 3px;
   }
 
   .subtitle {
@@ -144,39 +163,48 @@ a.text-link-hover:hover {
     color: mat.get-color-from-palette(c.$foreground, text-light);
     padding-left: 0.4em;
   }
+
+  &.green-chip {
+    --mdc-chip-elevated-container-color: #{mat.get-color-from-palette(
+        c.$foreground,
+        success-light
+      )};
+    --mdc-chip-label-text-color: #{mat.get-color-from-palette(
+        c.$foreground,
+        text
+      )};
+  }
+
+  &.yellow-chip {
+    --mdc-chip-elevated-container-color: #{mat.get-color-from-palette(
+        c.$foreground,
+        in-progress
+      )};
+    --mdc-chip-label-text-color: #{mat.get-color-from-palette(
+        c.$foreground,
+        text
+      )};
+  }
+
+  &.red-chip {
+    --mdc-chip-elevated-container-color: #{mat.get-color-from-palette(
+        c.$foreground,
+        danger-light
+      )};
+    --mdc-chip-label-text-color: white;
+  }
+
+  &.dark-chip {
+    --mdc-chip-elevated-container-color: #{mat.get-color-from-palette(
+        c.$foreground,
+        divider
+      )};
+    --mdc-chip-label-text-color: white;
+  }
 }
 
-a:any-link .mat-chip,
-a:any-link .mat-standard-chip {
+a:any-link mat-chip span {
   cursor: inherit;
-}
-
-.green-chip,
-.mat-chip.green-chip {
-  background-color: mat.get-color-from-palette(c.$foreground, success-light);
-  color: mat.get-color-from-palette(c.$foreground, text);
-}
-
-.yellow-chip,
-.mat-chip.yellow-chip {
-  background-color: mat.get-color-from-palette(c.$foreground, in-progress);
-  color: mat.get-color-from-palette(c.$foreground, text);
-}
-
-.red-chip,
-.mat-chip.red-chip {
-  background-color: mat.get-color-from-palette(c.$foreground, danger-light);
-  color: white;
-}
-
-.dark-chip,
-.mat-chip.dark-chip {
-  background-color: mat.get-color-from-palette(c.$foreground, divider);
-  color: white;
-}
-
-.mat-chip.mat-standard-chip.mat-chip-disabled {
-  opacity: initial;
 }
 
 mat-option {
@@ -193,9 +221,13 @@ mat-option {
 }
 
 // Stretch checkboxes in mat-menu to the full width.
-.mat-menu-content mat-checkbox {
+.mat-mdc-menu-content mat-checkbox {
   box-sizing: border-box;
   width: 100%;
+}
+
+mat-checkbox.mat-mdc-checkbox {
+  --mdc-checkbox-selected-checkmark-color: white;
 }
 
 [hidden] {
@@ -258,14 +290,14 @@ mat-option {
   font-size: 14px;
   width: 100%;
 
-  .mat-header-cell {
+  .mat-mdc-header-cell {
     border-bottom: none;
     font-weight: 500;
     font-size: inherit;
   }
 
-  .mat-cell,
-  .mat-header-cell {
+  .mat-mdc-cell,
+  .mat-mdc-header-cell {
     padding: 0.5em 0.25em;
 
     &:last-of-type {
@@ -277,8 +309,8 @@ mat-option {
     }
   }
 
-  .mat-row:last-child .mat-cell,
-  tr:last-child .mat-cell {
+  .mat-mdc-row:last-child .mat-mdc-cell,
+  tr:last-child .mat-mdc-cell {
     border-bottom: none;
   }
 
@@ -301,9 +333,11 @@ mat-option {
     }
   }
 
-  .mat-cell > mat-icon,
+  .mat-mdc-cell > mat-icon,
   td > mat-icon {
     font-size: 16px;
+    height: 16px;
+    width: 16px;
   }
 
   .number {
@@ -323,25 +357,30 @@ mat-option {
 /* This block disables any interaction with the Flow Arg Forms */
 flow-details app-flow-args-view {
   button,
-  .mat-button,
-  .mat-icon-button,
-  .mat-stroked-button,
-  .mat-flat-button
-    .mat-form-field:not(.mat-form-field-appearance-legacy)
+  .mat-mdc-button,
+  .mat-mdc-icon-button,
+  .mat-mdc-outlined-button,
+  .mat-mdc-flat-button
+    .mat-mdc-form-field:not(.mat-form-field-appearance-legacy)
     .mat-form-field-prefix
-    .mat-icon-button,
-  .mat-form-field:not(.mat-form-field-appearance-legacy)
+    .mat-mdc-icon-button,
+  .mat-mdc-form-field:not(.mat-form-field-appearance-legacy)
     .mat-form-field-suffix
-    .mat-icon-button {
+    .mat-mdc-icon-button {
     display: none;
   }
-  .mat-form-field {
+  .mat-mdc-form-field,
+  mat-radio-group,
+  mat-checkbox,
+  .mat-mdc-form-field .mat-mdc-floating-label[matformfieldfloatinglabel],
+  .mat-mdc-form-field-icon-prefix,
+  .mat-mdc-form-field-icon-suffix {
     pointer-events: none;
   }
 
   /* We are interested in showing the OS file flag buttons in disabled mode: */
   ext-flags-condition {
-    .mat-button {
+    .mat-mdc-button {
       display: block;
       pointer-events: none;
     }
@@ -418,17 +457,70 @@ therefore we need to define these styles outside of the Client Overview Cmp. */
   }
 }
 
-.mat-menu-item .mat-icon.mat-icon-inline {
+.mat-mdc-menu-item .mat-icon.mat-icon-inline {
   width: 24px;
   margin-right: 0;
 }
 
-mat-chip-list .mat-button {
-  border-radius: 2em;
-  line-height: 26px;
-  padding: 0 12px 0 6px;
-}
-
 .extra-scrolling-space {
   padding-bottom: 200px;
+}
+
+/* Angular Material table overrides */
+.mat-mdc-table {
+  .mat-mdc-row {
+    --mat-table-row-item-label-text-size: 14px;
+
+    .mat-mdc-cell {
+      --mat-table-row-item-outline-color: #{mat.get-color-from-palette(
+          c.$foreground,
+          divider-light
+        )};
+    }
+  }
+
+  .mat-mdc-header-row {
+    --mat-table-header-headline-size: 12px;
+    --mat-table-header-headline-weight: 400;
+    --mat-table-header-headline-color: #{mat.get-color-from-palette(
+        c.$foreground,
+        text-light
+      )};
+    --mat-table-header-headline-font: $roboto-family;
+  }
+
+  &.no-intra-cell-paddings .mat-mdc-row .mat-mdc-cell {
+    &:not(:first-of-type) {
+      padding-left: 0;
+    }
+
+    &:not(:last-of-type) {
+      padding-right: 0;
+    }
+  }
+}
+
+.mat-mdc-tab-link,
+.mat-mdc-tab {
+  --mat-tab-header-inactive-label-text-color: rgba(0, 0, 0, 1);
+  --mat-tab-header-inactive-focus-label-text-color: rgba(0, 0, 0, 1);
+  --mat-tab-header-inactive-hover-label-text-color: rgba(0, 0, 0, 1);
+}
+
+body .mat-button-toggle-group,
+body .mat-button-toggle-group:not([class*='mat-elevation-z']),
+body mat-button-toggle-group.mat-button-toggle-group {
+  border-radius: 4px;
+  box-shadow: none;
+
+  .mat-button-toggle {
+    border: 0.5px solid mat.get-color-from-palette(mat.$grey-palette, 300);
+    background-color: mat.get-color-from-palette(mat.$grey-palette, 300);
+    color: mat.get-color-from-palette(mat.$blue-palette, 700);
+  }
+
+  .mat-button-toggle-checked {
+    background-color: mat.get-color-from-palette(mat.$grey-palette, 700);
+    color: white;
+  }
 }

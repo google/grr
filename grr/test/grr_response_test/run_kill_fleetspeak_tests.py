@@ -67,16 +67,19 @@ def main(argv):
       mysql_username=_MYSQL_USERNAME.value,
       mysql_password=_MYSQL_PASSWORD.value,
       logging_path=_LOGGING_PATH.value,
-      with_fleetspeak=True)
+  )
 
   fleetspeak_configs = self_contained_components.InitFleetspeakConfigs(
       grr_configs,
       _FLEETSPEAK_MYSQL_DATABASE.value,
       mysql_username=_MYSQL_USERNAME.value,
-      mysql_password=_MYSQL_PASSWORD.value)
+      mysql_password=_MYSQL_PASSWORD.value,
+      logging_path=_LOGGING_PATH.value,
+  )
 
   server_processes = self_contained_components.StartServerProcesses(
-      grr_configs=grr_configs, fleetspeak_configs=fleetspeak_configs)
+      grr_configs, fleetspeak_configs
+  )
 
   api_port = api_helpers.GetAdminUIPortFromConfig(grr_configs.server_config)
 
@@ -85,8 +88,7 @@ def main(argv):
   if list(grr_api.SearchClients()):
     raise Exception("This tests expects to be run on an empty database.")
 
-  client_p = self_contained_components.StartClientProcess(
-      grr_configs=grr_configs, fleetspeak_configs=fleetspeak_configs)
+  client_p = self_contained_components.StartClientProcess(fleetspeak_configs)
 
   client_id = api_helpers.WaitForClientToEnroll(grr_api)
 
@@ -139,8 +141,7 @@ def main(argv):
   print("Fleetspeak client terminated.")
 
   print("Restarting fleetspeak client.")
-  client_p = self_contained_components.StartClientProcess(
-      grr_configs=grr_configs, fleetspeak_configs=fleetspeak_configs)
+  client_p = self_contained_components.StartClientProcess(fleetspeak_configs)
 
   print("Running Interrogate flow 3.")
   result = RunInterrogate(grr_api, client_id)
@@ -160,8 +161,7 @@ def main(argv):
   print("Fleetspeak client terminated.")
 
   print("Restarting fleetspeak client.")
-  client_p = self_contained_components.StartClientProcess(
-      grr_configs=grr_configs, fleetspeak_configs=fleetspeak_configs)
+  client_p = self_contained_components.StartClientProcess(fleetspeak_configs)
 
   print("Running Interrogate flow 4.")
   result = RunInterrogate(grr_api, client_id)

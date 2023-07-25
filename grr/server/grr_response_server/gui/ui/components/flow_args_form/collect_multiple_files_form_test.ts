@@ -1,4 +1,4 @@
-import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {fakeAsync, flush, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {ReactiveFormsModule} from '@angular/forms';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -268,6 +268,20 @@ describe('CollectMultipleFilesForm', () => {
              .toBe('expressionTest1');
          expect(pathExpressionInputs[1].nativeElement.value)
              .toBe('expressionTest2');
+
+         /* We need to flush due to getting the following error otherwise:
+
+          `Error: 1 timer(s) still in the queue`
+
+          This happens due to MatFormFieldFloatingLabel running the
+          following:
+
+          `setTimeout(() => this._parent._handleLabelResized());`
+
+          When GlobExpressionInput component gets rendered, as we autofocus the
+          HTML Input element through FlowArgumentForm Component.
+         */
+         flush();
        }));
 
     it('should not add any path expression', () => {
@@ -342,6 +356,20 @@ describe('CollectMultipleFilesForm', () => {
          const regexModeInput = fixture.debugElement.query(
              By.css('regex-match-condition [name=mode]'));
          expect(regexModeInput.nativeElement.innerText).toBe('All Hits');
+
+         /* We need to flush due to getting the following error otherwise:
+
+         `Error: 1 timer(s) still in the queue`
+
+          This happens due to MatFormFieldFloatingLabel running the
+          following:
+
+          `setTimeout(() => this._parent._handleLabelResized());`
+
+          When RegexMatchCondition component gets rendered, as we autofocus the
+          HTML Input element through FlowArgumentForm Component.
+         */
+         flush();
        }));
 
     it('should not show a regex match condition', () => {
@@ -394,6 +422,21 @@ describe('CollectMultipleFilesForm', () => {
          const modeInput = fixture.debugElement.query(
              By.css('literal-match-condition [name=literalMode]'));
          expect(modeInput.nativeElement.innerText).toBe('All Hits');
+
+         /* We need to flush due to getting the following error otherwise:
+
+          `Error: 1 timer(s) still in the queue`
+
+          This happens due to MatFormFieldFloatingLabel running the
+          following:
+
+          `setTimeout(() => this._parent._handleLabelResized());`
+
+          When LiteralMatchCondition component gets rendered, as we autofocus
+          the HTML Input element through FlowArgumentForm Component.
+
+          */
+         flush();
        }));
 
     it('should not show a literal match condition', () => {
@@ -898,6 +941,20 @@ describe('CollectMultipleFilesForm', () => {
          for (const index of blockedOSXFlagIndexes) {
            expect(osxFlags[index].nativeElement.innerText).toBe('block');
          }
+
+         /* We need to flush due to getting the following error otherwise:
+
+          `Error: 1 timer(s) still in the queue`
+
+          This happens due to MatFormFieldFloatingLabel running the
+          following:
+
+          `setTimeout(() => this._parent._handleLabelResized());`
+
+          When ExtFlagsCondition component get rendered, as we autofocus
+          the HTML Input element through FlowArgumentForm Component.
+          */
+         flush();
        }));
   });
 });

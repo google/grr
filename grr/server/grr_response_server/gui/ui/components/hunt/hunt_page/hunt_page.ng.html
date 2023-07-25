@@ -5,9 +5,9 @@
         <h1 titleEditable>{{ getHuntTitle(hunt$ | async) }}</h1>
       </title-editor>
       <div class="chips">
-        <mat-chip-list [selectable]="false" [tabIndex]="-1">
+        <mat-chip-set [tabIndex]="-1" role="list">
           <app-hunt-status-chip [hunt]="hunt$ | async"></app-hunt-status-chip>
-        </mat-chip-list>
+        </mat-chip-set>
       </div>
     </div>
 
@@ -68,7 +68,8 @@
 
     <div class="collapsed-info">
       <hunt-flow-arguments class="args" [hunt]="hunt$ | async" [hidden]="hideFlowArgs"></hunt-flow-arguments>
-      <button mat-flat-button
+      <button mat-button
+                color="primary"
                 type="button"
                 class="flow-params-button"
                 (click)="toggleFlowArgs()"
@@ -79,13 +80,13 @@
     </div>
 
     <div class="actions mb-1">
-      <span matTooltip="You must have approval to start the collection"
-          [matTooltipDisabled]="(hasAccess$ | async) === true">
+      <span *ngIf="(hunt$ | async)?.state === HuntState.NOT_STARTED"
+        matTooltip="You must have approval to start the collection"
+        [matTooltipDisabled]="(hasAccess$ | async) === true">
         <button
-          *ngIf="(hunt$ | async)?.state === HuntState.NOT_STARTED"
           mat-flat-button
-          type="button"
           color="primary"
+          class="white-background"
           name="start-button"
           (click)="startHunt()"
           [disabled]="(hasAccess$ | async) === false"
@@ -94,31 +95,29 @@
         </button>
       </span>
 
-      <span matTooltip="You must have approval to change the collection"
-          [matTooltipDisabled]="(hasAccess$ | async) === true">
-        <a
-        *ngIf="(hunt$ | async)?.state === HuntState.REACHED_CLIENT_LIMIT || (hunt$ | async)?.state === HuntState.NOT_STARTED"
-          name="modify-button"
-          [drawerLink]="['modify-hunt']"
-        >
-          <button mat-stroked-button color="primary"
+      <span *ngIf="(hunt$ | async)?.state === HuntState.REACHED_CLIENT_LIMIT || (hunt$ | async)?.state === HuntState.NOT_STARTED"
+        matTooltip="You must have approval to change the collection"
+        [matTooltipDisabled]="(hasAccess$ | async) === true">
+        <a name="modify-button" [drawerLink]="['modify-hunt']">
+          <button mat-stroked-button color="primary" class="white-background"
               *ngIf="(hunt$ | async)?.state === HuntState.NOT_STARTED"
               [disabled]="(hasAccess$ | async) === false"
             >Change rollout parameters and start</button>
-          <button mat-flat-button color="primary"
+          <button mat-flat-button color="primary" class="white-background"
               *ngIf="(hunt$ | async)?.state === HuntState.REACHED_CLIENT_LIMIT"
               [disabled]="(hasAccess$ | async) === false"
             >Change rollout parameters and continue</button>
         </a>
       </span>
 
-      <span matTooltip="You must have approval to stop the collection"
-          [matTooltipDisabled]="(hasAccess$ | async) === true">
+      <span *ngIf="(hunt$ | async)?.state === HuntState.RUNNING || (hunt$ | async)?.state === HuntState.REACHED_CLIENT_LIMIT || (hunt$ | async)?.state === HuntState.NOT_STARTED"
+        matTooltip="You must have approval to stop the collection"
+        [matTooltipDisabled]="(hasAccess$ | async) === true">
         <button
-          *ngIf="(hunt$ | async)?.state === HuntState.RUNNING || (hunt$ | async)?.state === HuntState.REACHED_CLIENT_LIMIT || (hunt$ | async)?.state === HuntState.NOT_STARTED"
           mat-stroked-button
           type="button"
           color="primary"
+          class="white-background"
           name="cancel-button"
           (click)="cancelHunt()"
           [disabled]="(hasAccess$ | async) === false"
@@ -132,6 +131,7 @@
           mat-stroked-button
           type="button"
           color="primary"
+          class="white-background"
           name="copy-button"
           (click)="copyHunt()"
         >
@@ -162,15 +162,15 @@
     </ng-container>
 
     <ng-container *ngIf="hunt.state === HuntState.NOT_STARTED">
-      <mat-chip-list class="m1">
+      <mat-chip-set class="m1" role="list">
         <mat-chip
             class="yellow-chip"
-            color="custom"
+            role="listitem"
             matTooltip="This fleet cllection has not started yet! To start it, click the 'Start collection' button above."
-            disabled
+            [disableRipple]="true"
             ><mat-icon>warning</mat-icon>This collection has not started yet! To start it, click the "Start collection" button. </mat-chip
           >
-      </mat-chip-list>
+      </mat-chip-set>
       <hunt-flow-arguments [hunt]="hunt$ | async"></hunt-flow-arguments>
       <hunt-arguments [hunt]="hunt$ | async"></hunt-arguments>
     </ng-container>

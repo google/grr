@@ -12,7 +12,6 @@ from typing import Text
 
 
 from grr_response_core.lib import interpolation
-from grr_response_core.lib import objectfilter
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 
 
@@ -264,27 +263,6 @@ def ExpandWindowsEnvironmentVariables(data_string, knowledge_base):
     offset = match.end()
   components.append(data_string[offset:])  # Append the final chunk.
   return "".join(components)
-
-
-def CheckCondition(condition, check_object):
-  """Check if a condition matches an object.
-
-  Args:
-    condition: A string condition e.g. "os == 'Windows'"
-    check_object: Object to validate, e.g. an rdf_client.KnowledgeBase()
-
-  Returns:
-    True or False depending on whether the condition matches.
-
-  Raises:
-    ConditionError: If condition is bad.
-  """
-  try:
-    of = objectfilter.Parser(condition).Parse()
-    compiled_filter = of.Compile(objectfilter.BaseFilterImplementation)
-    return compiled_filter.Matches(check_object)
-  except objectfilter.Error as e:
-    raise ConditionError(e)
 
 
 def ExpandWindowsUserEnvironmentVariables(data_string,

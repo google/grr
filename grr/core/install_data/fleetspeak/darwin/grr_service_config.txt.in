@@ -8,5 +8,9 @@ config {
   [type.googleapis.com/fleetspeak.daemonservice.Config] {
     argv: "%(ClientBuilder.install_dir)/%(Client.binary_name)"
     argv: "--config=%(ClientBuilder.install_dir)/%(ClientBuilder.config_filename)"
+
+    monitor_heartbeats: true
+    heartbeat_unresponsive_grace_period_seconds: 600  # 10 minutes.
+    heartbeat_unresponsive_kill_period_seconds: 120  # 2 minutes.
   }
 }

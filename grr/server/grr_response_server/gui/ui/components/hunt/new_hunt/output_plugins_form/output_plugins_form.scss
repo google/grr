@@ -23,29 +23,32 @@
 }
 
 .plugins-container {
-  margin-right: 140px;
-  margin-top: 12px;
-  margin-bottom: 10px;
+  margin: 10px 20px 10px 0;
 
   .plugin-content {
     display: flex;
     flex-direction: row;
     font-size: 14px;
     align-items: baseline;
+    column-gap: 10px;
 
     .plugin-title {
       color: mat.get-color-from-palette(mat.$grey-palette, 900);
       margin-right: 20px;
-      padding-bottom: 1.25em;
+    }
+
+    .annotation-input-wrapper {
+      display: flex;
+      column-gap: 10px;
+      align-items: baseline;
+
+      .help-icon {
+        font-size: 24px;
+      }
     }
 
     .annotation-input {
       width: 70%;
-    }
-
-    mat-icon {
-      font-size: 20px;
-      margin-left: 10px;
     }
   }
 }

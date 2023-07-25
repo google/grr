@@ -1,18 +1,18 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
+import {MatCheckboxModule} from '@angular/material/checkbox';
+import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyAutocompleteModule} from '@angular/material/legacy-autocomplete';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyCardModule} from '@angular/material/legacy-card';
-import {MatLegacyCheckboxModule} from '@angular/material/legacy-checkbox';
-import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
-import {MatLegacyInputModule} from '@angular/material/legacy-input';
-import {MatLegacyMenuModule} from '@angular/material/legacy-menu';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
-import {MatLegacySelectModule} from '@angular/material/legacy-select';
-import {MatLegacyTableModule} from '@angular/material/legacy-table';
-import {MatLegacyTabsModule} from '@angular/material/legacy-tabs';
+import {MatInputModule} from '@angular/material/input';
+import {MatMenuModule} from '@angular/material/menu';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatSelectModule} from '@angular/material/select';
+import {MatTableModule} from '@angular/material/table';
+import {MatTabsModule} from '@angular/material/tabs';
 
 import {FileModeModule} from '../../../data_renderers/file_mode/file_mode_module';
 import {ExpandableHashModule} from '../../../expandable_hash/module';
@@ -30,34 +30,36 @@ import {HuntResults} from './hunt_results';
 
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-
-    MatLegacyAutocompleteModule,
-    MatLegacyButtonModule,
-    MatLegacyCardModule,
-    MatLegacyCheckboxModule,
-    MatLegacyFormFieldModule,
-    MatIconModule,
-    MatLegacyInputModule,
-    MatLegacyMenuModule,
-    MatLegacyProgressSpinnerModule,
-    MatLegacySelectModule,
-    MatLegacyTableModule,
-    MatLegacyTabsModule,
-
     CopyButtonModule,
     DrawerLinkModule,
     ExpandableHashModule,
     FileModeModule,
     FilterPaginate,
+    FormsModule,
     HelpersModule,
     HumanReadableSizeModule,
+    HuntResultsTable,
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatCardModule,
+    MatCheckboxModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatMenuModule,
+    MatProgressSpinnerModule,
+    MatSelectModule,
+    MatTableModule,
+    MatTabsModule,
+    ReactiveFormsModule,
     TimestampModule,
     UserImageModule,
-
-    HuntResultsTable,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     HuntResults,

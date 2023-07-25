@@ -1,7 +1,7 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
 import {RouterModule} from '@angular/router';
 
 import {ApprovalChipModule} from '../../../components/approval_chip/approval_chip_module';
@@ -15,18 +15,18 @@ import {RecentClientFlows} from './recent_client_flows';
  */
 @NgModule({
   imports: [
-    // Core Angular modules.
-    CommonModule,
-    RouterModule,
-
-    // Angular Material modules.
-    MatLegacyChipsModule,
-    MatIconModule,
-
-    // GRR modules.
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     ApprovalChipModule,
-    OnlineChipModule,
+    CommonModule,
     FlowDetailsModule,
+    MatChipsModule,
+    MatIconModule,
+    OnlineChipModule,
+    RouterModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [RecentClientFlows],
   exports: [RecentClientFlows]

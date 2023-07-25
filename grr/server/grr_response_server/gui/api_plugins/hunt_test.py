@@ -73,14 +73,33 @@ class ApiCreateHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
   def testQueueHuntRunnerArgumentIsNotRespected(self):
     args = hunt_plugin.ApiCreateHuntArgs(
-        flow_name=file_finder.FileFinder.__name__)
+        flow_name=file_finder.FileFinder.__name__
+    )
     args.hunt_runner_args.queue = "BLAH"
     result = self.handler.Handle(args, context=self.context)
     self.assertFalse(result.hunt_runner_args.HasField("queue"))
 
+  def testNetworkBytesLimitHuntRunnerArgumentIsRespected(self):
+    args = hunt_plugin.ApiCreateHuntArgs(
+        flow_name=file_finder.ClientFileFinder.__name__
+    )
+    args.hunt_runner_args.network_bytes_limit = 123
 
-class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
-                              hunt_test_lib.StandardHuntTestMixin):
+    result = self.handler.Handle(args, context=self.context)
+    self.assertEqual(123, result.hunt_runner_args.network_bytes_limit)
+
+  def testNetworkBytesLimitHuntRunnerArgumentDefaultRespected(self):
+    args = hunt_plugin.ApiCreateHuntArgs(
+        flow_name=file_finder.ClientFileFinder.__name__
+    )
+
+    result = self.handler.Handle(args, context=self.context)
+    self.assertFalse(result.hunt_runner_args.HasField("network_bytes_limit"))
+
+
+class ApiListHuntsHandlerTest(
+    api_test_lib.ApiCallHandlerTest, hunt_test_lib.StandardHuntTestMixin
+):
   """Test for ApiListHuntsHandler."""
 
   def setUp(self):
@@ -486,26 +505,32 @@ class ApiListHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
     hunt_id = self._RunHuntWithResults(
         client_count=5,
         results=[
-            rdf_file_finder.CollectSingleFileResult(),
-            rdf_file_finder.FileFinderResult()
-        ])
+            rdf_file_finder.CollectFilesByKnownPathResult(),
+            rdf_file_finder.FileFinderResult(),
+        ],
+    )
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id),
         context=self.context)
 
-    self.assertCountEqual([r.payload_type for r in result.items], [
-        rdf_file_finder.CollectSingleFileResult.__name__,
-        rdf_file_finder.FileFinderResult.__name__
-    ] * 5)
+    self.assertCountEqual(
+        [r.payload_type for r in result.items],
+        [
+            rdf_file_finder.CollectFilesByKnownPathResult.__name__,
+            rdf_file_finder.FileFinderResult.__name__,
+        ]
+        * 5,
+    )
     self.assertEqual(result.total_count, 10)
 
   def testCountsAllResultsWithAllTypes(self):
     hunt_id = self._RunHuntWithResults(
         client_count=5,
         results=[
-            rdf_file_finder.CollectSingleFileResult(),
-            rdf_file_finder.FileFinderResult()
-        ])
+            rdf_file_finder.CollectFilesByKnownPathResult(),
+            rdf_file_finder.FileFinderResult(),
+        ],
+    )
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id, count=3),
         context=self.context)
@@ -517,9 +542,10 @@ class ApiListHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
     hunt_id = self._RunHuntWithResults(
         client_count=5,
         results=[
-            rdf_file_finder.CollectSingleFileResult(),
-            rdf_file_finder.FileFinderResult()
-        ])
+            rdf_file_finder.CollectFilesByKnownPathResult(),
+            rdf_file_finder.FileFinderResult(),
+        ],
+    )
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntResultsArgs(
             hunt_id=hunt_id,
@@ -534,9 +560,10 @@ class ApiListHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
     hunt_id = self._RunHuntWithResults(
         client_count=5,
         results=[
-            rdf_file_finder.CollectSingleFileResult(),
-            rdf_file_finder.FileFinderResult()
-        ])
+            rdf_file_finder.CollectFilesByKnownPathResult(),
+            rdf_file_finder.FileFinderResult(),
+        ],
+    )
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntResultsArgs(
             hunt_id=hunt_id,
@@ -571,19 +598,26 @@ class ApiCountHuntResultsHandlerTest(api_test_lib.ApiCallHandlerTest,
     hunt_id = self._RunHuntWithResults(
         client_count=5,
         results=[
-            rdf_file_finder.CollectSingleFileResult(),
-            rdf_file_finder.FileFinderResult()
-        ])
+            rdf_file_finder.CollectFilesByKnownPathResult(),
+            rdf_file_finder.FileFinderResult(),
+        ],
+    )
     result = self.handler.Handle(
         hunt_plugin.ApiListHuntResultsArgs(hunt_id=hunt_id),
         context=self.context)
 
-    self.assertCountEqual(result.items, [
-        hunt_plugin.ApiTypeCount(
-            type=rdf_file_finder.CollectSingleFileResult.__name__, count=5),
-        hunt_plugin.ApiTypeCount(
-            type=rdf_file_finder.FileFinderResult.__name__, count=5),
-    ])
+    self.assertCountEqual(
+        result.items,
+        [
+            hunt_plugin.ApiTypeCount(
+                type=rdf_file_finder.CollectFilesByKnownPathResult.__name__,
+                count=5,
+            ),
+            hunt_plugin.ApiTypeCount(
+                type=rdf_file_finder.FileFinderResult.__name__, count=5
+            ),
+        ],
+    )
 
 
 class ApiListHuntOutputPluginLogsHandlerTest(api_test_lib.ApiCallHandlerTest,
@@ -723,6 +757,10 @@ class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
 
     h = data_store.REL_DB.ReadHuntObject(self.hunt_id)
     self.assertEqual(h.hunt_state, h.HuntState.STOPPED)
+    self.assertEqual(
+        h.hunt_state_reason,
+        rdf_hunt_objects.Hunt.HuntStateReason.TRIGGERED_BY_USER,
+    )
     self.assertEqual(h.hunt_state_comment, "Cancelled by user")
 
   def testRaisesWhenModifyingHuntInNonPausedState(self):

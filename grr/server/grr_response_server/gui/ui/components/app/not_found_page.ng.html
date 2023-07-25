@@ -11,9 +11,9 @@
 </div>
 
 <div class="row buttons">
-  <button mat-stroked-button (click)="navigateBack()"><mat-icon>arrow_back</mat-icon>Go back</button>
-  <a mat-stroked-button href="{{ legacyLink }}"><mat-icon>launch</mat-icon> Go to the old UI</a>
-  <a mat-stroked-button href="{{ (uiConfig$ | async)?.reportUrl }}" target="_blank" rel="noreferrer"><mat-icon>feedback</mat-icon> Report the problem</a>
+  <button mat-stroked-button color="primary" (click)="navigateBack()"><mat-icon>arrow_back</mat-icon>Go back</button>
+  <a mat-stroked-button color="primary" href="{{ legacyLink }}"><mat-icon>launch</mat-icon> Go to the old UI</a>
+  <a mat-stroked-button color="primary" href="{{ (uiConfig$ | async)?.reportUrl }}" target="_blank" rel="noreferrer"><mat-icon>feedback</mat-icon> Report the problem</a>
 </div>
 
 <div class="monospace" aria-hidden="true">{{ asciiArt }}</div>

@@ -56,13 +56,14 @@
           </ng-template>
         </div>
       </div>
-      <button mat-flat-button
+      <button mat-button
               type="button"
               name="addCondition"
+              color="primary"
               [matMenuTriggerFor]="addConditionMenu"
               class="dropdown-button">
         Add Condition
-        <mat-icon>arrow_drop_down</mat-icon>
+        <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
       </button>
       <mat-menu #addConditionMenu="matMenu" class="dropdown-menu">
         <div class="mat-typography submenu-title">Most common</div>
@@ -91,7 +92,8 @@
         <mat-checkbox *ngFor="let os of operatingSystems | keyvalue"
                     [id]="'condition_'+id+'_'+os.key | lowercase"
                     [checked]="os.value"
-                    [formControl]="osOptionControl(id, os.key)">
+                    [formControl]="osOptionControl(id, os.key)"
+                    color="primary">
           {{ os.key }}
         </mat-checkbox>
     </div>
@@ -113,28 +115,31 @@
       </mat-form-field>
     </div>
     <div [formGroup]="conditionGroup(id)" class="names">
-      <div *ngFor="let name of labelNames(id).controls; let labelIndex=index; let last=last"
+      <div class="label-inputs-container">
+        <div *ngFor="let name of labelNames(id).controls; let labelIndex=index"
            class="name-input-wrapper">
-        <mat-form-field appearance="outline" class="label-name">
-          <mat-label>Label name</mat-label>
-          <input [id]="'condition_'+id+'_label_name_'+labelIndex" [formControl]="name" matInput [matAutocomplete]="auto">
-          <mat-autocomplete #auto="matAutocomplete">
-            <mat-option *ngFor="let label of allClientsLabels$ | async" [value]="label">
-              {{label}}
-            </mat-option>
-          </mat-autocomplete>
-          <button mat-icon-button
-                  matSuffix
-                  id="remove-label-name"
-                  (click)="removeLabelName(id, labelIndex)"
-                  type="button"
-                  aria-label="Remove"
-                  *ngIf="labelNames(id).controls.length > 1">
-            <mat-icon>close</mat-icon>
-          </button>
-        </mat-form-field>
-        <button mat-icon-button
-              *ngIf="last"
+          <mat-form-field appearance="outline" class="label-name">
+            <mat-label>Label name</mat-label>
+            <input [id]="'condition_'+id+'_label_name_'+labelIndex" [formControl]="name" matInput [matAutocomplete]="auto">
+            <mat-autocomplete #auto="matAutocomplete">
+              <mat-option *ngFor="let label of allClientsLabels$ | async" [value]="label">
+                {{label}}
+              </mat-option>
+            </mat-autocomplete>
+            <button mat-icon-button
+                    matSuffix
+                    id="remove-label-name"
+                    (click)="removeLabelName(id, labelIndex)"
+                    type="button"
+                    aria-label="Remove"
+                    *ngIf="labelNames(id).controls.length > 1">
+              <mat-icon>close</mat-icon>
+            </button>
+          </mat-form-field>
+        </div>
+      </div>
+
+      <button mat-icon-button
               id="add-label-name"
               class="add-label-name-button"
               (click)="addLabelName(id)"
@@ -142,7 +147,6 @@
               aria-label="Add label">
           <mat-icon>add</mat-icon>
         </button>
-      </div>
     </div>
   </div>
 </ng-template>

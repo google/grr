@@ -1,0 +1,2 @@
+ALTER TABLE hunts
+ADD COLUMN hunt_state_reason INT UNSIGNED DEFAULT NULL;

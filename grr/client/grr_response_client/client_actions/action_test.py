@@ -214,7 +214,14 @@ class ActionTest(client_test_lib.EmptyActionTest):
 
       def __init__(self, pid=None):
         del pid  # unused
-        self.times = [(1, 0), (2, 0), (3, 0), (10000, 0), (10001, 0)]
+        self.times = [
+            (1, 0),
+            (2, 0),
+            (3, 0),
+            (10000, 0),
+            (10001, 0),
+            (10002, 0),
+        ]
         self.pcputimes = collections.namedtuple("pcputimes", ["user", "system"])
 
       def cpu_times(self):  # pylint: disable=g-bad-name

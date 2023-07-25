@@ -99,7 +99,14 @@ def StopHuntIfCrashLimitExceeded(hunt_id):
       # Hunt will be hard-stopped and it will be impossible to restart it.
       reason = ("Hunt %s reached the crashes limit of %d "
                 "and was stopped.") % (hunt_obj.hunt_id, hunt_obj.crash_limit)
-      StopHunt(hunt_obj.hunt_id, reason=reason)
+      hunt_state_reason = (
+          rdf_hunt_objects.Hunt.HuntStateReason.TOTAL_CRASHES_EXCEEDED
+      )
+      StopHunt(
+          hunt_obj.hunt_id,
+          hunt_state_reason=hunt_state_reason,
+          reason_comment=reason,
+      )
 
   return hunt_obj
 
@@ -125,7 +132,14 @@ def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
     reason = ("Hunt %s reached the total network bytes sent limit of %d and "
               "was stopped.") % (hunt_obj.hunt_id,
                                  hunt_obj.total_network_bytes_limit)
-    return StopHunt(hunt_obj.hunt_id, reason=reason)
+    hunt_state_reason = (
+        rdf_hunt_objects.Hunt.HuntStateReason.TOTAL_NETWORK_EXCEEDED
+    )
+    StopHunt(
+        hunt_obj.hunt_id,
+        hunt_state_reason=hunt_state_reason,
+        reason_comment=reason,
+    )
 
   # Check that we have enough clients to apply average limits.
   if hunt_counters.num_clients < MIN_CLIENTS_FOR_AVERAGE_THRESHOLDS:
@@ -140,7 +154,14 @@ def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
       reason = ("Hunt %s reached the average results per client "
                 "limit of %d and was stopped.") % (
                     hunt_obj.hunt_id, hunt_obj.avg_results_per_client_limit)
-      return StopHunt(hunt_obj.hunt_id, reason=reason)
+      hunt_state_reason = (
+          rdf_hunt_objects.Hunt.HuntStateReason.AVG_RESULTS_EXCEEDED
+      )
+      StopHunt(
+          hunt_obj.hunt_id,
+          hunt_state_reason=hunt_state_reason,
+          reason_comment=reason,
+      )
 
   # Check average per-client CPU seconds limit.
   if hunt_obj.avg_cpu_seconds_per_client_limit:
@@ -151,7 +172,12 @@ def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
       reason = ("Hunt %s reached the average CPU seconds per client "
                 "limit of %d and was stopped.") % (
                     hunt_obj.hunt_id, hunt_obj.avg_cpu_seconds_per_client_limit)
-      return StopHunt(hunt_obj.hunt_id, reason=reason)
+      hunt_state_reason = rdf_hunt_objects.Hunt.HuntStateReason.AVG_CPU_EXCEEDED
+      StopHunt(
+          hunt_obj.hunt_id,
+          hunt_state_reason=hunt_state_reason,
+          reason_comment=reason,
+      )
 
   # Check average per-client network bytes limit.
   if hunt_obj.avg_network_bytes_per_client_limit:
@@ -165,7 +191,14 @@ def StopHuntIfCPUOrNetworkLimitsExceeded(hunt_id):
                 "limit of %d and was stopped.") % (
                     hunt_obj.hunt_id,
                     hunt_obj.avg_network_bytes_per_client_limit)
-      return StopHunt(hunt_obj.hunt_id, reason=reason)
+      hunt_state_reason = (
+          rdf_hunt_objects.Hunt.HuntStateReason.AVG_NETWORK_EXCEEDED
+      )
+      StopHunt(
+          hunt_obj.hunt_id,
+          hunt_state_reason=hunt_state_reason,
+          reason_comment=reason,
+      )
 
   return hunt_obj
 
@@ -174,14 +207,23 @@ def CompleteHuntIfExpirationTimeReached(hunt_obj):
   """Marks the hunt as complete if it's past its expiry time."""
   # TODO(hanuszczak): This should not set the hunt state to `COMPLETED` but we
   # should have a separate `EXPIRED` state instead and set that.
-  if (hunt_obj.hunt_state not in [
-      rdf_hunt_objects.Hunt.HuntState.STOPPED,
-      rdf_hunt_objects.Hunt.HuntState.COMPLETED
-  ] and hunt_obj.expired):
-    StopHunt(hunt_obj.hunt_id, reason="Hunt completed.")
+  if (
+      hunt_obj.hunt_state
+      not in [
+          rdf_hunt_objects.Hunt.HuntState.STOPPED,
+          rdf_hunt_objects.Hunt.HuntState.COMPLETED,
+      ]
+      and hunt_obj.expired
+  ):
+    StopHunt(
+        hunt_obj.hunt_id,
+        rdf_hunt_objects.Hunt.HuntStateReason.DEADLINE_REACHED,
+        reason_comment="Hunt completed.",
+    )
 
     data_store.REL_DB.UpdateHuntObject(
-        hunt_obj.hunt_id, hunt_state=hunt_obj.HuntState.COMPLETED)
+        hunt_obj.hunt_id, hunt_state=hunt_obj.HuntState.COMPLETED
+    )
     return data_store.REL_DB.ReadHuntObject(hunt_obj.hunt_id)
 
   return hunt_obj
@@ -305,7 +347,7 @@ def StartHunt(hunt_id):
   return hunt_obj
 
 
-def PauseHunt(hunt_id, reason=None):
+def PauseHunt(hunt_id, hunt_state_reason=None, reason=None):
   """Pauses a hunt with a given id."""
 
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
@@ -313,13 +355,17 @@ def PauseHunt(hunt_id, reason=None):
     raise OnlyStartedHuntCanBePausedError(hunt_obj)
 
   data_store.REL_DB.UpdateHuntObject(
-      hunt_id, hunt_state=hunt_obj.HuntState.PAUSED, hunt_state_comment=reason)
+      hunt_id,
+      hunt_state=hunt_obj.HuntState.PAUSED,
+      hunt_state_reason=hunt_state_reason,
+      hunt_state_comment=reason,
+  )
   data_store.REL_DB.RemoveForemanRule(hunt_id=hunt_obj.hunt_id)
 
   return data_store.REL_DB.ReadHuntObject(hunt_id)
 
 
-def StopHunt(hunt_id, reason=None):
+def StopHunt(hunt_id, hunt_state_reason=None, reason_comment=None):
   """Stops a hunt with a given id."""
 
   hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
@@ -329,21 +375,30 @@ def StopHunt(hunt_id, reason=None):
     raise OnlyStartedOrPausedHuntCanBeStoppedError(hunt_obj)
 
   data_store.REL_DB.UpdateHuntObject(
-      hunt_id, hunt_state=hunt_obj.HuntState.STOPPED, hunt_state_comment=reason)
+      hunt_id,
+      hunt_state=hunt_obj.HuntState.STOPPED,
+      hunt_state_reason=hunt_state_reason,
+      hunt_state_comment=reason_comment,
+  )
   data_store.REL_DB.RemoveForemanRule(hunt_id=hunt_obj.hunt_id)
 
-  # TODO: Match on reason enum instead of string.
+  # TODO: Stop matching on string (comment).
   if (
-      reason is not None
-      and reason != CANCELLED_BY_USER
+      hunt_state_reason
+      != rdf_hunt_objects.Hunt.HuntStateReason.TRIGGERED_BY_USER
+      and reason_comment is not None
+      and reason_comment != CANCELLED_BY_USER
       and hunt_obj.creator not in access_control.SYSTEM_USERS
   ):
     notification.Notify(
-        hunt_obj.creator, rdf_objects.UserNotification.Type.TYPE_HUNT_STOPPED,
-        reason,
+        hunt_obj.creator,
+        rdf_objects.UserNotification.Type.TYPE_HUNT_STOPPED,
+        reason_comment,
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.HUNT,
-            hunt=rdf_objects.HuntReference(hunt_id=hunt_obj.hunt_id)))
+            hunt=rdf_objects.HuntReference(hunt_id=hunt_obj.hunt_id),
+        ),
+    )
 
   return data_store.REL_DB.ReadHuntObject(hunt_id)
 
@@ -424,7 +479,10 @@ def StartHuntFlowOnClient(client_id, hunt_id):
     if hunt_obj.client_limit:
       if _GetNumClients(hunt_obj.hunt_id) >= hunt_obj.client_limit:
         try:
-          PauseHunt(hunt_id)
+          PauseHunt(
+              hunt_id,
+              hunt_state_reason=rdf_hunt_objects.Hunt.HuntStateReason.TOTAL_CLIENTS_EXCEEDED,
+          )
         except OnlyStartedHuntCanBePausedError:
           pass
 

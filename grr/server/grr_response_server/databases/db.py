@@ -636,14 +636,12 @@ class Database(metaclass=abc.ABCMeta):
       self,
       client_id: str,
       certificate: Optional[rdf_crypto.RDFX509Cert] = None,
-      fleetspeak_enabled: Optional[bool] = None,
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
       last_clock: Optional[rdfvalue.RDFDatetime] = None,
       last_ip: Optional[rdf_client_network.NetworkAddress] = None,
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
-      rrg_support: Optional[bool] = None,
   ) -> None:
     """Write metadata about the client.
 
@@ -654,9 +652,6 @@ class Database(metaclass=abc.ABCMeta):
       client_id: A GRR client id string, e.g. "C.ea3b2b71840d6fa7".
       certificate: If set, should be an rdfvalues.crypto.RDFX509 protocol
         buffer. Normally only set during initial client record creation.
-      fleetspeak_enabled: A bool, indicating whether the client is connecting
-        through Fleetspeak.  Normally only set during initial client record
-        creation.
       first_seen: An rdfvalue.Datetime, indicating the first time the client
         contacted the server.
       last_ping: An rdfvalue.Datetime, indicating the last time the client
@@ -668,7 +663,6 @@ class Database(metaclass=abc.ABCMeta):
       last_foreman: An rdfvalue.Datetime, indicating the last time that the
         client sent a foreman message to the server.
       fleetspeak_validation_info: A dict with validation info from Fleetspeak.
-      rrg_support: Whether the agent supports the RRG protocol.
     """
 
   @abc.abstractmethod
@@ -810,17 +804,12 @@ class Database(metaclass=abc.ABCMeta):
   def ReadClientLastPings(self,
                           min_last_ping=None,
                           max_last_ping=None,
-                          fleetspeak_enabled=None,
                           batch_size=CLIENT_IDS_BATCH_SIZE):
     """Yields dicts of last-ping timestamps for clients in the DB.
 
     Args:
       min_last_ping: The minimum timestamp to fetch from the DB.
       max_last_ping: The maximum timestamp to fetch from the DB.
-      fleetspeak_enabled: If set to True, only return data for
-        Fleetspeak-enabled clients. If set to False, only return ids for
-        non-Fleetspeak-enabled clients. If not set, return ids for both
-        Fleetspeak-enabled and non-Fleetspeak-enabled clients.
       batch_size: Integer, specifying the number of client pings to be queried
         at a time.
 
@@ -884,6 +873,23 @@ class Database(metaclass=abc.ABCMeta):
     Args:
       client_id: An identifier of the client that started the agent.
       startup: A startup entry to write.
+
+    Raises:
+      UnknownClientError: If the client is not known.
+    """
+
+  @abc.abstractmethod
+  def ReadClientRRGStartup(
+      self,
+      client_id: str,
+  ) -> Optional[rrg_startup_pb2.Startup]:
+    """Reads the latest RRG startup entry for the given client.
+
+    Args:
+      client_id: An identifier of the client for which read the startup entry.
+
+    Returns:
+      The latest startup entry if available and `None` if there are no such.
 
     Raises:
       UnknownClientError: If the client is not known.
@@ -2551,15 +2557,18 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
-  def UpdateHuntObject(self,
-                       hunt_id,
-                       duration=None,
-                       client_rate=None,
-                       client_limit=None,
-                       hunt_state=None,
-                       hunt_state_comment=None,
-                       start_time=None,
-                       num_clients_at_start_time=None):
+  def UpdateHuntObject(
+      self,
+      hunt_id,
+      duration=None,
+      client_rate=None,
+      client_limit=None,
+      hunt_state=None,
+      hunt_state_reason=None,
+      hunt_state_comment=None,
+      start_time=None,
+      num_clients_at_start_time=None,
+  ):
     """Updates the hunt object by applying the update function.
 
     Each keyword argument when set to None, means that that corresponding value
@@ -2568,10 +2577,11 @@ class Database(metaclass=abc.ABCMeta):
     Args:
       hunt_id: Id of the hunt to be updated.
       duration: A maximum allowed running time duration of the flow.
-      client_rate: Number correpsonding to hunt's client rate.
+      client_rate: Number corresponding to hunt's client rate.
       client_limit: Number corresponding hunt's client limit.
       hunt_state: New Hunt.HuntState value.
-      hunt_state_comment: String correpsonding to a hunt state comment.
+      hunt_state_reason: New Hunt.HuntStateReason value.
+      hunt_state_comment: String corresponding to a hunt state comment.
       start_time: RDFDatetime corresponding to a start time of the hunt.
       num_clients_at_start_time: Integer corresponding to a number of clients at
         start time.
@@ -3127,18 +3137,15 @@ class DatabaseValidationWrapper(Database):
       self,
       client_id: str,
       certificate: Optional[rdf_crypto.RDFX509Cert] = None,
-      fleetspeak_enabled: Optional[bool] = None,
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
       last_clock: Optional[rdfvalue.RDFDatetime] = None,
       last_ip: Optional[rdf_client_network.NetworkAddress] = None,
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
-      rrg_support: Optional[bool] = None,
   ) -> None:
     precondition.ValidateClientId(client_id)
     precondition.AssertOptionalType(certificate, rdf_crypto.RDFX509Cert)
-    precondition.AssertOptionalType(fleetspeak_enabled, bool)
     precondition.AssertOptionalType(first_seen, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(last_ping, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(last_clock, rdfvalue.RDFDatetime)
@@ -3151,14 +3158,12 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.WriteClientMetadata(
         client_id,
         certificate=certificate,
-        fleetspeak_enabled=fleetspeak_enabled,
         first_seen=first_seen,
         last_ping=last_ping,
         last_clock=last_clock,
         last_ip=last_ip,
         last_foreman=last_foreman,
         fleetspeak_validation_info=fleetspeak_validation_info,
-        rrg_support=rrg_support,
     )
 
   def DeleteClient(self, client_id):
@@ -3191,11 +3196,9 @@ class DatabaseValidationWrapper(Database):
   def ReadClientLastPings(self,
                           min_last_ping=None,
                           max_last_ping=None,
-                          fleetspeak_enabled=None,
                           batch_size=CLIENT_IDS_BATCH_SIZE):
     precondition.AssertOptionalType(min_last_ping, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(max_last_ping, rdfvalue.RDFDatetime)
-    precondition.AssertOptionalType(fleetspeak_enabled, bool)
     precondition.AssertType(batch_size, int)
 
     if batch_size < 1:
@@ -3206,7 +3209,6 @@ class DatabaseValidationWrapper(Database):
     return self.delegate.ReadClientLastPings(
         min_last_ping=min_last_ping,
         max_last_ping=max_last_ping,
-        fleetspeak_enabled=fleetspeak_enabled,
         batch_size=batch_size)
 
   def WriteClientSnapshotHistory(self, clients):
@@ -3247,6 +3249,12 @@ class DatabaseValidationWrapper(Database):
       startup: rrg_startup_pb2.Startup,
   ) -> None:
     return self.delegate.WriteClientRRGStartup(client_id, startup)
+
+  def ReadClientRRGStartup(
+      self,
+      client_id: str,
+  ) -> Optional[rrg_startup_pb2.Startup]:
+    return self.delegate.ReadClientRRGStartup(client_id)
 
   def ReadClientStartupInfo(self,
                             client_id: str) -> Optional[rdf_client.StartupInfo]:
@@ -4229,15 +4237,18 @@ class DatabaseValidationWrapper(Database):
 
     self.delegate.WriteHuntObject(hunt_obj)
 
-  def UpdateHuntObject(self,
-                       hunt_id,
-                       duration=None,
-                       client_rate=None,
-                       client_limit=None,
-                       hunt_state=None,
-                       hunt_state_comment=None,
-                       start_time=None,
-                       num_clients_at_start_time=None):
+  def UpdateHuntObject(
+      self,
+      hunt_id,
+      duration=None,
+      client_rate=None,
+      client_limit=None,
+      hunt_state=None,
+      hunt_state_reason=None,
+      hunt_state_comment=None,
+      start_time=None,
+      num_clients_at_start_time=None,
+  ):
     """Updates the hunt object by applying the update function."""
     _ValidateHuntId(hunt_id)
     precondition.AssertOptionalType(duration, rdfvalue.Duration)
@@ -4245,6 +4256,8 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertOptionalType(client_limit, int)
     if hunt_state is not None:
       _ValidateEnumType(hunt_state, rdf_hunt_objects.Hunt.HuntState)
+    if hunt_state_reason is not None:
+      _ValidateEnumType(hunt_state, rdf_hunt_objects.Hunt.HuntStateReason)
     precondition.AssertOptionalType(hunt_state_comment, str)
     precondition.AssertOptionalType(start_time, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(num_clients_at_start_time, int)
@@ -4255,9 +4268,11 @@ class DatabaseValidationWrapper(Database):
         client_rate=client_rate,
         client_limit=client_limit,
         hunt_state=hunt_state,
+        hunt_state_reason=hunt_state_reason,
         hunt_state_comment=hunt_state_comment,
         start_time=start_time,
-        num_clients_at_start_time=num_clients_at_start_time)
+        num_clients_at_start_time=num_clients_at_start_time,
+    )
 
   def ReadHuntOutputPluginsStates(self, hunt_id):
     _ValidateHuntId(hunt_id)

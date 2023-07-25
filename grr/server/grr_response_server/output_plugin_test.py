@@ -23,7 +23,7 @@ class TestOutputPluginWithArgs(output_plugin.OutputPlugin):
 
 class OutputPluginTest(test_lib.GRRBaseTest):
 
-  def testGetPluginArgsHandlesMissingPluginsCorrectly(self):
+  def testGetArgsHandlesMissingPluginsCorrectly(self):
     plugin_args = rdf_flow_runner.FlowRunnerArgs(
         flow_name=transfer.GetFile.__name__)
     descriptor = rdf_output_plugin.OutputPluginDescriptor(
@@ -47,9 +47,7 @@ class OutputPluginTest(test_lib.GRRBaseTest):
       # UnknownOutputPlugin should just return serialized arguments as bytes.
       self.assertEqual(deserialized.GetPluginArgsClass(), rdfvalue.RDFBytes)
 
-      # If `plugin_args` is not available, we should fallback to `args`.
-      self.assertEqual(deserialized.plugin_args,
-                       descriptor.args.SerializeToBytes())
+      self.assertEqual(deserialized.args, descriptor.args.SerializeToBytes())
 
 
 def main(argv):

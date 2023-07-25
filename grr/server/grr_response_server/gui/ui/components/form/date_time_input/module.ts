@@ -1,12 +1,13 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatNativeDateModule} from '@angular/material/core';
 import {MatDatepickerModule} from '@angular/material/datepicker';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
-import {MatLegacyNativeDateModule} from '@angular/material/legacy-core';
-import {MatLegacyInputModule} from '@angular/material/legacy-input';
-import {MatLegacyMenuModule} from '@angular/material/legacy-menu';
+import {MatInputModule} from '@angular/material/input';
+import {MatMenuModule} from '@angular/material/menu';
 
 import {DateTimeInput} from './date_time_input';
 import {DateTimeInputToggle} from './date_time_input_toggle';
@@ -16,14 +17,20 @@ import {DateTimeInputToggle} from './date_time_input_toggle';
 /** Module for GlobExpressionExplanation and related code. */
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     CommonModule,
     FormsModule,
-    MatLegacyChipsModule,
-    MatIconModule,
-    MatLegacyInputModule,
+    MatButtonModule,
+    MatChipsModule,
     MatDatepickerModule,
-    MatLegacyNativeDateModule,
-    MatLegacyMenuModule,
+    MatIconModule,
+    MatInputModule,
+    MatMenuModule,
+    MatNativeDateModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     DateTimeInput,

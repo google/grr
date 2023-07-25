@@ -12,10 +12,10 @@ import {ApprovalPageGlobalStore} from '../../store/approval_page_global_store';
 import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
 import {UserGlobalStore} from '../../store/user_global_store';
 import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
+import {APPROVAL_PAGE_ROUTES} from '../app/routing';
 
 import {ApprovalPage} from './approval_page';
 import {ApprovalPageModule} from './approval_page_module';
-import {APPROVAL_ROUTES} from './routing';
 
 
 initTestEnvironment();
@@ -26,7 +26,7 @@ describe('ApprovalPage Component', () => {
     TestBed
         .configureTestingModule({
           imports: [
-            RouterTestingModule.withRoutes(APPROVAL_ROUTES),
+            RouterTestingModule.withRoutes(APPROVAL_PAGE_ROUTES),
             ApiModule,
             NoopAnimationsModule,
             ApprovalPageModule,

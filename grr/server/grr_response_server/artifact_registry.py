@@ -10,7 +10,6 @@ import yaml
 
 from grr_response_core import config
 from grr_response_core.lib import artifact_utils
-from grr_response_core.lib import objectfilter
 from grr_response_core.lib import parsers
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
@@ -542,16 +541,6 @@ def ValidateSyntax(rdf_artifact):
     if supp_os not in valid_os:
       detail = "invalid `supported_os` ('%s' not in %s)" % (supp_os, valid_os)
       raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail)
-
-  for condition in rdf_artifact.conditions:
-    # FIXME(hanuszczak): It does not look like the code below can throw
-    # `ConditionException`. Do we really need it then?
-    try:
-      of = objectfilter.Parser(condition).Parse()
-      of.Compile(objectfilter.BaseFilterImplementation)
-    except rdf_artifacts.ConditionError as e:
-      detail = "invalid condition '%s'" % condition
-      raise rdf_artifacts.ArtifactSyntaxError(rdf_artifact, detail, e)
 
   # Anything listed in provides must be defined in the KnowledgeBase
   valid_provides = rdf_client.KnowledgeBase().GetKbFieldNames()

@@ -1026,7 +1026,6 @@ class YaraFlowsUnprivilegedTest(YaraFlowsTest):
 
   # Tracking of time works differently in unprivileged mode.
   # (There isn't one call to RDFDatetime.Now() per chunk due to batching).
-
   def testScanTimingInformation(self):
     with test_lib.FakeTime(10000, increment=1):
       _, _, misses = self._RunYaraProcessScan(
@@ -1036,7 +1035,7 @@ class YaraFlowsUnprivilegedTest(YaraFlowsTest):
     miss = misses[0]
     self.assertEqual(miss.scan_time_us, 3 * 1e6)
 
-    with test_lib.FakeTime(10000, increment=1):
+    with test_lib.FakeTime(20000, increment=1):
       matches, _, _ = self._RunYaraProcessScan(self.procs, pids=[102])
 
     self.assertLen(matches, 1)

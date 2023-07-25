@@ -95,7 +95,6 @@ describe('ClientPageGlobalStore', () => {
          approvers: [],
          subject: newClient({
            clientId: 'C.1234',
-           fleetspeakEnabled: false,
          }),
        };
 
@@ -106,7 +105,6 @@ describe('ClientPageGlobalStore', () => {
          {
            subject: {
              clientId: 'C.1234',
-             fleetspeakEnabled: false,
              knowledgeBase: {},
              labels: [],
              age: '0',
@@ -122,7 +120,6 @@ describe('ClientPageGlobalStore', () => {
          {
            subject: {
              clientId: 'C.1234',
-             fleetspeakEnabled: false,
              knowledgeBase: {},
              labels: [],
              age: '0',
@@ -178,7 +175,6 @@ describe('ClientPageGlobalStore', () => {
        httpApiService.mockedObservables.subscribeToListClientApprovals.next([{
          subject: {
            clientId: 'C.1234',
-           fleetspeakEnabled: false,
            knowledgeBase: {},
            labels: [],
            age: '0',
@@ -634,7 +630,6 @@ describe('ClientPageGlobalStore', () => {
 
        httpApiService.mockedObservables.subscribeToClient.next({
          clientId: 'C.5678',
-         fleetspeakEnabled: false,
          age: '1',
        });
 
@@ -642,12 +637,10 @@ describe('ClientPageGlobalStore', () => {
                   filter(isNonNull))))
            .toEqual(jasmine.objectContaining({
              clientId: 'C.5678',
-             fleetspeakEnabled: false,
            }));
 
        httpApiService.mockedObservables.subscribeToClient.next({
          clientId: 'C.5678',
-         fleetspeakEnabled: true,
          age: '1',
        });
 
@@ -655,7 +648,6 @@ describe('ClientPageGlobalStore', () => {
                   filter(isNonNull))))
            .toEqual(jasmine.objectContaining({
              clientId: 'C.5678',
-             fleetspeakEnabled: true,
            }));
 
        sub.unsubscribe();

@@ -2,7 +2,7 @@
 
 <div>
   <!-- Wrapper <div> to prevent row-gap between nav and divider. -->
-  <nav mat-tab-nav-bar>
+  <nav mat-tab-nav-bar [tabPanel]="tabPanel" [mat-stretch-tabs]="false" [disablePagination]="true">
     <a
       mat-tab-link
       [routerLink]="['flows']"
@@ -30,4 +30,6 @@
   <div class="divider"></div>
 </div>
 
-<router-outlet></router-outlet>
+<mat-tab-nav-panel #tabPanel [ngClass]="{ 'hide-overflow-y': filesActive.isActive}">
+  <router-outlet></router-outlet>
+</mat-tab-nav-panel>

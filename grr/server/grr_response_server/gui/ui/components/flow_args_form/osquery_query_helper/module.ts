@@ -1,12 +1,12 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {ReactiveFormsModule} from '@angular/forms';
-import {MatLegacyAutocompleteModule} from '@angular/material/legacy-autocomplete';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyDialogModule} from '@angular/material/legacy-dialog';
-import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
-import {MatLegacyInputModule} from '@angular/material/legacy-input';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {MatButtonModule} from '@angular/material/button';
+import {MatDialogModule} from '@angular/material/dialog';
+import {MatFormFieldModule} from '@angular/material/form-field';
+import {MatInputModule} from '@angular/material/input';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {RouterModule} from '@angular/router';
 
 import {OsqueryQueryHelper} from './osquery_query_helper';
@@ -16,15 +16,20 @@ import {TableInfoItem} from './table_info_item';
 /** Module for the OsqueryQueryHelper component. */
 @NgModule({
   imports: [
-    RouterModule,
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     CommonModule,
-    MatLegacyButtonModule,
-    MatLegacyAutocompleteModule,
-    MatLegacyTooltipModule,
-    MatLegacyFormFieldModule,
-    MatLegacyInputModule,
-    MatLegacyDialogModule,
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatDialogModule,
+    MatFormFieldModule,
+    MatInputModule,
+    MatTooltipModule,
     ReactiveFormsModule,
+    RouterModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     OsqueryQueryHelper,

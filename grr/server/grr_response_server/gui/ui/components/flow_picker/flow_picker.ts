@@ -1,6 +1,6 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, ViewChild} from '@angular/core';
 import {UntypedFormControl} from '@angular/forms';
-import {MatLegacyAutocompleteTrigger} from '@angular/material/legacy-autocomplete';
+import {MatAutocompleteTrigger} from '@angular/material/autocomplete';
 import {BehaviorSubject, fromEvent, merge, Observable, Subject} from 'rxjs';
 import {debounceTime, filter, map, mapTo, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
@@ -103,8 +103,8 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
 
   readonly commonFileFlows$ = this.flowListItemService.commonFileFlows$;
 
-  @ViewChild(MatLegacyAutocompleteTrigger, {static: false})
-  autocompleteTrigger!: MatLegacyAutocompleteTrigger;
+  @ViewChild(MatAutocompleteTrigger, {static: false})
+  autocompleteTrigger?: MatAutocompleteTrigger;
 
   @ViewChild('textInputElement')
   textInputElement!: ElementRef<HTMLInputElement>;
@@ -274,7 +274,11 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
 
   private markFlowAsSelected(fli: FlowListItem) {
     this.textInput.setValue(fli.friendlyName);
-    this.autocompleteTrigger.closePanel();
+
+    if (isNonNull(this.autocompleteTrigger)) {
+      this.autocompleteTrigger.closePanel();
+    }
+
     this.selectedFlow$.next(fli);
   }
 
@@ -294,7 +298,7 @@ export class FlowPicker implements AfterViewInit, OnDestroy {
     // to call the openPanel() function after the current event handler
     // finishes.
     setTimeout(() => {
-      this.autocompleteTrigger.openPanel();
+      this.autocompleteTrigger?.openPanel();
       this.textInputElement.nativeElement.focus();
     }, 0);
   }

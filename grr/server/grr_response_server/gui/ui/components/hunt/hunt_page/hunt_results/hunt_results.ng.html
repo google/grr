@@ -10,7 +10,7 @@
 
     <ng-container *ngIf="tabsConfig.length > 0">
 
-      <mat-tab-group>
+      <mat-tab-group [dynamicHeight]="true" [mat-stretch-tabs]="false">
         <mat-tab *ngFor="let tabConfig of tabsConfig; trackBy: trackByPayloadType">
           <ng-template mat-tab-label>
             <mat-icon class="error-tab-icon" *ngIf="tabConfig.tabName === ERROR_TAB">warning</mat-icon>
@@ -34,18 +34,20 @@
       >
         <a
           *ngIf="exportMenuItems?.[0] as item"
-          mat-stroked-button
+          mat-flat-button
           [download]="item.downloadName"
           [href]="item.url"
-          class="export-button dark"
+          class="export-button"
+          color="primary"
         >
           {{ item.title }}
         </a>
         <button
-          mat-stroked-button
+          mat-flat-button
           *ngIf="length > 1"
           [matMenuTriggerFor]="exportMenu"
-          class="dropdown-button dark"
+          class="dropdown-button"
+          color="primary"
         >
           <mat-icon>arrow_drop_down</mat-icon>
         </button>

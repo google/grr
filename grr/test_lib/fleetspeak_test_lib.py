@@ -2,13 +2,17 @@
 """Fleetspeak-related helpers for use in tests."""
 
 import collections
+import functools
 import threading
 from typing import Optional, Text
+from unittest import mock
 
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_proto import jobs_pb2
+from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from fleetspeak.src.common.proto.fleetspeak import common_pb2
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 
 _message_lock = threading.Lock()
 _messages_by_client_id = {}
@@ -46,3 +50,40 @@ def PopMessage(client_id: Text) -> Optional[rdf_flows.GrrMessage]:
       return _messages_by_client_id[client_id].popleft()
   except (KeyError, IndexError):
     return None
+
+
+def WithFleetspeakConnector(func):
+  """A decorator for Fleetspeak connector-dependent test methods.
+
+  This decorator is intended for tests that might involve sending
+  Fleetspeak messages or interacting with Fleetspeak connector.
+
+  Args:
+    func: A test method to be decorated.
+
+  Returns:
+    A Fleetspeak connector-aware function.
+  """
+
+  @functools.wraps(func)
+  def Wrapper(*args, **kwargs):
+    with mock.patch.object(fleetspeak_connector, "CONN") as mock_conn:
+      mock_conn.outgoing.InsertMessage.side_effect = (
+          lambda msg, **_: StoreMessage(msg)
+      )
+      mock_conn.outgoing.ListClients.side_effect = (
+          lambda msg, **_: admin_pb2.ListClientsResponse()
+      )
+
+      Reset()
+      func(*(args + (mock_conn,)), **kwargs)
+
+  return Wrapper
+
+
+def Reset():
+  """Resets the test queue."""
+
+  global _messages_by_client_id
+  with _message_lock:
+    _messages_by_client_id = {}

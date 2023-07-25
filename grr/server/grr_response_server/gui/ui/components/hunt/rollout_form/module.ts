@@ -3,20 +3,25 @@ import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyInputModule} from '@angular/material/legacy-input';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatInputModule} from '@angular/material/input';
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 import {RolloutForm} from './rollout_form';
 
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     CommonModule,
-    MatButtonToggleModule,
-    ReactiveFormsModule,
     FormsModule,
+    MatButtonToggleModule,
     MatIconModule,
-    MatLegacyInputModule,
-    MatLegacyTooltipModule,
+    MatInputModule,
+    MatTooltipModule,
+    ReactiveFormsModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     RolloutForm,

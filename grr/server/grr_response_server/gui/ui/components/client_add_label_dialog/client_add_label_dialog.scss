@@ -4,21 +4,15 @@
 .title {
   text-align: center;
   font-family: c.$google-sans-family;
+  margin-bottom: 20px;
 }
 
 .content {
-  text-align: center;
-
-  p {
-    font-family: c.$roboto-family;
-    color: mat.get-color-from-palette(c.$foreground, text-light);
-  }
-
   .label-field {
     width: 100%;
   }
 }
 
 .actions {
-  justify-content: flex-end;
+  padding: 0 15px 15px;
 }

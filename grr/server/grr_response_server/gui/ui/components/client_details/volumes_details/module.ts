@@ -12,10 +12,15 @@ import {VolumesDetails} from './volumes_details';
  */
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     CommonModule,
     CopyButtonModule,
-    TimestampModule,
     HumanReadableSizeModule,
+    TimestampModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     VolumesDetails,

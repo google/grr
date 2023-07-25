@@ -20,6 +20,13 @@ from grr_response_test.lib import self_contained_components
 _MYSQL_DATABASE = flags.DEFINE_string("mysql_database", "grr_test_db",
                                       "MySQL database name to use.")
 
+_FLEETSPEAK_MYSQL_DATABASE = flags.DEFINE_string(
+    "fleetspeak_mysql_database",
+    "fleetspeak_test_db",
+    "MySQL database name to use for Fleetspeak.",
+)
+
+
 _MYSQL_USERNAME = flags.DEFINE_string("mysql_username", None,
                                       "MySQL username to use.")
 
@@ -61,6 +68,14 @@ def main(argv):
       mysql_username=_MYSQL_USERNAME.value,
       mysql_password=_MYSQL_PASSWORD.value,
       logging_path=_LOGGING_PATH.value)
+
+  fleetspeak_configs = self_contained_components.InitFleetspeakConfigs(
+      grr_configs,
+      _FLEETSPEAK_MYSQL_DATABASE.value,
+      mysql_username=_MYSQL_USERNAME.value,
+      mysql_password=_MYSQL_PASSWORD.value,
+      logging_path=_LOGGING_PATH.value,
+  )
 
   print("Building the template.")
   template_path = self_contained_components.RunBuildTemplate(
@@ -104,7 +119,9 @@ def main(argv):
   # Start all remaining server components.
   # Start a background thread that kills the main process if one of the
   # server subprocesses dies.
-  server_processes = self_contained_components.StartServerProcesses(grr_configs)
+  server_processes = self_contained_components.StartServerProcesses(
+      grr_configs, fleetspeak_configs
+  )
   self_contained_components.DieIfSubProcessDies(server_processes)
 
   api_port = api_helpers.GetAdminUIPortFromConfig(grr_configs.server_config)

@@ -1,41 +1,42 @@
 import {Injectable} from '@angular/core';
-import {ActivatedRouteSnapshot, BaseRouteReuseStrategy, Route} from '@angular/router';
+import {ActivatedRouteSnapshot, BaseRouteReuseStrategy, Data, Route} from '@angular/router';
 
 /** Prefix of the legacy UI route. */
 export const LEGACY_ROUTE_PREFIX = '/legacy';
 
-declare interface LegacyLink {
-  legacyLink: string;
-}
-
-declare interface ReuseComponent {
-  reuseComponent?: boolean;
-}
-
-declare interface RouteWithGenericData<T extends Route['data']> extends Route {
-  data?: T;
-}
-
-/** A Route with a template string ('#/clients/:id') to link to the old UI. */
-export type RouteWithLegacyLink = RouteWithGenericData<LegacyLink>;
 /**
- * A Route that can specify to reuse its component if the next Route would use
- * the same.
+ * Data for tracking page view with Google Analytics.
+ *
+ *  We don't want to track any sensible information (e.g. client identification)
+ *  when tracking page views. Thus, we add information on how to redact it
+ *  together with the route.
  */
-export type RouteWithReuseComponent = RouteWithGenericData<ReuseComponent>;
+export declare interface AnalyticsPageView {
+  pageTitle?: string;
+  pagePath?: string;
+  pageLocation?: string;
+  pageReferrer?: string;
+}
 
-/** Routes with `data.legacyLink` that link to the old UI. */
-export type RoutesWithLegacyLinks = RouteWithLegacyLink[];
+/** Extra data to be passed around in Grr routes. */
+export declare interface GrrRouteData extends Data {
+  legacyLink?: string;
+  reuseComponent?: boolean;
+  collapseClientHeader?: boolean;
+  pageViewTracking?: AnalyticsPageView;
+}
 
-/** Routes with `data.legacyLink` that link to the old UI. */
-export type RoutesWithReuseComponent = RouteWithReuseComponent[];
+/** Same as Route, but with typed `data`. */
+export declare interface GrrRoute extends Route {
+  data?: GrrRouteData;
+}
 
-/** Routes with custom data to specify legacy links & reusing components. */
-export type RouteWithCustomData =
-    RouteWithGenericData<LegacyLink&ReuseComponent>;
 
-/** Routes with custom data to specify legacy links & reusing components. */
-export type RoutesWithCustomData = RouteWithCustomData[];
+/** Same as ActivatedRouteSnapshot, but with typed `data`. */
+export declare interface GrrActivatedRouteSnapshot extends
+    ActivatedRouteSnapshot {
+  data: GrrRouteData;
+}
 
 /**
  * Strategy to reuse Components if two Routes declare the same component and
@@ -44,9 +45,10 @@ export type RoutesWithCustomData = RouteWithCustomData[];
 @Injectable({providedIn: 'root'})
 export class SameComponentRouteReuseStrategy extends BaseRouteReuseStrategy {
   override shouldReuseRoute(
-      future: ActivatedRouteSnapshot, curr: ActivatedRouteSnapshot): boolean {
-    const reuseCurr = curr.data['reuseComponent'] ?? false;
-    const reuseFuture = future.data['reuseComponent'] ?? false;
+      future: GrrActivatedRouteSnapshot,
+      curr: GrrActivatedRouteSnapshot): boolean {
+    const reuseCurr = curr.data.reuseComponent ?? false;
+    const reuseFuture = future.data.reuseComponent ?? false;
     const sameComponent = future.component === curr.component;
     return (reuseCurr && reuseFuture && sameComponent) ||
         super.shouldReuseRoute(future, curr);
@@ -54,8 +56,9 @@ export class SameComponentRouteReuseStrategy extends BaseRouteReuseStrategy {
 }
 
 /** Constructs a link to the old UI by parsing a Route's data.legacyLink. */
-export function makeLegacyLinkFromRoute(route: ActivatedRouteSnapshot): string {
-  let legacyLink: string = route.data['legacyLink'] ?? '';
+export function makeLegacyLinkFromRoute(route: GrrActivatedRouteSnapshot):
+    string {
+  let legacyLink: string = route.data.legacyLink ?? '';
   let currentSnapshot: ActivatedRouteSnapshot|null = route;
 
   // First, replace placeholders like :clientId from the route's path

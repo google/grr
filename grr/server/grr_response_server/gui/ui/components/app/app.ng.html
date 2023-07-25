@@ -10,7 +10,7 @@
       </div>
     </a>
 
-    <nav mat-tab-nav-bar [disablePagination]="true" class="app-navigation">
+    <nav mat-tab-nav-bar [disablePagination]="true" class="app-navigation" [tabPanel]="tabPanel">
       <a mat-tab-link
         routerLink="/"
         [routerLinkActiveOptions]="{ exact: true }"
@@ -19,7 +19,7 @@
       <a mat-tab-link
         routerLink="/hunts"
         routerLinkActive #rla2="routerLinkActive"
-        [active]="rla2.isActive">Collect from fleet</a>
+        [active]="rla2.isActive || (isNewHuntPath$ | async)">Collect from fleet</a>
     </nav>
 
     <span class="spacer"></span>
@@ -37,7 +37,7 @@
 
     <a
       *ngIf="(uiConfig$ | async)?.reportUrl as reportUrl"
-      mat-button
+      mat-icon-button
       color="primary"
       href="{{reportUrl}}"
       matTooltip="Report a problem"
@@ -60,5 +60,8 @@
     <router-outlet name="drawer"></router-outlet>
   </mat-drawer>
 
-  <router-outlet></router-outlet>
+  <mat-tab-nav-panel #tabPanel>
+    <router-outlet></router-outlet>
+  </mat-tab-nav-panel>
+
 </mat-drawer-container>

@@ -2,19 +2,16 @@
 """The GRR frontend server."""
 import logging
 import time
-
-from typing import Sequence
+from typing import Optional, Sequence
 
 from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
-from grr_response_server import communicator
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import message_handlers
@@ -27,28 +24,6 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
 
 
-CLIENT_PINGS_BY_LABEL = metrics.Counter(
-    "client_pings_by_label", fields=[("label", str)])
-FRONTEND_ACTIVE_COUNT = metrics.Gauge(
-    "frontend_active_count", int, fields=[("source", str)])
-FRONTEND_MAX_ACTIVE_COUNT = metrics.Gauge("frontend_max_active_count", int)
-FRONTEND_HTTP_REQUESTS = metrics.Counter(
-    "frontend_http_requests", fields=[("action", str), ("protocol", str)])
-FRONTEND_IN_BYTES = metrics.Counter(
-    "frontend_in_bytes", fields=[("source", str)])
-FRONTEND_OUT_BYTES = metrics.Counter(
-    "frontend_out_bytes", fields=[("source", str)])
-FRONTEND_REQUEST_COUNT = metrics.Counter(
-    "frontend_request_count", fields=[("source", str)])
-FRONTEND_INACTIVE_REQUEST_COUNT = metrics.Counter(
-    "frontend_inactive_request_count", fields=[("source", str)])
-FRONTEND_REQUEST_LATENCY = metrics.Event(
-    "frontend_request_latency", fields=[("source", str)])
-GRR_FRONTENDSERVER_HANDLE_TIME = metrics.Event("grr_frontendserver_handle_time")
-GRR_FRONTENDSERVER_HANDLE_NUM = metrics.Counter("grr_frontendserver_handle_num")
-GRR_MESSAGES_SENT = metrics.Counter("grr_messages_sent")
-GRR_UNIQUE_CLIENTS = metrics.Counter("grr_unique_clients")
-
 RRG_PARCEL_COUNT = metrics.Counter(
     name="rrg_parcel_count",
     fields=[("sink", str)],
@@ -59,116 +34,6 @@ RRG_PARCEL_ACCEPT_ERRORS = metrics.Counter(
 )
 
 FRONTEND_USERNAME = "GRRFrontEnd"
-
-
-class ServerCommunicator(communicator.Communicator):
-  """A communicator which stores certificates using the relational db."""
-
-  def __init__(self, certificate, private_key):
-    super().__init__(certificate=certificate, private_key=private_key)
-    self.common_name = self.certificate.GetCN()
-
-  def _GetRemotePublicKey(self, common_name):
-    remote_client_id = common_name.Basename()
-
-    try:
-      md = data_store.REL_DB.ReadClientMetadata(remote_client_id)
-    except db.UnknownClientError:
-      GRR_UNIQUE_CLIENTS.Increment()
-      raise communicator.UnknownClientCertError("Cert not found")
-
-    cert = md.certificate
-    if cert is None:
-      raise communicator.UnknownClientCertError("Cert not found")
-
-    if rdfvalue.RDFURN(cert.GetCN()) != rdfvalue.RDFURN(common_name):
-      logging.error("Stored cert mismatch for %s", common_name)
-      raise communicator.UnknownClientCertError("Stored cert mismatch")
-
-    return cert.GetPublicKey()
-
-  def VerifyMessageSignature(self, response_comms, packed_message_list, cipher,
-                             cipher_verified, api_version, remote_public_key):
-    """Verifies the message list signature.
-
-    In the server we check that the timestamp is later than the ping timestamp
-    stored with the client. This ensures that client responses can not be
-    replayed.
-
-    Args:
-      response_comms: The raw response_comms rdfvalue.
-      packed_message_list: The PackedMessageList rdfvalue from the server.
-      cipher: The cipher object that should be used to verify the message.
-      cipher_verified: If True, the cipher's signature is not verified again.
-      api_version: The api version we should use.
-      remote_public_key: The public key of the source.
-
-    Returns:
-      An rdf_flows.GrrMessage.AuthorizationState.
-    """
-    if (not cipher_verified and
-        not cipher.VerifyCipherSignature(remote_public_key)):
-      communicator.GRR_UNAUTHENTICATED_MESSAGES.Increment()
-      return rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
-
-    try:
-      client_id = cipher.cipher_metadata.source.Basename()
-      metadata = data_store.REL_DB.ReadClientMetadata(client_id)
-      client_time = packed_message_list.timestamp or rdfvalue.RDFDatetime(0)
-      update_metadata = True
-
-      # This used to be a strict check here so absolutely no out of
-      # order messages would be accepted ever. Turns out that some
-      # proxies can send your request with some delay even if the
-      # client has already timed out (and sent another request in
-      # the meantime, making the first one out of order). In that
-      # case we would just kill the whole flow as a
-      # precaution. Given the behavior of those proxies, this seems
-      # now excessive and we have changed the replay protection to
-      # only trigger on messages that are more than one hour old.
-      if metadata and metadata.clock:
-        stored_client_time = metadata.clock
-
-        if client_time < stored_client_time - rdfvalue.Duration.From(
-            1, rdfvalue.HOURS):
-          logging.warning("Message desynchronized for %s: %s >= %s", client_id,
-                          stored_client_time, client_time)
-          # This is likely an old message
-          return rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED
-
-        # Update the client and server timestamps only if the client time moves
-        # forward.
-        if client_time < stored_client_time:
-          logging.warning("Out of order message for %s: %s > %s", client_id,
-                          stored_client_time, client_time)
-          update_metadata = False
-
-      communicator.GRR_AUTHENTICATED_MESSAGES.Increment()
-
-      for label in data_store.REL_DB.ReadClientLabels(client_id):
-        CLIENT_PINGS_BY_LABEL.Increment(fields=[label.name])
-
-      if not update_metadata:
-        return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
-
-      source_ip = response_comms.orig_request.source_ip
-      if source_ip:
-        last_ip = rdf_client_network.NetworkAddress(
-            human_readable_address=response_comms.orig_request.source_ip)
-      else:
-        last_ip = None
-
-      data_store.REL_DB.WriteClientMetadata(
-          client_id,
-          last_ip=last_ip,
-          last_clock=client_time,
-          last_ping=rdfvalue.RDFDatetime.Now(),
-          fleetspeak_enabled=False)
-
-    except communicator.UnknownClientCertError:
-      pass
-
-    return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
 
 class FrontEndServer(object):
@@ -186,14 +51,9 @@ class FrontEndServer(object):
   """
 
   def __init__(self,
-               certificate,
-               private_key,
                max_queue_size=50,
                message_expiry_time=120,
                max_retransmission_time=10):
-    self._communicator = ServerCommunicator(
-        certificate=certificate, private_key=private_key)
-
     self.message_expiry_time = message_expiry_time
     self.max_retransmission_time = max_retransmission_time
     self.max_queue_size = max_queue_size
@@ -203,108 +63,23 @@ class FrontEndServer(object):
     self.unauth_allowed_session_id = rdfvalue.SessionID(
         queue=queues.ENROLLMENT, flow_name="Enrol")
 
-  @GRR_FRONTENDSERVER_HANDLE_NUM.Counted()
-  @GRR_FRONTENDSERVER_HANDLE_TIME.Timed()
-  def HandleMessageBundles(self, request_comms, response_comms):
-    """Processes a queue of messages as passed from the client.
-
-    We basically dispatch all the GrrMessages in the queue to the task scheduler
-    for backend processing. We then retrieve from the TS the messages destined
-    for this client.
-
-    Args:
-       request_comms: A ClientCommunication rdfvalue with messages sent by the
-         client. source should be set to the client CN.
-       response_comms: A ClientCommunication rdfvalue of jobs destined to this
-         client.
-
-    Returns:
-       tuple of (source, message_count) where message_count is the number of
-       messages received from the client with common name source.
-    """
-    messages, source, timestamp = self._communicator.DecodeMessages(
-        request_comms)
-
-    now = time.time()
-    if messages:
-      # Receive messages in line.
-      self.ReceiveMessages(source, messages)
-
-    # We send the client a maximum of self.max_queue_size messages
-    required_count = max(0, self.max_queue_size - request_comms.queue_size)
-
-    message_list = rdf_flows.MessageList()
-    # Only give the client messages if we are able to receive them in a
-    # reasonable time.
-    if time.time() - now < 10:
-      client_id = source.Basename()
-      message_list.job = self.DrainTaskSchedulerQueueForClient(
-          client_id, required_count)
-
-    # Encode the message_list in the response_comms using the same API version
-    # the client used.
-    self._communicator.EncodeMessages(
-        message_list,
-        response_comms,
-        destination=source,
-        timestamp=timestamp,
-        api_version=request_comms.api_version)
-
-    return source, len(messages)
-
-  def DrainTaskSchedulerQueueForClient(self, client, max_count=None):
-    """Drains the client's Task Scheduler queue.
-
-    Args:
-       client: The client id specifying this client.
-       max_count: The maximum number of messages we will issue for the client.
-         If not given, uses self.max_queue_size .
-
-    Returns:
-       The tasks respresenting the messages returned. If we can not send them,
-       we can reschedule them for later.
-    """
-    if max_count is None:
-      max_count = self.max_queue_size
-
-    if max_count <= 0:
-      return []
-
-    start_time = time.time()
-    # Drain the queue for this client
-    action_requests = data_store.REL_DB.LeaseClientActionRequests(
-        client,
-        lease_time=rdfvalue.Duration.From(self.message_expiry_time,
-                                          rdfvalue.SECONDS),
-        limit=max_count)
-    result = [
-        rdf_flow_objects.GRRMessageFromClientActionRequest(r)
-        for r in action_requests
-    ]
-
-    GRR_MESSAGES_SENT.Increment(len(result))
-    if result:
-      logging.debug("Drained %d messages for %s in %s seconds.", len(result),
-                    client,
-                    time.time() - start_time)
-
-    return result
-
-  def EnrolFleetspeakClient(self, client_id):
+  def EnrollFleetspeakClientIfNeeded(
+      self, client_id: str
+  ) -> Optional[rdf_objects.ClientMetadata]:
     """Enrols a Fleetspeak-enabled client for use with GRR.
 
     Args:
       client_id: GRR client-id for the client.
 
     Returns:
-      True if the client is new, and actually got enrolled. This method
-      is a no-op if the client already exists (in which case False is returned).
+      None if the client is new, and actually got enrolled. This method
+      is a no-op if the client already exists (in which case the existing
+      client metadata is returned).
     """
     client_urn = rdf_client.ClientURN(client_id)
     # If already enrolled, return.
     try:
-      data_store.REL_DB.ReadClientMetadata(client_id)
-      return False
+      return data_store.REL_DB.ReadClientMetadata(client_id)
     except db.UnknownClientError:
       pass
 
@@ -312,12 +87,13 @@ class FrontEndServer(object):
 
     now = rdfvalue.RDFDatetime.Now()
     data_store.REL_DB.WriteClientMetadata(
-        client_id, first_seen=now, fleetspeak_enabled=True, last_ping=now)
+        client_id, first_seen=now, last_ping=now
+    )
 
     # Publish the client enrollment message.
     events.Events.PublishEvent(
         "ClientEnrollment", client_urn, username=FRONTEND_USERNAME)
-    return True
+    return None
 
   legacy_well_known_session_ids = set([
       str(rdfvalue.SessionID(flow_name="Foreman", queue=rdfvalue.RDFURN("W"))),

@@ -2,13 +2,8 @@ $icon-size: 20px;
 $button-size: 24px;
 
 :host {
-  align-items: center;
   display: flex;
   overflow: hidden;
-
-  mat-icon {
-    margin-bottom: 16px;
-  }
 
   .wrapper {
     border: 1px solid transparent;

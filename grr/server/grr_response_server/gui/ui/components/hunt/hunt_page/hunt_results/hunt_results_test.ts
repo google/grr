@@ -1,10 +1,8 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, ViewChild} from '@angular/core';
 import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
-// TODO: Re-enable tslint after migration is complete.
-// tslint:disable:deprecation
-import {MatLegacyMenuHarness} from '@angular/material/legacy-menu/testing';
-import {MatLegacyTabGroupHarness} from '@angular/material/legacy-tabs/testing';
+import {MatMenuHarness} from '@angular/material/menu/testing';
+import {MatTabGroupHarness} from '@angular/material/tabs/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -118,7 +116,7 @@ describe('HuntResults', () => {
     fixture.detectChanges();
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
-    const menu = await loader.getHarness(MatLegacyMenuHarness);
+    const menu = await loader.getHarness(MatMenuHarness);
     const renderedMenuItems = await menu.getItems();
 
     expect(renderedMenuItems.length).toBe(4);
@@ -364,7 +362,7 @@ describe('HuntResults', () => {
 
          const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
          const tabGroupHarness =
-             await harnessLoader.getHarness(MatLegacyTabGroupHarness);
+             await harnessLoader.getHarness(MatTabGroupHarness);
          expect((await tabGroupHarness.getTabs()).length).toEqual(2);
 
          const fileFinderTab =
@@ -409,13 +407,13 @@ describe('HuntResults', () => {
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const tabGroupHarness =
-           await harnessLoader.getHarness(MatLegacyTabGroupHarness);
+           await harnessLoader.getHarness(MatTabGroupHarness);
        expect((await tabGroupHarness.getTabs()).length).toEqual(1);
 
        // We can't access the MatTabLabel native element through the harness,
        // so we do a normal query to check if the warning icon is present.
        const errorsTabLabel =
-           fixture.debugElement.query(By.css('.mat-tab-label'));
+           fixture.debugElement.query(By.css('.mdc-tab__text-label'));
        expect(errorsTabLabel).toBeTruthy();
 
        expect(errorsTabLabel.nativeElement.textContent).toContain('Errors');

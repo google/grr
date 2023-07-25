@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {MatLegacyButtonHarness} from '@angular/material/legacy-button/testing';
-import {MatLegacyMenuHarness} from '@angular/material/legacy-menu/testing';
+import {MatButtonHarness} from '@angular/material/button/testing';
+import {MatMenuHarness} from '@angular/material/menu/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -38,12 +38,11 @@ describe('ExpandableHash component', () => {
 
     // Load harnesses lazily to prevent errors due to not-yet existing elements.
     get menuHarness() {
-      return this.harnessLoader.getHarness(MatLegacyMenuHarness);
+      return this.harnessLoader.getHarness(MatMenuHarness);
     }
 
     get expandButtonHarness() {
-      return this.harnessLoader.getHarness<MatLegacyButtonHarness>(
-          MatLegacyButtonHarness);
+      return this.harnessLoader.getHarness<MatButtonHarness>(MatButtonHarness);
     }
 
     constructor(readonly rootFixture: ComponentFixture<ExpandableHash>) {}

@@ -250,6 +250,8 @@ class UnprivilegedYaraWrapper(YaraWrapper):
             progress: Callable[[], None]) -> Iterator[rdf_memory.YaraMatch]:
     timeout_secs = (deadline - rdfvalue.RDFDatetime.Now()).ToInt(
         rdfvalue.SECONDS)
+    if self._client is None:
+      raise ValueError("Client not instantiated.")
     if not self._rules_uploaded:
       self._client.UploadSignature(self._rules_str)
       self._rules_uploaded = True
@@ -382,6 +384,7 @@ class YaraProcessScan(actions.ActionPlugin):
   def _ScanRegion(
       self, process, chunks: Iterable[streaming.Chunk],
       deadline: rdfvalue.RDFDatetime) -> Iterator[rdf_memory.YaraMatch]:
+    assert self._yara_wrapper is not None
     yield from self._yara_wrapper.Match(process, chunks, deadline,
                                         self.Progress)
 

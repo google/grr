@@ -420,7 +420,8 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
 
   def testDefaultOutputPluginIsCorrectlyAddedToThePluginsList(self):
     with test_lib.ConfigOverrider(
-        {"AdminUI.new_hunt_wizard.default_output_plugin": "DummyOutputPlugin"}):
+        {"AdminUI.new_hunt_wizard.default_output_plugins": "DummyOutputPlugin"}
+    ):
       self.Open("/legacy#main=ManageHunts")
       self.Click("css=button[name=NewHunt]")
 

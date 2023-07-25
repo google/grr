@@ -39,8 +39,9 @@ export class ParamsForm implements AfterViewInit, OnDestroy {
         BigInt(0), {nonNullable: true}),
     'avgNetworkBytesPerClientLimit': new FormControl(
         BigInt(0), {nonNullable: true}),
-    'cpuLimit': new FormControl(BigInt(0), {nonNullable: true}),
-    'networkBytesLimit': new FormControl(BigInt(0), {nonNullable: true}),
+    'perClientCpuLimit': new FormControl(BigInt(0), {nonNullable: true}),
+    'perClientNetworkBytesLimit': new FormControl(
+        BigInt(0), {nonNullable: true}),
   };
   readonly form = new FormGroup(this.controls);
 
@@ -57,6 +58,23 @@ export class ParamsForm implements AfterViewInit, OnDestroy {
       map(([durationOnly]) => durationOnly.toLocaleString()));
   readonly durationFormattedUnit$ =
       this.durationFormattedParts$.pipe(map(([, unitOnly]) => unitOnly));
+
+  readonly formPerClientCpuLimitSeconds$ = this.form.valueChanges.pipe(
+      // durationInput is guaranteed to return a number.
+      // It uses `parseDurationString` from
+      // ../form/duration_input/duration_conversion.
+      map(values => Number(values.perClientCpuLimit)),
+      filter(cpuLimit => cpuLimit !== undefined && cpuLimit !== null),
+  );
+  readonly perClientCpuLimitFormattedParts$ =
+      this.formPerClientCpuLimitSeconds$.pipe(
+          map(formNumber => toDurationUnit(formNumber, 'long')));
+  readonly perClientCpuLimitFormattedNumber$ =
+      this.perClientCpuLimitFormattedParts$.pipe(
+          map(([numberOnly]) => numberOnly.toLocaleString()));
+  readonly perClientCpuLimitFormattedUnit$ =
+      this.perClientCpuLimitFormattedParts$.pipe(
+          map(([, unitOnly]) => unitOnly));
 
   constructor(
       private readonly changeDetection: ChangeDetectorRef,
@@ -99,8 +117,8 @@ export class ParamsForm implements AfterViewInit, OnDestroy {
       'avgCpuSecondsPerClientLimit': safetyLimits.avgCpuSecondsPerClientLimit,
       'avgNetworkBytesPerClientLimit':
           safetyLimits.avgNetworkBytesPerClientLimit,
-      'cpuLimit': safetyLimits.cpuLimit,
-      'networkBytesLimit': safetyLimits.networkBytesLimit,
+      'perClientCpuLimit': safetyLimits.perClientCpuLimit,
+      'perClientNetworkBytesLimit': safetyLimits.perClientNetworkBytesLimit,
     });
     this.changeDetection.markForCheck();
   }
@@ -111,14 +129,17 @@ export class ParamsForm implements AfterViewInit, OnDestroy {
       ...partialLimits,
       expiryTime: BigInt(this.form.get('expiryTime')!.value),
       crashLimit: BigInt(this.form.get('crashLimit')!.value),
+
       avgResultsPerClientLimit:
           BigInt(this.form.get('avgResultsPerClientLimit')!.value),
       avgCpuSecondsPerClientLimit:
           BigInt(this.form.get('avgCpuSecondsPerClientLimit')!.value),
       avgNetworkBytesPerClientLimit:
           BigInt(this.form.get('avgNetworkBytesPerClientLimit')!.value),
-      cpuLimit: BigInt(this.form.get('cpuLimit')!.value),
-      networkBytesLimit: BigInt(this.form.get('networkBytesLimit')!.value),
+
+      perClientCpuLimit: BigInt(this.form.get('perClientCpuLimit')!.value),
+      perClientNetworkBytesLimit:
+          BigInt(this.form.get('perClientNetworkBytesLimit')!.value),
     };
   }
 }

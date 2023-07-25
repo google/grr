@@ -12,7 +12,7 @@
     mat.get-color-from-palette(c.$foreground, divider-light);
 }
 
-.mat-cell {
+.mat-mdc-cell {
   border-color: mat.get-color-from-palette(c.$foreground, divider-light);
   color: mat.get-color-from-palette(c.$foreground, text-light);
 }
@@ -23,20 +23,20 @@ table {
   font-size: 14px;
   width: 100%;
 
-  th.mat-header-cell {
+  th.mat-mdc-header-cell {
     border-bottom: none;
     font-weight: 500;
     font-size: inherit;
   }
 
-  td.mat-cell {
+  td.mat-mdc-cell {
     vertical-align: top;
 
     padding-top: 0.5em;
     padding-bottom: 0.5em;
   }
 
-  tr:last-child td.mat-cell {
+  tr:last-child td.mat-mdc-cell {
     border-bottom: none;
   }
 

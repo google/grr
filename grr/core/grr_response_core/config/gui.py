@@ -100,10 +100,18 @@ config_lib.DEFINE_string(
     "%(Source.version_minor).%(Source.version_revision)",
     "Base path for GRR documentation. ")
 
+
+# This accepts a comma-separated list of multiple plugins. Ideally, we'd use
+# DEFINE_list instead of DEFINE_string, but returning lists as values of the
+# config options is not supported by the GRR API (see  ApiDataObjectKeyValuePair
+# class and proto).
 config_lib.DEFINE_string(
-    "AdminUI.new_hunt_wizard.default_output_plugin", None,
-    "Output plugin that will be added by default in the "
-    "'New Hunt' wizard output plugins selection page.")
+    "AdminUI.new_hunt_wizard.default_output_plugins",
+    None,
+    "Output plugin(s) that will be added by default in the "
+    "'New Hunt' wizard output plugins selection page. Accepts comma-separated "
+    "list of multiple plugins.",
+)
 
 config_lib.DEFINE_semantic_struct(
     rdf_config.AdminUIClientWarningsConfigOption, "AdminUI.client_warnings",

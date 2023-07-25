@@ -156,6 +156,8 @@ class FlowBase(metaclass=FlowRegistry):
     self._client_os = None
     self._client_knowledge_base = None
     self._client_info: Optional[rdf_client.ClientInformation] = None
+
+    self._python_agent_support: Optional[bool] = None
     self._rrg_support: Optional[bool] = None
 
     self._num_replies_per_type_tag = collections.Counter()
@@ -176,9 +178,12 @@ class FlowBase(metaclass=FlowRegistry):
     """New-style flows don't need heart-beat, keeping for compatibility."""
     pass
 
-  def CallState(self,
-                next_state: str = "",
-                start_time: Optional[rdfvalue.RDFDatetime] = None) -> None:
+  def CallState(
+      self,
+      next_state: str = "",
+      start_time: Optional[rdfvalue.RDFDatetime] = None,
+      responses: Optional[Sequence[rdf_structs.RDFStruct]] = None,
+  ):
     """This method is used to schedule a new state on a different worker.
 
     This is basically the same as CallFlow() except we are calling
@@ -189,6 +194,7 @@ class FlowBase(metaclass=FlowRegistry):
        start_time: Start the flow at this time. This delays notification for
          flow processing into the future. Note that the flow may still be
          processed earlier if there are client responses waiting.
+       responses: If specified, responses to be passed to the next state.
 
     Raises:
       ValueError: The next state specified does not exist.
@@ -196,14 +202,31 @@ class FlowBase(metaclass=FlowRegistry):
     if not getattr(self, next_state):
       raise ValueError("Next state %s is invalid." % next_state)
 
+    request_id = self.GetNextOutboundId()
+    if responses:
+      for index, r in enumerate(responses):
+        wrapped_response = rdf_flow_objects.FlowResponse(
+            client_id=self.rdf_flow.client_id,
+            flow_id=self.rdf_flow.flow_id,
+            request_id=request_id,
+            response_id=index,
+            payload=r,
+        )
+        self.flow_responses.append(wrapped_response)
+
+      nr_responses_expected = len(responses)
+    else:
+      nr_responses_expected = 0
+
     flow_request = rdf_flow_objects.FlowRequest(
         client_id=self.rdf_flow.client_id,
         flow_id=self.rdf_flow.flow_id,
-        request_id=self.GetNextOutboundId(),
+        request_id=request_id,
         next_state=next_state,
         start_time=start_time,
-        needs_processing=True)
-
+        nr_responses_expected=nr_responses_expected,
+        needs_processing=True,
+    )
     self.flow_requests.append(flow_request)
 
   def CallStateInline(self,
@@ -870,12 +893,9 @@ class FlowBase(metaclass=FlowRegistry):
 
     if self.client_action_requests:
       client_id = self.rdf_flow.client_id
-      if fleetspeak_utils.IsFleetspeakEnabledClient(client_id):
-        for request in self.client_action_requests:
-          msg = rdf_flow_objects.GRRMessageFromClientActionRequest(request)
-          fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, msg)
-      else:
-        data_store.REL_DB.WriteClientActionRequests(self.client_action_requests)
+      for request in self.client_action_requests:
+        msg = rdf_flow_objects.GRRMessageFromClientActionRequest(request)
+        fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, msg)
 
       self.client_action_requests = []
 
@@ -943,11 +963,7 @@ class FlowBase(metaclass=FlowRegistry):
         self.rdf_flow.output_plugins_states):
       plugin_descriptor = output_plugin_state.plugin_descriptor
       output_plugin_cls = plugin_descriptor.GetPluginClass()
-      # TODO: Stop reading `plugin_args` at all (no fallback).
-      if plugin_descriptor.HasField("args"):
-        args = plugin_descriptor.args
-      else:
-        args = plugin_descriptor.plugin_args
+      args = plugin_descriptor.args
       output_plugin = output_plugin_cls(
           source_urn=self.rdf_flow.long_flow_id, args=args)
 
@@ -1123,10 +1139,18 @@ class FlowBase(metaclass=FlowRegistry):
     return client_info
 
   @property
+  def python_agent_support(self) -> bool:
+    if self._python_agent_support is None:
+      startup = data_store.REL_DB.ReadClientStartupInfo(self.client_id)
+      self._python_agent_support = startup is not None
+
+    return self._python_agent_support
+
+  @property
   def rrg_support(self) -> bool:
     if self._rrg_support is None:
-      metadata = data_store.REL_DB.ReadClientMetadata(self.client_id)
-      self._rrg_support = metadata.rrg_support
+      rrg_startup = data_store.REL_DB.ReadClientRRGStartup(self.client_id)
+      self._rrg_support = rrg_startup is not None
 
     return self._rrg_support
 

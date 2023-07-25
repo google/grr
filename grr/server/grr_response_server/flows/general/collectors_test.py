@@ -61,8 +61,9 @@ class ArtifactCollectorsTestMixin(object):
     artifact_registry.REGISTRY.ClearSources()
     artifact_registry.REGISTRY.ClearRegistry()
 
-    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                       "artifacts", "test_artifacts.json")
+    test_artifacts_file = os.path.join(
+        config.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json"
+    )
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
     self.fakeartifact = artifact_registry.REGISTRY.GetArtifact("FakeArtifact")
@@ -71,14 +72,16 @@ class ArtifactCollectorsTestMixin(object):
     self.output_count = 0
 
 
-class TestArtifactCollectors(ArtifactCollectorsTestMixin,
-                             flow_test_lib.FlowTestsBaseclass):
+class TestArtifactCollectors(
+    ArtifactCollectorsTestMixin, flow_test_lib.FlowTestsBaseclass
+):
   """Test the artifact collection mechanism with fake artifacts."""
 
   def testInterpolateArgs(self):
     args = rdf_artifacts.ArtifactCollectorFlowArgs()
     collect_flow = collectors.ArtifactCollectorFlow(
-        rdf_flow_objects.Flow(args=args))
+        rdf_flow_objects.Flow(args=args)
+    )
 
     kb = rdf_client.KnowledgeBase()
     kb.MergeOrAddUser(rdf_client.User(username="test1"))
@@ -91,24 +94,28 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
     action_args = {
         "usernames": ["%%users.username%%", "%%users.username%%"],
         "nointerp": "asdfsdf",
-        "notastring": test_rdf
+        "notastring": test_rdf,
     }
 
     kwargs = collect_flow.InterpolateDict(action_args)
-    self.assertCountEqual(kwargs["usernames"],
-                          ["test1", "test2", "test1", "test2"])
+    self.assertCountEqual(
+        kwargs["usernames"], ["test1", "test2", "test1", "test2"]
+    )
     self.assertEqual(kwargs["nointerp"], "asdfsdf")
     self.assertEqual(kwargs["notastring"], test_rdf)
 
     # We should be using an array since users.username will expand to multiple
     # values.
-    self.assertRaises(ValueError, collect_flow.InterpolateDict,
-                      {"bad": "%%users.username%%"})
+    self.assertRaises(
+        ValueError, collect_flow.InterpolateDict, {"bad": "%%users.username%%"}
+    )
 
     list_args = collect_flow.InterpolateList(
-        ["%%users.username%%", r"%%users.username%%\aa"])
-    self.assertCountEqual(list_args,
-                          ["test1", "test2", r"test1\aa", r"test2\aa"])
+        ["%%users.username%%", r"%%users.username%%\aa"]
+    )
+    self.assertCountEqual(
+        list_args, ["test1", "test2", r"test1\aa", r"test2\aa"]
+    )
 
     list_args = collect_flow.InterpolateList(["one"])
     self.assertEqual(list_args, ["one"])
@@ -116,29 +123,33 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
     # Ignore the failure in users.desktop, report the others.
     collect_flow.args.ignore_interpolation_errors = True
     list_args = collect_flow.InterpolateList(
-        ["%%users.desktop%%", r"%%users.username%%\aa"])
+        ["%%users.desktop%%", r"%%users.username%%\aa"]
+    )
     self.assertCountEqual(list_args, [r"test1\aa", r"test2\aa"])
 
     # Both fail.
     list_args = collect_flow.InterpolateList(
-        [r"%%users.desktop%%\aa", r"%%users.sid%%\aa"])
+        [r"%%users.desktop%%\aa", r"%%users.sid%%\aa"]
+    )
     self.assertCountEqual(list_args, [])
 
   def testGrepRegexCombination(self):
     args = rdf_artifacts.ArtifactCollectorFlowArgs()
     collect_flow = collectors.ArtifactCollectorFlow(
-        rdf_flow_objects.Flow(args=args))
+        rdf_flow_objects.Flow(args=args)
+    )
 
     self.assertEqual(collect_flow._CombineRegex([b"simple"]), b"simple")
     self.assertEqual(collect_flow._CombineRegex([b"a", b"b"]), b"(a)|(b)")
     self.assertEqual(
-        collect_flow._CombineRegex([b"a", b"b", b"c"]), b"(a)|(b)|(c)")
+        collect_flow._CombineRegex([b"a", b"b", b"c"]), b"(a)|(b)|(c)"
+    )
     self.assertEqual(
         collect_flow._CombineRegex([b"a|b", b"[^_]b", b"c|d"]),
-        b"(a|b)|([^_]b)|(c|d)")
+        b"(a|b)|([^_]b)|(c|d)",
+    )
 
   def testGrep(self):
-
     class MockCallFlow(object):
 
       def CallFlow(self, *args, **kwargs):
@@ -146,14 +157,15 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         self.kwargs = kwargs
 
     mock_call_flow = MockCallFlow()
-    with mock.patch.object(collectors.ArtifactCollectorFlow, "CallFlow",
-                           mock_call_flow.CallFlow):
-
+    with mock.patch.object(
+        collectors.ArtifactCollectorFlow, "CallFlow", mock_call_flow.CallFlow
+    ):
       args = mock.Mock()
       args.ignore_interpolation_errors = False
 
       collect_flow = collectors.ArtifactCollectorFlow(
-          rdf_flow_objects.Flow(args=args))
+          rdf_flow_objects.Flow(args=args)
+      )
       kb = rdf_client.KnowledgeBase()
       kb.MergeOrAddUser(rdf_client.User(username="test1"))
       kb.MergeOrAddUser(rdf_client.User(username="test2"))
@@ -164,8 +176,9 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
           type=rdf_artifacts.ArtifactSource.SourceType.GREP,
           attributes={
               "paths": ["/etc/passwd"],
-              "content_regex_list": [b"^a%%users.username%%b$"]
-          })
+              "content_regex_list": [b"^a%%users.username%%b$"],
+          },
+      )
       collect_flow.Grep(collector, rdf_paths.PathSpec.PathType.TSK, None)
 
     conditions = mock_call_flow.kwargs["conditions"]
@@ -180,7 +193,8 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
     file_path = os.path.join(self.base_path, "win_hello.exe")
     coll1 = rdf_artifacts.ArtifactSource(
         type=rdf_artifacts.ArtifactSource.SourceType.FILE,
-        attributes={"paths": [file_path]})
+        attributes={"paths": [file_path]},
+    )
     self.fakeartifact.sources.append(coll1)
 
     self._GetArtifact("FakeArtifact")
@@ -204,7 +218,8 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
 """ % file_path
 
     artifact_obj = artifact_registry.REGISTRY.ArtifactsFromYaml(
-        artifact_source)[0]
+        artifact_source
+    )[0]
     artifact_registry.REGISTRY._CheckDirty()
 
     data_store.REL_DB.WriteArtifact(artifact_obj)
@@ -228,7 +243,8 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         artifact_list=artifact_list,
         use_raw_filesystem_access=False,
         creator=self.test_username,
-        client_id=client_id)
+        client_id=client_id,
+    )
 
     fd2 = open(file_path, "rb")
     fd2.seek(0, 2)
@@ -239,31 +255,12 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         db.ClientPath(
             client_id,
             rdf_objects.PathInfo.PathType.OS,
-            components=tuple(components)))
+            components=tuple(components),
+        )
+    )
     fd.Seek(0, 2)
     size = fd.Tell()
     self.assertEqual(size, expected_size)
-
-  def testArtifactSkipping(self):
-    client_mock = action_mocks.ActionMock()
-    # This does not match the Artifact so it will not be collected.
-    client_id = self.SetupClient(0, system="Windows")
-
-    artifact_list = ["FakeArtifact"]
-    flow_id = flow_test_lib.TestFlowHelper(
-        collectors.ArtifactCollectorFlow.__name__,
-        client_mock,
-        artifact_list=artifact_list,
-        use_raw_filesystem_access=False,
-        creator=self.test_username,
-        client_id=client_id)
-
-    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
-    state = flow_obj.persistent_data
-
-    self.assertLen(state.artifacts_skipped_due_to_condition, 1)
-    self.assertEqual(state.artifacts_skipped_due_to_condition[0],
-                     ["FakeArtifact", "os == 'Linux'"])
 
   def testRunGrrClientActionArtifact(self):
     """Test we can get a GRR client artifact."""
@@ -273,7 +270,8 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
 
       coll1 = rdf_artifacts.ArtifactSource(
           type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={"client_action": standard.ListProcesses.__name__})
+          attributes={"client_action": standard.ListProcesses.__name__},
+      )
       self.fakeartifact.sources.append(coll1)
       artifact_list = ["FakeArtifact"]
       flow_id = flow_test_lib.TestFlowHelper(
@@ -281,61 +279,36 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
           client_mock,
           artifact_list=artifact_list,
           creator=self.test_username,
-          client_id=client_id)
+          client_id=client_id,
+      )
 
       results = flow_test_lib.GetFlowResults(client_id, flow_id)
       self.assertIsInstance(results[0], rdf_client.Process)
       self.assertLen(results, 1)
 
-  def testConditions(self):
-    """Test we can get a GRR client artifact with conditions."""
-    client_id = self.SetupClient(0, system="Linux")
-    with mock.patch.object(psutil, "process_iter", ProcessIter):
-      # Run with false condition.
-      client_mock = action_mocks.ActionMock(standard.ListProcesses)
-      coll1 = rdf_artifacts.ArtifactSource(
-          type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={"client_action": standard.ListProcesses.__name__},
-          conditions=["os == 'Windows'"])
-      self.fakeartifact.sources.append(coll1)
-      results = self._RunClientActionArtifact(client_id, client_mock,
-                                              ["FakeArtifact"])
-      self.assertEmpty(results)
-
-      # Now run with matching or condition.
-      coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
-      self.fakeartifact.sources = []
-      self.fakeartifact.sources.append(coll1)
-      results = self._RunClientActionArtifact(client_id, client_mock,
-                                              ["FakeArtifact"])
-      self.assertTrue(results)
-
-      # Now run with impossible or condition.
-      coll1.conditions.append("os == 'NotTrue'")
-      self.fakeartifact.sources = []
-      self.fakeartifact.sources.append(coll1)
-      results = self._RunClientActionArtifact(client_id, client_mock,
-                                              ["FakeArtifact"])
-      self.assertEmpty(results)
-
   def testRegistryValueArtifact(self):
     client_id = self.SetupClient(0, system="Linux")
 
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                                   vfs_test_lib.FakeRegistryVFSHandler):
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.FakeFullVFSHandler):
-
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY,
+        vfs_test_lib.FakeRegistryVFSHandler,
+    ):
+      with vfs_test_lib.VFSOverrider(
+          rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler
+      ):
         client_mock = action_mocks.ActionMock(standard.GetFileStat)
         coll1 = rdf_artifacts.ArtifactSource(
             type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
             attributes={
                 "key_value_pairs": [{
-                    "key": (r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet"
-                            r"\Control\Session Manager"),
-                    "value": "BootExecute"
+                    "key": (
+                        r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet"
+                        r"\Control\Session Manager"
+                    ),
+                    "value": "BootExecute",
                 }]
-            })
+            },
+        )
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
         flow_id = flow_test_lib.TestFlowHelper(
@@ -343,7 +316,8 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
             client_mock,
             artifact_list=artifact_list,
             creator=self.test_username,
-            client_id=client_id)
+            client_id=client_id,
+        )
 
     # Test the statentry got stored.
     results = flow_test_lib.GetFlowResults(client_id, flow_id)
@@ -352,20 +326,23 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
 
   def testRegistryDefaultValueArtifact(self):
     client_id = self.SetupClient(0, system="Linux")
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                                   vfs_test_lib.FakeRegistryVFSHandler):
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.FakeFullVFSHandler):
-
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY,
+        vfs_test_lib.FakeRegistryVFSHandler,
+    ):
+      with vfs_test_lib.VFSOverrider(
+          rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler
+      ):
         client_mock = action_mocks.ActionMock(standard.GetFileStat)
         coll1 = rdf_artifacts.ArtifactSource(
             type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_VALUE,
             attributes={
                 "key_value_pairs": [{
-                    "key": (r"HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest"),
-                    "value": ""
+                    "key": r"HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest",
+                    "value": "",
                 }]
-            })
+            },
+        )
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
         flow_id = flow_test_lib.TestFlowHelper(
@@ -373,7 +350,8 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
             client_mock,
             artifact_list=artifact_list,
             creator=self.test_username,
-            client_id=client_id)
+            client_id=client_id,
+        )
 
     results = flow_test_lib.GetFlowResults(client_id, flow_id)
     self.assertIsInstance(results[0], rdf_client_fs.StatEntry)
@@ -383,40 +361,50 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
     """Test supported_os inside the collector object."""
     client_id = self.SetupClient(0, system="Linux")
     with mock.patch.object(psutil, "process_iter", ProcessIter):
-      # Run with false condition.
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
       coll1 = rdf_artifacts.ArtifactSource(
           type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
           attributes={"client_action": standard.ListProcesses.__name__},
-          supported_os=["Windows"])
+          supported_os=["Windows"],
+      )
       self.fakeartifact.sources.append(coll1)
-      results = self._RunClientActionArtifact(client_id, client_mock,
-                                              ["FakeArtifact"])
+      results = self._RunClientActionArtifact(
+          client_id, client_mock, ["FakeArtifact"]
+      )
       self.assertEmpty(results)
 
-      # Now run with matching or condition.
-      coll1.conditions = []
       coll1.supported_os = ["Linux", "Windows"]
       self.fakeartifact.sources = []
       self.fakeartifact.sources.append(coll1)
-      results = self._RunClientActionArtifact(client_id, client_mock,
-                                              ["FakeArtifact"])
+      results = self._RunClientActionArtifact(
+          client_id, client_mock, ["FakeArtifact"]
+      )
       self.assertTrue(results)
 
-      # Now run with impossible or condition.
-      coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
       coll1.supported_os = ["NotTrue"]
       self.fakeartifact.sources = []
       self.fakeartifact.sources.append(coll1)
-      results = self._RunClientActionArtifact(client_id, client_mock,
-                                              ["FakeArtifact"])
+      results = self._RunClientActionArtifact(
+          client_id, client_mock, ["FakeArtifact"]
+      )
       self.assertEmpty(results)
 
-  def _RunClientActionArtifact(self,
-                               client_id,
-                               client_mock,
-                               artifact_list,
-                               implementation_type=None):
+      coll1.supported_os = ["Linux", "Windows"]
+      self.fakeartifact.supported_os = ["Linux"]
+      results = self._RunClientActionArtifact(
+          client_id, client_mock, ["FakeArtifact"]
+      )
+      self.assertTrue(results)
+
+      self.fakeartifact.supported_os = ["Windows"]
+      results = self._RunClientActionArtifact(
+          client_id, client_mock, ["FakeArtifact"]
+      )
+      self.assertEmpty(results)
+
+  def _RunClientActionArtifact(
+      self, client_id, client_mock, artifact_list, implementation_type=None
+  ):
     self.output_count += 1
     flow_id = flow_test_lib.TestFlowHelper(
         collectors.ArtifactCollectorFlow.__name__,
@@ -430,8 +418,11 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
 
     return flow_test_lib.GetFlowResults(client_id, flow_id)
 
-  @mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
-                     factory.Factory(parsers.SingleResponseParser))
+  @mock.patch.object(
+      parsers,
+      "SINGLE_RESPONSE_PARSER_FACTORY",
+      factory.Factory(parsers.SingleResponseParser),
+  )
   def testParsingFailure(self):
     """Test a command artifact where parsing the response fails."""
 
@@ -441,8 +432,9 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
 
     client_id = self.SetupClient(0, system="Linux")
 
-    parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register("TestCmd",
-                                                    TestCmdNullParser)
+    parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
+        "TestCmd", TestCmdNullParser
+    )
     artifact_list = ["TestUntypedEchoArtifact"]
 
     flow_id = flow_test_lib.StartAndRunFlow(
@@ -450,12 +442,12 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
         action_mocks.ActionMock(standard.ExecuteCommand),
         artifact_list=artifact_list,
         apply_parsers=True,
-        client_id=client_id)
+        client_id=client_id,
+    )
     results = flow_test_lib.GetFlowResults(client_id, flow_id)
     self.assertEmpty(results)
 
   def testFlowProgressHasEntryForArtifactWithoutResults(self):
-
     client_id = self.SetupClient(0, system="Linux")
     with mock.patch.object(psutil, "process_iter", lambda: iter([])):
       client_mock = action_mocks.ActionMock(standard.ListProcesses)
@@ -463,13 +455,16 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
       self.fakeartifact.sources.append(
           rdf_artifacts.ArtifactSource(
               type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-              attributes={"client_action": standard.ListProcesses.__name__}))
+              attributes={"client_action": standard.ListProcesses.__name__},
+          )
+      )
 
       flow_id = flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=["FakeArtifact"],
-          client_id=client_id)
+          client_id=client_id,
+      )
 
       progress = flow_test_lib.GetFlowProgress(client_id, flow_id)
       self.assertLen(progress.artifacts, 1)
@@ -477,11 +472,10 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
       self.assertEqual(progress.artifacts[0].num_results, 0)
 
   def testFlowProgressIsCountingResults(self):
-
     def _Iter():
       return iter([
           client_test_lib.MockWindowsProcess(),
-          client_test_lib.MockWindowsProcess()
+          client_test_lib.MockWindowsProcess(),
       ])
 
     client_id = self.SetupClient(0, system="Linux")
@@ -491,13 +485,16 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
       self.fakeartifact.sources.append(
           rdf_artifacts.ArtifactSource(
               type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-              attributes={"client_action": standard.ListProcesses.__name__}))
+              attributes={"client_action": standard.ListProcesses.__name__},
+          )
+      )
 
       flow_id = flow_test_lib.TestFlowHelper(
           collectors.ArtifactCollectorFlow.__name__,
           client_mock,
           artifact_list=["FakeArtifact"],
-          client_id=client_id)
+          client_id=client_id,
+      )
 
       progress = flow_test_lib.GetFlowProgress(client_id, flow_id)
       self.assertLen(progress.artifacts, 1)
@@ -505,19 +502,22 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
       self.assertEqual(progress.artifacts[0].num_results, 2)
 
   def testProcessesResultsOfFailedChildArtifactCollector(self):
-
     client_id = self.SetupClient(0, system="Linux")
     client_mock = action_mocks.ActionMock(standard.ListProcesses)
 
     self.fakeartifact.sources.append(
         rdf_artifacts.ArtifactSource(
             type=rdf_artifacts.ArtifactSource.SourceType.ARTIFACT_GROUP,
-            attributes={"names": ["FakeArtifact2"]}))
+            attributes={"names": ["FakeArtifact2"]},
+        )
+    )
 
     self.fakeartifact2.sources.append(
         rdf_artifacts.ArtifactSource(
             type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-            attributes={"client_action": standard.ListProcesses.__name__}))
+            attributes={"client_action": standard.ListProcesses.__name__},
+        )
+    )
 
     def _RunListProcesses(self, args):
       self.SendReply(rdf_client.Process(pid=123))
@@ -529,7 +529,8 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
           client_mock,
           artifact_list=["FakeArtifact"],
           client_id=client_id,
-          check_flow_errors=False)
+          check_flow_errors=False,
+      )
 
     results = flow_test_lib.GetFlowResults(client_id, flow_id)
     self.assertLen(results, 1)
@@ -651,8 +652,9 @@ class TestArtifactCollectors(ArtifactCollectorsTestMixin,
       self.assertNotIn("FileFinderOS", client_mock.called_actions)
 
 
-class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
-                                       test_lib.GRRBaseTest):
+class RelationalTestArtifactCollectors(
+    ArtifactCollectorsTestMixin, test_lib.GRRBaseTest
+):
 
   def testRunGrrClientActionArtifactSplit(self):
     """Test that artifacts get split into separate collections."""
@@ -662,7 +664,8 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
 
       coll1 = rdf_artifacts.ArtifactSource(
           type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
-          attributes={"client_action": standard.ListProcesses.__name__})
+          attributes={"client_action": standard.ListProcesses.__name__},
+      )
       self.fakeartifact.sources.append(coll1)
       self.fakeartifact2.sources.append(coll1)
       artifact_list = ["FakeArtifact", "FakeArtifact2"]
@@ -672,10 +675,13 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
           artifact_list=artifact_list,
           creator=self.test_username,
           client_id=client_id,
-          split_output_by_artifact=True)
+          split_output_by_artifact=True,
+      )
       results_by_tag = flow_test_lib.GetFlowResultsByTag(client_id, flow_id)
-      self.assertCountEqual(results_by_tag.keys(),
-                            ["artifact:FakeArtifact", "artifact:FakeArtifact2"])
+      self.assertCountEqual(
+          results_by_tag.keys(),
+          ["artifact:FakeArtifact", "artifact:FakeArtifact2"],
+      )
 
   def testOldClientSnapshotFallbackIfInterpolationFails(self):
     rel_db = data_store.REL_DB
@@ -690,25 +696,29 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
         rdf_client.User(username="user2"),
     ]
     snapshot_0 = rdf_objects.ClientSnapshot(
-        client_id=client_id, knowledge_base=kb_0)
+        client_id=client_id, knowledge_base=kb_0
+    )
     rel_db.WriteClientSnapshot(snapshot_0)
 
     kb_1 = rdf_client.KnowledgeBase(os="Linux")
     snapshot_1 = rdf_objects.ClientSnapshot(
-        client_id=client_id, knowledge_base=kb_1)
+        client_id=client_id, knowledge_base=kb_1
+    )
     rel_db.WriteClientSnapshot(snapshot_1)
 
     kb_2 = rdf_client.KnowledgeBase(os="Linux")
     snapshot_2 = rdf_objects.ClientSnapshot(
-        client_id=client_id, knowledge_base=kb_2)
+        client_id=client_id, knowledge_base=kb_2
+    )
     rel_db.WriteClientSnapshot(snapshot_2)
 
     with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
-
       filesystem_test_lib.CreateFile(
-          os.path.join(dirpath, "user1", "quux", "thud"))
+          os.path.join(dirpath, "user1", "quux", "thud")
+      )
       filesystem_test_lib.CreateFile(
-          os.path.join(dirpath, "user2", "quux", "norf"))
+          os.path.join(dirpath, "user2", "quux", "norf")
+      )
 
       # Write a fake artifact.
       path = os.path.join(dirpath, "%%users.username%%", "quux", "*")
@@ -720,8 +730,10 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
                   type=rdf_artifacts.ArtifactSource.SourceType.PATH,
                   attributes={
                       "paths": [path],
-                  }),
-          ])
+                  },
+              ),
+          ],
+      )
       rel_db.WriteArtifact(art)
 
       artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
@@ -749,21 +761,23 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
     # Write some fake snapshot history.
     kb_0 = rdf_client.KnowledgeBase(os="Linux", os_release="rel0")
     snapshot_0 = rdf_objects.ClientSnapshot(
-        client_id=client_id, knowledge_base=kb_0)
+        client_id=client_id, knowledge_base=kb_0
+    )
     rel_db.WriteClientSnapshot(snapshot_0)
 
     kb_1 = rdf_client.KnowledgeBase(os="Linux", os_release="rel1")
     snapshot_1 = rdf_objects.ClientSnapshot(
-        client_id=client_id, knowledge_base=kb_1)
+        client_id=client_id, knowledge_base=kb_1
+    )
     rel_db.WriteClientSnapshot(snapshot_1)
 
     kb_2 = rdf_client.KnowledgeBase(os="Linux")
     snapshot_2 = rdf_objects.ClientSnapshot(
-        client_id=client_id, knowledge_base=kb_2)
+        client_id=client_id, knowledge_base=kb_2
+    )
     rel_db.WriteClientSnapshot(snapshot_2)
 
     with temp.AutoTempDirPath(remove_non_empty=True) as dirpath:
-
       filesystem_test_lib.CreateFile(os.path.join(dirpath, "rel0", "quux"))
       filesystem_test_lib.CreateFile(os.path.join(dirpath, "rel1", "norf"))
 
@@ -776,8 +790,10 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
                   type=rdf_artifacts.ArtifactSource.SourceType.PATH,
                   attributes={
                       "paths": [os.path.join(dirpath, "%%os_release%%", "*")],
-                  }),
-          ])
+                  },
+              ),
+          ],
+      )
       rel_db.WriteArtifact(art)
 
       artifact_registry.REGISTRY.ReloadDatastoreArtifacts()
@@ -801,25 +817,27 @@ class RelationalTestArtifactCollectors(ArtifactCollectorsTestMixin,
 class MeetsConditionsTest(test_lib.GRRBaseTest):
   """Test the module-level method `MeetsConditions`."""
 
-  def testSourceMeetsConditions(self):
+  def testSourceMeetsOSConditions(self):
     """Test we can get a GRR client artifact with conditions."""
 
     knowledge_base = rdf_client.KnowledgeBase()
     knowledge_base.os = "Windows"
 
-    # Run with false condition.
+    # Run with unsupported OS.
     source = rdf_artifacts.ArtifactSource(
         type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": standard.ListProcesses.__name__},
-        conditions=["os == 'Linux'"])
-    self.assertFalse(collectors.MeetsConditions(knowledge_base, source))
+        supported_os=["Linux"],
+    )
+    self.assertFalse(collectors.MeetsOSConditions(knowledge_base, source))
 
-    # Run with matching or condition.
+    # Run with supported OS.
     source = rdf_artifacts.ArtifactSource(
         type=rdf_artifacts.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
         attributes={"client_action": standard.ListProcesses.__name__},
-        conditions=["os == 'Linux' or os == 'Windows'"])
-    self.assertTrue(collectors.MeetsConditions(knowledge_base, source))
+        supported_os=["Linux", "Windows"],
+    )
+    self.assertTrue(collectors.MeetsOSConditions(knowledge_base, source))
 
 
 class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
@@ -831,14 +849,16 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
   def ArtifactCollectorArgs(self, artifact_list, collect_knowledge_base=False):
     flow_args = rdf_artifacts.ArtifactCollectorFlowArgs(
         artifact_list=artifact_list,
-        recollect_knowledge_base=collect_knowledge_base)
+        recollect_knowledge_base=collect_knowledge_base,
+    )
     return collectors.GetArtifactCollectorArgs(flow_args, self.knowledge_base)
 
   def setUp(self):
     super().setUp()
 
-    test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                       "artifacts", "test_artifacts.json")
+    test_artifacts_file = os.path.join(
+        config.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json"
+    )
 
     artifact_registry.REGISTRY.ClearSources()
     artifact_registry.REGISTRY.ClearRegistry()
@@ -904,8 +924,10 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     """Test we can prepare multiple artifacts of different types."""
 
     artifact_list = [
-        "TestFilesArtifact", "DepsWindirRegex", "DepsProvidesMultiple",
-        "WMIActiveScriptEventConsumer"
+        "TestFilesArtifact",
+        "DepsWindirRegex",
+        "DepsProvidesMultiple",
+        "WMIActiveScriptEventConsumer",
     ]
 
     self.SetOS("Windows")
@@ -928,8 +950,10 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     """Test duplicated artifacts are only processed once."""
 
     artifact_list = [
-        "TestAggregationArtifact", "TestFilesArtifact", "TestCmdArtifact",
-        "TestFilesArtifact"
+        "TestAggregationArtifact",
+        "TestFilesArtifact",
+        "TestCmdArtifact",
+        "TestFilesArtifact",
     ]
 
     self.SetOS("Linux")
@@ -948,7 +972,8 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
     file_path = os.path.join(self.base_path, "numbers.txt")
     source = rdf_artifacts.ArtifactSource(
         type=rdf_artifacts.ArtifactSource.SourceType.FILE,
-        attributes={"paths": [file_path]})
+        attributes={"paths": [file_path]},
+    )
     artifact_obj = artifact_registry.REGISTRY.GetArtifact("TestFileArtifact")
     artifact_obj.sources.append(source)
 
@@ -1040,23 +1065,24 @@ class GetArtifactCollectorArgsTest(test_lib.GRRBaseTest):
 
 
 class TestCmdParser(parser.CommandParser):
-
   output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["TestEchoArtifact"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, knowledge_base):
     del cmd, args, stderr, return_val, knowledge_base  # Unused
-    yield rdf_client.SoftwarePackages(packages=[
-        rdf_client.SoftwarePackage.Installed(
-            name="Package",
-            description=stdout,
-            version="1",
-            architecture="amd64"),
-    ])
+    yield rdf_client.SoftwarePackages(
+        packages=[
+            rdf_client.SoftwarePackage.Installed(
+                name="Package",
+                description=stdout,
+                version="1",
+                architecture="amd64",
+            ),
+        ]
+    )
 
 
 class TestCmdNullParser(parser.CommandParser):
-
   output_types = [rdf_client.SoftwarePackages]
   supported_artifacts = ["TestUntypedEchoArtifact"]
 
@@ -1067,7 +1093,6 @@ class TestCmdNullParser(parser.CommandParser):
 
 
 class TestFileParser(parsers.SingleFileParser[rdf_protodict.AttributedDict]):
-
   output_types = [rdf_protodict.AttributedDict]
   supported_artifacts = ["TestFileArtifact"]
 
@@ -1093,8 +1118,9 @@ def InitGRRWithTestArtifacts(self):
   artifact_registry.REGISTRY.ClearSources()
   artifact_registry.REGISTRY.ClearRegistry()
 
-  test_artifacts_file = os.path.join(config.CONFIG["Test.data_dir"],
-                                     "artifacts", "test_artifacts.json")
+  test_artifacts_file = os.path.join(
+      config.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json"
+  )
   artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
   self.addCleanup(artifact_registry.REGISTRY.AddDefaultSources)
@@ -1133,18 +1159,20 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
         artifact_list=artifact_list,
         creator=self.test_username,
         apply_parsers=apply_parsers,
-        client_id=self.client_id)
+        client_id=self.client_id,
+    )
     return flow_test_lib.GetFlowResults(self.client_id, flow_id)
 
   def InitializeTestFileArtifact(self, with_pathspec_attribute=False):
     file_path = os.path.join(self.base_path, "numbers.txt")
     source = rdf_artifacts.ArtifactSource(
         type=rdf_artifacts.ArtifactSource.SourceType.FILE,
-        attributes={"paths": [file_path]})
+        attributes={"paths": [file_path]},
+    )
     if with_pathspec_attribute:
       source.attributes = {
           "paths": [file_path],
-          "pathspec_attribute": "pathspec"
+          "pathspec_attribute": "pathspec",
       }
     artifact_obj = artifact_registry.REGISTRY.GetArtifact("TestFileArtifact")
     artifact_obj.sources.append(source)
@@ -1154,7 +1182,8 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     """Test artifact collector flow with a single artifact."""
 
     filesystem_test_lib.Command(
-        "/usr/bin/dpkg", args=["--list"], system="Linux")
+        "/usr/bin/dpkg", args=["--list"], system="Linux"
+    )
 
     artifact_list = ["TestCmdArtifact"]
 
@@ -1162,7 +1191,8 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
         collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
-        apply_parsers=False)
+        apply_parsers=False,
+    )
     self.assertLen(results, 1)
 
     artifact_response = results[0]
@@ -1173,7 +1203,8 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     """Test artifact collector flow with a single artifact."""
 
     filesystem_test_lib.Command(
-        "/usr/bin/dpkg", args=["--list"], system="Linux")
+        "/usr/bin/dpkg", args=["--list"], system="Linux"
+    )
 
     artifact_list = ["TestCmdArtifact", "TestOSAgnostic"]
 
@@ -1181,7 +1212,8 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
         collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
-        apply_parsers=False)
+        apply_parsers=False,
+    )
     self.assertLen(results, 2)
 
     artifact_response = results[0]
@@ -1197,7 +1229,8 @@ class ClientArtifactCollectorFlowTest(flow_test_lib.FlowTestsBaseclass):
     artifact_list = ["LinuxMountCmd"]
 
     InitGRRWithTestSources(
-        self, """
+        self,
+        """
 name: LinuxMountCmd
 doc: Linux output of mount.
 sources:
@@ -1207,7 +1240,8 @@ sources:
     args: []
 labels: [System]
 supported_os: [Linux]
-""")
+""",
+    )
 
     self.assertTrue(artifact_registry.REGISTRY.GetArtifact("LinuxMountCmd"))
 
@@ -1216,7 +1250,8 @@ supported_os: [Linux]
         collectors.ArtifactCollectorFlow,
         standard.ExecuteCommand,
         artifact_list,
-        apply_parsers=False)
+        apply_parsers=False,
+    )
     expected = expected[0]
     self.assertIsInstance(expected, rdf_client_action.ExecuteResponse)
 
@@ -1225,7 +1260,8 @@ supported_os: [Linux]
         collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
-        apply_parsers=False)
+        apply_parsers=False,
+    )
     artifact_response = results[0]
     self.assertIsInstance(artifact_response, rdf_client_action.ExecuteResponse)
 
@@ -1237,7 +1273,8 @@ supported_os: [Linux]
     artifact_list = ["TestRegistryKey"]
 
     InitGRRWithTestSources(
-        self, r"""
+        self,
+        r"""
 name: TestRegistryKey
 doc: A sample registry key artifact.
 sources:
@@ -1246,13 +1283,16 @@ sources:
     keys: [
       'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager'
     ]
-""")
+""",
+    )
 
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                                   vfs_test_lib.FakeRegistryVFSHandler):
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.FakeFullVFSHandler):
-
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY,
+        vfs_test_lib.FakeRegistryVFSHandler,
+    ):
+      with vfs_test_lib.VFSOverrider(
+          rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler
+      ):
         # Run the ArtifactCollector to get the expected result.
         flow_id = flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
@@ -1260,7 +1300,8 @@ sources:
             artifact_list=artifact_list,
             creator=self.test_username,
             client_id=self.client_id,
-            apply_parsers=False)
+            apply_parsers=False,
+        )
         results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
         expected = results[0]
         self.assertIsInstance(expected, rdf_client_fs.StatEntry)
@@ -1270,7 +1311,8 @@ sources:
             collectors.ClientArtifactCollector,
             artifact_collector.ArtifactCollector,
             artifact_list,
-            apply_parsers=False)
+            apply_parsers=False,
+        )
         artifact_response = cac_results[0]
         self.assertIsInstance(artifact_response, rdf_client_fs.StatEntry)
 
@@ -1282,7 +1324,8 @@ sources:
     artifact_list = ["TestRegistryKey"]
 
     InitGRRWithTestSources(
-        self, r"""
+        self,
+        r"""
 name: TestRegistryKey
 doc: A sample registry key artifact.
 sources:
@@ -1291,13 +1334,16 @@ sources:
     keys: [
       'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Control\Session Manager\*'
     ]
-""")
+""",
+    )
 
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                                   vfs_test_lib.FakeRegistryVFSHandler):
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.FakeFullVFSHandler):
-
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY,
+        vfs_test_lib.FakeRegistryVFSHandler,
+    ):
+      with vfs_test_lib.VFSOverrider(
+          rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler
+      ):
         # Run the ArtifactCollector to get the expected result.
         flow_id = flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
@@ -1305,7 +1351,8 @@ sources:
             artifact_list=artifact_list,
             creator=self.test_username,
             client_id=self.client_id,
-            apply_parsers=False)
+            apply_parsers=False,
+        )
         results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
         self.assertIsInstance(results[0], rdf_client_fs.StatEntry)
 
@@ -1314,7 +1361,8 @@ sources:
             collectors.ClientArtifactCollector,
             artifact_collector.ArtifactCollector,
             artifact_list,
-            apply_parsers=False)
+            apply_parsers=False,
+        )
         artifact_response = cac_results[0]
         self.assertIsInstance(artifact_response, rdf_client_fs.StatEntry)
 
@@ -1326,7 +1374,8 @@ sources:
     artifact_list = ["TestRegistryKey"]
 
     InitGRRWithTestSources(
-        self, r"""
+        self,
+        r"""
 name: TestRegistryKey
 doc: A sample registry key artifact.
 sources:
@@ -1335,13 +1384,16 @@ sources:
     keys: [
       'HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\**\Session Manager\*'
     ]
-""")
+""",
+    )
 
-    with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
-                                   vfs_test_lib.FakeRegistryVFSHandler):
-      with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                     vfs_test_lib.FakeFullVFSHandler):
-
+    with vfs_test_lib.VFSOverrider(
+        rdf_paths.PathSpec.PathType.REGISTRY,
+        vfs_test_lib.FakeRegistryVFSHandler,
+    ):
+      with vfs_test_lib.VFSOverrider(
+          rdf_paths.PathSpec.PathType.OS, vfs_test_lib.FakeFullVFSHandler
+      ):
         # Run the ArtifactCollector to get the expected result.
         flow_id = flow_test_lib.TestFlowHelper(
             collectors.ArtifactCollectorFlow.__name__,
@@ -1349,7 +1401,8 @@ sources:
             artifact_list=artifact_list,
             creator=self.test_username,
             client_id=self.client_id,
-            apply_parsers=False)
+            apply_parsers=False,
+        )
         expected = flow_test_lib.GetFlowResults(self.client_id, flow_id)[0]
         self.assertIsInstance(expected, rdf_client_fs.StatEntry)
 
@@ -1358,14 +1411,18 @@ sources:
             collectors.ClientArtifactCollector,
             artifact_collector.ArtifactCollector,
             artifact_list,
-            apply_parsers=False)
+            apply_parsers=False,
+        )
         artifact_response = results[0]
         self.assertIsInstance(artifact_response, rdf_client_fs.StatEntry)
 
         self.assertEqual(artifact_response, expected)
 
-  @mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
-                     factory.Factory(parsers.SingleResponseParser))
+  @mock.patch.object(
+      parsers,
+      "SINGLE_RESPONSE_PARSER_FACTORY",
+      factory.Factory(parsers.SingleResponseParser),
+  )
   def testCmdArtifactWithParser(self):
     """Test a command artifact and parsing the response."""
 
@@ -1380,7 +1437,8 @@ sources:
         collectors.ArtifactCollectorFlow,
         standard.ExecuteCommand,
         artifact_list,
-        apply_parsers=True)
+        apply_parsers=True,
+    )
     self.assertTrue(expected)
     expected = expected[0]
     self.assertIsInstance(expected, rdf_client.SoftwarePackages)
@@ -1390,15 +1448,19 @@ sources:
         collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
-        apply_parsers=True)
+        apply_parsers=True,
+    )
     self.assertLen(results, 1)
     artifact_response = results[0]
     self.assertIsInstance(artifact_response, rdf_client.SoftwarePackages)
 
     self.assertEqual(artifact_response, expected)
 
-  @mock.patch.object(parsers, "SINGLE_FILE_PARSER_FACTORY",
-                     factory.Factory(parsers.SingleFileParser))
+  @mock.patch.object(
+      parsers,
+      "SINGLE_FILE_PARSER_FACTORY",
+      factory.Factory(parsers.SingleFileParser),
+  )
   def testFileArtifactWithParser(self):
     """Test collecting a file artifact and parsing the response."""
     parsers.SINGLE_FILE_PARSER_FACTORY.Register("TestFile", TestFileParser)
@@ -1414,7 +1476,8 @@ sources:
         artifact_list=artifact_list,
         creator=self.test_username,
         apply_parsers=True,
-        client_id=self.client_id)
+        client_id=self.client_id,
+    )
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     expected = results[0]
     self.assertIsInstance(expected, rdf_protodict.AttributedDict)
@@ -1426,20 +1489,25 @@ sources:
         collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
-        apply_parsers=True)
+        apply_parsers=True,
+    )
     self.assertLen(cac_results, 1)
 
     self.assertEqual(results, cac_results)
 
-  @mock.patch.object(parsers, "SINGLE_RESPONSE_PARSER_FACTORY",
-                     factory.Factory(parsers.SingleResponseParser))
+  @mock.patch.object(
+      parsers,
+      "SINGLE_RESPONSE_PARSER_FACTORY",
+      factory.Factory(parsers.SingleResponseParser),
+  )
   def testParsingFailure(self):
     """Test a command artifact where parsing the response fails."""
 
     filesystem_test_lib.Command("/bin/echo", args=["1"])
 
-    parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register("TestCmd",
-                                                    TestCmdNullParser)
+    parsers.SINGLE_RESPONSE_PARSER_FACTORY.Register(
+        "TestCmd", TestCmdNullParser
+    )
     artifact_list = ["TestUntypedEchoArtifact"]
 
     # Run the ClientArtifactCollector to get the result.
@@ -1447,7 +1515,8 @@ sources:
         collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
-        apply_parsers=True)
+        apply_parsers=True,
+    )
     self.assertEmpty(results)
 
   def testAggregatedArtifact(self):
@@ -1462,7 +1531,8 @@ sources:
         collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
-        apply_parsers=False)
+        apply_parsers=False,
+    )
     self.assertLen(results, 2)
 
     artifact_response = results[0]
@@ -1486,7 +1556,8 @@ sources:
         artifact_list=artifact_list,
         creator=self.test_username,
         apply_parsers=False,
-        client_id=self.client_id)
+        client_id=self.client_id,
+    )
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     expected = results[0]
 
@@ -1497,7 +1568,8 @@ sources:
         collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
-        apply_parsers=False)
+        apply_parsers=False,
+    )
 
     self.assertLen(cac_results, 1)
     artifact_response = cac_results[0]
@@ -1517,7 +1589,8 @@ sources:
         artifact_list=artifact_list,
         creator=self.test_username,
         apply_parsers=False,
-        client_id=self.client_id)
+        client_id=self.client_id,
+    )
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
     expected = results[0]
 
@@ -1528,7 +1601,8 @@ sources:
         collectors.ClientArtifactCollector,
         artifact_collector.ArtifactCollector,
         artifact_list,
-        apply_parsers=False)
+        apply_parsers=False,
+    )
     self.assertLen(cac_results, 1)
     artifact_response = cac_results[0]
 
@@ -1542,7 +1616,8 @@ class ArtifactArrangerTest(test_lib.GRRBaseTest):
     """Test that artifact list without dependencies does not change."""
 
     InitGRRWithTestSources(
-        self, """
+        self,
+        """
 name: Artifact0
 doc: An artifact without dependencies.
 sources:
@@ -1551,10 +1626,12 @@ sources:
     paths:
       - '/sample/path'
 supported_os: [Linux]
-""")
+""",
+    )
 
     artifact_arranger = collectors.ArtifactArranger(
-        os_name="Linux", artifacts_name_list=["Artifact0"])
+        os_name="Linux", artifacts_name_list=["Artifact0"]
+    )
     artifact_list = artifact_arranger.GetArtifactsInProperOrder()
     self.assertEqual(artifact_list, ["Artifact0"])
 
@@ -1562,7 +1639,8 @@ supported_os: [Linux]
     """Test that an artifact providing the dependency is added to the list."""
 
     InitGRRWithTestSources(
-        self, """
+        self,
+        """
 name: Artifact0
 doc: An artifact without dependencies.
 supported_os: [Linux]
@@ -1577,10 +1655,12 @@ sources:
       - '/sample/path'
       - '/%%users.desktop%%/'
 supported_os: [Linux]
-""")
+""",
+    )
 
     artifact_arranger = collectors.ArtifactArranger(
-        os_name="Linux", artifacts_name_list=["Artifact1"])
+        os_name="Linux", artifacts_name_list=["Artifact1"]
+    )
     artifact_list = artifact_arranger.GetArtifactsInProperOrder()
     self.assertEqual(artifact_list, ["Artifact0", "Artifact1"])
 
@@ -1588,7 +1668,8 @@ supported_os: [Linux]
     """Test an artifact that depends on artifacts with more dependencies."""
 
     InitGRRWithTestSources(
-        self, """
+        self,
+        """
 name: Artifact0
 doc: An artifact without dependencies.
 sources:
@@ -1624,13 +1705,16 @@ sources:
     paths:
       - '/%%os%%/'
 supported_os: [Linux]
-""")
+""",
+    )
 
     artifact_arranger = collectors.ArtifactArranger(
-        os_name="Linux", artifacts_name_list=["Artifact3"])
+        os_name="Linux", artifacts_name_list=["Artifact3"]
+    )
     artifact_list = artifact_arranger.GetArtifactsInProperOrder()
-    self.assertEqual(artifact_list,
-                     ["Artifact0", "Artifact1", "Artifact2", "Artifact3"])
+    self.assertEqual(
+        artifact_list, ["Artifact0", "Artifact1", "Artifact2", "Artifact3"]
+    )
 
 
 def main(argv):

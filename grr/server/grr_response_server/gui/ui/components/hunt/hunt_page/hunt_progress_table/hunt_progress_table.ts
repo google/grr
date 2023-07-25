@@ -1,7 +1,7 @@
 import {CommonModule} from '@angular/common';
 import {Component, Input} from '@angular/core';
-import {MatLegacyTableModule} from '@angular/material/legacy-table';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatTableModule} from '@angular/material/table';
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 import {HuntCompletionProgressTableRow} from '../../../../lib/models/hunt';
 import {TimestampModule} from '../../../timestamp/module';
@@ -18,8 +18,8 @@ const HUNT_PROGRESS_TABLE_COLUMN_DEFS =
   standalone: true,
   imports: [
     CommonModule,
-    MatLegacyTableModule,
-    MatLegacyTooltipModule,
+    MatTableModule,
+    MatTooltipModule,
     TimestampModule,
   ],
 })

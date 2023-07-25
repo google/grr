@@ -117,10 +117,9 @@ describe('App Component', () => {
          expect(navLinks[0].nativeElement.href)
              .toMatch(/.*\/$/);  // ends in `/`
 
-         expect(navLinks[0].attributes['class'])
-             .toContain('mat-tab-label-active');
+         expect(navLinks[0].attributes['class']).toContain('mdc-tab--active');
          expect(navLinks[1].attributes['class'])
-             .not.toContain('mat-tab-label-active');
+             .not.toContain('mdc-tab--active');
 
          expect(navLinks[1].nativeElement.href)
              .toMatch(/.*\/hunts$/);  // ends in `/hunts`
@@ -129,9 +128,8 @@ describe('App Component', () => {
          fixture.detectChanges();
 
          expect(navLinks[0].attributes['class'])
-             .not.toContain('mat-tab-label-active');
-         expect(navLinks[1].attributes['class'])
-             .toContain('mat-tab-label-active');
+             .not.toContain('mdc-tab--active');
+         expect(navLinks[1].attributes['class']).toContain('mdc-tab--active');
 
          discardPeriodicTasks();
        }));
@@ -148,14 +146,27 @@ describe('App Component', () => {
          const clientsNavTab = getNavTab(fixture, '/');
          expect(clientsNavTab).toBeDefined();
          expect(clientsNavTab!.attributes['class'])
-             .toContain('mat-tab-label-active');
+             .toContain('mdc-tab--active');
 
          const huntsNavTab = getNavTab(fixture, '/hunts');
          expect(huntsNavTab).toBeDefined();
          expect(huntsNavTab!.attributes['class'])
-             .not.toContain('mat-tab-label-active');
+             .not.toContain('mdc-tab--active');
 
          discardPeriodicTasks();
+
+         /* We need to flush due to getting the following error otherwise:
+
+         `Error: 1 timer(s) still in the queue`
+
+         This happens due to MatFormFieldFloatingLabel running the following:
+
+         `setTimeout(() => this._parent._handleLabelResized());`
+
+         When SearchBoxComponent component gets rendered, as we autofocus the
+         Input HTML element through FlowArgumentForm Component.
+         */
+         flush();
        }));
 
     it('show correct active/inactive state when navigating to "/clients"',
@@ -170,12 +181,12 @@ describe('App Component', () => {
          const clientsNavTab = getNavTab(fixture, '/');
          expect(clientsNavTab).toBeDefined();
          expect(clientsNavTab!.attributes['class'])
-             .toContain('mat-tab-label-active');
+             .toContain('mdc-tab--active');
 
          const huntsNavTab = getNavTab(fixture, '/hunts');
          expect(huntsNavTab).toBeDefined();
          expect(huntsNavTab!.attributes['class'])
-             .not.toContain('mat-tab-label-active');
+             .not.toContain('mdc-tab--active');
 
          discardPeriodicTasks();
        }));
@@ -192,12 +203,12 @@ describe('App Component', () => {
          const clientsNavTab = getNavTab(fixture, '/');
          expect(clientsNavTab).toBeDefined();
          expect(clientsNavTab!.attributes['class'])
-             .toContain('mat-tab-label-active');
+             .toContain('mdc-tab--active');
 
          const huntsNavTab = getNavTab(fixture, '/hunts');
          expect(huntsNavTab).toBeDefined();
          expect(huntsNavTab!.attributes['class'])
-             .not.toContain('mat-tab-label-active');
+             .not.toContain('mdc-tab--active');
 
          discardPeriodicTasks();
        }));
@@ -214,12 +225,11 @@ describe('App Component', () => {
          const clientsNavTab = getNavTab(fixture, '/');
          expect(clientsNavTab).toBeDefined();
          expect(clientsNavTab!.attributes['class'])
-             .not.toContain('mat-tab-label-active');
+             .not.toContain('mdc-tab--active');
 
          const huntsNavTab = getNavTab(fixture, '/hunts');
          expect(huntsNavTab).toBeDefined();
-         expect(huntsNavTab!.attributes['class'])
-             .toContain('mat-tab-label-active');
+         expect(huntsNavTab!.attributes['class']).toContain('mdc-tab--active');
 
          discardPeriodicTasks();
        }));
@@ -236,12 +246,54 @@ describe('App Component', () => {
          const clientsNavTab = getNavTab(fixture, '/');
          expect(clientsNavTab).toBeDefined();
          expect(clientsNavTab!.attributes['class'])
-             .not.toContain('mat-tab-label-active');
+             .not.toContain('mdc-tab--active');
 
          const huntsNavTab = getNavTab(fixture, '/hunts');
          expect(huntsNavTab).toBeDefined();
-         expect(huntsNavTab!.attributes['class'])
-             .toContain('mat-tab-label-active');
+         expect(huntsNavTab!.attributes['class']).toContain('mdc-tab--active');
+
+         discardPeriodicTasks();
+       }));
+
+    it('show correct active/inactive state when navigating to "/new-hunt"',
+       fakeAsync(async () => {
+         const fixture = TestBed.createComponent(App);
+         fixture.detectChanges();
+
+         await TestBed.inject(Router).navigate(['/new-hunt']);
+         flush();
+         fixture.detectChanges();
+
+         const clientsNavTab = getNavTab(fixture, '/');
+         expect(clientsNavTab).toBeDefined();
+         expect(clientsNavTab!.attributes['class'])
+             .not.toContain('mdc-tab--active');
+
+         const huntsNavTab = getNavTab(fixture, '/hunts');
+         expect(huntsNavTab).toBeDefined();
+         expect(huntsNavTab!.attributes['class']).toContain('mdc-tab--active');
+
+         discardPeriodicTasks();
+       }));
+
+    it('show correct active/inactive state when navigating to "/new-hunt?clientId=C.1&flowId=123ABCD4"',
+       fakeAsync(async () => {
+         const fixture = TestBed.createComponent(App);
+         fixture.detectChanges();
+
+         await TestBed.inject(Router).navigate(
+             ['/new-hunt?clientId=C.1&flowId=123ABCD4']);
+         flush();
+         fixture.detectChanges();
+
+         const clientsNavTab = getNavTab(fixture, '/');
+         expect(clientsNavTab).toBeDefined();
+         expect(clientsNavTab!.attributes['class'])
+             .not.toContain('mdc-tab--active');
+
+         const huntsNavTab = getNavTab(fixture, '/hunts');
+         expect(huntsNavTab).toBeDefined();
+         expect(huntsNavTab!.attributes['class']).toContain('mdc-tab--active');
 
          discardPeriodicTasks();
        }));
@@ -258,12 +310,12 @@ describe('App Component', () => {
          const clientsNavTab = getNavTab(fixture, '/');
          expect(clientsNavTab).toBeDefined();
          expect(clientsNavTab!.attributes['class'])
-             .not.toContain('mat-tab-label-active');
+             .not.toContain('mdc-tab--active');
 
          const huntsNavTab = getNavTab(fixture, '/hunts');
          expect(huntsNavTab).toBeDefined();
          expect(huntsNavTab!.attributes['class'])
-             .not.toContain('mat-tab-label-active');
+             .not.toContain('mdc-tab--active');
 
          discardPeriodicTasks();
        }));

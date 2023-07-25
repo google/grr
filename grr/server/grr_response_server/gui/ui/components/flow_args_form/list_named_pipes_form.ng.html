@@ -1,13 +1,13 @@
 <div class="filters">
-  <mat-form-field>
+  <mat-form-field appearance="outline">
     <mat-label>Pipe name regex</mat-label>
     <input matInput [formControl]="controls.pipeNameRegex" class="monospace">
   </mat-form-field>
-  <mat-form-field>
+  <mat-form-field appearance="outline">
     <mat-label>Process executable regex</mat-label>
     <input matInput [formControl]="controls.procExeRegex" class="monospace">
   </mat-form-field>
-  <mat-form-field>
+  <mat-form-field class="pipe-select" appearance="outline">
     <mat-label>Pipe type</mat-label>
     <mat-select matInput [formControl]="controls.pipeTypeFilter">
       <mat-option [value]="PipeTypeFilter.ANY_TYPE">Any</mat-option>
@@ -15,7 +15,7 @@
       <mat-option [value]="PipeTypeFilter.MESSAGE_TYPE">Only message</mat-option>
     </mat-select>
   </mat-form-field>
-  <mat-form-field>
+  <mat-form-field class="pipe-select" appearance="outline">
     <mat-label>Pipe end</mat-label>
     <mat-select matInput [formControl]="controls.pipeEndFilter">
       <mat-option [value]="PipeEndFilter.ANY_END">Any</mat-option>

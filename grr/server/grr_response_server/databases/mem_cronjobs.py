@@ -5,6 +5,7 @@
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_server.databases import db
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class InMemoryDBCronJobMixin(object):
@@ -88,6 +89,19 @@ class InMemoryDBCronJobMixin(object):
       pass
     for job_run in self.ReadCronJobRuns(cronjob_id):
       del self.cronjob_runs[(cronjob_id, job_run.run_id)]
+
+    for approvals in self.approvals_by_username.values():
+      # We use `list` around dictionary items iterator to avoid errors about
+      # dictionary modification during iteration.
+      for approval_id, approval in list(approvals.items()):
+        if (
+            approval.approval_type
+            != rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
+        ):
+          continue
+        if approval.subject_id != cronjob_id:
+          continue
+        del approvals[approval_id]
 
   @utils.Synchronized
   def LeaseCronJobs(self, cronjob_ids=None, lease_time=None):

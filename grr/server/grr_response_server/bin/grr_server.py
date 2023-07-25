@@ -7,13 +7,11 @@ To use this entry point you must run "grr_config_updater initialize" first.
 from absl import app
 from absl import flags
 
-from grr_response_core import config
 from grr_response_core.config import server as config_server
 
 from grr_response_server import server_startup
 from grr_response_server.bin import fleetspeak_frontend
 from grr_response_server.bin import fleetspeak_server_wrapper
-from grr_response_server.bin import frontend
 from grr_response_server.bin import grrafana
 from grr_response_server.bin import worker
 from grr_response_server.gui import admin_ui
@@ -50,10 +48,7 @@ def main(argv):
   # Start as a frontend that clients communicate with.
   elif _COMPONENT.value.startswith("frontend"):
     server_startup.Init()
-    if config.CONFIG["Server.fleetspeak_enabled"]:
-      fleetspeak_frontend.main([argv])
-    else:
-      frontend.main([argv])
+    fleetspeak_frontend.main([argv])
 
   # Start as an AdminUI.
   elif _COMPONENT.value.startswith("admin_ui"):

@@ -130,6 +130,7 @@ class NTFSFile(vfs_base.VFSHandler):
 
   def Read(self, length: int) -> bytes:
     self._CheckIsFile()
+    assert self.data_stream is not None
     self.data_stream.seek(self.offset)
     data = self.data_stream.read(length)
     self.offset += len(data)

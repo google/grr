@@ -19,11 +19,10 @@
       class="progress-spinner-button"
       [matTooltip]="'CTRL/⌘ + ENTER'"
     >
-      <mat-spinner
-        *ngIf="requestInProgress$ | async"
-        diameter="24"
-      ></mat-spinner>
-      {{ (hasAccess$ | async) ? "Start" : "Schedule" }}
+      <div class="progress-spinner-button-label-container">
+        <mat-spinner diameter="20" *ngIf="requestInProgress$ | async"></mat-spinner>
+        <span>{{ (hasAccess$ | async) ? "Start" : "Schedule" }}</span>
+      </div>
     </button>
     <span *ngIf="(hasAccess$ | async) !== true" class="mat-small">
       Scheduled flows will be started automatically when approval is granted.

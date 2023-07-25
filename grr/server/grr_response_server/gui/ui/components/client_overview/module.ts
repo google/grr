@@ -1,15 +1,15 @@
 import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatDialogModule} from '@angular/material/dialog';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyCardModule} from '@angular/material/legacy-card';
-import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
-import {MatLegacyDialogModule} from '@angular/material/legacy-dialog';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
-import {MatLegacySnackBarModule} from '@angular/material/legacy-snack-bar';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatSnackBarModule} from '@angular/material/snack-bar';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {RouterModule} from '@angular/router';
 
 import {SanitizerPipeModule} from '../../pipes/sanitizer/module';
@@ -27,27 +27,30 @@ import {ClientOverview} from './client_overview';
  */
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
+    ApprovalChipModule,
+    ClientAddLabelDialogModule,
     ClipboardModule,
     CommonModule,
-    RouterModule,
-
-    MatLegacyButtonModule,
-    MatLegacyCardModule,
-    MatLegacyChipsModule,
-    MatLegacyDialogModule,
-    MatDividerModule,
-    MatIconModule,
-    MatLegacyProgressSpinnerModule,
-    MatLegacySnackBarModule,
-    MatLegacyTooltipModule,
-
-    ApprovalChipModule,
     CopyButtonModule,
     DrawerLinkModule,
-    ClientAddLabelDialogModule,
+    MatButtonModule,
+    MatCardModule,
+    MatChipsModule,
+    MatDialogModule,
+    MatDividerModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSnackBarModule,
+    MatTooltipModule,
     OnlineChipModule,
-    TimestampModule,
+    RouterModule,
     SanitizerPipeModule,
+    TimestampModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     ClientOverview,

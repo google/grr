@@ -299,6 +299,16 @@ class ActionPlugin(object):
         task_id=self.message.Get("task_id") or None,
         require_fastpoll=self.require_fastpoll)
 
+    # If client actions sends replies, it's not dead, thus we should send
+    # a heartbeat to Fleetspeak. This rule not apply to status messages,
+    # as they're only sent at the end of the client action processing and
+    # might, among other things, report a resource-usage-exceeding-limits
+    # errors that are triggered by self.Progress calls (for such cases
+    # a self.Progress call here will fail, as by this point the client
+    # action is already out of resources).
+    if message_type != rdf_flows.GrrMessage.Type.STATUS:
+      self.Progress()
+
   def Progress(self):
     """Indicate progress of the client action.
 

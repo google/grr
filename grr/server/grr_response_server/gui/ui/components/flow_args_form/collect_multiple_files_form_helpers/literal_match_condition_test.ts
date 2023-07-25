@@ -1,8 +1,8 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {ControlContainer} from '@angular/forms';
-import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
-import {MatLegacySelectHarness} from '@angular/material/legacy-select/testing';
+import {MatInputHarness} from '@angular/material/input/testing';
+import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -56,9 +56,9 @@ describe('LiteralMatchCondition component', () => {
     const loader = TestbedHarnessEnvironment.loader(fixture);
     fixture.detectChanges();
 
-    const literalFieldHarness = await loader.getHarness(MatLegacyInputHarness);
+    const literalFieldHarness = await loader.getHarness(MatInputHarness);
     await literalFieldHarness.setValue('test');
-    const modeFieldHarness = await loader.getHarness(MatLegacySelectHarness);
+    const modeFieldHarness = await loader.getHarness(MatSelectHarness);
     await modeFieldHarness.clickOptions({text: 'All Hits'});
 
     const expected: FileFinderContentsLiteralMatchCondition = {

@@ -44,8 +44,8 @@ describe('HuntArguments test', () => {
         avgResultsPerClientLimit: BigInt(20),
         avgCpuSecondsPerClientLimit: BigInt(40),
         avgNetworkBytesPerClientLimit: BigInt(80),
-        cpuLimit: BigInt(60 * 2),
-        networkBytesLimit: BigInt(60),
+        perClientCpuLimit: BigInt(60 * 2),
+        perClientNetworkBytesLimit: BigInt(60),
         expiryTime: BigInt(TWO_DAYS),
       }),
     });

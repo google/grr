@@ -1,5 +1,9 @@
 <div class="icons">
-  <mat-icon class="calendar-toggle" (click)="calendarClick()">today</mat-icon>
-  <mat-icon class="clock-toggle" (click)="clockClick()">schedule</mat-icon>
-  <mat-chip disabled>Timezone: UTC</mat-chip>
+  <button mat-icon-button class="calendar-toggle" (click)="calendarClick()" aria-label="Calendar toggle">
+    <mat-icon>today</mat-icon>
+  </button>
+  <button mat-icon-button class="clock-toggle" (click)="clockClick()" aria-label="Clock toggle">
+    <mat-icon>schedule</mat-icon>
+  </button>
+  <mat-chip [disableRipple]="true">Timezone: UTC</mat-chip>
 </div>

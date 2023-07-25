@@ -58,37 +58,35 @@
             <button
               mat-stroked-button
               type="button"
+              color="primary"
+              class="progress-spinner-button"
               (click)="triggerListDirectory($event)"
               [disabled]="isListingCurrentDirectory$ | async"
             >
-              <mat-spinner
-                *ngIf="isListingCurrentDirectory$ | async; else enabledIcon"
-                diameter="24"
-              ></mat-spinner>
-              <ng-template #enabledIcon
-                ><mat-icon>refresh</mat-icon></ng-template
-              >
-              List directory
+              <div class="progress-spinner-button-label-container">
+                <mat-spinner diameter="20" *ngIf="isListingCurrentDirectory$ | async; else refreshIcon"></mat-spinner>
+                <span>List directory</span>
+              </div>
             </button>
 
             <button
               mat-stroked-button
               type="button"
+              color="primary"
+              class="progress-spinner-button"
               (click)="triggerDeepListDirectory($event)"
               [disabled]="isListingCurrentDirectory$ | async"
             >
-              <mat-spinner
-                *ngIf="isListingCurrentDirectory$ | async; else enabledIcon"
-                diameter="24"
-              ></mat-spinner>
-              <ng-template #enabledIcon
-                ><mat-icon>refresh</mat-icon></ng-template
-              >
-              List directory &amp; subdirectories
+              <div class="progress-spinner-button-label-container">
+                <mat-spinner diameter="20" *ngIf="isListingCurrentDirectory$ | async; else refreshIcon"></mat-spinner>
+                <span>List directory &amp; subdirectories</span>
+              </div>
             </button>
 
             <a
               mat-stroked-button
+              color="primary"
+              type="button"
                 *ngIf="(isRootSelected$ | async) === true"
               [href]="downloadAllFromClientURL$ | async"
               [download]="downloadAllFromClientFileName$ | async"
@@ -188,3 +186,7 @@
     </as-split>
   </as-split-area>
 </as-split>
+
+<ng-template #refreshIcon>
+  <mat-icon>refresh</mat-icon>
+</ng-template>

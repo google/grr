@@ -1,6 +1,6 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, Input, ViewChild} from '@angular/core';
-import {MatLegacyTableDataSource} from '@angular/material/legacy-table';
 import {MatSort} from '@angular/material/sort';
+import {MatTableDataSource} from '@angular/material/table';
 import {BehaviorSubject} from 'rxjs';
 
 import {OsqueryTable} from '../../../lib/api/api_interfaces';
@@ -22,7 +22,7 @@ interface Row {
 export class OsqueryResultsTable implements AfterViewInit {
   query?: string;
   displayedColumns: string[] = [];
-  dataSource = new MatLegacyTableDataSource<Row>();
+  dataSource = new MatTableDataSource<Row>();
 
   readonly dataLength$ = new BehaviorSubject<number>(0);
 

@@ -1,16 +1,14 @@
-<!-- For known color values, mat-chip overrides styling. We assign the unknown
-  string "custom" to be able to override the color in CSS. -->
 <mat-chip
   *ngIf="(status$ | async) === 'online'; else offlineChip"
   class="green-chip"
-  color="custom"
-  disabled
+  role="listitem"
+  [disableRipple]="true"
 >
   <mat-icon>sensors</mat-icon>
   Online
 </mat-chip>
 <ng-template #offlineChip>
-  <mat-chip class="red-chip" color="custom" disabled
+  <mat-chip class="red-chip" role="listitem" [disableRipple]="true"
     ><mat-icon>sensors_off</mat-icon>Offline</mat-chip
   >
 </ng-template>

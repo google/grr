@@ -61,9 +61,10 @@ class ApprovalTest(gui_test_lib.GRRSeleniumTest):
     flow.ScheduleFlow(
         client_id=client_id,
         creator="requestrick",
-        flow_name=file.CollectSingleFile.__name__,
-        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-        runner_args=rdf_flow_runner.FlowRunnerArgs())
+        flow_name=file.CollectFilesByKnownPath.__name__,
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(),
+    )
 
     approval_id = self.RequestClientApproval(
         client_id,
@@ -75,7 +76,7 @@ class ApprovalTest(gui_test_lib.GRRSeleniumTest):
         f"/v2/clients/{client_id}/users/requestrick/approvals/{approval_id}")
 
     # Change to pretty display name as soon as ScheduledFlowList uses these.
-    self.WaitUntil(self.IsTextPresent, "CollectSingleFile")
+    self.WaitUntil(self.IsTextPresent, "CollectFilesByKnownPath")
 
   def testBackButtonNavigatesToOldUi(self):
     client_id = self.SetupClient(0)

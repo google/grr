@@ -1,6 +1,6 @@
 import {HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule} from '@angular/common/http';
 import {NgModule} from '@angular/core';
-import {MatLegacySnackBarModule} from '@angular/material/legacy-snack-bar';
+import {MatSnackBarModule} from '@angular/material/snack-bar';
 
 import {ErrorSnackBarModule} from '../../components/helpers/error_snackbar/error_snackbar_module';
 
@@ -24,7 +24,7 @@ import {HttpApiService, WithCredentialsInterceptor} from './http_api_service';
       headerName: 'X-CSRFToken',
     }),
 
-    MatLegacySnackBarModule,
+    MatSnackBarModule,
 
     ErrorSnackBarModule,
   ],

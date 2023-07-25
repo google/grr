@@ -1,5 +1,5 @@
 import {Component, Inject} from '@angular/core';
-import {MAT_LEGACY_DIALOG_DATA} from '@angular/material/legacy-dialog';
+import {MAT_DIALOG_DATA} from '@angular/material/dialog';
 
 import {Client} from '../../../lib/models/client';
 
@@ -33,8 +33,7 @@ export class EntryHistoryDialog {
   readonly tableRows: Array<EntryHistoryTableRow<any>> = [];
 
   constructor(
-      @Inject(MAT_LEGACY_DIALOG_DATA) private readonly data:
-          EntryHistoryDialogParams,
+      @Inject(MAT_DIALOG_DATA) private readonly data: EntryHistoryDialogParams,
   ) {
     if (this.data.path.length === 0) {
       throw new Error('Empty "path" provided');

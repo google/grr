@@ -3,7 +3,6 @@
 
 from grr_response_server import foreman
 from grr_response_server.flows.general import administrative
-from grr_response_server.flows.general import ca_enroller
 from grr_response_server.flows.general import transfer
 
 message_handlers = [
@@ -11,7 +10,6 @@ message_handlers = [
     administrative.ClientStartupHandler,
     administrative.ClientStatsHandler,
     administrative.NannyMessageHandler,
-    ca_enroller.EnrolmentHandler,
     foreman.ForemanMessageHandler,
     transfer.BlobHandler,
 ]

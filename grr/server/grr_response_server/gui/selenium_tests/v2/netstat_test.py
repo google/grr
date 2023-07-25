@@ -89,13 +89,13 @@ class NetstatTest(gui_test_lib.GRRSeleniumTest):
     self.assertEqual(self.GetCssCount("css=td:contains('process')"), 10)
 
     # Navigation works in both top and bottom paginators.
-    self.Click("css=.top-paginator .mat-paginator-navigation-last")
+    self.Click("css=.top-paginator .mat-mdc-paginator-navigation-last")
     for i in range(10, 15):
       self.WaitUntil(self.IsElementPresent, f"css=td:contains('process{i}')")
     self.assertEqual(self.GetCssCount("css=td:contains('process')"), 5)
 
     self.ScrollToBottom()
-    self.Click("css=.bottom-paginator .mat-paginator-navigation-previous")
+    self.Click("css=.bottom-paginator .mat-mdc-paginator-navigation-previous")
     for i in range(10):
       self.WaitUntil(self.IsElementPresent, f"css=td:contains('process{i}')")
     self.assertEqual(self.GetCssCount("css=td:contains('process')"), 10)

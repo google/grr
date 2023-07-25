@@ -3,7 +3,6 @@ import {Type} from '@angular/core';
 import {ArtifactCollectorFlowForm} from '../../components/flow_args_form/artifact_collector_flow_form';
 import {CollectBrowserHistoryForm} from '../../components/flow_args_form/collect_browser_history_form';
 import {CollectMultipleFilesForm} from '../../components/flow_args_form/collect_multiple_files_form';
-import {CollectSingleFileForm} from '../../components/flow_args_form/collect_single_file_form';
 import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {FlowType} from '../../lib/models/flow';
 
@@ -29,7 +28,6 @@ export const FORMS: {[key in FlowType]?: Type<FlowArgumentForm<{}, any>>} = {
   [FlowType.COLLECT_BROWSER_HISTORY]: CollectBrowserHistoryForm,
   [FlowType.COLLECT_FILES_BY_KNOWN_PATH]: CollectFilesByKnownPathForm,
   [FlowType.COLLECT_MULTIPLE_FILES]: CollectMultipleFilesForm,
-  [FlowType.COLLECT_SINGLE_FILE]: CollectSingleFileForm,
   [FlowType.DUMP_PROCESS_MEMORY]: DumpProcessMemoryForm,
   [FlowType.EXECUTE_PYTHON_HACK]: ExecutePythonHackForm,
   [FlowType.LAUNCH_BINARY]: LaunchBinaryForm,

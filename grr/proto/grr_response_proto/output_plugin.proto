@@ -14,14 +14,7 @@ message OutputPluginDescriptor {
   optional string plugin_name = 1
       [(sem_type) = { description: "The name of the output plugin." }];
 
-  // TODO: Rename this field and add DEPRECATED prefix.
-  // DEPRECATED. Please use `args` instead.
-  optional bytes plugin_args = 2 [(sem_type) = {
-    dynamic_type: "GetPluginArgsClass",
-    description: "DEPRECATED. Please use `args` instead. The parameters for "
-                 "this plugin. Must be an instance of the named plugin's "
-                 "args_type."
-  }];
+  optional bytes DEPRECATED_plugin_args = 2;
 
   optional google.protobuf.Any args = 3 [(sem_type) = {
     dynamic_type: "GetPluginArgsClass",

@@ -87,7 +87,8 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
 
     self.Click('css=flow-form button:contains("Collect files")')
     self.Click(
-        'css=.mat-menu-panel button:contains("Collect files by search criteria")'
+        'css=.mat-mdc-menu-panel button:contains("Collect files by search'
+        ' criteria")'
     )
 
     self.Type('css=flow-args-form app-glob-expression-input input', '/foo/test')
@@ -153,7 +154,8 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
 
     self.Click('css=flow-form button:contains("Collect files")')
     self.Click(
-        'css=.mat-menu-panel button:contains("Collect files by search criteria")'
+        'css=.mat-mdc-menu-panel button:contains("Collect files by search'
+        ' criteria")'
     )
 
     self.Type('css=flow-args-form app-glob-expression-input input', '/foo/test')
@@ -188,7 +190,8 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
 
     self.Click('css=flow-form button:contains("Collect files")')
     self.Click(
-        'css=.mat-menu-panel button:contains("Collect files by search criteria")'
+        'css=.mat-mdc-menu-panel button:contains("Collect files by search'
+        ' criteria")'
     )
     self.Type('css=flow-args-form app-glob-expression-input input', '/foo/test')
     self.Click('css=flow-form button:contains("Start")')
@@ -196,7 +199,7 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilContains('/foo/test', self.GetText, 'css=flow-details')
 
     self.Click('css=flow-details button[aria-label="Flow menu"]')
-    self.Click('css=.mat-menu-panel button:contains("Duplicate flow")')
+    self.Click('css=.mat-mdc-menu-panel button:contains("Duplicate flow")')
     self.Click('css=flow-form button:contains("Start")')
 
     self.WaitUntilContains('/foo/test', self.GetText,
@@ -229,7 +232,8 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
 
     self.Click('css=flow-form button:contains("Collect files")')
     self.Click(
-        'css=.mat-menu-panel button:contains("Collect files by search criteria")'
+        'css=.mat-mdc-menu-panel button:contains("Collect files by search'
+        ' criteria")'
     )
 
     self.Type(
@@ -334,7 +338,7 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     # Type whole artifact name except last letter into autocomplete.
     self.Type('css=flow-args-form input[name=artifactName]', 'FakeFileArtifac')
 
-    self.Click('css=.mat-option:contains("FakeFileArtifact")')
+    self.Click('css=[role=option]:contains("FakeFileArtifact")')
 
     self.WaitUntilContains('Collects file', self.GetText, 'css=flow-args-form')
     self.WaitUntilContains('/notafile', self.GetText, 'css=flow-args-form')
@@ -370,7 +374,7 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
     # Type whole artifact name except last letter into autocomplete.
     self.Type('css=flow-args-form input[name=artifactName]', 'LinuxHardwareInf')
 
-    self.Click('css=.mat-option:contains("LinuxHardwareInfo")')
+    self.Click('css=[role=option]:contains("LinuxHardwareInfo")')
     self.Click('css=flow-form button:contains("Schedule")')
 
     def GetFirstScheduledFlow():
@@ -542,7 +546,8 @@ class FlowCreationTestWithApprovalsDisabled(gui_test_lib.GRRSeleniumTest):
 
     self.Click('css=flow-form button:contains("Collect files")')
     self.Click(
-        'css=.mat-menu-panel button:contains("Collect files by search criteria")'
+        'css=.mat-mdc-menu-panel button:contains("Collect files by search'
+        ' criteria")'
     )
 
     self.Type('css=flow-args-form app-glob-expression-input input', '/foo/test')

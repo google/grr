@@ -12,7 +12,7 @@ from grr_response_core import config
 def _MakeServerArgs(channel: communication.Channel,
                     interface: interface_registry.Interface) -> List[str]:
   """Returns the args to run the unprivileged server command."""
-
+  assert channel.pipe_input is not None and channel.pipe_output is not None
   named_flags = [
       "--unprivileged_server_pipe_input",
       str(channel.pipe_input.Serialize()),

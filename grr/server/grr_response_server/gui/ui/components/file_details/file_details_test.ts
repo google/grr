@@ -13,11 +13,11 @@ import {FileDetailsLocalStoreMock, mockFileDetailsLocalStore} from '../../store/
 import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
 import {mockSelectedClientGlobalStore, SelectedClientGlobalStoreMock} from '../../store/selected_client_global_store_test_util';
 import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
+import {CLIENT_ROUTES} from '../app/routing';
 
 import {FileDetails} from './file_details';
 import {FileDetailsModule} from './file_details_module';
 import {FileDetailsPage} from './file_details_page';
-import {FILE_DETAILS_ROUTES} from './routing';
 
 initTestEnvironment();
 
@@ -34,7 +34,7 @@ describe('FileDetails Component', () => {
           imports: [
             NoopAnimationsModule,
             FileDetailsModule,
-            RouterTestingModule.withRoutes(FILE_DETAILS_ROUTES),
+            RouterTestingModule.withRoutes(CLIENT_ROUTES),
           ],
           providers: [
             {provide: ActivatedRoute, useFactory: getActivatedChildRoute},

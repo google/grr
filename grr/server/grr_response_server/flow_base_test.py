@@ -87,9 +87,34 @@ class FlowBaseTest(absltest.TestCase):
     self.assertEmpty(flow.client_info.client_name)
 
   @db_test_lib.WithDatabase
-  def testRrgSupport(self, db: abstract_db.Database):
+  def testPythonAgentSupportFalse(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+
+    flow = rdf_flow_objects.Flow()
+    flow.client_id = client_id
+    flow.flow_id = self._FLOW_ID
+
+    flow = FlowBaseTest.Flow(flow)
+    self.assertFalse(flow.python_agent_support)
+
+  @db_test_lib.WithDatabase
+  def testPythoAgentSupportTrue(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
-    db.WriteClientMetadata(client_id, rrg_support=True)
+
+    startup = rdf_client.StartupInfo()
+    startup.client_info.client_version = 4321
+    db.WriteClientStartupInfo(client_id, startup)
+
+    flow = rdf_flow_objects.Flow()
+    flow.client_id = client_id
+    flow.flow_id = self._FLOW_ID
+
+    flow = FlowBaseTest.Flow(flow)
+    self.assertTrue(flow.python_agent_support)
+
+  @db_test_lib.WithDatabase
+  def testRrgSupport(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
 
     flow = rdf_flow_objects.Flow()
     flow.client_id = client_id
@@ -273,8 +298,6 @@ class FlowBaseTest(absltest.TestCase):
     client_id = db_test_utils.InitializeClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
 
-    db.WriteClientMetadata(client_id, rrg_support=False)
-
     rdf_flow = rdf_flow_objects.Flow()
     rdf_flow.client_id = client_id
     rdf_flow.flow_id = flow_id
@@ -286,10 +309,8 @@ class FlowBaseTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
   def testCallRRGSupported(self, db: abstract_db.Database):
-    client_id = db_test_utils.InitializeClient(db)
+    client_id = db_test_utils.InitializeRRGClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
-
-    db.WriteClientMetadata(client_id, rrg_support=True)
 
     rdf_flow = rdf_flow_objects.Flow()
     rdf_flow.client_id = client_id

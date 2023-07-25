@@ -84,13 +84,9 @@ def GetOutputPluginStates(output_plugins, source=None):
   for plugin_descriptor in output_plugins:
     plugin_class = plugin_descriptor.GetPluginClass()
     try:
-      # TODO: Stop reading `plugin_args` at all (no fallback).
-      if plugin_descriptor.HasField("args"):
-        plugin_args = plugin_descriptor.args
-      else:
-        plugin_args = plugin_descriptor.plugin_args
       _, plugin_state = plugin_class.CreatePluginAndDefaultState(
-          source_urn=source, args=plugin_args)
+          source_urn=source, args=plugin_descriptor.args
+      )
     except Exception as e:  # pylint: disable=broad-except
       raise ValueError("Plugin %s failed to initialize (%s)" %
                        (plugin_class, e))

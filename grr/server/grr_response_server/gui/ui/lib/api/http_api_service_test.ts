@@ -1,6 +1,6 @@
 import {HttpClientTestingModule, HttpTestingController} from '@angular/common/http/testing';
 import {fakeAsync, TestBed, tick} from '@angular/core/testing';
-import {MatLegacySnackBar} from '@angular/material/legacy-snack-bar';
+import {MatSnackBar} from '@angular/material/snack-bar';
 import {lastValueFrom} from 'rxjs';
 
 import {ErrorSnackBar} from '../../components/helpers/error_snackbar/error_snackbar';
@@ -16,17 +16,17 @@ initTestEnvironment();
 describe('HttpApiService', () => {
   let httpApiService: HttpApiService;
   let httpMock: HttpTestingController;
-  let snackbar: Partial<MatLegacySnackBar>;
+  let snackbar: Partial<MatSnackBar>;
 
   beforeEach(() => {
-    snackbar = jasmine.createSpyObj('MatLegacySnackBar', ['openFromComponent']);
+    snackbar = jasmine.createSpyObj('MatSnackBar', ['openFromComponent']);
 
     TestBed.configureTestingModule({
       imports: [
         ApiModule,
         HttpClientTestingModule,
       ],
-      providers: [{provide: MatLegacySnackBar, useFactory: () => snackbar}],
+      providers: [{provide: MatSnackBar, useFactory: () => snackbar}],
       teardown: {destroyAfterEach: false}
     });
 

@@ -917,6 +917,41 @@ describe('HuntResultsTable', () => {
 
          discardPeriodicTasks();
        }));
+
+    it('correctly renders unknown type results', fakeAsync(() => {
+         const fixture = TestBed.createComponent(TestHostComponent);
+         const component = fixture.componentInstance;
+         const mockBaseHuntResult: ApiHuntResult = {
+           clientId: 'C.mockClientId',
+           payload: undefined,  // Payload is irrelevant for this test
+           payloadType: 'SomeNewResultType',
+           timestamp: '1669027009243432',
+         };
+
+         component.totalResultsCount = 1;
+         component.resultType = 'SomeNewResultType';
+
+         fixture.detectChanges();
+
+         tick();
+
+         httpApiService.mockedObservables.listResultsForHunt.next(
+             [mockBaseHuntResult]);
+
+         fixture.detectChanges();
+
+         expect(fixture.debugElement.query(By.css('mat-table'))).not.toBeNull();
+
+         const rows = fixture.nativeElement.querySelectorAll('mat-row');
+
+         expect(rows.length).toBe(1);
+         expect(rows[0].innerText).toContain('C.mockClientId');
+         expect(rows[0].innerText).toContain('2022-11-21 10:36:49 UTC');
+         expect(rows[0].innerText).toContain('SomeNewResultType');
+         expect(rows[0].innerText).toContain('View details');
+
+         discardPeriodicTasks();
+       }));
   });
 
   describe('View Details button', () => {

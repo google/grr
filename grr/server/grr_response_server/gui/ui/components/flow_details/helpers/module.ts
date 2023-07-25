@@ -2,16 +2,15 @@ import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
+import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyCardModule} from '@angular/material/legacy-card';
-import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
-import {MatLegacyInputModule} from '@angular/material/legacy-input';
-import {MatLegacyPaginatorModule} from '@angular/material/legacy-paginator';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
-import {MatLegacyTableModule} from '@angular/material/legacy-table';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatInputModule} from '@angular/material/input';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSortModule} from '@angular/material/sort';
+import {MatTableModule} from '@angular/material/table';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -36,52 +35,64 @@ import {ResultAccordion} from './result_accordion';
  */
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     BrowserAnimationsModule,
-    RouterModule,
-    CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    // Angular Material modules.
     ClipboardModule,
-    MatLegacyCardModule,
-    MatLegacyButtonModule,
-    MatLegacyFormFieldModule,
-    MatIconModule,
-    MatLegacyInputModule,
-    MatLegacyProgressSpinnerModule,
-    MatSortModule,
-    MatLegacyTableModule,
-    MatLegacyTooltipModule,
-    MatLegacyPaginatorModule,
-
+    CommonModule,
     CopyButtonModule,
     DrawerLinkModule,
     ExpandableHashModule,
     FileModeModule,
-    HumanReadableSizeModule,
-    TimestampModule,
     FilterPaginate,
+    FormsModule,
+    HumanReadableSizeModule,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatProgressSpinnerModule,
+    MatSortModule,
+    MatTableModule,
+    MatTooltipModule,
+    ReactiveFormsModule,
+    RouterModule,
+    TimestampModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     DynamicResultSection,
     FileResultsTable,
+    LoadFlowResultsDirective,
     NetworkConnectionFamilyPipe,
     NetworkConnectionTypePipe,
     OsqueryResultsTable,
-    ResultAccordion,
-    LoadFlowResultsDirective,
     RegistryResultsTable,
+    ResultAccordion,
+    // keep-sorted end
+    // clang-format on
   ],
   exports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     DynamicResultSection,
     FileResultsTable,
     FilterPaginate,
+    LoadFlowResultsDirective,
     NetworkConnectionFamilyPipe,
     NetworkConnectionTypePipe,
     OsqueryResultsTable,
-    ResultAccordion,
-    LoadFlowResultsDirective,
     RegistryResultsTable,
+    ResultAccordion,
+    // keep-sorted end
+    // clang-format on
   ],
 })
 export class HelpersModule {

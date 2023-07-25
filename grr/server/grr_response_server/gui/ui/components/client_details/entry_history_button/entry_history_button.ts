@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {MatLegacyDialog} from '@angular/material/legacy-dialog';
+import {MatDialog} from '@angular/material/dialog';
 
 import {Client} from '../../../lib/models/client';
 import {ClientDetailsGlobalStore} from '../../../store/client_details_global_store';
@@ -22,7 +22,7 @@ export class EntryHistoryButton {
 
   constructor(
       private readonly clientDetailsGlobalStore: ClientDetailsGlobalStore,
-      private readonly dialog: MatLegacyDialog,
+      private readonly dialog: MatDialog,
   ) {}
 
   readonly clientEntryChanges$ =

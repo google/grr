@@ -468,3 +468,30 @@ message CheckFlowArgs {
   repeated uint64 max_findings = 4;
   repeated string restrict_checks = 5;
 }
+
+message CAEnrolerArgs {
+  optional Certificate csr = 1;
+}
+
+message CollectSingleFileArgs {
+  optional string path = 1;
+  optional uint64 max_size_bytes = 2 [(sem_type) = { type: "ByteSize" }];
+}
+
+message CollectSingleFileResult {
+  optional StatEntry stat = 1;
+  optional Hash hash = 2;
+}
+
+message CollectSingleFileProgress {
+  enum Status {
+    UNDEFINED = 0;
+    IN_PROGRESS = 1;
+    COLLECTED = 2;
+    NOT_FOUND = 3;
+    FAILED = 4;
+  }
+  optional Status status = 1;
+  optional CollectSingleFileResult result = 2;
+  optional string error_description = 3;
+}

@@ -3,20 +3,20 @@ import {CdkTreeModule} from '@angular/cdk/tree';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
+import {MatCheckboxModule} from '@angular/material/checkbox';
+import {MatChipsModule} from '@angular/material/chips';
 import {MatExpansionModule} from '@angular/material/expansion';
+import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyCardModule} from '@angular/material/legacy-card';
-import {MatLegacyCheckboxModule} from '@angular/material/legacy-checkbox';
-import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
-import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
-import {MatLegacyInputModule} from '@angular/material/legacy-input';
-import {MatLegacyMenuModule} from '@angular/material/legacy-menu';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
-import {MatLegacyTableModule} from '@angular/material/legacy-table';
-import {MatLegacyTabsModule} from '@angular/material/legacy-tabs';
+import {MatInputModule} from '@angular/material/input';
+import {MatMenuModule} from '@angular/material/menu';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSortModule} from '@angular/material/sort';
+import {MatTableModule} from '@angular/material/table';
+import {MatTabsModule} from '@angular/material/tabs';
 import {MatTreeModule} from '@angular/material/tree';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
@@ -32,7 +32,6 @@ import {ArtifactCollectorFlowDetails} from './artifact_collector_flow_details';
 import {CollectBrowserHistoryDetails} from './collect_browser_history_details';
 import {CollectFilesByKnownPathDetails} from './collect_files_by_known_path_details';
 import {CollectMultipleFilesDetails} from './collect_multiple_files_details';
-import {CollectSingleFileDetails} from './collect_single_file_details';
 import {DefaultDetails} from './default_details';
 import {DumpProcessMemoryDetails} from './dump_process_memory_details';
 import {ExecutePythonHackDetails} from './execute_python_hack_details';
@@ -49,11 +48,13 @@ import {YaraProcessScanDetails} from './yara_process_scan_details';
 
 
 const COMPONENTS = [
+  // TODO: re-enable clang format when solved.
+  // clang-format off
+  // keep-sorted start block=yes
   ArtifactCollectorFlowDetails,
   CollectBrowserHistoryDetails,
   CollectFilesByKnownPathDetails,
   CollectMultipleFilesDetails,
-  CollectSingleFileDetails,
   DefaultDetails,
   DumpProcessMemoryDetails,
   ExecutePythonHackDetails,
@@ -67,6 +68,8 @@ const COMPONENTS = [
   OsqueryDetails,
   ReadLowLevelDetails,
   YaraProcessScanDetails,
+  // keep-sorted end
+  // clang-format on
 ];
 
 /**
@@ -74,34 +77,39 @@ const COMPONENTS = [
  */
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     ApiModule,
     BrowserAnimationsModule,
+    CdkTreeModule,
     ClipboardModule,
     CommonModule,
-    FormsModule,
-    ReactiveFormsModule,
-    RouterModule,
-    CdkTreeModule,
-    MatLegacyButtonModule,
-    MatLegacyCardModule,
-    MatLegacyChipsModule,
-    MatLegacyCheckboxModule,
-    MatExpansionModule,
-    MatLegacyFormFieldModule,
-    MatIconModule,
-    MatLegacyInputModule,
-    MatLegacyMenuModule,
-    MatProgressBarModule,
-    MatLegacyProgressSpinnerModule,
-    MatLegacyTableModule,
-    MatLegacyTabsModule,
-    MatSortModule,
-    MatTreeModule,
     CopyButtonModule,
     DrawerLinkModule,
-    HelpersModule,
-    TimestampModule,
     FilterPaginate,
+    FormsModule,
+    HelpersModule,
+    MatButtonModule,
+    MatCardModule,
+    MatCheckboxModule,
+    MatChipsModule,
+    MatExpansionModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatMenuModule,
+    MatProgressBarModule,
+    MatProgressSpinnerModule,
+    MatSortModule,
+    MatTableModule,
+    MatTabsModule,
+    MatTreeModule,
+    ReactiveFormsModule,
+    RouterModule,
+    TimestampModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: COMPONENTS,
   exports: COMPONENTS

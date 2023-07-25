@@ -150,6 +150,29 @@ class HuntTest(stats_test_lib.StatsTestMixin,
     rules = data_store.REL_DB.ReadAllForemanRules()
     self.assertEmpty(rules)
 
+  def testStopHuntWithReason(self):
+    hunt_obj = rdf_hunt_objects.Hunt(creator=self.test_username)
+    hunt_obj.args.hunt_type = hunt_obj.args.HuntType.STANDARD
+    data_store.REL_DB.WriteHuntObject(hunt_obj)
+
+    hunt_obj = hunt.StartHunt(hunt_obj.hunt_id)
+
+    hunt.StopHunt(
+        hunt_obj.hunt_id,
+        hunt_state_reason=rdf_hunt_objects.Hunt.HuntStateReason.AVG_NETWORK_EXCEEDED,
+        reason_comment="not working",
+    )
+
+    hunt_obj2 = data_store.REL_DB.ReadHuntObject(hunt_obj.hunt_id)
+    self.assertEqual(
+        hunt_obj2.hunt_state, rdf_hunt_objects.Hunt.HuntState.STOPPED
+    )
+    self.assertEqual(
+        hunt_obj2.hunt_state_reason,
+        rdf_hunt_objects.Hunt.HuntStateReason.AVG_NETWORK_EXCEEDED,
+    )
+    self.assertEqual(hunt_obj2.hunt_state_comment, "not working")
+
   def testHuntWithInvalidForemanRulesDoesNotStart(self):
     client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
         foreman_rules.ForemanClientRule(
@@ -254,11 +277,17 @@ class HuntTest(stats_test_lib.StatsTestMixin,
         client_rule_set=foreman_rules.ForemanClientRuleSet(),
         client_rate=0,
         client_limit=5,
-        args=self.GetFileHuntArgs())
+        args=self.GetFileHuntArgs(),
+    )
 
     hunt_obj = data_store.REL_DB.ReadHuntObject(hunt_id)
-    self.assertEqual(hunt_obj.hunt_state,
-                     rdf_hunt_objects.Hunt.HuntState.PAUSED)
+    self.assertEqual(
+        hunt_obj.hunt_state, rdf_hunt_objects.Hunt.HuntState.PAUSED
+    )
+    self.assertEqual(
+        hunt_obj.hunt_state_reason,
+        rdf_hunt_objects.Hunt.HuntStateReason.TOTAL_CLIENTS_EXCEEDED,
+    )
 
     hunt_counters = data_store.REL_DB.ReadHuntCounters(hunt_id)
     self.assertEqual(hunt_counters.num_clients, 5)

@@ -9,12 +9,12 @@ import {newClient} from '../../lib/models/model_test_util';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
 import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
+import {CLIENT_ROUTES} from '../app/routing';
 import {ApprovalCard} from '../approval_card/approval_card';
 import {ClientDetailsModule} from '../client_details/module';
 
 import {ClientPageModule} from './client_page_module';
 import {FlowSection} from './flow_section';
-import {CLIENT_PAGE_ROUTES} from './routing';
 
 
 initTestEnvironment();
@@ -28,7 +28,7 @@ describe('FlowSection', () => {
             NoopAnimationsModule,
             ClientPageModule,
             ClientDetailsModule,
-            RouterTestingModule.withRoutes(CLIENT_PAGE_ROUTES),
+            RouterTestingModule.withRoutes(CLIENT_ROUTES),
           ],
           providers: [
             ...STORE_PROVIDERS,

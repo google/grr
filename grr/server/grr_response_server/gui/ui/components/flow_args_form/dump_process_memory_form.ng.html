@@ -74,26 +74,31 @@
   <div class="row">
     <mat-checkbox
       [formControl]="controls.skipReadonlyRegions"
+      color="primary"
       matTooltip="Skip memory regions that are NOT WRITABLE."
       >readonly</mat-checkbox
     >
     <mat-checkbox
       [formControl]="controls.skipExecutableRegions"
+      color="primary"
       matTooltip="Skip memory regions that are EXECUTABLE."
       >executable</mat-checkbox
     >
     <mat-checkbox
       [formControl]="controls.skipSpecialRegions"
+      color="primary"
       matTooltip="On Windows, skip device backed regions (NOCACHE, WRITECOMBINE) and guard pages."
       >special</mat-checkbox
     >
     <mat-checkbox
       [formControl]="controls.skipSharedRegions"
+      color="primary"
       matTooltip="On Linux and macOS, skip device shared regions."
       >shared</mat-checkbox
     >
     <mat-checkbox
       [formControl]="controls.skipMappedFiles"
+      color="primary"
       matTooltip="On Linux, skip mapped files."
       >mapped files</mat-checkbox
     >

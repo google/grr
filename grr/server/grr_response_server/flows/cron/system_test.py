@@ -35,7 +35,6 @@ class SystemCronJobTest(test_lib.GRRBaseTest):
     self.SetupClientsWithIndices(
         range(20, 22),
         system="Darwin",
-        fleetspeak_enabled=True,
         ping=one_hour_ping)
     # These clients shouldn't be analyzed by any of the stats cronjobs.
     self.SetupClientsWithIndices(

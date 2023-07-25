@@ -30,14 +30,12 @@ class MySQLDBClientMixin(object):
       self,
       client_id: str,
       certificate: Optional[rdf_crypto.RDFX509Cert] = None,
-      fleetspeak_enabled: Optional[bool] = None,
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
       last_clock: Optional[rdfvalue.RDFDatetime] = None,
       last_ip: Optional[rdf_client_network.NetworkAddress] = None,
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
-      rrg_support: Optional[bool] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
     """Write metadata about the client."""
@@ -50,9 +48,6 @@ class MySQLDBClientMixin(object):
     if certificate:
       placeholders.append("%(certificate)s")
       values["certificate"] = certificate.SerializeToBytes()
-    if fleetspeak_enabled is not None:
-      placeholders.append("%(fleetspeak_enabled)s")
-      values["fleetspeak_enabled"] = fleetspeak_enabled
     if first_seen is not None:
       placeholders.append("FROM_UNIXTIME(%(first_seen)s)")
       values["first_seen"] = mysql_utils.RDFDatetimeToTimestamp(first_seen)
@@ -68,9 +63,6 @@ class MySQLDBClientMixin(object):
     if last_foreman:
       placeholders.append("FROM_UNIXTIME(%(last_foreman)s)")
       values["last_foreman"] = mysql_utils.RDFDatetimeToTimestamp(last_foreman)
-    if rrg_support is not None:
-      placeholders.append("%(rrg_support)s")
-      values["rrg_support"] = rrg_support
 
     placeholders.append("%(last_fleetspeak_validation_info)s")
     if fleetspeak_validation_info:
@@ -103,7 +95,6 @@ class MySQLDBClientMixin(object):
     query = """
       SELECT
         client_id,
-        fleetspeak_enabled,
         certificate,
         UNIX_TIMESTAMP(last_ping),
         UNIX_TIMESTAMP(last_clock),
@@ -112,8 +103,7 @@ class MySQLDBClientMixin(object):
         UNIX_TIMESTAMP(first_seen),
         UNIX_TIMESTAMP(last_crash_timestamp),
         UNIX_TIMESTAMP(last_startup_timestamp),
-        last_fleetspeak_validation_info,
-        rrg_support
+        last_fleetspeak_validation_info
       FROM
         clients
       WHERE
@@ -124,10 +114,9 @@ class MySQLDBClientMixin(object):
       row = cursor.fetchone()
       if not row:
         break
-      cid, fs, crt, ping, clk, ip, foreman, first, lct, lst, fsvi, rrg = row
+      cid, crt, ping, clk, ip, foreman, first, lct, lst, fsvi = row
       metadata = rdf_objects.ClientMetadata(
           certificate=crt,
-          fleetspeak_enabled=fs,
           first_seen=mysql_utils.TimestampToRDFDatetime(first),
           ping=mysql_utils.TimestampToRDFDatetime(ping),
           clock=mysql_utils.TimestampToRDFDatetime(clk),
@@ -137,7 +126,6 @@ class MySQLDBClientMixin(object):
           last_foreman_time=mysql_utils.TimestampToRDFDatetime(foreman),
           startup_info_timestamp=mysql_utils.TimestampToRDFDatetime(lst),
           last_crash_timestamp=mysql_utils.TimestampToRDFDatetime(lct),
-          rrg_support=rrg,
       )
 
       if fsvi:
@@ -381,6 +369,40 @@ class MySQLDBClientMixin(object):
     except MySQLdb.IntegrityError as error:
       raise db.UnknownClientError(client_id) from error
 
+  @mysql_utils.WithTransaction()
+  def ReadClientRRGStartup(
+      self,
+      client_id: str,
+      cursor: Optional[MySQLdb.cursors.Cursor] = None,
+  ) -> Optional[rrg_startup_pb2.Startup]:
+    """Reads the latest RRG startup entry for the given client."""
+    query = """
+    SELECT su.startup
+      FROM clients
+           LEFT JOIN (SELECT startup
+                        FROM client_rrg_startup_history
+                       WHERE client_id = %(client_id)s
+                    ORDER BY timestamp DESC
+                       LIMIT 1) AS su
+                     ON TRUE
+     WHERE client_id = %(client_id)s
+    """
+    params = {
+        "client_id": db_utils.ClientIDToInt(client_id),
+    }
+
+    cursor.execute(query, params)
+
+    row = cursor.fetchone()
+    if row is None:
+      raise db.UnknownClientError(client_id)
+
+    (startup_bytes,) = row
+    if startup_bytes is None:
+      return None
+
+    return rrg_startup_pb2.Startup.FromString(startup_bytes)
+
   @mysql_utils.WithTransaction(readonly=True)
   def ReadClientStartupInfo(
       self,
@@ -452,7 +474,6 @@ class MySQLDBClientMixin(object):
     for row in response:
       (
           cid,
-          fs,
           crt,
           ip,
           ping,
@@ -476,7 +497,6 @@ class MySQLDBClientMixin(object):
 
         metadata = rdf_objects.ClientMetadata(
             certificate=crt,
-            fleetspeak_enabled=fs,
             first_seen=mysql_utils.TimestampToRDFDatetime(first),
             ping=mysql_utils.TimestampToRDFDatetime(ping),
             clock=mysql_utils.TimestampToRDFDatetime(clk),
@@ -541,7 +561,7 @@ class MySQLDBClientMixin(object):
       return {}
 
     query = """
-    SELECT c.client_id, c.fleetspeak_enabled, c.certificate, c.last_ip,
+    SELECT c.client_id, c.certificate, c.last_ip,
            UNIX_TIMESTAMP(c.last_ping),
            UNIX_TIMESTAMP(c.last_clock),
            UNIX_TIMESTAMP(c.last_foreman),
@@ -585,7 +605,6 @@ class MySQLDBClientMixin(object):
   def ReadClientLastPings(self,
                           min_last_ping=None,
                           max_last_ping=None,
-                          fleetspeak_enabled=None,
                           batch_size=db.CLIENT_IDS_BATCH_SIZE):
     """Yields dicts of last-ping timestamps for clients in the DB."""
     last_client_id = db_utils.IntToClientID(0)
@@ -596,7 +615,7 @@ class MySQLDBClientMixin(object):
           batch_size,
           min_last_ping=min_last_ping,
           max_last_ping=max_last_ping,
-          fleetspeak_enabled=fleetspeak_enabled)
+      )
       if last_pings:
         yield last_pings
       if len(last_pings) < batch_size:
@@ -608,7 +627,6 @@ class MySQLDBClientMixin(object):
                            count,
                            min_last_ping=None,
                            max_last_ping=None,
-                           fleetspeak_enabled=None,
                            cursor=None):
     """Yields dicts of last-ping timestamps for clients in the DB."""
     where_filters = ["client_id > %s"]
@@ -620,12 +638,6 @@ class MySQLDBClientMixin(object):
       where_filters.append(
           "(last_ping IS NULL OR last_ping <= FROM_UNIXTIME(%s))")
       query_values.append(mysql_utils.RDFDatetimeToTimestamp(max_last_ping))
-    if fleetspeak_enabled is not None:
-      if fleetspeak_enabled:
-        where_filters.append("fleetspeak_enabled IS TRUE")
-      else:
-        where_filters.append(
-            "(fleetspeak_enabled IS NULL OR fleetspeak_enabled IS FALSE)")
 
     query = """
       SELECT client_id, UNIX_TIMESTAMP(last_ping)

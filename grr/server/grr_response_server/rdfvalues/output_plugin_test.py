@@ -37,13 +37,6 @@ class OutputPluginTest(absltest.TestCase):
         plugin_name=TestOutputPlugin.__name__, args=new_args)
     self.assertEqual(desc.args, TestOutputPluginArgs(test_message="new"))
 
-  def testFallback_NewOnly(self):
-    new_args = TestOutputPluginArgs(test_message="new")
-    desc = rdf_output_plugin.OutputPluginDescriptor(
-        plugin_name=TestOutputPlugin.__name__, args=new_args)
-
-    self.assertEqual(desc.plugin_args, TestOutputPluginArgs(test_message="new"))
-
 
 if __name__ == "__main__":
   absltest.main()

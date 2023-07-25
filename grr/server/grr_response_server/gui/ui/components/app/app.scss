@@ -1,6 +1,6 @@
-@use "@angular/material" as mat;
-@use "../../material-theme" as c;
-@use "../../main" as main;
+@use '@angular/material' as mat;
+@use '../../material-theme' as c;
+@use '../../main' as main;
 
 :host {
   display: flex;
@@ -16,13 +16,10 @@
     mat.get-color-from-palette(c.$foreground, divider-light);
 
   .brand {
-    align-self: stretch;
-
     .brand-wrapper {
       display: inline-flex;
-      flex-direction: row;
       align-items: center;
-      height: 100%;
+      padding-top: 20px;
 
       .logo {
         height: 38px;
@@ -74,6 +71,7 @@ mat-drawer-container {
   // Angular inserts a .mat-drawer-content element. We need to override its
   // style in order to allow all children to fill the parent height.
   // See: https://github.com/angular/components/issues/13983
+  mat-tab-nav-panel,
   ::ng-deep .mat-drawer-content {
     flex: 1;
     display: flex;
