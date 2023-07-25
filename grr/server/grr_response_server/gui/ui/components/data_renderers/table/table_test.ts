@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {MatLegacyPaginatorHarness} from '@angular/material/legacy-paginator/testing';
+import {MatPaginatorHarness} from '@angular/material/paginator/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
 import {ReplaySubject} from 'rxjs';
@@ -110,12 +110,12 @@ describe('DataTableView component', () => {
     fixture.detectChanges();
 
     // For unknown, mystical, and elusive reasons, Angular's MatPaginator keeps
-    // showing "0 of 0" unless the MatLegacyPaginatorHarness is loaded.
+    // showing "0 of 0" unless the MatPaginatorHarness is loaded.
     // MatPaginator should show the count of 123 in tests without it, but
     // weirdly doesn't. Also, loading the harness should be a no-op, but also
     // isn't.
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    await harnessLoader.getHarness(MatLegacyPaginatorHarness);
+    await harnessLoader.getHarness(MatPaginatorHarness);
 
     expect(fixture.debugElement.nativeElement.textContent).toContain('123');
   });
@@ -127,7 +127,7 @@ describe('DataTableView component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginationHarness =
-        await harnessLoader.getHarness(MatLegacyPaginatorHarness);
+        await harnessLoader.getHarness(MatPaginatorHarness);
     const pageSize = await paginationHarness.getPageSize();
 
     expect(resultSource.loadResults)
@@ -141,7 +141,7 @@ describe('DataTableView component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginationHarness =
-        await harnessLoader.getHarness(MatLegacyPaginatorHarness);
+        await harnessLoader.getHarness(MatPaginatorHarness);
     await paginationHarness.goToNextPage();
 
     const pageSize = await paginationHarness.getPageSize();

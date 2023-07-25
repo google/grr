@@ -1,6 +1,5 @@
 @use "@angular/material" as mat;
 @use "../../material-theme" as c;
-@use "../../main" as main;
 
 $max-width: 1280px;
 $width: 80%;
@@ -24,24 +23,17 @@ $width: 80%;
       margin-bottom: 0;
     }
 
-    .chips {
+    mat-chip-set {
       margin-left: 10px;
     }
   }
 
-  .chips {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    min-height: 26px;
-
-    mat-chip {
-      min-height: 26px;
-      font-size: 13px;
-
-      &:first-child {
-        margin-left: 0;
-      }
+  mat-chip-set {
+    button {
+      border-radius: 2em;
+      line-height: 26px;
+      padding: 0 12px 0 6px;
+      margin-left: 5px;
     }
   }
 

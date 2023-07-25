@@ -44,8 +44,7 @@ class ClientFixture(object):
 
     # Constructing a client snapshot from the legacy fixture is hard, we are
     # using a serialized string instead.
-    data_store.REL_DB.WriteClientMetadata(
-        self.client_id, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(self.client_id)
 
     snapshot = rdf_objects.ClientSnapshot.FromSerializedBytes(
         binascii.unhexlify(SERIALIZED_CLIENT))

@@ -22,7 +22,6 @@ elif sys.platform == "darwin":
 elif "linux" in sys.platform:
   from grr_response_client.linux import registry_init as linux_registry_init
 
-from grr_response_client import comms
 from grr_response_client import local
 # pylint: enable=g-import-not-at-top,unused-import,g-bad-import-order
 

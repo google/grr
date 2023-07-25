@@ -218,7 +218,8 @@ export const ERROR_TAB = 'Errors';
 
 /** Maps PayloadType to corresponding translation information. */
 export const PAYLOAD_TYPE_TRANSLATION: {
-  [key in PayloadType]: PayloadTranslation<{[key: string]: ColumnDescriptor}>
+  // Note: Not every PayloadType has a translation definition:
+  [key in PayloadType]?: PayloadTranslation<{[key: string]: ColumnDescriptor}>
 } = {
   [PayloadType.ANOMALY]: {
     translateFn: toAnomalyRow,

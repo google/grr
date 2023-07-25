@@ -44,8 +44,7 @@ def UpdateClientsFromFleetspeak(clients):
     return
   id_map = {}
   for client in clients:
-    if client.fleetspeak_enabled:
-      id_map[fleetspeak_utils.GRRIDToFleetspeakID(client.client_id)] = client
+    id_map[fleetspeak_utils.GRRIDToFleetspeakID(client.client_id)] = client
   if not id_map:
     return
   res = fleetspeak_connector.CONN.outgoing.ListClients(
@@ -210,7 +209,6 @@ class ApiClient(rdf_structs.RDFProtoStruct):
         self.last_clock = md.clock
       if md.last_crash_timestamp:
         self.last_crash_at = md.last_crash_timestamp
-      self.fleetspeak_enabled = md.fleetspeak_enabled
 
     self.labels = client_info.labels
 
@@ -604,17 +602,7 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     client_id = str(args.client_id)
 
-    md = data_store.REL_DB.ReadClientMetadata(client_id)
-    if md.fleetspeak_enabled:
-      ip_str, ipaddr_obj = _GetAddrFromFleetspeak(client_id)
-    else:
-      try:
-        ipaddr_obj = md.ip.AsIPAddr()
-        ip_str = str(ipaddr_obj)
-      except ValueError:
-        ipaddr_obj = None
-        ip_str = ""
-
+    ip_str, ipaddr_obj = _GetAddrFromFleetspeak(client_id)
     status, info = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ipaddr_obj)
 
     return ApiGetLastClientIPAddressResult(ip=ip_str, info=info, status=status)

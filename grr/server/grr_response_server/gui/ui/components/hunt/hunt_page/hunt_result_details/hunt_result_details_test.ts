@@ -13,10 +13,10 @@ import {newFlowDescriptor} from '../../../../lib/models/model_test_util';
 import {HuntResultDetailsGlobalStore} from '../../../../store/hunt_result_details_global_store';
 import {HuntResultDetailsGlobalStoreMock, mockHuntResultDetailsGlobalStore} from '../../../../store/hunt_result_details_global_store_test_util';
 import {STORE_PROVIDERS} from '../../../../store/store_test_providers';
+import {HUNT_ROUTES} from '../../../app/routing';
 
 import {HuntResultDetails} from './hunt_result_details';
 import {HuntResultDetailsModule} from './module';
-import {HUNT_DETAILS_ROUTES} from './routing';
 
 @Component({template: ''})
 class DummyComponent {
@@ -40,7 +40,7 @@ describe('HuntResultDetails', () => {
             NoopAnimationsModule,
             HuntResultDetailsModule,
             RouterTestingModule.withRoutes([
-              ...HUNT_DETAILS_ROUTES,
+              ...HUNT_ROUTES,
               // Mock route for testing source flow link:
               {
                 path: 'clients/:clientId/flows/:flowId',

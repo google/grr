@@ -22,11 +22,6 @@ _MANUAL_TESTS = flags.DEFINE_list(
     "A comma-separated list of extra tests to run (such tests are not run by "
     "default and have to be manually enabled with this flag).")
 
-_WITH_FLEETSPEAK = flags.DEFINE_boolean(
-    "with_fleetspeak",
-    default=False,
-    help="Assume Fleetspeak is present on the system and use it.")
-
 _MYSQL_DATABASE = flags.DEFINE_string("mysql_database", "grr_test_db",
                                       "MySQL database name to use for GRR.")
 
@@ -63,21 +58,22 @@ def main(argv):
       mysql_password=_MYSQL_PASSWORD.value,
       logging_path=_LOGGING_PATH.value,
       osquery_path=flags.FLAGS.osquery_path,
-      with_fleetspeak=_WITH_FLEETSPEAK.value)
+  )
 
-  fleetspeak_configs = None
-  if _WITH_FLEETSPEAK.value:
-    fleetspeak_configs = self_contained_components.InitFleetspeakConfigs(
-        grr_configs,
-        _FLEETSPEAK_MYSQL_DATABASE.value,
-        mysql_username=_MYSQL_USERNAME.value,
-        mysql_password=_MYSQL_PASSWORD.value)
+  fleetspeak_configs = self_contained_components.InitFleetspeakConfigs(
+      grr_configs,
+      _FLEETSPEAK_MYSQL_DATABASE.value,
+      mysql_username=_MYSQL_USERNAME.value,
+      mysql_password=_MYSQL_PASSWORD.value,
+      logging_path=_LOGGING_PATH.value,
+  )
 
   # Start all remaining server components.
   # Start a background thread that kills the main process if one of the
   # server subprocesses dies.
   server_processes = self_contained_components.StartServerProcesses(
-      grr_configs=grr_configs, fleetspeak_configs=fleetspeak_configs)
+      grr_configs, fleetspeak_configs
+  )
   self_contained_components.DieIfSubProcessDies(server_processes)
 
   api_port = api_helpers.GetAdminUIPortFromConfig(grr_configs.server_config)
@@ -85,7 +81,8 @@ def main(argv):
 
   # Start the client.
   preliminary_client_p = self_contained_components.StartClientProcess(
-      grr_configs=grr_configs, fleetspeak_configs=fleetspeak_configs)
+      fleetspeak_configs
+  )
 
   # Wait for the client to enroll and get its id.
   client_id = api_helpers.WaitForClientToEnroll(grrapi)
@@ -105,8 +102,7 @@ def main(argv):
     fd.write("\nClient.binary_name: %s\n" % client_binary_name)
 
   print("Starting the client with Client.binary_name=%s" % client_binary_name)
-  client_p = self_contained_components.StartClientProcess(
-      grr_configs=grr_configs, fleetspeak_configs=fleetspeak_configs)
+  client_p = self_contained_components.StartClientProcess(fleetspeak_configs)
   # Start a background thread that kills the main process if
   # client subprocess dies.
   self_contained_components.DieIfSubProcessDies([client_p])

@@ -1,8 +1,8 @@
 import {COMMA, ENTER} from '@angular/cdk/keycodes';
 import {ChangeDetectionStrategy, Component, ViewChild} from '@angular/core';
 import {FormControl, Validators} from '@angular/forms';
-import {MatLegacyChipInputEvent} from '@angular/material/legacy-chips';
-import {MatLegacyDialog} from '@angular/material/legacy-dialog';
+import {MatChipInputEvent} from '@angular/material/chips';
+import {MatDialog} from '@angular/material/dialog';
 
 import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {OsqueryFlowArgs} from '../../lib/api/api_interfaces';
@@ -55,7 +55,7 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs, Controls> {
 
   @ViewChild(CodeEditor) codeEditor?: CodeEditor;
 
-  constructor(private readonly dialog: MatLegacyDialog) {
+  constructor(private readonly dialog: MatDialog) {
     super();
   }
 
@@ -107,7 +107,7 @@ export class OsqueryForm extends FlowArgumentForm<OsqueryFlowArgs, Controls> {
     this.lowLevelSettingsShown = true;
   }
 
-  addFileCollectionColumn(event: MatLegacyChipInputEvent): void {
+  addFileCollectionColumn(event: MatChipInputEvent): void {
     const inputElement = event.chipInput?.inputElement;
     const value = event.value ?? '';
 

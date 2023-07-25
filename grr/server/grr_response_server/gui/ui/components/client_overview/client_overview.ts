@@ -1,6 +1,6 @@
 import {ChangeDetectionStrategy, Component, Input, OnDestroy, OnInit} from '@angular/core';
-import {MatLegacyDialog} from '@angular/material/legacy-dialog';
-import {MatLegacySnackBar} from '@angular/material/legacy-snack-bar';
+import {MatDialog} from '@angular/material/dialog';
+import {MatSnackBar} from '@angular/material/snack-bar';
 import {combineLatest, firstValueFrom, Observable} from 'rxjs';
 import {distinctUntilKeyChanged, filter, map, takeUntil, withLatestFrom} from 'rxjs/operators';
 
@@ -78,8 +78,8 @@ export class ClientOverview implements OnInit, OnDestroy {
       private readonly userGlobalStore: UserGlobalStore,
       private readonly clientPageGlobalStore: ClientPageGlobalStore,
       private readonly configGlobalStore: ConfigGlobalStore,
-      private readonly dialog: MatLegacyDialog,
-      private readonly snackBar: MatLegacySnackBar,
+      private readonly dialog: MatDialog,
+      private readonly snackBar: MatSnackBar,
       private readonly markdownPipe: MarkdownPipe,
   ) {}
 

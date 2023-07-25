@@ -53,12 +53,6 @@ $row-padding: 1.5em;
     padding-right: 5px;
   }
 
-  .advance-params-button {
-    color: mat.get-color-from-palette(mat.$blue-palette, 600);
-    margin-bottom: 5px;
-    padding-left: 0;
-  }
-
   .form-content {
     display: flex;
     flex-direction: column;
@@ -71,6 +65,8 @@ $row-padding: 1.5em;
 
   .info-icon {
     margin-left: 0.5em;
+    position: relative;
+    top: 10px;
   }
 
   .params-title {
@@ -80,6 +76,7 @@ $row-padding: 1.5em;
   .params-row {
     display: flex;
     flex-wrap: wrap;
+    align-items: baseline;
 
     > div {
       flex-grow: 1;
@@ -93,6 +90,8 @@ $row-padding: 1.5em;
   .input-suffix {
     font-style: italic;
     color: mat.get-color-from-palette(mat.$grey-palette, 600);
+    padding-right: 10px;
+    line-height: 20px;
   }
 
   .advanced-params {
@@ -101,18 +100,15 @@ $row-padding: 1.5em;
     padding-left: $container-padding;
   }
 
+  .advance-params-button {
+    margin: 10px 0;
+  }
+
   .basic-params {
     padding-left: $container-padding;
   }
 
   .ml-container {
     margin-left: $container-padding;
-  }
-
-  .basic-params-row {
-    display: flex;
-    align-items: center;
-    height: 4em;
-    margin: 2em 0;
   }
 }

@@ -2,7 +2,6 @@
 """Library for interacting with Google BigQuery service."""
 import json
 import logging
-import time
 
 from googleapiclient import discovery
 from googleapiclient import errors
@@ -10,7 +9,7 @@ from googleapiclient import http
 import httplib2
 
 from grr_response_core import config
-from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.util import retry
 
 
 # pylint: disable=g-import-not-at-top
@@ -117,51 +116,6 @@ class BigQueryClient(object):
     """
     return e.resp.status in config.CONFIG["BigQuery.retry_status_codes"]
 
-  def RetryUpload(self, job, job_id, error):
-    """Retry the BigQuery upload job.
-
-    Using the same job id protects us from duplicating data on the server. If we
-    fail all of our retries we raise.
-
-    Args:
-      job: BigQuery job object
-      job_id: ID string for this upload job
-      error: errors.HttpError object from the first error
-
-    Returns:
-      API response object on success, None on failure
-    Raises:
-      BigQueryJobUploadError: if we can't get the bigquery job started after
-          retry_max_attempts
-    """
-    if self.IsErrorRetryable(error):
-      retry_count = 0
-      sleep_interval = config.CONFIG["BigQuery.retry_interval"]
-      while retry_count < config.CONFIG["BigQuery.retry_max_attempts"]:
-
-        time.sleep(sleep_interval.ToFractional(rdfvalue.SECONDS))
-        logging.info("Retrying job_id: %s", job_id)
-        retry_count += 1
-
-        try:
-          response = job.execute()
-          return response
-        except errors.HttpError as e:
-          if self.IsErrorRetryable(e):
-            sleep_interval *= config.CONFIG["BigQuery.retry_multiplier"]
-            logging.exception("Error with job: %s, will retry in %s", job_id,
-                              sleep_interval)
-          else:
-            raise BigQueryJobUploadError(
-                "Can't retry error code %s. Giving up"
-                " on job: %s." % (e.resp.status, job_id))
-    else:
-      raise BigQueryJobUploadError("Can't retry error code %s. Giving up on "
-                                   "job: %s." % (error.resp.status, job_id))
-
-    raise BigQueryJobUploadError(
-        "Giving up on job:%s after %s retries." % (job_id, retry_count))
-
   def InsertData(self, table_id, fd, schema, job_id):
     """Insert data into a bigquery table.
 
@@ -205,14 +159,37 @@ class BigQueryClient(object):
         fd.name, mimetype="application/octet-stream")
     job = self.service.jobs().insert(
         projectId=self.project_id, body=body, media_body=mediafile)
+
+    first_try = True
+
+    @retry.When(
+        errors.HttpError,
+        self.IsErrorRetryable,
+        opts=retry.Opts(
+            attempts=config.CONFIG["BigQuery.retry_max_attempts"],
+            init_delay=config.CONFIG["BigQuery.retry_interval"].AsTimedelta(),
+            backoff=config.CONFIG["BigQuery.retry_multiplier"],
+        ),
+    )
+    def Execute() -> None:
+      nonlocal first_try
+
+      try:
+        job.execute()
+      except errors.HttpError:
+        if first_try:
+          first_try = False
+
+          if self.GetDataset(self.dataset_id):
+            logging.exception("Error with job: %s", job_id)
+          else:
+            # If this is our first export ever, we need to create the dataset.
+            logging.info("Attempting to create dataset: %s", self.dataset_id)
+            self.CreateDataset()
+
+        raise
+
     try:
-      response = job.execute()
-      return response
-    except errors.HttpError as e:
-      if self.GetDataset(self.dataset_id):
-        logging.exception("Error with job: %s", job_id)
-      else:
-        # If this is our first export ever, we need to create the dataset.
-        logging.info("Attempting to create dataset: %s", self.dataset_id)
-        self.CreateDataset()
-      return self.RetryUpload(job, job_id, e)
+      Execute()
+    except errors.HttpError as error:
+      raise BigQueryJobUploadError(f"Failed job '{job_id}'") from error

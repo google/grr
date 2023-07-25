@@ -1486,6 +1486,7 @@ class ApiListApproverSuggestionsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, context=None):
     all_usernames = _GetAllUsernames()
+    all_usernames = sorted(set(all_usernames) - access_control.SYSTEM_USERS)
     usernames = []
 
     if not args.username_query:

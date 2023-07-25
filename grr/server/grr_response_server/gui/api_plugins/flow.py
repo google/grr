@@ -290,7 +290,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
         self.runner_args.cpu_limit = flow_obj.cpu_limit
 
       if flow_obj.HasField("network_bytes_limit"):
-        self.runner_args.cpu_limit = flow_obj.network_bytes_limit
+        self.runner_args.network_bytes_limit = flow_obj.network_bytes_limit
 
       if flow_obj.original_flow.flow_id:
         self.original_flow = ApiFlowReference().FromFlowReference(

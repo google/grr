@@ -136,8 +136,7 @@ setup_args = dict(
         "absl-py==1.4.0",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "pytsk3==20230125",
-        "retry==0.9.2",
-        "libfsntfs-python==20221023",
+        "libfsntfs-python==20230606",
         "fleetspeak-client-bin==0.1.12",
     ],
     extras_require={

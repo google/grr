@@ -26,22 +26,17 @@ class InMemoryDBClientMixin(object):
       self,
       client_id: str,
       certificate: Optional[rdf_crypto.RDFX509Cert] = None,
-      fleetspeak_enabled: Optional[bool] = None,
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
       last_clock: Optional[rdfvalue.RDFDatetime] = None,
       last_ip: Optional[rdf_client_network.NetworkAddress] = None,
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
-      rrg_support: Optional[bool] = None,
   ) -> None:
     """Write metadata about the client."""
     md = {}
     if certificate is not None:
       md["certificate"] = certificate
-
-    if fleetspeak_enabled is not None:
-      md["fleetspeak_enabled"] = fleetspeak_enabled
 
     if first_seen is not None:
       md["first_seen"] = first_seen
@@ -66,9 +61,6 @@ class InMemoryDBClientMixin(object):
       # Write null for empty or non-existent validation info.
       md["last_fleetspeak_validation_info"] = None
 
-    if rrg_support is not None:
-      md["rrg_support"] = rrg_support
-
     self.metadatas.setdefault(client_id, {}).update(md)
 
   @utils.Synchronized
@@ -82,7 +74,6 @@ class InMemoryDBClientMixin(object):
 
       metadata = rdf_objects.ClientMetadata(
           certificate=md.get("certificate"),
-          fleetspeak_enabled=md.get("fleetspeak_enabled"),
           first_seen=md.get("first_seen"),
           ping=md.get("ping"),
           clock=md.get("clock"),
@@ -90,7 +81,6 @@ class InMemoryDBClientMixin(object):
           last_foreman_time=md.get("last_foreman_time"),
           last_crash_timestamp=md.get("last_crash_timestamp"),
           startup_info_timestamp=md.get("startup_info_timestamp"),
-          rrg_support=bool(md.get("rrg_support")),
       )
 
       fsvi = md.get("last_fleetspeak_validation_info")
@@ -179,19 +169,14 @@ class InMemoryDBClientMixin(object):
   def ReadClientLastPings(self,
                           min_last_ping=None,
                           max_last_ping=None,
-                          fleetspeak_enabled=None,
                           batch_size=db.CLIENT_IDS_BATCH_SIZE):
     """Yields dicts of last-ping timestamps for clients in the DB."""
     last_pings = {}
     for client_id, metadata in self.metadatas.items():
       last_ping = metadata.get("ping", rdfvalue.RDFDatetime(0))
-      is_fleetspeak_client = metadata.get("fleetspeak_enabled", False)
       if min_last_ping is not None and last_ping < min_last_ping:
         continue
       elif max_last_ping is not None and last_ping > max_last_ping:
-        continue
-      elif (fleetspeak_enabled is not None and
-            is_fleetspeak_client != fleetspeak_enabled):
         continue
       else:
         last_pings[client_id] = metadata.get("ping", None)
@@ -349,6 +334,20 @@ class InMemoryDBClientMixin(object):
     startup_copy.CopyFrom(startup)
 
     self.rrg_startups[client_id].append(startup_copy)
+
+  @utils.Synchronized
+  def ReadClientRRGStartup(
+      self,
+      client_id: str,
+  ) -> Optional[rrg_startup_pb2.Startup]:
+    """Reads the latest RRG startup entry for the given client."""
+    if client_id not in self.metadatas:
+      raise db.UnknownClientError(client_id)
+
+    try:
+      return self.rrg_startups[client_id][-1]
+    except IndexError:
+      return None
 
   @utils.Synchronized
   def ReadClientStartupInfo(self,

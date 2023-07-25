@@ -1,4 +1,3 @@
-@use '@angular/material' as mat;
 @use '../../../material-theme' as c;
 @use '../../../main' as main;
 
@@ -30,18 +29,12 @@ mat-form-field {
   align-items: center;
 }
 
-.help a {
-  display: flex;
-  align-items: flex-end;
-  color: mat.get-color-from-palette(mat.$blue-palette, 600);
-}
-
 .header-all {
   display: flex;
   padding: c.$container-padding $left-right-padding;
   column-gap: $column-gap;
 
-  .mat-card-title {
+  .mat-mdc-card-title {
     margin-bottom: 0;
     flex: 1;
     overflow: hidden;
@@ -79,13 +72,8 @@ mat-form-field {
   }
 
   .menu-button {
-    background-color: none;
     .menu-icon {
       opacity: 0.2;
-      font-size: 24px;
-      position: relative;
-      left: -5.5px;
-      vertical-align: middle;
     }
   }
 }

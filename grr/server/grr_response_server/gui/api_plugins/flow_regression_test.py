@@ -43,7 +43,10 @@ class ApiGetFlowHandlerRegressionTest(api_regression_test_lib.ApiRegressionTest
       flow_id = flow_test_lib.StartFlow(
           discovery.Interrogate,
           client_id=client_id,
-          creator=self.test_username)
+          network_bytes_limit=8192,
+          cpu_limit=60,
+          creator=self.test_username,
+      )
 
       replace = api_regression_test_lib.GetFlowTestReplaceDict(
           client_id, flow_id, "F:ABCDEF12")

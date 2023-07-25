@@ -1,24 +1,27 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+import {MatDialogModule} from '@angular/material/dialog';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyDialogModule} from '@angular/material/legacy-dialog';
 import {RouterModule} from '@angular/router';
 
 import {HuntHelp} from './hunt_help';
-import {HuntHelpRoutingModule} from './routing';
 
 /**
  * Module for the client details component.
  */
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     CommonModule,
-    RouterModule,
-    MatLegacyDialogModule,
+    MatDialogModule,
     MatDividerModule,
     MatIconModule,
-    HuntHelpRoutingModule,
+    RouterModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     HuntHelp,

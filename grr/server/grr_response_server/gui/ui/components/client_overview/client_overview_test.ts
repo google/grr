@@ -1,6 +1,6 @@
 import {Component, Input} from '@angular/core';
-import {discardPeriodicTasks, fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
-import {MatLegacyChipList} from '@angular/material/legacy-chips';
+import {discardPeriodicTasks, fakeAsync, flush, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {MatChipSet} from '@angular/material/chips';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
@@ -89,10 +89,10 @@ describe('Client Overview', () => {
     fixture.detectChanges();
 
     const labelsChipListEl = fixture.debugElement.query(By.css('.labels'))
-                                 .query(By.directive(MatLegacyChipList))
-                                 .componentInstance as MatLegacyChipList;
+                                 .query(By.directive(MatChipSet))
+                                 .componentInstance as MatChipSet;
     expect(labelsChipListEl).not.toBeNull();
-    const labelsChipList = labelsChipListEl.chips.toArray();
+    const labelsChipList = labelsChipListEl._chips.toArray();
     expect(labelsChipList.length).toBe(1);
     labelsChipList[0].remove();
     expect(store.removeClientLabel).toHaveBeenCalledWith('testlabel');
@@ -109,16 +109,16 @@ describe('Client Overview', () => {
     fixture.detectChanges();
 
     const labelsChipListEl = fixture.debugElement.query(By.css('.labels'))
-                                 .query(By.directive(MatLegacyChipList))
-                                 .componentInstance as MatLegacyChipList;
+                                 .query(By.directive(MatChipSet))
+                                 .componentInstance as MatChipSet;
     expect(labelsChipListEl).not.toBeNull();
-    const labelsChipList = labelsChipListEl.chips.toArray();
+    const labelsChipList = labelsChipListEl._chips.toArray();
     expect(labelsChipList.length).toBe(1);
     labelsChipList[0].remove();
     store.mockedObservables.lastRemovedClientLabel$.next('testlabel');
     fixture.detectChanges();
 
-    const snackbarDiv = document.querySelector('snack-bar-container');
+    const snackbarDiv = document.querySelector('mat-snack-bar-container');
     expect(snackbarDiv).toBeTruthy();
     expect(snackbarDiv!.textContent).toContain('Label "testlabel" removed');
     snackbarDiv!.remove();
@@ -135,10 +135,10 @@ describe('Client Overview', () => {
        fixture.detectChanges();
 
        const labelsChipListEl = fixture.debugElement.query(By.css('.labels'))
-                                    .query(By.directive(MatLegacyChipList))
-                                    .componentInstance as MatLegacyChipList;
+                                    .query(By.directive(MatChipSet))
+                                    .componentInstance as MatChipSet;
        expect(labelsChipListEl).not.toBeNull();
-       const labelsChipList = labelsChipListEl.chips.toArray();
+       const labelsChipList = labelsChipListEl._chips.toArray();
        expect(labelsChipList.length).toBe(1);
        labelsChipList[0].remove();
        store.mockedObservables.lastRemovedClientLabel$.next('testlabel');
@@ -146,13 +146,15 @@ describe('Client Overview', () => {
 
        expect(store.addClientLabel).not.toHaveBeenCalled();
 
-       const snackbarDivButton =
-           document.querySelector('div.mat-simple-snackbar-action button');
-       snackbarDivButton!.dispatchEvent(new MouseEvent('click'));
+       const snackbarButton =
+           document.querySelector('button[matsnackbaraction]');
+       snackbarButton!.dispatchEvent(new MouseEvent('click'));
        fixture.detectChanges();
        tick();
        discardPeriodicTasks();
        expect(store.addClientLabel).toHaveBeenCalledWith('testlabel');
+
+       flush();
      }));
 
   it('shows approval information', () => {
@@ -199,41 +201,12 @@ describe('Client Overview', () => {
     expect(fixture.nativeElement.offsetHeight).toBeLessThan(initialHeight);
   });
 
-  it('shows a warning for legacy comms clients', () => {
-    const fixture = TestBed.createComponent(ClientOverview);
-    fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-    store.mockedObservables.selectedClient$.next(newClient({
-      clientId: 'C.1234',
-      fleetspeakEnabled: false,
-    }));
-    fixture.detectChanges();
-
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('Outdated');
-  });
-
-  it('shows no warning for Fleetspeak clients', () => {
-    const fixture = TestBed.createComponent(ClientOverview);
-    fixture.detectChanges();  // Ensure ngOnInit hook completes.
-
-    store.mockedObservables.selectedClient$.next(newClient({
-      clientId: 'C.1234',
-      fleetspeakEnabled: true,
-    }));
-    fixture.detectChanges();
-
-    expect(fixture.debugElement.nativeElement.textContent)
-        .not.toContain('Outdated');
-  });
-
   it('shows a button to trigger online notification', fakeAsync(() => {
        const fixture = TestBed.createComponent(ClientOverview);
        fixture.detectChanges();  // Ensure ngOnInit hook completes.
 
        store.mockedObservables.selectedClient$.next(newClient({
          clientId: 'C.1234',
-         fleetspeakEnabled: false,
          lastSeenAt: new Date(2000, 1, 1),
        }));
        store.mockedObservables.hasAccess$.next(true);

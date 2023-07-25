@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {MatLegacyMenuHarness} from '@angular/material/legacy-menu/testing';
+import {MatMenuHarness} from '@angular/material/menu/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
@@ -270,7 +270,7 @@ describe('FlowDetails Component', () => {
         detailsComponent.getExportMenuItems(detailsComponent.flow);
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
-    const menu = await loader.getHarness(MatLegacyMenuHarness);
+    const menu = await loader.getHarness(MatMenuHarness);
     await menu.open();
     const renderedMenuItems = await menu.getItems();
 

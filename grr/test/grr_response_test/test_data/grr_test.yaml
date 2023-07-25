@@ -237,7 +237,6 @@ Test Context:
   Frontend.bind_port: 8080
   AdminUI.bind: 127.0.0.1
   AdminUI.port: 8000
-  Nanny.unresponsive_kill_period: 3600
   Database.implementation: InMemoryDB
 
   Logging.verbose: false

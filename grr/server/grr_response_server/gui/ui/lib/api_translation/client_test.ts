@@ -12,7 +12,6 @@ describe('Client API Translation', () => {
   it('converts all client fields correctly', () => {
     const apiClient: ApiClient = {
       clientId: 'C.1234',
-      fleetspeakEnabled: true,
       knowledgeBase: {
         fqdn: 'foo.bar',
         os: 'Linux',
@@ -123,7 +122,6 @@ describe('Client API Translation', () => {
     };
     const client: Client = newClient({
       clientId: 'C.1234',
-      fleetspeakEnabled: true,
       knowledgeBase: {
         fqdn: 'foo.bar',
         os: 'Linux',
@@ -244,7 +242,6 @@ describe('Client API Translation', () => {
     };
     const client: Client = newClient({
       clientId: 'C.1234',
-      fleetspeakEnabled: false,
       knowledgeBase: {},
       agentInfo: {
         clientName: undefined,

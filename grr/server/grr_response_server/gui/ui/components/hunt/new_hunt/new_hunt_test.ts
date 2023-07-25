@@ -2,11 +2,11 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Location} from '@angular/common';
 import {Component} from '@angular/core';
 import {ComponentFixture, fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
 import {MatButtonToggleHarness} from '@angular/material/button-toggle/testing';
-import {MatLegacyAutocompleteHarness} from '@angular/material/legacy-autocomplete/testing';
-import {MatLegacyCheckboxHarness} from '@angular/material/legacy-checkbox/testing';
-import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
-import {MatLegacySelectHarness} from '@angular/material/legacy-select/testing';
+import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
+import {MatInputHarness} from '@angular/material/input/testing';
+import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute, Router} from '@angular/router';
@@ -39,23 +39,23 @@ async function getCheckboxValue(
     fixture: ComponentFixture<unknown>, query: string): Promise<boolean> {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
   const checkboxHarness = await harnessLoader.getHarness(
-      MatLegacyCheckboxHarness.with({selector: query}));
+      MatCheckboxHarness.with({selector: query}));
   return await checkboxHarness.isChecked();
 }
 
 async function getSelectBoxValue(
     fixture: ComponentFixture<unknown>, query: string): Promise<string> {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const selectionBoxHarness = await harnessLoader.getHarness(
-      MatLegacySelectHarness.with({selector: query}));
+  const selectionBoxHarness =
+      await harnessLoader.getHarness(MatSelectHarness.with({selector: query}));
   return await selectionBoxHarness.getValueText();
 }
 
 async function getInputValue(
     fixture: ComponentFixture<unknown>, query: string): Promise<string> {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-  const inputHarness = await harnessLoader.getHarness(
-      MatLegacyInputHarness.with({selector: query}));
+  const inputHarness =
+      await harnessLoader.getHarness(MatInputHarness.with({selector: query}));
   return await inputHarness.getValue();
 }
 
@@ -406,7 +406,7 @@ describe('new hunt test', () => {
        fixture.detectChanges();
 
        const approversInput =
-           fixture.debugElement.query(By.css('mat-chip-list input'));
+           fixture.debugElement.query(By.css('mat-chip-grid input'));
        approversInput.triggerEventHandler('focusin', null);
        fixture.detectChanges();
 
@@ -414,14 +414,14 @@ describe('new hunt test', () => {
            ['user@gmail.com']);
        fixture.detectChanges();
 
-       const input = await loader.getHarness(MatLegacyAutocompleteHarness);
+       const input = await loader.getHarness(MatAutocompleteHarness);
        await input.enterText('user');
        const options = await input.getOptions();
        await options[0].click();
        fixture.detectChanges();
 
        const reason = await loader.getHarness(
-           MatLegacyInputHarness.with({selector: '[name=reason]'}));
+           MatInputHarness.with({selector: '[name=reason]'}));
        await reason.setValue('sample reason');
        fixture.detectChanges();
        const button = fixture.debugElement.query(By.css('#runHunt'));

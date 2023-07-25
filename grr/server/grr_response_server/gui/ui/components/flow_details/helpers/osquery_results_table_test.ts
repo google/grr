@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {DebugElement} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {MatLegacyPaginatorHarness} from '@angular/material/legacy-paginator/testing';
+import {MatPaginatorHarness} from '@angular/material/paginator/testing';
 import {MatSortHarness} from '@angular/material/sort/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -225,8 +225,8 @@ describe('OsqueryResultsTable Component', () => {
     const columnNumber = 1;
     let fixture: ComponentFixture<OsqueryResultsTable>;
     let parsedTable: OsqueryResultsTableDOM;
-    let paginatorTop: MatLegacyPaginatorHarness;
-    let paginatorBottom: MatLegacyPaginatorHarness;
+    let paginatorTop: MatPaginatorHarness;
+    let paginatorBottom: MatPaginatorHarness;
 
     beforeEach(async () => {
       const columns = Array.from<number>({length: columnNumber})
@@ -247,9 +247,9 @@ describe('OsqueryResultsTable Component', () => {
 
       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
       paginatorTop = await harnessLoader.getHarness(
-          MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
+          MatPaginatorHarness.with({selector: '.top-paginator'}));
       paginatorBottom = await harnessLoader.getHarness(
-          MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
+          MatPaginatorHarness.with({selector: '.bottom-paginator'}));
     });
 
     it('starts with pagesize of 10', async () => {

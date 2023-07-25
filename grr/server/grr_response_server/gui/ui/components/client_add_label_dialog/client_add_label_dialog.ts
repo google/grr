@@ -1,6 +1,6 @@
 import {Component, Inject} from '@angular/core';
 import {UntypedFormControl, ValidatorFn} from '@angular/forms';
-import {MAT_LEGACY_DIALOG_DATA, MatLegacyDialogRef} from '@angular/material/legacy-dialog';
+import {MAT_DIALOG_DATA, MatDialogRef} from '@angular/material/dialog';
 import {Observable} from 'rxjs';
 import {filter, map, withLatestFrom} from 'rxjs/operators';
 
@@ -16,8 +16,8 @@ import {ConfigGlobalStore} from '../../store/config_global_store';
 })
 export class ClientAddLabelDialog {
   constructor(
-      private readonly dialogRef: MatLegacyDialogRef<ClientAddLabelDialog>,
-      @Inject(MAT_LEGACY_DIALOG_DATA) private readonly clientLabels:
+      private readonly dialogRef: MatDialogRef<ClientAddLabelDialog>,
+      @Inject(MAT_DIALOG_DATA) private readonly clientLabels:
           readonly ClientLabel[],
       private readonly configGlobalStore: ConfigGlobalStore) {}
 

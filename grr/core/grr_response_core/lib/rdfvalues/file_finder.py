@@ -242,29 +242,6 @@ class FileFinderResult(rdf_structs.RDFProtoStruct):
   ]
 
 
-class CollectSingleFileArgs(rdf_structs.RDFProtoStruct):
-  """Arguments for CollectSingleFile."""
-  protobuf = flows_pb2.CollectSingleFileArgs
-  rdf_deps = [rdfvalue.ByteSize]
-
-
-class CollectSingleFileResult(rdf_structs.RDFProtoStruct):
-  """Result returned by CollectSingleFile."""
-  protobuf = flows_pb2.CollectSingleFileResult
-  rdf_deps = [
-      rdf_crypto.Hash,
-      rdf_client_fs.StatEntry,
-  ]
-
-
-class CollectSingleFileProgress(rdf_structs.RDFProtoStruct):
-  """Progress returned by CollectSingleFile."""
-  protobuf = flows_pb2.CollectSingleFileProgress
-  rdf_deps = [
-      CollectSingleFileResult,
-  ]
-
-
 class CollectFilesByKnownPathArgs(rdf_structs.RDFProtoStruct):
   """Arguments for CollectFilesByKnownPath."""
   protobuf = flows_pb2.CollectFilesByKnownPathArgs
@@ -313,4 +290,43 @@ class CollectMultipleFilesResult(rdf_structs.RDFProtoStruct):
 class CollectMultipleFilesProgress(rdf_structs.RDFProtoStruct):
   """Progress returned by CollectMultipleFiles."""
   protobuf = flows_pb2.CollectMultipleFilesProgress
+  rdf_deps = []
+
+
+class StatMultipleFilesArgs(rdf_structs.RDFProtoStruct):
+  """Arguments for StatMultipleFiles."""
+
+  protobuf = flows_pb2.StatMultipleFilesArgs
+  rdf_deps = [
+      rdf_paths.GlobExpression,
+      FileFinderModificationTimeCondition,
+      FileFinderAccessTimeCondition,
+      FileFinderInodeChangeTimeCondition,
+      FileFinderSizeCondition,
+      FileFinderExtFlagsCondition,
+      FileFinderContentsRegexMatchCondition,
+      FileFinderContentsLiteralMatchCondition,
+  ]
+
+
+class HashMultipleFilesArgs(rdf_structs.RDFProtoStruct):
+  """Arguments for HashMultipleFiles."""
+
+  protobuf = flows_pb2.HashMultipleFilesArgs
+  rdf_deps = [
+      rdf_paths.GlobExpression,
+      FileFinderModificationTimeCondition,
+      FileFinderAccessTimeCondition,
+      FileFinderInodeChangeTimeCondition,
+      FileFinderSizeCondition,
+      FileFinderExtFlagsCondition,
+      FileFinderContentsRegexMatchCondition,
+      FileFinderContentsLiteralMatchCondition,
+  ]
+
+
+class HashMultipleFilesProgress(rdf_structs.RDFProtoStruct):
+  """Progress returned by HashMultipleFiles."""
+
+  protobuf = flows_pb2.HashMultipleFilesProgress
   rdf_deps = []

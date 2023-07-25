@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utilities for working with Google Cloud Storage."""
+import datetime
 import pathlib
 from typing import Callable
 from typing import IO
@@ -62,9 +63,9 @@ class UploadSession(object):
       retry_chunk_attempts: A maximum number of attempts made when uploading a
         chunk.
       retry_chunk_init_delay: An initial delay value for retrying when uploading
-        a chunk (in seconds).
+        a chunk.
       retry_chunk_max_delay: A maximum delay value for retrying when uploading a
-        chunk (in seconds).
+        chunk.
       retry_chunk_backoff: A backoff multiplayer for extending the delay between
         chunk upload retries.
       progress_callback: A progress function to call periodically when uploading
@@ -75,8 +76,8 @@ class UploadSession(object):
     chunk_size: int = 8 * 1024 * 1024  # 8 MiB.
 
     retry_chunk_attempts: int = 30
-    retry_chunk_init_delay: float = 1.0  # 1 s.
-    retry_chunk_max_delay: float = 30 * 60.0  # 30 min.
+    retry_chunk_init_delay: datetime.timedelta = datetime.timedelta(seconds=1)
+    retry_chunk_max_delay: datetime.timedelta = datetime.timedelta(minutes=30)
     retry_chunk_backoff: float = 1.5
 
     progress_callback: Callable[[], None]
@@ -149,18 +150,20 @@ class UploadSession(object):
     if opts is None:
       opts = self.Opts()
 
-    def Sleep(secs: float) -> None:
+    def Sleep(timedelta: datetime.timedelta) -> None:
       time.Sleep(
-          secs,
+          timedelta.total_seconds(),
           progress_secs=opts.progress_interval,
-          progress_callback=opts.progress_callback)
+          progress_callback=opts.progress_callback,
+      )
 
-    retry_opts = retry.Opts()
-    retry_opts.attempts = opts.retry_chunk_attempts
-    retry_opts.backoff = opts.retry_chunk_backoff
-    retry_opts.init_delay_secs = opts.retry_chunk_init_delay
-    retry_opts.max_delay_secs = opts.retry_chunk_max_delay
-    retry_opts.sleep = Sleep
+    retry_opts = retry.Opts(
+        attempts=opts.retry_chunk_attempts,
+        backoff=opts.retry_chunk_backoff,
+        init_delay=opts.retry_chunk_init_delay,
+        max_delay=opts.retry_chunk_max_delay,
+        sleep=Sleep,
+    )
 
     offset = 0
 

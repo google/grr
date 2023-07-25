@@ -1,14 +1,14 @@
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MatAutocompleteModule} from '@angular/material/autocomplete';
+import {MatButtonModule} from '@angular/material/button';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyAutocompleteModule} from '@angular/material/legacy-autocomplete';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
-import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
-import {MatLegacyInputModule} from '@angular/material/legacy-input';
-import {MatLegacyTableModule} from '@angular/material/legacy-table';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatInputModule} from '@angular/material/input';
 import {MatSidenavModule} from '@angular/material/sidenav';
+import {MatTableModule} from '@angular/material/table';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -18,7 +18,6 @@ import {OnlineChipModule} from '../online_chip/module';
 import {TimestampModule} from '../timestamp/module';
 
 import {ClientSearch} from './client_search';
-import {ClientSearchRoutingModule} from './routing';
 import {SearchBox} from './search_box';
 
 /**
@@ -26,29 +25,28 @@ import {SearchBox} from './search_box';
  */
 @NgModule({
   imports: [
-    // Core Angular modules.
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     BrowserAnimationsModule,
-    RouterModule,
     FormsModule,
-    ReactiveFormsModule,
-
-    // Angular Material modules.
-    MatLegacyAutocompleteModule,
-    MatLegacyButtonModule,
-    MatLegacyChipsModule,
-    MatLegacyFormFieldModule,
-    MatIconModule,
-    MatLegacyInputModule,
-    MatSidenavModule,
-    MatLegacyTableModule,
-    MatLegacyTooltipModule,
-
-    // GRR modules.
-    ClientSearchRoutingModule,
     InfiniteListModule,
+    MatAutocompleteModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatSidenavModule,
+    MatTableModule,
+    MatTooltipModule,
     OnlineChipModule,
+    ReactiveFormsModule,
+    RouterModule,
     SubmitOnMetaEnterModule,
     TimestampModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     ClientSearch,

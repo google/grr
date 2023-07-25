@@ -16,14 +16,17 @@ from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_server import action_registry
 from grr_response_server import artifact_registry
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import fleetspeak_utils
 from grr_response_server import flow_responses
+from grr_response_server import server_stubs
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import discovery
@@ -37,6 +40,7 @@ from grr.test_lib import parser_test_lib
 from grr.test_lib import stats_test_lib
 from grr.test_lib import test_lib
 from grr.test_lib import vfs_test_lib
+from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
 from grr_response_proto.rrg.action import get_system_metadata_pb2 as rrg_get_system_metadata_pb2
 
@@ -199,7 +203,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
   def _SetupMinimalClient(self):
     client_id = "C.0000000000000000"
 
-    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id)
 
     return client_id
 
@@ -348,7 +352,6 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     client_id = "C.0000000000000001"
     data_store.REL_DB.WriteClientMetadata(
         client_id,
-        fleetspeak_enabled=True,
         fleetspeak_validation_info={"IP": "12.34.56.78"})
     client_mock = action_mocks.InterrogatedClient()
     client_mock.InitializeClient(
@@ -382,7 +385,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
   def testFleetspeakClient_OnlyGRRLabels(self, mock_labels_fn):
     mock_labels_fn.return_value = []
     client_id = "C.0000000000000001"
-    data_store.REL_DB.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    data_store.REL_DB.WriteClientMetadata(client_id)
     client_mock = action_mocks.InterrogatedClient()
     client_mock.InitializeClient(
         fqdn="fleetspeak.test.com",
@@ -484,10 +487,8 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
 
   @db_test_lib.WithDatabase
   def testHandleRRGGetSystemMetadata(self, db: abstract_db.Database):
-    client_id = db_test_utils.InitializeClient(db)
+    client_id = db_test_utils.InitializeRRGClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)
-
-    db.WriteClientMetadata(client_id, rrg_support=True)
 
     result = rrg_get_system_metadata_pb2.Result()
     result.type = rrg_os_pb2.Type.LINUX
@@ -527,6 +528,171 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertEqual(snapshot.knowledge_base.os, "Linux")
     self.assertEqual(snapshot.knowledge_base.fqdn, "foo.example.com")
     self.assertEqual(snapshot.os_version, "1.2.3-alpha")
+
+  @db_test_lib.WithDatabase
+  def testHandleRRGGetSystemMetadataCloudVMMetadataLinux(
+      self,
+      db: abstract_db.Database,
+  ):
+    client_id = db_test_utils.InitializeRRGClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    result = rrg_get_system_metadata_pb2.Result(type=rrg_os_pb2.Type.LINUX)
+    result_response = rdf_flow_objects.FlowResponse()
+    result_response.any_payload = rdf_structs.AnyValue.PackProto2(result)
+
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    responses = flow_responses.Responses.FromResponsesProto2Any([
+        result_response,
+        status_response,
+    ])
+
+    flow_args = discovery.InterrogateArgs()
+    flow_args.lightweight = False
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = discovery.Interrogate.__name__
+    rdf_flow.args = flow_args
+
+    flow = discovery.Interrogate(rdf_flow)
+    flow.Start()
+    flow.HandleRRGGetSystemMetadata(responses)
+
+    # We should collect VM metadata for Linux.
+    self.assertTrue(
+        _HasClientActionRequest(flow, server_stubs.GetCloudVMMetadata)
+    )
+
+  @db_test_lib.WithDatabase
+  def testHandleRRGGetSystemMetadataCloudVMMetadataMacOS(
+      self,
+      db: abstract_db.Database,
+  ):
+    client_id = db_test_utils.InitializeRRGClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    result = rrg_get_system_metadata_pb2.Result(type=rrg_os_pb2.Type.MACOS)
+    result_response = rdf_flow_objects.FlowResponse()
+    result_response.any_payload = rdf_structs.AnyValue.PackProto2(result)
+
+    status_response = rdf_flow_objects.FlowStatus()
+    status_response.status = rdf_flow_objects.FlowStatus.Status.OK
+
+    responses = flow_responses.Responses.FromResponsesProto2Any([
+        result_response,
+        status_response,
+    ])
+
+    flow_args = discovery.InterrogateArgs()
+    flow_args.lightweight = False
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = discovery.Interrogate.__name__
+    rdf_flow.args = flow_args
+
+    flow = discovery.Interrogate(rdf_flow)
+    flow.Start()
+    flow.HandleRRGGetSystemMetadata(responses)
+
+    # We should not collect VM metadata for macOS.
+    self.assertFalse(
+        _HasClientActionRequest(flow, server_stubs.GetCloudVMMetadata)
+    )
+
+  @db_test_lib.WithDatabase
+  def testStartRRGOnly(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    flow_args = discovery.InterrogateArgs()
+    flow_args.lightweight = False
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = discovery.Interrogate.__name__
+    rdf_flow.args = flow_args
+
+    flow = discovery.Interrogate(rdf_flow)
+    flow.Start()
+
+    self.assertFalse(_HasClientActionRequest(flow, server_stubs.GetClientInfo))
+    self.assertTrue(_HasRRGRequest(flow, rrg_pb2.Action.GET_SYSTEM_METADATA))
+
+  @db_test_lib.WithDatabase
+  def testStartPythonAgent(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    flow_args = discovery.InterrogateArgs()
+    flow_args.lightweight = False
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = discovery.Interrogate.__name__
+    rdf_flow.args = flow_args
+
+    flow = discovery.Interrogate(rdf_flow)
+    flow.Start()
+
+    self.assertTrue(_HasClientActionRequest(flow, server_stubs.GetClientInfo))
+    self.assertFalse(_HasRRGRequest(flow, rrg_pb2.Action.GET_SYSTEM_METADATA))
+
+  @db_test_lib.WithDatabase
+  def testStartBothAgents(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    startup = rdf_client.StartupInfo()
+    startup.client_info.client_version = 4321
+    db.WriteClientStartupInfo(client_id, startup)
+
+    flow_args = discovery.InterrogateArgs()
+    flow_args.lightweight = False
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+    rdf_flow.flow_class_name = discovery.Interrogate.__name__
+    rdf_flow.args = flow_args
+
+    flow = discovery.Interrogate(rdf_flow)
+    flow.Start()
+
+    self.assertTrue(_HasClientActionRequest(flow, server_stubs.GetClientInfo))
+    self.assertTrue(_HasRRGRequest(flow, rrg_pb2.Action.GET_SYSTEM_METADATA))
+
+
+def _HasClientActionRequest(
+    flow: discovery.Interrogate,
+    action: type[server_stubs.ClientActionStub],
+) -> bool:
+  """Checks whether the given flow has a request for the given action."""
+  action_id = action_registry.ID_BY_ACTION_STUB[action]
+
+  def IsAction(request: rdf_flows.ClientActionRequest) -> bool:
+    return request.action_identifier == action_id
+
+  return any(map(IsAction, flow.client_action_requests))
+
+
+def _HasRRGRequest(
+    flow: discovery.Interrogate,
+    action: rrg_pb2.Action,
+) -> bool:
+  """Checks whether the given flow has a request for the given RRG action."""
+
+  def IsAction(request: rrg_pb2.Request) -> bool:
+    return request.action == action
+
+  return any(map(IsAction, flow.rrg_requests))
 
 
 def main(argv):

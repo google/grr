@@ -1,8 +1,8 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {discardPeriodicTasks, fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
-import {MatLegacySelectHarness} from '@angular/material/legacy-select/testing';
-import {MatLegacySnackBar} from '@angular/material/legacy-snack-bar';
+import {MatSelectHarness} from '@angular/material/select/testing';
+import {MatSnackBar} from '@angular/material/snack-bar';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Router} from '@angular/router';
@@ -60,12 +60,12 @@ function initFlowList(
 describe('FlowList Component', () => {
   let configGlobalStore: ConfigGlobalStoreMock;
   let clientPageGlobalStore: ClientPageGlobalStoreMock;
-  let snackbar: Partial<MatLegacySnackBar>;
+  let snackbar: Partial<MatSnackBar>;
 
   beforeEach(waitForAsync(() => {
     configGlobalStore = mockConfigGlobalStore();
     clientPageGlobalStore = mockClientPageGlobalStore();
-    snackbar = jasmine.createSpyObj('MatLegacySnackBar', ['openFromComponent']);
+    snackbar = jasmine.createSpyObj('MatSnackBar', ['openFromComponent']);
 
     TestBed
         .configureTestingModule({
@@ -84,7 +84,7 @@ describe('FlowList Component', () => {
               provide: ClientPageGlobalStore,
               useFactory: () => clientPageGlobalStore,
             },
-            {provide: MatLegacySnackBar, useFactory: () => snackbar},
+            {provide: MatSnackBar, useFactory: () => snackbar},
             DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER,
           ],
           teardown: {destroyAfterEach: false}
@@ -96,7 +96,7 @@ describe('FlowList Component', () => {
     const fixture = TestBed.createComponent(FlowList);
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const flowFilterHarness = await loader.getHarness(
-        MatLegacySelectHarness.with({selector: '[name="flow-filter"]'}));
+        MatSelectHarness.with({selector: '[name="flow-filter"]'}));
     await flowFilterHarness.clickOptions({text: FlowFilter.ALL_FLOWS});
     fixture.detectChanges();
 
@@ -127,7 +127,7 @@ describe('FlowList Component', () => {
     const fixture = TestBed.createComponent(FlowList);
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const flowFilterHarness = await loader.getHarness(
-        MatLegacySelectHarness.with({selector: '[name="flow-filter"]'}));
+        MatSelectHarness.with({selector: '[name="flow-filter"]'}));
     await flowFilterHarness.clickOptions({text: FlowFilter.ALL_ROBOT_FLOWS});
     fixture.detectChanges();
     initFlowList(configGlobalStore, clientPageGlobalStore);

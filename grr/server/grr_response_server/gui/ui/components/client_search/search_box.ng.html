@@ -44,9 +44,9 @@
         >
           <div class="result-row">
             <span>{{ client.knowledgeBase.fqdn }} ({{ client.clientId }})</span>
-            <mat-chip-list>
+            <mat-chip-set role="list">
               <online-chip [lastSeen]="client.lastSeenAt"></online-chip>
-            </mat-chip-list>
+            </mat-chip-set>
           </div>
         </mat-option>
         <mat-option *ngFor="let label of labels$ | async" [value]="label">

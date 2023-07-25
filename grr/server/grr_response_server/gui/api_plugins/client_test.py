@@ -146,8 +146,7 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.handler = client_plugin.ApiRemoveClientsLabelsHandler()
 
   def testRemovesUserLabelFromSingleClient(self):
-    data_store.REL_DB.WriteClientMetadata(
-        self.client_ids[0], fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(self.client_ids[0])
     data_store.REL_DB.AddClientLabels(self.client_ids[0], self.context.username,
                                       [u"foo", u"bar"])
 
@@ -162,8 +161,7 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     self.assertEqual(labels[0].owner, self.context.username)
 
   def testDoesNotRemoveSystemLabelFromSingleClient(self):
-    data_store.REL_DB.WriteClientMetadata(
-        self.client_ids[0], fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(self.client_ids[0])
     data_store.REL_DB.WriteGRRUser("GRR")
     data_store.REL_DB.AddClientLabels(self.client_ids[0], u"GRR", [u"foo"])
     idx = client_index.ClientIndex()
@@ -183,8 +181,7 @@ class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
     data_store.REL_DB.WriteGRRUser(self.context.username)
     data_store.REL_DB.WriteGRRUser("GRR")
 
-    data_store.REL_DB.WriteClientMetadata(
-        self.client_ids[0], fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(self.client_ids[0])
     data_store.REL_DB.AddClientLabels(self.client_ids[0], self.context.username,
                                       [u"foo"])
     data_store.REL_DB.AddClientLabels(self.client_ids[0], u"GRR", [u"foo"])
@@ -356,6 +353,68 @@ class ApiGetClientVersionTimesTest(api_test_lib.ApiCallHandlerTest):
         self.client_id = self.SetupClient(0)
 
 
+class ApiGetClientVersionsTest(api_test_lib.ApiCallHandlerTest):
+  """Test for ApiGetClientVersions using the relational db."""
+
+  def setUp(self):
+    super().setUp()
+    self.handler = client_plugin.ApiGetClientVersionsHandler()
+
+  def testReturnsAll(self):
+    self.client_id = self.SetupClient(0)
+    self.fqdn = "test1234.examples.com"
+    kernels = [42, 45, 100]
+
+    for time in kernels:
+      with test_lib.FakeTime(time):
+        client = rdf_objects.ClientSnapshot(
+            client_id=self.client_id, kernel=f"{time}"
+        )
+        client.knowledge_base.fqdn = self.fqdn
+        data_store.REL_DB.WriteClientSnapshot(client)
+
+    args = client_plugin.ApiGetClientVersionsArgs(client_id=self.client_id)
+    with test_lib.FakeTime(101):
+      result = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(result.items, 3)
+    self.assertEqual(result.items[0].client_id, self.client_id)
+    self.assertEqual(result.items[0].knowledge_base.fqdn, self.fqdn)
+    self.assertEqual(result.items[0].os_info.kernel, f"{kernels[0]}")
+    self.assertEqual(result.items[1].client_id, self.client_id)
+    self.assertEqual(result.items[1].knowledge_base.fqdn, self.fqdn)
+    self.assertEqual(result.items[1].os_info.kernel, f"{kernels[1]}")
+    self.assertEqual(result.items[2].client_id, self.client_id)
+    self.assertEqual(result.items[2].knowledge_base.fqdn, self.fqdn)
+    self.assertEqual(result.items[2].os_info.kernel, f"{kernels[2]}")
+
+  def testFiltersStartAndEnd(self):
+    self.client_id = self.SetupClient(0)
+    self.fqdn = "test1234.examples.com"
+    kernels = [42, 45, 100]
+
+    for time in kernels:
+      with test_lib.FakeTime(time):
+        client = rdf_objects.ClientSnapshot(
+            client_id=self.client_id, kernel=f"{time}"
+        )
+        client.knowledge_base.fqdn = self.fqdn
+        data_store.REL_DB.WriteClientSnapshot(client)
+
+    args = client_plugin.ApiGetClientVersionsArgs(
+        client_id=self.client_id,
+        start=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(43),
+        end=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(53),
+    )
+    with test_lib.FakeTime(101):
+      result = self.handler.Handle(args, context=self.context)
+
+    self.assertLen(result.items, 1)
+    self.assertEqual(result.items[0].client_id, self.client_id)
+    self.assertEqual(result.items[0].knowledge_base.fqdn, self.fqdn)
+    self.assertEqual(result.items[0].os_info.kernel, f"{kernels[1]}")
+
+
 def TSProtoFromString(string):
   ts = timestamp_pb2.Timestamp()
   ts.FromJsonString(string)
@@ -369,10 +428,9 @@ class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
     client_id_2 = client_plugin.ApiClientId("C." + "2" * 16)
     client_id_3 = client_plugin.ApiClientId("C." + "3" * 16)
     clients = [
-        client_plugin.ApiClient(client_id=client_id_1, fleetspeak_enabled=True),
-        client_plugin.ApiClient(client_id=client_id_2, fleetspeak_enabled=True),
-        client_plugin.ApiClient(
-            client_id=client_id_3, fleetspeak_enabled=False),
+        client_plugin.ApiClient(client_id=client_id_1),
+        client_plugin.ApiClient(client_id=client_id_2),
+        client_plugin.ApiClient(client_id=client_id_3),
     ]
     conn = mock.MagicMock()
     conn.outgoing.ListClients.return_value = admin_pb2.ListClientsResponse(
@@ -388,24 +446,30 @@ class ApiFleetspeakIntegrationTest(api_test_lib.ApiCallHandlerTest):
         ])
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
       client_plugin.UpdateClientsFromFleetspeak(clients)
-    self.assertEqual(clients, [
-        client_plugin.ApiClient(
-            client_id=client_id_1,
-            fleetspeak_enabled=True,
-            last_seen_at=rdfvalue.RDFDatetime.FromHumanReadable(
-                "2018-01-01T00:00:01Z"),
-            last_clock=rdfvalue.RDFDatetime.FromHumanReadable(
-                "2018-01-01T00:00:02Z")),
-        client_plugin.ApiClient(
-            client_id=client_id_2,
-            fleetspeak_enabled=True,
-            last_seen_at=rdfvalue.RDFDatetime.FromHumanReadable(
-                "2018-01-02T00:00:01Z"),
-            last_clock=rdfvalue.RDFDatetime.FromHumanReadable(
-                "2018-01-02T00:00:02Z")),
-        client_plugin.ApiClient(
-            client_id=client_id_3, fleetspeak_enabled=False),
-    ])
+    self.assertEqual(
+        clients,
+        [
+            client_plugin.ApiClient(
+                client_id=client_id_1,
+                last_seen_at=rdfvalue.RDFDatetime.FromHumanReadable(
+                    "2018-01-01T00:00:01Z"
+                ),
+                last_clock=rdfvalue.RDFDatetime.FromHumanReadable(
+                    "2018-01-01T00:00:02Z"
+                ),
+            ),
+            client_plugin.ApiClient(
+                client_id=client_id_2,
+                last_seen_at=rdfvalue.RDFDatetime.FromHumanReadable(
+                    "2018-01-02T00:00:01Z"
+                ),
+                last_clock=rdfvalue.RDFDatetime.FromHumanReadable(
+                    "2018-01-02T00:00:02Z"
+                ),
+            ),
+            client_plugin.ApiClient(client_id=client_id_3),
+        ],
+    )
 
   def testGetAddrFromFleetspeakIpV4(self):
     client_id = client_plugin.ApiClientId("C." + "1" * 16)

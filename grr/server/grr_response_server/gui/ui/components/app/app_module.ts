@@ -1,12 +1,12 @@
 import {CommonModule} from '@angular/common';
 import {ErrorHandler, NgModule} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule, MatIconRegistry} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacySnackBarModule} from '@angular/material/legacy-snack-bar';
-import {MatLegacyTabsModule} from '@angular/material/legacy-tabs';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
 import {MatSidenavModule} from '@angular/material/sidenav';
+import {MatSnackBarModule} from '@angular/material/snack-bar';
+import {MatTabsModule} from '@angular/material/tabs';
 import {MatToolbarModule} from '@angular/material/toolbar';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouteReuseStrategy} from '@angular/router';
 
@@ -33,30 +33,40 @@ import {AppRoutingModule} from './routing';
 
 
 const ANGULAR_MATERIAL_MODULES = [
-  MatLegacyButtonModule,
+  // TODO: re-enable clang format when solved.
+  // clang-format off
+    // keep-sorted start block=yes
+  MatButtonModule,
   MatIconModule,
   MatSidenavModule,
-  MatLegacySnackBarModule,
-  MatLegacyTabsModule,
+  MatSnackBarModule,
+  MatTabsModule,
   MatToolbarModule,
-  MatLegacyTooltipModule,
+  MatTooltipModule,
+   // keep-sorted end
+  // clang-format on
 ];
 
 const GRR_MODULES = [
+  // TODO: re-enable clang format when solved.
+  // clang-format off
+  // keep-sorted start block=yes
   ApiModule,
   ApprovalPageModule,
-  ClientSearchModule,
   ClientPageModule,
+  ClientSearchModule,
   ErrorSnackBarModule,
   FileDetailsModule,
   HomeModule,
-  NewHuntModule,
-  UserMenuModule,
+  HuntApprovalPageModule,
   HuntArguments,
   HuntFlowArguments,
-  HuntPageModule,
-  HuntApprovalPageModule,
   HuntHelpModule,
+  HuntPageModule,
+  NewHuntModule,
+  UserMenuModule,
+  // keep-sorted end
+  // clang-format on
 ];
 
 /**

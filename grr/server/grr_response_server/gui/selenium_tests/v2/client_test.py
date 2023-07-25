@@ -18,7 +18,7 @@ class ClientTest(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "mylabel")
     self.WaitUntil(self.IsTextPresent, "foobar")
 
-    self.Click("css=:contains('mylabel') > [matchipremove]")
+    self.Click("css=mat-chip:contains('mylabel') [matchipremove]")
     self.WaitUntilNot(self.IsTextPresent, "mylabel")
 
     self.assertEqual(

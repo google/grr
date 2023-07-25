@@ -137,7 +137,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
   @db_test_lib.WithDatabase
   def testLogsWarningIfBtimeNotSupported(self, db: abstract_db.Database):
     client_id = self.client_id
-    db.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    db.WriteClientMetadata(client_id)
 
     snapshot = rdf_objects.ClientSnapshot()
     snapshot.client_id = client_id
@@ -164,7 +164,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
   @db_test_lib.WithDatabase
   def testNoLogsIfBtimeSupported(self, db: abstract_db.Database):
     client_id = self.client_id
-    db.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    db.WriteClientMetadata(client_id)
 
     snapshot = rdf_objects.ClientSnapshot()
     snapshot.client_id = client_id

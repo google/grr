@@ -4,13 +4,8 @@
 :host {
   display: block;
 
-  .mat-form-field {
+  .mat-mdc-form-field {
     width: 100%;
-
-    .mat-form-field-wrapper {
-      margin-bottom: 0;
-      padding-bottom: 0;
-    }
 
     mat-icon {
       margin-right: 0.5em;

@@ -497,6 +497,18 @@ class DurationTest(absltest.TestCase):
         if a != b:
           self.assertNotEqual(dur_a, dur_b)
 
+  def testAsTimedeltaMicrosecond(self):
+    duration = rdfvalue.Duration.From(1, rdfvalue.MICROSECONDS)
+    self.assertEqual(duration.AsTimedelta(), datetime.timedelta(microseconds=1))
+
+  def testAsTimedeltaSeconds(self):
+    duration = rdfvalue.Duration.From(42, rdfvalue.SECONDS)
+    self.assertEqual(duration.AsTimedelta(), datetime.timedelta(seconds=42))
+
+  def testAsTimedeltaDays(self):
+    duration = rdfvalue.Duration.From(1337, rdfvalue.DAYS)
+    self.assertEqual(duration.AsTimedelta(), datetime.timedelta(days=1337))
+
 
 class DocTest(test_lib.DocTest):
   module = rdfvalue

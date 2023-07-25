@@ -192,12 +192,8 @@ message FlowRunnerArgs {
     label: HIDDEN,
   }];
 
-  optional string base_session_id = 12 [(sem_type) = {
-    type: "RDFURN",
-    description: "The session id for the flow runner. "
-                 "If not specified we make one.",
-    label: HIDDEN,
-  }];
+  // DEPRECATED
+  // optional string base_session_id = 12;
 
   // DEPRECATED, unused.
   // optional uint64 start_time = 15;
@@ -209,11 +205,8 @@ message FlowRunnerArgs {
   //    label: ADVANCED
   //  }, default="analysis/{p}/{u}-{t}"];
 
-  optional string logs_collection_urn = 17 [(sem_type) = {
-    type: "RDFURN",
-    description: "The logs collection to log to for the flow.",
-    label: HIDDEN,
-  }];
+  // DEPRECATED
+  // optional string logs_collection_urn = 17;
 
   optional bool write_intermediate_results = 18 [
     (sem_type) = {
@@ -355,11 +348,7 @@ message HuntRunnerArgs {
   ];
 
   // DEPRECATED.
-  // optional string logs_collection_urn = 14 [(sem_type) = {
-  //     type: "RDFURN",
-  //     description: "The logs collection to log to for the hunt.",
-  //     label: HIDDEN,
-  //   }];
+  // optional string logs_collection_urn = 14;
 
   optional bool add_foreman_rules = 16 [
     default = true,
@@ -511,13 +500,6 @@ message BareGrepSpec {
 // Various flows.
 
 // Next field ID: 2
-message CAEnrolerArgs {
-  optional Certificate csr = 1 [(sem_type) = {
-    description: "A Certificate RDFValue with the CSR in it.",
-  }];
-}
-
-// Next field ID: 2
 message DeleteGRRTempFilesArgs {
   optional PathSpec pathspec = 1 [(sem_type) = {
     description: "The pathspec target for deletion."
@@ -620,15 +602,7 @@ message ArtifactCollectorFlowArgs {
   }];
 
   // Deprecated.
-  // TODO: Remove after 2021-04-01.
-  optional bool use_tsk = 2 [
-    (sem_type) = {
-      description: "(Deprecated) Whether raw filesystem access should be used. "
-                   "Use use_raw_filesystem_access insteaed."
-      label: HIDDEN,
-    },
-    default = false
-  ];
+  // optional bool use_tsk = 2;
 
   optional bool use_raw_filesystem_access = 15 [
     (sem_type) = {
@@ -745,15 +719,7 @@ message ArtifactFilesDownloaderFlowArgs {
   }];
 
   // Deprecated.
-  // TODO: Remove after 2021-04-01.
-  optional bool use_tsk = 2 [
-    (sem_type) = {
-      description: "(Deprecated) Whether raw filesystem access should be used. "
-                   "Use use_raw_filesystem_access instead."
-      label: HIDDEN,
-    },
-    default = false
-  ];
+  // optional bool use_tsk = 2;
 
   optional bool use_raw_filesystem_access = 10 [
     (sem_type) = {
@@ -823,26 +789,6 @@ message FingerprintFileResult {
   optional Hash hash_entry = 2 [(sem_type) = {
     description: "File hash object.",
   }];
-}
-
-// Next field ID: 2
-message SophosCollectorArgs {
-  optional PathSpec.PathType pathtype = 1 [
-    (sem_type) = {
-      description: "The requested path type.",
-    },
-    default = OS
-  ];
-}
-
-// Next field ID: 2
-message MACTimesArgs {
-  optional string path = 1 [
-    (sem_type) = {
-      description: "An AFF path (relative to the client area of the VFS).",
-    },
-    default = "/fs/"
-  ];
 }
 
 // Next field ID: 2
@@ -1267,22 +1213,6 @@ message ChromePluginsArgs {
   ];
 }
 
-// Next field ID: 3
-message UpdateVFSFileArgs {
-  optional string vfs_file_urn = 1 [(sem_type) = {
-    type: "RDFURN",
-    description: "VFSFile urn",
-  }];
-
-  optional string attribute = 2 [
-    (sem_type) = {
-      description: "Attribute to update, given as the attribute name "
-                   "on the schema class.",
-    },
-    default = "CONTAINS"
-  ];
-}
-
 // Next field ID: 6
 message MultiGetFileArgs {
   repeated PathSpec pathspecs = 2 [(sem_type) = {
@@ -1406,25 +1336,6 @@ message ListProcessesArgs {
   // If present, only processes with identifiers corresponding to those that are
   // specified here are going to be included in the results.
   repeated uint32 pids = 4;
-}
-
-// Next field ID: 3
-message ListVADBinariesArgs {
-  optional string filename_regex = 1 [
-    (sem_type) = {
-      type: "RegularExpression",
-      friendly_name: "Filename Regex",
-      description: "Regex used to filter the list of binaries.",
-    },
-    default = "."
-  ];
-
-  optional bool fetch_binaries = 2 [
-    (sem_type) = {
-      friendly_name: "Fetch Binaries",
-    },
-    default = false
-  ];
 }
 
 // Next field ID: 7
@@ -1889,29 +1800,6 @@ message FileFinderResult {
   }];
 }
 
-message CollectSingleFileArgs {
-  optional string path = 1;
-  optional uint64 max_size_bytes = 2 [(sem_type) = { type: "ByteSize" }];
-}
-
-message CollectSingleFileResult {
-  optional StatEntry stat = 1;
-  optional Hash hash = 2;
-}
-
-message CollectSingleFileProgress {
-  enum Status {
-    UNDEFINED = 0;
-    IN_PROGRESS = 1;
-    COLLECTED = 2;
-    NOT_FOUND = 3;
-    FAILED = 4;
-  }
-  optional Status status = 1;
-  optional CollectSingleFileResult result = 2;
-  optional string error_description = 3;
-}
-
 message CollectFilesByKnownPathArgs {
   // Path files to be collected.
   repeated string paths = 1;
@@ -2010,6 +1898,44 @@ message CollectMultipleFilesProgress {
   optional uint64 num_in_progress = 2;
   optional uint64 num_raw_fs_access_retries = 3;
   optional uint64 num_collected = 4;
+  optional uint64 num_failed = 5;
+}
+
+message StatMultipleFilesArgs {
+  repeated string path_expressions = 1 [(sem_type) = {
+    type: "GlobExpression",
+    description: "Stats from files matching any of these expressions will be collected",
+  }];
+
+  optional FileFinderModificationTimeCondition modification_time = 2;
+  optional FileFinderAccessTimeCondition access_time = 3;
+  optional FileFinderInodeChangeTimeCondition inode_change_time = 4;
+  optional FileFinderSizeCondition size = 5;
+  optional FileFinderExtFlagsCondition ext_flags = 6;
+  optional FileFinderContentsRegexMatchCondition contents_regex_match = 7;
+  optional FileFinderContentsLiteralMatchCondition contents_literal_match = 8;
+}
+
+message HashMultipleFilesArgs {
+  repeated string path_expressions = 1 [(sem_type) = {
+    type: "GlobExpression",
+    description: "Hashes from files matching any of these expressions will be collected",
+  }];
+
+  optional FileFinderModificationTimeCondition modification_time = 2;
+  optional FileFinderAccessTimeCondition access_time = 3;
+  optional FileFinderInodeChangeTimeCondition inode_change_time = 4;
+  optional FileFinderSizeCondition size = 5;
+  optional FileFinderExtFlagsCondition ext_flags = 6;
+  optional FileFinderContentsRegexMatchCondition contents_regex_match = 7;
+  optional FileFinderContentsLiteralMatchCondition contents_literal_match = 8;
+}
+
+message HashMultipleFilesProgress {
+  optional uint64 num_found = 1;
+  optional uint64 num_in_progress = 2;
+  optional uint64 num_raw_fs_access_retries = 3;
+  optional uint64 num_hashed = 4;
   optional uint64 num_failed = 5;
 }
 

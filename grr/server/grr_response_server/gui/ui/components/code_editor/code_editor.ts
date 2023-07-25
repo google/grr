@@ -7,7 +7,7 @@ import 'codemirror/addon/hint/show-hint.js';
 import {FocusMonitor} from '@angular/cdk/a11y';
 import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, forwardRef, HostBinding, Input, OnDestroy, ViewChild, ViewEncapsulation,} from '@angular/core';
 import {ControlValueAccessor, NG_VALUE_ACCESSOR, NgControl} from '@angular/forms';
-import {MatLegacyFormFieldControl} from '@angular/material/legacy-form-field';
+import {MatFormFieldControl} from '@angular/material/form-field';
 // tslint:disable-next-line:enforce-name-casing
 import * as CodeMirror from 'codemirror';
 import {Subject} from 'rxjs';
@@ -44,13 +44,13 @@ export enum HighlightMode {
       multi: true,
     },
     {
-      provide: MatLegacyFormFieldControl,
+      provide: MatFormFieldControl,
       useExisting: CodeEditor,
       multi: true,
     }
   ],
 })
-export class CodeEditor implements MatLegacyFormFieldControl<string>, OnDestroy,
+export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
                                    AfterViewInit, ControlValueAccessor {
   private static uniqueNumber = 0;
 

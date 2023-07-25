@@ -21,7 +21,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testLs_ContainsFiles(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     dir_nodes = [
         # name, content
@@ -51,7 +52,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testLs_EmptyDirectory(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
@@ -61,7 +63,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testLs_Recursive(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     dir_nodes = [
         'file0',
@@ -98,7 +101,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testLs_MaxDepth(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     dir_components = ['dir1', 'dir2', 'dir3', 'dir4', 'dir5']
 
@@ -121,7 +125,8 @@ class FileSystemTest(testing.ColabE2ETest):
   @testing.with_approval_checks
   def testLs_WithoutApproval(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
@@ -132,7 +137,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testGlob_SingleFile(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       os.mkdir(os.path.join(temp_dirpath, 'dir'))
@@ -148,7 +154,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testGlob_MultipleFiles(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       os.mkdir(os.path.join(temp_dirpath, 'dir'))
@@ -171,7 +178,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testGlob_NoFiles(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
       fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
@@ -182,7 +190,8 @@ class FileSystemTest(testing.ColabE2ETest):
   @testing.with_approval_checks
   def testGlob_WithoutApproval(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
@@ -193,7 +202,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testGrep_HasMatches(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
@@ -216,7 +226,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testGrep_Regex(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
@@ -237,7 +248,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testGrep_NoMatches(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
@@ -252,7 +264,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testGrep_BinaryPattern(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
@@ -272,7 +285,8 @@ class FileSystemTest(testing.ColabE2ETest):
   @testing.with_approval_checks
   def testGrep_WithoutApproval(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
@@ -283,7 +297,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testFgrep_HasMatches(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
@@ -302,7 +317,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testFgrep_Regex(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
@@ -319,7 +335,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testFgrep_NoMatches(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
@@ -334,7 +351,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testFgrep_BinaryPattern(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     with temp.AutoTempDirPath(remove_non_empty=True) as temp_dirpath:
@@ -352,7 +370,8 @@ class FileSystemTest(testing.ColabE2ETest):
   @testing.with_approval_checks
   def testFgrep_WithoutApproval(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
@@ -364,7 +383,8 @@ class FileSystemTest(testing.ColabE2ETest):
   @testing.with_approval_checks
   def testWget_WithoutApproval(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
@@ -376,7 +396,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testWget_NoAdminURLSpecified(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
     fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
     with flagsaver.flagsaver(grr_admin_ui_url=''):
@@ -387,7 +408,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testWget_FileDoesNotExist(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
     fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
     with flagsaver.flagsaver(grr_admin_ui_url=self.endpoint):
@@ -396,7 +418,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testWget_IsDirectory(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
     fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
     with flagsaver.flagsaver(grr_admin_ui_url=self.endpoint):
@@ -407,7 +430,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testWget_LinkWorksWithOfflineClient(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
     fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
     content = b'foo bar'
@@ -422,7 +446,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testOpen_ReadAll(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     content = b'foo bar'
@@ -437,7 +462,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testOpen_ReadMore(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     content = b'foo bar'
@@ -452,7 +478,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testOpen_ReadLess(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     content = b'foo bar'
@@ -467,7 +494,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testOpen_Buffering(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     size = 1024 * 1024
@@ -484,7 +512,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testOpen_ReadLargeFile(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     filename = 'foo'
     size = 1024 * 1024
@@ -499,7 +528,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testOpen_SeekWithinOneBuffer(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     content = b'foo bar'
     with temp.AutoTempFilePath() as temp_filepath:
@@ -515,7 +545,8 @@ class FileSystemTest(testing.ColabE2ETest):
 
   def testOpen_SeekOutOfBuffer(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     size = 1024 * 512
     with temp.AutoTempFilePath() as temp_filepath:
@@ -532,7 +563,8 @@ class FileSystemTest(testing.ColabE2ETest):
   @testing.with_approval_checks
   def testOpen_WithoutApproval(self):
     data_store.REL_DB.WriteClientMetadata(
-        client_id=FileSystemTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+        client_id=FileSystemTest.FAKE_CLIENT_ID
+    )
 
     fs_obj = fs.FileSystem(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 

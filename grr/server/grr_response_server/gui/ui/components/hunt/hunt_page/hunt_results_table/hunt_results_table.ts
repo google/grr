@@ -1,9 +1,9 @@
 import {CommonModule, KeyValue} from '@angular/common';
 import {ChangeDetectionStrategy, Component, EventEmitter, Input, OnChanges, OnDestroy, Output, SimpleChanges} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
-import {MatLegacyTableDataSource, MatLegacyTableModule} from '@angular/material/legacy-table';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {distinctUntilChanged, map, takeUntil} from 'rxjs/operators';
 
 import {ApiHuntResult} from '../../../../lib/api/api_interfaces';
@@ -50,10 +50,10 @@ const NO_MORE_ITEMS_TO_LOAD_TEXT = 'Nothing more to load';
   standalone: true,
   imports: [
     CommonModule,
-    MatLegacyButtonModule,
+    MatButtonModule,
     MatIconModule,
-    MatLegacyProgressSpinnerModule,
-    MatLegacyTableModule,
+    MatProgressSpinnerModule,
+    MatTableModule,
 
     CopyButtonModule,
     ExpandableHashModule,
@@ -78,7 +78,7 @@ export class HuntResultsTable<T extends HuntResultOrError> implements
       ((...args: unknown[]) =>
            CellData<{[key: string]: ColumnDescriptor}>)|undefined;
   translateHuntErrorFn =
-      PAYLOAD_TYPE_TRANSLATION[PayloadType.API_HUNT_ERROR].translateFn;
+      PAYLOAD_TYPE_TRANSLATION[PayloadType.API_HUNT_ERROR]!.translateFn;
 
   @Output() readonly selectedHuntResult = new EventEmitter<T>();
 
@@ -115,7 +115,7 @@ export class HuntResultsTable<T extends HuntResultOrError> implements
   loadMoreButtonText = NO_MORE_ITEMS_TO_LOAD_TEXT;
 
   readonly CellComponent = CellComponent;
-  readonly dataSource = new MatLegacyTableDataSource<ResultTableRow<T>>();
+  readonly dataSource = new MatTableDataSource<ResultTableRow<T>>();
   readonly isLoading$ = this.huntResultsLocalStore.isLoading$;
   readonly ngOnDestroy = observeOnDestroy(this);
 
@@ -198,11 +198,16 @@ export class HuntResultsTable<T extends HuntResultOrError> implements
 
   private setTableColumns(payloadType: PayloadType|undefined): void {
     const safePayloadType = payloadType || PayloadType.API_HUNT_RESULT;
+    const payloadTypeTranslation = PAYLOAD_TYPE_TRANSLATION[safePayloadType];
 
-    const columns = {
-      ...HUNT_RESULT_COLUMNS,
-      ...PAYLOAD_TYPE_TRANSLATION[safePayloadType].columns,
-    };
+    let columns = HUNT_RESULT_COLUMNS;
+
+    if (isNonNull(payloadTypeTranslation)) {
+      columns = {
+        ...HUNT_RESULT_COLUMNS,
+        ...payloadTypeTranslation.columns,
+      };
+    }
 
     this.columnDescriptors = columns;
     this.orderedColumnKeys = orderApiHuntResultColumns(columns);
@@ -210,7 +215,7 @@ export class HuntResultsTable<T extends HuntResultOrError> implements
 
   private setHuntResultTranslationFunction(pt: PayloadType|undefined): void {
     if (isNonNull(pt)) {
-      this.translateHuntResultFn = PAYLOAD_TYPE_TRANSLATION[pt].translateFn;
+      this.translateHuntResultFn = PAYLOAD_TYPE_TRANSLATION[pt]?.translateFn;
 
       return;
     }

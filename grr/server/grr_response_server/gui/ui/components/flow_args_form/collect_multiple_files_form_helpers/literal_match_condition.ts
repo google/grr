@@ -8,6 +8,7 @@ import {decodeBase64ToString, encodeStringToBase64} from '../../../lib/api_trans
 @Component({
   selector: 'literal-match-condition',
   templateUrl: './literal_match_condition.ng.html',
+  styles: ['.literal-mode { width: 150px; }'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class LiteralMatchCondition {

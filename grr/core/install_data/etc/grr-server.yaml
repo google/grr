@@ -90,7 +90,6 @@ Target:Darwin:
     Client.poll_max: 5
     Client.foreman_check_frequency: 30
     Client.rss_max: 4000
-    Nanny.unresponsive_kill_period: 3600
     Client.prefix: dbg_
 
 Target:Linux:
@@ -152,7 +151,6 @@ Target:Linux:
     Client.poll_max: 5
     Client.foreman_check_frequency: 30
     Client.rss_max: 4000
-    Nanny.unresponsive_kill_period: 3600
     Client.prefix: dbg_
 
 Target:Windows:
@@ -191,7 +189,6 @@ Target:Windows:
     Client.poll_max: 5
     Client.foreman_check_frequency: 30
     Client.rss_max: 4000
-    Nanny.unresponsive_kill_period: 3600
     Client.prefix: dbg_
 
 ConfigUpdater Context:
@@ -210,6 +207,8 @@ Platform:Darwin:
 
     Logging.syslog_path: /var/run/syslog
 
+    Logging.filename: "%(Logging.path)/%(Client.name).log"
+
 Platform:Linux:
   Client.binary_name: grrd
 
@@ -220,6 +219,8 @@ Platform:Linux:
     Logging.engines: stderr,file,syslog
 
     Logging.syslog_path: /dev/log
+
+    Logging.filename: "%(Logging.path)/%(Client.name).log"
 
     Commandline Context:
       Logging.engines: stderr
@@ -270,6 +271,9 @@ Platform:Windows:
 Worker Context:
   Cron.active: True
   Logging.filename: "%(Logging.path)/grr-worker.log"
+
+FleetspeakFrontend Context:
+  Logging.filename: "%(Logging.path)/grr-fleetspeak-frontend.log"
 
 # For Test Context, see test_data/grr_test.yaml in the grr-response-test
 # package.

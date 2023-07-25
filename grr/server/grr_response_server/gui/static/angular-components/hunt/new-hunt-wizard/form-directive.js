@@ -6,9 +6,9 @@ const {ReflectionService} = goog.require('grrUi.core.reflectionService');
 
 
 /** @const {string} */
-exports.DEFAULT_PLUGIN_URL = '/config/' +
-    'AdminUI.new_hunt_wizard.default_output_plugin';
-var DEFAULT_PLUGIN_URL = exports.DEFAULT_PLUGIN_URL;
+exports.DEFAULT_PLUGINS_URL = '/config/' +
+    'AdminUI.new_hunt_wizard.default_output_plugins';
+const DEFAULT_PLUGINS_URL = exports.DEFAULT_PLUGINS_URL;
 
 
 
@@ -37,15 +37,15 @@ const FormController = class {
     this.descriptors_ = {};
 
     /** @private {?string} */
-    this.defaultOutputPluginName;
+    this.defaultOutputPluginNames;
 
     /** @type {boolean} */
     this.configureFlowPageHasErrors;
 
-    this.grrApiService_.get(DEFAULT_PLUGIN_URL)
+    this.grrApiService_.get(DEFAULT_PLUGINS_URL)
         .then(function(response) {
           if (angular.isDefined(response['data']['value'])) {
-            this.defaultOutputPluginName = response['data']['value']['value'];
+            this.defaultOutputPluginNames = response['data']['value']['value'];
           }
 
           return this.grrReflectionService_.getRDFValueDescriptor(
@@ -83,15 +83,17 @@ const FormController = class {
     }
 
     if (angular.isUndefined(hra['value']['output_plugins'])) {
-      if (this.defaultOutputPluginName) {
-        var defaultPluginDescriptor = angular.copy(
-            this.descriptors_['OutputPluginDescriptor']['default']);
-        defaultPluginDescriptor['value']['plugin_name'] =
-            angular.copy(this.descriptors_['RDFString']['default']);
-        defaultPluginDescriptor['value']['plugin_name']['value'] =
-            this.defaultOutputPluginName;
+      if (this.defaultOutputPluginNames) {
+        hra['value']['output_plugins'] = [];
+        this.defaultOutputPluginNames.split(',').forEach((n) => {
+          var defaultPluginDescriptor = angular.copy(
+              this.descriptors_['OutputPluginDescriptor']['default']);
+          defaultPluginDescriptor['value']['plugin_name'] =
+              angular.copy(this.descriptors_['RDFString']['default']);
+          defaultPluginDescriptor['value']['plugin_name']['value'] = n;
 
-        hra['value']['output_plugins'] = [defaultPluginDescriptor];
+          hra['value']['output_plugins'].push(defaultPluginDescriptor);
+        });
       } else if (angular.isUndefined(newValue['value']['output_plugins'])) {
         hra['value']['output_plugins'] = [];
       }

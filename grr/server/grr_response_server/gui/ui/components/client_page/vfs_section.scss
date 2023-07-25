@@ -1,6 +1,6 @@
-@use "sass:math";
-@use "@angular/material" as mat;
-@use "../../material-theme" as c;
+@use 'sass:math';
+@use '@angular/material' as mat;
+@use '../../material-theme' as c;
 
 $icon-size: 24px;
 $tree-row-height: 24px;
@@ -19,6 +19,7 @@ $tree-row-height: 24px;
 
 mat-spinner {
   display: inline-block;
+  margin-right: 8px;
 }
 
 .selected {
@@ -34,7 +35,7 @@ mat-tree {
     color: mat.get-color-from-palette(c.$foreground, icon-grey);
   }
 
-  .mat-button {
+  .mat-mdc-button {
     line-height: $tree-row-height;
     padding: 0;
     min-width: $tree-row-height;
@@ -65,7 +66,7 @@ mat-tree {
 
   .directory-link {
     flex: 1;
-    text-align: left;
+    justify-content: start;
     line-height: $tree-row-height;
   }
 }
@@ -73,8 +74,8 @@ mat-tree {
 .directory-table {
   td.icon,
   th.icon {
-    width: calc($icon-size * 1.5);
-    max-width: calc($icon-size * 1.5);
+    width: calc($icon-size * 1.6);
+    max-width: calc($icon-size * 1.6);
     min-width: $icon-size;
 
     mat-icon {
@@ -94,14 +95,17 @@ mat-tree {
   }
 }
 
-.mat-card-no-padding {
+.mat-mdc-card.mat-card-no-padding {
   padding: 0;
 }
 
-.mat-card-title {
+.mat-mdc-card-title {
   padding: c.$container-padding c.$container-padding 0;
   display: flex;
   column-gap: c.$container-padding;
+  row-gap: c.$container-padding;
+  flex-wrap: wrap;
+  justify-content: end;
 
   .spacer {
     flex: 1;

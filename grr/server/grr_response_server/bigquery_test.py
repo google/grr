@@ -49,36 +49,34 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
         job_id, insert.call_args_list[0][1]["body"]["jobReference"]["jobId"])
 
   def testRetryUpload(self):
-    bq_client = bigquery.BigQueryClient()
+    service = mock.Mock()
+
+    bq_client = bigquery.BigQueryClient(bq_service=service)
 
     resp = mock.Mock()
     resp.status = 503
-    error = mock.Mock()
-    error.resp = resp
     job = mock.Mock()
     # Always raise errors.HttpError on job.execute()
     job.configure_mock(
         **{"execute.side_effect": errors.HttpError(resp, b"nocontent")})
     job_id = "hunts_HFFE1D044_Results_1446056474"
 
+    jobs = mock.Mock()
+    jobs.insert.return_value = job
+
+    service.jobs.return_value = jobs
+
     with temp.AutoTempFilePath() as filepath:
       with io.open(filepath, "w", encoding="utf-8") as filedesc:
         filedesc.write("{data}")
 
-      with mock.patch.object(time, "sleep") as mock_sleep:
-        with self.assertRaises(bigquery.BigQueryJobUploadError):
-          bq_client.RetryUpload(job, job_id, error)
+      with io.open(filepath, "rb") as filedesc:
+        with mock.patch.object(time, "sleep") as _:
+          with self.assertRaises(bigquery.BigQueryJobUploadError):
+            bq_client.InsertData("ExportedFile", filedesc, {}, job_id)
 
-    # Make sure retry sleeps are correct.
     max_calls = config.CONFIG["BigQuery.retry_max_attempts"]
-    retry_interval = config.CONFIG["BigQuery.retry_interval"]
-    multiplier = config.CONFIG["BigQuery.retry_multiplier"]
-
     self.assertEqual(job.execute.call_count, max_calls)
-    mock_sleep.assert_has_calls([
-        mock.call(retry_interval.ToFractional(rdfvalue.SECONDS)),
-        mock.call(retry_interval.ToFractional(rdfvalue.SECONDS) * multiplier)
-    ])
 
 
 def main(argv):

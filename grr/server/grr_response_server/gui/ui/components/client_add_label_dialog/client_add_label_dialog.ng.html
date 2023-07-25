@@ -13,25 +13,20 @@
       <mat-autocomplete #auto="matAutocomplete">
         <mat-option
           *ngFor="let label of suggestedLabels$ | async"
-          [value]="label"
-        >
-          <small>{{label}}</small>
+          [value]="label">
+          <span>{{label}}</span>
         </mat-option>
         <!-- If the input label already exists, announce to the user! -->
         <mat-option
           *ngIf="labelInputControl.hasError('alreadyPresentLabel')"
-          [value]="labelInputControl.value"
-        >
-          <small
-            >Label "{{labelInputControl.value.trim()}}" already present!</small
-          >
+          [value]="labelInputControl.value">
+          <span>Label "{{labelInputControl.value.trim()}}" already present!</span>
         </mat-option>
         <!-- Suggest creating a new label, if so (default option) -->
         <mat-option
           *ngIf="isNewLabel$ | async"
-          [value]="labelInputControl.value.trim()"
-        >
-          <small>Add new label "{{labelInputControl.value.trim()}}"</small>
+          [value]="labelInputControl.value.trim()">
+          <span>Add new label "{{labelInputControl.value.trim()}}"</span>
         </mat-option>
       </mat-autocomplete>
 
@@ -40,7 +35,7 @@
       >
     </mat-form-field>
   </div>
-  <div mat-dialog-actions class="actions">
+  <div mat-dialog-actions class="actions" align="end">
     <button id="cancel" mat-button color="primary" (click)="onCancelClick()" type="button">
       Cancel
     </button>

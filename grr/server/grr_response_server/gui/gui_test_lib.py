@@ -624,7 +624,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
       raise ValueError("Only CSS selector is supported for material select.")
     self.WaitUntil(self.GetVisibleElement, target)
     self.driver.execute_script(f"$('{effective_selector}').click()")
-    self.Click(f"css=.mat-option-text:contains('{label}')")
+    self.Click(f"css=mat-option:contains('{label}')")
 
   def IsChecked(self, target):
     return self.WaitUntil(self.GetVisibleElement, target).is_selected()

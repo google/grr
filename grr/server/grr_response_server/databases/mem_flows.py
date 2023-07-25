@@ -359,7 +359,10 @@ class InMemoryDBFlowMixin(object):
 
       if request.needs_processing:
         flow = self.flows[(request.client_id, request.flow_id)]
-        if flow.next_request_to_process == request.request_id:
+        if (
+            flow.next_request_to_process == request.request_id
+            or request.start_time is not None
+        ):
           flow_processing_requests.append(
               rdf_flows.FlowProcessingRequest(
                   client_id=request.client_id,
@@ -593,9 +596,13 @@ class InMemoryDBFlowMixin(object):
     key = (flow_obj.client_id, flow_obj.flow_id)
     next_id_to_process = flow_obj.next_request_to_process
     request_dict = self.flow_requests.get(key, {})
-    if (next_id_to_process in request_dict and
-        request_dict[next_id_to_process].needs_processing):
-      return False
+    if (
+        next_id_to_process in request_dict
+        and request_dict[next_id_to_process].needs_processing
+    ):
+      start_time = request_dict[next_id_to_process].start_time
+      if start_time is None or start_time < rdfvalue.RDFDatetime.Now():
+        return False
 
     self.UpdateFlow(
         flow_obj.client_id,

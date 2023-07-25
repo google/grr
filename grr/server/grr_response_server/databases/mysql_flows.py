@@ -626,13 +626,21 @@ class MySQLDBFlowMixin(object):
       if r.needs_processing:
         needs_processing.setdefault((r.client_id, r.flow_id), []).append(r)
 
+      start_time = None
+      if r.start_time is not None:
+        start_time = r.start_time.AsDatetime()
+
       flow_keys.append((r.client_id, r.flow_id))
-      templates.append("(%s, %s, %s, %s, %s, %s, %s)")
+      templates.append("(%s, %s, %s, %s, %s, %s, %s, %s)")
       args.extend([
           db_utils.ClientIDToInt(r.client_id),
-          db_utils.FlowIDToInt(r.flow_id), r.request_id, r.needs_processing,
-          r.callback_state, r.next_response_id,
-          r.SerializeToBytes()
+          db_utils.FlowIDToInt(r.flow_id),
+          r.request_id,
+          r.needs_processing,
+          r.callback_state,
+          r.next_response_id,
+          start_time,
+          r.SerializeToBytes(),
       ])
 
     if needs_processing:
@@ -656,7 +664,10 @@ class MySQLDBFlowMixin(object):
         flow_id = db_utils.IntToFlowID(flow_id_int)
         candidate_requests = needs_processing.get((client_id, flow_id), [])
         for r in candidate_requests:
-          if next_request_to_process == r.request_id:
+          if (
+              next_request_to_process == r.request_id
+              or r.start_time is not None
+          ):
             flow_processing_requests.append(
                 rdf_flows.FlowProcessingRequest(
                     client_id=client_id,
@@ -666,10 +677,12 @@ class MySQLDBFlowMixin(object):
       if flow_processing_requests:
         self._WriteFlowProcessingRequests(flow_processing_requests, cursor)
 
-    query = ("INSERT INTO flow_requests "
-             "(client_id, flow_id, request_id, needs_processing, "
-             "callback_state, next_response_id, request) "
-             "VALUES ")
+    query = (
+        "INSERT INTO flow_requests "
+        "(client_id, flow_id, request_id, needs_processing, "
+        "callback_state, next_response_id, start_time, request) "
+        "VALUES "
+    )
     query += ", ".join(templates)
     try:
       cursor.execute(query, args)
@@ -1128,6 +1141,7 @@ class MySQLDBFlowMixin(object):
         client_id = %(client_id)s AND
         flow_id = %(flow_id)s AND
         request_id = %(next_request_to_process)s AND
+        (start_time IS NULL OR start_time < NOW(6)) AND
         needs_processing
     ) AS needs_processing
     ON

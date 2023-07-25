@@ -5,7 +5,9 @@
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import random
 from grr_response_server.databases import db
+from grr_response_server.databases import db_test_utils
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 
@@ -108,6 +110,28 @@ class DatabaseTestCronJobMixin(object):
   def testCronJobDeletion_UnknownJob(self):
     with self.assertRaises(db.UnknownCronJobError):
       self.db.DeleteCronJob("non-existent-id")
+
+  def testDeleteCronJobWithApprovalRequest(self):
+    creator = db_test_utils.InitializeUser(self.db)
+    approver = db_test_utils.InitializeUser(self.db)
+    cron_job_id = db_test_utils.InitializeCronJob(self.db)
+
+    approval = rdf_objects.ApprovalRequest()
+    approval.approval_type = (
+        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
+    )
+    approval.requestor_username = creator
+    approval.notified_users = [approver]
+    approval.subject_id = cron_job_id
+    approval.expiration_time = (
+        rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.DAYS)
+    )
+    approval_id = self.db.WriteApprovalRequest(approval)
+
+    self.db.DeleteCronJob(cron_job_id)
+
+    with self.assertRaises(db.UnknownApprovalRequestError):
+      self.db.ReadApprovalRequest(creator, approval_id)
 
   def testCronJobEnabling(self):
     job = self._CreateCronJob()

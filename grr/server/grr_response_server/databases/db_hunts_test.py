@@ -34,7 +34,7 @@ class DatabaseTestHuntMixin(object):
     client_id = db_test_utils.InitializeClient(self.db, client_id=client_id)
     # Top-level hunt-induced flows should have hunt's id.
     flow_id = flow_id or hunt_id
-    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=False)
+    self.db.WriteClientMetadata(client_id)
 
     rdf_flow = rdf_flow_objects.Flow(
         client_id=client_id,
@@ -178,6 +178,28 @@ class DatabaseTestHuntMixin(object):
     # The hunt is deleted: this should raise now.
     with self.assertRaises(db.UnknownHuntError):
       self.db.ReadHuntObject(hunt_obj.hunt_id)
+
+  def testDeleteHuntObjectWithApprovalRequest(self):
+    creator = db_test_utils.InitializeUser(self.db)
+    approver = db_test_utils.InitializeUser(self.db)
+    hunt_id = db_test_utils.InitializeHunt(self.db, creator=creator)
+
+    approval = rdf_objects.ApprovalRequest()
+    approval.approval_type = (
+        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
+    )
+    approval.requestor_username = creator
+    approval.notified_users = [approver]
+    approval.subject_id = hunt_id
+    approval.expiration_time = (
+        rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.DAYS)
+    )
+    approval_id = self.db.WriteApprovalRequest(approval)
+
+    self.db.DeleteHuntObject(hunt_id=hunt_id)
+
+    with self.assertRaises(db.UnknownApprovalRequestError):
+      self.db.ReadApprovalRequest(creator, approval_id)
 
   def testReadHuntObjectsReturnsEmptyListWhenNoHunts(self):
     self.assertEqual(self.db.ReadHuntObjects(offset=0, count=db.MAX_COUNT), [])

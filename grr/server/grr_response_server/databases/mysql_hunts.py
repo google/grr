@@ -73,16 +73,19 @@ class MySQLDBHuntMixin(object):
       raise db.DuplicatedHuntError(hunt_id=hunt_obj.hunt_id, cause=error)
 
   @mysql_utils.WithTransaction()
-  def UpdateHuntObject(self,
-                       hunt_id,
-                       duration=None,
-                       client_rate=None,
-                       client_limit=None,
-                       hunt_state=None,
-                       hunt_state_comment=None,
-                       start_time=None,
-                       num_clients_at_start_time=None,
-                       cursor=None):
+  def UpdateHuntObject(
+      self,
+      hunt_id,
+      duration=None,
+      client_rate=None,
+      client_limit=None,
+      hunt_state=None,
+      hunt_state_reason=None,
+      hunt_state_comment=None,
+      start_time=None,
+      num_clients_at_start_time=None,
+      cursor=None,
+  ):
     """Updates the hunt object by applying the update function."""
     vals = []
     args = {}
@@ -102,6 +105,10 @@ class MySQLDBHuntMixin(object):
     if hunt_state is not None:
       vals.append("hunt_state = %(hunt_state)s")
       args["hunt_state"] = int(hunt_state)
+
+    if hunt_state_reason is not None:
+      vals.append("hunt_state_reason = %(hunt_state_reason)s")
+      args["hunt_state_reason"] = int(hunt_state_reason)
 
     if hunt_state_comment is not None:
       vals.append("hunt_state_comment = %(hunt_state_comment)s")
@@ -145,6 +152,20 @@ class MySQLDBHuntMixin(object):
 
     query = "DELETE FROM hunt_output_plugins_states WHERE hunt_id = %s"
     cursor.execute(query, [hunt_id_int])
+
+    query = """
+    DELETE
+      FROM approval_request
+     WHERE approval_type = %(approval_type)s
+       AND subject_id = %(hunt_id)s
+    """
+    args = {
+        "approval_type": int(
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT
+        ),
+        "hunt_id": hunt_id,
+    }
+    cursor.execute(query, args)
 
   def _HuntObjectFromRow(self, row):
     """Generates a flow object from a database row."""
@@ -442,11 +463,8 @@ class MySQLDBHuntMixin(object):
                    columns=columns, placeholders=placeholders))
       args = [hunt_id_int, index, state.plugin_descriptor.plugin_name]
 
-      # TODO: Stop reading `plugin_args` at all (no fallback).
       if state.plugin_descriptor.HasField("args"):
         args.append(state.plugin_descriptor.args.SerializeToBytes())
-      elif state.plugin_descriptor.HasField("plugin_args"):
-        args.append(state.plugin_descriptor.plugin_args.SerializeToBytes())
       else:
         args.append(None)
 

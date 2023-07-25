@@ -239,10 +239,6 @@ config_lib.DEFINE_string(
     help="The executable name of the nanny binary.")
 
 config_lib.DEFINE_integer(
-    "Nanny.unresponsive_kill_period", 60,
-    "The time in seconds after which the nanny kills us.")
-
-config_lib.DEFINE_integer(
     "Network.api", 3, "The version of the network protocol the client "
     "uses.")
 

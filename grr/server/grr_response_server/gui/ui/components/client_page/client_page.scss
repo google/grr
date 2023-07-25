@@ -1,5 +1,5 @@
-@use "@angular/material" as mat;
-@use "../../material-theme" as c;
+@use '@angular/material' as mat;
+@use '../../material-theme' as c;
 
 :host {
   display: flex;
@@ -11,7 +11,7 @@
 }
 
 client-overview,
-.mat-tab-nav-bar {
+.mat-mdc-tab-nav-bar {
   display: block;
   margin-left: auto;
   margin-right: auto;
@@ -19,12 +19,21 @@ client-overview,
   width: c.$centered-content-width;
 }
 
-.mat-tab-nav-bar {
+.mat-mdc-tab-nav-bar {
   border: none;
 }
 
-mat-chip-list {
-  /* mat-chip-list causes slight horizontal scrolling otherwise. */
+mat-tab-nav-panel {
+  display: flex;
+  flex: 1;
+}
+
+.hide-overflow-y {
+  overflow-y: hidden;
+}
+
+mat-chip-set {
+  /* mat-chip-set causes slight horizontal scrolling otherwise. */
   display: block;
   overflow: hidden;
 }

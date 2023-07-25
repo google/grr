@@ -1,7 +1,7 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
+import {MatButtonModule} from '@angular/material/button';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {RouterModule} from '@angular/router';
 
 import {InfiniteList} from './infinite_list';
@@ -11,10 +11,15 @@ import {InfiniteList} from './infinite_list';
  */
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     CommonModule,
+    MatButtonModule,
+    MatProgressSpinnerModule,
     RouterModule,
-    MatLegacyProgressSpinnerModule,
-    MatLegacyButtonModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     InfiniteList,

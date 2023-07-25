@@ -386,6 +386,7 @@ def Main(channel: Channel, connection_handler: ConnectionHandler, user: str,
     group: Unprivileged (UNIX) group to run as. If `""`, don't change group.
   """
   sandbox.EnterSandbox(user, group)
+  assert channel.pipe_input is not None and channel.pipe_output is not None
   with os.fdopen(
       channel.pipe_input.ToFileDescriptor(), "rb",
       buffering=False) as pipe_input:

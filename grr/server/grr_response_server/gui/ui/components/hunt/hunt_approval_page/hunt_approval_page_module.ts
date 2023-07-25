@@ -1,11 +1,11 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
+import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyCardModule} from '@angular/material/legacy-card';
-import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 import {FlowArgsViewModule} from '../../flow_args_view/module';
 import {HelpersModule} from '../../flow_details/helpers/module';
@@ -19,23 +19,34 @@ import {HuntFlowArguments} from '../hunt_flow_arguments/hunt_flow_arguments';
 import {HuntOriginalReference} from '../hunt_original_reference/hunt_original_reference';
 
 import {HuntApprovalPage} from './hunt_approval_page';
-import {HuntApprovalPageRoutingModule} from './routing';
 
 /**
  * Module for the hunt approval page component.
  */
 @NgModule({
   imports: [
-    // TODO: Re-enable tslint after migration is complete.
-    // tslint:disable:deprecation
+    // TODO: re-enable clang format when solved.
+    // clang-format off
     // keep-sorted start block=yes
-    CommonModule, MatLegacyButtonModule, MatLegacyCardModule, CopyButtonModule,
-    HuntApprovalPageRoutingModule, TextWithLinksModule, UserImageModule,
-    HuntFlowArguments, MatLegacyProgressSpinnerModule, MatLegacyTooltipModule,
-    HuntOriginalReference, MatLegacyChipsModule, MatIconModule, HuntArguments,
-    TimestampModule, FlowArgsViewModule, HelpersModule, HumanReadableSizeModule,
+    CommonModule,
+    CopyButtonModule,
+    FlowArgsViewModule,
+    HelpersModule,
+    HumanReadableSizeModule,
+    HuntArguments,
+    HuntFlowArguments,
+    HuntOriginalReference,
+    MatButtonModule,
+    MatCardModule,
+    MatChipsModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatTooltipModule,
+    TextWithLinksModule,
+    TimestampModule,
+    UserImageModule,
     // keep-sorted end
-    // tslint:enable:deprecation
+    // clang-format on
   ],
   declarations: [HuntApprovalPage],
   exports: [HuntApprovalPage]

@@ -2,14 +2,14 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {ReactiveFormsModule} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
+import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyCardModule} from '@angular/material/legacy-card';
-import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
-import {MatLegacyMenuModule} from '@angular/material/legacy-menu';
-import {MatLegacySelectModule} from '@angular/material/legacy-select';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatMenuModule} from '@angular/material/menu';
 import {MatProgressBarModule} from '@angular/material/progress-bar';
+import {MatSelectModule} from '@angular/material/select';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {RouterModule} from '@angular/router';
 
 import {HelpersModule} from '../../flow_details/helpers/module';
@@ -28,13 +28,32 @@ import {HuntOverviewPage} from './hunt_overview_page';
 
 @NgModule({
   imports: [
-    CommonModule,          CopyButtonModule,       DrawerLinkModule,
-    RouterModule,          HelpersModule,          HuntArguments,
-    HuntFlowArguments,     HuntHelpModule,         HuntStatusChipModule,
-    MatLegacyButtonModule, MatLegacyCardModule,    MatLegacyChipsModule,
-    MatIconModule,         MatProgressBarModule,   MatLegacySelectModule,
-    MatLegacyMenuModule,   MatLegacyTooltipModule, ReactiveFormsModule,
-    InfiniteListModule,    TimestampModule,        UserImageModule,
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
+    CommonModule,
+    CopyButtonModule,
+    DrawerLinkModule,
+    HelpersModule,
+    HuntArguments,
+    HuntFlowArguments,
+    HuntHelpModule,
+    HuntStatusChipModule,
+    InfiniteListModule,
+    MatButtonModule,
+    MatCardModule,
+    MatChipsModule,
+    MatIconModule,
+    MatMenuModule,
+    MatProgressBarModule,
+    MatSelectModule,
+    MatTooltipModule,
+    ReactiveFormsModule,
+    RouterModule,
+    TimestampModule,
+    UserImageModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     HuntOverviewPage,

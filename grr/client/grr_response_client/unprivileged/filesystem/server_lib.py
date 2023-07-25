@@ -168,6 +168,7 @@ class OpenHandler(OperationHandler[filesystem_pb2.OpenRequest,
     inode = request.inode if request.HasField('inode') else None
     stream_name = request.stream_name if request.HasField(
         'stream_name') else None
+    assert state.filesystem is not None
     if inode is None:
       file_obj = state.filesystem.Open(path, stream_name)
     else:

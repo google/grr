@@ -1,11 +1,11 @@
 import {NgModule} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyCardModule} from '@angular/material/legacy-card';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
-import {MatLegacyTableModule} from '@angular/material/legacy-table';
-import {MatLegacyTabsModule} from '@angular/material/legacy-tabs';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSidenavModule} from '@angular/material/sidenav';
+import {MatTableModule} from '@angular/material/table';
+import {MatTabsModule} from '@angular/material/tabs';
 import {MatTreeModule} from '@angular/material/tree';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
@@ -23,7 +23,6 @@ import {TimestampModule} from '../timestamp/module';
 
 import {ClientPage} from './client_page';
 import {FlowSection} from './flow_section';
-import {ClientPageRoutingModule} from './routing';
 import {VfsSection} from './vfs_section';
 
 /**
@@ -31,20 +30,31 @@ import {VfsSection} from './vfs_section';
  */
 @NgModule({
   imports: [
-    BrowserAnimationsModule, RouterModule,
-
-    MatLegacyButtonModule,   MatLegacyCardModule,
-    MatIconModule,           MatLegacyProgressSpinnerModule,
-    MatSidenavModule,        MatLegacyTableModule,
-    MatLegacyTabsModule,     MatTreeModule,
-
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     AngularSplitModule,
-
-    ApprovalCardModule,      ClientOverviewModule,
-    ClientPageRoutingModule, DrawerLinkModule,
-    FileDetailsModule,       FlowFormModule,
-    FlowListModule,          HumanReadableSizeModule,
-    ScheduledFlowListModule, TimestampModule,
+    ApprovalCardModule,
+    BrowserAnimationsModule,
+    ClientOverviewModule,
+    DrawerLinkModule,
+    FileDetailsModule,
+    FlowFormModule,
+    FlowListModule,
+    HumanReadableSizeModule,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSidenavModule,
+    MatTableModule,
+    MatTabsModule,
+    MatTreeModule,
+    RouterModule,
+    ScheduledFlowListModule,
+    TimestampModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     ClientPage,

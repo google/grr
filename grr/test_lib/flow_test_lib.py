@@ -19,8 +19,6 @@ from grr_response_proto import tests_pb2
 from grr_response_server import action_registry
 from grr_response_server import data_store
 from grr_response_server import events
-from grr_response_server import fleetspeak_connector
-from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import flow_base
 from grr_response_server import handler_registry
@@ -209,13 +207,6 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
   def setUp(self):
     super().setUp()
 
-    # Set up emulation for an in-memory Fleetspeak service.
-    conn_patcher = mock.patch.object(fleetspeak_connector, "CONN")
-    mock_conn = conn_patcher.start()
-    self.addCleanup(conn_patcher.stop)
-    mock_conn.outgoing.InsertMessage.side_effect = (
-        lambda msg, **_: fleetspeak_test_lib.StoreMessage(msg))
-
     # Some tests run with fake time and leak into the last_progress_time. To
     # prevent getting negative durations, we clean up here.
     actions.ActionPlugin.last_progress_time = (
@@ -261,8 +252,6 @@ class MockClient(object):
 
     self.client_id = client_id
     self.client_mock = client_mock
-    self._is_fleetspeak_client = fleetspeak_utils.IsFleetspeakEnabledClient(
-        client_id)
 
   def _PushHandlerMessage(self, message):
     """Pushes a message that goes to a message handler."""
@@ -317,20 +306,9 @@ class MockClient(object):
     Returns:
        True iff a ClientActionRequest was found for the client.
     """
-    if self._is_fleetspeak_client:
-      next_task = fleetspeak_test_lib.PopMessage(self.client_id)
-      if next_task is None:
-        return False
-    else:
-      request = data_store.REL_DB.LeaseClientActionRequests(
-          self.client_id,
-          lease_time=rdfvalue.Duration.From(10000, rdfvalue.SECONDS),
-          limit=1)
-      try:
-        next_task = rdf_flow_objects.GRRMessageFromClientActionRequest(
-            request[0])
-      except IndexError:
-        return False
+    next_task = fleetspeak_test_lib.PopMessage(self.client_id)
+    if next_task is None:
+      return False
 
     try:
       responses = self.client_mock.HandleMessage(next_task)

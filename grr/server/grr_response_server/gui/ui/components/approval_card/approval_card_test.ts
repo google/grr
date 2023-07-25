@@ -221,7 +221,7 @@ describe('ApprovalCard Component', () => {
 
     expect(approvalCardLocalStore.suggestApprovers).toHaveBeenCalledWith('');
     const approversInput =
-        fixture.debugElement.query(By.css('mat-chip-list input'));
+        fixture.debugElement.query(By.css('mat-chip-grid input'));
     approversInput.triggerEventHandler('focusin', null);
     fixture.detectChanges();
 
@@ -242,7 +242,7 @@ describe('ApprovalCard Component', () => {
     configGlobalStore.mockedObservables.approvalConfig$.next({});
 
     const approversInput =
-        fixture.debugElement.query(By.css('mat-chip-list input'));
+        fixture.debugElement.query(By.css('mat-chip-grid input'));
     fixture.componentInstance.controls.approvers.setValue('ba');
     approversInput.triggerEventHandler('focusin', null);
     fixture.detectChanges();

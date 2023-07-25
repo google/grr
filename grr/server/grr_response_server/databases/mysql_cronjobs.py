@@ -10,6 +10,7 @@ from grr_response_server.databases import db
 from grr_response_server.databases import db_utils
 from grr_response_server.databases import mysql_utils
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class MySQLDBCronJobMixin(object):
@@ -90,9 +91,24 @@ class MySQLDBCronJobMixin(object):
 
   @mysql_utils.WithTransaction()
   def DeleteCronJob(self, cronjob_id, cursor=None):
+    """Deletes a cronjob along with all its runs."""
     res = cursor.execute("DELETE FROM cron_jobs WHERE job_id=%s", [cronjob_id])
     if res != 1:
       raise db.UnknownCronJobError("CronJob with id %s not found." % cronjob_id)
+
+    query = """
+    DELETE
+      FROM approval_request
+     WHERE approval_type = %(approval_type)s
+       AND subject_id = %(cron_job_id)s
+    """
+    args = {
+        "approval_type": int(
+            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB
+        ),
+        "cron_job_id": cronjob_id,
+    }
+    cursor.execute(query, args)
 
   @mysql_utils.WithTransaction()
   def UpdateCronJob(self,

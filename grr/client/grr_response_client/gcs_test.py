@@ -1,4 +1,5 @@
 #!/usr/bin/env python
+import datetime
 import io
 import time
 from unittest import mock
@@ -56,7 +57,7 @@ class UploadSessionTest(absltest.TestCase):
 
     opts = gcs.UploadSession.Opts()
     opts.retry_chunk_attempts = 1
-    opts.retry_chunk_init_delay = 0.0
+    opts.retry_chunk_init_delay = datetime.timedelta(0)
 
     with self.assertRaises(gcs.RequestError) as context:
       session.SendFile(io.BytesIO(b"foobar"), opts=opts)
@@ -70,7 +71,7 @@ class UploadSessionTest(absltest.TestCase):
 
     opts = gcs.UploadSession.Opts()
     opts.retry_chunk_attempts = 1
-    opts.retry_chunk_init_delay = 0.0
+    opts.retry_chunk_init_delay = datetime.timedelta(0)
 
     session = gcs.UploadSession("https://foo.bar/quux")
 
@@ -159,7 +160,7 @@ class UploadSessionTest(absltest.TestCase):
     opts = gcs.UploadSession.Opts()
     opts.chunk_size = 1
     opts.retry_chunk_attempts = 4
-    opts.retry_chunk_init_delay = 0.0
+    opts.retry_chunk_init_delay = datetime.timedelta(0)
 
     session = gcs.UploadSession("https://foo.bar/qux")
     session.SendFile(io.BytesIO(b"foobar"), opts=opts)
@@ -177,7 +178,7 @@ class UploadSessionTest(absltest.TestCase):
     opts = gcs.UploadSession.Opts()
     opts.chunk_size = 1
     opts.retry_chunk_attempts = 3
-    opts.retry_chunk_init_delay = 0.0
+    opts.retry_chunk_init_delay = datetime.timedelta(0)
 
     session = gcs.UploadSession("https://foo.bar/qux")
 
@@ -221,7 +222,7 @@ class UploadSessionTest(absltest.TestCase):
 
     opts = gcs.UploadSession.Opts()
     opts.retry_chunk_attempts = 2
-    opts.retry_chunk_init_delay = 10.0
+    opts.retry_chunk_init_delay = datetime.timedelta(seconds=10)
     opts.progress_interval = 1.0
     opts.progress_callback = Progress
 

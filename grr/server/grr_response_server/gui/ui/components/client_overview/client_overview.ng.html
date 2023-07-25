@@ -14,47 +14,35 @@
       </a>
     </div>
 
-    <div class="chips">
-      <mat-chip-list [selectable]="false" [tabIndex]="-1">
+    <mat-chip-set [tabIndex]="-1" role="list">
+      <app-approval-chip
+        *ngIf="showApprovalChip$ | async"
+        [approval]="approval$ | async"
+      ></app-approval-chip>
+      <online-chip
+        *ngIf="(client$ | async) as client"
+        [lastSeen]="client.lastSeenAt"
+      ></online-chip>
+      <ng-container *ngIf="showOnlineNotificationToggle$ | async">
         <mat-chip
-          *ngIf="(client$ | async)?.fleetspeakEnabled === false"
-          class="red-chip"
-          color="custom"
-          [matTooltip]="'This client uses a deprecated communication protocol. Install a new GRR version that uses Fleetspeak to be able to access this client in the future.'"
-          disabled
+          *ngIf="activeOnlineNotificationArgs$ | async as args; else onlineNotificationButton"
+          matTooltip="We will send an email to {{args.email}} when the client comes online the next time."
+          [disableRipple]="true"
         >
-          <mat-icon>error_outline</mat-icon>
-          Outdated
+          <mat-icon>notifications_active</mat-icon> Notifying when online
         </mat-chip>
-        <app-approval-chip
-          *ngIf="showApprovalChip$ | async"
-          [approval]="approval$ | async"
-        ></app-approval-chip>
-        <online-chip
-          *ngIf="(client$ | async) as client"
-          [lastSeen]="client.lastSeenAt"
-        ></online-chip>
-        <ng-container *ngIf="showOnlineNotificationToggle$ | async">
-          <mat-chip
-            *ngIf="activeOnlineNotificationArgs$ | async as args; else onlineNotificationButton"
-            matTooltip="We will send an email to {{args.email}} when the client comes online the next time."
-            disabled
+        <ng-template #onlineNotificationButton>
+          <button
+            mat-button
+            type="button"
+            (click)="triggerOnlineNotification()"
+            name="online-notification"
           >
-            <mat-icon>notifications_active</mat-icon> Notifying when online
-          </mat-chip>
-          <ng-template #onlineNotificationButton>
-            <button
-              mat-button
-              type="button"
-              (click)="triggerOnlineNotification()"
-              name="online-notification"
-            >
-              <mat-icon>notifications</mat-icon> Notify when online
-            </button></ng-template
-          >
-        </ng-container>
-      </mat-chip-list>
-    </div>
+            <mat-icon>notifications</mat-icon> Notify when online
+          </button></ng-template
+        >
+      </ng-container>
+    </mat-chip-set>
   </div>
 
   <ng-container *ngIf="clientWarnings$ | async as clientWarnings">
@@ -75,13 +63,13 @@
 
   <ng-container *ngIf="!collapsed">
     <div class="chips labels">
-      <mat-chip-list>
+      <mat-chip-set role="list">
         <a
           *ngFor="let label of (client$ | async)?.labels; trackBy: labelsTrackByName"
           [routerLink]="['/clients']"
           [queryParams]="{'q': 'label:' + label.name}"
         >
-          <mat-chip (removed)="removeLabel(label.name)">
+          <mat-chip (removed)="removeLabel(label.name)" role="listitem" [removable]="true">
             {{label.name}}
             <mat-icon
               matChipRemove
@@ -99,7 +87,7 @@
         >
           <mat-icon>add</mat-icon>Add label
         </button>
-      </mat-chip-list>
+      </mat-chip-set>
     </div>
 
     <div class="info">
@@ -188,7 +176,7 @@
       <a
         *ngIf="client$ | async as client"
         mat-stroked-button
-        class="goto-details"
+        class="goto-details white-background"
         [drawerLink]="['details', client.clientId]"
         color="primary"
       >

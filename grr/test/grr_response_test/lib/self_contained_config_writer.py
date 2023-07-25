@@ -53,12 +53,6 @@ flags.DEFINE_string(
     help="A path to the osquery executable.",
 )
 
-_CONFIG_WITH_FLEETSPEAK = flags.DEFINE_bool(
-    "config_with_fleetspeak",
-    False,
-    "If set, configure GRR to run behind Fleetspeak.",
-)
-
 
 def main(argv):
   del argv  # Unused.
@@ -88,34 +82,26 @@ def main(argv):
 
   config.CONFIG.Set("Server.initialized", True)
   config.CONFIG.Set("Cron.active", False)
-  if _CONFIG_WITH_FLEETSPEAK.value:
-    fleetspeak_frontend_port = portpicker.pick_unused_port()
-    fleetspeak_admin_port = portpicker.pick_unused_port()
 
-    config.CONFIG.Set("Client.fleetspeak_enabled", True)
-    config.CONFIG.Set("Server.fleetspeak_message_listen_address",
-                      "localhost:%d" % fleetspeak_frontend_port)
-    config.CONFIG.Set("Server.fleetspeak_server",
-                      "localhost:%d" % fleetspeak_admin_port)
-  else:
-    frontend_port = portpicker.pick_unused_port()
+  fleetspeak_frontend_port = portpicker.pick_unused_port()
+  fleetspeak_admin_port = portpicker.pick_unused_port()
 
-    config.CONFIG.Set("Frontend.bind_address", "127.0.0.1")
-    config.CONFIG.Set("Frontend.bind_port", frontend_port)
-    config.CONFIG.Set("Client.poll_max", 1)
-    config.CONFIG.Set("Client.server_urls",
-                      ["http://localhost:%d/" % frontend_port])
+  config.CONFIG.Set("Client.fleetspeak_enabled", True)
+  config.CONFIG.Set(
+      "Server.fleetspeak_message_listen_address",
+      "localhost:%d" % fleetspeak_frontend_port,
+  )
+  config.CONFIG.Set(
+      "Server.fleetspeak_server", "localhost:%d" % fleetspeak_admin_port
+  )
 
   if _CONFIG_LOGGING_PATH.value is not None:
     config.CONFIG.Set("Logging.path", _CONFIG_LOGGING_PATH.value)
-  config.CONFIG.Set("Logging.verbose", False)
+  config.CONFIG.Set("Logging.verbose", True)
   config.CONFIG.Set("Logging.engines", "file,stderr")
 
   if flags.FLAGS.config_osquery_path:
     config.CONFIG.Set("Osquery.path", flags.FLAGS.config_osquery_path)
-
-  # All tests should work fine with a tight (15 secs) unresponsive kill period.
-  config.CONFIG.Set("Nanny.unresponsive_kill_period", 15)
 
   config_updater_keys_util.GenerateKeys(config.CONFIG)
   config.CONFIG.Write()

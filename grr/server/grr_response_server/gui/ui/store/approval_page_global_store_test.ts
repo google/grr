@@ -51,7 +51,6 @@ describe('ApprovalPageGlobalStore', () => {
          approvers: [],
          subject: newClient({
            clientId: 'C.1234',
-           fleetspeakEnabled: false,
            knowledgeBase: {},
            labels: [],
            age: new Date(0),
@@ -70,7 +69,6 @@ describe('ApprovalPageGlobalStore', () => {
        httpApiService.mockedObservables.subscribeToClientApproval.next({
          subject: {
            clientId: 'C.1234',
-           fleetspeakEnabled: false,
            knowledgeBase: {},
            labels: [],
            age: '0',
@@ -131,7 +129,6 @@ describe('ApprovalPageGlobalStore', () => {
          approvers: ['b'],
          subject: newClient({
            clientId: 'C.1234',
-           fleetspeakEnabled: false,
            knowledgeBase: {},
            labels: [],
            age: new Date(0),
@@ -149,7 +146,6 @@ describe('ApprovalPageGlobalStore', () => {
        httpApiService.mockedObservables.grantClientApproval.next({
          subject: {
            clientId: 'C.1234',
-           fleetspeakEnabled: false,
            knowledgeBase: {},
            labels: [],
            age: '0',

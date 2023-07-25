@@ -251,12 +251,10 @@ describe('ClientDetailsGlobalStore', () => {
     const snapshots = [
       newClient({
         clientId: 'C.1234',
-        fleetspeakEnabled: true,
         age: new Date(2020, 2, 2),
       }),
       newClient({
         clientId: 'C.1234',
-        fleetspeakEnabled: true,
         age: new Date(2020, 1, 1),
       })
     ];

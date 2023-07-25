@@ -13,10 +13,10 @@ import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers';
 import {MockStore} from '../../store/store_test_util';
 import {DISABLED_TIMESTAMP_REFRESH_TIMER_PROVIDER, initTestEnvironment} from '../../testing';
+import {CLIENT_ROUTES} from '../app/routing';
 
 import {ClientDetails} from './client_details';
 import {ClientDetailsModule} from './module';
-import {CLIENT_DETAILS_ROUTES} from './routing';
 
 
 initTestEnvironment();
@@ -61,9 +61,7 @@ describe('Client Details Component', () => {
             NoopAnimationsModule,
             ClientDetailsModule,
             RouterTestingModule.withRoutes([
-              ...CLIENT_DETAILS_ROUTES,
-              // Dummy route to stop error when navigating back to client.
-              {path: 'clients/:id', component: ClientDetails},
+              ...CLIENT_ROUTES,
             ]),
           ],
           providers: [
@@ -131,7 +129,6 @@ describe('Client Details Component', () => {
            hardwareInfo: {
              systemManufacturer: 'GRR Corp',
            },
-           fleetspeakEnabled: true,
            age: new Date(2020, 2, 1),
            sourceFlowId: '123sourceflowid',
          }),
@@ -142,43 +139,10 @@ describe('Client Details Component', () => {
 
        expect(fixture.nativeElement.innerText).toContain('foo.f.q.d.n');
        expect(fixture.nativeElement.innerText).toContain('foouser');
-       expect(fixture.nativeElement.innerText).toContain('Fleetspeak');
        expect(fixture.nativeElement.innerText).toContain('grr');
        expect(fixture.nativeElement.innerText).toContain('Sandboxing');
        expect(fixture.nativeElement.innerText).toContain('GRR Corp');
        expect(fixture.nativeElement.innerText).toContain('123sourceflowid');
-     }));
-
-  it('client does not have fleetspeak enabled', fakeAsync(() => {
-       const fixture = TestBed.createComponent(ClientDetails);
-       fixture.detectChanges();
-
-       store.mockedObservables.selectedClientVersions$.next(getClientVersions([
-         newClient({
-           fleetspeakEnabled: false,
-         }),
-       ]));
-       fixture.detectChanges();
-       tick();
-       fixture.detectChanges();
-
-       expect(fixture.nativeElement.innerText).toContain('Legacy');
-     }));
-
-  it('shows legacy communication when undefined', fakeAsync(() => {
-       const fixture = TestBed.createComponent(ClientDetails);
-       fixture.detectChanges();
-
-       store.mockedObservables.selectedClientVersions$.next(getClientVersions([
-         newClient({
-           fleetspeakEnabled: undefined,
-         }),
-       ]));
-       fixture.detectChanges();
-       tick();
-       fixture.detectChanges();
-
-       expect(fixture.nativeElement.innerText).toContain('Legacy');
      }));
 
 

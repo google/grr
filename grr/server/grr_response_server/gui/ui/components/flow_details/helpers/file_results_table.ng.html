@@ -88,7 +88,7 @@
     <ng-container matColumnDef="link">
       <th mat-header-cell *matHeaderCellDef></th>
       <td mat-cell *matCellDef="let r">
-        <a [drawerLink]="r.link" mat-flat-button>
+        <a [drawerLink]="r.link" mat-button type="button" color="primary">
           <mat-icon>keyboard_arrow_left</mat-icon>
           Details
         </a>
@@ -106,5 +106,5 @@
 
 <!-- TODO: Remove "Load more" button now that pagination is in place. -->
 <div *ngIf="shouldShowLoadMoreButton$ | async">
-  <button class="load-more" mat-button (click)="loadMoreClicked()">Load More</button>
+  <button class="load-more" mat-button color="primary" (click)="loadMoreClicked()">Load More</button>
 </div>

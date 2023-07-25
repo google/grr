@@ -20,20 +20,24 @@
 
   <button
     mat-stroked-button
+    color="primary"
     (click)="recollect()"
     [disabled]="isRecollecting$ | async"
     class="recollect progress-spinner-button"
   >
-    <mat-spinner
-      *ngIf="isRecollecting$ | async; else enabledIcon"
-      diameter="24"
-    ></mat-spinner>
-    <ng-template #enabledIcon><mat-icon>refresh</mat-icon></ng-template>
-    Recollect from client
+    <div class="progress-spinner-button-label-container">
+      <mat-spinner diameter="20" *ngIf="isRecollecting$ | async; else refreshIcon"></mat-spinner>
+      <span>Recollect from client</span>
+    </div>
+
+    <ng-template #refreshIcon>
+      <mat-icon>refresh</mat-icon>
+    </ng-template>
   </button>
 
   <a
     mat-stroked-button
+    color="primary"
     [href]="downloadUrl$ | async"
     [download]="(details$ | async)?.name"
   >
@@ -42,7 +46,7 @@
   </a>
 </div>
 
-<nav mat-tab-nav-bar>
+<nav mat-tab-nav-bar [tabPanel]="tabPanel" [disablePagination]="true" [mat-stretch-tabs]="false">
   <a
     mat-tab-link
     [routerLink]="['./stat']"
@@ -75,11 +79,14 @@
 </nav>
 
 <div class="scroll-container">
-  <router-outlet></router-outlet>
+  <mat-tab-nav-panel #tabPanel>
+    <router-outlet></router-outlet>
+  </mat-tab-nav-panel>
 
   <button
     class="load-more"
     mat-button
+    color="primary"
     (click)="loadMore()"
     *ngIf="!statActive.isActive && (hasMore$ | async)"
   >

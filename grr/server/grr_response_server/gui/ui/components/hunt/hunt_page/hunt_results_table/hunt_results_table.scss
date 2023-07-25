@@ -1,9 +1,11 @@
 .view-details-button {
   padding: 0 12px;
+  flex-shrink: 0;
 }
 
 .load-more-container {
   padding: 0 20px;
+  margin-top: 20px;
 
   .subtitle {
     margin: 0 20px;
@@ -15,9 +17,4 @@
   display: flex;
   justify-content: center;
   margin: 30px 0;
-}
-
-.loading-results {
-  display: inline-flex;
-  align-items: center;
 }

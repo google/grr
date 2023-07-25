@@ -4,8 +4,8 @@ import {HarnessLoader} from '@angular/cdk/testing';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component, ViewContainerRef} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {MatLegacySnackBar, MatLegacySnackBarModule} from '@angular/material/legacy-snack-bar';
-import {MatLegacySnackBarHarness} from '@angular/material/legacy-snack-bar/testing';
+import {MatSnackBar, MatSnackBarModule} from '@angular/material/snack-bar';
+import {MatSnackBarHarness} from '@angular/material/snack-bar/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {DeepPartial} from '../../../lib/type_utils';
@@ -37,7 +37,7 @@ describe('ErrorSnackBar Component', () => {
     TestBed
         .configureTestingModule({
           imports: [
-            MatLegacySnackBarModule, ErrorSnackBarModule,
+            MatSnackBarModule, ErrorSnackBarModule,
             NoopAnimationsModule,  // This makes test faster and more stable.
           ],
           declarations: [TestHostComponent],
@@ -64,24 +64,21 @@ describe('ErrorSnackBar Component', () => {
   }));
 
   it('should contain the error message', async () => {
-    const snackBar = TestBed.inject(MatLegacySnackBar);
-    expect((await loader.getAllHarnesses(MatLegacySnackBarHarness)).length)
-        .toBe(0);
+    const snackBar = TestBed.inject(MatSnackBar);
+    expect((await loader.getAllHarnesses(MatSnackBarHarness)).length).toBe(0);
 
     snackBar.openFromComponent(ErrorSnackBar, {data: 'testerror'});
 
-    expect((await loader.getAllHarnesses(MatLegacySnackBarHarness)).length)
-        .toBe(1);
+    expect((await loader.getAllHarnesses(MatSnackBarHarness)).length).toBe(1);
 
     expect(fixture.nativeElement.textContent).toContain('testerror');
   });
 
   it('reloads the window when clicking on reload', async () => {
-    const snackBar = TestBed.inject(MatLegacySnackBar);
+    const snackBar = TestBed.inject(MatSnackBar);
     snackBar.openFromComponent(ErrorSnackBar, {data: 'testerror'});
 
-    expect((await loader.getAllHarnesses(MatLegacySnackBarHarness)).length)
-        .toBe(1);
+    expect((await loader.getAllHarnesses(MatSnackBarHarness)).length).toBe(1);
 
     expect(window.location?.reload).not.toHaveBeenCalled();
 
@@ -91,11 +88,10 @@ describe('ErrorSnackBar Component', () => {
   });
 
   it('shows a copy confirmation when clicking on copy', async () => {
-    const snackBar = TestBed.inject(MatLegacySnackBar);
+    const snackBar = TestBed.inject(MatSnackBar);
     snackBar.openFromComponent(ErrorSnackBar, {data: 'testerror'});
 
-    expect((await loader.getAllHarnesses(MatLegacySnackBarHarness)).length)
-        .toBe(1);
+    expect((await loader.getAllHarnesses(MatSnackBarHarness)).length).toBe(1);
     fixture.detectChanges();
 
     fixture.nativeElement.querySelector('button[aria-label="copy"]').click();
@@ -105,13 +101,12 @@ describe('ErrorSnackBar Component', () => {
         .toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Copied');
     expect(fixture.nativeElement.textContent).not.toContain('testerror');
-    expect((await loader.getAllHarnesses(MatLegacySnackBarHarness)).length)
-        .toBe(1);
+    expect((await loader.getAllHarnesses(MatSnackBarHarness)).length).toBe(1);
   });
 
   it('copies the error message to the clipboard when clicking on copy',
      async () => {
-       const snackBar = TestBed.inject(MatLegacySnackBar);
+       const snackBar = TestBed.inject(MatSnackBar);
        snackBar.openFromComponent(ErrorSnackBar, {data: 'testerror'});
 
        expect(clipboard.copy).not.toHaveBeenCalled();

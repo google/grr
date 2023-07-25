@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed} from '@angular/core/testing';
-import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
-import {MatLegacyTooltipHarness} from '@angular/material/legacy-tooltip/testing';
+import {MatInputHarness} from '@angular/material/input/testing';
+import {MatTooltipHarness} from '@angular/material/tooltip/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -44,7 +44,7 @@ describe('RolloutForm Component', () => {
     const loader = TestbedHarnessEnvironment.loader(fixture);
     fixture.detectChanges();
     const clientRate = await loader.getAllHarnesses(
-        MatLegacyInputHarness.with({selector: '[name=customClientLimit]'}));
+        MatInputHarness.with({selector: '[name=customClientLimit]'}));
     expect(clientRate.length).toBe(0);
     const customClientRateButton = fixture.debugElement.query(By.css('.run-on'))
                                        .children[2]
@@ -53,7 +53,7 @@ describe('RolloutForm Component', () => {
         'click', new MouseEvent('click'));
     fixture.detectChanges();
     const newClientRate = await loader.getAllHarnesses(
-        MatLegacyInputHarness.with({selector: '[name=customClientLimit]'}));
+        MatInputHarness.with({selector: '[name=customClientLimit]'}));
     expect(newClientRate.length).toBe(1);
   });
 
@@ -70,8 +70,8 @@ describe('RolloutForm Component', () => {
       avgResultsPerClientLimit: BigInt(34),
       avgCpuSecondsPerClientLimit: BigInt(56),
       avgNetworkBytesPerClientLimit: BigInt(78),
-      cpuLimit: BigInt(90),
-      networkBytesLimit: BigInt(13),
+      perClientCpuLimit: BigInt(90),
+      perClientNetworkBytesLimit: BigInt(13),
     });
 
     expect(await isButtonToggleSelected(
@@ -93,7 +93,7 @@ describe('RolloutForm Component', () => {
           fixture, '.run-on-option', 'All matching clients');
       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
       const harness = await harnessLoader.getHarness(
-          MatLegacyTooltipHarness.with({selector: '[name=runOnHelp]'}));
+          MatTooltipHarness.with({selector: '[name=runOnHelp]'}));
       await harness.show();
       expect(await harness.getTooltipText())
           .toContain('as many clients as possible');
@@ -116,7 +116,7 @@ describe('RolloutForm Component', () => {
       await selectButtonToggle(fixture, '.rollout-speed-option', 'Unlimited');
       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
       const harness = await harnessLoader.getHarness(
-          MatLegacyTooltipHarness.with({selector: '[name=rolloutSpeedHelp]'}));
+          MatTooltipHarness.with({selector: '[name=rolloutSpeedHelp]'}));
       await harness.show();
       expect(await harness.getTooltipText())
           .toContain('as many clients as possible');

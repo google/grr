@@ -7,9 +7,14 @@ import {CopyButton} from './copy_button';
 
 @NgModule({
   imports: [
-    CommonModule,
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     ClipboardModule,
+    CommonModule,
     MatIconModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [CopyButton],
   exports: [CopyButton]

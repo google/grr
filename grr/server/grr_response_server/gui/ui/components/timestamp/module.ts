@@ -1,9 +1,9 @@
 import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {Subject} from 'rxjs';
 
 import {CopyButtonModule} from '../helpers/copy_button/copy_button_module';
@@ -15,13 +15,17 @@ import {Timestamp, TimestampRefreshTimer} from './timestamp';
  */
 @NgModule({
   imports: [
-    // Angular builtin modules.
-    CommonModule,
-    MatLegacyTooltipModule,
-    MatIconModule,
-    MatLegacyButtonModule,
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     ClipboardModule,
+    CommonModule,
     CopyButtonModule,
+    MatButtonModule,
+    MatIconModule,
+    MatTooltipModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     Timestamp,

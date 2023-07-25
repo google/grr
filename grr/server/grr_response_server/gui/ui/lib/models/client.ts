@@ -210,8 +210,6 @@ export declare interface HardwareInfo {
 export interface Client {
   /** Client id. */
   readonly clientId: string;
-  /** Whether the client communicates with GRR through Fleetspeak. */
-  readonly fleetspeakEnabled: boolean;
   /** Metadata about the GRR client */
   readonly agentInfo: AgentInfo;
   /** Client's knowledge base. */

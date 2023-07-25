@@ -39,18 +39,8 @@ class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):
     cls = registry.OutputPluginRegistry.PluginClassByName(self.plugin_name)
     return cls()
 
-  # TODO: Remove this property.
-  @property
-  def plugin_args(self) -> _V:
-    # Use new `args` field if available, else fallback to `plugin_args`.
-    if self.HasField("args"):
-      return self.Get("args")
-
-    # TODO: Stop reading `plugin_args` at all (no fallback).
-    return self.Get("plugin_args")
-
   def __str__(self) -> Text:
     result = self.plugin_name
-    if self.plugin_args:
-      result += " <%r>" % self.plugin_args
+    if self.args:
+      result += " <%r>" % self.args
     return result

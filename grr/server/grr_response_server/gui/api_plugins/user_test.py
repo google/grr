@@ -15,6 +15,7 @@ from grr_response_server import data_store
 from grr_response_server import email_alerts
 from grr_response_server import flow
 from grr_response_server import notification
+from grr_response_server.databases import db_test_utils
 from grr_response_server.flows import file
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
@@ -24,7 +25,6 @@ from grr_response_server.gui.api_plugins import user as user_plugin
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
-
 from grr.test_lib import acl_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import notification_test_lib
@@ -351,9 +351,10 @@ class ApiApprovalScheduledFlowsTest(acl_test_lib.AclTestMixin,
     flow.ScheduleFlow(
         client_id=self.client_id,
         creator=self.context.username,
-        flow_name=file.CollectSingleFile.__name__,
-        flow_args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-        runner_args=rdf_flow_runner.FlowRunnerArgs())
+        flow_name=file.CollectFilesByKnownPath.__name__,
+        flow_args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
+        runner_args=rdf_flow_runner.FlowRunnerArgs(),
+    )
 
     with mock.patch.object(
         flow, "StartFlow",
@@ -686,7 +687,8 @@ class ApiCreateCronJobApprovalHandlerTest(
     cron_args = rdf_cronjobs.CreateCronJobArgs(
         frequency="1d",
         allow_overruns=False,
-        flow_name=file.CollectSingleFile.__name__)
+        flow_name=file.CollectFilesByKnownPath.__name__,
+    )
     cron_id = cron_manager.CreateJob(cron_args=cron_args)
 
     self.handler = user_plugin.ApiCreateCronJobApprovalHandler()
@@ -710,7 +712,8 @@ class ApiListCronJobApprovalsHandlerTest(acl_test_lib.AclTestMixin,
     cron_args = rdf_cronjobs.CreateCronJobArgs(
         frequency="1d",
         allow_overruns=False,
-        flow_name=file.CollectSingleFile.__name__)
+        flow_name=file.CollectFilesByKnownPath.__name__,
+    )
     cron_job_id = cron_manager.CreateJob(cron_args=cron_args)
 
     self.RequestCronJobApproval(
@@ -911,6 +914,18 @@ class ApiListApproverSuggestionsHandlerTest(acl_test_lib.AclTestMixin,
     result = self._query("api")
     self.assertLen(result.suggestions, 1)
     self.assertEqual(result.suggestions[0].username, "api_user_2")
+
+  def testExcludesSystemUsers(self):
+    non_system_username = db_test_utils.InitializeUser(data_store.REL_DB)
+    db_test_utils.InitializeUser(data_store.REL_DB, "GRRWorker")
+    db_test_utils.InitializeUser(data_store.REL_DB, "GRRCron")
+
+    result = self._query("")
+    result_usernames = [_.username for _ in result.suggestions]
+
+    self.assertIn(non_system_username, result_usernames)
+    self.assertNotIn("GRRWorker", result_usernames)
+    self.assertNotIn("GRRCron", result_usernames)
 
   def testSuggestsMostRequestedUsers(self):
     client_id = self.SetupClient(0)

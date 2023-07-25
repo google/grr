@@ -41,14 +41,15 @@
 
   <mat-form-field appearance="outline">
     <mat-label>Connection state</mat-label>
-    <mat-chip-list #chipList aria-label="Connection state">
-      <mat-chip
+    <mat-chip-grid #chipList aria-label="Connection state">
+      <mat-chip-row
         *ngFor="let state of controls.connectionStates.value"
+        [removable]="true"
         (removed)="removeConnectionState(state)"
       >
         {{state}}
         <mat-icon matChipRemove>cancel</mat-icon>
-      </mat-chip>
+      </mat-chip-row>
       <input
         #connectionStateInputEl
         placeholder="LISTEN, ESTABLISHED, ..."
@@ -58,7 +59,7 @@
         [matChipInputSeparatorKeyCodes]="SEPARATOR_KEY_CODES"
         (matChipInputTokenEnd)="tryAddAutocompleteConnectionState($event.value)"
       />
-    </mat-chip-list>
+    </mat-chip-grid>
     <mat-autocomplete
       #auto="matAutocomplete"
       (optionSelected)="addConnectionState($event.option.value)"
@@ -76,7 +77,7 @@
     </mat-hint>
   </mat-form-field>
 
-  <mat-checkbox [formControl]="controls.fetchBinaries">
+  <mat-checkbox [formControl]="controls.fetchBinaries" color="primary">
     Collect process executables
   </mat-checkbox>
 </div>

@@ -1,19 +1,19 @@
 @use '../../../material-theme' as c;
 
-a {
-  margin-bottom: 0.5em;
+.client-header {
   display: flex;
-}
+  margin-bottom: 20px;
+  column-gap: 10px;
 
-mat-icon {
-  margin-right: 0.5em;
-}
+  a {
+    display: flex;
+    align-items: center;
 
-mat-chip-list {
-  display: inline-block;
-  padding-left: 0.5em;
-  /** Prevent online chip from changing cursor and hover effect. */
-  pointer-events: none;
+    h3 {
+      margin-bottom: 0;
+      margin-left: 10px;
+    }
+  }
 }
 
 .flow-details-list {

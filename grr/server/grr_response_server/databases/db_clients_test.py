@@ -125,7 +125,7 @@ class DatabaseTestClientsMixin(object):
 
     client_id_1 = "C.fc413187fefa1dcf"
     # Typical initial FS enabled write
-    d.WriteClientMetadata(client_id_1, fleetspeak_enabled=True)
+    d.WriteClientMetadata(client_id_1)
 
     client_id_2 = "C.00413187fefa1dcf"
     # Typical initial non-FS write
@@ -133,18 +133,16 @@ class DatabaseTestClientsMixin(object):
         client_id_2,
         certificate=CERT,
         first_seen=rdfvalue.RDFDatetime(100000000),
-        fleetspeak_enabled=False)
+    )
 
     res = d.MultiReadClientMetadata([client_id_1, client_id_2])
     self.assertLen(res, 2)
 
     m1 = res[client_id_1]
     self.assertIsInstance(m1, rdf_objects.ClientMetadata)
-    self.assertTrue(m1.fleetspeak_enabled)
 
     m2 = res[client_id_2]
     self.assertIsInstance(m2, rdf_objects.ClientMetadata)
-    self.assertFalse(m2.fleetspeak_enabled)
     self.assertEqual(m2.certificate, CERT)
     self.assertEqual(m2.first_seen, rdfvalue.RDFDatetime(100000000))
 
@@ -157,7 +155,7 @@ class DatabaseTestClientsMixin(object):
         last_clock=rdfvalue.RDFDatetime(100000011),
         last_foreman=rdfvalue.RDFDatetime(100000021),
         last_ping=rdfvalue.RDFDatetime(100000031),
-        fleetspeak_enabled=False)
+    )
     res = self.db.MultiReadClientMetadata([client_id])
     self.assertLen(res, 1)
     m1 = res[client_id]
@@ -174,7 +172,6 @@ class DatabaseTestClientsMixin(object):
     # Typical update on client ping.
     d.WriteClientMetadata(
         client_id,
-        fleetspeak_enabled=True,
         last_ping=rdfvalue.RDFDatetime(200000000000),
         last_clock=rdfvalue.RDFDatetime(210000000000),
         last_ip=rdf_client_network.NetworkAddress(
@@ -185,7 +182,6 @@ class DatabaseTestClientsMixin(object):
     self.assertLen(res, 1)
     m1 = res[client_id]
     self.assertIsInstance(m1, rdf_objects.ClientMetadata)
-    self.assertTrue(m1.fleetspeak_enabled)
     self.assertEqual(m1.ping, rdfvalue.RDFDatetime(200000000000))
     self.assertEqual(m1.clock, rdfvalue.RDFDatetime(210000000000))
     self.assertEqual(
@@ -197,29 +193,7 @@ class DatabaseTestClientsMixin(object):
     d = self.db
     client_id = "C.fc413187fefa1dcf"
     with self.assertRaises(TypeError):
-      d.WriteClientMetadata(
-          client_id, fleetspeak_enabled=True, last_ip="127.0.0.1")
-
-  def testClientMetadataRrgSupportUnset(self):
-    client_id = "C.1234567890abcdef"
-    self.db.WriteClientMetadata(client_id, fleetspeak_enabled=True)
-
-    metadata = self.db.ReadClientMetadata(client_id)
-    self.assertFalse(metadata.rrg_support)
-
-  def testClientMetadataRrgSupportFalse(self):
-    client_id = "C.1234567890abcdef"
-    self.db.WriteClientMetadata(client_id, rrg_support=False)
-
-    metadata = self.db.ReadClientMetadata(client_id)
-    self.assertFalse(metadata.rrg_support)
-
-  def testClientMetadataRrgSupportTrue(self):
-    client_id = "C.1234567890abcdef"
-    self.db.WriteClientMetadata(client_id, rrg_support=True)
-
-    metadata = self.db.ReadClientMetadata(client_id)
-    self.assertTrue(metadata.rrg_support)
+      d.WriteClientMetadata(client_id, last_ip="127.0.0.1")
 
   def testReadAllClientIDsEmpty(self):
     result = list(self.db.ReadAllClientIDs())
@@ -258,7 +232,7 @@ class DatabaseTestClientsMixin(object):
         [client_a_id, client_b_id, client_c_id, client_d_id])
 
   def testReadAllClientIDsFilterLastPing(self):
-    self.db.WriteClientMetadata("C.0000000000000001", fleetspeak_enabled=True)
+    self.db.WriteClientMetadata("C.0000000000000001")
     self.db.WriteClientMetadata(
         "C.0000000000000002",
         last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2))
@@ -337,64 +311,65 @@ class DatabaseTestClientsMixin(object):
             client_id10: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
         }])
 
-  def testReadClientLastPings_AllFiltersFleetspeak(self):
+  def testReadClientLastPings_AllFilters(self):
     client_ids = self._WriteClientLastPingData()
+    client_id5 = client_ids[4]
     client_id6 = client_ids[5]
+    client_id7 = client_ids[6]
     client_id8 = client_ids[7]
 
     actual_data = self.db.ReadClientLastPings(
         min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
         max_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
-        fleetspeak_enabled=True)
+    )
     expected_data = [{
+        client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
         client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+        client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
         client_id8: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
     }]
     self.assertEqual(list(actual_data), expected_data)
 
-  def testReadClientLastPings_AllFiltersNoFleetspeak(self):
+  def testReadClientLastPings_MinPingFilter(self):
     client_ids = self._WriteClientLastPingData()
     client_id5 = client_ids[4]
+    client_id6 = client_ids[5]
     client_id7 = client_ids[6]
-
-    actual_data = self.db.ReadClientLastPings(
-        min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
-        max_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
-        fleetspeak_enabled=False)
-    expected_data = [{
-        client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
-        client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
-    }]
-    self.assertEqual(list(actual_data), expected_data)
-
-  def testReadClientLastPings_MinPingFleetspeakFilters(self):
-    client_ids = self._WriteClientLastPingData()
-    client_id5 = client_ids[4]
-    client_id7 = client_ids[6]
+    client_id8 = client_ids[7]
     client_id9 = client_ids[8]
+    client_id10 = client_ids[9]
 
     actual_data = self.db.ReadClientLastPings(
-        min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
-        fleetspeak_enabled=False)
+        min_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3)
+    )
     expected_data = [{
         client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
+        client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
         client_id7: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
+        client_id8: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
         client_id9: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
+        client_id10: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
     }]
     self.assertEqual(list(actual_data), expected_data)
 
-  def testReadClientLastPings_MaxPingFleetspeakFilters(self):
+  def testReadClientLastPings_MaxPingFilter(self):
     client_ids = self._WriteClientLastPingData()
+    client_id1 = client_ids[0]
     client_id2 = client_ids[1]
+    client_id3 = client_ids[2]
     client_id4 = client_ids[3]
+    client_id5 = client_ids[4]
     client_id6 = client_ids[5]
 
     actual_data = self.db.ReadClientLastPings(
-        max_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
-        fleetspeak_enabled=True)
+        max_last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3)
+    )
     expected_data = [{
+        client_id1: None,
         client_id2: None,
+        client_id3: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
         client_id4: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
+        client_id5: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
         client_id6: rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
     }]
     self.assertEqual(list(actual_data), expected_data)
@@ -405,32 +380,28 @@ class DatabaseTestClientsMixin(object):
     (client_id1, client_id2, client_id3, client_id4, client_id5, client_id6,
      client_id7, client_id8, client_id9, client_id10) = client_ids
 
-    self.db.WriteClientMetadata(client_id1, fleetspeak_enabled=False)
-    self.db.WriteClientMetadata(client_id2, fleetspeak_enabled=True)
+    self.db.WriteClientMetadata(client_id1)
+    self.db.WriteClientMetadata(client_id2)
     self.db.WriteClientMetadata(
         client_id3, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2))
     self.db.WriteClientMetadata(
-        client_id4,
-        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2),
-        fleetspeak_enabled=True)
+        client_id4, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(2)
+    )
     self.db.WriteClientMetadata(
         client_id5, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3))
     self.db.WriteClientMetadata(
-        client_id6,
-        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3),
-        fleetspeak_enabled=True)
+        client_id6, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3)
+    )
     self.db.WriteClientMetadata(
         client_id7, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4))
     self.db.WriteClientMetadata(
-        client_id8,
-        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4),
-        fleetspeak_enabled=True)
+        client_id8, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(4)
+    )
     self.db.WriteClientMetadata(
         client_id9, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5))
     self.db.WriteClientMetadata(
-        client_id10,
-        last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5),
-        fleetspeak_enabled=True)
+        client_id10, last_ping=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(5)
+    )
 
     return client_ids
 
@@ -1378,6 +1349,62 @@ class DatabaseTestClientsMixin(object):
     info_2 = self.db.ReadClientFullInfo(client_id_2)
     self.assertEqual(info_2.last_rrg_startup.AsPrimitiveProto(), startup_2)
 
+  def testReadClientRRGStartupUnknownClient(self):
+    with self.assertRaises(db.UnknownClientError):
+      self.db.ReadClientRRGStartup("C.0123456789ABCDEF")
+
+  def testReadClientRRGStartupNone(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    self.assertIsNone(self.db.ReadClientRRGStartup(client_id))
+
+  def testReadClientRRGStartupSingle(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    startup = rrg_startup_pb2.Startup()
+    startup.metadata.version.major = 1
+    startup.metadata.version.minor = 2
+    startup.metadata.version.patch = 3
+    self.db.WriteClientRRGStartup(client_id, startup)
+
+    self.assertEqual(self.db.ReadClientRRGStartup(client_id), startup)
+
+  def testReadClientRRGStartupMultipleStartups(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+
+    startup_1 = rrg_startup_pb2.Startup()
+    startup_1.metadata.version.major = 1
+    startup_1.metadata.version.minor = 2
+    startup_1.metadata.version.patch = 3
+    self.db.WriteClientRRGStartup(client_id, startup_1)
+
+    startup_2 = rrg_startup_pb2.Startup()
+    startup_2.metadata.version.major = 4
+    startup_2.metadata.version.minor = 5
+    startup_2.metadata.version.patch = 6
+    self.db.WriteClientRRGStartup(client_id, startup_2)
+
+    self.assertEqual(self.db.ReadClientRRGStartup(client_id), startup_2)
+
+  def testReadClientRRGStartupMultipleClients(self):
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    startup_1 = rrg_startup_pb2.Startup()
+    startup_1.metadata.version.major = 1
+    startup_1.metadata.version.minor = 2
+    startup_1.metadata.version.patch = 3
+    self.db.WriteClientRRGStartup(client_id_1, startup_1)
+
+    startup_2 = rrg_startup_pb2.Startup()
+    startup_2.metadata.version.major = 4
+    startup_2.metadata.version.minor = 5
+    startup_2.metadata.version.patch = 6
+    self.db.WriteClientRRGStartup(client_id_2, startup_2)
+
+    self.assertEqual(self.db.ReadClientRRGStartup(client_id_1), startup_1)
+    self.assertEqual(self.db.ReadClientRRGStartup(client_id_2), startup_2)
+
   def testCrashHistory(self):
     d = self.db
 
@@ -1579,7 +1606,7 @@ class DatabaseTestClientsMixin(object):
 
     present_client_id = "C.fc413187fefa1dcf"
     # Typical initial FS enabled write
-    d.WriteClientMetadata(present_client_id, fleetspeak_enabled=True)
+    d.WriteClientMetadata(present_client_id)
 
     missing_client_id = "C.00413187fefa1dcf"
 
@@ -1591,7 +1618,7 @@ class DatabaseTestClientsMixin(object):
     d = self.db
 
     client_id = "C.fc413187fefa1dcf"
-    d.WriteClientMetadata(client_id, fleetspeak_enabled=True)
+    d.WriteClientMetadata(client_id)
     full_info = d.MultiReadClientFullInfo([client_id])[client_id]
     expected_snapshot = rdf_objects.ClientSnapshot(client_id=client_id)
     self.assertEqual(full_info.last_snapshot, expected_snapshot)
@@ -1776,8 +1803,7 @@ class DatabaseTestClientsMixin(object):
                                 labels_dict=None):
     for index in client_indices:
       client_id = "C.1%015x" % index
-      self.db.WriteClientMetadata(
-          client_id, last_ping=last_ping, fleetspeak_enabled=False)
+      self.db.WriteClientMetadata(client_id, last_ping=last_ping)
       self.db.WriteClientSnapshot(
           rdf_objects.ClientSnapshot(
               client_id=client_id,

@@ -223,7 +223,7 @@ class BlobStream(object):
 
 _BLOBS_READ_BATCH_SIZE = 200
 
-BLOBS_READ_TIMEOUT = rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+BLOBS_READ_TIMEOUT = rdfvalue.Duration.From(120, rdfvalue.SECONDS)
 
 
 def AddFilesWithUnknownHashes(

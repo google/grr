@@ -1,4 +1,4 @@
-import {ApiHunt, ApiHuntApproval, ApiHuntState, HuntRunnerArgs, OutputPluginDescriptor} from '../api/api_interfaces';
+import {ApiHunt, ApiHuntApproval, ApiHuntState, ApiHuntStateReason, HuntRunnerArgs, OutputPluginDescriptor} from '../api/api_interfaces';
 import {Hunt, HuntApproval, HuntState, HuntType, SafetyLimits} from '../models/hunt';
 import {ResultKey, toResultKeyString} from '../models/result';
 import {assertEnum, assertKeyNonNull, assertKeyTruthy, assertNumber} from '../preconditions';
@@ -16,14 +16,17 @@ export function translateSafetyLimits(args: HuntRunnerArgs): SafetyLimits {
     clientRate: args.clientRate,
     clientLimit: BigInt(args.clientLimit ?? '0'),
     crashLimit: BigInt(args.crashLimit ?? '0'),
+
+    expiryTime: BigInt(args.expiryTime ?? TWO_WEEKS),
+
     avgResultsPerClientLimit: BigInt(args.avgResultsPerClientLimit ?? '0'),
     avgCpuSecondsPerClientLimit:
         BigInt(args.avgCpuSecondsPerClientLimit ?? '0'),
     avgNetworkBytesPerClientLimit:
         BigInt(args.avgNetworkBytesPerClientLimit ?? '0'),
-    cpuLimit: BigInt(args.cpuLimit ?? '0'),
-    expiryTime: BigInt(args.expiryTime ?? TWO_WEEKS),
-    networkBytesLimit: BigInt(args.networkBytesLimit ?? '0'),
+
+    perClientCpuLimit: BigInt(args.perClientCpuLimit ?? '0'),
+    perClientNetworkBytesLimit: BigInt(args.perClientNetworkLimitBytes ?? '0'),
   };
 }
 
@@ -83,6 +86,7 @@ export function translateHunt(hunt: ApiHunt): Hunt {
     remainingClientsCount: BigInt(hunt.remainingClientsCount ?? 0),
     resultsCount: BigInt(hunt.resultsCount ?? 0),
     state: translateHuntState(hunt),
+    stateReason: hunt.stateReason ?? ApiHuntStateReason.UNKNOWN,
     stateComment: hunt.stateComment,
     resourceUsage: {
       totalCPUTime: hunt.totalCpuUsage ?? 0,

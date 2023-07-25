@@ -15,7 +15,7 @@ import pytsk3
 import yara
 
 from grr_response_client import actions
-from grr_response_client import communicator
+from grr_response_client import client_metrics
 from grr_response_client.client_actions import tempfiles
 from grr_response_client.client_actions import timeline
 from grr_response_client.unprivileged import sandbox
@@ -269,10 +269,11 @@ class GetClientStats(actions.ActionPlugin):
         RSS_size=meminfo.rss,
         VMS_size=meminfo.vms,
         memory_percent=proc.memory_percent(),
-        bytes_received=communicator.GRR_CLIENT_RECEIVED_BYTES.GetValue(),
-        bytes_sent=communicator.GRR_CLIENT_SENT_BYTES.GetValue(),
+        bytes_received=client_metrics.GRR_CLIENT_RECEIVED_BYTES.GetValue(),
+        bytes_sent=client_metrics.GRR_CLIENT_SENT_BYTES.GetValue(),
         create_time=create_time,
-        boot_time=boot_time)
+        boot_time=boot_time,
+    )
 
     response.cpu_samples = self.grr_worker.stats_collector.CpuSamplesBetween(
         start_time=arg.start_time, end_time=arg.end_time)

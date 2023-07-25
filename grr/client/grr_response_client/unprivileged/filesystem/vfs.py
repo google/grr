@@ -259,6 +259,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
 
   def Read(self, length: int) -> bytes:
     self._CheckIsFile()
+    assert self.fd is not None
     data = self.fd.Read(self.offset, length)
     self.offset += len(data)
     return data
@@ -271,6 +272,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
     del ext_attrs  # Unused.
 
     self._CheckIsDirectory()
+    assert self.fd is not None
 
     for entry in self.fd.ListFiles():
       pathspec = self.pathspec.Copy()
@@ -283,6 +285,7 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
 
   def ListNames(self) -> Iterator[Text]:  # pytype: disable=signature-mismatch  # overriding-return-type-checks
     self._CheckIsDirectory()
+    assert self.fd is not None
     return iter(self.fd.ListNames())
 
   def _CheckIsDirectory(self) -> None:
@@ -295,11 +298,14 @@ class UnprivilegedFileBase(vfs_base.VFSHandler):
       raise IOError("{} is not a file".format(self.pathspec.CollapsePath()))
 
   def Close(self) -> None:
+    assert self.fd is not None
     self.fd.Close()
 
   def MatchBestComponentName(
       self, component: str, pathtype: rdf_paths.PathSpec) -> rdf_paths.PathSpec:
     fd = self.OpenAsContainer(pathtype)
+
+    assert self.fd is not None
 
     new_component = self.fd.LookupCaseInsensitive(component)
     if new_component is not None:

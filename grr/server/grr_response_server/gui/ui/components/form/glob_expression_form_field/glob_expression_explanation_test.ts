@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {MatLegacyTooltipHarness} from '@angular/material/legacy-tooltip/testing';
+import {MatTooltipHarness} from '@angular/material/tooltip/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ReplaySubject, Subject} from 'rxjs';
 
@@ -84,7 +84,7 @@ describe('glob-expression-explanation', () => {
     expect(fixture.nativeElement.textContent).toContain('banana');
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
+    const harness = await harnessLoader.getHarness(MatTooltipHarness);
     await harness.show();
     expect(await harness.getTooltipText()).toContain('%%glob%%');
   });
@@ -102,7 +102,7 @@ describe('glob-expression-explanation', () => {
     expect(fixture.nativeElement.textContent).toContain('%%glob%%');
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatLegacyTooltipHarness);
+    const harness = await harnessLoader.getHarness(MatTooltipHarness);
     await harness.show();
     expect(await harness.getTooltipText()).toContain('banana');
   });

@@ -1,4 +1,4 @@
-import {ApiFlowReference, ApiHuntReference, ForemanClientRuleSet, OutputPluginDescriptor} from '../api/api_interfaces';
+import {ApiFlowReference, ApiHuntReference, ApiHuntStateReason, ForemanClientRuleSet, OutputPluginDescriptor} from '../api/api_interfaces';
 import {Duration} from '../date_time';
 
 import {getFlowTitleFromFlowName} from './flow';
@@ -13,15 +13,23 @@ export interface HuntApprovalKey {
 
 /** Safety limits of a new hunt */
 export declare interface SafetyLimits {
-  readonly cpuLimit: bigint;
-  readonly networkBytesLimit: bigint;
   readonly clientRate: number;
+
+  // Completes hunt
+  readonly expiryTime: bigint;
+
+  // Pauses hunt
+  readonly clientLimit: bigint;
+
+  // Stops hunt
   readonly crashLimit: bigint;
   readonly avgResultsPerClientLimit: bigint;
   readonly avgCpuSecondsPerClientLimit: bigint;
   readonly avgNetworkBytesPerClientLimit: bigint;
-  readonly expiryTime: bigint;
-  readonly clientLimit: bigint;
+
+  // Stops flow:
+  readonly perClientCpuLimit: bigint;
+  readonly perClientNetworkBytesLimit: bigint;
 }
 
 /** ApiHunt.State proto mapping. */
@@ -69,6 +77,7 @@ export declare interface Hunt {
   readonly remainingClientsCount: bigint;
   readonly resultsCount: bigint;
   readonly state: HuntState;
+  readonly stateReason: ApiHuntStateReason;
   readonly stateComment?: string;
   readonly safetyLimits: SafetyLimits;
   readonly flowReference?: ApiFlowReference;

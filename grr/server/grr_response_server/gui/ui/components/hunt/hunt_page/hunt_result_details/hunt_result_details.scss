@@ -29,21 +29,6 @@
 }
 
 .section {
-  .description {
-    min-width: 10em;
-    vertical-align: top;
-  }
-
-  .value {
-    font-weight: 500;
-    width: 100%;
-
-    mat-chip-list {
-      display: inline-block;
-      vertical-align: middle;
-    }
-  }
-
   .payload {
     background-color: mat.get-color-from-palette(
       c.$background,

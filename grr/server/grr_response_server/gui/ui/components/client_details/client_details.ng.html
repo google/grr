@@ -10,11 +10,12 @@
         date:'dd-MM-yyyy'}}
       </div>
     </div>
-    <mat-selection-list #timeline [multiple]="false" disableRipple>
+    <mat-selection-list #timeline [multiple]="false" disableRipple [hideSingleSelectionIndicator]="true">
       <mat-list-option
         *ngFor="let version of clientVersions; index as i"
         [value]="version.client"
         [selected]="(selectedIndex$ | async) === i"
+        color="primary"
         class="entry"
       >
         <div class="bullet-row">
@@ -65,7 +66,6 @@
             mat-stroked-button
             type="button"
             color="primary"
-            class="progress-spinner-button"
             name="interrogate-button"
             (click)="triggerInterrogate()"
             [routerLink]="['', {outlets: {
@@ -192,9 +192,9 @@
         <tr *ngIf="client.agentInfo.clientName">
           <td class="description">Type</td>
           <td class="value">
-            <mat-chip-list [disabled]="true"
-              ><mat-chip>{{cloudInstance.cloudType}}</mat-chip></mat-chip-list
-            >
+            <mat-chip-set role="list">
+              <mat-chip role="listitem" [disableRipple]="true">{{cloudInstance.cloudType}}</mat-chip>
+            </mat-chip-set>
             <entry-history-button
               path="agentInfo.clientName"
             ></entry-history-button>
@@ -381,32 +381,19 @@
         </td>
       </tr>
       <tr>
-        <td class="description">Communication</td>
-        <td class="value">
-          <mat-chip-list [disabled]="true">
-            <mat-chip
-              class="{{ client.fleetspeakEnabled === true ? 'green-chip' : 'red-chip' }}"
-            >
-              {{ client.fleetspeakEnabled === true ? 'Fleetspeak' : 'Legacy' }}
-            </mat-chip>
-          </mat-chip-list>
-          <entry-history-button path="fleetspeakEnabled"></entry-history-button>
-        </td>
-      </tr>
-      <tr>
         <td class="description">Capabilities</td>
         <td class="value">
-          <mat-chip-list [disabled]="true">
-            <mat-chip
+          <mat-chip-set role="list">
+            <mat-chip role="listitem"
               class="{{ client.agentInfo.sandboxSupport ? 'green-chip' : 'red-chip' }}"
-            >
+              [disableRipple]="true">
               <mat-icon
                 >{{ client.agentInfo.sandboxSupport ? 'check' : 'close'
                 }}</mat-icon
               >
               Sandboxing
             </mat-chip>
-          </mat-chip-list>
+          </mat-chip-set>
           <entry-history-button
             path="agentInfo.sandboxSupport"
           ></entry-history-button>
@@ -415,17 +402,17 @@
       <tr>
         <td class="description"></td>
         <td class="value">
-          <mat-chip-list [disabled]="true">
-            <mat-chip
+          <mat-chip-set role="list">
+            <mat-chip role="listitem"
               class="{{ client.agentInfo.timelineBtimeSupport ? 'green-chip' : 'red-chip' }}"
-            >
+              [disableRipple]="true">
               <mat-icon
                 >{{ client.agentInfo.timelineBtimeSupport ? 'check' : 'close'
                 }}</mat-icon
               >
               Btime field in Timeline flow
             </mat-chip>
-          </mat-chip-list>
+          </mat-chip-set>
           <entry-history-button
             path="agentInfo.timelineBtimeSupport"
           ></entry-history-button>

@@ -1297,10 +1297,8 @@ class GetFileThroughRRGTest(absltest.TestCase):
 
   @db_test_lib.WithDatabase
   def testHandleGetFileMetadata(self, rel_db: db.Database):
-    client_id = db_test_utils.InitializeClient(rel_db)
+    client_id = db_test_utils.InitializeRRGClient(rel_db)
     flow_id = db_test_utils.InitializeFlow(rel_db, client_id)
-
-    rel_db.WriteClientMetadata(client_id, rrg_support=True)
 
     args = transfer.GetFileThroughRRG.GetDefaultArgs()
     args.pathspec.path = "/foo/bar/baz"
@@ -1343,10 +1341,8 @@ class GetFileThroughRRGTest(absltest.TestCase):
       rel_db: db.Database,
       bs: blob_store.BlobStore,
   ) -> None:
-    client_id = db_test_utils.InitializeClient(rel_db)
+    client_id = db_test_utils.InitializeRRGClient(rel_db)
     flow_id = db_test_utils.InitializeFlow(rel_db, client_id)
-
-    rel_db.WriteClientMetadata(client_id, rrg_support=True)
 
     blob_data = os.urandom(1337)
     bs.WriteBlobWithUnknownHash(blob_data)

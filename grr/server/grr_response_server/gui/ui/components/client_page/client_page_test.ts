@@ -13,12 +13,12 @@ import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers
 import {VfsViewLocalStore} from '../../store/vfs_view_local_store';
 import {mockVfsViewLocalStore} from '../../store/vfs_view_local_store_test_util';
 import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
+import {CLIENT_ROUTES} from '../app/routing';
 import {ClientDetailsModule} from '../client_details/module';
 import {ClientOverview} from '../client_overview/client_overview';
 
 import {ClientPageModule} from './client_page_module';
 import {FlowSection} from './flow_section';
-import {CLIENT_PAGE_ROUTES} from './routing';
 
 
 initTestEnvironment();
@@ -40,7 +40,7 @@ describe('ClientPage Component', () => {
             NoopAnimationsModule,
             ClientPageModule,
             ClientDetailsModule,
-            RouterTestingModule.withRoutes(CLIENT_PAGE_ROUTES),
+            RouterTestingModule.withRoutes(CLIENT_ROUTES),
           ],
           declarations: [
             TestHostComponent,

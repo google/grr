@@ -7,6 +7,7 @@ import {decodeBase64ToString, encodeStringToBase64} from '../../../lib/api_trans
 /** Form that configures a regex match condition. */
 @Component({
   selector: 'regex-match-condition',
+  styles: ['.regex-mode { width: 150px; }'],
   templateUrl: './regex_match_condition.ng.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

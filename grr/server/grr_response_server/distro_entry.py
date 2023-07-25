@@ -27,8 +27,9 @@ def GrrServer():
 
 
 def GrrFrontend():
-  from grr_response_server.bin import frontend
-  app.run(frontend.main)
+  from grr_response_server.bin import fleetspeak_frontend
+
+  app.run(fleetspeak_frontend.main)
 
 
 def Worker():

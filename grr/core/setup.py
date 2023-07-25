@@ -135,7 +135,7 @@ setup_args = dict(
         "python-crontab==2.5.1",
         "python-dateutil==2.8.2",
         "pytz==2022.7.1",
-        "PyYAML==5.4.1",
+        "PyYAML==6.0.1",
         "requests==2.25.1",
         "yara-python==4.2.3",
     ],

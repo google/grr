@@ -1,6 +1,6 @@
 import {AfterViewInit, ChangeDetectionStrategy, Component, EventEmitter, Input, Output, ViewChild} from '@angular/core';
-import {MatLegacyTableDataSource} from '@angular/material/legacy-table';
 import {MatSort} from '@angular/material/sort';
+import {MatTableDataSource} from '@angular/material/table';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
@@ -29,7 +29,7 @@ function hasRegistryValue(rows: readonly RegistryRow[]) {
 })
 export class RegistryResultsTable implements AfterViewInit {
   readonly results$ = new BehaviorSubject<readonly RegistryRow[]>([]);
-  readonly dataSource = new MatLegacyTableDataSource<RegistryRow>();
+  readonly dataSource = new MatTableDataSource<RegistryRow>();
   @ViewChild(MatSort) sort!: MatSort;
 
   readonly totalCount$ = new BehaviorSubject<number|null>(null);

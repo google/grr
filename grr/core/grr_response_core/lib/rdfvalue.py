@@ -902,6 +902,10 @@ class Duration(RDFPrimitive):
     """
     return self.microseconds / timeunit
 
+  def AsTimedelta(self) -> datetime.timedelta:
+    """Returns a standard `timedelta` object corresponding to the duration."""
+    return datetime.timedelta(microseconds=self.ToInt(MICROSECONDS))
+
   @property
   def microseconds(self):
     return self._value

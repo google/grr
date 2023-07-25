@@ -17,10 +17,10 @@ import {HuntApprovalPageGlobalStore} from '../../../store/hunt_approval_page_glo
 import {injectMockStore, STORE_PROVIDERS} from '../../../store/store_test_providers';
 import {UserGlobalStore} from '../../../store/user_global_store';
 import {getActivatedChildRoute, initTestEnvironment} from '../../../testing';
+import {APPROVAL_PAGE_ROUTES} from '../../app/routing';
 
 import {HuntApprovalPage} from './hunt_approval_page';
 import {HuntApprovalPageModule} from './hunt_approval_page_module';
-import {HUNT_APPROVAL_PAGE_ROUTES} from './routing';
 
 
 
@@ -35,7 +35,7 @@ describe('HuntApprovalPage Component', () => {
     await TestBed
         .configureTestingModule({
           imports: [
-            RouterTestingModule.withRoutes(HUNT_APPROVAL_PAGE_ROUTES),
+            RouterTestingModule.withRoutes(APPROVAL_PAGE_ROUTES),
             ApiModule,
             NoopAnimationsModule,
             HuntApprovalPageModule,
@@ -101,8 +101,8 @@ describe('HuntApprovalPage Component', () => {
               avgResultsPerClientLimit: BigInt(20),
               avgCpuSecondsPerClientLimit: BigInt(40),
               avgNetworkBytesPerClientLimit: BigInt(80),
-              cpuLimit: BigInt(60 * 2),
-              networkBytesLimit: BigInt(60),
+              perClientCpuLimit: BigInt(60 * 2),
+              perClientNetworkBytesLimit: BigInt(60),
               expiryTime: BigInt(TWO_DAYS),
             }),
             huntReference: {huntId: 'HHHHH'},

@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {MatLegacySelectHarness} from '@angular/material/legacy-select/testing';
+import {MatSelectHarness} from '@angular/material/select/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
@@ -63,9 +63,8 @@ describe('app-hunt-overview-page', () => {
   it('creator filter updates list', async () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     const loader = TestbedHarnessEnvironment.loader(fixture);
-    const huntFilterHarness =
-        await loader.getHarness(MatLegacySelectHarness.with(
-            {selector: '[name="hunt-creator-filter"]'}));
+    const huntFilterHarness = await loader.getHarness(
+        MatSelectHarness.with({selector: '[name="hunt-creator-filter"]'}));
     await huntFilterHarness.clickOptions({text: HuntCreatorFilter.ALL_HUNTS});
     fixture.detectChanges();
     const huntPageLocalStore =
@@ -94,7 +93,7 @@ describe('app-hunt-overview-page', () => {
     const fixture = TestBed.createComponent(HuntOverviewPage);
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const huntFilterHarness = await loader.getHarness(
-        MatLegacySelectHarness.with({selector: '[name="hunt-state-filter"]'}));
+        MatSelectHarness.with({selector: '[name="hunt-state-filter"]'}));
     await huntFilterHarness.clickOptions({text: HuntStateFilter.RUNNING});
     fixture.detectChanges();
     const huntPageLocalStore =
@@ -282,9 +281,9 @@ describe('app-hunt-overview-page', () => {
 
     // We query the document because the options are shown in an overlay.
     // For unknown reasons, finding
-    // MatLegacyMenuHarness/MatLegacyMenuItemHarness both time out the test
+    // MatMenuHarness/MatMenuItemHarness both time out the test
     // without finding the menus.
-    expect(document.querySelector('.mat-menu-content')?.textContent)
+    expect(document.querySelector('.mat-mdc-menu-content')?.textContent)
         .toContain('Duplicate');
   });
 });

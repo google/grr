@@ -61,9 +61,7 @@ const OutputPluginDescriptorFormController = class {
         if (angular.isDefined(newValue)) {
           const argsType = this.outputPluginsDescriptors[newValue]['args_type'];
 
-          // Prefer reading `args` and fallback to `plugin_args`
-          const pluginArgs = this.scope_['value']['value']['args'] ||
-              this.scope_['value']['value']['plugin_args'];
+          const pluginArgs = this.scope_['value']['value']['args'];
 
           // We want to replace the plugin args only if they're undefined or
           // their type differs from the selected ones. This check helps

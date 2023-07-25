@@ -7,7 +7,7 @@ import io
 import os
 import stat
 import struct
-from typing import List, Optional, Sequence, Any
+from typing import Any, List, Optional, Sequence
 from unittest import mock
 
 from absl import app
@@ -26,6 +26,7 @@ from grr_response_server import file_store
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import file_finder
+from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import filesystem_test_lib
@@ -1038,6 +1039,42 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
         "parser_test/com.google.code.grr.plist",
         "parser_test/InstallHistory.plist"
     ])
+
+  @mock.patch.object(
+      file_finder.ClientFileFinder, "BLOB_CHECK_DELAY", rdfvalue.Duration(0)
+  )
+  def testErrorsWhenDownloadingFileAndNotReceivingBlobs(self):
+    paths = [os.path.join(self.base_path, "test.plist")]
+    action = rdf_file_finder.FileFinderAction(
+        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD
+    )
+
+    # Make sure BlobHandler doesn't accept any incoming blobs. Thus
+    # ClientFileFinder will timeout waiting for one.
+    with mock.patch.object(transfer.BlobHandler, "ProcessMessages"):
+      flow_id = flow_test_lib.StartFlow(
+          file_finder.ClientFileFinder,
+          client_id=self.client_id,
+          paths=paths,
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          action=action,
+          creator=self.test_username,
+      )
+      with self.assertRaisesRegex(
+          RuntimeError, "Could not find one of referenced blobs"
+      ):
+        flow_test_lib.RunFlow(
+            client_id=self.client_id,
+            flow_id=flow_id,
+            client_mock=action_mocks.ClientFileFinderClientMock(),
+        )
+
+    flow_state = flow_test_lib.GetFlowState(self.client_id, flow_id)
+    # Check that the flow has actually reached the maximum number of checks.
+    self.assertEqual(
+        flow_state.num_blob_waits,
+        file_finder.ClientFileFinder.MAX_BLOB_CHECKS + 1,
+    )
 
   def testUseExternalStores(self):
     paths = [os.path.join(self.base_path, "test.plist")]

@@ -2,7 +2,6 @@
 """A library for tests."""
 
 import datetime
-
 import doctest
 import email
 import functools
@@ -32,9 +31,13 @@ from grr_response_server import access_control
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
+from grr_response_server import fleetspeak_connector
 from grr_response_server import prometheus_stats_collector
 from grr_response_server.rdfvalues import objects as rdf_objects
+from grr.test_lib import fleetspeak_test_lib
 from grr.test_lib import testing_startup
+from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
+
 
 FIXED_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration.From(
     8, rdfvalue.DAYS)
@@ -126,6 +129,18 @@ class GRRBaseTest(absltest.TestCase):
     with_limited_call_frequency_stubber.start()
     self.addCleanup(with_limited_call_frequency_stubber.stop)
 
+    # Set up emulation for an in-memory Fleetspeak service.
+    conn_patcher = mock.patch.object(fleetspeak_connector, "CONN")
+    mock_conn = conn_patcher.start()
+    self.addCleanup(conn_patcher.stop)
+    mock_conn.outgoing.InsertMessage.side_effect = (
+        lambda msg, **_: fleetspeak_test_lib.StoreMessage(msg)
+    )
+    mock_conn.outgoing.ListClients.side_effect = (
+        lambda msg, **_: admin_pb2.ListClientsResponse()
+    )
+    fleetspeak_test_lib.Reset()
+
   def _SetupFakeStatsContext(self):
     """Creates a stats context for running tests based on defined metrics."""
     # Reset stats_collector_instance to None, then reinitialize it.
@@ -136,21 +151,22 @@ class GRRBaseTest(absltest.TestCase):
     stats_collector_instance.Set(
         prometheus_stats_collector.PrometheusStatsCollector())
 
-  def SetupClient(self,
-                  client_nr,
-                  arch="x86_64",
-                  fqdn=None,
-                  labels=None,
-                  last_boot_time=None,
-                  install_time=None,
-                  kernel="4.0.0",
-                  os_version="buster/sid",
-                  ping=None,
-                  system="Linux",
-                  users=None,
-                  memory_size=None,
-                  add_cert=True,
-                  fleetspeak_enabled=False):
+  def SetupClient(
+      self,
+      client_nr,
+      arch="x86_64",
+      fqdn=None,
+      labels=None,
+      last_boot_time=None,
+      install_time=None,
+      kernel="4.0.0",
+      os_version="buster/sid",
+      ping=None,
+      system="Linux",
+      users=None,
+      memory_size=None,
+      add_cert=True,
+  ):
     """Prepares a test client mock to be used.
 
     Args:
@@ -168,7 +184,6 @@ class GRRBaseTest(absltest.TestCase):
       users: list of rdf_client.User objects.
       memory_size: bytes
       add_cert: boolean
-      fleetspeak_enabled: boolean
 
     Returns:
       the client_id: string
@@ -187,7 +202,7 @@ class GRRBaseTest(absltest.TestCase):
         ping=ping or rdfvalue.RDFDatetime.Now(),
         system=system,
         users=users,
-        fleetspeak_enabled=fleetspeak_enabled)
+    )
     return client.client_id
 
   def SetupClients(self, nr_clients, *args, **kwargs):
@@ -229,21 +244,22 @@ class GRRBaseTest(absltest.TestCase):
         rdf_client_network.Interface(ifname="if2", mac_address=mac2),
     ]
 
-  def _SetupTestClientObject(self,
-                             client_nr,
-                             add_cert=True,
-                             arch="x86_64",
-                             fqdn=None,
-                             install_time=None,
-                             last_boot_time=None,
-                             kernel="4.0.0",
-                             memory_size=None,
-                             os_version="buster/sid",
-                             ping=None,
-                             system="Linux",
-                             users=None,
-                             labels=None,
-                             fleetspeak_enabled=False):
+  def _SetupTestClientObject(
+      self,
+      client_nr,
+      add_cert=True,
+      arch="x86_64",
+      fqdn=None,
+      install_time=None,
+      last_boot_time=None,
+      kernel="4.0.0",
+      memory_size=None,
+      os_version="buster/sid",
+      ping=None,
+      system="Linux",
+      users=None,
+      labels=None,
+  ):
     """Prepares a test client object."""
     client_id = u"C.1%015x" % client_nr
 
@@ -280,10 +296,8 @@ class GRRBaseTest(absltest.TestCase):
       cert = None
 
     data_store.REL_DB.WriteClientMetadata(
-        client_id,
-        last_ping=ping,
-        certificate=cert,
-        fleetspeak_enabled=fleetspeak_enabled)
+        client_id, last_ping=ping, certificate=cert
+    )
     data_store.REL_DB.WriteClientSnapshot(client)
 
     client_index.ClientIndex().AddClient(client)

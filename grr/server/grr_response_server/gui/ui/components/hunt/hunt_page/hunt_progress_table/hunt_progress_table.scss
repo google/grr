@@ -27,10 +27,6 @@ $raw-value-display-min-width: 50px;
       min-height: unset;
       height: $table-row-height;
     }
-
-    mat-row, mat-header-row {
-      border-bottom-color: mat.get-color-from-palette(c.$foreground, divider-light);
-    }
   }
 
   .no-data {

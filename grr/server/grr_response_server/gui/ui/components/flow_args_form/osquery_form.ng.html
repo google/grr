@@ -36,20 +36,21 @@
     [class]="fileCollectionSettingsShown ? 'collection-container' : 'hide-content'"
   >
     <mat-form-field>
-      <mat-chip-list
+      <mat-chip-grid
         #chipList
         aria-label="Columns for file collection"
         [formControl]="controls.fileCollectionColumns"
+        role="list"
       >
-        <mat-chip
+        <mat-chip-row
           *ngFor="let columnName of controls.fileCollectionColumns.value"
-          [selectable]="false"
           [removable]="true"
           (removed)="removeFileCollectionColumn(columnName)"
+          role="listitem"
         >
           {{ columnName }}
           <mat-icon matChipRemove>cancel</mat-icon>
-        </mat-chip>
+        </mat-chip-row>
         <input
           placeholder="Specify table columns to collect files from"
           [matChipInputFor]="chipList"
@@ -57,7 +58,7 @@
           [matChipInputAddOnBlur]="true"
           (matChipInputTokenEnd)="addFileCollectionColumn($event)"
         />
-      </mat-chip-list>
+      </mat-chip-grid>
     </mat-form-field>
   </div>
 
@@ -86,7 +87,7 @@
       <span matSuffix>ms</span>
     </mat-form-field>
 
-    <mat-checkbox [formControl]="controls.ignoreStderrErrors"
+    <mat-checkbox [formControl]="controls.ignoreStderrErrors" color="primary"
       >Ignore stderr errors</mat-checkbox
     >
   </div>

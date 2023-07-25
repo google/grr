@@ -153,7 +153,8 @@ class HuntPageTest(
 
     self.WaitUntil(
         self.IsElementPresent,
-        "css=app-hunt-results .mat-tab-label-active:contains('Errors')",
+        "css=app-hunt-results"
+        " [role=tab][aria-selected=true]:contains('Errors')",
     )
     self.WaitUntil(
         self.IsElementPresent,
@@ -179,9 +180,10 @@ class HuntPageTest(
 
     self.WaitUntil(
         self.IsElementPresent,
-        "css=app-hunt-results .mat-tab-label:contains('File Finder')",
+        "css=app-hunt-results [role=tab]:contains('File Finder')",
     )
-    self.Click("css=app-hunt-results .mat-tab-label:contains('File Finder')")
+    self.Click("css=app-hunt-results [role=tab]:contains('File Finder')")
+
     self.WaitUntil(
         self.IsElementPresent,
         f"css=app-hunt-results mat-row:contains('{client_ids[1]}')",
@@ -248,7 +250,7 @@ class HuntPageTest(
     self.Click("css=button[name=cancel-button]")
 
     self.WaitUntil(
-        self.IsElementPresent, "css=.hunt-overview:contains('cancelled')"
+        self.IsElementPresent, "css=.hunt-overview:contains('Cancelled')"
     )
 
     hunts = _ListHunts(self.test_username)

@@ -1,35 +1,36 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
+import {MatChipsModule} from '@angular/material/chips';
+import {MatDialogModule} from '@angular/material/dialog';
 import {MatDividerModule} from '@angular/material/divider';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyChipsModule} from '@angular/material/legacy-chips';
-import {MatLegacyDialogModule} from '@angular/material/legacy-dialog';
-import {MatLegacyListModule} from '@angular/material/legacy-list';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {RouterModule} from '@angular/router';
 
 import {RolloutFormModule} from '../../../components/hunt/rollout_form/module';
 
 import {ModifyHunt} from './modify_hunt';
-import {ModifyHuntRoutingModule} from './routing';
 
 /**
  * Module for the client details component.
  */
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     CommonModule,
-    RouterModule,
-    MatLegacyButtonModule,
-    MatLegacyChipsModule,
-    MatLegacyDialogModule,
+    MatButtonModule,
+    MatChipsModule,
+    MatDialogModule,
     MatDividerModule,
     MatIconModule,
-    MatLegacyListModule,
-    MatLegacyProgressSpinnerModule,
-    ModifyHuntRoutingModule,
+    MatProgressSpinnerModule,
     RolloutFormModule,
+    RouterModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     ModifyHunt,

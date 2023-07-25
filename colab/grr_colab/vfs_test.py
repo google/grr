@@ -24,8 +24,7 @@ class VfsTest(testing.ColabE2ETest):
 
   @testing.with_approval_checks
   def testOpen_WithoutApproval(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
@@ -35,8 +34,7 @@ class VfsTest(testing.ColabE2ETest):
     self.assertEqual(context.exception.client_id, VfsTest.FAKE_CLIENT_ID)
 
   def testOpen_DoesNotExist(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
@@ -44,8 +42,7 @@ class VfsTest(testing.ColabE2ETest):
       vfs_obj.open('/foo/bar')
 
   def testOpen_NotCollected(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     content = b'foo bar'
     api_client = self._get_fake_api_client()
@@ -62,8 +59,7 @@ class VfsTest(testing.ColabE2ETest):
       vfs_obj.open(temp_filepath)
 
   def testOpen_ReadAll(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     content = b'foo bar'
     api_client = self._get_fake_api_client()
@@ -81,8 +77,7 @@ class VfsTest(testing.ColabE2ETest):
         self.assertEqual(filedesc.read(), content)
 
   def testOpen_ReadMore(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     content = b'foo bar'
     api_client = self._get_fake_api_client()
@@ -100,8 +95,7 @@ class VfsTest(testing.ColabE2ETest):
         self.assertEqual(filedesc.read(10), content)
 
   def testOpen_ReadLess(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     content = b'foo bar'
     api_client = self._get_fake_api_client()
@@ -119,8 +113,7 @@ class VfsTest(testing.ColabE2ETest):
         self.assertEqual(filedesc.read(3), b'foo')
 
   def testOpen_Buffering(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     size = 1024 * 1024
     api_client = self._get_fake_api_client()
@@ -140,8 +133,7 @@ class VfsTest(testing.ColabE2ETest):
         self.assertGreater(filedesc.tell(), 0)
 
   def testOpen_ReadLargeFile(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     size = 1024 * 1024
     api_client = self._get_fake_api_client()
@@ -159,8 +151,7 @@ class VfsTest(testing.ColabE2ETest):
         self.assertEqual(len(filedesc.read()), size)
 
   def testOpen_SeekWithinOneBuffer(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     content = b'foo bar'
     api_client = self._get_fake_api_client()
@@ -180,8 +171,7 @@ class VfsTest(testing.ColabE2ETest):
         self.assertEqual(filedesc.read(), b'bar')
 
   def testOpen_SeekOutOfBuffer(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     size = 1024 * 512
     api_client = self._get_fake_api_client()
@@ -202,8 +192,7 @@ class VfsTest(testing.ColabE2ETest):
 
   @testing.with_approval_checks
   def testLs_WithoutApproval(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
     with self.assertRaises(errors.ApprovalMissingError) as context:
@@ -212,16 +201,14 @@ class VfsTest(testing.ColabE2ETest):
     self.assertEqual(context.exception.client_id, VfsTest.FAKE_CLIENT_ID)
 
   def testLs_DoesNotExist(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
     with self.assertRaises(api_errors.ResourceNotFoundError):
       vfs_obj.ls('/foo/bar')
 
   def testLs_ContainsFiles(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     dir_nodes = [
         # name, content
@@ -254,8 +241,7 @@ class VfsTest(testing.ColabE2ETest):
       self.assertEqual(stat_entries[1].st_size, 7)
 
   def testLs_EmptyDirectory(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
@@ -268,8 +254,7 @@ class VfsTest(testing.ColabE2ETest):
       self.assertEmpty(stat_entries)
 
   def testLs_NotDirectory(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
@@ -282,8 +267,7 @@ class VfsTest(testing.ColabE2ETest):
         vfs_obj.ls(temp_file)
 
   def testLs_Recursive(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     dir_nodes = [
         'file0',
@@ -317,8 +301,7 @@ class VfsTest(testing.ColabE2ETest):
       self.assertEqual(paths[5], os.path.join(temp_dirpath, 'file0'))
 
   def testLs_MaxDepth(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     dir_components = ['dir1', 'dir2', 'dir3', 'dir4', 'dir5']
 
@@ -342,8 +325,7 @@ class VfsTest(testing.ColabE2ETest):
 
   @testing.with_approval_checks
   def testRefresh_WithoutApproval(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
@@ -353,16 +335,14 @@ class VfsTest(testing.ColabE2ETest):
     self.assertEqual(context.exception.client_id, VfsTest.FAKE_CLIENT_ID)
 
   def testRefresh_DoesNotExist(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
     with self.assertRaises(api_errors.ResourceNotFoundError):
       vfs_obj.refresh('/foo/bar')
 
   def testRefresh_Plain(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
@@ -389,8 +369,7 @@ class VfsTest(testing.ColabE2ETest):
       self.assertEqual(paths[1], os.path.join(temp_dirpath, 'dir2'))
 
   def testRefresh_Recursive(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     dir_components = ['dir1', 'dir2', 'dir3', 'dir4', 'dir5']
 
@@ -416,8 +395,7 @@ class VfsTest(testing.ColabE2ETest):
 
   @testing.with_approval_checks
   def testWget_WithoutApproval(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
@@ -428,8 +406,7 @@ class VfsTest(testing.ColabE2ETest):
     self.assertEqual(context.exception.client_id, VfsTest.FAKE_CLIENT_ID)
 
   def testWget_NoAdminURLSpecified(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
@@ -447,8 +424,7 @@ class VfsTest(testing.ColabE2ETest):
           vfs_obj.wget(temp_file)
 
   def testWget_FileDoesNotExist(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     vfs_obj = vfs.VFS(self._get_fake_api_client(), jobs_pb2.PathSpec.OS)
 
@@ -457,8 +433,7 @@ class VfsTest(testing.ColabE2ETest):
         vfs_obj.wget('/non/existing/file')
 
   def testWget_IsDirectory(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)
@@ -472,8 +447,7 @@ class VfsTest(testing.ColabE2ETest):
           vfs_obj.wget(temp_dir)
 
   def testWget_LinkWorksWithOfflineClient(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=VfsTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=VfsTest.FAKE_CLIENT_ID)
 
     api_client = self._get_fake_api_client()
     client = grr_colab.Client(api_client)

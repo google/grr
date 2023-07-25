@@ -1,9 +1,9 @@
 import {NgModule} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
-import {MatLegacyTabsModule} from '@angular/material/legacy-tabs';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatTabsModule} from '@angular/material/tabs';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -14,24 +14,25 @@ import {TimestampModule} from '../timestamp/module';
 
 import {FileDetails} from './file_details';
 import {FileDetailsPage} from './file_details_page';
-import {FileDetailsRoutingModule} from './routing';
 
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     BrowserAnimationsModule,
-    RouterModule,
-
-    MatLegacyButtonModule,
-    MatIconModule,
-    MatLegacyTooltipModule,
-    MatLegacyProgressSpinnerModule,
-    MatLegacyTabsModule,
-
     DrawerLinkModule,
-    FileDetailsRoutingModule,
     HexViewModule,
     HumanReadableSizeModule,
+    MatButtonModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatTabsModule,
+    MatTooltipModule,
+    RouterModule,
     TimestampModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     FileDetails,

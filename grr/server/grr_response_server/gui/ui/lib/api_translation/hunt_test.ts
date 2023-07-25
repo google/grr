@@ -15,9 +15,9 @@ describe('Hunt translation test', () => {
       avgResultsPerClientLimit: '1000',
       avgCpuSecondsPerClientLimit: '60',
       avgNetworkBytesPerClientLimit: '10485760',
-      cpuLimit: '123',
+      perClientCpuLimit: '123',
+      perClientNetworkLimitBytes: '0',
       expiryTime: '123000',
-      networkBytesLimit: '0'
     };
 
     const safetyLimits: SafetyLimits = {
@@ -27,9 +27,9 @@ describe('Hunt translation test', () => {
       avgResultsPerClientLimit: BigInt(1000),
       avgCpuSecondsPerClientLimit: BigInt(60),
       avgNetworkBytesPerClientLimit: BigInt(10485760),
-      cpuLimit: BigInt(123),
+      perClientCpuLimit: BigInt(123),
+      perClientNetworkBytesLimit: BigInt(0),
       expiryTime: BigInt(123000),
-      networkBytesLimit: BigInt(0),
     };
 
     expect(translateSafetyLimits(huntRunnerArgs)).toEqual(safetyLimits);

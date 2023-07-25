@@ -11,11 +11,12 @@ import queue
 import struct
 import threading
 import time
+import zlib
 
 from absl import flags
 
+from grr_response_client import client_metrics
 from grr_response_client import comms
-from grr_response_client import communicator
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
@@ -23,6 +24,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_proto import jobs_pb2
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.client_connector import connector as fs_client
+
 
 # pyformat: disable
 
@@ -50,6 +52,25 @@ class FatalError(Exception):
 
 class BrokenFSConnectionError(Exception):
   pass
+
+
+def _EncodeMessageList(
+    message_list: rdf_flows.MessageList,
+    packed_message_list: rdf_flows.PackedMessageList,
+) -> None:
+  """Encode the MessageList into the packed_message_list rdfvalue."""
+  # By default uncompress
+  uncompressed_data = message_list.SerializeToBytes()
+  packed_message_list.message_list = uncompressed_data
+
+  compressed_data = zlib.compress(uncompressed_data)
+
+  # Only compress if it buys us something.
+  if len(compressed_data) < len(uncompressed_data):
+    packed_message_list.compression = (
+        rdf_flows.PackedMessageList.CompressionType.ZCOMPRESSION
+    )
+    packed_message_list.message_list = compressed_data
 
 
 class GRRFleetspeakClient(object):
@@ -105,9 +126,6 @@ class GRRFleetspeakClient(object):
         # This will terminate execution in the current thread.
         raise e
 
-  def FleetspeakEnabled(self):
-    return True
-
   def Run(self):
     """The main run method of the client."""
     for thread in self._threads.values():
@@ -135,8 +153,7 @@ class GRRFleetspeakClient(object):
   def _SendMessages(self, grr_msgs, background=False):
     """Sends a block of messages through Fleetspeak."""
     message_list = rdf_flows.PackedMessageList()
-    communicator.Communicator.EncodeMessageList(
-        rdf_flows.MessageList(job=grr_msgs), message_list)
+    _EncodeMessageList(rdf_flows.MessageList(job=grr_msgs), message_list)
     fs_msg = fs_common_pb2.Message(
         message_type="MessageList",
         destination=fs_common_pb2.Address(service_name="GRR"),
@@ -163,7 +180,7 @@ class GRRFleetspeakClient(object):
       logging.critical("Broken local Fleetspeak connection (write end).")
       raise
 
-    communicator.GRR_CLIENT_SENT_BYTES.Increment(sent_bytes)
+    client_metrics.GRR_CLIENT_SENT_BYTES.Increment(sent_bytes)
 
   def _SendOp(self):
     """Sends messages through Fleetspeak."""
@@ -209,7 +226,7 @@ class GRRFleetspeakClient(object):
           "Unexpected proto type received through Fleetspeak: %r; expected "
           "grr.GrrMessage." % received_type)
 
-    communicator.GRR_CLIENT_RECEIVED_BYTES.Increment(received_bytes)
+    client_metrics.GRR_CLIENT_RECEIVED_BYTES.Increment(received_bytes)
 
     grr_msg = rdf_flows.GrrMessage.FromSerializedBytes(fs_msg.data.value)
     # Authentication is ensured by Fleetspeak.

@@ -1,14 +1,11 @@
 <div class="wrapper">
   <div class="header" (click)="showContent($event)">
-    <h1>
-      <mat-icon>approval</mat-icon>
-      Access approval
-
-      <app-approval-chip
-        *ngIf="latestApproval"
-        [approval]="latestApproval"
-      ></app-approval-chip>
-    </h1>
+    <mat-icon>approval</mat-icon>
+    <h1>Access approval</h1>
+    <app-approval-chip
+      *ngIf="latestApproval"
+      [approval]="latestApproval"
+    ></app-approval-chip>
 
     <button
       id="approval-card-toggle"
@@ -75,6 +72,7 @@
         <button
           id="copy-approval-link"
           mat-stroked-button
+          color="primary"
           [cdkCopyToClipboard]="url"
           [disabled]="url === ''"
         >
@@ -115,17 +113,16 @@
 
       <div class="approvers">
         <mat-form-field appearance="outline">
-          <mat-chip-list #chipList aria-label="Select approvers">
-            <mat-chip
+          <mat-chip-grid #chipList aria-label="Select approvers">
+            <mat-chip-row
               *ngFor="let username of formRequestedApprovers"
-              [selectable]="true"
               [removable]="true"
               (removed)="removeRequestedApprover(username)"
             >
               <user-image [username]="username" size="16px"></user-image>
               {{username}}
               <mat-icon matChipRemove>cancel</mat-icon>
-            </mat-chip>
+            </mat-chip-row>
             <input
               #approversInput
               placeholder="Approvers..."
@@ -134,7 +131,7 @@
               [matChipInputFor]="chipList"
               [matChipInputSeparatorKeyCodes]="separatorKeysCodes"
             />
-          </mat-chip-list>
+          </mat-chip-grid>
           <mat-autocomplete
             #auto="matAutocomplete"
             autoActiveFirstOption
@@ -170,11 +167,10 @@
         class="progress-spinner-button"
         [matTooltip]="'CTRL/⌘ + ENTER'"
       >
-      <mat-spinner
-        *ngIf="requestInProgress$ | async"
-        diameter="24"
-      ></mat-spinner>
-        Request access
+        <div class="progress-spinner-button-label-container">
+          <mat-spinner diameter="20" *ngIf="requestInProgress$ | async"></mat-spinner>
+          <span>Request access</span>
+        </div>
       </button>
     </form>
   </div>

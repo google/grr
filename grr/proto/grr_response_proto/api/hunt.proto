@@ -16,7 +16,7 @@ package grr;
 // Entities.
 //
 
-// Next id: 36
+// Next id: 37
 message ApiHunt {
   // Enum values here correspond to Hunt.State values.
   enum State {
@@ -24,6 +24,18 @@ message ApiHunt {
     STARTED = 1;
     STOPPED = 2;
     COMPLETED = 3;
+  }
+
+  enum StateReason {
+    UNKNOWN = 0;
+    DEADLINE_REACHED = 1;
+    TOTAL_CLIENTS_EXCEEDED = 2;
+    TOTAL_CRASHES_EXCEEDED = 3;
+    TOTAL_NETWORK_EXCEEDED = 4;
+    AVG_RESULTS_EXCEEDED = 5;
+    AVG_NETWORK_EXCEEDED = 6;
+    AVG_CPU_EXCEEDED = 7;
+    TRIGGERED_BY_USER = 8;
   }
 
   enum HuntType {
@@ -43,6 +55,9 @@ message ApiHunt {
 
   optional State state = 4
       [(sem_type) = { description: "Current hunt state." }];
+  optional StateReason state_reason = 36 [(sem_type) = {
+    description: "Structured additional information on the hunt state."
+  }];
   optional string state_comment = 33
       [(sem_type) = { description: "Additional information on hunt state." }];
 

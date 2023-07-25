@@ -1,10 +1,11 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyCardModule} from '@angular/material/legacy-card';
-import {MatLegacyProgressSpinnerModule} from '@angular/material/legacy-progress-spinner';
+import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSidenavModule} from '@angular/material/sidenav';
+import {RouterModule} from '@angular/router';
 
 import {ClientDetailsModule} from '../client_details/module';
 import {ClientOverviewModule} from '../client_overview/module';
@@ -14,16 +15,27 @@ import {ScheduledFlowListModule} from '../scheduled_flow_list/module';
 import {UserImageModule} from '../user_image/module';
 
 import {ApprovalPage} from './approval_page';
-import {ApprovalRoutingModule} from './routing';
 
 @NgModule({
   imports: [
-    CommonModule, MatLegacyButtonModule, MatLegacyCardModule, MatIconModule,
-    MatLegacyProgressSpinnerModule, MatSidenavModule,
-
-    ApprovalRoutingModule, ClientDetailsModule, ClientOverviewModule,
-    DrawerLinkModule, ScheduledFlowListModule, UserImageModule,
-    TextWithLinksModule
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
+    ClientDetailsModule,
+    ClientOverviewModule,
+    CommonModule,
+    DrawerLinkModule,
+    MatButtonModule,
+    MatCardModule,
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatSidenavModule,
+    RouterModule,
+    ScheduledFlowListModule,
+    TextWithLinksModule,
+    UserImageModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     ApprovalPage,

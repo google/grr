@@ -1,13 +1,13 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
+import {MatCardModule} from '@angular/material/card';
+import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyCardModule} from '@angular/material/legacy-card';
-import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
-import {MatLegacyInputModule} from '@angular/material/legacy-input';
-import {MatLegacyMenuModule} from '@angular/material/legacy-menu';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatInputModule} from '@angular/material/input';
+import {MatMenuModule} from '@angular/material/menu';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
@@ -21,20 +21,24 @@ import {UserMenu} from './user_menu';
  */
 @NgModule({
   imports: [
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     BrowserAnimationsModule,
     CommonModule,
     FormsModule,
-    MatLegacyButtonModule,
-    MatLegacyCardModule,
-    MatLegacyCardModule,
-    MatLegacyFormFieldModule,
+    MatButtonModule,
+    MatCardModule,
+    MatFormFieldModule,
     MatIconModule,
-    MatLegacyInputModule,
-    MatLegacyMenuModule,
-    MatLegacyTooltipModule,
+    MatInputModule,
+    MatMenuModule,
+    MatTooltipModule,
     ReactiveFormsModule,
     RouterModule,
     UserImageModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     UserMenu,

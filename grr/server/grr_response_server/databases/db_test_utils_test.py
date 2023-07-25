@@ -180,6 +180,16 @@ class InitializeClientTest(absltest.TestCase):
     self.assertIsNotNone(db.ReadClientMetadata(client_id))
 
 
+class InitializeRRGClientTest(absltest.TestCase):
+
+  def testRandom(self):
+    db = mem_db.InMemoryDB()
+
+    client_id = db_test_utils.InitializeRRGClient(db)
+    self.assertIsNotNone(db.ReadClientMetadata(client_id))
+    self.assertIsNotNone(db.ReadClientRRGStartup(client_id))
+
+
 class InitializeUserTest(absltest.TestCase):
 
   def testRandom(self):

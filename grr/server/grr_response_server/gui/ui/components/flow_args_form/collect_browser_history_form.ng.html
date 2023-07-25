@@ -1,20 +1,21 @@
 <div [formGroup]="form">
-  <mat-checkbox [formControl]="controls.collectChrome" name="collectChrome">
+  <mat-checkbox [formControl]="controls.collectChrome" name="collectChrome" color="primary">
     Chrome
   </mat-checkbox>
-  <mat-checkbox [formControl]="controls.collectFirefox" name="collectFirefox">
+  <mat-checkbox [formControl]="controls.collectFirefox" name="collectFirefox" color="primary">
     Firefox
   </mat-checkbox>
   <mat-checkbox
     [formControl]="controls.collectInternetExplorer"
     name="collectInternetExplorer"
+    color="primary"
   >
     Internet Explorer</mat-checkbox
   >
-  <mat-checkbox [formControl]="controls.collectOpera" name="collectOpera">
+  <mat-checkbox [formControl]="controls.collectOpera" name="collectOpera" color="primary">
     Opera
   </mat-checkbox>
-  <mat-checkbox [formControl]="controls.collectSafari" name="collectSafari">
+  <mat-checkbox [formControl]="controls.collectSafari" name="collectSafari" color="primary">
     Safari
   </mat-checkbox>
 </div>

@@ -1,5 +1,19 @@
-@use '@angular/material' as mat-deprecated;
 @use '@angular/material' as mat;
+
+/* IMPORTANT
+
+Do not add CSS rules in this file, as they will get duplicated whenever we use
+this file with `@use` it in other .scss component files.
+
+This file should only define Sass variables or Angular Material theme related
+variables.
+
+In the future we could also convert this file to a Partial Sass file. which
+would automatically not include its CSS rules on the compiled CSS output:
+
+https://sass-lang.com/guide#:~:text=A%20partial%20is%20a%20Sass,used%20with%20the%20%40use%20rule.
+
+*/
 
 // Angular Material theme definition.
 $primary: mat.define-palette(mat.$blue-palette, 600, 400);
@@ -83,59 +97,106 @@ $roboto-family: Roboto, 'Helvetica Neue', sans-serif;
 $google-sans-display-family-str: 'Google Sans Display, "Helvetica Neue", sans-serif';
 $google-sans-family-str: 'Google Sans, "Helvetica Neue", sans-serif';
 $roboto-family-str: 'Roboto, "Helvetica Neue", sans-serif';
-$custom-typography: mat-deprecated.define-legacy-typography-config(
-  $display-1:
-    mat.define-typography-level(
-      64px,
-      76px,
-      400,
-      $google-sans-display-family-str,
-      normal
-    ),
-  $display-2:
-    mat.define-typography-level(
-      56px,
-      64px,
-      400,
-      $google-sans-display-family-str,
-      normal
-    ),
-  $display-3:
-    mat.define-typography-level(
-      44px,
-      52px,
-      400,
-      $google-sans-display-family-str,
-      normal
-    ),
-  $headline:
-    mat.define-typography-level(
-      18px,
-      24px,
-      400,
-      $google-sans-family-str,
-      normal
-    ),
-  $title:
-    mat.define-typography-level(16px, 24px, 500, $roboto-family-str, 0.2px),
-  $subheading-1:
-    mat.define-typography-level(
-      14px,
-      20px,
-      500,
-      $google-sans-family-str,
-      0.25px
-    ),
-  $subheading-2:
-    mat.define-typography-level(16px, 24px, 500, $google-sans-family-str, 0.1px),
-  $body-1:
-    mat.define-typography-level(14px, 20px, 400, $roboto-family-str, 0.2px),
-  $body-2:
-    mat.define-typography-level(16px, 24px, 400, $roboto-family-str, 0.1px),
-  $caption:
-    mat.define-typography-level(12px, 16px, 400, $roboto-family-str, 0.3px),
+
+// Material Typography level definitions:
+$headline-4-typography: mat.define-typography-level(
+  64px,
+  76px,
+  400,
+  $google-sans-display-family-str,
+  normal
 );
-@include mat-deprecated.all-legacy-component-typographies($custom-typography);
+
+$headline-3-typography: mat.define-typography-level(
+  56px,
+  64px,
+  400,
+  $google-sans-display-family-str,
+  normal
+);
+
+$headline-2-typography: mat.define-typography-level(
+  44px,
+  52px,
+  400,
+  $google-sans-display-family-str,
+  normal
+);
+
+$headline-5-typography: mat.define-typography-level(
+  18px,
+  24px,
+  400,
+  $google-sans-family-str,
+  normal
+);
+
+$headline-6-typography: mat.define-typography-level(
+  16px,
+  24px,
+  500,
+  $roboto-family-str,
+  0.2px
+);
+
+$subtitle-2-typography: mat.define-typography-level(
+  14px,
+  20px,
+  500,
+  $google-sans-family-str,
+  0.25px
+);
+
+$subtitle-1-typography: mat.define-typography-level(
+  16px,
+  24px,
+  500,
+  $google-sans-family-str,
+  0.1px
+);
+$body-1-typography: mat.define-typography-level(
+  14px,
+  20px,
+  400,
+  $roboto-family-str,
+  0.2px
+);
+$body-2-typography: mat.define-typography-level(
+  16px,
+  24px,
+  400,
+  $roboto-family-str,
+  0.1px
+);
+$caption-typography: mat.define-typography-level(
+  12px,
+  16px,
+  400,
+  $roboto-family-str,
+  0.3px
+);
+$button-typography: mat.define-typography-level(
+  14px,
+  36px,
+  500,
+  $roboto-family-str,
+  0.2px
+);
+
+/* https://material.angular.io/guide/typography#typography-levels */
+$custom-mdc-typography: mat.define-typography-config(
+  $headline-2: $headline-2-typography,
+  $headline-3: $headline-3-typography,
+  $headline-4: $headline-4-typography,
+  $headline-5: $headline-5-typography,
+  $headline-6: $headline-6-typography,
+  $subtitle-1: $subtitle-1-typography,
+  $subtitle-2: $subtitle-2-typography,
+  $body-1: $body-1-typography,
+  $body-2: $body-2-typography,
+  $caption: $caption-typography,
+  $button: $button-typography,
+);
 
 $button-horizontal-padding: 16px;
 
@@ -149,56 +210,3 @@ $centered-content-width: 80%;
 
 // Vertical spacing between major elements (e.g. cards) on a page.
 $page-spacing: 16px;
-
-.mat-stroked-button {
-  overflow: hidden;
-
-  &,
-  &.mat-primary,
-  &.mat-button-disabled {
-    border-color: mat.get-color-from-palette($foreground, divider-light);
-  }
-
-  &:not(.mat-button-disabled),
-  &.mat-primary:not(.mat-button-disabled) {
-    border-color: mat.get-color-from-palette($foreground, divider-light);
-    color: mat.get-color-from-palette($primary, 600);
-    background: white;
-  }
-}
-
-body .mat-button-toggle-group,
-body .mat-button-toggle-group:not([class*='mat-elevation-z']),
-body mat-button-toggle-group.mat-button-toggle-group {
-  border-radius: 4px;
-  box-shadow: none;
-
-  .mat-button-toggle {
-    border: 0.5px solid mat.get-color-from-palette(mat.$grey-palette, 300);
-    background-color: mat.get-color-from-palette(mat.$grey-palette, 300);
-    color: mat.get-color-from-palette(mat.$blue-palette, 700);
-  }
-
-  .mat-button-toggle-checked {
-    background-color: mat.get-color-from-palette(mat.$grey-palette, 700);
-    color: white;
-  }
-}
-
-.mat-tab-links .mat-tab-link,
-.mat-tab-labels .mat-tab-label {
-  opacity: 1;
-
-  &.mat-tab-disabled {
-    opacity: 0.6;
-  }
-}
-
-.mat-tab-link[routerlinkactive].mat-tab-label-active,
-.mat-tab-label.mat-tab-label-active {
-  color: mat.get-color-from-palette(mat.$blue-palette, 700);
-}
-
-.mat-paginator-page-size .mat-paginator-page-size-select {
-  margin: 0px 0px 10px 10px;
-}

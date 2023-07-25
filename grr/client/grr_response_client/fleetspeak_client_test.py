@@ -1,18 +1,42 @@
 #!/usr/bin/env python
 import logging
-
 from unittest import mock
+import zlib
 
 from absl import app
 from absl.testing import absltest
 
 from grr_response_client import comms
-from grr_response_client import communicator
 from grr_response_client import fleetspeak_client
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr.test_lib import test_lib
 from fleetspeak.src.common.proto.fleetspeak import common_pb2 as fs_common_pb2
 from fleetspeak.client_connector import connector as fs_client
+
+
+def _DecompressMessageList(
+    packed_message_list: rdf_flows.PackedMessageList,
+) -> rdf_flows.MessageList:
+  """Decompress the message data from packed_message_list."""
+  compression = packed_message_list.compression
+  if compression == rdf_flows.PackedMessageList.CompressionType.UNCOMPRESSED:
+    data = packed_message_list.message_list
+
+  elif compression == rdf_flows.PackedMessageList.CompressionType.ZCOMPRESSION:
+    try:
+      data = zlib.decompress(packed_message_list.message_list)
+    except zlib.error as e:
+      raise RuntimeError("Failed to decompress: %s" % e) from e
+  else:
+    raise RuntimeError("Compression scheme not supported")
+
+  try:
+    result = rdf_flows.MessageList.FromSerializedBytes(data)
+  except rdfvalue.DecodeError as e:
+    raise RuntimeError("RDFValue parsing failed.") from e
+
+  return result
 
 
 class FleetspeakClientTest(absltest.TestCase):
@@ -69,9 +93,11 @@ class FleetspeakClientTest(absltest.TestCase):
     fs_message = send_args[0]
     packed_message_list = rdf_flows.PackedMessageList.protobuf()
     fs_message.data.Unpack(packed_message_list)
-    message_list = communicator.Communicator.DecompressMessageList(
+    message_list = _DecompressMessageList(
         rdf_flows.PackedMessageList.FromSerializedBytes(
-            packed_message_list.SerializeToString()))
+            packed_message_list.SerializeToString()
+        )
+    )
     self.assertListEqual(list(message_list.job), grr_messages)
     self.assertEqual(fs_message.annotations, expected_annotations)
 

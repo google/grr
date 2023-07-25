@@ -1,5 +1,6 @@
-:host {
-  .mat-form-field-subscript-wrapper {
-    position: static;
-  }
+@use "@angular/material" as mat;
+@use "../../../material-theme" as c;
+
+span {
+  color: mat.get-color-from-palette(c.$warn, 900);
 }

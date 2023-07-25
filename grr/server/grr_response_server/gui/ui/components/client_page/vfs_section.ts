@@ -1,7 +1,7 @@
 import {CollectionViewer, DataSource} from '@angular/cdk/collections';
 import {NestedTreeControl, TreeControl} from '@angular/cdk/tree';
 import {ChangeDetectionStrategy, Component, ViewChild} from '@angular/core';
-import {MatLegacyTableDataSource} from '@angular/material/legacy-table';
+import {MatTableDataSource} from '@angular/material/table';
 import {ActivatedRoute} from '@angular/router';
 import {SplitAreaDirective, SplitComponent} from 'angular-split';
 import {Observable} from 'rxjs';
@@ -108,7 +108,7 @@ export class VfsSection {
   readonly treeDataSource =
       new DirectoryDataSource(this.vfsViewLocalStore, this.treeControl);
 
-  readonly tableDataSource = new MatLegacyTableDataSource<DirectoryTableRow>();
+  readonly tableDataSource = new MatTableDataSource<DirectoryTableRow>();
 
   readonly displayedTableColumns = DIRECTORY_TABLE_COLUMNS;
 

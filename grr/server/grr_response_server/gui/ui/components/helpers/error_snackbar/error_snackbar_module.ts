@@ -1,20 +1,25 @@
 import {ClipboardModule} from '@angular/cdk/clipboard';
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
+import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacySnackBarModule} from '@angular/material/legacy-snack-bar';
+import {MatSnackBarModule} from '@angular/material/snack-bar';
 
 import {SnackBarErrorHandler} from './error_handler';
 import {ErrorSnackBar, WINDOW} from './error_snackbar';
 
 @NgModule({
   imports: [
-    CommonModule,
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     ClipboardModule,
+    CommonModule,
+    MatButtonModule,
     MatIconModule,
-    MatLegacyButtonModule,
-    MatLegacySnackBarModule,
+    MatSnackBarModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [ErrorSnackBar],
   providers: [

@@ -41,7 +41,7 @@ message HuntArguments {
   optional HuntArgumentsVariable variable = 3;
 }
 
-// Next id: 36
+// Next id: 37
 message Hunt {
   optional string hunt_id = 1;
   optional string description = 2;
@@ -123,6 +123,18 @@ message Hunt {
     COMPLETED = 4;
   }
   optional HuntState hunt_state = 18;
+  enum HuntStateReason {
+    UNKNOWN = 0;
+    DEADLINE_REACHED = 1;
+    TOTAL_CLIENTS_EXCEEDED = 2;
+    TOTAL_CRASHES_EXCEEDED = 3;
+    TOTAL_NETWORK_EXCEEDED = 4;
+    AVG_RESULTS_EXCEEDED = 5;
+    AVG_NETWORK_EXCEEDED = 6;
+    AVG_CPU_EXCEEDED = 7;
+    TRIGGERED_BY_USER = 8;
+  }
+  optional HuntStateReason hunt_state_reason = 36;
   optional string hunt_state_comment = 19;
 
   optional uint64 last_update_time = 20 [(sem_type) = {

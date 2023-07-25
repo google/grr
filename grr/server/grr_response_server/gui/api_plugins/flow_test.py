@@ -48,6 +48,7 @@ from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
+from grr.test_lib import fleetspeak_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import parser_test_lib
@@ -117,28 +118,6 @@ class ApiFlowTest(test_lib.GRRBaseTest):
         flow_obj, with_progress=True)
     self.assertIsNotNone(flow_api_obj.progress)
     self.assertEqual(flow_api_obj.progress.status, "Progress.")
-
-
-class ApiCreateFlowHandlerTest(api_test_lib.ApiCallHandlerTest):
-  """Test for ApiCreateFlowHandler."""
-
-  def setUp(self):
-    super().setUp()
-    self.client_id = self.SetupClient(0)
-    self.handler = flow_plugin.ApiCreateFlowHandler()
-
-  def testRunnerArgsBaseSessionIdDoesNotAffectCreatedFlow(self):
-    """When multiple clients match, check we run on the latest one."""
-    flow_runner_args = rdf_flow_runner.FlowRunnerArgs(
-        base_session_id="aff4:/foo")
-    args = flow_plugin.ApiCreateFlowArgs(
-        client_id=self.client_id,
-        flow=flow_plugin.ApiFlow(
-            name=processes.ListProcesses.__name__,
-            runner_args=flow_runner_args))
-
-    result = self.handler.Handle(args, context=self.context)
-    self.assertNotStartsWith(str(result.urn), "aff4:/foo")
 
 
 class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -219,34 +198,6 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
           client_mock,
           client_id=self.client_id,
           paths=[temp_filepath],
-          creator=self.test_username,
-      )
-
-    result = self.handler.Handle(
-        flow_plugin.ApiGetFlowFilesArchiveArgs(
-            client_id=self.client_id, flow_id=flow_id, archive_format="ZIP"
-        ),
-        context=self.context,
-    )
-    manifest = self._GetZipManifest(result)
-
-    self.assertEqual(manifest["archived_files"], 1)
-    self.assertEqual(manifest["failed_files"], 0)
-    self.assertEqual(manifest["processed_files"], 1)
-    self.assertEqual(manifest["ignored_files"], 0)
-
-  def testGeneratesZipArchiveForCollectSingleFile(self):
-    client_mock = action_mocks.FileFinderClientMockWithTimestamps()
-    with temp.AutoTempDirPath(remove_non_empty=True) as temp_dir:
-      temp_filepath = os.path.join(temp_dir, "foo.txt")
-      with open(temp_filepath, mode="w") as temp_file:
-        temp_file.write("Lorem ipsum.")
-
-      flow_id = flow_test_lib.TestFlowHelper(
-          file.CollectSingleFile.__name__,
-          client_mock,
-          client_id=self.client_id,
-          path=temp_filepath,
           creator=self.test_username,
       )
 
@@ -736,7 +687,8 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
       self.handler.Handle(args, context=context)
 
   @db_test_lib.WithDatabase
-  def testValidatesParsersWereNotApplied(self, db: abstract_db.Database):
+  @fleetspeak_test_lib.WithFleetspeakConnector
+  def testValidatesParsersWereNotApplied(self, db: abstract_db.Database, _):
     context = _CreateContext(db)
 
     client_id = db_test_utils.InitializeClient(db)
@@ -766,7 +718,8 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
       self.handler.Handle(args, context=context)
 
   @db_test_lib.WithDatabase
-  def testParsesArtifactCollectionResults(self, db: abstract_db.Database):
+  @fleetspeak_test_lib.WithFleetspeakConnector
+  def testParsesArtifactCollectionResults(self, db: abstract_db.Database, _):
     context = _CreateContext(db)
 
     with mock.patch.object(artifact_registry, "REGISTRY",
@@ -820,7 +773,8 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
     self.assertEqual(response.stderr, b"4815162342")
 
   @db_test_lib.WithDatabase
-  def testReportsArtifactCollectionErrors(self, db: abstract_db.Database):
+  @fleetspeak_test_lib.WithFleetspeakConnector
+  def testReportsArtifactCollectionErrors(self, db: abstract_db.Database, _):
     context = _CreateContext(db)
 
     with mock.patch.object(artifact_registry, "REGISTRY",
@@ -865,7 +819,8 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
     self.assertEqual(result.errors[0], "Lorem ipsum.")
 
   @db_test_lib.WithDatabase
-  def testUsesKnowledgebaseFromFlow(self, db: abstract_db.Database):
+  @fleetspeak_test_lib.WithFleetspeakConnector
+  def testUsesKnowledgebaseFromFlow(self, db: abstract_db.Database, _):
     context = _CreateContext(db)
 
     client_id = db_test_utils.InitializeClient(db)
@@ -932,7 +887,8 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
     self.assertEqual(response.stderr.decode("utf-8"), "redox")
 
   @db_test_lib.WithDatabase
-  def testUsesCollectionTimeFiles(self, db: abstract_db.Database):
+  @fleetspeak_test_lib.WithFleetspeakConnector
+  def testUsesCollectionTimeFiles(self, db: abstract_db.Database, _):
     context = _CreateContext(db)
     client_id = db_test_utils.InitializeClient(db)
 
@@ -1020,7 +976,8 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
     self.assertEqual(response, b"OLD")
 
   @db_test_lib.WithDatabase
-  def testEmptyResults(self, db: abstract_db.Database):
+  @fleetspeak_test_lib.WithFleetspeakConnector
+  def testEmptyResults(self, db: abstract_db.Database, _):
     context = _CreateContext(db)
     client_id = db_test_utils.InitializeClient(db)
 
@@ -1096,16 +1053,18 @@ class ApiScheduleFlowsTest(absltest.TestCase):
     args = flow_plugin.ApiCreateFlowArgs(
         client_id=client_id,
         flow=flow_plugin.ApiFlow(
-            name=file.CollectSingleFile.__name__,
-            args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-            runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60)))
+            name=file.CollectFilesByKnownPath.__name__,
+            args=rdf_file_finder.CollectFilesByKnownPathArgs(paths=["/foo"]),
+            runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+        ),
+    )
 
     sf = handler.Handle(args, context=context)
     self.assertEqual(sf.client_id, client_id)
     self.assertEqual(sf.creator, context.username)
     self.assertNotEmpty(sf.scheduled_flow_id)
-    self.assertEqual(sf.flow_name, file.CollectSingleFile.__name__)
-    self.assertEqual(sf.flow_args.path, "/foo")
+    self.assertEqual(sf.flow_name, file.CollectFilesByKnownPath.__name__)
+    self.assertEqual(sf.flow_args.paths, ["/foo"])
     self.assertEqual(sf.runner_args.cpu_limit, 60)
 
   @db_test_lib.WithDatabase
@@ -1119,26 +1078,41 @@ class ApiScheduleFlowsTest(absltest.TestCase):
         flow_plugin.ApiCreateFlowArgs(
             client_id=client_id1,
             flow=flow_plugin.ApiFlow(
-                name=file.CollectSingleFile.__name__,
-                args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
-        context=context)
+                name=file.CollectFilesByKnownPath.__name__,
+                args=rdf_file_finder.CollectFilesByKnownPathArgs(
+                    paths=["/foo"]
+                ),
+                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+            ),
+        ),
+        context=context,
+    )
     sf2 = handler.Handle(
         flow_plugin.ApiCreateFlowArgs(
             client_id=client_id1,
             flow=flow_plugin.ApiFlow(
-                name=file.CollectSingleFile.__name__,
-                args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
-        context=context)
+                name=file.CollectFilesByKnownPath.__name__,
+                args=rdf_file_finder.CollectFilesByKnownPathArgs(
+                    paths=["/foo"]
+                ),
+                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+            ),
+        ),
+        context=context,
+    )
     handler.Handle(
         flow_plugin.ApiCreateFlowArgs(
             client_id=client_id2,
             flow=flow_plugin.ApiFlow(
-                name=file.CollectSingleFile.__name__,
-                args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
-        context=context)
+                name=file.CollectFilesByKnownPath.__name__,
+                args=rdf_file_finder.CollectFilesByKnownPathArgs(
+                    paths=["/foo"]
+                ),
+                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+            ),
+        ),
+        context=context,
+    )
 
     handler = flow_plugin.ApiListScheduledFlowsHandler()
     args = flow_plugin.ApiListScheduledFlowsArgs(
@@ -1157,18 +1131,28 @@ class ApiScheduleFlowsTest(absltest.TestCase):
         flow_plugin.ApiCreateFlowArgs(
             client_id=client_id,
             flow=flow_plugin.ApiFlow(
-                name=file.CollectSingleFile.__name__,
-                args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
-        context=context)
+                name=file.CollectFilesByKnownPath.__name__,
+                args=rdf_file_finder.CollectFilesByKnownPathArgs(
+                    paths=["/foo"]
+                ),
+                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+            ),
+        ),
+        context=context,
+    )
     sf2 = handler.Handle(
         flow_plugin.ApiCreateFlowArgs(
             client_id=client_id,
             flow=flow_plugin.ApiFlow(
-                name=file.CollectSingleFile.__name__,
-                args=rdf_file_finder.CollectSingleFileArgs(path="/foo"),
-                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60))),
-        context=context)
+                name=file.CollectFilesByKnownPath.__name__,
+                args=rdf_file_finder.CollectFilesByKnownPathArgs(
+                    paths=["/foo"]
+                ),
+                runner_args=rdf_flow_runner.FlowRunnerArgs(cpu_limit=60),
+            ),
+        ),
+        context=context,
+    )
 
     handler = flow_plugin.ApiUnscheduleFlowHandler()
     args = flow_plugin.ApiUnscheduleFlowArgs(

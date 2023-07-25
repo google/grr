@@ -212,25 +212,28 @@ def Query(args: rdf_osquery.OsqueryArgs) -> str:
         "--logger_min_status=3",  # Disable status logs.
         "--logger_min_stderr=2",  # Only ERROR-level logs to stderr.
         "--json",  # Set output format to JSON.
-        args.query,
     ]
     proc = subprocess.run(
         command,
         timeout=timeout,
         check=True,
+        input=args.query,
+        text=True,
+        encoding="utf-8",
         stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE)
+        stderr=subprocess.PIPE,
+    )
   except subprocess.TimeoutExpired as error:
     raise TimeoutError(cause=error)
   except subprocess.CalledProcessError as error:
-    stderr = error.stderr.decode("utf-8")
+    stderr = error.stderr
     raise Error(message=f"Osquery error on the client: {stderr}")
 
-  stderr = proc.stderr.decode("utf-8").strip()
+  stderr = proc.stderr.strip()
   if stderr:
     # Depending on the version, in case of a syntax error osquery might or might
     # not terminate with a non-zero exit code, but it will always print the
     # error to stderr.
     raise Error(message=f"Osquery error on the client: {stderr}")
 
-  return proc.stdout.decode("utf-8")
+  return proc.stdout

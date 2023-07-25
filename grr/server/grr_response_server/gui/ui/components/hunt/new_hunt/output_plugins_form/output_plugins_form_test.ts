@@ -1,6 +1,6 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {MatLegacyInputHarness} from '@angular/material/legacy-input/testing';
+import {MatInputHarness} from '@angular/material/input/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -72,7 +72,7 @@ describe('output plugins form test', () => {
        fixture.componentInstance.addNewPlugin(PluginType.BIGQUERY);
        fixture.detectChanges();
 
-       const annotationInput = await loader.getHarness(MatLegacyInputHarness);
+       const annotationInput = await loader.getHarness(MatInputHarness);
        await annotationInput.setValue('test');
        fixture.detectChanges();
 

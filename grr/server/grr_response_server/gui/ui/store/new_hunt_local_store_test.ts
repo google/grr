@@ -182,8 +182,8 @@ describe('NewHuntLocalStore', () => {
          avgResultsPerClientLimit: BigInt(1000),
          avgCpuSecondsPerClientLimit: BigInt(60),
          avgNetworkBytesPerClientLimit: BigInt(10485760),
-         cpuLimit: BigInt(100),
-         networkBytesLimit: BigInt(1024),
+         perClientCpuLimit: BigInt(100),
+         perClientNetworkBytesLimit: BigInt(1024),
          expiryTime: BigInt(3600),
        };
 

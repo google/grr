@@ -9,11 +9,9 @@ from unittest import mock
 from absl import app
 from absl.testing import absltest
 import psutil
-import requests
 
+from grr_response_client import client_metrics
 from grr_response_client import client_stats
-from grr_response_client import comms
-from grr_response_client import communicator
 from grr_response_client.client_actions import admin
 from grr_response_client.unprivileged import sandbox
 from grr_response_core import config
@@ -68,24 +66,6 @@ Client.server_urls:
 - http://www.example2.com/
 """
     self.assertIn(server_urls, data)
-
-    self.urls = []
-
-    # Now test that our location was actually updated.
-
-    def FakeUrlOpen(url=None, data=None, **_):
-      self.urls.append(url)
-      response = requests.Response()
-      response.status_code = 200
-      response._content = data
-      return response
-
-    with mock.patch.object(requests, "request", FakeUrlOpen):
-      client_context = comms.GRRHTTPClient(worker_cls=MockClientWorker)
-      client_context.MakeRequest("")
-
-    # Since the request is successful we only connect to one location.
-    self.assertIn(location[0], self.urls[0])
 
   def testOnlyUpdatableFieldsAreUpdated(self):
     with test_lib.ConfigOverrider({
@@ -185,8 +165,8 @@ class GetClientStatsActionTest(client_test_lib.EmptyActionTest):
 
   def testReturnsAllDataByDefault(self):
     """Checks that stats collection works."""
-    communicator.GRR_CLIENT_RECEIVED_BYTES.Increment(1566)
-    communicator.GRR_CLIENT_SENT_BYTES.Increment(2000)
+    client_metrics.GRR_CLIENT_RECEIVED_BYTES.Increment(1566)
+    client_metrics.GRR_CLIENT_SENT_BYTES.Increment(2000)
 
     results = self.RunAction(
         admin.GetClientStats,

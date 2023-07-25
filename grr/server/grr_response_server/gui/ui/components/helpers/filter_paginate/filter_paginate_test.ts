@@ -1,8 +1,8 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
-import {MatLegacyPaginatorHarness} from '@angular/material/legacy-paginator/testing';
-import {MatLegacyTableDataSource, MatLegacyTableModule} from '@angular/material/legacy-table';
+import {MatPaginatorHarness} from '@angular/material/paginator/testing';
+import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -31,7 +31,7 @@ declare interface DummyRow {
 </app-filter-paginate>`
 })
 class TestHostComponentWithDataLength {
-  dataSource?: MatLegacyTableDataSource<DummyRow>;
+  dataSource?: MatTableDataSource<DummyRow>;
   dataLength?: number = 0;
   displayedColumns: string[] = ['content'];
 }
@@ -50,7 +50,7 @@ class TestHostComponentWithDataLength {
 </app-filter-paginate>`
 })
 class TestHostComponent {
-  dataSource?: MatLegacyTableDataSource<DummyRow>;
+  dataSource?: MatTableDataSource<DummyRow>;
   displayedColumns: string[] = ['content'];
 }
 
@@ -61,7 +61,7 @@ describe('FilterPaginate Component', () => {
           imports: [
             NoopAnimationsModule,
             FilterPaginate,
-            MatLegacyTableModule,
+            MatTableModule,
           ],
           declarations: [
             TestHostComponent,
@@ -78,15 +78,14 @@ describe('FilterPaginate Component', () => {
   }
 
   function generateTableData(length: number) {
-    const source = new MatLegacyTableDataSource<DummyRow>();
+    const source = new MatTableDataSource<DummyRow>();
     source.data = Array.from({length}, (v, i) => generateRow(i));
     return source;
   }
 
   function createComponentWithDataLength(
-      dataSource: MatLegacyTableDataSource<DummyRow>,
-      dataLength: number|
-      undefined): ComponentFixture<TestHostComponentWithDataLength> {
+      dataSource: MatTableDataSource<DummyRow>, dataLength: number|undefined):
+      ComponentFixture<TestHostComponentWithDataLength> {
     const fixture = TestBed.createComponent(TestHostComponentWithDataLength);
     fixture.componentInstance.dataSource = dataSource;
     fixture.componentInstance.dataLength = dataLength;
@@ -94,7 +93,7 @@ describe('FilterPaginate Component', () => {
     return fixture;
   }
 
-  function createComponent(dataSource: MatLegacyTableDataSource<DummyRow>):
+  function createComponent(dataSource: MatTableDataSource<DummyRow>):
       ComponentFixture<TestHostComponentWithDataLength> {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.componentInstance.dataSource = dataSource;
@@ -134,9 +133,9 @@ describe('FilterPaginate Component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
-        MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
+        MatPaginatorHarness.with({selector: '.top-paginator'}));
     const paginatorBottom = await harnessLoader.getHarness(
-        MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
+        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
 
     // Paginators start with default values, 0-9 are shown, but 10 isn't.
     expect(await paginatorTop.getPageSize()).toBe(10);
@@ -154,9 +153,9 @@ describe('FilterPaginate Component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
-        MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
+        MatPaginatorHarness.with({selector: '.top-paginator'}));
     const paginatorBottom = await harnessLoader.getHarness(
-        MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
+        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
 
     // Paginators start with default values, 0-9 are shown, but 10 isn't.
     expect(await paginatorTop.getPageSize()).toBe(10);
@@ -174,9 +173,9 @@ describe('FilterPaginate Component', () => {
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const paginatorTop = await harnessLoader.getHarness(
-           MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
+           MatPaginatorHarness.with({selector: '.top-paginator'}));
        const paginatorBottom = await harnessLoader.getHarness(
-           MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
+           MatPaginatorHarness.with({selector: '.bottom-paginator'}));
 
        // Change page size on top paginator should update the bottom
        await paginatorTop.setPageSize(50);
@@ -194,9 +193,9 @@ describe('FilterPaginate Component', () => {
 
        const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
        const paginatorTop = await harnessLoader.getHarness(
-           MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
+           MatPaginatorHarness.with({selector: '.top-paginator'}));
        const paginatorBottom = await harnessLoader.getHarness(
-           MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
+           MatPaginatorHarness.with({selector: '.bottom-paginator'}));
 
        // Change page size on bottom paginator should update the top
        await paginatorBottom.setPageSize(50);

@@ -2,7 +2,7 @@ import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {FormGroup, FormsModule, ReactiveFormsModule} from '@angular/forms';
-import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
+import {MatFormFieldModule} from '@angular/material/form-field';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {Subject} from 'rxjs';
@@ -47,7 +47,7 @@ describe('TimeRangeCondition component', () => {
             NoopAnimationsModule,
             FormsModule,
             ReactiveFormsModule,
-            MatLegacyFormFieldModule,
+            MatFormFieldModule,
             HelpersModule,
           ],
           declarations: [TestHostComponent],

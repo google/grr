@@ -167,7 +167,6 @@ export declare interface ApiCancelFlowArgs {
 export declare interface ApiClient {
   readonly clientId?: string;
   readonly urn?: string;
-  readonly fleetspeakEnabled?: boolean;
   readonly agentInfo?: ClientInformation;
   readonly hardwareInfo?: HardwareInfo;
   readonly osInfo?: Uname;
@@ -1127,6 +1126,7 @@ export declare interface ApiHunt {
   readonly huntType?: ApiHuntHuntType;
   readonly name?: string;
   readonly state?: ApiHuntState;
+  readonly stateReason?: ApiHuntStateReason;
   readonly stateComment?: string;
   readonly flowName?: string;
   readonly flowArgs?: Any;
@@ -1169,6 +1169,19 @@ export enum ApiHuntState {
   STARTED = 'STARTED',
   STOPPED = 'STOPPED',
   COMPLETED = 'COMPLETED',
+}
+
+/** ApiHunt.StateReason proto mapping. */
+export enum ApiHuntStateReason {
+  UNKNOWN = 'UNKNOWN',
+  DEADLINE_REACHED = 'DEADLINE_REACHED',
+  TOTAL_CLIENTS_EXCEEDED = 'TOTAL_CLIENTS_EXCEEDED',
+  TOTAL_CRASHES_EXCEEDED = 'TOTAL_CRASHES_EXCEEDED',
+  TOTAL_NETWORK_EXCEEDED = 'TOTAL_NETWORK_EXCEEDED',
+  AVG_RESULTS_EXCEEDED = 'AVG_RESULTS_EXCEEDED',
+  AVG_NETWORK_EXCEEDED = 'AVG_NETWORK_EXCEEDED',
+  AVG_CPU_EXCEEDED = 'AVG_CPU_EXCEEDED',
+  TRIGGERED_BY_USER = 'TRIGGERED_BY_USER',
 }
 
 /** ApiHuntApproval proto mapping. */
@@ -2183,7 +2196,6 @@ export declare interface Artifact {
 /** ArtifactCollectorFlowArgs proto mapping. */
 export declare interface ArtifactCollectorFlowArgs {
   readonly artifactList?: readonly string[];
-  readonly useTsk?: boolean;
   readonly useRawFilesystemAccess?: boolean;
   readonly splitOutputByArtifact?: boolean;
   readonly knowledgeBase?: KnowledgeBase;
@@ -2227,7 +2239,6 @@ export declare interface ArtifactFallbackCollectorArgs {
 /** ArtifactFilesDownloaderFlowArgs proto mapping. */
 export declare interface ArtifactFilesDownloaderFlowArgs {
   readonly artifactList?: readonly string[];
-  readonly useTsk?: boolean;
   readonly useRawFilesystemAccess?: boolean;
   readonly maxFileSize?: ByteSize;
   readonly implementationType?: PathSpecImplementationType;
@@ -2382,25 +2393,6 @@ export declare interface BufferReference {
   readonly callback?: string;
   readonly data?: ProtoBytes;
   readonly pathspec?: PathSpec;
-}
-
-/** CAEnrolerArgs proto mapping. */
-export declare interface CAEnrolerArgs {
-  readonly csr?: Certificate;
-}
-
-/** Certificate proto mapping. */
-export declare interface Certificate {
-  readonly type?: CertificateType;
-  readonly pem?: ProtoBytes;
-  readonly cn?: string;
-}
-
-/** Certificate.Type proto mapping. */
-export enum CertificateType {
-  CSR = 'CSR',
-  CRT = 'CRT',
-  CA = 'CA',
 }
 
 /** ChromeHistoryArgs proto mapping. */
@@ -2600,34 +2592,6 @@ export enum CollectMultipleFilesResultStatus {
   UNDEFINED = 'UNDEFINED',
   COLLECTED = 'COLLECTED',
   FAILED = 'FAILED',
-}
-
-/** CollectSingleFileArgs proto mapping. */
-export declare interface CollectSingleFileArgs {
-  readonly path?: string;
-  readonly maxSizeBytes?: ByteSize;
-}
-
-/** CollectSingleFileProgress proto mapping. */
-export declare interface CollectSingleFileProgress {
-  readonly status?: CollectSingleFileProgressStatus;
-  readonly result?: CollectSingleFileResult;
-  readonly errorDescription?: string;
-}
-
-/** CollectSingleFileProgress.Status proto mapping. */
-export enum CollectSingleFileProgressStatus {
-  UNDEFINED = 'UNDEFINED',
-  IN_PROGRESS = 'IN_PROGRESS',
-  COLLECTED = 'COLLECTED',
-  NOT_FOUND = 'NOT_FOUND',
-  FAILED = 'FAILED',
-}
-
-/** CollectSingleFileResult proto mapping. */
-export declare interface CollectSingleFileResult {
-  readonly stat?: StatEntry;
-  readonly hash?: Hash;
 }
 
 /** ConditionExpression proto mapping. */
@@ -3123,8 +3087,6 @@ export declare interface FlowRunnerArgs {
   readonly networkBytesLimit?: ProtoUint64;
   readonly requestState?: RequestState;
   readonly flowName?: string;
-  readonly baseSessionId?: RDFURN;
-  readonly logsCollectionUrn?: RDFURN;
   readonly writeIntermediateResults?: boolean;
   readonly requireFastpoll?: boolean;
   readonly outputPlugins?: readonly OutputPluginDescriptor[];
@@ -3368,6 +3330,27 @@ export declare interface Hash {
   readonly signedData?: readonly AuthenticodeSignedData[];
   readonly numBytes?: ProtoUint64;
   readonly sourceOffset?: ProtoUint64;
+}
+
+/** HashMultipleFilesArgs proto mapping. */
+export declare interface HashMultipleFilesArgs {
+  readonly pathExpressions?: readonly GlobExpression[];
+  readonly modificationTime?: FileFinderModificationTimeCondition;
+  readonly accessTime?: FileFinderAccessTimeCondition;
+  readonly inodeChangeTime?: FileFinderInodeChangeTimeCondition;
+  readonly size?: FileFinderSizeCondition;
+  readonly extFlags?: FileFinderExtFlagsCondition;
+  readonly contentsRegexMatch?: FileFinderContentsRegexMatchCondition;
+  readonly contentsLiteralMatch?: FileFinderContentsLiteralMatchCondition;
+}
+
+/** HashMultipleFilesProgress proto mapping. */
+export declare interface HashMultipleFilesProgress {
+  readonly numFound?: ProtoUint64;
+  readonly numInProgress?: ProtoUint64;
+  readonly numRawFsAccessRetries?: ProtoUint64;
+  readonly numHashed?: ProtoUint64;
+  readonly numFailed?: ProtoUint64;
 }
 
 /** HuntContext proto mapping. */
@@ -3760,7 +3743,7 @@ export enum OutputPluginBatchProcessingStatusStatus {
 /** OutputPluginDescriptor proto mapping. */
 export declare interface OutputPluginDescriptor {
   readonly pluginName?: string;
-  readonly pluginArgs?: ProtoBytes;
+  readonly deprecatedPluginArgs?: ProtoBytes;
   readonly args?: Any;
 }
 
@@ -4094,6 +4077,18 @@ export enum StatEntryRegistryType {
   REG_LINK = 'REG_LINK',
   REG_MULTI_SZ = 'REG_MULTI_SZ',
   REG_QWORD = 'REG_QWORD',
+}
+
+/** StatMultipleFilesArgs proto mapping. */
+export declare interface StatMultipleFilesArgs {
+  readonly pathExpressions?: readonly GlobExpression[];
+  readonly modificationTime?: FileFinderModificationTimeCondition;
+  readonly accessTime?: FileFinderAccessTimeCondition;
+  readonly inodeChangeTime?: FileFinderInodeChangeTimeCondition;
+  readonly size?: FileFinderSizeCondition;
+  readonly extFlags?: FileFinderExtFlagsCondition;
+  readonly contentsRegexMatch?: FileFinderContentsRegexMatchCondition;
+  readonly contentsLiteralMatch?: FileFinderContentsLiteralMatchCondition;
 }
 
 /** StatsHistogram proto mapping. */

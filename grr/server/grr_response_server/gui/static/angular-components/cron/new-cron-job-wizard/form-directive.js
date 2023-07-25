@@ -3,7 +3,7 @@ goog.module.declareLegacyNamespace();
 
 const apiService = goog.requireType('grrUi.core.apiService');
 const reflectionService = goog.requireType('grrUi.core.reflectionService');
-const {DEFAULT_PLUGIN_URL} = goog.require('grrUi.hunt.newHuntWizard.formDirective');
+const {DEFAULT_PLUGINS_URL} = goog.require('grrUi.hunt.newHuntWizard.formDirective');
 
 
 
@@ -35,7 +35,7 @@ const FormController = class {
     /** @private {?string} */
     this.defaultOutputPluginName;
 
-    this.grrApiService_.get(DEFAULT_PLUGIN_URL)
+    this.grrApiService_.get(DEFAULT_PLUGINS_URL)
         .then(function(response) {
           if (angular.isDefined(response['data']['value'])) {
             this.defaultOutputPluginName = response['data']['value']['value'];

@@ -51,7 +51,6 @@ describe('HomePageGlobalStore', () => {
       {
         subject: {
           clientId: 'C.1234',
-          fleetspeakEnabled: false,
           knowledgeBase: {},
           labels: [],
           age: '0',
@@ -67,7 +66,6 @@ describe('HomePageGlobalStore', () => {
       {
         subject: {
           clientId: 'C.12345678',
-          fleetspeakEnabled: false,
           knowledgeBase: {},
           labels: [],
           age: '0',

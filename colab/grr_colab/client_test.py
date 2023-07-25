@@ -31,8 +31,7 @@ class ClientTest(testing.ColabE2ETest):
   NONEXISTENT_CLIENT_ID = 'C.5555555555555555'
 
   def testWithId_ClientExists(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     self.assertIsNotNone(client)
@@ -47,8 +46,7 @@ class ClientTest(testing.ColabE2ETest):
 
   def testWithHostname_SingleClient(self):
     hostname = 'user.loc.group.example.com'
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.knowledge_base.fqdn = hostname
@@ -64,10 +62,8 @@ class ClientTest(testing.ColabE2ETest):
     client_id1 = 'C.1111111111111111'
     client_id2 = 'C.1111111111111112'
 
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=client_id1, fleetspeak_enabled=False)
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=client_id2, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=client_id1)
+    data_store.REL_DB.WriteClientMetadata(client_id=client_id2)
 
     client = rdf_objects.ClientSnapshot(client_id=client_id1)
     client.knowledge_base.fqdn = hostname
@@ -98,10 +94,8 @@ class ClientTest(testing.ColabE2ETest):
     client_id1 = 'C.1111111111111111'
     client_id2 = 'C.1111111111111112'
 
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=client_id1, fleetspeak_enabled=False)
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=client_id2, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=client_id1)
+    data_store.REL_DB.WriteClientMetadata(client_id=client_id2)
 
     client = rdf_objects.ClientSnapshot(client_id=client_id1)
     client.startup_info.client_info.labels.append('foo')
@@ -121,10 +115,8 @@ class ClientTest(testing.ColabE2ETest):
     client_id1 = 'C.1111111111111111'
     client_id2 = 'C.1111111111111112'
 
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=client_id1, fleetspeak_enabled=False)
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=client_id2, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=client_id1)
+    data_store.REL_DB.WriteClientMetadata(client_id=client_id2)
 
     client = rdf_objects.ClientSnapshot(client_id=client_id1)
     client.startup_info.client_info.labels.append('foo')
@@ -143,10 +135,8 @@ class ClientTest(testing.ColabE2ETest):
     client_id1 = 'C.1111111111111111'
     client_id2 = 'C.1111111111111112'
 
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=client_id1, fleetspeak_enabled=False)
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=client_id2, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=client_id1)
+    data_store.REL_DB.WriteClientMetadata(client_id=client_id2)
 
     client = rdf_objects.ClientSnapshot(client_id=client_id1)
     client.startup_info.client_info.labels.append('foo')
@@ -168,10 +158,8 @@ class ClientTest(testing.ColabE2ETest):
     client_id1 = 'C.1111111111111111'
     client_id2 = 'C.1111111111111112'
 
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=client_id1, fleetspeak_enabled=False)
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=client_id2, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=client_id1)
+    data_store.REL_DB.WriteClientMetadata(client_id=client_id2)
 
     client = rdf_objects.ClientSnapshot(client_id=client_id1)
     client.knowledge_base.fqdn = hostname
@@ -190,16 +178,14 @@ class ClientTest(testing.ColabE2ETest):
     self.assertEqual(clients[0].id, client_id1)
 
   def testId(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     self.assertEqual(ClientTest.FAKE_CLIENT_ID, client.id)
 
   def testHostname(self):
     hostname = 'hostname.loc.group.example.com'
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.knowledge_base.fqdn = hostname
@@ -210,8 +196,7 @@ class ClientTest(testing.ColabE2ETest):
 
   @parser_test_lib.WithAllParsers
   def testHostname_AfterInterrogate(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     client.interrogate()
@@ -219,8 +204,7 @@ class ClientTest(testing.ColabE2ETest):
 
   def testIfaces(self):
     ifname = 'test_ifname'
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.interfaces = [rdf_client_network.Interface(ifname=ifname)]
@@ -232,8 +216,7 @@ class ClientTest(testing.ColabE2ETest):
 
   @parser_test_lib.WithAllParsers
   def testIfaces_AfterInterrogate(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     client.interrogate()
@@ -248,8 +231,7 @@ class ClientTest(testing.ColabE2ETest):
     data_store.REL_DB.WriteGRRUser(users[0])
     data_store.REL_DB.WriteGRRUser(users[1])
 
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.knowledge_base.fqdn = fqdn
@@ -269,8 +251,7 @@ class ClientTest(testing.ColabE2ETest):
 
   def testArch(self):
     arch = 'x42'
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.arch = arch
@@ -281,8 +262,7 @@ class ClientTest(testing.ColabE2ETest):
 
   @parser_test_lib.WithAllParsers
   def testArch_AfterInterrogate(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     client.interrogate()
@@ -290,8 +270,7 @@ class ClientTest(testing.ColabE2ETest):
 
   def testKernel(self):
     kernel = '0.0.0'
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.kernel = kernel
@@ -302,8 +281,7 @@ class ClientTest(testing.ColabE2ETest):
 
   @parser_test_lib.WithAllParsers
   def testKernel_AfterInterrogate(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     client.interrogate()
@@ -314,8 +292,7 @@ class ClientTest(testing.ColabE2ETest):
     owner = 'test-user'
 
     data_store.REL_DB.WriteGRRUser('test-user')
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
     data_store.REL_DB.AddClientLabels(ClientTest.FAKE_CLIENT_ID, owner, labels)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
@@ -325,7 +302,6 @@ class ClientTest(testing.ColabE2ETest):
     first_seen = rdfvalue.RDFDatetime.Now()
     data_store.REL_DB.WriteClientMetadata(
         client_id=ClientTest.FAKE_CLIENT_ID,
-        fleetspeak_enabled=False,
         first_seen=first_seen)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
@@ -335,15 +311,13 @@ class ClientTest(testing.ColabE2ETest):
     last_seen = rdfvalue.RDFDatetime.Now()
     data_store.REL_DB.WriteClientMetadata(
         client_id=ClientTest.FAKE_CLIENT_ID,
-        fleetspeak_enabled=False,
         last_ping=last_seen)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
     self.assertEqual(client.last_seen, last_seen.AsDatetime())
 
   def testRequestApproval(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
     data_store.REL_DB.WriteGRRUser('foo')
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
@@ -359,8 +333,7 @@ class ClientTest(testing.ColabE2ETest):
     self.assertEqual(approvals[0].reason, 'test')
 
   def testRequestApprovalAndWait(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
     data_store.REL_DB.WriteGRRUser('foo')
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
@@ -397,8 +370,7 @@ class ClientTest(testing.ColabE2ETest):
 
   @parser_test_lib.WithAllParsers
   def testInterrogate(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
 
     summary = client.interrogate()
@@ -406,8 +378,7 @@ class ClientTest(testing.ColabE2ETest):
 
   @testing.with_approval_checks
   def testInterrogate_WithoutApproval(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
 
@@ -417,8 +388,7 @@ class ClientTest(testing.ColabE2ETest):
     self.assertEqual(context.exception.client_id, ClientTest.FAKE_CLIENT_ID)
 
   def testPs(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
 
     ps = client.ps()
@@ -426,8 +396,7 @@ class ClientTest(testing.ColabE2ETest):
 
   @testing.with_approval_checks
   def testPs_WithoutApproval(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
 
@@ -437,8 +406,7 @@ class ClientTest(testing.ColabE2ETest):
     self.assertEqual(context.exception.client_id, ClientTest.FAKE_CLIENT_ID)
 
   def testOsquery(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
 
@@ -459,8 +427,7 @@ class ClientTest(testing.ColabE2ETest):
 
   @testing.with_approval_checks
   def testOsquery_WithoutApproval(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
 
@@ -471,8 +438,7 @@ class ClientTest(testing.ColabE2ETest):
 
   @parser_test_lib.WithAllParsers
   def testCollect(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.knowledge_base.os = 'test-os'
@@ -498,8 +464,7 @@ class ClientTest(testing.ColabE2ETest):
 
   @testing.with_approval_checks
   def testCollect_WithoutApproval(self):
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
 
@@ -510,8 +475,7 @@ class ClientTest(testing.ColabE2ETest):
 
   def testYara(self):
     search_str = 'foobarbaz-test-with-unique-string-in-memory'
-    data_store.REL_DB.WriteClientMetadata(
-        client_id=ClientTest.FAKE_CLIENT_ID, fleetspeak_enabled=False)
+    data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
 

@@ -3,6 +3,7 @@ import {BehaviorSubject} from 'rxjs';
 import {tap} from 'rxjs/operators';
 
 import {toDurationUnit} from '../../../components/form/duration_input/duration_conversion';
+import {ApiHuntStateReason} from '../../../lib/api/api_interfaces';
 import {DateTime} from '../../../lib/date_time';
 import {Hunt, HuntState} from '../../../lib/models/hunt';
 import {GrrUser} from '../../../lib/models/user';
@@ -26,6 +27,7 @@ const CANCELLED_BY_USER_TOOLTIP = 'Cancelled by user';
 export class HuntStatusChip implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
   protected readonly HuntState = HuntState;
+  protected readonly ApiHuntStateReason = ApiHuntStateReason;
 
   protected readonly hunt$ = new BehaviorSubject<Hunt|null>(null);
 

@@ -11,6 +11,7 @@ import {ClientSearchLocalStore} from '../../store/client_search_local_store';
 import {ClientSearchLocalStoreMock, mockClientSearchLocalStore} from '../../store/client_search_local_store_test_util';
 import {STORE_PROVIDERS} from '../../store/store_test_providers';
 import {initTestEnvironment} from '../../testing';
+import {CLIENT_ROUTES} from '../app/routing';
 
 import {ClientSearch} from './client_search';
 import {ClientSearchModule} from './module';
@@ -41,7 +42,7 @@ describe('ClientSearch Component', () => {
             NoopAnimationsModule,
             ApiModule,
             ClientSearchModule,
-            RouterTestingModule,
+            RouterTestingModule.withRoutes(CLIENT_ROUTES),
           ],
           providers: [
             ...STORE_PROVIDERS,
@@ -100,7 +101,7 @@ describe('ClientSearch Component', () => {
 
     // Using nativeElement here instead of queryAll, since queryAll does
     // not go into child components DOM (in this case we're interested in
-    // what's inside MatLegacyTable).
+    // what's inside MatTable).
     const de: HTMLElement = fixture.debugElement.nativeElement;
     const rows = de.getElementsByTagName('tr');
     // First row is the header, two others are data.

@@ -1,0 +1,8 @@
+[FORMAT]
+
+indent-string='  '
+
+
+[MESSAGES CONTROL]
+
+disable=missing-class-docstring, missing-function-docstring

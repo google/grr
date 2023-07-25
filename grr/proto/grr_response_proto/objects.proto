@@ -92,7 +92,7 @@ message ClientMetadata {
   optional bytes certificate = 1 [(sem_type) = {
     type: "RDFX509Cert",
   }];
-  optional bool fleetspeak_enabled = 2;
+  reserved 2;
   optional uint64 ping = 3 [(sem_type) = {
     type: "RDFDatetime",
     description: "The last time the server heard from this client.",
@@ -122,12 +122,7 @@ message ClientMetadata {
   }];
   optional FleetspeakValidationInfo last_fleetspeak_validation_info = 10;
 
-  // Whether the client supports the RRG protocol.
-  //
-  // In reality, this field indicates whether the client has the RRG agent
-  // installed and running. This makes it possible to route certain action
-  // requests to the new agent.
-  optional bool rrg_support = 11;
+  reserved 11;
 }
 
 message ClientFullInfo {

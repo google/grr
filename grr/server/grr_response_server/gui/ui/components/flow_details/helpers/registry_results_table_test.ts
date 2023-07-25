@@ -1,10 +1,10 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
-import {MatLegacyPaginatorHarness} from '@angular/material/legacy-paginator/testing';
-import {MatLegacyTableHarness} from '@angular/material/legacy-table/testing';
+import {MatPaginatorHarness} from '@angular/material/paginator/testing';
 import {MatSortModule} from '@angular/material/sort';
 import {MatSortHarness} from '@angular/material/sort/testing';
+import {MatTableHarness} from '@angular/material/table/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
@@ -58,7 +58,7 @@ describe('RegistryResultsTable Component', () => {
     ];
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatLegacyTableHarness);
+    const harness = await harnessLoader.getHarness(MatTableHarness);
     const contents = await harness.getCellTextByColumnName();
 
     expect(contents['path'].text[0]).toContain('HKLM\\reg0');
@@ -76,7 +76,7 @@ describe('RegistryResultsTable Component', () => {
     ];
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const harness = await harnessLoader.getHarness(MatLegacyTableHarness);
+    const harness = await harnessLoader.getHarness(MatTableHarness);
     const contents = await harness.getCellTextByColumnName();
 
     expect(contents['path'].text[0]).toContain('HKLM\\reg0');
@@ -205,9 +205,9 @@ describe('RegistryResultsTable Component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
-        MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
+        MatPaginatorHarness.with({selector: '.top-paginator'}));
     const paginatorBottom = await harnessLoader.getHarness(
-        MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
+        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
     expect(await paginatorTop.getRangeLabel()).toBe('1 – 10 of 12');
     expect(await paginatorBottom.getRangeLabel()).toBe('1 – 10 of 12');
   });
@@ -223,9 +223,9 @@ describe('RegistryResultsTable Component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
-        MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
+        MatPaginatorHarness.with({selector: '.top-paginator'}));
     const paginatorBottom = await harnessLoader.getHarness(
-        MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
+        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
 
     // Second page should displays results 11-12
     await paginatorTop.goToNextPage();
@@ -255,9 +255,9 @@ describe('RegistryResultsTable Component', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const paginatorTop = await harnessLoader.getHarness(
-        MatLegacyPaginatorHarness.with({selector: '.top-paginator'}));
+        MatPaginatorHarness.with({selector: '.top-paginator'}));
     const paginatorBottom = await harnessLoader.getHarness(
-        MatLegacyPaginatorHarness.with({selector: '.bottom-paginator'}));
+        MatPaginatorHarness.with({selector: '.bottom-paginator'}));
 
     await paginatorTop.setPageSize(50);
     expect(fixture.nativeElement.querySelectorAll('tr').length).toBe(13);

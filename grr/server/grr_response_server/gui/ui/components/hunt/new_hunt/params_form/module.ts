@@ -1,12 +1,12 @@
 import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {FormsModule, ReactiveFormsModule} from '@angular/forms';
+import {MatButtonModule} from '@angular/material/button';
 import {MatButtonToggleModule} from '@angular/material/button-toggle';
+import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
-import {MatLegacyButtonModule} from '@angular/material/legacy-button';
-import {MatLegacyFormFieldModule} from '@angular/material/legacy-form-field';
-import {MatLegacyInputModule} from '@angular/material/legacy-input';
-import {MatLegacyTooltipModule} from '@angular/material/legacy-tooltip';
+import {MatInputModule} from '@angular/material/input';
+import {MatTooltipModule} from '@angular/material/tooltip';
 
 import {ByteComponentsModule} from '../../../../components/form/byte_input/module';
 import {DurationComponentsModule} from '../../../../components/form/duration_input/module';
@@ -17,18 +17,23 @@ import {ParamsForm} from './params_form';
 
 @NgModule({
   imports: [
-    MatLegacyButtonModule,
-    MatLegacyFormFieldModule,
-    MatIconModule,
-    MatLegacyInputModule,
-    ReactiveFormsModule,
-    CommonModule,
-    MatButtonToggleModule,
-    FormsModule,
+    // TODO: re-enable clang format when solved.
+    // clang-format off
+    // keep-sorted start block=yes
     ByteComponentsModule,
+    CommonModule,
     DurationComponentsModule,
-    MatLegacyTooltipModule,
+    FormsModule,
+    MatButtonModule,
+    MatButtonToggleModule,
+    MatFormFieldModule,
+    MatIconModule,
+    MatInputModule,
+    MatTooltipModule,
+    ReactiveFormsModule,
     RolloutFormModule,
+    // keep-sorted end
+    // clang-format on
   ],
   declarations: [
     ParamsForm,

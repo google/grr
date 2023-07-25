@@ -1,9 +1,5 @@
 <div class="controls-top" [hidden]="hideControls">
-  <mat-form-field
-    *ngIf="showFilterInput"
-    appearance="outline"
-    class="filter-input"
-  >
+  <mat-form-field *ngIf="showFilterInput" class="filter-input" subscriptSizing="dynamic">
     <mat-label>Filter</mat-label>
     <mat-icon matPrefix>filter_list</mat-icon>
     <input

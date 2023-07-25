@@ -19,9 +19,3 @@ if [[ -e '%(ClientBuilder.install_dir)' ]]; then
   tmpdir=`mktemp -d -t '%(Client.name)_%(Source.version_string)_install'`
   sudo mv '%(ClientBuilder.install_dir)' "${tmpdir}"
 fi
-
-# We do not want Fleetspeak to run two GRR instances on the same machine,
-# so we delete any previous configs if they exist.
-if [[ -e '%(ClientBuilder.fleetspeak_legacy_config)' ]]; then
-  rm -f '%(ClientBuilder.fleetspeak_legacy_config)'
-fi

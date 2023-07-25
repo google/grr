@@ -23,7 +23,7 @@ message ApiClient {
   optional string urn = 1
       [(sem_type) = { type: "ClientURN", description: "Client URN." }];
 
-  optional bool fleetspeak_enabled = 20;
+  reserved 20;
   optional ClientInformation agent_info = 2;
   optional HardwareInfo hardware_info = 3;
   optional Uname os_info = 4;

@@ -17,7 +17,6 @@
     autocomplete="off"
   />
   <button
-    mat-button
     matSuffix
     mat-icon-button
     aria-label="Clear"
@@ -47,7 +46,6 @@
     [matAutocomplete]="auto"
   />
   <button
-    mat-button
     *ngIf="textInput.value !== ''"
     matSuffix
     mat-icon-button
@@ -108,7 +106,7 @@
       [matMenuTriggerFor]="menu"
       [matMenuTriggerRestoreFocus]="false"
     >
-      Collect files <mat-icon>arrow_drop_down</mat-icon>
+      Collect files <mat-icon iconPositionEnd>arrow_drop_down</mat-icon>
     </button>
     <mat-menu #menu="matMenu">
       <button

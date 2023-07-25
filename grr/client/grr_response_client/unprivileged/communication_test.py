@@ -15,6 +15,7 @@ from grr_response_client.unprivileged import sandbox
 
 
 def _MakeArgs(channel: communication.Channel) -> List[str]:
+  assert channel.pipe_input is not None and channel.pipe_output is not None
   return [
       sys.executable, "-m",
       "grr_response_client.unprivileged.echo_server",

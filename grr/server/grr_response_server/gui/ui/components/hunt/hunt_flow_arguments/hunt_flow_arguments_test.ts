@@ -1,7 +1,7 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {Component} from '@angular/core';
 import {ComponentFixture, TestBed} from '@angular/core/testing';
-import {MatLegacyCheckboxHarness} from '@angular/material/legacy-checkbox/testing';
+import {MatCheckboxHarness} from '@angular/material/checkbox/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute} from '@angular/router';
@@ -24,7 +24,7 @@ async function getCheckboxValue(
     fixture: ComponentFixture<unknown>, query: string): Promise<boolean> {
   const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
   const checkboxHarness = await harnessLoader.getHarness(
-      MatLegacyCheckboxHarness.with({selector: query}));
+      MatCheckboxHarness.with({selector: query}));
   return await checkboxHarness.isChecked();
 }
 

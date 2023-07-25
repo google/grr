@@ -193,7 +193,6 @@ export function translateClient(client: apiInterfaces.ApiClient): Client {
 
   return {
     clientId: client.clientId,
-    fleetspeakEnabled: client.fleetspeakEnabled ?? false,
     agentInfo: createAgentInfo(client.agentInfo ?? {}),
     labels: (client.labels ?? []).map(createClientLabel),
     knowledgeBase: client.knowledgeBase ?? {},

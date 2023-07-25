@@ -15,11 +15,11 @@ import {injectMockStore, STORE_PROVIDERS} from '../../store/store_test_providers
 import {VfsViewLocalStore} from '../../store/vfs_view_local_store';
 import {mockVfsViewLocalStore} from '../../store/vfs_view_local_store_test_util';
 import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
+import {CLIENT_ROUTES} from '../app/routing';
 import {ClientDetailsModule} from '../client_details/module';
 import {FileDetails} from '../file_details/file_details';
 
 import {ClientPageModule} from './client_page_module';
-import {CLIENT_PAGE_ROUTES} from './routing';
 import {VfsSection} from './vfs_section';
 
 
@@ -30,7 +30,7 @@ describe('VfsSection', () => {
     TestBed
         .configureTestingModule({
           imports: [
-            RouterTestingModule.withRoutes(CLIENT_PAGE_ROUTES),
+            RouterTestingModule.withRoutes(CLIENT_ROUTES),
             ApiModule,
             NoopAnimationsModule,
             ClientPageModule,
@@ -116,7 +116,7 @@ describe('VfsSection', () => {
     fixture.detectChanges();
 
     const directoryTitle =
-        fixture.debugElement.query(By.css('.mat-card-title'));
+        fixture.debugElement.query(By.css('.mat-mdc-card-title'));
     expect(directoryTitle.nativeElement.textContent).toContain('/');
 
     const buttons = directoryTitle.queryAll(By.css('button'));
@@ -145,7 +145,7 @@ describe('VfsSection', () => {
     fixture.detectChanges();
 
     const directoryTitle =
-        fixture.debugElement.query(By.css('.mat-card-title'));
+        fixture.debugElement.query(By.css('.mat-mdc-card-title'));
     expect(directoryTitle.nativeElement.textContent).toContain('/');
 
     const buttons = directoryTitle.queryAll(By.css('button'));

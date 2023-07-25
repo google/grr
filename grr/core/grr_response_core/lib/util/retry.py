@@ -1,47 +1,96 @@
 #!/usr/bin/env python
 """A module with utilities for retrying function execution."""
+import dataclasses
+import datetime
 import functools
 import logging
-import math
+import random
 import time
 from typing import Callable
+from typing import Generic
 from typing import Optional
 from typing import Tuple
 from typing import Type
 from typing import TypeVar
+from typing import Union
 
 
+@dataclasses.dataclass
 class Opts:
   """Options that customize the retry mechanism.
 
   Attributes:
     attempts: The number of attempts to retry the call.
-    init_delay_secs: An initial value for delay between retries.
-    max_delay_secs: A maximum value for delay between retries.
+    init_delay: An initial value for delay between retries.
+    max_delay: A maximum value for delay between retries.
     backoff: A backoff multiplayer for the delay between retries.
+    jitter: A random jitter to add to delay between retries.
     sleep: A sleep function used for delaying retries.
   """
   attempts: int = 1
 
-  init_delay_secs: float = 0.0
-  max_delay_secs: float = math.inf
+  init_delay: datetime.timedelta = datetime.timedelta(0)
+  max_delay: datetime.timedelta = datetime.timedelta.max
   backoff: float = 1.0
+  jitter: float = 0.0
 
-  sleep: Callable[[float], None] = time.sleep
+  # pyformat: disable
+  sleep: Callable[[datetime.timedelta], None] = (
+      lambda timedelta: time.sleep(timedelta.total_seconds())
+  )
+  # pyformat: enable
 
 
-class On:
+_E = TypeVar("_E", bound=Exception)
+
+
+class On(Generic[_E]):
   """A decorator that retries the wrapped function on exception."""
 
   def __init__(
       self,
-      exceptions: Tuple[Type[Exception], ...],
+      exception: Union[Type[_E], Tuple[Type[_E], ...]],
       opts: Optional[Opts] = None,
   ) -> None:
     """Initializes the decorator.
 
     Args:
-      exceptions: A sequence of exceptions to retry on.
+      exception: A sequence of exceptions to retry on.
+      opts: Options that customize the retry behaviour.
+    """
+    self._when = When(exception, lambda _: True, opts=opts)
+
+  _R = TypeVar("_R")
+
+  def __call__(self, func: Callable[..., _R]) -> Callable[..., _R]:
+    """Wraps the specified function into a retryable function.
+
+    The wrapped function will be attempted to be called specified number of
+    times after which the error will be propagated.
+
+    Args:
+      func: A function to wrap.
+
+    Returns:
+      A wrapped function that retries on failures.
+    """
+    return self._when(func)
+
+
+class When(Generic[_E]):
+  """A decorator that retries function on exception if predicate is met."""
+
+  def __init__(
+      self,
+      exception: Union[Type[_E], Tuple[Type[_E], ...]],
+      predicate: Callable[[_E], bool],
+      opts: Optional[Opts] = None,
+  ) -> None:
+    """Initializes the decorator.
+
+    Args:
+      exception: An exception type to catch.
+      predicate: A predicate to check whether to retry the exception.
       opts: Options that customize the retry behaviour.
     """
     if opts is None:
@@ -50,14 +99,13 @@ class On:
     if opts.attempts < 1:
       raise ValueError("Non-positive number of retries")
 
-    self._exceptions = exceptions
+    self._exception = exception
+    self._predicate = predicate
     self._opts = opts
 
   _R = TypeVar("_R")
 
-  # TODO(hanuszczak): Looks like there is a bug in the linter: it recognizes
-  # `_R` in the argument but doesn't recognize it in the result type position.
-  def __call__(self, func: Callable[..., _R]) -> Callable[..., _R]:  # pylint: disable=undefined-variable
+  def __call__(self, func: Callable[..., _R]) -> Callable[..., _R]:
     """Wraps the specified function into a retryable function.
 
     The wrapped function will be attempted to be called specified number of
@@ -74,19 +122,28 @@ class On:
     @functools.wraps(func)
     def Wrapped(*args, **kwargs) -> On._R:
       attempts = 0
-      delay_secs = opts.init_delay_secs
+      delay = opts.init_delay
 
       while True:
         try:
           return func(*args, **kwargs)
-        except self._exceptions as error:
+        except self._exception as error:
           attempts += 1
           if attempts == opts.attempts:
             raise
 
-          logging.warning("'%s', to be retried in %s s.", error, delay_secs)
+          if not self._predicate(error):
+            raise
 
-          opts.sleep(delay_secs)
-          delay_secs = min(delay_secs * opts.backoff, opts.max_delay_secs)
+          jitter = random.uniform(-opts.jitter, +opts.jitter)
+          jittered_delay = delay + delay * jitter
+
+          logging.warning("'%s', to be retried in %s", error, jittered_delay)
+          opts.sleep(jittered_delay)
+
+          # Note that we calculate the new delay value basing on the base delay,
+          # not the jittered one, otherwise the delay values might become too
+          # unpredictable.
+          delay = min(delay * opts.backoff, opts.max_delay)
 
     return Wrapped

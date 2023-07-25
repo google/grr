@@ -1,0 +1,63 @@
+Database.implementation: MysqlDB
+Blobstore.implementation: DbBlobStore
+
+Mysql.host: 127.0.0.1
+Mysql.port: 3306
+Mysql.database_name: grr
+Mysql.database: grr
+Mysql.database_username: grr
+Mysql.username: grr
+Mysql.database_password: grr
+Mysql.password: grr
+
+Client.server_urls:
+- http://localhost:8080/
+
+AdminUI.url: http://localhost:8000
+AdminUI.bind: 0.0.0.0
+AdminUI.headless: false
+AdminUI.webauth_manager: BasicWebAuthManager
+AdminUI.use_precompiled_js: True
+AdminUI.csrf_secret_key: O$YTx01F2BuxgT4DoVSI hJVuhWOxyuuxJhg#lg96ARF_fWLabzN5kjAy0UBcI9GDrUPo1v
+  b7PyF3vj4pqRrc8oegeJ8XgIyI5X
+
+API.DefaultRouter: ApiCallRouterWithoutChecks
+
+Logging.domain: localhost
+Logging.verbose: true
+Logging.engines: file
+Logging.path: /grr
+Logging.filename: /grr/grr-server.log
+
+Monitoring.alert_email: grr-monitoring@localhost
+Monitoring.emergency_access_email: grr-emergency@localhost
+
+Client.fleetspeak_enabled: true
+
+ClientBuilder.fleetspeak_bundled: true
+
+FleetspeakFrontend Context:
+  Server.fleetspeak_message_listen_address: 0.0.0.0:11111
+
+Server.fleetspeak_enabled: true
+Server.fleetspeak_server: localhost:4444
+Server.initialized: true
+
+Frontend.certificate: |
+  -----BEGIN CERTIFICATE-----
+  MIICuTCCAaGgAwIBAgIBAjANBgkqhkiG9w0BAQsFADAgMREwDwYDVQQDDAhncnJf
+  dGVzdDELMAkGA1UEBhMCVVMwHhcNMjMwMTIyMTEyMTA2WhcNMzMwMTIwMTEyMTA2
+  WjAOMQwwCgYDVQQDDANncnIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIB
+  AQDRgX3/3lvGJ2wHO502LFBmNOdN3OHqeo8LNpam0wzDYKevZUpebcCl4aiqYU8g
+  t/Cd+F5TCOnjLHRore7c86yzI0cfk2ytP0bTCQsCR6AUXzlSt87J6x510wGgW5oB
+  pEfdTsBHl+bAm3dzJNA0TzNr2i4VfpV9/L1wEw+Se6lC/J74W+Tjm4cHFtIQcwGt
+  547wBU3CN71XFMrV8LhaIT7FV4jOqiGZLCTSSR0143d9TOeEErxwXyqPMPhIF0Xm
+  ihdd9h6VHq/1L6B0qiKTsGnxdtb0KmBIgs/b9i33PEyAWnTTIcw1eK1ryAulCXjF
+  e7BDiOtVbz43AjSm1iwaWGM9AgMBAAGjEDAOMAwGA1UdEwEB/wQCMAAwDQYJKoZI
+  hvcNAQELBQADggEBAIt3sLvzluPDkWvNoDKnil9HQ8zBlP1sxMlwtCvTDZbIiTuM
+  IK+VL1KuNzGEhpeEbziSpN7ZDUT053xpPYnoZZgQlgLBiNmXJaoHOnj+WAewsK0j
+  vJm7mxLgqdjkXBVyc7jIE/yoZJihygjwDiA3YgvMj/lWZfqU6f57XJERnVDlEUAW
+  QP2YYDStQZvQuwdn/Lie3PfNTIgwkFRoFcrd4tQGrWhH7/pEfSetgeGJLbW56xSl
+  GCXRpNm584CHsx3JzkUNgpM6wl+Jc7arcy8uF6bqbQXOFVL2drgzOFWbI+RXS/74
+  TGQFaywDGAmHCMx/vcLacmwycH8tEWVLFP1DbLo=
+  -----END CERTIFICATE-----
