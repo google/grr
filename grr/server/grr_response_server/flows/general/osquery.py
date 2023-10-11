@@ -211,7 +211,7 @@ class OsqueryFlow(transfer.MultiGetFileLogic, flow_base.FlowBase):
 
     self.StartFileFetch(stat_entry.pathspec)
 
-  def Start(self):
+  def Start(self):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     super(OsqueryFlow,
           self).Start(file_size=FILE_COLLECTION_MAX_SINGLE_FILE_BYTES)
     self.state.progress = rdf_osquery.OsqueryProgress()

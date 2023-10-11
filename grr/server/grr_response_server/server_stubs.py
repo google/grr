@@ -7,7 +7,6 @@ server parts.
 """
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import apple_firmware as rdf_apple_firmware
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -16,6 +15,7 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr_response_core.lib.rdfvalues import dummy as rdf_dummy
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import large_file as rdf_large_file
@@ -60,12 +60,6 @@ class EnumerateFilesystems(ClientActionStub):
   """Enumerate all unique filesystems local to the system."""
 
   out_rdfvalues = [rdf_client_fs.Filesystem]
-
-
-class Uninstall(ClientActionStub):
-  """Remove the service that starts us at startup."""
-
-  out_rdfvalues = [rdf_protodict.DataBlob]
 
 
 class UpdateAgent(ClientActionStub):
@@ -259,13 +253,6 @@ class ListProcesses(ClientActionStub):
   out_rdfvalues = [rdf_client.Process]
 
 
-class SendFile(ClientActionStub):
-  """This action encrypts and sends a file to a remote listener."""
-
-  in_rdfvalue = rdf_client_action.SendFileRequest
-  out_rdfvalues = [rdf_client_fs.StatEntry]
-
-
 class StatFS(ClientActionStub):
   """Call os.statvfs for a given list of paths. OS X and Linux only."""
 
@@ -406,22 +393,15 @@ class Timeline(ClientActionStub):
   out_rdfvalues = [rdf_timeline.TimelineResult]
 
 
-class EficheckDumpImage(ClientActionStub):
-  """Stub client action to collect the full EFI image via Apple eficheck."""
-
-  in_rdfvalue = rdf_apple_firmware.EficheckConfig
-  out_rdfvalues = [rdf_apple_firmware.DumpEfiImageResponse]
-
-
-class EficheckCollectHashes(ClientActionStub):
-  """A stub client action to collect the EFI hashes via eficheck."""
-
-  in_rdfvalue = rdf_apple_firmware.EficheckConfig
-  out_rdfvalues = [rdf_apple_firmware.CollectEfiHashesResponse]
-
-
 class ReadLowLevel(ClientActionStub):
   """Reads `length` bytes from `path` starting at `offset` and returns it."""
 
   in_rdfvalue = rdf_read_low_level.ReadLowLevelRequest
   out_rdfvalues = [rdf_read_low_level.ReadLowLevelResult]
+
+
+class Dummy(ClientActionStub):
+  """Dummy example. Reads a message and sends it back."""
+
+  in_rdfvalue = rdf_dummy.DummyRequest
+  out_rdfvalues = [rdf_dummy.DummyResult]

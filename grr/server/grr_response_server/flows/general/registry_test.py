@@ -5,7 +5,6 @@ import os
 
 from absl import app
 
-from grr_response_client.client_actions import searching
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -46,10 +45,7 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     if conditions is None:
       conditions = []
 
-    client_mock = action_mocks.ActionMock(
-        searching.Find,
-        searching.Grep,
-    )
+    client_mock = action_mocks.ClientFileFinderWithVFS()
 
     session_id = flow_test_lib.TestFlowHelper(
         registry.RegistryFinder.__name__,
@@ -150,7 +146,9 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     self.assertLen(results, 1)
     self.assertLen(results[0].matches, 1)
 
-    self.assertEqual(results[0].matches[0].offset, 15)
+    # The matching fragment is at offset 15 and bytes_before is 10. Hence,
+    # the offset is 5.
+    self.assertEqual(results[0].matches[0].offset, 5)
     self.assertEqual(results[0].matches[0].data,
                      b"ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
 
@@ -190,7 +188,9 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     self.assertLen(results, 1)
     self.assertLen(results[0].matches, 1)
 
-    self.assertEqual(results[0].matches[0].offset, 15)
+    # The matching fragment is at offset 15 and bytes_before is 10. Hence,
+    # the offset is 5.
+    self.assertEqual(results[0].matches[0].offset, 5)
     self.assertEqual(results[0].matches[0].data,
                      b"ramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun")
 

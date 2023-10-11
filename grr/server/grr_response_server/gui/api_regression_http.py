@@ -150,23 +150,6 @@ class HttpApiRegressionTestMixinBase(object):
     return check_result
 
 
-# TODO(amoser): Clean up comments and naming.
-
-# Each mixin below configures a different way for regression tests to run. After
-# AFF4 is gone, there will be only 2 mixins left here (http API v1 and http
-# API v2). At the moment we have v1 with rel_db, v1 without, v2 with rel_db,
-# and v2 without.
-#
-# Duplicated test methods are added to these classes explicitly to make sure
-# they were not misconfigured and REL_DB is enabled in tests that count on
-# REL_DB being enabled - this will go away with AFF4 support going away.
-#
-# output_file_name denotes where golden regression data should be read from -
-# the point of REL_DB enabled tests is that they should stay compatible with
-# the current API behavior. So we direct them to use same golden files -
-# hence the duplication. Again, this will go away soon.
-
-
 class HttpApiV1RelationalDBRegressionTestMixin(HttpApiRegressionTestMixinBase):
   """Test class for HTTP v1 protocol API regression test."""
 

@@ -265,6 +265,31 @@ class FrontEndServerTest(absltest.TestCase):
     self.assertEqual(string.value, "foobar")
 
   @db_test_lib.WithDatabase
+  def testReceiveRRGResponseLog(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    flow_request = rdf_flow_objects.FlowRequest()
+    flow_request.client_id = client_id
+    flow_request.flow_id = flow_id
+    flow_request.request_id = 1337
+    db.WriteFlowRequests([flow_request])
+
+    response = rrg_pb2.Response()
+    response.flow_id = int(flow_id, 16)
+    response.request_id = 1337
+    response.log.level = rrg_pb2.Log.Level.INFO
+    response.log.timestamp.GetCurrentTime()
+    response.log.message = "lorem ipsum dolor sit amet"
+
+    self.server.ReceiveRRGResponse(client_id, response)
+
+    logs = db.ReadFlowLogEntries(client_id, flow_id, offset=0, count=1024)
+    self.assertLen(logs, 1)
+    self.assertEqual(logs[0].message, "[RRG:INFO] lorem ipsum dolor sit amet")
+    self.assertGreater(logs[0].timestamp, rdfvalue.RDFDatetime(0))
+
+  @db_test_lib.WithDatabase
   def testReceiveRRGResponseUnexpected(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
     flow_id = db_test_utils.InitializeFlow(db, client_id)

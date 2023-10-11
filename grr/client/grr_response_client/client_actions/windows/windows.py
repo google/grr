@@ -7,7 +7,6 @@ libs/server_stubs.py
 """
 
 import binascii
-import logging
 
 import pythoncom
 import win32api
@@ -20,7 +19,6 @@ import wmi
 
 from grr_response_client import actions
 from grr_response_client.client_actions import standard
-from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -118,27 +116,6 @@ class EnumerateFilesystems(actions.ActionPlugin):
   def Run(self, args):
     for res in EnumerateFilesystemsFromClient(args):
       self.SendReply(res)
-
-
-class Uninstall(actions.ActionPlugin):
-  """Remove the service that starts us at startup."""
-  out_rdfvalues = [rdf_protodict.DataBlob]
-
-  def Run(self, unused_arg):
-    """This kills us with no cleanups."""
-    logging.debug("Disabling service")
-
-    win32serviceutil.ChangeServiceConfig(
-        None,
-        config.CONFIG["Nanny.service_name"],
-        startType=win32service.SERVICE_DISABLED)
-    svc_config = QueryService(config.CONFIG["Nanny.service_name"])
-    if svc_config[1] == win32service.SERVICE_DISABLED:
-      logging.info("Disabled service successfully")
-      self.SendReply(rdf_protodict.DataBlob(string="Service disabled."))
-    else:
-      self.SendReply(
-          rdf_protodict.DataBlob(string="Service failed to disable."))
 
 
 def QueryService(svc_name):

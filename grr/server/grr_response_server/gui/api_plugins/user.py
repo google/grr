@@ -23,7 +23,6 @@ from grr_response_server import email_alerts
 from grr_response_server import flow
 from grr_response_server import notification as notification_lib
 from grr_response_server.databases import db
-from grr_response_server.flows.general import administrative
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import approval_checks
 
@@ -911,18 +910,6 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
   approval_notification_type = (
       rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_REQUESTED)
-
-  def Handle(self, args, context=None):
-    result = super().Handle(args, context=context)
-
-    if args.keep_client_alive:
-      flow.StartFlow(
-          client_id=str(args.client_id),
-          flow_cls=administrative.KeepAlive,
-          creator=context.username,
-          duration=3600)
-
-    return result
 
 
 class ApiGetClientApprovalArgs(ApiClientApprovalArgsBase):

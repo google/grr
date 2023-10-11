@@ -12,13 +12,11 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import precondition
 from grr_response_proto.api import client_pb2
-from grr_response_server import action_registry
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
@@ -218,15 +216,6 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     return rdf_objects.ObjectReference(
         reference_type=rdf_objects.ObjectReference.Type.CLIENT,
         client=rdf_objects.ClientReference(client_id=str(self.client_id)))
-
-
-class ApiClientActionRequest(rdf_structs.RDFProtoStruct):
-  protobuf = client_pb2.ApiClientActionRequest
-  rdf_deps = [
-      rdf_flows.GrrMessage,
-      rdfvalue.RDFDatetime,
-      rdfvalue.RDFURN,
-  ]
 
 
 class ApiSearchClientsArgs(rdf_structs.RDFProtoStruct):
@@ -658,6 +647,12 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     idx = client_index.ClientIndex()
     idx.MultiAddClientLabels(client_ids, args.labels)
 
+    # Reset foreman rules check so active hunts can match against the new data
+    data_store.REL_DB.MultiWriteClientMetadata(
+        client_ids,
+        last_foreman=rdfvalue.RDFDatetime.EarliestDatabaseSafeValue(),
+    )
+
 
 class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
   protobuf = client_pb2.ApiRemoveClientsLabelsArgs
@@ -719,63 +714,6 @@ class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     fields = rdf_client.KnowledgeBase().GetKbFieldNames()
     return ApiListKbFieldsResult(items=sorted(fields))
-
-
-class ApiListClientActionRequestsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = client_pb2.ApiListClientActionRequestsArgs
-  rdf_deps = [
-      ApiClientId,
-  ]
-
-
-class ApiListClientActionRequestsResult(rdf_structs.RDFProtoStruct):
-  protobuf = client_pb2.ApiListClientActionRequestsResult
-  rdf_deps = [
-      ApiClientActionRequest,
-  ]
-
-
-class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
-  """Lists pending client action requests."""
-
-  args_type = ApiListClientActionRequestsArgs
-  result_type = ApiListClientActionRequestsResult
-
-  REQUESTS_NUM_LIMIT = 1000
-
-  def Handle(self, args, context=None):
-    result = ApiListClientActionRequestsResult()
-
-    request_cache = {}
-
-    for r in data_store.REL_DB.ReadAllClientActionRequests(str(args.client_id)):
-      stub = action_registry.ACTION_STUB_BY_ID[r.action_identifier]
-      client_action = stub.__name__
-
-      request = ApiClientActionRequest(
-          leased_until=r.leased_until,
-          session_id="%s/%s" % (r.client_id, r.flow_id),
-          client_action=client_action)
-      result.items.append(request)
-
-      if not args.fetch_responses:
-        continue
-
-      if r.flow_id not in request_cache:
-        req_res = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
-            str(args.client_id), r.flow_id)
-        request_cache[r.flow_id] = req_res
-
-      for req, responses in request_cache[r.flow_id]:
-        if req.request_id == r.request_id:
-          res = []
-          for resp_id in sorted(responses):
-            m = responses[resp_id].AsLegacyGrrMessage()
-            res.append(m)
-
-          request.responses = res
-
-    return result
 
 
 class ApiGetClientLoadStatsArgs(rdf_structs.RDFProtoStruct):

@@ -101,11 +101,6 @@ def GetRawDevice(path):
       mount_point = os.path.dirname(mount_point)
 
 
-def KeepAlive():
-  # Not yet supported for Linux.
-  pass
-
-
 def OpenProcessForMemoryAccess(pid=None):
   return process.Process(pid=pid)
 

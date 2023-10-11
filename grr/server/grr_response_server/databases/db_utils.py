@@ -151,18 +151,10 @@ def IntToFlowID(flow_id):
 
 def HuntIDToInt(hunt_id):
   """Convert hunt id string to an integer."""
-  # TODO(user): This code is only needed for a brief period of time when we
-  # allow running new rel-db flows with old aff4-based hunts. In this scenario
-  # parent_hunt_id is effectively not used, but it has to be an
-  # integer. Stripping "H:" from hunt ids then makes the rel-db happy. Remove
-  # this code when hunts are rel-db only.
-  if hunt_id.startswith("H:"):
-    hunt_id = hunt_id[2:]
-
   try:
     return int(hunt_id or "0", 16)
   except ValueError as e:
-    raise HuntIDIsNotAnIntegerError(e)
+    raise HuntIDIsNotAnIntegerError(e) from e
 
 
 def IntToHuntID(hunt_id):
@@ -173,7 +165,7 @@ def OutputPluginIDToInt(output_plugin_id):
   try:
     return int(output_plugin_id or "0", 16)
   except ValueError as e:
-    raise OutputPluginIDIsNotAnIntegerError(e)
+    raise OutputPluginIDIsNotAnIntegerError(e) from e
 
 
 def IntToOutputPluginID(output_plugin_id):

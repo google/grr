@@ -300,7 +300,7 @@ describe('ClientPageGlobalStore', () => {
            lastActiveAt: new Date(999),
            startedAt: new Date(456),
            creator: 'morty',
-           name: 'KeepAlive',
+           name: 'ListDirectory',
            state: FlowState.FINISHED,
            isRobot: false,
          },
@@ -352,7 +352,7 @@ describe('ClientPageGlobalStore', () => {
            lastActiveAt: '999000',
            startedAt: '456000',
            creator: 'morty',
-           name: 'KeepAlive',
+           name: 'ListDirectory',
            state: ApiFlowState.TERMINATED,
            isRobot: false,
          },
@@ -495,16 +495,16 @@ describe('ClientPageGlobalStore', () => {
     configGlobalStore.mockedObservables.flowDescriptors$.next(
         newFlowDescriptorMap(
             {name: 'ClientSideFileFinder'},
-            {name: 'KeepAlive', defaultArgs: {foo: 1}},
+            {name: 'ListDirectory', defaultArgs: {foo: 1}},
             ));
-    clientPageGlobalStore.startFlowConfiguration('KeepAlive');
+    clientPageGlobalStore.startFlowConfiguration('ListDirectory');
     clientPageGlobalStore.selectedFlowDescriptor$.subscribe(flow => {
       // First value is expected to be undefined.
       if (!flow) {
         return;
       }
 
-      expect(flow.name).toEqual('KeepAlive');
+      expect(flow.name).toEqual('ListDirectory');
       expect(flow.defaultArgs).toEqual({foo: 1});
       done();
     });
@@ -512,15 +512,15 @@ describe('ClientPageGlobalStore', () => {
 
   it('emits the supplied args in selectedFlowDescriptor$', done => {
     configGlobalStore.mockedObservables.flowDescriptors$.next(
-        newFlowDescriptorMap({name: 'KeepAlive', defaultArgs: {foo: 1}}));
-    clientPageGlobalStore.startFlowConfiguration('KeepAlive', {foo: 42});
+        newFlowDescriptorMap({name: 'ListDirectory', defaultArgs: {foo: 1}}));
+    clientPageGlobalStore.startFlowConfiguration('ListDirectory', {foo: 42});
     clientPageGlobalStore.selectedFlowDescriptor$.subscribe(flow => {
       // First value is expected to be undefined.
       if (!flow) {
         return;
       }
 
-      expect(flow.name).toEqual('KeepAlive');
+      expect(flow.name).toEqual('ListDirectory');
       expect(flow.defaultArgs).toEqual({foo: 42});
       done();
     });
@@ -529,7 +529,7 @@ describe('ClientPageGlobalStore', () => {
   it('fails when selecting unknown flow', done => {
     configGlobalStore.mockedObservables.flowDescriptors$.next(
         newFlowDescriptorMap(
-            {name: 'KeepAlive'},
+            {name: 'ListDirectory'},
             ));
 
     clientPageGlobalStore.startFlowConfiguration('unknown');
@@ -546,10 +546,10 @@ describe('ClientPageGlobalStore', () => {
     configGlobalStore.mockedObservables.flowDescriptors$.next(
         newFlowDescriptorMap(
             {name: 'ClientSideFileFinder'},
-            {name: 'KeepAlive'},
+            {name: 'ListDirectory'},
             ));
 
-    clientPageGlobalStore.startFlowConfiguration('KeepAlive');
+    clientPageGlobalStore.startFlowConfiguration('ListDirectory');
     clientPageGlobalStore.stopFlowConfiguration();
     clientPageGlobalStore.selectedFlowDescriptor$.subscribe(flow => {
       expect(flow).toBeNull();

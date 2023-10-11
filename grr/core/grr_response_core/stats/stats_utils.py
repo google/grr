@@ -93,13 +93,14 @@ class ErrorsCounted(object):
 
 def FieldDefinitionProtosFromTuples(field_def_tuples):
   """Converts (field-name, type) tuples to MetricFieldDefinition protos."""
-  # TODO: This needs fixing for Python 3.
   field_def_protos = []
   for field_name, field_type in field_def_tuples:
     if field_type is int:
       field_type = rdf_stats.MetricFieldDefinition.FieldType.INT
     elif issubclass(field_type, Text):
       field_type = rdf_stats.MetricFieldDefinition.FieldType.STR
+    elif issubclass(field_type, bool):
+      field_type = rdf_stats.MetricFieldDefinition.FieldType.BOOL
     else:
       raise ValueError("Invalid field type: %s" % field_type)
     field_def_protos.append(
@@ -110,14 +111,14 @@ def FieldDefinitionProtosFromTuples(field_def_tuples):
 
 def FieldDefinitionTuplesFromProtos(field_def_protos):
   """Converts MetricFieldDefinition protos to (field-name, type) tuples."""
-  # TODO: This needs fixing for Python 3.
   field_def_tuples = []
   for proto in field_def_protos:
     if proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.INT:
       field_type = int
     elif proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.STR:
-      # Use old style str in Python 2 here or the streamz library will break.
       field_type = str
+    elif proto.field_type == rdf_stats.MetricFieldDefinition.FieldType.BOOL:
+      field_type = bool
     else:
       raise ValueError("Unknown field type: %s" % proto.field_type)
     field_def_tuples.append((proto.field_name, field_type))

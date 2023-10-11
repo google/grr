@@ -41,20 +41,6 @@ class TestFindWindowsRegistry(test_base.EndToEndTest):
     results = list(f.ListResults())
     self.assertNotEmpty(results)
 
-  def testFindFiles(self):
-    args = self.grr_api.types.CreateFlowArgs("FindFiles")
-    args.findspec.pathspec.path = self.__class__.REG_PATH
-    args.findspec.pathspec.pathtype = args.findspec.pathspec.REGISTRY
-    args.findspec.path_regex = "ProfileImagePath"
-
-    f = self.RunFlowAndWait("FindFiles", args=args)
-
-    results = list(f.ListResults())
-    self.assertNotEmpty(results)
-
-    for r in results:
-      self.assertIn("ProfileImagePath", r.payload.pathspec.path)
-
   def testClientFileFinderWithRegistryPath(self):
     base = "/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion"
     args = self.grr_api.types.CreateFlowArgs("ClientFileFinder")

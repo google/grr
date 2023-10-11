@@ -36,6 +36,7 @@ import {DefaultDetails} from './default_details';
 import {DumpProcessMemoryDetails} from './dump_process_memory_details';
 import {ExecutePythonHackDetails} from './execute_python_hack_details';
 import {FileFinderDetails} from './file_finder_details';
+import {HashMultipleFilesDetails} from './hash_multiple_files_details';
 import {InterrogateDetails} from './interrogate_details';
 import {LaunchBinaryDetails} from './launch_binary_details';
 import {ListDirectoryDetails} from './list_directory_details';
@@ -44,6 +45,7 @@ import {NetstatDetails} from './netstat_details';
 import {OnlineNotificationDetails} from './online_notification_details';
 import {OsqueryDetails} from './osquery_details';
 import {ReadLowLevelDetails} from './read_low_level_details';
+import {StatMultipleFilesDetails} from './stat_multiple_files_details';
 import {YaraProcessScanDetails} from './yara_process_scan_details';
 
 
@@ -59,6 +61,7 @@ const COMPONENTS = [
   DumpProcessMemoryDetails,
   ExecutePythonHackDetails,
   FileFinderDetails,
+  HashMultipleFilesDetails,
   InterrogateDetails,
   LaunchBinaryDetails,
   ListDirectoryDetails,
@@ -67,6 +70,7 @@ const COMPONENTS = [
   OnlineNotificationDetails,
   OsqueryDetails,
   ReadLowLevelDetails,
+  StatMultipleFilesDetails,
   YaraProcessScanDetails,
   // keep-sorted end
   // clang-format on

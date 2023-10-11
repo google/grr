@@ -57,7 +57,7 @@ describe('NewHuntLocalStore', () => {
                },
                {
                  name: 'GetFile',
-                 friendlyName: 'KeepAlive',
+                 friendlyName: 'Get the specified file',
                  category: 'a',
                  defaultArgs: {},
                }));
@@ -82,7 +82,7 @@ describe('NewHuntLocalStore', () => {
                },
                {
                  name: 'GetFile',
-                 friendlyName: 'KeepAlive',
+                 friendlyName: 'Get the specified file',
                  category: 'a',
                  defaultArgs: {},
                }));
@@ -109,7 +109,7 @@ describe('NewHuntLocalStore', () => {
          flow,
          descriptor: {
            name: 'GetFile',
-           friendlyName: 'KeepAlive',
+           friendlyName: 'Get the specified file',
            category: 'a',
            defaultArgs: {},
          },
@@ -126,7 +126,7 @@ describe('NewHuntLocalStore', () => {
                },
                {
                  name: 'GetFile',
-                 friendlyName: 'KeepAlive',
+                 friendlyName: 'Get the specified file',
                  category: 'a',
                  defaultArgs: {},
                }));
@@ -205,7 +205,7 @@ describe('NewHuntLocalStore', () => {
            },
            {
              name: 'GetFile',
-             friendlyName: 'KeepAlive',
+             friendlyName: 'Get the specified file',
            });
        configGlobalStore.mockedObservables.flowDescriptors$.next(descriptorMap);
        const apiFlow = {
@@ -258,7 +258,7 @@ describe('NewHuntLocalStore', () => {
                },
                {
                  name: 'GetFile',
-                 friendlyName: 'KeepAlive',
+                 friendlyName: 'Get the specified file',
                }));
        httpApiService.mockedObservables.fetchHunt.next({
          huntId: 'H1234',

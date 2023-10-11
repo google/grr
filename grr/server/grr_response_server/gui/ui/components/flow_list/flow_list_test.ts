@@ -37,15 +37,15 @@ function initFlowList(
             friendlyName: 'Client Side File Finder',
           },
           {
-            name: 'KeepAlive',
-            friendlyName: 'KeepAlive',
+            name: 'Kill',
+            friendlyName: 'Kill GRR agent process',
           }));
   clientPageGlobalStore.mockedObservables.flowListEntries$.next({
     isLoading: false,
     hasMore: false,
     flows: [
       newFlow({
-        name: 'KeepAlive',
+        name: 'Kill',
         creator: 'morty',
         isRobot: true,
       }),
@@ -104,7 +104,7 @@ describe('FlowList Component', () => {
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).toContain('KeepAlive');
+    expect(text).toContain('Kill');
     expect(text).toContain('morty');
     expect(text).toContain('Client Side File Finder');
     expect(text).toContain('rick');
@@ -117,7 +117,7 @@ describe('FlowList Component', () => {
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).not.toContain('KeepAlive');
+    expect(text).not.toContain('Kill');
     expect(text).not.toContain('morty');
     expect(text).toContain('Client Side File Finder');
     expect(text).toContain('rick');
@@ -134,7 +134,7 @@ describe('FlowList Component', () => {
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
-    expect(text).toContain('KeepAlive');
+    expect(text).toContain('Kill');
     expect(text).toContain('morty');
     expect(text).not.toContain('Client Side File Finder');
     expect(text).not.toContain('rick');
@@ -153,7 +153,7 @@ describe('FlowList Component', () => {
       hasMore: false,
       flows: [
         newFlow({
-          name: 'KeepAlive',
+          name: 'Kill',
           creator: 'morty',
         }),
         newFlow({
@@ -166,7 +166,7 @@ describe('FlowList Component', () => {
 
     const text = fixture.debugElement.nativeElement.textContent;
     expect(text).toContain('ClientFileFinder');
-    expect(text).toContain('KeepAlive');
+    expect(text).toContain('Kill');
   });
 
   it('updates flow list on a change in observable', () => {
@@ -182,7 +182,7 @@ describe('FlowList Component', () => {
       hasMore: false,
       flows: [
         newFlow({
-          name: 'KeepAlive',
+          name: 'Kill',
           creator: 'morty',
         }),
       ],
@@ -190,7 +190,7 @@ describe('FlowList Component', () => {
     fixture.detectChanges();
 
     let text = fixture.debugElement.nativeElement.textContent;
-    expect(text).toContain('KeepAlive');
+    expect(text).toContain('Kill');
 
     clientPageGlobalStore.mockedObservables.flowListEntries$.next({
       isLoading: false,
@@ -205,7 +205,7 @@ describe('FlowList Component', () => {
     fixture.detectChanges();
 
     text = fixture.debugElement.nativeElement.textContent;
-    expect(text).not.toContain('KeepAlive');
+    expect(text).not.toContain('Kill');
     expect(text).toContain('ClientFileFinder');
   });
 

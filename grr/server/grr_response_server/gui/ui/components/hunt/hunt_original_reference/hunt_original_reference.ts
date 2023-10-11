@@ -2,7 +2,7 @@ import {CommonModule} from '@angular/common';
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {RouterModule} from '@angular/router';
 
-import {ApiFlowReference, ApiHuntReference} from '../../../lib/api/api_interfaces';
+import {type ApiFlowReference, type ApiHuntReference} from '../../../lib/api/api_interfaces';
 import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';
 
 /** Displays original hunt or flow reference. */

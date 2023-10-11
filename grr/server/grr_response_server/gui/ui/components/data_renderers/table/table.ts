@@ -4,7 +4,7 @@ import {MatButtonModule} from '@angular/material/button';
 import {MatIconModule} from '@angular/material/icon';
 import {MatTableDataSource, MatTableModule} from '@angular/material/table';
 import {combineLatest, Observable} from 'rxjs';
-import {filter, map, takeUntil} from 'rxjs/operators';
+import {distinctUntilChanged, filter, map, shareReplay, takeUntil} from 'rxjs/operators';
 
 import {PAYLOAD_TYPE_TRANSLATION} from '../../../lib/api_translation/result';
 import {PaginatedResultView} from '../../../lib/models/flow';
@@ -67,12 +67,9 @@ export class DataTableView<T> extends PaginatedResultView<T> implements
   private readonly translation$ = this.resultSource.query$.pipe(
       map(({type}) => type),
       filter(isNonNull),
-      map(type => {
-        const translation =
-            PAYLOAD_TYPE_TRANSLATION[type as keyof typeof PAYLOAD_TYPE_TRANSLATION];
-        assertNonNull(translation, `PAYLOAD_TYPE_TRANSLATION for "${type}"`);
-        return translation;
-      }),
+      distinctUntilChanged(),
+      map(payloadType => this.getPayloadTypeTranslation(payloadType)),
+      shareReplay(1),
   );
 
   protected rows$ =
@@ -113,6 +110,14 @@ export class DataTableView<T> extends PaginatedResultView<T> implements
           this.paginationDataSource.paginator!.pageSize,
       count: this.paginationDataSource.paginator!.pageSize,
     });
+  }
+
+  protected getPayloadTypeTranslation(type: string) {
+    const translation =
+        PAYLOAD_TYPE_TRANSLATION[type as keyof typeof PAYLOAD_TYPE_TRANSLATION];
+
+    assertNonNull(translation, `PAYLOAD_TYPE translation for "${type}"`);
+    return translation;
   }
 
   protected readonly trackByIndex: TrackByFunction<unknown> = (index) => index;

@@ -3718,6 +3718,21 @@ registry_data {
 }
 """
     })),
+    (u"/registry/HKEY_USERS/S-1-5-21-702227000-2140022111-3110739999-1990/SOFTWARE/Microsoft/Windows/CurrentVersion/Explorer/Shell Folders/Desktop", ("File", {
+        "stat": """
+st_mode: 32768
+st_size: 23
+st_mtime: 1247547054
+registry_type: REG_SZ
+pathspec {
+  path: "HKEY_USERS/S-1-5-21-702227000-2140022111-3110739999-1990/SOFTWARE/Microsoft/Windows/CurrentVersion/Explorer/Shell Folders/Desktop"
+  pathtype: REGISTRY
+}
+registry_data {
+  string: "C:\\\\Users\\\\foobar\\\\Desktop"
+}
+        """
+    })),
 
     (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/Select/Current", ("File", {
         "stat":
@@ -3752,6 +3767,25 @@ registry_data {
 }
 """
     })),
+    # pylint: disable=line-too-long
+    # pyformat: disable
+    ("/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/AllUsersProfile", ("File", {
+        "stat": """
+st_mode: 32768
+st_size: 1
+st_mtime: 0
+registry_type: REG_EXPAND_SZ
+pathspec {
+  pathtype: REGISTRY
+  path: "HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/CurrentVersion/ProfileList/AllUsersProfile"
+}
+registry_data {
+  string: "%%ProgramData%%"
+}
+        """
+    })),
+    # pylint: enable=line-too-long
+    # pyformat: enable
     (u"/registry/HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/Control/Session "
      u"Manager/Environment/windir", ("File", {
         "stat":

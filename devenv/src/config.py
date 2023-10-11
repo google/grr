@@ -18,7 +18,7 @@ CONFIG["net.mysql_port"] = 4236
 CONFIG["ui.admin_user"] = "admin"
 CONFIG["ui.admin_password"] = "admin"
 CONFIG["build.nodejs_version"] = "16.13.0"
-CONFIG["cli.container_detach_keys"] = "ctrl-p,ctrl-q"
+CONFIG["cli.container_detach_keys"] = "ctrl-p,ctrl-d"
 
 
 def get(key: str) -> Any:

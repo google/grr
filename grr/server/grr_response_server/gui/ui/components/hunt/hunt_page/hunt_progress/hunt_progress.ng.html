@@ -20,11 +20,41 @@
   </div>
 
   <div class="content divider-top">
-    <!-- TODO: Add chart -->
-    <app-hunt-progress-table
-      [completionProgressData]="huntProgressTableData$ | async"
-      [totalClients]="(hunt$ | async)?.allClientsCount"
-    ></app-hunt-progress-table>
+    <ng-container *ngIf="huntProgressLoading$ | async; else huntProgress">
+      <mat-spinner class="progress-spinner"></mat-spinner>
+    </ng-container>
+
+    <ng-template #huntProgress>
+      <mat-tab-group [selectedIndex]="huntProgressInitiallySelectedTab$ | async" *ngIf="showHuntProgress$ | async; else noData" [mat-stretch-tabs]="false" class="progress-tabs">
+
+        <mat-tab>
+          <ng-template mat-tab-label>
+            Chart
+          </ng-template>
+
+          <app-hunt-progress-chart
+            [chartProgressData]="huntProgressChartData$ | async">
+          </app-hunt-progress-chart>
+        </mat-tab>
+
+        <mat-tab>
+          <ng-template mat-tab-label>
+            Table
+          </ng-template>
+
+          <app-hunt-progress-table
+            [completionProgressData]="huntProgressTableData$ | async"
+            [totalClients]="(hunt$ | async)?.allClientsCount"
+          ></app-hunt-progress-table>
+        </mat-tab>
+
+      </mat-tab-group>
+
+      <ng-template #noData>
+        <h3 class="no-data">There is no fleet collection progress data to show</h3>
+      </ng-template>
+    </ng-template>
+
   </div>
 
   <result-accordion [colorScheme]="ColorScheme.FLOW_ARGS" title="Fleet collection arguments" #accordion>

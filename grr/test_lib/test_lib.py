@@ -217,7 +217,8 @@ class GRRBaseTest(absltest.TestCase):
     res = rdf_client.ClientInformation(
         client_name="GRR Monitor",
         client_version=config.CONFIG["Source.version_numeric"],
-        build_time="1980-01-01")
+        build_time="1980-01-01T12:00:00.000000+00:00",
+    )
     if labels is None:
       res.labels = ["label1", "label2"]
     else:

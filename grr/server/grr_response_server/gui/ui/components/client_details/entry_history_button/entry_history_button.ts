@@ -3,7 +3,7 @@ import {MatDialog} from '@angular/material/dialog';
 
 import {Client} from '../../../lib/models/client';
 import {ClientDetailsGlobalStore} from '../../../store/client_details_global_store';
-import {EntryHistoryDialog, EntryHistoryDialogParams, EntryType} from '../entry_history_dialog/entry_history_dialog';
+import {EntryHistoryDialog, EntryHistoryDialogParams, type EntryType} from '../entry_history_dialog/entry_history_dialog';
 
 /**
  * Component displaying a button with the associated entry changes,

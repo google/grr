@@ -2,7 +2,7 @@ import {Component, Input} from '@angular/core';
 
 import {Match, stringWithHighlightsFromMatch, StringWithHighlightsPart} from '../../../lib/fuzzy_matcher';
 
-import {OsqueryTableSpec} from './osquery_table_specs';
+import {type OsqueryTableSpec} from './osquery_table_specs';
 
 
 /** An item containing table info to display in the query helper menu */

@@ -25,6 +25,39 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
 
     self.assertEqual(self.mock_fn.call_count, 10)
 
+  def testCacheAlwaysContainsOnlySingleItemWhenMinTimeBetweenCallsZero(self):
+    decorated = cache.WithLimitedCallFrequency(rdfvalue.Duration(0))(
+        self.mock_fn
+    )
+    for i in range(10):
+      decorated(i)
+
+    self.assertLen(decorated._DebugInternalState()["prev_results"], 1)
+
+  def testCacheIsNotCleanedIfMinTimeBetweenCallsHasNotElapsed(self):
+    decorated = cache.WithLimitedCallFrequency(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(self.mock_fn)
+    for i in range(10):
+      decorated(i)
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.Now()
+        + rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    ):
+      decorated(11)
+
+    self.assertLen(decorated._DebugInternalState()["prev_results"], 1)
+
+  def testCacheIsCleanedAfterMinTimeBetweenCallsHasElapsed(self):
+    decorated = cache.WithLimitedCallFrequency(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(self.mock_fn)
+    for i in range(10):
+      decorated(i)
+
+    self.assertLen(decorated._DebugInternalState()["prev_results"], 10)
+
   def testCallsFunctionOnceInGivenTimeRangeWhenMinTimeBetweenCallsNonZero(self):
     decorated = cache.WithLimitedCallFrequency(
         rdfvalue.Duration.From(30, rdfvalue.SECONDS))(
@@ -172,8 +205,224 @@ class WithLimitedCallFrequencyTest(absltest.TestCase):
 
     self.assertEqual(mock_fn.call_count, 10)
 
-  # TODO(user): add a test case for a cace when non-hashable arguments are
-  # passed.
+  def testRaisesOnUnhashableArguments(self):
+    mock_fn = mock.Mock(side_effect=ValueError())
+
+    decorated = cache.WithLimitedCallFrequency(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(mock_fn)
+
+    with self.assertRaisesRegex(TypeError, "unhashable type"):
+      decorated(dict(foo="bar"))
+
+
+class WithLimitedCallFrequencyWithoutReturnValueTest(absltest.TestCase):
+
+  def setUp(self):
+    super().setUp()
+    self.mock_fn = mock.Mock(wraps=lambda *_: None)
+    self.mock_fn.__name__ = "foo"  # Expected by functools.wraps.
+
+  def testCallsFunctionEveryTimeWhenMinTimeBetweenCallsZero(self):
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration(0)
+    )(self.mock_fn)
+    for _ in range(10):
+      decorated()
+
+    self.assertEqual(self.mock_fn.call_count, 10)
+
+  def testCacheAlwaysContainsOnlySingleItemWhenMinTimeBetweenCallsZero(self):
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration(0)
+    )(self.mock_fn)
+    for i in range(10):
+      decorated(i)
+
+    self.assertLen(decorated._DebugInternalState()["prev_times"], 1)
+
+  def testCacheIsNotCleanedIfMinTimeBetweenCallsHasNotElapsed(self):
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(self.mock_fn)
+    for i in range(10):
+      decorated(i)
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.Now()
+        + rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    ):
+      decorated(11)
+
+    self.assertLen(decorated._DebugInternalState()["prev_times"], 1)
+
+  def testCacheIsCleanedAfterMinTimeBetweenCallsHasElapsed(self):
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(self.mock_fn)
+    for i in range(10):
+      decorated(i)
+
+    self.assertLen(decorated._DebugInternalState()["prev_times"], 10)
+
+  def testCallsFunctionOnceInGivenTimeRangeWhenMinTimeBetweenCallsNonZero(self):
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(self.mock_fn)
+
+    now = rdfvalue.RDFDatetime.Now()
+    with test_lib.FakeTime(now):
+      decorated()
+
+    with test_lib.FakeTime(now + rdfvalue.Duration.From(15, rdfvalue.SECONDS)):
+      decorated()
+
+    self.assertEqual(self.mock_fn.call_count, 1)
+
+    with test_lib.FakeTime(now + rdfvalue.Duration.From(30, rdfvalue.SECONDS)):
+      decorated()
+
+    self.assertEqual(self.mock_fn.call_count, 2)
+
+  def testCachingIsDonePerArguments(self):
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(self.mock_fn)
+
+    now = rdfvalue.RDFDatetime.Now()
+    with test_lib.FakeTime(now):
+      decorated(1)
+      decorated(2)
+
+    self.assertEqual(self.mock_fn.call_count, 2)
+
+    with test_lib.FakeTime(now + rdfvalue.Duration.From(15, rdfvalue.SECONDS)):
+      decorated(1)
+      decorated(2)
+
+    self.assertEqual(self.mock_fn.call_count, 2)
+
+    with test_lib.FakeTime(now + rdfvalue.Duration.From(30, rdfvalue.SECONDS)):
+      decorated(1)
+      decorated(2)
+
+    self.assertEqual(self.mock_fn.call_count, 4)
+
+  def testDecoratedFunctionIsNotExecutedConcurrently(self):
+    event = threading.Event()
+
+    # Can't rely on mock's call_count as it's not thread safe.
+    fn_calls = []
+
+    def Fn():
+      fn_calls.append(True)
+      event.wait()
+      return self.mock_fn()
+
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(Fn)
+
+    results = []
+
+    def T():
+      results.append(decorated())
+
+    threads = []
+    for _ in range(10):
+      t = threading.Thread(target=T)
+      t.start()
+      threads.append(t)
+
+    # At this point all threads should be waiting on the function to complete,
+    # with only 1 threads actually executing the function. Trigger the event
+    # to force that one thread to complete.
+    event.set()
+
+    for t in threads:
+      t.join()
+
+    self.assertLen(results, len(threads))
+    self.assertLen(fn_calls, 1)
+
+  def testDecoratedFunctionsAreNotWaitedForPerArguments(self):
+    event = threading.Event()
+
+    # Can't rely on mock's call_count as it's not thread safe.
+    fn_calls = []
+
+    def Fn(x):
+      fn_calls.append(x)
+      # Wait if this is the first call.
+      if not fn_calls:
+        event.wait()
+
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(Fn)
+
+    def T():
+      decorated(1)
+
+    t = threading.Thread(target=T)
+    t.start()
+    try:
+      # This should return immediately, as the wrapped function has no return
+      # value and thus doesn't have to block even if the other one is in
+      # progress.
+      decorated(1)
+    finally:
+      event.set()
+      t.join()
+
+    self.assertLen(fn_calls, 1)
+
+  def testPropagatesExceptions(self):
+    mock_fn = mock.Mock(side_effect=ValueError())
+    mock_fn.__name__ = "foo"  # Expected by functools.wraps.
+
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(mock_fn)
+
+    with self.assertRaises(ValueError):
+      decorated()
+
+  def testExceptionIsNotCached(self):
+    mock_fn = mock.Mock(side_effect=ValueError())
+    mock_fn.__name__ = "foo"  # Expected by functools.wraps.
+
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(mock_fn)
+
+    for _ in range(10):
+      with self.assertRaises(ValueError):
+        decorated()
+
+    self.assertEqual(mock_fn.call_count, 10)
+
+  def testRaisesOnUnhashableArguments(self):
+    mock_fn = mock.Mock(side_effect=ValueError())
+
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(mock_fn)
+
+    with self.assertRaisesRegex(TypeError, "unhashable type"):
+      decorated(dict(foo="bar"))
+
+  def testRaisesIfWrappedFunctionReturnsValue(self):
+    mock_fn = mock.Mock(return_value=42)
+
+    decorated = cache.WithLimitedCallFrequencyWithoutReturnValue(
+        rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+    )(mock_fn)
+
+    with self.assertRaisesRegex(
+        AssertionError, "Wrapped function should have no return value"
+    ):
+      decorated("blah")
 
 
 if __name__ == "__main__":

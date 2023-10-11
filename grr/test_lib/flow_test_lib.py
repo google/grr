@@ -2,13 +2,13 @@
 """Helper classes for flows-related testing."""
 
 import logging
+import re
 import sys
-from typing import ContextManager, Iterable, Optional, Text, Type, List
+from typing import ContextManager, Iterable, List, Optional, Pattern, Text, Type, Union
 from unittest import mock
 
 from grr_response_client import actions
 from grr_response_client.client_actions import standard
-
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -212,6 +212,39 @@ class FlowTestsBaseclass(test_lib.GRRBaseTest):
     actions.ActionPlugin.last_progress_time = (
         rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0))
 
+  def assertFlowLoggedRegex(
+      self,
+      client_id: str,
+      flow_id: str,
+      regex: Union[str, Pattern[str]],
+  ) -> None:
+    """Asserts that the flow logged a message matching the specified expression.
+
+    Args:
+      client_id: An identifier of the client of which flow we make an assertion.
+      flow_id: An identifier of the flow on which me make an assertion.
+      regex: A regex to match against the flow log messages.
+    """
+    del self  # Unused.
+
+    assert data_store.REL_DB is not None
+
+    if isinstance(regex, str):
+      regex = re.compile(regex, re.IGNORECASE)
+
+    logs = data_store.REL_DB.ReadFlowLogEntries(
+        client_id,
+        flow_id,
+        offset=0,
+        count=sys.maxsize,
+    )
+    for log in logs:
+      if regex.search(log.message) is not None:
+        return
+
+    message = f"No logs matching {regex!r} for flow '{client_id}/{flow_id}'"
+    raise AssertionError(message)
+
 
 class CrashClientMock(action_mocks.ActionMock):
   """Client mock that simulates a client crash."""
@@ -301,10 +334,10 @@ class MockClient(object):
         [rdf_flow_objects.FlowResponseForLegacyResponse(message)])
 
   def Next(self):
-    """Emulates execution of a single ClientActionRequest.
+    """Emulates execution of a single client action request.
 
     Returns:
-       True iff a ClientActionRequest was found for the client.
+       True if a pending action request was found for the client.
     """
     next_task = fleetspeak_test_lib.PopMessage(self.client_id)
     if next_task is None:

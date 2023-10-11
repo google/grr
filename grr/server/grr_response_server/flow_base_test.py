@@ -1,4 +1,6 @@
 #!/usr/bin/env python
+from unittest import mock
+
 from absl.testing import absltest
 
 from google.protobuf import any_pb2
@@ -7,6 +9,7 @@ from google.protobuf import wrappers_pb2
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.stats import default_stats_collector
+from grr_response_core.stats import metrics
 from grr_response_core.stats import stats_collector_instance
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
@@ -14,10 +17,11 @@ from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import db_test_lib
+from grr.test_lib import stats_test_lib
 from grr_response_proto import rrg_pb2
 
 
-class FlowBaseTest(absltest.TestCase):
+class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
 
   class Flow(flow_base.FlowBase):
     pass
@@ -323,6 +327,135 @@ class FlowBaseTest(absltest.TestCase):
     # the implementation of the flow runner—we just want to have reasonable code
     # coverage and ensure that the call does not fail.
     flow.CallRRG(rrg_pb2.GET_SYSTEM_METADATA, empty_pb2.Empty())
+
+  @db_test_lib.WithDatabase
+  def testErrorIncrementsMetricsWithExceptionName(
+      self, db: abstract_db.Database
+  ):
+    client_id = db_test_utils.InitializeClient(db)
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = self._FLOW_ID
+
+    flow = FlowBaseTest.Flow(rdf_flow)
+
+    with self.SetUpStatsCollector(
+        default_stats_collector.DefaultStatsCollector()
+    ):
+      fake_counter = metrics.Counter(
+          "fake",
+          fields=[("flow", str), ("hierarchy", str), ("exception", str)],
+      )
+    with mock.patch.object(flow_base, "FLOW_ERRORS", fake_counter):
+      # Make sure counter is set to zero
+      self.assertEqual(
+          0,
+          fake_counter.GetValue(
+              fields=["Flow", False, "ErrLooksLikeException"]
+          ),
+      )
+      # Flow fails with error msg
+      flow.Error("ErrLooksLikeException('should extract exception name')")
+
+    self.assertEqual(
+        1,
+        fake_counter.GetValue(fields=["Flow", False, "ErrLooksLikeException"]),
+    )
+
+  @db_test_lib.WithDatabase
+  def testErrorIncrementsMetricsNoMatch(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = self._FLOW_ID
+
+    flow = FlowBaseTest.Flow(rdf_flow)
+
+    with self.SetUpStatsCollector(
+        default_stats_collector.DefaultStatsCollector()
+    ):
+      fake_counter = metrics.Counter(
+          "fake",
+          fields=[("flow", str), ("is_child", bool), ("exception", str)],
+      )
+    with mock.patch.object(flow_base, "FLOW_ERRORS", fake_counter):
+      # Make sure counter is set to zero
+      self.assertEqual(
+          0,
+          fake_counter.GetValue(fields=["Flow", False, "Unknown"]),
+      )
+      # Flow fails with error msg
+      flow.Error("Doesn't match the regex")
+
+    self.assertEqual(
+        1,
+        fake_counter.GetValue(fields=["Flow", False, "Unknown"]),
+    )
+
+  @db_test_lib.WithDatabase
+  def testErrorIncrementsMetricsNoName(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = self._FLOW_ID
+
+    flow = FlowBaseTest.Flow(rdf_flow)
+
+    with self.SetUpStatsCollector(
+        default_stats_collector.DefaultStatsCollector()
+    ):
+      fake_counter = metrics.Counter(
+          "fake",
+          fields=[("flow", str), ("is_child", bool), ("exception", str)],
+      )
+    with mock.patch.object(flow_base, "FLOW_ERRORS", fake_counter):
+      # Make sure counter is set to zero
+      self.assertEqual(
+          0,
+          fake_counter.GetValue(fields=["Flow", False, "Unknown"]),
+      )
+      # Flow fails with error msg
+      flow.Error()
+
+    self.assertEqual(
+        1,
+        fake_counter.GetValue(fields=["Flow", False, "Unknown"]),
+    )
+
+  @db_test_lib.WithDatabase
+  def testErrorIncrementsMetricsChild(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeClient(db)
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = self._FLOW_ID
+    rdf_flow.parent_flow_id = "NOT EMPTY"
+
+    flow = FlowBaseTest.Flow(rdf_flow)
+
+    with self.SetUpStatsCollector(
+        default_stats_collector.DefaultStatsCollector()
+    ):
+      fake_counter = metrics.Counter(
+          "fake",
+          fields=[("flow", str), ("is_child", bool), ("exception", str)],
+      )
+    with mock.patch.object(flow_base, "FLOW_ERRORS", fake_counter):
+      # Make sure counter is set to zero
+      self.assertEqual(
+          0,
+          fake_counter.GetValue(fields=["Flow", True, "Unknown"]),
+      )
+      # Flow fails with error msg
+      flow.Error()
+
+    self.assertEqual(
+        1,
+        fake_counter.GetValue(fields=["Flow", True, "Unknown"]),
+    )
 
 
 if __name__ == "__main__":

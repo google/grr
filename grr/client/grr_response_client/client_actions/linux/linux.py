@@ -321,18 +321,6 @@ class EnumerateRunningServices(actions.ActionPlugin):
     raise NotImplementedError("Not implemented")
 
 
-class Uninstall(actions.ActionPlugin):
-  """Uninstall GRR. Place holder, does nothing.
-
-  Note this needs to handle the different distributions separately, e.g. Redhat
-  vs Debian.
-  """
-  out_rdfvalues = [rdf_protodict.DataBlob]
-
-  def Run(self, unused_arg):
-    raise NotImplementedError("Not implemented")
-
-
 class UpdateAgent(standard.ExecuteBinaryCommand):
   """Updates the GRR agent to a new version."""
 

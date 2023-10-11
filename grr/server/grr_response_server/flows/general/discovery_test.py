@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 """Tests for Interrogate."""
+import binascii
 import datetime
+import os
 import platform
 import socket
-from typing import Iterable
-from typing import Iterator
 from unittest import mock
 
 from absl import app
 
 from grr_response_client.client_actions import admin
 from grr_response_core import config
-from grr_response_core.lib import parsers
-from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -31,6 +30,7 @@ from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import discovery
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
@@ -411,63 +411,55 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     ]
     self.assertCountEqual([l.name for l in rdf_labels], expected_labels)
 
-  def testEdrAgentCollection(self):
+  def testCrowdStrikeAgentIDCollection(self):
+    agent_id = binascii.hexlify(os.urandom(16)).decode("ascii")
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
 
-    artifact_source = rdf_artifacts.ArtifactSource()
-    artifact_source.type = rdf_artifacts.ArtifactSource.SourceType.COMMAND
-    artifact_source.attributes = {"cmd": "/bin/echo", "args": ["1337"]}
+    client_snapshot = rdf_objects.ClientSnapshot()
+    client_snapshot.client_id = client_id
+    client_snapshot.knowledge_base.os = "Linux"
+    data_store.REL_DB.WriteClientSnapshot(client_snapshot)
 
-    artifact = rdf_artifacts.Artifact()
-    artifact.name = "Foo"
-    artifact.doc = "Lorem ipsum."
-    artifact.sources = [artifact_source]
-
-    class FooParser(parsers.SingleResponseParser):
-
-      supported_artifacts = ["Foo"]
-
-      def ParseResponse(
-          self,
-          knowledge_base: rdf_client.KnowledgeBase,
-          response: rdf_client_action.ExecuteResponse,
-      ) -> Iterator[rdf_client.EdrAgent]:
-        edr_agent = rdf_client.EdrAgent()
-        edr_agent.name = "echo"
-        edr_agent.agent_id = response.stdout.decode("utf-8")
-
-        yield edr_agent
-
-    class EchoActionMock(action_mocks.InterrogatedClient):
+    class ClientMock(action_mocks.InterrogatedClient):
 
       def ExecuteCommand(
           self,
           args: rdf_client_action.ExecuteRequest,
-      ) -> Iterable[rdf_client_action.ExecuteResponse]:
-        response = rdf_client_action.ExecuteResponse()
-        response.stdout = " ".join(args.args).encode("utf-8")
-        response.exit_status = 0
+      ) -> rdf_client_action.ExecuteResponse:
+        del args  # Unused.
 
-        return [response]
+        stdout = f'cid="4815162342",aid="{agent_id}"'
 
-    with mock.patch.object(artifact_registry, "REGISTRY",
-                           artifact_registry.ArtifactRegistry()) as registry:
-      registry.RegisterArtifact(artifact)
+        result = rdf_client_action.ExecuteResponse()
+        result.stdout = stdout.encode("ascii")
+        yield result
 
-      with test_lib.ConfigOverrider({"Artifacts.edr_agents": ["Foo"]}):
-        with parser_test_lib._ParserContext("Foo", FooParser):
-          flow_test_lib.TestFlowHelper(
-              discovery.Interrogate.__name__,
-              client_mock=EchoActionMock(),
-              client_id=client_id,
-              creator=self.test_username)
+    # Without clearing the artifact registry, the flow gets stuck. It is most
+    # likely caused by some artifact waiting for something to be initialized or
+    # other terrible dependency but I am too tired of trying to figure out what
+    # exactly is the issue.
+    with mock.patch.object(
+        artifact_registry,
+        "REGISTRY",
+        artifact_registry.ArtifactRegistry(),
+    ):
+      with test_lib.ConfigOverrider({
+          "Interrogate.collect_crowdstrike_agent_id": True,
+          "Artifacts.knowledge_base": [],
+          "Artifacts.knowledge_base_additions": [],
+          "Artifacts.non_kb_interrogate_artifacts": [],
+      }):
+        flow_test_lib.TestFlowHelper(
+            discovery.Interrogate.__name__,
+            client_mock=ClientMock(),
+            client_id=client_id,
+        )
+        flow_test_lib.FinishAllFlowsOnClient(client_id)
 
-          flow_test_lib.FinishAllFlowsOnClient(client_id)
-
-    snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
-    self.assertLen(snapshot.edr_agents, 1)
-    self.assertEqual(snapshot.edr_agents[0].name, "echo")
-    self.assertEqual(snapshot.edr_agents[0].agent_id, "1337")
+    client_snapshot = data_store.REL_DB.ReadClientSnapshot(client_id)
+    self.assertLen(client_snapshot.edr_agents, 1)
+    self.assertEqual(client_snapshot.edr_agents[0].name, "CrowdStrike")
+    self.assertEqual(client_snapshot.edr_agents[0].agent_id, agent_id)
 
   @parser_test_lib.WithAllParsers
   def testSourceFlowIdIsSet(self):
@@ -669,6 +661,29 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     self.assertTrue(_HasClientActionRequest(flow, server_stubs.GetClientInfo))
     self.assertTrue(_HasRRGRequest(flow, rrg_pb2.Action.GET_SYSTEM_METADATA))
 
+  @parser_test_lib.WithAllParsers
+  def testForemanTimeIsResetOnClientSnapshotWrite(self):
+    client_id = self._SetupMinimalClient()
+    data_store.REL_DB.WriteClientMetadata(
+        client_id,
+        last_foreman=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3600),
+    )
+    client_mock = action_mocks.InterrogatedClient()
+    client_mock.InitializeClient()
+    with test_lib.SuppressLogs():
+      flow_test_lib.TestFlowHelper(
+          discovery.Interrogate.__name__,
+          client_mock,
+          creator=self.test_username,
+          client_id=client_id,
+      )
+
+    md = data_store.REL_DB.ReadClientMetadata(client_id)
+    self.assertIsNotNone(md.last_foreman_time)
+    self.assertEqual(
+        md.last_foreman_time, rdfvalue.RDFDatetime.EarliestDatabaseSafeValue()
+    )
+
 
 def _HasClientActionRequest(
     flow: discovery.Interrogate,
@@ -677,8 +692,8 @@ def _HasClientActionRequest(
   """Checks whether the given flow has a request for the given action."""
   action_id = action_registry.ID_BY_ACTION_STUB[action]
 
-  def IsAction(request: rdf_flows.ClientActionRequest) -> bool:
-    return request.action_identifier == action_id
+  def IsAction(request: rdf_flows.GrrMessage) -> bool:
+    return request.name == action_id
 
   return any(map(IsAction, flow.client_action_requests))
 

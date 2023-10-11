@@ -510,13 +510,6 @@ message DeleteGRRTempFilesArgs {
 }
 
 // Next field ID: 2
-message UninstallArgs {
-  optional bool kill = 1 [(sem_type) = {
-    description: "Kills the client if set.",
-  }];
-}
-
-// Next field ID: 2
 message UpdateConfigurationArgs {
   optional Dict config = 1
       [(sem_type) = { description: "The config to send to the client." }];
@@ -560,26 +553,6 @@ message OnlineNotificationArgs {
     description: "Email address to send to. If not set, mail will be sent "
                  "to the logged in user.",
   }];
-}
-
-// Next field ID: 3
-message UpdateClientArgs {
-  reserved 1;
-  optional string binary_path = 2 [(sem_type) = {
-    description: "Identifies the binary uploaded to GRR server that has "
-                 "to be run on the client to perform the update.",
-  }];
-}
-
-// Next field ID: 2
-message KeepAliveArgs {
-  optional uint64 duration = 1 [
-    (sem_type) = {
-      type: "DurationSeconds",
-      description: "Until when should the client stay in the fast poll mode.",
-    },
-    default = 3600
-  ];
 }
 
 // Next field ID: 3
@@ -774,24 +747,6 @@ message InterrogateArgs {
 }
 
 // Next field ID: 2
-message FingerprintFileArgs {
-  optional PathSpec pathspec = 1 [(sem_type) = {
-    description: "The file path to fingerprint.",
-  }];
-}
-
-// Next field ID: 3
-message FingerprintFileResult {
-  optional string file_urn = 1 [(sem_type) = {
-    type: "RDFURN",
-    description: "The URN of the file fingerprinted",
-  }];
-  optional Hash hash_entry = 2 [(sem_type) = {
-    description: "File hash object.",
-  }];
-}
-
-// Next field ID: 2
 message FileCollectorArgs {
   repeated FindSpec findspecs = 1 [(sem_type) = {
     description: "A list of find specifications.",
@@ -883,19 +838,6 @@ message GlobArgs {
     label: ADVANCED,
     description: "Force use of an implementation."
   }];
-}
-
-// Next field ID: 5
-message FindFilesArgs {
-  optional FindSpec findspec = 1 [(sem_type) = {
-    description: "A find operation specification.",
-  }];
-
-  // DEPRECATED
-  // optional uint64 max_results = 3;
-
-  // DEPRECATED
-  // optional uint64 iteration_count = 4;
 }
 
 // Next field ID: 4
@@ -2267,7 +2209,7 @@ message YaraMatch {
   }];
 }
 
-// Next field ID: 5
+// Next field ID: 6
 message YaraProcessScanMatch {
   optional Process process = 1 [(sem_type) = {
     description: "The process that returned one or more matches.",
@@ -2278,7 +2220,7 @@ message YaraProcessScanMatch {
   optional uint64 scan_time_us = 3 [(sem_type) = {
     description: "Time in microseconds taken to perform the scan.",
   }];
-  reserved 4;
+  reserved 4, 5;
 }
 
 message YaraProcessScanMiss {
@@ -2570,20 +2512,6 @@ message FlowIterator {
   optional string hunt_id = 5;
   optional uint64 request_id = 3;
   optional uint64 response_id = 4;
-}
-
-// Next id: 53
-message ClientActionRequest {
-  optional string client_id = 1;
-  optional string flow_id = 2;
-  optional uint64 request_id = 3;
-  optional string action_identifier = 4;
-  optional google.protobuf.Any action_args = 5;
-  optional uint64 cpu_limit_ms = 6;
-  optional uint64 network_bytes_limit = 7;
-  optional uint64 runtime_limit_us = 52 [(sem_type) = {
-    type: "Duration",
-  }];
 }
 
 // Next id: 35

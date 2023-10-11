@@ -4,16 +4,12 @@
 from absl import app
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_server import data_store
-from grr_response_server import flow
-from grr_response_server.flows.general import processes
 
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import client as client_plugin
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -177,72 +173,6 @@ class ApiListClientCrashesHandlerRegressionTest(
         "ListClientCrashes",
         args=client_plugin.ApiListClientCrashesArgs(
             client_id=client_id, offset=1, count=1),
-        replace=replace)
-
-
-class ApiListClientActionRequestsHandlerRegressionTest(
-    api_regression_test_lib.ApiRegressionTest,
-    hunt_test_lib.StandardHuntTestMixin):
-
-  api_method = "ListClientActionRequests"
-  handler = client_plugin.ApiListClientActionRequestsHandler
-
-  def _StartFlow(self, client_id, flow_cls, **kw):
-    flow_id = flow.StartFlow(flow_cls=flow_cls, client_id=client_id, **kw)
-    # Lease the client message.
-    data_store.REL_DB.LeaseClientActionRequests(
-        client_id, lease_time=rdfvalue.Duration.From(10000, rdfvalue.SECONDS))
-    # Write some responses. In the relational db, the client queue will be
-    # cleaned up as soon as all responses are available. Therefore we cheat
-    # here and make it look like the request needs more responses so it's not
-    # considered complete.
-
-    # Write the status first. This will mark the request as waiting for 2
-    # responses.
-    status = rdf_flow_objects.FlowStatus(
-        client_id=client_id, flow_id=flow_id, request_id=1, response_id=2)
-    data_store.REL_DB.WriteFlowResponses([status])
-
-    # Now we read the request, adjust the number, and write it back.
-    reqs = data_store.REL_DB.ReadAllFlowRequestsAndResponses(client_id, flow_id)
-    req = reqs[0][0]
-
-    req.nr_responses_expected = 99
-
-    data_store.REL_DB.WriteFlowRequests([req])
-
-    # This response now won't trigger any deletion of client messages.
-    response = rdf_flow_objects.FlowResponse(
-        client_id=client_id,
-        flow_id=flow_id,
-        request_id=1,
-        response_id=1,
-        payload=rdf_client.Process(name="test_process"))
-    data_store.REL_DB.WriteFlowResponses([response])
-
-    # This is not strictly needed as we don't display this information in the
-    # UI.
-    req.nr_responses_expected = 2
-    data_store.REL_DB.WriteFlowRequests([req])
-
-    return flow_id
-
-  def Run(self):
-    client_id = self.SetupClient(0)
-
-    with test_lib.FakeTime(42):
-      flow_id = self._StartFlow(client_id, processes.ListProcesses)
-
-    replace = api_regression_test_lib.GetFlowTestReplaceDict(client_id, flow_id)
-
-    self.Check(
-        "ListClientActionRequests",
-        args=client_plugin.ApiListClientActionRequestsArgs(client_id=client_id),
-        replace=replace)
-    self.Check(
-        "ListClientActionRequests",
-        args=client_plugin.ApiListClientActionRequestsArgs(
-            client_id=client_id, fetch_responses=True),
         replace=replace)
 
 

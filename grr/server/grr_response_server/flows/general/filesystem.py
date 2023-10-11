@@ -10,6 +10,7 @@ from google.protobuf import any_pb2
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
@@ -94,6 +95,47 @@ def WriteStatEntries(stat_entries, client_id):
   # into the flow's results, but not into the VFS data.
   data_store.REL_DB.WritePathInfos(client_id,
                                    _FilterOutPathInfoDuplicates(path_infos))
+
+
+def WriteFileFinderResults(
+    file_finder_results: Iterable[rdf_file_finder.FileFinderResult],
+    client_id: str,
+) -> None:
+  """Persists information about file finder results.
+
+  Args:
+    file_finder_results: A list of `FileFinderResult` instances.
+    client_id: An id of a client the stat entries come from.
+  """
+
+  path_infos = []
+  for r in file_finder_results:
+    if r.stat_entry.pathspec.last.stream_name:
+      # This is an ADS. In this case we always need to create a file or
+      # we won't be able to access the data. New clients send the correct mode
+      # already but to make sure, we set this to a regular file anyways.
+      # Clear all file type bits:
+      r.stat_entry.st_mode &= ~stat_type_mask
+      r.stat_entry.st_mode |= stat.S_IFREG
+
+    path_info = rdf_objects.PathInfo.FromStatEntry(r.stat_entry)
+    if r.HasField("hash_entry"):
+      path_info.hash_entry = r.hash_entry
+    path_infos.append(path_info)
+
+  # NOTE: TSK may return duplicate entries. This is may be either due to
+  # a bug in TSK implementation, or due to the fact that TSK is capable
+  # of returning deleted files information. Our VFS data model only supports
+  # storing multiple versions of the files when we collect the versions
+  # ourselves. At the moment we can't store multiple versions of the files
+  # "as returned by TSK".
+  #
+  # Current behaviour is to simply drop excessive version before the
+  # WritePathInfo call. This way files returned by TSK will still make it
+  # into the flow's results, but not into the VFS data.
+  data_store.REL_DB.WritePathInfos(
+      client_id, _FilterOutPathInfoDuplicates(path_infos)
+  )
 
 
 class ListDirectoryArgs(rdf_structs.RDFProtoStruct):

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Administrative flows for managing the clients state."""
 import logging
-import os
 import shlex
 import time
 from typing import Optional, Text, Tuple, Type
@@ -69,7 +68,7 @@ class ClientCrashHandler(events.EventListener):
 <html><body><h1>GRR client crash report.</h1>
 
 Client {{ client_id }} ({{ hostname }}) just crashed while executing an action.
-Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
+Click <a href='{{ admin_ui }}v2{{ url }}'>here</a> to access this machine.
 
 <p>Thanks,</p>
 <p>{{ signature }}</p>
@@ -77,7 +76,8 @@ Click <a href='{{ admin_ui }}#{{ url }}'>here</a> to access this machine.
 {{ nanny_msg }}
 
 </body></html>""",
-      autoescape=True)
+      autoescape=True,
+  )
 
   def ProcessEvents(self, msgs=None, publisher_username=None):
     """Processes this event."""
@@ -298,42 +298,6 @@ class DeleteGRRTempFiles(flow_base.FlowBase):
       self.Log(response.data)
 
 
-class UninstallArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.UninstallArgs
-
-
-class Uninstall(flow_base.FlowBase):
-  """Removes the persistence mechanism which the client uses at boot.
-
-  For Windows and OSX, this will disable the service, and then stop the service.
-  For Linux this flow will fail as we haven't implemented it yet :)
-  """
-
-  category = "/Administrative/"
-  args_type = UninstallArgs
-
-  def Start(self):
-    """Start the flow and determine OS support."""
-    system = self.client_os
-
-    if system == "Darwin" or system == "Windows":
-      self.CallClient(server_stubs.Uninstall, next_state=self.Kill.__name__)
-    else:
-      self.Log("Unsupported platform for Uninstall")
-
-  def Kill(self, responses):
-    """Call the kill function on the client."""
-    if not responses.success:
-      self.Log("Failed to uninstall client.")
-    elif self.args.kill:
-      self.CallClient(server_stubs.Kill, next_state=self.Confirmation.__name__)
-
-  def Confirmation(self, responses):
-    """Confirmation of kill."""
-    if not responses.success:
-      self.Log("Kill failed on the client.")
-
-
 class Kill(flow_base.FlowBase):
   """Terminate a running client (does not disable, just kill)."""
 
@@ -506,14 +470,15 @@ class OnlineNotification(flow_base.FlowBase):
 
 <p>
   Client {{ client_id }} ({{ hostname }}) just came online. Click
-  <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
+  <a href='{{ admin_ui }}/v2{{ url }}'>here</a> to access this machine.
   <br />This notification was created by {{ creator }}.
 </p>
 
 <p>Thanks,</p>
 <p>{{ signature }}</p>
 </body></html>""",
-      autoescape=True)
+      autoescape=True,
+  )
 
   args_type = OnlineNotificationArgs
 
@@ -558,69 +523,6 @@ class OnlineNotification(flow_base.FlowBase):
         self.args.email, "grr-noreply", subject, body, is_html=True)
 
 
-class UpdateClientArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.UpdateClientArgs
-  rdf_deps = []
-
-
-class UpdateClient(RecursiveBlobUploadMixin, flow_base.FlowBase):
-  """Updates the GRR client to a new version replacing the current client.
-
-  This will execute the specified installer on the client and then run
-  an Interrogate flow.
-
-  The new installer's binary has to be uploaded to GRR (as a binary, not as
-  a Python hack) and must be signed using the exec signing key.
-
-  Signing and upload of the file is done with grr_config_updater or through
-  the API.
-  """
-
-  category = "/Administrative/"
-
-  args_type = UpdateClientArgs
-
-  def GenerateUploadRequest(
-      self, offset: int, file_size: int, blob: rdf_crypto.SignedBlob
-  ) -> Tuple[rdf_structs.RDFProtoStruct, Type[server_stubs.ClientActionStub]]:
-    request = rdf_client_action.ExecuteBinaryRequest(
-        executable=blob,
-        offset=offset,
-        write_path=self.state.write_path,
-        more_data=(offset + len(blob.data) < file_size),
-        use_client_env=False)
-
-    return request, server_stubs.UpdateAgent
-
-  @property
-  def _binary_id(self):
-    return rdf_objects.SignedBinaryID(
-        binary_type=rdf_objects.SignedBinaryID.BinaryType.EXECUTABLE,
-        path=self.args.binary_path)
-
-  def Start(self):
-    """Start."""
-    if not self.args.binary_path:
-      raise flow_base.FlowError("Installer binary path is not specified.")
-
-    self.state.write_path = "%d_%s" % (int(
-        time.time()), os.path.basename(self.args.binary_path))
-
-    self.StartBlobsUpload(self._binary_id, self.Interrogate.__name__)
-
-  def Interrogate(self, responses):
-    if not responses.success:
-      raise flow_base.FlowError("Installer reported an error: %s" %
-                                responses.status)
-
-    self.Log("Installer completed.")
-    self.CallFlow(discovery.Interrogate.__name__, next_state=self.End.__name__)
-
-  def End(self, responses):
-    if not responses.success:
-      raise flow_base.FlowError(responses.status)
-
-
 class NannyMessageHandlerMixin(object):
   """A listener for nanny messages."""
 
@@ -632,12 +534,13 @@ The nanny for client {{ client_id }} ({{ hostname }}) just sent a message:<br>
 <br>
 {{ message }}
 <br>
-Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
+Click <a href='{{ admin_ui }}/v2{{ url }}'>here</a> to access this machine.
 
 <p>{{ signature }}</p>
 
 </body></html>""",
-      autoescape=True)
+      autoescape=True,
+  )
 
   subject = "GRR nanny message received from %s."
 
@@ -704,12 +607,13 @@ The client {{ client_id }} ({{ hostname }}) just sent a message:<br>
 <br>
 {{ message }}
 <br>
-Click <a href='{{ admin_ui }}/#{{ url }}'>here</a> to access this machine.
+Click <a href='{{ admin_ui }}v2#{{ url }}'>here</a> to access this machine.
 
 <p>{{ signature }}</p>
 
 </body></html>""",
-      autoescape=True)
+      autoescape=True,
+  )
 
   subject = "GRR client message received from %s."
 
@@ -753,6 +657,13 @@ class ClientStartupHandler(message_handlers.MessageHandler):
           data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)
           index = client_index.ClientIndex()
           index.AddClientLabels(client_id, labels)
+
+        # Reset foreman rules check so active hunts can match against the new
+        # data
+        data_store.REL_DB.WriteClientMetadata(
+            client_id,
+            last_foreman=rdfvalue.RDFDatetime.EarliestDatabaseSafeValue(),
+        )
 
       except db.UnknownClientError:
         # On first contact with a new client, this write will fail.
@@ -801,45 +712,6 @@ class ClientStartupHandler(message_handlers.MessageHandler):
         return False
 
     return True
-
-
-class KeepAliveArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.KeepAliveArgs
-  rdf_deps = [
-      rdfvalue.DurationSeconds,
-  ]
-
-
-class KeepAlive(flow_base.FlowBase):
-  """Requests that the clients stays alive for a period of time."""
-
-  category = "/Administrative/"
-  behaviours = flow_base.BEHAVIOUR_BASIC
-
-  sleep_time = 60
-  args_type = KeepAliveArgs
-
-  def Start(self):
-    self.state.end_time = self.args.duration.Expiry()
-    self.CallStateInline(next_state=self.SendMessage.__name__)
-
-  def SendMessage(self, responses):
-    if not responses.success:
-      self.Log(responses.status.error_message)
-      raise flow_base.FlowError(responses.status.error_message)
-
-    self.CallClient(
-        server_stubs.Echo, data="Wake up!", next_state=self.Sleep.__name__)
-
-  def Sleep(self, responses):
-    if not responses.success:
-      self.Log(responses.status.error_message)
-      raise flow_base.FlowError(responses.status.error_message)
-
-    if rdfvalue.RDFDatetime.Now() < self.state.end_time - self.sleep_time:
-      start_time = rdfvalue.RDFDatetime.Now() + self.sleep_time
-      self.CallState(
-          next_state=self.SendMessage.__name__, start_time=start_time)
 
 
 class LaunchBinaryArgs(rdf_structs.RDFProtoStruct):

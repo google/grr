@@ -45,9 +45,9 @@ describe('ConfigGlobalStore', () => {
         }
       ],
       [
-        'KeepAlive', {
-          name: 'KeepAlive',
-          friendlyName: 'KeepAlive',
+        'Kill', {
+          name: 'Kill',
+          friendlyName: 'Kill GRR agent process',
           category: 'Misc',
           defaultArgs: {},
         }
@@ -67,7 +67,8 @@ describe('ConfigGlobalStore', () => {
         defaultArgs: {'@type': 'test-type'}
       },
       {
-        name: 'KeepAlive',
+        name: 'Kill',
+        friendlyName: 'Kill GRR agent process',
         category: 'Misc',
         defaultArgs: {'@type': 'test-type'}
       },

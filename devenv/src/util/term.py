@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Terminal pretty stuffs."""
 
+import re
 import sys
 from typing import Callable
 
@@ -25,3 +26,8 @@ warn: Callable[[str], str] = lambda buf: _colorize(buf, _YELLOW_FG)
 ok: Callable[[str], str] = lambda buf: _colorize(buf, _GREEN_FG)
 meh: Callable[[str], str] = lambda buf: _colorize(buf, _GRAY_FG)
 attn: Callable[[str], str] = lambda buf: _colorize(buf, _WHITE_FG)
+
+
+def strip_control_chars(buf: str) -> str:
+  """Strips terminal control characters from a given string."""
+  return re.sub(r"\x1B(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~])", "", buf)

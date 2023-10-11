@@ -146,6 +146,65 @@ class DatabaseTestClientsMixin(object):
     self.assertEqual(m2.certificate, CERT)
     self.assertEqual(m2.first_seen, rdfvalue.RDFDatetime(100000000))
 
+  def testClientMetadataDefaultValues(self):
+    d = self.db
+
+    client_id = "C.ab413187fefa1dcf"
+    # Empty initialization
+    d.WriteClientMetadata(client_id)
+
+    # Check NULL/empty default values
+    md = d.ReadClientMetadata(client_id)
+    self.assertIsNone(md.certificate)
+    self.assertIsNone(md.first_seen)
+    self.assertIsNone(md.ping)
+    self.assertIsNone(md.clock)
+    self.assertIsNone(md.last_foreman_time)
+    self.assertIsNone(md.last_crash_timestamp)
+    self.assertIsNone(md.startup_info_timestamp)
+    self.assertFalse(md.ip)
+    self.assertFalse(md.last_fleetspeak_validation_info)
+
+  def testClientMetadataSkipFields(self):
+    client_id = "C.fc413187fefa1dcf"
+    self.db.WriteClientMetadata(
+        client_id,
+        certificate=CERT,
+        first_seen=rdfvalue.RDFDatetime(100000000),
+        last_clock=rdfvalue.RDFDatetime(100000001),
+        last_foreman=rdfvalue.RDFDatetime(100000002),
+        last_ping=rdfvalue.RDFDatetime(100000003),
+        last_ip=rdf_client_network.NetworkAddress(
+            human_readable_address="8.8.8.8"
+        ),
+        fleetspeak_validation_info={"foo": "bar"},
+    )
+    # Skip fields
+    self.db.WriteClientMetadata(
+        client_id,
+        certificate=None,
+        first_seen=None,
+        last_clock=None,
+        last_foreman=None,
+        last_ping=None,
+        last_ip=None,
+        fleetspeak_validation_info=None,
+    )
+
+    md = self.db.ReadClientMetadata(client_id)
+    self.assertEqual(md.certificate, CERT)
+    self.assertEqual(md.first_seen, rdfvalue.RDFDatetime(100000000))
+    self.assertEqual(md.clock, rdfvalue.RDFDatetime(100000001))
+    self.assertEqual(md.last_foreman_time, rdfvalue.RDFDatetime(100000002))
+    self.assertEqual(md.ping, rdfvalue.RDFDatetime(100000003))
+    self.assertEqual(
+        md.ip,
+        rdf_client_network.NetworkAddress(human_readable_address="8.8.8.8"),
+    )
+    self.assertEqual(
+        md.last_fleetspeak_validation_info.ToStringDict(), {"foo": "bar"}
+    )
+
   def testClientMetadataSubsecond(self):
     client_id = "C.fc413187fefa1dcf"
     self.db.WriteClientMetadata(
@@ -188,6 +247,38 @@ class DatabaseTestClientsMixin(object):
         m1.ip,
         rdf_client_network.NetworkAddress(human_readable_address="8.8.8.8"))
     self.assertEqual(m1.last_foreman_time, rdfvalue.RDFDatetime(220000000000))
+
+  def testMultiWriteClientMetadata(self):
+    d = self.db
+
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    d.MultiWriteClientMetadata(
+        [client_id_1, client_id_2], last_foreman=rdfvalue.RDFDatetime(100000034)
+    )
+
+    res = d.MultiReadClientMetadata([client_id_1, client_id_2])
+    self.assertLen(res, 2)
+
+    m1 = res[client_id_1]
+    self.assertEqual(m1.last_foreman_time, rdfvalue.RDFDatetime(100000034))
+
+    m2 = res[client_id_2]
+    self.assertEqual(m2.last_foreman_time, rdfvalue.RDFDatetime(100000034))
+
+  def testMultiWriteClientMetadataNoValues(self):
+    client_id_1 = db_test_utils.InitializeClient(self.db)
+    client_id_2 = db_test_utils.InitializeClient(self.db)
+
+    self.db.MultiWriteClientMetadata(
+        [client_id_1, client_id_2]
+    )  # Should not fail.
+
+  def testMultiWriteClientMetadataNoClients(self):
+    self.db.MultiWriteClientMetadata(
+        [], last_foreman=rdfvalue.RDFDatetime(100000035)
+    )  # Should not fail.
 
   def testClientMetadataValidatesIP(self):
     d = self.db
@@ -2097,12 +2188,6 @@ class DatabaseTestClientsMixin(object):
     self.db.WriteFlowProcessingRequests(
         [rdf_flows.FlowProcessingRequest(client_id=client_id, flow_id=flow_id)])
 
-    # A client action request.
-    self.db.WriteClientActionRequests([
-        rdf_flows.ClientActionRequest(
-            client_id=client_id, flow_id=flow_id, request_id=1)
-    ])
-
     return flow_id
 
   def _CheckClientKeyedDataWasDeleted(self, client_id, flow_id):
@@ -2127,9 +2212,6 @@ class DatabaseTestClientsMixin(object):
     # A flow.
     with self.assertRaises(db.UnknownFlowError):
       self.db.ReadFlowObject(client_id, flow_id)
-
-    # A client action request.
-    self.assertEmpty(self.db.ReadAllClientActionRequests(client_id))
 
   def testDeleteClient(self):
     client_id = db_test_utils.InitializeClient(self.db)
@@ -2266,7 +2348,7 @@ class DatabaseTestClientsMixin(object):
     metadata = res[client_id]
     self.assertFalse(metadata.last_fleetspeak_validation_info)
 
-  def testRemovesFleetspeakValidationInfoWhenValidationInfoIsNotPresent(self):
+  def testKeepsFleetspeakValidationInfoWhenValidationInfoIsNotPresent(self):
     client_id = "C.fc413187fefa1dcf"
 
     self.db.WriteClientMetadata(
@@ -2276,7 +2358,9 @@ class DatabaseTestClientsMixin(object):
     res = self.db.MultiReadClientMetadata([client_id])
     self.assertLen(res, 1)
     metadata = res[client_id]
-    self.assertFalse(metadata.last_fleetspeak_validation_info)
+    self.assertEqual(
+        metadata.last_fleetspeak_validation_info.ToStringDict(), {"foo": "bar"}
+    )
 
 
 # This file is a test library and thus does not require a __main__ block.

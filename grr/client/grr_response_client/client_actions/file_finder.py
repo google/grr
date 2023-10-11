@@ -2,8 +2,7 @@
 """The file finder client action."""
 
 import io
-
-from typing import Callable, Iterator, Text, List
+from typing import Callable, Iterator, List, Text
 
 from grr_response_client import actions
 from grr_response_client import client_utils
@@ -121,13 +120,33 @@ class FileFinderOS(actions.ActionPlugin):
       raise _SkipFileException()
 
   def _ValidateMetadata(self, stat, filepath):
+    # This check ensures consistent behavior between the legacy file finder and
+    # the client file finder. The legacy file finder was automatically
+    # following symlinks to regular files.
+    if stat.IsSymlink():
+      target_stat = filesystem.Stat.FromPath(
+          stat.GetPath(), follow_symlink=True
+      )
+      if target_stat.IsRegular():
+        stat = target_stat
+
     for metadata_condition in self._metadata_conditions:
       if not metadata_condition.Check(stat):
         raise _SkipFileException()
 
   def _ValidateContent(self, stat, filepath, matches):
     if self._content_conditions and not stat.IsRegular():
-      raise _SkipFileException()
+      # This check ensures consistent behavior between the legacy file finder
+      # and the client file finder. The legacy file finder was automatically
+      # following symlinks to regular files.
+      if stat.IsSymlink():
+        target_stat = filesystem.Stat.FromPath(
+            stat.GetPath(), follow_symlink=True
+        )
+        if not target_stat.IsRegular():
+          raise _SkipFileException()
+      else:
+        raise _SkipFileException()
 
     for content_condition in self._content_conditions:
       with io.open(filepath, "rb") as fd:

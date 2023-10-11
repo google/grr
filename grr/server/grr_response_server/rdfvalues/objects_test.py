@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 import tempfile
 
@@ -143,6 +142,44 @@ class ClientSnapshotTest(absltest.TestCase):
     self.assertEqual(summary.edr_agents[1].name, "bar")
     self.assertEqual(summary.edr_agents[0].agent_id, "1337")
     self.assertEqual(summary.edr_agents[1].agent_id, "108")
+
+  def testGetSummaryOsReleaseSnapshot(self):
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = "C.0123456789012345"
+    snapshot.os_release = "Rocky Linux"
+    snapshot.knowledge_base.os_release = "RedHat Linux"
+
+    summary = snapshot.GetSummary()
+    self.assertEqual(summary.system_info.release, "Rocky Linux")
+
+  def testGetSummaryOsReleaseKnowledgeBase(self):
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = "C.0123456789012345"
+    snapshot.knowledge_base.os_release = "RedHat Linux"
+
+    summary = snapshot.GetSummary()
+    self.assertEqual(summary.system_info.release, "RedHat Linux")
+
+  def testGetSummaryOsVersionSnapshot(self):
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = "C.0123456789012345"
+    snapshot.os_version = "13.37"
+    snapshot.knowledge_base.os_release = "RedHat Linux"
+    snapshot.knowledge_base.os_major_version = 4
+    snapshot.knowledge_base.os_minor_version = 2
+
+    summary = snapshot.GetSummary()
+    self.assertEqual(summary.system_info.version, "13.37")
+
+  def testGetSummaryOsVersionKnowledgeBase(self):
+    snapshot = rdf_objects.ClientSnapshot()
+    snapshot.client_id = "C.0123456789012345"
+    snapshot.knowledge_base.os_release = "RedHat Linux"
+    snapshot.knowledge_base.os_major_version = 4
+    snapshot.knowledge_base.os_minor_version = 2
+
+    summary = snapshot.GetSummary()
+    self.assertEqual(summary.system_info.version, "4.2")
 
 
 class PathIDTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
@@ -612,6 +649,22 @@ class GRRUserTest(absltest.TestCase):
     u = rdf_objects.GRRUser(username="foo", email="bar@baz.org")
     with test_lib.ConfigOverrider({"Email.enable_custom_email_address": True}):
       self.assertEqual("bar@baz.org", u.GetEmail())
+
+
+class BlobReferenceTest(absltest.TestCase):
+
+  def testFromBlobImageChunkDescriptor(self):
+    blob_id = os.urandom(32)
+
+    chunk = rdf_client_fs.BlobImageChunkDescriptor()
+    chunk.offset = 42
+    chunk.length = 1337
+    chunk.digest = blob_id
+
+    blob_ref = rdf_objects.BlobReference.FromBlobImageChunkDescriptor(chunk)
+    self.assertEqual(blob_ref.offset, 42)
+    self.assertEqual(blob_ref.size, 1337)
+    self.assertEqual(blob_ref.blob_id, blob_id)
 
 
 def main(argv):

@@ -2,7 +2,7 @@ import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {ClientApproval} from '../../../lib/models/client';
+import {type ClientApproval} from '../../../lib/models/client';
 import {FlowWithDescriptor, withDescriptor} from '../../../lib/models/flow';
 import {isNull} from '../../../lib/preconditions';
 import {ConfigGlobalStore} from '../../../store/config_global_store';

@@ -246,11 +246,6 @@ class OSXVersion(object):
     return self.version
 
 
-def KeepAlive():
-  # Not yet supported for OSX.
-  pass
-
-
 def OpenProcessForMemoryAccess(pid=None):
   return process.Process(pid=pid)
 

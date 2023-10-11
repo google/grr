@@ -5,7 +5,7 @@ import {tap} from 'rxjs/operators';
 import {toDurationUnit} from '../../../components/form/duration_input/duration_conversion';
 import {ApiHuntStateReason} from '../../../lib/api/api_interfaces';
 import {DateTime} from '../../../lib/date_time';
-import {Hunt, HuntState} from '../../../lib/models/hunt';
+import {type Hunt, HuntState} from '../../../lib/models/hunt';
 import {GrrUser} from '../../../lib/models/user';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {UserGlobalStore} from '../../../store/user_global_store';

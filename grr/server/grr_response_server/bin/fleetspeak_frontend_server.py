@@ -1,13 +1,14 @@
 #!/usr/bin/env python
 """This is the GRR frontend FS Server."""
 import logging
-from typing import Sequence
+from typing import FrozenSet, Sequence, Tuple
 
 import grpc
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
+from grr_response_core.lib.util import cache
 from grr_response_core.stats import metrics
 from grr_response_server import communicator
 from grr_response_server import data_store
@@ -42,6 +43,23 @@ MIN_DELAY_BETWEEN_METADATA_UPDATES = rdfvalue.Duration.From(
 )
 
 WARN_IF_PROCESSING_LONGER_THAN = rdfvalue.Duration.From(30, rdfvalue.SECONDS)
+
+
+@cache.WithLimitedCallFrequencyWithoutReturnValue(
+    MIN_DELAY_BETWEEN_METADATA_UPDATES
+)
+def RateLimitedWriteClientMetadata(
+    client_id: str,
+    # fleetspeak_validation_info has to be hashable in order for the decorator
+    # function to work. Hence using frozenset instead of a dict.
+    fleetspeak_validation_info: FrozenSet[Tuple[str, str]],
+) -> None:
+  """Rate-limiter to prevent overload of a single DB row on heavy QPS load."""
+  data_store.REL_DB.WriteClientMetadata(
+      client_id,
+      last_ping=rdfvalue.RDFDatetime.Now(),
+      fleetspeak_validation_info=dict(fleetspeak_validation_info),
+  )
 
 
 class GRRFSServer:
@@ -102,10 +120,22 @@ class GRRFSServer:
               "Writing client metadata for existing client "
               f"(time_since_last_ping={time_since_last_ping}"
           )
-          data_store.REL_DB.WriteClientMetadata(
+          # Even though we explicitly check for the last_ping timestamp to
+          # be older than (now - MIN_DELAY_BETWEEN_METADATA_UPDATES), we
+          # still can experience WriteClientMetadata spikes when a client
+          # sends a lot of messages together after more than
+          # MIN_DELAY_BETWEEN_METADATA_UPDATES seconds of silence. These
+          # messages are likely to be handled by various threads of the
+          # same GRR Fleetspeak Frontend process. This creates a race
+          # condition: multiple threads of the process will read the same
+          # row, check the last ping and decided to update it. Rate-limiting
+          # the calls protects against this scenario. Note: it doesn't
+          # protect against the scenario of multiple GRR Fletspeak Frontend
+          # processes receiving the messages at the same time, but such
+          # protection currently is likely excessive.
+          RateLimitedWriteClientMetadata(
               grr_client_id,
-              last_ping=now,
-              fleetspeak_validation_info=validation_info,
+              frozenset(validation_info.items()),
           )
           _LogDelayed("Written client metadata for existing client")
 

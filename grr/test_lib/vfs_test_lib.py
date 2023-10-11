@@ -289,6 +289,8 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
           self.pathspec.last.path,
           pathspec.CollapsePath().lstrip("/"))
     self.path = self.pathspec.CollapsePath()
+    if pathspec.file_size_override:
+      self.size = pathspec.file_size_override
 
   @classmethod
   def FakeRootPath(cls, path):
@@ -362,7 +364,9 @@ class RegistryFake(FakeRegistryVFSHandler):
     raise OSError()
 
   def QueryValueEx(self, key, value_name):
-    full_key = os.path.join(key.value.lower(), value_name).rstrip("/")
+    res = key.value.replace("\\", "/").rstrip("/")
+    parts = res.split("/")
+    full_key = utils.Join(*[p.lower() for p in parts[:-1]] + parts[-1:])
     try:
       stat_entry = self.cache[self.prefix][full_key][1]
       data = stat_entry.registry_data.GetValue()

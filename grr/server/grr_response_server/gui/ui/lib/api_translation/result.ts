@@ -276,3 +276,9 @@ export const PAYLOAD_TYPE_TRANSLATION: {
     columns: EXECUTE_PYTHON_HACK_COLUMNS,
   } as PayloadTranslation<typeof EXECUTE_PYTHON_HACK_COLUMNS>,
 } as const;
+
+/** Maps PayloadType to corresponding translation information for Flows. */
+export const FLOW_PAYLOAD_TYPE_TRANSLATION: {
+  // Note: Not every PayloadType has a translation definition:
+  [key in PayloadType]?: PayloadTranslation<{[key: string]: ColumnDescriptor}>
+} = {} as const;

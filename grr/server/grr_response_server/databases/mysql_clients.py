@@ -26,9 +26,9 @@ class MySQLDBClientMixin(object):
   """MySQLDataStore mixin for client related functions."""
 
   @mysql_utils.WithTransaction()
-  def WriteClientMetadata(
+  def MultiWriteClientMetadata(
       self,
-      client_id: str,
+      client_ids: Collection[str],
       certificate: Optional[rdf_crypto.RDFX509Cert] = None,
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
@@ -38,55 +38,77 @@ class MySQLDBClientMixin(object):
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
       cursor: Optional[MySQLdb.cursors.Cursor] = None,
   ) -> None:
-    """Write metadata about the client."""
-    placeholders = []
+    """Writes metadata about the clients."""
+    # Early return to avoid generating empty query.
+    if not client_ids:
+      return
+
+    common_placeholders = []
     values = dict()
+    column_names = ["client_id"]
 
-    placeholders.append("%(client_id)s")
-    values["client_id"] = db_utils.ClientIDToInt(client_id)
+    for i, client_id in enumerate(client_ids):
+      values[f"client_id{i}"] = db_utils.ClientIDToInt(client_id)
 
-    if certificate:
-      placeholders.append("%(certificate)s")
+    if certificate is not None:
+      column_names.append("certificate")
+      common_placeholders.append("%(certificate)s")
       values["certificate"] = certificate.SerializeToBytes()
     if first_seen is not None:
-      placeholders.append("FROM_UNIXTIME(%(first_seen)s)")
+      column_names.append("first_seen")
+      common_placeholders.append("FROM_UNIXTIME(%(first_seen)s)")
       values["first_seen"] = mysql_utils.RDFDatetimeToTimestamp(first_seen)
     if last_ping is not None:
-      placeholders.append("FROM_UNIXTIME(%(last_ping)s)")
+      column_names.append("last_ping")
+      common_placeholders.append("FROM_UNIXTIME(%(last_ping)s)")
       values["last_ping"] = mysql_utils.RDFDatetimeToTimestamp(last_ping)
-    if last_clock:
-      placeholders.append("FROM_UNIXTIME(%(last_clock)s)")
+    if last_clock is not None:
+      column_names.append("last_clock")
+      common_placeholders.append("FROM_UNIXTIME(%(last_clock)s)")
       values["last_clock"] = mysql_utils.RDFDatetimeToTimestamp(last_clock)
-    if last_ip:
-      placeholders.append("%(last_ip)s")
+    if last_ip is not None:
+      column_names.append("last_ip")
+      common_placeholders.append("%(last_ip)s")
       values["last_ip"] = last_ip.SerializeToBytes()
-    if last_foreman:
-      placeholders.append("FROM_UNIXTIME(%(last_foreman)s)")
+    if last_foreman is not None:
+      column_names.append("last_foreman")
+      common_placeholders.append("FROM_UNIXTIME(%(last_foreman)s)")
       values["last_foreman"] = mysql_utils.RDFDatetimeToTimestamp(last_foreman)
 
-    placeholders.append("%(last_fleetspeak_validation_info)s")
-    if fleetspeak_validation_info:
-      pb = rdf_client.FleetspeakValidationInfo.FromStringDict(
-          fleetspeak_validation_info)
-      values["last_fleetspeak_validation_info"] = pb.SerializeToBytes()
-    else:
-      # Write null for empty or non-existent validation info.
-      values["last_fleetspeak_validation_info"] = None
+    if fleetspeak_validation_info is not None:
+      column_names.append("last_fleetspeak_validation_info")
+      common_placeholders.append("%(last_fleetspeak_validation_info)s")
+      if fleetspeak_validation_info:
+        pb = rdf_client.FleetspeakValidationInfo.FromStringDict(
+            fleetspeak_validation_info
+        )
+        values["last_fleetspeak_validation_info"] = pb.SerializeToBytes()
+      else:
+        # Write null for empty or non-existent validation info.
+        values["last_fleetspeak_validation_info"] = None
 
-    updates = []
-    for column in values:
-      updates.append("{column} = VALUES({column})".format(column=column))
+    # For each client_id, we create a row tuple with a numbered client id
+    # placeholder followed by common placeholder values for the columns being
+    # updated. Example query string:
+    # INSERT INTO clients
+    # VALUES (%(client_id0)s, %(last_ip)s), (%(client_id1)s, %(last_ip)s)
+    # ON DUPLICATE KEY UPDATE
+    # client_id = VALUES(client_id), last_ip = VALUES(last_ip)
+    row_tuples = []
+    for i, client_id in enumerate(client_ids):
+      row_placeholders = ", ".join([f"%(client_id{i})s"] + common_placeholders)
+      row_tuples.append(f"({row_placeholders})")
 
-    query = """
-    INSERT INTO clients ({columns})
-    VALUES ({placeholders})
-    ON DUPLICATE KEY UPDATE {updates}
-    """.format(
-        columns=", ".join(values.keys()),
-        placeholders=", ".join(placeholders),
-        updates=", ".join(updates))
+    column_updates = [f"{column} = VALUES({column})" for column in column_names]
 
-    cursor.execute(query, values)
+    cursor.execute(
+        f"""
+    INSERT INTO clients ({', '.join(column_names)})
+    VALUES {', '.join(row_tuples)}
+    ON DUPLICATE KEY UPDATE {', '.join(column_updates)}
+    """,
+        values,
+    )
 
   @mysql_utils.WithTransaction(readonly=True)
   def MultiReadClientMetadata(self, client_ids, cursor=None):

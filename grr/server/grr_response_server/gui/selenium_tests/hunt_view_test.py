@@ -111,8 +111,6 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     self.RequestAndGrantClientApproval(client_id)
 
-    # TODO(user): move the code below outside of if as soon as hunt's
-    # subflows are properly reported in the REL_DB implementation.
     self.Click("css=tr:contains('%s') td:nth-of-type(2) a" % client_id)
     self.WaitUntil(self.IsTextPresent, "Flow Information")
     self.WaitUntil(self.IsTextPresent, self.base_path)
@@ -316,6 +314,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testLogsTabShowsLogsFromAllClients(self):
     hunt_id = self.SetupHuntDetailView(failrate=-1)
+    # Make sure all flows have a log entry.
+    for client in self.client_ids:
+      self.AddLogToHunt(hunt_id, client, f"TestLogLine for client {client}")
 
     self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
@@ -323,10 +324,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
     for client_id in self.client_ids:
       self.WaitUntil(self.IsTextPresent, client_id)
-      # TODO(amoser): Get rid of the aff4 prefix here.
-      self.WaitUntil(
-          self.IsTextPresent, "File aff4:/%s/%s transferred successfully." %
-          (client_id, "fs/os/tmp/evil.txt"))
+      self.WaitUntil(self.IsTextPresent, f"TestLogLine for client {client_id}")
 
   def testLogsTabGetsAutoRefreshed(self):
     hunt_id = self.CreateSampleHunt()
@@ -353,6 +351,9 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testLogsTabFiltersLogsByString(self):
     hunt_id = self.SetupHuntDetailView(failrate=-1)
+    # Make sure all flows have a log entry.
+    for client in self.client_ids:
+      self.AddLogToHunt(hunt_id, client, f"TestLogLine for client {client}")
 
     self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
@@ -362,16 +363,15 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Click("css=grr-hunt-log button:contains('Filter')")
 
     self.WaitUntil(self.IsTextPresent, self.client_ids[-1])
-    # TODO(amoser): Get rid of the aff4 prefix here.
     self.WaitUntil(
-        self.IsTextPresent, "File aff4:/%s/%s transferred successfully." %
-        (self.client_ids[-1], "fs/os/tmp/evil.txt"))
+        self.IsTextPresent, f"TestLogLine for client {self.client_ids[-1]}"
+    )
 
     for client_id in self.client_ids[:-1]:
       self.WaitUntilNot(self.IsTextPresent, client_id)
       self.WaitUntilNot(
-          self.IsTextPresent, "File %s/%s transferred successfully." %
-          (client_id, "fs/os/tmp/evil.txt"))
+          self.IsTextPresent, f"TestLogLine for client {client_id}"
+      )
 
   def testLogsTabShowsDatesInUTC(self):
     hunt_id = self.CreateSampleHunt()
@@ -386,6 +386,11 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
 
   def testErrorsTabShowsErrorsFromAllClients(self):
     hunt_id = self.SetupHuntDetailView(failrate=1)
+    # Make sure all flows have an error entry.
+    for client in self.client_ids:
+      self.AddErrorToHunt(
+          hunt_id, client, "Client Error", traceback.format_exc()
+      )
 
     self.Open("/legacy#main=ManageHunts")
     self.Click("css=td:contains('%s')" % hunt_id)
@@ -491,7 +496,7 @@ class TestHuntView(gui_test_lib.GRRSeleniumHuntTest):
     self.Open("/legacy#c=" + self.client_ids[0])
     self.Click("css=a:contains('Manage launched flows')")
 
-    self.Click("css=grr-client-flows-list tr:contains('GetFile')")
+    self.Click("css=grr-client-flows-list tr:contains('ClientFileFinder')")
     self.Click("css=li[heading=Results]")
     # This is to check that no exceptions happened when we tried to display
     # results.

@@ -12,7 +12,7 @@ import {firstValueFrom, ReplaySubject, Subject} from 'rxjs';
 import {FlowArgsFormModule} from '../../components/flow_args_form/module';
 import {ArtifactCollectorFlowArgs, Browser, CollectBrowserHistoryArgs, CollectFilesByKnownPathArgsCollectionLevel, ExecutePythonHackArgs, GlobComponentExplanation, LaunchBinaryArgs, ListNamedPipesFlowArgsPipeEndFilter, ListNamedPipesFlowArgsPipeTypeFilter, TimelineArgs} from '../../lib/api/api_interfaces';
 import {ApiModule} from '../../lib/api/module';
-import {BinaryType, FlowDescriptor, FlowType, OperatingSystem, SourceType} from '../../lib/models/flow';
+import {BinaryType, type FlowDescriptor, FlowType, OperatingSystem, SourceType} from '../../lib/models/flow';
 import {newArtifactDescriptorMap, newClient} from '../../lib/models/model_test_util';
 import {ExplainGlobExpressionService} from '../../lib/service/explain_glob_expression_service/explain_glob_expression_service';
 import {deepFreeze} from '../../lib/type_utils';

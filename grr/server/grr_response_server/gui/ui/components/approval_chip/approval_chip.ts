@@ -3,7 +3,7 @@ import {BehaviorSubject} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {DateTime} from '../../lib/date_time';
-import {Approval, ApprovalStatus} from '../../lib/models/user';
+import {type Approval, ApprovalStatus} from '../../lib/models/user';
 
 const TITLES: {readonly[key in ApprovalStatus['type']]: string} = {
   'expired': 'No access',

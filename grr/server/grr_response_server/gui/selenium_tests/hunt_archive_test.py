@@ -285,7 +285,7 @@ class TestHuntArchiving(gui_test_lib.GRRSeleniumHuntTest):
     original_result = results[0]
 
     payload = original_result.payload.Copy()
-    payload.pathspec.path += "blah"
+    payload.stat_entry.pathspec.path += "blah"
 
     client_id = self.SetupClients(1)[0]
     self.AddResultsToHunt(hunt_id, client_id, [payload])

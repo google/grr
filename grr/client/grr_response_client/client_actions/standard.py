@@ -7,7 +7,6 @@ import io
 import logging
 import os
 import platform
-import socket
 import sys
 from typing import Text
 from unittest import mock
@@ -26,8 +25,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
@@ -414,61 +411,6 @@ class ListProcesses(actions.ActionPlugin):
 
       # Reading information here is slow so we heartbeat between processes.
       self.Progress()
-
-
-class SendFile(actions.ActionPlugin):
-  """This action encrypts and sends a file to a remote listener."""
-  in_rdfvalue = rdf_client_action.SendFileRequest
-  out_rdfvalues = [rdf_client_fs.StatEntry]
-
-  # 10 MB.
-  BLOCK_SIZE = 1024 * 1024 * 10
-
-  def Send(self, sock, msg):
-    totalsent = 0
-    n = len(msg)
-    while totalsent < n:
-      sent = sock.send(msg[totalsent:])
-      if sent == 0:
-        raise RuntimeError("socket connection broken")
-      totalsent += sent
-
-  def Run(self, args):
-    """Run."""
-
-    # Open the file.
-    fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
-
-    if args.address_family == rdf_client_network.NetworkAddress.Family.INET:
-      family = socket.AF_INET
-    elif args.address_family == rdf_client_network.NetworkAddress.Family.INET6:
-      family = socket.AF_INET6
-    else:
-      raise RuntimeError("Socket address family not supported.")
-
-    s = socket.socket(family, socket.SOCK_STREAM)
-
-    try:
-      s.connect((args.host, args.port))
-    except socket.error as e:
-      raise RuntimeError(str(e))
-
-    cipher = rdf_crypto.AES128CBCCipher(args.key, args.iv)
-    streaming_encryptor = rdf_crypto.StreamingCBCEncryptor(cipher)
-
-    while True:
-      data = fd.read(self.BLOCK_SIZE)
-      if not data:
-        break
-
-      self.Send(s, streaming_encryptor.Update(data))
-      # Send heartbeats for long files.
-      self.Progress()
-
-    self.Send(s, streaming_encryptor.Finalize())
-    s.close()
-
-    self.SendReply(fd.Stat())
 
 
 def StatFSFromClient(args):

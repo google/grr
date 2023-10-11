@@ -7,6 +7,7 @@
  */
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
 import "grr_response_proto/anomaly.proto";
 import "grr_response_proto/jobs.proto";
 import "grr_response_proto/knowledge_base.proto";
@@ -494,4 +495,165 @@ message CollectSingleFileProgress {
   optional Status status = 1;
   optional CollectSingleFileResult result = 2;
   optional string error_description = 3;
+}
+
+message ClientActionRequest {
+  optional string client_id = 1;
+  optional string flow_id = 2;
+  optional uint64 request_id = 3;
+  optional string action_identifier = 4;
+  optional google.protobuf.Any action_args = 5;
+  optional uint64 cpu_limit_ms = 6;
+  optional uint64 network_bytes_limit = 7;
+  optional uint64 runtime_limit_us = 52;
+}
+
+message ApiClientActionRequest {
+  optional uint64 task_id = 1;
+  optional uint64 leased_until = 2;
+  optional string session_id = 3;
+  optional string client_action = 4;
+  repeated GrrMessage responses = 5;
+}
+
+message ApiListClientActionRequestsArgs {
+  optional string client_id = 1;
+  optional bool fetch_responses = 2;
+}
+
+message ApiListClientActionRequestsResult {
+  repeated ApiClientActionRequest items = 1;
+}
+
+message UninstallArgs {
+  optional bool kill = 1 [(sem_type) = {
+    description: "Kills the client if set.",
+  }];
+}
+
+message UpdateClientArgs {
+  reserved 1;
+  optional string binary_path = 2 [(sem_type) = {
+    description: "Identifies the binary uploaded to GRR server that has "
+                 "to be run on the client to perform the update.",
+  }];
+}
+
+message KeepAliveArgs {
+  optional uint64 duration = 1 [
+    (sem_type) = {
+      type: "DurationSeconds",
+      description: "Until when should the client stay in the fast poll mode.",
+    },
+    default = 3600
+  ];
+}
+
+message CollectEfiHashesResponse {
+  optional string eficheck_version = 1;
+  optional string boot_rom_version = 2;
+  optional ExecuteBinaryResponse response = 3;
+}
+
+message DumpEfiImageResponse {
+  optional string eficheck_version = 1;
+  optional PathSpec path = 2 [(sem_type) = {
+    description: "Temporary path to the flash image.",
+  }];
+  optional ExecuteBinaryResponse response = 3;
+}
+
+message EficheckConfig {
+  reserved 1;
+  optional string cmd_path = 2;
+}
+
+message EficheckFlowArgs {
+  reserved 1;
+  optional string cmd_path = 2
+      [default = "/usr/libexec/firmwarecheckers/eficheck/eficheck"];
+}
+
+message EfiCollection {
+  optional string eficheck_version = 1 [(sem_type) = {
+    description: "Version of eficheck used to collect the data."
+  }];
+  optional string boot_rom_version = 2
+      [(sem_type) = { description: "Boot ROM version." }];
+  repeated EfiEntry entries = 3
+      [(sem_type) = { description: "The hashes of the collection." }];
+}
+
+message EfiEntry {
+  optional uint32 volume_type = 1
+      [(sem_type) = { description: "The volume type." }];
+  optional uint64 address = 2
+      [(sem_type) = { description: "The entry address." }];
+  optional uint32 size = 3 [(sem_type) = { description: "The entry size." }];
+  optional string guid = 4 [(sem_type) = { description: "The EFI GUID." }];
+  optional string hash = 5 [(sem_type) = { description: "The hash value." }];
+  optional uint32 flags = 6 [(sem_type) = {
+    description: "A bit field of flags that describe the volume "
+                 "(known=1, volatile=2, ffs=4)."
+  }];
+  optional uint32 index = 7
+      [(sem_type) = { description: "The entry's volume index." }];
+}
+
+message FindFilesArgs {
+  reserved 3, 4;
+
+  optional FindSpec findspec = 1 [(sem_type) = {
+    description: "A find operation specification.",
+  }];
+}
+
+message SendFileRequest {
+  optional PathSpec pathspec = 1 [(sem_type) = {
+    description: "The pathspec for the file to retrieve.",
+  }];
+
+  optional NetworkAddress.Family address_family = 2 [
+    (sem_type) = {
+      description: "address family to use (AF_INET or AF_INET6).",
+    },
+    default = INET
+  ];
+
+  optional string host = 3 [(sem_type) = {
+    description: "Hostname or IP to send the file to.",
+  }];
+
+  optional uint64 port = 4 [
+    (sem_type) = {
+      description: "Port number on the listening server.",
+    },
+    default = 12345
+  ];
+
+  optional bytes key = 5 [(sem_type) = {
+    type: "AES128Key",
+    description: "An encryption key given in hex representation.",
+  }];
+
+  optional bytes iv = 6 [(sem_type) = {
+    type: "AES128Key",
+    description: "The iv for AES, also given in hex representation.",
+  }];
+}
+
+message FingerprintFileArgs {
+  optional PathSpec pathspec = 1 [(sem_type) = {
+    description: "The file path to fingerprint.",
+  }];
+}
+
+message FingerprintFileResult {
+  optional string file_urn = 1 [(sem_type) = {
+    type: "RDFURN",
+    description: "The URN of the file fingerprinted",
+  }];
+  optional Hash hash_entry = 2 [(sem_type) = {
+    description: "File hash object.",
+  }];
 }

@@ -22,9 +22,9 @@ class InMemoryDBClientMixin(object):
   """InMemoryDB mixin for client related functions."""
 
   @utils.Synchronized
-  def WriteClientMetadata(
+  def MultiWriteClientMetadata(
       self,
-      client_id: str,
+      client_ids: Collection[str],
       certificate: Optional[rdf_crypto.RDFX509Cert] = None,
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
@@ -33,7 +33,7 @@ class InMemoryDBClientMixin(object):
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
   ) -> None:
-    """Write metadata about the client."""
+    """Writes metadata about the clients."""
     md = {}
     if certificate is not None:
       md["certificate"] = certificate
@@ -53,15 +53,18 @@ class InMemoryDBClientMixin(object):
     if last_foreman is not None:
       md["last_foreman_time"] = last_foreman
 
-    if fleetspeak_validation_info:
-      pb = rdf_client.FleetspeakValidationInfo.FromStringDict(
-          fleetspeak_validation_info)
-      md["last_fleetspeak_validation_info"] = pb.SerializeToBytes()
-    else:
-      # Write null for empty or non-existent validation info.
-      md["last_fleetspeak_validation_info"] = None
+    if fleetspeak_validation_info is not None:
+      if fleetspeak_validation_info:
+        pb = rdf_client.FleetspeakValidationInfo.FromStringDict(
+            fleetspeak_validation_info
+        )
+        md["last_fleetspeak_validation_info"] = pb.SerializeToBytes()
+      else:
+        # Write null for empty or non-existent validation info.
+        md["last_fleetspeak_validation_info"] = None
 
-    self.metadatas.setdefault(client_id, {}).update(md)
+    for client_id in client_ids:
+      self.metadatas.setdefault(client_id, {}).update(md)
 
   @utils.Synchronized
   def MultiReadClientMetadata(self, client_ids):
@@ -542,8 +545,6 @@ class InMemoryDBClientMixin(object):
       self.flow_requests.pop(key)
     for key in [k for k in self.flow_processing_requests if k[0] == client_id]:
       self.flow_processing_requests.pop(key)
-    for key in [k for k in self.client_action_requests if k[0] == client_id]:
-      self.client_action_requests.pop(key)
 
     for kw in self.keywords:
       self.keywords[kw].pop(client_id, None)

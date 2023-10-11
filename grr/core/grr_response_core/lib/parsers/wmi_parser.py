@@ -2,7 +2,6 @@
 """Simple parsers for the output of WMI queries."""
 
 
-import binascii
 import calendar
 import struct
 import time
@@ -13,7 +12,6 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import wmi as rdf_wmi
 from grr_response_core.lib.util import precondition
 
@@ -282,81 +280,3 @@ class WMIComputerSystemProductParser(parser.WMIQueryParser):
       yield rdf_client.HardwareInfo(
           serial_number=result_dict["IdentifyingNumber"],
           system_manufacturer=result_dict["Vendor"])
-
-
-class WMIInterfacesParser(parser.WMIQueryParser):
-  """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
-
-  output_types = [
-      rdf_client_network.Interface,
-      rdf_client_network.DNSClientConfiguration,
-  ]
-  supported_artifacts = []
-
-  def WMITimeStrToRDFDatetime(self, timestr):
-    """Return RDFDatetime from string like 20140825162259.000000-420.
-
-    Args:
-      timestr: WMI time string
-
-    Returns:
-      rdfvalue.RDFDatetime
-
-    We have some timezone manipulation work to do here because the UTC offset is
-    in minutes rather than +-HHMM
-    """
-    # We use manual parsing here because the time functions provided (datetime,
-    # dateutil) do not properly deal with timezone information.
-    offset_minutes = timestr[21:]
-    year = timestr[:4]
-    month = timestr[4:6]
-    day = timestr[6:8]
-    hours = timestr[8:10]
-    minutes = timestr[10:12]
-    seconds = timestr[12:14]
-    microseconds = timestr[15:21]
-
-    unix_seconds = calendar.timegm(
-        tuple(map(int, [year, month, day, hours, minutes, seconds])))
-    unix_seconds -= int(offset_minutes) * 60
-    return rdfvalue.RDFDatetime(unix_seconds * 1e6 + int(microseconds))
-
-  def _ConvertIPs(self, io_tuples, interface, output_dict):
-    for inputkey, outputkey in io_tuples:
-      addresses = []
-      if isinstance(interface[inputkey], list):
-        for ip_address in interface[inputkey]:
-          addresses.append(
-              rdf_client_network.NetworkAddress(
-                  human_readable_address=ip_address))
-      else:
-        addresses.append(
-            rdf_client_network.NetworkAddress(
-                human_readable_address=interface[inputkey]))
-      output_dict[outputkey] = addresses
-    return output_dict
-
-  def ParseMultiple(self, result_dicts):
-    """Parse the WMI packages output."""
-    for result_dict in result_dicts:
-      args = {"ifname": result_dict["Description"]}
-      args["mac_address"] = binascii.unhexlify(
-          result_dict["MACAddress"].replace(":", ""))
-
-      self._ConvertIPs([("IPAddress", "addresses"),
-                        ("DefaultIPGateway", "ip_gateway_list"),
-                        ("DHCPServer", "dhcp_server_list")], result_dict, args)
-
-      if "DHCPLeaseExpires" in result_dict:
-        args["dhcp_lease_expires"] = self.WMITimeStrToRDFDatetime(
-            result_dict["DHCPLeaseExpires"])
-
-      if "DHCPLeaseObtained" in result_dict:
-        args["dhcp_lease_obtained"] = self.WMITimeStrToRDFDatetime(
-            result_dict["DHCPLeaseObtained"])
-
-      yield rdf_client_network.Interface(**args)
-
-      yield rdf_client_network.DNSClientConfiguration(
-          dns_server=result_dict["DNSServerSearchOrder"],
-          dns_suffix=result_dict["DNSDomainSuffixSearchOrder"])

@@ -88,6 +88,31 @@ class StatsCollectorTest(
     # Check that previously set values with other fields are not affected.
     self.assertEqual(7, counter.GetValue(fields=["dimension_value_1"]))
 
+  def testCounterWithBoolFields(self):
+    with self.SetUpStatsCollector(self._CreateStatsCollector()):
+      counter = metrics.Counter(
+          f"{self.testCounterWithBoolFields.__name__}_COUNTER",
+          fields=[("is_foo", bool)],
+      )
+
+    self.assertEqual(counter.GetValue([False]), 0)
+    self.assertEqual(counter.GetValue([True]), 0)
+
+    counter.Increment(fields=[True])
+
+    self.assertEqual(counter.GetValue([False]), 0)
+    self.assertEqual(counter.GetValue([True]), 1)
+
+    counter.Increment(fields=[False])
+
+    self.assertEqual(counter.GetValue([False]), 1)
+    self.assertEqual(counter.GetValue([True]), 1)
+
+    counter.Increment(fields=[False])
+
+    self.assertEqual(counter.GetValue([False]), 2)
+    self.assertEqual(counter.GetValue([True]), 1)
+
   def testSimpleGauge(self):
     with self.SetUpStatsCollector(self._CreateStatsCollector()):
       int_gauge = metrics.Gauge("testSimpleGauge_int_gauge", int)

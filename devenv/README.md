@@ -71,21 +71,21 @@ directory is also available, at runtime, to all GRR components.
 
 ## Development Flow Example
 
-1. check that the dev environment can run on the host system: `bash
-   devenv/devenv.sh check_deps`
-2. start the dev environment: `bash devenv/devenv.sh start`
-3. check that everything is up and running: `bash devenv/devenv.sh status`
-4. find the generated GRR client ID: `bash curl -su admin:admin
-   http://localhost:4280/api/clients \ | sed 1d \ | jq -r
-   ".items[].value.client_id.value"` Note: the above assumes the default values
-   in `devenv/config.py` (such as Admin UI port number and admin user details)
-   have not been changed. It also assumes `curl`, `sed`, and `jq` are available
-   on the host system.
-5. open a browser and go to the Admin UI client info page:
-   `http://localhost:4280/#/clients/{CLIENT_ID}/host-info`
-6. edit the GRR worker python code;
-7. restart the `grr-worker` container so that code changes are picked up:
-   `devenv/devenv.sh restart grr-worker`
+1.  check that the dev environment can run on the host system: `bash
+    devenv/devenv.sh check_deps`
+2.  start the dev environment: `bash devenv/devenv.sh start`
+3.  check that everything is up and running: `bash devenv/devenv.sh status`
+4.  find the generated GRR client ID: `bash curl -su admin:admin
+    http://localhost:4280/api/clients \ | sed 1d \ | jq -r
+    ".items[].value.client_id.value"` Note: the above assumes the default values
+    in `devenv/config.py` (such as Admin UI port number and admin user details)
+    have not been changed. It also assumes `curl`, `sed`, and `jq` are available
+    on the host system.
+5.  open a browser and go to the Admin UI client info page:
+    `http://localhost:4280/v2/clients/{CLIENT_ID}`
+6.  edit the GRR worker python code;
+7.  restart the `grr-worker` container so that code changes are picked up:
+    `devenv/devenv.sh restart grr-worker`
 
 ### Debugging
 

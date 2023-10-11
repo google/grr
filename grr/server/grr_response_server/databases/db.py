@@ -632,6 +632,40 @@ class Database(metaclass=abc.ABCMeta):
     """
 
   @abc.abstractmethod
+  def MultiWriteClientMetadata(
+      self,
+      client_ids: Collection[str],
+      certificate: Optional[rdf_crypto.RDFX509Cert] = None,
+      first_seen: Optional[rdfvalue.RDFDatetime] = None,
+      last_ping: Optional[rdfvalue.RDFDatetime] = None,
+      last_clock: Optional[rdfvalue.RDFDatetime] = None,
+      last_ip: Optional[rdf_client_network.NetworkAddress] = None,
+      last_foreman: Optional[rdfvalue.RDFDatetime] = None,
+      fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
+  ) -> None:
+    """Writes ClientMetadata records for a list of clients.
+
+    Updates one or more client metadata fields for a list of clients. Any of
+    the data fields can be left as None, and in this case are not changed.
+
+    Args:
+      client_ids: A collection of GRR client id strings, e.g.
+        ["C.ea3b2b71840d6fa7", "C.ea3b2b71840d6fa8"]
+      certificate: If set, should be an rdfvalues.crypto.RDFX509 protocol
+        buffer. Normally only set during initial client record creation.
+      first_seen: An rdfvalue.Datetime, indicating the first time the client
+        contacted the server.
+      last_ping: An rdfvalue.Datetime, indicating the last time the client
+        contacted the server.
+      last_clock: An rdfvalue.Datetime, indicating the last client clock time
+        reported to the server.
+      last_ip: An rdfvalues.client.NetworkAddress, indicating the last observed
+        ip address for the client.
+      last_foreman: An rdfvalue.Datetime, indicating the last time that the
+        client sent a foreman message to the server.
+      fleetspeak_validation_info: A dict with validation info from Fleetspeak.
+    """
+
   def WriteClientMetadata(
       self,
       client_id: str,
@@ -664,6 +698,16 @@ class Database(metaclass=abc.ABCMeta):
         client sent a foreman message to the server.
       fleetspeak_validation_info: A dict with validation info from Fleetspeak.
     """
+    self.MultiWriteClientMetadata(
+        client_ids=[client_id],
+        certificate=certificate,
+        first_seen=first_seen,
+        last_ping=last_ping,
+        last_clock=last_clock,
+        last_ip=last_ip,
+        last_foreman=last_foreman,
+        fleetspeak_validation_info=fleetspeak_validation_info,
+    )
 
   @abc.abstractmethod
   def DeleteClient(self, client_id):
@@ -1923,48 +1967,6 @@ class Database(metaclass=abc.ABCMeta):
   CLIENT_MESSAGES_TTL = 5
 
   @abc.abstractmethod
-  def WriteClientActionRequests(self, requests):
-    """Writes messages that should go to the client to the db.
-
-    Args:
-      requests: A list of ClientActionRequest objects to write.
-    """
-
-  @abc.abstractmethod
-  def LeaseClientActionRequests(self, client_id, lease_time=None, limit=None):
-    """Leases available client action requests for the client with the given id.
-
-    Args:
-      client_id: The client for which the requests should be leased.
-      lease_time: rdfvalue.Duration indicating how long the lease should be
-        valid.
-      limit: Lease at most <limit> requests. If set, must be less than 10000.
-        Default is 5000.
-
-    Returns:
-      A list of ClientActionRequest objects.
-    """
-
-  @abc.abstractmethod
-  def ReadAllClientActionRequests(self, client_id):
-    """Reads all client action requests available for a given client_id.
-
-    Args:
-      client_id: The client for which the requests should be read.
-
-    Returns:
-      A list of ClientActionRequest objects.
-    """
-
-  @abc.abstractmethod
-  def DeleteClientActionRequests(self, requests):
-    """Deletes a list of client action requests from the db.
-
-    Args:
-      requests: A list of ClientActionRequest objects to delete.
-    """
-
-  @abc.abstractmethod
   def WriteFlowObject(self, flow_obj, allow_update=True):
     """Writes a flow object to the database.
 
@@ -3133,9 +3135,9 @@ class DatabaseValidationWrapper(Database):
     precondition.AssertType(name, Text)
     return self.delegate.DeleteArtifact(name)
 
-  def WriteClientMetadata(
+  def MultiWriteClientMetadata(
       self,
-      client_id: str,
+      client_ids: Collection[str],
       certificate: Optional[rdf_crypto.RDFX509Cert] = None,
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
@@ -3144,7 +3146,7 @@ class DatabaseValidationWrapper(Database):
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
   ) -> None:
-    precondition.ValidateClientId(client_id)
+    _ValidateClientIds(client_ids)
     precondition.AssertOptionalType(certificate, rdf_crypto.RDFX509Cert)
     precondition.AssertOptionalType(first_seen, rdfvalue.RDFDatetime)
     precondition.AssertOptionalType(last_ping, rdfvalue.RDFDatetime)
@@ -3155,8 +3157,8 @@ class DatabaseValidationWrapper(Database):
     if fleetspeak_validation_info is not None:
       precondition.AssertDictType(fleetspeak_validation_info, str, str)
 
-    return self.delegate.WriteClientMetadata(
-        client_id,
+    return self.delegate.MultiWriteClientMetadata(
+        client_ids=client_ids,
         certificate=certificate,
         first_seen=first_seen,
         last_ping=last_ping,
@@ -3832,30 +3834,6 @@ class DatabaseValidationWrapper(Database):
   def ReadHashBlobReferences(self, hashes):
     precondition.AssertIterableType(hashes, rdf_objects.SHA256HashID)
     return self.delegate.ReadHashBlobReferences(hashes)
-
-  def WriteClientActionRequests(self, requests):
-    for request in requests:
-      precondition.AssertType(request, rdf_flows.ClientActionRequest)
-    return self.delegate.WriteClientActionRequests(requests)
-
-  def LeaseClientActionRequests(self, client_id, lease_time=None, limit=5000):
-    precondition.ValidateClientId(client_id)
-    _ValidateDuration(lease_time)
-    precondition.AssertType(limit, int)
-    if limit >= 10000:
-      raise ValueError("Limit of %d is too high.")
-
-    return self.delegate.LeaseClientActionRequests(
-        client_id, lease_time=lease_time, limit=limit)
-
-  def ReadAllClientActionRequests(self, client_id):
-    precondition.ValidateClientId(client_id)
-    return self.delegate.ReadAllClientActionRequests(client_id)
-
-  def DeleteClientActionRequests(self, requests):
-    for request in requests:
-      precondition.AssertType(request, rdf_flows.ClientActionRequest)
-    return self.delegate.DeleteClientActionRequests(requests)
 
   def WriteFlowObject(self, flow_obj, allow_update=True):
     precondition.AssertType(flow_obj, rdf_flow_objects.Flow)

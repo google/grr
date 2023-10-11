@@ -183,11 +183,12 @@ class ClientBase(object):
         approval_id=approval_id,
         context=self._context)
 
-  def CreateApproval(self,
-                     reason=None,
-                     notified_users=None,
-                     email_cc_addresses=None,
-                     keep_client_alive=False):
+  def CreateApproval(
+      self,
+      reason=None,
+      notified_users=None,
+      email_cc_addresses=None,
+  ):
     """Create a new approval for the current user to access this client."""
 
     if not reason:
@@ -203,7 +204,7 @@ class ClientBase(object):
     args = user_pb2.ApiCreateClientApprovalArgs(
         client_id=self.client_id,
         approval=approval,
-        keep_client_alive=keep_client_alive)
+    )
 
     data = self._context.SendRequest("CreateClientApproval", args)
     return ClientApproval(

@@ -3,7 +3,7 @@ import {ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {getExportedResultsCsvUrl, getExportedResultsSqliteUrl, getExportedResultsYamlUrl, getFlowFilesArchiveUrl} from '../../../lib/api/http_api_service';
-import {Flow, FlowState} from '../../../lib/models/flow';
+import {type Flow, FlowState} from '../../../lib/models/flow';
 import {isNonNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {makeLegacyLink} from '../../../lib/routing';

@@ -223,8 +223,8 @@ def _BuildToc(src_toc_path: str, files_dir: str) -> _BuildTocResult:
   file_order = []
   dom = xml.dom.minidom.parse(src_toc_path)
 
-  _SetXmlChildAttribute(dom, "checksum", "style", "sha1")
-  checksum_elem = _XmlChild(dom, "checksum")
+  _SetXmlChildAttribute(dom, "checksum", "style", "sha1")  # pytype: disable=wrong-arg-types
+  checksum_elem = _XmlChild(dom, "checksum")  # pytype: disable=wrong-arg-types
   _SetXmlChildValue(checksum_elem, "offset", 0)
   _SetXmlChildValue(checksum_elem, "size", hashlib.sha1().digest_size)
 

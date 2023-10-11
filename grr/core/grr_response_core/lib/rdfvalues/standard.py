@@ -134,4 +134,4 @@ class URI(rdf_structs.RDFProtoStruct):
 
   def SerializeToHumanReadable(self) -> Text:
     parts = (self.transport, self.host, self.path, self.query, self.fragment)
-    return urlparse.urlunsplit(parts)
+    return urlparse.urlunsplit(parts)  # pytype: disable=bad-return-type

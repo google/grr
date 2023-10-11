@@ -29,7 +29,7 @@ class ApiUploadYaraSignatureHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiUploadYaraSignatureArgs
   result_type = ApiUploadYaraSignatureResult
 
-  def Handle(
+  def Handle(  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
       self,
       args: ApiUploadYaraSignatureArgs,
       context: api_call_context.ApiCallContext,

@@ -176,6 +176,8 @@ class GetFile(flow_base.FlowBase):
   """
 
   category = "/Filesystem/"
+  friendly_name = "GetFile (deprecated)"
+  behaviours = flow_base.BEHAVIOUR_DEBUG
 
   args_type = GetFileArgs
 
@@ -419,10 +421,9 @@ class MultiGetFileLogic(object):
   # allows us to amortize file store round trips and increases throughput.
   MIN_CALL_TO_FILE_STORE = 200
 
-  def Start(self,
-            file_size=0,
-            maximum_pending_files=1000,
-            use_external_stores=False):
+  def Start(
+      self, file_size=0, maximum_pending_files=1000, use_external_stores=True
+  ):
     """Initialize our state."""
     super().Start()
 
@@ -1046,6 +1047,9 @@ class MultiGetFile(MultiGetFileLogic, flow_base.FlowBase):
   progress_type = MultiGetFileProgress
   result_types = (rdf_client_fs.StatEntry,)
 
+  category = "/Filesystem/"
+  behaviours = flow_base.BEHAVIOUR_DEBUG
+
   def GetProgress(self) -> MultiGetFileProgress:
     return MultiGetFileProgress(
         num_pending_hashes=len(self.state.pending_hashes),
@@ -1193,30 +1197,3 @@ class BlobHandler(message_handlers.MessageHandler):
       blobs.append(data)
 
     data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
-
-
-class SendFile(flow_base.FlowBase):
-  """This flow sends a file to remote listener.
-
-  To use this flow, choose a key and an IV in hex format (if run from the GUI,
-  there will be a pregenerated pair key and iv for you to use) and run a
-  listener on the server you want to use like this:
-
-  nc -l <port> | openssl aes-128-cbc -d -K <key> -iv <iv> > <filename>
-
-  Returns to parent flow:
-    A rdf_client_fs.StatEntry of the sent file.
-  """
-
-  category = "/Filesystem/"
-  args_type = rdf_client_action.SendFileRequest
-
-  def Start(self):
-    """This issues the sendfile request."""
-    self.CallClient(
-        server_stubs.SendFile, self.args, next_state=self.Done.__name__)
-
-  def Done(self, responses):
-    if not responses.success:
-      self.Log(responses.status.error_message)
-      raise flow_base.FlowError(responses.status.error_message)

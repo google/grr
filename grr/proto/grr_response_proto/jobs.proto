@@ -1191,41 +1191,6 @@ message ExecuteBinaryResponse {
   optional int32 time_used = 4;
 }
 
-// This requests the client to encrypt a file and send it to a specified server.
-message SendFileRequest {
-  optional PathSpec pathspec = 1 [(sem_type) = {
-    description: "The pathspec for the file to retrieve.",
-  }];
-
-  optional NetworkAddress.Family address_family = 2 [
-    (sem_type) = {
-      description: "address family to use (AF_INET or AF_INET6).",
-    },
-    default = INET
-  ];
-
-  optional string host = 3 [(sem_type) = {
-    description: "Hostname or IP to send the file to.",
-  }];
-
-  optional uint64 port = 4 [
-    (sem_type) = {
-      description: "Port number on the listening server.",
-    },
-    default = 12345
-  ];
-
-  optional bytes key = 5 [(sem_type) = {
-    type: "AES128Key",
-    description: "An encryption key given in hex representation.",
-  }];
-
-  optional bytes iv = 6 [(sem_type) = {
-    type: "AES128Key",
-    description: "The iv for AES, also given in hex representation.",
-  }];
-}
-
 // Grep searches the content of files for a hit and returns several
 // BufferReference.
 message GrepSpec {
@@ -1939,6 +1904,7 @@ message MetricFieldDefinition {
   enum FieldType {
     INT = 0;
     STR = 1;
+    BOOL = 2;
   }
 
   optional string field_name = 1;

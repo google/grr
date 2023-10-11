@@ -1,12 +1,15 @@
 import {Component} from '@angular/core';
 import {combineLatest, Observable} from 'rxjs';
-import {filter, map} from 'rxjs/operators';
+import {filter, map, startWith, take} from 'rxjs/operators';
 
 import {ApiGetHuntClientCompletionStatsResult, SampleFloat} from '../../../../lib/api/api_interfaces';
+import {LineChartDatapoint} from '../../../../lib/dataviz/line_chart';
 import {HuntCompletionProgressTableRow} from '../../../../lib/models/hunt';
-import {isNonNull} from '../../../../lib/preconditions';
+import {isNonNull, isNull} from '../../../../lib/preconditions';
 import {HuntPageGlobalStore} from '../../../../store/hunt_page_global_store';
 import {ColorScheme} from '../../../flow_details/helpers/result_accordion';
+import {HuntProgressLineChartDataset} from '../hunt_progress_chart/hunt_progress_chart';
+
 
 /** Summary describes information in a summary card. */
 interface Summary {
@@ -18,6 +21,11 @@ interface Summary {
 
 const FIVE_MINUTES_IN_SECONDS = 5 * 60;
 const BIG_ZERO = BigInt(0);
+
+enum HuntProgressTabIndex {
+  CHART_TAB = 0,
+  TABLE_TAB = 1,
+}
 
 function getPercentage(part: bigint, all: bigint): bigint {
   if (part === BIG_ZERO || all === BIG_ZERO) return BIG_ZERO;
@@ -97,6 +105,62 @@ function addClientSetToBuckets(
   });
 }
 
+/**
+ * Removes entries/datapoints with a duplicated X axis value, keeping the one
+ * with the highest Y-Axis value (the datapoint with the most information about
+ * client completion progress).
+ */
+function prepareHuntProgressChartTimeSeriesData(
+    series: readonly LineChartDatapoint[],
+    ): LineChartDatapoint[] {
+  // We first sort the dataset backwards, based on the X Axis value:
+  const backwardsSortedSeries =
+      [...series].sort((a, b) => b.y - a.y).sort((a, b) => b.x - a.x);
+
+  const existingValues = new Set<number>();
+
+  const backwardsSortedFilteredSeries = backwardsSortedSeries.filter(dp => {
+    if (existingValues.has(dp.x)) return false;
+
+    existingValues.add(dp.x);
+
+    return true;
+  });
+
+  return backwardsSortedFilteredSeries.reverse();
+}
+
+function toHuntCompletionChartData(
+    progressData: ApiGetHuntClientCompletionStatsResult,
+    ): HuntProgressLineChartDataset {
+  const completedClients = prepareHuntProgressChartTimeSeriesData(
+      toSafeLineChartData(progressData?.completePoints));
+  const inProgressClients = prepareHuntProgressChartTimeSeriesData(
+      toSafeLineChartData(progressData?.startPoints));
+
+  const huntProgressLineChartDataset: HuntProgressLineChartDataset = {
+    completedClients,
+    inProgressClients,
+  };
+
+  return huntProgressLineChartDataset;
+}
+
+function toSafeLineChartData(dataset?: readonly SampleFloat[]):
+    LineChartDatapoint[] {
+  if (isNull(dataset)) return [];
+
+  return dataset
+      .filter(
+          dataPoint =>  // We discard incomplete dataPoints:
+          isNonNull(dataPoint.xValue) && isNonNull(dataPoint.yValue))
+      .map(dataPoint => ({
+             // Convert floating-point seconds to milliseconds:
+             x: dataPoint.xValue! * 1_000,
+             y: dataPoint.yValue!,
+           }));
+}
+
 /** Provides progress information for the current hunt. */
 @Component({
   selector: 'app-hunt-progress',
@@ -108,6 +172,20 @@ export class HuntProgress {
   constructor(private readonly huntPageGlobalStore: HuntPageGlobalStore) {}
 
   protected readonly hunt$ = this.huntPageGlobalStore.selectedHunt$;
+  protected readonly huntProgress$ = this.huntPageGlobalStore.huntProgress$;
+  protected readonly showHuntProgress$ = this.huntProgress$.pipe(
+      map(progress => {
+        const startPoints = progress?.startPoints?.length ?? 0;
+        const completePoints = progress?.completePoints?.length ?? 0;
+
+        return startPoints > 0 || completePoints > 0;
+      }),
+  );
+
+  protected readonly huntProgressLoading$ = this.huntProgress$.pipe(
+      map(huntProgress => isNull(huntProgress)),
+      startWith(true),
+  );
 
   protected overviewSummaries$: Observable<readonly Summary[]> =
       this.hunt$.pipe(map(hunt => {
@@ -167,7 +245,7 @@ export class HuntProgress {
   readonly huntProgressTableData$:
       Observable<HuntCompletionProgressTableRow[]> =
           combineLatest([
-            this.huntPageGlobalStore.huntProgress$,
+            this.huntProgress$,
             this.hunt$,
           ])
               .pipe(
@@ -176,6 +254,23 @@ export class HuntProgress {
                   map(([tableData, hunt]) => this.toHuntCompletionTableData(
                           tableData, hunt?.allClientsCount)),
               );
+  readonly huntProgressChartData$: Observable<HuntProgressLineChartDataset> =
+      this.huntProgress$.pipe(
+          filter((progressData) => isNonNull(progressData)),
+          map((progressData) => toHuntCompletionChartData(progressData)),
+      );
+  readonly huntProgressInitiallySelectedTab$ = this.huntProgressChartData$.pipe(
+      map(chartData => {
+        // We need at least 2 datapoints in a series in order to render a line:
+        const hasEnoughChartData = chartData.completedClients.length >= 2 ||
+            chartData.inProgressClients.length >= 2;
+
+        return hasEnoughChartData ? HuntProgressTabIndex.CHART_TAB :
+                                    HuntProgressTabIndex.TABLE_TAB;
+      }),
+      // We are only interested in the first emission:
+      take(1),
+  );
 
   private toHuntCompletionTableData(
       huntCompletionStatusdata: ApiGetHuntClientCompletionStatsResult,

@@ -109,10 +109,18 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     parser = linux_release_parser.LinuxReleaseParser()
 
     testdata = [
-        ("/etc/lsb-release",
-         os.path.join(self.parser_test_dir, "lsb-release-notubuntu")),
-        ("/etc/oracle-release",
-         os.path.join(self.parser_test_dir, "oracle-release")),
+        (
+            "/etc/lsb-release",
+            os.path.join(self.parser_test_dir, "lsb-release-notubuntu"),
+        ),
+        (
+            "/etc/redhat-release",
+            os.path.join(self.parser_test_dir, "redhat-release"),
+        ),
+        (
+            "/etc/oracle-release",
+            os.path.join(self.parser_test_dir, "oracle-release"),
+        ),
     ]
     pathspecs, files = self._CreateTestData(testdata)
 
@@ -122,6 +130,32 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     self.assertEqual("OracleLinux", result["os_release"])
     self.assertEqual(6, result["os_major_version"])
     self.assertEqual(5, result["os_minor_version"])
+
+  def testEndToEndRockyLinux(self):
+    parser = linux_release_parser.LinuxReleaseParser()
+
+    testdata = [
+        (
+            "/etc/lsb-release",
+            os.path.join(self.parser_test_dir, "lsb-release-notubuntu"),
+        ),
+        (
+            "/etc/redhat-release",
+            os.path.join(self.parser_test_dir, "redhat-release"),
+        ),
+        (
+            "/etc/rocky-release",
+            os.path.join(self.parser_test_dir, "rocky-release"),
+        ),
+    ]
+    pathspecs, files = self._CreateTestData(testdata)
+
+    result = list(parser.ParseFiles(None, pathspecs, files)).pop()
+
+    self.assertIsInstance(result, rdf_protodict.Dict)
+    self.assertEqual("Rocky", result["os_release"])
+    self.assertEqual(8, result["os_major_version"])
+    self.assertEqual(8, result["os_minor_version"])
 
   def testEndToEndAmazon(self):
     parser = linux_release_parser.LinuxReleaseParser()

@@ -70,12 +70,16 @@ def _CheckConditionsShortCircuit(content_conditions, pathspec):
   """Checks all `content_conditions` until one yields no matches."""
   matches = []
   for cond in content_conditions:
+    cur_matches = []
     with vfs.VFSOpen(pathspec) as vfs_file:
-      if vfs_file.size == 0 or vfs_file.size is None:
-        # Skip directories.
-        cur_matches = []
-      else:
+      is_registry = (
+          vfs_file.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY
+      )
+      # Do the actual matching for registry files or for files with a well
+      # defined size.
+      if is_registry or (vfs_file.size is not None and vfs_file.size > 0):
         cur_matches = list(cond.Search(vfs_file))
+
     if cur_matches:
       matches.extend(cur_matches)
     else:  # As soon as one condition does not match, we skip the file.

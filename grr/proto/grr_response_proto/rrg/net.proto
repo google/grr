@@ -1,0 +1,93 @@
+// Copyright 2023 Google LLC
+//
+// Use of this source code is governed by an MIT-style license that can be found
+// in the LICENSE file or at https://opensource.org/licenses/MIT.
+syntax = "proto3";
+
+package rrg.net;
+
+// IP address (either IPv4 or IPv6).
+message IpAddress {
+  // Octets that the IP address consists of.
+  //
+  // Required to have 4 bytes for IPv4 and 16 bytes for IPv6 addresses.
+  bytes octets = 1;
+}
+
+// Socket address (either IPv4 or IPv6).
+message SocketAddress {
+  // IP address associated with this socket address.
+  IpAddress ip_address = 1;
+
+  // Port number associated with this socket address.
+  uint32 port = 2;
+}
+
+// MAC address as defined in the IEEE 802 standard [1].
+//
+// [1]: https://standards.ieee.org/wp-content/uploads/import/documents/tutorials/macgrp.pdf
+message MacAddress {
+  // Octets that the MAC address consists of.
+  //
+  // Required to have 6 bytes.
+  bytes octets = 1;
+}
+
+// State of a TCP connection as described in RFC 793 [1].
+//
+// [1]: https://www.ietf.org/rfc/rfc793.txt
+enum TcpState {
+  UNKNOWN = 0x00;
+  ESTABLISHED = 0x01;
+  SYN_SENT = 0x02;
+  SYN_RECEIVED = 0x03;
+  FIN_WAIT_1 = 0x04;
+  FIN_WAIT_2 = 0x05;
+  TIME_WAIT = 0x06;
+  CLOSED = 0x07;
+  CLOSE_WAIT = 0x08;
+  LAST_ACK = 0x09;
+  LISTEN = 0x0A;
+  CLOSING = 0x0B;
+}
+
+// Information about a TCP connection.
+//
+// The version of the protocol can be determined from the IP addresses.
+message TcpConnection {
+  // Identifier of the process that owns the connection.
+  uint32 pid = 1;
+
+  // Local address of the connection.
+  SocketAddress local_address = 2;
+
+  // Remote address of the connection.
+  SocketAddress remote_address = 3;
+
+  // State of the connection.
+  TcpState state = 4;
+}
+
+// Information about a UDP connection.
+//
+// The version of the protocol can be determined from the IP addresses.
+message UdpConnection {
+  // Identifier of the process that owns the connection.
+  uint32 pid = 1;
+
+  // Local address of the connection.
+  SocketAddress local_address = 2;
+}
+
+// Information about an Internet connection.
+//
+// The version of the protocol can be determined from the IP addresses.
+message Connection {
+  oneof connection {
+    // Information about a TCP connection.
+    TcpConnection tcp = 1;
+
+    // Information about a UDP connection.
+    UdpConnection udp = 2;
+  }
+}

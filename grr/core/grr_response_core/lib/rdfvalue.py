@@ -23,6 +23,7 @@ import zlib
 import dateutil
 from dateutil import parser
 
+from google.protobuf import timestamp_pb2
 from grr_response_core.lib import registry
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
@@ -564,6 +565,22 @@ class RDFDatetime(RDFPrimitive):
                (value.microsecond * cls.converter // 1000000))
 
   @classmethod
+  def FromProtoTimestamp(
+      cls,
+      timestamp: timestamp_pb2.Timestamp,
+  ) -> "RDFDatetime":
+    """Converts Protocol Buffers `Timestamp` instances to datetime objects.
+
+    Args:
+      timestamp: A Protocol Buffers `Timestamp` instance to convert.
+
+    Returns:
+      A corresponding RDF datetime object.
+    """
+    micros = timestamp.seconds * 1_000_000 + timestamp.nanos // 1_000
+    return RDFDatetime.FromMicrosecondsSinceEpoch(micros)
+
+  @classmethod
   def FromDate(cls, value):
     seconds = calendar.timegm(value.timetuple())
     return cls(seconds * cls.converter)
@@ -592,6 +609,12 @@ class RDFDatetime(RDFPrimitive):
       raise ValueError("Interpolation progress does not belong to [0.0, 1.0]")
 
     return cls(round((1 - t) * start_time._value + t * end_time._value))  # pylint: disable=protected-access
+
+  @classmethod
+  def EarliestDatabaseSafeValue(cls):
+    """Returns the earliest datetime supported by all database backends."""
+    # See https://bugs.mysql.com/77232
+    return cls(1000000)
 
   def __add__(self, other):
     # TODO(hanuszczak): Disallow `float` initialization.

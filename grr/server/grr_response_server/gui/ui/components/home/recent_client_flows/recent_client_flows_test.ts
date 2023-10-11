@@ -110,14 +110,14 @@ describe('RecentClientFlows Component', () => {
               friendlyName: 'Client Side File Finder',
             },
             {
-              name: 'KeepAlive',
-              friendlyName: 'KeepAlive',
+              name: 'Kill',
+              friendlyName: 'Kill GRR agent process',
             }));
 
     recentClientFlowsLocalStore.mockedObservables.flowListEntries$.next({
       flows: [
         newFlow({
-          name: 'KeepAlive',
+          name: 'Kill',
           creator: 'ricky',
           clientId: 'C.1111',
         }),

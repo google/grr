@@ -3,13 +3,10 @@
 
 import logging
 from typing import Any
-from typing import List
-from typing import Sequence
 
 from google.protobuf import any_pb2
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
@@ -29,6 +26,7 @@ from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.flows.general import collectors
+from grr_response_server.flows.general import crowdstrike
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
 from grr_response_proto.rrg import os_pb2 as rrg_os_pb2
@@ -112,13 +110,11 @@ class Interrogate(flow_base.FlowBase):
         server_stubs.EnumerateFilesystems,
         next_state=self.EnumerateFilesystems.__name__)
 
-    flow_args_cls = rdf_artifacts.ArtifactCollectorFlowArgs
-    if config.CONFIG["Artifacts.edr_agents"]:
+    if config.CONFIG["Interrogate.collect_crowdstrike_agent_id"]:
       self.CallFlow(
-          collectors.ArtifactCollectorFlow.__name__,
-          artifact_list=config.CONFIG["Artifacts.edr_agents"],
-          dependencies=flow_args_cls.Dependency.IGNORE_DEPS,
-          next_state=self.ProcessEdrAgents.__name__)
+          crowdstrike.GetCrowdStrikeAgentID.__name__,
+          next_state=self.ProcessGetCrowdStrikeAgentID.__name__,
+      )
 
   @flow_base.UseProto2AnyResponses
   def HandleRRGGetSystemMetadata(
@@ -432,19 +428,23 @@ class Interrogate(flow_base.FlowBase):
     for k, v in response.items():
       self.state.client.library_versions.Append(key=k, value=str(v))
 
-  def ProcessEdrAgents(self, responses: Sequence[Any]) -> None:
+  def ProcessGetCrowdStrikeAgentID(
+      self,
+      responses: flow_responses.Responses[Any],
+  ) -> None:
     if not responses.success:
+      status = responses.status
+      self.Log("failed to obtain CrowdStrike agent identifier: %s", status)
       return
 
-    edr_agents: List[rdf_client.EdrAgent] = []
-
     for response in responses:
-      if not isinstance(response, rdf_client.EdrAgent):
-        raise TypeError(f"Unexpected EDR agent response type: {type(response)}")
+      if not isinstance(response, crowdstrike.GetCrowdstrikeAgentIdResult):
+        raise TypeError(f"Unexpected response type: {type(response)}")
 
-      edr_agents.append(response)
-
-    self.state.client.edr_agents = edr_agents
+      edr_agent = rdf_client.EdrAgent()
+      edr_agent.name = "CrowdStrike"
+      edr_agent.agent_id = response.agent_id
+      self.state.client.edr_agents.append(edr_agent)
 
   def NotifyAboutEnd(self):
     notification.Notify(
@@ -479,6 +479,12 @@ class Interrogate(flow_base.FlowBase):
     if labels:
       data_store.REL_DB.AddClientLabels(self.state.client.client_id, "GRR",
                                         labels)
+
+    # Reset foreman rules check so active hunts can match against the new data
+    data_store.REL_DB.WriteClientMetadata(
+        self.client_id,
+        last_foreman=rdfvalue.RDFDatetime.EarliestDatabaseSafeValue(),
+    )
 
 
 class EnrolmentInterrogateEvent(events.EventListener):

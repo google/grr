@@ -8,6 +8,7 @@ from grr_response_client import client_actions
 from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import artifact_collector
 from grr_response_client.client_actions import cloud
+from grr_response_client.client_actions import dummy
 from grr_response_client.client_actions import file_finder
 from grr_response_client.client_actions import file_fingerprint
 from grr_response_client.client_actions import large_file
@@ -20,6 +21,7 @@ from grr_response_client.client_actions import standard
 from grr_response_client.client_actions import tempfiles
 from grr_response_client.client_actions import timeline
 from grr_response_client.client_actions import vfs_file_finder
+from grr_response_client.client_actions.windows import dummy as win_dummy
 from grr_response_client.client_actions.windows import pipes
 
 
@@ -60,7 +62,6 @@ def RegisterClientActions():
   client_actions.Register("ReadBuffer", standard.ReadBuffer)
   client_actions.Register("ReadLowLevel", read_low_level.ReadLowLevel)
   client_actions.Register("Segfault", standard.Segfault)
-  client_actions.Register("SendFile", standard.SendFile)
   client_actions.Register("SendStartupInfo", admin.SendStartupInfo)
   client_actions.Register("StatFS", standard.StatFS)
   client_actions.Register("Timeline", timeline.Timeline)
@@ -72,13 +73,14 @@ def RegisterClientActions():
 
   if platform.system() == "Linux":
     from grr_response_client.client_actions.linux import linux  # pylint: disable=g-import-not-at-top
+
+    client_actions.Register("Dummy", dummy.Dummy)
     client_actions.Register("EnumerateFilesystems", linux.EnumerateFilesystems)
     client_actions.Register("EnumerateInterfaces", linux.EnumerateInterfaces)
     client_actions.Register("EnumerateRunningServices",
                             linux.EnumerateRunningServices)
     client_actions.Register("EnumerateUsers", linux.EnumerateUsers)
     client_actions.Register("GetInstallDate", linux.GetInstallDate)
-    client_actions.Register("Uninstall", linux.Uninstall)
     client_actions.Register("UpdateAgent", linux.UpdateAgent)
 
     if hasattr(sys, "frozen"):
@@ -88,12 +90,13 @@ def RegisterClientActions():
 
   elif platform.system() == "Windows":
     from grr_response_client.client_actions.windows import windows  # pylint: disable=g-import-not-at-top
+
+    client_actions.Register("Dummy", win_dummy.Dummy)
     client_actions.Register("EnumerateFilesystems",
                             windows.EnumerateFilesystems)
     client_actions.Register("EnumerateInterfaces", windows.EnumerateInterfaces)
     client_actions.Register("GetInstallDate", windows.GetInstallDate)
     client_actions.Register("WmiQuery", windows.WmiQuery)
-    client_actions.Register("Uninstall", windows.Uninstall)
     client_actions.Register("UpdateAgent", windows.UpdateAgent)
     client_actions.Register("ListNamedPipes", pipes.ListNamedPipesAction)
 
@@ -104,10 +107,4 @@ def RegisterClientActions():
     client_actions.Register("GetInstallDate", osx.GetInstallDate)
     client_actions.Register("OSXEnumerateRunningServices",
                             osx.OSXEnumerateRunningServices)
-    client_actions.Register("Uninstall", osx.Uninstall)
     client_actions.Register("UpdateAgent", osx.UpdateAgent)
-
-    from grr_response_client.client_actions.osx import firmware  # pylint: disable=g-import-not-at-top
-    client_actions.Register("EficheckCollectHashes",
-                            firmware.EficheckCollectHashes)
-    client_actions.Register("EficheckDumpImage", firmware.EficheckDumpImage)

@@ -39,14 +39,15 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
   Grr just got a response in {{ source_urn }} from client {{ client_id }}
   ({{ hostname }}).<br />
   <br />
-  Click <a href='{{ admin_ui_url }}/#{{ client_fragment_id }}'> here </a> to
+  Click <a href='{{ admin_ui_url }}/v2{{ client_fragment_id }}'> here </a> to
   access this machine. <br />
 </p>
 {{ additional_message }}
 <p>Thanks,</p>
 <p>{{ signature }}</p>
 </body></html>""",
-      autoescape=True)
+      autoescape=True,
+  )
 
   too_many_mails_msg = ("<p> This hunt has now produced %d results so the "
                         "sending of emails will be disabled now. </p>")

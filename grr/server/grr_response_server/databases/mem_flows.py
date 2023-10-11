@@ -125,101 +125,6 @@ class InMemoryDBFlowMixin(object):
     return leased_requests
 
   @utils.Synchronized
-  def ReadAllClientActionRequests(self, client_id):
-    """Reads all client action requests available for a given client_id."""
-    res = []
-    for key, orig_request in self.client_action_requests.items():
-      request_client_id, _, _ = key
-      if request_client_id != client_id:
-        continue
-
-      request = orig_request.Copy()
-      current_lease = self.client_action_request_leases.get(key)
-      request.ttl = db.Database.CLIENT_MESSAGES_TTL
-      if current_lease is not None:
-        request.leased_until, request.leased_by, leased_count = current_lease
-        request.ttl -= leased_count
-      else:
-        request.leased_until = None
-        request.leased_by = None
-      res.append(request)
-
-    return res
-
-  def _DeleteClientActionRequest(self, client_id, flow_id, request_id):
-    key = (client_id, flow_id, request_id)
-    self.client_action_requests.pop(key, None)
-    self.client_action_request_leases.pop(key, None)
-
-  @utils.Synchronized
-  def DeleteClientActionRequests(self, requests):
-    """Deletes a list of client action requests from the db."""
-    to_delete = []
-    for r in requests:
-      to_delete.append((r.client_id, r.flow_id, r.request_id))
-
-    if len(set(to_delete)) != len(to_delete):
-      raise ValueError(
-          "Received multiple copies of the same action request to delete.")
-
-    for client_id, flow_id, request_id in to_delete:
-      self._DeleteClientActionRequest(client_id, flow_id, request_id)
-
-  @utils.Synchronized
-  def LeaseClientActionRequests(self,
-                                client_id,
-                                lease_time=None,
-                                limit=sys.maxsize):
-    """Leases available client action requests for a client."""
-
-    leased_requests = []
-
-    now = rdfvalue.RDFDatetime.Now()
-    expiration_time = now + lease_time
-    process_id_str = utils.ProcessIdString()
-
-    leases = self.client_action_request_leases
-    # Can't use an iterator here since the dict might change when requests get
-    # deleted.
-    for key, request in sorted(self.client_action_requests.items()):
-      if key[0] != client_id:
-        continue
-
-      existing_lease = leases.get(key)
-      if not existing_lease or existing_lease[0] < now:
-        if existing_lease:
-          lease_count = existing_lease[-1] + 1
-          if lease_count > db.Database.CLIENT_MESSAGES_TTL:
-            self._DeleteClientActionRequest(*key)
-            continue
-        else:
-          lease_count = 1
-
-        leases[key] = (expiration_time, process_id_str, lease_count)
-        request.leased_until = expiration_time
-        request.leased_by = process_id_str
-        request.ttl = db.Database.CLIENT_MESSAGES_TTL - lease_count
-        leased_requests.append(request)
-        if len(leased_requests) >= limit:
-          break
-
-    return leased_requests
-
-  @utils.Synchronized
-  def WriteClientActionRequests(self, requests):
-    """Writes messages that should go to the client to the db."""
-    for r in requests:
-      req_dict = self.flow_requests.get((r.client_id, r.flow_id), {})
-      if r.request_id not in req_dict:
-        request_keys = [(r.client_id, r.flow_id, r.request_id) for r in requests
-                       ]
-        raise db.AtLeastOneUnknownRequestError(request_keys)
-
-    for r in requests:
-      request_key = (r.client_id, r.flow_id, r.request_id)
-      self.client_action_requests[request_key] = r
-
-  @utils.Synchronized
   def WriteFlowObject(self, flow_obj, allow_update=True):
     """Writes a flow object to the database."""
     if flow_obj.client_id not in self.metadatas:
@@ -466,7 +371,6 @@ class InMemoryDBFlowMixin(object):
 
         if len(responses) == request.nr_responses_expected:
           request.needs_processing = True
-          self._DeleteClientActionRequest(client_id, flow_id, request_id)
 
           if flow.next_request_to_process == request_id:
             added_for_processing = True

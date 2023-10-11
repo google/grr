@@ -462,16 +462,6 @@ class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
     self.args.approval.notified_users = ["approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
-  def testKeepAliveFlowIsStartedWhenFlagIsSet(self):
-    self.args.keep_client_alive = True
-
-    self.handler.Handle(self.args, self.context)
-
-    flows = data_store.REL_DB.ReadAllFlowObjects(
-        client_id=str(self.args.client_id))
-    flow_class_names = [f.flow_class_name for f in flows]
-    self.assertEqual(flow_class_names, ["KeepAlive"])
-
   def testSendsEmailWithApprovalInformation(self):
     with mock.patch.object(email_alerts.EMAIL_ALERTER, "SendEmail") as send_fn:
       approval_id = self.handler.Handle(self.args, self.context).id

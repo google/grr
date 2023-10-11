@@ -99,13 +99,28 @@ class Stat(object):
     return self._stat.st_size
 
   def GetAccessTime(self) -> int:
-    return _NanosecondsToMicroseconds(self._stat.st_atime_ns)
+    # st_atime_ns is a higher-precision version of st_atime. Use it if it's
+    # present.
+    if self._stat.st_atime_ns is not None:
+      return _NanosecondsToMicroseconds(self._stat.st_atime_ns)
+    else:
+      return _SecondsToMicroseconds(self._stat.st_atime.AsSecondsSinceEpoch())
 
   def GetModificationTime(self) -> int:
-    return _NanosecondsToMicroseconds(self._stat.st_mtime_ns)
+    # st_mtime_ns is a higher-precision version of st_mtime. Use it if it's
+    # present.
+    if self._stat.st_mtime_ns is not None:
+      return _NanosecondsToMicroseconds(self._stat.st_mtime_ns)
+    else:
+      return _SecondsToMicroseconds(self._stat.st_mtime.AsSecondsSinceEpoch())
 
   def GetChangeTime(self) -> int:
-    return _NanosecondsToMicroseconds(self._stat.st_ctime_ns)
+    # st_ctime_ns is a higher-precision version of st_ctime. Use it if it's
+    # present.
+    if self._stat.st_ctime_ns is not None:
+      return _NanosecondsToMicroseconds(self._stat.st_ctime_ns)
+    else:
+      return _SecondsToMicroseconds(self._stat.st_ctime.AsSecondsSinceEpoch())
 
   def GetDevice(self) -> int:
     return self._stat.st_dev
@@ -216,3 +231,8 @@ class StatCache(object):
 def _NanosecondsToMicroseconds(ns: int) -> int:
   """Converts nanoseconds to microseconds."""
   return ns // 1000
+
+
+def _SecondsToMicroseconds(ns: float) -> int:
+  """Converts seconds to microseconds."""
+  return int(ns * 1e6)

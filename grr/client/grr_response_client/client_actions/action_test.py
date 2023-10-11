@@ -13,7 +13,6 @@ from absl import app
 import psutil
 
 from grr_response_client import actions
-from grr_response_client import client_utils
 from grr_response_client.client_actions import standard
 from grr_response_client.unprivileged import communication
 from grr_response_core.lib import rdfvalue
@@ -307,18 +306,27 @@ class ActionTest(client_test_lib.EmptyActionTest):
 
     class MockWorker(object):
 
+      def __init__(self):
+        self.heartbeat_count = 0
+
       def Heartbeat(self):
-        pass
+        self.heartbeat_count += 1
 
     worker = MockWorker()
 
-    with test_lib.Instrument(client_utils, "KeepAlive") as instrument:
-      for time, expected_count in [(100, 1), (101, 1), (102, 1), (103, 2),
-                                   (104, 2), (105, 2), (106, 3)]:
-        with test_lib.FakeTime(time):
-          action = ProgressAction(grr_worker=worker)
-          action.Progress()
-          self.assertEqual(instrument.call_count, expected_count)
+    for time, expected_count in [
+        (100, 1),
+        (101, 1),
+        (102, 1),
+        (103, 2),
+        (104, 2),
+        (105, 2),
+        (106, 3),
+    ]:
+      with test_lib.FakeTime(time):
+        action = ProgressAction(grr_worker=worker)
+        action.Progress()
+        self.assertEqual(worker.heartbeat_count, expected_count)
 
 
 def main(argv):

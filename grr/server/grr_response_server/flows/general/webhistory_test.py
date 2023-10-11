@@ -58,7 +58,7 @@ class TestWebHistory(WebHistoryFlowTestMixin):
     ]
     self.client_id = self.SetupClient(0, system="Linux", users=users)
 
-    self.client_mock = action_mocks.FileFinderClientMock()
+    self.client_mock = action_mocks.ClientFileFinderWithVFS()
 
   def testChromeHistoryFetch(self):
     """Test that downloading the Chrome history works."""

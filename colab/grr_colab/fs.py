@@ -1,7 +1,8 @@
 #!/usr/bin/env python
 """Module that contains API to perform filesystem operations on a GRR client."""
 import io
-from typing import Text, Sequence
+import itertools
+from typing import Sequence, Text
 
 from google.protobuf import message
 from grr_api_client import client
@@ -12,6 +13,7 @@ from grr_colab import representer
 from grr_colab import vfs
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_server.flows.general import file_finder
 
 
 class FileSystem(object):
@@ -124,7 +126,9 @@ class FileSystem(object):
 
     _timeout.await_flow(ff)
 
-    results = [_first_match(result.payload) for result in ff.ListResults()]
+    results = itertools.chain.from_iterable(
+        _all_matches(result.payload) for result in ff.ListResults()
+    )
     return representer.BufferReferenceList(results)
 
   def fgrep(self, path: Text,
@@ -158,7 +162,9 @@ class FileSystem(object):
 
     _timeout.await_flow(ff)
 
-    results = [_first_match(result.payload) for result in ff.ListResults()]
+    results = itertools.chain.from_iterable(
+        _all_matches(result.payload) for result in ff.ListResults()
+    )
     return representer.BufferReferenceList(results)
 
   def wget(self, path: Text) -> Text:
@@ -196,20 +202,23 @@ class FileSystem(object):
     Returns:
       Nothing.
     """
-    args = flows_pb2.GetFileArgs()
-    args.pathspec.path = path
-    args.pathspec.pathtype = self._path_type
+    args = flows_pb2.FileFinderArgs()
+    args.paths.append(path)
+    args.pathtype = self._path_type
+    args.action.action_type = flows_pb2.FileFinderAction.Action.DOWNLOAD
 
     try:
-      gf = self._client.CreateFlow(name='GetFile', args=args)
+      cff = self._client.CreateFlow(
+          name=file_finder.ClientFileFinder.__name__, args=args
+      )
     except api_errors.AccessForbiddenError as e:
       raise errors.ApprovalMissingError(self.id, e)
 
-    _timeout.await_flow(gf)
+    _timeout.await_flow(cff)
 
 
-def _first_match(result: message.Message) -> jobs_pb2.BufferReference:
-  """Returns first match of a file finder result.
+def _all_matches(result: message.Message) -> list[jobs_pb2.BufferReference]:
+  """Returns all matchches of a file finder result.
 
   Args:
     result: A file finder result message.
@@ -221,4 +230,4 @@ def _first_match(result: message.Message) -> jobs_pb2.BufferReference:
   if not isinstance(result, flows_pb2.FileFinderResult):
     raise TypeError(f'Unexpected flow result type: {type(result)}')
 
-  return result.matches[0]
+  return result.matches

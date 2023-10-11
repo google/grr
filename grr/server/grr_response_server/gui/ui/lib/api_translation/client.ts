@@ -34,11 +34,9 @@ function createAgentInfo(apiAgentInfo: apiInterfaces.ClientInformation):
     revision = BigInt(apiAgentInfo.revision);
   }
 
-  // TODO: Remove this workarond once build_time is a proper Date.
   let buildTime: number = NaN;
   if (apiAgentInfo.buildTime) {
-    buildTime = Date.parse(`${apiAgentInfo.buildTime} UTC`) ||
-        Date.parse(apiAgentInfo.buildTime);
+    buildTime = Date.parse(apiAgentInfo.buildTime);
   }
 
   return {

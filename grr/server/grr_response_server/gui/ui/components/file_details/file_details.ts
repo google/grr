@@ -3,7 +3,7 @@ import {Router} from '@angular/router';
 import {map} from 'rxjs/operators';
 
 import {getFileBlobUrl} from '../../lib/api/http_api_service';
-import {FileIdentifier} from '../../lib/models/vfs';
+import {type FileIdentifier} from '../../lib/models/vfs';
 import {isNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
 import {FileDetailsLocalStore} from '../../store/file_details_local_store';

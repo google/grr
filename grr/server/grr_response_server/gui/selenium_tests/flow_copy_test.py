@@ -178,17 +178,22 @@ class TestFlowCopy(gui_test_lib.GRRSeleniumTest,
     self.Open("/legacy#/clients/%s" % self.client_id)
     self.Click("css=a[grrtarget='client.flows']")
 
-    # StartHunt creates a hunt with a GetFile flow, so selecting a GetFile row.
-    self.Click("css=td:contains('GetFile')")
+    # StartHunt creates a hunt with a ClientFileFinder flow, so selecting a
+    # ClientFileFinder row.
+    self.Click("css=td:contains('ClientFileFinder')")
     self.Click("css=button[name=copy_flow]")
     self.Click("css=button:contains('Launch')")
 
     # Check that flows list got updated and that the new flow is selected.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-client-flows-list tr:contains('GetFile'):nth(1)")
     self.WaitUntil(
-        self.IsElementPresent, "css=grr-client-flows-list "
-        "tr:contains('GetFile'):nth(0).row-selected")
+        self.IsElementPresent,
+        "css=grr-client-flows-list tr:contains('ClientFileFinder'):nth(1)",
+    )
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-client-flows-list "
+        "tr:contains('ClientFileFinder'):nth(0).row-selected",
+    )
 
   def testCopyingFlowWithRawBytesWithNonAsciiCharsInArgumentsWorks(self):
     # Literal is defined simply as "bytes" in its proto definition. We make sure

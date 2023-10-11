@@ -59,10 +59,23 @@
       line-height: initial;
     }
 
-    &.error, &.error .title {
+    &.error,
+    &.error .title {
       color: mat.get-color-from-palette(c.$foreground, danger);
     }
   }
+}
+
+.no-data {
+  margin: auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.progress-spinner {
+  margin: auto;
+  margin-top: 20px;
+  margin-bottom: 20px;
 }
 
 .divider-top {

@@ -15,6 +15,8 @@ from absl import app
 from absl.testing import absltest
 
 from grr_response_client import actions
+from grr_response_client.client_actions import file_fingerprint
+from grr_response_client.client_actions import searching
 from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import parser
@@ -37,7 +39,6 @@ from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import collectors
-from grr_response_server.flows.general import filesystem
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
@@ -183,7 +184,7 @@ class ArtifactTest(flow_test_lib.FlowTestsBaseclass):
   def setUp(self):
     """Make sure things are initialized."""
     super().setUp()
-    self.client_mock = action_mocks.FileFinderClientMock()
+    self.client_mock = action_mocks.ClientFileFinderWithVFS()
 
     patcher = artifact_test_lib.PatchDefaultArtifactRegistry()
     patcher.start()
@@ -420,9 +421,11 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     """Check GetFiles artifacts."""
     client_id = test_lib.TEST_CLIENT_ID
     with vfs_test_lib.FakeTestDataVFSOverrider():
-      self.RunCollectorAndGetResults(["TestFilesArtifact"],
-                                     client_mock=self.client_mock,
-                                     client_id=client_id)
+      self.RunCollectorAndGetResults(
+          ["TestFilesArtifact"],
+          client_mock=action_mocks.ClientFileFinderWithVFS(),
+          client_id=client_id,
+      )
       cp = db.ClientPath.OS(client_id, ("var", "log", "auth.log"))
       fd = file_store.OpenFile(cp)
       self.assertNotEmpty(fd.read())
@@ -431,9 +434,11 @@ class ArtifactFlowLinuxTest(ArtifactTest):
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
     with vfs_test_lib.FakeTestDataVFSOverrider():
-      fd = self.RunCollectorAndGetResults(["LinuxPasswdHomedirs"],
-                                          client_mock=self.client_mock,
-                                          client_id=test_lib.TEST_CLIENT_ID)
+      fd = self.RunCollectorAndGetResults(
+          ["LinuxPasswdHomedirs"],
+          client_mock=action_mocks.ClientFileFinderWithVFS(),
+          client_id=test_lib.TEST_CLIENT_ID,
+      )
 
       self.assertLen(fd, 5)
       self.assertCountEqual(
@@ -551,10 +556,22 @@ class GrrKbTest(ArtifactTest):
   def _RunKBI(self, **kw):
     session_id = flow_test_lib.TestFlowHelper(
         artifact.KnowledgeBaseInitializationFlow.__name__,
-        self.client_mock,
+        # TODO: remove additional client actions when Glob flow
+        # ArtifactCollectorFlow dependency is removed.
+        action_mocks.ClientFileFinderWithVFS(
+            file_fingerprint.FingerprintFile,
+            searching.Find,
+            searching.Grep,
+            standard.HashBuffer,
+            standard.HashFile,
+            standard.GetFileStat,
+            standard.ListDirectory,
+            standard.TransferBuffer,
+        ),
         client_id=test_lib.TEST_CLIENT_ID,
         creator=self.test_username,
-        **kw)
+        **kw,
+    )
 
     results = flow_test_lib.GetFlowResults(test_lib.TEST_CLIENT_ID, session_id)
     self.assertLen(results, 1)
@@ -589,7 +606,7 @@ class GrrKbWindowsTest(GrrKbTest):
 
     self.assertEqual(kb.environ_windir, "C:\\Windows")
     self.assertEqual(kb.environ_profilesdirectory, "C:\\Users")
-    self.assertEqual(kb.environ_allusersprofile, "C:\\Users\\All Users")
+    self.assertEqual(kb.environ_allusersprofile, "C:\\ProgramData")
     self.assertEqual(kb.environ_allusersappdata, "C:\\ProgramData")
     self.assertEqual(kb.environ_temp, "C:\\Windows\\TEMP")
     self.assertEqual(kb.environ_systemdrive, "C:")
@@ -598,44 +615,6 @@ class GrrKbWindowsTest(GrrKbTest):
     user = kb.GetUser(username="jim")
     self.assertEqual(user.username, "jim")
     self.assertEqual(user.sid, "S-1-5-21-702227068-2140022151-3110739409-1000")
-
-  @parser_test_lib.WithParser("MultiProvide", MultiProvideParser)
-  def testKnowledgeBaseMultiProvides(self):
-    """Check we can handle multi-provides."""
-    # Replace some artifacts with test one that will run the MultiProvideParser.
-    self.LoadTestArtifacts()
-    with test_lib.ConfigOverrider(
-        {"Artifacts.knowledge_base": ["DepsProvidesMultiple"]}):
-      kb = self._RunKBI()
-
-      self.assertEqual(kb.environ_temp, "tempvalue")
-      self.assertEqual(kb.environ_path, "pathvalue")
-
-  def testGlobRegistry(self):
-    """Test that glob works on registry."""
-    client_id = test_lib.TEST_CLIENT_ID
-    paths = [
-        "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT"
-        "\\CurrentVersion\\ProfileList\\ProfilesDirectory",
-        "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT"
-        "\\CurrentVersion\\ProfileList\\AllUsersProfile"
-    ]
-
-    flow_test_lib.TestFlowHelper(
-        filesystem.Glob.__name__,
-        self.client_mock,
-        paths=paths,
-        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-        client_id=client_id,
-        creator=self.test_username)
-    path = paths[0].replace("\\", "/")
-
-    path_info = data_store.REL_DB.ReadPathInfo(
-        client_id,
-        rdf_objects.PathInfo.PathType.REGISTRY,
-        components=tuple(path.split("/")))
-    self.assertEqual(path_info.stat_entry.registry_data.GetValue(),
-                     "%SystemDrive%\\Users")
 
   @parser_test_lib.WithAllParsers
   def testGetKBDependencies(self):
@@ -816,8 +795,7 @@ class GrrKbDarwinTest(GrrKbTest):
   @parser_test_lib.WithAllParsers
   def testKnowledgeBaseRetrievalDarwin(self):
     """Check we can retrieve a Darwin kb."""
-    with test_lib.ConfigOverrider(
-        {"Artifacts.knowledge_base": ["UsersDirectory"]}):
+    with test_lib.ConfigOverrider({"Artifacts.knowledge_base": []}):
       with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                      vfs_test_lib.ClientVFSHandlerFixture):
         kb = self._RunKBI()

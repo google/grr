@@ -7,13 +7,10 @@ libs/server_stubs.py
 """
 
 import ctypes
-import logging
 import os
 import re
-import shutil
 import socket
 import struct
-import sys
 
 import pytsk3
 
@@ -22,7 +19,6 @@ from grr_response_client import client_utils_common
 from grr_response_client import client_utils_osx
 from grr_response_client.client_actions import standard
 from grr_response_client.osx import objc
-from grr_response_core import config
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.parsers import osx_launchd
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -422,43 +418,6 @@ class OSXEnumerateRunningServices(actions.ActionPlugin):
   def Run(self, args):
     for res in OSXEnumerateRunningServicesFromClient(args):
       self.SendReply(res)
-
-
-class Uninstall(actions.ActionPlugin):
-  """Remove the service that starts us at startup."""
-  out_rdfvalues = [rdf_protodict.DataBlob]
-
-  def Run(self, unused_arg):
-    """This kills us with no cleanups."""
-    logging.debug("Disabling service")
-
-    msg = "Service disabled."
-    if hasattr(sys, "frozen"):
-      grr_binary = os.path.abspath(sys.executable)
-    elif __file__:
-      grr_binary = os.path.abspath(__file__)
-
-    try:
-      os.remove(grr_binary)
-    except OSError:
-      msg = "Could not remove binary."
-
-    try:
-      os.remove(config.CONFIG["Client.plist_path"])
-    except OSError:
-      if "Could not" in msg:
-        msg += " Could not remove plist file."
-      else:
-        msg = "Could not remove plist file."
-
-    # Get the directory we are running in from pyinstaller. This is either the
-    # GRR directory which we should delete (onedir mode) or a generated temp
-    # directory which we can delete without problems in onefile mode.
-    directory = getattr(sys, "_MEIPASS", None)
-    if directory:
-      shutil.rmtree(directory, ignore_errors=True)
-
-    self.SendReply(rdf_protodict.DataBlob(string=msg))
 
 
 class UpdateAgent(standard.ExecuteBinaryCommand):

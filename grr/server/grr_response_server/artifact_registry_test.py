@@ -280,6 +280,17 @@ class ArtifactRegistryTest(absltest.TestCase):
 
     self.assertIsNotNone(registry.GetArtifact("Foo"))
 
+  def testExistsTrue(self):
+    registry = ar.ArtifactRegistry()
+    registry.RegisterArtifact(rdf_artifacts.Artifact(name="Foo"))
+
+    self.assertTrue(registry.Exists("Foo"))
+
+  def testExistsFalse(self):
+    registry = ar.ArtifactRegistry()
+
+    self.assertFalse(registry.Exists("Foo"))
+
 
 if __name__ == "__main__":
   app.run(test_lib.main)

@@ -331,7 +331,7 @@ class ProtoString(ProtoType):
     _ = container
     return self.default
 
-  def Validate(self, value, **_) -> Text:
+  def Validate(self, value, **_) -> Text:  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Validates a python format representation of the value."""
     if isinstance(value, rdfvalue.RDFString):
       # TODO(hanuszczak): Use `str` here.
@@ -394,7 +394,7 @@ class ProtoBinary(ProtoType):
     if default is not None:
       self.default = default
 
-  def Validate(self, value, **_):
+  def Validate(self, value, **_):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     if not isinstance(value, bytes):
       raise type_info.TypeValueError("Required bytes, got %r" % value)
 
@@ -439,7 +439,7 @@ class ProtoUnsignedInteger(ProtoType):
   def ConvertToWireFormat(self, value):
     return (self.encoded_tag, b"", VarintEncode(value))
 
-  def Validate(self, value, **_):
+  def Validate(self, value, **_):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     try:
       return int(value)
     except ValueError:
@@ -878,7 +878,7 @@ class ProtoEmbedded(ProtoType):
     """When a nested proto is accessed, default to an empty one."""
     return self.type()
 
-  def Validate(self, value, **_):
+  def Validate(self, value, **_):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     if isinstance(value, str):
       raise type_info.TypeValueError("Field %s must be of type %s" %
                                      (self.name, self.type.__name__))
@@ -1177,6 +1177,7 @@ class RepeatedFieldHelper(abc.Sequence, object):
 
   append = utils.Proxy("Append")
   remove = utils.Proxy("Remove")
+  extend = utils.Proxy("Extend")
 
   def __getitem__(self, item):
     # Ensure we handle slices as well.
@@ -1289,7 +1290,7 @@ class ProtoList(ProtoType):
     return RepeatedFieldHelper(
         type_descriptor=self.delegate, container=container)
 
-  def Validate(self, value, **_):
+  def Validate(self, value, **_):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Check that value is a list of the required type."""
     # Assigning from same kind can allow us to skip verification since all
     # elements in a RepeatedFieldHelper already are coerced to the delegate
@@ -1478,7 +1479,7 @@ class ProtoRDFValue(ProtoType):
     return ("\n  // Semantic Type: %s" %
             self.type.__name__) + self.primitive_desc.Definition()
 
-  def Validate(self, value, **_):
+  def Validate(self, value, **_):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     # Try to coerce into the correct type:
     if value.__class__ is not self.type:
       try:

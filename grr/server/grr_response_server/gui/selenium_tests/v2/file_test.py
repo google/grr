@@ -427,5 +427,420 @@ class MultiGetFileTest(gui_test_lib.GRRSeleniumTest):
             f"css=multi-get-file-flow-details td:contains('/somefile{i}')")
 
 
+class StatMultipleFilesTest(gui_test_lib.GRRSeleniumTest):
+  """Tests the StatMultipleFiles Flow."""
+
+  def _GenCollectedResult(self, i: int) -> rdf_client_fs.StatEntry:
+    return rdf_client_fs.StatEntry(
+        pathspec=rdf_paths.PathSpec.OS(path=f"/file{i}"),
+        st_size=i,
+    )
+
+  def setUp(self):
+    super().setUp()
+    self.client_id = self.SetupClient(0)
+    self.RequestAndGrantClientApproval(self.client_id)
+
+  def testDisplaysOnlyWhenResultsCollected(self):
+    flow_args = rdf_file_finder.StatMultipleFilesArgs(
+        path_expressions=["/file0"]
+    )
+    flow_test_lib.StartFlow(
+        file.StatMultipleFiles,
+        creator=self.test_username,
+        client_id=self.client_id,
+        flow_args=flow_args,
+    )
+
+    self.Open(f"/v2/clients/{self.client_id}")
+
+    self.WaitUntil(
+        self.IsElementPresent, "css=.flow-title:contains('Stat files')"
+    )
+
+    self.assertFalse(
+        self.IsElementPresent("css=result-accordion file-results-table"),
+    )
+
+  def testDisplaysCollectedResult(self):
+    flow_args = rdf_file_finder.StatMultipleFilesArgs(
+        path_expressions=["/file0", "/file1", "/file2"]
+    )
+    flow_id = flow_test_lib.StartFlow(
+        file.StatMultipleFiles,
+        creator=self.test_username,
+        client_id=self.client_id,
+        flow_args=flow_args,
+    )
+
+    flow_test_lib.AddResultsToFlow(
+        self.client_id, flow_id, [self._GenCollectedResult(i) for i in range(3)]
+    )
+
+    with flow_test_lib.FlowResultMetadataOverride(
+        file.StatMultipleFiles,
+        rdf_flow_objects.FlowResultMetadata(
+            is_metadata_set=True,
+            num_results_per_type_tag=[
+                rdf_flow_objects.FlowResultCount(
+                    type=rdf_client_fs.StatEntry.__name__,
+                    count=3,
+                )
+            ],
+        ),
+    ):
+      self.Open(f"/v2/clients/{self.client_id}")
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=result-accordion:contains('/file0 + 2 more')",
+      )
+
+      self.Click("css=result-accordion:contains('/file0 + 2 more')")
+
+      for i in range(3):
+        self.WaitUntil(
+            self.IsElementPresent,
+            f"css=file-results-table:contains('{i} B')",
+        )
+
+  def testDownloadButtonFlowFinished(self):
+    flow_args = rdf_file_finder.StatMultipleFilesArgs(
+        path_expressions=["/file0"]
+    )
+    flow_id = flow_test_lib.StartFlow(
+        file.StatMultipleFiles,
+        creator=self.test_username,
+        client_id=self.client_id,
+        flow_args=flow_args,
+    )
+
+    flow_test_lib.MarkFlowAsFinished(self.client_id, flow_id)
+
+    with flow_test_lib.FlowResultMetadataOverride(
+        file.StatMultipleFiles,
+        rdf_flow_objects.FlowResultMetadata(
+            is_metadata_set=True,
+            num_results_per_type_tag=[
+                rdf_flow_objects.FlowResultCount(
+                    type=rdf_client_fs.StatEntry.__name__,
+                    count=1,
+                )
+            ],
+        ),
+    ):
+      self.Open(f"/v2/clients/{self.client_id}")
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=a[mat-stroked-button]:contains('Download')",
+      )
+
+  def testFlowError(self):
+    flow_args = rdf_file_finder.StatMultipleFilesArgs(
+        path_expressions=["/file0", "/file1"]
+    )
+    flow_id = flow_test_lib.StartFlow(
+        file.StatMultipleFiles,
+        creator=self.test_username,
+        client_id=self.client_id,
+        flow_args=flow_args,
+    )
+
+    flow_test_lib.MarkFlowAsFailed(self.client_id, flow_id)
+
+    self.Open(f"/v2/clients/{self.client_id}")
+    self.WaitUntil(self.IsElementPresent, "css=flow-details mat-icon.error")
+
+  def testDisplaysArgumentsAccordion(self):
+    flow_args = rdf_file_finder.StatMultipleFilesArgs(
+        path_expressions=["/file0", "/file1"]
+    )
+    flow_test_lib.StartFlow(
+        file.StatMultipleFiles,
+        creator=self.test_username,
+        client_id=self.client_id,
+        flow_args=flow_args,
+    )
+
+    self.Open(f"/v2/clients/{self.client_id}")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=.flow-title:contains('Stat files')",
+    )
+
+    self.Click("css=result-accordion .title:contains('Flow arguments')")
+
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=app-glob-expression-input",
+    )
+    path_input = self.GetElement(
+        "css=app-glob-expression-input[id=path0] input"
+    )
+    self.assertEqual("/file0", path_input.get_attribute("value"))
+
+    path_input_2 = self.GetElement(
+        "css=app-glob-expression-input[id=path1] input"
+    )
+    self.assertEqual("/file1", path_input_2.get_attribute("value"))
+
+  def testFlowArgumentForm(self):
+    self.Open(f"/v2/clients/{self.client_id}")
+
+    self.WaitUntil(self.IsElementPresent, "css=app-flow-picker")
+    self.Type('css=app-flow-picker input[name="flowSearchBox"]', "stat")
+    self.Click('css=[role=option]:Contains("Stat files")')
+
+    element = self.WaitUntil(
+        self.GetVisibleElement,
+        "css=flow-args-form app-glob-expression-input[id=path0] input",
+    )
+    element.send_keys("/foo/firstpath")
+
+    self.Click('css=flow-form button:contains("Add path expression")')
+
+    element = self.WaitUntil(
+        self.GetVisibleElement,
+        "css=flow-args-form app-glob-expression-input[id=path1] input",
+    )
+    element.send_keys("/bar/secondpath")
+
+    self.Click('css=flow-form button:contains("Start")')
+
+    def FlowHasBeenStarted():
+      handler = api_flow.ApiListFlowsHandler()
+      flows = handler.Handle(
+          api_flow.ApiListFlowsArgs(
+              client_id=self.client_id, top_flows_only=True
+          ),
+          context=api_call_context.ApiCallContext(username=self.test_username),
+      ).items
+      return flows[0] if len(flows) == 1 else None
+
+    flow = self.WaitUntil(FlowHasBeenStarted)
+
+    self.assertEqual(flow.name, file.StatMultipleFiles.__name__)
+    self.assertCountEqual(
+        flow.args.path_expressions, ["/foo/firstpath", "/bar/secondpath"]
+    )
+
+
+class HashMultipleFilesTest(gui_test_lib.GRRSeleniumTest):
+  """Tests the HashMultipleFiles Flow."""
+
+  def _GenCollectedResult(
+      self, i: int
+  ) -> rdf_file_finder.CollectMultipleFilesResult:
+    return rdf_file_finder.CollectMultipleFilesResult(
+        stat=rdf_client_fs.StatEntry(
+            pathspec=rdf_paths.PathSpec.OS(path=f"/file{i}"),
+            st_size=i,
+        ),
+        hash=rdf_crypto.Hash(
+            sha256=binascii.unhexlify(
+                "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578e4f06017acdb5"
+            ),
+            sha1=binascii.unhexlify("6dd6bee591dfcb6d75eb705405302c3eab65e21a"),
+            md5=binascii.unhexlify("8b0a15eefe63fd41f8dc9dee01c5cf9a"),
+        ),
+        status=rdf_file_finder.CollectMultipleFilesResult.Status.COLLECTED,
+    )
+
+  def _GenFailedResult(
+      self,
+      i: int,
+  ) -> rdf_file_finder.CollectMultipleFilesResult:
+    return rdf_file_finder.CollectMultipleFilesResult(
+        stat=rdf_client_fs.StatEntry(
+            pathspec=rdf_paths.PathSpec.OS(path=f"/file{i}"),
+        ),
+        status=rdf_file_finder.CollectMultipleFilesResult.Status.FAILED,
+        error=f"errormsg{i}",
+    )
+
+  def setUp(self):
+    super().setUp()
+    self.client_id = self.SetupClient(0)
+    self.RequestAndGrantClientApproval(self.client_id)
+
+  def testDisplaysOnlyWhenCollected(self):
+    flow_args = rdf_file_finder.HashMultipleFilesArgs(
+        path_expressions=["/file0"]
+    )
+    flow_test_lib.StartFlow(
+        file.HashMultipleFiles,
+        creator=self.test_username,
+        client_id=self.client_id,
+        flow_args=flow_args,
+    )
+
+    with flow_test_lib.FlowProgressOverride(
+        file.HashMultipleFiles,
+        rdf_file_finder.HashMultipleFilesProgress(num_in_progress=1),
+    ):
+      self.Open(f"/v2/clients/{self.client_id}")
+
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=.flow-title:contains('Hash files')",
+      )
+
+    self.assertFalse(
+        self.IsElementPresent("css=result-accordion file-results-table"),
+    )
+
+  def testDisplaysCollectedResult(self):
+    flow_args = rdf_file_finder.HashMultipleFilesArgs(
+        path_expressions=["/file0", "/file1", "/file2"]
+    )
+    flow_id = flow_test_lib.StartFlow(
+        file.HashMultipleFiles,
+        creator=self.test_username,
+        client_id=self.client_id,
+        flow_args=flow_args,
+    )
+
+    flow_test_lib.AddResultsToFlow(
+        self.client_id, flow_id, [self._GenCollectedResult(i) for i in range(3)]
+    )
+
+    with flow_test_lib.FlowProgressOverride(
+        file.HashMultipleFiles,
+        rdf_file_finder.HashMultipleFilesProgress(num_hashed=3),
+    ):
+      self.Open(f"/v2/clients/{self.client_id}")
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=.flow-title:contains('Hash files')",
+      )
+
+      self.Click("css=result-accordion:contains('/file0 + 2 more')")
+
+      for i in range(3):
+        self.WaitUntil(
+            self.IsElementPresent,
+            f"css=result-accordion .results:contains('{i} B')",
+        )
+
+  def testDownloadButtonFlowFinished(self):
+    flow_args = rdf_file_finder.HashMultipleFilesArgs(
+        path_expressions=["/file0"]
+    )
+    flow_id = flow_test_lib.StartFlow(
+        file.HashMultipleFiles,
+        creator=self.test_username,
+        client_id=self.client_id,
+        flow_args=flow_args,
+    )
+
+    flow_test_lib.MarkFlowAsFinished(self.client_id, flow_id)
+
+    with flow_test_lib.FlowResultMetadataOverride(
+        file.HashMultipleFiles,
+        rdf_flow_objects.FlowResultMetadata(
+            is_metadata_set=True,
+            num_results_per_type_tag=[
+                rdf_flow_objects.FlowResultCount(
+                    type=rdf_file_finder.CollectMultipleFilesResult.__name__,
+                    count=1,
+                )
+            ],
+        ),
+    ):
+      self.Open(f"/v2/clients/{self.client_id}")
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=a[mat-stroked-button]:contains('Download')",
+      )
+
+  def testFlowError(self):
+    flow_args = rdf_file_finder.HashMultipleFilesArgs(
+        path_expressions=["/file0", "/file1"]
+    )
+    flow_id = flow_test_lib.StartFlow(
+        file.HashMultipleFiles,
+        creator=self.test_username,
+        client_id=self.client_id,
+        flow_args=flow_args,
+    )
+
+    flow_test_lib.MarkFlowAsFailed(self.client_id, flow_id)
+
+    self.Open(f"/v2/clients/{self.client_id}")
+    self.WaitUntil(self.IsElementPresent, "css=flow-details mat-icon.error")
+
+  def testDisplaysArgumentsAccordion(self):
+    flow_args = rdf_file_finder.HashMultipleFilesArgs(
+        path_expressions=["/file0", "/file1"]
+    )
+    flow_test_lib.StartFlow(
+        file.HashMultipleFiles,
+        creator=self.test_username,
+        client_id=self.client_id,
+        flow_args=flow_args,
+    )
+
+    self.Open(f"/v2/clients/{self.client_id}")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=.flow-title:contains('Hash files')",
+    )
+
+    self.Click("css=result-accordion .title:contains('Flow arguments')")
+
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=app-glob-expression-input",
+    )
+    path_input = self.GetElement(
+        "css=app-glob-expression-input[id=path0] input"
+    )
+    self.assertEqual("/file0", path_input.get_attribute("value"))
+
+    path_input_2 = self.GetElement(
+        "css=app-glob-expression-input[id=path1] input"
+    )
+    self.assertEqual("/file1", path_input_2.get_attribute("value"))
+
+  def testFlowArgumentForm(self):
+    self.Open(f"/v2/clients/{self.client_id}")
+
+    self.WaitUntil(self.IsElementPresent, "css=app-flow-picker")
+    self.Type('css=app-flow-picker input[name="flowSearchBox"]', "hash")
+    self.Click('css=[role=option]:Contains("Hash files")')
+
+    element = self.WaitUntil(
+        self.GetVisibleElement,
+        "css=flow-args-form app-glob-expression-input[id=path0] input",
+    )
+    element.send_keys("/foo/firstpath")
+
+    self.Click('css=flow-form button:contains("Add path expression")')
+
+    element = self.WaitUntil(
+        self.GetVisibleElement,
+        "css=flow-args-form app-glob-expression-input[id=path1] input",
+    )
+    element.send_keys("/bar/secondpath")
+
+    self.Click('css=flow-form button:contains("Start")')
+
+    def FlowHasBeenStarted():
+      handler = api_flow.ApiListFlowsHandler()
+      flows = handler.Handle(
+          api_flow.ApiListFlowsArgs(
+              client_id=self.client_id, top_flows_only=True
+          ),
+          context=api_call_context.ApiCallContext(username=self.test_username),
+      ).items
+      return flows[0] if len(flows) == 1 else None
+
+    flow = self.WaitUntil(FlowHasBeenStarted)
+
+    self.assertEqual(flow.name, file.HashMultipleFiles.__name__)
+    self.assertCountEqual(
+        flow.args.path_expressions, ["/foo/firstpath", "/bar/secondpath"]
+    )
+
+
 if __name__ == "__main__":
   app.run(test_lib.main)

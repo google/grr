@@ -3,7 +3,7 @@ import {Observable, ReplaySubject} from 'rxjs';
 import {takeUntil} from 'rxjs/operators';
 
 import {DEFAULT_FORM, FORMS} from '../../components/flow_args_form/sub_forms';
-import {FlowDescriptor, FlowType} from '../../lib/models/flow';
+import {type FlowDescriptor, FlowType} from '../../lib/models/flow';
 import {observeOnDestroy} from '../../lib/reactive';
 
 import {FlowArgumentForm} from './form_interface';

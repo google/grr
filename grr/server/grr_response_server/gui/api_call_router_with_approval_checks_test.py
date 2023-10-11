@@ -6,6 +6,7 @@ from unittest import mock
 from absl import app
 
 from grr_response_server import access_control
+from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server.flows.general import osquery
 from grr_response_server.flows.general import timeline
@@ -20,7 +21,7 @@ from grr_response_server.gui.api_plugins import osquery as api_osquery
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.gui.api_plugins import vfs as api_vfs
-
+from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
@@ -102,7 +103,6 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
   ACCESS_CHECKED_METHODS.extend([
       "InterrogateClient",
       "ListClientCrashes",
-      "ListClientActionRequests",
       "GetClientLoadStats",
   ])
 
@@ -618,6 +618,46 @@ class ApiCallRouterWithApprovalChecksTest(test_lib.GRRBaseTest,
 
     for method_name in unchecked_methods:
       self.CheckMethodIsNotAccessChecked(getattr(self.router, method_name))
+
+
+class AccessCheckerTest(test_lib.GRRBaseTest):
+  """Tests for AccessChecker."""
+
+  def setUp(self):
+    super().setUp()
+    self.context = api_call_context.ApiCallContext("test")
+    self.checker = api_router.AccessChecker(
+        params=api_router.ApiCallRouterWithApprovalCheckParams()
+    )
+
+  def testCheckIfCanStartClientFlowNotRegistered(self):
+    with self.assertRaisesRegex(
+        access_control.UnauthorizedAccess,
+        "Flow NotThere can't be started via the API.",
+    ):
+      self.checker.CheckIfCanStartClientFlow(self.context.username, "NotThere")
+
+  def testCheckIfCanStartClientFlow_RestrictedFlow_NormalUser(self):
+    data_store.REL_DB.WriteGRRUser("restricted")
+
+    with self.assertRaisesRegex(
+        access_control.UnauthorizedAccess,
+        "Not enough permissions to access restricted flow LaunchBinary",
+    ):
+      self.checker.CheckIfCanStartClientFlow("restricted", "LaunchBinary")
+
+  def testCheckIfCanStartClientFlow_RestrictedFlow_AdminUser(self):
+    data_store.REL_DB.WriteGRRUser(
+        "admin", user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN
+    )
+    # Shouldn't raise if it is allowed.
+    self.checker.CheckIfCanStartClientFlow("admin", "LaunchBinary")
+
+  def testCheckIfCanStartMultiGetFile(self):
+    # Shouldn't raise if it is allowed.
+    self.checker.CheckIfCanStartClientFlow(
+        self.context.username, "MultiGetFile"
+    )
 
 
 def main(argv):

@@ -3,6 +3,8 @@ import {Type} from '@angular/core';
 import {CollectBrowserHistoryDetails} from '../../components/flow_details/plugins/collect_browser_history_details';
 import {CollectFilesByKnownPathDetails} from '../../components/flow_details/plugins/collect_files_by_known_path_details';
 import {CollectMultipleFilesDetails} from '../../components/flow_details/plugins/collect_multiple_files_details';
+import {HashMultipleFilesDetails} from '../../components/flow_details/plugins/hash_multiple_files_details';
+import {StatMultipleFilesDetails} from '../../components/flow_details/plugins/stat_multiple_files_details';
 import {FlowType} from '../../lib/models/flow';
 
 import {ArtifactCollectorFlowDetails} from './plugins/artifact_collector_flow_details';
@@ -36,6 +38,8 @@ export const FLOW_DETAILS_PLUGIN_REGISTRY:
       [FlowType.COLLECT_BROWSER_HISTORY]: CollectBrowserHistoryDetails,
       [FlowType.COLLECT_FILES_BY_KNOWN_PATH]: CollectFilesByKnownPathDetails,
       [FlowType.COLLECT_MULTIPLE_FILES]: CollectMultipleFilesDetails,
+      [FlowType.STAT_MULTIPLE_FILES]: StatMultipleFilesDetails,
+      [FlowType.HASH_MULTIPLE_FILES]: HashMultipleFilesDetails,
       [FlowType.DUMP_PROCESS_MEMORY]: DumpProcessMemoryDetails,
       [FlowType.EXECUTE_PYTHON_HACK]: ExecutePythonHackDetails,
       [FlowType.FILE_FINDER]: FileFinderDetails,

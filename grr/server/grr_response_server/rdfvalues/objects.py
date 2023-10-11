@@ -132,9 +132,14 @@ class ClientSnapshot(rdf_structs.RDFProtoStruct):
       summary.users = kb.users
       summary.interfaces = self.interfaces
       summary.client_info = self.startup_info.client_info
-      if kb.os_release:
+
+      # We use knowledge base release information only if it was not set already
+      # (and the same applies to the version information). This is because the
+      # knowledge base information comes from artifact definitions that are less
+      # precise than platform information obtained through the `distro` package.
+      if not summary.system_info.release and kb.os_release:
         summary.system_info.release = kb.os_release
-        if kb.os_major_version:
+        if not summary.system_info.version and kb.os_major_version:
           summary.system_info.version = "%d.%d" % (kb.os_major_version,
                                                    kb.os_minor_version)
 
@@ -696,10 +701,22 @@ class ClientPathID(rdf_structs.RDFProtoStruct):
 
 
 class BlobReference(rdf_structs.RDFProtoStruct):
+  """A reference to a blob."""
   protobuf = objects_pb2.BlobReference
   rdf_deps = [
       BlobID,
   ]
+
+  @classmethod
+  def FromBlobImageChunkDescriptor(
+      cls,
+      chunk: rdf_client_fs.BlobImageChunkDescriptor,
+  ) -> "BlobReference":
+    result = cls()
+    result.offset = chunk.offset
+    result.size = chunk.length
+    result.blob_id = chunk.digest
+    return result
 
 
 class BlobReferences(rdf_structs.RDFProtoStruct):
