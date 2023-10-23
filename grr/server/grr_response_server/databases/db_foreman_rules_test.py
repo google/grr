@@ -41,27 +41,27 @@ class DatabaseTestForemanRulesMixin(object):
     self.assertEqual(read[0], rule)
 
   def testForemanRuleRemove(self):
-    db_test_utils.InitializeHunt(self.db, "H:123456")
-    rule1 = self._GetTestRule("H:123456")
+    db_test_utils.InitializeHunt(self.db, "123456")
+    rule1 = self._GetTestRule("123456")
     self.db.WriteForemanRule(rule1)
 
-    db_test_utils.InitializeHunt(self.db, "H:654321")
-    rule2 = self._GetTestRule("H:654321")
+    db_test_utils.InitializeHunt(self.db, "654321")
+    rule2 = self._GetTestRule("654321")
     self.db.WriteForemanRule(rule2)
 
-    db_test_utils.InitializeHunt(self.db, "H:ABCDEF")
-    rule3 = self._GetTestRule("H:ABCDEF")
+    db_test_utils.InitializeHunt(self.db, "ABCDEF")
+    rule3 = self._GetTestRule("ABCDEF")
     self.db.WriteForemanRule(rule3)
 
     read = self.db.ReadAllForemanRules()
     self.assertLen(read, 3)
 
-    self.db.RemoveForemanRule("H:654321")
+    self.db.RemoveForemanRule("654321")
     read = self.db.ReadAllForemanRules()
     self.assertLen(read, 2)
     self.assertCountEqual(read, [rule1, rule3])
 
-    self.db.RemoveForemanRule("H:123456")
+    self.db.RemoveForemanRule("123456")
     read = self.db.ReadAllForemanRules()
     self.assertLen(read, 1)
     self.assertEqual(read[0], rule3)

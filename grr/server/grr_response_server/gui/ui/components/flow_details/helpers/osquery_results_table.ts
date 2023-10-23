@@ -3,7 +3,7 @@ import {MatSort} from '@angular/material/sort';
 import {MatTableDataSource} from '@angular/material/table';
 import {BehaviorSubject} from 'rxjs';
 
-import {OsqueryTable} from '../../../lib/api/api_interfaces';
+import {type OsqueryTable} from '../../../lib/api/api_interfaces';
 import {isNonNull} from '../../../lib/preconditions';
 
 interface Row {

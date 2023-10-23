@@ -149,18 +149,6 @@ describe('request approval dialog', () => {
     expect($('input[name=acl_reason]', element).attr('disabled')).toBeTruthy();
   });
 
-  it('doesn\'t show keep-alive checkbox for "hunt"approval type', () => {
-    const element = renderTestTemplate('hunt');
-
-    expect($('input[name=keepalive]', element).length).toBe(0);
-  });
-
-  it('shows keep-alive checkbox for "client" approval type', () => {
-    const element = renderTestTemplate('client');
-
-    expect($('input[name=keepalive]', element).length).toBe(1);
-  });
-
   it('includes approvers into request if CC-checbox is selected', () => {
     spyOn(grrApiService, 'post').and.returnValue($q.defer().promise);
 
@@ -184,37 +172,6 @@ describe('request approval dialog', () => {
         notified_users: ['foo'],
         email_cc_addresses: ['foo@bar.com', 'xyz@example.com'],
       },
-      keep_client_alive: true,
-    });
-  });
-
-  it('includes keep_client_alive into request if checkbox is selected', () => {
-    spyOn(grrApiService, 'post').and.returnValue($q.defer().promise);
-
-    const element =
-        renderTestTemplate('client', 'foo/bar', clientApprovalRequest);
-
-    setApproverInput(element, 'foo');
-
-    $('input[name=acl_reason]', element).val('bar');
-    browserTriggerEvent($('input[name=acl_reason]', element), 'change');
-
-    browserTriggerEvent(
-        $('input[name=cc_approval]', element).prop('checked', false),
-        'change');
-    browserTriggerEvent(
-        $('input[name=keepalive]', element).prop('checked', true),
-        'change');
-
-    browserTriggerEvent($('button[name=Proceed]', element), 'click');
-
-    expect(grrApiService.post).toHaveBeenCalledWith('foo/bar', {
-      client_id: 'C:123456',
-      approval: {
-        reason: 'bar',
-        notified_users: ['foo'],
-      },
-      keep_client_alive: true,
     });
   });
 
@@ -244,7 +201,6 @@ describe('request approval dialog', () => {
         reason: 'reason2',
         notified_users: ['foo'],
       },
-      keep_client_alive: true,
     });
   });
 

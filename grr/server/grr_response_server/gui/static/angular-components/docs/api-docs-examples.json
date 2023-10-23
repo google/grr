@@ -172,7 +172,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -389,7 +389,7 @@
         "subject": {
           "age": 42000000,
           "agent_info": {
-            "build_time": "1980-01-01",
+            "build_time": "1980-01-01T12:00:00.000000+00:00",
             "client_name": "GRR Monitor",
             "client_version": 1234,
             "labels": [
@@ -1093,26 +1093,41 @@
                 "value": 0
               },
               "flow_args": {
-                "type": "GetFileArgs",
+                "type": "FileFinderArgs",
                 "value": {
-                  "pathspec": {
-                    "type": "PathSpec",
+                  "action": {
+                    "type": "FileFinderAction",
                     "value": {
-                      "path": {
-                        "type": "unicode",
-                        "value": "/tmp/evil.txt"
-                      },
-                      "pathtype": {
+                      "action_type": {
                         "type": "EnumNamedValue",
-                        "value": "OS"
+                        "value": "DOWNLOAD"
+                      },
+                      "download": {
+                        "type": "FileFinderDownloadActionOptions",
+                        "value": {
+                          "collect_ext_attrs": {
+                            "type": "bool",
+                            "value": false
+                          }
+                        }
                       }
                     }
+                  },
+                  "paths": [
+                    {
+                      "type": "GlobExpression",
+                      "value": "/tmp/evil.txt"
+                    }
+                  ],
+                  "pathtype": {
+                    "type": "EnumNamedValue",
+                    "value": "OS"
                   }
                 }
               },
               "flow_name": {
                 "type": "unicode",
-                "value": "GetFile"
+                "value": "ClientFileFinder"
               },
               "hunt_id": {
                 "type": "ApiHuntId",
@@ -1280,12 +1295,18 @@
           "duration": 1209600,
           "failed_clients_count": 0,
           "flow_args": {
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "action": {
+              "action_type": "DOWNLOAD",
+              "download": {
+                "collect_ext_attrs": false
+              }
+            },
+            "paths": [
+              "/tmp/evil.txt"
+            ],
+            "pathtype": "OS"
           },
-          "flow_name": "GetFile",
+          "flow_name": "ClientFileFinder",
           "hunt_id": "H:123456",
           "hunt_runner_args": {
             "avg_cpu_seconds_per_client_limit": 60,
@@ -1750,7 +1771,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -1964,7 +1985,7 @@
         "subject": {
           "age": 42000000,
           "agent_info": {
-            "build_time": "1980-01-01",
+            "build_time": "1980-01-01T12:00:00.000000+00:00",
             "client_name": "GRR Monitor",
             "client_version": 1234,
             "labels": [
@@ -2093,7 +2114,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -2307,7 +2328,7 @@
         "subject": {
           "age": 42000000,
           "agent_info": {
-            "build_time": "1980-01-01",
+            "build_time": "1980-01-01T12:00:00.000000+00:00",
             "client_name": "GRR Monitor",
             "client_version": 1234,
             "labels": [
@@ -2394,7 +2415,7 @@
             "value": {
               "build_time": {
                 "type": "unicode",
-                "value": "1980-01-01"
+                "value": "1980-01-01T12:00:00.000000+00:00"
               },
               "client_name": {
                 "type": "unicode",
@@ -2595,7 +2616,7 @@
       "type_stripped_response": {
         "age": 42000000,
         "agent_info": {
-          "build_time": "1980-01-01",
+          "build_time": "1980-01-01T12:00:00.000000+00:00",
           "client_name": "GRR Monitor",
           "client_version": 1234,
           "labels": [
@@ -2722,7 +2743,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -2927,7 +2948,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -3128,7 +3149,7 @@
           {
             "age": 42000000,
             "agent_info": {
-              "build_time": "1980-01-01",
+              "build_time": "1980-01-01T12:00:00.000000+00:00",
               "client_name": "GRR Monitor",
               "client_version": 1234,
               "labels": [
@@ -3198,7 +3219,7 @@
           {
             "age": 45000000,
             "agent_info": {
-              "build_time": "1980-01-01",
+              "build_time": "1980-01-01T12:00:00.000000+00:00",
               "client_name": "GRR Monitor",
               "client_version": 1234,
               "labels": [
@@ -3286,7 +3307,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -3487,7 +3508,7 @@
           {
             "age": 42000000,
             "agent_info": {
-              "build_time": "1980-01-01",
+              "build_time": "1980-01-01T12:00:00.000000+00:00",
               "client_name": "GRR Monitor",
               "client_version": 1234,
               "labels": [
@@ -3575,7 +3596,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -3776,7 +3797,7 @@
           {
             "age": 45000000,
             "agent_info": {
-              "build_time": "1980-01-01",
+              "build_time": "1980-01-01T12:00:00.000000+00:00",
               "client_name": "GRR Monitor",
               "client_version": 1234,
               "labels": [
@@ -5023,26 +5044,41 @@
                 "value": 0
               },
               "flow_args": {
-                "type": "GetFileArgs",
+                "type": "FileFinderArgs",
                 "value": {
-                  "pathspec": {
-                    "type": "PathSpec",
+                  "action": {
+                    "type": "FileFinderAction",
                     "value": {
-                      "path": {
-                        "type": "unicode",
-                        "value": "/tmp/evil.txt"
-                      },
-                      "pathtype": {
+                      "action_type": {
                         "type": "EnumNamedValue",
-                        "value": "OS"
+                        "value": "DOWNLOAD"
+                      },
+                      "download": {
+                        "type": "FileFinderDownloadActionOptions",
+                        "value": {
+                          "collect_ext_attrs": {
+                            "type": "bool",
+                            "value": false
+                          }
+                        }
                       }
                     }
+                  },
+                  "paths": [
+                    {
+                      "type": "GlobExpression",
+                      "value": "/tmp/evil.txt"
+                    }
+                  ],
+                  "pathtype": {
+                    "type": "EnumNamedValue",
+                    "value": "OS"
                   }
                 }
               },
               "flow_name": {
                 "type": "unicode",
-                "value": "GetFile"
+                "value": "ClientFileFinder"
               },
               "hunt_id": {
                 "type": "ApiHuntId",
@@ -5207,12 +5243,18 @@
           "duration": 1209600,
           "failed_clients_count": 0,
           "flow_args": {
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "action": {
+              "action_type": "DOWNLOAD",
+              "download": {
+                "collect_ext_attrs": false
+              }
+            },
+            "paths": [
+              "/tmp/evil.txt"
+            ],
+            "pathtype": "OS"
           },
-          "flow_name": "GetFile",
+          "flow_name": "ClientFileFinder",
           "hunt_id": "H:123456",
           "hunt_runner_args": {
             "avg_cpu_seconds_per_client_limit": 60,
@@ -5379,26 +5421,41 @@
                 "value": 0
               },
               "flow_args": {
-                "type": "GetFileArgs",
+                "type": "FileFinderArgs",
                 "value": {
-                  "pathspec": {
-                    "type": "PathSpec",
+                  "action": {
+                    "type": "FileFinderAction",
                     "value": {
-                      "path": {
-                        "type": "unicode",
-                        "value": "/tmp/evil.txt"
-                      },
-                      "pathtype": {
+                      "action_type": {
                         "type": "EnumNamedValue",
-                        "value": "OS"
+                        "value": "DOWNLOAD"
+                      },
+                      "download": {
+                        "type": "FileFinderDownloadActionOptions",
+                        "value": {
+                          "collect_ext_attrs": {
+                            "type": "bool",
+                            "value": false
+                          }
+                        }
                       }
                     }
+                  },
+                  "paths": [
+                    {
+                      "type": "GlobExpression",
+                      "value": "/tmp/evil.txt"
+                    }
+                  ],
+                  "pathtype": {
+                    "type": "EnumNamedValue",
+                    "value": "OS"
                   }
                 }
               },
               "flow_name": {
                 "type": "unicode",
-                "value": "GetFile"
+                "value": "ClientFileFinder"
               },
               "hunt_id": {
                 "type": "ApiHuntId",
@@ -5563,12 +5620,18 @@
           "duration": 1209600,
           "failed_clients_count": 0,
           "flow_args": {
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "action": {
+              "action_type": "DOWNLOAD",
+              "download": {
+                "collect_ext_attrs": false
+              }
+            },
+            "paths": [
+              "/tmp/evil.txt"
+            ],
+            "pathtype": "OS"
           },
-          "flow_name": "GetFile",
+          "flow_name": "ClientFileFinder",
           "hunt_id": "H:567890",
           "hunt_runner_args": {
             "avg_cpu_seconds_per_client_limit": 60,
@@ -5700,26 +5763,41 @@
                 "value": 0
               },
               "flow_args": {
-                "type": "GetFileArgs",
+                "type": "FileFinderArgs",
                 "value": {
-                  "pathspec": {
-                    "type": "PathSpec",
+                  "action": {
+                    "type": "FileFinderAction",
                     "value": {
-                      "path": {
-                        "type": "unicode",
-                        "value": "/tmp/evil.txt"
-                      },
-                      "pathtype": {
+                      "action_type": {
                         "type": "EnumNamedValue",
-                        "value": "OS"
+                        "value": "DOWNLOAD"
+                      },
+                      "download": {
+                        "type": "FileFinderDownloadActionOptions",
+                        "value": {
+                          "collect_ext_attrs": {
+                            "type": "bool",
+                            "value": false
+                          }
+                        }
                       }
                     }
+                  },
+                  "paths": [
+                    {
+                      "type": "GlobExpression",
+                      "value": "/tmp/evil.txt"
+                    }
+                  ],
+                  "pathtype": {
+                    "type": "EnumNamedValue",
+                    "value": "OS"
                   }
                 }
               },
               "flow_name": {
                 "type": "unicode",
-                "value": "GetFile"
+                "value": "ClientFileFinder"
               },
               "hunt_id": {
                 "type": "ApiHuntId",
@@ -5957,26 +6035,41 @@
                 "value": 0
               },
               "flow_args": {
-                "type": "GetFileArgs",
+                "type": "FileFinderArgs",
                 "value": {
-                  "pathspec": {
-                    "type": "PathSpec",
+                  "action": {
+                    "type": "FileFinderAction",
                     "value": {
-                      "path": {
-                        "type": "unicode",
-                        "value": "/tmp/evil.txt"
-                      },
-                      "pathtype": {
+                      "action_type": {
                         "type": "EnumNamedValue",
-                        "value": "OS"
+                        "value": "DOWNLOAD"
+                      },
+                      "download": {
+                        "type": "FileFinderDownloadActionOptions",
+                        "value": {
+                          "collect_ext_attrs": {
+                            "type": "bool",
+                            "value": false
+                          }
+                        }
                       }
                     }
+                  },
+                  "paths": [
+                    {
+                      "type": "GlobExpression",
+                      "value": "/tmp/evil.txt"
+                    }
+                  ],
+                  "pathtype": {
+                    "type": "EnumNamedValue",
+                    "value": "OS"
                   }
                 }
               },
               "flow_name": {
                 "type": "unicode",
-                "value": "GetFile"
+                "value": "ClientFileFinder"
               },
               "hunt_id": {
                 "type": "ApiHuntId",
@@ -6162,12 +6255,18 @@
           "duration": 1209600,
           "failed_clients_count": 0,
           "flow_args": {
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "action": {
+              "action_type": "DOWNLOAD",
+              "download": {
+                "collect_ext_attrs": false
+              }
+            },
+            "paths": [
+              "/tmp/evil.txt"
+            ],
+            "pathtype": "OS"
           },
-          "flow_name": "GetFile",
+          "flow_name": "ClientFileFinder",
           "hunt_id": "H:556677",
           "hunt_runner_args": {
             "avg_cpu_seconds_per_client_limit": 60,
@@ -6239,12 +6338,18 @@
           "duration": 1209600,
           "failed_clients_count": 0,
           "flow_args": {
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "action": {
+              "action_type": "DOWNLOAD",
+              "download": {
+                "collect_ext_attrs": false
+              }
+            },
+            "paths": [
+              "/tmp/evil.txt"
+            ],
+            "pathtype": "OS"
           },
-          "flow_name": "GetFile",
+          "flow_name": "ClientFileFinder",
           "hunt_id": "H:DDEEFF",
           "hunt_runner_args": {
             "avg_cpu_seconds_per_client_limit": 60,
@@ -6484,26 +6589,41 @@
                 "value": 0
               },
               "flow_args": {
-                "type": "GetFileArgs",
+                "type": "FileFinderArgs",
                 "value": {
-                  "pathspec": {
-                    "type": "PathSpec",
+                  "action": {
+                    "type": "FileFinderAction",
                     "value": {
-                      "path": {
-                        "type": "unicode",
-                        "value": "/tmp/evil.txt"
-                      },
-                      "pathtype": {
+                      "action_type": {
                         "type": "EnumNamedValue",
-                        "value": "OS"
+                        "value": "DOWNLOAD"
+                      },
+                      "download": {
+                        "type": "FileFinderDownloadActionOptions",
+                        "value": {
+                          "collect_ext_attrs": {
+                            "type": "bool",
+                            "value": false
+                          }
+                        }
                       }
                     }
+                  },
+                  "paths": [
+                    {
+                      "type": "GlobExpression",
+                      "value": "/tmp/evil.txt"
+                    }
+                  ],
+                  "pathtype": {
+                    "type": "EnumNamedValue",
+                    "value": "OS"
                   }
                 }
               },
               "flow_name": {
                 "type": "unicode",
-                "value": "GetFile"
+                "value": "ClientFileFinder"
               },
               "hunt_id": {
                 "type": "ApiHuntId",
@@ -6725,12 +6845,18 @@
           "duration": 1209600,
           "failed_clients_count": 0,
           "flow_args": {
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "action": {
+              "action_type": "DOWNLOAD",
+              "download": {
+                "collect_ext_attrs": false
+              }
+            },
+            "paths": [
+              "/tmp/evil.txt"
+            ],
+            "pathtype": "OS"
           },
-          "flow_name": "GetFile",
+          "flow_name": "ClientFileFinder",
           "hunt_id": "H:667788",
           "hunt_runner_args": {
             "avg_cpu_seconds_per_client_limit": 60,
@@ -7114,26 +7240,41 @@
             "value": 0
           },
           "flow_args": {
-            "type": "GetFileArgs",
+            "type": "FileFinderArgs",
             "value": {
-              "pathspec": {
-                "type": "PathSpec",
+              "action": {
+                "type": "FileFinderAction",
                 "value": {
-                  "path": {
-                    "type": "unicode",
-                    "value": "/tmp/evil.txt"
-                  },
-                  "pathtype": {
+                  "action_type": {
                     "type": "EnumNamedValue",
-                    "value": "OS"
+                    "value": "DOWNLOAD"
+                  },
+                  "download": {
+                    "type": "FileFinderDownloadActionOptions",
+                    "value": {
+                      "collect_ext_attrs": {
+                        "type": "bool",
+                        "value": false
+                      }
+                    }
                   }
                 }
+              },
+              "paths": [
+                {
+                  "type": "GlobExpression",
+                  "value": "/tmp/evil.txt"
+                }
+              ],
+              "pathtype": {
+                "type": "EnumNamedValue",
+                "value": "OS"
               }
             }
           },
           "flow_name": {
             "type": "unicode",
-            "value": "GetFile"
+            "value": "ClientFileFinder"
           },
           "hunt_id": {
             "type": "ApiHuntId",
@@ -7321,12 +7462,18 @@
         "duration": 1209600,
         "failed_clients_count": 0,
         "flow_args": {
-          "pathspec": {
-            "path": "/tmp/evil.txt",
-            "pathtype": "OS"
-          }
+          "action": {
+            "action_type": "DOWNLOAD",
+            "download": {
+              "collect_ext_attrs": false
+            }
+          },
+          "paths": [
+            "/tmp/evil.txt"
+          ],
+          "pathtype": "OS"
         },
-        "flow_name": "GetFile",
+        "flow_name": "ClientFileFinder",
         "hunt_id": "H:123456",
         "hunt_runner_args": {
           "avg_cpu_seconds_per_client_limit": 60,
@@ -7461,26 +7608,41 @@
             "value": 0
           },
           "flow_args": {
-            "type": "GetFileArgs",
+            "type": "FileFinderArgs",
             "value": {
-              "pathspec": {
-                "type": "PathSpec",
+              "action": {
+                "type": "FileFinderAction",
                 "value": {
-                  "path": {
-                    "type": "unicode",
-                    "value": "/tmp/evil.txt"
-                  },
-                  "pathtype": {
+                  "action_type": {
                     "type": "EnumNamedValue",
-                    "value": "OS"
+                    "value": "DOWNLOAD"
+                  },
+                  "download": {
+                    "type": "FileFinderDownloadActionOptions",
+                    "value": {
+                      "collect_ext_attrs": {
+                        "type": "bool",
+                        "value": false
+                      }
+                    }
                   }
                 }
+              },
+              "paths": [
+                {
+                  "type": "GlobExpression",
+                  "value": "/tmp/evil.txt"
+                }
+              ],
+              "pathtype": {
+                "type": "EnumNamedValue",
+                "value": "OS"
               }
             }
           },
           "flow_name": {
             "type": "unicode",
-            "value": "GetFile"
+            "value": "ClientFileFinder"
           },
           "hunt_id": {
             "type": "ApiHuntId",
@@ -7660,12 +7822,18 @@
         "duration": 1209600,
         "failed_clients_count": 0,
         "flow_args": {
-          "pathspec": {
-            "path": "/tmp/evil.txt",
-            "pathtype": "OS"
-          }
+          "action": {
+            "action_type": "DOWNLOAD",
+            "download": {
+              "collect_ext_attrs": false
+            }
+          },
+          "paths": [
+            "/tmp/evil.txt"
+          ],
+          "pathtype": "OS"
         },
-        "flow_name": "GetFile",
+        "flow_name": "ClientFileFinder",
         "hunt_id": "H:123456",
         "hunt_runner_args": {
           "avg_cpu_seconds_per_client_limit": 60,
@@ -7798,26 +7966,41 @@
             "value": 0
           },
           "flow_args": {
-            "type": "GetFileArgs",
+            "type": "FileFinderArgs",
             "value": {
-              "pathspec": {
-                "type": "PathSpec",
+              "action": {
+                "type": "FileFinderAction",
                 "value": {
-                  "path": {
-                    "type": "unicode",
-                    "value": "/tmp/evil.txt"
-                  },
-                  "pathtype": {
+                  "action_type": {
                     "type": "EnumNamedValue",
-                    "value": "OS"
+                    "value": "DOWNLOAD"
+                  },
+                  "download": {
+                    "type": "FileFinderDownloadActionOptions",
+                    "value": {
+                      "collect_ext_attrs": {
+                        "type": "bool",
+                        "value": false
+                      }
+                    }
                   }
                 }
+              },
+              "paths": [
+                {
+                  "type": "GlobExpression",
+                  "value": "/tmp/evil.txt"
+                }
+              ],
+              "pathtype": {
+                "type": "EnumNamedValue",
+                "value": "OS"
               }
             }
           },
           "flow_name": {
             "type": "unicode",
-            "value": "GetFile"
+            "value": "ClientFileFinder"
           },
           "hunt_id": {
             "type": "ApiHuntId",
@@ -7965,12 +8148,18 @@
         "duration": 1209600,
         "failed_clients_count": 0,
         "flow_args": {
-          "pathspec": {
-            "path": "/tmp/evil.txt",
-            "pathtype": "OS"
-          }
+          "action": {
+            "action_type": "DOWNLOAD",
+            "download": {
+              "collect_ext_attrs": false
+            }
+          },
+          "paths": [
+            "/tmp/evil.txt"
+          ],
+          "pathtype": "OS"
         },
-        "flow_name": "GetFile",
+        "flow_name": "ClientFileFinder",
         "hunt_id": "H:123456",
         "hunt_runner_args": {
           "avg_cpu_seconds_per_client_limit": 60,
@@ -10097,7 +10286,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -10311,7 +10500,7 @@
         "subject": {
           "age": 42000000,
           "agent_info": {
-            "build_time": "1980-01-01",
+            "build_time": "1980-01-01T12:00:00.000000+00:00",
             "client_name": "GRR Monitor",
             "client_version": 1234,
             "labels": [
@@ -10674,26 +10863,41 @@
                 "value": 0
               },
               "flow_args": {
-                "type": "GetFileArgs",
+                "type": "FileFinderArgs",
                 "value": {
-                  "pathspec": {
-                    "type": "PathSpec",
+                  "action": {
+                    "type": "FileFinderAction",
                     "value": {
-                      "path": {
-                        "type": "unicode",
-                        "value": "/tmp/evil.txt"
-                      },
-                      "pathtype": {
+                      "action_type": {
                         "type": "EnumNamedValue",
-                        "value": "OS"
+                        "value": "DOWNLOAD"
+                      },
+                      "download": {
+                        "type": "FileFinderDownloadActionOptions",
+                        "value": {
+                          "collect_ext_attrs": {
+                            "type": "bool",
+                            "value": false
+                          }
+                        }
                       }
                     }
+                  },
+                  "paths": [
+                    {
+                      "type": "GlobExpression",
+                      "value": "/tmp/evil.txt"
+                    }
+                  ],
+                  "pathtype": {
+                    "type": "EnumNamedValue",
+                    "value": "OS"
                   }
                 }
               },
               "flow_name": {
                 "type": "unicode",
-                "value": "GetFile"
+                "value": "ClientFileFinder"
               },
               "hunt_id": {
                 "type": "ApiHuntId",
@@ -10858,12 +11062,18 @@
           "duration": 1209600,
           "failed_clients_count": 0,
           "flow_args": {
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
+            "action": {
+              "action_type": "DOWNLOAD",
+              "download": {
+                "collect_ext_attrs": false
+              }
+            },
+            "paths": [
+              "/tmp/evil.txt"
+            ],
+            "pathtype": "OS"
           },
-          "flow_name": "GetFile",
+          "flow_name": "ClientFileFinder",
           "hunt_id": "H:123456",
           "hunt_runner_args": {
             "avg_cpu_seconds_per_client_limit": 60,
@@ -11341,22 +11551,6 @@
       "url": "/api/artifacts"
     }
   ],
-  "ApiListClientActionRequestsHandler": [
-    {
-      "api_method": "ListClientActionRequests",
-      "method": "GET",
-      "response": {},
-      "test_class": "ApiListClientActionRequestsHandlerRegressionTest_http_v1",
-      "url": "/api/clients/C.1000000000000000/action-requests"
-    },
-    {
-      "api_method": "ListClientActionRequests",
-      "method": "GET",
-      "response": {},
-      "test_class": "ApiListClientActionRequestsHandlerRegressionTest_http_v1",
-      "url": "/api/clients/C.1000000000000000/action-requests?fetch_responses=1"
-    }
-  ],
   "ApiListClientApprovalsHandler": [
     {
       "api_method": "ListClientApprovals",
@@ -11419,7 +11613,7 @@
                     "value": {
                       "build_time": {
                         "type": "unicode",
-                        "value": "1980-01-01"
+                        "value": "1980-01-01T12:00:00.000000+00:00"
                       },
                       "client_name": {
                         "type": "unicode",
@@ -11670,7 +11864,7 @@
                     "value": {
                       "build_time": {
                         "type": "unicode",
-                        "value": "1980-01-01"
+                        "value": "1980-01-01T12:00:00.000000+00:00"
                       },
                       "client_name": {
                         "type": "unicode",
@@ -11888,7 +12082,7 @@
             "subject": {
               "age": 42000000,
               "agent_info": {
-                "build_time": "1980-01-01",
+                "build_time": "1980-01-01T12:00:00.000000+00:00",
                 "client_name": "GRR Monitor",
                 "client_version": 1234,
                 "labels": [
@@ -11974,7 +12168,7 @@
             "subject": {
               "age": 42000000,
               "agent_info": {
-                "build_time": "1980-01-01",
+                "build_time": "1980-01-01T12:00:00.000000+00:00",
                 "client_name": "GRR Monitor",
                 "client_version": 1234,
                 "labels": [
@@ -12107,7 +12301,7 @@
                     "value": {
                       "build_time": {
                         "type": "unicode",
-                        "value": "1980-01-01"
+                        "value": "1980-01-01T12:00:00.000000+00:00"
                       },
                       "client_name": {
                         "type": "unicode",
@@ -12325,7 +12519,7 @@
             "subject": {
               "age": 42000000,
               "agent_info": {
-                "build_time": "1980-01-01",
+                "build_time": "1980-01-01T12:00:00.000000+00:00",
                 "client_name": "GRR Monitor",
                 "client_version": 1234,
                 "labels": [
@@ -12416,7 +12610,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -12465,7 +12659,7 @@
           {
             "client_id": "aff4:/C.1000000000000000",
             "client_info": {
-              "build_time": "1980-01-01",
+              "build_time": "1980-01-01T12:00:00.000000+00:00",
               "client_name": "GRR Monitor",
               "client_version": 1234,
               "labels": [
@@ -12500,7 +12694,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -12549,7 +12743,7 @@
           {
             "client_id": "aff4:/C.1000000000000000",
             "client_info": {
-              "build_time": "1980-01-01",
+              "build_time": "1980-01-01T12:00:00.000000+00:00",
               "client_name": "GRR Monitor",
               "client_version": 1234,
               "labels": [
@@ -13214,7 +13408,7 @@
               },
               "doc": {
                 "type": "unicode",
-                "value": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n  \n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=file_finder.FileFinder, paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev, implementation_type=implementation_type)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: bool\n      default: False\n\n    implementation_type\n      description: Force use of an implementation.\n      type: EnumNamedValue\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: bool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n"
+                "value": "An alias for ClientFileFinder.\n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=file_finder.FileFinder, paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev, implementation_type=implementation_type)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: bool\n      default: False\n\n    implementation_type\n      description: Force use of an implementation.\n      type: EnumNamedValue\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: bool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n"
               },
               "friendly_name": {
                 "type": "unicode",
@@ -13274,7 +13468,7 @@
             ],
             "category": "Filesystem",
             "default_args": {},
-            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n  \n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=file_finder.FileFinder, paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev, implementation_type=implementation_type)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: bool\n      default: False\n\n    implementation_type\n      description: Force use of an implementation.\n      type: EnumNamedValue\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: bool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n",
+            "doc": "An alias for ClientFileFinder.\n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=file_finder.FileFinder, paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev, implementation_type=implementation_type)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: bool\n      default: False\n\n    implementation_type\n      description: Force use of an implementation.\n      type: EnumNamedValue\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: bool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n",
             "friendly_name": "File Finder",
             "name": "FileFinder"
           },
@@ -13745,66 +13939,71 @@
             "type": "ApiFlowResult",
             "value": {
               "payload": {
-                "type": "StatEntry",
+                "type": "FileFinderResult",
                 "value": {
-                  "pathspec": {
-                    "type": "PathSpec",
+                  "stat_entry": {
+                    "type": "StatEntry",
                     "value": {
-                      "path": {
-                        "type": "unicode",
-                        "value": "/tmp/evil.txt"
+                      "pathspec": {
+                        "type": "PathSpec",
+                        "value": {
+                          "path": {
+                            "type": "unicode",
+                            "value": "/tmp/evil.txt"
+                          },
+                          "pathtype": {
+                            "type": "EnumNamedValue",
+                            "value": "OS"
+                          }
+                        }
                       },
-                      "pathtype": {
-                        "type": "EnumNamedValue",
-                        "value": "OS"
+                      "st_atime": {
+                        "type": "RDFDatetimeSeconds",
+                        "value": 1336469177
+                      },
+                      "st_ctime": {
+                        "type": "RDFDatetimeSeconds",
+                        "value": 1336129892
+                      },
+                      "st_dev": {
+                        "type": "long",
+                        "value": 64512
+                      },
+                      "st_gid": {
+                        "type": "long",
+                        "value": 5000
+                      },
+                      "st_ino": {
+                        "type": "long",
+                        "value": 1063090
+                      },
+                      "st_mode": {
+                        "type": "StatMode",
+                        "value": 33184
+                      },
+                      "st_mtime": {
+                        "type": "RDFDatetimeSeconds",
+                        "value": 1336129892
+                      },
+                      "st_nlink": {
+                        "type": "long",
+                        "value": 1
+                      },
+                      "st_size": {
+                        "type": "long",
+                        "value": 12
+                      },
+                      "st_uid": {
+                        "type": "long",
+                        "value": 139592
                       }
                     }
-                  },
-                  "st_atime": {
-                    "type": "RDFDatetimeSeconds",
-                    "value": 1336469177
-                  },
-                  "st_ctime": {
-                    "type": "RDFDatetimeSeconds",
-                    "value": 1336129892
-                  },
-                  "st_dev": {
-                    "type": "long",
-                    "value": 64512
-                  },
-                  "st_gid": {
-                    "type": "long",
-                    "value": 5000
-                  },
-                  "st_ino": {
-                    "type": "long",
-                    "value": 1063090
-                  },
-                  "st_mode": {
-                    "type": "StatMode",
-                    "value": 33184
-                  },
-                  "st_mtime": {
-                    "type": "RDFDatetimeSeconds",
-                    "value": 1336129892
-                  },
-                  "st_nlink": {
-                    "type": "long",
-                    "value": 1
-                  },
-                  "st_size": {
-                    "type": "long",
-                    "value": 12
-                  },
-                  "st_uid": {
-                    "type": "long",
-                    "value": 139592
                   }
                 }
               },
               "payload_type": {
                 "type": "unicode",
-                "value": "StatEntry"
+                "value": "FileFinderResult"
               },
               "timestamp": {
                 "type": "RDFDatetime",
@@ -13819,22 +14018,24 @@
         "items": [
           {
             "payload": {
-              "pathspec": {
-                "path": "/tmp/evil.txt",
-                "pathtype": "OS"
-              },
-              "st_atime": 1336469177,
-              "st_ctime": 1336129892,
-              "st_dev": 64512,
-              "st_gid": 5000,
-              "st_ino": 1063090,
-              "st_mode": 33184,
-              "st_mtime": 1336129892,
-              "st_nlink": 1,
-              "st_size": 12,
-              "st_uid": 139592
+              "stat_entry": {
+                "pathspec": {
+                  "path": "/tmp/evil.txt",
+                  "pathtype": "OS"
+                },
+                "st_atime": 1336469177,
+                "st_ctime": 1336129892,
+                "st_dev": 64512,
+                "st_gid": 5000,
+                "st_ino": 1063090,
+                "st_mode": 33184,
+                "st_mtime": 1336129892,
+                "st_nlink": 1,
+                "st_size": 12,
+                "st_uid": 139592
+              }
             },
-            "payload_type": "StatEntry",
+            "payload_type": "FileFinderResult",
             "timestamp": 42000000
           }
         ]
@@ -14746,26 +14947,41 @@
                     "value": 0
                   },
                   "flow_args": {
-                    "type": "GetFileArgs",
+                    "type": "FileFinderArgs",
                     "value": {
-                      "pathspec": {
-                        "type": "PathSpec",
+                      "action": {
+                        "type": "FileFinderAction",
                         "value": {
-                          "path": {
-                            "type": "unicode",
-                            "value": "/tmp/evil.txt"
-                          },
-                          "pathtype": {
+                          "action_type": {
                             "type": "EnumNamedValue",
-                            "value": "OS"
+                            "value": "DOWNLOAD"
+                          },
+                          "download": {
+                            "type": "FileFinderDownloadActionOptions",
+                            "value": {
+                              "collect_ext_attrs": {
+                                "type": "bool",
+                                "value": false
+                              }
+                            }
                           }
                         }
+                      },
+                      "paths": [
+                        {
+                          "type": "GlobExpression",
+                          "value": "/tmp/evil.txt"
+                        }
+                      ],
+                      "pathtype": {
+                        "type": "EnumNamedValue",
+                        "value": "OS"
                       }
                     }
                   },
                   "flow_name": {
                     "type": "unicode",
-                    "value": "GetFile"
+                    "value": "ClientFileFinder"
                   },
                   "hunt_id": {
                     "type": "ApiHuntId",
@@ -14934,12 +15150,18 @@
               "duration": 1209600,
               "failed_clients_count": 0,
               "flow_args": {
-                "pathspec": {
-                  "path": "/tmp/evil.txt",
-                  "pathtype": "OS"
-                }
+                "action": {
+                  "action_type": "DOWNLOAD",
+                  "download": {
+                    "collect_ext_attrs": false
+                  }
+                },
+                "paths": [
+                  "/tmp/evil.txt"
+                ],
+                "pathtype": "OS"
               },
-              "flow_name": "GetFile",
+              "flow_name": "ClientFileFinder",
               "hunt_id": "H:123456",
               "hunt_runner_args": {
                 "avg_cpu_seconds_per_client_limit": 60,
@@ -15219,7 +15441,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -15268,7 +15490,7 @@
           {
             "client_id": "aff4:/C.1000000000000000",
             "client_info": {
-              "build_time": "1980-01-01",
+              "build_time": "1980-01-01T12:00:00.000000+00:00",
               "client_name": "GRR Monitor",
               "client_version": 1234,
               "labels": [
@@ -15303,7 +15525,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -15352,7 +15574,7 @@
           {
             "client_id": "aff4:/C.1000000000000000",
             "client_info": {
-              "build_time": "1980-01-01",
+              "build_time": "1980-01-01T12:00:00.000000+00:00",
               "client_name": "GRR Monitor",
               "client_version": 1234,
               "labels": [
@@ -17975,26 +18197,41 @@
             "value": 0
           },
           "flow_args": {
-            "type": "GetFileArgs",
+            "type": "FileFinderArgs",
             "value": {
-              "pathspec": {
-                "type": "PathSpec",
+              "action": {
+                "type": "FileFinderAction",
                 "value": {
-                  "path": {
-                    "type": "unicode",
-                    "value": "/tmp/evil.txt"
-                  },
-                  "pathtype": {
+                  "action_type": {
                     "type": "EnumNamedValue",
-                    "value": "OS"
+                    "value": "DOWNLOAD"
+                  },
+                  "download": {
+                    "type": "FileFinderDownloadActionOptions",
+                    "value": {
+                      "collect_ext_attrs": {
+                        "type": "bool",
+                        "value": false
+                      }
+                    }
                   }
                 }
+              },
+              "paths": [
+                {
+                  "type": "GlobExpression",
+                  "value": "/tmp/evil.txt"
+                }
+              ],
+              "pathtype": {
+                "type": "EnumNamedValue",
+                "value": "OS"
               }
             }
           },
           "flow_name": {
             "type": "unicode",
-            "value": "GetFile"
+            "value": "ClientFileFinder"
           },
           "hunt_id": {
             "type": "ApiHuntId",
@@ -18146,12 +18383,18 @@
         "duration": 1209600,
         "failed_clients_count": 0,
         "flow_args": {
-          "pathspec": {
-            "path": "/tmp/evil.txt",
-            "pathtype": "OS"
-          }
+          "action": {
+            "action_type": "DOWNLOAD",
+            "download": {
+              "collect_ext_attrs": false
+            }
+          },
+          "paths": [
+            "/tmp/evil.txt"
+          ],
+          "pathtype": "OS"
         },
-        "flow_name": "GetFile",
+        "flow_name": "ClientFileFinder",
         "hunt_id": "H:123456",
         "hunt_runner_args": {
           "avg_cpu_seconds_per_client_limit": 60,
@@ -18277,26 +18520,41 @@
             "value": 0
           },
           "flow_args": {
-            "type": "GetFileArgs",
+            "type": "FileFinderArgs",
             "value": {
-              "pathspec": {
-                "type": "PathSpec",
+              "action": {
+                "type": "FileFinderAction",
                 "value": {
-                  "path": {
-                    "type": "unicode",
-                    "value": "/tmp/evil.txt"
-                  },
-                  "pathtype": {
+                  "action_type": {
                     "type": "EnumNamedValue",
-                    "value": "OS"
+                    "value": "DOWNLOAD"
+                  },
+                  "download": {
+                    "type": "FileFinderDownloadActionOptions",
+                    "value": {
+                      "collect_ext_attrs": {
+                        "type": "bool",
+                        "value": false
+                      }
+                    }
                   }
                 }
+              },
+              "paths": [
+                {
+                  "type": "GlobExpression",
+                  "value": "/tmp/evil.txt"
+                }
+              ],
+              "pathtype": {
+                "type": "EnumNamedValue",
+                "value": "OS"
               }
             }
           },
           "flow_name": {
             "type": "unicode",
-            "value": "GetFile"
+            "value": "ClientFileFinder"
           },
           "hunt_id": {
             "type": "ApiHuntId",
@@ -18448,12 +18706,18 @@
         "duration": 1209600,
         "failed_clients_count": 0,
         "flow_args": {
-          "pathspec": {
-            "path": "/tmp/evil.txt",
-            "pathtype": "OS"
-          }
+          "action": {
+            "action_type": "DOWNLOAD",
+            "download": {
+              "collect_ext_attrs": false
+            }
+          },
+          "paths": [
+            "/tmp/evil.txt"
+          ],
+          "pathtype": "OS"
         },
-        "flow_name": "GetFile",
+        "flow_name": "ClientFileFinder",
         "hunt_id": "H:123456",
         "hunt_runner_args": {
           "avg_cpu_seconds_per_client_limit": 60,
@@ -18511,7 +18775,7 @@
                 "value": {
                   "build_time": {
                     "type": "unicode",
-                    "value": "1980-01-01"
+                    "value": "1980-01-01T12:00:00.000000+00:00"
                   },
                   "client_name": {
                     "type": "unicode",
@@ -18712,7 +18976,7 @@
           {
             "age": 42000000,
             "agent_info": {
-              "build_time": "1980-01-01",
+              "build_time": "1980-01-01T12:00:00.000000+00:00",
               "client_name": "GRR Monitor",
               "client_version": 1234,
               "labels": [

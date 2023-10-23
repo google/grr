@@ -28,6 +28,8 @@ export const FORMS: {[key in FlowType]?: Type<FlowArgumentForm<{}, any>>} = {
   [FlowType.COLLECT_BROWSER_HISTORY]: CollectBrowserHistoryForm,
   [FlowType.COLLECT_FILES_BY_KNOWN_PATH]: CollectFilesByKnownPathForm,
   [FlowType.COLLECT_MULTIPLE_FILES]: CollectMultipleFilesForm,
+  [FlowType.STAT_MULTIPLE_FILES]: CollectMultipleFilesForm,
+  [FlowType.HASH_MULTIPLE_FILES]: CollectMultipleFilesForm,
   [FlowType.DUMP_PROCESS_MEMORY]: DumpProcessMemoryForm,
   [FlowType.EXECUTE_PYTHON_HACK]: ExecutePythonHackForm,
   [FlowType.LAUNCH_BINARY]: LaunchBinaryForm,
@@ -43,9 +45,7 @@ export const FORMS: {[key in FlowType]?: Type<FlowArgumentForm<{}, any>>} = {
 
   // Show empty form as fallback for flows that typically do not require
   // configuration.
-  [FlowType.COLLECT_EFI_HASHES]: FallbackFlowArgsForm,
   [FlowType.COLLECT_RUNKEY_BINARIES]: FallbackFlowArgsForm,
-  [FlowType.DUMP_EFI_IMAGE]: FallbackFlowArgsForm,
   [FlowType.DUMP_FLASH_IMAGE]: FallbackFlowArgsForm,
   [FlowType.GET_CLIENT_STATS]: FallbackFlowArgsForm,
   [FlowType.GET_MBR]: FallbackFlowArgsForm,

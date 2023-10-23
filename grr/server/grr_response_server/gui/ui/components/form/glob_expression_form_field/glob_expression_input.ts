@@ -3,7 +3,7 @@ import {ControlValueAccessor, NG_VALUE_ACCESSOR, UntypedFormControl} from '@angu
 import {BehaviorSubject, combineLatest} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
-import {Client, getKnowledgeBaseExpressionExamples, KnowledgeBaseExample} from '../../../lib/models/client';
+import {type Client, getKnowledgeBaseExpressionExamples, KnowledgeBaseExample} from '../../../lib/models/client';
 
 type OnChangeFn = (value: string) => void;
 type OnTouchedFn = () => void;

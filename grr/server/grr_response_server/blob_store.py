@@ -165,6 +165,22 @@ class BlobStore(metaclass=abc.ABCMeta):
 
     return results
 
+  def ReadAndWaitForBlob(
+      self,
+      blob_id: rdf_objects.BlobID,
+      timeout: rdfvalue.Duration,
+  ) -> Optional[bytes]:
+    """Reads the specified blobs waiting until it is available or times out.
+
+    Args:
+      blob_id: An identifier of the blob to read.
+      timeout: A timeout after which `None` is returned instead.
+
+    Returns:
+      Content of the requested blob or `None` if the timeout was reached.
+    """
+    return self.ReadAndWaitForBlobs([blob_id], timeout)[blob_id]
+
   def WaitForBlobs(
       self,
       blob_ids: Iterable[rdf_objects.BlobID],

@@ -1,0 +1,23 @@
+syntax = "proto2";
+
+package grr;
+
+// Arguments for Dummy Flow.
+message DummyArgs {
+  optional string flow_input = 1;
+}
+
+// Return for Dummy Flow.
+message DummyFlowResult {
+  optional string flow_output = 1;
+}
+
+// Arguments for Dummy ClientAction.
+message DummyRequest {
+  optional string action_input = 1;
+}
+
+// Return for Dummy ClientAction.
+message DummyResult {
+  optional string action_output = 1;
+}

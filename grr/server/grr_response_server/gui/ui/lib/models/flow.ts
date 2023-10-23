@@ -6,13 +6,13 @@ export enum FlowType {
   ARTIFACT_COLLECTOR_FLOW = 'ArtifactCollectorFlow',
   OS_QUERY_FLOW = 'OsqueryFlow',
   COLLECT_BROWSER_HISTORY = 'CollectBrowserHistory',
-  COLLECT_EFI_HASHES = 'CollectEfiHashes',
   DUMP_ACPI_TABLE = 'DumpACPITable',
-  DUMP_EFI_IMAGE = 'DumpEfiImage',
   DUMP_FLASH_IMAGE = 'DumpFlashImage',
   GET_MBR = 'GetMBR',
   COLLECT_FILES_BY_KNOWN_PATH = 'CollectFilesByKnownPath',
   COLLECT_MULTIPLE_FILES = 'CollectMultipleFiles',
+  STAT_MULTIPLE_FILES = 'StatMultipleFiles',
+  HASH_MULTIPLE_FILES = 'HashMultipleFiles',
   LIST_DIRECTORY = 'ListDirectory',
   TIMELINE_FLOW = 'TimelineFlow',
   READ_LOW_LEVEL = 'ReadLowLevel',
@@ -75,15 +75,9 @@ export const FLOW_LIST_ITEMS_BY_TYPE: FlowsByTypeMap = {
   [FlowType.COLLECT_BROWSER_HISTORY]: fli(
       FlowType.COLLECT_BROWSER_HISTORY, 'Collect browser history',
       'Collect browsing and download history from Chrome, Firefox, Edge & Safari'),
-  [FlowType.COLLECT_EFI_HASHES]:
-      fli(FlowType.COLLECT_EFI_HASHES, 'Collect EFI hashes',
-          'Collect EFI volume hashes on macOS using eficheck'),
   [FlowType.DUMP_ACPI_TABLE]:
       fli(FlowType.DUMP_ACPI_TABLE, 'Dump ACPI table',
           'Dump ACPI tables using chipsec'),
-  [FlowType.DUMP_EFI_IMAGE]:
-      fli(FlowType.DUMP_EFI_IMAGE, 'Dump EFI image',
-          'Dump the flash image on macOS using eficheck'),
   [FlowType.DUMP_FLASH_IMAGE]:
       fli(FlowType.DUMP_FLASH_IMAGE, 'Dump flash image',
           'Dump the flash image (BIOS)'),
@@ -95,6 +89,12 @@ export const FLOW_LIST_ITEMS_BY_TYPE: FlowsByTypeMap = {
   [FlowType.COLLECT_MULTIPLE_FILES]:
       fli(FlowType.COLLECT_MULTIPLE_FILES, 'Collect files by search criteria',
           'Search for and collect files based on their path, content or stat'),
+  [FlowType.STAT_MULTIPLE_FILES]: fli(
+      FlowType.STAT_MULTIPLE_FILES, 'Stat files',
+      'Search for and collect file stats based on their path, content or stat'),
+  [FlowType.HASH_MULTIPLE_FILES]: fli(
+      FlowType.HASH_MULTIPLE_FILES, 'Hash files',
+      'Search for and collect file hashes based on their path, content or stat'),
   [FlowType.LIST_DIRECTORY]:
       fli(FlowType.LIST_DIRECTORY, 'List directory',
           'Lists and stats all immediate files in directory'),

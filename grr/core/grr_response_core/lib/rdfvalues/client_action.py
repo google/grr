@@ -51,22 +51,6 @@ class ExecuteResponse(rdf_structs.RDFProtoStruct):
   ]
 
 
-class SendFileRequest(rdf_structs.RDFProtoStruct):
-  """Arguments for the `SendFile` action."""
-
-  protobuf = jobs_pb2.SendFileRequest
-  rdf_deps = [
-      rdf_crypto.AES128Key,
-      rdf_paths.PathSpec,
-  ]
-
-  def Validate(self):
-    self.pathspec.Validate()
-
-    if not self.host:
-      raise ValueError("A host must be specified.")
-
-
 class Iterator(rdf_structs.RDFProtoStruct):
   """An Iterated client action is one which can be resumed on the client."""
   protobuf = jobs_pb2.Iterator

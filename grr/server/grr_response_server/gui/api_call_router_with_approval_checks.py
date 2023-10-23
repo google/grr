@@ -40,8 +40,6 @@ RESTRICTED_FLOWS = [
     administrative.ExecuteCommand,
     administrative.ExecutePythonHack,
     administrative.LaunchBinary,
-    administrative.Uninstall,
-    administrative.UpdateClient,
     administrative.UpdateConfiguration,
 ]
 
@@ -94,45 +92,53 @@ class AccessChecker(object):
     subject = approval_checks.BuildLegacySubject(subject_id, approval_type)
     if not errors:
       raise access_control.UnauthorizedAccess(
-          "No approval found.", subject=subject)
+          "No approval found.", subject=subject
+      )
     else:
       raise access_control.UnauthorizedAccess(
-          " ".join(str(e) for e in errors), subject=subject)
+          " ".join(str(e) for e in errors), subject=subject
+      )
 
   def CheckClientAccess(self, context, client_id):
     """Checks whether a given user can access given client."""
     context.approval = self._CheckAccess(
-        context.username, str(client_id),
-        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT)
+        context.username,
+        str(client_id),
+        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+    )
 
   def CheckHuntAccess(self, context, hunt_id):
     """Checks whether a given user can access given hunt."""
     context.approval = self._CheckAccess(
-        context.username, str(hunt_id),
-        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT)
+        context.username,
+        str(hunt_id),
+        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT,
+    )
 
   def CheckCronJobAccess(self, context, cron_job_id):
     """Checks whether a given user can access given cron job."""
     context.approval = self._CheckAccess(
-        context.username, str(cron_job_id),
-        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB)
+        context.username,
+        str(cron_job_id),
+        rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
+    )
 
   def CheckIfCanStartClientFlow(self, username, flow_name):
     """Checks whether a given user can start a given flow."""
     flow_cls = registry.FlowRegistry.FLOW_REGISTRY.get(flow_name)
 
-    if flow_cls is None or not hasattr(flow_cls,
-                                       "category") or not flow_cls.category:
+    if flow_cls is None or not flow_cls.CanUseViaAPI():
       raise access_control.UnauthorizedAccess(
-          "Flow %s can't be started via the API." % flow_name)
+          "Flow %s can't be started via the API." % flow_name
+      )
 
     if flow_cls in RESTRICTED_FLOWS:
       try:
         self.CheckIfHasAccessToRestrictedFlows(username)
       except access_control.UnauthorizedAccess as e:
         raise access_control.UnauthorizedAccess(
-            "Not enough permissions to access restricted "
-            f"flow {flow_name}") from e
+            f"Not enough permissions to access restricted flow {flow_name}"
+        ) from e
 
   def CheckIfHasAccessToRestrictedFlows(self, username):
     """Checks whether a given user can access restricted (sensitive) flows."""
@@ -275,11 +281,6 @@ class ApiCallRouterWithApprovalChecks(api_call_router.ApiCallRouterStub):
     self.access_checker.CheckClientAccess(context, args.client_id)
 
     return self.delegate.ListClientCrashes(args, context=context)
-
-  def ListClientActionRequests(self, args, context=None):
-    self.access_checker.CheckClientAccess(context, args.client_id)
-
-    return self.delegate.ListClientActionRequests(args, context=context)
 
   def GetClientLoadStats(self, args, context=None):
     self.access_checker.CheckClientAccess(context, args.client_id)

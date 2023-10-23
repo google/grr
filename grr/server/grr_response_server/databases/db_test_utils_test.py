@@ -179,6 +179,21 @@ class InitializeClientTest(absltest.TestCase):
     self.assertEqual(client_id, "C.012345678ABCDEFAA")
     self.assertIsNotNone(db.ReadClientMetadata(client_id))
 
+  def testInitialValues(self):
+    db = mem_db.InMemoryDB()
+
+    client_id = db_test_utils.InitializeClient(db)
+    md = db.ReadClientMetadata(client_id)
+    self.assertIsNone(md.certificate)
+    self.assertIsNone(md.first_seen)
+    self.assertIsNone(md.ping)
+    self.assertIsNone(md.clock)
+    self.assertIsNone(md.last_foreman_time)
+    self.assertIsNone(md.last_crash_timestamp)
+    self.assertIsNone(md.startup_info_timestamp)
+    self.assertFalse(md.ip)
+    self.assertFalse(md.last_fleetspeak_validation_info)
+
 
 class InitializeRRGClientTest(absltest.TestCase):
 

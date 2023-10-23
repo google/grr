@@ -188,15 +188,6 @@ export declare interface ApiClient {
   readonly rrgArgs?: readonly string[];
 }
 
-/** ApiClientActionRequest proto mapping. */
-export declare interface ApiClientActionRequest {
-  readonly taskId?: ProtoUint64;
-  readonly leasedUntil?: RDFDatetime;
-  readonly sessionId?: RDFURN;
-  readonly clientAction?: string;
-  readonly responses?: readonly GrrMessage[];
-}
-
 /** ApiClientApproval proto mapping. */
 export declare interface ApiClientApproval {
   readonly subject?: ApiClient;
@@ -241,7 +232,6 @@ export declare interface ApiCountHuntResultsByTypeResult {
 export declare interface ApiCreateClientApprovalArgs {
   readonly clientId?: string;
   readonly approval?: ApiClientApproval;
-  readonly keepClientAlive?: boolean;
 }
 
 /** ApiCreateCronJobApprovalArgs proto mapping. */
@@ -1311,17 +1301,6 @@ export declare interface ApiListArtifactsArgs {
 export declare interface ApiListArtifactsResult {
   readonly items?: readonly ArtifactDescriptor[];
   readonly totalCount?: ProtoInt64;
-}
-
-/** ApiListClientActionRequestsArgs proto mapping. */
-export declare interface ApiListClientActionRequestsArgs {
-  readonly clientId?: string;
-  readonly fetchResponses?: boolean;
-}
-
-/** ApiListClientActionRequestsResult proto mapping. */
-export declare interface ApiListClientActionRequestsResult {
-  readonly items?: readonly ApiClientActionRequest[];
 }
 
 /** ApiListClientApprovalsArgs proto mapping. */
@@ -2685,17 +2664,20 @@ export declare interface DiskVolumeInfoArgs {
   readonly pathtype?: PathSpecPathType;
 }
 
+/** DummyArgs proto mapping. */
+export declare interface DummyArgs {
+  readonly flowInput?: string;
+}
+
+/** DummyFlowResult proto mapping. */
+export declare interface DummyFlowResult {
+  readonly flowOutput?: string;
+}
+
 /** DumpACPITableArgs proto mapping. */
 export declare interface DumpACPITableArgs {
   readonly logging?: boolean;
   readonly tableSignatureList?: readonly string[];
-}
-
-/** DumpEfiImageResponse proto mapping. */
-export declare interface DumpEfiImageResponse {
-  readonly eficheckVersion?: string;
-  readonly path?: PathSpec;
-  readonly response?: ExecuteBinaryResponse;
 }
 
 /** DumpFlashImageArgs proto mapping. */
@@ -2710,29 +2692,6 @@ export declare interface EdrAgent {
   readonly name?: string;
   readonly agentId?: string;
   readonly backendId?: string;
-}
-
-/** EfiCollection proto mapping. */
-export declare interface EfiCollection {
-  readonly eficheckVersion?: string;
-  readonly bootRomVersion?: string;
-  readonly entries?: readonly EfiEntry[];
-}
-
-/** EfiEntry proto mapping. */
-export declare interface EfiEntry {
-  readonly volumeType?: ProtoUint32;
-  readonly address?: ProtoUint64;
-  readonly size?: ProtoUint32;
-  readonly guid?: string;
-  readonly hash?: string;
-  readonly flags?: ProtoUint32;
-  readonly index?: ProtoUint32;
-}
-
-/** EficheckFlowArgs proto mapping. */
-export declare interface EficheckFlowArgs {
-  readonly cmdPath?: string;
 }
 
 /** EmbeddedRDFValue proto mapping. */
@@ -2968,38 +2927,6 @@ export declare interface FileFinderStatActionOptions {
   readonly collectExtAttrs?: boolean;
 }
 
-/** FindFilesArgs proto mapping. */
-export declare interface FindFilesArgs {
-  readonly findspec?: FindSpec;
-}
-
-/** FindSpec proto mapping. */
-export declare interface FindSpec {
-  readonly iterator?: Iterator;
-  readonly pathspec?: PathSpec;
-  readonly pathGlob?: GlobExpression;
-  readonly pathRegex?: string;
-  readonly dataRegex?: RDFBytes;
-  readonly startTime?: RDFDatetime;
-  readonly endTime?: RDFDatetime;
-  readonly crossDevs?: boolean;
-  readonly maxDepth?: ProtoInt32;
-  readonly hit?: StatEntry;
-  readonly maxData?: ProtoUint64;
-  readonly minFileSize?: ProtoUint64;
-  readonly maxFileSize?: ProtoUint64;
-  readonly permMask?: ProtoUint64;
-  readonly permMode?: ProtoUint64;
-  readonly uid?: ProtoUint64;
-  readonly gid?: ProtoUint64;
-  readonly collectExtAttrs?: boolean;
-}
-
-/** FingerprintFileArgs proto mapping. */
-export declare interface FingerprintFileArgs {
-  readonly pathspec?: PathSpec;
-}
-
 /** FirefoxHistoryArgs proto mapping. */
 export declare interface FirefoxHistoryArgs {
   readonly pathtype?: PathSpecPathType;
@@ -3200,6 +3127,11 @@ export enum GUISettingsUIMode {
   BASIC = 'BASIC',
   ADVANCED = 'ADVANCED',
   DEBUG = 'DEBUG',
+}
+
+/** GetCrowdstrikeAgentIdResult proto mapping. */
+export declare interface GetCrowdstrikeAgentIdResult {
+  readonly agentId?: string;
 }
 
 /** GetFileArgs proto mapping. */
@@ -3429,25 +3361,6 @@ export declare interface Interface {
 /** InterrogateArgs proto mapping. */
 export declare interface InterrogateArgs {
   readonly lightweight?: boolean;
-}
-
-/** Iterator proto mapping. */
-export declare interface Iterator {
-  readonly clientState?: Dict;
-  readonly skip?: ProtoUint32;
-  readonly number?: ProtoUint32;
-  readonly state?: IteratorState;
-}
-
-/** Iterator.State proto mapping. */
-export enum IteratorState {
-  RUNNING = 'RUNNING',
-  FINISHED = 'FINISHED',
-}
-
-/** KeepAliveArgs proto mapping. */
-export declare interface KeepAliveArgs {
-  readonly duration?: DurationSeconds;
 }
 
 /** KeyValue proto mapping. */
@@ -4004,16 +3917,6 @@ export enum SearchExpressionExpressionType {
   CONDITION = 'CONDITION',
 }
 
-/** SendFileRequest proto mapping. */
-export declare interface SendFileRequest {
-  readonly pathspec?: PathSpec;
-  readonly addressFamily?: NetworkAddressFamily;
-  readonly host?: string;
-  readonly port?: ProtoUint64;
-  readonly key?: ProtoBytes;
-  readonly iv?: ProtoBytes;
-}
-
 /** SortOrder proto mapping. */
 export declare interface SortOrder {
   readonly orderBy?: SortOrderOrderBy;
@@ -4132,20 +4035,10 @@ export declare interface Uname {
   readonly pep425tag?: string;
 }
 
-/** UninstallArgs proto mapping. */
-export declare interface UninstallArgs {
-  readonly kill?: boolean;
-}
-
 /** UnixVolume proto mapping. */
 export declare interface UnixVolume {
   readonly mountPoint?: string;
   readonly options?: string;
-}
-
-/** UpdateClientArgs proto mapping. */
-export declare interface UpdateClientArgs {
-  readonly binaryPath?: string;
 }
 
 /** UpdateConfigurationArgs proto mapping. */
@@ -4311,6 +4204,7 @@ export declare interface YaraProcessScanMatch {
   readonly process?: Process;
   readonly match?: readonly YaraMatch[];
   readonly scanTimeUs?: ProtoUint64;
+  readonly pmiHash?: string;
 }
 
 /** YaraProcessScanMiss proto mapping. */

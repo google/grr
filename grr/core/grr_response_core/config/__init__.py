@@ -6,7 +6,6 @@ from grr_response_core.config import acls
 from grr_response_core.config import api
 from grr_response_core.config import artifacts
 from grr_response_core.config import build
-from grr_response_core.config import checks
 from grr_response_core.config import client
 from grr_response_core.config import config
 from grr_response_core.config import contexts

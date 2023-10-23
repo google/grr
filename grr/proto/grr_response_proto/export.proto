@@ -351,7 +351,7 @@ message ExportedDictItem {
   optional string value = 3;
 }
 
-// Next field id: 6
+// Next field id: 7
 message ExportedArtifactFilesDownloaderResult {
   optional ExportedMetadata metadata = 1;
 
@@ -363,7 +363,7 @@ message ExportedArtifactFilesDownloaderResult {
 }
 
 // Protobuf for YaraProcessScan flow results export.
-// Next field id: 8
+// Next field id: 9
 message ExportedYaraProcessScanMatch {
   optional ExportedMetadata metadata = 1;
 
@@ -379,7 +379,7 @@ message ExportedYaraProcessScanMatch {
                  "includes all Yara rules, not only the one of this match.",
   }];
 
-  reserved 5;
+  reserved 5, 8;
 
   optional string string_id = 6 [(sem_type) = {
     description: "The name of the string that matched.",

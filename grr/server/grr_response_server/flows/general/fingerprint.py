@@ -1,33 +1,14 @@
 #!/usr/bin/env python
 """Invoke the fingerprint client action on a file."""
 
-from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
-from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import server_stubs
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-class FingerprintFileArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FingerprintFileArgs
-  rdf_deps = [
-      rdf_paths.PathSpec,
-  ]
-
-
-class FingerprintFileResult(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FingerprintFileResult
-  rdf_deps = [
-      rdf_crypto.Hash,
-      rdfvalue.RDFURN,
-  ]
-
-
+# TODO: Remove this mixin when FileFinder no longer exists.
 class FingerprintFileLogic(object):
   """Retrieve all fingerprints of a file."""
 
@@ -91,27 +72,3 @@ class FingerprintFileLogic(object):
 
   def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
     """This method will be called with the new urn and the received hash."""
-
-
-class FingerprintFile(FingerprintFileLogic, flow_base.FlowBase):
-  """Retrieve all fingerprints of a file."""
-
-  category = "/Filesystem/"
-  args_type = FingerprintFileArgs
-  behaviours = flow_base.BEHAVIOUR_ADVANCED
-
-  def Start(self):
-    """Issue the fingerprinting request."""
-    super().Start()
-
-    self.FingerprintFile(self.args.pathspec)
-
-  def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
-    # Notify any parent flows.
-    self.SendReply(FingerprintFileResult(file_urn=urn, hash_entry=hash_obj))
-
-  def End(self, responses):
-    """Finalize the flow."""
-    super().End(responses)
-
-    self.Log("Finished fingerprinting %s", self.args.pathspec.path)

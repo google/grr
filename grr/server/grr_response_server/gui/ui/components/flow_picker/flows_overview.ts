@@ -2,7 +2,7 @@ import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@
 import {BehaviorSubject, Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {FlowsByCategory} from '../../components/flow_picker/flow_list_item';
+import {type FlowsByCategory} from '../../components/flow_picker/flow_list_item';
 import {FlowListItem} from '../../lib/models/flow';
 import {compareAlphabeticallyBy} from '../../lib/type_utils';
 

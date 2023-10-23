@@ -248,25 +248,6 @@ class ClientCommunication(rdf_structs.RDFProtoStruct):
   num_messages = 0
 
 
-class ClientActionRequest(rdf_structs.RDFProtoStruct):
-  """The request that gets sent to the client."""
-  protobuf = flows_pb2.ClientActionRequest
-  rdf_deps = [
-      rdfvalue.Duration,
-  ]
-
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-
-    if not self.HasField("cpu_limit_ms"):
-      self.cpu_limit_ms = 3600000
-    if not self.HasField("runtime_limit_us"):
-      self.runtime_limit_us = 1000 * self.cpu_limit_ms
-
-    if not self.HasField("network_bytes_limit"):
-      self.network_bytes_limit = 10737418240
-
-
 class EmptyFlowArgs(rdf_structs.RDFProtoStruct):
   """Some flows do not take argumentnts."""
   protobuf = flows_pb2.EmptyFlowArgs

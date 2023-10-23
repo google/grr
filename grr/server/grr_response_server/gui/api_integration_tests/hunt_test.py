@@ -97,6 +97,7 @@ class ApiClientLibHuntTest(
     h = self.api.Hunt(hunt_id).Get()
     self.assertEqual(h.data.state, h.data.STOPPED)
 
+  # TODO: Stop relying on default hunt constants.
   def testListResults(self):
     self.client_ids = self.SetupClients(5)
     with test_lib.FakeTime(42):
@@ -110,7 +111,7 @@ class ApiClientLibHuntTest(
     self.assertEqual(client_ids, set(self.client_ids))
     for r in results:
       self.assertEqual(r.timestamp, 42000000)
-      self.assertEqual(r.payload.pathspec.path, "/tmp/evil.txt")
+      self.assertEqual(r.payload.stat_entry.pathspec.path, "/tmp/evil.txt")
 
   def testListLogsWithoutClientIds(self):
     hunt_id = self.StartHunt()

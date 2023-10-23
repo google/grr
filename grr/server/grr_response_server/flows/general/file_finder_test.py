@@ -5,20 +5,22 @@ import glob
 import hashlib
 import io
 import os
+import shutil
 import stat
 import struct
+import time
 from typing import Any, List, Optional, Sequence
 from unittest import mock
 
 from absl import app
 
 from grr_response_client import vfs
+from grr_response_client.client_actions.file_finder_utils import uploading
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
-from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import temp
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
@@ -49,19 +51,16 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
     path = os.path.join(self.base_path, "searching", fname).lstrip("/")
     return tuple(path.split(os.path.sep))
 
-  EXPECTED_HASHES = {
-      "auth.log": ("67b8fc07bd4b6efc3b2dce322e8ddf609b540805",
-                   "264eb6ff97fc6c37c5dd4b150cb0a797",
-                   "91c8d6287a095a6fa6437dac50ffe3fe5c5e0d06dff"
-                   "3ae830eedfce515ad6451"),
-      "dpkg.log": ("531b1cfdd337aa1663f7361b2fd1c8fe43137f4a",
-                   "26973f265ce5ecc1f86bc413e65bfc1d",
-                   "48303a1e7ceec679f6d417b819f42779575ffe8eabf"
-                   "9c880d286a1ee074d8145"),
-      "dpkg_false.log": ("a2c9cc03c613a44774ae97ed6d181fe77c13e01b",
-                         "ab48f3548f311c77e75ac69ac4e696df",
-                         "a35aface4b45e3f1a95b0df24efc50e14fbedcaa6a7"
-                         "50ba32358eaaffe3c4fb0")
+  EXPECTED_SHA256_HASHES = {
+      "auth.log": (
+          "91c8d6287a095a6fa6437dac50ffe3fe5c5e0d06dff3ae830eedfce515ad6451"
+      ),
+      "dpkg.log": (
+          "48303a1e7ceec679f6d417b819f42779575ffe8eabf9c880d286a1ee074d8145"
+      ),
+      "dpkg_false.log": (
+          "a35aface4b45e3f1a95b0df24efc50e14fbedcaa6a750ba32358eaaffe3c4fb0"
+      ),
   }
 
   def CheckFilesHashed(self, fnames):
@@ -69,7 +68,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
 
     for fname in fnames:
       try:
-        file_hashes = self.EXPECTED_HASHES[fname]
+        file_hash = self.EXPECTED_SHA256_HASHES[fname]
       except KeyError:
         raise RuntimeError("Can't check unexpected result for correct "
                            "hashes: %s" % fname)
@@ -80,9 +79,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
           components=self.FilenameToPathComponents(fname))
       hash_obj = path_info.hash_entry
 
-      self.assertEqual(str(hash_obj.sha1), file_hashes[0])
-      self.assertEqual(str(hash_obj.md5), file_hashes[1])
-      self.assertEqual(str(hash_obj.sha256), file_hashes[2])
+      self.assertEqual(str(hash_obj.sha256), file_hash)
 
   def CheckFilesNotHashed(self, fnames):
     for fname in fnames:
@@ -127,28 +124,32 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
                 rdf_objects.PathInfo.PathType.OS,
                 components=self.FilenameToPathComponents(fname)))
         self.fail("Found downloaded file: %s" % fname)
-      except file_store.FileHasNoContentError:
+      except (file_store.FileHasNoContentError, file_store.FileNotFoundError):
         pass
 
-  def CheckFiles(self, fnames, results):
-    if fnames is None:
+  def CheckFiles(self, expected_fnames, skipped_fnames, results):
+    if expected_fnames is None:
       self.assertFalse(results)
       return
 
     # If results are expected, check that they are present in the results.
     # Also check that there are no other files.
-    self.assertLen(fnames, len(fnames))
+    self.assertLen(results, len(set(expected_fnames + skipped_fnames)))
 
     for r in results:
       self.assertIsInstance(r, rdf_file_finder.FileFinderResult)
 
     self.assertCountEqual(
-        [os.path.basename(r.stat_entry.pathspec.path) for r in results], fnames)
+        [os.path.basename(r.stat_entry.pathspec.path) for r in results],
+        expected_fnames + skipped_fnames,
+    )
 
-  def CheckReplies(self, replies, action, expected_files):
+  def CheckReplies(self, replies, action, expected_files, skipped_files):
     reply_count = 0
     for reply in replies:
       self.assertIsInstance(reply, rdf_file_finder.FileFinderResult)
+
+      is_skipped = reply.stat_entry.pathspec.Basename() in skipped_files
 
       reply_count += 1
       if action == rdf_file_finder.FileFinderAction.Action.STAT:
@@ -156,32 +157,36 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
         self.assertFalse(reply.hash_entry)
       elif action == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
         self.assertTrue(reply.stat_entry)
-        self.assertTrue(reply.hash_entry)
+        if not is_skipped:
+          self.assertTrue(reply.hash_entry)
       elif action == rdf_file_finder.FileFinderAction.Action.HASH:
         self.assertTrue(reply.stat_entry)
-        self.assertTrue(reply.hash_entry)
+        if not is_skipped:
+          self.assertTrue(reply.hash_entry)
 
-      if action != rdf_file_finder.FileFinderAction.Action.STAT:
+      if (
+          action != rdf_file_finder.FileFinderAction.Action.STAT
+          and not is_skipped
+      ):
         # Check that file's hash is correct.
         file_basename = reply.stat_entry.pathspec.Basename()
         try:
-          file_hashes = self.EXPECTED_HASHES[file_basename]
+          file_hash = self.EXPECTED_SHA256_HASHES[file_basename]
         except KeyError:
           raise RuntimeError("Can't check unexpected result for correct "
                              "hashes: %s" % file_basename)
 
-        self.assertEqual(str(reply.hash_entry.sha1), file_hashes[0])
-        self.assertEqual(str(reply.hash_entry.md5), file_hashes[1])
-        self.assertEqual(str(reply.hash_entry.sha256), file_hashes[2])
+        self.assertEqual(str(reply.hash_entry.sha256), file_hash)
 
-    self.assertEqual(reply_count, len(expected_files))
+    # Skipped files are reported, but not collected/hashed (i.e. the action is
+    # skipped).
+    self.assertEqual(reply_count, len(expected_files) + len(skipped_files))
 
   def RunFlow(
       self,
       paths: Optional[List[str]] = None,
       conditions: Optional[List[rdf_file_finder.FileFinderCondition]] = None,
       action: Optional[rdf_file_finder.FileFinderAction] = None,
-      implementation_type: Optional[rdf_structs.EnumNamedValue] = None
   ) -> Sequence[Any]:
     self.last_session_id = flow_test_lib.TestFlowHelper(
         file_finder.FileFinder.__name__,
@@ -189,10 +194,10 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
         client_id=self.client_id,
         paths=paths or [self.path],
         pathtype=rdf_paths.PathSpec.PathType.OS,
-        implementation_type=implementation_type,
         action=action,
         conditions=conditions,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
     return flow_test_lib.GetFlowResults(self.client_id, self.last_session_id)
 
   def RunFlowAndCheckResults(
@@ -201,7 +206,9 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
       action=rdf_file_finder.FileFinderAction.Action.STAT,
       expected_files=None,
       non_expected_files=None,
-      paths=None):
+      skipped_files=None,
+      paths=None,
+  ):
     if not isinstance(action, rdf_file_finder.FileFinderAction):
       action = rdf_file_finder.FileFinderAction(action_type=action)
     action_type = action.action_type
@@ -209,30 +216,38 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
     conditions = conditions or []
     expected_files = expected_files or []
     non_expected_files = non_expected_files or []
+    skipped_files = skipped_files or []
 
     results = self.RunFlow(paths=paths, conditions=conditions, action=action)
-    self.CheckReplies(results, action_type, expected_files)
+    self.CheckReplies(results, action_type, expected_files, skipped_files)
 
-    self.CheckFiles(expected_files, results)
+    self.CheckFiles(expected_files, skipped_files, results)
 
     if action_type == rdf_file_finder.FileFinderAction.Action.STAT:
-      self.CheckFilesNotDownloaded(expected_files + non_expected_files)
-      self.CheckFilesNotHashed(expected_files + non_expected_files)
+      self.CheckFilesNotDownloaded(
+          expected_files + non_expected_files + skipped_files
+      )
+      self.CheckFilesNotHashed(
+          expected_files + non_expected_files + skipped_files
+      )
     elif action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
       self.CheckFilesHashed(expected_files)
-      self.CheckFilesNotHashed(non_expected_files)
+      self.CheckFilesNotHashed(non_expected_files + skipped_files)
       self.CheckFilesDownloaded(expected_files)
-      self.CheckFilesNotDownloaded(non_expected_files)
+      self.CheckFilesNotDownloaded(non_expected_files + skipped_files)
       # Downloaded files are hashed to allow for deduping.
     elif action_type == rdf_file_finder.FileFinderAction.Action.HASH:
-      self.CheckFilesNotDownloaded(expected_files + non_expected_files)
+      self.CheckFilesNotDownloaded(
+          expected_files + non_expected_files + skipped_files
+      )
       self.CheckFilesHashed(expected_files)
-      self.CheckFilesNotHashed(non_expected_files)
+      self.CheckFilesNotHashed(non_expected_files + skipped_files)
     return results
 
   def setUp(self):
     super().setUp()
-    self.client_mock = action_mocks.FileFinderClientMockWithTimestamps()
+    self.client_mock = action_mocks.ClientFileFinderClientMock()
+
     self.fixture_path = os.path.join(self.base_path, "searching")
     self.path = os.path.join(self.fixture_path, "*.log")
     self.client_id = self.SetupClient(0)
@@ -388,7 +403,9 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
       # Check that the results' matches fields are correctly filled.
       self.assertLen(results, 1)
       self.assertLen(results[0].matches, 1)
-      self.assertEqual(results[0].matches[0].offset, 350)
+      # The match is at offset 350, but we have bytes_before=10, so the offset
+      # of the returned BufferReference is 350-10=340.
+      self.assertEqual(results[0].matches[0].offset, 340)
       self.assertEqual(results[0].matches[0].data,
                        b"session): session opened for user dearjohn by (uid=0")
 
@@ -439,7 +456,9 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
 
       self.assertLen(results, 1)
       self.assertLen(results[0].matches, 1)
-      self.assertEqual(results[0].matches[0].offset, 350)
+      # The match is at offset 350, but we have bytes_before=10, so the offset
+      # of the returned BufferReference is 350-10=340.
+      self.assertEqual(results[0].matches[0].offset, 340)
       self.assertEqual(results[0].matches[0].data,
                        b"session): session opened for user dearjohn by (uid=0")
 
@@ -475,10 +494,14 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
 
       self.assertLen(results, 1)
       self.assertLen(results[0].matches, 2)
-      self.assertEqual(results[0].matches[0].offset, 350)
+      # The match is at offset 350, but we have bytes_before=10, so the offset
+      # of the returned BufferReference is 350-10=340.
+      self.assertEqual(results[0].matches[0].offset, 340)
       self.assertEqual(results[0].matches[0].data,
                        b"session): session opened for user dearjohn by (uid=0")
-      self.assertEqual(results[0].matches[1].offset, 513)
+      # The match is at offset 513, but we have bytes_before=10, so the offset
+      # of the returned BufferReference is 513-10=503.
+      self.assertEqual(results[0].matches[1].offset, 503)
       self.assertEqual(results[0].matches[1].data,
                        b"rong line format.... should not be he")
 
@@ -512,7 +535,9 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
 
       self.assertLen(results, 1)
       self.assertLen(results[0].matches, 2)
-      self.assertEqual(results[0].matches[0].offset, 350)
+      # The match is at offset 350, but we have bytes_before=10, so the offset
+      # of the returned BufferReference is 350-10=340.
+      self.assertEqual(results[0].matches[0].offset, 340)
       self.assertEqual(results[0].matches[0].data,
                        b"session): session opened for user dearjohn by (uid=0")
       self.assertEqual(results[0].matches[1].offset, 0)
@@ -541,7 +566,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
 
   def testDownloadAndHashActionSizeLimitWithSkipPolicy(self):
     expected_files = ["dpkg.log", "dpkg_false.log"]
-    non_expected_files = ["auth.log"]
+    skipped_files = ["auth.log"]
     sizes = [
         os.stat(os.path.join(self.fixture_path, f)).st_size
         for f in expected_files
@@ -557,7 +582,8 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
           paths=[self.path],
           action=action,
           expected_files=expected_files,
-          non_expected_files=non_expected_files)
+          skipped_files=skipped_files,
+      )
 
   def testDownloadAndHashActionSizeLimitWithHashTruncatedPolicy(self):
     image_path = os.path.join(self.base_path, "test_img.dd")
@@ -599,7 +625,7 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
     with io.open(image_path, "rb") as fd:
       expected_data = fd.read(expected_size)
 
-    d = hashlib.sha1()
+    d = hashlib.sha256()
     d.update(expected_data)
     expected_hash = d.digest()
 
@@ -608,21 +634,24 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
     self.assertEqual(data, expected_data)
 
     path_info = self._ReadTestPathInfo(
-        ["test_img.dd"], path_type=rdf_objects.PathInfo.PathType.OS)
-    self.assertEqual(path_info.hash_entry.sha1, expected_hash)
+        ["test_img.dd"], path_type=rdf_objects.PathInfo.PathType.OS
+    )
     self.assertEqual(path_info.hash_entry.num_bytes, expected_size)
+    self.assertEqual(path_info.hash_entry.sha256, expected_hash)
 
-  # Setting MIN_CALL_TO_FILE_STORE to a smaller value emulates MultiGetFile's
-  # behavior when dealing with large files.
-  @mock.patch.object(file_finder.FileFinder, "MIN_CALL_TO_FILE_STORE", 1)
   def testDownloadActionWithMultipleAttemptsWithMultipleSizeLimits(self):
     total_num_chunks = 10
-    total_size = total_num_chunks * file_finder.FileFinder.CHUNK_SIZE
+    total_size = (
+        total_num_chunks * uploading.TransferStoreUploader.DEFAULT_CHUNK_SIZE
+    )
 
     path = os.path.join(self.temp_dir, "test_big.txt")
     with io.open(path, "wb") as fd:
       for i in range(total_num_chunks):
-        fd.write(struct.pack("b", i) * file_finder.FileFinder.CHUNK_SIZE)
+        fd.write(
+            struct.pack("b", i)
+            * uploading.TransferStoreUploader.DEFAULT_CHUNK_SIZE
+        )
 
     da = rdf_file_finder.FileFinderDownloadActionOptions
 
@@ -633,8 +662,9 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
     # of the current run was much bigger than the size of the previously
     # fetched file.
     action = rdf_file_finder.FileFinderAction.Download(
-        max_size=2 * file_finder.FileFinder.CHUNK_SIZE,
-        oversized_file_policy=da.OversizedFilePolicy.DOWNLOAD_TRUNCATED)
+        max_size=2 * uploading.TransferStoreUploader.DEFAULT_CHUNK_SIZE,
+        oversized_file_policy=da.OversizedFilePolicy.DOWNLOAD_TRUNCATED,
+    )
     self.RunFlow(paths=[path], action=action)
 
     action = rdf_file_finder.FileFinderAction.Download(
@@ -695,55 +725,162 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
   def testModificationTimeConditionWithDifferentActions(self):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
-
     change_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1444444440)
-    modification_time_condition = rdf_file_finder.FileFinderCondition(
-        condition_type=rdf_file_finder.FileFinderCondition.Type
-        .MODIFICATION_TIME,
-        modification_time=rdf_file_finder.FileFinderModificationTimeCondition(
-            min_last_modified_time=change_time))
 
-    for action in self.CONDITION_TESTS_ACTIONS:
-      self.RunFlowAndCheckResults(
-          action=action,
-          conditions=[modification_time_condition],
-          expected_files=expected_files,
-          non_expected_files=non_expected_files)
+    with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
+      os.mkdir(os.path.join(tempdir, "searching"))
+      for fname in expected_files + non_expected_files:
+        shutil.copyfile(
+            os.path.join(self.fixture_path, fname),
+            os.path.join(tempdir, "searching", fname),
+        )
+
+      # TODO: the complexity of these tests and their reliance on
+      # shared state is horrible. All these tests should be rewritten.
+      self.base_path = tempdir
+      self.fixture_path = os.path.join(self.base_path, "searching")
+
+      os.utime(
+          os.path.join(self.fixture_path, "dpkg.log"),
+          times=(
+              change_time.AsSecondsSinceEpoch() + 1,
+              change_time.AsSecondsSinceEpoch() + 1,
+          ),
+      )
+      os.utime(
+          os.path.join(self.fixture_path, "dpkg_false.log"),
+          times=(
+              change_time.AsSecondsSinceEpoch() + 2,
+              change_time.AsSecondsSinceEpoch() + 2,
+          ),
+      )
+      os.utime(
+          os.path.join(self.fixture_path, "auth.log"),
+          times=(
+              change_time.AsSecondsSinceEpoch() - 1,
+              change_time.AsSecondsSinceEpoch() - 1,
+          ),
+      )
+
+      modification_time_condition = rdf_file_finder.FileFinderCondition(
+          condition_type=rdf_file_finder.FileFinderCondition.Type.MODIFICATION_TIME,
+          modification_time=rdf_file_finder.FileFinderModificationTimeCondition(
+              min_last_modified_time=change_time
+          ),
+      )
+
+      for action in self.CONDITION_TESTS_ACTIONS:
+        with self.subTest(action):
+          self.RunFlowAndCheckResults(
+              paths=[os.path.join(self.fixture_path, "*.log")],
+              action=action,
+              conditions=[modification_time_condition],
+              expected_files=expected_files,
+              non_expected_files=non_expected_files,
+          )
 
   def testAccessTimeConditionWithDifferentActions(self):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
-
     change_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1444444440)
-    access_time_condition = rdf_file_finder.FileFinderCondition(
-        condition_type=rdf_file_finder.FileFinderCondition.Type.ACCESS_TIME,
-        access_time=rdf_file_finder.FileFinderAccessTimeCondition(
-            min_last_access_time=change_time))
 
-    for action in self.CONDITION_TESTS_ACTIONS:
-      self.RunFlowAndCheckResults(
-          action=action,
-          conditions=[access_time_condition],
-          expected_files=expected_files,
-          non_expected_files=non_expected_files)
+    with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
+      os.mkdir(os.path.join(tempdir, "searching"))
+      for fname in expected_files + non_expected_files:
+        shutil.copyfile(
+            os.path.join(self.fixture_path, fname),
+            os.path.join(tempdir, "searching", fname),
+        )
+
+      # TODO: the complexity of these tests and their reliance on
+      # shared state is horrible. All these tests should be rewritten.
+      self.base_path = tempdir
+      self.fixture_path = os.path.join(self.base_path, "searching")
+
+      os.utime(
+          os.path.join(self.fixture_path, "dpkg.log"),
+          times=(
+              change_time.AsSecondsSinceEpoch() + 1,
+              change_time.AsSecondsSinceEpoch() + 1,
+          ),
+      )
+      os.utime(
+          os.path.join(self.fixture_path, "dpkg_false.log"),
+          times=(
+              change_time.AsSecondsSinceEpoch() + 2,
+              change_time.AsSecondsSinceEpoch() + 2,
+          ),
+      )
+      os.utime(
+          os.path.join(self.fixture_path, "auth.log"),
+          times=(
+              change_time.AsSecondsSinceEpoch() - 1,
+              change_time.AsSecondsSinceEpoch() - 1,
+          ),
+      )
+
+      modification_time_condition = rdf_file_finder.FileFinderCondition(
+          condition_type=rdf_file_finder.FileFinderCondition.Type.ACCESS_TIME,
+          access_time=rdf_file_finder.FileFinderAccessTimeCondition(
+              min_last_access_time=change_time
+          ),
+      )
+
+      for action in self.CONDITION_TESTS_ACTIONS:
+        with self.subTest(action):
+          self.RunFlowAndCheckResults(
+              paths=[os.path.join(self.fixture_path, "*.log")],
+              action=action,
+              conditions=[modification_time_condition],
+              expected_files=expected_files,
+              non_expected_files=non_expected_files,
+          )
 
   def testInodeChangeTimeConditionWithDifferentActions(self):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
 
-    change_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1444444440)
-    inode_change_time_condition = rdf_file_finder.FileFinderCondition(
-        condition_type=rdf_file_finder.FileFinderCondition.Type
-        .INODE_CHANGE_TIME,
-        inode_change_time=rdf_file_finder.FileFinderInodeChangeTimeCondition(
-            min_last_inode_change_time=change_time))
+    with temp.AutoTempDirPath(remove_non_empty=True) as tempdir:
+      os.mkdir(os.path.join(tempdir, "searching"))
+      for fname in non_expected_files + expected_files:
+        time.sleep(0.1)
+        shutil.copyfile(
+            os.path.join(self.fixture_path, fname),
+            os.path.join(tempdir, "searching", fname),
+        )
 
-    for action in self.CONDITION_TESTS_ACTIONS:
-      self.RunFlowAndCheckResults(
-          action=action,
-          conditions=[inode_change_time_condition],
-          expected_files=expected_files,
-          non_expected_files=non_expected_files)
+      # In the loop above auth.log is written first, so if we take a timestamp
+      # that's right after its inode change time, it should filter out auth.log,
+      # but keep dpkg.log and dpkg_false.log, as they would match the condition.
+      auth_log_ctime_ns = int(
+          os.stat(os.path.join(tempdir, "searching", "auth.log")).st_ctime_ns
+          * 1e-3
+      )
+      change_time = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          auth_log_ctime_ns + 1
+      )
+
+      # TODO: the complexity of these tests and their reliance on
+      # shared state is horrible. All these tests should be rewritten.
+      self.base_path = tempdir
+      self.fixture_path = os.path.join(self.base_path, "searching")
+
+      inode_change_time_condition = rdf_file_finder.FileFinderCondition(
+          condition_type=rdf_file_finder.FileFinderCondition.Type.INODE_CHANGE_TIME,
+          inode_change_time=rdf_file_finder.FileFinderInodeChangeTimeCondition(
+              min_last_inode_change_time=change_time
+          ),
+      )
+
+      for action in self.CONDITION_TESTS_ACTIONS:
+        with self.subTest(action):
+          self.RunFlowAndCheckResults(
+              paths=[os.path.join(self.fixture_path, "*.log")],
+              action=action,
+              conditions=[inode_change_time_condition],
+              expected_files=expected_files,
+              non_expected_files=non_expected_files,
+          )
 
   def _RunTSKFileFinder(self, paths):
     image_path = os.path.join(self.base_path, "ntfs_img.dd")
@@ -758,12 +895,13 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
       with test_lib.SuppressLogs():
         flow_test_lib.TestFlowHelper(
             file_finder.FileFinder.__name__,
-            self.client_mock,
+            client_mock=action_mocks.ClientFileFinderWithVFS(),
             client_id=self.client_id,
             paths=paths,
             pathtype=rdf_paths.PathSpec.PathType.TSK,
             action=rdf_file_finder.FileFinderAction(action_type=action),
-            creator=self.test_username)
+            creator=self.test_username,
+        )
 
   def _ListTestChildPathInfos(self,
                               path_components,
@@ -790,44 +928,6 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
     fd = file_store.OpenFile(
         db.ClientPath(self.client_id, path_type, components=tuple(components)))
     return fd.read(10000000)
-
-  def testRecursiveADSHandling(self):
-    """This tests some more obscure NTFS features - ADSs on directories."""
-    self._RunTSKFileFinder(["adstest/**"])
-    self._CheckDir()
-    self._CheckSubdir()
-
-  def testADSHandling(self):
-    self._RunTSKFileFinder(["adstest/*"])
-    self._CheckDir()
-
-  def _CheckDir(self):
-    children = self._ListTestChildPathInfos(["ntfs_img.dd:32256", "adstest"])
-
-    # There should be four entries:
-    # one file, one directory, and one ADS for each.
-    self.assertLen(children, 4)
-
-    data = self._ReadTestFile(["ntfs_img.dd:32256", "adstest", "a.txt"])
-    self.assertEqual(data, b"This is a.txt")
-    data = self._ReadTestFile(["ntfs_img.dd:32256", "adstest", "a.txt:ads.txt"])
-    self.assertEqual(data, b"This is the ads for a.txt")
-    data = self._ReadTestFile(["ntfs_img.dd:32256", "adstest", "dir:ads.txt"])
-    self.assertEqual(data, b"This is the dir ads")
-
-  def _CheckSubdir(self):
-    base_components = ["ntfs_img.dd:32256", "adstest", "dir"]
-    children = self._ListTestChildPathInfos(base_components)
-
-    # There should be three entries: two files, one has an ADS.
-    self.assertLen(children, 3)
-
-    data = self._ReadTestFile(base_components + ["b.txt"])
-    self.assertEqual(data, b"This is b.txt")
-    data = self._ReadTestFile(base_components + ["b.txt:ads.txt"])
-    self.assertEqual(data, b"This is the ads for b.txt")
-    data = self._ReadTestFile(base_components + ["no_ads.txt"])
-    self.assertEqual(data, b"This file has no ads")
 
   def testEmptyPathListDoesNothing(self):
     flow_test_lib.TestFlowHelper(
@@ -972,34 +1072,6 @@ class TestFileFinderFlow(vfs_test_lib.VfsTestCase,
           paths=[path_glob])
 
       self.assertLen(results, 2)
-
-
-class TestFileFinderFlowWithImplementationType(TestFileFinderFlow):
-
-  def RunFlow(
-      self,
-      paths: Optional[List[str]] = None,
-      conditions: Optional[List[rdf_file_finder.FileFinderCondition]] = None,
-      action: Optional[rdf_file_finder.FileFinderAction] = None,
-      implementation_type: Optional[rdf_structs.EnumNamedValue] = None
-  ) -> Sequence[Any]:
-
-    results = super().RunFlow(
-        paths=paths,
-        conditions=conditions,
-        action=action,
-        implementation_type=rdf_paths.PathSpec.ImplementationType.DIRECT)
-
-    for result in results:
-      if result.HasField("stat_entry"):
-        self.assertEqual(result.stat_entry.pathspec.implementation_type,
-                         rdf_paths.PathSpec.ImplementationType.DIRECT)
-      for match in result.matches:
-        if match.HasField("pathspec"):
-          self.assertEqual(match.pathspec.implementation_type,
-                           rdf_paths.PathSpec.ImplementationType.DIRECT)
-
-    return results
 
 
 class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
@@ -1326,8 +1398,16 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
       results, _ = self._RunCFF([path_glob], action, conditions=[condition])
 
-      self.assertLen(results, 1)
-      self.assertEqual(results[0].stat_entry.pathspec.path, path)
+      # ClientFileFinder follows links that point to regulat files by default,
+      # hence 2 results: one for the link and one for the file.
+      self.assertLen(results, 2)
+      self.assertCountEqual(
+          [
+              results[0].stat_entry.pathspec.path,
+              results[1].stat_entry.pathspec.path,
+          ],
+          [path, lnk_path],
+      )
 
   def testInterpolationMissingAttributes(self):
     creator = db_test_utils.InitializeUser(data_store.REL_DB)
@@ -1389,7 +1469,36 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.assertIn("foo", log_entries[0].message)
     self.assertIn("bar", log_entries[1].message)
 
-  def testInterpolationNoKnowledgebase(self):
+  def testSkipsGlobsWithInterpolationWhenNoKnowledgeBase(self):
+    creator = db_test_utils.InitializeUser(data_store.REL_DB)
+    client_id = db_test_utils.InitializeClient(data_store.REL_DB)
+
+    # We do not write any snapshot not to have any knowledgebase for the client.
+
+    flow_args = rdf_file_finder.FileFinderArgs()
+    flow_args.action = rdf_file_finder.FileFinderAction.Stat()
+    flow_args.paths = ["/var/foo", "%%os%%"]
+
+    flow_id = flow_test_lib.StartFlow(
+        file_finder.ClientFileFinder,
+        creator=creator,
+        client_id=client_id,
+        flow_args=flow_args,
+    )
+
+    flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
+    self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.RUNNING)
+    log_entries = data_store.REL_DB.ReadFlowLogEntries(
+        client_id=client_id, flow_id=flow_id, offset=0, count=1024
+    )
+    self.assertLen(log_entries, 1)
+    self.assertIn(
+        "Skipping glob '%%os%%': can't interpolate with an empty knowledge"
+        " base",
+        log_entries[0].message,
+    )
+
+  def testFailsIfAllGlobsWithAreSkippedDueToNoKnowledgeBase(self):
     creator = db_test_utils.InitializeUser(data_store.REL_DB)
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
 
@@ -1407,7 +1516,11 @@ class TestClientFileFinderFlow(flow_test_lib.FlowTestsBaseclass):
 
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     self.assertEqual(flow_obj.flow_state, flows_pb2.Flow.ERROR)
-    self.assertIn("No knowledgebase available", flow_obj.error_message)
+    self.assertIn(
+        "All globs skipped, as there's no knowledgebase available for"
+        " interpolation",
+        flow_obj.error_message,
+    )
 
 
 def main(argv):

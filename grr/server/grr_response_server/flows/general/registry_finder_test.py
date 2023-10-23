@@ -20,7 +20,7 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.addCleanup(registry_stubber.Stop)
 
   def _RunRegistryFinder(self, paths=None):
-    client_mock = action_mocks.GlobClientMock()
+    client_mock = action_mocks.ClientFileFinderWithVFS()
 
     client_id = self.SetupClient(0)
 
@@ -62,40 +62,49 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     self.assertEqual(results[idx].stat_entry.registry_data.GetValue(),
                      "DefaultValue")
 
-  def testListingRegistryKeysDoesNotYieldMTimes(self):
-    # Just listing all keys does not generate a full stat entry for each of
+  def testListingRegistryKeysDoesYieldMTimes(self):
+    # Just listing all keys does generate a full stat entry for each of
     # the results.
     results = self._RunRegistryFinder(
         ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/*"])
-    self.assertLen(results, 2)
-    for result in results:
-      st = result.stat_entry
-      self.assertIsNone(st.st_mtime)
+    results = sorted(results, key=lambda x: x.stat_entry.pathspec.path)
 
-    # Explicitly calling RegistryFinder on a value does though.
+    # We expect 2 results: Value1 and Value2.
+    self.assertLen(results, 2)
+    self.assertEqual(
+        results[0].stat_entry.pathspec.path,
+        "/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value1",
+    )
+    self.assertEqual(results[0].stat_entry.st_mtime, 110)
+    self.assertEqual(
+        results[1].stat_entry.pathspec.path,
+        "/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value2",
+    )
+    self.assertEqual(results[1].stat_entry.st_mtime, 120)
+
+    # Explicitly calling RegistryFinder on a value does that as well.
     results = self._RunRegistryFinder([
         "HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value1",
         "HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value2",
     ])
+    results = sorted(results, key=lambda x: x.stat_entry.pathspec.path)
 
+    # We expect 2 results: Value1 and Value2.
     self.assertLen(results, 2)
-    for result in results:
-      st = result.stat_entry
-      path = str(st.pathspec.path)
-      if "Value1" in path:
-        self.assertEqual(st.st_mtime, 110)
-      elif "Value2" in path:
-        self.assertEqual(st.st_mtime, 120)
-      else:
-        self.fail("Unexpected value: %s" % path)
+    self.assertEqual(
+        results[0].stat_entry.pathspec.path,
+        "/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value1",
+    )
+    self.assertEqual(results[0].stat_entry.st_mtime, 110)
+    self.assertEqual(
+        results[1].stat_entry.pathspec.path,
+        "/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value2",
+    )
+    self.assertEqual(results[1].stat_entry.st_mtime, 120)
 
-  def testListingRegistryHivesWorksCorrectly(self):
-    results = self._RunRegistryFinder(["*"])
-    self.assertLen(results, 2)
-    self.assertTrue(
-        [r for r in results if r.stat_entry.pathspec.pathtype == "REGISTRY"])
-    self.assertCountEqual([r.stat_entry.pathspec.path for r in results],
-                          ["/HKEY_LOCAL_MACHINE", "/HKEY_USERS"])
+  def testListingRegistryHivesRaises(self):
+    with self.assertRaisesRegex(RuntimeError, "is not absolute"):
+      self._RunRegistryFinder(["*"])
 
 
 def main(argv):

@@ -22,7 +22,7 @@ from grr_response_server import server_stubs
 from grr_response_server import worker_lib
 from grr_response_server.databases import db
 from grr_response_server.flows import file
-from grr_response_server.flows.general import transfer
+from grr_response_server.flows.general import file_finder
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
@@ -485,19 +485,18 @@ class FlowOutputPluginsTest(BasicFlowTest):
               client_mock=None):
 
     if flow_args is None:
-      flow_args = transfer.GetFileArgs(
-          pathspec=rdf_paths.PathSpec(
-              path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS))
+      flow_args = rdf_file_finder.FileFinderArgs(paths=["/tmp/evil.txt"])
 
     if client_mock is None:
       client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
 
     flow_urn = flow_test_lib.StartAndRunFlow(
-        flow_cls or transfer.GetFile,
+        flow_cls or file_finder.FileFinder,
         client_mock=client_mock,
         client_id=self.client_id,
         flow_args=flow_args,
-        output_plugins=output_plugins)
+        output_plugins=output_plugins,
+    )
 
     return flow_urn
 

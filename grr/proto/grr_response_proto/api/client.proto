@@ -69,26 +69,6 @@ message ApiClient {
   repeated string rrg_args = 23;
 }
 
-message ApiClientActionRequest {
-  optional uint64 task_id = 1;
-
-  optional uint64 leased_until = 2 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "This task's lease expiration time."
-  }];
-
-  optional string session_id = 3 [(sem_type) = {
-    type: "RDFURN"
-    description: "Session id that triggered the request."
-  }];
-
-  optional string client_action = 4
-      [(sem_type) = { description: "Requested client action name." }];
-
-  repeated GrrMessage responses = 5
-      [(sem_type) = { description: "Responses queued for this request." }];
-}
-
 //
 // Method arguments and results.
 //
@@ -311,18 +291,6 @@ message ApiGetClientLoadStatsArgs {
 
 message ApiGetClientLoadStatsResult {
   repeated ApiStatsStoreMetricDataPoint data_points = 1;
-}
-
-message ApiListClientActionRequestsArgs {
-  optional string client_id = 1
-      [(sem_type) = { type: "ApiClientId", description: "Client id." }];
-  optional bool fetch_responses = 2 [(sem_type) = {
-    description: "If true, fetch all the responses for every request."
-  }];
-}
-
-message ApiListClientActionRequestsResult {
-  repeated ApiClientActionRequest items = 1;
 }
 
 message ApiKillFleetspeakArgs {

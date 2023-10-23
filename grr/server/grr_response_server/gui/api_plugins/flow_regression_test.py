@@ -7,7 +7,7 @@ from absl import app
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -15,7 +15,6 @@ from grr_response_server import flow_base
 from grr_response_server.flows.general import discovery
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
-from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import flow as flow_plugin
 from grr_response_server.output_plugins import email_plugin
@@ -172,17 +171,17 @@ class ApiListFlowResultsHandlerRegressionTest(
   handler = flow_plugin.ApiListFlowResultsHandler
 
   def _RunFlow(self, client_id):
-    flow_args = transfer.GetFileArgs(
-        pathspec=rdf_paths.PathSpec(
-            path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS))
+    flow_args = rdf_file_finder.FileFinderArgs()
+    flow_args.paths = ["/tmp/evil.txt"]
     client_mock = hunt_test_lib.SampleHuntMock(failrate=2)
 
     with test_lib.FakeTime(42):
       return flow_test_lib.StartAndRunFlow(
-          transfer.GetFile,
+          file_finder.ClientFileFinder,
           client_id=client_id,
           client_mock=client_mock,
-          flow_args=flow_args)
+          flow_args=flow_args,
+      )
 
   def Run(self):
     acl_test_lib.CreateUser(self.test_username)

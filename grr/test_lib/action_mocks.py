@@ -384,7 +384,13 @@ class FileFinderClientMockWithTimestamps(FileFinderClientMock):
     return responses
 
 
-class ListProcessesMock(FileFinderClientMock):
+class ClientFileFinderClientMock(ActionMock):
+
+  def __init__(self, *args, **kwargs):
+    super().__init__(file_finder.FileFinderOS, *args, **kwargs)
+
+
+class ListProcessesMock(ClientFileFinderClientMock):
   """Client with real file actions and mocked-out ListProcesses."""
 
   def __init__(self, processes_list):
@@ -393,12 +399,6 @@ class ListProcessesMock(FileFinderClientMock):
 
   def ListProcesses(self, _):
     return self.processes_list
-
-
-class ClientFileFinderClientMock(ActionMock):
-
-  def __init__(self, *args, **kwargs):
-    super().__init__(file_finder.FileFinderOS, *args, **kwargs)
 
 
 class CollectMultipleFilesClientMock(ActionMock):

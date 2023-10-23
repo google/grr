@@ -48,9 +48,6 @@ const RequestApprovalDialogController = class {
     /** @export {boolean} */
     this.useCcAddresses = true;
 
-    /** @export {boolean} */
-    this.keepClientAlive = true;
-
     this.scope_.$watch('approvalType', this.onApprovalTypeChange_.bind(this));
     this.scope_.$watch(
         'controller.selectedRecentReason',
@@ -132,9 +129,6 @@ const RequestApprovalDialogController = class {
     args['approval']['notified_users'] = stringToList(this.approversList);
     if (this.useCcAddresses && this.ccAddresses) {
       args['approval']['email_cc_addresses'] = this.ccAddresses;
-    }
-    if (this.scope_['approvalType'] === 'client' && this.keepClientAlive) {
-      args['keep_client_alive'] = true;
     }
 
     this.grrApiService_.post(url, args).then(

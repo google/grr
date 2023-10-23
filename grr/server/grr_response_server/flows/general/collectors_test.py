@@ -5,6 +5,7 @@ To reduce the size of this module, additional collector flow tests are split out
 into collectors_*_test.py files.
 """
 
+import itertools
 import os
 import shutil
 from typing import IO
@@ -538,7 +539,7 @@ class TestArtifactCollectors(
 
   def testGrep2(self):
     client_id = self.SetupClient(0, system="Linux")
-    client_mock = action_mocks.FileFinderClientMock()
+    client_mock = action_mocks.ClientFileFinderClientMock()
     with temp.AutoTempFilePath() as temp_file_path:
       with open(temp_file_path, "w") as f:
         f.write("foo")
@@ -553,7 +554,9 @@ class TestArtifactCollectors(
       results = self._RunClientActionArtifact(
           client_id, client_mock, ["FakeArtifact"]
       )
-    matches = [r.matches[0].data for r in results]
+    matches = itertools.chain.from_iterable(
+        [m.data for m in r.matches] for r in results
+    )
     expected_matches = [b"f", b"oo"]
     self.assertCountEqual(matches, expected_matches)
 
@@ -607,49 +610,6 @@ class TestArtifactCollectors(
       results = flow_test_lib.GetFlowResults(client_id, flow_id)
       self.assertLen(results, 1)
       self.assertEqual(results[0].downloaded_file.pathspec.path, temp_file_path)
-
-  def testLegacyFileFinderSetting(self):
-    """Test that ArtifactCollectorFlow can use the legacy FileFinder flow."""
-
-    def _RunCollectorFlow(client_id, client_mock):
-      with vfs_test_lib.FakeTestDataVFSOverrider():
-        flow_id = flow_test_lib.TestFlowHelper(
-            collectors.ArtifactCollectorFlow.__name__,
-            client_mock,
-            artifact_list=["TestFilesArtifact"],
-            creator=self.test_username,
-            client_id=client_id,
-        )
-        _ = flow_test_lib.GetFlowResults(client_id, flow_id)
-
-    class _ClientMock(action_mocks.ActionMock):
-
-      def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.called_actions = set()
-
-      def FileFinderOS(self, _):
-        self.called_actions.add("FileFinderOS")
-        return []
-
-      def GetFileStat(self, _):
-        self.called_actions.add("GetFileStat")
-        return []
-
-    client_id = self.SetupClient(0, system="Linux")
-
-    client_mock = _ClientMock()
-    _RunCollectorFlow(client_id, client_mock)
-    self.assertIn("FileFinderOS", client_mock.called_actions)
-    self.assertNotIn("GetFileStat", client_mock.called_actions)
-
-    with test_lib.ConfigOverrider(
-        {"Server.internal_artifactcollector_use_legacy_filefinder": True}
-    ):
-      client_mock = _ClientMock()
-      _RunCollectorFlow(client_id, client_mock)
-      self.assertIn("GetFileStat", client_mock.called_actions)
-      self.assertNotIn("FileFinderOS", client_mock.called_actions)
 
 
 class RelationalTestArtifactCollectors(
@@ -1254,6 +1214,7 @@ supported_os: [Linux]
     )
     expected = expected[0]
     self.assertIsInstance(expected, rdf_client_action.ExecuteResponse)
+    self.assertEqual(expected.exit_status, 0)
 
     # Run the ClientArtifactCollector to get the actual result.
     results = self._RunFlow(
@@ -1264,8 +1225,9 @@ supported_os: [Linux]
     )
     artifact_response = results[0]
     self.assertIsInstance(artifact_response, rdf_client_action.ExecuteResponse)
+    self.assertEqual(artifact_response.exit_status, 0)
 
-    self.assertEqual(artifact_response, expected)
+    self.assertEqual(artifact_response.stdout, expected.stdout)
 
   def testBasicRegistryKeyArtifact(self):
     """Test that a registry key artifact can be collected."""

@@ -133,8 +133,20 @@ class RecursiveComponent(PathComponent):
       except IOError:
         return  # Skip inaccessible Registry parts (e.g. HKLM\SAM\SAM) silently.
     else:
-      raise AssertionError("Pathtype {} is not supported for recursion".format(
-          self.opts.pathtype))
+      # We allow recursive TSK/NTFS searches with a depth level up to 2.
+      if depth > 2:
+        raise AssertionError(
+            f"Pathtype {self.opts.pathtype} is not supported for recursion with"
+            f" depth {depth} (max is 2)"
+        )
+
+      pathspec = rdf_paths.PathSpec(path=path, pathtype=self.opts.pathtype)
+      try:
+        with vfs.VFSOpen(pathspec) as filedesc:
+          if not filedesc.IsDirectory():
+            return
+      except IOError:
+        return  # Skip inaccessible Registry parts silently.
 
     for childpath in self._Generate(path, depth + 1):
       yield childpath

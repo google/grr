@@ -61,7 +61,8 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
 
     lstat = os.lstat
 
-    def mystat(filename):
+    def mystat(filename, *, dir_fd=None):
+      del dir_fd  # Unused.
       stat_info = lstat(filename)
       stat_list = list(stat_info)
       # Adjust the UID.

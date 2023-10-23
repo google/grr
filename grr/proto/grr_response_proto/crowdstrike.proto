@@ -1,0 +1,12 @@
+syntax = "proto2";
+
+package grr;
+
+// Result message for the `GetCrowdStrikeAgentID` flow.
+message GetCrowdstrikeAgentIdResult {
+  // Retrieved identifier of the CrowdStrike agent.
+  //
+  // This value should generally be a hexadecimal string representing the bytes
+  // of the 128-bit identifier although no exact requirements are imposed.
+  optional string agent_id = 1;
+}

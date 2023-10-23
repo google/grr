@@ -60,7 +60,7 @@ message Request {
   // A limit on number of bytes sent by the action over the network.
   //
   // If the limit is reached, action execution is aborted.
-  uint64 network_bytes_sent_limit = 5;
+  uint64 network_bytes_limit = 5;
 
   // A limit of CPU time spent on executing the action.
   //
@@ -105,6 +105,9 @@ message Response {
 message Status {
   // Information about action invocation failure.
   message Error {
+    // TODO(user): Add more details about circumstances in which the errors
+    // of specific type can be raised.
+
     // List of all possible error types that can occur.
     enum Type {
       UNSET = 0;
@@ -122,6 +125,10 @@ message Status {
       REAL_TIME_LIMIT_EXCEEDED = 6;
       // Action-specific error occurred.
       ACTION_FAILURE = 7;
+      // CPU time usage treshhold specified in the request is invalid.
+      INVALID_CPU_TIME_LIMIT = 8;
+      // Real (wall) time usage treshhold specified in the request is invalid.
+      INVALID_REAL_TIME_LIMIT = 9;
     }
 
     // Type of the error.

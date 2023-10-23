@@ -7,11 +7,12 @@ from absl import app
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import data_store
 from grr_response_server import flow_base
+from grr_response_server.flows.general import file_finder as flows_file_finder
 from grr_response_server.flows.general import processes as flows_processes
-from grr_response_server.flows.general import transfer as flows_transfer
 from grr_response_server.flows.general import webhistory as flows_webhistory
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import gui_test_lib
@@ -48,21 +49,21 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                    "You do not have an approval for this client.")
 
   def testPageTitleReflectsSelectedFlow(self):
-    pathspec = rdf_paths.PathSpec(
-        path=os.path.join(self.base_path, "test.plist"),
-        pathtype=rdf_paths.PathSpec.PathType.OS)
-    args = flows_transfer.GetFileArgs(pathspec=pathspec)
+    args = rdf_file_finder.FileFinderArgs(
+        paths=[os.path.join(self.base_path, "test.plist")]
+    )
     flow_id = flow_test_lib.StartFlow(
-        flows_transfer.GetFile,
+        flows_file_finder.ClientFileFinder,
         self.client_id,
         flow_args=args,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     self.Open("/legacy#/clients/%s/flows/" % self.client_id)
 
     self.WaitUntilEqual("GRR | %s | Flows" % self.client_id, self.GetPageTitle)
 
-    self.Click("css=td:contains('GetFile')")
+    self.Click("css=td:contains('ClientFileFinder')")
     self.WaitUntilEqual("GRR | %s | %s" % (self.client_id, flow_id),
                         self.GetPageTitle)
 
@@ -100,18 +101,21 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
     self.Click("css=#_Filesystem a")
 
     # Wait until the tree has expanded.
-    self.WaitUntil(self.IsTextPresent, flows_transfer.GetFile.__name__)
+    self.WaitUntil(
+        self.IsTextPresent, flows_file_finder.ClientFileFinder.friendly_name
+    )
 
-    self.Click("link=" + flows_transfer.GetFile.__name__)
+    self.Click("link=" + flows_file_finder.ClientFileFinder.friendly_name)
 
-    self.Select("css=.form-group:has(> label:contains('Pathtype')) select",
-                "OS")
-    self.Type("css=.form-group:has(> label:contains('Path')) input",
-              u"/dev/c/msn[1].exe")
+    self.Select(
+        "css=.form-group:has(> label:contains('Pathtype')) select",
+        "OS (default)",
+    )
+    self.Type("css=grr-glob-expressions-list-form input", "/dev/c/msn[1].exe")
 
     self.Click("css=button.Launch")
 
-    self.WaitUntil(self.IsTextPresent, "Launched Flow GetFile")
+    self.WaitUntil(self.IsTextPresent, "Launched Flow ClientFileFinder")
 
     # Test that recursive tests are shown in a tree table.
     flow_test_lib.StartFlow(
@@ -129,8 +133,10 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         "css=grr-client-flows-list tr:visible:nth(1) td:nth(2)")
 
     self.WaitUntilEqual(
-        flows_transfer.GetFile.__name__, self.GetText,
-        "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
+        flows_file_finder.ClientFileFinder.__name__,
+        self.GetText,
+        "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)",
+    )
 
     # Click on the first tree_closed to open it.
     self.Click("css=grr-client-flows-list tr:visible:nth(1) .tree_closed")
@@ -140,15 +146,18 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         "css=grr-client-flows-list tr:visible:nth(2) td:nth(2)")
 
     # Select the requests tab
-    self.Click("css=td:contains(GetFile)")
+    self.Click("css=td:contains(ClientFileFinder)")
     self.Click("css=li[heading=Requests]")
 
     self.WaitUntil(self.IsElementPresent, "css=td:contains(1)")
 
-    # Check that a StatFile client action was issued as part of the GetFile
-    # flow. "Stat" matches the next state that is called.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.tab-content td.proto_value:contains(Stat)")
+    # Check that a StatFile client action was issued as part of the
+    # ClientFileFinder flow. "StoreResultsWithoutBlobs" matches the next state
+    # that is called.
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=.tab-content td.proto_value:contains(StoreResultsWithoutBlobs)",
+    )
 
   def testOverviewIsShownForNestedFlows(self):
     flow_test_lib.StartFlow(

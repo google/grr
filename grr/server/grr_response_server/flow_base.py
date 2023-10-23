@@ -3,6 +3,7 @@
 import collections
 import functools
 import logging
+import re
 import traceback
 from typing import Any, Callable, Iterator, Mapping, NamedTuple, Optional, Sequence, Tuple, Type
 
@@ -33,13 +34,34 @@ from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
 
 FLOW_STARTS = metrics.Counter("flow_starts", fields=[("flow", str)])
-FLOW_ERRORS = metrics.Counter("flow_errors", fields=[("flow", str)])
+FLOW_ERRORS = metrics.Counter(
+    "flow_errors",
+    fields=[("flow", str), ("is_child", bool), ("exception", str)],
+)
 FLOW_COMPLETIONS = metrics.Counter("flow_completions", fields=[("flow", str)])
 GRR_WORKER_STATES_RUN = metrics.Counter("grr_worker_states_run")
 HUNT_OUTPUT_PLUGIN_ERRORS = metrics.Counter(
     "hunt_output_plugin_errors", fields=[("plugin", str)])
 HUNT_RESULTS_RAN_THROUGH_PLUGIN = metrics.Counter(
     "hunt_results_ran_through_plugin", fields=[("plugin", str)])
+
+_METRICS_UNKNOWN_EXCEPTION = "Unknown"
+# Captures the possible exception name (only group). String must start with a
+# capitalized letter (only letters) followed by an opening parens.
+# Should match: "SomeWord(" (captures "SomeWord"), "A(" (captures "A")
+# Should NOT match: "(", " Space(", "Sep arate(", "startsWithLower(", "HasNum9("
+_LOOKS_LIKE_EXCEPTION = re.compile(r"^([A-Z][A-Za-z]*)\(.*")
+
+
+def _ExtractExceptionName(error_message: Optional[str]) -> str:
+  if not error_message:
+    return _METRICS_UNKNOWN_EXCEPTION
+
+  match = _LOOKS_LIKE_EXCEPTION.match(error_message)
+  if match is None:
+    return _METRICS_UNKNOWN_EXCEPTION
+
+  return match.groups()[0]
 
 
 class Error(Exception):
@@ -378,15 +400,17 @@ class FlowBase(metaclass=FlowRegistry):
             "Runtime limit exceeded for {} {}.".format(
                 self.rdf_flow.flow_class_name, self.rdf_flow.flow_id))
 
-    client_action_request = rdf_flows.ClientActionRequest(
-        client_id=self.rdf_flow.client_id,
-        flow_id=self.rdf_flow.flow_id,
+    stub = action_registry.ACTION_STUB_BY_ID[action_identifier]
+    client_action_request = rdf_flows.GrrMessage(
+        session_id="%s/%s" % (self.rdf_flow.client_id, self.rdf_flow.flow_id),
+        name=stub.__name__,
         request_id=outbound_id,
-        action_identifier=action_identifier,
-        action_args=request,
-        cpu_limit_ms=cpu_limit_ms,
+        payload=request,
         network_bytes_limit=network_bytes_limit,
-        runtime_limit_us=runtime_limit_us)
+        runtime_limit_us=runtime_limit_us,
+    )
+    if cpu_limit_ms is not None:
+      client_action_request.cpu_limit = cpu_limit_ms / 1000.0
 
     self.flow_requests.append(flow_request)
     self.client_action_requests.append(client_action_request)
@@ -542,7 +566,10 @@ class FlowBase(metaclass=FlowRegistry):
             backtrace: Optional[str] = None,
             status: Optional[rdf_structs.EnumNamedValue] = None) -> None:
     """Terminates this flow with an error."""
-    FLOW_ERRORS.Increment(fields=[self.__class__.__name__])
+    flow_name = self.__class__.__name__
+    is_child = bool(self.rdf_flow.parent_flow_id)
+    exception_name = _ExtractExceptionName(error_message)
+    FLOW_ERRORS.Increment(fields=[flow_name, is_child, exception_name])
 
     client_id = self.rdf_flow.client_id
     flow_id = self.rdf_flow.flow_id
@@ -750,7 +777,6 @@ class FlowBase(metaclass=FlowRegistry):
         self.replies_to_process = []
 
     except flow.FlowResourcesExceededError as e:
-      FLOW_ERRORS.Increment(fields=[self.rdf_flow.flow_class_name])
       logging.info("Flow %s on %s exceeded resource limits: %s.",
                    self.rdf_flow.flow_id, client_id, str(e))
       self.Error(error_message=str(e))
@@ -758,8 +784,6 @@ class FlowBase(metaclass=FlowRegistry):
     # to continue. Thus, we catch everything.
     except Exception as e:  # pylint: disable=broad-except
       msg = str(e)
-      FLOW_ERRORS.Increment(fields=[self.rdf_flow.flow_class_name])
-
       self.Error(error_message=msg, backtrace=traceback.format_exc())
 
   def ProcessAllReadyRequests(self) -> Tuple[int, int]:
@@ -894,8 +918,7 @@ class FlowBase(metaclass=FlowRegistry):
     if self.client_action_requests:
       client_id = self.rdf_flow.client_id
       for request in self.client_action_requests:
-        msg = rdf_flow_objects.GRRMessageFromClientActionRequest(request)
-        fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, msg)
+        fleetspeak_utils.SendGrrMessageThroughFleetspeak(client_id, request)
 
       self.client_action_requests = []
 
@@ -1167,6 +1190,10 @@ class FlowBase(metaclass=FlowRegistry):
   def CreateFlowInstance(cls, flow_object: rdf_flow_objects.Flow) -> "FlowBase":
     flow_cls = FlowRegistry.FlowClassByName(flow_object.flow_class_name)
     return flow_cls(flow_object)
+
+  @classmethod
+  def CanUseViaAPI(cls) -> bool:
+    return bool(cls.category)
 
 
 def UseProto2AnyResponses(

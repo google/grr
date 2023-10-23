@@ -81,68 +81,6 @@ class TestRecursiveListDirectoryLinuxDarwin(test_base.EndToEndTest):
       self.RunFlowAndWait("RecursiveListDirectory", args=args)
 
 
-# TODO(amoser): Find a way to run this on Darwin with Filevault turned on.
-class TestFindTSKLinux(test_base.EndToEndTest):
-  """Tests if the find flow works on Linux and Darwin using Sleuthkit."""
-
-  platforms = [test_base.EndToEndTest.Platform.LINUX]
-
-  def runTest(self):
-    if self.os_release == "CentOS Linux":
-      self.skipTest(
-          "TSK is not supported on CentOS due to an xfs root filesystem.")
-
-    args = self.grr_api.types.CreateFlowArgs("FindFiles")
-    # Cut down the number of files by specifying a partial regex
-    # match, we just want to find /usr/bin/diff, when run on a real
-    # system there are thousands which takes forever with TSK.
-    # TODO
-    args.findspec.max_depth = 1
-    args.findspec.path_regex = "di"
-    args.findspec.pathspec.path = "/usr/bin"
-    args.findspec.pathspec.pathtype = args.findspec.pathspec.TSK
-
-    f = self.RunFlowAndWait("FindFiles", args=args)
-
-    results = list(f.ListResults())
-    self.assertNotEmpty(results)
-
-    diff_path = None
-    for r in results:
-      path = "fs/tsk"
-      pathspec = r.payload.pathspec
-      while pathspec.path:
-        path += pathspec.path
-        pathspec = pathspec.nested_path
-
-      if path.endswith("/diff"):
-        diff_path = path
-        break
-
-    self.assertTrue(diff_path)
-
-    with self.WaitForFileRefresh(diff_path):
-      self.RunFlowAndWait("FindFiles", args=args)
-
-
-class TestFindOSLinuxDarwin(test_base.EndToEndTest):
-  """Tests if the find flow works on Linux and Darwin."""
-
-  platforms = [
-      test_base.EndToEndTest.Platform.LINUX,
-      test_base.EndToEndTest.Platform.DARWIN
-  ]
-
-  def runTest(self):
-    args = self.grr_api.types.CreateFlowArgs("FindFiles")
-    args.findspec.path_regex = "^l"
-    args.findspec.pathspec.path = "/bin"
-    args.findspec.pathspec.pathtype = args.findspec.pathspec.OS
-
-    with self.WaitForFileRefresh("fs/os/bin/ls"):
-      self.RunFlowAndWait("FindFiles", args=args)
-
-
 ###########
 # Windows #
 ###########

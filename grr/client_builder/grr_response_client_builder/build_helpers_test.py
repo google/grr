@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Tests for building and repacking clients."""
 
-
+import datetime
 import io
 import os
 from unittest import mock
@@ -27,8 +27,6 @@ class BuildTests(test_lib.GRRBaseTest):
     expected = {
         "Client.build_environment":
             "cp27-cp27mu-linux_x86_64",
-        "Client.build_time":
-            "2016-05-24 20:04:25",
         "Template.build_type":
             "Release",
         "Template.build_context":
@@ -49,10 +47,18 @@ class BuildTests(test_lib.GRRBaseTest):
 
     with mock.patch.object(rdf_client.Uname, "FromCurrentSystem") as fcs:
       fcs.return_value.signature.return_value = "cp27-cp27mu-linux_x86_64"
-      with test_lib.FakeTime(1464120265):
-        build_helpers.WriteBuildYaml(fd, context=context)
 
-    self.assertEqual(yaml.safe_load(fd.getvalue()), expected)
+      before_time = datetime.datetime.now(datetime.timezone.utc)
+      build_helpers.WriteBuildYaml(fd, context=context)
+      after_time = datetime.datetime.now(datetime.timezone.utc)
+
+    result = yaml.safe_load(fd.getvalue())
+
+    build_time = datetime.datetime.fromisoformat(result["Client.build_time"])
+    self.assertBetween(build_time, before_time, after_time)
+    del result["Client.build_time"]
+
+    self.assertEqual(result, expected)
 
   def testGenClientConfig(self):
     with test_lib.ConfigOverrider({"Client.build_environment": "test_env"}):

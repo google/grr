@@ -6,8 +6,8 @@ import {ActivatedRoute, Router} from '@angular/router';
 import {BehaviorSubject, Subject} from 'rxjs';
 import {map, takeUntil, withLatestFrom} from 'rxjs/operators';
 
-import {RequestStatus, RequestStatusType} from '../../lib/api/track_request';
-import {Approval} from '../../lib/models/user';
+import {type RequestStatus, RequestStatusType} from '../../lib/api/track_request';
+import {type Approval} from '../../lib/models/user';
 import {observeOnDestroy} from '../../lib/reactive';
 import {ApprovalCardLocalStore} from '../../store/approval_card_local_store';
 import {ConfigGlobalStore} from '../../store/config_global_store';

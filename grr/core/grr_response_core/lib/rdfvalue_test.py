@@ -9,6 +9,7 @@ import unittest
 from absl import app
 from absl.testing import absltest
 
+from google.protobuf import timestamp_pb2
 from grr_response_core.lib import rdfvalue
 from grr.test_lib import test_lib
 
@@ -223,6 +224,29 @@ class RDFDateTimeTest(absltest.TestCase):
     self.assertEqual(py_datetime.day, 6)
     self.assertEqual(py_datetime.hour, 8)
     self.assertEqual(py_datetime.minute, 0)
+
+  def testFromTimestampProto_Now(self):
+    pre_datetime = rdfvalue.RDFDatetime.Now()
+
+    timestamp = timestamp_pb2.Timestamp()
+    timestamp.GetCurrentTime()
+
+    post_datetime = rdfvalue.RDFDatetime.Now()
+
+    timestamp_datetime = rdfvalue.RDFDatetime.FromProtoTimestamp(timestamp)
+    self.assertBetween(timestamp_datetime, pre_datetime, post_datetime)
+
+  def testFromTimestampProto_Seconds(self):
+    timestamp = timestamp_pb2.Timestamp(seconds=1337)
+
+    timestamp_datetime = rdfvalue.RDFDatetime.FromProtoTimestamp(timestamp)
+    self.assertEqual(timestamp_datetime.AsSecondsSinceEpoch(), 1337)
+
+  def testFromTimestampProto_Nanos(self):
+    timestamp = timestamp_pb2.Timestamp(nanos=7654321)
+
+    timestamp_datetime = rdfvalue.RDFDatetime.FromProtoTimestamp(timestamp)
+    self.assertEqual(timestamp_datetime.AsMicrosecondsSinceEpoch(), 7654)
 
 
 class RDFDatetimeSecondsTest(absltest.TestCase):

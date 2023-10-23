@@ -1,11 +1,10 @@
 #!/usr/bin/env python
 """Tests for administrative flows."""
 
-import os
+import datetime
 import subprocess
 import sys
 import tempfile
-import time
 from unittest import mock
 
 from absl import app
@@ -52,20 +51,6 @@ class ClientActionRunner(flow_base.FlowBase):
   def Start(self):
     self.CallClient(
         action_registry.ACTION_STUB_BY_ID[self.args.action], next_state="End")
-
-
-class KeepAliveFlowTest(flow_test_lib.FlowTestsBaseclass):
-  """Tests for the KeepAlive flow."""
-
-  def testKeepAliveRunsSuccessfully(self):
-    client_id = self.SetupClient(0)
-    client_mock = action_mocks.ActionMock(admin.Echo)
-    flow_test_lib.TestFlowHelper(
-        administrative.KeepAlive.__name__,
-        duration=rdfvalue.Duration.From(1, rdfvalue.SECONDS),
-        client_id=client_id,
-        client_mock=client_mock,
-        creator=self.test_username)
 
 
 class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
@@ -169,8 +154,10 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
 
     # Make sure the flow state is included in the email message.
     self.assertIn("Host-0.example.com", email_message["message"])
-    self.assertIn("http://localhost:8000/#/clients/C.1000000000000000",
-                  email_message["message"])
+    self.assertIn(
+        "http://localhost:8000/v2/clients/C.1000000000000000",
+        email_message["message"],
+    )
 
     self.assertIn(client_id, email_message["title"])
     rel_flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
@@ -429,50 +416,6 @@ magic_return_str = "foo(%s)"
           command_line="--bar --baz",
           creator=self.test_username)
 
-  def testUpdateClient(self):
-    client_mock = action_mocks.UpdateAgentClientMock()
-    fake_installer = b"FakeGRRDebInstaller" * 20
-    upload_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add(
-        config.CONFIG["Client.platform"]).Add("test.deb")
-    maintenance_utils.UploadSignedConfigBlob(
-        fake_installer, aff4_path=upload_path, limit=100)
-
-    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
-        upload_path)
-    self.assertLen(list(blob_list), 4)
-
-    acl_test_lib.CreateAdminUser(self.test_username)
-
-    flow_test_lib.TestFlowHelper(
-        administrative.UpdateClient.__name__,
-        client_mock,
-        client_id=self.SetupClient(0, system=""),
-        binary_path=os.path.join(config.CONFIG["Client.platform"], "test.deb"),
-        creator=self.test_username)
-    self.assertEqual(client_mock.GetDownloadedFileContents(), fake_installer)
-
-  def testUpdateClientSingleBlob(self):
-    client_mock = action_mocks.UpdateAgentClientMock()
-    fake_installer = b"FakeGRRDebInstaller" * 20
-    upload_path = signed_binary_utils.GetAFF4ExecutablesRoot().Add(
-        config.CONFIG["Client.platform"]).Add("test.deb")
-    maintenance_utils.UploadSignedConfigBlob(
-        fake_installer, aff4_path=upload_path, limit=1000)
-
-    blob_list, _ = signed_binary_utils.FetchBlobsForSignedBinaryByURN(
-        upload_path)
-    self.assertLen(list(blob_list), 1)
-
-    acl_test_lib.CreateAdminUser(self.test_username)
-
-    flow_test_lib.TestFlowHelper(
-        administrative.UpdateClient.__name__,
-        client_mock,
-        client_id=self.SetupClient(0, system=""),
-        binary_path=os.path.join(config.CONFIG["Client.platform"], "test.deb"),
-        creator=self.test_username)
-    self.assertEqual(client_mock.GetDownloadedFileContents(), fake_installer)
-
   def testGetClientStats(self):
     client_id = self.SetupClient(0)
 
@@ -589,7 +532,7 @@ magic_return_str = "foo(%s)"
       self.assertNotEqual(new_si.boot_time, si.boot_time)
 
       # Now set a new client build time.
-      build_time = time.strftime("%a %b %d %H:%M:%S %Y")
+      build_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
       with test_lib.ConfigOverrider({"Client.build_time": build_time}):
 
         # Run it again - this should now update the client info.
@@ -836,6 +779,26 @@ magic_return_str = "foo(%s)"
               response_id=123))
 
     self._CheckAlertEmail(client_id, client_message, email_dict)
+
+  def testForemanTimeIsResetOnClientStartupInfoWrite(self):
+    client_id = self.SetupClient(0)
+    reset_time = rdfvalue.RDFDatetime.EarliestDatabaseSafeValue()
+    later_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3600)
+
+    data_store.REL_DB.WriteClientMetadata(client_id, last_foreman=later_time)
+    self._RunSendStartupInfo(client_id)
+
+    md = data_store.REL_DB.ReadClientMetadata(client_id)
+    self.assertIsNotNone(md.last_foreman_time)
+    self.assertEqual(md.last_foreman_time, reset_time)
+
+    # Run it again - this should not update any record.
+    data_store.REL_DB.WriteClientMetadata(client_id, last_foreman=later_time)
+    self._RunSendStartupInfo(client_id)
+
+    md = data_store.REL_DB.ReadClientMetadata(client_id)
+    self.assertIsNotNone(md.last_foreman_time)
+    self.assertEqual(md.last_foreman_time, later_time)
 
 
 def main(argv):

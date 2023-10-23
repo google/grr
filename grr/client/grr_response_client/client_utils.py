@@ -25,7 +25,6 @@ CanonicalPathToLocalPath = _client_utils.CanonicalPathToLocalPath
 FindProxies = _client_utils.FindProxies
 GetExtAttrs = _client_utils.GetExtAttrs
 GetRawDevice = _client_utils.GetRawDevice
-KeepAlive = _client_utils.KeepAlive
 LocalPathToCanonicalPath = _client_utils.LocalPathToCanonicalPath
 MemoryRegions = _client_utils.MemoryRegions
 OpenProcessForMemoryAccess = _client_utils.OpenProcessForMemoryAccess

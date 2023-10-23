@@ -3,7 +3,7 @@ import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
 import {ExportMenuItem, Plugin as FlowDetailsPlugin} from '../../components/flow_details/plugins/plugin';
-import {Flow, FlowDescriptor, FlowState, FlowType, getFlowTitleFromFlow} from '../../lib/models/flow';
+import {type Flow, type FlowDescriptor, FlowState, FlowType, getFlowTitleFromFlow} from '../../lib/models/flow';
 import {isNonNull} from '../../lib/preconditions';
 import {FlowResultsLocalStore} from '../../store/flow_results_local_store';
 import {FlowArgsViewData} from '../flow_args_view/flow_args_view';

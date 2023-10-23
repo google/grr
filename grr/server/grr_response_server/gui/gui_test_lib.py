@@ -23,8 +23,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
@@ -33,8 +33,8 @@ from grr_response_server import flow_base
 from grr_response_server import foreman_rules
 from grr_response_server import output_plugin
 from grr_response_server.databases import db
+from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import processes
-from grr_response_server.flows.general import transfer
 from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import webauth
@@ -689,7 +689,8 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     # Make the user use the advanced gui so we can test it.
     data_store.REL_DB.WriteGRRUser(
-        self.test_username, ui_mode=api_user.GUISettings.UIMode.ADVANCED)
+        self.test_username, ui_mode=api_user.GUISettings.UIMode.DEBUG
+    )
 
     artifact_patcher = ar_test_lib.PatchDatastoreOnlyArtifactRegistry()
     artifact_patcher.start()
@@ -763,18 +764,20 @@ class GRRSeleniumHuntTest(hunt_test_lib.StandardHuntTestMixin, GRRSeleniumTest):
 
     self.hunt_urn = self.StartHunt(
         flow_runner_args=rdf_flow_runner.FlowRunnerArgs(
-            flow_name=transfer.GetFile.__name__),
-        flow_args=transfer.GetFileArgs(
-            pathspec=rdf_paths.PathSpec(
-                path=path or "/tmp/evil.txt",
-                pathtype=rdf_paths.PathSpec.PathType.OS,
-            )),
+            flow_name=file_finder.ClientFileFinder.__name__
+        ),
+        flow_args=rdf_file_finder.FileFinderArgs(
+            paths=[path or "/tmp/evil.txt"],
+            pathtype=rdf_paths.PathSpec.PathType.OS,
+            action=rdf_file_finder.FileFinderAction.Download(),
+        ),
         client_rule_set=self._CreateForemanClientRuleSet(),
         output_plugins=output_plugins or [],
         client_rate=0,
         client_limit=client_limit,
         creator=creator or self.test_username,
-        paused=stopped)
+        paused=stopped,
+    )
 
     return self.hunt_urn
 

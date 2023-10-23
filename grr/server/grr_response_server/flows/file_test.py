@@ -5,6 +5,7 @@ import collections
 import contextlib
 import hashlib
 import os
+import time
 from typing import List
 from unittest import mock
 
@@ -637,15 +638,16 @@ class TestCollectMultipleFiles(flow_test_lib.FlowTestsBaseclass):
 
 
 class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
-
   def setUp(self):
     super().setUp()
     self.client_id = self.SetupClient(0)
     self.client_mock = action_mocks.CollectMultipleFilesClientMock()
 
   def testReturnsSingleFileStat(self):
+    timestamp_before_file_creation = rdfvalue.RDFDatetimeSeconds(time.time())
+    temp_bar_file_content = b"bar"
     temp_bar_file = self.create_tempfile()
-    temp_bar_file.write_bytes(b"bar")
+    temp_bar_file.write_bytes(temp_bar_file_content)
     file_bar_path = temp_bar_file.full_path
 
     flow_id = flow_test_lib.TestFlowHelper(
@@ -658,20 +660,44 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
 
+    flow_finished_timestamp = rdfvalue.RDFDatetimeSeconds(time.time())
+
     self.assertLen(results, 1)
     self.assertEqual(
         results[0].pathspec.pathtype,
         rdf_paths.PathSpec.PathType.OS,
     )
     self.assertEqual(file_bar_path, results[0].pathspec.path)
+    self.assertEqual(results[0].st_size, len(temp_bar_file_content))
+
+    self.assertBetween(
+        results[0].st_atime,
+        timestamp_before_file_creation,
+        flow_finished_timestamp,
+    )
+
+    self.assertBetween(
+        results[0].st_mtime,
+        timestamp_before_file_creation,
+        flow_finished_timestamp,
+    )
+
+    self.assertBetween(
+        results[0].st_ctime,
+        timestamp_before_file_creation,
+        flow_finished_timestamp,
+    )
 
   def testReturnsMultipleFileStats(self):
+    timestamp_before_file_creation = rdfvalue.RDFDatetimeSeconds(time.time())
+    temp_bar_file_content = b"bar"
     temp_bar_file = self.create_tempfile()
-    temp_bar_file.write_bytes(b"bar")
+    temp_bar_file.write_bytes(temp_bar_file_content)
     file_bar_path = temp_bar_file.full_path
 
+    temp_foo_file_content = b"bar"
     temp_foo_file = self.create_tempfile()
-    temp_foo_file.write_bytes(b"foo")
+    temp_foo_file.write_bytes(temp_foo_file_content)
     file_foo_path = temp_foo_file.full_path
 
     flow_id = flow_test_lib.TestFlowHelper(
@@ -684,6 +710,8 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
 
     results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
 
+    flow_finished_timestamp = rdfvalue.RDFDatetimeSeconds(time.time())
+
     self.assertLen(results, 2)
 
     self.assertEqual(results[0].pathspec.path, file_bar_path)
@@ -691,11 +719,47 @@ class TestStatMultipleFiles(flow_test_lib.FlowTestsBaseclass):
         results[0].pathspec.pathtype,
         rdf_paths.PathSpec.PathType.OS,
     )
+    self.assertEqual(results[0].st_size, len(temp_bar_file_content))
+    self.assertBetween(
+        results[0].st_atime,
+        timestamp_before_file_creation,
+        flow_finished_timestamp,
+    )
+
+    self.assertBetween(
+        results[0].st_mtime,
+        timestamp_before_file_creation,
+        flow_finished_timestamp,
+    )
+
+    self.assertBetween(
+        results[0].st_ctime,
+        timestamp_before_file_creation,
+        flow_finished_timestamp,
+    )
 
     self.assertEqual(results[1].pathspec.path, file_foo_path)
     self.assertEqual(
         results[1].pathspec.pathtype,
         rdf_paths.PathSpec.PathType.OS,
+    )
+    self.assertEqual(results[1].st_size, len(temp_foo_file_content))
+    self.assertBetween(
+        results[1].st_atime,
+        timestamp_before_file_creation,
+        flow_finished_timestamp,
+    )
+
+    self.assertBetween(
+        results[1].st_mtime,
+        timestamp_before_file_creation,
+        flow_finished_timestamp,
+    )
+
+    self.assertBetween(
+        results[1].st_ctime,
+        timestamp_before_file_creation,
+        flow_finished_timestamp,
     )
 
   def testFileNotFound(self):

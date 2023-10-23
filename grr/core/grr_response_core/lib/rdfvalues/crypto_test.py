@@ -177,8 +177,8 @@ executable_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
 class CryptoUtilTest(CryptoTestBase):
 
   def testStreamingCBCEncryptor(self):
-    key = rdf_crypto.AES128Key.GenerateKey()
-    iv = rdf_crypto.AES128Key.GenerateKey()
+    key = rdf_crypto.EncryptionKey.GenerateKey()
+    iv = rdf_crypto.EncryptionKey.GenerateKey()
     # 160 characters.
     message = b"Hello World!!!!!" * 10
 
@@ -214,23 +214,23 @@ class CryptoUtilTest(CryptoTestBase):
 
         self.assertEqual(cipher.Decrypt(b"".join(out)), plaintext)
 
-  def testAES128Key(self):
-    key = rdf_crypto.AES128Key.GenerateKey()
-    iv = rdf_crypto.AES128Key.GenerateKey()
+  def testEncryptionKey(self):
+    key = rdf_crypto.EncryptionKey.GenerateKey()
+    iv = rdf_crypto.EncryptionKey.GenerateKey()
 
     self.assertNotEqual(key, iv)
     self.assertNotEqual(key.RawBytes(), iv.RawBytes())
 
     # This key is too short.
-    self.assertRaises(rdf_crypto.CipherError, rdf_crypto.AES128Key, b"foo")
+    self.assertRaises(rdf_crypto.CipherError, rdf_crypto.EncryptionKey, b"foo")
 
-    copied_key = rdf_crypto.AES128Key(key.RawBytes())
+    copied_key = rdf_crypto.EncryptionKey(key.RawBytes())
     self.assertEqual(copied_key, key)
     self.assertEqual(copied_key.RawBytes(), key.RawBytes())
 
   def testAES128CBCCipher(self):
-    key = rdf_crypto.AES128Key.GenerateKey()
-    iv = rdf_crypto.AES128Key.GenerateKey()
+    key = rdf_crypto.EncryptionKey.GenerateKey()
+    iv = rdf_crypto.EncryptionKey.GenerateKey()
 
     cipher = rdf_crypto.AES128CBCCipher(key, iv)
 
@@ -243,8 +243,8 @@ class CryptoUtilTest(CryptoTestBase):
     self.assertNotEqual(cipher_text, plain_text)
     self.assertEqual(cipher.Decrypt(cipher_text), plain_text)
 
-    key2 = rdf_crypto.AES128Key.GenerateKey()
-    iv2 = rdf_crypto.AES128Key.GenerateKey()
+    key2 = rdf_crypto.EncryptionKey.GenerateKey()
+    iv2 = rdf_crypto.EncryptionKey.GenerateKey()
     cipher = rdf_crypto.AES128CBCCipher(key, iv2)
     self.assertRaises(rdf_crypto.CipherError, cipher.Decrypt, plain_text)
     cipher = rdf_crypto.AES128CBCCipher(key2, iv)

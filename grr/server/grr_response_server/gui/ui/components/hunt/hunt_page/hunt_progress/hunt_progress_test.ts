@@ -1,5 +1,5 @@
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {TestBed, waitForAsync} from '@angular/core/testing';
+import {discardPeriodicTasks, fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
@@ -140,6 +140,297 @@ describe('HuntProgress Component', () => {
     expect(summaries[4].children[2].innerText).toContain('0 clients');
   });
 
+  describe('Hunt progress loading spinner', () => {
+    it('shows the loading spinner by default', () => {
+      const fixture = TestBed.createComponent(HuntProgress);
+      fixture.detectChanges();
+
+      expect(fixture.nativeElement.querySelector('.progress-spinner'))
+          .not.toBeNull();
+      expect(fixture.nativeElement.querySelector('.no-data')).toBeNull();
+      expect(fixture.nativeElement.querySelector('app-hunt-progress-table'))
+          .toBeNull();
+      expect(fixture.nativeElement.querySelector('app-hunt-progress-chart'))
+          .toBeNull();
+    });
+
+    it('shows the loading spinner initially, then shows the no data message',
+       () => {
+         const fixture = TestBed.createComponent(HuntProgress);
+         fixture.detectChanges();
+
+         expect(fixture.nativeElement.querySelector('.progress-spinner'))
+             .not.toBeNull();
+         expect(fixture.nativeElement.querySelector('.progress-tabs'))
+             .toBeNull();
+         expect(fixture.nativeElement.querySelector('.no-data')).toBeNull();
+
+         huntPageGlobalStore.mockedObservables.huntProgress$.next({
+           startPoints: [],
+           completePoints: [],
+         });
+
+         fixture.detectChanges();
+
+         expect(fixture.nativeElement.querySelector('.progress-spinner'))
+             .toBeNull();
+         expect(fixture.nativeElement.querySelector('.progress-tabs'))
+             .toBeNull();
+         expect(fixture.nativeElement.querySelector('.no-data')).not.toBeNull();
+       });
+
+    it('shows the loading spinner initially, then shows the chart instead',
+       () => {
+         const fixture = TestBed.createComponent(HuntProgress);
+         fixture.detectChanges();
+
+         expect(fixture.nativeElement.querySelector('.progress-spinner'))
+             .not.toBeNull();
+         expect(fixture.nativeElement.querySelector('.no-data')).toBeNull();
+         expect(fixture.nativeElement.querySelector('.progress-tabs'))
+             .toBeNull();
+
+         huntPageGlobalStore.mockedObservables.huntProgress$.next({
+           startPoints: [
+             {
+               xValue: 1678379900,
+               yValue: 10,
+             },
+             {
+               xValue: 1678379900,
+               yValue: 10,
+             },
+           ],
+           completePoints: [
+             {
+               xValue: 1678379900,
+               yValue: 5,
+             },
+             {
+               xValue: 1678379900,
+               yValue: 5,
+             },
+           ],
+         });
+
+         fixture.detectChanges();
+
+         expect(fixture.nativeElement.querySelector('.progress-spinner'))
+             .toBeNull();
+         expect(fixture.nativeElement.querySelector('.no-data')).not.toBeNull();
+         expect(fixture.nativeElement.querySelector('.progress-tabs'))
+             .not.toBeNull();
+       });
+  });
+
+  describe('Progress Tabs', () => {
+    it('shows the progress Tabs when there is hunt progress data', () => {
+      const fixture = TestBed.createComponent(HuntProgress);
+      fixture.detectChanges();
+
+      huntPageGlobalStore.mockedObservables.selectedHunt$.next(newHunt({
+        allClientsCount: BigInt(0),
+      }));
+
+      huntPageGlobalStore.mockedObservables.huntProgress$.next({
+        startPoints: [
+          {
+            xValue: 1678379900,
+            yValue: 10,
+          },
+        ],
+        completePoints: [
+          {
+            xValue: 1678379900,
+            yValue: 5,
+          },
+        ],
+      });
+
+      fixture.detectChanges();
+
+      // MatTabGroupHarness does not detect the tabs for some reason:
+      const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+      expect(tabs.length).toEqual(2);
+
+      expect(tabs[0].textContent).toContain('Chart');
+      expect(tabs[1].textContent).toContain('Table');
+    });
+
+    it('does not show the hunt progress tabs when there is no progress data',
+       () => {
+         const fixture = TestBed.createComponent(HuntProgress);
+         fixture.detectChanges();
+
+         huntPageGlobalStore.mockedObservables.huntProgress$.next({
+           startPoints: [],
+           completePoints: [],
+         });
+
+         fixture.detectChanges();
+
+         // MatTabGroupHarness does not detect the tabs for some reason:
+         const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+         expect(tabs.length).toEqual(0);
+       });
+
+    it('Sets the Table tab as default', () => {
+      const fixture = TestBed.createComponent(HuntProgress);
+      fixture.detectChanges();
+
+      huntPageGlobalStore.mockedObservables.huntProgress$.next({
+        startPoints: [
+          {
+            xValue: 1678379900,
+            yValue: 10,
+          },
+        ],
+        completePoints: [
+          {
+            xValue: 1678379900,
+            yValue: 5,
+          },
+        ],
+      });
+
+      fixture.detectChanges();
+
+      // MatTabGroupHarness does not detect the tabs for some reason:
+      const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+      expect(tabs.length).toEqual(2);
+
+      expect(tabs[0].textContent).toContain('Chart');
+      expect(tabs[1].textContent).toContain('Table');
+
+      expect(tabs[1].getAttribute('aria-selected')).toEqual('true');
+
+      expect(fixture.nativeElement.querySelector('app-hunt-progress-table'))
+          .not.toBeNull();
+    });
+
+    it('Sets the Chart tab as default', () => {
+      const fixture = TestBed.createComponent(HuntProgress);
+      fixture.detectChanges();
+
+      huntPageGlobalStore.mockedObservables.huntProgress$.next({
+        startPoints: [
+          {
+            xValue: 1678379900,
+            yValue: 10,
+          },
+          {
+            xValue: 1678379910,
+            yValue: 25,
+          },
+          {
+            xValue: 1678379920,
+            yValue: 30,
+          },
+        ],
+        completePoints: [
+          {
+            xValue: 1678379900,
+            yValue: 5,
+          },
+          {
+            xValue: 1678379910,
+            yValue: 20,
+          },
+          {
+            xValue: 1678379920,
+            yValue: 30,
+          },
+        ],
+      });
+
+      fixture.detectChanges();
+
+      // MatTabGroupHarness does not detect the tabs for some reason:
+      const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+      expect(tabs.length).toEqual(2);
+
+      expect(tabs[0].textContent).toContain('Chart');
+      expect(tabs[1].textContent).toContain('Table');
+
+      expect(tabs[0].getAttribute('aria-selected')).toEqual('true');
+
+      expect(fixture.nativeElement.querySelector('app-hunt-progress-chart'))
+          .not.toBeNull();
+    });
+
+    it('Selected tab does not change after the hunt progress is updated with "plotable" data',
+       () => {
+         const fixture = TestBed.createComponent(HuntProgress);
+         fixture.detectChanges();
+
+         huntPageGlobalStore.mockedObservables.huntProgress$.next({
+           startPoints: [
+             {
+               xValue: 1678379900,
+               yValue: 10,
+             },
+           ],
+           completePoints: [
+             {
+               xValue: 1678379900,
+               yValue: 5,
+             },
+           ],
+         });
+
+         fixture.detectChanges();
+
+         // MatTabGroupHarness does not detect the tabs for some reason:
+         const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+         expect(tabs.length).toEqual(2);
+
+         expect(tabs[0].textContent).toContain('Chart');
+         expect(tabs[1].textContent).toContain('Table');
+
+         expect(tabs[0].getAttribute('aria-selected')).toEqual('false');
+         expect(tabs[1].getAttribute('aria-selected')).toEqual('true');
+
+         expect(fixture.nativeElement.querySelector('app-hunt-progress-table'))
+             .not.toBeNull();
+
+         huntPageGlobalStore.mockedObservables.huntProgress$.next({
+           startPoints: [
+             {
+               xValue: 1678379900,
+               yValue: 10,
+             },
+             {
+               xValue: 1678379910,
+               yValue: 25,
+             },
+             {
+               xValue: 1678379920,
+               yValue: 30,
+             },
+           ],
+           completePoints: [
+             {
+               xValue: 1678379900,
+               yValue: 5,
+             },
+             {
+               xValue: 1678379910,
+               yValue: 20,
+             },
+             {
+               xValue: 1678379920,
+               yValue: 30,
+             },
+           ],
+         });
+
+         fixture.detectChanges();
+
+         expect(tabs[0].getAttribute('aria-selected')).toEqual('false');
+         expect(tabs[1].getAttribute('aria-selected')).toEqual('true');
+       });
+  });
+
   describe('Hunt progress table', () => {
     it('does not show the hunt progress table data when there is no hunt',
        () => {
@@ -165,10 +456,9 @@ describe('HuntProgress Component', () => {
 
          fixture.detectChanges();
 
-         const table = fixture.nativeElement.querySelector(
-             'app-hunt-progress-table mat-table');
-
-         expect(table).toBeNull();
+         expect(fixture.nativeElement.querySelector(
+                    'app-hunt-progress-table mat-table'))
+             .toBeNull();
        });
 
     it('does not show the hunt progress table data when there is no hunt progress data',
@@ -187,98 +477,131 @@ describe('HuntProgress Component', () => {
 
          fixture.detectChanges();
 
+         expect(fixture.nativeElement.querySelector(
+                    'app-hunt-progress-table mat-table'))
+             .toBeNull();
+       });
+
+    it('shows the hunt progress table data without percentages',
+       fakeAsync(() => {
+         const fixture = TestBed.createComponent(HuntProgress);
+         fixture.detectChanges();
+
+         huntPageGlobalStore.mockedObservables.selectedHunt$.next(newHunt({
+           allClientsCount: BigInt(0),
+         }));
+
+         huntPageGlobalStore.mockedObservables.huntProgress$.next({
+           startPoints: [
+             {
+               xValue: 1678379900,
+               yValue: 10,
+             },
+           ],
+           completePoints: [
+             {
+               xValue: 1678379900,
+               yValue: 5,
+             },
+           ],
+         });
+
+         fixture.detectChanges();
+
+         const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+         expect(tabs.length).toEqual(2);
+
+         expect(tabs[1].textContent).toContain('Table');
+         tabs[1].click();
+
+         fixture.detectChanges();
+
+         // We let the Angular Material tab change happen
+         tick();
+
+         fixture.detectChanges();
+
+         expect(tabs[1].getAttribute('aria-selected')).toEqual('true');
+
          const table = fixture.nativeElement.querySelector(
              'app-hunt-progress-table mat-table');
 
-         expect(table).toBeNull();
-       });
+         expect(table).not.toBeNull();
 
-    it('shows the hunt progress table data without percentages', () => {
-      const fixture = TestBed.createComponent(HuntProgress);
-      fixture.detectChanges();
+         const rows = table.querySelectorAll(
+             'app-hunt-progress-table mat-table mat-row');
 
-      huntPageGlobalStore.mockedObservables.selectedHunt$.next(newHunt({
-        allClientsCount: BigInt(0),
-      }));
+         expect(rows.length).toEqual(1);
 
-      huntPageGlobalStore.mockedObservables.huntProgress$.next({
-        startPoints: [
-          {
-            xValue: 1678379900,
-            yValue: 10,
-          },
-        ],
-        completePoints: [
-          {
-            xValue: 1678379900,
-            yValue: 5,
-          },
-        ],
-      });
+         const cells = rows[0].querySelectorAll('mat-cell');
 
-      fixture.detectChanges();
+         expect(cells[0].textContent).toContain('2023-03-09 16:43:20 UTC');
+         expect(cells[1].innerText).toEqual('5');
+         expect(cells[2].innerText).toEqual('10');
 
-      const table = fixture.nativeElement.querySelector(
-          'app-hunt-progress-table mat-table');
+         discardPeriodicTasks();
+       }));
 
-      expect(table).not.toBeNull();
+    it('shows the hunt progress table data with percentages', fakeAsync(() => {
+         const fixture = TestBed.createComponent(HuntProgress);
+         fixture.detectChanges();
 
-      const rows =
-          table.querySelectorAll('app-hunt-progress-table mat-table mat-row');
+         huntPageGlobalStore.mockedObservables.selectedHunt$.next(newHunt({
+           allClientsCount: BigInt(10),
+         }));
 
-      expect(rows.length).toEqual(1);
+         huntPageGlobalStore.mockedObservables.huntProgress$.next({
+           startPoints: [
+             {
+               xValue: 1678379900,
+               yValue: 10,
+             },
+           ],
+           completePoints: [
+             {
+               xValue: 1678379900,
+               yValue: 5,
+             },
+           ],
+         });
 
-      const cells = rows[0].querySelectorAll('mat-cell');
+         fixture.detectChanges();
 
-      expect(cells[0].textContent).toContain('2023-03-09 16:43:20 UTC');
-      expect(cells[1].innerText).toEqual('5');
-      expect(cells[2].innerText).toEqual('10');
-    });
+         const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+         expect(tabs.length).toEqual(2);
 
-    it('shows the hunt progress table data with percentages', () => {
-      const fixture = TestBed.createComponent(HuntProgress);
-      fixture.detectChanges();
+         expect(tabs[1].textContent).toContain('Table');
+         tabs[1].click();
 
-      huntPageGlobalStore.mockedObservables.selectedHunt$.next(newHunt({
-        allClientsCount: BigInt(10),
-      }));
+         fixture.detectChanges();
 
-      huntPageGlobalStore.mockedObservables.huntProgress$.next({
-        startPoints: [
-          {
-            xValue: 1678379900,
-            yValue: 10,
-          },
-        ],
-        completePoints: [
-          {
-            xValue: 1678379900,
-            yValue: 5,
-          },
-        ],
-      });
+         // We let the Angular Material tab change happen
+         tick();
 
-      fixture.detectChanges();
+         fixture.detectChanges();
 
-      const table = fixture.nativeElement.querySelector(
-          'app-hunt-progress-table mat-table');
+         expect(tabs[1].getAttribute('aria-selected')).toEqual('true');
+         const table = fixture.nativeElement.querySelector(
+             'app-hunt-progress-table mat-table');
 
-      expect(table).not.toBeNull();
+         expect(table).not.toBeNull();
 
-      const rows =
-          table.querySelectorAll('app-hunt-progress-table mat-table mat-row');
+         const rows = table.querySelectorAll(
+             'app-hunt-progress-table mat-table mat-row');
 
-      expect(rows.length).toEqual(1);
+         expect(rows.length).toEqual(1);
 
-      const cells = rows[0].querySelectorAll('mat-cell');
+         const cells = rows[0].querySelectorAll('mat-cell');
 
-      expect(cells[0].textContent).toContain('2023-03-09 16:43:20 UTC');
-      expect(cells[1].textContent.trim()).toEqual('5 (50%)');
-      expect(cells[2].textContent.trim()).toEqual('10 (100%)');
-    });
+         expect(cells[0].textContent).toContain('2023-03-09 16:43:20 UTC');
+         expect(cells[1].textContent.trim()).toEqual('5 (50%)');
+         expect(cells[2].textContent.trim()).toEqual('10 (100%)');
+
+         discardPeriodicTasks();
+       }));
 
     it('Groups multiple data-points into one, as they are within 5 minutes',
-       () => {
+       fakeAsync(() => {
          const fixture = TestBed.createComponent(HuntProgress);
          fixture.detectChanges();
 
@@ -318,6 +641,21 @@ describe('HuntProgress Component', () => {
          });
 
          fixture.detectChanges();
+
+         const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+         expect(tabs.length).toEqual(2);
+
+         expect(tabs[1].textContent).toContain('Table');
+         tabs[1].click();
+
+         fixture.detectChanges();
+
+         // We let the Angular Material tab change happen
+         tick();
+
+         fixture.detectChanges();
+
+         expect(tabs[1].getAttribute('aria-selected')).toEqual('true');
 
          const table = fixture.nativeElement.querySelector(
              'app-hunt-progress-table mat-table');
@@ -334,10 +672,12 @@ describe('HuntProgress Component', () => {
          expect(cells[0].textContent).toContain('2023-03-09 16:43:20 UTC');
          expect(cells[1].textContent.trim()).toEqual('30 (100%)');
          expect(cells[2].textContent.trim()).toEqual('30 (100%)');
-       });
+
+         discardPeriodicTasks();
+       }));
 
     it('Groups multiple data-points into 2 groups, as they are not within 5 minutes',
-       () => {
+       fakeAsync(() => {
          const fixture = TestBed.createComponent(HuntProgress);
          fixture.detectChanges();
 
@@ -377,6 +717,21 @@ describe('HuntProgress Component', () => {
          });
 
          fixture.detectChanges();
+
+         const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+         expect(tabs.length).toEqual(2);
+
+         expect(tabs[1].textContent).toContain('Table');
+         tabs[1].click();
+
+         fixture.detectChanges();
+
+         // We let the Angular Material tab change happen
+         tick();
+
+         fixture.detectChanges();
+
+         expect(tabs[1].getAttribute('aria-selected')).toEqual('true');
 
          const table = fixture.nativeElement.querySelector(
              'app-hunt-progress-table mat-table');
@@ -399,80 +754,100 @@ describe('HuntProgress Component', () => {
          expect(rowCells[0].textContent).toContain('2023-03-09 19:28:20 UTC');
          expect(rowCells[1].textContent.trim()).toEqual('30 (100%)');
          expect(rowCells[2].textContent.trim()).toEqual('30 (100%)');
-       });
 
-    it('Does not group data-points, as none are within 5 minutes', () => {
-      const fixture = TestBed.createComponent(HuntProgress);
-      fixture.detectChanges();
+         discardPeriodicTasks();
+       }));
 
-      huntPageGlobalStore.mockedObservables.selectedHunt$.next(newHunt({
-        allClientsCount: BigInt(30),
-      }));
+    it('Does not group data-points, as none are within 5 minutes',
+       fakeAsync(() => {
+         const fixture = TestBed.createComponent(HuntProgress);
+         fixture.detectChanges();
 
-      huntPageGlobalStore.mockedObservables.huntProgress$.next({
-        startPoints: [
-          {
-            xValue: 1678369900,
-            yValue: 10,
-          },
-          {
-            xValue: 1678379910,
-            yValue: 25,
-          },
-          {
-            xValue: 1678389920,
-            yValue: 30,
-          },
-        ],
-        completePoints: [
-          {
-            xValue: 1678369900,
-            yValue: 5,
-          },
-          {
-            xValue: 1678379910,
-            yValue: 20,
-          },
-          {
-            xValue: 1678389920,
-            yValue: 30,
-          },
-        ],
-      });
+         huntPageGlobalStore.mockedObservables.selectedHunt$.next(newHunt({
+           allClientsCount: BigInt(30),
+         }));
 
-      fixture.detectChanges();
+         huntPageGlobalStore.mockedObservables.huntProgress$.next({
+           startPoints: [
+             {
+               xValue: 1678369900,
+               yValue: 10,
+             },
+             {
+               xValue: 1678379910,
+               yValue: 25,
+             },
+             {
+               xValue: 1678389920,
+               yValue: 30,
+             },
+           ],
+           completePoints: [
+             {
+               xValue: 1678369900,
+               yValue: 5,
+             },
+             {
+               xValue: 1678379910,
+               yValue: 20,
+             },
+             {
+               xValue: 1678389920,
+               yValue: 30,
+             },
+           ],
+         });
 
-      const table = fixture.nativeElement.querySelector(
-          'app-hunt-progress-table mat-table');
+         fixture.detectChanges();
 
-      expect(table).not.toBeNull();
+         const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+         expect(tabs.length).toEqual(2);
 
-      const rows =
-          table.querySelectorAll('app-hunt-progress-table mat-table mat-row');
+         expect(tabs[1].textContent).toContain('Table');
+         tabs[1].click();
 
-      expect(rows.length).toEqual(3);
+         fixture.detectChanges();
 
-      let rowCells = rows[0].querySelectorAll('mat-cell');
+         // We let the Angular Material tab change happen
+         tick();
 
-      expect(rowCells[0].textContent).toContain('2023-03-09 13:56:40 UTC');
-      expect(rowCells[1].textContent.trim()).toEqual('5 (16%)');
-      expect(rowCells[2].textContent.trim()).toEqual('10 (33%)');
+         fixture.detectChanges();
 
-      rowCells = rows[1].querySelectorAll('mat-cell');
+         expect(tabs[1].getAttribute('aria-selected')).toEqual('true');
 
-      expect(rowCells[0].textContent).toContain('2023-03-09 16:41:40 UTC');
-      expect(rowCells[1].textContent.trim()).toEqual('20 (66%)');
-      expect(rowCells[2].textContent.trim()).toEqual('25 (83%)');
+         const table = fixture.nativeElement.querySelector(
+             'app-hunt-progress-table mat-table');
 
-      rowCells = rows[2].querySelectorAll('mat-cell');
+         expect(table).not.toBeNull();
 
-      expect(rowCells[0].textContent).toContain('2023-03-09 19:26:40 UTC');
-      expect(rowCells[1].textContent.trim()).toEqual('30 (100%)');
-      expect(rowCells[2].textContent.trim()).toEqual('30 (100%)');
-    });
+         const rows = table.querySelectorAll(
+             'app-hunt-progress-table mat-table mat-row');
+
+         expect(rows.length).toEqual(3);
+
+         let rowCells = rows[0].querySelectorAll('mat-cell');
+
+         expect(rowCells[0].textContent).toContain('2023-03-09 13:56:40 UTC');
+         expect(rowCells[1].textContent.trim()).toEqual('5 (16%)');
+         expect(rowCells[2].textContent.trim()).toEqual('10 (33%)');
+
+         rowCells = rows[1].querySelectorAll('mat-cell');
+
+         expect(rowCells[0].textContent).toContain('2023-03-09 16:41:40 UTC');
+         expect(rowCells[1].textContent.trim()).toEqual('20 (66%)');
+         expect(rowCells[2].textContent.trim()).toEqual('25 (83%)');
+
+         rowCells = rows[2].querySelectorAll('mat-cell');
+
+         expect(rowCells[0].textContent).toContain('2023-03-09 19:26:40 UTC');
+         expect(rowCells[1].textContent.trim()).toEqual('30 (100%)');
+         expect(rowCells[2].textContent.trim()).toEqual('30 (100%)');
+
+         discardPeriodicTasks();
+       }));
 
     it('Displays the available information in case of uneven completed and started progress information',
-       () => {
+       fakeAsync(() => {
          const fixture = TestBed.createComponent(HuntProgress);
          fixture.detectChanges();
 
@@ -509,6 +884,21 @@ describe('HuntProgress Component', () => {
 
          fixture.detectChanges();
 
+         const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+         expect(tabs.length).toEqual(2);
+
+         expect(tabs[1].textContent).toContain('Table');
+         tabs[1].click();
+
+         fixture.detectChanges();
+
+         // We let the Angular Material tab change happen
+         tick();
+
+         fixture.detectChanges();
+
+         expect(tabs[1].getAttribute('aria-selected')).toEqual('true');
+
          const table = fixture.nativeElement.querySelector(
              'app-hunt-progress-table mat-table');
 
@@ -530,6 +920,85 @@ describe('HuntProgress Component', () => {
          expect(rowCells[0].textContent).toContain('2023-03-09 19:28:20 UTC');
          expect(rowCells[1].textContent.trim()).toEqual('');
          expect(rowCells[2].textContent.trim()).toEqual('30 (100%)');
+
+         discardPeriodicTasks();
+       }));
+  });
+
+  describe('Hunt progress chart', () => {
+    it('shows the progress chart when there is enough hunt progress data',
+       () => {
+         const fixture = TestBed.createComponent(HuntProgress);
+         fixture.detectChanges();
+
+         huntPageGlobalStore.mockedObservables.selectedHunt$.next(newHunt({
+           allClientsCount: BigInt(0),
+         }));
+
+         huntPageGlobalStore.mockedObservables.huntProgress$.next({
+           startPoints: [
+             {
+               xValue: 1678379900,
+               yValue: 10,
+             },
+             {
+               xValue: 1679379900,
+               yValue: 15,
+             },
+             {
+               xValue: 1680379900,
+               yValue: 30,
+             },
+           ],
+           completePoints: [
+             {
+               xValue: 1678379900,
+               yValue: 5,
+             },
+             {
+               xValue: 1679379900,
+               yValue: 10,
+             },
+             {
+               xValue: 1680379900,
+               yValue: 20,
+             },
+           ],
+         });
+
+         fixture.detectChanges();
+
+         // MatTabGroupHarness does not detect the tabs for some reason:
+         const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+         expect(tabs.length).toEqual(2);
+
+         expect(tabs[0].textContent).toContain('Chart');
+
+         // MatTabGroupHarness does not detect the tabs for some reason:
+         expect(fixture.nativeElement.querySelector('app-hunt-progress-chart'))
+             .not.toBeNull();
+         expect(
+             fixture.nativeElement.querySelector('app-hunt-progress-chart svg'))
+             .not.toBeNull();
+       });
+
+    it('does not show the hunt progress chart when there is no progress data',
+       () => {
+         const fixture = TestBed.createComponent(HuntProgress);
+         fixture.detectChanges();
+
+         huntPageGlobalStore.mockedObservables.selectedHunt$.next(null);
+
+         huntPageGlobalStore.mockedObservables.huntProgress$.next({
+           startPoints: [],
+           completePoints: [],
+         });
+
+         fixture.detectChanges();
+
+         // MatTabGroupHarness does not detect the tabs for some reason:
+         const tabs = fixture.nativeElement.querySelectorAll('.mdc-tab');
+         expect(tabs.length).toEqual(0);
        });
   });
 });

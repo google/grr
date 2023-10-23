@@ -408,6 +408,23 @@ class ArtifactRegistry(object):
     return result
 
   @utils.Synchronized
+  def Exists(self, name: str) -> bool:
+    """Checks whether the artifact of the specified name exists in the registry.
+
+    Args:
+      name: A name of the artifact.
+
+    Returns:
+      `True` if the artifact exists, `False` otherwise.
+    """
+    try:
+      self.GetArtifact(name)
+    except rdf_artifacts.ArtifactNotRegisteredError:
+      return False
+
+    return True
+
+  @utils.Synchronized
   def GetArtifactNames(self, *args, **kwargs):
     return set([a.name for a in self.GetArtifacts(*args, **kwargs)])
 

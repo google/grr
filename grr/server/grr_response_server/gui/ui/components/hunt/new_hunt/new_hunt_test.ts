@@ -119,12 +119,12 @@ describe('new hunt test', () => {
     newHuntLocalStore.mockedObservables.originalHunt$.next(null);
     newHuntLocalStore.mockedObservables.flowWithDescriptor$.next({
       flow: newFlow({
-        name: 'KeepAlive',
+        name: 'Kill',
         creator: 'morty',
       }),
       descriptor: {
-        name: 'KeepAlive',
-        friendlyName: 'KeepAlive',
+        name: 'Kill',
+        friendlyName: 'Kill GRR agent process',
         category: 'a',
         defaultArgs: {},
       },
@@ -157,12 +157,12 @@ describe('new hunt test', () => {
         injectMockStore(NewHuntLocalStore, fixture.debugElement);
     newHuntLocalStore.mockedObservables.flowWithDescriptor$.next({
       flow: newFlow({
-        name: 'KeepAlive',
+        name: 'Kill',
         creator: 'morty',
       }),
       descriptor: {
-        name: 'KeepAlive',
-        friendlyName: 'KeepAlive',
+        name: 'Kill',
+        friendlyName: 'Kill GRR agent process',
         category: 'a',
         defaultArgs: {},
       },
@@ -175,7 +175,7 @@ describe('new hunt test', () => {
             .query(By.css('.config'));
     const text = flowSection.nativeElement.textContent;
     expect(text).toContain('morty');
-    expect(text).toContain('KeepAlive');
+    expect(text).toContain('Kill');
   });
 
   it('displays flow from original hunt', async () => {
@@ -187,7 +187,7 @@ describe('new hunt test', () => {
         injectMockStore(NewHuntLocalStore, fixture.debugElement);
     newHuntLocalStore.mockedObservables.originalHunt$.next(newHunt({
       huntId: 'H1234',
-      flowName: 'KeepAlive',
+      flowName: 'Kill',
     }));
     fixture.detectChanges();
 
@@ -196,7 +196,7 @@ describe('new hunt test', () => {
             .query(By.css('.config'));
     const text = flowSection.nativeElement.textContent;
     expect(text).toContain('Flow arguments');
-    expect(text).toContain('KeepAlive');
+    expect(text).toContain('Kill');
   });
 
   it('loads and displays hunt params', async () => {
@@ -335,12 +335,12 @@ describe('new hunt test', () => {
         injectMockStore(NewHuntLocalStore, fixture.debugElement);
     newHuntLocalStore.mockedObservables.flowWithDescriptor$.next({
       flow: newFlow({
-        name: 'KeepAlive',
+        name: 'Kill',
         creator: 'morty',
       }),
       descriptor: {
-        name: 'KeepAlive',
-        friendlyName: 'KeepAlive',
+        name: 'Kill',
+        friendlyName: 'Kill GRR agent process',
         category: 'a',
         defaultArgs: {},
       },
@@ -367,7 +367,7 @@ describe('new hunt test', () => {
         injectMockStore(NewHuntLocalStore, fixture.debugElement);
     newHuntLocalStore.mockedObservables.originalHunt$.next(newHunt({
       huntId: 'H1234',
-      flowName: 'KeepAlive',
+      flowName: 'Kill',
     }));
     newHuntLocalStore.mockedObservables.flowWithDescriptor$.next(null);
     fixture.detectChanges();

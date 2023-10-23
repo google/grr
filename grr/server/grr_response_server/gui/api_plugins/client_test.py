@@ -136,6 +136,25 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     self.assertFalse(data_store.REL_DB.ReadClientLabels(self.client_ids[2]))
 
+  def testForemanTimeIsResetOnLabelAdd(self):
+    cid = self.client_ids[0]
+
+    data_store.REL_DB.WriteClientMetadata(
+        cid,
+        last_foreman=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3600),
+    )
+
+    self.handler.Handle(
+        client_plugin.ApiAddClientsLabelsArgs(client_ids=[cid], labels=["foo"]),
+        context=self.context,
+    )
+
+    md = data_store.REL_DB.ReadClientMetadata(cid)
+    self.assertIsNotNone(md.last_foreman_time)
+    self.assertEqual(
+        md.last_foreman_time, rdfvalue.RDFDatetime.EarliestDatabaseSafeValue()
+    )
+
 
 class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiRemoveClientsLabelsHandler."""

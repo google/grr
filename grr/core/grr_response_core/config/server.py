@@ -343,3 +343,12 @@ config_lib.DEFINE_boolean(
     "will be used instead. "
     "NB: internal option, subject to change without notice.",
 )
+
+config_lib.DEFINE_boolean(
+    name="Interrogate.collect_crowdstrike_agent_id",
+    default=False,
+    help=(
+        "Whether the interrogate flow should collect identifier of the "
+        "endpoint's CrowdStrike agent."
+    ),
+)

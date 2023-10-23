@@ -1,70 +1,16 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.wmi_parser."""
-
-
-import platform
-import unittest
-
 from absl import app
 
 from grr_response_core.lib.parsers import wmi_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import wmi as rdf_wmi
-from grr.test_lib import client_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
 
 class WMIParserTest(flow_test_lib.FlowTestsBaseclass):
-
-  @unittest.skipIf(
-      platform.system() == "Darwin",
-      ("IPv6 address strings are cosmetically slightly different on OS X, "
-       "and we only expect this parsing code to run on Linux or maybe Windows"))
-  def testInterfaceParsing(self):
-    parser = wmi_parser.WMIInterfacesParser()
-    rdf_dict = rdf_protodict.Dict()
-    mock_config = client_test_lib.WMIWin32NetworkAdapterConfigurationMock
-    wmi_properties = mock_config.__dict__.items()
-    for key, value in wmi_properties:
-      if not key.startswith("__"):
-        try:
-          rdf_dict[key] = value
-        except TypeError:
-          rdf_dict[key] = "Failed to encode: %s" % value
-
-    result_list = list(parser.ParseMultiple([rdf_dict]))
-    self.assertLen(result_list, 2)
-    for result in result_list:
-      if isinstance(result, rdf_client_network.Interface):
-        self.assertLen(result.addresses, 4)
-        self.assertCountEqual(
-            [x.human_readable_address for x in result.addresses], [
-                "192.168.1.20", "ffff::ffff:aaaa:1111:aaaa",
-                "dddd:0:8888:6666:bbbb:aaaa:eeee:bbbb",
-                "dddd:0:8888:6666:bbbb:aaaa:ffff:bbbb"
-            ])
-
-        self.assertCountEqual(
-            [x.human_readable_address for x in result.dhcp_server_list],
-            ["192.168.1.1"])
-
-        self.assertEqual(result.dhcp_lease_expires.AsMicrosecondsSinceEpoch(),
-                         1409008979123456)
-        self.assertEqual(result.dhcp_lease_obtained.AsMicrosecondsSinceEpoch(),
-                         1408994579123456)
-
-      elif isinstance(result, rdf_client_network.DNSClientConfiguration):
-        self.assertCountEqual(
-            result.dns_server,
-            ["192.168.1.1", "192.168.255.81", "192.168.128.88"])
-
-        self.assertCountEqual(result.dns_suffix, [
-            "blah.example.com", "ad.example.com", "internal.example.com",
-            "example.com"
-        ])
 
   def testWMIActiveScriptEventConsumerParser(self):
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()

@@ -137,9 +137,9 @@ class TestNotifications(gui_test_lib.GRRSeleniumTest):
 
     mode_selector = "css=.form-group:has(label:contains('Mode')) select"
 
-    # Open settings dialog and change mode from BASIC to ADVANCED
+    # Open settings dialog and change mode from DEBUG to BASIC
     self.Click("css=grr-user-settings-button")
-    self.assertEqual("ADVANCED", self.GetSelectedLabel(mode_selector).strip())
+    self.assertEqual("DEBUG", self.GetSelectedLabel(mode_selector).strip())
 
     self.Select(mode_selector, "BASIC (default)")
     self.Click("css=button[name=Proceed]")

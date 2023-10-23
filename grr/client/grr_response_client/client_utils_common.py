@@ -164,6 +164,7 @@ def IsExecutionAllowed(cmd, args):
     allowlist = [
         ("/bin/df", []),
         ("/bin/echo", ["1"]),
+        ("/bin/mount", []),
         ("/bin/rpm", ["-qa"]),
         ("/bin/sleep", ["10"]),
         ("/sbin/auditctl", ["-l"]),
@@ -178,6 +179,7 @@ def IsExecutionAllowed(cmd, args):
         ("/usr/sbin/arp", ["-a"]),
         ("/usr/sbin/dmidecode", ["-q"]),
         ("/usr/sbin/sshd", ["-T"]),
+        ("/opt/CrowdStrike/falconctl", ["-g", "--cid", "--aid"]),
     ]
   elif platform.system() == "Darwin":
     allowlist = [

@@ -1,12 +1,10 @@
 #!/usr/bin/env python
 """Classes for hunt-related testing."""
 
-import hashlib
 import sys
 
-
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -17,7 +15,7 @@ from grr_response_server import foreman_rules
 from grr_response_server import hunt
 from grr_response_server import output_plugin
 from grr_response_server.databases import db
-from grr_response_server.flows.general import transfer
+from grr_response_server.flows.general import file_finder
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
@@ -45,20 +43,25 @@ class SampleHuntMock(action_mocks.ActionMock):
     self.system_cpu_time = system_cpu_time
     self.network_bytes_sent = network_bytes_sent
 
-  def GetFileStat(self, args):
-    """`GetFileStat` action mock."""
-    response = rdf_client_fs.StatEntry(
-        pathspec=args.pathspec,
-        st_mode=33184,
-        st_ino=1063090,
-        st_dev=64512,
-        st_nlink=1,
-        st_uid=139592,
-        st_gid=5000,
-        st_size=len(self.data),
-        st_atime=1336469177,
-        st_mtime=1336129892,
-        st_ctime=1336129892)
+  def FileFinderOS(self, args):
+    # TODO: Stop relying on these constants.
+    response = rdf_file_finder.FileFinderResult(
+        stat_entry=rdf_client_fs.StatEntry(
+            pathspec=rdf_paths.PathSpec(
+                path=args.paths[0], pathtype=rdf_paths.PathSpec.PathType.OS
+            ),
+            st_mode=33184,
+            st_ino=1063090,
+            st_dev=64512,
+            st_nlink=1,
+            st_uid=139592,
+            st_gid=5000,
+            st_size=len(self.data),
+            st_atime=1336469177,
+            st_mtime=1336129892,
+            st_ctime=1336129892,
+        )
+    )
 
     self.responses += 1
     self.count += 1
@@ -66,15 +69,19 @@ class SampleHuntMock(action_mocks.ActionMock):
     # Every "failrate" client does not have this file.
     if self.count == self.failrate:
       self.count = 0
-      return []
+      raise ValueError(
+          f"FileFinderOS failed as planned, failrate = {self.failrate}"
+      )
 
     return [response]
 
   def GenerateStatusMessage(self, message, response_id, status=None):
     status = rdf_flows.GrrStatus(
-        status=status or rdf_flows.GrrStatus.ReturnedStatus.OK)
+        status=status or rdf_flows.GrrStatus.ReturnedStatus.OK
+    )
 
-    if message.name == "GetFileStat":
+    # TODO: Stop relying on these constants.
+    if message.name == "FileFinderOS":
       # Create status message to report sample resource usage
       if self.user_cpu_time is None:
         status.cpu_time_used.user_cpu_time = self.responses
@@ -98,19 +105,6 @@ class SampleHuntMock(action_mocks.ActionMock):
         request_id=message.request_id,
         payload=status,
         type=rdf_flows.GrrMessage.Type.STATUS)
-
-  def TransferBuffer(self, args):
-    """TransferBuffer action mock."""
-    response = rdf_client.BufferReference(args)
-
-    offset = min(args.offset, len(self.data))
-    sha256 = hashlib.sha256()
-    sha256.update(self.data[offset:])
-    response.data = sha256.digest()
-    response.length = len(self.data[offset:])
-    data_store.BLOBS.WriteBlobWithUnknownHash(self.data[offset:])
-
-    return [response]
 
 
 def TestHuntHelperWithMultipleMocks(client_mocks,
@@ -222,15 +216,15 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     # Only initialize default flow_args value if default flow_runner_args value
     # is to be used.
     if not flow_runner_args:
-      flow_args = (
-          flow_args or transfer.GetFileArgs(
-              pathspec=rdf_paths.PathSpec(
-                  path="/tmp/evil.txt",
-                  pathtype=rdf_paths.PathSpec.PathType.OS)))
+      flow_args = rdf_file_finder.FileFinderArgs(
+          paths=["/tmp/evil.txt"],
+          pathtype=rdf_paths.PathSpec.PathType.OS,
+          action=rdf_file_finder.FileFinderAction.Download(),
+      )
 
-    flow_runner_args = (
-        flow_runner_args or
-        rdf_flow_runner.FlowRunnerArgs(flow_name=transfer.GetFile.__name__))
+    flow_runner_args = flow_runner_args or rdf_flow_runner.FlowRunnerArgs(
+        flow_name=file_finder.ClientFileFinder.__name__
+    )
 
     client_rule_set = (client_rule_set or self._CreateForemanClientRuleSet())
 
@@ -307,9 +301,10 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
       data_store.REL_DB.ReadFlowObject(client_id, hunt_id)
     except db.UnknownFlowError:
       flow_test_lib.StartFlow(
-          transfer.GetFile,
+          file_finder.ClientFileFinder,
           client_id=client_id,
-          parent=flow.FlowParent.FromHuntID(hunt_id))
+          parent=flow.FlowParent.FromHuntID(hunt_id),
+      )
 
     return hunt_id
 

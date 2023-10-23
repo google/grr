@@ -63,13 +63,20 @@ def _ConditionsToFileFinderConditions(conditions):
   return result
 
 
-class RegistryFinder(flow_base.FlowBase):
-  """This flow looks for registry items matching given criteria."""
+class LegacyRegistryFinder(flow_base.FlowBase):
+  """This flow looks for registry items matching given criteria.
 
-  friendly_name = "Registry Finder"
+  TODO: remove by EOY2024.
+
+  This flow is scheduled for removal and is no longer tested (all registry
+  finder related tests are using the ClientRegistryFinder or RegistryFinder,
+  which is now an alias to ClientRegistryFinder).
+  """
+
+  friendly_name = "Legacy Registry Finder (deprecated)"
   category = "/Registry/"
   args_type = RegistryFinderArgs
-  behaviours = flow_base.BEHAVIOUR_BASIC
+  behaviours = flow_base.BEHAVIOUR_DEBUG
 
   @classmethod
   def GetDefaultArgs(cls, username=None):
@@ -125,6 +132,13 @@ class ClientRegistryFinder(flow_base.FlowBase):
 
     for response in responses:
       self.SendReply(response)
+
+
+class RegistryFinder(ClientRegistryFinder):
+  """Legacy alias for ClientRegistryFinder."""
+
+  friendly_name = "Registry Finder"
+  behaviours = flow_base.BEHAVIOUR_DEBUG
 
 
 class CollectRunKeyBinaries(flow_base.FlowBase):

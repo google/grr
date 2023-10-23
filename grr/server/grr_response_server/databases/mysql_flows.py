@@ -150,124 +150,6 @@ class MySQLDBFlowMixin(object):
 
     return res
 
-  @mysql_utils.WithTransaction(readonly=True)
-  def ReadAllClientActionRequests(self, client_id, cursor=None):
-    """Reads all client messages available for a given client_id."""
-
-    query = ("SELECT request, UNIX_TIMESTAMP(leased_until), leased_by, "
-             "leased_count "
-             "FROM client_action_requests "
-             "WHERE client_id = %s")
-
-    cursor.execute(query, [db_utils.ClientIDToInt(client_id)])
-
-    ret = []
-    for req, leased_until, leased_by, leased_count in cursor.fetchall():
-      request = rdf_flows.ClientActionRequest.FromSerializedBytes(req)
-      if leased_until is not None:
-        request.leased_by = leased_by
-        request.leased_until = mysql_utils.TimestampToRDFDatetime(leased_until)
-      else:
-        request.leased_by = None
-        request.leased_until = None
-      request.ttl = db.Database.CLIENT_MESSAGES_TTL - leased_count
-      ret.append(request)
-
-    return sorted(ret, key=lambda req: (req.flow_id, req.request_id))
-
-  def DeleteClientActionRequests(self, requests):
-    """Deletes a list of client messages from the db."""
-    if not requests:
-      return
-
-    to_delete = []
-    for r in requests:
-      to_delete.append((r.client_id, r.flow_id, r.request_id))
-
-    if len(set(to_delete)) != len(to_delete):
-      raise ValueError(
-          "Received multiple copies of the same message to delete.")
-
-    self._DeleteClientActionRequest(to_delete)
-
-  @mysql_utils.WithTransaction()
-  def LeaseClientActionRequests(self,
-                                client_id,
-                                lease_time=None,
-                                limit=None,
-                                cursor=None):
-    """Leases available client messages for the client with the given id."""
-
-    now = rdfvalue.RDFDatetime.Now()
-    now_str = mysql_utils.RDFDatetimeToTimestamp(now)
-    expiry = now + lease_time
-    expiry_str = mysql_utils.RDFDatetimeToTimestamp(expiry)
-    proc_id_str = utils.ProcessIdString()
-    client_id_int = db_utils.ClientIDToInt(client_id)
-
-    query = ("UPDATE client_action_requests "
-             "SET leased_until=FROM_UNIXTIME(%s), leased_by=%s, "
-             "leased_count=leased_count+1 "
-             "WHERE client_id=%s AND "
-             "(leased_until IS NULL OR leased_until < FROM_UNIXTIME(%s)) "
-             "LIMIT %s")
-    args = [expiry_str, proc_id_str, client_id_int, now_str, limit]
-
-    num_leased = cursor.execute(query, args)
-    if num_leased == 0:
-      return []
-
-    query = ("SELECT request, leased_count FROM client_action_requests "
-             "WHERE client_id=%s AND leased_until=FROM_UNIXTIME(%s) "
-             "AND leased_by=%s")
-
-    cursor.execute(query, [client_id_int, expiry_str, proc_id_str])
-
-    ret = []
-    expired = []
-    for req, leased_count in cursor.fetchall():
-      request = rdf_flows.ClientActionRequest.FromSerializedBytes(req)
-      request.leased_by = proc_id_str
-      request.leased_until = expiry
-      request.ttl = db.Database.CLIENT_MESSAGES_TTL - leased_count
-      # > comparison since this check happens after the lease.
-      if leased_count > db.Database.CLIENT_MESSAGES_TTL:
-        expired.append((request.client_id, request.flow_id, request.request_id))
-      else:
-        ret.append(request)
-
-    if expired:
-      self._DeleteClientActionRequest(expired, cursor=cursor)
-
-    return sorted(ret, key=lambda req: (req.flow_id, req.request_id))
-
-  @mysql_utils.WithTransaction()
-  def WriteClientActionRequests(self, requests, cursor=None):
-    """Writes messages that should go to the client to the db."""
-
-    query = ("INSERT IGNORE INTO client_action_requests "
-             "(client_id, flow_id, request_id, timestamp, request) "
-             "VALUES %s ON DUPLICATE KEY UPDATE "
-             "timestamp=VALUES(timestamp), request=VALUES(request)")
-    now = mysql_utils.RDFDatetimeToTimestamp(rdfvalue.RDFDatetime.Now())
-
-    value_templates = []
-    args = []
-    for r in requests:
-      args.extend([
-          db_utils.ClientIDToInt(r.client_id),
-          db_utils.FlowIDToInt(r.flow_id), r.request_id, now,
-          r.SerializeToBytes()
-      ])
-      value_templates.append("(%s, %s, %s, FROM_UNIXTIME(%s), %s)")
-
-    query %= ",".join(value_templates)
-    try:
-      cursor.execute(query, args)
-    except MySQLdb.IntegrityError as e:
-      request_keys = [(r.client_id, r.flow_id, r.request_id) for r in requests]
-      raise db.AtLeastOneUnknownRequestError(request_keys=request_keys, cause=e)
-
   @mysql_utils.WithTransaction()
   def WriteFlowObject(self, flow_obj, allow_update=True, cursor=None):
     """Writes a flow object to the database."""
@@ -736,22 +618,6 @@ class MySQLDBFlowMixin(object):
         logging.warning("Response for unknown request: %s", responses[0])
 
   @mysql_utils.WithTransaction()
-  def _DeleteClientActionRequest(self, to_delete, cursor=None):
-    """Builds deletes for client messages."""
-    query = "DELETE FROM client_action_requests WHERE "
-    conditions = []
-    args = []
-
-    for client_id, flow_id, request_id in to_delete:
-      conditions.append("(client_id=%s AND flow_id=%s AND request_id=%s)")
-      args.append(db_utils.ClientIDToInt(client_id))
-      args.append(db_utils.FlowIDToInt(flow_id))
-      args.append(request_id)
-
-    query += " OR ".join(conditions)
-    cursor.execute(query, args)
-
-  @mysql_utils.WithTransaction()
   def _WriteFlowResponsesAndExpectedUpdates(self, responses, cursor=None):
     """Writes a flow responses and updates flow requests expected counts."""
 
@@ -943,13 +809,8 @@ class MySQLDBFlowMixin(object):
       return
 
     for batch in collection.Batch(responses, self._WRITE_ROWS_BATCH_SIZE):
-
       self._WriteFlowResponsesAndExpectedUpdates(batch)
-
-      completed_requests = self._UpdateRequestsAndScheduleFPRs(batch)
-
-      if completed_requests:
-        self._DeleteClientActionRequest(completed_requests)
+      self._UpdateRequestsAndScheduleFPRs(batch)
 
   @mysql_utils.WithTransaction()
   def UpdateIncrementalFlowRequests(

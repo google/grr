@@ -87,7 +87,7 @@ class FrontEndServer(object):
 
     now = rdfvalue.RDFDatetime.Now()
     data_store.REL_DB.WriteClientMetadata(
-        client_id, first_seen=now, last_ping=now
+        client_id, first_seen=now, last_ping=now, fleetspeak_validation_info={}
     )
 
     # Publish the client enrollment message.
@@ -234,8 +234,18 @@ class FrontEndServer(object):
       flow_response = rdf_flow_objects.FlowResponse()
       flow_response.any_payload = packed_result
     elif response.HasField("log"):
-      # TODO: Add support for logs.
-      logging.warning("Dropping a log from '%s': %s", client_id, response)
+      log = response.log
+
+      timestamp = rdfvalue.RDFDatetime.FromProtoTimestamp(log.timestamp)
+      level = rrg_pb2.Log.Level.Name(log.level)
+
+      flow_log_entry = rdf_flow_objects.FlowLogEntry()
+      flow_log_entry.client_id = client_id
+      flow_log_entry.flow_id = f"{response.flow_id:016X}"
+      flow_log_entry.timestamp = timestamp
+      flow_log_entry.message = f"[RRG:{level}] {log.message}"
+
+      data_store.REL_DB.WriteFlowLogEntry(flow_log_entry)
       return
     else:
       raise ValueError(f"Unexpected response: {response}")

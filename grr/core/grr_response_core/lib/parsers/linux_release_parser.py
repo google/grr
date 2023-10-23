@@ -123,7 +123,7 @@ class ReleaseFileParseHandler(ReleaseParseHandler):
     complete = False
     data = self.contents.strip()
 
-    if self.name in ['RedHat', 'OracleLinux', 'OEL']:
+    if self.name in ['RedHat', 'OracleLinux', 'OEL', 'Rocky']:
       check = self.RH_RE.search(data)
       if check is not None:
         major = int(check.group(1))
@@ -149,17 +149,25 @@ class LinuxReleaseParser(parsers.MultiFileParser[rdf_protodict.Dict]):
       # Top priority: systems with lsb-release.
       WeightedReleaseFile(0, '/etc/lsb-release', LsbReleaseParseHandler),
       # Oracle Linux (formerly OEL).
-      WeightedReleaseFile(10, '/etc/oracle-release',
-                          ReleaseFileParseHandler('OracleLinux')),
+      WeightedReleaseFile(
+          10, '/etc/oracle-release', ReleaseFileParseHandler('OracleLinux')
+      ),
       # OEL.
-      WeightedReleaseFile(11, '/etc/enterprise-release',
-                          ReleaseFileParseHandler('OEL')),
+      WeightedReleaseFile(
+          11, '/etc/enterprise-release', ReleaseFileParseHandler('OEL')
+      ),
+      # Rocky.
+      WeightedReleaseFile(
+          12, '/etc/rocky-release', ReleaseFileParseHandler('Rocky')
+      ),
       # RHEL-based.
-      WeightedReleaseFile(20, '/etc/redhat-release',
-                          ReleaseFileParseHandler('RedHat')),
+      WeightedReleaseFile(
+          20, '/etc/redhat-release', ReleaseFileParseHandler('RedHat')
+      ),
       # Debian-based.
-      WeightedReleaseFile(20, '/etc/debian_version',
-                          ReleaseFileParseHandler('Debian')),
+      WeightedReleaseFile(
+          20, '/etc/debian_version', ReleaseFileParseHandler('Debian')
+      ),
       # TODO(user): These weights are pointless - we can remove
       # them while preserving functionality. ReleaseFileParseHandler should
       # be deleted and replaced with a function.

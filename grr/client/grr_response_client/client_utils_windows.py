@@ -317,14 +317,6 @@ class TransactionLog(object):
       return
 
 
-def KeepAlive():
-
-  es_system_required = 0x00000001
-
-  kernel32 = Kernel32().kernel32
-  kernel32.SetThreadExecutionState(ctypes.c_int(es_system_required))
-
-
 def RtlGetVersion(os_version_info_struct):
   """Wraps the lowlevel RtlGetVersion routine.
 

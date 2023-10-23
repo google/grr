@@ -3,6 +3,7 @@
 
 
 import abc
+import os
 import threading
 import time
 from unittest import mock
@@ -217,6 +218,26 @@ class BlobStoreTestMixin(stats_test_lib.StatsTestMixin, metaclass=abc.ABCMeta):
           self.blob_store.ReadAndWaitForBlobs([a_id, b_id],
                                               timeout=rdfvalue.Duration.From(
                                                   10, rdfvalue.SECONDS))
+
+  def testReadAndWaitForBlobExisting(self):
+    blob = os.urandom(256)
+    blob_id = self.blob_store.WriteBlobWithUnknownHash(blob)
+
+    read_blob = self.blob_store.ReadAndWaitForBlob(
+        blob_id,
+        timeout=rdfvalue.Duration.From(0, rdfvalue.SECONDS),
+    )
+    self.assertEqual(read_blob, blob)
+
+  def testReadAndWaitForBlobTimeout(self):
+    blob = os.urandom(256)
+    blob_id = rdf_objects.BlobID.FromBlobData(blob)
+
+    read_blob = self.blob_store.ReadAndWaitForBlob(
+        blob_id,
+        timeout=rdfvalue.Duration.From(0, rdfvalue.SECONDS),
+    )
+    self.assertIsNone(read_blob)
 
   def testWaitForBlobsDoesNotWaitIfBlobsAreAlreadyPresent(self):
     timeout = rdfvalue.Duration.From(0, rdfvalue.SECONDS)

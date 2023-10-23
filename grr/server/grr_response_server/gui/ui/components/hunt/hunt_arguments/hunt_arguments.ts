@@ -7,7 +7,7 @@ import {MatTooltipModule} from '@angular/material/tooltip';
 import {RouterModule} from '@angular/router';
 
 import {ForemanClientRuleSetMatchMode, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../../lib/api/api_interfaces';
-import {Hunt} from '../../../lib/models/hunt';
+import {type Hunt} from '../../../lib/models/hunt';
 import {HuntOverviewPageLocalStore} from '../../../store/hunt_overview_page_local_store';
 import {toDurationString} from '../../form/duration_input/duration_conversion';
 import {CopyButtonModule} from '../../helpers/copy_button/copy_button_module';

@@ -12,15 +12,13 @@ from typing import Union
 
 from google.protobuf import any_pb2
 from google.protobuf import wrappers_pb2
-
 from google.protobuf import descriptor
 from google.protobuf import message
 from google.protobuf import symbol_database
-
 from grr_api_client import errors
-
-from grr_response_proto import apple_firmware_pb2
+from grr_response_proto import crowdstrike_pb2
 from grr_response_proto import deprecated_pb2
+from grr_response_proto import dummy_pb2
 from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
 from grr_response_proto import large_file_pb2
@@ -28,7 +26,6 @@ from grr_response_proto import osquery_pb2
 from grr_response_proto import pipes_pb2
 from grr_response_proto import read_low_level_pb2
 from grr_response_proto import timeline_pb2
-
 from grr_response_proto.api import artifact_pb2
 from grr_response_proto.api import client_pb2
 from grr_response_proto.api import config_pb2
@@ -276,7 +273,6 @@ def RegisterProtoDescriptors(
     *additional_descriptors: descriptor.FileDescriptor,
 ) -> None:
   """Registers all API-releated descriptors in a given symbol DB."""
-  db.RegisterFileDescriptor(apple_firmware_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(artifact_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(client_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(config_pb2.DESCRIPTOR)
@@ -291,7 +287,7 @@ def RegisterProtoDescriptors(
   db.RegisterFileDescriptor(user_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(vfs_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(yara_pb2.DESCRIPTOR)
-
+  db.RegisterFileDescriptor(crowdstrike_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(deprecated_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(flows_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(jobs_pb2.DESCRIPTOR)
@@ -299,6 +295,7 @@ def RegisterProtoDescriptors(
   db.RegisterFileDescriptor(osquery_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(pipes_pb2.DESCRIPTOR)
   db.RegisterFileDescriptor(timeline_pb2.DESCRIPTOR)
+  db.RegisterFileDescriptor(dummy_pb2.DESCRIPTOR)
 
   db.RegisterFileDescriptor(
       wrappers_pb2.DESCRIPTOR)  # type: ignore[attr-defined]

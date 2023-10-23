@@ -1281,8 +1281,8 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
     result = []
     for name, cls in sorted(registry.FlowRegistry.FLOW_REGISTRY.items()):
 
-      # Flows without a category do not show up in the GUI.
-      if not getattr(cls, "category", None):
+      # Skip if it is not visible to GUI/API.
+      if not cls.CanUseViaAPI():
         continue
 
       # Only show flows that the user is allowed to start.

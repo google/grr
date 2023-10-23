@@ -43,7 +43,8 @@ class YaraProcessScanMatchConverter(base.ExportConverter):
             rule_name=yara_match.rule_name,
             process_scan_time_us=value.scan_time_us,
             string_id=yara_string_match.string_id,
-            offset=yara_string_match.offset)
+            offset=yara_string_match.offset,
+        )
 
 
 class ProcessMemoryErrorConverter(base.ExportConverter):

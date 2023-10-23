@@ -5,7 +5,7 @@ import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
 import {getFlowTitleFromFlowName} from '../../../lib/models/flow';
-import {Hunt} from '../../../lib/models/hunt';
+import {type Hunt} from '../../../lib/models/hunt';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
 import {FlowArgsViewData} from '../../flow_args_view/flow_args_view';
 import {FlowArgsViewModule} from '../../flow_args_view/module';

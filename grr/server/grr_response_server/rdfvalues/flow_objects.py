@@ -10,7 +10,6 @@ from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
-from grr_response_server import action_registry
 from grr_response_server import output_plugin
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
@@ -267,24 +266,6 @@ def FlowResponseForLegacyResponse(legacy_msg):
     raise ValueError("Unknown message type: %d" % legacy_msg.type)
 
   return response
-
-
-def GRRMessageFromClientActionRequest(request):
-  stub = action_registry.ACTION_STUB_BY_ID[request.action_identifier]
-  name = stub.__name__
-
-  return rdf_flows.GrrMessage(
-      session_id="%s/%s" % (request.client_id, request.flow_id),
-      name=name,
-      request_id=request.request_id,
-      queue=rdf_client.ClientURN(request.client_id),
-      payload=request.action_args,
-      cpu_limit=request.cpu_limit_ms / 1000.0,
-      network_bytes_limit=request.network_bytes_limit,
-      runtime_limit_us=request.runtime_limit_us,
-      # Legacy clients will fail if the task id is not set.
-      # TODO(amoser): Remove task ids after April 2021.
-      generate_task_id=True)
 
 
 class ScheduledFlow(rdf_structs.RDFProtoStruct):

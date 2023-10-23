@@ -41,5 +41,4 @@ if platform.system() == "Darwin":
 else:
   OSXEnumerateRunningServices = None
   EnumerateRunningServices = None
-Uninstall = submodule.Uninstall
 UpdateAgent = submodule.UpdateAgent

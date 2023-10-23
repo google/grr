@@ -1669,7 +1669,7 @@ class ApiCreatePerClientFileCollectionHuntHandler(
         variable=rdf_hunt_objects.HuntArgumentsVariable(
             flow_groups=flow_groups))
 
-  def Handle(self, args: ApiCreatePerClientFileCollectionHuntArgs,
+  def Handle(self, args: ApiCreatePerClientFileCollectionHuntArgs,  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
              context: api_call_context.ApiCallContext):
     if len(args.per_client_args) > self.MAX_CLIENTS:
       raise ValueError(f"At most {self.MAX_CLIENTS} clients can be specified "

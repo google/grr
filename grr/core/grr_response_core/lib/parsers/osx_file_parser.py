@@ -25,7 +25,10 @@ class OSXUsersParser(parsers.MultiResponseParser[rdf_client.User]):
   """Parser for Glob of /Users/*."""
 
   output_types = [rdf_client.User]
-  supported_artifacts = ["UsersDirectory"]
+
+  # TODO: The parser has to be invoked explicitly, we should not
+  # relly on magic parsing anymore.
+  supported_artifacts = []
 
   _ignore_users = ["Shared"]
 

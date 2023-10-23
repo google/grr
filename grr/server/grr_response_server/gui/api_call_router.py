@@ -348,15 +348,6 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Clients")
-  @ArgsType(api_client.ApiListClientActionRequestsArgs)
-  @ResultType(api_client.ApiListClientActionRequestsResult)
-  @Http("GET", "/api/clients/<client_id>/action-requests")
-  def ListClientActionRequests(self, args, context=None):
-    """List pending action requests for a given client."""
-
-    raise NotImplementedError()
-
-  @Category("Clients")
   @ArgsType(api_client.ApiGetClientLoadStatsArgs)
   @ResultType(api_client.ApiGetClientLoadStatsResult)
   @Http("GET", "/api/clients/<client_id>/load-stats/<metric>")

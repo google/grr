@@ -1,6 +1,6 @@
 import {Component, Input, ViewEncapsulation} from '@angular/core';
 
-import {hashName, HexHash} from '../../lib/models/flow';
+import {hashName, type HexHash} from '../../lib/models/flow';
 
 interface HashEntry {
   readonly name: string;

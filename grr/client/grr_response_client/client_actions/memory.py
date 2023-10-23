@@ -5,6 +5,7 @@ import abc
 import collections
 import contextlib
 import io
+import logging
 import os
 import platform
 import re
@@ -82,10 +83,26 @@ def ProcessIterator(pids, process_regex_string, cmdline_regex_string,
     process_iterator = psutil.process_iter()
 
   for p in process_iterator:
-    if process_regex and not process_regex.search(p.name()):
+
+    try:
+      process_name = p.name()
+    except psutil.AccessDenied as error:
+      # Catch AccessDenied errors in case psutil can't get the process name.
+      logging.error("failed to obtain process name: %s", error)
+      process_name = ""
+
+    if process_regex and not process_regex.search(process_name):
       continue
 
-    if cmdline_regex and not cmdline_regex.search(" ".join(p.cmdline())):
+    try:
+      cmdline = p.cmdline()
+    except psutil.AccessDenied as error:
+      # psutil raises AccessDenied when getting the cmdline for special
+      # processes like Registry or System on Windows.
+      logging.error("failed to obtain process command line: %s", error)
+      cmdline = []
+
+    if cmdline_regex and not cmdline_regex.search(" ".join(cmdline)):
       continue
 
     if p.pid == grr_pid:

@@ -11,7 +11,6 @@ from absl import flags
 
 import psutil
 
-from grr_response_client import client_utils
 from grr_response_client.unprivileged import communication
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -332,9 +331,6 @@ class ActionPlugin(object):
           type(self).__name__, self.runtime_limit))
 
     ActionPlugin.last_progress_time = now
-
-    # Prevent the machine from sleeping while the action is running.
-    client_utils.KeepAlive()
 
     self.grr_worker.Heartbeat()
 

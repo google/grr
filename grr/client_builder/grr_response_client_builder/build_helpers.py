@@ -2,6 +2,7 @@
 """Helper functions used by client building/repacking process."""
 
 
+import datetime
 import io
 import logging
 import os
@@ -203,7 +204,8 @@ def WriteBuildYaml(fd, build_timestamp=True, context=None):
 
   yaml_keys = set(build.REQUIRED_BUILD_YAML_KEYS)
   if build_timestamp:
-    output["Client.build_time"] = rdfvalue.RDFDatetime.Now()
+    now = datetime.datetime.now(datetime.timezone.utc)
+    output["Client.build_time"] = now.isoformat()
   else:
     yaml_keys.remove("Client.build_time")
 

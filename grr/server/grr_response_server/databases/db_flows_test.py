@@ -29,186 +29,6 @@ class DatabaseTestFlowMixin(object):
   This mixin adds methods to test the handling of flows.
   """
 
-  def testClientActionRequestStorage(self):
-    client_id = db_test_utils.InitializeClient(self.db)
-    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
-
-    self.db.WriteFlowRequests([
-        rdf_flow_objects.FlowRequest(
-            client_id=client_id, flow_id=flow_id, request_id=1)
-    ])
-    req = rdf_flows.ClientActionRequest(
-        client_id=client_id, flow_id=flow_id, request_id=1)
-
-    self.db.WriteClientActionRequests([req])
-
-    read_reqs = self.db.ReadAllClientActionRequests(client_id)
-    self.assertLen(read_reqs, 1)
-    self.assertEqual(req, read_reqs[0])
-
-    self.db.DeleteClientActionRequests([req])
-    read_reqs = self.db.ReadAllClientActionRequests(client_id)
-    self.assertEmpty(read_reqs)
-
-    # Extra delete should not raise.
-    self.db.DeleteClientActionRequests([req])
-
-    # Deleting the same message multiple times is an error.
-    with self.assertRaises(ValueError):
-      self.db.DeleteClientActionRequests([req, req])
-
-  def testWriteClientActionRequestsRaisesOnUnknownRequest(self):
-    req = rdf_flows.ClientActionRequest(
-        client_id=u"C.1234567890000000", flow_id="ABCD1234", request_id=5)
-    with self.assertRaises(db.AtLeastOneUnknownRequestError):
-      self.db.WriteClientActionRequests([req])
-
-  def testClientActionRequestUpdate(self):
-    client_id = db_test_utils.InitializeClient(self.db)
-    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
-
-    req = rdf_flows.ClientActionRequest(
-        client_id=client_id, flow_id=flow_id, request_id=1)
-    self.db.WriteFlowRequests([
-        rdf_flow_objects.FlowRequest(
-            client_id=client_id, flow_id=flow_id, request_id=1)
-    ])
-
-    cpu_limit = req.cpu_limit_ms
-    self.assertGreater(cpu_limit, 1000000)
-
-    for _ in range(5):
-      req.cpu_limit_ms -= 100000
-      self.db.WriteClientActionRequests([req])
-      read_reqs = self.db.ReadAllClientActionRequests(client_id)
-      self.assertLen(read_reqs, 1)
-      self.assertEqual(req, read_reqs[0])
-
-  def testClientActionRequestLeasing(self):
-    client_id = db_test_utils.InitializeClient(self.db)
-    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
-
-    flow_requests = []
-    client_requests = []
-    for i in range(10):
-      flow_requests.append(
-          rdf_flow_objects.FlowRequest(
-              client_id=client_id, flow_id=flow_id, request_id=i))
-      client_requests.append(
-          rdf_flows.ClientActionRequest(
-              client_id=client_id, flow_id=flow_id, request_id=i))
-
-    lease_time = rdfvalue.Duration.From(5, rdfvalue.MINUTES)
-    self.db.WriteFlowRequests(flow_requests)
-    self.db.WriteClientActionRequests(client_requests)
-
-    t0 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000)
-    with test_lib.FakeTime(t0):
-      t0_expiry = t0 + lease_time
-      leased = self.db.LeaseClientActionRequests(
-          client_id, lease_time=lease_time, limit=5)
-
-      self.assertLen(leased, 5)
-
-      for request in leased:
-        self.assertEqual(request.leased_until, t0_expiry)
-        self.assertEqual(request.leased_by, utils.ProcessIdString())
-
-    t1 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000 + 100)
-    with test_lib.FakeTime(t1):
-      t1_expiry = t1 + lease_time
-      leased = self.db.LeaseClientActionRequests(
-          client_id, lease_time=lease_time, limit=5)
-
-      self.assertLen(leased, 5)
-
-      for request in leased:
-        self.assertEqual(request.leased_until, t1_expiry)
-        self.assertEqual(request.leased_by, utils.ProcessIdString())
-
-      # Nothing left to lease.
-      leased = self.db.LeaseClientActionRequests(
-          client_id, lease_time=lease_time, limit=2)
-
-      self.assertEmpty(leased)
-
-    read = self.db.ReadAllClientActionRequests(client_id)
-
-    self.assertLen(read, 10)
-    for r in read:
-      self.assertEqual(r.leased_by, utils.ProcessIdString())
-
-    self.assertLen([r for r in read if r.leased_until == t0_expiry], 5)
-    self.assertLen([r for r in read if r.leased_until == t1_expiry], 5)
-
-    # Half the leases expired.
-    t2 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000 + 350)
-    with test_lib.FakeTime(t2):
-      leased = self.db.LeaseClientActionRequests(
-          client_id, lease_time=lease_time)
-
-      self.assertLen(leased, 5)
-
-    # All of them expired.
-    t3 = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(100000 + 10350)
-    with test_lib.FakeTime(t3):
-      leased = self.db.LeaseClientActionRequests(
-          client_id, lease_time=lease_time)
-
-      self.assertLen(leased, 10)
-
-  def testClientActionRequestsTTL(self):
-    client_id = db_test_utils.InitializeClient(self.db)
-    flow_id = db_test_utils.InitializeFlow(self.db, client_id)
-
-    flow_requests = []
-    client_requests = []
-    for i in range(10):
-      flow_requests.append(
-          rdf_flow_objects.FlowRequest(
-              client_id=client_id, flow_id=flow_id, request_id=i))
-      client_requests.append(
-          rdf_flows.ClientActionRequest(
-              client_id=client_id, flow_id=flow_id, request_id=i))
-    self.db.WriteFlowRequests(flow_requests)
-    self.db.WriteClientActionRequests(client_requests)
-
-    reqs = self.db.ReadAllClientActionRequests(client_id)
-    self.assertLen(reqs, 10)
-
-    for request in reqs:
-      self.assertEqual(request.ttl, db.Database.CLIENT_MESSAGES_TTL)
-
-    now = rdfvalue.RDFDatetime.Now()
-    lease_time = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
-
-    for i in range(db.Database.CLIENT_MESSAGES_TTL):
-      now += rdfvalue.Duration.From(120, rdfvalue.SECONDS)
-      with test_lib.FakeTime(now):
-        leased = self.db.LeaseClientActionRequests(
-            client_id, lease_time=lease_time, limit=10)
-        self.assertLen(leased, 10)
-
-        # Check that the ttl is read.
-        for request in leased:
-          self.assertEqual(request.ttl, db.Database.CLIENT_MESSAGES_TTL - i - 1)
-
-        reqs = self.db.ReadAllClientActionRequests(client_id)
-        self.assertLen(reqs, 10)
-
-        for request in reqs:
-          self.assertEqual(request.ttl, db.Database.CLIENT_MESSAGES_TTL - i - 1)
-
-    now += rdfvalue.Duration.From(120, rdfvalue.SECONDS)
-    with test_lib.FakeTime(now):
-      leased = self.db.LeaseClientActionRequests(
-          client_id, lease_time=lease_time, limit=10)
-      self.assertEmpty(leased)
-
-    # ReadAllClientActionRequests includes also requests whose TTL has
-    # expired. Make sure that the requests have been deleted from the db.
-    self.assertEqual(self.db.ReadAllClientActionRequests(client_id), [])
-
   def testFlowWritingUnknownClient(self):
     flow_id = u"1234ABCD"
     client_id = u"C.1234567890123456"
@@ -882,7 +702,6 @@ class DatabaseTestFlowMixin(object):
 
     requests = []
     responses = []
-    client_requests = []
     for request_id in range(1, 4):
       requests.append(
           rdf_flow_objects.FlowRequest(
@@ -893,13 +712,9 @@ class DatabaseTestFlowMixin(object):
               flow_id=flow_id,
               request_id=request_id,
               response_id=1))
-      client_requests.append(
-          rdf_flows.ClientActionRequest(
-              client_id=client_id, flow_id=flow_id, request_id=request_id))
 
     self.db.WriteFlowRequests(requests)
     self.db.WriteFlowResponses(responses)
-    self.db.WriteClientActionRequests(client_requests)
 
     request_list = self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id)
     self.assertCountEqual([req.request_id for req, _ in request_list],
@@ -1418,29 +1233,6 @@ class DatabaseTestFlowMixin(object):
     requests_to_process = self.db.ReadFlowProcessingRequests()
     self.assertLen(requests_to_process, 1)
 
-  def testResponsesAnyRequestTriggerClientActionRequestDeletion(self):
-    # Write a flow that is waiting for request #2.
-    client_id = db_test_utils.InitializeClient(self.db)
-    flow_id = db_test_utils.InitializeFlow(
-        self.db, client_id, next_request_to_process=2)
-
-    for i in range(5):
-      self.db.WriteFlowRequests([
-          rdf_flow_objects.FlowRequest(
-              client_id=client_id, flow_id=flow_id, request_id=i)
-      ])
-
-    req = rdf_flows.ClientActionRequest(
-        client_id=client_id, flow_id=flow_id, request_id=3)
-    self.db.WriteClientActionRequests([req])
-
-    self.assertTrue(self.db.ReadAllClientActionRequests(client_id))
-
-    self._WriteCompleteResponses(
-        client_id, flow_id, request_id=3, num_responses=3)
-
-    self.assertFalse(self.db.ReadAllClientActionRequests(client_id))
-
   def testLeaseFlowForProcessingRaisesIfParentHuntIsStoppedOrCompleted(self):
     hunt_id = db_test_utils.InitializeHunt(self.db)
     self.db.UpdateHuntObject(
@@ -1789,25 +1581,6 @@ class DatabaseTestFlowMixin(object):
     all_requests = self.db.ReadAllFlowRequestsAndResponses(client_id1, flow_id2)
     self.assertEqual(all_requests, [])
 
-  def testDeleteAllFlowRequestsAndResponsesWithClientRequests(self):
-    client_id = u"C.1234567890123456"
-    flow_id = u"1234ABCD"
-
-    self.db.WriteClientMetadata(client_id)
-
-    self._WriteRequestAndResponses(client_id, flow_id)
-
-    req = rdf_flows.ClientActionRequest(
-        client_id=client_id, flow_id=flow_id, request_id=1)
-    self.db.WriteClientActionRequests([req])
-
-    self._CheckRequestsAndResponsesAreThere(client_id, flow_id)
-
-    self.db.DeleteAllFlowRequestsAndResponses(client_id, flow_id)
-
-    self.assertEmpty(
-        self.db.ReadAllFlowRequestsAndResponses(client_id, flow_id))
-
   def testReadFlowRequestsReadyForProcessing(self):
     client_id = u"C.1234567890000000"
     flow_id = u"12344321"
@@ -2062,8 +1835,8 @@ class DatabaseTestFlowMixin(object):
         request_id=request.request_id,
         response_id=0,
         # For the purpose of the test, the payload can be arbitrary,
-        # using rdf_flows.ClientActionRequest as a sample struct.
-        payload=rdf_flows.ClientActionRequest(),
+        # using rdf_flow_objects.FlowRequest as a sample struct.
+        payload=rdf_flow_objects.FlowRequest(),
     )
     self.db.WriteFlowResponses([response])
 

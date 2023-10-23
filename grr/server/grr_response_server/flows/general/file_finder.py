@@ -5,6 +5,7 @@ import stat
 from typing import Collection, Optional, Sequence, Set, Tuple
 
 from grr_response_core.lib import artifact_utils
+from grr_response_core.lib import interpolation
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
@@ -23,20 +24,31 @@ from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
-class FileFinder(transfer.MultiGetFileLogic, fingerprint.FingerprintFileLogic,
-                 filesystem.GlobLogic, flow_base.FlowBase):
+class LegacyFileFinder(
+    transfer.MultiGetFileLogic,
+    fingerprint.FingerprintFileLogic,
+    filesystem.GlobLogic,
+    flow_base.FlowBase,
+):
   """This flow looks for files matching given criteria and acts on them.
 
-  FileFinder searches for files that match glob expressions.  The "action"
+  LegacyFileFinder searches for files that match glob expressions.  The "action"
   (e.g. Download) is applied to files that match all given "conditions".
   Matches are then written to the results collection. If there are no
   "conditions" specified, "action" is just applied to all found files.
+
+  TODO: remove by EOY2024.
+
+  This flow is scheduled for removal and is no longer tested (all file finder
+  related tests are using the ClientFileFinder or FileFinder, which is now
+  an alias to ClientFileFinder).
   """
-  friendly_name = "File Finder"
+
+  friendly_name = "Legacy File Finder (deprecated)"
   category = "/Filesystem/"
   args_type = rdf_file_finder.FileFinderArgs
   result_types = (rdf_file_finder.FileFinderResult,)
-  behaviours = flow_base.BEHAVIOUR_BASIC
+  behaviours = flow_base.BEHAVIOUR_DEBUG
 
   # Will be used by FingerprintFileLogic.
   fingerprint_file_mixin_client_action = server_stubs.HashFile
@@ -453,6 +465,12 @@ class ClientFileFinder(flow_base.FlowBase):
     """Issue the find request."""
     super().Start()
 
+    # Do not do anything if no paths are specified in the arguments.
+    if not self.args.paths:
+      self.Log("No paths provided, finishing.")
+      self.state.files_found = 0
+      return
+
     if self.args.pathtype == rdf_paths.PathSpec.PathType.OS:
       stub = server_stubs.FileFinderOS
     else:
@@ -472,15 +490,22 @@ class ClientFileFinder(flow_base.FlowBase):
   def _InterpolatePaths(self, globs: Sequence[str]) -> Optional[Sequence[str]]:
     kb = self.client_knowledge_base
 
-    if kb is None:
-      self.Error("No knowledgebase available for path interpolation")
-      return None
-
     paths = list()
     missing_attrs = list()
     unknown_attrs = list()
 
     for glob in globs:
+      # Only fail hard on missing knowledge base if there's actual
+      # interpolation to be done.
+      if kb is None:
+        interpolator = interpolation.Interpolator(str(glob))
+        if interpolator.Vars() or interpolator.Scopes():
+          self.Log(
+              f"Skipping glob '{glob}': can't interpolate with an "
+              "empty knowledge base"
+          )
+          continue
+
       try:
         paths.extend(artifact_utils.InterpolateKbAttributes(str(glob), kb))
       except artifact_utils.KbInterpolationMissingAttributesError as error:
@@ -495,6 +520,13 @@ class ClientFileFinder(flow_base.FlowBase):
       return None
     if unknown_attrs:
       self.Error(f"Unknown knowledgebase attributes: {unknown_attrs}")
+      return None
+
+    if not paths:
+      self.Error(
+          "All globs skipped, as there's no knowledgebase available for"
+          " interpolation"
+      )
       return None
 
     return paths
@@ -518,7 +550,7 @@ class ClientFileFinder(flow_base.FlowBase):
       elif response.HasField("stat_entry"):
         stat_entry_responses.append(response)
 
-    self._WriteStatEntries([r.stat_entry for r in stat_entry_responses])
+    filesystem.WriteFileFinderResults(stat_entry_responses, self.client_id)
     for r in stat_entry_responses:
       self.SendReply(r)
 
@@ -649,11 +681,16 @@ class ClientFileFinder(flow_base.FlowBase):
 
     return client_path_hash_id
 
-  def _WriteStatEntries(self, stat_entries):
-    filesystem.WriteStatEntries(stat_entries, client_id=self.client_id)
-
   def End(self, responses):
     super().End(responses)
 
     if self.rdf_flow.flow_state != flows_pb2.Flow.ERROR:
       self.Log("Found and processed %d files.", self.state.files_found)
+
+
+# TODO decide on the FileFinder name and remove the legacy alias.
+class FileFinder(ClientFileFinder):
+  """An alias for ClientFileFinder."""
+
+  friendly_name = "File Finder"
+  behaviours = flow_base.BEHAVIOUR_BASIC

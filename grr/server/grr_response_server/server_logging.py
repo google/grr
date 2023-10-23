@@ -10,6 +10,7 @@ import time
 from absl import flags
 
 from grr_response_core import config
+from grr_response_core.stats import metrics
 from grr_response_server import data_store
 from grr_response_server.rdfvalues import objects as rdf_objects
 
@@ -29,6 +30,8 @@ _VERBOSE = flags.DEFINE_bool(
     help="Turn on verbose logging.",
     allow_override=True,
 )
+
+LOG_CALLS_COUNTER = metrics.Counter("log_calls", fields=[("level", str)])
 
 
 class GrrApplicationLogger(object):
@@ -118,6 +121,32 @@ class RobustSysLogHandler(handlers.SysLogHandler):
 
   def handleError(self, record):
     """Just ignore socket errors - the syslog server might come back."""
+
+
+class ErrorLogsHandler(logging.Handler):
+  """Logging Handler that exposes error log count in metrics."""
+
+  def __init__(self, *args, **kwargs):
+    """Initializes LogMetricsHandler."""
+    super().__init__(*args, **kwargs)
+
+    self.setLevel(logging.ERROR)
+
+  def emit(self, record: logging.LogRecord):
+    """Overrides Handler.emit()."""
+    # From https://docs.python.org/3/library/logging.html#logging.Logger
+    # logging.error() and logging.exception() log with level ERROR.
+    # logging.critical() logs with level CRITICAL.
+    if record.levelno == logging.ERROR:
+      LOG_CALLS_COUNTER.Increment(fields=["ERROR"])
+    elif record.levelno == logging.CRITICAL:
+      LOG_CALLS_COUNTER.Increment(fields=["CRITICAL"])
+
+
+def InitErrorLogsMonitoring():
+  """Sets up error logs monitoring."""
+  logging.root.addHandler(ErrorLogsHandler())
+  logging.info("Initialized ErrorLogsHandler.")
 
 
 BASE_LOG_LEVELS = {
@@ -248,6 +277,8 @@ def ServerLoggingStartupInit():
   else:
     LogInit()
     LOGGER = AppLogInit()
+
+  InitErrorLogsMonitoring()
 
 
 def SetTestVerbosity():

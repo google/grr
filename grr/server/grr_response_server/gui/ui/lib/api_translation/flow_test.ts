@@ -16,7 +16,7 @@ describe('Flow API Translation', () => {
     const apiFlow: ApiFlow = {
       flowId: '1234',
       clientId: 'C.4567',
-      name: 'KeepAlive',
+      name: 'Kill',
       creator: 'morty',
       lastActiveAt: '1571789996681000',  // 2019-10-23T00:19:56.681Z
       startedAt: '1571789996679000',     // 2019-10-23T00:19:56.679Z
@@ -27,7 +27,7 @@ describe('Flow API Translation', () => {
     const flow: Flow = {
       flowId: '1234',
       clientId: 'C.4567',
-      name: 'KeepAlive',
+      name: 'Kill',
       creator: 'morty',
       lastActiveAt: new Date(1571789996681),
       startedAt: new Date(1571789996679),
@@ -46,7 +46,7 @@ describe('Flow API Translation', () => {
     const apiFlow: ApiFlow = {
       flowId: '1234',
       clientId: 'C.4567',
-      name: 'KeepAlive',
+      name: 'Kill',
       creator: 'morty',
       lastActiveAt: '1571789996681000',  // 2019-10-23T00:19:56.681Z
       startedAt: '1571789996679000',     // 2019-10-23T00:19:56.679Z

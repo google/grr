@@ -282,6 +282,8 @@ message KnowledgeBase {
                  "drivers.",
   }];
 
+  // TODO: `ProfilesDirectory` is not an environment variable, so
+  // this field should be renamed.
   optional string environ_profilesdirectory = 33 [(sem_type) = {
     description: "Folder that typically contains users' profile directories; "
                  "e.g '%SystemDrive%\\Users'",

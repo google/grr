@@ -305,7 +305,7 @@ class Artifact(rdf_structs.RDFProtoStruct):
   def ToDict(self):
     return self.ToPrimitiveDict()
 
-  def ToPrimitiveDict(self):
+  def ToPrimitiveDict(self):  # pytype: disable=signature-mismatch  # overriding-parameter-count-checks
     """Handle dict generation specifically for Artifacts."""
     artifact_dict = super().ToPrimitiveDict()
 

@@ -14,67 +14,89 @@ export type FlowsByCategory = ReadonlyMap<string, FlowListItem[]>;
 /**
  * Flows, split by category, to be displayed by the flow picker.
  */
-const FLOWS_BY_CATEGORY: FlowsByCategory = new Map(Object.entries({
-  // TODO: Commented out flows do not have a proper flow form yet.
-  // Hide them, to not show users an option that they cannot use.
-  'Collectors': [
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.ARTIFACT_COLLECTOR_FLOW]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.OS_QUERY_FLOW]!,
+// Note: The Map instantiation is less readable without Object.entries(), but
+// the reason to not use it is the possible property name obfuscation issues.
+const FLOWS_BY_CATEGORY: FlowsByCategory = new Map([
+  // TODO: Commented out flows do not have a proper flow form
+  // yet. Hide them, to not show users an option that they cannot use.
+  [
+    'Collectors',
+    [
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.ARTIFACT_COLLECTOR_FLOW]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.OS_QUERY_FLOW]!,
+    ]
   ],
-  'Browser': [
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.COLLECT_BROWSER_HISTORY]!,
+  [
+    'Browser',
+    [
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.COLLECT_BROWSER_HISTORY]!,
+    ]
   ],
-  'Hardware': [
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.COLLECT_EFI_HASHES]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.DUMP_ACPI_TABLE]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.DUMP_EFI_IMAGE]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.DUMP_FLASH_IMAGE]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.GET_MBR]!,
+  [
+    'Hardware',
+    [
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.DUMP_ACPI_TABLE]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.DUMP_FLASH_IMAGE]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.GET_MBR]!,
+    ]
   ],
-  'Filesystem': [
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.COLLECT_FILES_BY_KNOWN_PATH]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.COLLECT_MULTIPLE_FILES]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.LIST_DIRECTORY]!,
-    // TODO:
-    // fli('ListVolumeShadowCopies', 'List volume shadow copies'),
-    // fli('RecursiveListDirectory', 'List directory recursively',
-    // 'Lists and stats all files in directory and its subdirectories'),
-    // fli('SendFile', 'Send file over network'),
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.TIMELINE_FLOW]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.READ_LOW_LEVEL]!,
+  [
+    'Filesystem',
+    [
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.COLLECT_FILES_BY_KNOWN_PATH]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.COLLECT_MULTIPLE_FILES]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.STAT_MULTIPLE_FILES]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.HASH_MULTIPLE_FILES]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.LIST_DIRECTORY]!,
+      // TODO:
+      // fli('ListVolumeShadowCopies', 'List volume shadow copies'),
+      // fli('RecursiveListDirectory', 'List directory recursively',
+      // 'Lists and stats all files in directory and its subdirectories'),
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.TIMELINE_FLOW]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.READ_LOW_LEVEL]!,
+    ]
   ],
-  'Administrative': [
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.ONLINE_NOTIFICATION]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.EXECUTE_PYTHON_HACK]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.INTERROGATE]!,
-    // TODO:
-    // fli('GetClientStats', 'Collect GRR statistics',
-    //     'Collect agent statistics including processor, memory, and network
-    //     usage'),
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.KILL]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.LAUNCH_BINARY]!,
-    // TODO:
-    // fli('OnlineNotification', 'Notify when online',
-    //     'Send an email notification when the GRR agent comes online'),
-    // fli('Uninstall', 'Uninstall GRR',
-    //     'Permanently uninstall GRR from the host'),
-    // fli('UpdateClient', 'Update GRR client',
-    //     'Update GRR on the host to the latest version'),
+  [
+    'Administrative',
+    [
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.ONLINE_NOTIFICATION]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.EXECUTE_PYTHON_HACK]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.INTERROGATE]!,
+      // TODO:
+      // fli('GetClientStats', 'Collect GRR statistics',
+      //     'Collect agent statistics including processor, memory, and
+      //     network usage'),
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.KILL]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.LAUNCH_BINARY]!,
+      // TODO:
+      // fli('OnlineNotification', 'Notify when online',
+      //     'Send an email notification when the GRR agent comes online'),
+      // fli('Uninstall', 'Uninstall GRR',
+      //     'Permanently uninstall GRR from the host'),
+      // fli('UpdateClient', 'Update GRR client',
+      //     'Update GRR on the host to the latest version'),
+    ]
   ],
-  'Processes': [
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.LIST_PROCESSES]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.LIST_NAMED_PIPES_FLOW]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.DUMP_PROCESS_MEMORY]!,
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.YARA_PROCESS_SCAN]!,
+  [
+    'Processes',
+    [
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.LIST_PROCESSES]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.LIST_NAMED_PIPES_FLOW]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.DUMP_PROCESS_MEMORY]!,
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.YARA_PROCESS_SCAN]!,
+    ]
   ],
-  'Network': [
-    FLOW_LIST_ITEMS_BY_TYPE[FlowType.NETSTAT]!,
+  [
+    'Network',
+    [
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.NETSTAT]!,
+    ]
   ],
   // TODO:
-  // 'Registry': [
+  // ['Registry', [
   //   fli('RegistryFinder', 'Find registry keys/values'),
-  // ],
-}));
+  // ]],
+]);
 
 /**
  * List of commonly used flow names.

@@ -3,11 +3,17 @@
 
 import abc
 import contextlib
+import os
 import pathlib
+import pty
+import select
+import shutil
+import socket
 import subprocess
 import sys
+import time
 import traceback
-from typing import Any, Dict, Iterable, Iterator, List, Optional
+from typing import Any, Dict, Iterable, Iterator, List, Optional, Union
 
 from . import config
 from . import util
@@ -120,7 +126,7 @@ class HostPathVolume(Volume):
   """Container volume backed by a host directory."""
 
   def is_up(self) -> bool:
-    return self.host_path.is_dir()
+    return self.host_path.exists()
 
   def create(self) -> None:
     raise ResourceError("Attempted to use HostPathVolume without a host path.")
@@ -389,3 +395,250 @@ class AdminUser(Resource):
 
   def destroy(self) -> None:
     pass
+
+
+class BackgroundProcess(Resource):
+  """A user-specified background process.
+
+  Creating this resource will spawn a background process attached to a pseudo
+  TTY. Access to this PTY is managed via a control process, itself accessed via
+  a Unix socket. That is, the user can attach to the PTY and this way interact
+  with the background process. The resource is considered up/active as long as
+  the PTY is kept open by the background process.
+
+  This is (very) roughly equivalent to running a process in a screen or tmux
+  session.
+
+  The control process can be inspected via three files that it will create in
+  the devenv state dir (see CONFIG["path.state_dir"]):
+  - the Unix socket it will listen to for commands / attaches;
+  - the PID file to which it will write its PID;
+  - the log file, to which the control stdout/stderr are sent, together with all
+    output from the background/target process; this should make it easier to
+    debug unexpected issues with both the resource definition and the code in
+    this class.
+  """
+
+  def __init__(
+      self,
+      name: str,
+      command: List[str],
+      deps: Optional[List[Resource]] = None,
+  ):
+    super().__init__(name, deps)
+    if command[0].startswith("/"):
+      path = command[0]
+    else:
+      maybe_path = shutil.which(command[0])
+      if not maybe_path:
+        raise ResourceError(f"Bad BackgroundProcess command: {command}")
+      path = maybe_path
+    self._target_path: str = path
+    self._target_args: List[str] = command[1:]
+    self._ctl_sock_path = config.get("path.state_dir").joinpath(
+        f"{self.name}.sock"
+    )
+    self._ctl_pid_path = config.get("path.state_dir").joinpath(
+        f"{self.name}.pid"
+    )
+    self._ctl_log_path = config.get("path.state_dir").joinpath(
+        f"{self.name}.log"
+    )
+
+  def is_up(self) -> bool:
+    return self._ctl_sock_path.exists()
+
+  def create(self) -> None:
+    """Create the background process, managed by a daemonized control loop."""
+
+    # Fork the management / control process
+    mgr_pid = os.fork()
+    if not mgr_pid:
+      # This is the management process. Fork again, this time with a pseudo TTY
+      # allocation for the child process.
+      pid, pty_fd = pty.fork()
+      if not pid:
+        # This is the child process which will be used to exec into the actual
+        # target process that this resource is intended to run in the
+        # background. Note that `os.exec*` never returns, but replaces the
+        # current process entirely.
+        os.execv(self._target_path, [self._target_path] + self._target_args)
+      else:
+        # On the management/control side, we daemonize and call into the main
+        # control loop.
+        os.setsid()
+        self._manage(pid, pty_fd)
+        sys.exit(0)
+
+    # This is only reached by the main process that called `create()`.
+    # Having created the (background) control process, return now to other
+    # devenv duties.
+
+  def destroy(self) -> None:
+    """Kill the background process."""
+
+    try:
+      with open(self._ctl_pid_path, "r") as pid_file:
+        mgr_pid: int = int(pid_file.read(32))
+      sock = self._connect()
+      sock.send(b"EXIT\n")
+      sock.close()
+      time.sleep(1)
+    finally:
+      if self._ctl_sock_path.exists():
+        util.kill_process(mgr_pid)
+        self._ctl_sock_path.unlink()
+        self._ctl_pid_path.unlink()
+
+  def restart(self) -> None:
+    """Restart the background process."""
+
+    if self.is_up():
+      self.destroy()
+    self.create()
+
+  def attach(self) -> None:
+    """Attach to a previously created background process' pseudo TTY."""
+
+    util.say(f"Attaching to {self.__class__.__name__}.{self.name} ...")
+    sock = self._connect()
+    sock.send(b"ATTACH\n")
+    expect: bytes = b"OK\n"
+    if sock.recv(len(expect)) != expect:
+      raise ResourceError(f"Error attaching to background process {self.name}")
+    util.say("Attached. Detach with <ctrl-p>,<ctrl-d>.")
+
+    subprocess.run(["stty", "-echo", "cbreak"], check=True)
+    try:
+      while True:
+        try:
+          ready_list, _, _ = select.select([sock, sys.stdin], [], [], 10)
+          if sock in ready_list:
+            buf = sock.recv(4096)
+            if not buf:
+              util.say_warn("Background process connection reset")
+              break
+            os.write(sys.stdout.fileno(), buf)
+          if sys.stdin in ready_list:
+            buf = os.read(sys.stdin.fileno(), 1)
+            if buf == b"\x10":
+              # Received ctrl-p (ASCII 0x10). This is the first keystroke in
+              # the detach sequence. Wait for the next one for 1 second, and
+              # detach if it completes the sequence.
+              ready, _, _ = select.select([sys.stdin], [], [], 1)
+              if sys.stdin in ready:
+                buf2 = os.read(sys.stdin.fileno(), 1)
+                if buf2 == b"\x04":
+                  # Got ctrl-d (ASCII 0x04), so the detach sequence is complete.
+                  print("")
+                  util.say("Detached")
+                  break
+                else:
+                  # Not the detach sequence we were looking for. Send everything
+                  # to the attached PTY.
+                  buf += buf2
+            sock.send(buf)
+        except KeyboardInterrupt:
+          # Send ctrl-c to the background process
+          sock.send(b"\x03")
+    finally:
+      subprocess.run(["stty", "echo", "-cbreak"], check=True)
+
+  def _connect(self) -> socket.socket:
+    """Connect to the background process control socket."""
+
+    sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    sock.connect(str(self._ctl_sock_path))
+    return sock
+
+  def _manage(self, target_pid: int, pty_fd: int) -> None:
+    """Background process control loop."""
+
+    # This is executed only in the context of the daemonized control process. It
+    # listens on a Unix socket for commands, most important of which is ATTACH.
+    # This forwards the connected Unix socket to the pseudo TTY of the target
+    # background process, giving the user terminal access to it.
+
+    # Set up logging for stdout/stderr
+    if not self._ctl_log_path.parent.exists():
+      self._ctl_log_path.parent.mkdir(parents=True)
+    with open(self._ctl_log_path, "w") as log_file:
+      os.dup2(log_file.fileno(), 1)
+      os.dup2(log_file.fileno(), 2)
+    now: str = time.strftime("%Y-%m-%d %H:%M:%S")
+    sys.stdout.write(
+        f"\n{now} {self.__class__.__name__}.{self.name} starting ...\n"
+    )
+
+    # Write PID file
+    if not self._ctl_pid_path.parent.exists():
+      self._ctl_pid_path.parent.mkdir(parents=True)
+    with open(self._ctl_pid_path, "w") as pid_file:
+      pid_file.write(f"{os.getpid()}")
+
+    # Open the control socket
+    ctl_sock: socket.socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+    if not self._ctl_sock_path.parent.exists():
+      self._ctl_sock_path.parent.mkdir(parents=True)
+    ctl_sock.bind(str(self._ctl_sock_path))
+    ctl_sock.listen(1)
+
+    client_sock: Optional[socket.socket] = None
+    term_buf: util.RollingLineBuffer = util.RollingLineBuffer(50)
+
+    # Main control loop
+    while True:
+      rlist: List[Union[socket.socket, int]] = (
+          [client_sock] if client_sock else [ctl_sock]
+      )
+      rlist.append(pty_fd)
+      ready_list, _, _ = select.select(rlist, [], [], 10)
+
+      # Check for new clients
+      if ctl_sock in ready_list:
+        client_sock, _ = ctl_sock.accept()
+        cmd = client_sock.recv(32)
+        if cmd == b"EXIT\n":
+          break
+        elif cmd == b"CHECK\n":
+          client_sock.send(b"OK\n")
+        elif cmd == b"ATTACH\n":
+          client_sock.send(b"OK\n")
+          client_sock.send(term_buf.get().encode("utf-8"))
+        else:
+          client_sock.close()
+          client_sock = None
+
+      # Check for incoming client data
+      if client_sock and client_sock in ready_list:
+        buf = client_sock.recv(4096)
+        if not buf:
+          client_sock = None
+          continue
+        try:
+          os.write(pty_fd, buf)
+        except OSError:
+          client_sock.close()
+          break
+
+      # Check for target process pty output
+      if pty_fd in ready_list:
+        try:
+          buf = os.read(pty_fd, 4096)
+        except OSError:
+          if client_sock:
+            client_sock.close()
+          break
+        # Send target output to rolling buffer
+        term_buf.add(buf.decode("utf-8"))
+        # Send target output to log
+        sys.stdout.write(util.term.strip_control_chars(buf.decode("utf-8")))
+        sys.stdout.flush()
+        # Send target output to client, if any is connected
+        if client_sock:
+          client_sock.send(buf)
+
+    util.kill_process(target_pid)
+    ctl_sock.close()
+    self._ctl_sock_path.unlink()
+    self._ctl_pid_path.unlink()

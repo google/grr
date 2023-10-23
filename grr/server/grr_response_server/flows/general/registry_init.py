@@ -5,15 +5,14 @@
 # These imports populate the Flow registry
 from grr_response_server.flows import file
 from grr_response_server.flows.general import administrative
-from grr_response_server.flows.general import apple_firmware
 from grr_response_server.flows.general import artifact_fallbacks
 from grr_response_server.flows.general import collectors
+from grr_response_server.flows.general import crowdstrike
 from grr_response_server.flows.general import discovery
+from grr_response_server.flows.general import dummy
 from grr_response_server.flows.general import export
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
-from grr_response_server.flows.general import find
-from grr_response_server.flows.general import fingerprint
 from grr_response_server.flows.general import hardware
 from grr_response_server.flows.general import large_file
 from grr_response_server.flows.general import memory
