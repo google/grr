@@ -200,7 +200,7 @@ setup_args = dict(
         # TODO: We currently release fleetspeak-server-bin packages
         # for Linux only.
         ':sys_platform=="linux"': [
-            "fleetspeak-server-bin==0.1.12",
+            "fleetspeak-server-bin==0.1.13",
         ],
     },
     data_files=data_files,

@@ -137,7 +137,7 @@ setup_args = dict(
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "pytsk3==20230125",
         "libfsntfs-python==20230606",
-        "fleetspeak-client-bin==0.1.12",
+        "fleetspeak-client-bin==0.1.13",
     ],
     extras_require={
         # The following requirements are needed in Windows.

@@ -70,6 +70,10 @@ def main(argv):
   config_lib.LoadConfig(config.CONFIG, source_server_config_path)
   config.CONFIG.SetWriteBack(_DEST_SERVER_CONFIG_PATH.value)
 
+  # Make sure to not overload the machine running the self-contained tests.
+  # Threadpool.size currently influences the size of the Fleetspeak Frontend's
+  # threadpool that handles incoming gRPC requests from Fleetspeak.
+  config.CONFIG.Set("Threadpool.size", 5)
   config.CONFIG.Set("Blobstore.implementation", "DbBlobStore")
   config.CONFIG.Set("Database.implementation", "MysqlDB")
   config.CONFIG.Set("Mysql.database", _CONFIG_MYSQL_DATABASE.value)

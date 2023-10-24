@@ -12,9 +12,6 @@ config_lib.DEFINE_list("Artifacts.artifact_dirs", [
 
 config_lib.DEFINE_list(
     "Artifacts.knowledge_base", [
-        "LinuxReleaseInfo",
-        "LinuxUserProfiles",
-        "WindowsTimezone",
     ], "List of artifacts that are collected regularly by"
     " interrogate and used for interpolation of client-side"
     " variables. Includes artifacts for all supported OSes. "

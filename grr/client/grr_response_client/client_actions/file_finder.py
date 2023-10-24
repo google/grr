@@ -2,6 +2,7 @@
 """The file finder client action."""
 
 import io
+import logging
 from typing import Callable, Iterator, List, Text
 
 from grr_response_client import actions
@@ -124,11 +125,14 @@ class FileFinderOS(actions.ActionPlugin):
     # the client file finder. The legacy file finder was automatically
     # following symlinks to regular files.
     if stat.IsSymlink():
-      target_stat = filesystem.Stat.FromPath(
-          stat.GetPath(), follow_symlink=True
-      )
-      if target_stat.IsRegular():
-        stat = target_stat
+      link_path = stat.GetPath()
+      try:
+        target_stat = filesystem.Stat.FromPath(link_path, follow_symlink=True)
+      except FileNotFoundError:
+        logging.info("Broken link: %s", link_path)
+      else:
+        if target_stat.IsRegular():
+          stat = target_stat
 
     for metadata_condition in self._metadata_conditions:
       if not metadata_condition.Check(stat):
@@ -140,11 +144,14 @@ class FileFinderOS(actions.ActionPlugin):
       # and the client file finder. The legacy file finder was automatically
       # following symlinks to regular files.
       if stat.IsSymlink():
-        target_stat = filesystem.Stat.FromPath(
-            stat.GetPath(), follow_symlink=True
-        )
-        if not target_stat.IsRegular():
-          raise _SkipFileException()
+        link_path = stat.GetPath()
+        try:
+          target_stat = filesystem.Stat.FromPath(link_path, follow_symlink=True)
+        except FileNotFoundError:
+          logging.info("Broken link: %s", link_path)
+        else:
+          if not target_stat.IsRegular():
+            raise _SkipFileException()
       else:
         raise _SkipFileException()
 

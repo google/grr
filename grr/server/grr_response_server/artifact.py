@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 """Base classes for artifacts."""
-
 import logging
 import ntpath
 import os
@@ -17,6 +16,7 @@ from grr_response_core.lib import artifact_utils
 from grr_response_core.lib import parsers
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
+from grr_response_core.lib.parsers import linux_release_parser
 from grr_response_core.lib.parsers import windows_registry_parser
 from grr_response_core.lib.rdfvalues import anomaly as rdf_anomaly
 from grr_response_core.lib.rdfvalues import client as rdf_client
@@ -122,7 +122,22 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
           next_state=self.ProcessBase.__name__,
           request_data={"artifact_name": artifact_name})
 
-    if self.client_os == "Darwin":
+    if self.client_os == "Linux":
+      if artifact_registry.REGISTRY.Exists("LinuxReleaseInfo"):
+        self.CallFlow(
+            "ArtifactCollectorFlow",
+            artifact_list=["LinuxReleaseInfo"],
+            knowledge_base=self.state.knowledge_base,
+            next_state=self._ProcessLinuxReleaseInfo.__name__,
+        )
+      else:
+        self.Log("`LinuxReleaseInfo` artifact not found, skipping...")
+
+      self.CallClient(
+          server_stubs.EnumerateUsers,
+          next_state=self._ProcessLinuxEnumerateUsers.__name__,
+      )
+    elif self.client_os == "Darwin":
       list_users_dir_request = rdf_client_action.ListDirRequest()
       list_users_dir_request.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
       list_users_dir_request.pathspec.path = "/Users"
@@ -373,6 +388,61 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
           provided.add(provides)
 
     return provided
+
+  def _ProcessLinuxReleaseInfo(
+      self,
+      responses: flow_responses.Responses[rdfvalue.RDFValue],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to get Linux release information: %s", responses.status)
+      return
+
+    knowledge_base = self.state.knowledge_base
+
+    pathspecs: list[rdf_paths.PathSpec] = []
+    files: list[file_store.BlobStream] = []
+
+    for response in responses:
+      if not isinstance(response, rdf_client_fs.StatEntry):
+        self.Log("Unexpected response type: '%s'", type(response))
+        continue
+
+      path = db.ClientPath.FromPathSpec(self.client_id, response.pathspec)
+
+      pathspecs.append(response.pathspec)
+      files.append(file_store.OpenFile(path))
+
+    parser = linux_release_parser.LinuxReleaseParser()
+
+    for info in parser.ParseFiles(knowledge_base, pathspecs, files):
+      # The parser can sometimes yield an anomaly object.
+      if not (isinstance(info, dict) or isinstance(info, rdf_protodict.Dict)):
+        self.Log("Invalid release information: %s", info)
+        continue
+
+      if os_release := info.get("os_release"):
+        self.state.knowledge_base.os_release = os_release
+
+      if os_major_version := info.get("os_major_version"):
+        self.state.knowledge_base.os_major_version = os_major_version
+
+      if os_minor_version := info.get("os_minor_version"):
+        self.state.knowledge_base.os_minor_version = os_minor_version
+
+  def _ProcessLinuxEnumerateUsers(
+      self,
+      responses: flow_responses.Responses[rdfvalue.RDFValue],
+  ) -> None:
+    if not responses.success:
+      self.Log("Failed to enumerate Linux users: %s", responses.status)
+      return
+
+    for response in responses:
+      if not isinstance(response, rdf_client.User):
+        self.Log("Unexpected response type: '%s'", type(response))
+        continue
+
+      self.state.knowledge_base.MergeOrAddUser(response)
 
   def _ProcessMacosListUsersDirectory(
       self,

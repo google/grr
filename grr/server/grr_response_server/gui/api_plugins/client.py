@@ -650,7 +650,7 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     # Reset foreman rules check so active hunts can match against the new data
     data_store.REL_DB.MultiWriteClientMetadata(
         client_ids,
-        last_foreman=rdfvalue.RDFDatetime.EarliestDatabaseSafeValue(),
+        last_foreman=data_store.REL_DB.MinTimestamp(),
     )
 
 

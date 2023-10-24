@@ -215,9 +215,10 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
                                    vfs_test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
-              "LinuxWtmp", "NetgroupConfiguration", "LinuxReleaseInfo"
+              "LinuxWtmp",
+              "NetgroupConfiguration",
           ],
-          "Artifacts.netgroup_filter_regexes": [r"^login$"]
+          "Artifacts.netgroup_filter_regexes": [r"^login$"],
       }):
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient()
@@ -259,9 +260,10 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
     with vfs_test_lib.FakeTestDataVFSOverrider():
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
-              "LinuxWtmp", "NetgroupConfiguration", "LinuxReleaseInfo"
+              "LinuxWtmp",
+              "NetgroupConfiguration",
           ],
-          "Artifacts.netgroup_filter_regexes": [r"^login$"]
+          "Artifacts.netgroup_filter_regexes": [r"^login$"],
       }):
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient(version="14.4", release="Ubuntu")
@@ -680,9 +682,7 @@ class TestClientInterrogate(acl_test_lib.AclTestMixin,
 
     md = data_store.REL_DB.ReadClientMetadata(client_id)
     self.assertIsNotNone(md.last_foreman_time)
-    self.assertEqual(
-        md.last_foreman_time, rdfvalue.RDFDatetime.EarliestDatabaseSafeValue()
-    )
+    self.assertEqual(md.last_foreman_time, data_store.REL_DB.MinTimestamp())
 
 
 def _HasClientActionRequest(

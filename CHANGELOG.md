@@ -5,21 +5,75 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Planned for removal
+
+Note: GRR release 3.4.7.1 is the **last release** containing the following
+features:
+
+* **Artifact parsers**. ArtifactCollector flow supports parsing collected files
+  and output of executed commands. Its parsers are not properly maintained,
+  are often outdated and fragile. We're going to convert selected parsers
+  into standalone flows and remove the artifact parsing subsystem:
+  the ArtifactCollector will always work as if "apply_parsers" arguments
+  attribute is set to False. Afterwards the "apply_parsers" attribute will be
+  deprecated completely. We will provide documentation on integrating
+  GRR and ArtifactCollector with well-maintained parsing frameworks like
+  [Plaso](https://plaso.readthedocs.io/en/latest/index.html).
+
+* **Built-in cron jobs**. Built-in cron jobs are primarily used for periodic
+  hunts. We will provide documentation on how to easily replicate the
+  current functionality using external scheduling systems (like Linux cron,
+  for example).
+
+  If your workflow depends on GRR built in cron jobs and you anticipate problems
+  when migrating it to external schedulers, please reach out to us via email
+  or GitHub.
+
+* **GRR server Debian package**. We will stop providing the GRR server Debian
+  package as the main way of distributing GRR server and client binaries.
+  Instead we will make GRR Docker image a preferred way for running GRR in a
+  demo or production environment.
+
+If your workflow depends on any of the above, please feel free reach out to
+us via [grr-users](https://groups.google.com/forum/#!forum/grr-users) Google
+Group or [GitHub](https://github.com/google/grr/issues).
+
+## [3.4.7.1] - 2023-10-23
+
 ### Added
 
 * Created a flow for collecting an identifier of the CrowdStrike agent.
+* Podman-based zero-setup development environment.
+* Added StatMultipleFiles and HashMultipleFiles flows to be used in
+  UIv2.
 
 ### Changed
 
 * Renamed AdminUI.new_hunt_wizard.default_output_plugin to
   AdminUI.new_hunt_wizard.default_output_plugins (note the "s" in the end).
   The new option accepts a comma-separated list of names.
+* Newly interrogated clients now pick up active hunts automatically.
+* Hunts workflow is now available in the new UI: creating hunts from a flow,
+  duplicating existing hunts, monitoring hunt progress and inspecting results.
 
 ### Removed
 
 * Fully removed deprecated use_tsk flag.
 * Removed deprecated plugin_args field from OutputPluginDescriptor.
-* Removed deprecated flows: FingerprintFile
+* Removed deprecated flows: FingerprintFile, KeepAlive, FingerprintFile, FindFiles, SendFile, Uninstall,
+  UpdateClient, CollectEfiHashes, DumpEfiImage.
+* Deprecated GetFile flow in favor of MultiGetFile.
+* Made FileFinder an alias to ClientFileFinder, using ClientFileFinder
+  by default everywhere. Legacy FileFinder is still available as
+  LegacyFileFinder. Fixed several inconsistencies in ClientFileFinder
+  client action. Same for RegistryFinder.
+* Removed deprecated client actions: EficheckCollectHashes, EficheckDumpImage, Uninstall, SendFile.
+* Removed "Checks" functionality.
+
+### API removed
+
+* Deprecated no-op "keep_client_alive" attribute in ApiCreateClientApprovalArgs.
+* Deprecated ListClientActionRequests API call (was no-op after Fleetspeak migration).
 
 ## [3.4.6.7] - 2023-03-22
 

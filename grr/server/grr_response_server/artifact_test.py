@@ -693,7 +693,6 @@ class GrrKbLinuxTest(GrrKbTest):
     with test_lib.ConfigOverrider({
         "Artifacts.knowledge_base": [
             "LinuxWtmp", "NetgroupConfiguration", "LinuxPasswdHomedirs",
-            "LinuxReleaseInfo"
         ],
         "Artifacts.netgroup_filter_regexes": ["^login$"],
         "Artifacts.netgroup_ignore_users": ["isaac"]
@@ -717,10 +716,11 @@ class GrrKbLinuxTest(GrrKbTest):
     with vfs_test_lib.FakeTestDataVFSOverrider():
       with test_lib.ConfigOverrider({
           "Artifacts.knowledge_base": [
-              "LinuxWtmp", "LinuxPasswdHomedirs", "LinuxReleaseInfo"
+              "LinuxWtmp",
+              "LinuxPasswdHomedirs",
           ],
           "Artifacts.knowledge_base_additions": [],
-          "Artifacts.knowledge_base_skip": []
+          "Artifacts.knowledge_base_skip": [],
       }):
         with test_lib.SuppressLogs():
           kb = self._RunKBI()
@@ -746,7 +746,6 @@ class GrrKbLinuxTest(GrrKbTest):
     with test_lib.ConfigOverrider({
         "Artifacts.knowledge_base": [
             "NetgroupConfiguration", "NssCacheLinuxPasswdHomedirs",
-            "LinuxReleaseInfo"
         ],
         "Artifacts.netgroup_filter_regexes": ["^doesntexist$"]
     }):
