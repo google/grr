@@ -610,12 +610,6 @@ class RDFDatetime(RDFPrimitive):
 
     return cls(round((1 - t) * start_time._value + t * end_time._value))  # pylint: disable=protected-access
 
-  @classmethod
-  def EarliestDatabaseSafeValue(cls):
-    """Returns the earliest datetime supported by all database backends."""
-    # See https://bugs.mysql.com/77232
-    return cls(1000000)
-
   def __add__(self, other):
     # TODO(hanuszczak): Disallow `float` initialization.
     if isinstance(other, (int, float)):

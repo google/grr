@@ -1986,6 +1986,9 @@ class RDFProtoStruct(RDFStruct):
   # dependencies setting.
   recorded_rdf_deps = None
 
+  def __init__(self, initializer=None, **kwargs):
+    super().__init__(initializer, **kwargs)
+
   def AsPrimitiveProto(self):
     """Return an old style protocol buffer object."""
     if self.protobuf:

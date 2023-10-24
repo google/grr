@@ -139,7 +139,10 @@ class LinuxReleaseParser(parsers.MultiFileParser[rdf_protodict.Dict]):
   """Parser for Linux distribution information."""
 
   output_types = [rdf_protodict.Dict]
-  supported_artifacts = ['LinuxReleaseInfo']
+
+  # TODO: The parser has to be invoked explicitly, we should not
+  # relly on magic parsing anymore.
+  supported_artifacts = []
 
   # Multiple files exist to define a Linux distribution, some of which are more
   # accurate than others under certain circumstances. We assign a weight and

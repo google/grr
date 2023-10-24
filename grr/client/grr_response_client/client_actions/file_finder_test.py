@@ -252,6 +252,19 @@ class FileFinderTest(client_test_lib.EmptyActionTest):
       except OSError:
         pass
 
+  def testBrokenLink(self):
+    """Broken links should be collected when follow_links=False."""
+    with temp.AutoTempDirPath(remove_non_empty=True) as test_dir:
+      link_path = os.path.join(test_dir, "link")
+
+      os.symlink("nowhere", link_path)
+
+      paths = [f"{test_dir}/*"]
+      results = self._RunFileFinder(paths, self.stat_action, follow_links=False)
+      relative_results = self._GetRelativeResults(results, base_path=test_dir)
+
+      self.assertIn("link", relative_results)
+
   def _PrepareTimestampedFiles(self):
     searching_path = os.path.join(self.base_path, "searching")
     test_dir = os.path.join(self.temp_dir, "times_test")

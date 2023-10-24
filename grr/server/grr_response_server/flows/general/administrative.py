@@ -662,7 +662,7 @@ class ClientStartupHandler(message_handlers.MessageHandler):
         # data
         data_store.REL_DB.WriteClientMetadata(
             client_id,
-            last_foreman=rdfvalue.RDFDatetime.EarliestDatabaseSafeValue(),
+            last_foreman=data_store.REL_DB.MinTimestamp(),
         )
 
       except db.UnknownClientError:

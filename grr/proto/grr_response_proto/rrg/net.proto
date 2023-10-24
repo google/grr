@@ -91,3 +91,20 @@ message Connection {
     UdpConnection udp = 2;
   }
 }
+
+// Information about a network interface.
+message Interface {
+  // A name of the interface as reported by the system.
+  //
+  // Note that on some system (e.g. Linux), the interface may consist of pretty
+  // much arbitrary bytes and might not be compatible with Unicode. Because this
+  // is not very probable and ergonomics of using a raw `bytes` field, invalid
+  // bytes are going to be subsituted with the replacement character ("�").
+  string name = 1;
+
+  // MAC address associated with the interface.
+  MacAddress mac_address = 2;
+
+  // IP addresses associated with the interface.
+  repeated IpAddress ip_addresses = 3;
+}

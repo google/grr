@@ -672,30 +672,19 @@ class NotAValue(object):
 class HeartbeatQueue(queue.Queue):
   """A queue that periodically calls a provided callback while waiting."""
 
-  def __init__(self, callback=None, fast_poll_time=60, *args, **kw):
+  def __init__(self, *args, callback=None, **kw):
     queue.Queue.__init__(self, *args, **kw)
     self.callback = callback or (lambda: None)
-    self.last_item_time = time.time()
-    self.fast_poll_time = fast_poll_time
 
   def get(self, poll_interval=5):
     while True:
       try:
-        # Using Queue.get() with a timeout is really expensive - Python uses
-        # busy waiting that wakes up the process every 50ms - so we switch
-        # to a more efficient polling method if there is no activity for
-        # <fast_poll_time> seconds.
-        if time.time() - self.last_item_time < self.fast_poll_time:
-          message = queue.Queue.get(self, block=True, timeout=poll_interval)
-        else:
-          time.sleep(poll_interval)
-          message = queue.Queue.get(self, block=False)
+        message = queue.Queue.get(self, block=True, timeout=poll_interval)
         break
 
       except queue.Empty:
         self.callback()
 
-    self.last_item_time = time.time()
     return message
 
 

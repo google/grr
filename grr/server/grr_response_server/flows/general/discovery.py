@@ -483,7 +483,7 @@ class Interrogate(flow_base.FlowBase):
     # Reset foreman rules check so active hunts can match against the new data
     data_store.REL_DB.WriteClientMetadata(
         self.client_id,
-        last_foreman=rdfvalue.RDFDatetime.EarliestDatabaseSafeValue(),
+        last_foreman=data_store.REL_DB.MinTimestamp(),
     )
 
 

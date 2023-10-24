@@ -38,7 +38,8 @@ def Init(service_client=None):
         "GRR",
         fleetspeak_message_listen_address=fleetspeak_message_listen_address,
         fleetspeak_server=fleetspeak_server,
-        threadpool_size=50)
+        threadpool_size=config.CONFIG["Threadpool.size"],
+    )
 
   label_map = {}
   for entry in config.CONFIG["Server.fleetspeak_label_map"]:

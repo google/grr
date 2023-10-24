@@ -782,7 +782,7 @@ magic_return_str = "foo(%s)"
 
   def testForemanTimeIsResetOnClientStartupInfoWrite(self):
     client_id = self.SetupClient(0)
-    reset_time = rdfvalue.RDFDatetime.EarliestDatabaseSafeValue()
+    reset_time = data_store.REL_DB.MinTimestamp()
     later_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(3600)
 
     data_store.REL_DB.WriteClientMetadata(client_id, last_foreman=later_time)

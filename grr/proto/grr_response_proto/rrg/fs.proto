@@ -70,3 +70,13 @@ message FileExtAttr {
     // This can be an arbitrary sequence of bytes both on macOS and Linux.
     bytes value = 2;
 }
+
+// Information about a mounted filesystem.
+message Mount {
+    // Name or other identifier of the mounted device.
+    string name = 1;
+    // Path at which the mounted filesystem is available (a mount point).
+    Path path = 2;
+    // Type of the mounted filesystem (e.g. `ext4`, `ramfs`, `NTFS`).
+    string fs_type = 3;
+}

@@ -151,9 +151,7 @@ class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
     md = data_store.REL_DB.ReadClientMetadata(cid)
     self.assertIsNotNone(md.last_foreman_time)
-    self.assertEqual(
-        md.last_foreman_time, rdfvalue.RDFDatetime.EarliestDatabaseSafeValue()
-    )
+    self.assertEqual(md.last_foreman_time, data_store.REL_DB.MinTimestamp())
 
 
 class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):

@@ -300,8 +300,13 @@ class AdminUIApp(object):
   def _HandleHomepageV2(self, request):
     """Renders GRR home page for the next-get UI (v2)."""
 
+    is_development = contexts.DEBUG_CONTEXT in config.CONFIG.context
+
     context = {
-        "is_development": contexts.DEBUG_CONTEXT in config.CONFIG.context,
+        "is_development": is_development,
+        "use_debug_bundle": is_development or request.args.get(
+            "use_debug_bundle", False
+        ),
         "is_test": contexts.TEST_CONTEXT in config.CONFIG.context,
         "analytics_id": config.CONFIG["AdminUI.analytics_id"],
     }
