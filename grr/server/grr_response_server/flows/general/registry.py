@@ -88,7 +88,7 @@ class LegacyRegistryFinder(flow_base.FlowBase):
 
   def Start(self):
     self.CallFlow(
-        file_finder.FileFinder.__name__,
+        file_finder.LegacyFileFinder.__name__,
         paths=self.args.keys_paths,
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
         conditions=_ConditionsToFileFinderConditions(self.args.conditions),
