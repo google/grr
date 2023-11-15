@@ -29,8 +29,8 @@ UnsupportedHandlerError = vfs_base.UnsupportedHandlerError
 # TODO: Dictionary keys are of type rdf_paths.PathSpec.PathType,
 # but this is currently not representable as type information in Python.
 VFS_HANDLERS: Dict[Any, Type[vfs_base.VFSHandler]] = {}
-_VFS_HANDLERS_DIRECT: Dict[Any, Type[vfs_base.VFSHandler]] = {}
-_VFS_HANDLERS_SANDBOX: Dict[Any, Type[vfs_base.VFSHandler]] = {}
+VFS_HANDLERS_DIRECT: Dict[Any, Type[vfs_base.VFSHandler]] = {}
+VFS_HANDLERS_SANDBOX: Dict[Any, Type[vfs_base.VFSHandler]] = {}
 
 # The paths we should use as virtual root for VFS operations.
 _VFS_VIRTUALROOTS = {}
@@ -39,8 +39,8 @@ _VFS_VIRTUALROOTS = {}
 def Init():
   """Register all known vfs handlers to open a pathspec types."""
   VFS_HANDLERS.clear()
-  _VFS_HANDLERS_DIRECT.clear()
-  _VFS_HANDLERS_SANDBOX.clear()
+  VFS_HANDLERS_DIRECT.clear()
+  VFS_HANDLERS_SANDBOX.clear()
   _VFS_VIRTUALROOTS.clear()
   vfs_virtualroots = config.CONFIG["Client.vfs_virtualroots"]
 
@@ -58,15 +58,15 @@ def Init():
     VFS_HANDLERS[vfs_registry.RegistryFile
                  .supported_pathtype] = vfs_registry.RegistryFile
 
-  _VFS_HANDLERS_DIRECT.update(VFS_HANDLERS)
-  _VFS_HANDLERS_DIRECT[sleuthkit.TSKFile.supported_pathtype] = sleuthkit.TSKFile
-  _VFS_HANDLERS_DIRECT[ntfs.NTFSFile.supported_pathtype] = ntfs.NTFSFile
+  VFS_HANDLERS_DIRECT.update(VFS_HANDLERS)
+  VFS_HANDLERS_DIRECT[sleuthkit.TSKFile.supported_pathtype] = sleuthkit.TSKFile
+  VFS_HANDLERS_DIRECT[ntfs.NTFSFile.supported_pathtype] = ntfs.NTFSFile
 
-  _VFS_HANDLERS_SANDBOX.update(VFS_HANDLERS)
-  _VFS_HANDLERS_SANDBOX[
+  VFS_HANDLERS_SANDBOX.update(VFS_HANDLERS)
+  VFS_HANDLERS_SANDBOX[
       unprivileged_vfs.UnprivilegedNtfsFile
       .supported_pathtype] = unprivileged_vfs.UnprivilegedNtfsFile
-  _VFS_HANDLERS_SANDBOX[
+  VFS_HANDLERS_SANDBOX[
       unprivileged_vfs.UnprivilegedTskFile
       .supported_pathtype] = unprivileged_vfs.UnprivilegedTskFile
 
@@ -107,10 +107,10 @@ def _GetVfsHandlers(
           "a pathspec.")
   if (pathspec.implementation_type ==
       rdf_paths.PathSpec.ImplementationType.DIRECT):
-    return _VFS_HANDLERS_DIRECT
+    return VFS_HANDLERS_DIRECT
   elif (pathspec.implementation_type ==
         rdf_paths.PathSpec.ImplementationType.SANDBOX):
-    return _VFS_HANDLERS_SANDBOX
+    return VFS_HANDLERS_SANDBOX
   else:
     return VFS_HANDLERS
 

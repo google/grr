@@ -241,6 +241,9 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       args.action.action_type = rdf_file_finder.FileFinderAction.Action.STAT
       args.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
       args.paths = [r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath"]
+      # TODO: remove this when the registry+sandboxing bug
+      # is fixed.
+      args.implementation_type = rdf_paths.PathSpec.ImplementationType.DIRECT
       self.CallClient(
           server_stubs.VfsFileFinder,
           args,
@@ -1149,7 +1152,9 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     # refactored once registry-specific actions are available.
     args.action.action_type = rdf_file_finder.FileFinderAction.Action.STAT
     args.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
-
+    # TODO: remove this when the registry+sandboxing bug
+    # is fixed.
+    args.implementation_type = rdf_paths.PathSpec.ImplementationType.DIRECT
     for user in self.state.knowledge_base.users:
       # pylint: disable=line-too-long
       # pyformat: disable

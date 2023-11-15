@@ -40,17 +40,31 @@ class VFSOverrider(object):
       # Initialize VFS if not yet done, otherwise VFS will not initialize
       # correctly when it is used for the first time in testing code.
       vfs.Init()
-    self._old_handler = vfs.VFS_HANDLERS.get(self._vfs_type)
+    self._old_vfs_handler = vfs.VFS_HANDLERS.get(self._vfs_type)
+    self._old_direct_handler = vfs.VFS_HANDLERS_DIRECT.get(self._vfs_type)
+    self._old_sandbox_handler = vfs.VFS_HANDLERS_SANDBOX.get(self._vfs_type)
     vfs.VFS_HANDLERS[self._vfs_type] = self._temp_handler
+    vfs.VFS_HANDLERS_DIRECT[self._vfs_type] = self._temp_handler
+    vfs.VFS_HANDLERS_SANDBOX[self._vfs_type] = self._temp_handler
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     self.Stop()
 
   def Stop(self):
-    if self._old_handler:
-      vfs.VFS_HANDLERS[self._vfs_type] = self._old_handler
+    if self._old_vfs_handler:
+      vfs.VFS_HANDLERS[self._vfs_type] = self._old_vfs_handler
     else:
       del vfs.VFS_HANDLERS[self._vfs_type]
+
+    if self._old_direct_handler:
+      vfs.VFS_HANDLERS_DIRECT[self._vfs_type] = self._old_direct_handler
+    else:
+      del vfs.VFS_HANDLERS_DIRECT[self._vfs_type]
+
+    if self._old_sandbox_handler:
+      vfs.VFS_HANDLERS_SANDBOX[self._vfs_type] = self._old_sandbox_handler
+    else:
+      del vfs.VFS_HANDLERS_SANDBOX[self._vfs_type]
 
 
 class FakeTestDataVFSOverrider(VFSOverrider):
