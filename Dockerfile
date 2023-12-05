@@ -74,6 +74,6 @@ EXPOSE 8080
 # Directories used by GRR at runtime, which can be mounted from the host's
 # filesystem. Note that volumes can be mounted even if they do not appear in
 # this list.
-VOLUME ["/usr/share/grr-server/install_data/etc"]
+VOLUME ["/usr/share/grr-server/install_data/etc", "/var/lib/mysql"]
 
 CMD ["grr"]
