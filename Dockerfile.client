@@ -1,0 +1,20 @@
+FROM ghcr.io/google/grr:grr-github-actions-docker
+
+LABEL maintainer="grr-dev@googlegroups.com"
+
+ENV TEMPLATE_DIR /client_templates
+ENV INSTALLERS_DIR /client_installers
+
+RUN apt-get update
+
+ADD ./docker_config_files/client/ /configs
+RUN ls /
+
+RUN grr_client_build repack_multiple \
+    --templates ${TEMPLATE_DIR}/*/*.zip \
+    --repack_configs /configs/grr.client.yaml \
+    --output_dir ${INSTALLERS_DIR}
+
+RUN dpkg -i  ${INSTALLERS_DIR}/grr.client/*.deb    
+
+ENTRYPOINT [ "fleetspeak-client" ]

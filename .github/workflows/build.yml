@@ -225,7 +225,7 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
 
-  upload-artifacts:
+  upload-artifact:
     if: ${{ github.event_name == 'push' }}
     permissions:
       contents: 'read'
