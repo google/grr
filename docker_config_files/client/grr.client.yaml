@@ -1,0 +1,7 @@
+Client.fleetspeak_enabled: true
+Client.foreman_check_frequency: 10  # seconds
+Logging.verbose: true
+Logging.engines: file,stderr
+Logging.path: /tmp/grr-client
+Logging.filename: /tmp/grr-client/grr-client.log
+Config.writeback: /tmp/grr-client/grr-client.local.yaml

@@ -223,6 +223,50 @@ jobs:
           path: gcs_upload_dir/
           retention-days: 1
 
+  build-push-docker-base-image:
+    env:
+      REGISTRY: ghcr.io
+      IMAGE_NAME: ${{ github.repository }}
+    runs-on: ubuntu-22.04
+    needs:
+      - build-centos
+      - build-ubuntu
+      - build-osx
+      - build-windows
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+      - name: Download installers from GitHub artifacts
+        id: download
+        uses: actions/download-artifact@v4
+        with:
+          pattern: '*_installer*'
+          path: _installers
+      - name: Login to GitHub Container registry
+        # if: ${{ github.event_name == 'push' }}
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels) for Docker
+        # if: ${{ github.event_name == 'push' }}
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+
+      - name: Build and push Docker image
+        # if: ${{ github.event_name == 'push' }}
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: Dockerfile.base
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
   test-ubuntu-e2e:
     continue-on-error: true  # Debug follow up step.
     runs-on: ubuntu-22.04

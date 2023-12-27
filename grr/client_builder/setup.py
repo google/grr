@@ -16,17 +16,19 @@ os.chdir(THIS_DIRECTORY)
 def get_config():
   """Get INI parser with version.ini data."""
   ini_path = os.path.join(THIS_DIRECTORY, "version.ini")
+  rel_ini_path = "version.ini"
   if not os.path.exists(ini_path):
     ini_path = os.path.join(THIS_DIRECTORY, "../../version.ini")
+    rel_ini_path = "../../version.ini"
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
   config = configparser.ConfigParser()
   config.read(ini_path)
-  return config
+  return rel_ini_path, config
 
 
-VERSION = get_config()
+REL_INI_PATH, VERSION = get_config()
 
 
 class Sdist(sdist):
@@ -41,7 +43,7 @@ class Sdist(sdist):
         os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
 
 
-data_files = ["version.ini"]
+data_files = [REL_INI_PATH]
 
 setup_args = dict(
     name="grr-response-client-builder",

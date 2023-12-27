@@ -41,18 +41,19 @@ def sync_artifacts():
 def get_config():
   """Get INI parser with version.ini data."""
   ini_path = os.path.join(THIS_DIRECTORY, "version.ini")
+  rel_ini_path = "version.ini"
   if not os.path.exists(ini_path):
     ini_path = os.path.join(THIS_DIRECTORY, "../../version.ini")
+    rel_ini_path = "../../version.ini"
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
   config = configparser.ConfigParser()
   config.read(ini_path)
-  return config
+  return rel_ini_path, config
 
 
-VERSION = get_config()
-
+INI_PATH, VERSION = get_config()
 
 class Develop(develop):
 
@@ -97,7 +98,7 @@ data_files = list(
         find_data_files("install_data"),
         find_data_files("scripts"),
         find_data_files("grr_response_core/artifacts"),
-        ["version.ini"],
+        [INI_PATH],
     ))
 
 setup_args = dict(

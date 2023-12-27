@@ -1,0 +1,9 @@
+FROM ubuntu:22.04
+
+LABEL maintainer="grr-dev@googlegroups.com"
+
+RUN apt-get update
+RUN apt-get install -y iputils-ping
+
+COPY ./docker/client/entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
