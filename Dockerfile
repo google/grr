@@ -2,78 +2,75 @@
 #
 # See https://hub.docker.com/r/grrdocker/grr/
 #
-# We have configured Travis to trigger an image build every time a new server
-# deb is been uploaded to GCS.
+# We have configured Github Actions to trigger an image build every time a new
+# a PUSH happens in the GRR github repository.
 #
-# Run the container with:
+# Example: Run the grr admin_ui component:
 #
-# docker run \
-#    -e EXTERNAL_HOSTNAME="localhost" \
-#    -e ADMIN_PASSWORD="demo" \
-#    -p 0.0.0.0:8000:8000 \
-#    -p 0.0.0.0:8080:8080 \
-#    grrdocker/grr
+# docker run -it \
+#   -v $(pwd)/docker_config_files:/configs
+#   ghcr.io/google/grr:grr-docker-compose
+#   "-component" "admin_ui"
+#   "-config" "/configs/server/grr.server.yaml"
 
-FROM mariadb:jammy
+FROM ubuntu:22.04 AS builder
 
 LABEL maintainer="grr-dev@googlegroups.com"
 
-ARG GCS_BUCKET
-ARG GRR_COMMIT
-
-ENV GRR_VENV /usr/share/grr-server
 ENV DEBIAN_FRONTEND noninteractive
 # Buffering output (sometimes indefinitely if a thread is stuck in
 # a loop) makes for a non-optimal user experience when containers
 # are run in the foreground, so we disable that.
-ENV PYTHONUNBUFFERED=0
-
-SHELL ["/bin/bash", "-c"]
+ENV PYTHONUNBUFFERED 0
 
 RUN apt-get update && \
   apt-get install -y \
-  debhelper \
   default-jre \
-  dpkg-dev \
-  git \
-  libffi-dev \
-  libssl-dev \
+  python-is-python3 \
   python3-dev \
   python3-pip \
   python3-venv \
   python3-mysqldb \
-  rpm \
-  wget \
-  zip \
-  python3-mysqldb
+  build-essential \
+  linux-headers-generic \
+  dh-make \
+  rpm
 
-# Limiting setuptools version due to
-# https://github.com/pypa/setuptools/issues/3278
-# (it behaves incorrectly on Ubuntu 22 on virtualenvs with access to
-# globally installed packages).
-RUN pip3 install --upgrade 'setuptools<58.3.1' && \
-    python3 -m venv --system-site-packages $GRR_VENV
+RUN pwd
+RUN ls -lha
+RUN ls -lha /
 
-RUN $GRR_VENV/bin/pip install --upgrade --no-cache-dir pip wheel six setuptools nodeenv && \
-    $GRR_VENV/bin/nodeenv -p --prebuilt --node=16.13.0 && \
-    echo '{ "allow_root": true }' > /root/.bowerrc
+# Only available when building as part of Github Actions.
+COPY ./_artifacts* /client_templates
 
-# Copy the GRR code over.
-ADD . /usr/src/grr
+ENV VIRTUAL_ENV /usr/share/grr-server
+ENV GRR_SOURCE /usr/src/grr
 
-RUN cd /usr/src/grr && bash -x /usr/src/grr/docker/install_grr_from_gcs.sh
+RUN python -m venv --system-site-packages $VIRTUAL_ENV
+ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-ENTRYPOINT ["/usr/src/grr/docker/docker-entrypoint.sh"]
+RUN pip install wheel nodeenv grpcio-tools==1.60
 
-# Port for the admin UI GUI
-EXPOSE 8000
+RUN nodeenv -p --prebuilt --node=16.13.0
 
-# Port for clients to talk to
-EXPOSE 8080
+RUN mkdir ${GRR_SOURCE}
+ADD . ${GRR_SOURCE}
 
-# Directories used by GRR at runtime, which can be mounted from the host's
-# filesystem. Note that volumes can be mounted even if they do not appear in
-# this list.
-VOLUME ["/usr/share/grr-server/install_data/etc"]
+WORKDIR ${GRR_SOURCE}
 
-CMD ["grr"]
+RUN cd grr/server/grr_response_server/gui/static && \
+  npm ci && npm run gulp compile
+
+RUN python grr/proto/makefile.py && \
+  python grr/core/grr_response_core/artifacts/makefile.py
+
+RUN pip install -e grr/proto \
+  pip install -e grr/core \
+  pip install -e grr/client \
+  pip install -e grr/server \
+  pip install -e grr/client_builder \
+  pip install -e api_client/python
+
+WORKDIR /
+
+ENTRYPOINT [ "grr_server" ]
