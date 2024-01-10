@@ -77,7 +77,7 @@ class TestRecursiveListDirectoryLinuxDarwin(test_base.EndToEndTest):
     args.pathspec.pathtype = args.pathspec.OS
     args.max_depth = 2
 
-    with self.WaitForFileRefresh("fs/os/usr/bin/less"):
+    with self.WaitForFileRefresh("fs/os/usr/bin/ls"):
       self.RunFlowAndWait("RecursiveListDirectory", args=args)
 
 

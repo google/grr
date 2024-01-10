@@ -1,0 +1,31 @@
+Client.fleetspeak_enabled: true
+ClientBuilder.fleetspeak_bundled: true
+ClientBuilder.template_dir: /client_templates
+Client.server_urls:
+- fleetspeak-frontend
+Client.foreman_check_frequency: 10  # seconds
+
+Logging.verbose: true
+Logging.engines: file,stderr
+Logging.path: /tmp/grr-client
+Logging.filename: /tmp/grr-client/grr-client.log
+#  .-.
+# (o.o) WARNING: Publicly stored key. For testing only.
+#  |=|           NEVER reuse in production.
+Client.executable_signing_public_key: |
+  -----BEGIN PUBLIC KEY-----
+  MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAx6YQNUwITzi7l+biDnwv
+  n63Rg3vbfPZexL/0O1XzQw1Z7mFp3uHtnSrkgDmqYIDXwxDXvn8Ck+k8dYt8SZCc
+  Jq4Jd/YkJXaUiM2E/2Y+Gv33ioVaN7QRyVBGRldK7X6a9Z8tEBE8jF3mlzlO2Z16
+  ZCgMLD1I6ZJpHfQFcDGJP7idHY1TVHJ7j9YG8PObi2k9r5E9UBg6DcFD3Rqg5CP/
+  OUtE56B7VW3y8q49c8pw+ZfiQaXd11xMLuMOX9Brlsp/RqFC6wvM1RJc9oR08Bq8
+  je7ZmTVuwGEUR8snL2eqPqhM1UAvelbEF4IVG9E7A043Fhh7qVPxVGqKSkgfwXS0
+  0QIDAQAB
+  -----END PUBLIC KEY-----
+
+Target:Linux:
+  ClientBuilder.fleetspeak_client_config: /configs/client.config
+Target:Windows:
+  ClientBuilder.fleetspeak_client_config: /configs/client.config
+Target:Darwin:
+  ClientBuilder.fleetspeak_client_config: /configs/client.config

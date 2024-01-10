@@ -1,0 +1,11 @@
+name: "GRR"
+factory: "Daemon"
+config: {
+  [type.googleapis.com/fleetspeak.daemonservice.Config]: {
+    argv: "python"
+    argv: "-m"
+    argv: "grr_response_client.client"
+    argv: "--secondary_configs"
+    argv: "/configs/grr.client.yaml"
+  }
+}

@@ -27,6 +27,10 @@ _API_PASSWORD = flags.DEFINE_string("api_password", "", "Password for GRR API.")
 _CLIENT_ID = flags.DEFINE_string("client_id", "",
                                  "Id for client to run tests against.")
 
+_CLIENT_IP = flags.DEFINE_string(
+    "client_ip", "", "IP address of a client to run tests against."
+)
+
 _RUN_ONLY_TESTS = flags.DEFINE_list(
     "run_only_tests", [],
     "(Optional) comma-separated list of tests to run (skipping all others).")
@@ -81,10 +85,32 @@ def main(argv):
       run_only_tests=_RUN_ONLY_TESTS.value,
       skip_tests=_SKIP_TESTS.value,
       manual_tests=flags.FLAGS.manual_tests,
-      upload_test_binaries=_UPLOAD_TEST_BINARIES.value)
+      upload_test_binaries=_UPLOAD_TEST_BINARIES.value,
+  )
   test_runner.Initialize()
 
-  results, _ = test_runner.RunTestsAgainstClient(_CLIENT_ID.value)
+  client_id = _CLIENT_ID.value
+  if _CLIENT_IP.value and not _CLIENT_ID.value:
+    logging.info("Searching client by IP: %s", _CLIENT_IP.value)
+    client_id = test_runner.SearchClientByIP(_CLIENT_IP.value)
+    if not client_id:
+      logging.warning("No client with IP %s found.", _CLIENT_IP.value)
+
+  if not client_id:
+    logging.info("Searching all clients.")
+    client_ids = test_runner.SearchClientIDs()
+
+    if not client_ids:
+      logging.warning("No client found, aborting tests.")
+      sys.exit(1)
+    logging.info("Found clients ids: %s. Using first client.", client_ids)
+    client_id = client_ids[0]
+
+  if not client_id:
+    logging.warning("Missing client ID, aborting tests.")
+    sys.exit(1)
+
+  results, _ = test_runner.RunTestsAgainstClient(client_id)
   # Exit with a non-0 error code if one of the tests failed.
   for r in results.values():
     if r.errors or r.failures:

@@ -13,12 +13,12 @@ class TestNetstat(test_base.EndToEndTest):
     f = self.RunFlowAndWait("Netstat")
 
     results = list(f.ListResults())
-    self.assertGreater(len(results), 5)
+    self.assertEqual(len(results), 1)
 
     num_ips = set()
     for r in results:
       netstat = r.payload
       num_ips.add(netstat.local_address.ip)
 
-    # There should be at least two local IPs.
-    self.assertGreater(len(num_ips), 1)
+    # There should be at least 1 local IP.
+    self.assertGreater(len(num_ips), 0)

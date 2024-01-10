@@ -278,8 +278,8 @@ def main(args):
   grr_config.CONFIG.AddContext(contexts.COMMAND_LINE_CONTEXT)
   grr_config.CONFIG.AddContext(contexts.CONFIG_UPDATER_CONTEXT)
 
+  config_lib.ParseConfigCommandLine()
   if args.subparser_name == "initialize":
-    config_lib.ParseConfigCommandLine()
     if args.noprompt:
       config_updater_util.InitializeNoPrompt(
           grr_config.CONFIG,

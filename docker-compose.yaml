@@ -1,0 +1,172 @@
+services:
+  db:
+    image: mysql:8.2
+    env_file: docker_config_files/mysql/.env
+    container_name: grr-db
+    hostname: mysql-host
+    command: [
+      --max_allowed_packet=40M,
+      --log_bin_trust_function_creators=1,
+      --innodb_redo_log_capacity=167772160,
+      --innodb_log_file_size=2500M
+    ]
+    restart: always
+    volumes:
+      - ./docker_config_files/mysql/init.sh:/docker-entrypoint-initdb.d/init.sh
+      - db_data:/var/lib/mysql:rw
+    ports:
+      - "3306:3306"
+    expose:
+      - "3306"
+    networks:
+      - server-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  grr-admin-ui:
+    image: ghcr.io/google/grr:latest
+    container_name: grr-admin-ui
+    hostname: admin-ui
+    restart: always
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./docker_config_files/server:/configs/
+    ports:
+      - "8000:8000"
+    expose:
+      - "8000"
+    networks:
+      - server-network
+    command:
+      - -component
+      - admin_ui
+      - -config
+      - /configs/grr.server.yaml
+      - --verbose
+
+  grr-fleetspeak-frontend:
+    image: ghcr.io/google/grr:latest
+    container_name: grr-fleetspeak-frontend
+    hostname: grr-fleetspeak-frontend
+    depends_on:
+      db:
+        condition: service_healthy
+    volumes:
+      - ./docker_config_files/server/:/configs/
+    expose:
+      - "11111"
+    restart: always
+    networks:
+      - server-network
+    command:
+      - -component
+      - frontend
+      - -config
+      - /configs/grr.server.yaml
+      - --verbose
+
+  fleetspeak-admin:
+    image: ghcr.io/google/fleetspeak:cl-601031487
+    container_name: fleetspeak-admin
+    hostname: fleetspeak-admin
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - server-network
+    expose:
+      - "4444"
+    volumes:
+      - ./docker_config_files/server/:/configs/
+    entrypoint: [
+      "server",
+      "-components_config",
+      "/configs/textservices/admin.components.config",
+      "-services_config",
+      "/configs/grr_frontend.service",
+      "-alsologtostderr",
+      "-v",
+      "1000"
+    ]
+
+  fleetspeak-frontend:
+    image: ghcr.io/google/fleetspeak:cl-601031487
+    container_name: fleetspeak-frontend
+    hostname: fleetspeak-frontend
+    depends_on: 
+      db:
+        condition: service_healthy
+    networks:
+      - server-network
+    expose:
+      - "4443"
+      - "10000"
+    volumes:
+      - ./docker_config_files/server/:/configs/
+    entrypoint: [
+      "server",
+      "-components_config",
+      "/configs/textservices/frontend.components.config",
+      "-services_config",
+      "/configs/grr_frontend.service",
+      "-alsologtostderr",
+      "-v",
+      "1000"
+    ]
+
+  grr-worker:
+    image: ghcr.io/google/grr:latest
+    container_name: grr-worker
+    volumes:
+      - ./docker_config_files/server/:/configs/
+    hostname: grr-worker
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    networks:
+      - server-network
+    command:
+      - -component
+      - worker
+      - -config
+      - /configs/grr.server.yaml
+      - --verbose
+
+  grr-client:
+    image: ghcr.io/google/grr:latest
+    container_name: grr-client
+    restart: always
+    depends_on:
+      - db
+      - fleetspeak-frontend
+    volumes:
+      - ./docker_config_files/client/:/configs/
+      # Mount the client_installers folder, to preserve
+      # the repacked templates across restarts.
+      - client_installers:/client_installers
+    networks:
+      - server-network
+    entrypoint: [
+      "/bin/bash",
+      "-c",
+      "/configs/repack_install_client.sh && fleetspeak-client -config /configs/client.config"
+    ]
+    healthcheck:
+      test: |
+        if [[ "$(ps aux | grep grr_response_client.client | grep -v grep | wc -l)" == "0" ]]; then
+          echo "Healthckeck: GRR client process not running"
+          exit 1
+        fi
+      timeout: 10s
+      retries: 10
+
+volumes:
+  db_data:
+  client_installers:
+networks:
+  server-network:

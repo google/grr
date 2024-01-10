@@ -1,0 +1,39 @@
+Server.initialized: true
+
+Database.implementation: MysqlDB
+
+# e2e tests need write to the database 
+Mysql.host: host.docker.internal
+Mysql.port: 3306
+Mysql.database: grr
+Mysql.password: grrp
+Mysql.username: grru
+
+PrivateKeys.executable_signing_private_key: |
+  -----BEGIN RSA PRIVATE KEY-----
+  MIIEpAIBAAKCAQEAx6YQNUwITzi7l+biDnwvn63Rg3vbfPZexL/0O1XzQw1Z7mFp
+  3uHtnSrkgDmqYIDXwxDXvn8Ck+k8dYt8SZCcJq4Jd/YkJXaUiM2E/2Y+Gv33ioVa
+  N7QRyVBGRldK7X6a9Z8tEBE8jF3mlzlO2Z16ZCgMLD1I6ZJpHfQFcDGJP7idHY1T
+  VHJ7j9YG8PObi2k9r5E9UBg6DcFD3Rqg5CP/OUtE56B7VW3y8q49c8pw+ZfiQaXd
+  11xMLuMOX9Brlsp/RqFC6wvM1RJc9oR08Bq8je7ZmTVuwGEUR8snL2eqPqhM1UAv
+  elbEF4IVG9E7A043Fhh7qVPxVGqKSkgfwXS00QIDAQABAoIBAQCi51KEWoTRN4aC
+  PMcpcJVfYnH5Kj/+5/yN596957T1elhuFRhQ3+KFgrEuG191HMxxAzY23uXYkNBf
+  TTBdylxPh2R8eOAnnWk3cxLZXrDAT4gDhCoIF6sHq7Obw7CEtvB0CKy5VockNZ5o
+  uD8pe8CZJsA//MWYqHmTEkC5ugG2dlde7FcYHsqVU7NlGHhz5UqPpzrgvdTfnWwj
+  GOd2zL+BuUKbs8ZIVGEDbgtr8ILNN9MMK8nDioIB29SMWP/Jfb2Z7HSRkn2HK7Jf
+  bkv/eTJlOJnAlB5BbDDvQ8vUPgk0j0cMjcapoyoENGmbsgSvydG2O7RyBnkeGmud
+  vEExNZHBAoGBAPgGmD3A07pTYGzd7RytJJZ1u+so4IlWPg2Jp9p0WmP6D6vbB2dl
+  1lIdtzII5hh/wbd2FNZJ5X2iV93gQsffRBGeOJ8b5No91q/EdmCZpFGu7LJQqWVO
+  1+Nft/xW6Kkog811KwYNgQpE241ZRCGoD/KzZpOfb9n+EW+hVYbjOfiZAoGBAM4R
+  S56AFXKHIoZQOgX1drsWr6DKDH8Za7BNsGT1nDi1ROmNZxzx8I9avF4ZSwUMmiXR
+  AXMY69CjqFFwTtWhrZ8UHhl5x7zWAffQdof4jKtdCJ8G4CyYDCZ31Cbi7Gfo4tUP
+  FmLmN59o3l69887y1vgyFnDevSGuCzJ9hJ1LSij5AoGAGKjvMhSd+ISZrblS/erp
+  HFyQVo015fHBMa9iFQJEinQuYrPgRJOHf5qcwEjKN91b8VW4NKYcPyWI/vJxMVYt
+  emL01jz7wAct9UPfUTN1dvmhZwlGDmCMbnrx3BD4CPmSQTdJE8z76311JtSdRYtk
+  KolTxZGwmUf9i8/KpSKqfOECgYB8Kj23TpQdw0FRTwv3RTV6e6vtpXEsMGQMAnPU
+  EY5FOSxB0hscfMeniVPRG0pxy2sieDJ4aL7Go6YrFBHcdaQJI3UTgqaQqR7cdHbH
+  bUNNiixErj7rf95qW2+w0rEB13i+Sm4Bv5gqbGT5D1nWC8ruGDgfYIbzwUwr6ye6
+  I4CW+QKBgQC9xKPizqJoi375rDeLVSc/bN3fidyj+Ti87YQa9sDSyXxSF2uk2HUF
+  xCjMJcqyIOhPSze9wpip6edj8p6N3pvKEMLdFrRJR9Gkv/V9+kJffJbLwyH6Ta/x
+  v89V954580cna0V/lZYpZM/DDdhVv3hCaGIm+uAHA1mYtxzBBTKX3Q==
+  -----END RSA PRIVATE KEY-----
