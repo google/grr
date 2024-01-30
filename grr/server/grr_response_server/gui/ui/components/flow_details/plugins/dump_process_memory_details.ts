@@ -1,10 +1,22 @@
-import {ChangeDetectionStrategy, Component, TrackByFunction} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  TrackByFunction,
+} from '@angular/core';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {Process, YaraProcessDumpArgs, YaraProcessDumpInformation, YaraProcessDumpResponse} from '../../../lib/api/api_interfaces';
-import {countFlowResults, Flow, FlowState} from '../../../lib/models/flow';
-import {FlowResultMapFunction, FlowResultsQueryWithAdapter} from '../helpers/load_flow_results_directive';
+import {
+  Process,
+  YaraProcessDumpArgs,
+  YaraProcessDumpInformation,
+  YaraProcessDumpResponse,
+} from '../../../lib/api/api_interfaces';
+import {Flow, FlowState, countFlowResults} from '../../../lib/models/flow';
+import {
+  FlowResultMapFunction,
+  FlowResultsQueryWithAdapter,
+} from '../helpers/load_flow_results_directive';
 
 import {Plugin} from './plugin';
 
@@ -16,39 +28,45 @@ import {Plugin} from './plugin';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class DumpProcessMemoryDetails extends Plugin {
-  private readonly flowArgs$ =
-      this.flow$.pipe(map(flow => flow.args as YaraProcessDumpArgs));
+  private readonly flowArgs$ = this.flow$.pipe(
+    map((flow) => flow.args as YaraProcessDumpArgs),
+  );
 
-  readonly title$ = this.flowArgs$.pipe(map(args => {
-    const parts: string[] = [];
+  readonly title$ = this.flowArgs$.pipe(
+    map((args) => {
+      const parts: string[] = [];
 
-    if (args.dumpAllProcesses) {
-      parts.push('Dump all processes');
-    }
+      if (args.dumpAllProcesses) {
+        parts.push('Dump all processes');
+      }
 
-    if (args.pids?.length) {
-      parts.push(`PID ${args.pids.join(', ')}`);
-    }
+      if (args.pids?.length) {
+        parts.push(`PID ${args.pids.join(', ')}`);
+      }
 
-    if (args.processRegex) {
-      parts.push(`Process name matches ${args.processRegex}`);
-    }
+      if (args.processRegex) {
+        parts.push(`Process name matches ${args.processRegex}`);
+      }
 
-    return parts.join(', ');
-  }));
+      return parts.join(', ');
+    }),
+  );
 
   readonly query$: Observable<FlowResultsQueryWithAdapter<readonly Row[]>> =
-      this.flow$.pipe(map(flow => ({
-                            flow,
-                            withType: 'YaraProcessDumpResponse',
-                            resultMapper,
-                          })));
+    this.flow$.pipe(
+      map((flow) => ({
+        flow,
+        withType: 'YaraProcessDumpResponse',
+        resultMapper,
+      })),
+    );
 
-  override getResultDescription(flow: Flow): string|undefined {
-    const regionCount =
-        countFlowResults(flow.resultCounts ?? [], {type: 'StatEntry'});
+  override getResultDescription(flow: Flow): string | undefined {
+    const regionCount = countFlowResults(flow.resultCounts ?? [], {
+      type: 'StatEntry',
+    });
     if (!regionCount && flow.state === FlowState.RUNNING) {
-      return '';  // Hide "0 results" if flow is still running.
+      return ''; // Hide "0 results" if flow is still running.
     } else {
       // As soon as we have ≥1 results, show the result count. Only show
       // "0 results" if the flow is finished.
@@ -72,17 +90,18 @@ declare interface Row {
 }
 
 const resultMapper: FlowResultMapFunction<readonly Row[]> = (results) => {
-  return results?.map(res => res.payload as YaraProcessDumpResponse)
-             .flatMap(
-                 res => [...res.dumpedProcesses ?? [], ...res.errors ?? []])
-             .map(res => ({
-                    process: res.process,
-                    memoryRegionsCount: pluralize(
-                        (res as YaraProcessDumpInformation)
-                                .memoryRegions?.length ??
-                            0,
-                        'region', 'regions'),
-                    error: res.error,
-                  })) ??
-      [];
+  return (
+    results
+      ?.map((res) => res.payload as YaraProcessDumpResponse)
+      .flatMap((res) => [...(res.dumpedProcesses ?? []), ...(res.errors ?? [])])
+      .map((res) => ({
+        process: res.process,
+        memoryRegionsCount: pluralize(
+          (res as YaraProcessDumpInformation).memoryRegions?.length ?? 0,
+          'region',
+          'regions',
+        ),
+        error: res.error,
+      })) ?? []
+  );
 };

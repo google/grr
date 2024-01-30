@@ -15,6 +15,7 @@ from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
 from grr_response_core.lib.rdfvalues import client as rdf_client
+from grr_response_core.lib.rdfvalues import mig_artifacts
 from grr_response_server import data_store
 
 # Names of fields that should no longer be used but might occur in old artifact
@@ -120,7 +121,10 @@ class ArtifactRegistry(object):
     # to be deleted from the data store.
     to_delete = []
 
-    artifact_list = data_store.REL_DB.ReadAllArtifacts()
+    artifact_list = [
+        mig_artifacts.ToRDFArtifact(a)
+        for a in data_store.REL_DB.ReadAllArtifacts()
+    ]
 
     for artifact_value in artifact_list:
       try:

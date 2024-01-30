@@ -169,7 +169,6 @@ class ClientIndex(object):
     TryAppendPrefixes("host", host, "-")
     TryAppendPrefixes("host", client.knowledge_base.fqdn, ".")
     TryAppend("", client.knowledge_base.os)
-    TryAppend("", client.Uname())
     TryAppend("", client.os_release)
     TryAppend("", client.os_version)
     TryAppend("", client.kernel)

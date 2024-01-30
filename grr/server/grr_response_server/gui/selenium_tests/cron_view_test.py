@@ -29,9 +29,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     super().setUp()
 
     cron_job_names = [
-        cron_system.GRRVersionBreakDownCronJob.__name__,
-        cron_system.OSBreakDownCronJob.__name__,
-        cron_system.LastAccessStatsCronJob.__name__
+        cron_system.InterrogateClientsCronJob.__name__,
     ]
     cronjobs.ScheduleSystemCronJobs(cron_job_names)
 
@@ -45,18 +43,18 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Last Run")
 
     # Table should contain system cron jobs
-    self.WaitUntil(self.IsTextPresent,
-                   cron_system.GRRVersionBreakDownCronJob.__name__)
-    self.WaitUntil(self.IsTextPresent,
-                   cron_system.LastAccessStatsCronJob.__name__)
-    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDownCronJob.__name__)
+    self.WaitUntil(
+        self.IsTextPresent, cron_system.InterrogateClientsCronJob.__name__
+    )
 
     # Select a Cron.
-    self.Click("css=td:contains('OSBreakDownCronJob')")
+    self.Click("css=td:contains('InterrogateClientsCronJob')")
 
     # Check that the cron job is displayed.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=#main_bottomPane dd:contains('OSBreakDownCronJob')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=#main_bottomPane dd:contains('InterrogateClientsCronJob')",
+    )
 
   def testMessageIsShownWhenNoCronJobSelected(self):
     self.Open("/legacy")
@@ -75,7 +73,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
-    self.Click("css=td:contains('OSBreakDownCronJob')")
+    self.Click("css=td:contains('InterrogateClientsCronJob')")
 
     # Tabs should appear in the bottom pane
     self.WaitUntil(self.IsElementPresent, "css=#main_bottomPane #Details")
@@ -88,18 +86,19 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.Click("css=#main_bottomPane #Runs")
 
     runs = cronjobs.CronManager().ReadJobRuns(
-        cron_system.OSBreakDownCronJob.__name__)
+        cron_system.InterrogateClientsCronJob.__name__
+    )
     run_id = runs[0].run_id
 
     self.assertLen(runs, 1)
     self.WaitUntil(self.IsElementPresent, "css=td:contains('%s')" % run_id)
 
   def testToolbarStateForDisabledCronJob(self):
-    cronjobs.CronManager().DisableJob(job_id=u"OSBreakDownCronJob")
+    cronjobs.CronManager().DisableJob(job_id="InterrogateClientsCronJob")
 
     self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
-    self.Click("css=td:contains('OSBreakDownCronJob')")
+    self.Click("css=td:contains('InterrogateClientsCronJob')")
 
     self.assertTrue(
         self.IsElementPresent("css=button[name=EnableCronJob]:not([disabled])"))
@@ -109,11 +108,11 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
         self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])"))
 
   def testToolbarStateForEnabledCronJob(self):
-    cronjobs.CronManager().EnableJob(job_id=u"OSBreakDownCronJob")
+    cronjobs.CronManager().EnableJob(job_id="InterrogateClientsCronJob")
 
     self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
-    self.Click("css=td:contains('OSBreakDownCronJob')")
+    self.Click("css=td:contains('InterrogateClientsCronJob')")
 
     self.assertTrue(
         self.IsElementPresent("css=button[name=EnableCronJob][disabled]"))
@@ -129,7 +128,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
 
     self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
-    self.Click("css=td:contains('OSBreakDownCronJob')")
+    self.Click("css=td:contains('InterrogateClientsCronJob')")
 
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=DeleteCronJob]:not([disabled])")
@@ -150,11 +149,11 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
         1, lambda: len(self.ListCronJobApprovals(requestor=self.test_username)))
 
   def testEnableCronJob(self):
-    cronjobs.CronManager().DisableJob(job_id=u"OSBreakDownCronJob")
+    cronjobs.CronManager().DisableJob(job_id="InterrogateClientsCronJob")
 
     self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
-    self.Click("css=td:contains('OSBreakDownCronJob')")
+    self.Click("css=td:contains('InterrogateClientsCronJob')")
 
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=EnableCronJob]")
@@ -171,7 +170,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.RequestAndGrantCronJobApproval(u"OSBreakDownCronJob")
+    self.RequestAndGrantCronJobApproval("InterrogateClientsCronJob")
 
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=EnableCronJob]")
@@ -193,18 +192,20 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # workaround. Remove when we have implemented this auto refresh.
     self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
-    self.Click("css=td:contains('OSBreakDownCronJob')")
+    self.Click("css=td:contains('InterrogateClientsCronJob')")
 
-    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDownCronJob.__name__)
+    self.WaitUntil(
+        self.IsTextPresent, cron_system.InterrogateClientsCronJob.__name__
+    )
     self.WaitUntil(self.IsElementPresent,
                    "css=div:contains('Enabled') dd:contains('true')")
 
   def testDisableCronJob(self):
-    cronjobs.CronManager().EnableJob(job_id=u"OSBreakDownCronJob")
+    cronjobs.CronManager().EnableJob(job_id="InterrogateClientsCronJob")
 
     self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
-    self.Click("css=td:contains('OSBreakDownCronJob')")
+    self.Click("css=td:contains('InterrogateClientsCronJob')")
 
     # Click on Enable button and check that dialog appears.
     self.Click("css=button[name=DisableCronJob]")
@@ -219,7 +220,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.RequestAndGrantCronJobApproval(u"OSBreakDownCronJob")
+    self.RequestAndGrantCronJobApproval("InterrogateClientsCronJob")
 
     # Click on Disable button and check that dialog appears.
     self.Click("css=button[name=DisableCronJob]")
@@ -241,18 +242,20 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # workaround. Remove when we have implemented this auto refresh.
     self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
-    self.Click("css=td:contains('OSBreakDownCronJob')")
+    self.Click("css=td:contains('InterrogateClientsCronJob')")
 
-    self.WaitUntil(self.IsTextPresent, cron_system.OSBreakDownCronJob.__name__)
+    self.WaitUntil(
+        self.IsTextPresent, cron_system.InterrogateClientsCronJob.__name__
+    )
     self.WaitUntil(self.IsElementPresent,
                    "css=div:contains('Enabled') dd:contains('false')")
 
   def testDeleteCronJob(self):
-    cronjobs.CronManager().EnableJob(job_id=u"OSBreakDownCronJob")
+    cronjobs.CronManager().EnableJob(job_id="InterrogateClientsCronJob")
 
     self.Open("/legacy")
     self.Click("css=a[grrtarget=crons]")
-    self.Click("css=td:contains('OSBreakDownCronJob')")
+    self.Click("css=td:contains('InterrogateClientsCronJob')")
 
     # Click on Delete button and check that dialog appears.
     self.Click("css=button[name=DeleteCronJob]:not([disabled])")
@@ -267,7 +270,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-    self.RequestAndGrantCronJobApproval(u"OSBreakDownCronJob")
+    self.RequestAndGrantCronJobApproval("InterrogateClientsCronJob")
 
     # Click on Delete button and check that dialog appears.
     self.Click("css=button[name=DeleteCronJob]:not([disabled])")
@@ -286,15 +289,13 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
     # View should be refreshed automatically.
-    self.WaitUntil(
-        self.IsElementPresent, "css=grr-cron-jobs-list "
-        "td:contains('GRRVersionBreakDownCronJob')")
     self.WaitUntilNot(
-        self.IsElementPresent, "css=grr-cron-jobs-list "
-        "td:contains('OSBreakDownCronJob')")
+        self.IsElementPresent,
+        "css=grr-cron-jobs-list td:contains('InterrogateClientsCronJob')",
+    )
 
   def testForceRunCronJob(self):
-    cronjobs.CronManager().EnableJob(job_id=u"OSBreakDownCronJob")
+    cronjobs.CronManager().EnableJob(job_id="InterrogateClientsCronJob")
 
     with test_lib.FakeTime(
         # 2274264646 corresponds to Sat, 25 Jan 2042 12:10:46 GMT.
@@ -302,7 +303,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
         increment=1e-6):
       self.Open("/legacy")
       self.Click("css=a[grrtarget=crons]")
-      self.Click("css=td:contains('OSBreakDownCronJob')")
+      self.Click("css=td:contains('InterrogateClientsCronJob')")
 
       # Click on Force Run button and check that dialog appears.
       self.Click("css=button[name=ForceRunCronJob]:not([disabled])")
@@ -317,7 +318,7 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
       # Wait for dialog to disappear.
       self.WaitUntilNot(self.IsVisible, "css=.modal-open")
 
-      self.RequestAndGrantCronJobApproval(u"OSBreakDownCronJob")
+      self.RequestAndGrantCronJobApproval("InterrogateClientsCronJob")
 
       # Click on Force Run button and check that dialog appears.
       self.Click("css=button[name=ForceRunCronJob]:not([disabled])")
@@ -345,12 +346,14 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
       # to workaround. Remove when we have implemented this auto refresh.
       self.Open("/legacy")
       self.Click("css=a[grrtarget=crons]")
-      self.Click("css=td:contains('OSBreakDownCronJob')")
+      self.Click("css=td:contains('InterrogateClientsCronJob')")
 
       # View should be refreshed automatically. The last run date should appear.
       self.WaitUntil(
-          self.IsElementPresent, "css=grr-cron-jobs-list "
-          "tr:contains('OSBreakDownCronJob') td:contains('2042')")
+          self.IsElementPresent,
+          "css=grr-cron-jobs-list "
+          "tr:contains('InterrogateClientsCronJob') td:contains('2042')",
+      )
 
   def testStuckCronJobIsHighlighted(self):
     # Run all cron jobs once to put them into the OK state.
@@ -361,22 +364,20 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     # Make sure a lot of time has passed since the last
     # execution
     with test_lib.FakeTime(0):
-      self.AddJobStatus(u"OSBreakDownCronJob",
-                        rdf_cronjobs.CronJobRunStatus.Status.OK)
+      self.AddJobStatus(
+          "InterrogateClientsCronJob", rdf_cronjobs.CronJobRunStatus.Status.OK
+      )
 
     self.Open("/legacy")
 
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=crons]")
 
-    # OSBreakDownCronJob's row should have a 'warn' class
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr.warning td:contains('OSBreakDownCronJob')")
-
-    # Check that only OSBreakDownCronJob is highlighted
-    self.WaitUntilNot(
+    # InterrogateClientsCronJob's row should have a 'warn' class
+    self.WaitUntil(
         self.IsElementPresent,
-        "css=tr.warning td:contains('GRRVersionBreakDownCronJob')")
+        "css=tr.warning td:contains('InterrogateClientsCronJob')",
+    )
 
   def testFailingCronJobIsHighlighted(self):
     # Run all cron jobs once to put them into the OK state.
@@ -384,21 +385,20 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
     manager.RunOnce()
     manager._GetThreadPool().Stop()
 
-    self.AddJobStatus(u"OSBreakDownCronJob",
-                      rdf_cronjobs.CronJobRunStatus.Status.ERROR)
+    self.AddJobStatus(
+        "InterrogateClientsCronJob", rdf_cronjobs.CronJobRunStatus.Status.ERROR
+    )
 
     self.Open("/legacy")
 
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.Click("css=a[grrtarget=crons]")
 
-    # OSBreakDownCronJob's row should have an 'error' class
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr.danger td:contains('OSBreakDownCronJob')")
-    # Check that only OSBreakDownCronJob is highlighted
-    self.WaitUntilNot(
+    # InterrogateClientsCronJob's row should have an 'error' class
+    self.WaitUntil(
         self.IsElementPresent,
-        "css=tr.danger td:contains('GRRVersionBreakDownCronJob')")
+        "css=tr.danger td:contains('InterrogateClientsCronJob')",
+    )
 
   def testCronJobNotificationIsShownAndClickable(self):
     notification.Notify(
@@ -408,17 +408,23 @@ class TestCronView(gui_test_lib.GRRSeleniumTest):
         rdf_objects.ObjectReference(
             reference_type=rdf_objects.ObjectReference.Type.CRON_JOB,
             cron_job=rdf_objects.CronJobReference(
-                cron_job_id=u"OSBreakDownCronJob")))
+                cron_job_id="InterrogateClientsCronJob"
+            ),
+        ),
+    )
 
     self.Open("/legacy")
 
     self.Click("css=button[id=notification_button]")
     self.Click("css=a:contains('Test CronJob notification')")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr.row-selected td:contains('OSBreakDownCronJob')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=dd:contains('OSBreakDownCronJob')")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=tr.row-selected td:contains('InterrogateClientsCronJob')",
+    )
+    self.WaitUntil(
+        self.IsElementPresent, "css=dd:contains('InterrogateClientsCronJob')"
+    )
 
 
 if __name__ == "__main__":

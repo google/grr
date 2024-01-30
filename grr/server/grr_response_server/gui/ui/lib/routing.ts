@@ -1,5 +1,10 @@
 import {Injectable} from '@angular/core';
-import {ActivatedRouteSnapshot, BaseRouteReuseStrategy, Data, Route} from '@angular/router';
+import {
+  ActivatedRouteSnapshot,
+  BaseRouteReuseStrategy,
+  Data,
+  Route,
+} from '@angular/router';
 
 /** Prefix of the legacy UI route. */
 export const LEGACY_ROUTE_PREFIX = '/legacy';
@@ -31,10 +36,9 @@ export declare interface GrrRoute extends Route {
   data?: GrrRouteData;
 }
 
-
 /** Same as ActivatedRouteSnapshot, but with typed `data`. */
-export declare interface GrrActivatedRouteSnapshot extends
-    ActivatedRouteSnapshot {
+export declare interface GrrActivatedRouteSnapshot
+  extends ActivatedRouteSnapshot {
   data: GrrRouteData;
 }
 
@@ -45,21 +49,25 @@ export declare interface GrrActivatedRouteSnapshot extends
 @Injectable({providedIn: 'root'})
 export class SameComponentRouteReuseStrategy extends BaseRouteReuseStrategy {
   override shouldReuseRoute(
-      future: GrrActivatedRouteSnapshot,
-      curr: GrrActivatedRouteSnapshot): boolean {
+    future: GrrActivatedRouteSnapshot,
+    curr: GrrActivatedRouteSnapshot,
+  ): boolean {
     const reuseCurr = curr.data.reuseComponent ?? false;
     const reuseFuture = future.data.reuseComponent ?? false;
     const sameComponent = future.component === curr.component;
-    return (reuseCurr && reuseFuture && sameComponent) ||
-        super.shouldReuseRoute(future, curr);
+    return (
+      (reuseCurr && reuseFuture && sameComponent) ||
+      super.shouldReuseRoute(future, curr)
+    );
   }
 }
 
 /** Constructs a link to the old UI by parsing a Route's data.legacyLink. */
-export function makeLegacyLinkFromRoute(route: GrrActivatedRouteSnapshot):
-    string {
+export function makeLegacyLinkFromRoute(
+  route: GrrActivatedRouteSnapshot,
+): string {
   let legacyLink: string = route.data.legacyLink ?? '';
-  let currentSnapshot: ActivatedRouteSnapshot|null = route;
+  let currentSnapshot: ActivatedRouteSnapshot | null = route;
 
   // First, replace placeholders like :clientId from the route's path
   // parameters. Start at the current route and then traverse to all parent

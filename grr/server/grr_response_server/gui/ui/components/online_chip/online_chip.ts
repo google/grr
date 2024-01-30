@@ -1,5 +1,11 @@
-import {ChangeDetectionStrategy, Component, Input, OnChanges, SimpleChanges} from '@angular/core';
-import {interval, merge, Subject} from 'rxjs';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  OnChanges,
+  SimpleChanges,
+} from '@angular/core';
+import {Subject, interval, merge} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
 import {isClientOnline} from '../../lib/models/client';
@@ -18,14 +24,10 @@ export class OnlineChip implements OnChanges {
   private readonly lastSeenChange$ = new Subject<void>();
 
   // status observable that updates every second and when lastSeen changes
-  readonly status$ = merge(
-                         interval(1000),
-                         this.lastSeenChange$,
-                         )
-                         .pipe(
-                             startWith(undefined),
-                             map(() => this.getStatus()),
-                         );
+  readonly status$ = merge(interval(1000), this.lastSeenChange$).pipe(
+    startWith(undefined),
+    map(() => this.getStatus()),
+  );
 
   ngOnChanges(changes: SimpleChanges): void {
     this.lastSeenChange$.next();

@@ -8,7 +8,7 @@ from typing import Dict, Iterable, List, Optional
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import blobs
 
 # Global blob stores registry.
 #
@@ -31,36 +31,43 @@ class BlobStore(metaclass=abc.ABCMeta):
   """The blob store base class."""
 
   def WriteBlobsWithUnknownHashes(
-      self, blobs_data: Iterable[bytes]) -> List[rdf_objects.BlobID]:
+      self,
+      blobs_data: Iterable[bytes],
+  ) -> List[blobs.BlobID]:
     """Writes the contents of the given blobs, using their hash as BlobID.
 
     Args:
       blobs_data: An iterable of bytes objects.
 
     Returns:
-      A list of rdf_objects.BlobID objects with each blob id corresponding
-      to an element in the original blobs_data argument.
+      A list of blob identifiers corresponding to each written blob.
     """
-    blobs_ids = [rdf_objects.BlobID.FromBlobData(d) for d in blobs_data]
+    blobs_ids = [blobs.BlobID.Of(d) for d in blobs_data]
     self.WriteBlobs(dict(zip(blobs_ids, blobs_data)))
     return blobs_ids
 
-  def WriteBlobWithUnknownHash(self, blob_data: bytes) -> rdf_objects.BlobID:
+  def WriteBlobWithUnknownHash(
+      self,
+      blob_data: bytes,
+  ) -> blobs.BlobID:
     """Writes the content of the given blob, using its hash as BlobID.
 
     Args:
       blob_data: Blob contents as bytes.
 
     Returns:
-      rdf_objects.BlobID identifying the blob.
+      A blob identifier corresponding to the written blob.
     """
     return self.WriteBlobsWithUnknownHashes([blob_data])[0]
 
-  def ReadBlob(self, blob_id: rdf_objects.BlobID) -> Optional[bytes]:
+  def ReadBlob(
+      self,
+      blob_id: blobs.BlobID,
+  ) -> Optional[bytes]:
     """Reads the blob contents, identified by the given BlobID.
 
     Args:
-      blob_id: rdf_objects.BlobID object identifying the blob.
+      blob_id: An identifier of the blob to read.
 
     Returns:
       Bytes corresponding to a given blob or None if such blob
@@ -68,11 +75,14 @@ class BlobStore(metaclass=abc.ABCMeta):
     """
     return self.ReadBlobs([blob_id])[blob_id]
 
-  def CheckBlobExists(self, blob_id: rdf_objects.BlobID) -> bool:
+  def CheckBlobExists(
+      self,
+      blob_id: blobs.BlobID,
+  ) -> bool:
     """Checks if a blob with a given BlobID exists.
 
     Args:
-      blob_id: rdf_objects.BlobID object identifying the blob.
+      blob_id: An identifier of the blob to check for existence.
 
     Returns:
       True if the blob exists, False otherwise.
@@ -80,20 +90,20 @@ class BlobStore(metaclass=abc.ABCMeta):
     return self.CheckBlobsExist([blob_id])[blob_id]
 
   @abc.abstractmethod
-  def WriteBlobs(self, blob_id_data_map: Dict[rdf_objects.BlobID,
-                                              bytes]) -> None:
+  def WriteBlobs(
+      self,
+      blob_id_data_map: Dict[blobs.BlobID, bytes],
+  ) -> None:
     """Creates or overwrites blobs.
 
     Args:
-      blob_id_data_map: An dict of blob_id -> blob_datas. Each blob_id should be
-        a blob hash (i.e. uniquely identify the blob) expressed as
-        rdf_objects.BlobID. blob_data should be expressed as bytes.
+      blob_id_data_map: A mapping from blob identifiers to blob data to write.
     """
 
   @abc.abstractmethod
   def ReadBlobs(
-      self, blob_ids: Iterable[rdf_objects.BlobID]
-  ) -> Dict[rdf_objects.BlobID, Optional[bytes]]:
+      self, blob_ids: Iterable[blobs.BlobID]
+  ) -> Dict[blobs.BlobID, Optional[bytes]]:
     """Reads all blobs, specified by blob_ids, returning their contents.
 
     Args:
@@ -108,7 +118,8 @@ class BlobStore(metaclass=abc.ABCMeta):
   @abc.abstractmethod
   def CheckBlobsExist(
       self,
-      blob_ids: Iterable[rdf_objects.BlobID]) -> Dict[rdf_objects.BlobID, bool]:
+      blob_ids: Iterable[blobs.BlobID],
+  ) -> Dict[blobs.BlobID, bool]:
     """Checks if blobs for the given identifiers already exist.
 
     Args:
@@ -120,8 +131,10 @@ class BlobStore(metaclass=abc.ABCMeta):
     """
 
   def ReadAndWaitForBlobs(
-      self, blob_ids: Iterable[rdf_objects.BlobID],
-      timeout: rdfvalue.Duration) -> Dict[rdf_objects.BlobID, Optional[bytes]]:
+      self,
+      blob_ids: Iterable[blobs.BlobID],
+      timeout: rdfvalue.Duration,
+  ) -> Dict[blobs.BlobID, Optional[bytes]]:
     """Reads specified blobs, waiting and retrying if blobs do not exist yet.
 
     Args:
@@ -167,7 +180,7 @@ class BlobStore(metaclass=abc.ABCMeta):
 
   def ReadAndWaitForBlob(
       self,
-      blob_id: rdf_objects.BlobID,
+      blob_id: blobs.BlobID,
       timeout: rdfvalue.Duration,
   ) -> Optional[bytes]:
     """Reads the specified blobs waiting until it is available or times out.
@@ -183,7 +196,7 @@ class BlobStore(metaclass=abc.ABCMeta):
 
   def WaitForBlobs(
       self,
-      blob_ids: Iterable[rdf_objects.BlobID],
+      blob_ids: Iterable[blobs.BlobID],
       timeout: rdfvalue.Duration,
   ) -> None:
     """Waits for specified blobs to appear in the database.
@@ -238,35 +251,49 @@ class BlobStoreValidationWrapper(BlobStore):
     self.delegate = delegate
 
   def WriteBlobsWithUnknownHashes(
-      self, blobs_data: Iterable[bytes]) -> List[rdf_objects.BlobID]:
+      self,
+      blobs_data: Iterable[bytes],
+  ) -> List[blobs.BlobID]:
     precondition.AssertIterableType(blobs_data, bytes)
     return self.delegate.WriteBlobsWithUnknownHashes(blobs_data)
 
-  def WriteBlobWithUnknownHash(self, blob_data: bytes) -> rdf_objects.BlobID:
+  def WriteBlobWithUnknownHash(
+      self,
+      blob_data: bytes,
+  ) -> blobs.BlobID:
     precondition.AssertType(blob_data, bytes)
     return self.delegate.WriteBlobWithUnknownHash(blob_data)
 
-  def ReadBlob(self, blob_id: rdf_objects.BlobID) -> Optional[bytes]:
-    precondition.AssertType(blob_id, rdf_objects.BlobID)
+  def ReadBlob(
+      self,
+      blob_id: blobs.BlobID,
+  ) -> Optional[bytes]:
+    precondition.AssertType(blob_id, blobs.BlobID)
     return self.delegate.ReadBlob(blob_id)
 
-  def CheckBlobExists(self, blob_id: rdf_objects.BlobID) -> bool:
-    precondition.AssertType(blob_id, rdf_objects.BlobID)
+  def CheckBlobExists(
+      self,
+      blob_id: blobs.BlobID,
+  ) -> bool:
+    precondition.AssertType(blob_id, blobs.BlobID)
     return self.delegate.CheckBlobExists(blob_id)
 
-  def WriteBlobs(self, blob_id_data_map: Dict[rdf_objects.BlobID,
-                                              bytes]) -> None:
-    precondition.AssertDictType(blob_id_data_map, rdf_objects.BlobID, bytes)
+  def WriteBlobs(
+      self,
+      blob_id_data_map: Dict[blobs.BlobID, bytes],
+  ) -> None:
+    precondition.AssertDictType(blob_id_data_map, blobs.BlobID, bytes)
     return self.delegate.WriteBlobs(blob_id_data_map)
 
   def ReadBlobs(
-      self, blob_ids: Iterable[rdf_objects.BlobID]
-  ) -> Dict[rdf_objects.BlobID, Optional[bytes]]:
-    precondition.AssertIterableType(blob_ids, rdf_objects.BlobID)
+      self, blob_ids: Iterable[blobs.BlobID]
+  ) -> Dict[blobs.BlobID, Optional[bytes]]:
+    precondition.AssertIterableType(blob_ids, blobs.BlobID)
     return self.delegate.ReadBlobs(blob_ids)
 
   def CheckBlobsExist(
       self,
-      blob_ids: Iterable[rdf_objects.BlobID]) -> Dict[rdf_objects.BlobID, bool]:
-    precondition.AssertIterableType(blob_ids, rdf_objects.BlobID)
+      blob_ids: Iterable[blobs.BlobID],
+  ) -> Dict[blobs.BlobID, bool]:
+    precondition.AssertIterableType(blob_ids, blobs.BlobID)
     return self.delegate.CheckBlobsExist(blob_ids)

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import argparse
 import builtins
 import getpass
@@ -7,7 +6,6 @@ import os
 from unittest import mock
 
 from absl import app
-
 import MySQLdb
 from MySQLdb import connections
 from MySQLdb.constants import CR as mysql_conn_errors
@@ -20,6 +18,7 @@ from grr_response_proto.api import config_pb2
 from grr_response_server import data_store
 from grr_response_server import signed_binary_utils
 from grr_response_server.bin import config_updater_util
+from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import test_lib
 
 
@@ -238,11 +237,13 @@ class ConfigUpdaterLibTest(test_lib.GRRBaseTest):
       config_updater_util.GetUserSummary("foo_user")
 
   def _AssertStoredUserDetailsAre(self, username, password, is_admin):
-    user = data_store.REL_DB.ReadGRRUser(username)
-    self.assertTrue(user.password.CheckPassword(password))
+    proto_user = data_store.REL_DB.ReadGRRUser(username)
+    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
+    self.assertTrue(rdf_user.password.CheckPassword(password))
     if is_admin:
-      self.assertEqual(user.user_type,
-                       objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN)
+      self.assertEqual(
+          rdf_user.user_type, objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN
+      )
 
   def testArgparseBool_CaseInsensitive(self):
     parser = argparse.ArgumentParser()

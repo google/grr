@@ -12,11 +12,11 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server import server_stubs
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import crowdstrike
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import testing_startup
@@ -37,7 +37,7 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
 
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
 
-    client_snapshot = rdf_objects.ClientSnapshot()
+    client_snapshot = objects_pb2.ClientSnapshot()
     client_snapshot.client_id = client_id
     client_snapshot.knowledge_base.os = "Linux"
     data_store.REL_DB.WriteClientSnapshot(client_snapshot)
@@ -75,7 +75,7 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
 
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
 
-    client_snapshot = rdf_objects.ClientSnapshot()
+    client_snapshot = objects_pb2.ClientSnapshot()
     client_snapshot.client_id = client_id
     client_snapshot.knowledge_base.os = "Linux"
     data_store.REL_DB.WriteClientSnapshot(client_snapshot)
@@ -118,7 +118,7 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
 
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
 
-    client_snapshot = rdf_objects.ClientSnapshot()
+    client_snapshot = objects_pb2.ClientSnapshot()
     client_snapshot.client_id = client_id
     client_snapshot.knowledge_base.os = "Windows"
     data_store.REL_DB.WriteClientSnapshot(client_snapshot)
@@ -157,7 +157,7 @@ class GetCrowdStrikeAgentID(flow_test_lib.FlowTestsBaseclass):
 
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
 
-    client_snapshot = rdf_objects.ClientSnapshot()
+    client_snapshot = objects_pb2.ClientSnapshot()
     client_snapshot.client_id = client_id
     client_snapshot.knowledge_base.os = "Darwin"
     data_store.REL_DB.WriteClientSnapshot(client_snapshot)

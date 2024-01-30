@@ -9,6 +9,7 @@ import {assertNonNull} from '../../lib/preconditions';
 import {observeOnDestroy} from '../../lib/reactive';
 import {ApprovalPageGlobalStore} from '../../store/approval_page_global_store';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
+import {ConfigGlobalStore} from '../../store/config_global_store';
 import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
 import {UserGlobalStore} from '../../store/user_global_store';
 
@@ -26,65 +27,94 @@ export class ApprovalPage implements OnDestroy {
 
   // TODO: Evaluate moving canGrant$ to ApprovalPageGlobalStore,
   // which would then depend on UserGlobalStore.
-  private readonly canGrant$ =
-      combineLatest([this.approval$, this.userGlobalStore.currentUser$])
-          .pipe(
-              map(([approval, user]) => approval &&
-                      user.name !== approval.requestor &&
-                      !approval.approvers.includes(user.name)));
-
+  private readonly canGrant$ = combineLatest([
+    this.approval$,
+    this.userGlobalStore.currentUser$,
+  ]).pipe(
+    map(
+      ([approval, user]) =>
+        approval &&
+        user.name !== approval.requestor &&
+        !approval.approvers.includes(user.name),
+    ),
+  );
 
   readonly requestInProgress$ =
-      this.approvalPageGlobalStore.grantRequestStatus$.pipe(
-          map(status => status?.status === RequestStatusType.SENT));
+    this.approvalPageGlobalStore.grantRequestStatus$.pipe(
+      map((status) => status?.status === RequestStatusType.SENT),
+    );
 
-  readonly disabled$ = combineLatest([this.canGrant$, this.requestInProgress$])
-                           .pipe(
-                               map(([canGrant, requestInProgress]) =>
-                                       !canGrant || requestInProgress),
-                           );
+  readonly disabled$ = combineLatest([
+    this.canGrant$,
+    this.requestInProgress$,
+  ]).pipe(
+    map(([canGrant, requestInProgress]) => !canGrant || requestInProgress),
+  );
+
+  longExpiration?: boolean;
+  defaultAccessDurationDays?: number;
 
   constructor(
-      readonly route: ActivatedRoute,
-      private readonly title: Title,
-      private readonly approvalPageGlobalStore: ApprovalPageGlobalStore,
-      private readonly clientPageGlobalStore: ClientPageGlobalStore,
-      private readonly userGlobalStore: UserGlobalStore,
-      private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
+    readonly route: ActivatedRoute,
+    private readonly title: Title,
+    private readonly approvalPageGlobalStore: ApprovalPageGlobalStore,
+    private readonly clientPageGlobalStore: ClientPageGlobalStore,
+    private readonly userGlobalStore: UserGlobalStore,
+    private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
+    private readonly configGlobalStore: ConfigGlobalStore,
   ) {
     route.paramMap
-        .pipe(
-            takeUntil(this.ngOnDestroy.triggered$),
-            )
-        .subscribe((params) => {
-          const clientId = params.get('clientId');
-          const requestor = params.get('requestor');
-          const approvalId = params.get('approvalId');
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((params) => {
+        const clientId = params.get('clientId');
+        const requestor = params.get('requestor');
+        const approvalId = params.get('approvalId');
 
-          assertNonNull(clientId, 'clientId');
-          assertNonNull(requestor, 'requestor');
-          assertNonNull(approvalId, 'approvalId');
+        assertNonNull(clientId, 'clientId');
+        assertNonNull(requestor, 'requestor');
+        assertNonNull(approvalId, 'approvalId');
 
-          this.approvalPageGlobalStore.selectApproval(
-              {clientId, requestor, approvalId});
-          this.clientPageGlobalStore.selectClient(clientId);
-          this.selectedClientGlobalStore.selectClientId(clientId);
+        this.approvalPageGlobalStore.selectApproval({
+          clientId,
+          requestor,
+          approvalId,
         });
+        this.clientPageGlobalStore.selectClient(clientId);
+        this.selectedClientGlobalStore.selectClientId(clientId);
+      });
 
     this.approvalPageGlobalStore.approval$
-        .pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(approval => {
-          if (!approval) {
-            this.title.setTitle('GRR | Approval');
-          } else {
-            const client = approval.subject;
-            const fqdn = client.knowledgeBase?.fqdn;
-            const info =
-                fqdn ? `${fqdn} (${client.clientId})` : client.clientId;
-            this.title.setTitle(
-                `GRR | Approval for ${approval.requestor} on ${info}`);
-          }
-        });
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((approval) => {
+        if (!approval) {
+          this.title.setTitle('GRR | Approval');
+        } else {
+          const client = approval.subject;
+          const fqdn = client.knowledgeBase?.fqdn;
+          const info = fqdn ? `${fqdn} (${client.clientId})` : client.clientId;
+          this.title.setTitle(
+            `GRR | Approval for ${approval.requestor} on ${info}`,
+          );
+
+          this.configGlobalStore.uiConfig$
+            .pipe(takeUntil(this.ngOnDestroy.triggered$))
+            .subscribe((config) => {
+              if (!config) return;
+              if (!config.defaultAccessDurationSeconds) return;
+              if (!approval.expirationTime) return;
+
+              this.defaultAccessDurationDays =
+                Number(config.defaultAccessDurationSeconds) / (24 * 60 * 60);
+
+              const watermark = new Date();
+              watermark.setDate(
+                watermark.getDate() + this.defaultAccessDurationDays,
+              );
+
+              this.longExpiration = approval.expirationTime > watermark;
+            });
+        }
+      });
   }
 
   grantApproval() {

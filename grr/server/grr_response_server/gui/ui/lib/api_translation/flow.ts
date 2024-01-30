@@ -1,20 +1,56 @@
 import * as apiInterfaces from '../api/api_interfaces';
-import {ArtifactCollectorFlowProgress, ArtifactProgress, Binary, BinaryType, ExecuteBinaryResponse, ExecuteResponse, Flow, FlowDescriptor, FlowResult, FlowResultCount, FlowState, HexHash, OperatingSystem, RegistryKey, RegistryType, RegistryValue, ScheduledFlow} from '../models/flow';
+import {
+  ArtifactCollectorFlowProgress,
+  ArtifactProgress,
+  Binary,
+  BinaryType,
+  ExecuteBinaryResponse,
+  ExecuteResponse,
+  Flow,
+  FlowDescriptor,
+  FlowResult,
+  FlowResultCount,
+  FlowState,
+  HexHash,
+  OperatingSystem,
+  RegistryKey,
+  RegistryType,
+  RegistryValue,
+  ScheduledFlow,
+} from '../models/flow';
 import {PathSpec, PathSpecSegment, StatEntry} from '../models/vfs';
-import {assertEnum, assertKeyNonNull, assertNonNull, isEnum, isNonNull, isNull, PreconditionError} from '../preconditions';
+import {
+  PreconditionError,
+  assertEnum,
+  assertKeyNonNull,
+  assertNonNull,
+  isEnum,
+  isNonNull,
+  isNull,
+} from '../preconditions';
 
-import {bytesToHex, createDate, createOptionalBigInt, createOptionalDateSeconds, createUnknownObject, decodeBase64} from './primitive';
+import {
+  bytesToHex,
+  createDate,
+  createOptionalBigInt,
+  createOptionalDateSeconds,
+  createUnknownObject,
+  decodeBase64,
+} from './primitive';
 
 /** Constructs a FlowDescriptor from the corresponding API data structure */
-export function translateFlowDescriptor(fd: apiInterfaces.ApiFlowDescriptor):
-    FlowDescriptor {
+export function translateFlowDescriptor(
+  fd: apiInterfaces.ApiFlowDescriptor,
+): FlowDescriptor {
   assertKeyNonNull(fd, 'name');
   assertKeyNonNull(fd, 'category');
   assertKeyNonNull(fd, 'defaultArgs');
+  assertKeyNonNull(fd, 'blockHuntCreation');
 
   const result = {
     name: fd.name,
     friendlyName: fd.friendlyName || fd.name,
+    blockHuntCreation: fd.blockHuntCreation,
     category: fd.category,
     defaultArgs: {...fd.defaultArgs},
   };
@@ -45,7 +81,7 @@ export function translateFlow(apiFlow: apiInterfaces.ApiFlow): Flow {
   assertKeyNonNull(apiFlow, 'state');
   assertKeyNonNull(apiFlow, 'isRobot');
 
-  let resultCounts: readonly FlowResultCount[]|undefined;
+  let resultCounts: readonly FlowResultCount[] | undefined;
 
   // For legacy flows where isMetadataSet is unset, we need to be careful to
   // differentiate between a flow that has no numResultsPerTypeTag because it
@@ -53,17 +89,20 @@ export function translateFlow(apiFlow: apiInterfaces.ApiFlow): Flow {
   // unset because it was executed before we added this field. Thus, only set
   // resultCounts if it contains results OR we are sure that missing
   // numResultsPerTypeTag really means the flow has 0 results.
-  if (apiFlow.resultMetadata?.isMetadataSet ||
-      apiFlow.resultMetadata?.numResultsPerTypeTag?.length) {
-    resultCounts =
-        (apiFlow.resultMetadata.numResultsPerTypeTag ?? []).map(rc => {
-          assertKeyNonNull(rc, 'type');
-          return {
-            type: rc.type,
-            tag: rc.tag,
-            count: Number(rc.count),
-          };
-        });
+  if (
+    apiFlow.resultMetadata?.isMetadataSet ||
+    apiFlow.resultMetadata?.numResultsPerTypeTag?.length
+  ) {
+    resultCounts = (apiFlow.resultMetadata.numResultsPerTypeTag ?? []).map(
+      (rc) => {
+        assertKeyNonNull(rc, 'type');
+        return {
+          type: rc.type,
+          tag: rc.tag,
+          count: Number(rc.count),
+        };
+      },
+    );
   }
 
   return {
@@ -83,8 +122,9 @@ export function translateFlow(apiFlow: apiInterfaces.ApiFlow): Flow {
 }
 
 /** Construct a FlowResult model object, corresponding to ApiFlowResult.  */
-export function translateFlowResult(apiFlowResult: apiInterfaces.ApiFlowResult):
-    FlowResult {
+export function translateFlowResult(
+  apiFlowResult: apiInterfaces.ApiFlowResult,
+): FlowResult {
   assertKeyNonNull(apiFlowResult, 'payload');
   assertKeyNonNull(apiFlowResult, 'payloadType');
   assertKeyNonNull(apiFlowResult, 'timestamp');
@@ -98,8 +138,9 @@ export function translateFlowResult(apiFlowResult: apiInterfaces.ApiFlowResult):
 }
 
 /** Constructs a ScheduledFlow from the corresponding API data structure. */
-export function translateScheduledFlow(apiSF: apiInterfaces.ApiScheduledFlow):
-    ScheduledFlow {
+export function translateScheduledFlow(
+  apiSF: apiInterfaces.ApiScheduledFlow,
+): ScheduledFlow {
   assertKeyNonNull(apiSF, 'scheduledFlowId');
   assertKeyNonNull(apiSF, 'clientId');
   assertKeyNonNull(apiSF, 'creator');
@@ -118,8 +159,9 @@ export function translateScheduledFlow(apiSF: apiInterfaces.ApiScheduledFlow):
   };
 }
 
-function byteStringToHex(byteString?: apiInterfaces.ProtoBytes): string|
-    undefined {
+function byteStringToHex(
+  byteString?: apiInterfaces.ProtoBytes,
+): string | undefined {
   if (byteString === undefined) {
     return undefined;
   }
@@ -139,15 +181,17 @@ export function translateHashToHex(hash: apiInterfaces.Hash): HexHash {
 export function translateOperatingSystem(str: string): OperatingSystem {
   if (!isEnum(str, OperatingSystem)) {
     throw new PreconditionError(
-        `OperatingSystem enum does not include "${str}".`);
+      `OperatingSystem enum does not include "${str}".`,
+    );
   }
 
   return str;
 }
 
 /** Translates a String to OperatingSystem, returning null if unknown. */
-export function safeTranslateOperatingSystem(str: string|undefined|
-                                             null): OperatingSystem|null {
+export function safeTranslateOperatingSystem(
+  str: string | undefined | null,
+): OperatingSystem | null {
   if (isNull(str) || !isEnum(str, OperatingSystem)) {
     return null;
   }
@@ -156,8 +200,9 @@ export function safeTranslateOperatingSystem(str: string|undefined|
 }
 
 /** Constructs an ExecuteResponse from the corresponding API data structure. */
-export function translateExecuteResponse(er: apiInterfaces.ExecuteResponse):
-    ExecuteResponse {
+export function translateExecuteResponse(
+  er: apiInterfaces.ExecuteResponse,
+): ExecuteResponse {
   assertKeyNonNull(er, 'request');
 
   return {
@@ -169,7 +214,7 @@ export function translateExecuteResponse(er: apiInterfaces.ExecuteResponse):
     exitStatus: er.exitStatus ?? -1,
     stdout: atob(er.stdout ?? ''),
     stderr: atob(er.stderr ?? ''),
-    timeUsedSeconds: (er.timeUsed ?? 0) / 1e6
+    timeUsedSeconds: (er.timeUsed ?? 0) / 1e6,
   };
 }
 
@@ -178,28 +223,28 @@ export function translateExecuteResponse(er: apiInterfaces.ExecuteResponse):
  * structure.
  */
 export function translateExecuteBinaryResponse(
-    er: apiInterfaces.ExecuteBinaryResponse): ExecuteBinaryResponse {
+  er: apiInterfaces.ExecuteBinaryResponse,
+): ExecuteBinaryResponse {
   return {
     exitStatus: er.exitStatus ?? -1,
     stdout: atob(er.stdout ?? ''),
     stderr: atob(er.stderr ?? ''),
-    timeUsedSeconds: (er.timeUsed ?? 0) / 1e6
+    timeUsedSeconds: (er.timeUsed ?? 0) / 1e6,
   };
 }
 
 /**
  * Constructs internal ArtifactCollectorFlowProgress from an ArtifactCollector.
  */
-export function translateArtifactCollectorFlowProgress(flow: Flow):
-    ArtifactCollectorFlowProgress {
+export function translateArtifactCollectorFlowProgress(
+  flow: Flow,
+): ArtifactCollectorFlowProgress {
   const progressAritfacts =
-      (flow.progress as apiInterfaces.ArtifactCollectorFlowProgress)
-          ?.artifacts ??
-      [];
+    (flow.progress as apiInterfaces.ArtifactCollectorFlowProgress)?.artifacts ??
+    [];
 
   const argumentArtifacts =
-      (flow.args as apiInterfaces.ArtifactCollectorFlowArgs)?.artifactList ??
-      [];
+    (flow.args as apiInterfaces.ArtifactCollectorFlowArgs)?.artifactList ?? [];
 
   const artifacts = new Map<string, ArtifactProgress>();
 
@@ -224,7 +269,7 @@ export function translatePathSpec(ps: apiInterfaces.PathSpec): PathSpec {
     pathtype: ps.pathtype,
     segments: [] as PathSpecSegment[],
   };
-  let currentPathSpec: apiInterfaces.PathSpec|undefined = ps;
+  let currentPathSpec: apiInterfaces.PathSpec | undefined = ps;
 
   while (currentPathSpec) {
     assertEnum(currentPathSpec.pathtype, apiInterfaces.PathSpecPathType);
@@ -247,8 +292,9 @@ export function translatePathSpec(ps: apiInterfaces.PathSpec): PathSpec {
  * Parses a StatEntry to a RegistryKey/Value if possible. As fallback, returns
  * the original StatEntry.
  */
-export function translateVfsStatEntry(statEntry: apiInterfaces.StatEntry):
-    StatEntry|RegistryKey|RegistryValue {
+export function translateVfsStatEntry(
+  statEntry: apiInterfaces.StatEntry,
+): StatEntry | RegistryKey | RegistryValue {
   assertKeyNonNull(statEntry, 'pathspec');
   assertKeyNonNull(statEntry.pathspec, 'path');
 
@@ -274,8 +320,9 @@ export function translateVfsStatEntry(statEntry: apiInterfaces.StatEntry):
 }
 
 /** Parses a StatEntry. */
-export function translateStatEntry(statEntry: apiInterfaces.StatEntry):
-    StatEntry {
+export function translateStatEntry(
+  statEntry: apiInterfaces.StatEntry,
+): StatEntry {
   assertKeyNonNull(statEntry, 'pathspec');
 
   return {
@@ -300,12 +347,12 @@ export function translateStatEntry(statEntry: apiInterfaces.StatEntry):
   };
 }
 
-
 /**
  * Returns true if the returned value of translateVfsStatEntry() is a StatEntry.
  */
-export function isStatEntry(entry: StatEntry|RegistryKey|
-                            RegistryValue): entry is StatEntry {
+export function isStatEntry(
+  entry: StatEntry | RegistryKey | RegistryValue,
+): entry is StatEntry {
   return isNonNull((entry as StatEntry).pathspec);
 }
 
@@ -313,8 +360,9 @@ export function isStatEntry(entry: StatEntry|RegistryKey|
  * Returns true if the returned value of translateVfsStatEntry() is a Registry
  * key or value.
  */
-export function isRegistryEntry(entry: StatEntry|RegistryKey|RegistryValue):
-    entry is RegistryKey|RegistryValue {
+export function isRegistryEntry(
+  entry: StatEntry | RegistryKey | RegistryValue,
+): entry is RegistryKey | RegistryValue {
   return isNonNull((entry as RegistryKey).type);
 }
 
@@ -335,8 +383,9 @@ export function translateBinary(b: apiInterfaces.ApiGrrBinary): Binary {
 }
 
 /** Translates an ApiGrrBinary, returning null if legacy types are used. */
-export function safeTranslateBinary(b: apiInterfaces.ApiGrrBinary): Binary|
-    null {
+export function safeTranslateBinary(
+  b: apiInterfaces.ApiGrrBinary,
+): Binary | null {
   try {
     return translateBinary(b);
   } catch (e: unknown) {

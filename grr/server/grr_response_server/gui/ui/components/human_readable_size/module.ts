@@ -6,15 +6,8 @@ import {HumanReadableSizeComponent} from './human_readable_size';
  * Module for the human readable size component.
  */
 @NgModule({
-  imports: [
-    CommonModule,
-  ],
-  declarations: [
-    HumanReadableSizeComponent,
-  ],
-  exports: [
-    HumanReadableSizeComponent,
-  ],
+  imports: [CommonModule],
+  declarations: [HumanReadableSizeComponent],
+  exports: [HumanReadableSizeComponent],
 })
-export class HumanReadableSizeModule {
-}
+export class HumanReadableSizeModule {}

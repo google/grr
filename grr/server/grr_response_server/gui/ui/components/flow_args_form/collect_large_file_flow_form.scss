@@ -1,0 +1,21 @@
+@use '@angular/material' as mat;
+@use '../../material-theme' as c;
+
+.w100 {
+  width: 100%;
+}
+
+.title {
+  margin-top: 1.5em;
+  margin-bottom: 0.75em;
+  font-family: c.$google-sans-display-family;
+  color: mat.get-color-from-palette(c.$foreground, text);
+}
+
+.validation {
+  margin-bottom: 1em;
+}
+
+.radio-option {
+  padding: 4px 12px;
+}

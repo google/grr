@@ -88,8 +88,6 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
           "Received regex rule without a valid field specification.")
     elif field == fsf.USERNAMES:
       return " ".join(user.username for user in snapshot.knowledge_base.users)
-    elif field == fsf.UNAME:
-      return snapshot.Uname()
     elif field == fsf.FQDN:
       return snapshot.knowledge_base.fqdn
     elif field == fsf.HOST_IPS:
@@ -118,6 +116,8 @@ class ForemanRegexClientRule(ForemanClientRuleBase):
       system_labels = snapshot.startup_info.client_info.labels
       user_labels = [l.name for l in client_info.labels]
       return " ".join(itertools.chain(system_labels, user_labels))
+    elif field == fsf.CLIENT_ID:
+      return snapshot.client_id
     else:
       raise ValueError("Unexpected foreman field: %s." % field)
 

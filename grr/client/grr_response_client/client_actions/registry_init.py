@@ -2,11 +2,9 @@
 """Register all available client actions."""
 
 import platform
-import sys
 
 from grr_response_client import client_actions
 from grr_response_client.client_actions import admin
-from grr_response_client.client_actions import artifact_collector
 from grr_response_client.client_actions import cloud
 from grr_response_client.client_actions import dummy
 from grr_response_client.client_actions import file_finder
@@ -28,8 +26,6 @@ from grr_response_client.client_actions.windows import pipes
 def RegisterClientActions():
   """Registers all client actions."""
 
-  client_actions.Register("ArtifactCollector",
-                          artifact_collector.ArtifactCollector)
   client_actions.Register("CheckFreeGRRTempSpace",
                           tempfiles.CheckFreeGRRTempSpace)
   client_actions.Register("CollectLargeFile", large_file.CollectLargeFileAction)
@@ -42,7 +38,6 @@ def RegisterClientActions():
   client_actions.Register("Find", searching.Find)
   client_actions.Register("FingerprintFile", file_fingerprint.FingerprintFile)
   client_actions.Register("GetClientInfo", admin.GetClientInfo)
-  client_actions.Register("GetClientStats", admin.GetClientStats)
   client_actions.Register("GetCloudVMMetadata", cloud.GetCloudVMMetadata)
   client_actions.Register("GetConfiguration", admin.GetConfiguration)
   client_actions.Register("GetFileStat", standard.GetFileStat)
@@ -82,11 +77,6 @@ def RegisterClientActions():
     client_actions.Register("EnumerateUsers", linux.EnumerateUsers)
     client_actions.Register("GetInstallDate", linux.GetInstallDate)
     client_actions.Register("UpdateAgent", linux.UpdateAgent)
-
-    if hasattr(sys, "frozen"):
-      from grr_response_client.components.chipsec_support.actions import grr_chipsec  # pylint: disable=g-import-not-at-top
-      client_actions.Register("DumpACPITable", grr_chipsec.DumpACPITable)
-      client_actions.Register("DumpFlashImage", grr_chipsec.DumpFlashImage)
 
   elif platform.system() == "Windows":
     from grr_response_client.client_actions.windows import windows  # pylint: disable=g-import-not-at-top

@@ -9,6 +9,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server.flows.general import file_finder as flows_file_finder
@@ -19,6 +20,7 @@ from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -158,6 +160,37 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         self.IsElementPresent,
         "css=.tab-content td.proto_value:contains(StoreResultsWithoutBlobs)",
     )
+
+  def testDefaultOutputPluginIsCorrectlyAddedToThePluginsList(self):
+    with test_lib.ConfigOverrider(
+        {"AdminUI.new_flow_form.default_output_plugins": "DummyOutputPlugin"}
+    ):
+      self.Open("/legacy")
+
+      self.Type("client_query", self.client_id)
+      self.Click("client_query_submit")
+
+      self.WaitUntilEqual(
+          self.client_id, self.GetText, "css=span[type=subject]"
+      )
+
+      # Choose client 1
+      self.Click("css=td:contains('%s')" % self.client_id)
+
+      # First screen should be the Host Information already.
+      self.WaitUntil(self.IsTextPresent, "Host000011112222")
+
+      self.Click("css=a[grrtarget='client.launchFlows']")
+      self.Click("css=#_Processes a")
+      self.Click("link=" + flows_processes.ListProcesses.__name__)
+
+      self.WaitUntil(self.IsTextPresent, "List running processes on a system.")
+
+      # Dummy output plugin should be added by default.
+      self.WaitUntil(
+          self.IsElementPresent,
+          "css=grr-flow-form:contains('DummyOutputPlugin')",
+      )
 
   def testOverviewIsShownForNestedFlows(self):
     flow_test_lib.StartFlow(
@@ -504,8 +537,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
         "tr:contains('Status'):contains('Because I said so')")
 
   def _AddLogToFlow(self, flow_id, log_string):
-    entry = rdf_flow_objects.FlowLogEntry(
-        client_id=self.client_id, flow_id=flow_id, message=log_string)
+    entry = flows_pb2.FlowLogEntry(
+        client_id=self.client_id, flow_id=flow_id, message=log_string
+    )
     data_store.REL_DB.WriteFlowLogEntry(entry)
 
   def testFlowLogsTabGetsUpdatedWhenNewLogsAreAdded(self):
@@ -540,7 +574,9 @@ class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
   def _AddResultToFlow(self, flow_id, result):
     flow_result = rdf_flow_objects.FlowResult(
         client_id=self.client_id, flow_id=flow_id, payload=result)
-    data_store.REL_DB.WriteFlowResults([flow_result])
+    data_store.REL_DB.WriteFlowResults(
+        [mig_flow_objects.ToProtoFlowResult(flow_result)]
+    )
 
   def testFlowResultsTabGetsUpdatedWhenNewResultsAreAdded(self):
     flow_id = flow_test_lib.StartFlow(

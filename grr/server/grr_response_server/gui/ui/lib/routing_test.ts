@@ -8,7 +8,6 @@ import {makeLegacyLink, makeLegacyLinkFromRoute} from './routing';
 
 initTestEnvironment();
 
-
 describe('makeLegacyLinkFromRoute', () => {
   it('uses route params from child, then parent routes', () => {
     const route = {
@@ -24,7 +23,8 @@ describe('makeLegacyLinkFromRoute', () => {
       },
     };
 
-    expect(makeLegacyLinkFromRoute(route as any))
-        .toEqual(`${makeLegacyLink()}#/foo/123/bar/456`);
+    expect(makeLegacyLinkFromRoute(route as any)).toEqual(
+      `${makeLegacyLink()}#/foo/123/bar/456`,
+    );
   });
 });

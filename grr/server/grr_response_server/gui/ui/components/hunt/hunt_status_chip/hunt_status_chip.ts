@@ -1,21 +1,25 @@
-import {ChangeDetectionStrategy, Component, Input, OnDestroy} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  OnDestroy,
+} from '@angular/core';
 import {BehaviorSubject} from 'rxjs';
 import {tap} from 'rxjs/operators';
 
 import {toDurationUnit} from '../../../components/form/duration_input/duration_conversion';
 import {ApiHuntStateReason} from '../../../lib/api/api_interfaces';
 import {DateTime} from '../../../lib/date_time';
-import {type Hunt, HuntState} from '../../../lib/models/hunt';
+import {HuntState, type Hunt} from '../../../lib/models/hunt';
 import {GrrUser} from '../../../lib/models/user';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {UserGlobalStore} from '../../../store/user_global_store';
 
 const APPROVAL_NOT_REQUIRED_NOT_STARTED_TOOLTOP =
-    'This hunt has never been started.';
+  'This hunt has never been started.';
 const APPROVAL_REQUIRED_NOT_STARTED_TOOLTOP =
-    'Either the hunt has no approval, or it was never started after approval was granted.';
+  'Either the hunt has no approval, or it was never started after approval was granted.';
 const CANCELLED_BY_USER_TOOLTIP = 'Cancelled by user';
-
 
 /** Chip that shows the state of a hunt. */
 @Component({
@@ -29,31 +33,30 @@ export class HuntStatusChip implements OnDestroy {
   protected readonly HuntState = HuntState;
   protected readonly ApiHuntStateReason = ApiHuntStateReason;
 
-  protected readonly hunt$ = new BehaviorSubject<Hunt|null>(null);
+  protected readonly hunt$ = new BehaviorSubject<Hunt | null>(null);
 
   protected notStartedTooltip = APPROVAL_NOT_REQUIRED_NOT_STARTED_TOOLTOP;
 
   @Input()
-  set hunt(hunt: Hunt|null) {
+  set hunt(hunt: Hunt | null) {
     this.hunt$.next(hunt ?? null);
   }
 
   protected readonly huntApprovalRequired$ =
-      this.userGlobalStore.currentUser$.pipe();
+    this.userGlobalStore.currentUser$.pipe();
 
   constructor(private readonly userGlobalStore: UserGlobalStore) {
     this.userGlobalStore.currentUser$
-        .pipe(
-            tap((user: GrrUser) => {
-              if (user.huntApprovalRequired) {
-                this.notStartedTooltip = APPROVAL_REQUIRED_NOT_STARTED_TOOLTOP;
-              } else {
-                this.notStartedTooltip =
-                    APPROVAL_NOT_REQUIRED_NOT_STARTED_TOOLTOP;
-              }
-            }),
-            )
-        .subscribe();
+      .pipe(
+        tap((user: GrrUser) => {
+          if (user.huntApprovalRequired) {
+            this.notStartedTooltip = APPROVAL_REQUIRED_NOT_STARTED_TOOLTOP;
+          } else {
+            this.notStartedTooltip = APPROVAL_NOT_REQUIRED_NOT_STARTED_TOOLTOP;
+          }
+        }),
+      )
+      .subscribe();
   }
 
   get cancelledTooltip() {
@@ -88,8 +91,10 @@ export class HuntStatusChip implements OnDestroy {
       return '';
     }
 
-    const durationFormattedParts =
-        toDurationUnit(Number(hunt.safetyLimits.expiryTime), 'long');
+    const durationFormattedParts = toDurationUnit(
+      Number(hunt.safetyLimits.expiryTime),
+      'long',
+    );
     const durationFormattedNumber = durationFormattedParts[0].toLocaleString();
     const durationFormattedUnit = durationFormattedParts[1];
 

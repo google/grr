@@ -1,7 +1,10 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FormControl} from '@angular/forms';
 
-import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {
+  ControlValues,
+  FlowArgumentForm,
+} from '../../components/flow_args_form/form_interface';
 import {NetstatArgs} from '../../lib/api/api_interfaces';
 
 function makeControls() {
@@ -20,7 +23,6 @@ type Controls = ReturnType<typeof makeControls>;
   templateUrl: './netstat_form.ng.html',
   styleUrls: ['./netstat_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
 export class NetstatForm extends FlowArgumentForm<NetstatArgs, Controls> {
   override makeControls() {
@@ -30,7 +32,7 @@ export class NetstatForm extends FlowArgumentForm<NetstatArgs, Controls> {
   override convertFlowArgsToFormState(flowArgs: NetstatArgs) {
     return {
       listeningOnly:
-          flowArgs.listeningOnly ?? this.controls.listeningOnly.defaultValue,
+        flowArgs.listeningOnly ?? this.controls.listeningOnly.defaultValue,
     };
   }
 

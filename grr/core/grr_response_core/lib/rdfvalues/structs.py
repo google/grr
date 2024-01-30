@@ -15,6 +15,7 @@ from google.protobuf import message as proto2_message
 from google.protobuf import text_format
 from grr_response_core import _semantic
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib import registry
 from grr_response_core.lib import serialization
 from grr_response_core.lib import type_info
 from grr_response_core.lib import utils
@@ -1555,6 +1556,7 @@ class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):
 
     # Build the class by parsing an existing protobuf class.
     if cls.protobuf is not None:
+      registry.RegisterRDFProtoStruct(cls.__name__, cls)
       rdf_proto2.DefineFromWireFormat(cls, cls.protobuf)
 
     # Pre-populate the class using the type_infos class member.

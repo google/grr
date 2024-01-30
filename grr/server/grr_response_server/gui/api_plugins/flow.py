@@ -15,6 +15,7 @@ from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto import flows_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_server import access_control
 from grr_response_server import artifact
@@ -35,6 +36,7 @@ from grr_response_server.gui.api_plugins import client
 from grr_response_server.gui.api_plugins import output_plugin as api_output_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
@@ -145,6 +147,7 @@ class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
     self.args_type = flow_cls.args_type.__name__
     self.default_args = flow_cls.GetDefaultArgs(username=context.username)
     self.behaviours = sorted(flow_cls.behaviours)
+    self.block_hunt_creation = flow_cls.block_hunt_creation
 
     return self
 
@@ -339,7 +342,9 @@ class ApiFlowLog(rdf_structs.RDFProtoStruct):
   protobuf = flow_pb2.ApiFlowLog
   rdf_deps = [ApiFlowId, rdfvalue.RDFDatetime]
 
-  def InitFromFlowLogEntry(self, fl, flow_id):
+  def InitFromFlowLogEntry(
+      self, fl: flows_pb2.FlowLogEntry, flow_id: str
+  ) -> "ApiFlowLog":
     self.log_message = fl.message
     self.flow_id = flow_id
     self.timestamp = fl.timestamp
@@ -456,6 +461,7 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
         with_substring=args.filter or None,
         with_tag=args.with_tag or None,
         with_type=args.with_type or None)
+    results = [mig_flow_objects.ToRDFFlowResult(r) for r in results]
 
     if args.filter:
       # TODO: with_substring is implemented in a hacky way,
@@ -525,6 +531,7 @@ class ApiListParsedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
         flow_id=flow_id,
         offset=args.offset,
         count=args.count)
+    flow_results = [mig_flow_objects.ToRDFFlowResult(r) for r in flow_results]
     flow_results_by_artifact = _GroupFlowResultsByArtifact(flow_results)
 
     # We determine results collection timestamp as the maximum of timestamps of
@@ -623,6 +630,7 @@ class ApiListFlowApplicableParsersHandler(api_call_handler_base.ApiCallHandler):
           flow_id=flow_id,
           offset=flow_results_offset,
           count=self._FLOW_RESULTS_BATCH_SIZE)
+      flow_results = [mig_flow_objects.ToRDFFlowResult(r) for r in flow_results]
       flow_results_offset += self._FLOW_RESULTS_BATCH_SIZE
 
       if not flow_results:
@@ -844,6 +852,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     flow_results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
                                                      db.MAX_COUNT)
+    flow_results = [mig_flow_objects.ToRDFFlowResult(r) for r in flow_results]
 
     return flow_obj, flow_results
 
@@ -1021,7 +1030,13 @@ class ApiListFlowOutputPluginLogsHandlerBase(
 
     return self.result_type(
         total_count=total_count,
-        items=[l.ToOutputPluginBatchProcessingStatus() for l in logs])
+        items=[
+            mig_flow_objects.ToRDFFlowOutputPluginLogEntry(
+                l
+            ).ToOutputPluginBatchProcessingStatus()
+            for l in logs
+        ],
+    )
 
 
 class ApiListFlowOutputPluginLogsArgs(rdf_structs.RDFProtoStruct):
@@ -1043,7 +1058,7 @@ class ApiListFlowOutputPluginLogsHandler(ApiListFlowOutputPluginLogsHandlerBase
                                         ):
   """Renders flow's output plugin's logs."""
 
-  log_entry_type = rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG
+  log_entry_type = flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG
 
   args_type = ApiListFlowOutputPluginLogsArgs
   result_type = ApiListFlowOutputPluginLogsResult
@@ -1068,7 +1083,7 @@ class ApiListFlowOutputPluginErrorsHandler(
     ApiListFlowOutputPluginLogsHandlerBase):
   """Renders flow's output plugin's errors."""
 
-  log_entry_type = rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR
+  log_entry_type = flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR
 
   args_type = ApiListFlowOutputPluginErrorsArgs
   result_type = ApiListFlowOutputPluginErrorsResult
@@ -1336,6 +1351,8 @@ class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
             offset=offset,
             count=self._RESULTS_PAGE_SIZE,
             with_type=type_name)
+        results = [mig_flow_objects.ToRDFFlowResult(r) for r in results]
+
         if not results:
           break
 

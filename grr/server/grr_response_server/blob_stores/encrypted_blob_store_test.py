@@ -12,7 +12,7 @@ from grr_response_server import blob_store_test_mixin
 from grr_response_server.blob_stores import encrypted_blob_store
 from grr_response_server.databases import mem as mem_db
 from grr_response_server.keystore import mem as mem_ks
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import blobs
 
 
 def setUpModule() -> None:
@@ -38,7 +38,7 @@ class EncryptedBlobStoreTest(
 
   def testReadBlobUnencrypted(self):
     blob = os.urandom(1024)
-    blob_id = rdf_objects.BlobID.FromBlobData(blob)
+    blob_id = blobs.BlobID.Of(blob)
 
     db = mem_db.InMemoryDB()
     db.WriteBlobs({blob_id: blob})
@@ -50,7 +50,7 @@ class EncryptedBlobStoreTest(
 
   def testReadBlobEncryptedWithoutKeysRecent(self):
     blob = os.urandom(1024)
-    blob_id = rdf_objects.BlobID.FromBlobData(blob)
+    blob_id = blobs.BlobID.Of(blob)
 
     db = mem_db.InMemoryDB()
     ks = mem_ks.MemKeystore(["foo"])
@@ -65,7 +65,7 @@ class EncryptedBlobStoreTest(
 
   def testReadBlobEncryptedWithoutKeysOutdated(self):
     blob = os.urandom(1024)
-    blob_id = rdf_objects.BlobID.FromBlobData(blob)
+    blob_id = blobs.BlobID.Of(blob)
 
     db = mem_db.InMemoryDB()
     ks = mem_ks.MemKeystore(["foo", "bar"])

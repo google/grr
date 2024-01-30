@@ -10,6 +10,7 @@ from absl.testing import absltest
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import chunked
+from grr_response_proto import objects_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import timeline
@@ -17,7 +18,7 @@ from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import timeline as api_timeline
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import testing_startup
 from grr.test_lib import timeline_test_lib
 
@@ -198,14 +199,16 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     blob_ids = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
 
     result = rdf_timeline.TimelineResult()
-    result.entry_batch_blob_ids = [blob_id.AsBytes() for blob_id in blob_ids]
+    result.entry_batch_blob_ids = list(map(bytes, blob_ids))
     result.filesystem_type = "NTFS"
 
     flow_result = rdf_flow_objects.FlowResult()
     flow_result.client_id = client_id
     flow_result.flow_id = flow_id
     flow_result.payload = result
-    data_store.REL_DB.WriteFlowResults([flow_result])
+    data_store.REL_DB.WriteFlowResults(
+        [mig_flow_objects.ToProtoFlowResult(flow_result)]
+    )
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -292,7 +295,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     (blob_id_1,) = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs_1)
 
     result_1 = rdf_timeline.TimelineResult()
-    result_1.entry_batch_blob_ids = [blob_id_1.AsBytes()]
+    result_1.entry_batch_blob_ids = [bytes(blob_id_1)]
 
     entry_2 = rdf_timeline.TimelineEntry()
     entry_2.path = "/bar".encode("utf-8")
@@ -301,7 +304,7 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     (blob_id_2,) = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs_2)
 
     result_2 = rdf_timeline.TimelineResult()
-    result_2.entry_batch_blob_ids = [blob_id_2.AsBytes()]
+    result_2.entry_batch_blob_ids = [bytes(blob_id_2)]
 
     flow_result_1 = rdf_flow_objects.FlowResult()
     flow_result_1.client_id = client_id
@@ -313,7 +316,10 @@ class ApiGetCollectedTimelineHandlerTest(api_test_lib.ApiCallHandlerTest):
     flow_result_2.flow_id = flow_id
     flow_result_2.payload = result_2
 
-    data_store.REL_DB.WriteFlowResults([flow_result_1, flow_result_2])
+    data_store.REL_DB.WriteFlowResults([
+        mig_flow_objects.ToProtoFlowResult(flow_result_1),
+        mig_flow_objects.ToProtoFlowResult(flow_result_2),
+    ])
 
     args = api_timeline.ApiGetCollectedTimelineArgs()
     args.client_id = client_id
@@ -379,7 +385,7 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def testRaisesOnIncorrectFlowType(self):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    hunt_id = "A0B1D2C3E4"
+    hunt_id = "".join(random.choice("ABCDEF") for _ in range(8))
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
@@ -398,7 +404,7 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def testRaisesOnIncorrectFormat(self):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    hunt_id = "B1C2E3D4F5"
+    hunt_id = "B1C2E3D4"
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
@@ -419,17 +425,17 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     client_id_1 = db_test_utils.InitializeClient(data_store.REL_DB)
     client_id_2 = db_test_utils.InitializeClient(data_store.REL_DB)
 
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id_1
     snapshot.knowledge_base.fqdn = "bar.quux.com"
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id_2
     snapshot.knowledge_base.fqdn = "bar.quuz.com"
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
-    hunt_id = "B1C2E3D4F5"
+    hunt_id = "B1C2E3D4"
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
@@ -500,17 +506,17 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
     client_id_1 = db_test_utils.InitializeClient(data_store.REL_DB)
     client_id_2 = db_test_utils.InitializeClient(data_store.REL_DB)
 
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id_1
     snapshot.knowledge_base.fqdn = "foo.quux.com"
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id_2
     snapshot.knowledge_base.fqdn = "foo.norf.com"
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
-    hunt_id = "A0B1D2C3E4"
+    hunt_id = "A0B1D2C3"
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
@@ -563,9 +569,9 @@ class ApiGetCollectedHuntTimelinesHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def testBodySubsecondPrecision(self):
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
-    hunt_id = "ABCDEABCDE"
+    hunt_id = "ABCDEABC"
 
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.fqdn = "foo.bar.baz"
     data_store.REL_DB.WriteClientSnapshot(snapshot)

@@ -5,7 +5,6 @@ import contextlib
 import functools
 import hashlib
 import inspect
-
 from typing import Iterable
 from typing import Optional
 from typing import Sequence
@@ -114,12 +113,21 @@ def TimestampToRDFDatetime(timestamp) -> Optional[rdfvalue.RDFDatetime]:
 
 
 def RDFDatetimeToTimestamp(
-    datetime: Optional[rdfvalue.RDFDatetime]) -> Optional[float]:
+    datetime: Optional[rdfvalue.RDFDatetime],
+) -> Optional[str]:
   """Converts a datetime object to MySQL `TIMESTAMP(6)` column."""
   if datetime is None:
     return None
   else:
     return "%.6f" % (datetime.AsMicrosecondsSinceEpoch() / 1000000)
+
+
+def MicrosecondsSinceEpochToTimestamp(microseconds: int) -> str:
+  return "%.6f" % (microseconds / 1000000)
+
+
+def TimestampToMicrosecondsSinceEpoch(timestamp: float) -> int:
+  return int(1000000 * timestamp)
 
 
 def ComponentsToPath(components: Sequence[Text]) -> Text:

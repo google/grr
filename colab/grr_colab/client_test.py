@@ -13,14 +13,13 @@ from grr_colab import errors
 from grr_colab import testing
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
+from grr_response_core.lib.rdfvalues import mig_artifacts
 from grr_response_proto import artifact_pb2
 from grr_response_proto import objects_pb2
 from grr_response_server import artifact_registry
 from grr_response_server import client_index
 from grr_response_server import data_store
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import osquery_test_lib
 from grr.test_lib import parser_test_lib
 
@@ -48,10 +47,12 @@ class ClientTest(testing.ColabE2ETest):
     hostname = 'user.loc.group.example.com'
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
-    client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
+    client = objects_pb2.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.knowledge_base.fqdn = hostname
     data_store.REL_DB.WriteClientSnapshot(client)
-    client_index.ClientIndex().AddClient(client)
+
+    rdf_client = mig_objects.ToRDFClientSnapshot(client)
+    client_index.ClientIndex().AddClient(rdf_client)
 
     client = grr_colab.Client.with_hostname(hostname)
     self.assertEqual(client.id, ClientTest.FAKE_CLIENT_ID)
@@ -65,15 +66,19 @@ class ClientTest(testing.ColabE2ETest):
     data_store.REL_DB.WriteClientMetadata(client_id=client_id1)
     data_store.REL_DB.WriteClientMetadata(client_id=client_id2)
 
-    client = rdf_objects.ClientSnapshot(client_id=client_id1)
+    client = objects_pb2.ClientSnapshot(client_id=client_id1)
     client.knowledge_base.fqdn = hostname
     data_store.REL_DB.WriteClientSnapshot(client)
-    client_index.ClientIndex().AddClient(client)
 
-    client = rdf_objects.ClientSnapshot(client_id=client_id2)
+    rdf_client = mig_objects.ToRDFClientSnapshot(client)
+    client_index.ClientIndex().AddClient(rdf_client)
+
+    client = objects_pb2.ClientSnapshot(client_id=client_id2)
     client.knowledge_base.fqdn = hostname
     data_store.REL_DB.WriteClientSnapshot(client)
-    client_index.ClientIndex().AddClient(client)
+
+    rdf_client = mig_objects.ToRDFClientSnapshot(client)
+    client_index.ClientIndex().AddClient(rdf_client)
 
     with self.assertRaises(errors.AmbiguousHostnameError) as context:
       grr_colab.Client.with_hostname(hostname)
@@ -97,15 +102,19 @@ class ClientTest(testing.ColabE2ETest):
     data_store.REL_DB.WriteClientMetadata(client_id=client_id1)
     data_store.REL_DB.WriteClientMetadata(client_id=client_id2)
 
-    client = rdf_objects.ClientSnapshot(client_id=client_id1)
+    client = objects_pb2.ClientSnapshot(client_id=client_id1)
     client.startup_info.client_info.labels.append('foo')
     data_store.REL_DB.WriteClientSnapshot(client)
-    client_index.ClientIndex().AddClient(client)
 
-    client = rdf_objects.ClientSnapshot(client_id=client_id2)
+    rdf_client = mig_objects.ToRDFClientSnapshot(client)
+    client_index.ClientIndex().AddClient(rdf_client)
+
+    client = objects_pb2.ClientSnapshot(client_id=client_id2)
     client.startup_info.client_info.labels.append('bar')
     data_store.REL_DB.WriteClientSnapshot(client)
-    client_index.ClientIndex().AddClient(client)
+
+    rdf_client = mig_objects.ToRDFClientSnapshot(client)
+    client_index.ClientIndex().AddClient(rdf_client)
 
     clients = grr_colab.Client.search(labels=['foo'])
     self.assertLen(clients, 1)
@@ -118,15 +127,19 @@ class ClientTest(testing.ColabE2ETest):
     data_store.REL_DB.WriteClientMetadata(client_id=client_id1)
     data_store.REL_DB.WriteClientMetadata(client_id=client_id2)
 
-    client = rdf_objects.ClientSnapshot(client_id=client_id1)
+    client = objects_pb2.ClientSnapshot(client_id=client_id1)
     client.startup_info.client_info.labels.append('foo')
     data_store.REL_DB.WriteClientSnapshot(client)
-    client_index.ClientIndex().AddClient(client)
 
-    client = rdf_objects.ClientSnapshot(client_id=client_id2)
+    rdf_client = mig_objects.ToRDFClientSnapshot(client)
+    client_index.ClientIndex().AddClient(rdf_client)
+
+    client = objects_pb2.ClientSnapshot(client_id=client_id2)
     client.startup_info.client_info.labels.append('bar')
     data_store.REL_DB.WriteClientSnapshot(client)
-    client_index.ClientIndex().AddClient(client)
+
+    rdf_client = mig_objects.ToRDFClientSnapshot(client)
+    client_index.ClientIndex().AddClient(rdf_client)
 
     clients = grr_colab.Client.search(labels=['quux'])
     self.assertEmpty(clients)
@@ -138,16 +151,20 @@ class ClientTest(testing.ColabE2ETest):
     data_store.REL_DB.WriteClientMetadata(client_id=client_id1)
     data_store.REL_DB.WriteClientMetadata(client_id=client_id2)
 
-    client = rdf_objects.ClientSnapshot(client_id=client_id1)
+    client = objects_pb2.ClientSnapshot(client_id=client_id1)
     client.startup_info.client_info.labels.append('foo')
     client.startup_info.client_info.labels.append('bar')
     data_store.REL_DB.WriteClientSnapshot(client)
-    client_index.ClientIndex().AddClient(client)
 
-    client = rdf_objects.ClientSnapshot(client_id=client_id2)
+    rdf_client = mig_objects.ToRDFClientSnapshot(client)
+    client_index.ClientIndex().AddClient(rdf_client)
+
+    client = objects_pb2.ClientSnapshot(client_id=client_id2)
     client.startup_info.client_info.labels.append('bar')
     data_store.REL_DB.WriteClientSnapshot(client)
-    client_index.ClientIndex().AddClient(client)
+
+    rdf_client = mig_objects.ToRDFClientSnapshot(client)
+    client_index.ClientIndex().AddClient(rdf_client)
 
     clients = grr_colab.Client.search(labels=['bar'])
     self.assertLen(clients, 2)
@@ -161,17 +178,21 @@ class ClientTest(testing.ColabE2ETest):
     data_store.REL_DB.WriteClientMetadata(client_id=client_id1)
     data_store.REL_DB.WriteClientMetadata(client_id=client_id2)
 
-    client = rdf_objects.ClientSnapshot(client_id=client_id1)
+    client = objects_pb2.ClientSnapshot(client_id=client_id1)
     client.knowledge_base.fqdn = hostname
     client.startup_info.client_info.labels.append('foo')
     data_store.REL_DB.WriteClientSnapshot(client)
-    client_index.ClientIndex().AddClient(client)
 
-    client = rdf_objects.ClientSnapshot(client_id=client_id2)
+    rdf_client = mig_objects.ToRDFClientSnapshot(client)
+    client_index.ClientIndex().AddClient(rdf_client)
+
+    client = objects_pb2.ClientSnapshot(client_id=client_id2)
     client.knowledge_base.fqdn = hostname
     client.startup_info.client_info.labels.append('bar')
     data_store.REL_DB.WriteClientSnapshot(client)
-    client_index.ClientIndex().AddClient(client)
+
+    rdf_client = mig_objects.ToRDFClientSnapshot(client)
+    client_index.ClientIndex().AddClient(rdf_client)
 
     clients = grr_colab.Client.search(labels=['foo'], host=hostname)
     self.assertLen(clients, 1)
@@ -187,7 +208,7 @@ class ClientTest(testing.ColabE2ETest):
     hostname = 'hostname.loc.group.example.com'
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
-    client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
+    client = objects_pb2.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.knowledge_base.fqdn = hostname
     data_store.REL_DB.WriteClientSnapshot(client)
 
@@ -206,8 +227,8 @@ class ClientTest(testing.ColabE2ETest):
     ifname = 'test_ifname'
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
-    client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
-    client.interfaces = [rdf_client_network.Interface(ifname=ifname)]
+    client = objects_pb2.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
+    client.interfaces.add(ifname=ifname)
     data_store.REL_DB.WriteClientSnapshot(client)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
@@ -233,13 +254,11 @@ class ClientTest(testing.ColabE2ETest):
 
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
-    client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
+    client = objects_pb2.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.knowledge_base.fqdn = fqdn
     client.knowledge_base.os = system
-    client.knowledge_base.users = [
-        rdf_client.User(username=users[0]),
-        rdf_client.User(username=users[1]),
-    ]
+    client.knowledge_base.users.add(username=users[0])
+    client.knowledge_base.users.add(username=users[1])
     data_store.REL_DB.WriteClientSnapshot(client)
 
     client = grr_colab.Client.with_id(ClientTest.FAKE_CLIENT_ID)
@@ -253,7 +272,7 @@ class ClientTest(testing.ColabE2ETest):
     arch = 'x42'
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
-    client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
+    client = objects_pb2.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.arch = arch
     data_store.REL_DB.WriteClientSnapshot(client)
 
@@ -272,7 +291,7 @@ class ClientTest(testing.ColabE2ETest):
     kernel = '0.0.0'
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
-    client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
+    client = objects_pb2.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.kernel = kernel
     data_store.REL_DB.WriteClientSnapshot(client)
 
@@ -440,7 +459,7 @@ class ClientTest(testing.ColabE2ETest):
   def testCollect(self):
     data_store.REL_DB.WriteClientMetadata(client_id=ClientTest.FAKE_CLIENT_ID)
 
-    client = rdf_objects.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
+    client = objects_pb2.ClientSnapshot(client_id=ClientTest.FAKE_CLIENT_ID)
     client.knowledge_base.os = 'test-os'
     data_store.REL_DB.WriteClientSnapshot(client)
 
@@ -502,7 +521,7 @@ class ClientTest(testing.ColabE2ETest):
 
     registry_stub = artifact_registry.ArtifactRegistry()
     registry_stub.RegisterArtifact(artifact)
-    data_store.REL_DB.WriteArtifact(artifact)
+    data_store.REL_DB.WriteArtifact(mig_artifacts.ToProtoArtifact(artifact))
 
     with mock.patch.object(artifact_registry, 'REGISTRY', registry_stub):
       results = grr_colab.list_artifacts()

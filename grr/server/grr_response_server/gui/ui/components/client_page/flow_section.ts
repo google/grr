@@ -23,23 +23,24 @@ export class FlowSection {
   readonly latestApproval$ = this.clientPageGlobalStore.latestApproval$;
 
   readonly clientApprovalRoute$ =
-      this.clientPageGlobalStore.clientApprovalRoute$;
+    this.clientPageGlobalStore.clientApprovalRoute$;
 
   readonly hasAccess$ = this.clientPageGlobalStore.hasAccess$;
 
   constructor(
-      private readonly clientPageGlobalStore: ClientPageGlobalStore,
-      private readonly userGlobalStore: UserGlobalStore,
+    private readonly clientPageGlobalStore: ClientPageGlobalStore,
+    private readonly userGlobalStore: UserGlobalStore,
   ) {}
 
   requestApproval(approvalParams: ApprovalParams) {
-    this.client$.pipe(first()).subscribe(client => {
+    this.client$.pipe(first()).subscribe((client) => {
       assertNonNull(client);
       this.clientPageGlobalStore.requestClientApproval({
         clientId: client.clientId,
         approvers: approvalParams.approvers,
         reason: approvalParams.reason,
         cc: approvalParams.cc,
+        expirationTimeUs: approvalParams.expirationTimeUs,
       });
     });
   }

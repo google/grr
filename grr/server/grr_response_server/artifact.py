@@ -23,6 +23,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import mig_artifacts
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -241,6 +242,9 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
       args.action.action_type = rdf_file_finder.FileFinderAction.Action.STAT
       args.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
       args.paths = [r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows NT\CurrentVersion\ProfileList\*\ProfileImagePath"]
+      # TODO: remove this when the registry+sandboxing bug
+      # is fixed.
+      args.implementation_type = rdf_paths.PathSpec.ImplementationType.DIRECT
       self.CallClient(
           server_stubs.VfsFileFinder,
           args,
@@ -1149,6 +1153,9 @@ class KnowledgeBaseInitializationFlow(flow_base.FlowBase):
     # refactored once registry-specific actions are available.
     args.action.action_type = rdf_file_finder.FileFinderAction.Action.STAT
     args.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
+    # TODO: remove this when the registry+sandboxing bug
+    # is fixed.
+    args.implementation_type = rdf_paths.PathSpec.ImplementationType.DIRECT
 
     for user in self.state.knowledge_base.users:
       # pylint: disable=line-too-long
@@ -1557,7 +1564,9 @@ def UploadArtifactYamlFile(file_content,
         overwrite_if_exists=overwrite,
         overwrite_system_artifacts=overwrite_system_artifacts)
 
-    data_store.REL_DB.WriteArtifact(artifact_value)
+    data_store.REL_DB.WriteArtifact(
+        mig_artifacts.ToProtoArtifact(artifact_value)
+    )
 
     loaded_artifacts.append(artifact_value)
 

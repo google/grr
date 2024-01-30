@@ -6,12 +6,14 @@ import {ApiModule} from '../../../lib/api/module';
 import {newClient} from '../../../lib/models/model_test_util';
 import {getClientEntriesChanged} from '../../../store/client_details_diff';
 import {ClientDetailsGlobalStore} from '../../../store/client_details_global_store';
-import {ClientDetailsGlobalStoreMock, mockClientDetailsGlobalStore} from '../../../store/client_details_global_store_test_util';
+import {
+  ClientDetailsGlobalStoreMock,
+  mockClientDetailsGlobalStore,
+} from '../../../store/client_details_global_store_test_util';
 import {initTestEnvironment} from '../../../testing';
 
 import {EntryHistoryButton} from './entry_history_button';
 import {EntryHistoryButtonModule} from './module';
-
 
 initTestEnvironment();
 
@@ -52,79 +54,72 @@ describe('Entry History Button Component', () => {
   beforeEach(waitForAsync(() => {
     store = mockClientDetailsGlobalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            ApiModule,
-            NoopAnimationsModule,
-            EntryHistoryButtonModule,
-          ],
-          providers: [
-            {provide: ClientDetailsGlobalStore, useFactory: () => store},
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [ApiModule, NoopAnimationsModule, EntryHistoryButtonModule],
+      providers: [{provide: ClientDetailsGlobalStore, useFactory: () => store}],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('shows "1 change" button when there is one change', fakeAsync(() => {
-       const fixture = TestBed.createComponent(EntryHistoryButton);
-       fixture.componentInstance.path = 'knowledgeBase.fqdn';
-       fixture.detectChanges();
+    const fixture = TestBed.createComponent(EntryHistoryButton);
+    fixture.componentInstance.path = 'knowledgeBase.fqdn';
+    fixture.detectChanges();
 
-       store.mockedObservables.selectedClientEntriesChanged$.next(
-           getClientEntriesChanged(clientVersionsMock));
-       tick();
-       fixture.detectChanges();
+    store.mockedObservables.selectedClientEntriesChanged$.next(
+      getClientEntriesChanged(clientVersionsMock),
+    );
+    tick();
+    fixture.detectChanges();
 
-       expect(fixture).toBeTruthy();
-       expect(fixture.debugElement.query(By.css('button'))).toBeTruthy();
-       expect(fixture.nativeElement.textContent).toEqual('1 change');
-     }));
+    expect(fixture).toBeTruthy();
+    expect(fixture.debugElement.query(By.css('button'))).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toEqual('1 change');
+  }));
 
-  it('shows "N changes" button when there is more than one change',
-     fakeAsync(() => {
-       const fixture = TestBed.createComponent(EntryHistoryButton);
-       fixture.componentInstance.path = 'memorySize';
-       fixture.detectChanges();
+  it('shows "N changes" button when there is more than one change', fakeAsync(() => {
+    const fixture = TestBed.createComponent(EntryHistoryButton);
+    fixture.componentInstance.path = 'memorySize';
+    fixture.detectChanges();
 
-       store.mockedObservables.selectedClientEntriesChanged$.next(
-           getClientEntriesChanged(clientVersionsMock));
-       tick();
-       fixture.detectChanges();
+    store.mockedObservables.selectedClientEntriesChanged$.next(
+      getClientEntriesChanged(clientVersionsMock),
+    );
+    tick();
+    fixture.detectChanges();
 
-       expect(fixture).toBeTruthy();
-       expect(fixture.debugElement.query(By.css('button'))).toBeTruthy();
-       expect(fixture.nativeElement.textContent).toEqual('2 changes');
-     }));
+    expect(fixture).toBeTruthy();
+    expect(fixture.debugElement.query(By.css('button'))).toBeTruthy();
+    expect(fixture.nativeElement.textContent).toEqual('2 changes');
+  }));
 
-  it('doesn\'t show button when there is no change in a defined property',
-     fakeAsync(() => {
-       const fixture = TestBed.createComponent(EntryHistoryButton);
-       fixture.componentInstance.path = 'clientId';
-       fixture.detectChanges();
+  it("doesn't show button when there is no change in a defined property", fakeAsync(() => {
+    const fixture = TestBed.createComponent(EntryHistoryButton);
+    fixture.componentInstance.path = 'clientId';
+    fixture.detectChanges();
 
-       store.mockedObservables.selectedClientEntriesChanged$.next(
-           getClientEntriesChanged(clientVersionsMock));
-       tick();
-       fixture.detectChanges();
+    store.mockedObservables.selectedClientEntriesChanged$.next(
+      getClientEntriesChanged(clientVersionsMock),
+    );
+    tick();
+    fixture.detectChanges();
 
-       expect(fixture).toBeTruthy();
-       expect(fixture.debugElement.query(By.css('button'))).toBeFalsy();
-     }));
+    expect(fixture).toBeTruthy();
+    expect(fixture.debugElement.query(By.css('button'))).toBeFalsy();
+  }));
 
-  it('doesn\'t show button when the path points to an undefined property',
-     fakeAsync(() => {
-       const fixture = TestBed.createComponent(EntryHistoryButton);
-       fixture.componentInstance.path = 'volumes.foo.bar';
-       fixture.detectChanges();
+  it("doesn't show button when the path points to an undefined property", fakeAsync(() => {
+    const fixture = TestBed.createComponent(EntryHistoryButton);
+    fixture.componentInstance.path = 'volumes.foo.bar';
+    fixture.detectChanges();
 
-       store.mockedObservables.selectedClientEntriesChanged$.next(
-           getClientEntriesChanged(clientVersionsMock));
-       tick();
-       fixture.detectChanges();
+    store.mockedObservables.selectedClientEntriesChanged$.next(
+      getClientEntriesChanged(clientVersionsMock),
+    );
+    tick();
+    fixture.detectChanges();
 
-       expect(fixture).toBeTruthy();
-       expect(fixture.debugElement.query(By.css('button'))).toBeFalsy();
-     }));
+    expect(fixture).toBeTruthy();
+    expect(fixture.debugElement.query(By.css('button'))).toBeFalsy();
+  }));
 });

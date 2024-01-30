@@ -1,10 +1,25 @@
 import {CommonModule} from '@angular/common';
-import {AfterViewInit, ChangeDetectionStrategy, Component, Input, OnDestroy, ViewChild} from '@angular/core';
-import {FormsModule, ReactiveFormsModule, UntypedFormControl} from '@angular/forms';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  OnDestroy,
+  ViewChild,
+} from '@angular/core';
+import {
+  FormsModule,
+  ReactiveFormsModule,
+  UntypedFormControl,
+} from '@angular/forms';
 import {MatFormFieldModule} from '@angular/material/form-field';
 import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
-import {MatPaginator, MatPaginatorModule, PageEvent} from '@angular/material/paginator';
+import {
+  MatPaginator,
+  MatPaginatorModule,
+  PageEvent,
+} from '@angular/material/paginator';
 import {MatTableDataSource} from '@angular/material/table';
 
 import {assertNonNull, isNonNull} from '../../../lib/preconditions';
@@ -30,7 +45,7 @@ const DEFAULT_PAGE_OPTIONS = [10, 25, 50, 100, 250, 500, 1000];
     MatIconModule,
     MatInputModule,
     MatPaginatorModule,
-  ]
+  ],
 })
 export class FilterPaginate<T> implements OnDestroy, AfterViewInit {
   @ViewChild('topPaginator') topPaginator!: MatPaginator;
@@ -38,7 +53,7 @@ export class FilterPaginate<T> implements OnDestroy, AfterViewInit {
   readonly searchStringControl = new UntypedFormControl('');
 
   /** dataSource used as input for mat-table. */
-  private dataSourceValue: MatTableDataSource<T>|null = null;
+  private dataSourceValue: MatTableDataSource<T> | null = null;
 
   /** pageSizeOptions to be displayed in the paginators. */
   pageSizeOptions: readonly number[] = DEFAULT_PAGE_OPTIONS;
@@ -57,8 +72,9 @@ export class FilterPaginate<T> implements OnDestroy, AfterViewInit {
   }
 
   get dataLengthValue() {
-    return this.dataLengthSet ? this.dataLengthInput ?? 0 :
-                                (this.dataSourceValue?.data?.length ?? 0);
+    return this.dataLengthSet
+      ? this.dataLengthInput ?? 0
+      : this.dataSourceValue?.data?.length ?? 0;
   }
 
   get hideControls() {
@@ -66,7 +82,7 @@ export class FilterPaginate<T> implements OnDestroy, AfterViewInit {
   }
 
   constructor() {
-    this.searchStringControl.valueChanges.subscribe(searchString => {
+    this.searchStringControl.valueChanges.subscribe((searchString) => {
       if (isNonNull(this.dataSourceValue)) {
         this.dataSourceValue.filter = searchString;
       }
@@ -74,7 +90,7 @@ export class FilterPaginate<T> implements OnDestroy, AfterViewInit {
   }
 
   @Input()
-  set dataSource(dataSource: MatTableDataSource<T>|null) {
+  set dataSource(dataSource: MatTableDataSource<T> | null) {
     this.dataSourceValue = dataSource;
     if (isNonNull(this.dataSourceValue)) {
       this.dataSourceValue.paginator = this.topPaginator;

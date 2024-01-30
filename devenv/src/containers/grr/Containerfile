@@ -23,9 +23,11 @@ RUN cd /grr/persist \
 
 RUN cd /grr/src \
   && . /grr/persist/venv/bin/activate \
-  && pip install -e grr/proto \
-  && pip install -e grr/core \
-  && pip install -e grr/client \
-  && pip install -e grr/client_builder \
-  && pip install -e api_client/python \
-  && pip install -e grr/server
+  && pip install \
+    -e grr/proto \
+    -e grr/core \
+    -e grr/client \
+    -e grr/client_builder \
+    -e api_client/python \
+    -e grr/server \
+    -e grr/test

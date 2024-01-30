@@ -31,11 +31,10 @@ import {App} from './app';
 import {NotFoundPage} from './not_found_page';
 import {AppRoutingModule} from './routing';
 
-
 const ANGULAR_MATERIAL_MODULES = [
   // TODO: re-enable clang format when solved.
-  // clang-format off
-    // keep-sorted start block=yes
+  // prettier-ignore
+  // keep-sorted start block=yes
   MatButtonModule,
   MatIconModule,
   MatSidenavModule,
@@ -43,13 +42,12 @@ const ANGULAR_MATERIAL_MODULES = [
   MatTabsModule,
   MatToolbarModule,
   MatTooltipModule,
-   // keep-sorted end
-  // clang-format on
+  // keep-sorted end
 ];
 
 const GRR_MODULES = [
   // TODO: re-enable clang format when solved.
-  // clang-format off
+  // prettier-ignore
   // keep-sorted start block=yes
   ApiModule,
   ApprovalPageModule,
@@ -66,17 +64,13 @@ const GRR_MODULES = [
   NewHuntModule,
   UserMenuModule,
   // keep-sorted end
-  // clang-format on
 ];
 
 /**
  * The main application module.
  */
 @NgModule({
-  declarations: [
-    App,
-    NotFoundPage,
-  ],
+  declarations: [App, NotFoundPage],
   imports: [
     CommonModule,
     BrowserAnimationsModule,
@@ -92,7 +86,7 @@ const GRR_MODULES = [
     {provide: ErrorHandler, useClass: SnackBarErrorHandler},
   ],
   bootstrap: [App],
-  exports: [NotFoundPage]
+  exports: [NotFoundPage],
 })
 export class AppModule {
   constructor(iconRegistry: MatIconRegistry) {
@@ -105,11 +99,8 @@ export class AppModule {
  * with Chrome's Redux Devltools extension.
  */
 @NgModule({
-  imports: [
-    AppModule,
-  ],
+  imports: [AppModule],
   providers: [],
-  bootstrap: [App]
+  bootstrap: [App],
 })
-export class DevAppModule {
-}
+export class DevAppModule {}

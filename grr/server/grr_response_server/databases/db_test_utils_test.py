@@ -7,6 +7,7 @@ from absl.testing import absltest
 
 from grr_response_server.databases import db_test_utils
 from grr_response_server.databases import mem as mem_db
+from grr_response_server.rdfvalues import mig_objects
 
 
 class TestOffsetAndCountTest(db_test_utils.QueryTestHelpersMixin,
@@ -184,15 +185,15 @@ class InitializeClientTest(absltest.TestCase):
 
     client_id = db_test_utils.InitializeClient(db)
     md = db.ReadClientMetadata(client_id)
-    self.assertIsNone(md.certificate)
-    self.assertIsNone(md.first_seen)
-    self.assertIsNone(md.ping)
-    self.assertIsNone(md.clock)
-    self.assertIsNone(md.last_foreman_time)
-    self.assertIsNone(md.last_crash_timestamp)
-    self.assertIsNone(md.startup_info_timestamp)
-    self.assertFalse(md.ip)
-    self.assertFalse(md.last_fleetspeak_validation_info)
+    self.assertEmpty(md.certificate)
+    self.assertFalse(md.first_seen)
+    self.assertFalse(md.ping)
+    self.assertFalse(md.clock)
+    self.assertFalse(md.last_foreman_time)
+    self.assertFalse(md.last_crash_timestamp)
+    self.assertFalse(md.startup_info_timestamp)
+    self.assertFalse(md.HasField("ip"))
+    self.assertFalse(md.HasField("last_fleetspeak_validation_info"))
 
 
 class InitializeRRGClientTest(absltest.TestCase):
@@ -211,14 +212,18 @@ class InitializeUserTest(absltest.TestCase):
     db = mem_db.InMemoryDB()
 
     username = db_test_utils.InitializeUser(db)
-    self.assertIsNotNone(db.ReadGRRUser(username))
+    proto_user = db.ReadGRRUser(username)
+    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
+    self.assertIsNotNone(rdf_user)
 
   def testSupplied(self):
     db = mem_db.InMemoryDB()
 
     username = db_test_utils.InitializeUser(db, username="foobar")
     self.assertEqual(username, "foobar")
-    self.assertIsNotNone(db.ReadGRRUser(username))
+    proto_user = db.ReadGRRUser(username)
+    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
+    self.assertIsNotNone(rdf_user)
 
 
 class InitializeFlowTest(absltest.TestCase):
@@ -252,6 +257,37 @@ class InitializeFlowTest(absltest.TestCase):
     flow_obj = db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
     self.assertEqual(flow_obj.creator, username)
 
+  def testParentFlowId(self):
+    db = mem_db.InMemoryDB()
+
+    client_id = db_test_utils.InitializeClient(db)
+    parent_flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    flow_id = db_test_utils.InitializeFlow(
+        db,
+        client_id,
+        parent_flow_id=parent_flow_id,
+    )
+
+    flow_obj = db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertEqual(flow_obj.parent_flow_id, parent_flow_id)
+
+  def testParentHuntId(self):
+    db = mem_db.InMemoryDB()
+
+    client_id = db_test_utils.InitializeClient(db)
+    parent_hunt_id = db_test_utils.InitializeHunt(db, client_id)
+
+    flow_id = db_test_utils.InitializeFlow(
+        db,
+        client_id,
+        flow_id=parent_hunt_id,
+        parent_hunt_id=parent_hunt_id,
+    )
+
+    flow_obj = db.ReadFlowObject(client_id=client_id, flow_id=flow_id)
+    self.assertEqual(flow_obj.parent_hunt_id, parent_hunt_id)
+
 
 class InitializeHuntTest(absltest.TestCase):
 
@@ -261,7 +297,9 @@ class InitializeHuntTest(absltest.TestCase):
     hunt_id = db_test_utils.InitializeHunt(db)
     hunt_obj = db.ReadHuntObject(hunt_id)
     self.assertIsNotNone(hunt_obj)
-    self.assertIsNotNone(db.ReadGRRUser(hunt_obj.creator))
+    proto_user = db.ReadGRRUser(hunt_obj.creator)
+    rdf_user = mig_objects.ToRDFGRRUser(proto_user)
+    self.assertIsNotNone(rdf_user)
 
   def testSupplied(self):
     db = mem_db.InMemoryDB()

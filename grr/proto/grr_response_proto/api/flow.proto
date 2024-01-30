@@ -32,6 +32,8 @@ message ApiFlowDescriptor {
 
   repeated string behaviours = 7
       [(sem_type) = { description: "Flow behaviours." }];
+  optional bool block_hunt_creation = 8
+      [(sem_type) = { description: "Block hunt creation for the flow." }];
 }
 
 // Next id: 20

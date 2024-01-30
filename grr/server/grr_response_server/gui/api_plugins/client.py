@@ -4,7 +4,6 @@ import ipaddress
 import re
 import shlex
 from typing import Optional
-
 from urllib import parse as urlparse
 
 from grr_response_core.lib import rdfvalue
@@ -12,6 +11,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
+from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import search as rdf_search
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
@@ -23,13 +23,12 @@ from grr_response_server import fleetspeak_connector
 from grr_response_server import fleetspeak_utils
 from grr_response_server import flow
 from grr_response_server import ip_resolver
-from grr_response_server import timeseries
 from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import api_call_handler_utils
-from grr_response_server.gui.api_plugins import stats as api_stats
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from fleetspeak.src.common.proto.fleetspeak import common_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
@@ -249,6 +248,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
 
     client_infos = data_store.REL_DB.MultiReadClientFullInfo(clients)
     for client_id, client_info in client_infos.items():
+      client_info = mig_objects.ToRDFClientFullInfo(client_info)
       api_clients.append(ApiClient().InitFromClientInfo(client_id, client_info))
 
     UpdateClientsFromFleetspeak(api_clients)
@@ -338,6 +338,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
       client_infos = data_store.REL_DB.MultiReadClientFullInfo(cid_batch)
 
       for client_id, client_info in sorted(client_infos.items()):
+        client_info = mig_objects.ToRDFClientFullInfo(client_info)
         if not self._VerifyLabels(client_info.labels):
           continue
         if index >= args.offset and index < end:
@@ -400,9 +401,10 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
           client_id, timerange=(args.timestamp, args.timestamp))
 
       if snapshots:
-        info.last_snapshot = snapshots[0]
-        info.last_startup_info = snapshots[0].startup_info
+        info.last_snapshot.CopyFrom(snapshots[0])
+        info.last_startup_info.CopyFrom(info.last_snapshot.startup_info)
 
+    info = mig_objects.ToRDFClientFullInfo(info)
     api_client = ApiClient().InitFromClientInfo(client_id, info)
     UpdateClientsFromFleetspeak([api_client])
     return api_client
@@ -443,8 +445,10 @@ class ApiGetClientVersionsHandler(api_call_handler_base.ApiCallHandler):
     labels = data_store.REL_DB.ReadClientLabels(client_id)
 
     for client in history[::-1]:
-      c = ApiClient().InitFromClientObject(client)
-      c.labels = labels
+      c = ApiClient().InitFromClientObject(
+          mig_objects.ToRDFClientSnapshot(client)
+      )
+      c.labels = list(map(mig_objects.ToRDFClientLabel, labels))
       items.append(c)
 
     return ApiGetClientVersionsResult(items=items)
@@ -478,7 +482,7 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
     # decide later.
     client_id = str(args.client_id)
     history = data_store.REL_DB.ReadClientSnapshotHistory(client_id)
-    times = [h.timestamp for h in history]
+    times = [rdfvalue.RDFDatetime(h.timestamp) for h in history]
 
     return ApiGetClientVersionTimesResult(times=times)
 
@@ -623,7 +627,10 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
     result = api_call_handler_utils.FilterList(
         crashes, args.offset, count=args.count, filter_value=args.filter)
 
-    return ApiListClientCrashesResult(items=result, total_count=total_count)
+    return ApiListClientCrashesResult(
+        items=list(map(mig_client.ToRDFClientCrash, result)),
+        total_count=total_count,
+    )
 
 
 class ApiAddClientsLabelsArgs(rdf_structs.RDFProtoStruct):
@@ -714,118 +721,6 @@ class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, context=None):
     fields = rdf_client.KnowledgeBase().GetKbFieldNames()
     return ApiListKbFieldsResult(items=sorted(fields))
-
-
-class ApiGetClientLoadStatsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = client_pb2.ApiGetClientLoadStatsArgs
-  rdf_deps = [
-      ApiClientId,
-      rdfvalue.RDFDatetime,
-  ]
-
-
-class ApiGetClientLoadStatsResult(rdf_structs.RDFProtoStruct):
-  protobuf = client_pb2.ApiGetClientLoadStatsResult
-  rdf_deps = [
-      api_stats.ApiStatsStoreMetricDataPoint,
-  ]
-
-
-class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
-  """Returns client load stats data."""
-
-  args_type = ApiGetClientLoadStatsArgs
-  result_type = ApiGetClientLoadStatsResult
-
-  # pyformat: disable
-  GAUGE_METRICS = [
-      ApiGetClientLoadStatsArgs.Metric.CPU_PERCENT,
-      ApiGetClientLoadStatsArgs.Metric.MEMORY_PERCENT,
-      ApiGetClientLoadStatsArgs.Metric.MEMORY_RSS_SIZE,
-      ApiGetClientLoadStatsArgs.Metric.MEMORY_VMS_SIZE
-  ]
-  # pyformat: enable
-  MAX_SAMPLES = 100
-
-  def Handle(self, args, context=None):
-    start_time = args.start
-    end_time = args.end
-
-    if not end_time:
-      end_time = rdfvalue.RDFDatetime.Now()
-
-    if not start_time:
-      start_time = end_time - rdfvalue.Duration.From(30, rdfvalue.MINUTES)
-
-    stat_values = data_store.REL_DB.ReadClientStats(
-        client_id=str(args.client_id),
-        min_timestamp=start_time,
-        max_timestamp=end_time)
-    points = []
-    for stat_value in reversed(stat_values):
-      if args.metric == args.Metric.CPU_PERCENT:
-        points.extend(
-            (s.cpu_percent, s.timestamp) for s in stat_value.cpu_samples)
-      elif args.metric == args.Metric.CPU_SYSTEM:
-        points.extend(
-            (s.system_cpu_time, s.timestamp) for s in stat_value.cpu_samples)
-      elif args.metric == args.Metric.CPU_USER:
-        points.extend(
-            (s.user_cpu_time, s.timestamp) for s in stat_value.cpu_samples)
-      elif args.metric == args.Metric.IO_READ_BYTES:
-        points.extend(
-            (s.read_bytes, s.timestamp) for s in stat_value.io_samples)
-      elif args.metric == args.Metric.IO_WRITE_BYTES:
-        points.extend(
-            (s.write_bytes, s.timestamp) for s in stat_value.io_samples)
-      elif args.metric == args.Metric.IO_READ_OPS:
-        points.extend(
-            (s.read_count, s.timestamp) for s in stat_value.io_samples)
-      elif args.metric == args.Metric.IO_WRITE_OPS:
-        points.extend(
-            (s.write_count, s.timestamp) for s in stat_value.io_samples)
-      elif args.metric == args.Metric.NETWORK_BYTES_RECEIVED:
-        points.append((stat_value.bytes_received, stat_value.timestamp))
-      elif args.metric == args.Metric.NETWORK_BYTES_SENT:
-        points.append((stat_value.bytes_sent, stat_value.timestamp))
-      elif args.metric == args.Metric.MEMORY_PERCENT:
-        points.append((stat_value.memory_percent, stat_value.timestamp))
-      elif args.metric == args.Metric.MEMORY_RSS_SIZE:
-        points.append((stat_value.RSS_size, stat_value.timestamp))
-      elif args.metric == args.Metric.MEMORY_VMS_SIZE:
-        points.append((stat_value.VMS_size, stat_value.timestamp))
-      else:
-        raise ValueError("Unknown metric.")
-
-    # Points collected from "cpu_samples" and "io_samples" may not be correctly
-    # sorted in some cases (as overlaps between different stat_values are
-    # possible).
-    points.sort(key=lambda x: x[1])
-
-    ts = timeseries.Timeseries()
-    ts.MultiAppend(points)
-
-    if args.metric not in self.GAUGE_METRICS:
-      ts.MakeIncreasing()
-
-    if len(stat_values) > self.MAX_SAMPLES:
-      sampling_interval = rdfvalue.Duration.From(
-          ((end_time - start_time).ToInt(rdfvalue.SECONDS) // self.MAX_SAMPLES)
-          or 1, rdfvalue.SECONDS)
-      if args.metric in self.GAUGE_METRICS:
-        mode = timeseries.NORMALIZE_MODE_GAUGE
-      else:
-        mode = timeseries.NORMALIZE_MODE_COUNTER
-
-      ts.Normalize(sampling_interval, start_time, end_time, mode=mode)
-
-    result = ApiGetClientLoadStatsResult()
-    for value, timestamp in ts.data:
-      dp = api_stats.ApiStatsStoreMetricDataPoint(
-          timestamp=timestamp, value=float(value))
-      result.data_points.append(dp)
-
-    return result
 
 
 def _CheckFleetspeakConnection() -> None:

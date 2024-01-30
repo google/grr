@@ -7,7 +7,6 @@ import {newApproval} from '../../lib/models/model_test_util';
 import {ApprovalChip} from './approval_chip';
 import {ApprovalChipModule} from './approval_chip_module';
 
-
 @Component({
   template: `<app-approval-chip [approval]="approval"></app-approval-chip>`,
 })
@@ -17,25 +16,19 @@ class TestHostComponent {
 
 describe('ApprovalChip', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            ApprovalChipModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, ApprovalChipModule],
+      declarations: [TestHostComponent],
+    }).compileComponents();
   }));
 
   it('shows "No access" for missing approval', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.approval =
-        newApproval({status: {type: 'invalid', reason: ''}});
+    fixture.componentInstance.approval = newApproval({
+      status: {type: 'invalid', reason: ''},
+    });
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -60,7 +53,7 @@ describe('ApprovalChip', () => {
 
     fixture.componentInstance.approval = newApproval({
       status: {type: 'valid'},
-      expirationTime: new Date(Date.now() + threeDaysMs)
+      expirationTime: new Date(Date.now() + threeDaysMs),
     });
     fixture.detectChanges();
 
@@ -72,8 +65,9 @@ describe('ApprovalChip', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.approval =
-        newApproval({status: {type: 'invalid', reason: ''}});
+    fixture.componentInstance.approval = newApproval({
+      status: {type: 'invalid', reason: ''},
+    });
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -82,7 +76,7 @@ describe('ApprovalChip', () => {
 
   it('shows 3 days and one hour left as "3 days left"', () => {
     const threeDaysMs = 1000 * 60 * 60 * 24 * 3;
-    const oneHourOneMinMs = 1000 * 60 * 61;  // 1min buffer
+    const oneHourOneMinMs = 1000 * 60 * 61; // 1min buffer
     const mockExpirationTimeMs = Date.now() + threeDaysMs + oneHourOneMinMs;
 
     const fixture = TestBed.createComponent(TestHostComponent);
@@ -90,7 +84,7 @@ describe('ApprovalChip', () => {
 
     fixture.componentInstance.approval = newApproval({
       status: {type: 'valid'},
-      expirationTime: new Date(mockExpirationTimeMs)
+      expirationTime: new Date(mockExpirationTimeMs),
     });
     fixture.detectChanges();
 
@@ -107,7 +101,7 @@ describe('ApprovalChip', () => {
 
     fixture.componentInstance.approval = newApproval({
       status: {type: 'valid'},
-      expirationTime: new Date(mockExpirationTimeMs)
+      expirationTime: new Date(mockExpirationTimeMs),
     });
     fixture.detectChanges();
 

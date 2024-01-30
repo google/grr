@@ -21,15 +21,18 @@ export class CopyButton {
    * If set, clicking will not copy the textContent of this elements children,
    * but the provided text instead.
    */
-  @Input() overrideCopyText: string|null|undefined = undefined;
+  @Input() overrideCopyText: string | null | undefined = undefined;
 
   copied = false;
 
   constructor(private readonly clipboard: Clipboard) {}
 
   get copyText() {
-    return this.overrideCopyText ??
-        this.copyContentsElement.nativeElement.textContent?.trim() ?? '';
+    return (
+      this.overrideCopyText ??
+      this.copyContentsElement.nativeElement.textContent?.trim() ??
+      ''
+    );
   }
 
   triggerCopy(event: MouseEvent) {

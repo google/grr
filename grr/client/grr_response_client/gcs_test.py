@@ -117,9 +117,10 @@ class UploadSessionTest(absltest.TestCase):
     responses.add_callback(responses.PUT, "https://foo.bar/qux", handler)
 
     session = gcs.UploadSession("https://foo.bar/qux")
-    session.SendFile(io.BytesIO(b""))
+    total_size = session.SendFile(io.BytesIO(b""))
 
     self.assertEqual(handler.content, b"")
+    self.assertEqual(total_size, 0)
 
   @responses.activate
   def testSendFileSingleChunk(self):
@@ -127,27 +128,34 @@ class UploadSessionTest(absltest.TestCase):
     responses.add_callback(responses.PUT, "https://foo.bar/qux", handler)
 
     content = b"foobar"
+    content_length = len(content)
 
     opts = gcs.UploadSession.Opts()
     opts.chunk_size = len(content)
 
     session = gcs.UploadSession("https://foo.bar/qux")
-    session.SendFile(io.BytesIO(content), opts=opts)
+    total_size = session.SendFile(io.BytesIO(content), opts=opts)
 
     self.assertEqual(handler.content, content)
+    self.assertEqual(total_size, content_length)
 
   @responses.activate
   def testSendFileMultipleChunks(self):
     handler = gcs_test_lib.FakeUploadHandler()
     responses.add_callback(responses.PUT, "https://foo.bar/qux", handler)
 
+    content = b"foobar"
+    content_length = len(content)
+
     opts = gcs.UploadSession.Opts()
     opts.chunk_size = 1
 
     session = gcs.UploadSession("https://foo.bar/qux")
-    session.SendFile(io.BytesIO(b"foobar"), opts=opts)
 
-    self.assertEqual(handler.content, b"foobar")
+    total_size = session.SendFile(io.BytesIO(content), opts=opts)
+
+    self.assertEqual(handler.content, content)
+    self.assertEqual(total_size, content_length)
 
   @responses.activate
   def testSendFileRetrySuccess(self):
@@ -157,15 +165,21 @@ class UploadSessionTest(absltest.TestCase):
     responses.add(responses.PUT, "https://foo.bar/qux", status=504)
     responses.add_callback(responses.PUT, "https://foo.bar/qux", handler)
 
+    content = b"foobar"
+    content_length = len(content)
+
     opts = gcs.UploadSession.Opts()
     opts.chunk_size = 1
     opts.retry_chunk_attempts = 4
     opts.retry_chunk_init_delay = datetime.timedelta(0)
 
     session = gcs.UploadSession("https://foo.bar/qux")
-    session.SendFile(io.BytesIO(b"foobar"), opts=opts)
 
-    self.assertEqual(handler.content, b"foobar")
+    opts.chunk_size = len(content)
+    total_size = session.SendFile(io.BytesIO(content), opts=opts)
+
+    self.assertEqual(handler.content, content)
+    self.assertEqual(total_size, content_length)
 
   @responses.activate
   def testSendFileRetryFailure(self):

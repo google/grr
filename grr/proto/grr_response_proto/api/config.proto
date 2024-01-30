@@ -93,4 +93,6 @@ message ApiUiConfig {
   optional string profile_image_url = 5;
   optional HuntRunnerArgs default_hunt_runner_args = 6;
   optional AdminUIClientWarningsConfigOption client_warnings = 7;
+  optional uint64 default_access_duration_seconds = 8;
+  optional uint64 max_access_duration_seconds = 9;
 }

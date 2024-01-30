@@ -15,7 +15,6 @@ import psutil
 
 from grr_response_client import actions
 from grr_response_client import client_actions
-from grr_response_client import client_stats
 from grr_response_client import client_utils
 from grr_response_client.client_actions import admin
 from grr_response_core import config
@@ -36,15 +35,7 @@ class GRRClientWorker(threading.Thread):
   waiting on network latency.
   """
 
-  stats_collector = None
-
   sent_bytes_per_flow = {}
-
-  # Client sends stats notifications at least every 50 minutes.
-  STATS_MAX_SEND_INTERVAL = rdfvalue.Duration.From(50, rdfvalue.MINUTES)
-
-  # Client sends stats notifications at most every 60 seconds.
-  STATS_MIN_SEND_INTERVAL = rdfvalue.Duration.From(60, rdfvalue.SECONDS)
 
   def __init__(self,
                client=None,
@@ -81,9 +72,6 @@ class GRRClientWorker(threading.Thread):
       self._out_queue = SizeLimitedQueue(
           maxsize=config.CONFIG["Client.max_out_queue"],
           heart_beat_cb=self.heart_beat_cb)
-
-    # Only start this thread after the _out_queue is ready to send.
-    self.StartStatsCollector()
 
     self.daemon = True
 
@@ -127,11 +115,6 @@ class GRRClientWorker(threading.Thread):
     if self.heart_beat_cb:
       self.heart_beat_cb()
 
-  def StartStatsCollector(self):
-    if not GRRClientWorker.stats_collector:
-      GRRClientWorker.stats_collector = client_stats.ClientStatsCollector(self)
-      GRRClientWorker.stats_collector.start()
-
   def SendReply(self,
                 rdf_value=None,
                 request_id=None,
@@ -139,7 +122,6 @@ class GRRClientWorker(threading.Thread):
                 session_id="W:0",
                 message_type=None,
                 name=None,
-                require_fastpoll=None,
                 ttl=None,
                 blocking=True,
                 task_id=None):
@@ -153,8 +135,6 @@ class GRRClientWorker(threading.Thread):
       message_type: The contents of this message, MESSAGE, STATUS or
         RDF_VALUE.
       name: The name of the client action that sends this response.
-      require_fastpoll: If set, this will set the client to fastpoll mode after
-        sending this message.
       ttl: The time to live of this message.
       blocking: If the output queue is full, block until there is space.
       task_id: The task ID that the request was queued at. We send this back to
@@ -172,7 +152,6 @@ class GRRClientWorker(threading.Thread):
         name=name,
         response_id=response_id,
         request_id=request_id,
-        require_fastpoll=require_fastpoll,
         ttl=ttl,
         type=message_type)
 
@@ -240,8 +219,6 @@ class GRRClientWorker(threading.Thread):
       self.transaction_log.Clear()
     finally:
       self._is_active = False
-      # We want to send ClientStats when client action is complete.
-      self.stats_collector.RequestSend()
 
   def MemoryExceeded(self):
     """Returns True if our memory footprint is too large."""
@@ -256,7 +233,7 @@ class GRRClientWorker(threading.Thread):
     self.SendReply(
         rdf_protodict.DataBlob(string=msg),
         session_id=rdfvalue.FlowSessionID(flow_name="ClientAlert"),
-        require_fastpoll=False)
+    )
 
   def Sleep(self, timeout):
     """Sleeps the calling thread with heartbeat."""

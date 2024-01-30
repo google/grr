@@ -6,7 +6,10 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {FlowResult} from '../../../lib/models/flow';
 import {newFlowResult} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
-import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {
+  FlowResultsLocalStoreMock,
+  mockFlowResultsLocalStore,
+} from '../../../store/flow_results_local_store_test_util';
 import {initTestEnvironment} from '../../../testing';
 
 import {LoadFlowResultsDirective} from './load_flow_results_directive';
@@ -19,8 +22,7 @@ class InnerComponent {
 }
 
 @Component({
-  template:
-      `<test-inner *loadFlowResults="query; let results=results; let queryMore=queryMore;" [results]="results" [queryMore]="queryMore"></test-inner>`
+  template: `<test-inner *loadFlowResults="query; let results=results; let queryMore=queryMore;" [results]="results" [queryMore]="queryMore"></test-inner>`,
 })
 class TestHostComponent<R> {
   @Input() query!: LoadFlowResultsDirective<R>['loadFlowResults'];
@@ -34,22 +36,16 @@ describe('LoadFlowResultsDirective', () => {
   beforeEach(waitForAsync(() => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            HelpersModule,
-          ],
-          declarations: [
-            InnerComponent,
-            TestHostComponent,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, HelpersModule],
+      declarations: [InnerComponent, TestHostComponent],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(FlowResultsLocalStore, {
+        useFactory: () => flowResultsLocalStore,
+      })
+      .compileComponents();
   }));
 
   it('queries FlowResultsLocalStore', () => {
@@ -82,17 +78,16 @@ describe('LoadFlowResultsDirective', () => {
     fixture.detectChanges();
 
     const inner = fixture.debugElement.query(By.directive(InnerComponent))
-                      .componentInstance as InnerComponent;
-
+      .componentInstance as InnerComponent;
 
     flowResultsLocalStore.mockedObservables.results$.next([
       newFlowResult({payload: {foo: 42}}),
     ]);
     fixture.detectChanges();
 
-
-    expect(inner.results).toEqual([jasmine.objectContaining(
-        {payload: {foo: 42}})]);
+    expect(inner.results).toEqual([
+      jasmine.objectContaining({payload: {foo: 42}}),
+    ]);
   });
 
   it('passes through queryMore', () => {
@@ -109,7 +104,7 @@ describe('LoadFlowResultsDirective', () => {
     fixture.detectChanges();
 
     const inner = fixture.debugElement.query(By.directive(InnerComponent))
-                      .componentInstance as InnerComponent;
+      .componentInstance as InnerComponent;
 
     expect(flowResultsLocalStore.queryMore).not.toHaveBeenCalled();
     inner.queryMore(5);

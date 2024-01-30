@@ -22,14 +22,6 @@ def RegisterApiCallRouters():
       "ApiCallRouterWithApprovalChecks",
       api_call_router_with_approval_checks.ApiCallRouterWithApprovalChecks)
   api_call_router_registry.RegisterApiCallRouter(
-      "ApiCallRouterWithApprovalChecksWithRobotAccess",
-      api_call_router_with_approval_checks
-      .ApiCallRouterWithApprovalChecksWithRobotAccess)
-  api_call_router_registry.RegisterApiCallRouter(
-      "ApiCallRouterWithApprovalChecksWithoutRobotAccess",
-      api_call_router_with_approval_checks
-      .ApiCallRouterWithApprovalChecksWithoutRobotAccess)
-  api_call_router_registry.RegisterApiCallRouter(
       "ApiCallRouterWithoutChecks",
       api_call_router_without_checks.ApiCallRouterWithoutChecks)
   api_call_router_registry.RegisterApiCallRouter(

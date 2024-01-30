@@ -18,14 +18,13 @@ import {FlowsOverview} from '../../components/flow_picker/flows_overview';
 import {FlowChips} from './flow_chips';
 import {FlowPicker} from './flow_picker';
 
-
 /**
  * Module for the flow_picker details component.
  */
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     CommonModule,
@@ -42,16 +41,8 @@ import {FlowPicker} from './flow_picker';
     ReactiveFormsModule,
     RouterModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    FlowPicker,
-    FlowChips,
-    FlowsOverview,
-  ],
-  exports: [
-    FlowPicker,
-  ],
+  declarations: [FlowPicker, FlowChips, FlowsOverview],
+  exports: [FlowPicker],
 })
-export class FlowPickerModule {
-}
+export class FlowPickerModule {}

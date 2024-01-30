@@ -7,6 +7,7 @@ import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {FlowType} from '../../lib/models/flow';
 
 import {CollectFilesByKnownPathForm} from './collect_files_by_known_path_form';
+import {CollectLargeFileFlowForm} from './collect_large_file_flow_form';
 import {DumpProcessMemoryForm} from './dump_process_memory_form';
 import {ExecutePythonHackForm} from './execute_python_hack_form';
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
@@ -27,6 +28,7 @@ export const FORMS: {[key in FlowType]?: Type<FlowArgumentForm<{}, any>>} = {
   [FlowType.ARTIFACT_COLLECTOR_FLOW]: ArtifactCollectorFlowForm,
   [FlowType.COLLECT_BROWSER_HISTORY]: CollectBrowserHistoryForm,
   [FlowType.COLLECT_FILES_BY_KNOWN_PATH]: CollectFilesByKnownPathForm,
+  [FlowType.COLLECT_LARGE_FILE_FLOW]: CollectLargeFileFlowForm,
   [FlowType.COLLECT_MULTIPLE_FILES]: CollectMultipleFilesForm,
   [FlowType.STAT_MULTIPLE_FILES]: CollectMultipleFilesForm,
   [FlowType.HASH_MULTIPLE_FILES]: CollectMultipleFilesForm,
@@ -46,8 +48,6 @@ export const FORMS: {[key in FlowType]?: Type<FlowArgumentForm<{}, any>>} = {
   // Show empty form as fallback for flows that typically do not require
   // configuration.
   [FlowType.COLLECT_RUNKEY_BINARIES]: FallbackFlowArgsForm,
-  [FlowType.DUMP_FLASH_IMAGE]: FallbackFlowArgsForm,
-  [FlowType.GET_CLIENT_STATS]: FallbackFlowArgsForm,
   [FlowType.GET_MBR]: FallbackFlowArgsForm,
   [FlowType.INTERROGATE]: FallbackFlowArgsForm,
   [FlowType.LIST_VOLUME_SHADOW_COPIES]: FallbackFlowArgsForm,

@@ -3,17 +3,17 @@ import {ActivatedRoute, RouterLinkWithHref} from '@angular/router';
 
 /** Applies [routerLink] to elements having [drawerLink]. */
 @Directive({selector: 'a[drawerLink],area[drawerLink],button[drawerLink]'})
-export class DrawerRouterLinkWithHref extends RouterLinkWithHref {
-}
+export class DrawerRouterLinkWithHref extends RouterLinkWithHref {}
 
 /** Creates a [routerLink] opening the given route in the Drawer. */
 @Directive({selector: 'a[drawerLink],area[drawerLink],button[drawerLink]'})
 export class DrawerLink implements OnChanges {
-  @Input() drawerLink?: Array<string|{}>;
+  @Input() drawerLink?: Array<string | {}>;
 
   constructor(
-      @Host() private readonly routerLink: DrawerRouterLinkWithHref,
-      private readonly activatedRoute: ActivatedRoute) {}
+    @Host() private readonly routerLink: DrawerRouterLinkWithHref,
+    private readonly activatedRoute: ActivatedRoute,
+  ) {}
 
   ngOnChanges(changes: SimpleChanges) {
     if (this.drawerLink?.length) {

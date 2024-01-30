@@ -5,7 +5,12 @@ import {Client} from '../../../lib/models/client';
 
 /** Entry type */
 export type EntryType =
-    'primitive'|'timestamp'|'size'|'user-list'|'interface-list'|'volume-list';
+  | 'primitive'
+  | 'timestamp'
+  | 'size'
+  | 'user-list'
+  | 'interface-list'
+  | 'volume-list';
 
 /** Parameters required to open an EntryHistoryDialog */
 export interface EntryHistoryDialogParams {
@@ -33,7 +38,7 @@ export class EntryHistoryDialog {
   readonly tableRows: Array<EntryHistoryTableRow<any>> = [];
 
   constructor(
-      @Inject(MAT_DIALOG_DATA) private readonly data: EntryHistoryDialogParams,
+    @Inject(MAT_DIALOG_DATA) private readonly data: EntryHistoryDialogParams,
   ) {
     if (this.data.path.length === 0) {
       throw new Error('Empty "path" provided');

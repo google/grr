@@ -17,7 +17,7 @@ import {ScheduledFlowList} from './scheduled_flow_list';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     CommonModule,
@@ -28,14 +28,8 @@ import {ScheduledFlowList} from './scheduled_flow_list';
     RouterModule,
     UserImageModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ScheduledFlowList,
-  ],
-  exports: [
-    ScheduledFlowList,
-  ],
+  declarations: [ScheduledFlowList],
+  exports: [ScheduledFlowList],
 })
-export class ScheduledFlowListModule {
-}
+export class ScheduledFlowListModule {}

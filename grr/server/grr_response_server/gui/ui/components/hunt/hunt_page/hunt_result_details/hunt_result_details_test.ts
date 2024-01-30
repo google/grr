@@ -2,7 +2,12 @@ import {Component} from '@angular/core';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
-import {ActivatedRoute, convertToParamMap, ParamMap, Router} from '@angular/router';
+import {
+  ActivatedRoute,
+  ParamMap,
+  Router,
+  convertToParamMap,
+} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 import {ReplaySubject} from 'rxjs';
 
@@ -11,7 +16,10 @@ import {ApiModule} from '../../../../lib/api/module';
 import {translateFlow} from '../../../../lib/api_translation/flow';
 import {newFlowDescriptor} from '../../../../lib/models/model_test_util';
 import {HuntResultDetailsGlobalStore} from '../../../../store/hunt_result_details_global_store';
-import {HuntResultDetailsGlobalStoreMock, mockHuntResultDetailsGlobalStore} from '../../../../store/hunt_result_details_global_store_test_util';
+import {
+  HuntResultDetailsGlobalStoreMock,
+  mockHuntResultDetailsGlobalStore,
+} from '../../../../store/hunt_result_details_global_store_test_util';
 import {STORE_PROVIDERS} from '../../../../store/store_test_providers';
 import {HUNT_ROUTES} from '../../../app/routing';
 
@@ -19,13 +27,13 @@ import {HuntResultDetails} from './hunt_result_details';
 import {HuntResultDetailsModule} from './module';
 
 @Component({template: ''})
-class DummyComponent {
-}
+class DummyComponent {}
 
 describe('HuntResultDetails', () => {
   let huntResultDetailsGlobalStore: HuntResultDetailsGlobalStoreMock;
-  let activatedRoute: Partial<ActivatedRoute>&
-      {paramMap: ReplaySubject<ParamMap>};
+  let activatedRoute: Partial<ActivatedRoute> & {
+    paramMap: ReplaySubject<ParamMap>;
+  };
 
   beforeEach(waitForAsync(() => {
     huntResultDetailsGlobalStore = mockHuntResultDetailsGlobalStore();
@@ -33,32 +41,30 @@ describe('HuntResultDetails', () => {
       paramMap: new ReplaySubject<ParamMap>(),
     };
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            ApiModule,
-            NoopAnimationsModule,
-            HuntResultDetailsModule,
-            RouterTestingModule.withRoutes([
-              ...HUNT_ROUTES,
-              // Mock route for testing source flow link:
-              {
-                path: 'clients/:clientId/flows/:flowId',
-                component: DummyComponent,
-              },
-            ]),
-          ],
-          providers: [
-            ...STORE_PROVIDERS,
-            {
-              provide: HuntResultDetailsGlobalStore,
-              useFactory: () => huntResultDetailsGlobalStore,
-            },
-            {provide: ActivatedRoute, useFactory: () => activatedRoute},
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        ApiModule,
+        NoopAnimationsModule,
+        HuntResultDetailsModule,
+        RouterTestingModule.withRoutes([
+          ...HUNT_ROUTES,
+          // Mock route for testing source flow link:
+          {
+            path: 'clients/:clientId/flows/:flowId',
+            component: DummyComponent,
+          },
+        ]),
+      ],
+      providers: [
+        ...STORE_PROVIDERS,
+        {
+          provide: HuntResultDetailsGlobalStore,
+          useFactory: () => huntResultDetailsGlobalStore,
+        },
+        {provide: ActivatedRoute, useFactory: () => activatedRoute},
+      ],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
 
     TestBed.inject(Router);
   }));
@@ -69,22 +75,27 @@ describe('HuntResultDetails', () => {
       fixture.detectChanges();
 
       activatedRoute.paramMap.next(
-          convertToParamMap({'key': 'C.123-5678-999999999999'}));
+        convertToParamMap({'key': 'C.123-5678-999999999999'}),
+      );
 
-      expect(huntResultDetailsGlobalStore.selectHuntResultId)
-          .toHaveBeenCalledWith('C.123-5678-999999999999', undefined);
+      expect(
+        huntResultDetailsGlobalStore.selectHuntResultId,
+      ).toHaveBeenCalledWith('C.123-5678-999999999999', undefined);
     });
 
     it('query store based on route with type', () => {
-      activatedRoute.paramMap.next(convertToParamMap({
-        'key': 'C.123-5678-999999999999',
-        'payloadType': 'FileFinderResult',
-      }));
+      activatedRoute.paramMap.next(
+        convertToParamMap({
+          'key': 'C.123-5678-999999999999',
+          'payloadType': 'FileFinderResult',
+        }),
+      );
       const fixture = TestBed.createComponent(HuntResultDetails);
       fixture.detectChanges();
 
-      expect(huntResultDetailsGlobalStore.selectHuntResultId)
-          .toHaveBeenCalledWith('C.123-5678-999999999999', 'FileFinderResult');
+      expect(
+        huntResultDetailsGlobalStore.selectHuntResultId,
+      ).toHaveBeenCalledWith('C.123-5678-999999999999', 'FileFinderResult');
     });
   });
 
@@ -104,13 +115,15 @@ describe('HuntResultDetails', () => {
       const fixture = TestBed.createComponent(HuntResultDetails);
 
       huntResultDetailsGlobalStore.mockedObservables.timestamp$.next(
-          new Date('1970-01-12 13:46:39 UTC'));
+        new Date('1970-01-12 13:46:39 UTC'),
+      );
 
       fixture.detectChanges();
 
       const timestamp = fixture.debugElement.query(By.css('app-timestamp'));
-      expect(timestamp.nativeElement.innerText)
-          .toContain('1970-01-12 13:46:39 UTC');
+      expect(timestamp.nativeElement.innerText).toContain(
+        '1970-01-12 13:46:39 UTC',
+      );
     });
 
     it('displays client Id information from store', () => {
@@ -134,8 +147,9 @@ describe('HuntResultDetails', () => {
 
         fixture.detectChanges();
 
-        const sourceFlowLink =
-            fixture.debugElement.query(By.css('a[name=\'sourceFlow\']'));
+        const sourceFlowLink = fixture.debugElement.query(
+          By.css("a[name='sourceFlow']"),
+        );
 
         expect(sourceFlowLink).toBeTruthy();
 
@@ -156,13 +170,15 @@ describe('HuntResultDetails', () => {
 
         fixture.detectChanges();
 
-        const sourceFlowLink =
-            fixture.debugElement.query(By.css('[name=\'sourceFlow\']'));
+        const sourceFlowLink = fixture.debugElement.query(
+          By.css("[name='sourceFlow']"),
+        );
 
         expect(sourceFlowLink).toBeNull();
 
-        const overview =
-            fixture.debugElement.query(By.css('[name=\'unknownFlow\']'));
+        const overview = fixture.debugElement.query(
+          By.css("[name='unknownFlow']"),
+        );
 
         expect(overview.nativeElement.textContent).toContain('Unknown');
       });
@@ -176,13 +192,15 @@ describe('HuntResultDetails', () => {
 
         fixture.detectChanges();
 
-        const sourceFlowLink =
-            fixture.debugElement.query(By.css('[name=\'sourceFlow\']'));
+        const sourceFlowLink = fixture.debugElement.query(
+          By.css("[name='sourceFlow']"),
+        );
 
         expect(sourceFlowLink).toBeNull();
 
-        const overview =
-            fixture.debugElement.query(By.css('[name=\'unknownFlow\']'));
+        const overview = fixture.debugElement.query(
+          By.css("[name='unknownFlow']"),
+        );
 
         expect(overview.nativeElement.textContent).toContain('123ABCD');
       });
@@ -193,13 +211,15 @@ describe('HuntResultDetails', () => {
       fixture.detectChanges();
 
       huntResultDetailsGlobalStore.mockedObservables.resultOrErrorDisplay$.next(
-          `{'something': 'is coming'}`);
+        `{'something': 'is coming'}`,
+      );
 
       fixture.detectChanges();
 
-      const payload = fixture.debugElement.query(By.css('[name=\'rawData\']'));
-      expect(payload.nativeElement.innerText)
-          .toContain(`{'something': 'is coming'}`);
+      const payload = fixture.debugElement.query(By.css("[name='rawData']"));
+      expect(payload.nativeElement.innerText).toContain(
+        `{'something': 'is coming'}`,
+      );
     });
 
     it('displays flow information from store', () => {
@@ -220,14 +240,15 @@ describe('HuntResultDetails', () => {
         descriptor: newFlowDescriptor({
           name: 'SomeFlow',
           friendlyName: `Some
-                Flow`
+                Flow`,
         }),
         flowArgType: 'foo',
       });
       fixture.detectChanges();
 
-      const flowDetailsCard =
-          fixture.debugElement.query(By.css('flow-details'));
+      const flowDetailsCard = fixture.debugElement.query(
+        By.css('flow-details'),
+      );
       expect(flowDetailsCard).toBeTruthy();
 
       expect(flowDetailsCard.nativeElement.innerText).toContain('Some Flow');
@@ -240,13 +261,14 @@ describe('HuntResultDetails', () => {
       fixture.detectChanges();
 
       huntResultDetailsGlobalStore.mockedObservables.resultOrErrorDisplay$.next(
-          `{
+        `{
         logMessage: 'oof',
         backtrace: 'this is tough',
-      }`);
+      }`,
+      );
       fixture.detectChanges();
 
-      const rawError = fixture.debugElement.query(By.css('[name=\'rawData\']'));
+      const rawError = fixture.debugElement.query(By.css("[name='rawData']"));
 
       expect(rawError.nativeElement.innerText).toContain('oof');
       expect(rawError.nativeElement.innerText).toContain('this is tough');
@@ -256,7 +278,7 @@ describe('HuntResultDetails', () => {
       const fixture = TestBed.createComponent(HuntResultDetails);
       fixture.detectChanges();
 
-      const rawError = fixture.debugElement.query(By.css('[name=\'rawData\']'));
+      const rawError = fixture.debugElement.query(By.css("[name='rawData']"));
 
       expect(rawError.nativeElement.innerText).toContain('Data not found');
     });
@@ -268,11 +290,11 @@ describe('HuntResultDetails', () => {
       fixture.detectChanges();
 
       huntResultDetailsGlobalStore.mockedObservables.isHuntResultLoading$.next(
-          true);
+        true,
+      );
       fixture.detectChanges();
 
-      const overview =
-          fixture.debugElement.query(By.css('[name=\'overview\']'));
+      const overview = fixture.debugElement.query(By.css("[name='overview']"));
 
       expect(overview).toBeNull();
 
@@ -287,13 +309,13 @@ describe('HuntResultDetails', () => {
       huntResultDetailsGlobalStore.mockedObservables.isFlowLoading$.next(true);
       fixture.detectChanges();
 
-      const overview =
-          fixture.debugElement.query(By.css('[name=\'overview\']'));
+      const overview = fixture.debugElement.query(By.css("[name='overview']"));
 
       expect(overview).toBeTruthy();
 
-      const flowLoadingSpinner =
-          fixture.debugElement.query(By.css('.flow-loading-spinner'));
+      const flowLoadingSpinner = fixture.debugElement.query(
+        By.css('.flow-loading-spinner'),
+      );
       expect(flowLoadingSpinner).toBeTruthy();
     });
   });

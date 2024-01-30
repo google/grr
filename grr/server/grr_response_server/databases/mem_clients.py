@@ -1,25 +1,42 @@
 #!/usr/bin/env python
 """The in memory database methods for client handling."""
-import sys
-from typing import Collection, Iterator, Mapping, Optional, List, Text
+from typing import Collection, Mapping, Optional, Sequence, Tuple, TypedDict
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
-from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import search as rdf_search
-from grr_response_core.lib.util import collection
-from grr_response_server import fleet_utils
+from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
-from grr_response_server.rdfvalues import objects as rdf_objects
-from grr_response_server.rdfvalues import rrg as rdf_rrg
+from grr_response_server.models import clients
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
+
+
+class _MetadataDict(TypedDict, total=False):
+  certificate: rdf_crypto.RDFX509Cert
+  first_seen: rdfvalue.RDFDatetime
+  ping: rdfvalue.RDFDatetime
+  clock: rdfvalue.RDFDatetime
+  ip: jobs_pb2.NetworkAddress
+  last_foreman_time: rdfvalue.RDFDatetime
+  last_crash_timestamp: rdfvalue.RDFDatetime
+  startup_info_timestamp: rdfvalue.RDFDatetime
+  last_fleetspeak_validation_info: (
+      bytes  # Serialized `jobs_pb2.FleetspeakValidationInfo`.
+  )
 
 
 class InMemoryDBClientMixin(object):
   """InMemoryDB mixin for client related functions."""
+
+  clients: dict[str, bytes]  # Serialized `objects_pb2.ClientSnapshot`.
+  metadatas: dict[str, dict[str, _MetadataDict]]
+  startup_history: dict[str, bytes]  # Serialized `jobs_pb2.StartupInfo`.
+  crash_history: dict[str, bytes]  # Serialized `jobs_pb2.ClientCrash`.
+  rrg_startups: dict[str, list[rrg_startup_pb2.Startup]]
+  labels: dict[str, dict[str, set[str]]]
+  keywords: dict[str, dict[str, rdfvalue.RDFDatetime]]
 
   @utils.Synchronized
   def MultiWriteClientMetadata(
@@ -29,7 +46,7 @@ class InMemoryDBClientMixin(object):
       first_seen: Optional[rdfvalue.RDFDatetime] = None,
       last_ping: Optional[rdfvalue.RDFDatetime] = None,
       last_clock: Optional[rdfvalue.RDFDatetime] = None,
-      last_ip: Optional[rdf_client_network.NetworkAddress] = None,
+      last_ip: Optional[jobs_pb2.NetworkAddress] = None,
       last_foreman: Optional[rdfvalue.RDFDatetime] = None,
       fleetspeak_validation_info: Optional[Mapping[str, str]] = None,
   ) -> None:
@@ -48,17 +65,18 @@ class InMemoryDBClientMixin(object):
       md["clock"] = last_clock
 
     if last_ip is not None:
-      md["ip"] = last_ip
+      md["ip"] = jobs_pb2.NetworkAddress()
+      md["ip"].MergeFrom(last_ip)
 
     if last_foreman is not None:
       md["last_foreman_time"] = last_foreman
 
     if fleetspeak_validation_info is not None:
       if fleetspeak_validation_info:
-        pb = rdf_client.FleetspeakValidationInfo.FromStringDict(
+        pb = clients.FleetspeakValidationInfoFromDict(
             fleetspeak_validation_info
         )
-        md["last_fleetspeak_validation_info"] = pb.SerializeToBytes()
+        md["last_fleetspeak_validation_info"] = pb.SerializeToString()
       else:
         # Write null for empty or non-existent validation info.
         md["last_fleetspeak_validation_info"] = None
@@ -67,7 +85,10 @@ class InMemoryDBClientMixin(object):
       self.metadatas.setdefault(client_id, {}).update(md)
 
   @utils.Synchronized
-  def MultiReadClientMetadata(self, client_ids):
+  def MultiReadClientMetadata(
+      self,
+      client_ids: Collection[str],
+  ) -> Mapping[str, objects_pb2.ClientMetadata]:
     """Reads ClientMetadata records for a list of clients."""
     res = {}
     for client_id in client_ids:
@@ -75,48 +96,60 @@ class InMemoryDBClientMixin(object):
       if md is None:
         continue
 
-      metadata = rdf_objects.ClientMetadata(
-          certificate=md.get("certificate"),
-          first_seen=md.get("first_seen"),
-          ping=md.get("ping"),
-          clock=md.get("clock"),
-          ip=md.get("ip"),
-          last_foreman_time=md.get("last_foreman_time"),
-          last_crash_timestamp=md.get("last_crash_timestamp"),
-          startup_info_timestamp=md.get("startup_info_timestamp"),
-      )
-
-      fsvi = md.get("last_fleetspeak_validation_info")
-      if fsvi is not None:
-        pb = rdf_client.FleetspeakValidationInfo.FromSerializedBytes(fsvi)
-        metadata.last_fleetspeak_validation_info = pb
+      metadata = objects_pb2.ClientMetadata()
+      if (certificate := md.get("certificate")) is not None:
+        metadata.certificate = certificate.SerializeToBytes()
+      if (first_seen := md.get("first_seen")) is not None:
+        metadata.first_seen = int(first_seen)
+      if ping := md.get("ping"):
+        metadata.ping = int(ping)
+      if (clock := md.get("clock")) is not None:
+        metadata.clock = int(clock)
+      if (ip := md.get("ip")) is not None:
+        metadata.ip.CopyFrom(ip)
+      if (last_foreman_time := md.get("last_foreman_time")) is not None:
+        metadata.last_foreman_time = int(last_foreman_time)
+      if (last_crash_timestamp := md.get("last_crash_timestamp")) is not None:
+        metadata.last_crash_timestamp = int(last_crash_timestamp)
+      if (startup_info_time := md.get("startup_info_timestamp")) is not None:
+        metadata.startup_info_timestamp = int(startup_info_time)
+      if (fsvi := md.get("last_fleetspeak_validation_info")) is not None:
+        metadata.last_fleetspeak_validation_info.ParseFromString(fsvi)
 
       res[client_id] = metadata
 
     return res
 
   @utils.Synchronized
-  def WriteClientSnapshot(self, snapshot):
+  def WriteClientSnapshot(
+      self,
+      snapshot: objects_pb2.ClientSnapshot,
+  ) -> None:
     """Writes new client snapshot."""
     client_id = snapshot.client_id
 
     if client_id not in self.metadatas:
       raise db.UnknownClientError(client_id)
 
-    startup_info = snapshot.startup_info
-    snapshot.startup_info = None
+    startup_info = jobs_pb2.StartupInfo()
+    startup_info.MergeFrom(snapshot.startup_info)
+
+    snapshot_without_startup_info = objects_pb2.ClientSnapshot()
+    snapshot_without_startup_info.CopyFrom(snapshot)
+    snapshot_without_startup_info.ClearField("startup_info")
 
     ts = rdfvalue.RDFDatetime.Now()
     history = self.clients.setdefault(client_id, {})
-    history[ts] = snapshot.SerializeToBytes()
+    history[ts] = snapshot_without_startup_info.SerializeToString()
 
     history = self.startup_history.setdefault(client_id, {})
-    history[ts] = startup_info.SerializeToBytes()
-
-    snapshot.startup_info = startup_info
+    history[ts] = startup_info.SerializeToString()
 
   @utils.Synchronized
-  def MultiReadClientSnapshot(self, client_ids):
+  def MultiReadClientSnapshot(
+      self,
+      client_ids: Collection[str],
+  ) -> Mapping[str, objects_pb2.ClientSnapshot]:
     """Reads the latest client snapshots for a list of clients."""
     res = {}
     for client_id in client_ids:
@@ -125,17 +158,24 @@ class InMemoryDBClientMixin(object):
         res[client_id] = None
         continue
       last_timestamp = max(history)
-      last_serialized = history[last_timestamp]
-      client_obj = rdf_objects.ClientSnapshot.FromSerializedBytes(
-          last_serialized)
-      client_obj.timestamp = last_timestamp
-      client_obj.startup_info = rdf_client.StartupInfo.FromSerializedBytes(
-          self.startup_history[client_id][last_timestamp])
-      res[client_id] = client_obj
+
+      last_snapshot_bytes = history[last_timestamp]
+      last_startup_bytes = self.startup_history[client_id][last_timestamp]
+
+      last_snapshot = objects_pb2.ClientSnapshot()
+      last_snapshot.ParseFromString(last_snapshot_bytes)
+      last_snapshot.startup_info.ParseFromString(last_startup_bytes)
+      last_snapshot.timestamp = int(last_timestamp)
+
+      res[client_id] = last_snapshot
     return res
 
   @utils.Synchronized
-  def MultiReadClientFullInfo(self, client_ids, min_last_ping=None):
+  def MultiReadClientFullInfo(
+      self,
+      client_ids: Collection[str],
+      min_last_ping: Optional[rdfvalue.RDFDatetime] = None,
+  ) -> Mapping[str, objects_pb2.ClientFullInfo]:
     """Reads full client information for a list of clients."""
     res = {}
     for client_id in client_ids:
@@ -144,28 +184,30 @@ class InMemoryDBClientMixin(object):
       except db.UnknownClientError:
         continue
 
-      if md and min_last_ping and md.ping < min_last_ping:
+      if md and min_last_ping and rdfvalue.RDFDatetime(md.ping) < min_last_ping:
         continue
       last_snapshot = self.ReadClientSnapshot(client_id)
-      full_info = rdf_objects.ClientFullInfo(
-          metadata=md,
-          labels=self.ReadClientLabels(client_id),
-          last_startup_info=self.ReadClientStartupInfo(client_id))
+
+      full_info = objects_pb2.ClientFullInfo()
+      full_info.metadata.CopyFrom(md)
+      full_info.labels.extend(self.ReadClientLabels(client_id))
+
       if last_snapshot is None:
-        full_info.last_snapshot = rdf_objects.ClientSnapshot(
-            client_id=client_id)
+        full_info.last_snapshot.client_id = client_id
       else:
-        full_info.last_snapshot = last_snapshot
+        full_info.last_snapshot.CopyFrom(last_snapshot)
+
+      if (startup_info := self.ReadClientStartupInfo(client_id)) is not None:
+        full_info.last_startup_info.CopyFrom(startup_info)
 
       if self.rrg_startups[client_id]:
         last_rrg_startup = self.rrg_startups[client_id][-1]
         last_rrg_startup_bytes = last_rrg_startup.SerializeToString()
 
-        full_info.last_rrg_startup = rdf_rrg.Startup.FromSerializedBytes(
-            last_rrg_startup_bytes,
-        )
+        full_info.last_rrg_startup.ParseFromString(last_rrg_startup_bytes)
 
       res[client_id] = full_info
+
     return res
 
   @utils.Synchronized
@@ -192,25 +234,13 @@ class InMemoryDBClientMixin(object):
       yield last_pings
 
   @utils.Synchronized
-  def WriteClientSnapshotHistory(self, clients):
-    """Writes the full history for a particular client."""
-    if clients[0].client_id not in self.metadatas:
-      raise db.UnknownClientError(clients[0].client_id)
-
-    for client in clients:
-      startup_info = client.startup_info
-      client.startup_info = None
-
-      snapshots = self.clients.setdefault(client.client_id, {})
-      snapshots[client.timestamp] = client.SerializeToBytes()
-
-      startup_infos = self.startup_history.setdefault(client.client_id, {})
-      startup_infos[client.timestamp] = startup_info.SerializeToBytes()
-
-      client.startup_info = startup_info
-
-  @utils.Synchronized
-  def ReadClientSnapshotHistory(self, client_id, timerange=None):
+  def ReadClientSnapshotHistory(
+      self,
+      client_id: str,
+      timerange: Optional[
+          Tuple[Optional[rdfvalue.RDFDatetime], Optional[rdfvalue.RDFDatetime]]
+      ] = None,
+  ) -> Sequence[objects_pb2.ClientSnapshot]:
     """Reads the full history for a particular client."""
     from_time, to_time = self._ParseTimeRange(timerange)
 
@@ -222,11 +252,15 @@ class InMemoryDBClientMixin(object):
       if ts < from_time or ts > to_time:
         continue
 
-      client_obj = rdf_objects.ClientSnapshot.FromSerializedBytes(history[ts])
-      client_obj.timestamp = ts
-      client_obj.startup_info = rdf_client.StartupInfo.FromSerializedBytes(
-          self.startup_history[client_id][ts])
-      res.append(client_obj)
+      snapshot_bytes = history[ts]
+      startup_bytes = self.startup_history[client_id][ts]
+
+      snapshot = objects_pb2.ClientSnapshot()
+      snapshot.ParseFromString(snapshot_bytes)
+      snapshot.startup_info.ParseFromString(startup_bytes)
+      snapshot.timestamp = int(ts)
+
+      res.append(snapshot)
     return res
 
   @utils.Synchronized
@@ -246,7 +280,11 @@ class InMemoryDBClientMixin(object):
         self.keywords[kw][client_id] = rdfvalue.RDFDatetime.Now()
 
   @utils.Synchronized
-  def ListClientsForKeywords(self, keywords, start_time=None):
+  def ListClientsForKeywords(
+      self,
+      keywords: Collection[str],
+      start_time: Optional[rdfvalue.RDFDatetime] = None,
+  ) -> Mapping[str, Collection[str]]:
     """Lists the clients associated with keywords."""
     res = {kw: [] for kw in keywords}
     for kw in keywords:
@@ -257,7 +295,11 @@ class InMemoryDBClientMixin(object):
     return res
 
   @utils.Synchronized
-  def RemoveClientKeyword(self, client_id, keyword):
+  def RemoveClientKeyword(
+      self,
+      client_id: str,
+      keyword: str,
+  ) -> None:
     """Removes the association of a particular client to a keyword."""
     if keyword in self.keywords and client_id in self.keywords[keyword]:
       del self.keywords[keyword][client_id]
@@ -282,7 +324,10 @@ class InMemoryDBClientMixin(object):
       client_labels.setdefault(owner, set()).update(set(labels))
 
   @utils.Synchronized
-  def MultiReadClientLabels(self, client_ids):
+  def MultiReadClientLabels(
+      self,
+      client_ids: Collection[str],
+  ) -> Mapping[str, Sequence[objects_pb2.ClientLabel]]:
     """Reads the user labels for a list of clients."""
     res = {}
     for client_id in client_ids:
@@ -290,19 +335,25 @@ class InMemoryDBClientMixin(object):
       owner_dict = self.labels.get(client_id, {})
       for owner, labels in owner_dict.items():
         for l in labels:
-          res[client_id].append(rdf_objects.ClientLabel(owner=owner, name=l))
+          res[client_id].append(objects_pb2.ClientLabel(owner=owner, name=l))
       res[client_id].sort(key=lambda label: (label.owner, label.name))
+
     return res
 
   @utils.Synchronized
-  def RemoveClientLabels(self, client_id, owner, labels):
+  def RemoveClientLabels(
+      self,
+      client_id: str,
+      owner: str,
+      labels: Sequence[str],
+  ) -> None:
     """Removes a list of user labels from a given client."""
     labelset = self.labels.setdefault(client_id, {}).setdefault(owner, set())
     for l in labels:
       labelset.discard(utils.SmartUnicode(l))
 
   @utils.Synchronized
-  def ReadAllClientLabels(self):
+  def ReadAllClientLabels(self) -> Collection[str]:
     """Lists all client labels known to the system."""
     results = set()
     for labels_dict in self.labels.values():
@@ -311,7 +362,11 @@ class InMemoryDBClientMixin(object):
     return results
 
   @utils.Synchronized
-  def WriteClientStartupInfo(self, client_id, startup_info):
+  def WriteClientStartupInfo(
+      self,
+      client_id: str,
+      startup_info: jobs_pb2.StartupInfo,
+  ) -> None:
     """Writes a new client startup record."""
     if client_id not in self.metadatas:
       raise db.UnknownClientError(client_id)
@@ -319,7 +374,7 @@ class InMemoryDBClientMixin(object):
     ts = rdfvalue.RDFDatetime.Now()
     self.metadatas[client_id]["startup_info_timestamp"] = ts
     history = self.startup_history.setdefault(client_id, {})
-    history[ts] = startup_info.SerializeToBytes()
+    history[ts] = startup_info.SerializeToString()
 
   @utils.Synchronized
   def WriteClientRRGStartup(
@@ -353,39 +408,28 @@ class InMemoryDBClientMixin(object):
       return None
 
   @utils.Synchronized
-  def ReadClientStartupInfo(self,
-                            client_id: str) -> Optional[rdf_client.StartupInfo]:
+  def ReadClientStartupInfo(
+      self,
+      client_id: str,
+  ) -> Optional[jobs_pb2.StartupInfo]:
     """Reads the latest client startup record for a single client."""
     history = self.startup_history.get(client_id, None)
     if not history:
       return None
 
     ts = max(history)
-    res = rdf_client.StartupInfo.FromSerializedBytes(history[ts])
-    res.timestamp = ts
+    res = jobs_pb2.StartupInfo()
+    res.ParseFromString(history[ts])
+    res.timestamp = int(ts)
 
     return res
 
   @utils.Synchronized
-  def ReadClientStartupInfoHistory(self, client_id, timerange=None):
-    """Reads the full startup history for a particular client."""
-    from_time, to_time = self._ParseTimeRange(timerange)
-
-    history = self.startup_history.get(client_id)
-    if not history:
-      return []
-    res = []
-    for ts in sorted(history, reverse=True):
-      if ts < from_time or ts > to_time:
-        continue
-
-      client_data = rdf_client.StartupInfo.FromSerializedBytes(history[ts])
-      client_data.timestamp = ts
-      res.append(client_data)
-    return res
-
-  @utils.Synchronized
-  def WriteClientCrashInfo(self, client_id, crash_info):
+  def WriteClientCrashInfo(
+      self,
+      client_id: str,
+      crash_info: jobs_pb2.ClientCrash,
+  ) -> None:
     """Writes a new client crash record."""
     if client_id not in self.metadatas:
       raise db.UnknownClientError(client_id)
@@ -393,136 +437,46 @@ class InMemoryDBClientMixin(object):
     ts = rdfvalue.RDFDatetime.Now()
     self.metadatas[client_id]["last_crash_timestamp"] = ts
     history = self.crash_history.setdefault(client_id, {})
-    history[ts] = crash_info.SerializeToBytes()
+    history[ts] = crash_info.SerializeToString()
 
   @utils.Synchronized
-  def ReadClientCrashInfo(self, client_id):
+  def ReadClientCrashInfo(
+      self,
+      client_id: str,
+  ) -> Optional[jobs_pb2.ClientCrash]:
     """Reads the latest client crash record for a single client."""
     history = self.crash_history.get(client_id, None)
     if not history:
       return None
 
     ts = max(history)
-    res = rdf_client.ClientCrash.FromSerializedBytes(history[ts])
-    res.timestamp = ts
+    res = jobs_pb2.ClientCrash()
+    res.ParseFromString(history[ts])
+    res.timestamp = int(ts)
     return res
 
   @utils.Synchronized
-  def ReadClientCrashInfoHistory(self, client_id):
+  def ReadClientCrashInfoHistory(
+      self,
+      client_id: str,
+  ) -> Sequence[jobs_pb2.ClientCrash]:
     """Reads the full crash history for a particular client."""
     history = self.crash_history.get(client_id)
     if not history:
       return []
     res = []
     for ts in sorted(history, reverse=True):
-      client_data = rdf_client.ClientCrash.FromSerializedBytes(history[ts])
-      client_data.timestamp = ts
+      client_data = jobs_pb2.ClientCrash()
+      client_data.ParseFromString(history[ts])
+      client_data.timestamp = int(ts)
       res.append(client_data)
     return res
 
   @utils.Synchronized
-  def WriteClientStats(self, client_id: Text,
-                       stats: rdf_client_stats.ClientStats) -> None:
-    """Stores a ClientStats instance."""
-    if client_id not in collection.Flatten(self.ReadAllClientIDs()):
-      raise db.UnknownClientError(client_id)
-
-    if stats.timestamp is None:
-      stats.timestamp = rdfvalue.RDFDatetime.Now()
-
-    copy = rdf_client_stats.ClientStats(stats)
-    self.client_stats[client_id][copy.timestamp] = copy
-
-  @utils.Synchronized
-  def ReadClientStats(
-      self, client_id: Text, min_timestamp: rdfvalue.RDFDatetime,
-      max_timestamp: rdfvalue.RDFDatetime
-  ) -> List[rdf_client_stats.ClientStats]:
-    """Reads ClientStats for a given client and time range."""
-    results = []
-    for timestamp, stats in self.client_stats[client_id].items():
-      if min_timestamp <= timestamp <= max_timestamp:
-        results.append(rdf_client_stats.ClientStats(stats))
-    return results
-
-  @utils.Synchronized
-  def DeleteOldClientStats(
+  def DeleteClient(
       self,
-      cutoff_time: rdfvalue.RDFDatetime,
-      batch_size: Optional[int] = None,
-  ) -> Iterator[int]:
-    """Deletes client stats older than the specified cutoff time."""
-    if batch_size is None:
-      # Everything is in memory, read as much as we can.
-      batch_size = sys.maxsize
-
-    deleted_count = 0
-
-    for stats_dict in self.client_stats.values():
-      for timestamp in list(stats_dict.keys()):
-        if timestamp < cutoff_time:
-          del stats_dict[timestamp]
-          deleted_count += 1
-
-          if deleted_count >= batch_size:
-            yield deleted_count
-            deleted_count = 0
-
-    if deleted_count > 0:
-      yield deleted_count
-
-  @utils.Synchronized
-  def CountClientVersionStringsByLabel(self, day_buckets):
-    """Computes client-activity stats for all GRR versions in the DB."""
-
-    def ExtractVersion(client_info):
-      return client_info.last_snapshot.GetGRRVersionString()
-
-    return self._CountClientStatisticByLabel(day_buckets, ExtractVersion)
-
-  @utils.Synchronized
-  def CountClientPlatformsByLabel(self, day_buckets):
-    """Computes client-activity stats for all client platforms in the DB."""
-
-    def ExtractPlatform(client_info):
-      return client_info.last_snapshot.knowledge_base.os
-
-    return self._CountClientStatisticByLabel(day_buckets, ExtractPlatform)
-
-  @utils.Synchronized
-  def CountClientPlatformReleasesByLabel(self, day_buckets):
-    """Computes client-activity stats for OS-release strings in the DB."""
-    return self._CountClientStatisticByLabel(
-        day_buckets, lambda client_info: client_info.last_snapshot.Uname())
-
-  def _CountClientStatisticByLabel(self, day_buckets, extract_statistic_fn):
-    """Returns client-activity metrics for a particular statistic.
-
-    Args:
-      day_buckets: A set of n-day-active buckets.
-      extract_statistic_fn: A function that extracts the statistic's value from
-        a ClientFullInfo object.
-    """
-    fleet_stats_builder = fleet_utils.FleetStatsBuilder(day_buckets)
-    now = rdfvalue.RDFDatetime.Now()
-    for info in self.IterateAllClientsFullInfo(batch_size=db.MAX_COUNT):
-      if not info.metadata.ping:
-        continue
-      statistic_value = extract_statistic_fn(info)
-
-      for day_bucket in day_buckets:
-        time_boundary = now - rdfvalue.Duration.From(day_bucket, rdfvalue.DAYS)
-        if info.metadata.ping > time_boundary:
-          # Count the client if it has been active in the last 'day_bucket'
-          # days.
-          fleet_stats_builder.IncrementTotal(statistic_value, day_bucket)
-          for client_label in info.GetLabelsNames(owner="GRR"):
-            fleet_stats_builder.IncrementLabel(client_label, statistic_value,
-                                               day_bucket)
-    return fleet_stats_builder.Build()
-
-  @utils.Synchronized
-  def DeleteClient(self, client_id):
+      client_id: str,
+  ) -> None:
     """Deletes a client with all associated metadata."""
     try:
       del self.metadatas[client_id]
@@ -536,8 +490,6 @@ class InMemoryDBClientMixin(object):
     self.startup_history.pop(client_id, None)
 
     self.crash_history.pop(client_id, None)
-
-    self.client_stats.pop(client_id, None)
 
     for key in [k for k in self.flows if k[0] == client_id]:
       self.flows.pop(key)

@@ -69,10 +69,9 @@ class Responses(Iterable[T]):
         if result.status is not None:
           raise ValueError(f"Duplicated status response: {response}")
 
-        if response.status == rdf_flow_objects.FlowStatus.Status.OK:
-          result.success = True
-        else:
-          result.success = False
+        result.success = (
+            response.status == rdf_flow_objects.FlowStatus.Status.OK
+        )
 
         result.status = response
       elif isinstance(response, rdf_flow_objects.FlowResponse):
@@ -95,6 +94,11 @@ class Responses(Iterable[T]):
     """A convenience method to return the first response."""
     for x in self:
       return x
+
+  def Last(self) -> Optional[T]:
+    """A convenience method to return the last response."""
+    *_, last = self
+    return last
 
   def __len__(self) -> int:
     return len(self.responses)

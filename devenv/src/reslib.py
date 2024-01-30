@@ -263,6 +263,7 @@ class Container(Resource):
       image: Image,
       volumes: Optional[List[Volume]] = None,
       command: Optional[str] = None,
+      env: Optional[dict[str, str]] = None,
       pod: Optional[Pod] = None,
       daemonize: bool = True,
       deps: Optional[List[Resource]] = None,
@@ -277,6 +278,7 @@ class Container(Resource):
 
     self.image: Image = image
     self.volumes: List[Volume] = volumes
+    self.env = env or {}
     self.pod: Optional[Pod] = pod
     self.command: Optional[str] = command
     self.daemonize = daemonize
@@ -311,6 +313,8 @@ class Container(Resource):
       ])
     for vol in self.volumes:
       cmdln.extend(["--volume", f"{vol.name}:{vol.mountpoint}"])
+    for key, val in self.env.items():
+      cmdln.extend(["--env", f"{key}={val}"])
     cmdln.append(self.image.name)
     if self.command:
       cmdln.extend(["sh", "-c", self.command])

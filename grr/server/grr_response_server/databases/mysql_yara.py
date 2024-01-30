@@ -7,7 +7,7 @@ import MySQLdb
 
 from grr_response_server.databases import db
 from grr_response_server.databases import mysql_utils
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import blobs
 
 
 class MySQLDBYaraMixin(object):
@@ -16,7 +16,7 @@ class MySQLDBYaraMixin(object):
   @mysql_utils.WithTransaction()
   def WriteYaraSignatureReference(
       self,
-      blob_id: rdf_objects.BlobID,
+      blob_id: blobs.BlobID,
       username: Text,
       cursor: MySQLdb.cursors.Cursor,
   ) -> None:
@@ -26,7 +26,7 @@ class MySQLDBYaraMixin(object):
     VALUES (%(blob_id)s, %(username_hash)s, NOW(6))
     """
     args = {
-        "blob_id": blob_id.AsBytes(),
+        "blob_id": bytes(blob_id),
         "username_hash": mysql_utils.Hash(username),
     }
 
@@ -38,7 +38,7 @@ class MySQLDBYaraMixin(object):
   @mysql_utils.WithTransaction(readonly=True)
   def VerifyYaraSignatureReference(
       self,
-      blob_id: rdf_objects.BlobID,
+      blob_id: blobs.BlobID,
       cursor: MySQLdb.cursors.Cursor,
   ) -> bool:
     """Verifies whether specified blob is a YARA signature."""
@@ -47,6 +47,6 @@ class MySQLDBYaraMixin(object):
       FROM yara_signature_references
      WHERE blob_id = %(blob_id)s
     """
-    cursor.execute(query, {"blob_id": blob_id.AsBytes()})
+    cursor.execute(query, {"blob_id": bytes(blob_id)})
 
     return len(cursor.fetchall()) == 1

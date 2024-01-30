@@ -14,7 +14,7 @@ import {FlowArgsView} from './flow_args_view';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     FlowArgsFormModule,
@@ -25,14 +25,8 @@ import {FlowArgsView} from './flow_args_view';
     MatInputModule,
     ReactiveFormsModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    FlowArgsView,
-  ],
-  exports: [
-    FlowArgsView,
-  ]
+  declarations: [FlowArgsView],
+  exports: [FlowArgsView],
 })
-export class FlowArgsViewModule {
-}
+export class FlowArgsViewModule {}

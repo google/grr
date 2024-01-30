@@ -16,16 +16,10 @@ initTestEnvironment();
 
 describe('YaraProcessScanForm', () => {
   beforeEach(waitForAsync(() => {
-    return TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            ReactiveFormsModule,
-            FlowArgsFormModule,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    return TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, ReactiveFormsModule, FlowArgsFormModule],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('shows a PID input field', async () => {
@@ -34,7 +28,8 @@ describe('YaraProcessScanForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const toggle = await harnessLoader.getHarness(
-        MatButtonToggleHarness.with({text: 'PID'}));
+      MatButtonToggleHarness.with({text: 'PID'}),
+    );
     await toggle.check();
 
     const args = firstValueFrom(fixture.componentInstance.flowArgs$);
@@ -44,9 +39,11 @@ describe('YaraProcessScanForm', () => {
     input.triggerEventHandler('change', {target: input.nativeElement});
     fixture.detectChanges();
 
-    expect(await args).toEqual(jasmine.objectContaining({
-      pids: ['123', '456']
-    }));
+    expect(await args).toEqual(
+      jasmine.objectContaining({
+        pids: ['123', '456'],
+      }),
+    );
   });
 
   it('shows a process name input field', async () => {
@@ -55,21 +52,25 @@ describe('YaraProcessScanForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const toggle = await harnessLoader.getHarness(
-        MatButtonToggleHarness.with({text: 'Name'}));
+      MatButtonToggleHarness.with({text: 'Name'}),
+    );
     await toggle.check();
     fixture.detectChanges();
 
     const latestValue = latestValueFrom(fixture.componentInstance.flowArgs$);
 
-    const input =
-        fixture.debugElement.query(By.css('input[name=processRegex]'));
+    const input = fixture.debugElement.query(
+      By.css('input[name=processRegex]'),
+    );
     input.nativeElement.value = 'foo';
     input.triggerEventHandler('input', {target: input.nativeElement});
     fixture.detectChanges();
 
-    expect(latestValue.get()).toEqual(jasmine.objectContaining({
-      processRegex: 'foo'
-    }));
+    expect(latestValue.get()).toEqual(
+      jasmine.objectContaining({
+        processRegex: 'foo',
+      }),
+    );
   });
 
   it('shows a process cmdline input field', async () => {
@@ -78,19 +79,23 @@ describe('YaraProcessScanForm', () => {
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
     const toggle = await harnessLoader.getHarness(
-        MatButtonToggleHarness.with({text: 'Cmdline'}));
+      MatButtonToggleHarness.with({text: 'Cmdline'}),
+    );
     await toggle.check();
 
     const latestValue = latestValueFrom(fixture.componentInstance.flowArgs$);
 
-    const input =
-        fixture.debugElement.query(By.css('input[name=cmdlineRegex]'));
+    const input = fixture.debugElement.query(
+      By.css('input[name=cmdlineRegex]'),
+    );
     input.nativeElement.value = 'foo';
     input.triggerEventHandler('input', {target: input.nativeElement});
     fixture.detectChanges();
 
-    expect(latestValue.get()).toEqual(jasmine.objectContaining({
-      cmdlineRegex: 'foo'
-    }));
+    expect(latestValue.get()).toEqual(
+      jasmine.objectContaining({
+        cmdlineRegex: 'foo',
+      }),
+    );
   });
 });

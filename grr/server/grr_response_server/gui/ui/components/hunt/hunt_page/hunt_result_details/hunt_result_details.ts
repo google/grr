@@ -22,32 +22,31 @@ export class HuntResultDetails implements OnDestroy {
   readonly clientId$ = this.huntResultDetailsGlobalStore.clientId$;
   readonly timestamp$ = this.huntResultDetailsGlobalStore.timestamp$;
   readonly resultOrErrorDisplay$ =
-      this.huntResultDetailsGlobalStore.resultOrErrorDisplay$;
+    this.huntResultDetailsGlobalStore.resultOrErrorDisplay$;
   readonly flowWithDescriptor$ =
-      this.huntResultDetailsGlobalStore.flowWithDescriptor$;
+    this.huntResultDetailsGlobalStore.flowWithDescriptor$;
   readonly isFlowLoading$ = this.huntResultDetailsGlobalStore.isFlowLoading$;
   readonly isHuntResultLoading$ =
-      this.huntResultDetailsGlobalStore.isHuntResultLoading$;
+    this.huntResultDetailsGlobalStore.isHuntResultLoading$;
 
   constructor(
-      private readonly activatedRoute: ActivatedRoute,
-      private readonly huntResultDetailsGlobalStore:
-          HuntResultDetailsGlobalStore) {
+    private readonly activatedRoute: ActivatedRoute,
+    private readonly huntResultDetailsGlobalStore: HuntResultDetailsGlobalStore,
+  ) {
     this.activatedRoute.paramMap
-        .pipe(
-            takeUntil(this.ngOnDestroy.triggered$),
-            map(params => ({
-                  key: params.get('key'),
-                  payloadType:
-                      params.get('payloadType') as PayloadType ?? undefined,
-                })),
-            filter((r) => isNonNull(r.key)),
-            )
-        .subscribe(r => {
-          this.huntResultDetailsGlobalStore.selectHuntResultId(
-              r.key!,
-              r.payloadType,
-          );
-        });
+      .pipe(
+        takeUntil(this.ngOnDestroy.triggered$),
+        map((params) => ({
+          key: params.get('key'),
+          payloadType: (params.get('payloadType') as PayloadType) ?? undefined,
+        })),
+        filter((r) => isNonNull(r.key)),
+      )
+      .subscribe((r) => {
+        this.huntResultDetailsGlobalStore.selectHuntResultId(
+          r.key!,
+          r.payloadType,
+        );
+      });
   }
 }

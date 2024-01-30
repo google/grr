@@ -348,15 +348,6 @@ class ApiCallRouterStub(ApiCallRouter):
     raise NotImplementedError()
 
   @Category("Clients")
-  @ArgsType(api_client.ApiGetClientLoadStatsArgs)
-  @ResultType(api_client.ApiGetClientLoadStatsResult)
-  @Http("GET", "/api/clients/<client_id>/load-stats/<metric>")
-  def GetClientLoadStats(self, args, context=None):
-    """Get client load statistics (CPI and IO)."""
-
-    raise NotImplementedError()
-
-  @Category("Clients")
   @ArgsType(api_client.ApiKillFleetspeakArgs)
   @Http("PATCH", "/api/clients/<client_id>/fleetspeak/kill")
   def KillFleetspeak(

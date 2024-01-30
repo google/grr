@@ -11,6 +11,7 @@ from grr_response_server import data_store
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
 from grr_response_server import hunt as lib_hunt
+from grr_response_server import mig_foreman_rules
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import transfer
 from grr_response_server.gui import gui_test_lib
@@ -25,7 +26,11 @@ class TestNewHuntWizard(gui_test_lib.GRRSeleniumHuntTest):
   @staticmethod
   def FindForemanRules(hunt_urn):
     rules = data_store.REL_DB.ReadAllForemanRules()
-    return [rule for rule in rules if rule.hunt_id == hunt_urn.Basename()]
+    return [
+        mig_foreman_rules.ToRDFForemanCondition(rule)
+        for rule in rules
+        if rule.hunt_id == hunt_urn.Basename()
+    ]
 
   def testNewHuntWizard(self):
     # Open up and click on View Hunts.

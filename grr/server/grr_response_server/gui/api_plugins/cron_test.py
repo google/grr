@@ -4,6 +4,7 @@
 from absl import app
 
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import mig_protodict
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_server import cronjobs
 from grr_response_server import data_store
@@ -12,6 +13,7 @@ from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import cron as cron_plugin
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import hunts as rdf_hunts
+from grr_response_server.rdfvalues import mig_cronjobs
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -25,7 +27,9 @@ class ApiCronJobTest(test_lib.GRRBaseTest):
     state["quux"] = "norf"
     state["thud"] = "blargh"
 
-    cron_job = rdf_cronjobs.CronJob()
+    cron_job = rdf_cronjobs.CronJob(
+        created_at=rdfvalue.RDFDatetime.Now(),
+    )
     cron_job.cron_job_id = "foo"
     cron_job.current_run_id = "bar"
     cron_job.last_run_time = self._DATETIME("2001-01-01")
@@ -122,37 +126,41 @@ class ApiGetCronJobHandlerTest(api_test_lib.ApiCallHandlerTest):
   def testHandler(self):
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now):
-      job = rdf_cronjobs.CronJob(
+      rdf_job = rdf_cronjobs.CronJob(
           cron_job_id="job_id",
           enabled=True,
           last_run_status="FINISHED",
           frequency=rdfvalue.Duration.From(7, rdfvalue.DAYS),
           lifetime=rdfvalue.Duration.From(1, rdfvalue.HOURS),
-          allow_overruns=True)
-      data_store.REL_DB.WriteCronJob(job)
+          allow_overruns=True,
+          created_at=rdfvalue.RDFDatetime.Now(),
+      )
+      proto_job = mig_cronjobs.ToProtoCronJob(rdf_job)
+      data_store.REL_DB.WriteCronJob(proto_job)
 
     state = rdf_protodict.AttributedDict()
     state["item"] = "key"
     data_store.REL_DB.UpdateCronJob(
-        job.cron_job_id,
+        rdf_job.cron_job_id,
         current_run_id="ABCD1234",
-        state=state,
-        forced_run_requested=True)
+        state=mig_protodict.ToProtoAttributedDict(state),
+        forced_run_requested=True,
+    )
 
-    args = cron_plugin.ApiGetCronJobArgs(cron_job_id=job.cron_job_id)
+    args = cron_plugin.ApiGetCronJobArgs(cron_job_id=rdf_job.cron_job_id)
     result = self.handler.Handle(args)
 
-    self.assertEqual(result.cron_job_id, job.cron_job_id)
+    self.assertEqual(result.cron_job_id, rdf_job.cron_job_id)
     # TODO(amoser): The aff4 implementation does not store the create time so we
     # can't return it yet.
     # self.assertEqual(result.created_at, now)
-    self.assertEqual(result.enabled, job.enabled)
+    self.assertEqual(result.enabled, rdf_job.enabled)
     self.assertEqual(result.current_run_id, "ABCD1234")
     self.assertEqual(result.forced_run_requested, True)
-    self.assertEqual(result.frequency, job.frequency)
+    self.assertEqual(result.frequency, rdf_job.frequency)
     self.assertEqual(result.is_failing, False)
-    self.assertEqual(result.last_run_status, job.last_run_status)
-    self.assertEqual(result.lifetime, job.lifetime)
+    self.assertEqual(result.last_run_status, rdf_job.last_run_status)
+    self.assertEqual(result.lifetime, rdf_job.lifetime)
     state_entries = list(result.state.items)
     self.assertLen(state_entries, 1)
     state_entry = state_entries[0]

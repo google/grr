@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
+import contextlib
 import csv
 import io
 import itertools
@@ -20,7 +21,6 @@ from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import context as context_lib
 from grr_response_proto.api import vfs_pb2
 from grr_response_server import data_store
 from grr_response_server import data_store_utils
@@ -1374,7 +1374,7 @@ class ApiGetFileDecodersHandler(api_call_handler_base.ApiCallHandler):
       decoder = decoders.FACTORY.Create(decoder_name)
 
       filedesc = file_store.OpenFile(client_path)
-      filectx = context_lib.NullContext(filedesc)
+      filectx = contextlib.nullcontext(filedesc)
 
       with filectx as filedesc:
         if decoder.Check(filedesc):

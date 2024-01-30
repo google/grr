@@ -21,20 +21,16 @@ describe('DurationValueAccessor', () => {
   let input: DebugElement;
 
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            DurationComponentsModule,
-            ReactiveFormsModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        NoopAnimationsModule,
+        DurationComponentsModule,
+        ReactiveFormsModule,
+      ],
+      declarations: [TestHostComponent],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();

@@ -45,9 +45,12 @@ function findLongestCommonPrefix(s1: string, s2: string): string {
  * @param matchedRanges Current list of matched ranges.
  */
 function recursiveMatch(
-    currentComponent: string|undefined, currentComponentOffset: number,
-    otherComponents: string[], userInput: string,
-    matchedRanges: MatchRange[]): MatchRange[]|undefined {
+  currentComponent: string | undefined,
+  currentComponentOffset: number,
+  otherComponents: string[],
+  userInput: string,
+  matchedRanges: MatchRange[],
+): MatchRange[] | undefined {
   // Empty user input means that all parts of it were removed when they
   // matched string components, meaning we have a successful match.
   if (!userInput) {
@@ -64,16 +67,18 @@ function recursiveMatch(
   // match them recursively.
   for (let j = commonPrefix.length; j > 0; --j) {
     const result = recursiveMatch(
-        // Shift components by 1.
-        otherComponents[0],
-        currentComponentOffset + currentComponent.length + 1,
-        otherComponents.slice(1),
-        // Shift user input by the size of matched string and remove
-        // trailing whitespace, if there's any.
-        userInput.substring(j).trim(),
-        // Update ranges with a newfound match.
-        matchedRanges.concat(
-            [[currentComponentOffset, currentComponentOffset + j]]));
+      // Shift components by 1.
+      otherComponents[0],
+      currentComponentOffset + currentComponent.length + 1,
+      otherComponents.slice(1),
+      // Shift user input by the size of matched string and remove
+      // trailing whitespace, if there's any.
+      userInput.substring(j).trim(),
+      // Update ranges with a newfound match.
+      matchedRanges.concat([
+        [currentComponentOffset, currentComponentOffset + j],
+      ]),
+    );
     if (result !== undefined) {
       return result;
     }
@@ -83,10 +88,13 @@ function recursiveMatch(
   // prefixes didn't match the current userInput. In this case, try to
   // match same userInput to the next component.
   return recursiveMatch(
-      otherComponents[0], currentComponentOffset + currentComponent.length + 1,
-      otherComponents.slice(1), userInput, matchedRanges);
+    otherComponents[0],
+    currentComponentOffset + currentComponent.length + 1,
+    otherComponents.slice(1),
+    userInput,
+    matchedRanges,
+  );
 }
-
 
 /**
  * Helper class for finding matching strings using prefix-based matching
@@ -100,7 +108,7 @@ class PrefixMatchData {
 
   constructor(subject: string) {
     this.components = subject.toLowerCase().split(' ');
-    this.firstLetters = this.components.map(x => x[0]).join('');
+    this.firstLetters = this.components.map((x) => x[0]).join('');
   }
 
   /**
@@ -109,9 +117,14 @@ class PrefixMatchData {
    * @return A list of MatchRanges if there's a match or undefined
    *     otherwise.
    */
-  match(input: string): MatchRange[]|undefined {
+  match(input: string): MatchRange[] | undefined {
     return recursiveMatch(
-        this.components[0], 0, this.components.slice(1), input.trim(), []);
+      this.components[0],
+      0,
+      this.components.slice(1),
+      input.trim(),
+      [],
+    );
   }
 }
 
@@ -123,8 +136,10 @@ class PrefixMatchData {
 export class FuzzyMatcher {
   private readonly prefixMatchMap = new Map<PrefixMatchData, string>();
 
-  constructor(/** A list of strings to be checked against user input. */
-              private readonly subjects: readonly string[]) {
+  constructor(
+    /** A list of strings to be checked against user input. */
+    private readonly subjects: readonly string[],
+  ) {
     for (const subject of this.subjects) {
       this.prefixMatchMap.set(new PrefixMatchData(subject), subject);
     }
@@ -143,9 +158,7 @@ export class FuzzyMatcher {
       if (index !== -1) {
         results.push({
           subject,
-          matchRanges: [
-            [index, index + input.length],
-          ]
+          matchRanges: [[index, index + input.length]],
         });
       }
     }
@@ -165,8 +178,9 @@ export class FuzzyMatcher {
    * user input of 'black' will.
    */
   private matchByFirstInputLetter(input: string): PrefixMatchData[] {
-    return Array.from(this.prefixMatchMap.keys())
-        .filter(matchData => matchData.firstLetters.includes(input[0]));
+    return Array.from(this.prefixMatchMap.keys()).filter((matchData) =>
+      matchData.firstLetters.includes(input[0]),
+    );
   }
 
   /**
@@ -180,14 +194,16 @@ export class FuzzyMatcher {
    *     simple substring match.
    * @return A list of Match objects.
    */
-  private matchAsPrefixes(input: string, stringsToIgnore: Set<string>):
-      Match[] {
+  private matchAsPrefixes(
+    input: string,
+    stringsToIgnore: Set<string>,
+  ): Match[] {
     const results: Match[] = [];
 
-    const filtered = this.matchByFirstInputLetter(input).filter(matchData => {
+    const filtered = this.matchByFirstInputLetter(input).filter((matchData) => {
       const subject = this.prefixMatchMap.get(matchData);
       if (subject === undefined) {
-        throw new Error('subject can\'t be undefined at this point');
+        throw new Error("subject can't be undefined at this point");
       }
       return !stringsToIgnore.has(subject);
     });
@@ -197,7 +213,7 @@ export class FuzzyMatcher {
       if (matchRanges) {
         const subject = this.prefixMatchMap.get(prefixMatchData);
         if (subject === undefined) {
-          throw new Error('subject can\'t be undefined at this point');
+          throw new Error("subject can't be undefined at this point");
         }
         results.push({
           subject,
@@ -242,10 +258,12 @@ export class FuzzyMatcher {
 
     const substringMatches = this.matchAsSubstring(lowerInput);
     const prefixMatches = this.matchAsPrefixes(
-        lowerInput, new Set(substringMatches.map(m => m.subject)));
+      lowerInput,
+      new Set(substringMatches.map((m) => m.subject)),
+    );
 
     const results = [...substringMatches, ...prefixMatches];
-    results.sort(compareAlphabeticallyBy(result => result.subject));
+    results.sort(compareAlphabeticallyBy((result) => result.subject));
 
     return results;
   }
@@ -273,8 +291,9 @@ export interface StringWithHighlights {
  * Converts a given match produced by the FuzzyMatcher into a string with
  * highlights.
  */
-export function stringWithHighlightsFromMatch(match: Match):
-    StringWithHighlights {
+export function stringWithHighlightsFromMatch(
+  match: Match,
+): StringWithHighlights {
   const parts: StringWithHighlightsPart[] = [];
 
   let i = 0;

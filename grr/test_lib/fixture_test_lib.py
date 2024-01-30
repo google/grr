@@ -5,11 +5,14 @@ import binascii
 
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
+from grr_response_proto import objects_pb2
 from grr_response_server import client_fixture
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import file_store
 from grr_response_server.databases import db
+from grr_response_server.models import blobs
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 SERIALIZED_CLIENT = ("6a3f3a1253616d706c652042494f532056656e646f72420d56657273"
@@ -46,8 +49,8 @@ class ClientFixture(object):
     # using a serialized string instead.
     data_store.REL_DB.WriteClientMetadata(self.client_id)
 
-    snapshot = rdf_objects.ClientSnapshot.FromSerializedBytes(
-        binascii.unhexlify(SERIALIZED_CLIENT))
+    snapshot = objects_pb2.ClientSnapshot()
+    snapshot.ParseFromString(binascii.unhexlify(SERIALIZED_CLIENT))
     snapshot.client_id = self.client_id
     snapshot.knowledge_base.fqdn = "Host%s" % self.client_id
     # Client version number may affect flows behavior so it's important
@@ -57,7 +60,9 @@ class ClientFixture(object):
         "Source.version_numeric"]
 
     data_store.REL_DB.WriteClientSnapshot(snapshot)
-    client_index.ClientIndex().AddClient(snapshot)
+
+    rdf_snapshot = mig_objects.ToRDFClientSnapshot(snapshot)
+    client_index.ClientIndex().AddClient(rdf_snapshot)
 
     for path, (typ, attributes) in vfs_fixture:
       path %= self.args
@@ -94,10 +99,11 @@ class ClientFixture(object):
 
       content = attributes.get("content", None)
       if content:
-        blob_id = rdf_objects.BlobID.FromBlobData(content)
+        blob_id = blobs.BlobID.Of(content)
         data_store.BLOBS.WriteBlobs({blob_id: content})
         blob_ref = rdf_objects.BlobReference(
-            offset=0, size=len(content), blob_id=blob_id)
+            offset=0, size=len(content), blob_id=bytes(blob_id)
+        )
         hash_id = file_store.AddFileWithUnknownHash(
             db.ClientPath.FromPathInfo(self.client_id, path_info), [blob_ref])
         path_info.hash_entry.num_bytes = len(content)

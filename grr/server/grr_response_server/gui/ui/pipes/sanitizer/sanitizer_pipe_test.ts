@@ -12,17 +12,10 @@ describe('SanitizerPipe', () => {
     }
 
     beforeEach(() => {
-      TestBed
-          .configureTestingModule({
-            imports: [
-              SanitizerPipeModule,
-              BrowserTestingModule,
-            ],
-            declarations: [
-              TestHostComponent,
-            ],
-          })
-          .compileComponents();
+      TestBed.configureTestingModule({
+        imports: [SanitizerPipeModule, BrowserTestingModule],
+        declarations: [TestHostComponent],
+      }).compileComponents();
     });
 
     it('shows empty if the html snippet is undefined', () => {
@@ -51,7 +44,7 @@ describe('SanitizerPipe', () => {
       const fixture = TestBed.createComponent(TestHostComponent);
 
       fixture.componentInstance.htmlSnippet =
-          '<script type="text/javascript">window.alert("peekaboo")</script>';
+        '<script type="text/javascript">window.alert("peekaboo")</script>';
 
       fixture.detectChanges();
 

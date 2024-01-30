@@ -14,6 +14,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
+from grr_response_proto import objects_pb2
 from grr_response_proto import user_pb2
 from grr_response_proto.api import user_pb2 as api_user_pb2
 from grr_response_server import access_control
@@ -25,13 +26,12 @@ from grr_response_server import notification as notification_lib
 from grr_response_server.databases import db
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui import approval_checks
-
 from grr_response_server.gui.api_plugins import client as api_client
-
 from grr_response_server.gui.api_plugins import cron as api_cron
 from grr_response_server.gui.api_plugins import flow as api_flow
 from grr_response_server.gui.api_plugins import hunt as api_hunt
-
+from grr_response_server.models import users
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -371,6 +371,8 @@ def _InitApiApprovalFromDatabaseObject(api_approval, db_obj):
   api_approval.email_cc_addresses = sorted(db_obj.email_cc_addresses)
   api_approval.email_message_id = db_obj.email_message_id
 
+  # raise ValueError("INIT:", db_obj)
+
   api_approval.approvers = sorted([g.grantor_username for g in db_obj.grants])
 
   api_approval.expiration_time_us = db_obj.expiration_time
@@ -398,6 +400,9 @@ class ApiClientApproval(rdf_structs.RDFProtoStruct):
     if not approval_subject_obj:
       approval_subject_obj = data_store.REL_DB.ReadClientFullInfo(
           db_obj.subject_id)
+      approval_subject_obj = mig_objects.ToRDFClientFullInfo(
+          approval_subject_obj
+      )
     self.subject = api_client.ApiClient().InitFromClientInfo(
         db_obj.subject_id, approval_subject_obj)
 
@@ -658,12 +663,13 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
         html_signature=config.CONFIG["Email.approval_signature"],
         text_signature=config.CONFIG["Email.signature"])
 
-    requestor_email = data_store.REL_DB.ReadGRRUser(
-        approval.requestor).GetEmail()
-    notified_emails = [
-        data_store.REL_DB.ReadGRRUser(user).GetEmail()
-        for user in approval.notified_users
-    ]
+    requestor_email = users.GetEmail(
+        data_store.REL_DB.ReadGRRUser(approval.requestor)
+    )
+    notified_emails = []
+    for user in approval.notified_users:
+      user = data_store.REL_DB.ReadGRRUser(user)
+      notified_emails.append(users.GetEmail(user))
 
     email_alerts.EMAIL_ALERTER.SendEmail(
         to_addresses=",".join(notified_emails),
@@ -690,8 +696,6 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
     if not args.approval.reason:
       raise ValueError("Approval reason can't be empty.")
 
-    expiry = config.CONFIG["ACL.token_expiry"]
-
     request = rdf_objects.ApprovalRequest(
         requestor_username=context.username,
         approval_type=self.__class__.approval_type,
@@ -699,20 +703,32 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
         notified_users=args.approval.notified_users,
         email_cc_addresses=args.approval.email_cc_addresses,
         subject_id=args.BuildSubjectId(),
-        expiration_time=rdfvalue.RDFDatetime.Now() + expiry,
-        email_message_id=email.utils.make_msgid())
-    request.approval_id = data_store.REL_DB.WriteApprovalRequest(request)
+        expiration_time=self._CalculateExpiration(args),
+        email_message_id=email.utils.make_msgid(),
+    )
+    proto_request = mig_objects.ToProtoApprovalRequest(request)
+    request.approval_id = data_store.REL_DB.WriteApprovalRequest(proto_request)
 
     data_store.REL_DB.GrantApproval(
         approval_id=request.approval_id,
         requestor_username=context.username,
         grantor_username=context.username)
 
-    result = self.__class__.result_type().InitFromDatabaseObject(request)
+    stored_request = data_store.REL_DB.ReadApprovalRequest(
+        context.username, request.approval_id
+    )
+    rdf_stored_request = mig_objects.ToRDFApprovalRequest(stored_request)
+    result = self.__class__.result_type().InitFromDatabaseObject(
+        rdf_stored_request
+    )
 
     self.SendApprovalEmail(result)
     self.CreateApprovalNotification(result)
     return result
+
+  def _CalculateExpiration(self, args):
+    del args  # unused
+    return rdfvalue.RDFDatetime.Now() + config.CONFIG["ACL.token_expiry"]
 
 
 class ApiListApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
@@ -741,13 +757,16 @@ class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, context=None):
     try:
-      approval_obj = data_store.REL_DB.ReadApprovalRequest(
-          args.username, args.approval_id)
+      proto_approval = data_store.REL_DB.ReadApprovalRequest(
+          args.username, args.approval_id
+      )
     except db.UnknownApprovalRequestError:
       raise ApprovalNotFoundError(
           "No approval with id=%s, type=%s, subject=%s could be found." %
           (args.approval_id, self.__class__.approval_type,
            args.BuildSubjectId()))
+
+    approval_obj = mig_objects.ToRDFApprovalRequest(proto_approval)
 
     if approval_obj.approval_type != self.__class__.approval_type:
       raise ValueError(
@@ -841,9 +860,10 @@ class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
         "References": approval.email_message_id
     }
 
-    requestor_email = data_store.REL_DB.ReadGRRUser(
-        approval.requestor).GetEmail()
-    username_email = data_store.REL_DB.ReadGRRUser(context.username).GetEmail()
+    requestor = data_store.REL_DB.ReadGRRUser(approval.requestor)
+    requestor_email = users.GetEmail(requestor)
+    username = data_store.REL_DB.ReadGRRUser(context.username)
+    username_email = users.GetEmail(username)
 
     email_alerts.EMAIL_ALERTER.SendEmail(
         to_addresses=requestor_email,
@@ -869,8 +889,10 @@ class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
       data_store.REL_DB.GrantApproval(args.username, args.approval_id,
                                       context.username)
 
-      approval_obj = data_store.REL_DB.ReadApprovalRequest(
-          args.username, args.approval_id)
+      proto_approval = data_store.REL_DB.ReadApprovalRequest(
+          args.username, args.approval_id
+      )
+      approval_obj = mig_objects.ToRDFApprovalRequest(proto_approval)
     except db.UnknownApprovalRequestError:
       raise ApprovalNotFoundError(
           "No approval with id=%s, type=%s, subject=%s could be found." %
@@ -910,6 +932,25 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
   approval_type = rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT
   approval_notification_type = (
       rdf_objects.UserNotification.Type.TYPE_CLIENT_APPROVAL_REQUESTED)
+
+  def _CalculateExpiration(self, args):
+    if not args.approval.expiration_time_us:
+      return super()._CalculateExpiration(args)
+
+    if rdfvalue.RDFDatetime.Now() > args.approval.expiration_time_us:
+      raise ValueError(
+          f"Requested expiration time {args.approval.expiration_time_us} "
+          "is in the past."
+      )
+
+    if args.approval.expiration_time_us > (
+        rdfvalue.RDFDatetime.Now() + config.CONFIG["ACL.token_max_expiry"]
+    ):
+      raise ValueError(
+          f"Requested expiration time {args.approval.expiration_time_us} "
+          "is too far in the future."
+      )
+    return args.approval.expiration_time_us
 
 
 class ApiGetClientApprovalArgs(ApiClientApprovalArgsBase):
@@ -1019,14 +1060,17 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
     if args.client_id:
       subject_id = str(args.client_id)
 
-    approvals = sorted(
+    proto_approvals = sorted(
         data_store.REL_DB.ReadApprovalRequests(
             context.username,
             rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
             subject_id=subject_id,
-            include_expired=True),
+            include_expired=True,
+        ),
         key=lambda ar: ar.timestamp,
-        reverse=True)
+        reverse=True,
+    )
+    approvals = [mig_objects.ToRDFApprovalRequest(r) for r in proto_approvals]
     approvals = self._FilterRelationalApprovalRequests(
         approvals, lambda ar: ApiClientApproval().InitFromDatabaseObject(ar),
         args.state)
@@ -1127,16 +1171,17 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
     if args.hunt_id:
       subject_id = str(args.hunt_id)
 
-    approvals = sorted(
+    proto_approvals = sorted(
         data_store.REL_DB.ReadApprovalRequests(
             context.username,
-            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT,
+            objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_HUNT,
             subject_id=subject_id,
             include_expired=True,
         ),
         key=lambda ar: ar.timestamp,
         reverse=True,
     )
+    approvals = [mig_objects.ToRDFApprovalRequest(r) for r in proto_approvals]
 
     if not args.count:
       end = None
@@ -1234,14 +1279,17 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
   result_type = ApiListCronJobApprovalsResult
 
   def Handle(self, args, context=None):
-    approvals = sorted(
+    proto_approvals = sorted(
         data_store.REL_DB.ReadApprovalRequests(
             context.username,
-            rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
+            objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CRON_JOB,
             subject_id=None,
-            include_expired=True),
+            include_expired=True,
+        ),
         key=lambda ar: ar.timestamp,
-        reverse=True)
+        reverse=True,
+    )
+    approvals = [mig_objects.ToRDFApprovalRequest(r) for r in proto_approvals]
 
     if not args.count:
       end = None
@@ -1270,8 +1318,10 @@ class ApiGetOwnGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     result = ApiGrrUser(username=context.username)
 
-    user_record = data_store.REL_DB.ReadGRRUser(context.username)
-    result.InitFromDatabaseObject(user_record)
+    # TODO: Use function to get API from proto user.
+    proto_user_record = data_store.REL_DB.ReadGRRUser(context.username)
+    rdf_user_record = mig_objects.ToRDFGRRUser(proto_user_record)
+    result.InitFromDatabaseObject(rdf_user_record)
 
     result.interface_traits = (
         self.interface_traits or ApiGrrUserInterfaceTraits())
@@ -1288,10 +1338,13 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
     if args.username or args.HasField("interface_traits"):
       raise ValueError("Only user settings can be updated.")
 
+    # Cannot use `mig_user.ToProtoApiUpdateGrrUserHandler(args)` (circular dep).
+    proto_args = args.AsPrimitiveProto()
     data_store.REL_DB.WriteGRRUser(
         context.username,
-        ui_mode=args.settings.mode,
-        canary_mode=args.settings.canary_mode)
+        ui_mode=proto_args.settings.mode,
+        canary_mode=proto_args.settings.canary_mode,
+    )
 
 
 class ApiGetPendingUserNotificationsCountResult(rdf_structs.RDFProtoStruct):
@@ -1340,6 +1393,7 @@ class ApiListPendingUserNotificationsHandler(
         context.username,
         state=rdf_objects.UserNotification.State.STATE_PENDING,
         timerange=(args.timestamp, None))
+    ns = [mig_objects.ToRDFUserNotification(n) for n in ns]
 
     # TODO(user): Remove this, so that the order is reversed. This will
     # be an API-breaking change.
@@ -1372,8 +1426,10 @@ class ApiDeletePendingUserNotificationHandler(
   def Handle(self, args, context=None):
     """Deletes the notification from the pending notifications."""
     data_store.REL_DB.UpdateUserNotifications(
-        context.username, [args.timestamp],
-        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
+        context.username,
+        [args.timestamp],
+        state=objects_pb2.UserNotification.State.STATE_NOT_PENDING,
+    )
 
 
 class ApiListAndResetUserNotificationsArgs(rdf_structs.RDFProtoStruct):
@@ -1403,16 +1459,18 @@ class ApiListAndResetUserNotificationsHandler(
     )
     ns = data_store.REL_DB.ReadUserNotifications(
         context.username, timerange=(back_timestamp, None))
+    ns = [mig_objects.ToRDFUserNotification(n) for n in ns]
 
     pending_timestamps = [
         n.timestamp
         for n in ns
-        if n.state == rdf_objects.UserNotification.State.STATE_PENDING
+        if n.state == objects_pb2.UserNotification.State.STATE_PENDING
     ]
     data_store.REL_DB.UpdateUserNotifications(
         context.username,
         pending_timestamps,
-        state=rdf_objects.UserNotification.State.STATE_NOT_PENDING)
+        state=objects_pb2.UserNotification.State.STATE_NOT_PENDING,
+    )
 
     total_count = len(ns)
     if args.filter:
@@ -1456,12 +1514,14 @@ def _GetAllUsernames():
 
 
 def _GetMostRequestedUsernames(context):
-  requests = data_store.REL_DB.ReadApprovalRequests(
+  proto_requests = data_store.REL_DB.ReadApprovalRequests(
       context.username,
-      rdf_objects.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
-      include_expired=True)
-  users = collection.Flatten(req.notified_users for req in requests)
-  user_counts = collections.Counter(users)
+      objects_pb2.ApprovalRequest.ApprovalType.APPROVAL_TYPE_CLIENT,
+      include_expired=True,
+  )
+  requests = [mig_objects.ToRDFApprovalRequest(r) for r in proto_requests]
+  not_users = collection.Flatten(req.notified_users for req in requests)
+  user_counts = collections.Counter(not_users)
   return [username for (username, _) in user_counts.most_common()]
 
 

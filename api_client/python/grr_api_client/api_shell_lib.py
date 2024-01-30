@@ -31,4 +31,4 @@ def IPShell(argv=None, user_ns=None, banner=None):
 def ExecFile(filepath, grrapi):
   with open(filepath, "r") as filedesc:
     ast = compile(filedesc.read(), filename=filepath, mode="exec")
-    exec (ast, {"grrapi": grrapi})  # pylint: disable=exec-used
+    exec(ast, {"grrapi": grrapi})  # pylint: disable=exec-used

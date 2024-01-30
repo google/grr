@@ -20,8 +20,8 @@ export interface OsqueryTableSpec {
 export const allTableSpecs: readonly OsqueryTableSpec[] = tableSpecs451;
 
 /** Returns a table spec corresponding to a given name. */
-export function nameToTable(name: string): OsqueryTableSpec|undefined {
-  const matches = allTableSpecs.filter(tableSpec => tableSpec.name === name);
+export function nameToTable(name: string): OsqueryTableSpec | undefined {
+  const matches = allTableSpecs.filter((tableSpec) => tableSpec.name === name);
   if (matches.length === 0) {
     return undefined;
   } else if (matches.length === 1) {
@@ -33,8 +33,8 @@ export function nameToTable(name: string): OsqueryTableSpec|undefined {
 
 /** Builds a column spec. */
 export function newOsqueryColumnSpec(
-    withFields?: Partial<OsqueryColumnSpec>,
-    ): OsqueryColumnSpec {
+  withFields?: Partial<OsqueryColumnSpec>,
+): OsqueryColumnSpec {
   return {
     name: 'N/A',
     description: 'N/A',
@@ -46,8 +46,8 @@ export function newOsqueryColumnSpec(
 
 /** Builds a table spec. */
 export function newOsqueryTableSpec(
-    withFields?: Partial<OsqueryTableSpec>,
-    ): OsqueryTableSpec {
+  withFields?: Partial<OsqueryTableSpec>,
+): OsqueryTableSpec {
   return {
     name: 'N/A',
     description: 'N/A',

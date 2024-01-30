@@ -7,7 +7,7 @@ import {parseByteString, toByteString} from './byte_conversion';
 export const BYTE_VALUE_ACCESSOR = {
   provide: NG_VALUE_ACCESSOR,
   useExisting: forwardRef(() => ByteValueAccessor),
-  multi: true
+  multi: true,
 };
 
 type OnChangeFn = (value?: number) => void;
@@ -21,15 +21,16 @@ type OnTouchedFn = () => void;
     '(input)': 'onChange($event.target.value)',
     '(blur)': 'onTouched()',
   },
-  providers: [BYTE_VALUE_ACCESSOR]
+  providers: [BYTE_VALUE_ACCESSOR],
 })
 export class ByteValueAccessor implements ControlValueAccessor {
   private onChangeListener: OnChangeFn = () => {};
   onTouched: OnTouchedFn = () => {};
 
   constructor(
-      private readonly renderer: Renderer2,
-      private readonly el: ElementRef<HTMLInputElement>) {}
+    private readonly renderer: Renderer2,
+    private readonly el: ElementRef<HTMLInputElement>,
+  ) {}
 
   writeValue(value: unknown): void {
     let byteString = '';
@@ -61,7 +62,7 @@ export class ByteValueAccessor implements ControlValueAccessor {
   }
 }
 
-function robustParseByteString(value: string|null|undefined) {
+function robustParseByteString(value: string | null | undefined) {
   if (value === undefined || value === null) {
     return undefined;
   }

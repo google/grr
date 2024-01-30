@@ -9,7 +9,10 @@ const BASES: Array<[string, string, number]> = [
 
 /** Parses a string like '1 h' into the raw number of seconds, e.g. 3600. */
 export function parseDurationString(input: string): number {
-  const matches = input.trim().toLowerCase().match(/^(\d+) *([smhdw])?$/);
+  const matches = input
+    .trim()
+    .toLowerCase()
+    .match(/^(\d+) *([smhdw])?$/);
   if (!matches) {
     throw new Error(`Invalid duration input "${input}".`);
   }
@@ -31,7 +34,8 @@ export function parseDurationString(input: string): number {
 
   if (!inputBase) {
     throw new Error(
-        `Invalid base ${inputPrefix} for duration input "${input}".`);
+      `Invalid base ${inputPrefix} for duration input "${input}".`,
+    );
   }
 
   return inputDurationNumber * inputBase;
@@ -44,7 +48,9 @@ export function parseDurationString(input: string): number {
  *   (hours).
  */
 export function toDurationUnit(
-    duration: number, mode: 'short'|'long' = 'short'): [number, string] {
+  duration: number,
+  mode: 'short' | 'long' = 'short',
+): [number, string] {
   if (duration === 0) {
     const prefix = mode === 'long' ? 'second' : 's';
     return [duration, getDurationSuffix(0, prefix, mode)];
@@ -68,14 +74,19 @@ export function toDurationUnit(
  *   (seconds).
  */
 export function toDurationString(
-    duration: number, mode: 'short'|'long' = 'short') {
+  duration: number,
+  mode: 'short' | 'long' = 'short',
+) {
   const roundedNoDecimal = Math.round(duration);
   const [durationAtUnit, unit] = toDurationUnit(roundedNoDecimal, mode);
   return `${durationAtUnit} ${unit}`;
 }
 
 function getDurationSuffix(
-    duration: number, prefix: string, mode: 'short'|'long' = 'short') {
+  duration: number,
+  prefix: string,
+  mode: 'short' | 'long' = 'short',
+) {
   if (mode === 'short') {
     return `${prefix}`;
   } else if (duration === 1) {

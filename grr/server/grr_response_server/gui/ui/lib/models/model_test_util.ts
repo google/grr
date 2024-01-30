@@ -1,17 +1,36 @@
-/** Test helpers. */
+/**
+ * Test helpers.
+ */
 // tslint:disable:enforce-comments-on-exported-symbols
-import {ApiHuntStateReason, ForemanClientRuleSet, ForemanClientRuleSetMatchMode, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../lib/api/api_interfaces';
+import {
+  ApiHuntStateReason,
+  CollectLargeFileFlowArgs,
+  ForemanClientRuleSet,
+  ForemanClientRuleSetMatchMode,
+  ForemanClientRuleType,
+  ForemanIntegerClientRuleForemanIntegerField,
+  ForemanIntegerClientRuleOperator,
+  ForemanLabelClientRuleMatchMode,
+  ForemanRegexClientRuleForemanStringField,
+} from '../../lib/api/api_interfaces';
 import {Client, ClientApproval} from '../../lib/models/client';
 import {Approval} from '../../lib/models/user';
 import {Duration} from '../date_time';
 
-import {ArtifactDescriptor, ArtifactDescriptorMap, Flow, FlowDescriptor, FlowResult, FlowState, OperatingSystem, ScheduledFlow} from './flow';
+import {
+  ArtifactDescriptor,
+  ArtifactDescriptorMap,
+  Flow,
+  FlowDescriptor,
+  FlowResult,
+  FlowState,
+  OperatingSystem,
+  ScheduledFlow,
+} from './flow';
 import {Hunt, HuntApproval, HuntState, HuntType, SafetyLimits} from './hunt';
 import {OutputPluginDescriptor} from './output_plugin';
 import {GrrUser} from './user';
 import {File, PathSpec, PathSpecPathType, StatEntry} from './vfs';
-
-
 
 function randomHex(length: number): string {
   let result = '';
@@ -53,25 +72,48 @@ export function newFlow(args: Partial<Flow> = {}): Flow {
     ...args,
   };
 }
+export function newCollectLargeFileFlow(
+  args: Partial<Flow<CollectLargeFileFlowArgs>> = {},
+): Flow<CollectLargeFileFlowArgs> {
+  return {
+    flowId: randomHex(8),
+    clientId: `C.${randomHex(16)}`,
+    lastActiveAt: new Date(),
+    startedAt: new Date(Date.now() - 60000),
+    name: 'FileFinder',
+    creator: 'rsanchez',
+    args: args.args,
+    progress: undefined,
+    state: args.state || FlowState.UNSET,
+    errorDescription: args.errorDescription ?? undefined,
+    resultCounts: args.resultCounts ?? undefined,
+    isRobot: false,
+    ...args,
+  };
+}
 
-export function newFlowDescriptor(args: Partial<FlowDescriptor> = {}):
-    FlowDescriptor {
+export function newFlowDescriptor(
+  args: Partial<FlowDescriptor> = {},
+): FlowDescriptor {
   return {
     name: 'FileFinder',
     friendlyName: 'Collect Files',
     category: 'Filesystem',
+    blockHuntCreation: false,
     defaultArgs: {},
     ...args,
   };
 }
 
-export function newFlowDescriptorMap(...fds: Array<Partial<FlowDescriptor>>):
-    Map<string, FlowDescriptor> {
-  return new Map(fds.map(newFlowDescriptor).map(fd => ([fd.name, fd])));
+export function newFlowDescriptorMap(
+  ...fds: Array<Partial<FlowDescriptor>>
+): Map<string, FlowDescriptor> {
+  return new Map(fds.map(newFlowDescriptor).map((fd) => [fd.name, fd]));
 }
 
-export function newScheduledFlow(args: Partial<ScheduledFlow> = {}):
-    ScheduledFlow {
+export function newScheduledFlow(
+  args: Partial<ScheduledFlow> = {},
+): ScheduledFlow {
   return {
     scheduledFlowId: randomHex(8),
     clientId: `C.${randomHex(16)}`,
@@ -95,11 +137,12 @@ export function newApproval(args: Partial<Approval> = {}): Approval {
   };
 }
 
-export function newClientApproval(args: Partial<ClientApproval> = {}):
-    ClientApproval {
+export function newClientApproval(
+  args: Partial<ClientApproval> = {},
+): ClientApproval {
   const approval = newApproval({});
   const clientId =
-      args.clientId ?? args.subject?.clientId ?? `C.${randomHex(16)}`;
+    args.clientId ?? args.subject?.clientId ?? `C.${randomHex(16)}`;
 
   return {
     ...approval,
@@ -119,8 +162,9 @@ export function newFlowResult(result: Partial<FlowResult>): FlowResult {
   };
 }
 
-export function newArtifactDescriptor(args: Partial<ArtifactDescriptor>):
-    ArtifactDescriptor {
+export function newArtifactDescriptor(
+  args: Partial<ArtifactDescriptor>,
+): ArtifactDescriptor {
   return {
     dependencies: [],
     doc: 'Description of test artifact',
@@ -136,7 +180,8 @@ export function newArtifactDescriptor(args: Partial<ArtifactDescriptor>):
 }
 
 export function newOutputPluginDescriptor(
-    args: Partial<OutputPluginDescriptor>): OutputPluginDescriptor {
+  args: Partial<OutputPluginDescriptor>,
+): OutputPluginDescriptor {
   return {
     name: 'PluginName',
     description: 'Plugin description',
@@ -146,9 +191,11 @@ export function newOutputPluginDescriptor(
 }
 
 export function newArtifactDescriptorMap(
-    descriptors: Array<Partial<ArtifactDescriptor>>): ArtifactDescriptorMap {
+  descriptors: Array<Partial<ArtifactDescriptor>>,
+): ArtifactDescriptorMap {
   return new Map(
-      descriptors.map(newArtifactDescriptor).map(ad => ([ad.name, ad])));
+    descriptors.map(newArtifactDescriptor).map((ad) => [ad.name, ad]),
+  );
 }
 
 export function newPathSpec(pathSpec: Partial<PathSpec> = {}): PathSpec {
@@ -193,8 +240,9 @@ export function newGrrUser(user: Partial<GrrUser>): GrrUser {
   };
 }
 
-export function newClientRuleSet(clientRuleSet: Partial<ForemanClientRuleSet>):
-    ForemanClientRuleSet {
+export function newClientRuleSet(
+  clientRuleSet: Partial<ForemanClientRuleSet>,
+): ForemanClientRuleSet {
   return {
     matchMode: ForemanClientRuleSetMatchMode.MATCH_ANY,
     rules: [
@@ -206,7 +254,7 @@ export function newClientRuleSet(clientRuleSet: Partial<ForemanClientRuleSet>):
         ruleType: ForemanClientRuleType.LABEL,
         label: {
           labelNames: ['foo', 'bar'],
-          matchMode: ForemanLabelClientRuleMatchMode.MATCH_ANY
+          matchMode: ForemanLabelClientRuleMatchMode.MATCH_ANY,
         },
       },
       {
@@ -214,14 +262,14 @@ export function newClientRuleSet(clientRuleSet: Partial<ForemanClientRuleSet>):
         integer: {
           operator: ForemanIntegerClientRuleOperator.GREATER_THAN,
           value: '123',
-          field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK
+          field: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK,
         },
       },
       {
         ruleType: ForemanClientRuleType.REGEX,
         regex: {
           attributeRegex: 'I am a regex',
-          field: ForemanRegexClientRuleForemanStringField.CLIENT_DESCRIPTION
+          field: ForemanRegexClientRuleForemanStringField.CLIENT_DESCRIPTION,
         },
       },
     ],
@@ -238,13 +286,13 @@ export function newSafetyLimits(limits: Partial<SafetyLimits>): SafetyLimits {
 
     avgResultsPerClientLimit: limits.avgResultsPerClientLimit ?? BigInt(99),
     avgCpuSecondsPerClientLimit:
-        limits.avgCpuSecondsPerClientLimit ?? BigInt(20),
+      limits.avgCpuSecondsPerClientLimit ?? BigInt(20),
     avgNetworkBytesPerClientLimit:
-        limits.avgNetworkBytesPerClientLimit ?? BigInt(59),
+      limits.avgNetworkBytesPerClientLimit ?? BigInt(59),
 
     perClientCpuLimit: limits.perClientCpuLimit ?? BigInt(345),
     perClientNetworkBytesLimit:
-        limits.perClientNetworkBytesLimit ?? BigInt(345),
+      limits.perClientNetworkBytesLimit ?? BigInt(345),
     ...limits,
   };
 }
@@ -282,8 +330,9 @@ export function newHunt(hunt: Partial<Hunt>): Hunt {
   };
 }
 
-export function newHuntApproval(args: Partial<HuntApproval> = {}):
-    HuntApproval {
+export function newHuntApproval(
+  args: Partial<HuntApproval> = {},
+): HuntApproval {
   const huntId = args.huntId ?? args.subject?.huntId ?? `C.${randomHex(16)}`;
 
   return {

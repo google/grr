@@ -73,14 +73,6 @@ class CronJob(rdf_structs.RDFProtoStruct):
       rdfvalue.RDFDatetime,
   ]
 
-  def __init__(self, *args, **kw):
-    self.leased_until = None
-    self.leased_by = None
-    super().__init__(*args, **kw)
-
-    if not self.created_at:
-      self.created_at = rdfvalue.RDFDatetime.Now()
-
 
 class CronJobRun(rdf_structs.RDFProtoStruct):
   """A single run of a cron job."""

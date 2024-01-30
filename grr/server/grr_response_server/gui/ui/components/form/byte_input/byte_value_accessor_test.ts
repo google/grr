@@ -21,20 +21,16 @@ describe('ByteValueAccessor', () => {
   let input: DebugElement;
 
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            ByteComponentsModule,
-            ReactiveFormsModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        NoopAnimationsModule,
+        ByteComponentsModule,
+        ReactiveFormsModule,
+      ],
+      declarations: [TestHostComponent],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();

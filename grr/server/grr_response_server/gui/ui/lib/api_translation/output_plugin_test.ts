@@ -1,9 +1,11 @@
-import {ApiOutputPluginDescriptor, ApiOutputPluginDescriptorPluginType} from '../../lib/api/api_interfaces';
+import {
+  ApiOutputPluginDescriptor,
+  ApiOutputPluginDescriptorPluginType,
+} from '../../lib/api/api_interfaces';
 import {initTestEnvironment} from '../../testing';
 import {OutputPluginDescriptor} from '../models/output_plugin';
 
 import {translateOutputPluginDescriptor} from './output_plugin';
-
 
 initTestEnvironment();
 

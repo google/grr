@@ -8,10 +8,12 @@ from absl import app
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import artifact
 from grr_response_server import data_store
 from grr_response_server.flows.general import registry
+from grr_response_server.flows.general import registry_finder
 from grr_response_server.flows.general import transfer
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -48,12 +50,13 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
     client_mock = action_mocks.ClientFileFinderWithVFS()
 
     session_id = flow_test_lib.TestFlowHelper(
-        registry.RegistryFinder.__name__,
+        registry_finder.RegistryFinder.__name__,
         client_mock,
         client_id=client_id,
         keys_paths=keys_paths,
         conditions=conditions,
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     return session_id
 
@@ -120,12 +123,16 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
         bytes_before=10, bytes_after=10, literal=b"CanNotFindMe")
 
     client_id = self.SetupClient(0)
-    session_id = self.RunFlow(client_id, [self.runkey], [
-        registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type
-            .VALUE_LITERAL_MATCH,
-            value_literal_match=vlm)
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        [self.runkey],
+        [
+            registry_finder.RegistryFinderCondition(
+                condition_type=registry_finder.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
+                value_literal_match=vlm,
+            )
+        ],
+    )
     self.assertFalse(flow_test_lib.GetFlowResults(client_id, session_id))
 
   def testFindsKeyIfItMatchesLiteralMatchCondition(self):
@@ -135,12 +142,16 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
         literal=b"Windows Sidebar\\Sidebar.exe")
 
     client_id = self.SetupClient(0)
-    session_id = self.RunFlow(client_id, [self.runkey], [
-        registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type
-            .VALUE_LITERAL_MATCH,
-            value_literal_match=vlm)
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        [self.runkey],
+        [
+            registry_finder.RegistryFinderCondition(
+                condition_type=registry_finder.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
+                value_literal_match=vlm,
+            )
+        ],
+    )
 
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(results, 1)
@@ -164,12 +175,16 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
         bytes_before=10, bytes_after=10, regex=b".*CanNotFindMe.*")
 
     client_id = self.SetupClient(0)
-    session_id = self.RunFlow(client_id, [self.runkey], [
-        registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type
-            .VALUE_REGEX_MATCH,
-            value_regex_match=value_regex_match)
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        [self.runkey],
+        [
+            registry_finder.RegistryFinderCondition(
+                condition_type=registry_finder.RegistryFinderCondition.Type.VALUE_REGEX_MATCH,
+                value_regex_match=value_regex_match,
+            )
+        ],
+    )
     self.assertFalse(flow_test_lib.GetFlowResults(client_id, session_id))
 
   def testFindsKeyIfItMatchesRegexMatchCondition(self):
@@ -177,12 +192,16 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
         bytes_before=10, bytes_after=10, regex=b"Windows.+\\.exe")
 
     client_id = self.SetupClient(0)
-    session_id = self.RunFlow(client_id, [self.runkey], [
-        registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type
-            .VALUE_REGEX_MATCH,
-            value_regex_match=value_regex_match)
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        [self.runkey],
+        [
+            registry_finder.RegistryFinderCondition(
+                condition_type=registry_finder.RegistryFinderCondition.Type.VALUE_REGEX_MATCH,
+                value_regex_match=value_regex_match,
+            )
+        ],
+    )
 
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(results, 1)
@@ -207,12 +226,16 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
         max_last_modified_time=rdfvalue.RDFDatetime.FromSecondsSinceEpoch(1))
 
     client_id = self.SetupClient(0)
-    session_id = self.RunFlow(client_id, [self.runkey], [
-        registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type
-            .MODIFICATION_TIME,
-            modification_time=modification_time)
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        [self.runkey],
+        [
+            registry_finder.RegistryFinderCondition(
+                condition_type=registry_finder.RegistryFinderCondition.Type.MODIFICATION_TIME,
+                modification_time=modification_time,
+            )
+        ],
+    )
     self.assertFalse(flow_test_lib.GetFlowResults(client_id, session_id))
 
   def testFindsKeysIfModificationTimeConditionMatches(self):
@@ -223,12 +246,16 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
             1247546054 + 1))
 
     client_id = self.SetupClient(0)
-    session_id = self.RunFlow(client_id, [self.runkey], [
-        registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type
-            .MODIFICATION_TIME,
-            modification_time=modification_time)
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        [self.runkey],
+        [
+            registry_finder.RegistryFinderCondition(
+                condition_type=registry_finder.RegistryFinderCondition.Type.MODIFICATION_TIME,
+                modification_time=modification_time,
+            )
+        ],
+    )
 
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(results, 2)
@@ -250,16 +277,20 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
         literal=b"Windows Sidebar\\Sidebar.exe")
 
     client_id = self.SetupClient(0)
-    session_id = self.RunFlow(client_id, [self.runkey], [
-        registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type
-            .MODIFICATION_TIME,
-            modification_time=modification_time),
-        registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type
-            .VALUE_LITERAL_MATCH,
-            value_literal_match=vlm)
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        [self.runkey],
+        [
+            registry_finder.RegistryFinderCondition(
+                condition_type=registry_finder.RegistryFinderCondition.Type.MODIFICATION_TIME,
+                modification_time=modification_time,
+            ),
+            registry_finder.RegistryFinderCondition(
+                condition_type=registry_finder.RegistryFinderCondition.Type.VALUE_LITERAL_MATCH,
+                value_literal_match=vlm,
+            ),
+        ],
+    )
 
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(results, 1)
@@ -273,11 +304,16 @@ class TestFakeRegistryFinderFlow(RegistryFlowTest):
   def testSizeCondition(self):
     client_id = self.SetupClient(0)
     # There are two values, one is 20 bytes, the other 53.
-    session_id = self.RunFlow(client_id, [self.runkey], [
-        registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.SIZE,
-            size=rdf_file_finder.FileFinderSizeCondition(min_file_size=50))
-    ])
+    session_id = self.RunFlow(
+        client_id,
+        [self.runkey],
+        [
+            registry_finder.RegistryFinderCondition(
+                condition_type=registry_finder.RegistryFinderCondition.Type.SIZE,
+                size=rdf_file_finder.FileFinderSizeCondition(min_file_size=50),
+            )
+        ],
+    )
     results = flow_test_lib.GetFlowResults(client_id, session_id)
     self.assertLen(results, 1)
     self.assertGreater(results[0].stat_entry.st_size, 50)
@@ -294,7 +330,7 @@ class TestRegistryFlows(RegistryFlowTest):
     with vfs_test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                    vfs_test_lib.FakeFullVFSHandler):
 
-      client_mock = action_mocks.FileFinderClientMock()
+      client_mock = action_mocks.InterrogatedClient()
 
       # Get KB initialized
       session_id = flow_test_lib.TestFlowHelper(
@@ -306,7 +342,7 @@ class TestRegistryFlows(RegistryFlowTest):
       kb = flow_test_lib.GetFlowResults(client_id, session_id)[0]
 
       client = data_store.REL_DB.ReadClientSnapshot(client_id)
-      client.knowledge_base = kb
+      client.knowledge_base.CopyFrom(mig_client.ToProtoKnowledgeBase(kb))
       data_store.REL_DB.WriteClientSnapshot(client)
 
       with test_lib.Instrument(transfer.MultiGetFile,

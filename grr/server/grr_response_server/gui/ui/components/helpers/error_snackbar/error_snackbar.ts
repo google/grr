@@ -9,15 +9,15 @@ export const WINDOW = new InjectionToken<Window>('Window');
 @Component({
   selector: 'app-error-snackbar',
   templateUrl: './error_snackbar.ng.html',
-  styleUrls: ['./error_snackbar.scss']
+  styleUrls: ['./error_snackbar.scss'],
 })
 export class ErrorSnackBar {
   copied = false;
 
   constructor(
-      private readonly clipboard: Clipboard,
-      @Inject(MAT_SNACK_BAR_DATA) readonly error: string,
-      @Inject(WINDOW) private readonly window: Window,
+    private readonly clipboard: Clipboard,
+    @Inject(MAT_SNACK_BAR_DATA) readonly error: string,
+    @Inject(WINDOW) private readonly window: Window,
   ) {}
 
   dismiss() {

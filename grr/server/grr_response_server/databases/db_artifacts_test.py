@@ -1,6 +1,7 @@
 #!/usr/bin/env python
-
-from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core.lib.rdfvalues import mig_protodict
+from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_proto import artifact_pb2
 from grr_response_server.databases import db
 
 
@@ -13,10 +14,11 @@ class DatabaseTestArtifactsMixin(object):
     self.assertEqual(context.exception.name, "Foo")
 
   def testReadArtifactReadsWritten(self):
-    artifact = rdf_artifacts.Artifact(
+    artifact = artifact_pb2.Artifact(
         name="Foo",
         doc="Lorem ipsum dolor sit amet.",
-        urls=["http://example.com/foo"])
+        urls=["http://example.com/foo"],
+    )
 
     self.db.WriteArtifact(artifact)
 
@@ -26,67 +28,76 @@ class DatabaseTestArtifactsMixin(object):
     self.assertEqual(result.urls, ["http://example.com/foo"])
 
   def testReadArtifactReadsCopy(self):
-    self.db.WriteArtifact(rdf_artifacts.Artifact(name="Foo"))
+    self.db.WriteArtifact(artifact_pb2.Artifact(name="Foo"))
     self.db.ReadArtifact("Foo").name = "Bar"
     self.assertEqual(self.db.ReadArtifact("Foo").name, "Foo")
 
   def testWriteArtifactThrowsForDuplicatedArtifacts(self):
-    self.db.WriteArtifact(rdf_artifacts.Artifact(name="Foo", doc="Lorem."))
+    self.db.WriteArtifact(artifact_pb2.Artifact(name="Foo", doc="Lorem."))
 
     with self.assertRaises(db.DuplicatedArtifactError) as context:
-      self.db.WriteArtifact(rdf_artifacts.Artifact(name="Foo", doc="Ipsum."))
+      self.db.WriteArtifact(artifact_pb2.Artifact(name="Foo", doc="Ipsum."))
 
     self.assertEqual(context.exception.name, "Foo")
 
   def testWriteArtifactThrowsForEmptyName(self):
     with self.assertRaises(ValueError):
-      self.db.WriteArtifact(rdf_artifacts.Artifact(name=""))
+      self.db.WriteArtifact(artifact_pb2.Artifact(name=""))
 
   def testWriteAndReadArtifactWithLongName(self):
     name = "x" + "🧙" * (db.MAX_ARTIFACT_NAME_LENGTH - 2) + "x"
-    self.db.WriteArtifact(rdf_artifacts.Artifact(name=name))
+    self.db.WriteArtifact(artifact_pb2.Artifact(name=name))
     self.assertEqual(self.db.ReadArtifact(name).name, name)
 
   def testWriteArtifactRaisesWithTooLongName(self):
     name = "a" * (db.MAX_ARTIFACT_NAME_LENGTH + 1)
     with self.assertRaises(ValueError):
-      self.db.WriteArtifact(rdf_artifacts.Artifact(name=name))
+      self.db.WriteArtifact(artifact_pb2.Artifact(name=name))
 
   def testWriteArtifactWithSources(self):
-    file_source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.FILE,
+    file_source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.FILE,
         conditions=["os_major_version < 6"],
-        attributes={
-            "paths": ["/tmp/foo", "/tmp/bar"],
-        })
+        attributes=mig_protodict.ToProtoDict(
+            rdf_protodict.Dict().FromDict({
+                "paths": ["/tmp/foo", "/tmp/bar"],
+            })
+        ),
+    )
 
-    registry_key_source = rdf_artifacts.ArtifactSource(
-        type=rdf_artifacts.ArtifactSource.SourceType.REGISTRY_KEY,
-        attributes={
-            "key_value_pairs": [{
-                "key": "HKEY_LOCAL_MACHINE\\Foo\\Bar\\Baz",
-                "value": "Quux"
-            },],
-        })
+    registry_key_source = artifact_pb2.ArtifactSource(
+        type=artifact_pb2.ArtifactSource.SourceType.REGISTRY_KEY,
+        attributes=mig_protodict.ToProtoDict(
+            rdf_protodict.Dict().FromDict({
+                "key_value_pairs": [
+                    {
+                        "key": "HKEY_LOCAL_MACHINE\\Foo\\Bar\\Baz",
+                        "value": "Quux",
+                    },
+                ],
+            })
+        ),
+    )
 
-    artifact = rdf_artifacts.Artifact(
+    artifact = artifact_pb2.Artifact(
         name="Foo",
         sources=[file_source, registry_key_source],
         supported_os=["Windows", "Linux"],
-        urls=["http://foobar.com/"])
+        urls=["http://foobar.com/"],
+    )
 
     self.db.WriteArtifact(artifact)
     self.assertEqual(self.db.ReadArtifact("Foo"), artifact)
 
   def testWriteArtifactMany(self):
     for i in range(42):
-      self.db.WriteArtifact(rdf_artifacts.Artifact(name="Art%s" % i))
+      self.db.WriteArtifact(artifact_pb2.Artifact(name="Art%s" % i))
 
     for i in range(42):
       self.assertEqual(self.db.ReadArtifact("Art%s" % i).name, "Art%s" % i)
 
   def testWriteArtifactWritesCopy(self):
-    artifact = rdf_artifacts.Artifact()
+    artifact = artifact_pb2.Artifact()
 
     artifact.name = "Foo"
     artifact.doc = "Lorem ipsum."
@@ -111,7 +122,7 @@ class DatabaseTestArtifactsMixin(object):
     self.assertEqual(context.exception.name, "Quux")
 
   def testDeleteArtifactDeletesSingle(self):
-    self.db.WriteArtifact(rdf_artifacts.Artifact(name="Foo"))
+    self.db.WriteArtifact(artifact_pb2.Artifact(name="Foo"))
     self.db.DeleteArtifact("Foo")
 
     with self.assertRaises(db.UnknownArtifactError):
@@ -119,7 +130,7 @@ class DatabaseTestArtifactsMixin(object):
 
   def testDeleteArtifactDeletesMultiple(self):
     for i in range(42):
-      self.db.WriteArtifact(rdf_artifacts.Artifact(name="Art%s" % i))
+      self.db.WriteArtifact(artifact_pb2.Artifact(name="Art%s" % i))
 
     for i in range(42):
       if i % 2 == 0:
@@ -140,7 +151,7 @@ class DatabaseTestArtifactsMixin(object):
   def testReadAllArtifactsReturnsAllArtifacts(self):
     artifacts = []
     for i in range(42):
-      artifacts.append(rdf_artifacts.Artifact(name="Art%s" % i))
+      artifacts.append(artifact_pb2.Artifact(name="Art%s" % i))
 
     for artifact in artifacts:
       self.db.WriteArtifact(artifact)
@@ -150,8 +161,8 @@ class DatabaseTestArtifactsMixin(object):
   def testReadAllArtifactsReturnsCopy(self):
     name = lambda artifact: artifact.name
 
-    self.db.WriteArtifact(rdf_artifacts.Artifact(name="Foo"))
-    self.db.WriteArtifact(rdf_artifacts.Artifact(name="Bar"))
+    self.db.WriteArtifact(artifact_pb2.Artifact(name="Foo"))
+    self.db.WriteArtifact(artifact_pb2.Artifact(name="Bar"))
 
     artifacts = self.db.ReadAllArtifacts()
     self.assertCountEqual(map(name, artifacts), ["Foo", "Bar"])

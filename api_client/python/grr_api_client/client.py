@@ -7,6 +7,7 @@ from typing import Sequence
 from grr_api_client import flow
 from grr_api_client import utils
 from grr_api_client import vfs
+from grr_response_core.lib import rdfvalue
 from grr_response_proto.api import client_pb2
 from grr_response_proto.api import flow_pb2
 from grr_response_proto.api import user_pb2
@@ -15,11 +16,9 @@ from grr_response_proto.api import user_pb2
 class ClientApprovalBase(object):
   """Base class for ClientApproval and ClientApprovalRef."""
 
-  def __init__(self,
-               client_id=None,
-               approval_id=None,
-               username=None,
-               context=None):
+  def __init__(
+      self, client_id=None, approval_id=None, username=None, context=None
+  ):
     super().__init__()
 
     if not client_id:
@@ -41,10 +40,12 @@ class ClientApprovalBase(object):
     args = user_pb2.ApiGrantClientApprovalArgs(
         client_id=self.client_id,
         username=self.username,
-        approval_id=self.approval_id)
+        approval_id=self.approval_id,
+    )
     data = self._context.SendRequest("GrantClientApproval", args)
     return ClientApproval(
-        data=data, username=self.username, context=self._context)
+        data=data, username=self.username, context=self._context
+    )
 
   def Get(self):
     """Fetch and return a proper ClientApproval object."""
@@ -52,17 +53,20 @@ class ClientApprovalBase(object):
     args = user_pb2.ApiGetClientApprovalArgs(
         client_id=self.client_id,
         approval_id=self.approval_id,
-        username=self.username)
+        username=self.username,
+    )
     result = self._context.SendRequest("GetClientApproval", args)
     return ClientApproval(
-        data=result, username=self._context.username, context=self._context)
+        data=result, username=self._context.username, context=self._context
+    )
 
   def WaitUntilValid(self, timeout=None):
     """Wait until the approval is valid (i.e. - approved).
 
     Args:
-      timeout: timeout in seconds. None means default timeout (1 hour).
-               0 means no timeout (wait forever).
+      timeout: timeout in seconds. None means default timeout (1 hour). 0 means
+        no timeout (wait forever).
+
     Returns:
       Operation object with refreshed target_file.
     Raises:
@@ -70,9 +74,8 @@ class ClientApprovalBase(object):
     """
 
     return utils.Poll(
-        generator=self.Get,
-        condition=lambda f: f.data.is_valid,
-        timeout=timeout)
+        generator=self.Get, condition=lambda f: f.data.is_valid, timeout=timeout
+    )
 
 
 class ClientApprovalRef(ClientApprovalBase):
@@ -91,7 +94,8 @@ class ClientApproval(ClientApprovalBase):
         client_id=utils.UrnStringToClientId(data.subject.urn),
         approval_id=data.id,
         username=username,
-        context=context)
+        context=context,
+    )
 
     self.data = data
 
@@ -109,7 +113,8 @@ class ClientCrash(object):
     self.backtrace = data.backtrace
 
     self.client = ClientRef(
-        client_id=utils.UrnStringToClientId(data.client_id), context=context)
+        client_id=utils.UrnStringToClientId(data.client_id), context=context
+    )
 
 
 class ClientBase(object):
@@ -131,13 +136,15 @@ class ClientBase(object):
     """Returns a reference to a file with a given path on client's VFS."""
 
     return vfs.FileRef(
-        client_id=self.client_id, path=path, context=self._context)
+        client_id=self.client_id, path=path, context=self._context
+    )
 
   def Flow(self, flow_id):
     """Return a reference to a flow with a given id on this client."""
 
     return flow.FlowRef(
-        client_id=self.client_id, flow_id=flow_id, context=self._context)
+        client_id=self.client_id, flow_id=flow_id, context=self._context
+    )
 
   def CreateFlow(self, name=None, args=None, runner_args=None):
     """Create new flow on this client."""
@@ -172,7 +179,8 @@ class ClientBase(object):
 
     items = self._context.SendIteratorRequest("ListFlows", args)
     return utils.MapItemsIterator(
-        lambda data: flow.Flow(data=data, context=self._context), items)
+        lambda data: flow.Flow(data=data, context=self._context), items
+    )
 
   def Approval(self, username, approval_id):
     """Returns a reference to an approval."""
@@ -181,13 +189,15 @@ class ClientBase(object):
         client_id=self.client_id,
         username=username,
         approval_id=approval_id,
-        context=self._context)
+        context=self._context,
+    )
 
   def CreateApproval(
       self,
       reason=None,
       notified_users=None,
       email_cc_addresses=None,
+      expiration_duration_days=0,
   ):
     """Create a new approval for the current user to access this client."""
 
@@ -197,10 +207,19 @@ class ClientBase(object):
     if not notified_users:
       raise ValueError("notified_users list can't be empty.")
 
+    expiration_time_us = 0
+    if expiration_duration_days != 0:
+      expiration_time_us = (
+          rdfvalue.RDFDatetime.Now()
+          + rdfvalue.Duration.From(expiration_duration_days, rdfvalue.DAYS)
+      ).AsMicrosecondsSinceEpoch()
+
     approval = user_pb2.ApiClientApproval(
         reason=reason,
         notified_users=notified_users,
-        email_cc_addresses=email_cc_addresses or [])
+        email_cc_addresses=email_cc_addresses or [],
+        expiration_time_us=expiration_time_us,
+    )
     args = user_pb2.ApiCreateClientApprovalArgs(
         client_id=self.client_id,
         approval=approval,
@@ -208,16 +227,19 @@ class ClientBase(object):
 
     data = self._context.SendRequest("CreateClientApproval", args)
     return ClientApproval(
-        data=data, username=self._context.username, context=self._context)
+        data=data, username=self._context.username, context=self._context
+    )
 
   def ListApprovals(self, state=user_pb2.ApiListClientApprovalsArgs.ANY):
     args = user_pb2.ApiListClientApprovalsArgs(
-        client_id=self.client_id, state=state)
+        client_id=self.client_id, state=state
+    )
     items = self._context.SendIteratorRequest("ListClientApprovals", args)
 
     def MapClientApproval(data):
       return ClientApproval(
-          data=data, username=self._context.username, context=self._context)
+          data=data, username=self._context.username, context=self._context
+      )
 
     return utils.MapItemsIterator(MapClientApproval, items)
 
@@ -229,12 +251,15 @@ class ClientBase(object):
     """Checks that 'labels' arguments for AddLabels/RemoveLabels is correct."""
 
     if isinstance(labels, (str, bytes)):
-      raise TypeError("'labels' argument is expected to be an "
-                      "iterable of strings, not {!r}.".format(labels))
+      raise TypeError(
+          "'labels' argument is expected to be an "
+          "iterable of strings, not {!r}.".format(labels)
+      )
 
     if not isinstance(labels, abc.Iterable):
       raise TypeError(
-          "Expected iterable container, but got {!r} instead.".format(labels))
+          "Expected iterable container, but got {!r} instead.".format(labels)
+      )
 
     labels_list = list(labels)
     if not labels_list:
@@ -243,7 +268,8 @@ class ClientBase(object):
     for l in labels_list:
       if not isinstance(l, str):
         raise TypeError(
-            "Expected labels as strings, got {!r} instead.".format(l))
+            "Expected labels as strings, got {!r} instead.".format(l)
+        )
 
     return labels_list
 
@@ -251,7 +277,8 @@ class ClientBase(object):
     labels = self._ProcessLabels(labels)
 
     args = client_pb2.ApiAddClientsLabelsArgs(
-        client_ids=[self.client_id], labels=labels)
+        client_ids=[self.client_id], labels=labels
+    )
     self._context.SendRequest("AddClientsLabels", args)
 
   def AddLabel(self, label):
@@ -261,7 +288,8 @@ class ClientBase(object):
     labels = self._ProcessLabels(labels)
 
     args = client_pb2.ApiRemoveClientsLabelsArgs(
-        client_ids=[self.client_id], labels=labels)
+        client_ids=[self.client_id], labels=labels
+    )
     self._context.SendRequest("RemoveClientsLabels", args)
 
   def RemoveLabel(self, label):
@@ -301,10 +329,8 @@ class ClientBase(object):
     return result.count
 
   def GetFleetspeakPendingMessages(
-      self,
-      offset: int = 0,
-      limit: int = 0,
-      want_data: bool = False) -> Sequence[client_pb2.ApiFleetspeakMessage]:
+      self, offset: int = 0, limit: int = 0, want_data: bool = False
+  ) -> Sequence[client_pb2.ApiFleetspeakMessage]:
     """Returns messages pending for the given client."""
     args = client_pb2.ApiGetFleetspeakPendingMessagesArgs()
     args.client_id = self.client_id
@@ -331,13 +357,15 @@ class Client(ClientBase):
       raise ValueError("data can't be None")
 
     super().__init__(
-        client_id=utils.UrnStringToClientId(data.urn), context=context)
+        client_id=utils.UrnStringToClientId(data.urn), context=context
+    )
 
     self.data = data
 
   def __repr__(self):
     return "Client(data=<{} client_id={!r}>, ...)".format(
-        type(self.data).__name__, self.data.client_id)
+        type(self.data).__name__, self.data.client_id
+    )
 
 
 def SearchClients(query=None, context=None):
@@ -346,5 +374,6 @@ def SearchClients(query=None, context=None):
   args = client_pb2.ApiSearchClientsArgs(query=query)
 
   items = context.SendIteratorRequest("SearchClients", args)
-  return utils.MapItemsIterator(lambda data: Client(data=data, context=context),
-                                items)
+  return utils.MapItemsIterator(
+      lambda data: Client(data=data, context=context), items
+  )

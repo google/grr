@@ -4,9 +4,8 @@
 import base64
 import logging
 
-from werkzeug import utils as werkzeug_utils
-
 from google.oauth2 import id_token
+from werkzeug import utils as werkzeug_utils
 
 from grr_response_core import config
 from grr_response_core.lib import utils
@@ -16,6 +15,7 @@ from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.gui import http_response
 from grr_response_server.gui import validate_iap
+from grr_response_server.rdfvalues import mig_objects
 
 
 class BaseWebAuthManager(metaclass=MetaclassRegistry):
@@ -107,7 +107,8 @@ class BasicWebAuthManager(BaseWebAuthManager):
         user, password = authorization_string.split(":", 1)
 
         try:
-          user_obj = data_store.REL_DB.ReadGRRUser(user)
+          proto_user = data_store.REL_DB.ReadGRRUser(user)
+          user_obj = mig_objects.ToRDFGRRUser(proto_user)
           if user_obj.password.CheckPassword(password):
             authorized = True
 

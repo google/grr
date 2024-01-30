@@ -1,7 +1,16 @@
+// g3-format-changed-lines-during-prettier-version-upgrade
 import {OverlayContainer} from '@angular/cdk/overlay';
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
-import {ComponentFixture, inject, TestBed, waitForAsync} from '@angular/core/testing';
-import {MatAutocomplete, MatAutocompleteSelectedEvent} from '@angular/material/autocomplete';
+import {
+  ComponentFixture,
+  inject,
+  TestBed,
+  waitForAsync,
+} from '@angular/core/testing';
+import {
+  MatAutocomplete,
+  MatAutocompleteSelectedEvent,
+} from '@angular/material/autocomplete';
 import {MatAutocompleteHarness} from '@angular/material/autocomplete/testing';
 import {MatMenuHarness} from '@angular/material/menu/testing';
 import {By} from '@angular/platform-browser';
@@ -14,19 +23,21 @@ import {FlowListItemService} from '../../components/flow_picker/flow_list_item';
 import {FlowListItem, FlowType} from '../../lib/models/flow';
 import {assertNonNull} from '../../lib/preconditions';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
-import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../store/client_page_global_store_test_util';
+import {
+  ClientPageGlobalStoreMock,
+  mockClientPageGlobalStore,
+} from '../../store/client_page_global_store_test_util';
 import {initTestEnvironment} from '../../testing';
 
 import {FlowPicker} from './flow_picker';
 import {FlowPickerModule} from './module';
 
-
-
 initTestEnvironment();
 
 function getAutocompleteHarness(fixture: ComponentFixture<FlowPicker>) {
   return TestbedHarnessEnvironment.loader(fixture).getHarness(
-      MatAutocompleteHarness);
+    MatAutocompleteHarness,
+  );
 }
 
 const COMMON_FILE_FLOWS: readonly FlowListItem[] = [
@@ -54,71 +65,67 @@ describe('FlowPicker Component', () => {
     clientPageGlobalStore = mockClientPageGlobalStore();
 
     flowListItemService = {
-      flowsByCategory$: of(new Map([
-        [
-          'Collectors',
+      flowsByCategory$: of(
+        new Map([
           [
-            {
-              type: FlowType.ARTIFACT_COLLECTOR_FLOW,
-              friendlyName: 'Forensic artifacts',
-              description: 'Foo',
-              enabled: true,
-            },
-            {
-              type: FlowType.OS_QUERY_FLOW,
-              friendlyName: 'Osquery',
-              description: 'Bar',
-              enabled: true,
-            },
-          ]
-        ],
-        [
-          'Browser',
+            'Collectors',
+            [
+              {
+                type: FlowType.ARTIFACT_COLLECTOR_FLOW,
+                friendlyName: 'Forensic artifacts',
+                description: 'Foo',
+                enabled: true,
+              },
+              {
+                type: FlowType.OS_QUERY_FLOW,
+                friendlyName: 'Osquery',
+                description: 'Bar',
+                enabled: true,
+              },
+            ],
+          ],
           [
-            {
-              type: FlowType.COLLECT_BROWSER_HISTORY,
-              friendlyName: 'Collect browser history',
-              description: 'Something',
-              enabled: true,
-            },
-          ]
-        ],
-        [
-          'Administrative',
+            'Browser',
+            [
+              {
+                type: FlowType.COLLECT_BROWSER_HISTORY,
+                friendlyName: 'Collect browser history',
+                description: 'Something',
+                enabled: true,
+              },
+            ],
+          ],
           [
-            {
-              type: FlowType.LAUNCH_BINARY,
-              friendlyName: 'Launch Binary',
-              description: 'Something',
-              enabled: false,
-            },
-          ]
-        ],
-      ])),
+            'Administrative',
+            [
+              {
+                type: FlowType.LAUNCH_BINARY,
+                friendlyName: 'Launch Binary',
+                description: 'Something',
+                enabled: false,
+              },
+            ],
+          ],
+        ]),
+      ),
       commonFlowNames$: of([]),
       commonFileFlows$: of(COMMON_FILE_FLOWS),
     };
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            FlowPickerModule,
-            RouterTestingModule,
-          ],
-          providers: [
-            {
-              provide: FlowListItemService,
-              useFactory: () => flowListItemService
-            },
-            {
-              provide: ClientPageGlobalStore,
-              useFactory: () => clientPageGlobalStore
-            },
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, FlowPickerModule, RouterTestingModule],
+      providers: [
+        {
+          provide: FlowListItemService,
+          useFactory: () => flowListItemService,
+        },
+        {
+          provide: ClientPageGlobalStore,
+          useFactory: () => clientPageGlobalStore,
+        },
+      ],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
 
     inject([OverlayContainer], (oc: OverlayContainer) => {
       overlayContainer = oc;
@@ -137,7 +144,7 @@ describe('FlowPicker Component', () => {
     const matOptions = overlayContainerElement.querySelectorAll('mat-option');
     expect(matOptions.length).toBe(0);
     const matOptGroups =
-        overlayContainerElement.querySelectorAll('mat-optgroup');
+      overlayContainerElement.querySelectorAll('mat-optgroup');
     expect(matOptGroups.length).toBe(0);
   });
 
@@ -146,14 +153,16 @@ describe('FlowPicker Component', () => {
     fixture.detectChanges();
     await fixture.whenRenderingDone();
 
-    expect(overlayContainerElement.querySelectorAll('flows-overview').length)
-        .toBe(0);
+    expect(
+      overlayContainerElement.querySelectorAll('flows-overview').length,
+    ).toBe(0);
 
     const autocompleteHarness = await getAutocompleteHarness(fixture);
     await autocompleteHarness.focus();
 
-    expect(overlayContainerElement.querySelectorAll('flows-overview').length)
-        .toBe(1);
+    expect(
+      overlayContainerElement.querySelectorAll('flows-overview').length,
+    ).toBe(1);
   });
 
   it('hides an overview panel on input', async () => {
@@ -164,13 +173,15 @@ describe('FlowPicker Component', () => {
     const autocompleteHarness = await getAutocompleteHarness(fixture);
     await autocompleteHarness.focus();
 
-    expect(overlayContainerElement.querySelectorAll('flows-overview').length)
-        .toBe(1);
+    expect(
+      overlayContainerElement.querySelectorAll('flows-overview').length,
+    ).toBe(1);
 
     await autocompleteHarness.enterText('arti');
 
-    expect(overlayContainerElement.querySelectorAll('flows-overview').length)
-        .toBe(0);
+    expect(
+      overlayContainerElement.querySelectorAll('flows-overview').length,
+    ).toBe(0);
   });
 
   it('hides an overview panel on outside click', async () => {
@@ -181,14 +192,16 @@ describe('FlowPicker Component', () => {
     const autocompleteHarness = await getAutocompleteHarness(fixture);
     await autocompleteHarness.focus();
 
-    expect(overlayContainerElement.querySelectorAll('flows-overview').length)
-        .toBe(1);
+    expect(
+      overlayContainerElement.querySelectorAll('flows-overview').length,
+    ).toBe(1);
 
     fixture.componentInstance.overlayOutsideClick(new MouseEvent('click'));
     fixture.detectChanges();
 
-    expect(overlayContainerElement.querySelectorAll('flows-overview').length)
-        .toBe(0);
+    expect(
+      overlayContainerElement.querySelectorAll('flows-overview').length,
+    ).toBe(0);
   });
 
   it('selects a Flow when a a link in overview panel is clicked', async () => {
@@ -200,19 +213,23 @@ describe('FlowPicker Component', () => {
     await autocompleteHarness.focus();
 
     const links = overlayContainerElement.querySelectorAll('flows-overview a');
-    const link = Array.from(links).find(
-        l => l.textContent?.includes('Forensic artifacts'));
+    const link = Array.from(links).find((l) =>
+      l.textContent?.includes('Forensic artifacts'),
+    );
     assertNonNull(link);
     link.dispatchEvent(new MouseEvent('click'));
     fixture.detectChanges();
 
-    expect(overlayContainerElement.querySelectorAll('flows-overview').length)
-        .toBe(0);
+    expect(
+      overlayContainerElement.querySelectorAll('flows-overview').length,
+    ).toBe(0);
 
-    expect(fixture.componentInstance.textInput.value)
-        .toBe('Forensic artifacts');
-    expect(clientPageGlobalStore.startFlowConfiguration)
-        .toHaveBeenCalledWith(FlowType.ARTIFACT_COLLECTOR_FLOW);
+    expect(fixture.componentInstance.textInput.value).toBe(
+      'Forensic artifacts',
+    );
+    expect(clientPageGlobalStore.startFlowConfiguration).toHaveBeenCalledWith(
+      FlowType.ARTIFACT_COLLECTOR_FLOW,
+    );
   });
 
   it('filters Flows that match text input', async () => {
@@ -228,7 +245,7 @@ describe('FlowPicker Component', () => {
     expect(matOptions[0].textContent).toContain('Forensic artifacts');
 
     const matOptGroups =
-        overlayContainerElement.querySelectorAll('mat-optgroup');
+      overlayContainerElement.querySelectorAll('mat-optgroup');
     expect(matOptGroups.length).toBe(1);
     expect(matOptGroups[0].textContent).toContain('Collectors');
   });
@@ -241,8 +258,9 @@ describe('FlowPicker Component', () => {
     await autocompleteHarness.focus();
     await autocompleteHarness.enterText('arti');
 
-    const nameElements =
-        overlayContainerElement.querySelectorAll('mat-option .flow-title span');
+    const nameElements = overlayContainerElement.querySelectorAll(
+      'mat-option .flow-title span',
+    );
     expect(nameElements.length).toBe(3);
 
     expect(nameElements[0].textContent).toBe('Forensic ');
@@ -269,7 +287,7 @@ describe('FlowPicker Component', () => {
     expect(matOptions[1].textContent).toContain('Osquery');
 
     const matOptGroups =
-        overlayContainerElement.querySelectorAll('mat-optgroup');
+      overlayContainerElement.querySelectorAll('mat-optgroup');
     expect(matOptGroups.length).toBe(1);
     expect(matOptGroups[0].textContent).toContain('Collectors');
   });
@@ -283,7 +301,8 @@ describe('FlowPicker Component', () => {
     await autocompleteHarness.enterText('collector');
 
     const nameElements = overlayContainerElement.querySelectorAll(
-        'mat-optgroup span.category-title');
+      'mat-optgroup span.category-title',
+    );
     expect(nameElements.length).toBe(2);
 
     expect(nameElements[0].textContent).toBe('Collector');
@@ -308,16 +327,17 @@ describe('FlowPicker Component', () => {
       description: '',
       enabled: true,
     };
-    const matAutocomplete: MatAutocomplete =
-        fixture.debugElement.query(By.directive(MatAutocomplete))
-            .componentInstance;
+    const matAutocomplete: MatAutocomplete = fixture.debugElement.query(
+      By.directive(MatAutocomplete),
+    ).componentInstance;
     matAutocomplete.optionSelected.emit({
       option: {value: flowListItem},
     } as MatAutocompleteSelectedEvent);
     fixture.detectChanges();
 
-    expect(clientPageGlobalStore.startFlowConfiguration)
-        .toHaveBeenCalledWith(FlowType.COLLECT_BROWSER_HISTORY);
+    expect(clientPageGlobalStore.startFlowConfiguration).toHaveBeenCalledWith(
+      FlowType.COLLECT_BROWSER_HISTORY,
+    );
   });
 
   it('disables restricted flow list entries', async () => {
@@ -347,19 +367,21 @@ describe('FlowPicker Component', () => {
       description: '',
       enabled: true,
     };
-    const matAutocomplete: MatAutocomplete =
-        fixture.debugElement.query(By.directive(MatAutocomplete))
-            .componentInstance;
+    const matAutocomplete: MatAutocomplete = fixture.debugElement.query(
+      By.directive(MatAutocomplete),
+    ).componentInstance;
     matAutocomplete.optionSelected.emit({
       option: {value: flowListItem},
     } as MatAutocompleteSelectedEvent);
     fixture.detectChanges();
 
-    expect(clientPageGlobalStore.startFlowConfiguration)
-        .toHaveBeenCalledWith(FlowType.COLLECT_BROWSER_HISTORY);
+    expect(clientPageGlobalStore.startFlowConfiguration).toHaveBeenCalledWith(
+      FlowType.COLLECT_BROWSER_HISTORY,
+    );
 
-    const clearButton =
-        fixture.debugElement.query(By.css('.readonly-field button'));
+    const clearButton = fixture.debugElement.query(
+      By.css('.readonly-field button'),
+    );
     assertNonNull(clearButton);
     clearButton.nativeElement.click();
     fixture.detectChanges();
@@ -367,47 +389,47 @@ describe('FlowPicker Component', () => {
     expect(clientPageGlobalStore.stopFlowConfiguration).toHaveBeenCalled();
   });
 
-  it('deselects flow when selectedFlowDescriptor$ emits undefined',
-     async () => {
-       const fixture = TestBed.createComponent(FlowPicker);
-       fixture.detectChanges();
-       await fixture.whenRenderingDone();
+  it('deselects flow when selectedFlowDescriptor$ emits undefined', async () => {
+    const fixture = TestBed.createComponent(FlowPicker);
+    fixture.detectChanges();
+    await fixture.whenRenderingDone();
 
-       const autocompleteHarness = await getAutocompleteHarness(fixture);
-       await autocompleteHarness.focus();
-       await autocompleteHarness.enterText('browser');
+    const autocompleteHarness = await getAutocompleteHarness(fixture);
+    await autocompleteHarness.focus();
+    await autocompleteHarness.enterText('browser');
 
-       const flowListItem: FlowListItem = {
-         type: FlowType.COLLECT_BROWSER_HISTORY,
-         friendlyName: 'Collect browser history',
-         description: '',
-         enabled: true,
-       };
-       const matAutocomplete: MatAutocomplete =
-           fixture.debugElement.query(By.directive(MatAutocomplete))
-               .componentInstance;
-       matAutocomplete.optionSelected.emit({
-         option: {value: flowListItem},
-       } as MatAutocompleteSelectedEvent);
-       fixture.detectChanges();
+    const flowListItem: FlowListItem = {
+      type: FlowType.COLLECT_BROWSER_HISTORY,
+      friendlyName: 'Collect browser history',
+      description: '',
+      enabled: true,
+    };
+    const matAutocomplete: MatAutocomplete = fixture.debugElement.query(
+      By.directive(MatAutocomplete),
+    ).componentInstance;
+    matAutocomplete.optionSelected.emit({
+      option: {value: flowListItem},
+    } as MatAutocompleteSelectedEvent);
+    fixture.detectChanges();
 
-       expect(clientPageGlobalStore.startFlowConfiguration)
-           .toHaveBeenCalledWith(FlowType.COLLECT_BROWSER_HISTORY);
+    expect(clientPageGlobalStore.startFlowConfiguration).toHaveBeenCalledWith(
+      FlowType.COLLECT_BROWSER_HISTORY,
+    );
 
-       clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(
-           null);
-       fixture.detectChanges();
+    clientPageGlobalStore.mockedObservables.selectedFlowDescriptor$.next(null);
+    fixture.detectChanges();
 
-       expect(fixture.componentInstance.textInput.value).toBe('');
-     });
+    expect(fixture.componentInstance.textInput.value).toBe('');
+  });
 
   it('selects a Flow when FlowChips emits flowSelected event', async () => {
     const fixture = TestBed.createComponent(FlowPicker);
     fixture.detectChanges();
     await fixture.whenRenderingDone();
 
-    const flowChips: FlowChips =
-        fixture.debugElement.query(By.directive(FlowChips)).componentInstance;
+    const flowChips: FlowChips = fixture.debugElement.query(
+      By.directive(FlowChips),
+    ).componentInstance;
     flowChips.flowSelected.emit({
       type: FlowType.ARTIFACT_COLLECTOR_FLOW,
       friendlyName: 'Forensic artifacts',
@@ -416,10 +438,12 @@ describe('FlowPicker Component', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.componentInstance.textInput.value)
-        .toBe('Forensic artifacts');
-    expect(clientPageGlobalStore.startFlowConfiguration)
-        .toHaveBeenCalledWith(FlowType.ARTIFACT_COLLECTOR_FLOW);
+    expect(fixture.componentInstance.textInput.value).toBe(
+      'Forensic artifacts',
+    );
+    expect(clientPageGlobalStore.startFlowConfiguration).toHaveBeenCalledWith(
+      FlowType.ARTIFACT_COLLECTOR_FLOW,
+    );
   });
 
   it('hides FlowChips when a Flow is selected', async () => {
@@ -434,6 +458,7 @@ describe('FlowPicker Component', () => {
       category: 'Browser',
       name: FlowType.COLLECT_BROWSER_HISTORY,
       friendlyName: 'Collect browser history',
+      blockHuntCreation: false,
       defaultArgs: {},
     });
     fixture.detectChanges();
@@ -448,21 +473,26 @@ describe('FlowPicker Component', () => {
 
     const loader = TestbedHarnessEnvironment.loader(fixture);
     const menu = await loader.getHarness(
-        MatMenuHarness.with({triggerText: /Collect files/}));
+      MatMenuHarness.with({triggerText: /Collect files/}),
+    );
     await menu.open();
     const renderedMenuItems = await menu.getItems();
-    expect(renderedMenuItems.length)
-        .toBeGreaterThanOrEqual(COMMON_FILE_FLOWS.length);
-    expect(await renderedMenuItems[0].getText())
-        .toEqual(COMMON_FILE_FLOWS[0].friendlyName);
-    expect(await renderedMenuItems[1].getText())
-        .toEqual(COMMON_FILE_FLOWS[1].friendlyName);
+    expect(renderedMenuItems.length).toBeGreaterThanOrEqual(
+      COMMON_FILE_FLOWS.length,
+    );
+    expect(await renderedMenuItems[0].getText()).toEqual(
+      COMMON_FILE_FLOWS[0].friendlyName,
+    );
+    expect(await renderedMenuItems[1].getText()).toEqual(
+      COMMON_FILE_FLOWS[1].friendlyName,
+    );
 
     expect(clientPageGlobalStore.startFlowConfiguration).not.toHaveBeenCalled();
 
     await renderedMenuItems[1].click();
 
-    expect(clientPageGlobalStore.startFlowConfiguration)
-        .toHaveBeenCalledWith(COMMON_FILE_FLOWS[1].type);
+    expect(clientPageGlobalStore.startFlowConfiguration).toHaveBeenCalledWith(
+      COMMON_FILE_FLOWS[1].type,
+    );
   });
 });

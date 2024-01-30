@@ -7,11 +7,10 @@ import {MatMenuModule} from '@angular/material/menu';
 
 import {ExpandableHash} from './expandable_hash';
 
-
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ClipboardModule,
     CommonModule,
@@ -19,14 +18,8 @@ import {ExpandableHash} from './expandable_hash';
     MatIconModule,
     MatMenuModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ExpandableHash,
-  ],
-  exports: [
-    ExpandableHash,
-  ]
+  declarations: [ExpandableHash],
+  exports: [ExpandableHash],
 })
-export class ExpandableHashModule {
-}
+export class ExpandableHashModule {}

@@ -74,7 +74,8 @@ class FileOperation(metaclass=abc.ABCMeta):
     utils.Poll(
         generator=self.GetState,
         condition=lambda s: s != self.__class__.RunningState(),
-        timeout=timeout)
+        timeout=timeout,
+    )
     self.target_file = self.target_file.Get()
     return self
 
@@ -97,7 +98,8 @@ class RefreshOperation(FileOperation):
 
   def GetState(self) -> vfs_pb2.ApiGetVfsRefreshOperationStateResult.State:
     args = vfs_pb2.ApiGetVfsRefreshOperationStateArgs(
-        client_id=self.client_id, operation_id=self.operation_id)
+        client_id=self.client_id, operation_id=self.operation_id
+    )
 
     response = self._context.SendRequest("GetVfsRefreshOperationState", args)
     if not isinstance(response, vfs_pb2.ApiGetVfsRefreshOperationStateResult):
@@ -124,7 +126,8 @@ class CollectOperation(FileOperation):
 
   def GetState(self) -> vfs_pb2.ApiGetVfsFileContentUpdateStateResult.State:
     args = vfs_pb2.ApiGetVfsFileContentUpdateStateArgs(
-        client_id=self.client_id, operation_id=self.operation_id)
+        client_id=self.client_id, operation_id=self.operation_id
+    )
 
     response = self._context.SendRequest("GetVfsFileContentUpdateState", args)
     if not isinstance(response, vfs_pb2.ApiGetVfsFileContentUpdateStateResult):
@@ -159,7 +162,8 @@ class FileBase(object):
       timestamp: Optional[int] = None,
   ) -> utils.BinaryChunkIterator:
     args = vfs_pb2.ApiGetFileBlobArgs(
-        client_id=self.client_id, file_path=self.path)
+        client_id=self.client_id, file_path=self.path
+    )
     if timestamp is not None:
       args.timestamp = timestamp
     return self._context.SendStreamingRequest("GetFileBlob", args)
@@ -170,7 +174,8 @@ class FileBase(object):
       timestamp: Optional[int] = None,
   ) -> utils.BinaryChunkIterator:
     args = vfs_pb2.ApiGetFileBlobArgs(
-        client_id=self.client_id, file_path=self.path, offset=offset)
+        client_id=self.client_id, file_path=self.path, offset=offset
+    )
     if timestamp is not None:
       args.timestamp = timestamp
     return self._context.SendStreamingRequest("GetFileBlob", args)
@@ -178,7 +183,8 @@ class FileBase(object):
   def ListFiles(self) -> utils.ItemsIterator["File"]:
     """Lists files under the directory."""
     args = vfs_pb2.ApiListFilesArgs(
-        client_id=self.client_id, file_path=self.path)
+        client_id=self.client_id, file_path=self.path
+    )
     items = self._context.SendIteratorRequest("ListFiles", args)
 
     def MapDataToFile(data: message.Message) -> "File":
@@ -191,12 +197,14 @@ class FileBase(object):
 
   def GetFilesArchive(self) -> utils.BinaryChunkIterator:
     args = vfs_pb2.ApiGetVfsFilesArchiveArgs(
-        client_id=self.client_id, file_path=self.path)
+        client_id=self.client_id, file_path=self.path
+    )
     return self._context.SendStreamingRequest("GetVfsFilesArchive", args)
 
   def GetVersionTimes(self) -> Sequence[int]:
     args = vfs_pb2.ApiGetFileVersionTimesArgs(
-        client_id=self.client_id, file_path=self.path)
+        client_id=self.client_id, file_path=self.path
+    )
 
     result = self._context.SendRequest("GetFileVersionTimes", args)
     if not isinstance(result, vfs_pb2.ApiGetFileVersionTimesResult):
@@ -206,7 +214,8 @@ class FileBase(object):
 
   def Refresh(self) -> RefreshOperation:
     args = vfs_pb2.ApiCreateVfsRefreshOperationArgs(
-        client_id=self.client_id, file_path=self.path)
+        client_id=self.client_id, file_path=self.path
+    )
 
     result = self._context.SendRequest("CreateVfsRefreshOperation", args)
     if not isinstance(result, vfs_pb2.ApiCreateVfsRefreshOperationResult):
@@ -216,11 +225,13 @@ class FileBase(object):
         client_id=self.client_id,
         operation_id=result.operation_id,
         target_file=self,
-        context=self._context)
+        context=self._context,
+    )
 
   def RefreshRecursively(self, max_depth: int = 5) -> RefreshOperation:
     args = vfs_pb2.ApiCreateVfsRefreshOperationArgs(
-        client_id=self.client_id, file_path=self.path, max_depth=max_depth)
+        client_id=self.client_id, file_path=self.path, max_depth=max_depth
+    )
 
     result = self._context.SendRequest("CreateVfsRefreshOperation", args)
     if not isinstance(result, vfs_pb2.ApiCreateVfsRefreshOperationResult):
@@ -230,11 +241,13 @@ class FileBase(object):
         client_id=self.client_id,
         operation_id=result.operation_id,
         target_file=self,
-        context=self._context)
+        context=self._context,
+    )
 
   def Collect(self) -> "CollectOperation":
     args = vfs_pb2.ApiUpdateVfsFileContentArgs(
-        client_id=self.client_id, file_path=self.path)
+        client_id=self.client_id, file_path=self.path
+    )
 
     result = self._context.SendRequest("UpdateVfsFileContent", args)
     if not isinstance(result, vfs_pb2.ApiUpdateVfsFileContentResult):
@@ -244,11 +257,13 @@ class FileBase(object):
         client_id=self.client_id,
         operation_id=result.operation_id,
         target_file=self,
-        context=self._context)
+        context=self._context,
+    )
 
   def GetTimeline(self) -> Sequence[vfs_pb2.ApiVfsTimelineItem]:
     args = vfs_pb2.ApiGetVfsTimelineArgs(
-        client_id=self.client_id, file_path=self.path)
+        client_id=self.client_id, file_path=self.path
+    )
 
     result = self._context.SendRequest("GetVfsTimeline", args)
     if not isinstance(result, vfs_pb2.ApiGetVfsTimelineResult):
@@ -258,14 +273,16 @@ class FileBase(object):
 
   def GetTimelineAsCsv(self) -> utils.BinaryChunkIterator:
     args = vfs_pb2.ApiGetVfsTimelineAsCsvArgs(
-        client_id=self.client_id, file_path=self.path)
+        client_id=self.client_id, file_path=self.path
+    )
     return self._context.SendStreamingRequest("GetVfsTimelineAsCsv", args)
 
   def Get(self) -> "File":
     """Fetch file's data and return proper File object."""
 
     args = vfs_pb2.ApiGetFileDetailsArgs(
-        client_id=self.client_id, file_path=self.path)
+        client_id=self.client_id, file_path=self.path
+    )
 
     data = self._context.SendRequest("GetFileDetails", args)
     if not isinstance(data, vfs_pb2.ApiGetFileDetailsResult):

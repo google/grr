@@ -11,7 +11,7 @@ import {StatView} from './stat_view';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     CopyButtonModule,
@@ -19,14 +19,8 @@ import {StatView} from './stat_view';
     MatTooltipModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    StatView,
-  ],
-  exports: [
-    StatView,
-  ]
+  declarations: [StatView],
+  exports: [StatView],
 })
-export class StatViewModule {
-}
+export class StatViewModule {}

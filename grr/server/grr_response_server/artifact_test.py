@@ -30,6 +30,7 @@ from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
+from grr_response_proto import objects_pb2
 from grr_response_server import action_registry
 from grr_response_server import artifact
 from grr_response_server import artifact_registry
@@ -485,7 +486,7 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     now = rdfvalue.RDFDatetime.Now()
     data_store.REL_DB.WriteClientMetadata(client_id=client_id, last_ping=now)
 
-    snapshot = rdf_objects.ClientSnapshot(client_id=client_id)
+    snapshot = objects_pb2.ClientSnapshot(client_id=client_id)
     snapshot.knowledge_base.os = "fakeos"
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
@@ -745,9 +746,9 @@ class GrrKbLinuxTest(GrrKbTest):
     """Cause a users.username dependency failure."""
     with test_lib.ConfigOverrider({
         "Artifacts.knowledge_base": [
-            "NetgroupConfiguration", "NssCacheLinuxPasswdHomedirs",
+            "NetgroupConfiguration",
         ],
-        "Artifacts.netgroup_filter_regexes": ["^doesntexist$"]
+        "Artifacts.netgroup_filter_regexes": ["^doesntexist$"],
     }):
       with vfs_test_lib.FakeTestDataVFSOverrider():
         with test_lib.SuppressLogs():
@@ -1096,10 +1097,11 @@ class ParserApplicatorTest(absltest.TestCase):
 
     blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(blob_data=data)
     blob_ref = rdf_objects.BlobReference(
-        offset=0, size=len(data), blob_id=blob_id)
+        offset=0, size=len(data), blob_id=bytes(blob_id)
+    )
 
     path_info = rdf_objects.PathInfo.OS(components=components)
-    path_info.hash_entry.sha256 = blob_id.AsBytes()
+    path_info.hash_entry.sha256 = bytes(blob_id)
     data_store.REL_DB.WritePathInfos(self.client_id, [path_info])
 
     client_path = db.ClientPath.OS(

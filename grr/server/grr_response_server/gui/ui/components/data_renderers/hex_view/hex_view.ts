@@ -2,7 +2,10 @@ import {ChangeDetectionStrategy, Component, OnInit} from '@angular/core';
 import {filter, map} from 'rxjs/operators';
 
 import {isNonNull} from '../../../lib/preconditions';
-import {ContentFetchMode, FileDetailsLocalStore} from '../../../store/file_details_local_store';
+import {
+  ContentFetchMode,
+  FileDetailsLocalStore,
+} from '../../../store/file_details_local_store';
 
 const LINE_LENGTH = 16;
 
@@ -23,33 +26,32 @@ interface Row {
 })
 export class HexView implements OnInit {
   readonly byteContent$ = this.fileDetailsLocalStore.blobContent$.pipe(
-      filter(isNonNull),
-      map(buffer => new Uint8Array(buffer)),
+    filter(isNonNull),
+    map((buffer) => new Uint8Array(buffer)),
   );
 
   readonly header = [...Array.from({length: LINE_LENGTH}).keys()].map(toHex);
 
   readonly rows$ = this.byteContent$.pipe(
-      map(arr => {
-        const rows: Row[] = [];
-        for (let rowI = 0; rowI < arr.length; rowI += LINE_LENGTH) {
-          const bytes = [...arr.slice(rowI, rowI + LINE_LENGTH)];
-          const hex = bytes.map(b => toHex(b).padStart(2, '0'));
-          const chars = bytes.map(b => String.fromCharCode(b));
-          rows.push({hex, chars});
-        }
-        return rows;
-      }),
+    map((arr) => {
+      const rows: Row[] = [];
+      for (let rowI = 0; rowI < arr.length; rowI += LINE_LENGTH) {
+        const bytes = [...arr.slice(rowI, rowI + LINE_LENGTH)];
+        const hex = bytes.map((b) => toHex(b).padStart(2, '0'));
+        const chars = bytes.map((b) => String.fromCharCode(b));
+        rows.push({hex, chars});
+      }
+      return rows;
+    }),
   );
 
-  constructor(
-      private readonly fileDetailsLocalStore: FileDetailsLocalStore,
-  ) {}
+  constructor(private readonly fileDetailsLocalStore: FileDetailsLocalStore) {}
 
   ngOnInit(): void {
     this.fileDetailsLocalStore.setMode(ContentFetchMode.BLOB);
     this.fileDetailsLocalStore.fetchMoreContent(
-        FileDetailsLocalStore.DEFAULT_PAGE_SIZE);
+      FileDetailsLocalStore.DEFAULT_PAGE_SIZE,
+    );
   }
 
   rowOffset(i: number) {

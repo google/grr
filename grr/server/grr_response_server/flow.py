@@ -21,7 +21,6 @@ parameters specifically stored in the state are preserved.
 import enum
 import logging
 import traceback
-
 from typing import Optional, Sequence
 
 from grr_response_core.lib import rdfvalue
@@ -29,10 +28,13 @@ from grr_response_core.lib import registry
 from grr_response_core.lib import type_info
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_flow_runner
 
 
 GRR_FLOW_INVALID_FLOW_COUNT = metrics.Counter("grr_flow_invalid_flow_count")
@@ -353,19 +355,21 @@ def StartFlow(client_id=None,
 def ScheduleFlow(client_id: str, creator: str, flow_name, flow_args,
                  runner_args) -> rdf_flow_objects.ScheduledFlow:
   """Schedules a Flow on the client, to be started upon approval grant."""
-
-  scheduled_flow = rdf_flow_objects.ScheduledFlow(
-      client_id=client_id,
-      creator=creator,
-      scheduled_flow_id=RandomFlowId(),
-      flow_name=flow_name,
-      flow_args=flow_args,
-      runner_args=runner_args,
-      create_time=rdfvalue.RDFDatetime.Now())
+  scheduled_flow = flows_pb2.ScheduledFlow()
+  scheduled_flow.client_id = client_id
+  scheduled_flow.creator = creator
+  scheduled_flow.scheduled_flow_id = RandomFlowId()
+  scheduled_flow.flow_name = flow_name
+  # TODO: Stop relying on `AsPrimitiveProto`.
+  scheduled_flow.flow_args.Pack(flow_args.AsPrimitiveProto())
+  scheduled_flow.runner_args.CopyFrom(
+      mig_flow_runner.ToProtoFlowRunnerArgs(runner_args)
+  )
+  scheduled_flow.create_time = int(rdfvalue.RDFDatetime.Now())
 
   data_store.REL_DB.WriteScheduledFlow(scheduled_flow)
 
-  return scheduled_flow
+  return mig_flow_objects.ToRDFScheduledFlow(scheduled_flow)
 
 
 def UnscheduleFlow(client_id: str, creator: str,
@@ -378,8 +382,14 @@ def UnscheduleFlow(client_id: str, creator: str,
 def ListScheduledFlows(
     client_id: str, creator: str) -> Sequence[rdf_flow_objects.ScheduledFlow]:
   """Lists all scheduled flows of a user on a client."""
-  return data_store.REL_DB.ListScheduledFlows(
-      client_id=client_id, creator=creator)
+  return list(
+      map(
+          mig_flow_objects.ToRDFScheduledFlow,
+          data_store.REL_DB.ListScheduledFlows(
+              client_id=client_id, creator=creator
+          ),
+      )
+  )
 
 
 def StartScheduledFlows(client_id: str, creator: str) -> None:
@@ -434,6 +444,7 @@ def _StartScheduledFlow(scheduled_flow: rdf_flow_objects.ScheduledFlow) -> str:
         # runtime_limit is missing in FlowRunnerArgs.
     )
   except Exception as e:
+    scheduled_flow = mig_flow_objects.ToProtoScheduledFlow(scheduled_flow)
     scheduled_flow.error = str(e)
     data_store.REL_DB.WriteScheduledFlow(scheduled_flow)
     raise

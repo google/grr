@@ -5,6 +5,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+
+* Removed support for Chipsec based flows.
+* Removed ClientArtifactCollector flow and related client actions.
+* Removed indexing endpoints on snapshot `uname` (searching is still possible
+  by individual and combination of system name, release and version).
+* Removed support for foreman rules using `uname` of an endpoint (this can be
+  simulated by using 3 rules for system name, release and version).
+
+### API removed
+
+* GetClientLoadStats API method (`/api/clients/<client_id>/load-stats/<metric>`).
+  Client load stats collection functionality was removed from GRR, as
+  it was rarely used and Fleetspeak already collects basic client stats anyway.
+  Instead of fixing/maintaining the GRR client load stats logic, we will
+  better to invest into Fleetspeak's client load stats enhancements.
+* ApiReportData definition (used by GetReport, `/api/stats/reports/<name>`)
+  changed: support for stack, line and pie charts removed. All stack/line/pie
+  chart report plugins removed (namely: GRRVersion1ReportPlugin,
+  GRRVersion7ReportPlugin, GRRVersion30ReportPlugin, LastActiveReportPlugin,
+  OSBreakdown1ReportPlugin, OSBreakdown7ReportPlugin, OSBreakdown14ReportPlugin,
+  OSBreakdown30ReportPlugin, OSReleaseBreakdown1ReportPlugin,
+  OSReleaseBreakdown7ReportPlugin, OSReleaseBreakdown14ReportPlugin,
+  OSReleaseBreakdown30ReportPlugin, SystemFlowsReportPlugin,
+  UserFlowsReportPlugin, MostActiveUsersReportPlugin, UserActivityReportPlugin).
+
 ### Planned for removal
 
 Note: GRR release 3.4.7.1 is the **last release** containing the following

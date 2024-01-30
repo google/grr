@@ -77,10 +77,10 @@ def _GetRunId(cron_job_name):
     return runs[0].urn.Basename()
 
 
-def _SetupAndRunVersionBreakDownCronjob():
+def _SetupAndRunInterrogateClientsCronjob():
   with test_lib.FakeTime(44):
     manager = cronjobs.CronManager()
-    cron_job_name = cron_system.GRRVersionBreakDownCronJob.__name__
+    cron_job_name = cron_system.InterrogateClientsCronJob.__name__
     cronjobs.ScheduleSystemCronJobs(names=[cron_job_name])
     manager.RunOnce()
     manager._GetThreadPool().Stop()
@@ -138,16 +138,19 @@ class ApiListCronJobRunsHandlerRegressionTest(
   handler = cron_plugin.ApiListCronJobRunsHandler
 
   def Run(self):
-    cron_job_id = _SetupAndRunVersionBreakDownCronjob()
+    cron_job_id = _SetupAndRunInterrogateClientsCronjob()
     run_id = _GetRunId(cron_job_id)
+    hunts = data_store.REL_DB.ListHuntObjects(offset=0, count=1)
 
     self.Check(
         "ListCronJobRuns",
         args=cron_plugin.ApiListCronJobRunsArgs(cron_job_id=cron_job_id),
         replace={
             run_id: "F:ABCDEF11",
-            cron_job_id: "GRRVersionBreakDown"
-        })
+            cron_job_id: "InterrogateClientsCronJob",
+            hunts[0].hunt_id: "ABCDEFGH12",
+        },
+    )
 
 
 class ApiGetCronJobRunHandlerRegressionTest(
@@ -158,17 +161,21 @@ class ApiGetCronJobRunHandlerRegressionTest(
   handler = cron_plugin.ApiGetCronJobRunHandler
 
   def Run(self):
-    cron_job_id = _SetupAndRunVersionBreakDownCronjob()
+    cron_job_id = _SetupAndRunInterrogateClientsCronjob()
     run_id = _GetRunId(cron_job_id)
+    hunts = data_store.REL_DB.ListHuntObjects(offset=0, count=1)
 
     self.Check(
         "GetCronJobRun",
         args=cron_plugin.ApiGetCronJobRunArgs(
-            cron_job_id=cron_job_id, run_id=run_id),
+            cron_job_id=cron_job_id, run_id=run_id
+        ),
         replace={
             run_id: "F:ABCDEF11",
-            cron_job_id: "GRRVersionBreakDown"
-        })
+            cron_job_id: "InterrogateClientsCronJob",
+            hunts[0].hunt_id: "ABCDEFGH12",
+        },
+    )
 
 
 class ApiForceRunCronJobRegressionTest(

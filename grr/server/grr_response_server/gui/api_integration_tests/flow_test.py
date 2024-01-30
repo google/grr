@@ -25,6 +25,7 @@ from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -177,13 +178,17 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     response.stderr = "Lorem ipsum.".encode("utf-8")
 
     result.payload = response
-    data_store.REL_DB.WriteFlowResults([result])
+    data_store.REL_DB.WriteFlowResults(
+        [mig_flow_objects.ToProtoFlowResult(result)]
+    )
 
     response = rdf_client_action.ExecuteResponse()
     response.stderr = "Dolor sit amet.".encode("utf-8")
 
     result.payload = response
-    data_store.REL_DB.WriteFlowResults([result])
+    data_store.REL_DB.WriteFlowResults(
+        [mig_flow_objects.ToProtoFlowResult(result)]
+    )
 
     class StderrToStdoutParser(
         parser.SingleResponseParser[rdf_client_action.ExecuteResponse]):
@@ -229,7 +234,9 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
     result.flow_id = flow_id
     result.tag = "artifact:Fake"
     result.payload = rdf_client_action.ExecuteResponse(stderr=b"foobar")
-    data_store.REL_DB.WriteFlowResults([result])
+    data_store.REL_DB.WriteFlowResults(
+        [mig_flow_objects.ToProtoFlowResult(result)]
+    )
 
     class FakeParser(parser.SingleResponseParser[None]):
 
@@ -309,20 +316,30 @@ class ApiClientLibFlowTest(api_integration_test_lib.ApiIntegrationTest):
         processes.ListProcesses, client_id=client_id)
 
     data_store.REL_DB.WriteFlowResults([
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client_fs.StatEntry(
-                pathspec=rdf_paths.PathSpec(
-                    path="/foo/bar1",
-                    pathtype=rdf_paths.PathSpec.PathType.OS))),
-        rdf_flow_objects.FlowResult(
-            client_id=client_id,
-            flow_id=flow_id,
-            payload=rdf_client_fs.StatEntry(
-                pathspec=rdf_paths.PathSpec(
-                    path="/foo/bar2",
-                    pathtype=rdf_paths.PathSpec.PathType.OS))),
+        mig_flow_objects.ToProtoFlowResult(
+            rdf_flow_objects.FlowResult(
+                client_id=client_id,
+                flow_id=flow_id,
+                payload=rdf_client_fs.StatEntry(
+                    pathspec=rdf_paths.PathSpec(
+                        path="/foo/bar1",
+                        pathtype=rdf_paths.PathSpec.PathType.OS,
+                    )
+                ),
+            )
+        ),
+        mig_flow_objects.ToProtoFlowResult(
+            rdf_flow_objects.FlowResult(
+                client_id=client_id,
+                flow_id=flow_id,
+                payload=rdf_client_fs.StatEntry(
+                    pathspec=rdf_paths.PathSpec(
+                        path="/foo/bar2",
+                        pathtype=rdf_paths.PathSpec.PathType.OS,
+                    )
+                ),
+            )
+        ),
     ])
 
     return client_id, flow_id

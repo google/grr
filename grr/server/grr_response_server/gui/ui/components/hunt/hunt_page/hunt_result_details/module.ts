@@ -19,7 +19,7 @@ import {HuntResultDetails} from './hunt_result_details';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     FlowDetailsModule,
@@ -32,14 +32,8 @@ import {HuntResultDetails} from './hunt_result_details';
     RouterModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    HuntResultDetails,
-  ],
-  exports: [
-    HuntResultDetails,
-  ]
+  declarations: [HuntResultDetails],
+  exports: [HuntResultDetails],
 })
-export class HuntResultDetailsModule {
-}
+export class HuntResultDetailsModule {}

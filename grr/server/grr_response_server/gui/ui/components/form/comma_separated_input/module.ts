@@ -1,6 +1,9 @@
 import {NgModule} from '@angular/core';
 
-import {CommaSeparatedNumberValueAccessor, CommaSeparatedValueAccessor} from './comma_separated_value_accessor';
+import {
+  CommaSeparatedNumberValueAccessor,
+  CommaSeparatedValueAccessor,
+} from './comma_separated_value_accessor';
 
 /** Module for CommaSeparatedValueAccessor and related code. */
 @NgModule({
@@ -9,10 +12,6 @@ import {CommaSeparatedNumberValueAccessor, CommaSeparatedValueAccessor} from './
     CommaSeparatedValueAccessor,
     CommaSeparatedNumberValueAccessor,
   ],
-  exports: [
-    CommaSeparatedValueAccessor,
-    CommaSeparatedNumberValueAccessor,
-  ],
+  exports: [CommaSeparatedValueAccessor, CommaSeparatedNumberValueAccessor],
 })
-export class CommaSeparatedInputModule {
-}
+export class CommaSeparatedInputModule {}

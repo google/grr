@@ -8,11 +8,11 @@ import threading
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.util import precondition
+from grr_response_proto import objects_pb2
 from grr_response_server.databases import db
 from grr_response_server.databases import mem_artifacts
 from grr_response_server.databases import mem_blob_keys
 from grr_response_server.databases import mem_blobs
-from grr_response_server.databases import mem_client_reports
 from grr_response_server.databases import mem_clients
 from grr_response_server.databases import mem_cronjobs
 from grr_response_server.databases import mem_events
@@ -23,6 +23,7 @@ from grr_response_server.databases import mem_paths
 from grr_response_server.databases import mem_signed_binaries
 from grr_response_server.databases import mem_users
 from grr_response_server.databases import mem_yara
+from grr_response_server.models import blobs
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 
@@ -31,7 +32,6 @@ from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
 class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
                  mem_blob_keys.InMemoryDBBlobKeysMixin,
                  mem_blobs.InMemoryDBBlobsMixin,
-                 mem_client_reports.InMemoryDBClientReportsMixin,
                  mem_clients.InMemoryDBClientMixin,
                  mem_cronjobs.InMemoryDBCronJobMixin,
                  mem_events.InMemoryDBEventMixin,
@@ -55,13 +55,10 @@ class InMemoryDB(mem_artifacts.InMemoryDBArtifactsMixin,
 
   def _Init(self):
     self.artifacts = {}
-    self.approvals_by_username = {}
-    self.blob_keys: dict[rdf_objects.BlobID, str] = {}
+    self.approvals_by_username: dict[str, dict[str, objects_pb2.ApprovalRequest]] = {}
+    self.blob_keys: dict[blobs.BlobID, str] = {}
     self.clients = {}
-    self.client_stats = collections.defaultdict(dict)
     self.crash_history = {}
-    self.cronjob_leases = {}
-    self.cronjobs = {}
     self.foreman_rules = []
     self.keywords = {}
     self.labels = {}

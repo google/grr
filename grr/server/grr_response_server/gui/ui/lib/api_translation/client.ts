@@ -4,17 +4,36 @@
 
 
 import * as apiInterfaces from '../api/api_interfaces';
-import {AgentInfo, Client, ClientApproval, ClientLabel, NetworkAddress, NetworkInterface, OsInfo, StorageVolume, UnixVolume, User, WindowsVolume} from '../models/client';
+import {
+  AgentInfo,
+  Client,
+  ClientApproval,
+  ClientLabel,
+  NetworkAddress,
+  NetworkInterface,
+  OsInfo,
+  StorageVolume,
+  UnixVolume,
+  User,
+  WindowsVolume,
+} from '../models/client';
 import {assertKeyTruthy} from '../preconditions';
 
-import {createIpv4Address, createIpv6Address, createMacAddress, createOptionalDate, decodeBase64} from './primitive';
+import {
+  createIpv4Address,
+  createIpv6Address,
+  createMacAddress,
+  createOptionalDate,
+  decodeBase64,
+} from './primitive';
 import {translateApproval} from './user';
 
 /**
  * Get label name from API ClientLabel.
  */
-export function getApiClientLabelName(apiLabel: apiInterfaces.ClientLabel):
-    string {
+export function getApiClientLabelName(
+  apiLabel: apiInterfaces.ClientLabel,
+): string {
   if (!apiLabel.name) throw new Error('name attribute is missing.');
 
   return apiLabel.name;
@@ -27,8 +46,9 @@ function createClientLabel(label: apiInterfaces.ClientLabel): ClientLabel {
   return {owner: label.owner, name: label.name};
 }
 
-function createAgentInfo(apiAgentInfo: apiInterfaces.ClientInformation):
-    AgentInfo {
+function createAgentInfo(
+  apiAgentInfo: apiInterfaces.ClientInformation,
+): AgentInfo {
   let revision = undefined;
   if (apiAgentInfo.revision !== undefined) {
     revision = BigInt(apiAgentInfo.revision);
@@ -78,8 +98,9 @@ function createUser(apiUser: apiInterfaces.User): User {
   };
 }
 
-function createNetworkAddress(apiNetAddress: apiInterfaces.NetworkAddress):
-    NetworkAddress {
+function createNetworkAddress(
+  apiNetAddress: apiInterfaces.NetworkAddress,
+): NetworkAddress {
   if (!apiNetAddress.addressType) {
     throw new Error('addressType attribute is missing.');
   }
@@ -96,28 +117,32 @@ function createNetworkAddress(apiNetAddress: apiInterfaces.NetworkAddress):
 
   return {
     addressType,
-    ipAddress: (addressType === 'IPv4') ? createIpv4Address(addressBytes) :
-                                          createIpv6Address(addressBytes),
+    ipAddress:
+      addressType === 'IPv4'
+        ? createIpv4Address(addressBytes)
+        : createIpv6Address(addressBytes),
   };
 }
 
-function createNetworkInterface(apiInterface: apiInterfaces.Interface):
-    NetworkInterface {
+function createNetworkInterface(
+  apiInterface: apiInterfaces.Interface,
+): NetworkInterface {
   if (!apiInterface.ifname) {
     throw new Error('ifname attribute is missing.');
   }
 
   return {
-    macAddress: apiInterface.macAddress ?
-        createMacAddress(decodeBase64(apiInterface.macAddress)) :
-        undefined,
+    macAddress: apiInterface.macAddress
+      ? createMacAddress(decodeBase64(apiInterface.macAddress))
+      : undefined,
     interfaceName: apiInterface.ifname,
     addresses: (apiInterface.addresses ?? []).map(createNetworkAddress),
   };
 }
 
-function createOptionalWindowsVolume(volume?: apiInterfaces.WindowsVolume):
-    WindowsVolume|undefined {
+function createOptionalWindowsVolume(
+  volume?: apiInterfaces.WindowsVolume,
+): WindowsVolume | undefined {
   if (volume === undefined) {
     return undefined;
   }
@@ -129,8 +154,9 @@ function createOptionalWindowsVolume(volume?: apiInterfaces.WindowsVolume):
   };
 }
 
-function createOptionalUnixVolume(volume?: apiInterfaces.UnixVolume):
-    UnixVolume|undefined {
+function createOptionalUnixVolume(
+  volume?: apiInterfaces.UnixVolume,
+): UnixVolume | undefined {
   if (volume === undefined) {
     return undefined;
   }
@@ -146,18 +172,22 @@ function createStorageVolume(apiVolume: apiInterfaces.Volume): StorageVolume {
   let freeSpace = undefined;
   let bytesPerSector = undefined;
 
-  if (apiVolume.bytesPerSector !== undefined &&
-      apiVolume.sectorsPerAllocationUnit !== undefined) {
+  if (
+    apiVolume.bytesPerSector !== undefined &&
+    apiVolume.sectorsPerAllocationUnit !== undefined
+  ) {
     if (apiVolume.totalAllocationUnits !== undefined) {
-      totalSize = BigInt(apiVolume.bytesPerSector) *
-          BigInt(apiVolume.sectorsPerAllocationUnit) *
-          BigInt(apiVolume.totalAllocationUnits);
+      totalSize =
+        BigInt(apiVolume.bytesPerSector) *
+        BigInt(apiVolume.sectorsPerAllocationUnit) *
+        BigInt(apiVolume.totalAllocationUnits);
     }
 
     if (apiVolume.actualAvailableAllocationUnits !== undefined) {
-      freeSpace = BigInt(apiVolume.bytesPerSector) *
-          BigInt(apiVolume.sectorsPerAllocationUnit) *
-          BigInt(apiVolume.actualAvailableAllocationUnits);
+      freeSpace =
+        BigInt(apiVolume.bytesPerSector) *
+        BigInt(apiVolume.sectorsPerAllocationUnit) *
+        BigInt(apiVolume.actualAvailableAllocationUnits);
     }
   }
 
@@ -212,7 +242,8 @@ export function translateClient(client: apiInterfaces.ApiClient): Client {
 
 /** Constructs a ClientApproval from the corresponding API data structure. */
 export function translateClientApproval(
-    approval: apiInterfaces.ApiClientApproval): ClientApproval {
+  approval: apiInterfaces.ApiClientApproval,
+): ClientApproval {
   const translatedApproval = translateApproval(approval);
 
   assertKeyTruthy(approval, 'subject');

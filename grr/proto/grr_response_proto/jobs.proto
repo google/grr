@@ -102,13 +102,7 @@ message GrrMessage {
     }
   ];
 
-  optional bool require_fastpoll = 11 [
-    default = true,
-    (sem_type) = {
-      description: "If this is true, the client will enter fast poll mode "
-                   "after processing."
-    }
-  ];
+  reserved 11;
 
   optional float cpu_limit = 12 [
     default = 3600,
@@ -574,6 +568,16 @@ message StartupInfo {
   optional bool interrogate_requested = 3 [(sem_type) = {
     description: "Set, if interrogate was requested by the client "
                  "by creating a temporary file in a predefined location."
+  }];
+
+  // Time at which this startup record was reported.
+  //
+  // Note that this is not the time the startup event took place but the time
+  // the startup event was recorded in the database. Depending on the endpoint
+  // connectivity, the time difference between these two events can be quite
+  // significant.
+  optional uint64 timestamp = 4 [(sem_type) = {
+    type: "RDFDatetime",
   }];
 }
 
@@ -1368,24 +1372,6 @@ message FindSpec {
   optional bool collect_ext_attrs = 18 [default = false];
 }
 
-message GetClientStatsRequest {
-  optional uint64 start_time = 5 [
-    (sem_type) = {
-      type: "RDFDatetime",
-      description: "Request stats data points with timestamp > start_time."
-    },
-    default = 0
-  ];
-
-  optional uint64 end_time = 6 [
-    (sem_type) = {
-      type: "RDFDatetime",
-      description: "Request stats data points with timestamp < end_time."
-    },
-    default = 9223372036854775807
-  ];
-}
-
 // This proto holds rules and the strategy used to evaluate them.
 message ForemanClientRuleSet {
   enum MatchMode {
@@ -1458,10 +1444,7 @@ message ForemanRegexClientRule {
     UNSET = 0 [(description) = "Unset"];
     USERNAMES = 1 [(description) =
                        "Space separated list of users (\"user1 user2 user3\")"];
-    UNAME = 2 [
-      (description) =
-          "Uname like OS information (\"Windows-10-10.0.14393SP0\" or \"Linux-debian-buster/sid\")"
-    ];
+    reserved 2;
     FQDN = 3 [
       (description) =
           "The fully qualified domain name of the machine. (\"host.example.com\")"
@@ -1497,6 +1480,8 @@ message ForemanRegexClientRule {
     CLIENT_LABELS = 12
         [(description) =
              "Space separated list of client labels (\"label1 label2\")"];
+    CLIENT_ID = 13 [(description) =
+                        "The identifier of the GRR client (\"C.abc12345678\")"];
   }
   optional ForemanStringField field = 5;
 }

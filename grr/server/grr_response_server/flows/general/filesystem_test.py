@@ -32,6 +32,7 @@ from grr_response_server.flows.general import collectors
 from grr_response_server.flows.general import file_finder
 from grr_response_server.flows.general import filesystem
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
@@ -961,7 +962,7 @@ class TestFilesystem(flow_test_lib.FlowTestsBaseclass):
 
     notifications = data_store.REL_DB.ReadUserNotifications(username)
     self.assertLen(notifications, 1)
-    n = notifications[0]
+    n = mig_objects.ToRDFUserNotification(notifications[0])
     self.assertEqual(n.reference.vfs_file.path_type,
                      rdf_objects.PathInfo.PathType.REGISTRY)
     self.assertEqual(n.reference.vfs_file.path_components,

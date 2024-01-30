@@ -27,7 +27,7 @@ import {TimeRangeCondition} from './time_range_condition';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     ByteComponentsModule,
@@ -44,7 +44,6 @@ import {TimeRangeCondition} from './time_range_condition';
     ReactiveFormsModule,
     RouterModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [
     ConditionPanel,
@@ -63,5 +62,4 @@ import {TimeRangeCondition} from './time_range_condition';
     SizeCondition,
   ],
 })
-export class HelpersModule {
-}
+export class HelpersModule {}

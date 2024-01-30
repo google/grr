@@ -17,7 +17,7 @@ import {ClientAddLabelDialog} from './client_add_label_dialog';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     MatAutocompleteModule,
@@ -28,14 +28,8 @@ import {ClientAddLabelDialog} from './client_add_label_dialog';
     ReactiveFormsModule,
     SubmitOnMetaEnterModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ClientAddLabelDialog,
-  ],
-  exports: [
-    ClientAddLabelDialog,
-  ]
+  declarations: [ClientAddLabelDialog],
+  exports: [ClientAddLabelDialog],
 })
-export class ClientAddLabelDialogModule {
-}
+export class ClientAddLabelDialogModule {}

@@ -3,7 +3,7 @@
 import logging
 import shlex
 import time
-from typing import Optional, Text, Tuple, Type
+from typing import Optional, Sequence, Text, Tuple, Type
 
 import jinja2
 
@@ -12,15 +12,16 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
-from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import crypto as rdf_crypto
+from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import standard as rdf_standard
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
-from grr_response_core.lib.util import precondition
 from grr_response_core.stats import metrics
 from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server import email_alerts
@@ -33,8 +34,11 @@ from grr_response_server import server_stubs
 from grr_response_server import signed_binary_utils
 from grr_response_server.databases import db
 from grr_response_server.flows.general import discovery
+from grr_response_server.models import users
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
+
 
 GRR_CLIENT_CRASHES = metrics.Counter("grr_client_crashes")
 
@@ -51,7 +55,10 @@ def WriteAllCrashDetails(client_id, crash_details, flow_session_id=None):
 
   flow_id = flow_session_id.Basename()
   data_store.REL_DB.UpdateFlow(
-      client_id, flow_id, client_crash_info=crash_details)
+      client_id,
+      flow_id,
+      client_crash_info=mig_client.ToRDFClientCrash(crash_details),
+  )
 
   flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
   if flow_obj.parent_hunt_id:
@@ -99,7 +106,9 @@ Click <a href='{{ admin_ui }}v2{{ url }}'>here</a> to access this machine.
       # Write crash data.
       client = data_store.REL_DB.ReadClientSnapshot(client_id)
       if client:
-        crash_details.client_info = client.startup_info.client_info
+        crash_details.client_info = mig_client.ToRDFClientInformation(
+            client.startup_info.client_info
+        )
         hostname = client.knowledge_base.fqdn
       else:
         hostname = ""
@@ -119,6 +128,7 @@ Click <a href='{{ admin_ui }}v2{{ url }}'>here</a> to access this machine.
           reason=termination_msg,
           flow_state=rdf_flow_objects.Flow.FlowState.CRASHED)
 
+      crash_details = mig_client.ToProtoClientCrash(crash_details)
       WriteAllCrashDetails(client_id, crash_details, flow_session_id=session_id)
 
       # Also send email.
@@ -150,49 +160,18 @@ Click <a href='{{ admin_ui }}v2{{ url }}'>here</a> to access this machine.
         logging.warning(e)
 
 
-class GetClientStatsProcessResponseMixin(object):
-  """Mixin defining ProcessResponse() that writes client stats to datastore."""
-
-  def ProcessResponse(self, client_id, response):
-    """Actually processes the contents of the response."""
-    precondition.AssertType(client_id, Text)
-    downsampled = rdf_client_stats.ClientStats.Downsampled(response)
-
-    data_store.REL_DB.WriteClientStats(client_id, downsampled)
-
-    return downsampled
-
-
-class GetClientStats(flow_base.FlowBase, GetClientStatsProcessResponseMixin):
-  """This flow retrieves information about the GRR client process."""
-
-  category = "/Administrative/"
-  result_types = (rdf_client_stats.ClientStats,)
-
-  def Start(self):
-    self.CallClient(
-        server_stubs.GetClientStats, next_state=self.StoreResults.__name__)
-
-  def StoreResults(self, responses):
-    """Stores the responses."""
-
-    if not responses.success:
-      self.Error("Failed to retrieve client stats.")
-      return
-
-    for response in responses:
-      downsampled = self.ProcessResponse(self.client_urn.Basename(), response)
-      self.SendReply(downsampled)
-
-
-class ClientStatsHandler(message_handlers.MessageHandler,
-                         GetClientStatsProcessResponseMixin):
+# TODO: Remove by EOY2024.
+class ClientStatsHandler(message_handlers.MessageHandler):
 
   handler_name = "StatsHandler"
 
-  def ProcessMessages(self, msgs):
-    for msg in msgs:
-      self.ProcessResponse(msg.client_id, msg.request.payload)
+  def ProcessMessages(
+      self, msgs: Sequence[rdf_objects.MessageHandlerRequest]
+  ) -> None:
+    # Keeping this for compatibility with legacy clients who still send stat
+    # messages. Without this stub handler, there would be an error message
+    # logged for every incoming StatsHandler request.
+    pass
 
 
 class RecursiveBlobUploadMixin:
@@ -203,8 +182,9 @@ class RecursiveBlobUploadMixin:
   ) -> Tuple[rdf_structs.RDFProtoStruct, Type[server_stubs.ClientActionStub]]:
     raise NotImplementedError()
 
-  def StartBlobsUpload(self, binary_id: rdf_objects.SignedBinaryID,
-                       next_state: str):
+  def StartBlobsUpload(
+      self, binary_id: objects_pb2.SignedBinaryID, next_state: str
+  ):
     """Starts recursive blobs upload for a given binary_id.
 
     Args:
@@ -224,12 +204,13 @@ class RecursiveBlobUploadMixin:
     self.CallStateInline(
         next_state=self.NextBlob.__name__,
         request_data={
-            "binary_id": binary_id,
+            "binary_id": mig_objects.ToRDFSignedBinaryID(binary_id),
             "blob_index": 0,
             "file_offset": 0,
             "file_size": file_size,
             "next_state": next_state,
-        })
+        },
+    )
 
   def NextBlob(self, responses):
     """Handles a successfully uploaded blob."""
@@ -245,7 +226,8 @@ class RecursiveBlobUploadMixin:
     next_state = responses.request_data["next_state"]
 
     blob = signed_binary_utils.FetchBlobForSignedBinaryByID(
-        binary_id, blob_index)
+        mig_objects.ToProtoSignedBinaryID(binary_id), blob_index
+    )
     more_data = (file_offset + len(blob.data) < file_size)
 
     request, client_action = self.GenerateUploadRequest(file_offset, file_size,
@@ -487,7 +469,8 @@ class OnlineNotification(flow_base.FlowBase):
     """Returns an args rdfvalue prefilled with sensible default values."""
     args = cls.args_type()
     try:
-      args.email = data_store.REL_DB.ReadGRRUser(username).GetEmail()
+      user = data_store.REL_DB.ReadGRRUser(username)
+      args.email = users.GetEmail(user)
     except ValueError:
       # Just set no default if the email is not well-formed. Example: when
       # username contains '@' character.
@@ -559,12 +542,15 @@ Click <a href='{{ admin_ui }}/v2{{ url }}'>here</a> to access this machine.
       client_info = client.startup_info.client_info
       hostname = client.knowledge_base.fqdn
 
-    crash_details = rdf_client.ClientCrash(
+    crash_details = jobs_pb2.ClientCrash(
         client_id=client_id,
-        client_info=client_info,
         crash_message=message,
         timestamp=int(time.time() * 1e6),
-        crash_type="Nanny Message")
+        crash_type="Nanny Message",
+    )
+
+    if client_info is not None:
+      crash_details.client_info.CopyFrom(client_info)
 
     WriteAllCrashDetails(client_id, crash_details)
 
@@ -644,14 +630,17 @@ class ClientStartupHandler(message_handlers.MessageHandler):
     drift = rdfvalue.Duration.From(5, rdfvalue.MINUTES)
 
     current_si = data_store.REL_DB.ReadClientStartupInfo(client_id)
+    if current_si is not None:
+      current_si = mig_client.ToRDFStartupInfo(current_si)
 
     # We write the updated record if the client_info has any changes
     # or the boot time is more than 5 minutes different.
     if (not current_si or current_si.client_info != new_si.client_info or
         not current_si.boot_time or
         current_si.boot_time.AbsDiff(new_si.boot_time) > drift):
+      new_si_proto = mig_client.ToProtoStartupInfo(new_si)
       try:
-        data_store.REL_DB.WriteClientStartupInfo(client_id, new_si)
+        data_store.REL_DB.WriteClientStartupInfo(client_id, new_si_proto)
         labels = new_si.client_info.labels
         if labels:
           data_store.REL_DB.AddClientLabels(client_id, "GRR", labels)

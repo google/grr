@@ -54,12 +54,20 @@ class CollectLargeFileFlowTest(flow_test_lib.FlowTestsBaseclass):
     decrypted_buf = aead.Decrypt(encrypted_buf, state.encryption_key)
     self.assertEqual(decrypted_buf.read(), content)
 
+    progress = flow_test_lib.GetFlowProgress(self.client_id, flow_id)
+    self.assertEqual(progress.session_uri, "https://foo.bar/norf")
+
+    results = flow_test_lib.GetFlowResults(self.client_id, flow_id)
+    self.assertLen(results, 1)
+    self.assertEqual(results[0].session_uri, "https://foo.bar/norf")
+    self.assertGreater(results[0].total_bytes_sent, 0)
+
   def _Collect(self, path: str, signed_url: str) -> str:
     """Runs the large file collection flow.
 
     Args:
       path: A path to the file to collect.
-      signed_url: A signed URL to the where the file should be sent to.
+      signed_url: A signed URL to where the file should be sent to.
 
     Returns:
       An identifier of the flow that was created.

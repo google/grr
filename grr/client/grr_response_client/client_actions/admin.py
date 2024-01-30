@@ -15,18 +15,15 @@ import pytsk3
 import yara
 
 from grr_response_client import actions
-from grr_response_client import client_metrics
 from grr_response_client.client_actions import tempfiles
 from grr_response_client.client_actions import timeline
 from grr_response_client.unprivileged import sandbox
 from grr_response_core import config
 from grr_response_core.lib import config_lib
-from grr_response_core.lib import queues
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
-from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 
@@ -251,54 +248,6 @@ class GetClientInfo(actions.ActionPlugin):
     self.SendReply(GetClientInformation())
 
 
-class GetClientStats(actions.ActionPlugin):
-  """This retrieves some stats about the GRR process."""
-  in_rdfvalue = rdf_client_action.GetClientStatsRequest
-  out_rdfvalues = [rdf_client_stats.ClientStats]
-
-  def Run(self, arg):
-    """Returns the client stats."""
-    if arg is None:
-      arg = rdf_client_action.GetClientStatsRequest()
-
-    proc = psutil.Process(os.getpid())
-    meminfo = proc.memory_info()
-    boot_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(psutil.boot_time())
-    create_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(proc.create_time())
-    response = rdf_client_stats.ClientStats(
-        RSS_size=meminfo.rss,
-        VMS_size=meminfo.vms,
-        memory_percent=proc.memory_percent(),
-        bytes_received=client_metrics.GRR_CLIENT_RECEIVED_BYTES.GetValue(),
-        bytes_sent=client_metrics.GRR_CLIENT_SENT_BYTES.GetValue(),
-        create_time=create_time,
-        boot_time=boot_time,
-    )
-
-    response.cpu_samples = self.grr_worker.stats_collector.CpuSamplesBetween(
-        start_time=arg.start_time, end_time=arg.end_time)
-    response.io_samples = self.grr_worker.stats_collector.IOSamplesBetween(
-        start_time=arg.start_time, end_time=arg.end_time)
-
-    self.Send(response)
-
-  def Send(self, response):
-    self.SendReply(response)
-
-
-class GetClientStatsAuto(GetClientStats):
-  """This class is used to send the reply to a well known flow on the server."""
-
-  def Send(self, response):
-    self.grr_worker.SendReply(
-        rdf_client_stats.ClientStats.Downsampled(response),
-        session_id=rdfvalue.SessionID(queue=queues.STATS, flow_name="Stats"),
-        response_id=0,
-        request_id=0,
-        message_type=rdf_flows.GrrMessage.Type.MESSAGE,
-        require_fastpoll=False)
-
-
 class SendStartupInfo(actions.ActionPlugin):
 
   in_rdfvalue = None
@@ -351,5 +300,4 @@ class SendStartupInfo(actions.ActionPlugin):
         response_id=0,
         request_id=0,
         message_type=rdf_flows.GrrMessage.Type.MESSAGE,
-        require_fastpoll=False,
         ttl=ttl)

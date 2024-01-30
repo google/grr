@@ -17,9 +17,9 @@ describe('HomePageGlobalStore', () => {
   beforeEach(() => {
     apiListRecentClientApprovals$ = new Subject();
     httpApiService = {
-      listRecentClientApprovals:
-          jasmine.createSpy('listRecentClientApprovals')
-              .and.returnValue(apiListRecentClientApprovals$),
+      listRecentClientApprovals: jasmine
+        .createSpy('listRecentClientApprovals')
+        .and.returnValue(apiListRecentClientApprovals$),
     };
 
     TestBed.configureTestingModule({
@@ -28,7 +28,7 @@ describe('HomePageGlobalStore', () => {
         HomePageGlobalStore,
         {provide: HttpApiService, useFactory: () => httpApiService},
       ],
-      teardown: {destroyAfterEach: false}
+      teardown: {destroyAfterEach: false},
     });
 
     store = TestBed.inject(HomePageGlobalStore);

@@ -185,6 +185,16 @@ grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
   http://localhost:1234
 ```
 
+Download a single file collected from a GRR client (helpful for large files
+\> 4GB that can't be added to an archive):
+
+```bash
+grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
+  --exec_code 'grrapi.Client("C.1234567890ABCDEF").File("/fs/os/var/log/syslog").GetBlob().WriteToFile("./syslog")' \
+  http://localhost:1234
+```
+
+
 Download an archive of all files collected with OS-handler (not TSK/NTFS) from a
 GRR client:
 
@@ -201,4 +211,13 @@ Print all results of a particular flow in a text-protobuf format:
 grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
   --exec_code 'for r in grrapi.Client("C.1234567890ABCDEF").Flow("F:BB628B23").ListResults(): print(str(r.payload))' \
   http://localhost:1234
+```
+
+Decrypt a file from a Collect Large File flow:
+
+```bash
+cat encrypted_file | \
+grr_api_shell --basic_auth_username "user" --basic_auth_password "pwd" \
+  --exec_code 'grrapi.Client("C.1234567890ABCDEF").Flow("F:BB628B23").Get().DecryptLargeFile()' \
+  http://localhost:1234 > decrypted_file
 ```

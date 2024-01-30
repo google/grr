@@ -1,11 +1,18 @@
 import {Injectable, OnDestroy} from '@angular/core';
 import {ComponentStore} from '@ngrx/component-store';
-import {merge, Observable} from 'rxjs';
-import {distinctUntilChanged, filter, shareReplay, switchMap, take, tap, withLatestFrom} from 'rxjs/operators';
+import {Observable, merge} from 'rxjs';
+import {
+  distinctUntilChanged,
+  filter,
+  shareReplay,
+  switchMap,
+  take,
+  tap,
+  withLatestFrom,
+} from 'rxjs/operators';
 
 import {HttpApiService} from '../lib/api/http_api_service';
 import {observeOnDestroy} from '../lib/reactive';
-
 
 // Dependency injection in constructor seems to not work without @Injectable()
 // annotation.
@@ -27,8 +34,8 @@ export abstract class ApiStore<Result, Args extends {} = {}> {
   abstract loadResults(args: Args): Observable<Result>;
 
   results$: Observable<Result> = this.store.state$.pipe(
-      switchMap(args => this.loadResults(args)),
-      shareReplay({bufferSize: 1, refCount: true}),
+    switchMap((args) => this.loadResults(args)),
+    shareReplay({bufferSize: 1, refCount: true}),
   );
 }
 
@@ -48,13 +55,15 @@ export interface PaginationArgs {
 /** A Store that loads a collection of items from the API. */
 @Injectable()
 export abstract class ApiCollectionStore<Result, Args extends {} = {}>
-    implements OnDestroy {
+  implements OnDestroy
+{
   constructor(protected readonly httpApiService: HttpApiService) {}
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
-  protected readonly store =
-      new ComponentStore<CollectionStoreState<Result, Args>>();
+  protected readonly store = new ComponentStore<
+    CollectionStoreState<Result, Args>
+  >();
 
   setArgs(args: Args) {
     this.store.setState({
@@ -65,32 +74,32 @@ export abstract class ApiCollectionStore<Result, Args extends {} = {}>
     });
   }
 
-  readonly loadMore = this.store.effect<number|undefined>(
-      (obs$) => obs$.pipe(
-          withLatestFrom(this.store.state$),
-          // Turn loadMore() calls into no-nop if we're already loading results.
-          filter(([, state]) => !state.isLoading),
-          tap(([count, {results}]) => {
-            this.store.patchState({
-              isLoading: true,
-              totalLoadingCount:
-                  results.length + (count ?? this.INITIAL_LOAD_COUNT),
-            });
-          }),
-          switchMap(
-              ([count, state]) => this.loadResults(state.args, {
-                                        count: count ?? this.INITIAL_LOAD_COUNT,
-                                        offset: state.results.length
-                                      })
-                                      .pipe(take(1))),
-          tap(results => {
-            this.store.patchState(
-                state => ({
-                  isLoading: false,
-                  results: this.mergeResults(state.results, results)
-                }));
-          }),
-          ));
+  readonly loadMore = this.store.effect<number | undefined>((obs$) =>
+    obs$.pipe(
+      withLatestFrom(this.store.state$),
+      // Turn loadMore() calls into no-nop if we're already loading results.
+      filter(([, state]) => !state.isLoading),
+      tap(([count, {results}]) => {
+        this.store.patchState({
+          isLoading: true,
+          totalLoadingCount:
+            results.length + (count ?? this.INITIAL_LOAD_COUNT),
+        });
+      }),
+      switchMap(([count, state]) =>
+        this.loadResults(state.args, {
+          count: count ?? this.INITIAL_LOAD_COUNT,
+          offset: state.results.length,
+        }).pipe(take(1)),
+      ),
+      tap((results) => {
+        this.store.patchState((state) => ({
+          isLoading: false,
+          results: this.mergeResults(state.results, results),
+        }));
+      }),
+    ),
+  );
 
   /**
    * Loads an array of results from the API.
@@ -106,8 +115,10 @@ export abstract class ApiCollectionStore<Result, Args extends {} = {}>
    * emitted result array, the Observable is unsubscribed to prevent
    * concurrent polling for different pages.
    */
-  protected abstract loadResults(args: Args, paginationArgs: PaginationArgs):
-      Observable<readonly Result[]>;
+  protected abstract loadResults(
+    args: Args,
+    paginationArgs: PaginationArgs,
+  ): Observable<readonly Result[]>;
 
   /**
    * Compares two result items for ordering of the results$ array.
@@ -136,8 +147,8 @@ export abstract class ApiCollectionStore<Result, Args extends {} = {}>
 
   private mergeResults(existing: readonly Result[], added: readonly Result[]) {
     return [...existing, ...added]
-        .sort((a, b) => this.compareItems(a, b))
-        .filter((item, i, items) => this.keepItem(items, i));
+      .sort((a, b) => this.compareItems(a, b))
+      .filter((item, i, items) => this.keepItem(items, i));
   }
 
   /**
@@ -169,38 +180,34 @@ export abstract class ApiCollectionStore<Result, Args extends {} = {}>
     return true;
   }
 
-  private readonly latestResultsEffect$ =
-      this.store.select(state => state.args)
-          .pipe(
-              tap(() => {
-                this.store.patchState({isLoading: true});
-              }),
-              switchMap(
-                  args => this.loadResults(
-                      args, {count: this.INITIAL_LOAD_COUNT, offset: 0})),
-              tap(results => {
-                this.store.patchState(
-                    state => ({
-                      isLoading: false,
-                      results: this.mergeResults(results, state.results)
-                    }));
-              }),
-              filter(() => false),
-          );
+  private readonly latestResultsEffect$ = this.store
+    .select((state) => state.args)
+    .pipe(
+      tap(() => {
+        this.store.patchState({isLoading: true});
+      }),
+      switchMap((args) =>
+        this.loadResults(args, {count: this.INITIAL_LOAD_COUNT, offset: 0}),
+      ),
+      tap((results) => {
+        this.store.patchState((state) => ({
+          isLoading: false,
+          results: this.mergeResults(results, state.results),
+        }));
+      }),
+      filter(() => false),
+    );
 
-  readonly results$: Observable<readonly Result[]> =
-      merge(
-          this.store.select(state => state.results),
-          this.latestResultsEffect$,
-          )
-          .pipe(
-              distinctUntilChanged(),
+  readonly results$: Observable<readonly Result[]> = merge(
+    this.store.select((state) => state.results),
+    this.latestResultsEffect$,
+  ).pipe(distinctUntilChanged());
 
-          );
-
-  readonly isLoading$: Observable<boolean> =
-      this.store.select(state => state.isLoading);
+  readonly isLoading$: Observable<boolean> = this.store.select(
+    (state) => state.isLoading,
+  );
 
   readonly hasMore$ = this.store.select(
-      state => state.totalLoadingCount <= state.results.length);
+    (state) => state.totalLoadingCount <= state.results.length,
+  );
 }

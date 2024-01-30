@@ -4,7 +4,6 @@ import {Directory, File, PathSpecPathType} from '../models/vfs';
 
 import {parseVfsPath, translateFile} from './vfs';
 
-
 initTestEnvironment();
 
 describe('translateFile', () => {
@@ -18,7 +17,7 @@ describe('translateFile', () => {
         sha256: 'qfrybrx0NlyN8t1tsLqPM4qisznalWfwHQ5JxpdhOOE=',
         sha1: 'jaaW7R8eBUpBBG2jqvXh+92tRLo=',
         md5: 'YEEyZobfEYMwOTf86uSW6Q==',
-        numBytes: '14'
+        numBytes: '14',
       },
       lastCollected: '1627313231428831',
       lastCollectedSize: '14',
@@ -43,7 +42,7 @@ describe('translateFile', () => {
         },
         stFlagsOsx: 0,
         stFlagsLinux: 524288,
-      }
+      },
     };
     const file: File = {
       name: 'get_rich_quick.sh',
@@ -52,7 +51,7 @@ describe('translateFile', () => {
       pathtype: PathSpecPathType.OS,
       hash: {
         sha256:
-            'a9faf26ebc74365c8df2dd6db0ba8f338aa2b339da9567f01d0e49c6976138e1',
+          'a9faf26ebc74365c8df2dd6db0ba8f338aa2b339da9567f01d0e49c6976138e1',
         sha1: '8da696ed1f1e054a41046da3aaf5e1fbddad44ba',
         md5: '6041326686df1183303937fceae496e9',
       },
@@ -78,14 +77,16 @@ describe('translateFile', () => {
         pathspec: {
           pathtype: PathSpecPathType.OS,
           path: '/foo/bar/get_rich_quick.sh',
-          segments: [{
-            pathtype: PathSpecPathType.OS,
-            path: '/foo/bar/get_rich_quick.sh',
-          }],
+          segments: [
+            {
+              pathtype: PathSpecPathType.OS,
+              path: '/foo/bar/get_rich_quick.sh',
+            },
+          ],
         },
         stFlagsOsx: 0,
-        stFlagsLinux: 524288
-      }
+        stFlagsLinux: 524288,
+      },
     };
     expect(removeUndefinedKeys(translateFile(apiFile))).toEqual(file);
   });
@@ -100,8 +101,8 @@ describe('translateFile', () => {
         pathspec: {
           pathtype: 'OS' as PathSpecPathType,
           path: '/foo/bar/get_rich_quick.sh',
-        }
-      }
+        },
+      },
     };
     const file: File = {
       isDirectory: false,
@@ -113,12 +114,14 @@ describe('translateFile', () => {
         pathspec: {
           pathtype: PathSpecPathType.OS,
           path: '/foo/bar/get_rich_quick.sh',
-          segments: [{
-            pathtype: PathSpecPathType.OS,
-            path: '/foo/bar/get_rich_quick.sh',
-          }]
+          segments: [
+            {
+              pathtype: PathSpecPathType.OS,
+              path: '/foo/bar/get_rich_quick.sh',
+            },
+          ],
         },
-      }
+      },
     };
     expect(removeUndefinedKeys(translateFile(apiFile))).toEqual(file);
   });
@@ -136,9 +139,9 @@ describe('translateFile', () => {
           nestedPath: {
             pathtype: 'NTFS' as PathSpecPathType,
             path: '/get_rich_quick.sh',
-          }
-        }
-      }
+          },
+        },
+      },
     };
     const file: Partial<File> = {
       isDirectory: false,
@@ -157,13 +160,14 @@ describe('translateFile', () => {
             {
               pathtype: PathSpecPathType.NTFS,
               path: '/get_rich_quick.sh',
-            }
-          ]
+            },
+          ],
         },
-      }
+      },
     };
-    expect(removeUndefinedKeys(translateFile(apiFile)))
-        .toEqual(jasmine.objectContaining(file));
+    expect(removeUndefinedKeys(translateFile(apiFile))).toEqual(
+      jasmine.objectContaining(file),
+    );
   });
 
   it('converts directories correctly', () => {
@@ -175,8 +179,8 @@ describe('translateFile', () => {
         pathspec: {
           pathtype: 'OS' as PathSpecPathType,
           path: '/foo/bar/get_rich_quick',
-        }
-      }
+        },
+      },
     };
     const dir: Directory = {
       isDirectory: true,
@@ -190,12 +194,16 @@ describe('translateFile', () => {
 
 describe('parseVfsPath', () => {
   it('converts OS paths correctly', () => {
-    expect(parseVfsPath('fs/os/foo/bar'))
-        .toEqual({pathtype: PathSpecPathType.OS, path: '/foo/bar'});
+    expect(parseVfsPath('fs/os/foo/bar')).toEqual({
+      pathtype: PathSpecPathType.OS,
+      path: '/foo/bar',
+    });
   });
 
   it('converts the root path correctly', () => {
-    expect(parseVfsPath('fs/os/'))
-        .toEqual({pathtype: PathSpecPathType.OS, path: '/'});
+    expect(parseVfsPath('fs/os/')).toEqual({
+      pathtype: PathSpecPathType.OS,
+      path: '/',
+    });
   });
 });

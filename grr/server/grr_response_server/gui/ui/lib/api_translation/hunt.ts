@@ -1,9 +1,31 @@
-import {ApiHunt, ApiHuntApproval, ApiHuntState, ApiHuntStateReason, HuntRunnerArgs, OutputPluginDescriptor} from '../api/api_interfaces';
-import {Hunt, HuntApproval, HuntState, HuntType, SafetyLimits} from '../models/hunt';
+import {
+  ApiHunt,
+  ApiHuntApproval,
+  ApiHuntState,
+  ApiHuntStateReason,
+  HuntRunnerArgs,
+  OutputPluginDescriptor,
+} from '../api/api_interfaces';
+import {
+  Hunt,
+  HuntApproval,
+  HuntState,
+  HuntType,
+  SafetyLimits,
+} from '../models/hunt';
 import {ResultKey, toResultKeyString} from '../models/result';
-import {assertEnum, assertKeyNonNull, assertKeyTruthy, assertNumber} from '../preconditions';
+import {
+  assertEnum,
+  assertKeyNonNull,
+  assertKeyTruthy,
+  assertNumber,
+} from '../preconditions';
 
-import {createDate, createOptionalDate, createOptionalDuration} from './primitive';
+import {
+  createDate,
+  createOptionalDate,
+  createOptionalDuration,
+} from './primitive';
 import {translateApproval} from './user';
 
 const TWO_WEEKS = 2 * 7 * 24 * 60 * 60;
@@ -20,10 +42,12 @@ export function translateSafetyLimits(args: HuntRunnerArgs): SafetyLimits {
     expiryTime: BigInt(args.expiryTime ?? TWO_WEEKS),
 
     avgResultsPerClientLimit: BigInt(args.avgResultsPerClientLimit ?? '0'),
-    avgCpuSecondsPerClientLimit:
-        BigInt(args.avgCpuSecondsPerClientLimit ?? '0'),
-    avgNetworkBytesPerClientLimit:
-        BigInt(args.avgNetworkBytesPerClientLimit ?? '0'),
+    avgCpuSecondsPerClientLimit: BigInt(
+      args.avgCpuSecondsPerClientLimit ?? '0',
+    ),
+    avgNetworkBytesPerClientLimit: BigInt(
+      args.avgNetworkBytesPerClientLimit ?? '0',
+    ),
 
     perClientCpuLimit: BigInt(args.perClientCpuLimit ?? '0'),
     perClientNetworkBytesLimit: BigInt(args.perClientNetworkLimitBytes ?? '0'),
@@ -96,9 +120,9 @@ export function translateHunt(hunt: ApiHunt): Hunt {
     flowReference: hunt.originalObject?.flowReference,
     huntReference: hunt.originalObject?.huntReference,
     clientRuleSet: hunt.clientRuleSet,
-    outputPlugins: hunt.huntRunnerArgs.outputPlugins ?
-        hunt.huntRunnerArgs.outputPlugins as OutputPluginDescriptor[] :
-        [],
+    outputPlugins: hunt.huntRunnerArgs.outputPlugins
+      ? (hunt.huntRunnerArgs.outputPlugins as OutputPluginDescriptor[])
+      : [],
   };
 }
 
@@ -119,7 +143,9 @@ export function translateHuntApproval(approval: ApiHuntApproval): HuntApproval {
 
 /** Builds a string result key for the hunt result. */
 export function getHuntResultKey(
-    result: {clientId?: string, timestamp?: string}, huntId: string): string {
+  result: {clientId?: string; timestamp?: string},
+  huntId: string,
+): string {
   const key: ResultKey = {
     clientId: result.clientId ?? '',
     flowId: huntId,

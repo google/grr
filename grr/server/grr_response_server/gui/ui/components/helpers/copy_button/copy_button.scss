@@ -8,7 +8,7 @@ $transition-time: 200ms;
 
 :host {
   // Render background as solid even when text wraps across multiple lines.
-  display: inline-block;
+  display: inline-flex;
   position: relative;
   cursor: pointer;
   border-radius: $outline-width 0 0 $outline-width;
@@ -17,10 +17,18 @@ $transition-time: 200ms;
     outline-color $transition-time ease;
   outline: $outline-width solid $invisible;
 
-  .contents {
-    // Show .contents over .icon-container to prevent .icon-container outline
-    // from overlapping the right side of the contents.
-    position: relative;
+  .content-container {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    // Padding area for displaying the icon besides the content.
+    padding-right: 24px;
+
+    .contents {
+      // Show .contents over .icon-container to prevent .icon-container outline
+      // from overlapping the right side of the contents.
+      position: relative;
+    }
   }
 
   .icon-container {
@@ -33,6 +41,7 @@ $transition-time: 200ms;
     right: 0;
     top: 0;
     bottom: 0;
+    transform: translateX(-100%);
 
     border-radius: 0 $outline-width $outline-width 0;
     outline: $outline-width solid $background;
@@ -47,9 +56,9 @@ $transition-time: 200ms;
     outline-color: $background;
 
     .icon-container {
-      // Move icon 100% of its own width to the right, so that it appears directly
-      // to the right of the text label.
-      transform: translateX(100%);
+      // Move icon from -100% to 0 of its own width to the right, so that it appears directly
+      // to the right of the text label in the padding area.
+      transform: translateX(0);
       opacity: 1;
     }
   }

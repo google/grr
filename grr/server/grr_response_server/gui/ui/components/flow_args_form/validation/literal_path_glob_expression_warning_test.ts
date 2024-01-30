@@ -10,13 +10,11 @@ initTestEnvironment();
 
 describe('app-literal-path-glob-expression-warning', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [ValidationModule, NoopAnimationsModule],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [ValidationModule, NoopAnimationsModule],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('is created successfully', () => {
@@ -34,7 +32,6 @@ describe('app-literal-path-glob-expression-warning', () => {
 
     expect(fixture.nativeElement.innerText).toEqual('');
   });
-
 
   it('shows a warning when path contains %%', () => {
     const fixture = TestBed.createComponent(LiteralPathGlobExpressionWarning);

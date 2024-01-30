@@ -15,21 +15,17 @@ initTestEnvironment();
   </app-hunt-progress-table>`,
 })
 class TestHostComponent {
-  completionProgressData: HuntCompletionProgressTableRow[]|null = null;
-  totalClients: bigint|null|undefined = null;
+  completionProgressData: HuntCompletionProgressTableRow[] | null = null;
+  totalClients: bigint | null | undefined = null;
 }
 
 describe('HuntProgressTable Component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            HuntProgressTable,
-          ],
-          declarations: [TestHostComponent],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [HuntProgressTable],
+      declarations: [TestHostComponent],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('shows a message if table data is null', () => {
@@ -38,16 +34,19 @@ describe('HuntProgressTable Component', () => {
     fixture.detectChanges();
 
     const table = fixture.nativeElement.querySelector(
-        '.hunt-progress-table-container mat-table');
+      '.hunt-progress-table-container mat-table',
+    );
 
     expect(table).toBeNull();
 
     const noDataBlock = fixture.nativeElement.querySelector(
-        '.hunt-progress-table-container .no-data');
+      '.hunt-progress-table-container .no-data',
+    );
 
     expect(noDataBlock).not.toBeNull();
-    expect(noDataBlock.textContent)
-        .toEqual('There is no hunt progress data to show.');
+    expect(noDataBlock.textContent).toEqual(
+      'There is no hunt progress data to show.',
+    );
   });
 
   it('shows a message if table data is empty', () => {
@@ -59,16 +58,19 @@ describe('HuntProgressTable Component', () => {
     fixture.detectChanges();
 
     const table = fixture.nativeElement.querySelector(
-        '.hunt-progress-table-container mat-table');
+      '.hunt-progress-table-container mat-table',
+    );
 
     expect(table).toBeNull();
 
     const noDataBlock = fixture.nativeElement.querySelector(
-        '.hunt-progress-table-container .no-data');
+      '.hunt-progress-table-container .no-data',
+    );
 
     expect(noDataBlock).not.toBeNull();
-    expect(noDataBlock.textContent)
-        .toEqual('There is no hunt progress data to show.');
+    expect(noDataBlock.textContent).toEqual(
+      'There is no hunt progress data to show.',
+    );
   });
 
   it('shows a table with 3 rows', () => {
@@ -90,18 +92,20 @@ describe('HuntProgressTable Component', () => {
         timestamp: 20,
         scheduledClients: BigInt(10),
         completedClients: BigInt(10),
-      }
+      },
     ];
 
     fixture.detectChanges();
 
     const table = fixture.nativeElement.querySelector(
-        '.hunt-progress-table-container mat-table');
+      '.hunt-progress-table-container mat-table',
+    );
 
     expect(table).not.toBeNull();
 
     const tableRows = fixture.nativeElement.querySelectorAll(
-        '.hunt-progress-table-container mat-table mat-row');
+      '.hunt-progress-table-container mat-table mat-row',
+    );
 
     expect(tableRows.length).toEqual(3);
   });
@@ -121,23 +125,27 @@ describe('HuntProgressTable Component', () => {
     fixture.detectChanges();
 
     const table = fixture.nativeElement.querySelector(
-        '.hunt-progress-table-container mat-table');
+      '.hunt-progress-table-container mat-table',
+    );
 
     expect(table).not.toBeNull();
 
     const tableRows = fixture.nativeElement.querySelectorAll(
-        '.hunt-progress-table-container mat-table mat-row');
+      '.hunt-progress-table-container mat-table mat-row',
+    );
 
     expect(tableRows.length).toEqual(1);
 
     const timestampCell = fixture.nativeElement.querySelector(
-        '.hunt-progress-table-container mat-row app-timestamp .contents');
+      '.hunt-progress-table-container mat-row app-timestamp .contents',
+    );
 
     expect(timestampCell).not.toBeNull();
     expect(timestampCell.textContent).toEqual('2023-03-09 16:38:20 UTC');
 
     const clientCells = fixture.nativeElement.querySelectorAll(
-        '.hunt-progress-table-container mat-table mat-row .hunt-progress-cell');
+      '.hunt-progress-table-container mat-table mat-row .hunt-progress-cell',
+    );
 
     expect(clientCells.length).toBe(2);
 
@@ -170,23 +178,27 @@ describe('HuntProgressTable Component', () => {
     fixture.detectChanges();
 
     const table = fixture.nativeElement.querySelector(
-        '.hunt-progress-table-container mat-table');
+      '.hunt-progress-table-container mat-table',
+    );
 
     expect(table).not.toBeNull();
 
     const tableRows = fixture.nativeElement.querySelectorAll(
-        '.hunt-progress-table-container mat-table mat-row');
+      '.hunt-progress-table-container mat-table mat-row',
+    );
 
     expect(tableRows.length).toEqual(1);
 
     const timestampCell = fixture.nativeElement.querySelector(
-        '.hunt-progress-table-container mat-row app-timestamp .contents');
+      '.hunt-progress-table-container mat-row app-timestamp .contents',
+    );
     expect(timestampCell).not.toBeNull();
 
     expect(timestampCell.textContent).toEqual('2023-03-09 16:38:20 UTC');
 
     const clientCells = fixture.nativeElement.querySelectorAll(
-        '.hunt-progress-table-container mat-table mat-row .hunt-progress-cell');
+      '.hunt-progress-table-container mat-table mat-row .hunt-progress-cell',
+    );
 
     expect(clientCells.length).toBe(2);
 
@@ -221,12 +233,14 @@ describe('HuntProgressTable Component', () => {
     fixture.detectChanges();
 
     const table = fixture.nativeElement.querySelector(
-        '.hunt-progress-table-container mat-table');
+      '.hunt-progress-table-container mat-table',
+    );
 
     expect(table).not.toBeNull();
 
     let tableRows = fixture.nativeElement.querySelectorAll(
-        '.hunt-progress-table-container mat-table mat-row');
+      '.hunt-progress-table-container mat-table mat-row',
+    );
 
     expect(tableRows.length).toEqual(2);
 
@@ -241,7 +255,8 @@ describe('HuntProgressTable Component', () => {
     fixture.detectChanges();
 
     tableRows = fixture.nativeElement.querySelectorAll(
-        '.hunt-progress-table-container mat-table mat-row');
+      '.hunt-progress-table-container mat-table mat-row',
+    );
 
     expect(tableRows.length).toEqual(1);
   });
@@ -316,12 +331,14 @@ describe('HuntProgressTable Component', () => {
     fixture.detectChanges();
 
     const table = fixture.nativeElement.querySelector(
-        '.hunt-progress-table-container mat-table');
+      '.hunt-progress-table-container mat-table',
+    );
 
     expect(table).not.toBeNull();
 
     const tableRows = fixture.nativeElement.querySelectorAll(
-        '.hunt-progress-table-container mat-table mat-row');
+      '.hunt-progress-table-container mat-table mat-row',
+    );
 
     expect(tableRows.length).toEqual(12);
 

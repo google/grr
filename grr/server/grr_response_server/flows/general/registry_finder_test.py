@@ -3,7 +3,7 @@
 
 from absl import app
 
-from grr_response_server.flows.general import registry as flow_registry
+from grr_response_server.flows.general import registry_finder as flow_registry_finder
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
@@ -25,12 +25,13 @@ class TestStubbedRegistryFinderFlow(flow_test_lib.FlowTestsBaseclass):
     client_id = self.SetupClient(0)
 
     session_id = flow_test_lib.TestFlowHelper(
-        flow_registry.RegistryFinder.__name__,
+        flow_registry_finder.RegistryFinder.__name__,
         client_mock,
         client_id=client_id,
         keys_paths=paths,
         conditions=[],
-        creator=self.test_username)
+        creator=self.test_username,
+    )
 
     return flow_test_lib.GetFlowResults(client_id, session_id)
 

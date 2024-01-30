@@ -11,6 +11,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.stats import default_stats_collector
 from grr_response_core.stats import metrics
 from grr_response_core.stats import stats_collector_instance
+from grr_response_proto import jobs_pb2
 from grr_response_server import flow_base
 from grr_response_server import flow_responses
 from grr_response_server.databases import db as abstract_db
@@ -64,7 +65,7 @@ class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
   def testClientInfo(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
 
-    startup_info = rdf_client.StartupInfo()
+    startup_info = jobs_pb2.StartupInfo()
     startup_info.client_info.client_name = "rrg"
     startup_info.client_info.client_version = 1337
     db.WriteClientStartupInfo(client_id, startup_info)
@@ -105,7 +106,7 @@ class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
   def testPythoAgentSupportTrue(self, db: abstract_db.Database):
     client_id = db_test_utils.InitializeClient(db)
 
-    startup = rdf_client.StartupInfo()
+    startup = jobs_pb2.StartupInfo()
     startup.client_info.client_version = 4321
     db.WriteClientStartupInfo(client_id, startup)
 
@@ -327,6 +328,29 @@ class FlowBaseTest(absltest.TestCase, stats_test_lib.StatsCollectorTestMixin):
     # the implementation of the flow runner—we just want to have reasonable code
     # coverage and ensure that the call does not fail.
     flow.CallRRG(rrg_pb2.GET_SYSTEM_METADATA, empty_pb2.Empty())
+
+  @db_test_lib.WithDatabase
+  def testCallRRGFilters(self, db: abstract_db.Database):
+    client_id = db_test_utils.InitializeRRGClient(db)
+    flow_id = db_test_utils.InitializeFlow(db, client_id)
+
+    rdf_flow = rdf_flow_objects.Flow()
+    rdf_flow.client_id = client_id
+    rdf_flow.flow_id = flow_id
+
+    flow = FlowBaseTest.Flow(rdf_flow)
+
+    args = empty_pb2.Empty()
+
+    rrg_filter = rrg_pb2.Filter()
+    rrg_filter.conditions.add(bool_equal=True)
+    rrg_filter.conditions.add(string_match="fo+ba(r|z)")
+
+    # We do not make any explicit assertions on particular flow requests or RRG
+    # requests being somewhere or not as these should be considered details of
+    # the implementation of the flow runner—we just want to have reasonable code
+    # coverage and ensure that the call does not fail.
+    flow.CallRRG(rrg_pb2.LIST_MOUNTS, args, filters=[rrg_filter])
 
   @db_test_lib.WithDatabase
   def testErrorIncrementsMetricsWithExceptionName(

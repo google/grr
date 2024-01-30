@@ -60,14 +60,16 @@ class GrrApi(object):
         flow_name=flow_name,
         flow_args=flow_args,
         hunt_runner_args=hunt_runner_args,
-        context=self._context)
+        context=self._context,
+    )
 
   def CreatePerClientFileCollectionHunt(
       self,
       hunt_args: hunt_pb2.ApiCreatePerClientFileCollectionHuntArgs,
   ) -> hunt.Hunt:
     return hunt.CreatePerClientFileCollectionHunt(
-        hunt_args, context=self._context)
+        hunt_args, context=self._context
+    )
 
   def ListHunts(self) -> utils.ItemsIterator[hunt.Hunt]:
     return hunt.ListHunts(context=self._context)
@@ -87,7 +89,8 @@ class GrrApi(object):
       path: str,
   ) -> config.GrrBinaryRef:
     return config.GrrBinaryRef(
-        binary_type=binary_type, path=path, context=self._context)
+        binary_type=binary_type, path=path, context=self._context
+    )
 
   def GrrUser(self) -> user.GrrUser:
     return user.GrrUser(context=self._context)
@@ -132,6 +135,7 @@ def InitHttp(
       verify=verify,
       cert=cert,
       trust_env=trust_env,
-      validate_version=validate_version)
+      validate_version=validate_version,
+  )
 
   return GrrApi(connector=connector)

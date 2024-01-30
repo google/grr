@@ -1,7 +1,11 @@
 import {Match} from '../../../lib/fuzzy_matcher';
 import {isNonNull} from '../../../lib/preconditions';
 
-import {nameToTable, OsqueryColumnSpec, OsqueryTableSpec} from './osquery_table_specs';
+import {
+  nameToTable,
+  OsqueryColumnSpec,
+  OsqueryTableSpec,
+} from './osquery_table_specs';
 
 /**
  * Holds a table category name, all the Osquery table
@@ -23,22 +27,18 @@ export interface TableCategoryWithMatchMap extends TableCategory {
 }
 
 function columnSpecsToSubjects(
-    columnSpecs: readonly OsqueryColumnSpec[],
-    ): readonly string[] {
-  return columnSpecs.map(column => column.name);
+  columnSpecs: readonly OsqueryColumnSpec[],
+): readonly string[] {
+  return columnSpecs.map((column) => column.name);
 }
 
 function tableSpecsToSubjects(
-    tableSpecs: readonly OsqueryTableSpec[],
-    ): readonly string[] {
-  const names = tableSpecs.map(spec => spec.name);
-  const descriptions = tableSpecs.map(spec => spec.description);
-  const columns = tableSpecs.map(spec => columnSpecsToSubjects(spec.columns));
-  return [
-    ...names,
-    ...descriptions,
-    ...columns.flat(),
-  ];
+  tableSpecs: readonly OsqueryTableSpec[],
+): readonly string[] {
+  const names = tableSpecs.map((spec) => spec.name);
+  const descriptions = tableSpecs.map((spec) => spec.description);
+  const columns = tableSpecs.map((spec) => columnSpecsToSubjects(spec.columns));
+  return [...names, ...descriptions, ...columns.flat()];
 }
 
 /**
@@ -47,12 +47,9 @@ function tableSpecsToSubjects(
  * descriptions, and the names of all table columns.
  */
 export function tableCategoryToSubjects(
-    category: TableCategory,
-    ): readonly string[] {
-  return [
-    category.categoryName,
-    ...tableSpecsToSubjects(category.tableSpecs),
-  ];
+  category: TableCategory,
+): readonly string[] {
+  return [category.categoryName, ...tableSpecsToSubjects(category.tableSpecs)];
 }
 
 /**
@@ -61,13 +58,10 @@ export function tableCategoryToSubjects(
  * packs everything into a table category.
  */
 export function tableCategoryFromSpecs(
-    categoryName: string,
-    tableSpecs: readonly OsqueryTableSpec[],
-    ): TableCategory {
-  const subjects = [
-    categoryName,
-    ...tableSpecsToSubjects(tableSpecs),
-  ];
+  categoryName: string,
+  tableSpecs: readonly OsqueryTableSpec[],
+): TableCategory {
+  const subjects = [categoryName, ...tableSpecsToSubjects(tableSpecs)];
 
   return {
     categoryName,
@@ -82,14 +76,15 @@ export function tableCategoryFromSpecs(
  * fuzzy matching and bundles everything together.
  */
 export function tableCategoryFromNames(
-    categoryName: string,
-    tableNames: readonly string[],
-    ): TableCategory {
-  const tableSpecs = tableNames.map(tableName => {
+  categoryName: string,
+  tableNames: readonly string[],
+): TableCategory {
+  const tableSpecs = tableNames.map((tableName) => {
     const tableSpec = nameToTable(tableName);
     if (!isNonNull(tableSpec)) {
       throw new Error(
-          `Table not found: ${tableName} (category ${categoryName})`);
+        `Table not found: ${tableName} (category ${categoryName})`,
+      );
     }
     return tableSpec;
   });

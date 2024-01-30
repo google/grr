@@ -9,7 +9,6 @@ import requests
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_server import data_store
 from grr_response_server.output_plugins import splunk_plugin
@@ -43,10 +42,10 @@ class SplunkOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     messages = []
     for response in responses:
       messages.append(
-          rdf_flows.GrrMessage(
-              source=self.client_id,
-              session_id='{}/{}'.format(self.client_id, self.flow_id),
-              payload=response))
+          rdf_flow_objects.FlowResult(
+              client_id=self.client_id, flow_id=self.flow_id, payload=response
+          )
+      )
 
     plugin_cls = splunk_plugin.SplunkOutputPlugin
     plugin, plugin_state = plugin_cls.CreatePluginAndDefaultState(

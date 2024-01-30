@@ -9,9 +9,15 @@ import {getFileBlobUrl} from '../../lib/api/http_api_service';
 import {newFile, newPathSpec} from '../../lib/models/model_test_util';
 import {Writable} from '../../lib/type_utils';
 import {FileDetailsLocalStore} from '../../store/file_details_local_store';
-import {FileDetailsLocalStoreMock, mockFileDetailsLocalStore} from '../../store/file_details_local_store_test_util';
+import {
+  FileDetailsLocalStoreMock,
+  mockFileDetailsLocalStore,
+} from '../../store/file_details_local_store_test_util';
 import {SelectedClientGlobalStore} from '../../store/selected_client_global_store';
-import {mockSelectedClientGlobalStore, SelectedClientGlobalStoreMock} from '../../store/selected_client_global_store_test_util';
+import {
+  SelectedClientGlobalStoreMock,
+  mockSelectedClientGlobalStore,
+} from '../../store/selected_client_global_store_test_util';
 import {getActivatedChildRoute, initTestEnvironment} from '../../testing';
 import {CLIENT_ROUTES} from '../app/routing';
 
@@ -29,28 +35,29 @@ describe('FileDetails Component', () => {
     fileDetailsLocalStore = mockFileDetailsLocalStore();
     selectedClientGlobalStore = mockSelectedClientGlobalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            FileDetailsModule,
-            RouterTestingModule.withRoutes(CLIENT_ROUTES),
-          ],
-          providers: [
-            {provide: ActivatedRoute, useFactory: getActivatedChildRoute},
-            {
-              provide: SelectedClientGlobalStore,
-              useFactory: () => selectedClientGlobalStore,
-            },
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            FileDetailsLocalStore, {useFactory: () => fileDetailsLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        NoopAnimationsModule,
+        FileDetailsModule,
+        RouterTestingModule.withRoutes(CLIENT_ROUTES),
+      ],
+      providers: [
+        {provide: ActivatedRoute, useFactory: getActivatedChildRoute},
+        {
+          provide: SelectedClientGlobalStore,
+          useFactory: () => selectedClientGlobalStore,
+        },
+      ],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(FileDetailsLocalStore, {
+        useFactory: () => fileDetailsLocalStore,
+      })
+      .compileComponents();
 
-    TestBed.inject(Router).navigate(
-        [{outlets: {drawer: ['files', 'os', '/foo/bar/baz']}}]);
+    TestBed.inject(Router).navigate([
+      {outlets: {drawer: ['files', 'os', '/foo/bar/baz']}},
+    ]);
   }));
 
   it('should be created', () => {
@@ -62,8 +69,9 @@ describe('FileDetails Component', () => {
     const fixture = TestBed.createComponent(FileDetailsPage);
 
     const fileDetails = fixture.debugElement.query(By.directive(FileDetails));
-    (fileDetails.componentInstance as Writable<FileDetails>)
-        .DEFAULT_PAGE_LENGTH = BigInt(123);
+    (
+      fileDetails.componentInstance as Writable<FileDetails>
+    ).DEFAULT_PAGE_LENGTH = BigInt(123);
     fixture.detectChanges();
 
     selectedClientGlobalStore.mockedObservables.clientId$.next('C.8765');
@@ -75,21 +83,22 @@ describe('FileDetails Component', () => {
       path: '/foo/bar/baz',
     });
     expect(fileDetailsLocalStore.fetchDetails).toHaveBeenCalled();
-    expect(fileDetailsLocalStore.fetchMoreContent)
-        .toHaveBeenCalledOnceWith(BigInt(123));
+    expect(fileDetailsLocalStore.fetchMoreContent).toHaveBeenCalledOnceWith(
+      BigInt(123),
+    );
   });
 
   it('queries file content on input change', () => {
     const fixture = TestBed.createComponent(FileDetails);
 
     (fixture.componentInstance as Writable<FileDetails>).DEFAULT_PAGE_LENGTH =
-        BigInt(123);
+      BigInt(123);
     fixture.detectChanges();
 
     fixture.componentInstance.file = {
       clientId: 'C.8765',
       pathType: PathSpecPathType.OS,
-      path: '/foo/bar/baz'
+      path: '/foo/bar/baz',
     };
     fixture.detectChanges();
 
@@ -99,8 +108,9 @@ describe('FileDetails Component', () => {
       path: '/foo/bar/baz',
     });
     expect(fileDetailsLocalStore.fetchDetails).toHaveBeenCalled();
-    expect(fileDetailsLocalStore.fetchMoreContent)
-        .toHaveBeenCalledOnceWith(BigInt(123));
+    expect(fileDetailsLocalStore.fetchMoreContent).toHaveBeenCalledOnceWith(
+      BigInt(123),
+    );
   });
 
   it('shows loaded content', () => {
@@ -112,17 +122,20 @@ describe('FileDetails Component', () => {
       path: '/examplefile',
       pathType: PathSpecPathType.OS,
     });
-    fileDetailsLocalStore.mockedObservables.details$.next(newFile({
-      name: 'examplefile',
-      isDirectory: false,
-      path: 'fs/os/examplefile',
-      pathtype: PathSpecPathType.OS,
-      stat: {pathspec: newPathSpec({path: '/examplefile'})},
-    }));
+    fileDetailsLocalStore.mockedObservables.details$.next(
+      newFile({
+        name: 'examplefile',
+        isDirectory: false,
+        path: 'fs/os/examplefile',
+        pathtype: PathSpecPathType.OS,
+        stat: {pathspec: newPathSpec({path: '/examplefile'})},
+      }),
+    );
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('examplefile');
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      'examplefile',
+    );
   });
 
   it('indicates that more content is available', () => {
@@ -165,23 +178,29 @@ describe('FileDetails Component', () => {
     loadMoreButton.triggerEventHandler('click', new MouseEvent('click'));
     fixture.detectChanges();
 
-    expect(fileDetailsLocalStore.fetchMoreContent)
-        .toHaveBeenCalledTimes(previousCalls + 1);
+    expect(fileDetailsLocalStore.fetchMoreContent).toHaveBeenCalledTimes(
+      previousCalls + 1,
+    );
   });
 
   it('reloads content on "recollect" click', () => {
     const fixture = TestBed.createComponent(FileDetails);
     fixture.detectChanges();
 
-    fileDetailsLocalStore.mockedObservables.file$.next(
-        {clientId: 'C.1', pathType: PathSpecPathType.OS, path: '/examplefile'});
-    fileDetailsLocalStore.mockedObservables.details$.next(newFile({
-      name: 'examplefile',
-      isDirectory: false,
-      path: 'fs/os/examplefile',
-      pathtype: PathSpecPathType.OS,
-      stat: {pathspec: newPathSpec({path: '/examplefile'})},
-    }));
+    fileDetailsLocalStore.mockedObservables.file$.next({
+      clientId: 'C.1',
+      pathType: PathSpecPathType.OS,
+      path: '/examplefile',
+    });
+    fileDetailsLocalStore.mockedObservables.details$.next(
+      newFile({
+        name: 'examplefile',
+        isDirectory: false,
+        path: 'fs/os/examplefile',
+        pathtype: PathSpecPathType.OS,
+        stat: {pathspec: newPathSpec({path: '/examplefile'})},
+      }),
+    );
     fixture.detectChanges();
 
     expect(fileDetailsLocalStore.recollectFile).not.toHaveBeenCalled();
@@ -192,36 +211,45 @@ describe('FileDetails Component', () => {
 
     expect(fileDetailsLocalStore.recollectFile).toHaveBeenCalledOnceWith();
 
-    fileDetailsLocalStore.mockedObservables.details$.next(newFile({
-      name: 'EXAMPLEFILE',
-      path: 'fs/os/EXAMPLEFILE',
-      pathtype: PathSpecPathType.OS,
-      stat: {pathspec: newPathSpec({path: '/EXAMPLEFILE'})},
-    }));
+    fileDetailsLocalStore.mockedObservables.details$.next(
+      newFile({
+        name: 'EXAMPLEFILE',
+        path: 'fs/os/EXAMPLEFILE',
+        pathtype: PathSpecPathType.OS,
+        stat: {pathspec: newPathSpec({path: '/EXAMPLEFILE'})},
+      }),
+    );
 
     fixture.detectChanges();
 
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('EXAMPLEFILE');
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      'EXAMPLEFILE',
+    );
   });
 
   it('shows download button', async () => {
     const fixture = TestBed.createComponent(FileDetails);
     fixture.detectChanges();
 
-    fileDetailsLocalStore.mockedObservables.file$.next(
-        {clientId: 'C.1', pathType: PathSpecPathType.OS, path: '/foo/bar'});
-    fileDetailsLocalStore.mockedObservables.details$.next(newFile({
-      name: 'bar',
-      path: 'fs/os/foo/bar',
-      pathtype: PathSpecPathType.OS,
-      stat: {pathspec: newPathSpec({path: '/foo/bar'})},
-    }));
+    fileDetailsLocalStore.mockedObservables.file$.next({
+      clientId: 'C.1',
+      pathType: PathSpecPathType.OS,
+      path: '/foo/bar',
+    });
+    fileDetailsLocalStore.mockedObservables.details$.next(
+      newFile({
+        name: 'bar',
+        path: 'fs/os/foo/bar',
+        pathtype: PathSpecPathType.OS,
+        stat: {pathspec: newPathSpec({path: '/foo/bar'})},
+      }),
+    );
     fixture.detectChanges();
 
     const button = fixture.debugElement.query(By.css('a[download]'));
     expect(button.attributes['download']).toEqual('bar');
-    expect(button.attributes['href'])
-        .toEqual(getFileBlobUrl('C.1', PathSpecPathType.OS, '/foo/bar'));
+    expect(button.attributes['href']).toEqual(
+      getFileBlobUrl('C.1', PathSpecPathType.OS, '/foo/bar'),
+    );
   });
 });

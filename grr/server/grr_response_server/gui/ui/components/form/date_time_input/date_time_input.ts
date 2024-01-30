@@ -1,6 +1,18 @@
 import {FocusMonitor} from '@angular/cdk/a11y';
 import {coerceBooleanProperty} from '@angular/cdk/coercion';
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ElementRef, forwardRef, HostBinding, Input, OnDestroy, Optional, Self, ViewChild} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ElementRef,
+  forwardRef,
+  HostBinding,
+  Input,
+  OnDestroy,
+  Optional,
+  Self,
+  ViewChild,
+} from '@angular/core';
 import {ControlValueAccessor, NgControl} from '@angular/forms';
 import {MatFormFieldControl} from '@angular/material/form-field';
 import {MatMenu, MatMenuTrigger} from '@angular/material/menu';
@@ -9,16 +21,13 @@ import {Subject} from 'rxjs';
 import {DateTime} from '../../../lib/date_time';
 import {isNonNull} from '../../../lib/preconditions';
 
-
-
 const DATE_TIME_MAT_FORM_FIELD = {
   provide: MatFormFieldControl,
-  useExisting: forwardRef(() => DateTimeInput)
+  useExisting: forwardRef(() => DateTimeInput),
 };
 
 type OnChangeFn = (value?: DateTime) => void;
 type OnTouchedFn = () => void;
-
 
 function generateMenuTimes(): readonly string[] {
   const result: string[] = [];
@@ -43,12 +52,11 @@ export const DATE_TIME_FORMAT = 'yyyy-MM-dd HH:mm:ss';
   templateUrl: './date_time_input.ng.html',
   styleUrls: ['./date_time_input.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: [
-    DATE_TIME_MAT_FORM_FIELD,
-  ],
+  providers: [DATE_TIME_MAT_FORM_FIELD],
 })
-export class DateTimeInput implements ControlValueAccessor,
-                                      MatFormFieldControl<DateTime>, OnDestroy {
+export class DateTimeInput
+  implements ControlValueAccessor, MatFormFieldControl<DateTime>, OnDestroy
+{
   private onChange: OnChangeFn = () => {};
   private inputStringInternal = '';
   onTouched: OnTouchedFn = () => {};
@@ -68,49 +76,56 @@ export class DateTimeInput implements ControlValueAccessor,
   menuTimes = generateMenuTimes();
 
   constructor(
-      @Optional() @Self() public ngControl: NgControl,
-      private readonly focusMonitor: FocusMonitor,
-      private readonly el: ElementRef<HTMLElement>,
-      private readonly changeDetectorRef: ChangeDetectorRef) {
+    @Optional() @Self() public ngControl: NgControl,
+    private readonly focusMonitor: FocusMonitor,
+    private readonly el: ElementRef<HTMLElement>,
+    private readonly changeDetectorRef: ChangeDetectorRef,
+  ) {
     if (isNonNull(this.ngControl)) {
       this.ngControl.valueAccessor = this;
     }
 
-    this.focusMonitor.monitor(this.el.nativeElement, true).subscribe(origin => {
-      this.focused = !!origin;
-      this.stateChanges.next();
-    });
+    this.focusMonitor
+      .monitor(this.el.nativeElement, true)
+      .subscribe((origin) => {
+        this.focused = !!origin;
+        this.stateChanges.next();
+      });
   }
 
   setClock(s: string) {
-    const d = this.dateTimeValueInternal.invalidReason ?
-        DateTime.utc() :
-        this.dateTimeValueInternal;
+    const d = this.dateTimeValueInternal.invalidReason
+      ? DateTime.utc()
+      : this.dateTimeValueInternal;
 
     const [hour, minute] = s.split(':').map(Number);
-    this.writeValue(d.set({
-      hour,
-      minute,
-      second: 0,
-      millisecond: 0,
-    }));
+    this.writeValue(
+      d.set({
+        hour,
+        minute,
+        second: 0,
+        millisecond: 0,
+      }),
+    );
   }
 
   setDate(date: Date) {
     this.calendarMenuTrrigger.closeMenu();
 
-    const d = this.dateTimeValueInternal.invalidReason ?
-        DateTime.utc().set({
+    const d = this.dateTimeValueInternal.invalidReason
+      ? DateTime.utc().set({
           hour: 0,
           minute: 0,
           millisecond: 0,
-        }) :
-        this.dateTimeValueInternal;
-    this.writeValue(d.set({
-      year: date.getFullYear(),
-      month: date.getMonth() + 1,
-      day: date.getDate(),
-    }));
+        })
+      : this.dateTimeValueInternal;
+    this.writeValue(
+      d.set({
+        year: date.getFullYear(),
+        month: date.getMonth() + 1,
+        day: date.getDate(),
+      }),
+    );
   }
 
   get inputString(): string {
@@ -133,7 +148,8 @@ export class DateTimeInput implements ControlValueAccessor,
       const errors = this.ngControl.control.errors ?? {};
       delete errors['invalidDateTime'];
       this.ngControl.control.setErrors(
-          Object.keys(errors).length > 0 ? errors : null);
+        Object.keys(errors).length > 0 ? errors : null,
+      );
     } else {
       const dt = DateTime.fromFormat(value, DATE_TIME_FORMAT, {zone: 'utc'});
       this.writeValue(dt);
@@ -141,15 +157,17 @@ export class DateTimeInput implements ControlValueAccessor,
       if (dt.invalidReason) {
         const explanation = dt.invalidExplanation ?? '';
         this.ngControl.control.setErrors({
-          'invalidDateTime': explanation !== '' ?
-              explanation[0].toUpperCase() + explanation.slice(1) :
-              ''
+          'invalidDateTime':
+            explanation !== ''
+              ? explanation[0].toUpperCase() + explanation.slice(1)
+              : '',
         });
       } else {
         const errors = this.ngControl.control.errors ?? {};
         delete errors['invalidDateTime'];
         this.ngControl.control.setErrors(
-            Object.keys(errors).length > 0 ? errors : null);
+          Object.keys(errors).length > 0 ? errors : null,
+        );
       }
     }
   }

@@ -13,21 +13,15 @@ import {VolumesDetails} from './volumes_details';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     CopyButtonModule,
     HumanReadableSizeModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    VolumesDetails,
-  ],
-  exports: [
-    VolumesDetails,
-  ]
+  declarations: [VolumesDetails],
+  exports: [VolumesDetails],
 })
-export class VolumesDetailsModule {
-}
+export class VolumesDetailsModule {}

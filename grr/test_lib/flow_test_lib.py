@@ -26,6 +26,7 @@ from grr_response_server import message_handlers
 from grr_response_server import server_stubs
 from grr_response_server import worker_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import client_test_lib
@@ -530,7 +531,7 @@ def GetFlowResults(client_id, flow_id):
   """
   results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
                                               sys.maxsize)
-  return [r.payload for r in results]
+  return [mig_flow_objects.ToRDFFlowResult(r).payload for r in results]
 
 
 def GetRawFlowResults(client_id: str,
@@ -544,7 +545,12 @@ def GetRawFlowResults(client_id: str,
   Returns:
     Iterable with FlowResult objects read from the data store.
   """
-  return data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0, sys.maxsize)
+  return [
+      mig_flow_objects.ToRDFFlowResult(r)
+      for r in data_store.REL_DB.ReadFlowResults(
+          client_id, flow_id, 0, sys.maxsize
+      )
+  ]
 
 
 def GetFlowResultsByTag(client_id, flow_id):
@@ -553,6 +559,7 @@ def GetFlowResultsByTag(client_id, flow_id):
 
   results = data_store.REL_DB.ReadFlowResults(client_id, flow_id, 0,
                                               sys.maxsize)
+  results = [mig_flow_objects.ToRDFFlowResult(r) for r in results]
   return {r.tag or "": r.payload for r in results}
 
 
@@ -590,11 +597,16 @@ def AddResultsToFlow(client_id: str,
                      payloads: Iterable[rdf_structs.RDFProtoStruct],
                      tag: Optional[str] = None) -> None:
   """Adds results with given payloads to a given flow."""
-  data_store.REL_DB.WriteFlowResults([
-      rdf_flow_objects.FlowResult(
-          client_id=client_id, flow_id=flow_id, tag=tag, payload=payload)
-      for payload in payloads
-  ])
+  data_store.REL_DB.WriteFlowResults(
+      [
+          mig_flow_objects.ToProtoFlowResult(
+              rdf_flow_objects.FlowResult(
+                  client_id=client_id, flow_id=flow_id, tag=tag, payload=payload
+              )
+          )
+          for payload in payloads
+      ]
+  )
 
 
 def FlowProgressOverride(

@@ -32,7 +32,8 @@ class GrrBinaryBase(object):
 
   def GetBlob(self) -> utils.BinaryChunkIterator:
     args = config_pb2.ApiGetGrrBinaryBlobArgs(
-        type=self.binary_type, path=self.path)
+        type=self.binary_type, path=self.path
+    )
     return self._context.SendStreamingRequest("GetGrrBinaryBlob", args)
 
 
@@ -54,9 +55,11 @@ class GrrBinary(GrrBinaryBase):
 
 
 def ListGrrBinaries(
-    context: api_context.GrrApiContext) -> utils.ItemsIterator[GrrBinary]:
+    context: api_context.GrrApiContext,
+) -> utils.ItemsIterator[GrrBinary]:
   """Lists all registered Grr binaries."""
 
   items = context.SendIteratorRequest("ListGrrBinaries", None)
   return utils.MapItemsIterator(
-      lambda data: GrrBinary(data=data, context=context), items)
+      lambda data: GrrBinary(data=data, context=context), items
+  )

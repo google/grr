@@ -3,9 +3,9 @@ import {BehaviorSubject} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {DateTime} from '../../lib/date_time';
-import {type Approval, ApprovalStatus} from '../../lib/models/user';
+import {ApprovalStatus, type Approval} from '../../lib/models/user';
 
-const TITLES: {readonly[key in ApprovalStatus['type']]: string} = {
+const TITLES: {readonly [key in ApprovalStatus['type']]: string} = {
   'expired': 'No access',
   'invalid': 'No access',
   'pending': 'Access pending',
@@ -21,7 +21,7 @@ const TITLES: {readonly[key in ApprovalStatus['type']]: string} = {
 })
 export class ApprovalChip {
   @Input()
-  set approval(approval: Approval|null) {
+  set approval(approval: Approval | null) {
     this.approval$.next(approval);
   }
 
@@ -38,9 +38,10 @@ export class ApprovalChip {
     }
   }
 
-  private readonly approval$ = new BehaviorSubject<Approval|null>(null);
-  readonly status$ =
-      this.approval$.pipe(map(approval => approval?.status.type ?? 'invalid'));
+  private readonly approval$ = new BehaviorSubject<Approval | null>(null);
+  readonly status$ = this.approval$.pipe(
+    map((approval) => approval?.status.type ?? 'invalid'),
+  );
 
-  readonly title$ = this.status$.pipe(map(status => TITLES[status]));
+  readonly title$ = this.status$.pipe(map((status) => TITLES[status]));
 }

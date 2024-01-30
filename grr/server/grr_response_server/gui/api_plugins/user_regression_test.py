@@ -3,6 +3,7 @@
 
 from absl import app
 
+from grr_response_proto import user_pb2
 from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server import notification
@@ -12,7 +13,6 @@ from grr_response_server.gui.api_plugins import user as user_plugin
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import hunts as rdf_hunts
 from grr_response_server.rdfvalues import objects as rdf_objects
-
 from grr.test_lib import acl_test_lib
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -541,7 +541,10 @@ class ApiGetOwnGrrUserHandlerRegressionTest(
 
   def Run(self):
     data_store.REL_DB.WriteGRRUser(
-        username=self.test_username, ui_mode="ADVANCED", canary_mode=True)
+        username=self.test_username,
+        ui_mode=user_pb2.GUISettings.UIMode.ADVANCED,
+        canary_mode=True,
+    )
 
     self.Check("GetGrrUser")
 

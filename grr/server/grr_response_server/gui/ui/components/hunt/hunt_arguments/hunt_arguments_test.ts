@@ -2,7 +2,11 @@ import {Component} from '@angular/core';
 import {TestBed} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
-import {newClientRuleSet, newHunt, newSafetyLimits} from '../../../lib/models/model_test_util';
+import {
+  newClientRuleSet,
+  newHunt,
+  newSafetyLimits,
+} from '../../../lib/models/model_test_util';
 import {initTestEnvironment} from '../../../testing';
 
 import {HuntArguments} from './hunt_arguments';
@@ -16,19 +20,12 @@ class TestHostComponent {
 
 describe('HuntArguments test', () => {
   beforeEach(async () => {
-    await TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            HuntArguments,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    await TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, HuntArguments],
+      declarations: [TestHostComponent],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   });
 
   it('displays all sections correctly', () => {
@@ -70,5 +67,27 @@ describe('HuntArguments test', () => {
 
     expect(text).toContain('2 minutes');
     expect(text).toContain('60 B');
+    expect(text).not.toContain('Unlimited');
+  });
+
+  it('displays unlimited client constraints correctly', () => {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
+
+    fixture.componentInstance.hunt = newHunt({
+      clientRuleSet: newClientRuleSet({}),
+      safetyLimits: newSafetyLimits({
+        perClientNetworkBytesLimit: BigInt(0),
+        perClientCpuLimit: BigInt(0),
+      }),
+    });
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement).toBeTruthy();
+    const text = fixture.nativeElement.textContent;
+
+    expect(text).not.toContain('345 seconds');
+    expect(text).not.toContain('345 B');
+    expect(text).toContain('Unlimited');
   });
 });

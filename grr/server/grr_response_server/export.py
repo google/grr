@@ -39,12 +39,15 @@ def GetMetadata(client_id, client_full_info):
 
   if last_snapshot is not None:
     kb = client_full_info.last_snapshot.knowledge_base
+    os_release = last_snapshot.os_release
+    os_version = last_snapshot.os_version
 
     metadata.hostname = kb.fqdn
     metadata.os = kb.os
-    metadata.uname = last_snapshot.Uname()
-    metadata.os_release = last_snapshot.os_release
-    metadata.os_version = last_snapshot.os_version
+    # TODO: Remove this once the field is gone.
+    metadata.uname = f"{kb.os}-{os_release}-{os_version}"
+    metadata.os_release = os_release
+    metadata.os_version = os_version
     metadata.usernames = ",".join(user.username for user in kb.users)
 
     addresses = last_snapshot.GetMacAddresses()

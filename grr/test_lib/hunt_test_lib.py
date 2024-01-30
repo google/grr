@@ -8,17 +8,20 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import foreman
 from grr_response_server import foreman_rules
 from grr_response_server import hunt
+from grr_response_server import mig_foreman_rules
 from grr_response_server import output_plugin
 from grr_response_server.databases import db
 from grr_response_server.flows.general import file_finder
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import acl_test_lib
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -204,15 +207,18 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
                 field="CLIENT_NAME", attribute_regex="GRR"))
     ])
 
-  def CreateHunt(self,
-                 flow_runner_args=None,
-                 flow_args=None,
-                 client_rule_set=None,
-                 original_object=None,
-                 client_rate=0,
-                 duration=None,
-                 creator=None,
-                 **kwargs):
+  def CreateHunt(
+      self,
+      flow_runner_args=None,
+      flow_args=None,
+      client_rule_set=None,
+      original_object=None,
+      client_rate=0,
+      client_limit=100,
+      duration=None,
+      creator=None,
+      **kwargs,
+  ):
     # Only initialize default flow_args value if default flow_runner_args value
     # is to be used.
     if not flow_runner_args:
@@ -237,9 +243,11 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
         client_rule_set=client_rule_set,
         original_object=original_object,
         client_rate=client_rate,
+        client_limit=client_limit,
         duration=duration,
         args=hunt_args,
-        **kwargs)
+        **kwargs,
+    )
     hunt.CreateHunt(hunt_obj)
 
     return hunt_obj.hunt_id
@@ -253,7 +261,8 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
   def FindForemanRules(self, hunt_obj):
     rules = data_store.REL_DB.ReadAllForemanRules()
     return [
-        rule for rule in rules
+        mig_foreman_rules.ToRDFForemanCondition(rule)
+        for rule in rules
         if hunt_obj is None or rule.hunt_id == hunt_obj.urn.Basename()
     ]
 
@@ -312,23 +321,30 @@ class StandardHuntTestMixin(acl_test_lib.AclTestMixin):
     flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
     for value in values:
-      data_store.REL_DB.WriteFlowResults([
-          rdf_flow_objects.FlowResult(
-              client_id=client_id,
-              flow_id=flow_id,
-              hunt_id=hunt_id,
-              payload=value)
-      ])
+      data_store.REL_DB.WriteFlowResults(
+          [
+              mig_flow_objects.ToProtoFlowResult(
+                  rdf_flow_objects.FlowResult(
+                      client_id=client_id,
+                      flow_id=flow_id,
+                      hunt_id=hunt_id,
+                      payload=value,
+                  )
+              )
+          ]
+      )
 
   def AddLogToHunt(self, hunt_id, client_id, message):
     flow_id = self._EnsureClientHasHunt(client_id, hunt_id)
 
     data_store.REL_DB.WriteFlowLogEntry(
-        rdf_flow_objects.FlowLogEntry(
+        flows_pb2.FlowLogEntry(
             client_id=client_id,
             flow_id=flow_id,
             hunt_id=hunt_id,
-            message=message))
+            message=message,
+        )
+    )
 
   def AddErrorToHunt(self, hunt_id, client_id, message, backtrace):
     flow_id = self._EnsureClientHasHunt(client_id, hunt_id)

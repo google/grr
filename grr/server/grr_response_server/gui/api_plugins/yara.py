@@ -6,7 +6,6 @@ from grr_response_proto.api import yara_pb2
 from grr_response_server import data_store
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class ApiUploadYaraSignatureArgs(rdf_structs.RDFProtoStruct):
@@ -20,7 +19,7 @@ class ApiUploadYaraSignatureResult(rdf_structs.RDFProtoStruct):
   """An RDF wrapper class for results of YARA signature uploader."""
 
   protobuf = yara_pb2.ApiUploadYaraSignatureResult
-  rdf_deps = [rdf_objects.BlobID]
+  rdf_deps = []
 
 
 class ApiUploadYaraSignatureHandler(api_call_handler_base.ApiCallHandler):
@@ -40,5 +39,5 @@ class ApiUploadYaraSignatureHandler(api_call_handler_base.ApiCallHandler):
     data_store.REL_DB.WriteYaraSignatureReference(blob_id, context.username)
 
     result = ApiUploadYaraSignatureResult()
-    result.blob_id = blob_id
+    result.blob_id = bytes(blob_id)
     return result

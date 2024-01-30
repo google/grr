@@ -1,6 +1,10 @@
 import {initTestEnvironment} from '../testing';
 
-import {FuzzyMatcher, Match, stringWithHighlightsFromMatch} from './fuzzy_matcher';
+import {
+  FuzzyMatcher,
+  Match,
+  stringWithHighlightsFromMatch,
+} from './fuzzy_matcher';
 
 initTestEnvironment();
 
@@ -20,62 +24,93 @@ describe('FuzzyMatcher', () => {
 
   it('matches everything when user input is empty', () => {
     const matcher = new FuzzyMatcher(SINGLE_STRING_SET);
-    expect(matcher.match('')).toEqual([{
-      subject: SINGLE_STRING_SET[0],
-      matchRanges: [[0, 0]],
-    }]);
+    expect(matcher.match('')).toEqual([
+      {
+        subject: SINGLE_STRING_SET[0],
+        matchRanges: [[0, 0]],
+      },
+    ]);
   });
 
   it('correctly matches single subjects by a proper substring', () => {
     const matcher = new FuzzyMatcher(SINGLE_STRING_SET);
 
-    expect(matcher.match('blah')).toEqual([{
-      subject: SINGLE_STRING_SET[0],
-      matchRanges: [[0, 4]],
-    }]);
-    expect(matcher.match('wah')).toEqual([{
-      subject: SINGLE_STRING_SET[0],
-      matchRanges: [[9, 12]],
-    }]);
-    expect(matcher.match('d w')).toEqual([{
-      subject: SINGLE_STRING_SET[0],
-      matchRanges: [[7, 10]],
-    }]);
+    expect(matcher.match('blah')).toEqual([
+      {
+        subject: SINGLE_STRING_SET[0],
+        matchRanges: [[0, 4]],
+      },
+    ]);
+    expect(matcher.match('wah')).toEqual([
+      {
+        subject: SINGLE_STRING_SET[0],
+        matchRanges: [[9, 12]],
+      },
+    ]);
+    expect(matcher.match('d w')).toEqual([
+      {
+        subject: SINGLE_STRING_SET[0],
+        matchRanges: [[7, 10]],
+      },
+    ]);
   });
 
   it('does substring-based match in case-insensitive way', () => {
     const matcher = new FuzzyMatcher(SINGLE_STRING_SET);
 
-    expect(matcher.match('BLAH')).toEqual([{
-      subject: SINGLE_STRING_SET[0],
-      matchRanges: [[0, 4]],
-    }]);
+    expect(matcher.match('BLAH')).toEqual([
+      {
+        subject: SINGLE_STRING_SET[0],
+        matchRanges: [[0, 4]],
+      },
+    ]);
   });
 
   it('correctly matches single string by set of prefixes', () => {
     const matcher = new FuzzyMatcher(SINGLE_STRING_SET);
 
-    expect(matcher.match('bw')).toEqual([{
-      subject: SINGLE_STRING_SET[0],
-      matchRanges: [[0, 1], [9, 10]],
-    }]);
-    expect(matcher.match('blw')).toEqual([{
-      subject: SINGLE_STRING_SET[0],
-      matchRanges: [[0, 2], [9, 10]],
-    }]);
-    expect(matcher.match('baw')).toEqual([{
-      subject: SINGLE_STRING_SET[0],
-      matchRanges: [[0, 1], [5, 6], [9, 10]],
-    }]);
+    expect(matcher.match('bw')).toEqual([
+      {
+        subject: SINGLE_STRING_SET[0],
+        matchRanges: [
+          [0, 1],
+          [9, 10],
+        ],
+      },
+    ]);
+    expect(matcher.match('blw')).toEqual([
+      {
+        subject: SINGLE_STRING_SET[0],
+        matchRanges: [
+          [0, 2],
+          [9, 10],
+        ],
+      },
+    ]);
+    expect(matcher.match('baw')).toEqual([
+      {
+        subject: SINGLE_STRING_SET[0],
+        matchRanges: [
+          [0, 1],
+          [5, 6],
+          [9, 10],
+        ],
+      },
+    ]);
   });
 
   it('does prefix-based match in case-insensitive way', () => {
     const matcher = new FuzzyMatcher(SINGLE_STRING_SET);
 
-    expect(matcher.match('BW')).toEqual([{
-      subject: SINGLE_STRING_SET[0],
-      matchRanges: [[0, 1], [9, 10]],
-    }]);
+    expect(matcher.match('BW')).toEqual([
+      {
+        subject: SINGLE_STRING_SET[0],
+        matchRanges: [
+          [0, 1],
+          [9, 10],
+        ],
+      },
+    ]);
   });
 
   it('does not match single string when no prefix or substring match', () => {
@@ -87,10 +122,12 @@ describe('FuzzyMatcher', () => {
   it('correctly matches multiple strings by a proper substring', () => {
     const matcher = new FuzzyMatcher(MULTIPLE_STRINGS_SET);
 
-    expect(matcher.match('oo')).toEqual([{
-      subject: MULTIPLE_STRINGS_SET[0],
-      matchRanges: [[1, 3]],
-    }]);
+    expect(matcher.match('oo')).toEqual([
+      {
+        subject: MULTIPLE_STRINGS_SET[0],
+        matchRanges: [[1, 3]],
+      },
+    ]);
     expect(matcher.match('la')).toEqual([
       {
         subject: MULTIPLE_STRINGS_SET[1],
@@ -99,7 +136,7 @@ describe('FuzzyMatcher', () => {
       {
         subject: MULTIPLE_STRINGS_SET[2],
         matchRanges: [[1, 3]],
-      }
+      },
     ]);
   });
 
@@ -109,15 +146,20 @@ describe('FuzzyMatcher', () => {
     expect(matcher.match('blaw')).toEqual([
       {
         subject: MULTIPLE_STRINGS_SET[1],
-        matchRanges: [[0, 3], [9, 10]],
+        matchRanges: [
+          [0, 3],
+          [9, 10],
+        ],
       },
       {
         subject: MULTIPLE_STRINGS_SET[2],
-        matchRanges: [[0, 3], [9, 10]],
-      }
+        matchRanges: [
+          [0, 3],
+          [9, 10],
+        ],
+      },
     ]);
   });
-
 
   it('returns the matches alphabetically sorted', () => {
     const matcher = new FuzzyMatcher(MULTIPLE_STRINGS_SET);
@@ -147,20 +189,27 @@ describe('FuzzyMatcher', () => {
      * for 'foo bar fb' when matching it against 'fb', substring matches
      * are preferred to prefix matches.
      */
-    expect(matcher.match('fb')).toEqual([{
-      subject: stringSet[0],
-      matchRanges: [[8, 10]],
-    }]);
+    expect(matcher.match('fb')).toEqual([
+      {
+        subject: stringSet[0],
+        matchRanges: [[8, 10]],
+      },
+    ]);
   });
 
   it('correctly matches "set ticket priority to p0" to "setp0"', () => {
     const stringSet = ['Set ticket priority to P0'];
     const matcher = new FuzzyMatcher(stringSet);
 
-    expect(matcher.match('setp0')).toEqual([{
-      subject: stringSet[0],
-      matchRanges: [[0, 3], [23, 25]],
-    }]);
+    expect(matcher.match('setp0')).toEqual([
+      {
+        subject: stringSet[0],
+        matchRanges: [
+          [0, 3],
+          [23, 25],
+        ],
+      },
+    ]);
   });
 
   it('does not match "set ticket priority to p0" to "SST"', () => {
@@ -174,10 +223,16 @@ describe('FuzzyMatcher', () => {
     const stringSet = ['Set ticket priority to P0'];
     const matcher = new FuzzyMatcher(stringSet);
 
-    expect(matcher.match('STT')).toEqual([{
-      subject: stringSet[0],
-      matchRanges: [[0, 1], [4, 5], [20, 21]],
-    }]);
+    expect(matcher.match('STT')).toEqual([
+      {
+        subject: stringSet[0],
+        matchRanges: [
+          [0, 1],
+          [4, 5],
+          [20, 21],
+        ],
+      },
+    ]);
   });
 
   it('respects the order of prefixes (VSCode style)', () => {
@@ -185,10 +240,15 @@ describe('FuzzyMatcher', () => {
     const matcher = new FuzzyMatcher(stringSet);
 
     expect(matcher.match('set sett')).toEqual([]);
-    expect(matcher.match('sett set')).toEqual([{
-      subject: stringSet[0],
-      matchRanges: [[0, 4], [11, 14]],
-    }]);
+    expect(matcher.match('sett set')).toEqual([
+      {
+        subject: stringSet[0],
+        matchRanges: [
+          [0, 4],
+          [11, 14],
+        ],
+      },
+    ]);
   });
 });
 
@@ -196,9 +256,7 @@ describe('stringWithHighlightsFromMatch', () => {
   it('correctly converts single matched range in the middle', () => {
     const match: Match = {
       subject: 'foo xyz bar',
-      matchRanges: [
-        [4, 7],
-      ],
+      matchRanges: [[4, 7]],
     };
 
     const result = stringWithHighlightsFromMatch(match);
@@ -216,17 +274,15 @@ describe('stringWithHighlightsFromMatch', () => {
         {
           value: ' bar',
           highlight: false,
-        }
-      ]
+        },
+      ],
     });
   });
 
   it('correctly converts single matched range in the beginning', () => {
     const match: Match = {
       subject: 'foo xyz bar',
-      matchRanges: [
-        [0, 3],
-      ],
+      matchRanges: [[0, 3]],
     };
 
     const result = stringWithHighlightsFromMatch(match);
@@ -241,16 +297,14 @@ describe('stringWithHighlightsFromMatch', () => {
           value: ' xyz bar',
           highlight: false,
         },
-      ]
+      ],
     });
   });
 
   it('correctly converts single matched range in the end', () => {
     const match: Match = {
       subject: 'foo xyz bar',
-      matchRanges: [
-        [8, 11],
-      ],
+      matchRanges: [[8, 11]],
     };
 
     const result = stringWithHighlightsFromMatch(match);
@@ -265,7 +319,7 @@ describe('stringWithHighlightsFromMatch', () => {
           value: 'bar',
           highlight: true,
         },
-      ]
+      ],
     });
   });
 
@@ -302,7 +356,7 @@ describe('stringWithHighlightsFromMatch', () => {
           value: ' bar',
           highlight: false,
         },
-      ]
+      ],
     });
   });
 
@@ -331,7 +385,7 @@ describe('stringWithHighlightsFromMatch', () => {
           value: 'ar',
           highlight: true,
         },
-      ]
+      ],
     });
   });
 });

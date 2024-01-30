@@ -31,7 +31,7 @@ import {VfsSection} from './vfs_section';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     AngularSplitModule,
     ApprovalCardModule,
@@ -54,14 +54,8 @@ import {VfsSection} from './vfs_section';
     ScheduledFlowListModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ClientPage,
-    FlowSection,
-    VfsSection,
-  ],
+  declarations: [ClientPage, FlowSection, VfsSection],
   exports: [FlowSection, VfsSection],
 })
-export class ClientPageModule {
-}
+export class ClientPageModule {}

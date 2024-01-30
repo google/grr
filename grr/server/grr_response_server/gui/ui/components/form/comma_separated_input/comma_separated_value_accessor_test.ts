@@ -6,13 +6,17 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {initTestEnvironment} from '../../../testing';
 
-import {CommaSeparatedNumberValueAccessor, CommaSeparatedValueAccessor} from './comma_separated_value_accessor';
+import {
+  CommaSeparatedNumberValueAccessor,
+  CommaSeparatedValueAccessor,
+} from './comma_separated_value_accessor';
 import {CommaSeparatedInputModule} from './module';
 
 initTestEnvironment();
 
-@Component(
-    {template: '<input commaSeparatedInput [formControl]="formControl">'})
+@Component({
+  template: '<input commaSeparatedInput [formControl]="formControl">',
+})
 class TestHostComponent {
   readonly formControl = new UntypedFormControl();
 }
@@ -22,20 +26,16 @@ describe('commaSeparatedInput', () => {
   let input: DebugElement;
 
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            CommaSeparatedInputModule,
-            ReactiveFormsModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        NoopAnimationsModule,
+        CommaSeparatedInputModule,
+        ReactiveFormsModule,
+      ],
+      declarations: [TestHostComponent],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
@@ -44,8 +44,9 @@ describe('commaSeparatedInput', () => {
   }));
 
   it('is applied on [commaSeparatedInput]', () => {
-    const el =
-        fixture.debugElement.query(By.directive(CommaSeparatedValueAccessor));
+    const el = fixture.debugElement.query(
+      By.directive(CommaSeparatedValueAccessor),
+    );
     expect(el).toBeTruthy();
   });
 
@@ -83,7 +84,9 @@ describe('commaSeparatedInput', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.formControl.value).toEqual([
-      'Abc', 'dEf', 'HIJ'
+      'Abc',
+      'dEf',
+      'HIJ',
     ]);
   });
 
@@ -94,7 +97,9 @@ describe('commaSeparatedInput', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.formControl.value).toEqual([
-      'Abc', 'dEf', 'HIJ'
+      'Abc',
+      'dEf',
+      'HIJ',
     ]);
   });
 
@@ -105,13 +110,16 @@ describe('commaSeparatedInput', () => {
     fixture.detectChanges();
 
     expect(fixture.componentInstance.formControl.value).toEqual([
-      'Abc', 'dEf', 'HIJ'
+      'Abc',
+      'dEf',
+      'HIJ',
     ]);
   });
 });
 
-@Component(
-    {template: '<input commaSeparatedNumberInput [formControl]="formControl">'})
+@Component({
+  template: '<input commaSeparatedNumberInput [formControl]="formControl">',
+})
 class TestHostNumberComponent {
   readonly formControl = new UntypedFormControl();
 }
@@ -121,20 +129,16 @@ describe('commaSeparatedNumberInput', () => {
   let input: DebugElement;
 
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            CommaSeparatedInputModule,
-            ReactiveFormsModule,
-          ],
-          declarations: [
-            TestHostNumberComponent,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        NoopAnimationsModule,
+        CommaSeparatedInputModule,
+        ReactiveFormsModule,
+      ],
+      declarations: [TestHostNumberComponent],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostNumberComponent);
     fixture.detectChanges();
@@ -144,7 +148,8 @@ describe('commaSeparatedNumberInput', () => {
 
   it('is applied on [commaSeparatedNumberInput]', () => {
     const el = fixture.debugElement.query(
-        By.directive(CommaSeparatedNumberValueAccessor));
+      By.directive(CommaSeparatedNumberValueAccessor),
+    );
     expect(el).toBeTruthy();
   });
 

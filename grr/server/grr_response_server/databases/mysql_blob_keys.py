@@ -9,7 +9,7 @@ from typing import Optional
 import MySQLdb
 
 from grr_response_server.databases import mysql_utils
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import blobs
 
 
 class MySQLDBBlobKeysMixin(object):
@@ -18,7 +18,7 @@ class MySQLDBBlobKeysMixin(object):
   @mysql_utils.WithTransaction()
   def WriteBlobEncryptionKeys(
       self,
-      key_names: Dict[rdf_objects.BlobID, str],
+      key_names: Dict[blobs.BlobID, str],
       cursor: MySQLdb.cursors.Cursor,
   ) -> None:
     """Associates the specified blobs with the given encryption keys."""
@@ -30,23 +30,23 @@ class MySQLDBBlobKeysMixin(object):
 
     args = []
     for blob_id, key_name in key_names.items():
-      args.append((blob_id.AsBytes(), key_name))
+      args.append((bytes(blob_id), key_name))
 
     cursor.executemany(query, args)
 
   @mysql_utils.WithTransaction(readonly=True)
   def ReadBlobEncryptionKeys(
       self,
-      blob_ids: Collection[rdf_objects.BlobID],
+      blob_ids: Collection[blobs.BlobID],
       cursor: MySQLdb.cursors.Cursor,
-  ) -> Dict[rdf_objects.BlobID, Optional[str]]:
+  ) -> Dict[blobs.BlobID, Optional[str]]:
     """Retrieves encryption keys associated with blobs."""
     # A special case for empty list of blob identifiers to avoid syntax errors
     # in the query below.
     if not blob_ids:
       return {}
 
-    blob_ids_bytes = [blob_id.AsBytes() for blob_id in blob_ids]
+    blob_ids_bytes = [bytes(blob_id) for blob_id in blob_ids]
 
     query = """
     SELECT k.blob_id, k.key_name
@@ -63,7 +63,7 @@ INNER JOIN (SELECT blob_id, MAX(timestamp) AS max_timestamp
 
     cursor.execute(query, blob_ids_bytes)
     for blob_id_bytes, key_name in cursor.fetchall():
-      blob_id = rdf_objects.BlobID(blob_id_bytes)
+      blob_id = blobs.BlobID(blob_id_bytes)
       results[blob_id] = key_name
 
     return results

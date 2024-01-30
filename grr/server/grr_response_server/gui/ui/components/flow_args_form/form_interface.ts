@@ -1,3 +1,4 @@
+// g3-format-changed-lines-during-prettier-version-upgrade
 import {Component, OnDestroy} from '@angular/core';
 import {AbstractControl, FormGroup} from '@angular/forms';
 import {map} from 'rxjs/operators';
@@ -38,23 +39,25 @@ export type OnTouchedFn = () => void;
  * ```
  */
 export declare type ControlValues<
-    T extends {[K in keyof T]: AbstractControl | undefined}> = {
-  [K in keyof T]: T[K] extends AbstractControl ?
-      // For basic {key: FormControl<X>()} mappings, the type is {key: X}.
-      T[K]['value'] :
-      T[K] extends undefined | infer C extends AbstractControl ?
-      // For optional {key?: FormControl<X>()} mappings, the type is
+  T extends {[K in keyof T]: AbstractControl | undefined},
+> = {
+  [K in keyof T]: T[K] extends AbstractControl
+    ? // For basic {key: FormControl<X>()} mappings, the type is {key: X}.
+      T[K]['value']
+    : T[K] extends undefined | infer C extends AbstractControl
+    ? // For optional {key?: FormControl<X>()} mappings, the type is
       // {key: X|undefined}.
-      C['value'] | undefined :
-      never
+      C['value'] | undefined
+    : never;
 };
 
 /** Form component to configure arguments for a Flow. */
 @Component({template: ''})
 export abstract class FlowArgumentForm<
-    FlowArgs extends {},
-                     Controls extends {[K in keyof Controls]: AbstractControl}>
-    implements OnDestroy {
+  FlowArgs extends {},
+  Controls extends {[K in keyof Controls]: AbstractControl},
+> implements OnDestroy
+{
   // Only ControlValueAccessor is not enough because it does not handle
   // validation.
   /**
@@ -73,22 +76,26 @@ export abstract class FlowArgumentForm<
 
   readonly form = new FormGroup<Controls>(this.controls, {updateOn: 'change'});
 
-  readonly flowArgs$ = this.form.valueChanges.pipe(map(
-      (values) =>
-          this.convertFormStateToFlowArgs(values as ControlValues<Controls>)));
+  readonly flowArgs$ = this.form.valueChanges.pipe(
+    map((values) =>
+      this.convertFormStateToFlowArgs(values as ControlValues<Controls>),
+    ),
+  );
 
   readonly ngOnDestroy = observeOnDestroy(this);
 
   /** Returns the internal form state by converting API FlowArgs. */
-  abstract convertFlowArgsToFormState(flowArgs: FlowArgs):
-      ControlValues<Controls>;
+  abstract convertFlowArgsToFormState(
+    flowArgs: FlowArgs,
+  ): ControlValues<Controls>;
 
   /**
    * Returns the FlowArgs to be passed to the API by converting internal
    * form state.
    */
-  abstract convertFormStateToFlowArgs(formState: ControlValues<Controls>):
-      FlowArgs;
+  abstract convertFormStateToFlowArgs(
+    formState: ControlValues<Controls>,
+  ): FlowArgs;
 
   /**
    * Resets the form with the given values and marks it as pristine.

@@ -20,12 +20,16 @@ message OsqueryFlowArgs {
   optional uint64 timeout_millis = 2;
   optional bool ignore_stderr_errors = 3;
   repeated string file_collection_columns = 4;
+  optional string configuration_path = 5;
+  optional string configuration_content = 6;
 }
 
 message OsqueryArgs {
   optional string query = 1;
   optional uint64 timeout_millis = 2;
   reserved 3;
+  optional string configuration_path = 4;
+  optional string configuration_content = 5;
 }
 
 message OsqueryColumn {

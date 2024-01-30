@@ -27,7 +27,7 @@ import {ParamsFormModule} from './params_form/module';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ApprovalCardModule,
     ClientsFormModule,
@@ -49,9 +49,7 @@ import {ParamsFormModule} from './params_form/module';
     ReactiveFormsModule,
     RouterModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [NewHunt],
 })
-export class NewHuntModule {
-}
+export class NewHuntModule {}

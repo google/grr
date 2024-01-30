@@ -9,6 +9,7 @@ describe('flow form directive', () => {
   let $compile;
   let $q;
   let $rootScope;
+  let grrApiService;
   let grrReflectionService;
 
 
@@ -27,7 +28,23 @@ describe('flow form directive', () => {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
     $q = $injector.get('$q');
+    grrApiService = $injector.get('grrApiService');
     grrReflectionService = $injector.get('grrReflectionService');
+
+    spyOn(grrApiService, 'get')
+        .and.callFake((configPath) => {
+          const deferred = $q.defer();
+
+          deferred.resolve({
+            data: {
+              value: {
+                type: 'RDFString',
+                value: '',
+              },
+            },
+          });
+          return deferred.promise;
+        });
 
     spyOn(grrReflectionService, 'getRDFValueDescriptor')
         .and.callFake((valueType) => {

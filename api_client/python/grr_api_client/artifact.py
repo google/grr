@@ -20,10 +20,12 @@ class Artifact(object):
 
 
 def ListArtifacts(
-    context: api_context.GrrApiContext) -> utils.ItemsIterator[Artifact]:
+    context: api_context.GrrApiContext,
+) -> utils.ItemsIterator[Artifact]:
   """Lists all registered Grr artifacts."""
   args = api_artifact_pb2.ApiListArtifactsArgs()
 
   items = context.SendIteratorRequest("ListArtifacts", args)
   return utils.MapItemsIterator(
-      lambda data: Artifact(data=data, context=context), items)
+      lambda data: Artifact(data=data, context=context), items
+  )

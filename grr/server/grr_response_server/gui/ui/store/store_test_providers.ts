@@ -46,14 +46,14 @@ export const STORE_PROVIDERS: Provider[] = [
   {provide: ApprovalCardLocalStore, useFactory: mockApprovalCardLocalStore},
   {
     provide: HuntApprovalPageGlobalStore,
-    useFactory: mockHuntApprovalPageGlobalStore
+    useFactory: mockHuntApprovalPageGlobalStore,
   },
   {provide: ClientDetailsGlobalStore, useFactory: mockClientDetailsGlobalStore},
   {provide: ClientPageGlobalStore, useFactory: mockClientPageGlobalStore},
   {provide: ClientSearchLocalStore, useFactory: mockClientSearchLocalStore},
   {
     provide: RecentClientFlowsLocalStore,
-    useFactory: mockRecentClientFlowsLocalStore
+    useFactory: mockRecentClientFlowsLocalStore,
   },
   {provide: ConfigGlobalStore, useFactory: mockConfigGlobalStore},
   {provide: FileDetailsLocalStore, useFactory: mockFileDetailsLocalStore},
@@ -63,7 +63,7 @@ export const STORE_PROVIDERS: Provider[] = [
   {provide: VfsViewLocalStore, useFactory: mockVfsViewLocalStore},
   {
     provide: SelectedClientGlobalStore,
-    useFactory: mockSelectedClientGlobalStore
+    useFactory: mockSelectedClientGlobalStore,
   },
   {provide: UserGlobalStore, useFactory: mockUserGlobalStore},
   {provide: NewHuntLocalStore, useFactory: mockNewHuntLocalStore},
@@ -82,12 +82,14 @@ export const STORE_PROVIDERS: Provider[] = [
 ];
 
 interface Constructor<ClassType> {
-  new(...args: never[]): ClassType;
+  new (...args: never[]): ClassType;
 }
 
 /** Injects the MockStore for the given Store class. */
 export function injectMockStore<T>(
-    cls: Constructor<T>, scope?: TestBed|DebugElement): MockStore<T> {
+  cls: Constructor<T>,
+  scope?: TestBed | DebugElement,
+): MockStore<T> {
   let mockStore: MockStore<T>;
   if (scope && (scope as DebugElement).injector) {
     mockStore = (scope as DebugElement).injector.get(cls) as MockStore<T>;
@@ -106,9 +108,9 @@ export function injectMockStore<T>(
 
     const type = mockStore?.constructor?.name ?? typeof mockStore;
 
-    throw new Error(`TestBed.inject(${cls.name}) returned ${val} of type ${
-        type}, which does not look like MockStore<${
-        cls.name}>. Did you register MockStore providers?`);
+    throw new Error(
+      `TestBed.inject(${cls.name}) returned ${val} of type ${type}, which does not look like MockStore<${cls.name}>. Did you register MockStore providers?`,
+    );
   }
 
   return mockStore;

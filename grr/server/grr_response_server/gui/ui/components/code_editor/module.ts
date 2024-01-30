@@ -5,15 +5,8 @@ import {CodeEditor} from './code_editor';
 
 /** Module for the CodeEditor component. */
 @NgModule({
-  imports: [
-    MatFormFieldModule,
-  ],
-  declarations: [
-    CodeEditor,
-  ],
-  exports: [
-    CodeEditor,
-  ],
+  imports: [MatFormFieldModule],
+  declarations: [CodeEditor],
+  exports: [CodeEditor],
 })
-export class CodeEditorModule {
-}
+export class CodeEditorModule {}

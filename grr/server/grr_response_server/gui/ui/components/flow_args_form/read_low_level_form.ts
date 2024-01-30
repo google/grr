@@ -3,7 +3,10 @@ import {FormControl, Validators} from '@angular/forms';
 import {Observable} from 'rxjs';
 import {filter, map, withLatestFrom} from 'rxjs/operators';
 
-import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {
+  ControlValues,
+  FlowArgumentForm,
+} from '../../components/flow_args_form/form_interface';
 import {ReadLowLevelArgs} from '../../lib/api/api_interfaces';
 import {isNonNull} from '../../lib/preconditions';
 import {toByteUnit} from '../form/byte_input/byte_conversion';
@@ -41,10 +44,11 @@ type Controls = ReturnType<typeof makeControls>;
   templateUrl: './read_low_level_form.ng.html',
   styleUrls: ['./read_low_level_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
-export class ReadLowLevelForm extends
-    FlowArgumentForm<ReadLowLevelArgs, Controls> {
+export class ReadLowLevelForm extends FlowArgumentForm<
+  ReadLowLevelArgs,
+  Controls
+> {
   override makeControls() {
     return makeControls();
   }
@@ -58,27 +62,31 @@ export class ReadLowLevelForm extends
   }
 
   private readonly lengthRawBytes$: Observable<number> = this.flowArgs$.pipe(
-      // byteInput is guaranteed to return a number.
-      // It uses `parseByteString` from ../form/byte_input/byte_conversion.
-      map(values => Number(values.length)),
-      filter(isNonNull),
+    // byteInput is guaranteed to return a number.
+    // It uses `parseByteString` from ../form/byte_input/byte_conversion.
+    map((values) => Number(values.length)),
+    filter(isNonNull),
   );
   private readonly offsetRawBytes$: Observable<number> = this.flowArgs$.pipe(
-      // byteInput is guaranteed to return a number.
-      // It uses `parseByteString` from ../form/byte_input/byte_conversion.
-      map(values => Number(values.offset)),
-      filter(isNonNull),
+    // byteInput is guaranteed to return a number.
+    // It uses `parseByteString` from ../form/byte_input/byte_conversion.
+    map((values) => Number(values.offset)),
+    filter(isNonNull),
   );
 
-  private readonly lengthBytesAndUnit$ =
-      this.lengthRawBytes$.pipe(map(rawBytes => toByteUnit(rawBytes, 'long')));
-  private readonly offsetBytesAndUnit$ =
-      this.offsetRawBytes$.pipe(map(rawBytes => toByteUnit(rawBytes, 'long')));
+  private readonly lengthBytesAndUnit$ = this.lengthRawBytes$.pipe(
+    map((rawBytes) => toByteUnit(rawBytes, 'long')),
+  );
+  private readonly offsetBytesAndUnit$ = this.offsetRawBytes$.pipe(
+    map((rawBytes) => toByteUnit(rawBytes, 'long')),
+  );
 
-  readonly lengthFormattedBytesAtUnit$ =
-      this.lengthBytesAndUnit$.pipe(map(([bytes]) => bytes.toLocaleString()));
-  readonly offsetFormattedBytesAtUnit$ =
-      this.offsetBytesAndUnit$.pipe(map(([bytes]) => bytes.toLocaleString()));
+  readonly lengthFormattedBytesAtUnit$ = this.lengthBytesAndUnit$.pipe(
+    map(([bytes]) => bytes.toLocaleString()),
+  );
+  readonly offsetFormattedBytesAtUnit$ = this.offsetBytesAndUnit$.pipe(
+    map(([bytes]) => bytes.toLocaleString()),
+  );
 
   readonly lengthUnit$ = this.lengthBytesAndUnit$.pipe(map(([, unit]) => unit));
   readonly offsetUnit$ = this.offsetBytesAndUnit$.pipe(map(([, unit]) => unit));
@@ -90,14 +98,16 @@ export class ReadLowLevelForm extends
    * emits `undefined`.
    */
   readonly lengthFormattedRawBytes$ = this.lengthFormattedBytesAtUnit$.pipe(
-      withLatestFrom(this.lengthRawBytes$),
-      map(([formattedBytesAtUnit, rawBytes]) =>
-              formatRawBytes(formattedBytesAtUnit, rawBytes)),
+    withLatestFrom(this.lengthRawBytes$),
+    map(([formattedBytesAtUnit, rawBytes]) =>
+      formatRawBytes(formattedBytesAtUnit, rawBytes),
+    ),
   );
   readonly offsetFormattedRawBytes$ = this.lengthFormattedBytesAtUnit$.pipe(
-      withLatestFrom(this.offsetRawBytes$),
-      map(([formattedBytesAtUnit, rawBytes]) =>
-              formatRawBytes(formattedBytesAtUnit, rawBytes)),
+    withLatestFrom(this.offsetRawBytes$),
+    map(([formattedBytesAtUnit, rawBytes]) =>
+      formatRawBytes(formattedBytesAtUnit, rawBytes),
+    ),
   );
 
   override convertFlowArgsToFormState(flowArgs: ReadLowLevelArgs) {

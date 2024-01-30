@@ -39,8 +39,9 @@ export class ExpandableHash {
   }
 
   get completeHashInformation(): string {
-    return this.hashesWithNames.map(({name, hash}) => `${name}: ${hash}`)
-        .join('\n');
+    return this.hashesWithNames
+      .map(({name, hash}) => `${name}: ${hash}`)
+      .join('\n');
   }
 
   get firstHashName() {

@@ -3,10 +3,24 @@ import 'codemirror/addon/hint/sql-hint.js';
 // Importing show-hint is needed for the autocomplete pop-up.
 import 'codemirror/addon/hint/show-hint.js';
 
-
 import {FocusMonitor} from '@angular/cdk/a11y';
-import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, forwardRef, HostBinding, Input, OnDestroy, ViewChild, ViewEncapsulation,} from '@angular/core';
-import {ControlValueAccessor, NG_VALUE_ACCESSOR, NgControl} from '@angular/forms';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  forwardRef,
+  HostBinding,
+  Input,
+  OnDestroy,
+  ViewChild,
+  ViewEncapsulation,
+} from '@angular/core';
+import {
+  ControlValueAccessor,
+  NG_VALUE_ACCESSOR,
+  NgControl,
+} from '@angular/forms';
 import {MatFormFieldControl} from '@angular/material/form-field';
 // tslint:disable-next-line:enforce-name-casing
 import * as CodeMirror from 'codemirror';
@@ -47,11 +61,16 @@ export enum HighlightMode {
       provide: MatFormFieldControl,
       useExisting: CodeEditor,
       multi: true,
-    }
+    },
   ],
 })
-export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
-                                   AfterViewInit, ControlValueAccessor {
+export class CodeEditor
+  implements
+    MatFormFieldControl<string>,
+    OnDestroy,
+    AfterViewInit,
+    ControlValueAccessor
+{
   private static uniqueNumber = 0;
 
   readonly ngOnDestroy = observeOnDestroy(this, () => {
@@ -70,7 +89,7 @@ export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
   get value() {
     return this.editorValue;
   }
-  set value(newValue: string|null) {
+  set value(newValue: string | null) {
     this.editorValue = newValue ?? '';
   }
 
@@ -94,7 +113,7 @@ export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
   placeholder = '';
 
   // not implemented
-  ngControl: NgControl|null = null;
+  ngControl: NgControl | null = null;
 
   // not implemented
   errorState = false;
@@ -132,21 +151,24 @@ export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
   private announceValueChanged: OnChangeFn = () => {};
 
   constructor(
-      private readonly focusMonitor: FocusMonitor,
-      private readonly rootElement: ElementRef<HTMLElement>,
+    private readonly focusMonitor: FocusMonitor,
+    private readonly rootElement: ElementRef<HTMLElement>,
   ) {
     this.id = `${this.controlType}-${CodeEditor.uniqueNumber}`;
     CodeEditor.uniqueNumber += 1;
 
-    focusMonitor.monitor(rootElement.nativeElement, true).subscribe(focused => {
-      this.focused = isNonNull(focused);
-      this.stateChanges.next();
-    });
+    focusMonitor
+      .monitor(rootElement.nativeElement, true)
+      .subscribe((focused) => {
+        this.focused = isNonNull(focused);
+        this.stateChanges.next();
+      });
 
-    this.editorValueChanges$.pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(() => {
-          this.stateChanges.next();
-        });
+    this.editorValueChanges$
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe(() => {
+        this.stateChanges.next();
+      });
   }
 
   focus() {
@@ -162,8 +184,7 @@ export class CodeEditor implements MatFormFieldControl<string>, OnDestroy,
   // not implemented
   setDescribedByIds(ids: string[]): void {}
 
-
-  writeValue(value: string|undefined|null): void {
+  writeValue(value: string | undefined | null): void {
     this.editorValue = value ?? '';
   }
 

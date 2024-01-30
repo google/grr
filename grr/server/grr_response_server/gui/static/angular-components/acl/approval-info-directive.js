@@ -93,6 +93,18 @@ const ApprovalInfoController = class {
           this.requestSent = true;
           this.statusMessage = 'This approval has already been granted!';
         }
+
+        const then =
+            Math.floor(
+                this.approvalObject['expiration_time_us'] / 1000000) * 1000;
+        const expirationRelativeDays = Math.round(
+            (then - Date.now()) / (1000 * 60 * 60 * 24));
+        const expirationRelative = expirationRelativeDays > 0 ?
+            `${expirationRelativeDays} days from now` :
+            `${Math.abs(expirationRelativeDays)} days ago`;
+
+        this.approvalObject['expirationRelative'] =
+            `${new Date(then).toISOString()} (${expirationRelative})`;
       }.bind(this));
     }
   }

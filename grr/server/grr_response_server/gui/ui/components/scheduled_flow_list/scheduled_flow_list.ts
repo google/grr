@@ -1,4 +1,14 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, HostBinding, Input, OnChanges, OnDestroy, OnInit, SimpleChanges} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  HostBinding,
+  Input,
+  OnChanges,
+  OnDestroy,
+  OnInit,
+  SimpleChanges,
+} from '@angular/core';
 import {map, takeUntil} from 'rxjs/operators';
 
 import {ScheduledFlow} from '../../lib/models/flow';
@@ -20,7 +30,7 @@ export class ScheduledFlowList implements OnInit, OnChanges, OnDestroy {
   readonly scheduledFlows$ = this.store.scheduledFlows$;
 
   readonly currentUsername$ = this.userGlobalStore.currentUser$.pipe(
-      map(user => user.name),
+    map((user) => user.name),
   );
 
   // Use Angular's [hidden] directive to hide this view until scheduled flows
@@ -31,20 +41,18 @@ export class ScheduledFlowList implements OnInit, OnChanges, OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
 
   constructor(
-      private readonly store: ScheduledFlowGlobalStore,
-      private readonly userGlobalStore: UserGlobalStore,
-      private readonly cdr: ChangeDetectorRef,
+    private readonly store: ScheduledFlowGlobalStore,
+    private readonly userGlobalStore: UserGlobalStore,
+    private readonly cdr: ChangeDetectorRef,
   ) {}
 
   ngOnInit() {
     this.scheduledFlows$
-        .pipe(
-            takeUntil(this.ngOnDestroy.triggered$),
-            )
-        .subscribe(scheduledFlows => {
-          this.isHidden = scheduledFlows.length === 0;
-          this.cdr.detectChanges();
-        });
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((scheduledFlows) => {
+        this.isHidden = scheduledFlows.length === 0;
+        this.cdr.detectChanges();
+      });
   }
 
   ngOnChanges(changes: SimpleChanges): void {

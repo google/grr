@@ -12,13 +12,11 @@ import {MatMenuModule} from '@angular/material/menu';
 import {DateTimeInput} from './date_time_input';
 import {DateTimeInputToggle} from './date_time_input_toggle';
 
-
-
 /** Module for GlobExpressionExplanation and related code. */
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     FormsModule,
@@ -30,16 +28,8 @@ import {DateTimeInputToggle} from './date_time_input_toggle';
     MatMenuModule,
     MatNativeDateModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    DateTimeInput,
-    DateTimeInputToggle,
-  ],
-  exports: [
-    DateTimeInput,
-    DateTimeInputToggle,
-  ],
+  declarations: [DateTimeInput, DateTimeInputToggle],
+  exports: [DateTimeInput, DateTimeInputToggle],
 })
-export class DateTimeInputModule {
-}
+export class DateTimeInputModule {}

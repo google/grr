@@ -18,8 +18,8 @@ from grr_response_server import sinks
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import administrative
+from grr_response_server.models import blobs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.sinks import test_lib as sinks_test_lib
 from grr.test_lib import db_test_lib
 from grr.test_lib import flow_test_lib
@@ -107,8 +107,7 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
     self.assertEmpty(data_store.REL_DB.ReadMessageHandlerRequests())
 
     # Check that the blob was written to the blob store.
-    self.assertTrue(
-        data_store.BLOBS.CheckBlobExists(rdf_objects.BlobID.FromBlobData(data)))
+    self.assertTrue(data_store.BLOBS.CheckBlobExists(blobs.BlobID.Of(data)))
 
   def testCrashReport(self):
     client_id = "C.1234567890123456"
@@ -119,7 +118,7 @@ class GRRFEServerTestRelational(flow_test_lib.FlowTestsBaseclass):
     # Make sure the event handler is present.
     self.assertTrue(administrative.ClientCrashHandler)
 
-    session_id = "%s/%s" % (client_id, flow_id)
+    session_id = rdfvalue.FlowSessionID(f"{client_id}/{flow_id}")
     status = rdf_flows.GrrStatus(
         status=rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED)
     messages = [

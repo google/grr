@@ -151,7 +151,7 @@
       <td>CPU limit per client:</td>
       <td>
         <app-copy-button
-          ><span> {{ convertToUnitTime(hunt.safetyLimits.perClientCpuLimit) }}</span>
+          ><span> {{ hunt.safetyLimits.perClientCpuLimit === BigInt(0) ? 'Unlimited' : convertToUnitTime(hunt.safetyLimits.perClientCpuLimit) }}</span>
         </app-copy-button>
       </td>
     </tr>
@@ -159,8 +159,11 @@
       <td>Network Limit per client:</td>
       <td>
         <app-copy-button>
-          <human-readable-size [size]="hunt.safetyLimits.perClientNetworkBytesLimit">
-          </human-readable-size>
+          <ng-container *ngIf="hunt.safetyLimits.perClientNetworkBytesLimit !== BigInt(0); else unlimited">
+            <human-readable-size [size]="hunt.safetyLimits.perClientNetworkBytesLimit">
+            </human-readable-size>
+          </ng-container>
+          <ng-template #unlimited>Unlimited</ng-template>
         </app-copy-button>
       </td>
     </tr>

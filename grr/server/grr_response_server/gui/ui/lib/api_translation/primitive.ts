@@ -1,16 +1,24 @@
-import {Any, DataBlob, Dict, DurationSeconds, KeyValue, RDFDatetime, RDFDatetimeSeconds} from '../../lib/api/api_interfaces';
+import {
+  Any,
+  DataBlob,
+  Dict,
+  DurationSeconds,
+  KeyValue,
+  RDFDatetime,
+  RDFDatetimeSeconds,
+} from '../../lib/api/api_interfaces';
 import {DateTime, Duration} from '../../lib/date_time';
 import {isNonNull} from '../../lib/preconditions';
 import {assertTruthy} from '../preconditions';
-
 
 /**
  * Constructs an API timestamp from a given DateTime object.
  *
  * @param apiTimestamp
  */
-export function createOptionalApiTimestamp(dateTime?: DateTime|null): string|
-    undefined {
+export function createOptionalApiTimestamp(
+  dateTime?: DateTime | null,
+): string | undefined {
   if (isNonNull(dateTime)) {
     return (dateTime.toMillis() * 1e3).toString();
   }
@@ -41,11 +49,15 @@ export function createDate(apiTimestamp: RDFDatetime): Date {
 export function createOptionalDate(apiTimestamp: undefined): undefined;
 export function createOptionalDate(apiTimestamp: ''): undefined;
 export function createOptionalDate(apiTimestamp: RDFDatetime): Date;
-export function createOptionalDate(apiTimestamp?: RDFDatetime): Date|undefined;
+export function createOptionalDate(
+  apiTimestamp?: RDFDatetime,
+): Date | undefined;
 
-export function createOptionalDate(apiTimestamp?: RDFDatetime): Date|undefined {
+export function createOptionalDate(
+  apiTimestamp?: RDFDatetime,
+): Date | undefined {
   if (!apiTimestamp) {
-    return undefined;  // Return undefined for undefined and empty string.
+    return undefined; // Return undefined for undefined and empty string.
   }
   return createDate(apiTimestamp);
 }
@@ -53,15 +65,19 @@ export function createOptionalDate(apiTimestamp?: RDFDatetime): Date|undefined {
 /**
  * Constructs a Date from a unixtime string with seconds precision.
  */
-export function createOptionalDateSeconds(timestampSeconds: undefined):
-    undefined;
-export function createOptionalDateSeconds(timestampSeconds: RDFDatetimeSeconds):
-    Date;
 export function createOptionalDateSeconds(
-    timestampSeconds?: RDFDatetimeSeconds): Date|undefined;
+  timestampSeconds: undefined,
+): undefined;
+export function createOptionalDateSeconds(
+  timestampSeconds: RDFDatetimeSeconds,
+): Date;
+export function createOptionalDateSeconds(
+  timestampSeconds?: RDFDatetimeSeconds,
+): Date | undefined;
 
 export function createOptionalDateSeconds(
-    timestampSeconds?: RDFDatetimeSeconds): Date|undefined {
+  timestampSeconds?: RDFDatetimeSeconds,
+): Date | undefined {
   if (!timestampSeconds) {
     return undefined;
   }
@@ -75,8 +91,9 @@ export function createOptionalDateSeconds(
 /**
  * Constructs a DateTime from a unixtime string.
  */
-export function createOptionalDateTime(apiTimestamp: RDFDatetime|
-                                       undefined): DateTime|undefined {
+export function createOptionalDateTime(
+  apiTimestamp: RDFDatetime | undefined,
+): DateTime | undefined {
   if (!apiTimestamp) {
     return undefined;
   }
@@ -84,12 +101,11 @@ export function createOptionalDateTime(apiTimestamp: RDFDatetime|
   return DateTime.fromJSDate(createDate(apiTimestamp));
 }
 
-
 /** Converts a Date to millseconds since unix epoch. */
 export function toOptionalMillis(date: undefined): undefined;
 export function toOptionalMillis(date: Date): number;
-export function toOptionalMillis(date?: Date): number|undefined;
-export function toOptionalMillis(date?: Date): number|undefined {
+export function toOptionalMillis(date?: Date): number | undefined;
+export function toOptionalMillis(date?: Date): number | undefined {
   return date?.getTime();
 }
 
@@ -110,24 +126,25 @@ export function createDuration(apiDuration: DurationSeconds): Duration {
 export function createOptionalDuration(apiDuration: DurationSeconds): undefined;
 export function createOptionalDuration(apiDuration: ''): undefined;
 export function createOptionalDuration(apiDuration: DurationSeconds): Duration;
-export function createOptionalDuration(apiDuration?: DurationSeconds): Duration|
-    undefined;
+export function createOptionalDuration(
+  apiDuration?: DurationSeconds,
+): Duration | undefined;
 
-export function createOptionalDuration(apiDuration?: DurationSeconds): Duration|
-    undefined {
+export function createOptionalDuration(
+  apiDuration?: DurationSeconds,
+): Duration | undefined {
   if (!apiDuration) {
-    return undefined;  // Return undefined for undefined and empty string.
+    return undefined; // Return undefined for undefined and empty string.
   }
   return createDuration(apiDuration);
 }
-
 
 /**
  * Creates an unknown object out of protobuf's any object.
  * Unknown is different from any as, unlike any, it has to be explicitly cast
  * to a type for any use.
  */
-export function createUnknownObject(anyObject?: Any): unknown|undefined {
+export function createUnknownObject(anyObject?: Any): unknown | undefined {
   if (!anyObject) {
     return undefined;
   }
@@ -171,7 +188,7 @@ export function decodeBase64ToString(data: string): string {
  * the provided number
  */
 export function leastSignificantByteToHex(number: number): string {
-  number = number & 0xFF;
+  number = number & 0xff;
 
   return number.toString(16).toUpperCase().padStart(2, '0');
 }
@@ -198,11 +215,13 @@ export function createIpv6Address(bytes: Uint8Array): string {
     return '';
   }
 
-  let ipString = `${leastSignificantByteToHex(bytes[0])}${
-      leastSignificantByteToHex(bytes[1])}`;
+  let ipString = `${leastSignificantByteToHex(
+    bytes[0],
+  )}${leastSignificantByteToHex(bytes[1])}`;
   for (let i = 2; i < 16; i += 2) {
-    ipString += `:${leastSignificantByteToHex(bytes[i])}${
-        leastSignificantByteToHex(bytes[i + 1])}`;
+    ipString += `:${leastSignificantByteToHex(
+      bytes[i],
+    )}${leastSignificantByteToHex(bytes[i + 1])}`;
   }
 
   return ipString;
@@ -233,9 +252,9 @@ export function translateDataBlob(blob: DataBlob): unknown {
   } else if (blob.float !== undefined) {
     return blob.float;
   } else if (blob.list !== undefined) {
-    return [...blob.list.content ?? []].map(translateDataBlob);
+    return [...(blob.list.content ?? [])].map(translateDataBlob);
   } else if (blob.set !== undefined) {
-    return new Set([...blob.set.content ?? []].map(translateDataBlob));
+    return new Set([...(blob.set.content ?? [])].map(translateDataBlob));
   } else if (blob.dict !== undefined) {
     return translateDict(blob.dict);
   } else {
@@ -244,19 +263,16 @@ export function translateDataBlob(blob: DataBlob): unknown {
 }
 
 function translateKeyValue({k, v}: KeyValue): [unknown, unknown] {
-  return [
-    translateDataBlob(k ?? {}),
-    translateDataBlob(v ?? {}),
-  ];
+  return [translateDataBlob(k ?? {}), translateDataBlob(v ?? {})];
 }
 
 /** Translates a RDF Dict into a JavaScript Map with native values. */
 export function translateDict(dict: Dict): ReadonlyMap<unknown, unknown> {
-  const keyvalues = [...dict.dat ?? []].map(translateKeyValue);
+  const keyvalues = [...(dict.dat ?? [])].map(translateKeyValue);
   return new Map(keyvalues);
 }
 
 /** Converts an optional numeric value to a bigint. */
-export function createOptionalBigInt(data?: string): bigint|undefined {
+export function createOptionalBigInt(data?: string): bigint | undefined {
   return isNonNull(data) ? BigInt(data) : data;
 }

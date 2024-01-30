@@ -1,5 +1,12 @@
-import {Component, ContentChild, EventEmitter, Input, Output, ViewChild} from '@angular/core';
-import {fakeAsync, TestBed, tick, waitForAsync} from '@angular/core/testing';
+import {
+  Component,
+  ContentChild,
+  EventEmitter,
+  Input,
+  Output,
+  ViewChild,
+} from '@angular/core';
+import {TestBed, fakeAsync, tick, waitForAsync} from '@angular/core/testing';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterTestingModule} from '@angular/router/testing';
@@ -12,10 +19,9 @@ import {TitleEditor, TitleEditorContent} from './title_editor';
 initTestEnvironment();
 
 @Component({
-  template:
-      `<title-editor [disabled]="disabled" (changed)="changed.emit($event)" #titleEditor>
+  template: `<title-editor [disabled]="disabled" (changed)="changed.emit($event)" #titleEditor>
                <h1 titleEditable>hello world</h1>
-             </title-editor>`
+             </title-editor>`,
 })
 class TestHostComponent {
   @Input() disabled = false;
@@ -27,27 +33,17 @@ class TestHostComponent {
 @Component({
   template: `<title-editor route="['foo']">
                     <h1 titleEditable>hello world with link</h1>
-                  </title-editor>`
+                  </title-editor>`,
 })
-class TestHostComponentWithLink {
-}
+class TestHostComponentWithLink {}
 
 describe('title-editor test', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            TitleEditorModule,
-            RouterTestingModule,
-          ],
-          declarations: [
-            TestHostComponent,
-            TestHostComponentWithLink,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, TitleEditorModule, RouterTestingModule],
+      declarations: [TestHostComponent, TestHostComponentWithLink],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('renders link', () => {
@@ -72,30 +68,29 @@ describe('title-editor test', () => {
   it('renders the content as if editor is disabled', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
-    expect(fixture.debugElement.nativeElement.textContent)
-        .toContain('hello world');
+    expect(fixture.debugElement.nativeElement.textContent).toContain(
+      'hello world',
+    );
     const buttonEl = fixture.debugElement.query(By.css('button')).nativeElement;
     expect(getComputedStyle(buttonEl).visibility).toEqual('hidden');
   });
 
-  it('hides the edit button during edit and focuses the value',
-     fakeAsync(() => {
-       const fixture = TestBed.createComponent(TestHostComponent);
-       const editatbleEl =
-           fixture.debugElement.query(By.css('h1')).nativeElement;
-       spyOn(editatbleEl, 'focus');
-       fixture.detectChanges();
+  it('hides the edit button during edit and focuses the value', fakeAsync(() => {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    const editatbleEl = fixture.debugElement.query(By.css('h1')).nativeElement;
+    spyOn(editatbleEl, 'focus');
+    fixture.detectChanges();
 
-       const button = fixture.debugElement.query(By.css('button'));
-       button.triggerEventHandler('click', new MouseEvent('click'));
-       tick(500);
-       fixture.detectChanges();
+    const button = fixture.debugElement.query(By.css('button'));
+    button.triggerEventHandler('click', new MouseEvent('click'));
+    tick(500);
+    fixture.detectChanges();
 
-       fixture.whenStable().then(() => {
-         expect(fixture.debugElement.query(By.css('button'))).toBeNull();
-         expect(editatbleEl.focus).toHaveBeenCalled();
-       });
-     }));
+    fixture.whenStable().then(() => {
+      expect(fixture.debugElement.query(By.css('button'))).toBeNull();
+      expect(editatbleEl.focus).toHaveBeenCalled();
+    });
+  }));
 
   it('saves the content on blur', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
@@ -121,8 +116,9 @@ describe('title-editor test', () => {
     fixture.detectChanges();
     expect(fixture.debugElement.query(By.css('.editing'))).toBeNull();
 
-    fixture.debugElement.query(By.css('.wrapper'))
-        .nativeElement.dispatchEvent(new Event('focus'));
+    fixture.debugElement
+      .query(By.css('.wrapper'))
+      .nativeElement.dispatchEvent(new Event('focus'));
     fixture.detectChanges();
     expect(fixture.debugElement.query(By.css('.editing'))).not.toBeNull();
   });

@@ -6,6 +6,7 @@ from absl import app
 from absl.testing import absltest
 
 from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
+from grr_response_core.lib.rdfvalues import mig_artifacts
 from grr_response_core.lib.util import temp
 from grr_response_server import artifact_registry as ar
 from grr_response_server import data_store
@@ -273,7 +274,7 @@ class ArtifactRegistryTest(absltest.TestCase):
     rel_db = data_store.REL_DB
 
     artifact = rdf_artifacts.Artifact(name="Foo")
-    rel_db.WriteArtifact(artifact)
+    rel_db.WriteArtifact(mig_artifacts.ToProtoArtifact(artifact))
 
     registry = ar.ArtifactRegistry()
     registry.ReloadDatastoreArtifacts()

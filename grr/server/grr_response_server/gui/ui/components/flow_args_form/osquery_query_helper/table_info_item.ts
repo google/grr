@@ -1,9 +1,12 @@
 import {Component, Input} from '@angular/core';
 
-import {Match, stringWithHighlightsFromMatch, StringWithHighlightsPart} from '../../../lib/fuzzy_matcher';
+import {
+  Match,
+  stringWithHighlightsFromMatch,
+  StringWithHighlightsPart,
+} from '../../../lib/fuzzy_matcher';
 
 import {type OsqueryTableSpec} from './osquery_table_specs';
-
 
 /** An item containing table info to display in the query helper menu */
 @Component({
@@ -22,18 +25,20 @@ export class TableInfoItem {
   }
 
   convertToHighlightedParts(
-      subject: string,
-      ): readonly StringWithHighlightsPart[] {
+    subject: string,
+  ): readonly StringWithHighlightsPart[] {
     const matchResult = this.matchMap?.get(subject);
 
     if (matchResult) {
       const stringWithHighlights = stringWithHighlightsFromMatch(matchResult);
       return stringWithHighlights.parts;
     } else {
-      return [{
-        value: subject,
-        highlight: false,
-      }];
+      return [
+        {
+          value: subject,
+          highlight: false,
+        },
+      ];
     }
   }
 

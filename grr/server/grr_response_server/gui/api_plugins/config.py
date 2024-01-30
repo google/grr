@@ -288,4 +288,6 @@ class ApiGetUiConfigHandler(api_call_handler_base.ApiCallHandler):
         profile_image_url=config.CONFIG["AdminUI.profile_image_url"],
         default_hunt_runner_args=rdf_hunts.HuntRunnerArgs(),
         client_warnings=config.CONFIG["AdminUI.client_warnings"],
+        default_access_duration_seconds=config.CONFIG["ACL.token_expiry"],
+        max_access_duration_seconds=config.CONFIG["ACL.token_max_expiry"],
     )

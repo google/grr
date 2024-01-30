@@ -13,11 +13,10 @@ import {MatTooltipModule} from '@angular/material/tooltip';
 
 import {OutputPluginsForm} from './output_plugins_form';
 
-
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     FormsModule,
@@ -32,14 +31,8 @@ import {OutputPluginsForm} from './output_plugins_form';
     MatTooltipModule,
     ReactiveFormsModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    OutputPluginsForm,
-  ],
-  exports: [
-    OutputPluginsForm,
-  ],
+  declarations: [OutputPluginsForm],
+  exports: [OutputPluginsForm],
 })
-export class OutputPluginsFormModule {
-}
+export class OutputPluginsFormModule {}

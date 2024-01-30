@@ -28,6 +28,7 @@ from grr_response_server import message_handlers
 from grr_response_server import notification
 from grr_response_server import server_stubs
 from grr_response_server.databases import db
+from grr_response_server.models import blobs as blob_models
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
@@ -145,7 +146,7 @@ class GetFileThroughRRG(flow_base.FlowBase):
       blob_ref = rdf_objects.BlobReference()
       blob_ref.offset = result.offset
       blob_ref.size = result.length
-      blob_ref.blob_id = rdf_objects.BlobID(result.blob_sha256)
+      blob_ref.blob_id = result.blob_sha256
 
       blob_refs.append(blob_ref)
 
@@ -299,10 +300,8 @@ class GetFile(flow_base.FlowBase):
     offset = 0
     for data, size in self.state.blobs:
       blob_refs.append(
-          rdf_objects.BlobReference(
-              offset=offset,
-              size=size,
-              blob_id=rdf_objects.BlobID.FromSerializedBytes(data)))
+          rdf_objects.BlobReference(offset=offset, size=size, blob_id=data)
+      )
       offset += size
 
     client_path = db.ClientPath.FromPathInfo(self.client_id, path_info)
@@ -903,14 +902,13 @@ class MultiGetFileLogic(object):
       return
 
     # Check what blobs we already have in the blob store.
-    blob_hashes = []
+    blob_ids = []
     for file_tracker in self.state.pending_files.values():
       for hash_response in file_tracker.get("hash_list", []):
-        blob_hashes.append(
-            rdf_objects.BlobID.FromSerializedBytes(hash_response.data))
+        blob_ids.append(blob_models.BlobID(hash_response.data))
 
     # This is effectively a BlobStore call.
-    existing_blobs = data_store.BLOBS.CheckBlobsExist(blob_hashes)
+    existing_blobs = data_store.BLOBS.CheckBlobsExist(blob_ids)
 
     self.state.blob_hashes_pending = 0
 
@@ -921,8 +919,7 @@ class MultiGetFileLogic(object):
         # Make sure we read the correct pathspec on the client.
         hash_response.pathspec = file_tracker["stat_entry"].pathspec
 
-        if existing_blobs[rdf_objects.BlobID.FromSerializedBytes(
-            hash_response.data)]:
+        if existing_blobs[blob_models.BlobID(hash_response.data)]:
           # If we have the data we may call our state directly.
           self.CallStateInline(
               messages=[hash_response],
@@ -971,10 +968,8 @@ class MultiGetFileLogic(object):
     for index in sorted(blob_dict):
       digest, size = blob_dict[index]
       blob_refs.append(
-          rdf_objects.BlobReference(
-              offset=offset,
-              size=size,
-              blob_id=rdf_objects.BlobID.FromSerializedBytes(digest)))
+          rdf_objects.BlobReference(offset=offset, size=size, blob_id=digest)
+      )
       offset += size
 
     hash_obj = file_tracker["hash_obj"]

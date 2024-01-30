@@ -97,8 +97,6 @@ class ActionPlugin(object):
 
   __abstract = True  # pylint: disable=invalid-name
 
-  require_fastpoll = True
-
   _PROGRESS_THROTTLE_INTERVAL = rdfvalue.Duration.From(2, rdfvalue.SECONDS)
 
   last_progress_time = rdfvalue.RDFDatetime.FromSecondsSinceEpoch(0)
@@ -139,8 +137,6 @@ class ActionPlugin(object):
                      rdf type.
     """
     self.message = message
-    if message:
-      self.require_fastpoll = message.require_fastpoll
 
     args = None
     try:
@@ -296,7 +292,7 @@ class ActionPlugin(object):
         request_id=request_id,
         message_type=message_type,
         task_id=self.message.Get("task_id") or None,
-        require_fastpoll=self.require_fastpoll)
+    )
 
     # If client actions sends replies, it's not dead, thus we should send
     # a heartbeat to Fleetspeak. This rule not apply to status messages,

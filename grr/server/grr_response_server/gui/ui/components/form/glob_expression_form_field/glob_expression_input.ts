@@ -1,9 +1,25 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, forwardRef, Input, ViewChild} from '@angular/core';
-import {ControlValueAccessor, NG_VALUE_ACCESSOR, UntypedFormControl} from '@angular/forms';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  forwardRef,
+  Input,
+  ViewChild,
+} from '@angular/core';
+import {
+  ControlValueAccessor,
+  NG_VALUE_ACCESSOR,
+  UntypedFormControl,
+} from '@angular/forms';
 import {BehaviorSubject, combineLatest} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
-import {type Client, getKnowledgeBaseExpressionExamples, KnowledgeBaseExample} from '../../../lib/models/client';
+import {
+  getKnowledgeBaseExpressionExamples,
+  KnowledgeBaseExample,
+  type Client,
+} from '../../../lib/models/client';
 
 type OnChangeFn = (value: string) => void;
 type OnTouchedFn = () => void;
@@ -18,7 +34,6 @@ function getSelectedGlobExpressionPart(text: string, cursor: number) {
   }
 }
 
-
 /** mat-form-field for GlobExpression inputs. */
 @Component({
   selector: 'app-glob-expression-input',
@@ -29,22 +44,23 @@ function getSelectedGlobExpressionPart(text: string, cursor: number) {
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => GlobExpressionInput),
-      multi: true
+      multi: true,
     },
   ],
 })
-export class GlobExpressionInput implements ControlValueAccessor,
-                                            AfterViewInit {
+export class GlobExpressionInput
+  implements ControlValueAccessor, AfterViewInit
+{
   onChange: OnChangeFn = () => {};
 
   private onTouched: OnTouchedFn = () => {};
 
-  readonly client$ = new BehaviorSubject<Client|null>(null);
+  readonly client$ = new BehaviorSubject<Client | null>(null);
 
   readonly formControl = new UntypedFormControl('');
 
   @Input()
-  set client(client: Client|null) {
+  set client(client: Client | null) {
     this.client$.next(client);
   }
 
@@ -55,31 +71,35 @@ export class GlobExpressionInput implements ControlValueAccessor,
   @ViewChild('input') input!: ElementRef<HTMLInputElement>;
 
   private readonly knowledgeBaseExamples$ = this.client$.pipe(
-      map(client => client ?
-              getKnowledgeBaseExpressionExamples(client.knowledgeBase) :
-              []));
+    map((client) =>
+      client ? getKnowledgeBaseExpressionExamples(client.knowledgeBase) : [],
+    ),
+  );
 
-  readonly filteredKnowledgeBaseExamples$ =
-      combineLatest([
-        this.knowledgeBaseExamples$,
-        this.formControl.valueChanges.pipe<string>(startWith(''))
-      ]).pipe(map(([examples, query]) => {
-        const cursorPosition =
-            this.input?.nativeElement.selectionStart ?? query.length;
-        const fragment = getSelectedGlobExpressionPart(query, cursorPosition)
-                             ?.toLocaleLowerCase();
+  readonly filteredKnowledgeBaseExamples$ = combineLatest([
+    this.knowledgeBaseExamples$,
+    this.formControl.valueChanges.pipe<string>(startWith('')),
+  ]).pipe(
+    map(([examples, query]) => {
+      const cursorPosition =
+        this.input?.nativeElement.selectionStart ?? query.length;
+      const fragment = getSelectedGlobExpressionPart(
+        query,
+        cursorPosition,
+      )?.toLocaleLowerCase();
 
-        if (fragment === undefined) {
-          return [];
-        }
+      if (fragment === undefined) {
+        return [];
+      }
 
-        const queryBefore =
-            query.slice(0, cursorPosition - fragment.length - 2);
-        const queryAfter = query.slice(cursorPosition);
+      const queryBefore = query.slice(0, cursorPosition - fragment.length - 2);
+      const queryAfter = query.slice(cursorPosition);
 
-        return examples.filter(e => e.key.includes(fragment))
-            .map(e => ({...e, value: queryBefore + e.key + queryAfter}));
-      }));
+      return examples
+        .filter((e) => e.key.includes(fragment))
+        .map((e) => ({...e, value: queryBefore + e.key + queryAfter}));
+    }),
+  );
 
   ngAfterViewInit() {
     this.input.nativeElement.addEventListener('input', () => {
@@ -90,7 +110,7 @@ export class GlobExpressionInput implements ControlValueAccessor,
     });
   }
 
-  writeValue(obj: string|undefined|null) {
+  writeValue(obj: string | undefined | null) {
     this.formControl.setValue(obj ?? '');
     // Allow early calls to writeValue before views have been initialized.
     if (this.input?.nativeElement) {

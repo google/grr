@@ -1,4 +1,11 @@
-import {EMPTY, ObservableInput, ObservedValueOf, OperatorFunction, pipe} from 'rxjs';
+// g3-format-changed-lines-during-prettier-version-upgrade
+import {
+  EMPTY,
+  ObservableInput,
+  ObservedValueOf,
+  OperatorFunction,
+  pipe,
+} from 'rxjs';
 import {concatMap, map, tap} from 'rxjs/operators';
 
 class NotImplementedError extends Error {}
@@ -21,18 +28,15 @@ class SingleIndexTracker implements RequestTracker<number> {
 }
 
 class ValueWithTag<V, T> {
-  constructor(
-      readonly value: V,
-      readonly tag: T,
-  ) {}
+  constructor(readonly value: V, readonly tag: T) {}
 }
 
 function tagByIndex<V>(indexTracker: SingleIndexTracker) {
   return pipe(
-      map((value: V, index) => new ValueWithTag(value, index)),
-      tap((valueWithTag: ValueWithTag<V, number>) => {
-        indexTracker.recordLastTag(valueWithTag.tag);
-      }),
+    map((value: V, index) => new ValueWithTag(value, index)),
+    tap((valueWithTag: ValueWithTag<V, number>) => {
+      indexTracker.recordLastTag(valueWithTag.tag);
+    }),
   );
 }
 
@@ -50,23 +54,25 @@ function tagByIndex<V>(indexTracker: SingleIndexTracker) {
  * - Currently only queue of size 1 is supported.
  */
 export function queuedExhaustMap<V, O extends ObservableInput<unknown>>(
-    project: (value: V, index: number) => O,
-    queueSize: 1 = 1): OperatorFunction<V, ObservedValueOf<O>> {
+  project: (value: V, index: number) => O,
+  queueSize: 1 = 1,
+): OperatorFunction<V, ObservedValueOf<O>> {
   if (queueSize !== 1) {
     throw new NotImplementedError(
-        'Queue size different than 1 is not implemented yet.');
+      'Queue size different than 1 is not implemented yet.',
+    );
   }
 
   const requestTracker = new SingleIndexTracker();
 
   return pipe(
-      tagByIndex(requestTracker),
-      concatMap((valueWithTag, index) => {
-        if (requestTracker.shouldProcess(valueWithTag.tag)) {
-          return project(valueWithTag.value, index);
-        } else {
-          return EMPTY;
-        }
-      }),
+    tagByIndex(requestTracker),
+    concatMap((valueWithTag, index) => {
+      if (requestTracker.shouldProcess(valueWithTag.tag)) {
+        return project(valueWithTag.value, index);
+      } else {
+        return EMPTY;
+      }
+    }),
   );
 }

@@ -8,19 +8,16 @@ import {AppModule} from './app_module';
 import {NotFoundPage} from './not_found_page';
 
 describe('NotFoundPage Component', () => {
-  beforeEach((() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            AppModule, RouterTestingModule,
-            NoopAnimationsModule,  // This makes test faster and more stable.
-          ],
-          providers: [
-            ...STORE_PROVIDERS,
-          ],
-        })
-        .compileComponents();
-  }));
+  beforeEach(() => {
+    TestBed.configureTestingModule({
+      imports: [
+        AppModule,
+        RouterTestingModule,
+        NoopAnimationsModule, // This makes test faster and more stable.
+      ],
+      providers: [...STORE_PROVIDERS],
+    }).compileComponents();
+  });
 
   it('should be created', () => {
     const fixture = TestBed.createComponent(NotFoundPage);

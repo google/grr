@@ -156,7 +156,10 @@ class ListDirectory(flow_base.FlowBase):
     """Issue a request to list the directory."""
     self.state.urn = None
 
-    if self.rrg_support:
+    if (
+        self.rrg_support
+        and self.args.pathspec.pathtype == rdf_paths.PathSpec.PathType.OS
+    ):
       args = rrg_get_file_metadata_pb2.Args()
       args.path.raw_bytes = self.args.pathspec.path.encode("utf-8")
 

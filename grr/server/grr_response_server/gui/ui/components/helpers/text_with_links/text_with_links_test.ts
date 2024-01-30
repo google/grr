@@ -7,16 +7,12 @@ import {initTestEnvironment} from '../../../testing';
 import {TextWithLinks} from './text_with_links';
 import {TextWithLinksModule} from './text_with_links_module';
 
-
 initTestEnvironment();
 
 describe('TextWithLinks Component', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [
-        NoopAnimationsModule,
-        TextWithLinksModule,
-      ],
+      imports: [NoopAnimationsModule, TextWithLinksModule],
     });
   });
 

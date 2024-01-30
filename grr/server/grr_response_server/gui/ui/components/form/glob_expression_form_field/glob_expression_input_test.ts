@@ -24,7 +24,7 @@ initTestEnvironment();
       </app-glob-expression-input>`,
 })
 class TestHostComponent {
-  client: Client|null = null;
+  client: Client | null = null;
   readonly formControl = new UntypedFormControl('');
 }
 
@@ -40,25 +40,20 @@ describe('app-glob-expression-input', () => {
       explain: jasmine.createSpy('explain'),
     };
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            GlobExpressionExplanationModule,
-            ReactiveFormsModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-          providers: [
-            ...STORE_PROVIDERS,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            ExplainGlobExpressionService,
-            {useFactory: () => explainGlobExpressionService})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        NoopAnimationsModule,
+        GlobExpressionExplanationModule,
+        ReactiveFormsModule,
+      ],
+      declarations: [TestHostComponent],
+      providers: [...STORE_PROVIDERS],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(ExplainGlobExpressionService, {
+        useFactory: () => explainGlobExpressionService,
+      })
+      .compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
@@ -83,84 +78,83 @@ describe('app-glob-expression-input', () => {
     expect(fixture.componentInstance.formControl.value).toEqual('/foo');
   });
 
-  it('shows autocomplete for KnowledgeBase entries when typing %%',
-     async () => {
-       fixture.componentInstance.client = newClient({
-         knowledgeBase: {
-           fqdn: 'foo.bar',
-           osMajorVersion: 10,
-           users: [{username: 'testuser'}]
-         }
-       });
-       fixture.detectChanges();
+  it('shows autocomplete for KnowledgeBase entries when typing %%', async () => {
+    fixture.componentInstance.client = newClient({
+      knowledgeBase: {
+        fqdn: 'foo.bar',
+        osMajorVersion: 10,
+        users: [{username: 'testuser'}],
+      },
+    });
+    fixture.detectChanges();
 
-       const loader = TestbedHarnessEnvironment.loader(fixture);
-       const harness = await loader.getHarness(MatAutocompleteHarness);
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const harness = await loader.getHarness(MatAutocompleteHarness);
 
-       await harness.enterText('/prefix/%');
-       expect(await harness.isOpen()).toBeFalse();
+    await harness.enterText('/prefix/%');
+    expect(await harness.isOpen()).toBeFalse();
 
-       await harness.enterText('/prefix/%%');
-       const options = await harness.getOptions();
-       expect(options.length).toEqual(3);
+    await harness.enterText('/prefix/%%');
+    const options = await harness.getOptions();
+    expect(options.length).toEqual(3);
 
-       expect(await options[0].getText()).toContain('%%fqdn%%');
-       expect(await options[0].getText()).toContain('foo.bar');
-       expect(await options[1].getText()).toContain('%%os_major_version%%');
-       expect(await options[1].getText()).toContain('10');
-       expect(await options[2].getText()).toContain('%%users.username%%');
-       expect(await options[2].getText()).toContain('testuser');
-     });
+    expect(await options[0].getText()).toContain('%%fqdn%%');
+    expect(await options[0].getText()).toContain('foo.bar');
+    expect(await options[1].getText()).toContain('%%os_major_version%%');
+    expect(await options[1].getText()).toContain('10');
+    expect(await options[2].getText()).toContain('%%users.username%%');
+    expect(await options[2].getText()).toContain('testuser');
+  });
 
-  it('inserts selected autocomplete option, retaining prefix text',
-     async () => {
-       fixture.componentInstance.client = newClient({
-         knowledgeBase: {
-           fqdn: 'foo.bar',
-           osMajorVersion: 10,
-           users: [{username: 'testuser'}]
-         }
-       });
-       fixture.detectChanges();
+  it('inserts selected autocomplete option, retaining prefix text', async () => {
+    fixture.componentInstance.client = newClient({
+      knowledgeBase: {
+        fqdn: 'foo.bar',
+        osMajorVersion: 10,
+        users: [{username: 'testuser'}],
+      },
+    });
+    fixture.detectChanges();
 
-       const loader = TestbedHarnessEnvironment.loader(fixture);
-       const harness = await loader.getHarness(MatAutocompleteHarness);
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const harness = await loader.getHarness(MatAutocompleteHarness);
 
-       await harness.enterText('/prefix/%%');
+    await harness.enterText('/prefix/%%');
 
-       const options = await harness.getOptions();
-       expect(options.length).toEqual(3);
-       expect(await options[2].getText()).toContain('%%users.username%%');
-       await options[2].click();
-       fixture.detectChanges();
+    const options = await harness.getOptions();
+    expect(options.length).toEqual(3);
+    expect(await options[2].getText()).toContain('%%users.username%%');
+    await options[2].click();
+    fixture.detectChanges();
 
-       expect(fixture.componentInstance.formControl.value)
-           .toEqual('/prefix/%%users.username%%');
-     });
+    expect(fixture.componentInstance.formControl.value).toEqual(
+      '/prefix/%%users.username%%',
+    );
+  });
 
-  it('inserts selected autocomplete option, retaining prefix text',
-     async () => {
-       fixture.componentInstance.client = newClient({
-         knowledgeBase: {
-           fqdn: 'foo.bar',
-           osMajorVersion: 10,
-           users: [{username: 'testuser'}]
-         }
-       });
-       fixture.detectChanges();
+  it('inserts selected autocomplete option, retaining prefix text', async () => {
+    fixture.componentInstance.client = newClient({
+      knowledgeBase: {
+        fqdn: 'foo.bar',
+        osMajorVersion: 10,
+        users: [{username: 'testuser'}],
+      },
+    });
+    fixture.detectChanges();
 
-       const loader = TestbedHarnessEnvironment.loader(fixture);
-       const harness = await loader.getHarness(MatAutocompleteHarness);
+    const loader = TestbedHarnessEnvironment.loader(fixture);
+    const harness = await loader.getHarness(MatAutocompleteHarness);
 
-       await harness.enterText('/prefix/%%');
+    await harness.enterText('/prefix/%%');
 
-       const options = await harness.getOptions();
-       expect(options.length).toEqual(3);
-       expect(await options[2].getText()).toContain('%%users.username%%');
-       await options[2].click();
-       fixture.detectChanges();
+    const options = await harness.getOptions();
+    expect(options.length).toEqual(3);
+    expect(await options[2].getText()).toContain('%%users.username%%');
+    await options[2].click();
+    fixture.detectChanges();
 
-       expect(fixture.componentInstance.formControl.value)
-           .toEqual('/prefix/%%users.username%%');
-     });
+    expect(fixture.componentInstance.formControl.value).toEqual(
+      '/prefix/%%users.username%%',
+    );
+  });
 });

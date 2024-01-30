@@ -6,29 +6,21 @@ import {initTestEnvironment} from '../../../testing';
 
 import {FileModeModule} from './file_mode_module';
 
-
 @Component({template: '{{ value | fileMode }}'})
 class TestHostComponent {
-  value: string|undefined;
+  value: string | undefined;
 }
 
 initTestEnvironment();
 
 describe('FileResultTable render()', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            FileModeModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, FileModeModule],
+      declarations: [TestHostComponent],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   function render(value?: string) {

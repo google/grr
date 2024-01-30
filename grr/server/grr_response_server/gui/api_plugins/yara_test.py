@@ -1,10 +1,10 @@
 #!/usr/bin/env python
-
 from absl.testing import absltest
 
 from grr_response_server import data_store
 from grr_response_server.gui import api_test_lib
 from grr_response_server.gui.api_plugins import yara as api_yara
+from grr_response_server.models import blobs
 from grr.test_lib import testing_startup
 
 
@@ -26,7 +26,7 @@ class ApiUploadYaraSignatureHandlerTest(api_test_lib.ApiCallHandlerTest):
     args.signature = signature
 
     blob_id = self.handler.Handle(args, context=self.context).blob_id
-    blob = data_store.BLOBS.ReadBlob(blob_id)
+    blob = data_store.BLOBS.ReadBlob(blobs.BlobID(blob_id))
 
     self.assertEqual(blob.decode("utf-8"), signature)
 
@@ -34,7 +34,8 @@ class ApiUploadYaraSignatureHandlerTest(api_test_lib.ApiCallHandlerTest):
     args = api_yara.ApiUploadYaraSignatureArgs()
     args.signature = "rule foo { condition: false };"
 
-    blob_id = self.handler.Handle(args, context=self.context).blob_id
+    blob_id_bytes = self.handler.Handle(args, context=self.context).blob_id
+    blob_id = blobs.BlobID(blob_id_bytes)
 
     self.assertTrue(data_store.REL_DB.VerifyYaraSignatureReference(blob_id))
 

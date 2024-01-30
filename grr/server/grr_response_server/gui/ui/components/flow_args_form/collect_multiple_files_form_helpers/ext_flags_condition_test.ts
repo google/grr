@@ -6,43 +6,48 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 
 import {FileFinderExtFlagsCondition} from '../../../lib/api/api_interfaces';
 import {newClient} from '../../../lib/models/model_test_util';
-import {getLinuxFlagMaskByNames, getOsxFlagMaskByNames} from '../../../lib/models/os_extended_flags';
+import {
+  getLinuxFlagMaskByNames,
+  getOsxFlagMaskByNames,
+} from '../../../lib/models/os_extended_flags';
 import {ClientPageGlobalStore} from '../../../store/client_page_global_store';
-import {ClientPageGlobalStoreMock, mockClientPageGlobalStore} from '../../../store/client_page_global_store_test_util';
+import {
+  ClientPageGlobalStoreMock,
+  mockClientPageGlobalStore,
+} from '../../../store/client_page_global_store_test_util';
 import {initTestEnvironment} from '../../../testing';
 
-import {ExtFlagsCondition, MaskCondition, updateFlagConditionsForOS} from './ext_flags_condition';
+import {
+  ExtFlagsCondition,
+  MaskCondition,
+  updateFlagConditionsForOS,
+} from './ext_flags_condition';
 import {HelpersModule} from './module';
 
 initTestEnvironment();
 
 describe('ExtFlagsCondition component', () => {
-  let control: ReturnType<typeof ExtFlagsCondition['createFormGroup']>;
+  let control: ReturnType<(typeof ExtFlagsCondition)['createFormGroup']>;
   let clientPageGlobalStore: ClientPageGlobalStoreMock;
 
   beforeEach(waitForAsync(() => {
     control = ExtFlagsCondition.createFormGroup();
     clientPageGlobalStore = mockClientPageGlobalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            HelpersModule,
-          ],
-          providers: [
-            {
-              provide: ControlContainer,
-              useFactory: () => ({control}),
-            },
-            {
-              provide: ClientPageGlobalStore,
-              useFactory: () => clientPageGlobalStore,
-            },
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, HelpersModule],
+      providers: [
+        {
+          provide: ControlContainer,
+          useFactory: () => ({control}),
+        },
+        {
+          provide: ClientPageGlobalStore,
+          useFactory: () => clientPageGlobalStore,
+        },
+      ],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('sets bits when clicking once on flag', async () => {
@@ -50,8 +55,9 @@ describe('ExtFlagsCondition component', () => {
     const loader = TestbedHarnessEnvironment.loader(fixture);
     fixture.detectChanges();
 
-    const button =
-        await loader.getHarness(MatButtonHarness.with({text: /nodump/}));
+    const button = await loader.getHarness(
+      MatButtonHarness.with({text: /nodump/}),
+    );
     await button.click();
 
     const expected: FileFinderExtFlagsCondition = {
@@ -69,8 +75,9 @@ describe('ExtFlagsCondition component', () => {
     const loader = TestbedHarnessEnvironment.loader(fixture);
     fixture.detectChanges();
 
-    const button =
-        await loader.getHarness(MatButtonHarness.with({text: /nodump/}));
+    const button = await loader.getHarness(
+      MatButtonHarness.with({text: /nodump/}),
+    );
     await button.click();
     await button.click();
 
@@ -89,8 +96,9 @@ describe('ExtFlagsCondition component', () => {
     const loader = TestbedHarnessEnvironment.loader(fixture);
     fixture.detectChanges();
 
-    const button =
-        await loader.getHarness(MatButtonHarness.with({text: /nodump/}));
+    const button = await loader.getHarness(
+      MatButtonHarness.with({text: /nodump/}),
+    );
     await button.click();
     await button.click();
     await button.click();
@@ -110,8 +118,9 @@ describe('ExtFlagsCondition component', () => {
     const loader = TestbedHarnessEnvironment.loader(fixture);
     fixture.detectChanges();
 
-    let button =
-        await loader.getHarness(MatButtonHarness.with({text: /nodump/}));
+    let button = await loader.getHarness(
+      MatButtonHarness.with({text: /nodump/}),
+    );
     await button.click();
 
     button = await loader.getHarness(MatButtonHarness.with({text: /opaque/}));
@@ -132,8 +141,9 @@ describe('ExtFlagsCondition component', () => {
     const loader = TestbedHarnessEnvironment.loader(fixture);
     fixture.detectChanges();
 
-    let button =
-        await loader.getHarness(MatButtonHarness.with({text: /nodump/}));
+    let button = await loader.getHarness(
+      MatButtonHarness.with({text: /nodump/}),
+    );
     await button.click();
 
     button = await loader.getHarness(MatButtonHarness.with({text: /opaque/}));
@@ -175,7 +185,8 @@ describe('ExtFlagsCondition component', () => {
   it('shows only macOS flags (not linux) if client is macOS', async () => {
     const fixture = TestBed.createComponent(ExtFlagsCondition);
     clientPageGlobalStore.mockedObservables.selectedClient$.next(
-        newClient({knowledgeBase: {os: 'Darwin'}}));
+      newClient({knowledgeBase: {os: 'Darwin'}}),
+    );
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('macOS');
@@ -187,7 +198,8 @@ describe('ExtFlagsCondition component', () => {
   it('shows only linux flags (not macOS) if client is linux', async () => {
     const fixture = TestBed.createComponent(ExtFlagsCondition);
     clientPageGlobalStore.mockedObservables.selectedClient$.next(
-        newClient({knowledgeBase: {os: 'Linux'}}));
+      newClient({knowledgeBase: {os: 'Linux'}}),
+    );
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).not.toContain('macOS');
@@ -199,7 +211,8 @@ describe('ExtFlagsCondition component', () => {
   it('shows both linux and macOS flags for other clients', async () => {
     const fixture = TestBed.createComponent(ExtFlagsCondition);
     clientPageGlobalStore.mockedObservables.selectedClient$.next(
-        newClient({knowledgeBase: {os: 'Windows'}}));
+      newClient({knowledgeBase: {os: 'Windows'}}),
+    );
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('macOS');
@@ -211,7 +224,8 @@ describe('ExtFlagsCondition component', () => {
   it('shows both linux and macOS flags for unknown clients', async () => {
     const fixture = TestBed.createComponent(ExtFlagsCondition);
     clientPageGlobalStore.mockedObservables.selectedClient$.next(
-        newClient({knowledgeBase: {os: undefined}}));
+      newClient({knowledgeBase: {os: undefined}}),
+    );
     fixture.detectChanges();
 
     expect(fixture.nativeElement.textContent).toContain('macOS');
@@ -227,7 +241,7 @@ describe('updateFlagConditionsForOS', () => {
       {
         name: 'test',
         identifier: 'test',
-        mask: 4,  // 100
+        mask: 4, // 100
         description: 'test',
         condition: 0,
       },
@@ -243,7 +257,7 @@ describe('updateFlagConditionsForOS', () => {
       {
         name: 'test',
         identifier: 'test',
-        mask: 2,  // 10
+        mask: 2, // 10
         description: 'test',
         condition: 0,
       },
@@ -259,14 +273,14 @@ describe('updateFlagConditionsForOS', () => {
       {
         name: 'test',
         identifier: 'test',
-        mask: 17,  // 10001
+        mask: 17, // 10001
         description: 'test',
         condition: 0,
       },
       {
         name: 'test',
         identifier: 'test',
-        mask: 1,  // 1
+        mask: 1, // 1
         description: 'test',
         condition: 0,
       },
@@ -278,42 +292,42 @@ describe('updateFlagConditionsForOS', () => {
     expect(testFlags[1].condition).toEqual(MaskCondition.REQUIRE_SET);
   });
 
-  it('should set the condition of elements with a bit mask of 32 to 5 (there are none)',
-     () => {
-       const testFlags = [
-         {
-           name: 'test',
-           identifier: 'test',
-           mask: 2,  // 10
-           description: 'test',
-           condition: 0,
-         },
-         {
-           name: 'test',
-           identifier: 'test',
-           mask: 17,  // 10001
-           description: 'test',
-           condition: 0,
-         },
-         {
-           name: 'test',
-           identifier: 'test',
-           mask: 4,  // 100
-           description: 'test',
-           condition: 0,
-         },
-         {
-           name: 'test',
-           identifier: 'test',
-           mask: 1,  // 1
-           description: 'test',
-           condition: 0,
-         },
-       ];
+  it('should set the condition of elements with a bit mask of 32 to 5 (there are none)', () => {
+    const testFlags = [
+      {
+        name: 'test',
+        identifier: 'test',
+        mask: 2, // 10
+        description: 'test',
+        condition: 0,
+      },
+      {
+        name: 'test',
+        identifier: 'test',
+        mask: 17, // 10001
+        description: 'test',
+        condition: 0,
+      },
+      {
+        name: 'test',
+        identifier: 'test',
+        mask: 4, // 100
+        description: 'test',
+        condition: 0,
+      },
+      {
+        name: 'test',
+        identifier: 'test',
+        mask: 1, // 1
+        description: 'test',
+        condition: 0,
+      },
+    ];
 
-       updateFlagConditionsForOS(testFlags, 32, MaskCondition.REQUIRE_SET);
+    updateFlagConditionsForOS(testFlags, 32, MaskCondition.REQUIRE_SET);
 
-       expect(testFlags.find(f => f.condition === MaskCondition.REQUIRE_SET))
-           .toBeUndefined();
-     });
+    expect(
+      testFlags.find((f) => f.condition === MaskCondition.REQUIRE_SET),
+    ).toBeUndefined();
+  });
 });

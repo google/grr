@@ -67,8 +67,9 @@ class ReadLowLevel(flow_base.FlowBase):
           rdf_objects.BlobReference(
               offset=response.blob.offset,
               size=response.blob.length,
-              blob_id=rdf_objects.BlobID.FromSerializedBytes(
-                  response.blob.data)))
+              blob_id=response.blob.data,
+          )
+      )
 
     if file_size < self.args.length:
       self.Log(f"Read less bytes than requested ({file_size} < "

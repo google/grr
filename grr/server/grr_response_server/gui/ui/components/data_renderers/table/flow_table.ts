@@ -43,7 +43,9 @@ import {DataTableView} from './table';
 export class FlowDataTableView<T> extends DataTableView<T> {
   protected override getPayloadTypeTranslation(type: string) {
     const translation =
-        FLOW_PAYLOAD_TYPE_TRANSLATION[type as keyof typeof FLOW_PAYLOAD_TYPE_TRANSLATION];
+      FLOW_PAYLOAD_TYPE_TRANSLATION[
+        type as keyof typeof FLOW_PAYLOAD_TYPE_TRANSLATION
+      ];
 
     // If there is no "Flow" definition for the Payload Type translation,
     // we fall back to the "Hunt" translation:

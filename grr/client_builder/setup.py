@@ -14,19 +14,21 @@ os.chdir(THIS_DIRECTORY)
 
 
 def get_config():
-  """Get INI parser with version.ini data."""
-  ini_path = os.path.join(THIS_DIRECTORY, "version.ini")
+  """Get relative path to version.ini file and the INI parser with its data."""
+  rel_ini_path = "version.ini"
+  ini_path = os.path.join(THIS_DIRECTORY, rel_ini_path)
   if not os.path.exists(ini_path):
-    ini_path = os.path.join(THIS_DIRECTORY, "../../version.ini")
+    rel_ini_path = os.path.join("..", "..", "version.ini")
+    ini_path = os.path.join(THIS_DIRECTORY, rel_ini_path)
     if not os.path.exists(ini_path):
       raise RuntimeError("Couldn't find version.ini")
 
   config = configparser.ConfigParser()
   config.read(ini_path)
-  return config
+  return rel_ini_path, config
 
 
-VERSION = get_config()
+REL_INI_PATH, VERSION = get_config()
 
 
 class Sdist(sdist):
@@ -41,7 +43,7 @@ class Sdist(sdist):
         os.path.join(THIS_DIRECTORY, "../../version.ini"), sdist_version_ini)
 
 
-data_files = ["version.ini"]
+data_files = [REL_INI_PATH]
 
 setup_args = dict(
     name="grr-response-client-builder",
@@ -67,7 +69,7 @@ setup_args = dict(
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "fleetspeak-client-bin==0.1.13",
         "olefile==0.46",
-        "PyInstaller==5.8.0",
+        "PyInstaller==5.13.2",
     ],
     # Data files used by GRR. Access these via the config_lib "resource" filter.
     data_files=data_files,

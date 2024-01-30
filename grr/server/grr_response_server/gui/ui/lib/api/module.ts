@@ -1,4 +1,8 @@
-import {HTTP_INTERCEPTORS, HttpClientModule, HttpClientXsrfModule} from '@angular/common/http';
+import {
+  HTTP_INTERCEPTORS,
+  HttpClientModule,
+  HttpClientXsrfModule,
+} from '@angular/common/http';
 import {NgModule} from '@angular/core';
 import {MatSnackBarModule} from '@angular/material/snack-bar';
 
@@ -11,11 +15,12 @@ import {HttpApiService, WithCredentialsInterceptor} from './http_api_service';
  */
 @NgModule({
   providers: [
-    HttpApiService, {
+    HttpApiService,
+    {
       provide: HTTP_INTERCEPTORS,
       useClass: WithCredentialsInterceptor,
-      multi: true
-    }
+      multi: true,
+    },
   ],
   imports: [
     HttpClientModule,
@@ -28,7 +33,5 @@ import {HttpApiService, WithCredentialsInterceptor} from './http_api_service';
 
     ErrorSnackBarModule,
   ],
-
 })
-export class ApiModule {
-}
+export class ApiModule {}

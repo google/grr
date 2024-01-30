@@ -3,10 +3,10 @@
 
 from absl import app
 
-from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_server import client_index
 from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
+from grr_response_server.rdfvalues import mig_objects
 from grr.test_lib import hunt_test_lib
 from grr.test_lib import test_lib
 
@@ -32,13 +32,14 @@ class TestClientSearch(gui_test_lib.SearchClientTestBase,
                         u"common_test_label")
 
     snapshot = data_store.REL_DB.ReadClientSnapshot(self.client_ids[0])
-    snapshot.knowledge_base.users.Append(
-        rdf_client.User(username="sample_user"))
-    snapshot.knowledge_base.users.Append(
-        rdf_client.User(username=self.test_username))
+    snapshot.knowledge_base.users.add(username="sample_user")
+    snapshot.knowledge_base.users.add(username=self.test_username)
     data_store.REL_DB.WriteClientSnapshot(snapshot)
     client_index.ClientIndex().AddClient(
-        data_store.REL_DB.ReadClientSnapshot(self.client_ids[0]))
+        mig_objects.ToRDFClientSnapshot(
+            data_store.REL_DB.ReadClientSnapshot(self.client_ids[0])
+        )
+    )
 
   def _WaitForSearchResults(self, target_count):
     self.WaitUntil(self.IsElementPresent, "css=grr-clients-list")

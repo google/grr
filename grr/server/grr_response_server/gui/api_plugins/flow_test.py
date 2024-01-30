@@ -26,6 +26,7 @@ from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr_response_core.lib.util import precondition
 from grr_response_core.lib.util import temp
+from grr_response_proto import objects_pb2
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import file_store
@@ -45,7 +46,7 @@ from grr_response_server.gui.api_plugins import flow as flow_plugin
 from grr_response_server.output_plugins import test_plugins
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import fleetspeak_test_lib
@@ -468,11 +469,13 @@ class ApiListFlowResultsHandlerTest(test_lib.GRRBaseTest):
     self.assertLen(foo_result.items, 1)
     self.assertEqual(foo_result.items[0].tag, "tag:foo")
 
+    # Filtering by a stringified number is going to fail, as we match against
+    # payload protobufs in their serialized protobuf form, meaning that integers
+    # are going to be serialized as varints and not as unicode strings.
     bar_result = self.handler.Handle(
         flow_plugin.ApiListFlowResultsArgs(
             client_id=self.client_id, flow_id=self.flow_id, filter="42"))
-    self.assertLen(bar_result.items, 1)
-    self.assertEqual(bar_result.items[0].tag, "tag:bar")
+    self.assertEmpty(bar_result.items)
 
   def testReturnsNothingWhenFilteringByNonExistingTag(self):
     result = self.handler.Handle(
@@ -574,7 +577,7 @@ class ApiListFlowApplicableParsersHandler(absltest.TestCase):
     flow_result.client_id = client_id
     flow_result.flow_id = flow_id
     flow_result.tag = "artifact:Fake"
-    db.WriteFlowResults([flow_result])
+    db.WriteFlowResults([mig_flow_objects.ToProtoFlowResult(flow_result)])
 
     args = flow_plugin.ApiListFlowApplicableParsersArgs()
     args.client_id = client_id
@@ -604,7 +607,7 @@ class ApiListFlowApplicableParsersHandler(absltest.TestCase):
     flow_result.flow_id = flow_id
     flow_result.tag = "artifact:Fake"
     flow_result.payload = rdfvalue.RDFString("foobar")
-    db.WriteFlowResults([flow_result])
+    db.WriteFlowResults([mig_flow_objects.ToProtoFlowResult(flow_result)])
 
     args = flow_plugin.ApiListFlowApplicableParsersArgs()
     args.client_id = client_id
@@ -827,7 +830,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
 
     # This is the snapshot that is visible to the flow and should be used for
     # parsing results.
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.os = "redox"
     db.WriteClientSnapshot(snapshot)
@@ -867,7 +870,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
 
     # This is a snapshot written to the database after the responses were
     # collected, so this should not be used for parsing.
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.os = "linux"
     db.WriteClientSnapshot(snapshot)
@@ -892,7 +895,7 @@ class ApiListParsedFlowResultsHandlerTest(absltest.TestCase):
     context = _CreateContext(db)
     client_id = db_test_utils.InitializeClient(db)
 
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.os = "redox"
     db.WriteClientSnapshot(snapshot)
@@ -1022,9 +1025,9 @@ class ApiApiExplainGlobExpressionHandlerTest(absltest.TestCase):
     context = _CreateContext(db)
     client_id = db_test_utils.InitializeClient(db)
 
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
-    snapshot.knowledge_base.users = [rdf_client.User(homedir="/home/foo")]
+    snapshot.knowledge_base.users.add(homedir="/home/foo")
     db.WriteClientSnapshot(snapshot)
 
     handler = flow_plugin.ApiExplainGlobExpressionHandler()

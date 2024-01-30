@@ -8,7 +8,9 @@ from grr_response_server import data_store
 from grr_response_server import flow
 from grr_response_server import hunt
 from grr_response_server import message_handlers
+from grr_response_server import mig_foreman_rules
 from grr_response_server.databases import db
+from grr_response_server.rdfvalues import mig_objects
 
 
 class Error(Exception):
@@ -80,7 +82,7 @@ class Foreman(object):
 
   def _GetLastForemanRunTime(self, client_id):
     md = data_store.REL_DB.ReadClientMetadata(client_id)
-    return md.last_foreman_time or rdfvalue.RDFDatetime(0)
+    return rdfvalue.RDFDatetime(md.last_foreman_time)
 
   def _SetLastForemanRunTime(self, client_id, latest_rule):
     data_store.REL_DB.WriteClientMetadata(client_id, last_foreman=latest_rule)
@@ -94,7 +96,10 @@ class Foreman(object):
     Returns:
       Number of assigned tasks.
     """
-    rules = data_store.REL_DB.ReadAllForemanRules()
+    proto_rules = data_store.REL_DB.ReadAllForemanRules()
+    rules = [
+        mig_foreman_rules.ToRDFForemanCondition(cond) for cond in proto_rules
+    ]
     if not rules:
       return 0
 
@@ -102,25 +107,20 @@ class Foreman(object):
 
     latest_rule_creation_time = max(rule.creation_time for rule in rules)
 
-    if latest_rule_creation_time <= last_foreman_run:
-      return 0
-
-    # Update the latest checked rule on the client.
-    self._SetLastForemanRunTime(client_id, latest_rule_creation_time)
+    if latest_rule_creation_time > last_foreman_run:
+      # Update the latest checked rule on the client.
+      self._SetLastForemanRunTime(client_id, latest_rule_creation_time)
 
     relevant_rules = []
-    expired_rules = False
+    expired_rules = []
 
     now = rdfvalue.RDFDatetime.Now()
 
     for rule in rules:
       if rule.expiration_time < now:
-        expired_rules = True
-        continue
-      if rule.creation_time <= last_foreman_run:
-        continue
-
-      relevant_rules.append(rule)
+        expired_rules.append(rule)
+      elif rule.creation_time > last_foreman_run:
+        relevant_rules.append(rule)
 
     actions_count = 0
     if relevant_rules:
@@ -128,11 +128,14 @@ class Foreman(object):
       if client_data is None:
         return
 
+      client_data = mig_objects.ToRDFClientFullInfo(client_data)
       for rule in relevant_rules:
         if rule.Evaluate(client_data):
           actions_count += self._RunAction(rule, client_id)
 
     if expired_rules:
+      for rule in expired_rules:
+        hunt.CompleteHuntIfExpirationTimeReached(rule.hunt_id)
       data_store.REL_DB.RemoveExpiredForemanRules()
 
     return actions_count

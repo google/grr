@@ -6,9 +6,9 @@ from absl import app
 
 from grr_response_core import config
 from grr_response_core.lib.rdfvalues import client as rdf_client
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_server import email_alerts
 from grr_response_server.output_plugins import email_plugin
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -36,7 +36,10 @@ class EmailOutputPluginTest(flow_test_lib.FlowTestsBaseclass):
     messages = []
     for response in responses:
       messages.append(
-          rdf_flows.GrrMessage(source=self.client_id, payload=response))
+          rdf_flow_objects.FlowResult(
+              client_id=self.client_id, payload=response
+          )
+      )
 
     def SendEmail(address, sender, title, message, **_):
       self.email_messages.append(

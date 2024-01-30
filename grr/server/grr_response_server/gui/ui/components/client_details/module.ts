@@ -25,7 +25,7 @@ import {VolumesDetailsModule} from './volumes_details/module';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     CopyButtonModule,
@@ -44,14 +44,8 @@ import {VolumesDetailsModule} from './volumes_details/module';
     UsersDetailsModule,
     VolumesDetailsModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ClientDetails,
-  ],
-  exports: [
-    ClientDetails,
-  ]
+  declarations: [ClientDetails],
+  exports: [ClientDetails],
 })
-export class ClientDetailsModule {
-}
+export class ClientDetailsModule {}

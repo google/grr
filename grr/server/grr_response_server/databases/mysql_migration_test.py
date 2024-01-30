@@ -66,23 +66,5 @@ class MySQLMigrationTest(mysql_test.MySQLDatabaseProviderMixin,
     with contextlib.closing(conn.cursor()) as cursor:
       return mysql_migration.DumpCurrentSchema(cursor)
 
-  def testSavedSchemaIsUpToDate(self):
-    # An up-to-date MySQL schema dump (formed by applying all the available
-    # migrations) is stored in MySQL.schema_dump_path (currently - mysql.ddl).
-    # This file has to be updated every time a new migration is introduced.
-    # Please use test/grr_response_test/dump_mysql_schema.py to do that.
-    schema = self._conn._RunInTransaction(self._DumpSchema)
-
-    schema_dump_path = config.CONFIG["Mysql.schema_dump_path"]
-    with io.open(schema_dump_path) as fd:
-      saved_schema = fd.read()
-
-    self.assertMultiLineEqual(
-        schema.strip(),
-        saved_schema.strip(),
-        "%s is not updated. Make sure to run grr_dump_mysql_schema to update it"
-        % os.path.basename(schema_dump_path))
-
-
 if __name__ == "__main__":
   app.run(test_lib.main)

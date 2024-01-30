@@ -11,7 +11,7 @@ import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class TextWithLinks {
-  @Input() text?: string|null = '';
+  @Input() text?: string | null = '';
 
   /**
    * Splits whitespace-separated text into an array, preserving whitespaces.

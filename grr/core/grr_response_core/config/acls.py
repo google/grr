@@ -19,6 +19,15 @@ config_lib.DEFINE_string(
     "class that understands your LDAP/AD/whatever setup.")
 
 config_lib.DEFINE_integer(
-    "ACL.token_expiry", 28 * 24 * 60 * 60,
-    "The duration in seconds of a valid approval token. "
-    "Default of one week.")
+    "ACL.token_expiry",
+    28 * 24 * 60 * 60,
+    "The default duration in seconds of a valid approval token. "
+    "Default of four weeks.",
+)
+
+config_lib.DEFINE_integer(
+    "ACL.token_max_expiry",
+    367 * 24 * 60 * 60,
+    "The maximum duration in seconds of a valid approval token. "
+    "Default 1 leap year and 1 day.",
+)

@@ -1,14 +1,21 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, EventEmitter, Input, Output, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+  ViewChild,
+} from '@angular/core';
 import {MatSort} from '@angular/material/sort';
 import {MatTableDataSource} from '@angular/material/table';
-import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
+import {BehaviorSubject, Observable, combineLatest} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {RegistryKey, RegistryValue} from '../../../lib/models/flow';
 import {isNonNull} from '../../../lib/preconditions';
 
-
-type RegistryRow = RegistryKey|RegistryValue;
+type RegistryRow = RegistryKey | RegistryValue;
 
 function isRegistryValue(row: RegistryRow): row is RegistryValue {
   return row.type !== 'REG_KEY';
@@ -32,35 +39,37 @@ export class RegistryResultsTable implements AfterViewInit {
   readonly dataSource = new MatTableDataSource<RegistryRow>();
   @ViewChild(MatSort) sort!: MatSort;
 
-  readonly totalCount$ = new BehaviorSubject<number|null>(null);
+  readonly totalCount$ = new BehaviorSubject<number | null>(null);
 
   readonly displayedColumns$: Observable<readonly string[]> =
-      this.results$.pipe(map(results => {
+    this.results$.pipe(
+      map((results) => {
         if (hasRegistryValue(results)) {
           return ['path', 'type', 'size'];
         } else {
           return ['path', 'type'];
         }
-      }));
+      }),
+    );
 
   /**
    * Subject indicating whether a "Load more" button has to be shown.
    */
-  shouldShowLoadMoreButton$: Observable<boolean> =
-      combineLatest([this.results$, this.totalCount$])
-          .pipe(
-              map(([results, count]) =>
-                      isNonNull(count) && results.length < count),
-          );
+  shouldShowLoadMoreButton$: Observable<boolean> = combineLatest([
+    this.results$,
+    this.totalCount$,
+  ]).pipe(
+    map(([results, count]) => isNonNull(count) && results.length < count),
+  );
 
   @Input()
-  set results(value: readonly RegistryRow[]|null) {
+  set results(value: readonly RegistryRow[] | null) {
     this.results$.next(value ?? []);
     this.dataSource.data = (value ?? []) as RegistryRow[];
   }
 
   @Input()
-  set totalCount(value: number|null) {
+  set totalCount(value: number | null) {
     this.totalCount$.next(value);
   }
 

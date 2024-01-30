@@ -2,6 +2,7 @@ import {CommonModule} from '@angular/common';
 import {NgModule} from '@angular/core';
 import {MatButtonModule} from '@angular/material/button';
 import {MatCardModule} from '@angular/material/card';
+import {MatChipsModule} from '@angular/material/chips';
 import {MatIconModule} from '@angular/material/icon';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
 import {MatSidenavModule} from '@angular/material/sidenav';
@@ -12,6 +13,7 @@ import {ClientOverviewModule} from '../client_overview/module';
 import {DrawerLinkModule} from '../helpers/drawer_link/drawer_link_module';
 import {TextWithLinksModule} from '../helpers/text_with_links/text_with_links_module';
 import {ScheduledFlowListModule} from '../scheduled_flow_list/module';
+import {TimestampModule} from '../timestamp/module';
 import {UserImageModule} from '../user_image/module';
 
 import {ApprovalPage} from './approval_page';
@@ -19,7 +21,7 @@ import {ApprovalPage} from './approval_page';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ClientDetailsModule,
     ClientOverviewModule,
@@ -27,22 +29,18 @@ import {ApprovalPage} from './approval_page';
     DrawerLinkModule,
     MatButtonModule,
     MatCardModule,
+    MatChipsModule,
     MatIconModule,
     MatProgressSpinnerModule,
     MatSidenavModule,
     RouterModule,
     ScheduledFlowListModule,
     TextWithLinksModule,
+    TimestampModule,
     UserImageModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ApprovalPage,
-  ],
-  exports: [
-    ApprovalPage,
-  ]
+  declarations: [ApprovalPage],
+  exports: [ApprovalPage],
 })
-export class ApprovalPageModule {
-}
+export class ApprovalPageModule {}

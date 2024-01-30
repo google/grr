@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 """Module containing code for user notifications reading/writing."""
+from typing import Optional
 
 from grr_response_server import access_control
 from grr_response_server import data_store
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -22,7 +24,13 @@ def _HostPrefix(client_id):
     return ""
 
 
-def Notify(username, notification_type, message, object_reference):
+# TODO: Use protos in this signature instead.
+def Notify(
+    username: str,
+    notification_type: rdf_objects.UserNotification.Type,
+    message: str,
+    object_reference: Optional[rdf_objects.ObjectReference],
+) -> None:
   """Schedules a new-style REL_DB user notification."""
 
   # Do not try to notify system users (e.g. Cron).
@@ -40,4 +48,5 @@ def Notify(username, notification_type, message, object_reference):
       state=rdf_objects.UserNotification.State.STATE_PENDING,
       message=message,
       reference=object_reference)
-  data_store.REL_DB.WriteUserNotification(n)
+  proto_n = mig_objects.ToProtoUserNotification(n)
+  data_store.REL_DB.WriteUserNotification(proto_n)

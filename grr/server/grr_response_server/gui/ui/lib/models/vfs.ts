@@ -10,8 +10,8 @@ export declare interface File {
   readonly stat?: StatEntry;
   readonly hash?: HexHash;
   readonly lastContentCollected?: {
-    timestamp: Date,
-    size: bigint,
+    timestamp: Date;
+    size: bigint;
   };
   readonly lastMetadataCollected: Date;
 }
@@ -33,8 +33,6 @@ export enum PathSpecPathType {
   TMPFILE = 'TMPFILE',
   NTFS = 'NTFS',
 }
-
-
 
 /**
  * A PathSpec without PathSpec.nestedPath children. The top-most PathSpec

@@ -7,6 +7,7 @@ from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_server import data_store
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import flow_test_lib
 from grr.test_lib import test_lib
 
@@ -29,10 +30,15 @@ class TestFlowResults(gui_test_lib.GRRSeleniumTest):
     response = rdf_client_action.ExecuteResponse(
         stderr=stderr.encode("utf-8"), stdout=stdout.encode("utf-8"))
 
-    data_store.REL_DB.WriteFlowResults([
-        rdf_flow_objects.FlowResult(
-            client_id=self.client_id, flow_id=flow_id, payload=response)
-    ])
+    data_store.REL_DB.WriteFlowResults(
+        [
+            mig_flow_objects.ToProtoFlowResult(
+                rdf_flow_objects.FlowResult(
+                    client_id=self.client_id, flow_id=flow_id, payload=response
+                )
+            )
+        ]
+    )
 
     self.Open(
         "/legacy#/clients/%s/flows/%s/results" % (self.client_id, flow_id)

@@ -3,8 +3,9 @@ import {OutputPluginDescriptor} from '../models/output_plugin';
 import {assertKeyNonNull} from '../preconditions';
 
 /** Constructs a OutputPluginDescriptor from a ApiOutputPluginDescriptor. */
-export function translateOutputPluginDescriptor(opd: ApiOutputPluginDescriptor):
-    OutputPluginDescriptor {
+export function translateOutputPluginDescriptor(
+  opd: ApiOutputPluginDescriptor,
+): OutputPluginDescriptor {
   assertKeyNonNull(opd, 'name');
 
   return {

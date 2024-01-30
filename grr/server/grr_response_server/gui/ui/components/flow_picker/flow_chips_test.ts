@@ -8,23 +8,15 @@ import {initTestEnvironment} from '../../testing';
 
 import {FlowPickerModule} from './module';
 
-
-
 initTestEnvironment();
-
 
 describe('FlowChips component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            FlowPickerModule,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, FlowPickerModule],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   const flows: readonly FlowListItem[] = [
@@ -65,7 +57,7 @@ describe('FlowChips component', () => {
   it('emits event when button is clicked', () => {
     const fixture = TestBed.createComponent(FlowChips);
     fixture.componentInstance.flows = flows;
-    let selectedFlowListItem: FlowListItem|undefined;
+    let selectedFlowListItem: FlowListItem | undefined;
     fixture.componentInstance.flowSelected.subscribe((v: FlowListItem) => {
       selectedFlowListItem = v;
     });

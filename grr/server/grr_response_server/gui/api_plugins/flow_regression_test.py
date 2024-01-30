@@ -8,6 +8,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib import registry
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_proto import flows_pb2
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server import flow
@@ -18,7 +19,6 @@ from grr_response_server.flows.general import processes
 from grr_response_server.gui import api_regression_test_lib
 from grr_response_server.gui.api_plugins import flow as flow_plugin
 from grr_response_server.output_plugins import email_plugin
-from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 from grr.test_lib import acl_test_lib
@@ -208,8 +208,9 @@ class ApiListFlowLogsHandlerRegressionTest(
   handler = flow_plugin.ApiListFlowLogsHandler
 
   def _AddLogToFlow(self, client_id, flow_id, log_string):
-    entry = rdf_flow_objects.FlowLogEntry(
-        client_id=client_id, flow_id=flow_id, message=log_string)
+    entry = flows_pb2.FlowLogEntry(
+        client_id=client_id, flow_id=flow_id, message=log_string
+    )
     data_store.REL_DB.WriteFlowLogEntry(entry)
 
   def Run(self):

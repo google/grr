@@ -6,6 +6,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_server import access_control
 from grr_response_server import data_store
 from grr_response_server.authorization import client_approval_auth
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 
 
@@ -48,7 +49,8 @@ def _CheckHasEnoughGrants(approval_request):
 def _CheckHasAdminApprovers(approval_request):
   grantors = set(g.grantor_username for g in approval_request.grants)
   for g in grantors:
-    user_obj = data_store.REL_DB.ReadGRRUser(g)
+    proto_user = data_store.REL_DB.ReadGRRUser(g)
+    user_obj = mig_objects.ToRDFGRRUser(proto_user)
     if user_obj.user_type == user_obj.UserType.USER_TYPE_ADMIN:
       return True
 

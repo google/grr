@@ -11,6 +11,8 @@
   <approval-card *ngIf="showApprovalView$ | async"
             [latestApproval]="latestApproval$ | async"
             [urlTree]="(clientApprovalRoute$ | async) ?? []"
+            [showDuration]="true"
+            [editableDuration]="true"
             (approvalParams)="requestApproval($event)"
             class="centered-content"></approval-card>
 

@@ -1,9 +1,19 @@
 import * as apiInterfaces from '../api/api_interfaces';
-import {CellComponent, CellData, ColumnDescriptor, PayloadTranslation, PayloadType} from '../models/result';
+import {
+  CellComponent,
+  CellData,
+  ColumnDescriptor,
+  PayloadTranslation,
+  PayloadType,
+} from '../models/result';
 
 import {translateExecuteBinaryResponse, translateHashToHex} from './flow';
 import {getHuntResultKey} from './hunt';
-import {createOptionalBigInt, createOptionalDate, createOptionalDateSeconds} from './primitive';
+import {
+  createOptionalBigInt,
+  createOptionalDate,
+  createOptionalDateSeconds,
+} from './primitive';
 
 /** HUNT_RESULT_COLUMNS describes how to render HuntResultRow. */
 export const HUNT_RESULT_COLUMNS = {
@@ -20,19 +30,23 @@ export const HUNT_RESULT_COLUMNS = {
  * columns (based on payload type) in the middle of the displayedColumns
  * slice.
  */
-export function orderApiHuntResultColumns(
-    cols: {[key: string]: ColumnDescriptor}): string[] {
+export function orderApiHuntResultColumns(cols: {
+  [key: string]: ColumnDescriptor;
+}): string[] {
   // It would be better to refer to
   // `PAYLOAD_TYPE_TRANSLATION['ApiHuntResult'].columns` instead of
   // `HUNT_RESULT_COLUMNS` here, however Types become complex so I think
   // this compromise is ok for now.
-  const first: ReadonlyArray<keyof typeof HUNT_RESULT_COLUMNS> =
-      ['clientId', 'collectedAt', 'payloadType'];
+  const first: ReadonlyArray<keyof typeof HUNT_RESULT_COLUMNS> = [
+    'clientId',
+    'collectedAt',
+    'payloadType',
+  ];
   const last: ReadonlyArray<keyof typeof HUNT_RESULT_COLUMNS> = ['detailsLink'];
   const reservedNames = new Set<string>([...first, ...last]);
 
   let unreserved: string[] = [];
-  for (const [k, ] of Object.entries(cols)) {
+  for (const [k] of Object.entries(cols)) {
     // `first` and `last` are "reserved names" we don't want to duplicate.
     if (!reservedNames.has(k) && !unreserved.includes(k)) {
       unreserved = unreserved.concat(k);
@@ -44,8 +58,9 @@ export function orderApiHuntResultColumns(
 
 /** Constructs a HuntResultsRow from an ApiHuntResult. */
 export function toHuntResultRow(
-    hr: apiInterfaces.ApiHuntResult,
-    huntId: string): CellData<typeof HUNT_RESULT_COLUMNS> {
+  hr: apiInterfaces.ApiHuntResult,
+  huntId: string,
+): CellData<typeof HUNT_RESULT_COLUMNS> {
   const key = getHuntResultKey(hr, huntId);
   return {
     'clientId': hr.clientId,
@@ -65,23 +80,25 @@ export const CLIENT_INFO_COLUMNS = {
 
 /** Constructs a ClientRow from a ClientSummary. */
 export function toClientInfoRowFromClientSummary(
-    cs: apiInterfaces.ClientSummary): CellData<typeof CLIENT_INFO_COLUMNS> {
+  cs: apiInterfaces.ClientSummary,
+): CellData<typeof CLIENT_INFO_COLUMNS> {
   return {
     'os': cs?.systemInfo?.system,
     'fqdn': cs?.systemInfo?.fqdn,
     'userNum': cs?.users?.length,
-    'usernames': cs?.users?.map(u => u.username).join(', ') ?? '',
+    'usernames': cs?.users?.map((u) => u.username).join(', ') ?? '',
   };
 }
 
 /** Constructs a ClientRow from a ClientSummary. */
 export function toClientInfoRowFromKnowledgeBase(
-    kb: apiInterfaces.KnowledgeBase): CellData<typeof CLIENT_INFO_COLUMNS> {
+  kb: apiInterfaces.KnowledgeBase,
+): CellData<typeof CLIENT_INFO_COLUMNS> {
   return {
     'os': kb?.os,
     'fqdn': kb?.fqdn,
     'userNum': kb?.users?.length,
-    'usernames': kb?.users?.map(u => u.username).join(', ') ?? '',
+    'usernames': kb?.users?.map((u) => u.username).join(', ') ?? '',
   };
 }
 
@@ -94,8 +111,9 @@ export const ANOMALY_COLUMNS = {
 } as const;
 
 /** Constructs an AnomalyRow from an Anomaly. */
-export function toAnomalyRow(a: apiInterfaces.Anomaly):
-    CellData<typeof ANOMALY_COLUMNS> {
+export function toAnomalyRow(
+  a: apiInterfaces.Anomaly,
+): CellData<typeof ANOMALY_COLUMNS> {
   return {
     'type': a?.type ?? '',
     'severity': a?.severity ?? '',
@@ -112,8 +130,9 @@ export const USER_COLUMNS = {
 } as const;
 
 /** Constructs a ClientRow from a ClientSummary. */
-export function toUserRow(u: apiInterfaces.User):
-    CellData<typeof USER_COLUMNS> {
+export function toUserRow(
+  u: apiInterfaces.User,
+): CellData<typeof USER_COLUMNS> {
   return {
     'uid': u?.uid ?? '',
     'username': u?.username ?? '',
@@ -135,8 +154,8 @@ export const FILE_COLUMNS = {
 
 /** Constructs a FileRow from a CollectFilesByKnownPathResult. */
 export function toFileRowFromCollectFilesByKnownPathResult(
-    r: apiInterfaces.CollectFilesByKnownPathResult):
-    CellData<typeof FILE_COLUMNS> {
+  r: apiInterfaces.CollectFilesByKnownPathResult,
+): CellData<typeof FILE_COLUMNS> {
   return {
     ...toFileRowFromStatEntry(r.stat ?? {}),
     'hash': translateHashToHex(r.hash ?? {}),
@@ -145,7 +164,8 @@ export function toFileRowFromCollectFilesByKnownPathResult(
 
 /** Constructs a FileRow from a FileFinderResult. */
 export function toFileRowFromFileFinderResult(
-    ffr: apiInterfaces.FileFinderResult): CellData<typeof FILE_COLUMNS> {
+  ffr: apiInterfaces.FileFinderResult,
+): CellData<typeof FILE_COLUMNS> {
   return {
     ...toFileRowFromStatEntry(ffr.statEntry ?? {}),
     'hash': translateHashToHex(ffr.hashEntry ?? {}),
@@ -153,8 +173,9 @@ export function toFileRowFromFileFinderResult(
 }
 
 /** Constructs a FileRow from a StatEntry. */
-export function toFileRowFromStatEntry(se: apiInterfaces.StatEntry):
-    CellData<typeof FILE_COLUMNS> {
+export function toFileRowFromStatEntry(
+  se: apiInterfaces.StatEntry,
+): CellData<typeof FILE_COLUMNS> {
   return {
     'path': se.pathspec?.path ?? '',
     'hash': undefined,
@@ -175,8 +196,10 @@ export const ERROR_COLUMNS = {
 } as const;
 
 /** Constructs a HuntErrorRow from an ApiHuntError. */
-export function toHuntErrorRow(err: apiInterfaces.ApiHuntError, huntId: string):
-    CellData<typeof ERROR_COLUMNS> {
+export function toHuntErrorRow(
+  err: apiInterfaces.ApiHuntError,
+  huntId: string,
+): CellData<typeof ERROR_COLUMNS> {
   const key = getHuntResultKey(err, huntId);
   return {
     'clientId': err.clientId,
@@ -196,8 +219,9 @@ export const EXECUTE_BINARY_COLUMNS = {
 } as const;
 
 /** Constructs an ExecuteBinaryRow from an ExecuteBinaryResponse. */
-export function toExecuteBinaryRow(e: apiInterfaces.ExecuteBinaryResponse):
-    CellData<typeof EXECUTE_BINARY_COLUMNS> {
+export function toExecuteBinaryRow(
+  e: apiInterfaces.ExecuteBinaryResponse,
+): CellData<typeof EXECUTE_BINARY_COLUMNS> {
   return translateExecuteBinaryResponse(e);
 }
 
@@ -208,8 +232,8 @@ export const EXECUTE_PYTHON_HACK_COLUMNS = {
 
 /** Constructs an ExecutePythonHackRow from an ExecutePythonHackResult. */
 export function toExecutePythonHackRow(
-    e: apiInterfaces.ExecutePythonHackResult):
-    CellData<typeof EXECUTE_PYTHON_HACK_COLUMNS> {
+  e: apiInterfaces.ExecutePythonHackResult,
+): CellData<typeof EXECUTE_PYTHON_HACK_COLUMNS> {
   return {'result': e.resultString};
 }
 
@@ -219,7 +243,7 @@ export const ERROR_TAB = 'Errors';
 /** Maps PayloadType to corresponding translation information. */
 export const PAYLOAD_TYPE_TRANSLATION: {
   // Note: Not every PayloadType has a translation definition:
-  [key in PayloadType]?: PayloadTranslation<{[key: string]: ColumnDescriptor}>
+  [key in PayloadType]?: PayloadTranslation<{[key: string]: ColumnDescriptor}>;
 } = {
   [PayloadType.ANOMALY]: {
     translateFn: toAnomalyRow,
@@ -228,7 +252,7 @@ export const PAYLOAD_TYPE_TRANSLATION: {
   [PayloadType.API_HUNT_RESULT]: {
     tabName: 'N/A',
     translateFn: toHuntResultRow,
-    columns: HUNT_RESULT_COLUMNS
+    columns: HUNT_RESULT_COLUMNS,
   } as PayloadTranslation<typeof HUNT_RESULT_COLUMNS>,
   [PayloadType.CLIENT_SUMMARY]: {
     tabName: 'Client Info',
@@ -280,5 +304,5 @@ export const PAYLOAD_TYPE_TRANSLATION: {
 /** Maps PayloadType to corresponding translation information for Flows. */
 export const FLOW_PAYLOAD_TYPE_TRANSLATION: {
   // Note: Not every PayloadType has a translation definition:
-  [key in PayloadType]?: PayloadTranslation<{[key: string]: ColumnDescriptor}>
+  [key in PayloadType]?: PayloadTranslation<{[key: string]: ColumnDescriptor}>;
 } = {} as const;

@@ -5,8 +5,6 @@ declare global {
     // These are references to external window definitions.
     // tslint:disable-next-line:enforce-name-casing
     __IS_GRR_TEST?: boolean;
-    // tslint:disable-next-line:enforce-name-casing
-    __IS_GRR_DEVELOPMENT?: boolean;
   }
 }
 

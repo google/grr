@@ -130,26 +130,6 @@ class BasicContextTests(test_lib.GRRBaseTest):
     self.assertIn("RuntimeError", status.error_message)
     self.assertNotEqual(status.status, rdf_flows.GrrStatus.ReturnedStatus.OK)
 
-  def testFastPoll(self):
-    """Test fast poll settings propagated to status results."""
-    for i in range(10):
-      message = rdf_flows.GrrMessage(
-          name="MockAction",
-          session_id=self.session_id.Basename() + str(i),
-          auth_state=rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED,
-          request_id=1,
-          require_fastpoll=i % 2,
-          generate_task_id=True)
-
-      with mock.patch.object(client_actions, "REGISTRY",
-                             {"MockAction": MockAction}):
-        self.context.HandleMessage(message)
-
-    message_list = self.context.Drain(max_size=1000000).job
-    self.assertLen(message_list, 10)
-    self.assertCountEqual([m.require_fastpoll for m in message_list],
-                          [0, 1, 0, 1, 0, 1, 0, 1, 0, 1])
-
 
 def main(argv):
   test_lib.main(argv)

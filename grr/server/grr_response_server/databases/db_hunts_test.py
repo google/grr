@@ -9,6 +9,8 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import stats as rdf_stats
+from grr_response_proto import flows_pb2
+from grr_response_proto import jobs_pb2
 from grr_response_server import flow
 from grr_response_server.databases import db
 from grr_response_server.databases import db_test_utils
@@ -16,6 +18,8 @@ from grr_response_server.output_plugins import email_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
+from grr_response_server.rdfvalues import mig_flow_objects
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_server.rdfvalues import output_plugin as rdf_output_plugin
 
@@ -194,7 +198,9 @@ class DatabaseTestHuntMixin(object):
     approval.expiration_time = (
         rdfvalue.RDFDatetime.Now() + rdfvalue.Duration.From(1, rdfvalue.DAYS)
     )
-    approval_id = self.db.WriteApprovalRequest(approval)
+    # TODO: Stop using `mig_objects`.
+    proto_approval = mig_objects.ToProtoApprovalRequest(approval)
+    approval_id = self.db.WriteApprovalRequest(proto_approval)
 
     self.db.DeleteHuntObject(hunt_id=hunt_id)
 
@@ -852,15 +858,17 @@ class DatabaseTestHuntMixin(object):
     client_id, flow_id = self._SetupHuntClientAndFlow(
         client_id="C.12345678901234aa", hunt_id=hunt_obj.hunt_id)
     self.db.WriteFlowLogEntry(
-        rdf_flow_objects.FlowLogEntry(
+        flows_pb2.FlowLogEntry(
             client_id=client_id,
             flow_id=flow_id,
             hunt_id=hunt_obj.hunt_id,
-            message="blah"))
+            message="blah",
+        )
+    )
 
     hunt_log_entries = self.db.ReadHuntLogEntries(hunt_obj.hunt_id, 0, 10)
     self.assertLen(hunt_log_entries, 1)
-    self.assertIsInstance(hunt_log_entries[0], rdf_flow_objects.FlowLogEntry)
+    self.assertIsInstance(hunt_log_entries[0], flows_pb2.FlowLogEntry)
     self.assertEqual(hunt_log_entries[0].hunt_id, hunt_obj.hunt_id)
     self.assertEqual(hunt_log_entries[0].client_id, client_id)
     self.assertEqual(hunt_log_entries[0].flow_id, flow_id)
@@ -870,17 +878,21 @@ class DatabaseTestHuntMixin(object):
     client_id, flow_id = self._SetupHuntClientAndFlow(hunt_id=hunt_obj.hunt_id)
     # Top-level hunt-induced flows should have the hunt's ID.
     self.db.WriteFlowLogEntry(
-        rdf_flow_objects.FlowLogEntry(
+        flows_pb2.FlowLogEntry(
             client_id=client_id,
             flow_id=flow_id,
             hunt_id=hunt_obj.hunt_id,
-            message="blah_a"))
+            message="blah_a",
+        )
+    )
     self.db.WriteFlowLogEntry(
-        rdf_flow_objects.FlowLogEntry(
+        flows_pb2.FlowLogEntry(
             client_id=client_id,
             flow_id=flow_id,
             hunt_id=hunt_obj.hunt_id,
-            message="blah_b"))
+            message="blah_b",
+        )
+    )
 
     for i in range(10):
       _, nested_flow_id = self._SetupHuntClientAndFlow(
@@ -889,17 +901,21 @@ class DatabaseTestHuntMixin(object):
           hunt_id=hunt_obj.hunt_id,
           flow_id=flow.RandomFlowId())
       self.db.WriteFlowLogEntry(
-          rdf_flow_objects.FlowLogEntry(
+          flows_pb2.FlowLogEntry(
               client_id=client_id,
               flow_id=nested_flow_id,
               hunt_id=hunt_obj.hunt_id,
-              message="blah_a_%d" % i))
+              message="blah_a_%d" % i,
+          )
+      )
       self.db.WriteFlowLogEntry(
-          rdf_flow_objects.FlowLogEntry(
+          flows_pb2.FlowLogEntry(
               client_id=client_id,
               flow_id=nested_flow_id,
               hunt_id=hunt_obj.hunt_id,
-              message="blah_b_%d" % i))
+              message="blah_b_%d" % i,
+          )
+      )
 
   def testReadHuntLogEntriesIgnoresNestedFlows(self):
     self.db.WriteGRRUser("user")
@@ -932,11 +948,13 @@ class DatabaseTestHuntMixin(object):
       client_id, flow_id = self._SetupHuntClientAndFlow(
           client_id="C.12345678901234a%d" % i, hunt_id=hunt_obj.hunt_id)
       self.db.WriteFlowLogEntry(
-          rdf_flow_objects.FlowLogEntry(
+          flows_pb2.FlowLogEntry(
               client_id=client_id,
               flow_id=flow_id,
               hunt_id=hunt_obj.hunt_id,
-              message="%s%d" % (msg, i)))
+              message="%s%d" % (msg, i),
+          )
+      )
 
     return hunt_obj
 
@@ -1001,7 +1019,7 @@ class DatabaseTestHuntMixin(object):
 
   def _WriteHuntResults(self, sample_results=None):
     for r in sample_results:
-      self.db.WriteFlowResults([r])
+      self.db.WriteFlowResults([mig_flow_objects.ToProtoFlowResult(r)])
 
     # Update num_replies_sent for all flows referenced in sample_results:
     # in case the DB implementation relies on this data when
@@ -1354,6 +1372,47 @@ class DatabaseTestHuntMixin(object):
       self.assertIsInstance(r.payload,
                             rdf_objects.SerializedValueOfUnrecognizedType)
       self.assertEqual(r.payload.type_name, type_name)
+
+  def testReadHuntResultsIgnoresChildFlowsResults(self):
+    client_id = db_test_utils.InitializeClient(self.db)
+    hunt_id = db_test_utils.InitializeHunt(self.db)
+
+    hunt_flow_id = db_test_utils.InitializeFlow(
+        self.db,
+        client_id=client_id,
+        flow_id=hunt_id,
+        parent_hunt_id=hunt_id,
+    )
+
+    child_flow_id = db_test_utils.InitializeFlow(
+        self.db,
+        client_id=client_id,
+        parent_flow_id=hunt_flow_id,
+        parent_hunt_id=hunt_id,
+    )
+
+    hunt_flow_result = flows_pb2.FlowResult()
+    hunt_flow_result.client_id = client_id
+    hunt_flow_result.hunt_id = hunt_id
+    hunt_flow_result.flow_id = hunt_flow_id
+    hunt_flow_result.payload.Pack(jobs_pb2.Uname(fqdn="hunt.example.com"))
+    self.db.WriteFlowResults([hunt_flow_result])
+
+    child_flow_result = flows_pb2.FlowResult()
+    child_flow_result.client_id = client_id
+    child_flow_result.hunt_id = hunt_id
+    child_flow_result.flow_id = child_flow_id
+    child_flow_result.payload.Pack(jobs_pb2.Uname(fqdn="child.example.com"))
+    self.db.WriteFlowResults([child_flow_result])
+
+    results = self.db.ReadHuntResults(hunt_id, offset=0, count=1024)
+    results = list(map(mig_flow_objects.ToProtoFlowResult, results))
+
+    self.assertLen(results, 1)
+
+    result = jobs_pb2.Uname()
+    results[0].payload.Unpack(result)
+    self.assertEqual(result.fqdn, "hunt.example.com")
 
   def testCountHuntResultsReturnsCorrectResultsCount(self):
     self.db.WriteGRRUser("user")
@@ -1930,18 +1989,21 @@ class DatabaseTestHuntMixin(object):
     client_id, flow_id = self._SetupHuntClientAndFlow(
         client_id="C.12345678901234aa", hunt_id=hunt_obj.hunt_id)
     self.db.WriteFlowOutputPluginLogEntry(
-        rdf_flow_objects.FlowOutputPluginLogEntry(
+        flows_pb2.FlowOutputPluginLogEntry(
             client_id=client_id,
             flow_id=flow_id,
             output_plugin_id=output_plugin_id,
             hunt_id=hunt_obj.hunt_id,
-            message="blah"))
+            message="blah",
+        )
+    )
 
     hunt_op_log_entries = self.db.ReadHuntOutputPluginLogEntries(
         hunt_obj.hunt_id, output_plugin_id, 0, 10)
     self.assertLen(hunt_op_log_entries, 1)
-    self.assertIsInstance(hunt_op_log_entries[0],
-                          rdf_flow_objects.FlowOutputPluginLogEntry)
+    self.assertIsInstance(
+        hunt_op_log_entries[0], flows_pb2.FlowOutputPluginLogEntry
+    )
     self.assertEqual(hunt_op_log_entries[0].hunt_id, hunt_obj.hunt_id)
     self.assertEqual(hunt_op_log_entries[0].client_id, client_id)
     self.assertEqual(hunt_op_log_entries[0].flow_id, flow_id)
@@ -1956,19 +2018,21 @@ class DatabaseTestHuntMixin(object):
     for i in range(10):
       client_id, flow_id = self._SetupHuntClientAndFlow(
           client_id="C.12345678901234a%d" % i, hunt_id=hunt_obj.hunt_id)
-      enum = rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType
+      enum = flows_pb2.FlowOutputPluginLogEntry.LogEntryType
       if i % 3 == 0:
         log_entry_type = enum.ERROR
       else:
         log_entry_type = enum.LOG
       self.db.WriteFlowOutputPluginLogEntry(
-          rdf_flow_objects.FlowOutputPluginLogEntry(
+          flows_pb2.FlowOutputPluginLogEntry(
               client_id=client_id,
               flow_id=flow_id,
               hunt_id=hunt_obj.hunt_id,
               output_plugin_id=output_plugin_id,
               log_entry_type=log_entry_type,
-              message="blah%d" % i))
+              message="blah%d" % i,
+          )
+      )
 
     return hunt_obj
 
@@ -2000,7 +2064,8 @@ class DatabaseTestHuntMixin(object):
         "1",
         0,
         100,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.UNSET)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.UNSET,
+    )
     self.assertEmpty(hunt_op_log_entries)
 
     hunt_op_log_entries = self.db.ReadHuntOutputPluginLogEntries(
@@ -2008,7 +2073,8 @@ class DatabaseTestHuntMixin(object):
         "1",
         0,
         100,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+    )
     self.assertLen(hunt_op_log_entries, 4)
 
     hunt_op_log_entries = self.db.ReadHuntOutputPluginLogEntries(
@@ -2016,7 +2082,8 @@ class DatabaseTestHuntMixin(object):
         "1",
         0,
         100,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+    )
     self.assertLen(hunt_op_log_entries, 6)
 
   def testReadHuntOutputPluginLogEntriesCorrectlyAppliesCombinationOfFilters(
@@ -2028,7 +2095,8 @@ class DatabaseTestHuntMixin(object):
         "1",
         0,
         1,
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+    )
     self.assertLen(hunt_log_entries, 1)
     self.assertEqual(hunt_log_entries[0].message, "blah1")
 
@@ -2044,13 +2112,15 @@ class DatabaseTestHuntMixin(object):
     num_entries = self.db.CountHuntOutputPluginLogEntries(
         hunt_obj.hunt_id,
         "1",
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.LOG)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+    )
     self.assertEqual(num_entries, 6)
 
     num_entries = self.db.CountHuntOutputPluginLogEntries(
         hunt_obj.hunt_id,
         "1",
-        with_type=rdf_flow_objects.FlowOutputPluginLogEntry.LogEntryType.ERROR)
+        with_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+    )
     self.assertEqual(num_entries, 4)
 
   def testFlowStateUpdateUsingUpdateFlow(self):

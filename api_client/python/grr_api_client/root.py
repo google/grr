@@ -132,7 +132,8 @@ class GrrBinaryRef(object):
   def Upload(self, fd: IO[bytes], sign_fn: Callable[[bytes], bytes]):
     """Uploads data from a given stream and signs them with a given key."""
     args = binary_management_pb2.ApiUploadGrrBinaryArgs(
-        type=self.binary_type, path=self.path)
+        type=self.binary_type, path=self.path
+    )
 
     while True:
       data = fd.read(self.__class__.CHUNK_SIZE)
@@ -153,7 +154,8 @@ class GrrBinaryRef(object):
 
   def Delete(self):
     args = binary_management_pb2.ApiDeleteGrrBinaryArgs(
-        type=self.binary_type, path=self.path)
+        type=self.binary_type, path=self.path
+    )
     self._context.SendRequest("DeleteGrrBinary", args)
 
 
@@ -215,7 +217,8 @@ class RootGrrApi(object):
 
     items = self._context.SendIteratorRequest("ListGrrUsers", args)
     return utils.MapItemsIterator(
-        lambda data: GrrUser(data=data, context=self._context), items)
+        lambda data: GrrUser(data=data, context=self._context), items
+    )
 
   def GrrBinary(
       self,
@@ -223,4 +226,5 @@ class RootGrrApi(object):
       path: str,
   ) -> GrrBinaryRef:
     return GrrBinaryRef(
-        binary_type=binary_type, path=path, context=self._context)
+        binary_type=binary_type, path=path, context=self._context
+    )

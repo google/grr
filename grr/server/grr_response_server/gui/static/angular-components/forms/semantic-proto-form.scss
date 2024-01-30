@@ -3,4 +3,7 @@ grr-form-proto {
   select.ng-pristine {
     background-color: $color-pristine;
   }
+  div.ng-scope {
+    clear: both;
+  }
 }

@@ -6,14 +6,14 @@
 import collections
 import datetime
 import os
-
-from typing import cast, Iterator
+from typing import Iterator, cast
 
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.parsers import chrome_history
 from grr_response_core.lib.parsers import firefox3_history
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
+from grr_response_core.lib.rdfvalues import mig_client
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import flows_pb2
 from grr_response_server import data_store
@@ -119,7 +119,9 @@ class ChromeHistory(flow_base.FlowBase):
     """
     client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
     system = client.knowledge_base.os
-    user_info = flow_utils.GetUserInfo(client.knowledge_base, username)
+    user_info = flow_utils.GetUserInfo(
+        mig_client.ToRDFKnowledgeBase(client.knowledge_base), username
+    )
 
     if not user_info:
       self.Error("Could not find homedir for user {0}".format(username))
@@ -227,7 +229,9 @@ class FirefoxHistory(flow_base.FlowBase):
     """
     client = data_store.REL_DB.ReadClientSnapshot(self.client_id)
     system = client.knowledge_base.os
-    user_info = flow_utils.GetUserInfo(client.knowledge_base, username)
+    user_info = flow_utils.GetUserInfo(
+        mig_client.ToRDFKnowledgeBase(client.knowledge_base), username
+    )
 
     if not user_info:
       self.Error("Could not find homedir for user {0}".format(username))

@@ -1,4 +1,9 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, ViewChild} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  ViewChild,
+} from '@angular/core';
 import {Title} from '@angular/platform-browser';
 import {ActivatedRoute, Router} from '@angular/router';
 import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
@@ -35,34 +40,38 @@ export class HuntPage implements OnDestroy {
   protected readonly HuntState = HuntState;
   protected readonly getHuntTitle = getHuntTitle;
 
-  readonly hunt$: Observable<Hunt|null> =
-      this.huntPageGlobalStore.selectedHunt$;
+  readonly hunt$: Observable<Hunt | null> =
+    this.huntPageGlobalStore.selectedHunt$;
 
   readonly huntTotalCPU$: Observable<string> = this.hunt$.pipe(
-      map(hunt => toDurationString(
-              hunt?.resourceUsage?.totalCPUTime ?? 0, 'long')));
+    map((hunt) =>
+      toDurationString(hunt?.resourceUsage?.totalCPUTime ?? 0, 'long'),
+    ),
+  );
 
   @ViewChild('approvalCard', {static: false}) approvalCard?: ApprovalCard;
-  private readonly approvalParams$ =
-      new BehaviorSubject<ApprovalParams|null>(null);
+  private readonly approvalParams$ = new BehaviorSubject<ApprovalParams | null>(
+    null,
+  );
   readonly latestApproval$ = this.huntApprovalLocalStore.latestApproval$;
   readonly hideApprovalCardContentByDefault$ = this.latestApproval$.pipe(
-      map(approval => isNull(approval)),
-      // we are only interested in the first emission, as we don't want
-      // the approval card content to be hidden dynamically, only by
-      // default:
-      take(1),
-      startWith(true),
+    map((approval) => isNull(approval)),
+    // we are only interested in the first emission, as we don't want
+    // the approval card content to be hidden dynamically, only by
+    // default:
+    take(1),
+    startWith(true),
   );
   protected readonly hasAccess$ = this.huntApprovalLocalStore.hasAccess$;
   protected readonly huntApprovalRoute$ =
-      this.huntApprovalLocalStore.huntApprovalRoute$;
+    this.huntApprovalLocalStore.huntApprovalRoute$;
   protected readonly huntApprovalRequired$ =
-      this.userGlobalStore.currentUser$.pipe(
-          map(user => user.huntApprovalRequired));
+    this.userGlobalStore.currentUser$.pipe(
+      map((user) => user.huntApprovalRequired),
+    );
   protected readonly huntResultTabs$ = this.huntPageGlobalStore.huntResultTabs$;
   readonly huntResultsByTypeCountLoading$ =
-      this.huntPageGlobalStore.huntResultsByTypeCountLoading$;
+    this.huntPageGlobalStore.huntResultsByTypeCountLoading$;
 
   huntId = '';
   protected hideFlowArgs = true;
@@ -70,92 +79,96 @@ export class HuntPage implements OnDestroy {
   protected readonly huntsOverviewRoute = ['/hunts'];
 
   constructor(
-      private readonly activatedRoute: ActivatedRoute,
-      private readonly router: Router,
-      private readonly huntPageGlobalStore: HuntPageGlobalStore,
-      private readonly huntApprovalLocalStore: HuntApprovalLocalStore,
-      private readonly configGlobalStore: ConfigGlobalStore,
-      private readonly userGlobalStore: UserGlobalStore,
-      private readonly huntResultDetailsGlobalStore:
-          HuntResultDetailsGlobalStore,
-      private readonly title: Title,
+    private readonly activatedRoute: ActivatedRoute,
+    private readonly router: Router,
+    private readonly huntPageGlobalStore: HuntPageGlobalStore,
+    private readonly huntApprovalLocalStore: HuntApprovalLocalStore,
+    private readonly configGlobalStore: ConfigGlobalStore,
+    private readonly userGlobalStore: UserGlobalStore,
+    private readonly huntResultDetailsGlobalStore: HuntResultDetailsGlobalStore,
+    private readonly title: Title,
   ) {
     this.activatedRoute.paramMap
-        .pipe(
-            takeUntil(this.ngOnDestroy.triggered$),
-            map(params => params.get('id')),
-            filter(isNonNull),
-            )
-        .subscribe(huntId => {
-          this.huntId = huntId;
-          this.huntPageGlobalStore.selectHunt(huntId);
-          this.huntApprovalLocalStore.selectHunt(huntId);
-        });
+      .pipe(
+        takeUntil(this.ngOnDestroy.triggered$),
+        map((params) => params.get('id')),
+        filter(isNonNull),
+      )
+      .subscribe((huntId) => {
+        this.huntId = huntId;
+        this.huntPageGlobalStore.selectHunt(huntId);
+        this.huntApprovalLocalStore.selectHunt(huntId);
+      });
 
-    combineLatest(
-        [this.approvalParams$, this.huntPageGlobalStore.selectedHuntId$])
-        .pipe(
-            takeUntil(this.ngOnDestroy.triggered$),
-            filter(
-                ([approvalParams, huntId]) =>
-                    isNonNull(approvalParams) && isNonNull(huntId)))
-        .subscribe(
-            ([approvalParams, huntId]) => {
-              this.huntApprovalLocalStore.requestHuntApproval({
-                huntId: huntId!,
-                approvers: approvalParams!.approvers,
-                reason: approvalParams!.reason,
-                cc: approvalParams!.cc,
-              });
-            },
-        );
+    combineLatest([
+      this.approvalParams$,
+      this.huntPageGlobalStore.selectedHuntId$,
+    ])
+      .pipe(
+        takeUntil(this.ngOnDestroy.triggered$),
+        filter(
+          ([approvalParams, huntId]) =>
+            isNonNull(approvalParams) && isNonNull(huntId),
+        ),
+      )
+      .subscribe(([approvalParams, huntId]) => {
+        this.huntApprovalLocalStore.requestHuntApproval({
+          huntId: huntId!,
+          approvers: approvalParams!.approvers,
+          reason: approvalParams!.reason,
+          cc: approvalParams!.cc,
+        });
+      });
 
     this.huntPageGlobalStore.selectedHunt$
-        .pipe(
-            takeUntil(this.ngOnDestroy.triggered$),
-            )
-        .subscribe(hunt => {
-          if (hunt) {
-            const desc = getHuntTitle(hunt);
-            const info = desc ? `${desc} (${hunt.huntId})` : hunt.huntId;
-            this.title.setTitle(`GRR | ${info}`);
-          } else {
-            this.title.setTitle('GRR');
-          }
-        });
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((hunt) => {
+        if (hunt) {
+          const desc = getHuntTitle(hunt);
+          const info = desc ? `${desc} (${hunt.huntId})` : hunt.huntId;
+          this.title.setTitle(`GRR | ${info}`);
+        } else {
+          this.title.setTitle('GRR');
+        }
+      });
   }
 
-  protected readonly flowDescriptor$ =
-      combineLatest([
-        this.hunt$.pipe(filter(isNonNull), map(hunt => hunt.flowName)),
-        this.configGlobalStore.flowDescriptors$
-      ])
-          .pipe(
-              map(([flowName, fds]) => {
-                if (!flowName || !fds) {
-                  return null;
-                }
-                return fds.get(flowName);
-              }),
-              startWith(null));
-  protected readonly flowTitle$ =
-      combineLatest([
-        this.hunt$, this.flowDescriptor$
-      ]).pipe(map(([hunt,
-                    desc]) => getFlowTitleFromFlowName(hunt?.flowName, desc)));
+  protected readonly flowDescriptor$ = combineLatest([
+    this.hunt$.pipe(
+      filter(isNonNull),
+      map((hunt) => hunt.flowName),
+    ),
+    this.configGlobalStore.flowDescriptors$,
+  ]).pipe(
+    map(([flowName, fds]) => {
+      if (!flowName || !fds) {
+        return null;
+      }
+      return fds.get(flowName);
+    }),
+    startWith(null),
+  );
+  protected readonly flowTitle$ = combineLatest([
+    this.hunt$,
+    this.flowDescriptor$,
+  ]).pipe(
+    map(([hunt, desc]) => getFlowTitleFromFlowName(hunt?.flowName, desc)),
+  );
 
   requestHuntApproval(approvalParams: ApprovalParams) {
     this.approvalParams$.next(approvalParams);
   }
 
-  openHuntResultDetailsInDrawer(resultOrErrorDetails: TypedHuntResultOrError):
-      void {
+  openHuntResultDetailsInDrawer(
+    resultOrErrorDetails: TypedHuntResultOrError,
+  ): void {
     this.huntResultDetailsGlobalStore.selectHuntResultOrError(
-        resultOrErrorDetails.value, this.huntId);
+      resultOrErrorDetails.value,
+      this.huntId,
+    );
 
     const resultKey = getHuntResultKey(resultOrErrorDetails.value, this.huntId);
-    const drawerURl =
-        `result-details/${resultKey}/${resultOrErrorDetails.payloadType}`;
+    const drawerURl = `result-details/${resultKey}/${resultOrErrorDetails.payloadType}`;
     this.router.navigate([{outlets: {'drawer': drawerURl}}]);
   }
 

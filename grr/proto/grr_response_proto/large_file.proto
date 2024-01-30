@@ -34,8 +34,7 @@ message CollectLargeFileArgs {
 
 // Output that the large file collection action returns upon initialization.
 //
-// Note that action will end immediately after the upload procedure is started.
-// Further progress updates and transfer errors will not be reported in GRR and
+// Progress updates and transfer errors will not be reported in GRR and
 // should be supervised by other means.
 message CollectLargeFileResult {
   // A session URI for the resumable upload process [1].
@@ -45,6 +44,9 @@ message CollectLargeFileResult {
   //
   // [1]: https://cloud.google.com/storage/docs/resumable-uploads#session-uris
   optional string session_uri = 1;
+
+  // Number of bytes sent, only set after the upload completed.
+  optional uint64 total_bytes_sent = 2;
 }
 
 // Input arguments for the large file collection flow.
@@ -60,4 +62,35 @@ message CollectLargeFileFlowArgs {
   // See documentation for the action arguments for more detailed information
   // about signed URLs.
   optional string signed_url = 2;
+}
+
+// Output of a large file collection flow.
+//
+// Session URI will be available after upload started, file size after upload
+// finished.
+message CollectLargeFileFlowResult {
+  // A session URI for the resumable upload process [1].
+  //
+  // This URI should be used to monitor the status and progress of the file
+  // transfer. It can be also utilized for canceling the procedure if needed.
+  //
+  // [1]: https://cloud.google.com/storage/docs/resumable-uploads#session-uris
+  optional string session_uri = 1;
+
+  // Total number of content bytes sent to Google Cloud Storage.
+  //
+  // Only available after the upload completed.
+  optional uint64 total_bytes_sent = 2;
+}
+
+// Progress of a large file collection flow.
+//
+// Session URI is sent to the UI via a progress update after the file upload
+// started.
+// This URI can be used to monitor the status and progress of the file
+// transfer. It can be also utilized for canceling the procedure if needed.
+//
+// [1]: https://cloud.google.com/storage/docs/resumable-uploads#session-uris
+message CollectLargeFileFlowProgress {
+  optional string session_uri = 1;
 }

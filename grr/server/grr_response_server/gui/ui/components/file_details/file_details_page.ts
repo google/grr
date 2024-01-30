@@ -14,27 +14,24 @@ import {SelectedClientGlobalStore} from '../../store/selected_client_global_stor
 })
 export class FileDetailsPage {
   readonly file$ = combineLatest([
-                     this.selectedClientGlobalStore.clientId$,
-                     this.route.paramMap,
-                   ])
-                       .pipe(
-                           map(([clientId, params]) => {
-                             const pathType =
-                                 params.get('pathType')?.toUpperCase();
-                             const path = params.get('path');
+    this.selectedClientGlobalStore.clientId$,
+    this.route.paramMap,
+  ]).pipe(
+    map(([clientId, params]) => {
+      const pathType = params.get('pathType')?.toUpperCase();
+      const path = params.get('path');
 
-                             if (isNonNull(clientId) && isNonNull(pathType) &&
-                                 isNonNull(path)) {
-                               assertEnum(pathType, PathSpecPathType);
-                               return {clientId, pathType, path};
-                             } else {
-                               return null;
-                             }
-                           }),
-                       );
+      if (isNonNull(clientId) && isNonNull(pathType) && isNonNull(path)) {
+        assertEnum(pathType, PathSpecPathType);
+        return {clientId, pathType, path};
+      } else {
+        return null;
+      }
+    }),
+  );
 
   constructor(
-      private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
-      private readonly route: ActivatedRoute,
+    private readonly selectedClientGlobalStore: SelectedClientGlobalStore,
+    private readonly route: ActivatedRoute,
   ) {}
 }

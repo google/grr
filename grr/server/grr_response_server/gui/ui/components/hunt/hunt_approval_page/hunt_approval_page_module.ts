@@ -26,7 +26,7 @@ import {HuntApprovalPage} from './hunt_approval_page';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     CopyButtonModule,
@@ -46,10 +46,8 @@ import {HuntApprovalPage} from './hunt_approval_page';
     TimestampModule,
     UserImageModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [HuntApprovalPage],
-  exports: [HuntApprovalPage]
+  exports: [HuntApprovalPage],
 })
-export class HuntApprovalPageModule {
-}
+export class HuntApprovalPageModule {}

@@ -11,6 +11,7 @@ from grr_response_server import cronjobs
 from grr_response_server import data_store
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
+from grr_response_server.rdfvalues import mig_cronjobs
 from grr.test_lib import test_lib
 
 
@@ -190,6 +191,7 @@ class RelationalCronTest(test_lib.GRRBaseTest):
       count_scheduled += len(cron_manager.ReadJobRuns(job_id))
     self.assertEqual(count_scheduled, cron_manager.max_threads * 2)
 
+  # TODO: Refactor to proto-only (no migration lib).
   def testNonExistingSystemCronJobDoesNotPreventOtherCronJobsFromRunning(self):
     # Have a fake non-existing cron job. We assume that cron jobs are going
     # to be processed in alphabetical order, according to their cron job ids.
@@ -198,14 +200,17 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         system_cron_action=rdf_cronjobs.SystemCronAction(
             job_class_name="__AbstractFakeCronJob__"))
 
-    job = rdf_cronjobs.CronJob(
+    rdf_job = rdf_cronjobs.CronJob(
         cron_job_id="cron_1",
         args=args,
         enabled=True,
         frequency=rdfvalue.Duration.From(2, rdfvalue.HOURS),
         lifetime=rdfvalue.Duration.From(1, rdfvalue.HOURS),
-        allow_overruns=False)
-    data_store.REL_DB.WriteCronJob(job)
+        allow_overruns=False,
+        created_at=rdfvalue.RDFDatetime.Now(),
+    )
+    proto_job = mig_cronjobs.ToProtoCronJob(rdf_job)
+    data_store.REL_DB.WriteCronJob(proto_job)
 
     # Have a proper cron job.
     cron_manager = cronjobs.CronManager()
@@ -214,14 +219,17 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         system_cron_action=rdf_cronjobs.SystemCronAction(
             job_class_name="DummyStatefulSystemCronJobRel"))
 
-    job = rdf_cronjobs.CronJob(
+    rdf_job = rdf_cronjobs.CronJob(
         cron_job_id="cron_2",
         args=args,
         enabled=True,
         frequency=rdfvalue.Duration.From(2, rdfvalue.HOURS),
         lifetime=rdfvalue.Duration.From(1, rdfvalue.HOURS),
-        allow_overruns=False)
-    data_store.REL_DB.WriteCronJob(job)
+        allow_overruns=False,
+        created_at=rdfvalue.RDFDatetime.Now(),
+    )
+    proto_job = mig_cronjobs.ToProtoCronJob(rdf_job)
+    data_store.REL_DB.WriteCronJob(proto_job)
 
     with self.assertRaises(cronjobs.OneOrMoreCronJobsFailedError):
       cron_manager.RunOnce()
@@ -726,14 +734,18 @@ class RelationalCronTest(test_lib.GRRBaseTest):
         system_cron_action=rdf_cronjobs.SystemCronAction(
             job_class_name="DummyStatefulSystemCronJobRel"))
 
-    job = rdf_cronjobs.CronJob(
+    # TODO: Refactor to proto-only.
+    rdf_job = rdf_cronjobs.CronJob(
         cron_job_id="test_cron",
         args=args,
         enabled=True,
         frequency=rdfvalue.Duration.From(2, rdfvalue.HOURS),
         lifetime=rdfvalue.Duration.From(1, rdfvalue.HOURS),
-        allow_overruns=False)
-    data_store.REL_DB.WriteCronJob(job)
+        allow_overruns=False,
+        created_at=rdfvalue.RDFDatetime.Now(),
+    )
+    proto_job = mig_cronjobs.ToProtoCronJob(rdf_job)
+    data_store.REL_DB.WriteCronJob(proto_job)
 
     fake_time = rdfvalue.RDFDatetime.Now()
     for i in range(3):

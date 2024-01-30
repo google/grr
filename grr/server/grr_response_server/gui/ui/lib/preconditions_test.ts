@@ -1,6 +1,17 @@
 import {initTestEnvironment} from '../testing';
 
-import {assertEnum, assertKeyNonNull, assertKeyTruthy, assertNonNull, assertNumber, assertTruthy, isEnum, isNonNull, isNull, PreconditionError} from './preconditions';
+import {
+  assertEnum,
+  assertKeyNonNull,
+  assertKeyTruthy,
+  assertNonNull,
+  assertNumber,
+  assertTruthy,
+  isEnum,
+  isNonNull,
+  isNull,
+  PreconditionError,
+} from './preconditions';
 
 initTestEnvironment();
 
@@ -67,14 +78,14 @@ describe('assertNonNull', () => {
     // See: https://github.com/microsoft/TypeScript/issues/40017
     assertNonNull(false as boolean);
     assertNonNull('');
-    expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
+    expect(true).toBeTruthy(); // Have at least one expect() to remove warning.
   });
 
   it('does not throw for truthy values', () => {
     assertNonNull(5);
     assertNonNull({});
     assertNonNull([]);
-    expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
+    expect(true).toBeTruthy(); // Have at least one expect() to remove warning.
   });
 });
 
@@ -101,14 +112,14 @@ describe('assertTruthy', () => {
     expect(() => {
       assertTruthy('');
     }).toThrowError(PreconditionError);
-    expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
+    expect(true).toBeTruthy(); // Have at least one expect() to remove warning.
   });
 
   it('does not throw for truthy values', () => {
     assertTruthy(5);
     assertTruthy({});
     assertTruthy([]);
-    expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
+    expect(true).toBeTruthy(); // Have at least one expect() to remove warning.
   });
 });
 
@@ -137,14 +148,14 @@ describe('assertKeyNonNull', () => {
     assertKeyNonNull({a: 0}, 'a');
     assertKeyNonNull({a: false}, 'a');
     assertKeyNonNull({a: ''}, 'a');
-    expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
+    expect(true).toBeTruthy(); // Have at least one expect() to remove warning.
   });
 
   it('does not throw for truthy values', () => {
     assertKeyNonNull({a: 5}, 'a');
     assertKeyNonNull({a: {}}, 'a');
     assertKeyNonNull({a: []}, 'a');
-    expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
+    expect(true).toBeTruthy(); // Have at least one expect() to remove warning.
   });
 });
 
@@ -171,14 +182,14 @@ describe('assertKeyTruthy', () => {
     expect(() => {
       assertKeyTruthy({a: '', b: true}, 'a');
     }).toThrowError(PreconditionError);
-    expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
+    expect(true).toBeTruthy(); // Have at least one expect() to remove warning.
   });
 
   it('does not throw for truthy values', () => {
     assertKeyTruthy({a: 5, b: false}, 'a');
     assertKeyTruthy({a: {}, b: false}, 'a');
     assertKeyTruthy({a: [], b: false}, 'a');
-    expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
+    expect(true).toBeTruthy(); // Have at least one expect() to remove warning.
   });
 });
 
@@ -216,7 +227,7 @@ describe('assertEnum', () => {
   it('does not throw if string is in enum', () => {
     assertEnum('FOO', TestEnum);
     assertEnum('BAR', TestEnum);
-    expect(true).toBeTruthy();  // Have at least one expect() to remove warning.
+    expect(true).toBeTruthy(); // Have at least one expect() to remove warning.
   });
 });
 

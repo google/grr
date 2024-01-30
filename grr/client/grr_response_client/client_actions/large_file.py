@@ -24,11 +24,15 @@ def CollectLargeFile(
 
     session = gcs.UploadSession.Open(args.signed_url)
 
-    result = rdf_large_file.CollectLargeFileResult()
-    result.session_uri = session.uri
-    yield result
+    start_upload_result = rdf_large_file.CollectLargeFileResult()
+    start_upload_result.session_uri = session.uri
+    yield start_upload_result
 
-    session.SendFile(file)
+    total_content_length = session.SendFile(file)
+
+    finish_upload_result = start_upload_result.Copy()
+    finish_upload_result.total_bytes_sent = total_content_length
+    yield finish_upload_result
 
 
 class CollectLargeFileAction(actions.ActionPlugin):

@@ -13,28 +13,21 @@ import {HelpersModule} from './module';
 import {OsqueryResultsTable} from './osquery_results_table';
 import {newOsqueryTable, OsqueryResultsTableDOM} from './osquery_test_util';
 
-
 initTestEnvironment();
-
 
 describe('OsqueryResultsTable Component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            HelpersModule,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, HelpersModule],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   /**
    * Function that creates a component fixture which is supplied with the
    * OsqueryTable values provided
    */
-  function createComponent(osqueryTable: OsqueryTable|null) {
+  function createComponent(osqueryTable: OsqueryTable | null) {
     const fixture = TestBed.createComponent(OsqueryResultsTable);
 
     fixture.componentInstance.table = osqueryTable;
@@ -43,38 +36,38 @@ describe('OsqueryResultsTable Component', () => {
     return fixture;
   }
 
-  it('should display a table with 5 rows and 5 columns, together with the query',
-     () => {
-       const rowNumber = 5;
-       const columnNumber = 5;
-       const query = 'hyd';
+  it('should display a table with 5 rows and 5 columns, together with the query', () => {
+    const rowNumber = 5;
+    const columnNumber = 5;
+    const query = 'hyd';
 
-       const columns = Array.from<number>({length: columnNumber})
-                           .fill(0)
-                           .map((i, index) => `Column ${index}`);
-       const values =
-           Array.from<number>({length: rowNumber}).fill(0).map((value, row) => {
-             return Array.from<number>({length: columnNumber})
-                 .fill(0)
-                 .map((i, col) => `row-${row}, col-${col}`);
-           });
+    const columns = Array.from<number>({length: columnNumber})
+      .fill(0)
+      .map((i, index) => `Column ${index}`);
+    const values = Array.from<number>({length: rowNumber})
+      .fill(0)
+      .map((value, row) => {
+        return Array.from<number>({length: columnNumber})
+          .fill(0)
+          .map((i, col) => `row-${row}, col-${col}`);
+      });
 
-       const table = newOsqueryTable(query, columns, values);
+    const table = newOsqueryTable(query, columns, values);
 
-       const osqueryResultsTable = createComponent(table).debugElement;
-       const parsedTable = new OsqueryResultsTableDOM(osqueryResultsTable);
+    const osqueryResultsTable = createComponent(table).debugElement;
+    const parsedTable = new OsqueryResultsTableDOM(osqueryResultsTable);
 
-       expect(parsedTable.errorDiv).toBeFalsy();
+    expect(parsedTable.errorDiv).toBeFalsy();
 
-       expect(parsedTable?.columnElements?.length).toEqual(columnNumber);
-       expect(parsedTable.columnsText).toEqual(columns);
+    expect(parsedTable?.columnElements?.length).toEqual(columnNumber);
+    expect(parsedTable.columnsText).toEqual(columns);
 
-       expect(parsedTable?.cellDivs?.length).toEqual(rowNumber * columnNumber);
-       expect(parsedTable.cellsText).toEqual(values.flat());
+    expect(parsedTable?.cellDivs?.length).toEqual(rowNumber * columnNumber);
+    expect(parsedTable.cellsText).toEqual(values.flat());
 
-       expect(parsedTable.queryDiv).toBeTruthy();
-       expect(parsedTable.queryText).toEqual(query);
-     });
+    expect(parsedTable.queryDiv).toBeTruthy();
+    expect(parsedTable.queryText).toEqual(query);
+  });
 
   it('should display message if table is not present', () => {
     const osqueryResultsTable = createComponent(null).debugElement;
@@ -108,14 +101,15 @@ describe('OsqueryResultsTable Component', () => {
     const columnNumber = 1;
 
     const columns = Array.from<number>({length: columnNumber})
-                        .fill(0)
-                        .map((i, index) => `Column ${index}`);
-    const values =
-        Array.from<number>({length: rowNumber}).fill(0).map((value, row) => {
-          return Array.from<number>({length: columnNumber})
-              .fill(0)
-              .map((i, col) => `row-${row}, col-${col}`);
-        });
+      .fill(0)
+      .map((i, index) => `Column ${index}`);
+    const values = Array.from<number>({length: rowNumber})
+      .fill(0)
+      .map((value, row) => {
+        return Array.from<number>({length: columnNumber})
+          .fill(0)
+          .map((i, col) => `row-${row}, col-${col}`);
+      });
 
     const table = newOsqueryTable('', columns, values);
 
@@ -130,8 +124,8 @@ describe('OsqueryResultsTable Component', () => {
     const sort = await harnessLoader.getHarness(MatSortHarness);
     // Sort by Path.
     const headers = await sort.getSortHeaders();
-    await headers[0].click();  // asc
-    await headers[0].click();  // desc
+    await headers[0].click(); // asc
+    await headers[0].click(); // desc
 
     parsedTable = new OsqueryResultsTableDOM(osqueryResultsTable);
     expect(parsedTable?.cellDivs?.length).toEqual(rowNumber * columnNumber);
@@ -149,14 +143,15 @@ describe('OsqueryResultsTable Component', () => {
 
     beforeEach(() => {
       columns = Array.from<number>({length: columnNumber})
-                    .fill(0)
-                    .map((i, index) => `Column ${index}`);
-      values =
-          Array.from<number>({length: rowNumber}).fill(0).map((value, row) => {
-            return Array.from<number>({length: columnNumber})
-                .fill(0)
-                .map((i, col) => `row-${row}, col-${col}`);
-          });
+        .fill(0)
+        .map((i, index) => `Column ${index}`);
+      values = Array.from<number>({length: rowNumber})
+        .fill(0)
+        .map((value, row) => {
+          return Array.from<number>({length: columnNumber})
+            .fill(0)
+            .map((i, col) => `row-${row}, col-${col}`);
+        });
 
       table = newOsqueryTable('', columns, values);
 
@@ -174,8 +169,9 @@ describe('OsqueryResultsTable Component', () => {
     it('filters first row', async () => {
       const filterInput = fixture.debugElement.query(By.css('input'));
       filterInput.nativeElement.value = 'row-0, col-0';
-      filterInput.triggerEventHandler(
-          'input', {target: filterInput.nativeElement});
+      filterInput.triggerEventHandler('input', {
+        target: filterInput.nativeElement,
+      });
       fixture.detectChanges();
 
       const parsedTable = new OsqueryResultsTableDOM(osqueryResultsTable);
@@ -186,8 +182,9 @@ describe('OsqueryResultsTable Component', () => {
     it('filters second row', async () => {
       const filterInput = fixture.debugElement.query(By.css('input'));
       filterInput.nativeElement.value = 'row-1, col-0';
-      filterInput.triggerEventHandler(
-          'input', {target: filterInput.nativeElement});
+      filterInput.triggerEventHandler('input', {
+        target: filterInput.nativeElement,
+      });
       fixture.detectChanges();
 
       const parsedTable = new OsqueryResultsTableDOM(osqueryResultsTable);
@@ -198,8 +195,9 @@ describe('OsqueryResultsTable Component', () => {
     it('filters invalid value, no results', async () => {
       const filterInput = fixture.debugElement.query(By.css('input'));
       filterInput.nativeElement.value = 'invalid';
-      filterInput.triggerEventHandler(
-          'input', {target: filterInput.nativeElement});
+      filterInput.triggerEventHandler('input', {
+        target: filterInput.nativeElement,
+      });
       fixture.detectChanges();
 
       const parsedTable = new OsqueryResultsTableDOM(osqueryResultsTable);
@@ -210,8 +208,9 @@ describe('OsqueryResultsTable Component', () => {
     it('no filter, all rows are displayed', async () => {
       const filterInput = fixture.debugElement.query(By.css('input'));
       filterInput.nativeElement.value = '';
-      filterInput.triggerEventHandler(
-          'input', {target: filterInput.nativeElement});
+      filterInput.triggerEventHandler('input', {
+        target: filterInput.nativeElement,
+      });
       fixture.detectChanges();
 
       const parsedTable = new OsqueryResultsTableDOM(osqueryResultsTable);
@@ -230,14 +229,15 @@ describe('OsqueryResultsTable Component', () => {
 
     beforeEach(async () => {
       const columns = Array.from<number>({length: columnNumber})
-                          .fill(0)
-                          .map((i, index) => `Column ${index}`);
-      const values =
-          Array.from<number>({length: rowNumber}).fill(0).map((value, row) => {
-            return Array.from<number>({length: columnNumber})
-                .fill(0)
-                .map((i, col) => `row-${row}, col-${col}`);
-          });
+        .fill(0)
+        .map((i, index) => `Column ${index}`);
+      const values = Array.from<number>({length: rowNumber})
+        .fill(0)
+        .map((value, row) => {
+          return Array.from<number>({length: columnNumber})
+            .fill(0)
+            .map((i, col) => `row-${row}, col-${col}`);
+        });
 
       const table = newOsqueryTable('', columns, values);
 
@@ -247,9 +247,11 @@ describe('OsqueryResultsTable Component', () => {
 
       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
       paginatorTop = await harnessLoader.getHarness(
-          MatPaginatorHarness.with({selector: '.top-paginator'}));
+        MatPaginatorHarness.with({selector: '.top-paginator'}),
+      );
       paginatorBottom = await harnessLoader.getHarness(
-          MatPaginatorHarness.with({selector: '.bottom-paginator'}));
+        MatPaginatorHarness.with({selector: '.bottom-paginator'}),
+      );
     });
 
     it('starts with pagesize of 10', async () => {

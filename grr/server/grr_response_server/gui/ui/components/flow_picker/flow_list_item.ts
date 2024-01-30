@@ -2,7 +2,11 @@ import {Injectable} from '@angular/core';
 import {Observable} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {FLOW_LIST_ITEMS_BY_TYPE, FlowListItem, FlowType} from '../../lib/models/flow';
+import {
+  FLOW_LIST_ITEMS_BY_TYPE,
+  FlowListItem,
+  FlowType,
+} from '../../lib/models/flow';
 import {transformMapValues} from '../../lib/type_utils';
 import {ConfigGlobalStore} from '../../store/config_global_store';
 
@@ -24,22 +28,10 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map([
     [
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.ARTIFACT_COLLECTOR_FLOW]!,
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.OS_QUERY_FLOW]!,
-    ]
+    ],
   ],
-  [
-    'Browser',
-    [
-      FLOW_LIST_ITEMS_BY_TYPE[FlowType.COLLECT_BROWSER_HISTORY]!,
-    ]
-  ],
-  [
-    'Hardware',
-    [
-      FLOW_LIST_ITEMS_BY_TYPE[FlowType.DUMP_ACPI_TABLE]!,
-      FLOW_LIST_ITEMS_BY_TYPE[FlowType.DUMP_FLASH_IMAGE]!,
-      FLOW_LIST_ITEMS_BY_TYPE[FlowType.GET_MBR]!,
-    ]
-  ],
+  ['Browser', [FLOW_LIST_ITEMS_BY_TYPE[FlowType.COLLECT_BROWSER_HISTORY]!]],
+  ['Hardware', [FLOW_LIST_ITEMS_BY_TYPE[FlowType.GET_MBR]!]],
   [
     'Filesystem',
     [
@@ -54,7 +46,8 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map([
       // 'Lists and stats all files in directory and its subdirectories'),
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.TIMELINE_FLOW]!,
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.READ_LOW_LEVEL]!,
-    ]
+      FLOW_LIST_ITEMS_BY_TYPE[FlowType.COLLECT_LARGE_FILE_FLOW]!,
+    ],
   ],
   [
     'Administrative',
@@ -62,10 +55,6 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map([
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.ONLINE_NOTIFICATION]!,
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.EXECUTE_PYTHON_HACK]!,
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.INTERROGATE]!,
-      // TODO:
-      // fli('GetClientStats', 'Collect GRR statistics',
-      //     'Collect agent statistics including processor, memory, and
-      //     network usage'),
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.KILL]!,
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.LAUNCH_BINARY]!,
       // TODO:
@@ -75,7 +64,7 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map([
       //     'Permanently uninstall GRR from the host'),
       // fli('UpdateClient', 'Update GRR client',
       //     'Update GRR on the host to the latest version'),
-    ]
+    ],
   ],
   [
     'Processes',
@@ -84,14 +73,9 @@ const FLOWS_BY_CATEGORY: FlowsByCategory = new Map([
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.LIST_NAMED_PIPES_FLOW]!,
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.DUMP_PROCESS_MEMORY]!,
       FLOW_LIST_ITEMS_BY_TYPE[FlowType.YARA_PROCESS_SCAN]!,
-    ]
+    ],
   ],
-  [
-    'Network',
-    [
-      FLOW_LIST_ITEMS_BY_TYPE[FlowType.NETSTAT]!,
-    ]
-  ],
+  ['Network', [FLOW_LIST_ITEMS_BY_TYPE[FlowType.NETSTAT]!]],
   // TODO:
   // ['Registry', [
   //   fli('RegistryFinder', 'Find registry keys/values'),
@@ -127,24 +111,30 @@ export class FlowListItemService {
   // once all FlowDescriptors, including restricted, are always returned from
   // ListFlowDescriptors API endpoint.
   readonly allowedFlowDescriptorNames$: Observable<ReadonlySet<string>> =
-      this.configGlobalStore.flowDescriptors$.pipe(
-          map(fds => new Set(Array.from(fds.values()).map(fd => fd.name))));
+    this.configGlobalStore.flowDescriptors$.pipe(
+      map((fds) => new Set(Array.from(fds.values()).map((fd) => fd.name))),
+    );
 
   readonly flowsByCategory$: Observable<FlowsByCategory> =
-      this.allowedFlowDescriptorNames$.pipe(
-          map(allowedNames => transformMapValues(
-                  FLOWS_BY_CATEGORY,
-                  entries => entries.map(
-                      fli => ({...fli, enabled: allowedNames.has(fli.type)})))),
-      );
+    this.allowedFlowDescriptorNames$.pipe(
+      map((allowedNames) =>
+        transformMapValues(FLOWS_BY_CATEGORY, (entries) =>
+          entries.map((fli) => ({...fli, enabled: allowedNames.has(fli.type)})),
+        ),
+      ),
+    );
 
   readonly commonFlowNames$: Observable<readonly FlowType[]> =
-      this.allowedFlowDescriptorNames$.pipe(
-          map(allowedNames =>
-                  COMMON_FLOW_NAMES.filter(name => allowedNames.has(name))));
+    this.allowedFlowDescriptorNames$.pipe(
+      map((allowedNames) =>
+        COMMON_FLOW_NAMES.filter((name) => allowedNames.has(name)),
+      ),
+    );
 
   readonly commonFileFlows$: Observable<readonly FlowListItem[]> =
-      this.allowedFlowDescriptorNames$.pipe(
-          map(allowedNames =>
-                  COMMON_FILE_FLOWS.filter(fli => allowedNames.has(fli.type))));
+    this.allowedFlowDescriptorNames$.pipe(
+      map((allowedNames) =>
+        COMMON_FILE_FLOWS.filter((fli) => allowedNames.has(fli.type)),
+      ),
+    );
 }

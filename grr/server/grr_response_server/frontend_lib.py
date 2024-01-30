@@ -12,6 +12,7 @@ from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import collection
 from grr_response_core.lib.util import random
 from grr_response_core.stats import metrics
+from grr_response_proto import flows_pb2
 from grr_response_server import data_store
 from grr_response_server import events
 from grr_response_server import message_handlers
@@ -20,6 +21,7 @@ from grr_response_server import worker_lib
 from grr_response_server.databases import db
 from grr_response_server.flows.general import transfer
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
 
@@ -79,7 +81,9 @@ class FrontEndServer(object):
     client_urn = rdf_client.ClientURN(client_id)
     # If already enrolled, return.
     try:
-      return data_store.REL_DB.ReadClientMetadata(client_id)
+      return mig_objects.ToRDFClientMetadata(
+          data_store.REL_DB.ReadClientMetadata(client_id)
+      )
     except db.UnknownClientError:
       pass
 
@@ -239,12 +243,12 @@ class FrontEndServer(object):
       timestamp = rdfvalue.RDFDatetime.FromProtoTimestamp(log.timestamp)
       level = rrg_pb2.Log.Level.Name(log.level)
 
-      flow_log_entry = rdf_flow_objects.FlowLogEntry()
-      flow_log_entry.client_id = client_id
-      flow_log_entry.flow_id = f"{response.flow_id:016X}"
-      flow_log_entry.timestamp = timestamp
-      flow_log_entry.message = f"[RRG:{level}] {log.message}"
-
+      flow_log_entry = flows_pb2.FlowLogEntry(
+          client_id=client_id,
+          flow_id=f"{response.flow_id:016X}",
+          timestamp=timestamp.AsMicrosecondsSinceEpoch(),
+          message=f"[RRG:{level}] {log.message}",
+      )
       data_store.REL_DB.WriteFlowLogEntry(flow_log_entry)
       return
     else:

@@ -19,6 +19,13 @@ either so it's in a div with 0 height.
 -->
 <div style="height: 0"><br></div>
 
+<p>
+  with an expiration of:
+</p>
+<blockquote>
+  {$ controller.approvalObject.expirationRelative $}
+</blockquote>
+
 <button class="btn"
         name="grant-approval"
         ng-class="{'btn-success': !controller.approvalObject.isValid,

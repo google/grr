@@ -11,7 +11,7 @@ import {RolloutForm} from './rollout_form';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     FormsModule,
@@ -21,14 +21,8 @@ import {RolloutForm} from './rollout_form';
     MatTooltipModule,
     ReactiveFormsModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    RolloutForm,
-  ],
-  exports: [
-    RolloutForm,
-  ]
+  declarations: [RolloutForm],
+  exports: [RolloutForm],
 })
-export class RolloutFormModule {
-}
+export class RolloutFormModule {}

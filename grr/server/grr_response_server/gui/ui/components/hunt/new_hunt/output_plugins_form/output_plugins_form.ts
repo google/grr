@@ -1,4 +1,10 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, HostBinding, HostListener} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  HostBinding,
+  HostListener,
+} from '@angular/core';
 import {FormArray, FormBuilder, FormControl, FormGroup} from '@angular/forms';
 import {take, tap} from 'rxjs/operators';
 
@@ -39,22 +45,22 @@ export class OutputPluginsForm {
     for (const control of this.plugins.controls) {
       switch (control.get('type')!.value) {
         case PluginType.BIGQUERY: {
-          const annotationsFormArray =
-              control.get('annotations') as FormArray<FormControl<string>>;
-          const annotations =
-              annotationsFormArray.controls.map(formCtrl => formCtrl.value);
-          res.push(
-              {
-                'pluginName': 'BigQueryOutputPlugin',
-                'args': {
-                  '@type':
-                      'type.googleapis.com/grr.BigQueryOutputPluginArgs',
-                  'exportOptions': {
-                    'annotations': annotations,
-                  }
-                } as Any
-              },
+          const annotationsFormArray = control.get('annotations') as FormArray<
+            FormControl<string>
+          >;
+          const annotations = annotationsFormArray.controls.map(
+            (formCtrl) => formCtrl.value,
           );
+          res.push({
+            'pluginName': 'BigQueryOutputPlugin',
+            'args': {
+              '@type':
+                'type.googleapis.com/grr.BigQueryOutputPluginArgs',
+              'exportOptions': {
+                'annotations': annotations,
+              },
+            } as Any,
+          });
           break;
         }
         default: {
@@ -69,8 +75,9 @@ export class OutputPluginsForm {
   readonly plugins: FormArray<FormGroup> = this.fb.array([] as FormGroup[]);
 
   constructor(
-      private readonly changeDetection: ChangeDetectorRef,
-      private readonly configGlobalStore: ConfigGlobalStore) {
+    private readonly changeDetection: ChangeDetectorRef,
+    private readonly configGlobalStore: ConfigGlobalStore,
+  ) {
   }
 
   pluginGroup(pluginIndex: number): FormGroup {
@@ -95,15 +102,18 @@ export class OutputPluginsForm {
   }
 
   newTableForm(
-      type: PluginType, name: string,
-      annotations?: string[]|undefined): FormGroup {
+    type: PluginType,
+    name: string,
+    annotations?: string[] | undefined,
+  ): FormGroup {
     const defaultAnnotations = [new FormControl('', {nonNullable: true})];
 
     return this.fb.group({
       'type': [type],
       'name': [name],
       'annotations': this.fb.array(
-          annotations ? toStringFormControls(annotations) : defaultAnnotations),
+        annotations ? toStringFormControls(annotations) : defaultAnnotations,
+      ),
     });
   }
 
@@ -111,19 +121,22 @@ export class OutputPluginsForm {
     return this.fb.group({'type': [type], 'name': [name]});
   }
 
-  newBigQueryForm(annotations?: string[]|undefined): FormGroup {
+  newBigQueryForm(annotations?: string[] | undefined): FormGroup {
     return this.newTableForm(PluginType.BIGQUERY, 'BigQuery', annotations);
   }
 
   annotations(pluginIndex: number): FormArray<FormControl<string>> {
-    return this.plugins.at(pluginIndex).get('annotations') as
-        FormArray<FormControl<string>>;
+    return this.plugins.at(pluginIndex).get('annotations') as FormArray<
+      FormControl<string>
+    >;
   }
 
   addAnnotation(pluginIndex: number) {
-    this.annotations(pluginIndex).push(new FormControl('', {
-      nonNullable: true
-    }));
+    this.annotations(pluginIndex).push(
+      new FormControl('', {
+        nonNullable: true,
+      }),
+    );
   }
 
   removeAnnotation(pluginIndex: number, annotationIndex: number) {
@@ -139,10 +152,13 @@ export class OutputPluginsForm {
         switch (plugin.pluginName) {
           case 'BigQueryOutputPlugin': {
             const args = plugin.args as OutputPluginWithExportOptions;
-            this.plugins.push(this.newBigQueryForm(
-                args.exportOptions?.annotations ?
-                    args.exportOptions.annotations :
-                    undefined));
+            this.plugins.push(
+              this.newBigQueryForm(
+                args.exportOptions?.annotations
+                  ? args.exportOptions.annotations
+                  : undefined,
+              ),
+            );
             break;
           }
           default: {

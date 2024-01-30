@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 """Mixin tests for storing Foreman rules in the relational db."""
+from typing import Optional
 
 from grr_response_core.lib import rdfvalue
-from grr_response_server import foreman_rules
+from grr_response_proto import jobs_pb2
 from grr_response_server.databases import db_test_utils
 
 
@@ -12,24 +13,33 @@ class DatabaseTestForemanRulesMixin(object):
   This mixin adds methods to test the handling of foreman rules.
   """
 
-  def _GetTestRule(self, hunt_id="123456", expires=None):
+  def _GetTestRule(
+      self,
+      hunt_id: str = "123456",
+      expires: Optional[rdfvalue.RDFDatetime] = None,
+  ) -> jobs_pb2.ForemanCondition:
     now = rdfvalue.RDFDatetime.Now()
     expiration_time = expires or now + rdfvalue.Duration.From(2, rdfvalue.WEEKS)
-    rule = foreman_rules.ForemanCondition(
-        creation_time=now,
-        expiration_time=expiration_time,
+    condition = jobs_pb2.ForemanCondition(
+        creation_time=now.AsMicrosecondsSinceEpoch(),
+        expiration_time=expiration_time.AsMicrosecondsSinceEpoch(),
         description="Test rule",
-        hunt_id=hunt_id)
-    rule.client_rule_set = foreman_rules.ForemanClientRuleSet(rules=[
-        foreman_rules.ForemanClientRule(
-            rule_type=foreman_rules.ForemanClientRule.Type.INTEGER,
-            integer=foreman_rules.ForemanIntegerClientRule(
-                field="INSTALL_TIME",
-                operator=foreman_rules.ForemanIntegerClientRule.Operator
-                .LESS_THAN,
-                value=now))
-    ])
-    return rule
+        hunt_id=hunt_id,
+    )
+    integer_rule = jobs_pb2.ForemanIntegerClientRule(
+        field="INSTALL_TIME",
+        operator=jobs_pb2.ForemanIntegerClientRule.Operator.LESS_THAN,
+        value=now.AsMicrosecondsSinceEpoch(),
+    )
+    rule = jobs_pb2.ForemanClientRule(
+        rule_type=jobs_pb2.ForemanClientRule.Type.INTEGER
+    )
+    rule.integer.CopyFrom(integer_rule)
+    rule_set = jobs_pb2.ForemanClientRuleSet()
+    rule_set.rules.add().CopyFrom(rule)
+    condition.client_rule_set.CopyFrom(rule_set)
+
+    return condition
 
   def testForemanRuleWrite(self):
     hunt_id = db_test_utils.InitializeHunt(self.db)

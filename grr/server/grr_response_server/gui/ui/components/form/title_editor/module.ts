@@ -9,17 +9,15 @@ import {TitleEditor, TitleEditorContent} from './title_editor';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     MatButtonModule,
     MatIconModule,
     RouterModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [TitleEditorContent, TitleEditor],
   exports: [TitleEditorContent, TitleEditor],
 })
-export class TitleEditorModule {
-}
+export class TitleEditorModule {}

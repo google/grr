@@ -5,7 +5,12 @@
 Client.server_urls: ["http://localhost:8000/"]
 Client.executable_signing_public_key: |
   -----BEGIN PUBLIC KEY-----
-  MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAMQpeVjrxmf6nPmsjHjULWhLmquSgTDK
-  GpJgTFkTIAgX0Ih5lxoFB5TUjUfJFbBkSmKQPRA/IyuLBtCLQgwkTNkCAwEAAQ==
+  MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzbuwYnKTTleU2F4zu1gI
+  /BolzR74470j6wK7QrQp5b5QkmfevCdX540Ax3mFt6isChrhIXy4LmTvM5SeiCvs
+  6su8ro7ZYqtbZjpoBWorESy5VAnnuiuwiAvI7IOPYbSu8e+mHQa893hLYv9q0kQe
+  1CtlvQsKir8aQ0YC63UWhrcMcMYCjUaRkWo8JUWoCW/GuZjbuFF0ZZsA13cVSOhF
+  g1dxvX4/+FXlnyZQbu2Aex4NU9NGYetl+SP10Uq/c92wZ34ENU3rH8Kw8Tar/dku
+  g9+hgrcgt7JRECXmho+WFrKM1H6z1CNe6uEALMfogNl9Mm2jCgavl1wbV92pIKT1
+  pQIDAQAB
   -----END PUBLIC KEY-----
 CA.certificate: "-----BEGIN CERTIFICATE"

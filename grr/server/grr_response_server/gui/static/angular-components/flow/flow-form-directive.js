@@ -2,7 +2,15 @@ goog.module('grrUi.flow.flowFormDirective');
 goog.module.declareLegacyNamespace();
 
 const reflectionService = goog.requireType('grrUi.core.reflectionService');
+const {ApiService} = goog.requireType('grrUi.core.apiService');
 const {valueHasErrors} = goog.require('grrUi.forms.utils');
+
+
+/** @const {string} */
+exports.DEFAULT_PLUGINS_URL = '/config/' +
+    'AdminUI.new_flow_form.default_output_plugins';
+const DEFAULT_PLUGINS_URL = exports.DEFAULT_PLUGINS_URL;
+
 
 
 /**
@@ -14,14 +22,21 @@ const FlowFormController = class {
    * @param {!angular.Scope} $scope
    * @param {!reflectionService.ReflectionService}
    *     grrReflectionService
+   * @param {!ApiService} grrApiService
    * @ngInject
    */
-  constructor($scope, grrReflectionService) {
+  constructor($scope, grrReflectionService, grrApiService) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
 
     /** @private {!reflectionService.ReflectionService} */
     this.grrReflectionService_ = grrReflectionService;
+
+    /** @private @const {!ApiService} */
+    this.grrApiService_ = grrApiService;
+
+    /** @private {?string} */
+    this.defaultOutputPluginNames;
 
     /** @type {Object} */
     this.outputPluginsField;
@@ -29,7 +44,14 @@ const FlowFormController = class {
     /** @type {Object} */
     this.outputPluginDescriptor;
 
-    this.grrReflectionService_.getRDFValueDescriptor('FlowRunnerArgs')
+    this.grrApiService_.get(DEFAULT_PLUGINS_URL)
+        .then(function(response) {
+          if (angular.isDefined(response['data']['value'])) {
+            this.defaultOutputPluginNames = response['data']['value']['value'];
+          }
+          return this.grrReflectionService_.getRDFValueDescriptor(
+              'FlowRunnerArgs');
+        }.bind(this))
         .then(function(descriptor) {
           angular.forEach(descriptor['fields'], function(field) {
             if (field.name == 'output_plugins') {
@@ -42,11 +64,11 @@ const FlowFormController = class {
         }.bind(this))
         .then(function(descriptor) {
           this.outputPluginDescriptor = descriptor;
-        }.bind(this));
 
-    this.scope_.$watch(
-        'flowRunnerArgs.value.output_plugins',
-        this.onOutputPluginsChanged_.bind(this));
+          this.scope_.$watch(
+              'flowRunnerArgs.value.output_plugins',
+              this.onOutputPluginsChanged_.bind(this));
+        }.bind(this));
 
     this.scope_.$watch(function() {
       return [this.scope_['flowArgs'], this.scope_['flowRunnerArgs']];
@@ -75,9 +97,21 @@ const FlowFormController = class {
       return;
     }
 
-    var flowRunnerArgs = this.scope_['flowRunnerArgs'];
-    if (angular.isUndefined(newValue) && angular.isDefined(flowRunnerArgs)) {
-      flowRunnerArgs['value']['output_plugins'] = [];
+    const fra = this.scope_['flowRunnerArgs'];
+    if (angular.isUndefined(newValue) && angular.isDefined(fra)) {
+      fra['value']['output_plugins'] = [];
+      if (this.defaultOutputPluginNames) {
+        this.defaultOutputPluginNames.split(',').forEach((n) => {
+          const defaultPluginDescriptor = angular.copy(
+            this.outputPluginDescriptor['default']
+          );
+          defaultPluginDescriptor['value']['plugin_name'] = {
+            type: 'RDFString',
+            value: n,
+          };
+          fra['value']['output_plugins'].push(defaultPluginDescriptor);
+        });
+      }
     }
   }
 };

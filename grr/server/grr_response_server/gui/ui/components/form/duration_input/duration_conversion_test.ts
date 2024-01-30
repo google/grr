@@ -1,6 +1,10 @@
 import {initTestEnvironment} from '../../../testing';
 
-import {parseDurationString, toDurationString, toDurationUnit} from './duration_conversion';
+import {
+  parseDurationString,
+  toDurationString,
+  toDurationUnit,
+} from './duration_conversion';
 
 initTestEnvironment();
 

@@ -7,12 +7,13 @@ import {PathSpecProgressStatus} from '../../../lib/api/api_interfaces';
 import {newPathSpec} from '../../../lib/api/api_test_util';
 import {newFlow} from '../../../lib/models/model_test_util';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
-import {FlowResultsLocalStoreMock, mockFlowResultsLocalStore} from '../../../store/flow_results_local_store_test_util';
+import {
+  FlowResultsLocalStoreMock,
+  mockFlowResultsLocalStore,
+} from '../../../store/flow_results_local_store_test_util';
 import {initTestEnvironment} from '../../../testing';
 
 import {PluginsModule} from './module';
-
-
 
 initTestEnvironment();
 
@@ -22,46 +23,41 @@ describe('multi-get-file-details component', () => {
   beforeEach(waitForAsync(() => {
     flowResultsLocalStore = mockFlowResultsLocalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            PluginsModule,
-            RouterTestingModule,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            FlowResultsLocalStore, {useFactory: () => flowResultsLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, PluginsModule, RouterTestingModule],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(FlowResultsLocalStore, {
+        useFactory: () => flowResultsLocalStore,
+      })
+      .compileComponents();
   }));
 
-  const FLOW_LIST_ENTRY = Object.freeze(newFlow({
-    name: 'MultiGetFile',
-    args: {
-      pathspecs: [
-        newPathSpec('/path1'),
-        newPathSpec('/path2'),
-      ]
-    },
-    progress: {
-      numSkipped: 1,
-      numCollected: 1,
-      numFailed: 0,
+  const FLOW_LIST_ENTRY = Object.freeze(
+    newFlow({
+      name: 'MultiGetFile',
+      args: {
+        pathspecs: [newPathSpec('/path1'), newPathSpec('/path2')],
+      },
+      progress: {
+        numSkipped: 1,
+        numCollected: 1,
+        numFailed: 0,
 
-      pathspecsProgress: [
-        {
-          pathspec: newPathSpec('/path1'),
-          status: PathSpecProgressStatus.SKIPPED,
-        },
-        {
-          pathspec: newPathSpec('/path2'),
-          status: PathSpecProgressStatus.COLLECTED,
-        },
-      ]
-    },
-  }));
+        pathspecsProgress: [
+          {
+            pathspec: newPathSpec('/path1'),
+            status: PathSpecProgressStatus.SKIPPED,
+          },
+          {
+            pathspec: newPathSpec('/path2'),
+            status: PathSpecProgressStatus.COLLECTED,
+          },
+        ],
+      },
+    }),
+  );
 
   it('shows summary (zero results)', () => {
     const fixture = TestBed.createComponent(MultiGetFileDetails);
@@ -92,7 +88,7 @@ describe('multi-get-file-details component', () => {
             pathspec: newPathSpec('/path1'),
             status: PathSpecProgressStatus.FAILED,
           },
-        ]
+        ],
       },
     });
     fixture.detectChanges();

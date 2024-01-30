@@ -12,7 +12,9 @@ from absl import app
 from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import chunked
+from grr_response_proto import flows_pb2
 from grr_response_proto import jobs_pb2
+from grr_response_proto import objects_pb2
 from grr_response_proto.api import hunt_pb2
 from grr_response_proto.api import timeline_pb2
 from grr_response_server import data_store
@@ -25,7 +27,7 @@ from grr_response_server.gui import api_integration_test_lib
 from grr_response_server.output_plugins import csv_plugin
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
 from grr.test_lib import hunt_test_lib
@@ -120,17 +122,21 @@ class ApiClientLibHuntTest(
     self.AssignTasksToClients(client_ids)
 
     data_store.REL_DB.WriteFlowLogEntry(
-        rdf_flow_objects.FlowLogEntry(
+        flows_pb2.FlowLogEntry(
             client_id=client_ids[0],
             flow_id=hunt_id,
             hunt_id=hunt_id,
-            message="Sample message: foo."))
+            message="Sample message: foo.",
+        )
+    )
     data_store.REL_DB.WriteFlowLogEntry(
-        rdf_flow_objects.FlowLogEntry(
+        flows_pb2.FlowLogEntry(
             client_id=client_ids[1],
             flow_id=hunt_id,
             hunt_id=hunt_id,
-            message="Sample message: bar."))
+            message="Sample message: bar.",
+        )
+    )
 
     logs = list(self.api.Hunt(hunt_id).ListLogs())
     self.assertLen(logs, 2)
@@ -263,13 +269,12 @@ class ApiClientLibHuntTest(
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
     fqdn = "foo.bar.quux"
 
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.fqdn = fqdn
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
     hunt_id = "B1C2E3D4"
-    flow_id = "1B2C3E4D"
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
@@ -280,7 +285,7 @@ class ApiClientLibHuntTest(
 
     flow_obj = rdf_flow_objects.Flow()
     flow_obj.client_id = client_id
-    flow_obj.flow_id = flow_id
+    flow_obj.flow_id = hunt_id
     flow_obj.flow_class_name = timeline.TimelineFlow.__name__
     flow_obj.create_time = rdfvalue.RDFDatetime.Now()
     flow_obj.parent_hunt_id = hunt_id
@@ -309,14 +314,17 @@ class ApiClientLibHuntTest(
     blob_ids = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
 
     result = rdf_timeline.TimelineResult()
-    result.entry_batch_blob_ids = [blob_id.AsBytes() for blob_id in blob_ids]
+    result.entry_batch_blob_ids = list(map(bytes, blob_ids))
 
     flow_result = rdf_flow_objects.FlowResult()
     flow_result.client_id = client_id
-    flow_result.flow_id = flow_id
+    flow_result.flow_id = hunt_id
+    flow_result.hunt_id = hunt_id
     flow_result.payload = result
 
-    data_store.REL_DB.WriteFlowResults([flow_result])
+    data_store.REL_DB.WriteFlowResults(
+        [mig_flow_objects.ToProtoFlowResult(flow_result)]
+    )
 
     buffer = io.BytesIO()
     self.api.Hunt(hunt_id).GetCollectedTimelines(
@@ -350,13 +358,12 @@ class ApiClientLibHuntTest(
     client_id = db_test_utils.InitializeClient(data_store.REL_DB)
     fqdn = "foo.bar.baz"
 
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.fqdn = fqdn
     data_store.REL_DB.WriteClientSnapshot(snapshot)
 
     hunt_id = "A0B1D2C3"
-    flow_id = "0A1B2D3C"
 
     hunt_obj = rdf_hunt_objects.Hunt()
     hunt_obj.hunt_id = hunt_id
@@ -367,7 +374,7 @@ class ApiClientLibHuntTest(
 
     flow_obj = rdf_flow_objects.Flow()
     flow_obj.client_id = client_id
-    flow_obj.flow_id = flow_id
+    flow_obj.flow_id = hunt_id
     flow_obj.flow_class_name = timeline.TimelineFlow.__name__
     flow_obj.create_time = rdfvalue.RDFDatetime.Now()
     flow_obj.parent_hunt_id = hunt_id
@@ -396,14 +403,16 @@ class ApiClientLibHuntTest(
     blob_ids = data_store.BLOBS.WriteBlobsWithUnknownHashes(blobs)
 
     result = rdf_timeline.TimelineResult()
-    result.entry_batch_blob_ids = [blob_id.AsBytes() for blob_id in blob_ids]
+    result.entry_batch_blob_ids = list(map(bytes, blob_ids))
 
     flow_result = rdf_flow_objects.FlowResult()
     flow_result.client_id = client_id
-    flow_result.flow_id = flow_id
+    flow_result.flow_id = hunt_id
     flow_result.payload = result
 
-    data_store.REL_DB.WriteFlowResults([flow_result])
+    data_store.REL_DB.WriteFlowResults(
+        [mig_flow_objects.ToProtoFlowResult(flow_result)]
+    )
 
     buffer = io.BytesIO()
 

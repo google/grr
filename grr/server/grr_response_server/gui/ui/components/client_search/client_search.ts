@@ -12,11 +12,12 @@ function toRow(c: Client) {
   return {
     clientId: c.clientId,
     fqdn: c.knowledgeBase.fqdn,
-    labels: c.labels.map(label => label.name),
+    labels: c.labels.map((label) => label.name),
     lastSeenAt: c.lastSeenAt,
-    users: c.knowledgeBase.users?.map(user => user.username) ?? [],
-    additionalUserCount:
-        c.knowledgeBase.users?.length ? c.knowledgeBase.users.length - 1 : 0,
+    users: c.knowledgeBase.users?.map((user) => user.username) ?? [],
+    additionalUserCount: c.knowledgeBase.users?.length
+      ? c.knowledgeBase.users.length - 1
+      : 0,
   };
 }
 
@@ -32,36 +33,42 @@ export class ClientSearch implements OnDestroy {
   readonly ngOnDestroy = observeOnDestroy(this);
 
   protected readonly query$ = this.route.queryParamMap.pipe(
-      takeUntil(this.ngOnDestroy.triggered$),
-      map(params => params.get('q') ?? ''),
+    takeUntil(this.ngOnDestroy.triggered$),
+    map((params) => params.get('q') ?? ''),
   );
 
   protected readonly clientLinkParams$: Observable<Params> =
-      this.route.queryParamMap.pipe(
-          takeUntil(this.ngOnDestroy.triggered$),
-          map(params => params.get('reason')),
-          filter(isNonNull),
-          map((reason) => ({'reason': reason})),
-      );
+    this.route.queryParamMap.pipe(
+      takeUntil(this.ngOnDestroy.triggered$),
+      map((params) => params.get('reason')),
+      filter(isNonNull),
+      map((reason) => ({'reason': reason})),
+    );
 
   /**
    * Table rows for the MatTable component.
    */
   protected readonly rows$ = this.clientSearchLocalStore.clients$.pipe(
-      map(clients => clients?.map(toRow) ?? []));
+    map((clients) => clients?.map(toRow) ?? []),
+  );
   /**
    * Table columns for the MatTable component.
    */
-  protected readonly columns =
-      ['clientId', 'fqdn', 'users', 'labels', 'online', 'lastSeenAt'] as const;
+  protected readonly columns = [
+    'clientId',
+    'fqdn',
+    'users',
+    'labels',
+    'online',
+    'lastSeenAt',
+  ] as const;
 
   constructor(
-      private readonly route: ActivatedRoute,
-      protected readonly clientSearchLocalStore: ClientSearchLocalStore,
-      private readonly router: Router,
-
+    private readonly route: ActivatedRoute,
+    protected readonly clientSearchLocalStore: ClientSearchLocalStore,
+    private readonly router: Router,
   ) {
-    this.query$.subscribe(query => {
+    this.query$.subscribe((query) => {
       this.clientSearchLocalStore.searchClients(query);
     });
   }
@@ -70,9 +77,9 @@ export class ClientSearch implements OnDestroy {
     if (isClientId(query)) {
       await this.router.navigate(['/clients', query]);
     } else {
-      await this.router.navigate(
-          ['/clients'],
-          {queryParams: {...this.route.snapshot.queryParams, 'q': query}});
+      await this.router.navigate(['/clients'], {
+        queryParams: {...this.route.snapshot.queryParams, 'q': query},
+      });
     }
   }
 }

@@ -6,8 +6,9 @@ import {capitalize} from '../type_utils';
 import {FlowDetailsAdapter, FlowResultSection} from './adapter';
 
 /** Adapter for ListProcesses flow. */
-export class ListProcessesAdapter extends
-    FlowDetailsAdapter<Flow<ListProcessesArgs>> {
+export class ListProcessesAdapter extends FlowDetailsAdapter<
+  Flow<ListProcessesArgs>
+> {
   private getArgDescription(args?: ListProcessesArgs): string {
     const conditions: string[] = [];
 
@@ -31,8 +32,9 @@ export class ListProcessesAdapter extends
   }
 
   override getResultView(
-      resultGroup: FlowResultCount,
-      args: ListProcessesArgs|undefined): FlowResultSection|undefined {
+    resultGroup: FlowResultCount,
+    args: ListProcessesArgs | undefined,
+  ): FlowResultSection | undefined {
     if (resultGroup.type === 'Process') {
       return {
         title: this.getArgDescription(args),

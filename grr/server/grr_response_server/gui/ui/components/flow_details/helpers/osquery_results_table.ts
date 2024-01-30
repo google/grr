@@ -1,4 +1,10 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, Input, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  Input,
+  ViewChild,
+} from '@angular/core';
 import {MatSort} from '@angular/material/sort';
 import {MatTableDataSource} from '@angular/material/table';
 import {BehaviorSubject} from 'rxjs';
@@ -29,7 +35,7 @@ export class OsqueryResultsTable implements AfterViewInit {
   @ViewChild(MatSort) sort!: MatSort;
 
   @Input()
-  set table(table: OsqueryTable|null) {
+  set table(table: OsqueryTable | null) {
     if (table == null) {
       this.query = undefined;
       this.displayedColumns = [];
@@ -40,7 +46,7 @@ export class OsqueryResultsTable implements AfterViewInit {
     this.query = table.query;
 
     this.displayedColumns =
-        table.header?.columns?.map(header => header?.name ?? '') ?? [];
+      table.header?.columns?.map((header) => header?.name ?? '') ?? [];
 
     const data: Row[] = [];
     for (const row of table.rows ?? []) {

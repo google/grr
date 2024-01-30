@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Utilities for working with Google Cloud Storage."""
 import datetime
-import pathlib
 from typing import Callable
 from typing import IO
 from typing import Optional
@@ -133,7 +132,7 @@ class UploadSession(object):
 
     return cls(response.headers["Location"])
 
-  def SendFile(self, file: IO[bytes], opts: Optional[Opts] = None) -> None:
+  def SendFile(self, file: IO[bytes], opts: Optional[Opts] = None) -> int:
     """Streams the given file to Google Cloud Storage.
 
     Args:
@@ -141,7 +140,7 @@ class UploadSession(object):
       opts: Options used for the transfer procedure.
 
     Returns:
-      Nothing.
+      Total number of bytes sent.
 
     Raises:
       RequestError: If it is not possible to deliver one of the chunks.
@@ -195,9 +194,10 @@ class UploadSession(object):
       chunk_first_byte = offset
       chunk_last_byte = max(offset + len(chunk) - 1, offset)
 
+      offset += len(chunk)
+
       if is_last_chunk:
-        total_size = offset + len(chunk)
-        chunk_range = f"bytes {chunk_first_byte}-{chunk_last_byte}/{total_size}"
+        chunk_range = f"bytes {chunk_first_byte}-{chunk_last_byte}/{offset}"
       else:
         chunk_range = f"bytes {chunk_first_byte}-{chunk_last_byte}/*"
 
@@ -252,26 +252,7 @@ class UploadSession(object):
       opts.progress_callback()
 
       if is_last_chunk:
-        break
-      else:
-        offset += len(chunk)
-
-  def SendPath(self, path: pathlib.Path, opts: Optional[Opts] = None) -> None:
-    """Stream a file at the specified path to Google Cloud Storage.
-
-    Args:
-      path: A path to the file to send.
-      opts: Options used for the transfer procedure.
-
-    Returns:
-      Nothing.
-
-    Raises:
-      RequestError: If it is not possible to deliver one of the chunks.
-      ResponseError: If the server responded with unexpected status.
-    """
-    with path.open(mode="rb") as file:
-      self.SendFile(file, opts=opts)
+        return offset
 
   @property
   def uri(self) -> str:

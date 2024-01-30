@@ -9,7 +9,12 @@ import {FlowArgumentForm} from '../../components/flow_args_form/form_interface';
 import {GlobExplanationMode} from '../../components/form/glob_expression_form_field/glob_expression_explanation';
 import {ArtifactCollectorFlowArgs} from '../../lib/api/api_interfaces';
 import {safeTranslateOperatingSystem} from '../../lib/api_translation/flow';
-import {ArtifactDescriptor, ArtifactSource, OperatingSystem, SourceType} from '../../lib/models/flow';
+import {
+  ArtifactDescriptor,
+  ArtifactSource,
+  OperatingSystem,
+  SourceType,
+} from '../../lib/models/flow';
 import {isNonNull, isNull} from '../../lib/preconditions';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
 import {ConfigGlobalStore} from '../../store/config_global_store';
@@ -94,23 +99,30 @@ function getReadableSources(source: ArtifactSource): readonly string[] {
 }
 
 function createListEntry(
-    ad: ArtifactDescriptor,
-    clientOs?: OperatingSystem|null): ArtifactListEntry {
+  ad: ArtifactDescriptor,
+  clientOs?: OperatingSystem | null,
+): ArtifactListEntry {
   const readableSources = new Map<SourceType, string[]>();
 
   for (const source of ad.sources) {
-    if (isNonNull(clientOs) && source.supportedOs.size > 0 &&
-        !source.supportedOs.has(clientOs)) {
+    if (
+      isNonNull(clientOs) &&
+      source.supportedOs.size > 0 &&
+      !source.supportedOs.has(clientOs)
+    ) {
       // Skip sources that explicitly state they don't support the current OS.
       continue;
     }
 
-    const sourceList =
-        getOrSet<SourceType, string[]>(readableSources, source.type, Array);
+    const sourceList = getOrSet<SourceType, string[]>(
+      readableSources,
+      source.type,
+      Array,
+    );
     sourceList.push(...getReadableSources(source));
   }
 
-  let sampleSource: SampleSource|undefined;
+  let sampleSource: SampleSource | undefined;
   for (const [type, values] of readableSources.entries()) {
     const name = READABLE_SOURCE_NAME[type];
     if (name !== undefined && values.length > 0) {
@@ -119,18 +131,16 @@ function createListEntry(
     }
   }
 
-  const totalSources = Array.from(readableSources.values())
-                           .reduce((acc, cur) => acc + cur.length, 0);
+  const totalSources = Array.from(readableSources.values()).reduce(
+    (acc, cur) => acc + cur.length,
+    0,
+  );
 
   const availableOnClient = isNull(clientOs) || ad.supportedOs.has(clientOs);
 
-  const searchStrings =
-      [
-        ad.name,
-        ad.doc ?? '',
-        ...ad.supportedOs,
-      ].concat(...readableSources.values())
-          .map(str => str.toLowerCase());
+  const searchStrings = [ad.name, ad.doc ?? '', ...ad.supportedOs]
+    .concat(...readableSources.values())
+    .map((str) => str.toLowerCase());
 
   return {
     ...ad,
@@ -143,40 +153,48 @@ function createListEntry(
 }
 
 function matches(entry: ArtifactListEntry, searchString: string): boolean {
-  return entry.searchStrings.some(str => str.includes(searchString));
+  return entry.searchStrings.some((str) => str.includes(searchString));
 }
 
 function readableSourceToNodes(
-    entries: Map<string, ArtifactListEntry>, type: SourceType,
-    readableSources: readonly string[]): SourceNode[] {
-  if (type === SourceType.ARTIFACT || type === SourceType.ARTIFACT_FILES ||
-      type === SourceType.ARTIFACT_GROUP) {
-    return readableSources.map(source => ({
-                                 type,
-                                 name: READABLE_SOURCE_NAME[type] ?? 'Unknown',
-                                 values: [source],
-                                 children: artifactToNodes(entries, source),
-                               }));
-  } else {
-    return [{
+  entries: Map<string, ArtifactListEntry>,
+  type: SourceType,
+  readableSources: readonly string[],
+): SourceNode[] {
+  if (
+    type === SourceType.ARTIFACT ||
+    type === SourceType.ARTIFACT_FILES ||
+    type === SourceType.ARTIFACT_GROUP
+  ) {
+    return readableSources.map((source) => ({
       type,
       name: READABLE_SOURCE_NAME[type] ?? 'Unknown',
-      values: readableSources,
-      children: [],
-    }];
+      values: [source],
+      children: artifactToNodes(entries, source),
+    }));
+  } else {
+    return [
+      {
+        type,
+        name: READABLE_SOURCE_NAME[type] ?? 'Unknown',
+        values: readableSources,
+        children: [],
+      },
+    ];
   }
 }
 
 function artifactToNodes(
-    entries: Map<string, ArtifactListEntry>,
-    artifactName: string): SourceNode[] {
+  entries: Map<string, ArtifactListEntry>,
+  artifactName: string,
+): SourceNode[] {
   const artifact = entries.get(artifactName);
   if (artifact === undefined) {
     return [];
   } else {
-    return Array.from(artifact.readableSources.entries())
-        .flatMap(
-            ([type, sources]) => readableSourceToNodes(entries, type, sources));
+    return Array.from(artifact.readableSources.entries()).flatMap(
+      ([type, sources]) => readableSourceToNodes(entries, type, sources),
+    );
   }
 }
 
@@ -195,8 +213,10 @@ type Controls = ReturnType<typeof makeControls>;
   styleUrls: ['./artifact_collector_flow_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class ArtifactCollectorFlowForm extends
-    FlowArgumentForm<ArtifactCollectorFlowArgs, Controls> {
+export class ArtifactCollectorFlowForm extends FlowArgumentForm<
+  ArtifactCollectorFlowArgs,
+  Controls
+> {
   readonly SourceType = SourceType;
   readonly readableSourceName = READABLE_SOURCE_NAME;
   protected readonly GlobExplanationMode = GlobExplanationMode;
@@ -208,7 +228,7 @@ export class ArtifactCollectorFlowForm extends
   override convertFlowArgsToFormState(flowArgs: ArtifactCollectorFlowArgs) {
     return {
       artifactName:
-          flowArgs.artifactList?.[0] ?? this.controls.artifactName.defaultValue,
+        flowArgs.artifactList?.[0] ?? this.controls.artifactName.defaultValue,
     };
   }
 
@@ -220,75 +240,72 @@ export class ArtifactCollectorFlowForm extends
   }
 
   private readonly clientOs$ = this.clientPageGlobalStore.selectedClient$.pipe(
-      map(client => safeTranslateOperatingSystem(client?.knowledgeBase.os)),
-      startWith(null),
-      distinctUntilChanged(),
+    map((client) => safeTranslateOperatingSystem(client?.knowledgeBase.os)),
+    startWith(null),
+    distinctUntilChanged(),
   );
 
-  readonly artifactListEntries$ =
-      combineLatest([
-        this.configGlobalStore.artifactDescriptors$,
-        this.clientOs$,
-      ])
-          .pipe(
-              map(([descriptors, clientOs]) => {
-                return Array.from(descriptors.values())
-                    .map(ad => createListEntry(ad, clientOs));
-              }),
-          );
+  readonly artifactListEntries$ = combineLatest([
+    this.configGlobalStore.artifactDescriptors$,
+    this.clientOs$,
+  ]).pipe(
+    map(([descriptors, clientOs]) => {
+      return Array.from(descriptors.values()).map((ad) =>
+        createListEntry(ad, clientOs),
+      );
+    }),
+  );
 
+  readonly filteredArtifactDescriptors$ = combineLatest([
+    this.artifactListEntries$,
+    this.controls.artifactName.valueChanges.pipe(startWith('')),
+  ]).pipe(
+    map(([entries, searchString]) => {
+      const str = searchString?.toLowerCase() ?? '';
+      return entries.filter((ad) => matches(ad, str));
+    }),
+  );
 
-  readonly filteredArtifactDescriptors$ =
-      combineLatest([
-        this.artifactListEntries$,
-        this.controls.artifactName.valueChanges.pipe(startWith('')),
-      ])
-          .pipe(
-              map(([entries, searchString]) => {
-                const str = searchString?.toLowerCase() ?? '';
-                return entries.filter(ad => matches(ad, str));
-              }),
-          );
-
-  readonly selectedArtifact$ =
-      combineLatest([
-        this.artifactListEntries$,
-        this.controls.artifactName.valueChanges,
-      ])
-          .pipe(
-              map(([entries, searchString]) =>
-                      entries.find(ad => ad.name === searchString)),
-              startWith(undefined),
-          );
-
+  readonly selectedArtifact$ = combineLatest([
+    this.artifactListEntries$,
+    this.controls.artifactName.valueChanges,
+  ]).pipe(
+    map(([entries, searchString]) =>
+      entries.find((ad) => ad.name === searchString),
+    ),
+    startWith(undefined),
+  );
 
   readonly clientId$ = this.clientPageGlobalStore.selectedClient$.pipe(
-      map(client => client?.clientId),
+    map((client) => client?.clientId),
   );
 
-  readonly treeControl =
-      new NestedTreeControl<SourceNode>(node => [...node.children]);
+  readonly treeControl = new NestedTreeControl<SourceNode>((node) => [
+    ...node.children,
+  ]);
 
   readonly dataSource = new MatTreeNestedDataSource<SourceNode>();
 
   constructor(
-      private readonly configGlobalStore: ConfigGlobalStore,
-      private readonly clientPageGlobalStore: ClientPageGlobalStore) {
+    private readonly configGlobalStore: ConfigGlobalStore,
+    private readonly clientPageGlobalStore: ClientPageGlobalStore,
+  ) {
     super();
 
     combineLatest([
       this.selectedArtifact$,
       this.artifactListEntries$.pipe(
-          map((entries) => new Map(entries.map(e => [e.name, e])))),
+        map((entries) => new Map(entries.map((e) => [e.name, e]))),
+      ),
     ])
-        .pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(([artifact, entries]) => {
-          if (artifact === undefined) {
-            this.dataSource.data = [];
-          } else {
-            this.dataSource.data = artifactToNodes(entries, artifact.name);
-          }
-        });
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe(([artifact, entries]) => {
+        if (artifact === undefined) {
+          this.dataSource.data = [];
+        } else {
+          this.dataSource.data = artifactToNodes(entries, artifact.name);
+        }
+      });
   }
 
   trackArtifactDescriptor(index: number, ad: ArtifactDescriptor) {

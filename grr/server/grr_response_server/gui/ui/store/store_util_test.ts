@@ -23,17 +23,20 @@ class TestStore extends ApiCollectionStore<ApiResult, StoreArgs> {
     super(mockHttpApiService() as unknown as HttpApiService);
   }
 
-  apiResults$: Observable<readonly ApiResult[]> =
-      new Subject<readonly ApiResult[]>();
+  apiResults$: Observable<readonly ApiResult[]> = new Subject<
+    readonly ApiResult[]
+  >();
   api = jasmine.createSpy('api').and.callFake(() => this.apiResults$);
 
-  protected loadResults(args: StoreArgs, paginationArgs: PaginationArgs):
-      Observable<readonly ApiResult[]> {
+  protected loadResults(
+    args: StoreArgs,
+    paginationArgs: PaginationArgs,
+  ): Observable<readonly ApiResult[]> {
     return this.api(args, paginationArgs);
   }
 
   protected compareItems(a: ApiResult, b: ApiResult): number {
-    return compareAlphabeticallyBy<ApiResult>(result => result.payload)(a, b);
+    return compareAlphabeticallyBy<ApiResult>((result) => result.payload)(a, b);
   }
 
   protected areItemsEqual(a: ApiResult, b: ApiResult): boolean {
@@ -48,7 +51,9 @@ describe('ApiCollectionStore', () => {
     expect(store.api).not.toHaveBeenCalled();
     store.results$.subscribe();
     expect(store.api).toHaveBeenCalledWith(
-        {payload: 'foo'}, {count: store.INITIAL_LOAD_COUNT, offset: 0});
+      {payload: 'foo'},
+      {count: store.INITIAL_LOAD_COUNT, offset: 0},
+    );
   });
 
   it('emits results returned from the API', async () => {
@@ -77,7 +82,9 @@ describe('ApiCollectionStore', () => {
 
     resultSource.next([{payload: 'a'}, {payload: 'b'}, {payload: 'c'}]);
     expect(results.get()).toEqual([
-      {payload: 'a'}, {payload: 'b'}, {payload: 'c'}
+      {payload: 'a'},
+      {payload: 'b'},
+      {payload: 'c'},
     ]);
   });
 
@@ -96,7 +103,9 @@ describe('ApiCollectionStore', () => {
 
     resultSource.next([{payload: 'b'}, {payload: 'c'}]);
     expect(results.get()).toEqual([
-      {payload: 'a'}, {payload: 'b'}, {payload: 'c'}
+      {payload: 'a'},
+      {payload: 'b'},
+      {payload: 'c'},
     ]);
   });
 
@@ -115,7 +124,9 @@ describe('ApiCollectionStore', () => {
 
     resultSource.next([{payload: 'a'}, {payload: 'c'}]);
     expect(results.get()).toEqual([
-      {payload: 'a'}, {payload: 'b'}, {payload: 'c'}
+      {payload: 'a'},
+      {payload: 'b'},
+      {payload: 'c'},
     ]);
   });
 
@@ -128,13 +139,17 @@ describe('ApiCollectionStore', () => {
     store.results$.subscribe();
 
     expect(store.api).toHaveBeenCalledOnceWith(
-        {payload: ''}, {count: store.INITIAL_LOAD_COUNT, offset: 0});
+      {payload: ''},
+      {count: store.INITIAL_LOAD_COUNT, offset: 0},
+    );
     apiResults$.next([]);
 
     store.loadMore(10);
 
     expect(store.api).toHaveBeenCalledWith(
-        {payload: ''}, {count: 10, offset: 0});
+      {payload: ''},
+      {count: 10, offset: 0},
+    );
   });
 
   it('merges all loadMore results', async () => {
@@ -142,21 +157,27 @@ describe('ApiCollectionStore', () => {
     store.setArgs({payload: ''});
     const count = store.INITIAL_LOAD_COUNT;
 
-    store.api = jasmine.createSpy('api').and.callFake(
-        (args, paginationArgs) => of([{
-          payload: `args=${args.payload} offset=${
-              paginationArgs.offset} count=${paginationArgs.count}`
-        }]));
+    store.api = jasmine.createSpy('api').and.callFake((args, paginationArgs) =>
+      of([
+        {
+          payload: `args=${args.payload} offset=${paginationArgs.offset} count=${paginationArgs.count}`,
+        },
+      ]),
+    );
     const results = latestValueFrom(store.results$);
 
     expect(store.api).toHaveBeenCalledOnceWith(
-        {payload: ''}, {count, offset: 0});
+      {payload: ''},
+      {count, offset: 0},
+    );
 
     expect(results.get()).toEqual([{payload: `args= offset=0 count=${count}`}]);
 
     store.loadMore(10);
     expect(store.api).toHaveBeenCalledWith(
-        {payload: ''}, {count: 10, offset: 1});
+      {payload: ''},
+      {count: 10, offset: 1},
+    );
 
     expect(results.get()).toEqual([
       {payload: `args= offset=0 count=${count}`},
@@ -165,7 +186,9 @@ describe('ApiCollectionStore', () => {
 
     store.loadMore(20);
     expect(store.api).toHaveBeenCalledWith(
-        {payload: ''}, {count: 20, offset: 2});
+      {payload: ''},
+      {count: 20, offset: 2},
+    );
 
     expect(results.get()).toEqual([
       {payload: `args= offset=0 count=${count}`},
@@ -179,21 +202,27 @@ describe('ApiCollectionStore', () => {
     store.setArgs({payload: ''});
     const count = store.INITIAL_LOAD_COUNT;
 
-    store.api = jasmine.createSpy('api').and.callFake(
-        (args, paginationArgs) => of([{
-          payload: `args=${args.payload} offset=${
-              paginationArgs.offset} count=${paginationArgs.count}`
-        }]));
+    store.api = jasmine.createSpy('api').and.callFake((args, paginationArgs) =>
+      of([
+        {
+          payload: `args=${args.payload} offset=${paginationArgs.offset} count=${paginationArgs.count}`,
+        },
+      ]),
+    );
     const results = latestValueFrom(store.results$);
 
     expect(store.api).toHaveBeenCalledOnceWith(
-        {payload: ''}, {count, offset: 0});
+      {payload: ''},
+      {count, offset: 0},
+    );
 
     expect(results.get()).toEqual([{payload: `args= offset=0 count=${count}`}]);
 
     store.loadMore(10);
     expect(store.api).toHaveBeenCalledWith(
-        {payload: ''}, {count: 10, offset: 1});
+      {payload: ''},
+      {count: 10, offset: 1},
+    );
 
     expect(results.get()).toEqual([
       {payload: `args= offset=0 count=${count}`},
@@ -202,7 +231,9 @@ describe('ApiCollectionStore', () => {
 
     store.loadMore(20);
     expect(store.api).toHaveBeenCalledWith(
-        {payload: ''}, {count: 20, offset: 2});
+      {payload: ''},
+      {count: 20, offset: 2},
+    );
 
     expect(results.get()).toEqual([
       {payload: `args= offset=0 count=${count}`},
@@ -212,7 +243,9 @@ describe('ApiCollectionStore', () => {
 
     store.setArgs({payload: 'new'});
     expect(store.api).toHaveBeenCalledWith(
-        {payload: 'new'}, {count, offset: 0});
+      {payload: 'new'},
+      {count, offset: 0},
+    );
     expect(results.get()).toEqual([
       {payload: `args=new offset=0 count=${count}`},
     ]);

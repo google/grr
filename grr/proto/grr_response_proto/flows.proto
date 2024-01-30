@@ -126,7 +126,7 @@ message FlowLikeObjectReference {
   optional HuntReference hunt_reference = 3;
 }
 
-// Next field: 23
+// Next field: 24
 message FlowRunnerArgs {
   // DEPRECATED
   // optional GrrMessage.Priority priority = 1;
@@ -217,16 +217,7 @@ message FlowRunnerArgs {
     default = false
   ];
 
-  optional bool require_fastpoll = 19 [
-    default = true,
-    (sem_type) = {
-      description: "This value is passed to the client during CallClient, and "
-                   "by default will cause the client to enter fastpoll after"
-                   "processing the message. Users shouldn't modify this "
-                   "setting.",
-      label: ADVANCED
-    }
-  ];
+  reserved 19;
 
   repeated OutputPluginDescriptor output_plugins = 21 [(sem_type) = {
     description: "Output plugins used for this flow. These plugins will be "
@@ -240,9 +231,11 @@ message FlowRunnerArgs {
                  "a reference to the original here.",
     label: HIDDEN
   }];
+
+  reserved 23;
 }
 
-// Next field ID: 30
+// Next field ID: 31
 message HuntRunnerArgs {
   optional string hunt_name = 1 [(sem_type) = {
     description: "The name of the class implementing the hunt to run.",
@@ -396,6 +389,8 @@ message HuntRunnerArgs {
                  "a reference to the original here.",
     label: HIDDEN
   }];
+
+  reserved 30;
 }
 
 // Next field ID: 5
@@ -1081,13 +1076,19 @@ message CronJob {
   optional bool allow_overruns = 11;
   optional bool forced_run_requested = 12;
   optional string description = 13;
+  optional uint64 leased_until = 14 [(sem_type) = { type: "RDFDatetime" }];
+  optional string leased_by = 15;
 }
 
+// Next id: 9
 message CronJobRun {
   optional string run_id = 1;
   optional string cron_job_id = 2;
+
+  optional uint64 created_at = 8 [(sem_type) = { type: "RDFDatetime" }];
   optional uint64 started_at = 3 [(sem_type) = { type: "RDFDatetime" }];
   optional uint64 finished_at = 4 [(sem_type) = { type: "RDFDatetime" }];
+
   enum CronJobRunStatus {
     UNSET = 0;
     RUNNING = 1;
@@ -1999,39 +2000,6 @@ message DiskVolumeInfoArgs {
   ];
 }
 
-// Next field ID: 5
-message DumpFlashImageArgs {
-  optional uint32 log_level = 1 [(sem_type) = {
-    description: "Set the log level. If set, the log returned "
-                 "will include additional information reported by Chipsec."
-  }];
-  optional uint32 chunk_size = 2 [
-    (sem_type) = {
-      description: "A heartbeat will be emitted every chunk_size."
-                   "This could be reduced in case the process times out.",
-      label: ADVANCED,
-    },
-    default = 0x10000
-  ];
-  optional bool notify_syslog = 3 [(sem_type) = {
-    description: "If true, a message will be written by the client to the "
-                 "syslog before running the action. This can be used for debugging in "
-                 "case the client crashes during the image dumping process.",
-  }];
-  reserved 4;
-}
-
-// Next field ID: 4
-message DumpACPITableArgs {
-  optional bool logging = 1 [(sem_type) = {
-    description: "If the logging is set to true, the client sends "
-                 "log, including Chipsec's log."
-  }];
-  repeated string table_signature_list = 2
-      [(sem_type) = { description: "Signature of ACPI tables to be dumped." }];
-  reserved 3;
-}
-
 message YaraSignatureShard {
   // 0-index of the shard in the full Yara signature.
   optional uint32 index = 1;
@@ -2514,7 +2482,7 @@ message FlowIterator {
   optional uint64 response_id = 4;
 }
 
-// Next id: 35
+// Next id: 36
 message Flow {
   reserved 10;
 
@@ -2593,6 +2561,7 @@ message Flow {
   optional uint64 runtime_us = 34 [(sem_type) = {
     type: "Duration",
   }];
+  reserved 35;
 }
 
 message FlowOutputPluginLogEntry {

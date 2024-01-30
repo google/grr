@@ -1,11 +1,19 @@
-import {ChangeDetectionStrategy, Component, OnDestroy, TrackByFunction} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  OnDestroy,
+  TrackByFunction,
+} from '@angular/core';
 import {FormControl} from '@angular/forms';
 import {Router} from '@angular/router';
-import {combineLatest, Observable} from 'rxjs';
+import {Observable, combineLatest} from 'rxjs';
 import {map, startWith, takeUntil, tap} from 'rxjs/operators';
 
-import {ApiHuntState, ApiListHuntsArgsRobotFilter} from '../../../lib/api/api_interfaces';
-import {getHuntTitle, Hunt, HuntState} from '../../../lib/models/hunt';
+import {
+  ApiHuntState,
+  ApiListHuntsArgsRobotFilter,
+} from '../../../lib/api/api_interfaces';
+import {Hunt, HuntState, getHuntTitle} from '../../../lib/models/hunt';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {HuntOverviewPageLocalStore} from '../../../store/hunt_overview_page_local_store';
 import {ColorScheme} from '../../flow_details/helpers/result_accordion';
@@ -17,8 +25,9 @@ export enum HuntCreatorFilter {
   ALL_HUNTS = 'All fleet collections',
 }
 
-function toRobotFilter(creatorFilter: HuntCreatorFilter):
-    ApiListHuntsArgsRobotFilter {
+function toRobotFilter(
+  creatorFilter: HuntCreatorFilter,
+): ApiListHuntsArgsRobotFilter {
   switch (creatorFilter) {
     case HuntCreatorFilter.ALL_HUMAN_HUNTS:
       return ApiListHuntsArgsRobotFilter.NO_ROBOTS;
@@ -39,7 +48,7 @@ export enum HuntStateFilter {
   COMPLETED = 'Completed',
 }
 
-function toApiHuntState(state: HuntStateFilter): ApiHuntState|undefined {
+function toApiHuntState(state: HuntStateFilter): ApiHuntState | undefined {
   switch (state) {
     case HuntStateFilter.NOT_STARTED:
       return ApiHuntState.PAUSED;
@@ -77,59 +86,67 @@ export class HuntOverviewPage implements OnDestroy {
   readonly huntStateFilterForm = new FormControl(this.huntStateDefault);
 
   protected readonly hunts$: Observable<readonly Hunt[]> =
-      this.huntOverviewPageLocalStore.results$.pipe(
-          map(hunts => hunts.filter(hunt => {
-            // We need this filter on top because hunt states in the backend
-            // and frontend don't correspond to each other. Thus, if the user
-            // selected `NOT_STARTED`, we will have both `NOT_STARTED` and
-            // `PAUSED` in the results.
-            switch (this.huntStateFilterForm.value) {
-              case HuntStateFilter.NOT_STARTED:
-                return hunt.state === HuntState.NOT_STARTED;
-              case HuntStateFilter.PAUSED:
-                return hunt.state === HuntState.REACHED_CLIENT_LIMIT;
-              case HuntStateFilter.RUNNING:
-                return hunt.state === HuntState.RUNNING;
-              case HuntStateFilter.CANCELLED:
-                return hunt.state === HuntState.CANCELLED;
-              case HuntStateFilter.COMPLETED:
-                return hunt.state === HuntState.REACHED_TIME_LIMIT;
-              default:
-                return true;
-            }
-          })));
+    this.huntOverviewPageLocalStore.results$.pipe(
+      map((hunts) =>
+        hunts.filter((hunt) => {
+          // We need this filter on top because hunt states in the backend
+          // and frontend don't correspond to each other. Thus, if the user
+          // selected `NOT_STARTED`, we will have both `NOT_STARTED` and
+          // `PAUSED` in the results.
+          switch (this.huntStateFilterForm.value) {
+            case HuntStateFilter.NOT_STARTED:
+              return hunt.state === HuntState.NOT_STARTED;
+            case HuntStateFilter.PAUSED:
+              return hunt.state === HuntState.REACHED_CLIENT_LIMIT;
+            case HuntStateFilter.RUNNING:
+              return hunt.state === HuntState.RUNNING;
+            case HuntStateFilter.CANCELLED:
+              return hunt.state === HuntState.CANCELLED;
+            case HuntStateFilter.COMPLETED:
+              return hunt.state === HuntState.REACHED_TIME_LIMIT;
+            default:
+              return true;
+          }
+        }),
+      ),
+    );
 
   constructor(
-      protected readonly huntOverviewPageLocalStore: HuntOverviewPageLocalStore,
-      private readonly router: Router) {
-    huntOverviewPageLocalStore.setArgs(
-        {robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS});
+    protected readonly huntOverviewPageLocalStore: HuntOverviewPageLocalStore,
+    private readonly router: Router,
+  ) {
+    huntOverviewPageLocalStore.setArgs({
+      robotFilter: ApiListHuntsArgsRobotFilter.NO_ROBOTS,
+    });
 
     combineLatest([
       this.huntCreatorFilterForm.valueChanges.pipe(
-          startWith(this.huntCreatorDefault)),
+        startWith(this.huntCreatorDefault),
+      ),
       this.huntStateFilterForm.valueChanges.pipe(
-          startWith(this.huntStateDefault))
+        startWith(this.huntStateDefault),
+      ),
     ])
-        .pipe(
-            takeUntil(this.ngOnDestroy.triggered$),
-            tap(([creatorFilter, stateFilter]) => {
-              const args: {
-                robotFilter?: ApiListHuntsArgsRobotFilter,
-                withState?: ApiHuntState
-              } = {};
-              if (creatorFilter) {
-                args.robotFilter = toRobotFilter(creatorFilter);
-              }
-              if (stateFilter) {
-                const translatedState = toApiHuntState(stateFilter);
-                if (translatedState) {
-                  args.withState = translatedState;
-                }
-              }
-              huntOverviewPageLocalStore.setArgs(args);
-            }))
-        .subscribe();
+      .pipe(
+        takeUntil(this.ngOnDestroy.triggered$),
+        tap(([creatorFilter, stateFilter]) => {
+          const args: {
+            robotFilter?: ApiListHuntsArgsRobotFilter;
+            withState?: ApiHuntState;
+          } = {};
+          if (creatorFilter) {
+            args.robotFilter = toRobotFilter(creatorFilter);
+          }
+          if (stateFilter) {
+            const translatedState = toApiHuntState(stateFilter);
+            if (translatedState) {
+              args.withState = translatedState;
+            }
+          }
+          huntOverviewPageLocalStore.setArgs(args);
+        }),
+      )
+      .subscribe();
   }
 
   readonly trackHuntById: TrackByFunction<Hunt> = (index, item) => item.huntId;

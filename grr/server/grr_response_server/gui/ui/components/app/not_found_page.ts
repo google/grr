@@ -17,7 +17,7 @@ const ASCII_ARTS: readonly string[] = [
 @Component({
   selector: 'app-not-found-page',
   templateUrl: './not_found_page.ng.html',
-  styleUrls: ['./not_found_page.scss']
+  styleUrls: ['./not_found_page.scss'],
 })
 export class NotFoundPage {
   readonly uiConfig$ = this.configGlobalStore.uiConfig$;
@@ -26,11 +26,14 @@ export class NotFoundPage {
 
   readonly legacyLink = makeLegacyLink();
 
-  readonly currentUrlPath =
-      window.location.href.slice(window.location.origin.length);
+  readonly currentUrlPath = window.location.href.slice(
+    window.location.origin.length,
+  );
 
   constructor(
-      private readonly configGlobalStore: ConfigGlobalStore, title: Title) {
+    private readonly configGlobalStore: ConfigGlobalStore,
+    title: Title,
+  ) {
     title.setTitle('GRR | Not Found');
   }
 

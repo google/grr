@@ -14,38 +14,37 @@ interface HomePageState {
 
 /** ComponentStore implementation used by the HomePageGlobalStore. */
 class HomePageComponentStore extends ComponentStore<HomePageState> {
-  constructor(
-      private readonly httpApiService: HttpApiService,
-  ) {
+  constructor(private readonly httpApiService: HttpApiService) {
     super({});
   }
 
   readonly recentClientApprovals$ = of(undefined).pipe(
-      // Ensure that the query is done on subscription.
-      tap(() => {
-        this.fetchRecentClientApprovals();
-      }),
-      switchMap(() => this.select(state => state.recentClientApprovals)),
-      filter(isNonNull),
-      shareReplay(1),  // Ensure that the query is done just once.
+    // Ensure that the query is done on subscription.
+    tap(() => {
+      this.fetchRecentClientApprovals();
+    }),
+    switchMap(() => this.select((state) => state.recentClientApprovals)),
+    filter(isNonNull),
+    shareReplay(1), // Ensure that the query is done just once.
   );
 
-  private readonly fetchRecentClientApprovals = this.effect<void>(
-      obs$ => obs$.pipe(
-          switchMap(
-              () => this.httpApiService.listRecentClientApprovals({count: 20})),
-          map(approvals => approvals.map(translateClientApproval)),
-          tap(approvals => {
-            this.updateRecentApprovals(approvals);
-          }),
-          ));
+  private readonly fetchRecentClientApprovals = this.effect<void>((obs$) =>
+    obs$.pipe(
+      switchMap(() =>
+        this.httpApiService.listRecentClientApprovals({count: 20}),
+      ),
+      map((approvals) => approvals.map(translateClientApproval)),
+      tap((approvals) => {
+        this.updateRecentApprovals(approvals);
+      }),
+    ),
+  );
 
-
-  private readonly updateRecentApprovals =
-      this.updater<readonly ClientApproval[]>(
-          (state, recentClientApprovals) => {
-            return {...state, recentClientApprovals};
-          });
+  private readonly updateRecentApprovals = this.updater<
+    readonly ClientApproval[]
+  >((state, recentClientApprovals) => {
+    return {...state, recentClientApprovals};
+  });
 }
 
 /** Store that loads and stores data for the home page. */
@@ -58,5 +57,5 @@ export class HomePageGlobalStore {
   private readonly store = new HomePageComponentStore(this.httpApiService);
 
   readonly recentClientApprovals$: Observable<readonly ClientApproval[]> =
-      this.store.recentClientApprovals$;
+    this.store.recentClientApprovals$;
 }

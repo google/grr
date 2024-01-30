@@ -19,14 +19,13 @@ import {TimestampModule} from '../timestamp/module';
 import {Home} from './home';
 import {RecentActivityModule} from './recent_activity/module';
 
-
 /**
  * Module for the home page and related components.
  */
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ApiModule,
     ApprovalChipModule,
@@ -45,9 +44,7 @@ import {RecentActivityModule} from './recent_activity/module';
     RouterModule,
     TimestampModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [Home],
 })
-export class HomeModule {
-}
+export class HomeModule {}

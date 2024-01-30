@@ -96,6 +96,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPlugin):
         annotations=u",".join(self.args.export_options.annotations),
         source_urn=self.source_urn)
 
+    responses = [r.AsLegacyGrrMessage() for r in responses]
+
     if self.args.convert_values:
       # This is thread-safe - we just convert the values.
       converted_responses = export.ConvertValues(

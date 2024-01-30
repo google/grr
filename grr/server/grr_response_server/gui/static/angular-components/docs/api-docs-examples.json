@@ -1148,6 +1148,10 @@
                     "type": "long",
                     "value": 1000
                   },
+                  "client_limit": {
+                    "type": "long",
+                    "value": 100
+                  },
                   "client_rate": {
                     "type": "float",
                     "value": 0.0
@@ -1312,6 +1316,7 @@
             "avg_cpu_seconds_per_client_limit": 60,
             "avg_network_bytes_per_client_limit": 10485760,
             "avg_results_per_client_limit": 1000,
+            "client_limit": 100,
             "client_rate": 0.0,
             "client_rule_set": {
               "rules": [
@@ -1487,6 +1492,10 @@
                 "type": "long",
                 "value": 1000
               },
+              "client_limit": {
+                "type": "long",
+                "value": 100
+              },
               "client_rate": {
                 "type": "long",
                 "value": 0
@@ -1604,6 +1613,7 @@
           "avg_cpu_seconds_per_client_limit": 60,
           "avg_network_bytes_per_client_limit": 10485760,
           "avg_results_per_client_limit": 1000,
+          "client_limit": 100,
           "client_rate": 0,
           "client_rule_set": {},
           "crash_limit": 100,
@@ -2685,44 +2695,6 @@
         ]
       },
       "url": "/api/clients/C.1000000000000000"
-    }
-  ],
-  "ApiGetClientLoadStatsHandler": [
-    {
-      "api_method": "GetClientLoadStats",
-      "method": "GET",
-      "response": {
-        "data_points": [
-          [
-            10000.0,
-            10.0
-          ],
-          [
-            20000.0,
-            11.0
-          ]
-        ]
-      },
-      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v1",
-      "url": "/api/clients/C.1000000000000000/load-stats/cpu_percent?end=21000000&start=10000000"
-    },
-    {
-      "api_method": "GetClientLoadStats",
-      "method": "GET",
-      "response": {
-        "data_points": [
-          [
-            10000.0,
-            10.0
-          ],
-          [
-            20000.0,
-            12.0
-          ]
-        ]
-      },
-      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest_http_v1",
-      "url": "/api/clients/C.1000000000000000/load-stats/io_write_bytes?end=21000000&start=10000000"
     }
   ],
   "ApiGetClientVersionsHandler": [
@@ -4202,11 +4174,15 @@
         "value": {
           "cron_job_id": {
             "type": "ApiCronJobId",
-            "value": "GRRVersionBreakDown"
+            "value": "InterrogateClientsCronJob"
           },
           "finished_at": {
             "type": "RDFDatetime",
             "value": 44000000
+          },
+          "log_message": {
+            "type": "unicode",
+            "value": "Started hunt ABCDEFGH12."
           },
           "run_id": {
             "type": "ApiCronJobRunId",
@@ -4224,13 +4200,14 @@
       },
       "test_class": "ApiGetCronJobRunHandlerRegressionTest_http_v1",
       "type_stripped_response": {
-        "cron_job_id": "GRRVersionBreakDown",
+        "cron_job_id": "InterrogateClientsCronJob",
         "finished_at": 44000000,
+        "log_message": "Started hunt ABCDEFGH12.",
         "run_id": "F:ABCDEF11",
         "started_at": 44000000,
         "status": "FINISHED"
       },
-      "url": "/api/cron-jobs/GRRVersionBreakDown/runs/F:ABCDEF11"
+      "url": "/api/cron-jobs/InterrogateClientsCronJob/runs/F:ABCDEF11"
     }
   ],
   "ApiGetFileDownloadCommandHandler": [
@@ -5099,6 +5076,10 @@
                     "type": "long",
                     "value": 1000
                   },
+                  "client_limit": {
+                    "type": "long",
+                    "value": 100
+                  },
                   "client_rate": {
                     "type": "float",
                     "value": 0.0
@@ -5260,6 +5241,7 @@
             "avg_cpu_seconds_per_client_limit": 60,
             "avg_network_bytes_per_client_limit": 10485760,
             "avg_results_per_client_limit": 1000,
+            "client_limit": 100,
             "client_rate": 0.0,
             "client_rule_set": {
               "rules": [
@@ -5476,6 +5458,10 @@
                     "type": "long",
                     "value": 1000
                   },
+                  "client_limit": {
+                    "type": "long",
+                    "value": 100
+                  },
                   "client_rate": {
                     "type": "float",
                     "value": 0.0
@@ -5637,6 +5623,7 @@
             "avg_cpu_seconds_per_client_limit": 60,
             "avg_network_bytes_per_client_limit": 10485760,
             "avg_results_per_client_limit": 1000,
+            "client_limit": 100,
             "client_rate": 0.0,
             "client_rule_set": {
               "rules": [
@@ -5817,6 +5804,10 @@
                   "avg_results_per_client_limit": {
                     "type": "long",
                     "value": 1000
+                  },
+                  "client_limit": {
+                    "type": "long",
+                    "value": 100
                   },
                   "client_rate": {
                     "type": "float",
@@ -6090,6 +6081,10 @@
                     "type": "long",
                     "value": 1000
                   },
+                  "client_limit": {
+                    "type": "long",
+                    "value": 100
+                  },
                   "client_rate": {
                     "type": "float",
                     "value": 0.0
@@ -6272,6 +6267,7 @@
             "avg_cpu_seconds_per_client_limit": 60,
             "avg_network_bytes_per_client_limit": 10485760,
             "avg_results_per_client_limit": 1000,
+            "client_limit": 100,
             "client_rate": 0.0,
             "client_rule_set": {
               "rules": [
@@ -6355,6 +6351,7 @@
             "avg_cpu_seconds_per_client_limit": 60,
             "avg_network_bytes_per_client_limit": 10485760,
             "avg_results_per_client_limit": 1000,
+            "client_limit": 100,
             "client_rate": 0.0,
             "client_rule_set": {
               "rules": [
@@ -6644,6 +6641,10 @@
                     "type": "long",
                     "value": 1000
                   },
+                  "client_limit": {
+                    "type": "long",
+                    "value": 100
+                  },
                   "client_rate": {
                     "type": "float",
                     "value": 0.0
@@ -6862,6 +6863,7 @@
             "avg_cpu_seconds_per_client_limit": 60,
             "avg_network_bytes_per_client_limit": 10485760,
             "avg_results_per_client_limit": 1000,
+            "client_limit": 100,
             "client_rate": 0.0,
             "client_rule_set": {
               "rules": [
@@ -7295,6 +7297,10 @@
                 "type": "long",
                 "value": 1000
               },
+              "client_limit": {
+                "type": "long",
+                "value": 100
+              },
               "client_rate": {
                 "type": "float",
                 "value": 0.0
@@ -7479,6 +7485,7 @@
           "avg_cpu_seconds_per_client_limit": 60,
           "avg_network_bytes_per_client_limit": 10485760,
           "avg_results_per_client_limit": 1000,
+          "client_limit": 100,
           "client_rate": 0.0,
           "client_rule_set": {
             "rules": [
@@ -7663,6 +7670,10 @@
                 "type": "long",
                 "value": 1000
               },
+              "client_limit": {
+                "type": "long",
+                "value": 100
+              },
               "client_rate": {
                 "type": "float",
                 "value": 0.0
@@ -7839,6 +7850,7 @@
           "avg_cpu_seconds_per_client_limit": 60,
           "avg_network_bytes_per_client_limit": 10485760,
           "avg_results_per_client_limit": 1000,
+          "client_limit": 100,
           "client_rate": 0.0,
           "client_rule_set": {
             "rules": [
@@ -8021,6 +8033,10 @@
                 "type": "long",
                 "value": 1000
               },
+              "client_limit": {
+                "type": "long",
+                "value": 100
+              },
               "client_rate": {
                 "type": "float",
                 "value": 0.0
@@ -8165,6 +8181,7 @@
           "avg_cpu_seconds_per_client_limit": 60,
           "avg_network_bytes_per_client_limit": 10485760,
           "avg_results_per_client_limit": 1000,
+          "client_limit": 100,
           "client_rate": 0.0,
           "client_rule_set": {
             "rules": [
@@ -9881,79 +9898,55 @@
         "data": {
           "type": "ApiReportData",
           "value": {
-            "representation_type": {
-              "type": "EnumNamedValue",
-              "value": "STACK_CHART"
-            },
-            "stack_chart": {
-              "type": "ApiStackChartReportData",
+            "audit_chart": {
+              "type": "ApiAuditChartReportData",
               "value": {
-                "data": [
+                "rows": [
                   {
-                    "type": "ApiReportDataSeries2D",
+                    "type": "AuditEvent",
                     "value": {
-                      "label": {
-                        "type": "unicode",
-                        "value": "Bar"
+                      "action": {
+                        "type": "EnumNamedValue",
+                        "value": "USER_ADD"
                       },
-                      "points": [
-                        {
-                          "type": "ApiReportDataPoint2D",
-                          "value": {
-                            "x": {
-                              "type": "long",
-                              "value": 5
-                            },
-                            "y": {
-                              "type": "long",
-                              "value": 3
-                            }
-                          }
-                        },
-                        {
-                          "type": "ApiReportDataPoint2D",
-                          "value": {
-                            "x": {
-                              "type": "long",
-                              "value": 8
-                            },
-                            "y": {
-                              "type": "long",
-                              "value": 4
-                            }
-                          }
-                        },
-                        {
-                          "type": "ApiReportDataPoint2D",
-                          "value": {
-                            "x": {
-                              "type": "long",
-                              "value": 13
-                            },
-                            "y": {
-                              "type": "long",
-                              "value": 5
-                            }
-                          }
-                        },
-                        {
-                          "type": "ApiReportDataPoint2D",
-                          "value": {
-                            "x": {
-                              "type": "long",
-                              "value": 21
-                            },
-                            "y": {
-                              "type": "long",
-                              "value": 6
-                            }
-                          }
-                        }
-                      ]
+                      "id": {
+                        "type": "long",
+                        "value": 42
+                      },
+                      "timestamp": {
+                        "type": "RDFDatetime",
+                        "value": 1544745600000000
+                      },
+                      "user": {
+                        "type": "unicode",
+                        "value": "user"
+                      }
                     }
+                  }
+                ],
+                "used_fields": [
+                  {
+                    "type": "unicode",
+                    "value": "action"
+                  },
+                  {
+                    "type": "unicode",
+                    "value": "client"
+                  },
+                  {
+                    "type": "unicode",
+                    "value": "timestamp"
+                  },
+                  {
+                    "type": "unicode",
+                    "value": "user"
                   }
                 ]
               }
+            },
+            "representation_type": {
+              "type": "EnumNamedValue",
+              "value": "AUDIT_CHART"
             }
           }
         },
@@ -9986,32 +9979,23 @@
       "test_class": "ApiGetReportRegressionTest_http_v1",
       "type_stripped_response": {
         "data": {
-          "representation_type": "STACK_CHART",
-          "stack_chart": {
-            "data": [
+          "audit_chart": {
+            "rows": [
               {
-                "label": "Bar",
-                "points": [
-                  {
-                    "x": 5,
-                    "y": 3
-                  },
-                  {
-                    "x": 8,
-                    "y": 4
-                  },
-                  {
-                    "x": 13,
-                    "y": 5
-                  },
-                  {
-                    "x": 21,
-                    "y": 6
-                  }
-                ]
+                "action": "USER_ADD",
+                "id": 42,
+                "timestamp": 1544745600000000,
+                "user": "user"
               }
+            ],
+            "used_fields": [
+              "action",
+              "client",
+              "timestamp",
+              "user"
             ]
-          }
+          },
+          "representation_type": "AUDIT_CHART"
         },
         "desc": {
           "name": "BarReportPlugin",
@@ -10918,6 +10902,10 @@
                     "type": "long",
                     "value": 1000
                   },
+                  "client_limit": {
+                    "type": "long",
+                    "value": 100
+                  },
                   "client_rate": {
                     "type": "float",
                     "value": 0.0
@@ -11079,6 +11067,7 @@
             "avg_cpu_seconds_per_client_limit": 60,
             "avg_network_bytes_per_client_limit": 10485760,
             "avg_results_per_client_limit": 1000,
+            "client_limit": 100,
             "client_rate": 0.0,
             "client_rule_set": {
               "rules": [
@@ -12823,11 +12812,15 @@
             "value": {
               "cron_job_id": {
                 "type": "ApiCronJobId",
-                "value": "GRRVersionBreakDown"
+                "value": "InterrogateClientsCronJob"
               },
               "finished_at": {
                 "type": "RDFDatetime",
                 "value": 44000000
+              },
+              "log_message": {
+                "type": "unicode",
+                "value": "Started hunt ABCDEFGH12."
               },
               "run_id": {
                 "type": "ApiCronJobRunId",
@@ -12849,15 +12842,16 @@
       "type_stripped_response": {
         "items": [
           {
-            "cron_job_id": "GRRVersionBreakDown",
+            "cron_job_id": "InterrogateClientsCronJob",
             "finished_at": 44000000,
+            "log_message": "Started hunt ABCDEFGH12.",
             "run_id": "F:ABCDEF11",
             "started_at": 44000000,
             "status": "FINISHED"
           }
         ]
       },
-      "url": "/api/cron-jobs/GRRVersionBreakDown/runs"
+      "url": "/api/cron-jobs/InterrogateClientsCronJob/runs"
     }
   ],
   "ApiListCronJobsHandler": [
@@ -13398,6 +13392,10 @@
                   "value": "BASIC"
                 }
               ],
+              "block_hunt_creation": {
+                "type": "bool",
+                "value": false
+              },
               "category": {
                 "type": "unicode",
                 "value": "Filesystem"
@@ -13437,6 +13435,10 @@
                   "value": "BASIC"
                 }
               ],
+              "block_hunt_creation": {
+                "type": "bool",
+                "value": false
+              },
               "category": {
                 "type": "unicode",
                 "value": "Processes"
@@ -13466,6 +13468,7 @@
               "ADVANCED",
               "BASIC"
             ],
+            "block_hunt_creation": false,
             "category": "Filesystem",
             "default_args": {},
             "doc": "An alias for ClientFileFinder.\n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=file_finder.FileFinder, paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links, xdev=xdev, implementation_type=implementation_type)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: bool\n      default: False\n\n    implementation_type\n      description: Force use of an implementation.\n      type: EnumNamedValue\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: bool\n      default: 0\n\n    xdev\n      description: Behavior when ecountering device boundaries while doing recursive searches.\n      type: EnumNamedValue\n      default: LOCAL\n",
@@ -13478,6 +13481,7 @@
               "ADVANCED",
               "BASIC"
             ],
+            "block_hunt_creation": false,
             "category": "Processes",
             "default_args": {},
             "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.StartFlow(client_id=client_id, flow_cls=processes.ListProcesses, filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states, pids=pids)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: bool\n      default: False\n\n    filename_regex\n      description: Regex used to filter the list of processes. The regex is applied to the full path and not only to the filename.\n      type: RegularExpression\n      default: .\n\n    pids\n      description: \n      type: \n      default: None\n",
@@ -15002,6 +15006,10 @@
                         "type": "long",
                         "value": 1000
                       },
+                      "client_limit": {
+                        "type": "long",
+                        "value": 100
+                      },
                       "client_rate": {
                         "type": "float",
                         "value": 0.0
@@ -15167,6 +15175,7 @@
                 "avg_cpu_seconds_per_client_limit": 60,
                 "avg_network_bytes_per_client_limit": 10485760,
                 "avg_results_per_client_limit": 1000,
+                "client_limit": 100,
                 "client_rate": 0.0,
                 "client_rule_set": {
                   "rules": [

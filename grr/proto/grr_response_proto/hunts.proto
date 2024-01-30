@@ -41,7 +41,7 @@ message HuntArguments {
   optional HuntArgumentsVariable variable = 3;
 }
 
-// Next id: 37
+// Next id: 38
 message Hunt {
   optional string hunt_id = 1;
   optional string description = 2;
@@ -160,6 +160,7 @@ message Hunt {
   reserved 30;
   reserved 31;
   reserved 32;
+  reserved 37;
 }
 
 message HuntMetadata {

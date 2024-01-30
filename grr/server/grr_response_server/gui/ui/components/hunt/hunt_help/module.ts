@@ -13,7 +13,7 @@ import {HuntHelp} from './hunt_help';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     MatDialogModule,
@@ -21,14 +21,8 @@ import {HuntHelp} from './hunt_help';
     MatIconModule,
     RouterModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    HuntHelp,
-  ],
-  exports: [
-    HuntHelp,
-  ]
+  declarations: [HuntHelp],
+  exports: [HuntHelp],
 })
-export class HuntHelpModule {
-}
+export class HuntHelpModule {}

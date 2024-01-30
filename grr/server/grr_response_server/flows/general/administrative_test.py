@@ -14,8 +14,8 @@ from grr_response_client.client_actions import admin
 from grr_response_client.client_actions import standard
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
-from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
@@ -119,7 +119,7 @@ class TestAdministrativeFlows(flow_test_lib.FlowTestsBaseclass,
   def CheckCrash(self, crash, expected_session_id, client_id):
     """Checks that ClientCrash object's fields are correctly filled in."""
     self.assertIsNotNone(crash)
-    self.assertEqual(crash.client_id, client_id)
+    self.assertEqual(crash.client_id, rdf_client.ClientURN(client_id))
     self.assertEqual(crash.session_id, expected_session_id)
     self.assertEqual(crash.client_info.client_name, "GRR Monitor")
     self.assertEqual(crash.crash_type, "Client Crash")
@@ -415,64 +415,6 @@ magic_return_str = "foo(%s)"
           client_id=client_id,
           command_line="--bar --baz",
           creator=self.test_username)
-
-  def testGetClientStats(self):
-    client_id = self.SetupClient(0)
-
-    class ClientMock(action_mocks.ActionMock):
-
-      def GetClientStats(self, _):
-        """Fake get client stats method."""
-        response = rdf_client_stats.ClientStats()
-        for i in range(12):
-          sample = rdf_client_stats.CpuSample(
-              timestamp=int(i * 10 * 1e6),
-              user_cpu_time=10 + i,
-              system_cpu_time=20 + i,
-              cpu_percent=10 + i)
-          response.cpu_samples.Append(sample)
-
-          sample = rdf_client_stats.IOSample(
-              timestamp=int(i * 10 * 1e6),
-              read_bytes=10 + i,
-              write_bytes=10 + i)
-          response.io_samples.Append(sample)
-
-        return [response]
-
-    flow_test_lib.TestFlowHelper(
-        administrative.GetClientStats.__name__,
-        ClientMock(),
-        creator=self.test_username,
-        client_id=client_id)
-
-    samples = data_store.REL_DB.ReadClientStats(
-        client_id=client_id,
-        min_timestamp=data_store.REL_DB.MinTimestamp(),
-        max_timestamp=rdfvalue.RDFDatetime.Now(),
-    )
-    self.assertNotEmpty(samples)
-    sample = samples[0]
-
-    # Samples are taken at the following timestamps and should be split into 2
-    # bins as follows (sample_interval is 60000000):
-
-    # 00000000, 10000000, 20000000, 30000000, 40000000, 50000000  -> Bin 1
-    # 60000000, 70000000, 80000000, 90000000, 100000000, 110000000  -> Bin 2
-
-    self.assertLen(sample.cpu_samples, 2)
-    self.assertLen(sample.io_samples, 2)
-
-    self.assertAlmostEqual(sample.io_samples[0].read_bytes, 15.0)
-    self.assertAlmostEqual(sample.io_samples[1].read_bytes, 21.0)
-
-    self.assertAlmostEqual(sample.cpu_samples[0].cpu_percent,
-                           sum(range(10, 16)) / 6.0)
-    self.assertAlmostEqual(sample.cpu_samples[1].cpu_percent,
-                           sum(range(16, 22)) / 6.0)
-
-    self.assertAlmostEqual(sample.cpu_samples[0].user_cpu_time, 15.0)
-    self.assertAlmostEqual(sample.cpu_samples[1].system_cpu_time, 31.0)
 
   def testOnlineNotificationEmail(self):
     """Tests that the mail is sent in the OnlineNotification flow."""
@@ -789,16 +731,16 @@ magic_return_str = "foo(%s)"
     self._RunSendStartupInfo(client_id)
 
     md = data_store.REL_DB.ReadClientMetadata(client_id)
-    self.assertIsNotNone(md.last_foreman_time)
-    self.assertEqual(md.last_foreman_time, reset_time)
+    self.assertTrue(md.HasField("last_foreman_time"))
+    self.assertEqual(md.last_foreman_time, int(reset_time))
 
     # Run it again - this should not update any record.
     data_store.REL_DB.WriteClientMetadata(client_id, last_foreman=later_time)
     self._RunSendStartupInfo(client_id)
 
     md = data_store.REL_DB.ReadClientMetadata(client_id)
-    self.assertIsNotNone(md.last_foreman_time)
-    self.assertEqual(md.last_foreman_time, later_time)
+    self.assertTrue(md.HasField("last_foreman_time"))
+    self.assertEqual(md.last_foreman_time, int(later_time))
 
 
 def main(argv):

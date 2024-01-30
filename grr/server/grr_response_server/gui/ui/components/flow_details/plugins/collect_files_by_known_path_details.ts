@@ -1,10 +1,23 @@
+// g3-format-changed-lines-during-prettier-version-upgrade
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {BehaviorSubject, Observable} from 'rxjs';
 import {map, takeUntil} from 'rxjs/operators';
 
-import {FlowFileResult, flowFileResultFromStatEntry, statusFromPathType} from '../../../components/flow_details/helpers/file_results_table';
-import {CollectFilesByKnownPathArgs, CollectFilesByKnownPathProgress, CollectFilesByKnownPathResult, CollectFilesByKnownPathResultStatus} from '../../../lib/api/api_interfaces';
-import {translateHashToHex, translateStatEntry} from '../../../lib/api_translation/flow';
+import {
+  FlowFileResult,
+  flowFileResultFromStatEntry,
+  statusFromPathType,
+} from '../../../components/flow_details/helpers/file_results_table';
+import {
+  CollectFilesByKnownPathArgs,
+  CollectFilesByKnownPathProgress,
+  CollectFilesByKnownPathResult,
+  CollectFilesByKnownPathResultStatus,
+} from '../../../lib/api/api_interfaces';
+import {
+  translateHashToHex,
+  translateStatEntry,
+} from '../../../lib/api_translation/flow';
 import {Flow} from '../../../lib/models/flow';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 
@@ -16,25 +29,27 @@ interface FailedFileResult {
   readonly isNotFound?: boolean;
 }
 
-function failedResult(flowRes: CollectFilesByKnownPathResult):
-    FailedFileResult {
+function failedResult(
+  flowRes: CollectFilesByKnownPathResult,
+): FailedFileResult {
   return {
     path: flowRes.stat?.pathspec?.path,
     error: flowRes.error,
     isNotFound:
-        flowRes.status === CollectFilesByKnownPathResultStatus.NOT_FOUND,
+      flowRes.status === CollectFilesByKnownPathResultStatus.NOT_FOUND,
   };
 }
 
-function isError(status: CollectFilesByKnownPathResultStatus|
-                 undefined): boolean {
+function isError(
+  status: CollectFilesByKnownPathResultStatus | undefined,
+): boolean {
   if (!status) {
     return false;
   }
 
   return [
     CollectFilesByKnownPathResultStatus.FAILED,
-    CollectFilesByKnownPathResultStatus.NOT_FOUND
+    CollectFilesByKnownPathResultStatus.NOT_FOUND,
   ].includes(status!);
 }
 
@@ -51,52 +66,62 @@ export class CollectFilesByKnownPathDetails extends Plugin {
   readonly QUERY_MORE_COUNT = 100;
 
   readonly args$: Observable<CollectFilesByKnownPathArgs> = this.flow$.pipe(
-      map(flow => flow.args as CollectFilesByKnownPathArgs),
+    map((flow) => flow.args as CollectFilesByKnownPathArgs),
   );
 
   readonly flowProgress$: Observable<CollectFilesByKnownPathProgress> =
-      this.flow$.pipe(
-          map((flow) => flow.progress as CollectFilesByKnownPathProgress),
-      );
+    this.flow$.pipe(
+      map((flow) => flow.progress as CollectFilesByKnownPathProgress),
+    );
 
   readonly retriesTotal$: Observable<number> = this.flowProgress$.pipe(
-      map((progress) => Number(progress?.numRawFsAccessRetries ?? 0)));
-  readonly retriesLabel$: Observable<string> =
-      this.retriesTotal$.pipe(map((count) => {
-        const p = count === 1 ? '' : 's';
-        return `${count} file${
-            p} fetched by parsing the raw disk image with libtsk or libfsntfs.`;
-      }));
+    map((progress) => Number(progress?.numRawFsAccessRetries ?? 0)),
+  );
+  readonly retriesLabel$: Observable<string> = this.retriesTotal$.pipe(
+    map((count) => {
+      const p = count === 1 ? '' : 's';
+      return `${count} file${p} fetched by parsing the raw disk image with libtsk or libfsntfs.`;
+    }),
+  );
 
   readonly successTotal$: Observable<number> = this.flowProgress$.pipe(
-      map((progress) => Number(progress?.numCollected ?? 0)));
-  readonly successLabel$: Observable<string> =
-      this.successTotal$.pipe(map((count) => {
-        const p = count === 1 ? '' : 's';
-        return `${count} successful file collection${p}`;
-      }));
+    map((progress) => Number(progress?.numCollected ?? 0)),
+  );
+  readonly successLabel$: Observable<string> = this.successTotal$.pipe(
+    map((count) => {
+      const p = count === 1 ? '' : 's';
+      return `${count} successful file collection${p}`;
+    }),
+  );
 
   readonly errorTotal$: Observable<number> = this.flowProgress$.pipe(
-      map((progress) => Number(progress?.numFailed ?? 0)));
-  readonly errorLabel$: Observable<string> =
-      this.errorTotal$.pipe(map((count) => {
-        const p = count === 1 ? '' : 's';
-        return `${count} error${p}`;
-      }));
+    map((progress) => Number(progress?.numFailed ?? 0)),
+  );
+  readonly errorLabel$: Observable<string> = this.errorTotal$.pipe(
+    map((count) => {
+      const p = count === 1 ? '' : 's';
+      return `${count} error${p}`;
+    }),
+  );
 
   readonly anyResults$: Observable<boolean> = this.flowProgress$.pipe(
-      map((progress) => Number(progress?.numCollected ?? 0) +
-                  Number(progress?.numFailed ?? 0) >
-              0));
+    map(
+      (progress) =>
+        Number(progress?.numCollected ?? 0) + Number(progress?.numFailed ?? 0) >
+        0,
+    ),
+  );
 
-  readonly description$ = this.args$.pipe(map(args => {
-    const length = args.paths?.length ?? 0;
-    if (length <= 1) {
-      return args.paths?.[0] ?? '';
-    } else {
-      return `${args.paths?.[0]} + ${length - 1} more`;
-    }
-  }));
+  readonly description$ = this.args$.pipe(
+    map((args) => {
+      const length = args.paths?.length ?? 0;
+      if (length <= 1) {
+        return args.paths?.[0] ?? '';
+      } else {
+        return `${args.paths?.[0]} + ${length - 1} more`;
+      }
+    }),
+  );
 
   readonly successFiles$ = new BehaviorSubject<readonly FlowFileResult[]>([]);
   readonly errorFiles$ = new BehaviorSubject<readonly FailedFileResult[]>([]);
@@ -104,35 +129,45 @@ export class CollectFilesByKnownPathDetails extends Plugin {
   readonly errorFilesColumns: readonly string[] = ['path', 'error', 'status'];
 
   readonly fileResults$: Observable<readonly CollectFilesByKnownPathResult[]> =
-      this.flowResultsLocalStore.results$.pipe(
-          map(results => results?.map(
-                  (data) => data.payload as CollectFilesByKnownPathResult)),
-      );
+    this.flowResultsLocalStore.results$.pipe(
+      map((results) =>
+        results?.map((data) => data.payload as CollectFilesByKnownPathResult),
+      ),
+    );
 
-  constructor(
-      private readonly flowResultsLocalStore: FlowResultsLocalStore,
-  ) {
+  constructor(private readonly flowResultsLocalStore: FlowResultsLocalStore) {
     super();
-    this.flowResultsLocalStore.query(this.flow$.pipe(
-        map(flow => ({flow, withType: 'CollectFilesByKnownPathResult'}))));
+    this.flowResultsLocalStore.query(
+      this.flow$.pipe(
+        map((flow) => ({flow, withType: 'CollectFilesByKnownPathResult'})),
+      ),
+    );
 
     // Update table data sources every time there's new flow results.
-    this.fileResults$.pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(results => {
-          this.successFiles$.next(
-              results
-                  .filter(
-                      res => res.status ===
-                          CollectFilesByKnownPathResultStatus.COLLECTED)
-                  .map(
-                      res => flowFileResultFromStatEntry(
-                          translateStatEntry(res.stat!),
-                          translateHashToHex(res.hash ?? {}),
-                          statusFromPathType(res?.stat?.pathspec?.pathtype))));
+    this.fileResults$
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((results) => {
+        this.successFiles$.next(
+          results
+            .filter(
+              (res) =>
+                res.status === CollectFilesByKnownPathResultStatus.COLLECTED,
+            )
+            .map((res) =>
+              flowFileResultFromStatEntry(
+                translateStatEntry(res.stat!),
+                translateHashToHex(res.hash ?? {}),
+                statusFromPathType(res?.stat?.pathspec?.pathtype),
+              ),
+            ),
+        );
 
-          this.errorFiles$.next(results.filter(res => isError(res.status))
-                                    .map(res => failedResult(res)));
-        });
+        this.errorFiles$.next(
+          results
+            .filter((res) => isError(res.status))
+            .map((res) => failedResult(res)),
+        );
+      });
   }
 
   queryMore() {
@@ -143,9 +178,10 @@ export class CollectFilesByKnownPathDetails extends Plugin {
     return index;
   }
 
-  override getResultDescription(flow: Flow): string|undefined {
-    const progress =
-        flow.progress as CollectFilesByKnownPathProgress | undefined;
+  override getResultDescription(flow: Flow): string | undefined {
+    const progress = flow.progress as
+      | CollectFilesByKnownPathProgress
+      | undefined;
 
     if (progress) {
       const count = Number(progress?.numCollected ?? 0);
@@ -159,7 +195,7 @@ export class CollectFilesByKnownPathDetails extends Plugin {
     const downloadItem = this.getDownloadFilesExportMenuItem(flow);
     const items = super.getExportMenuItems(flow);
 
-    if (items.find(item => item.url === downloadItem.url)) {
+    if (items.find((item) => item.url === downloadItem.url)) {
       return items;
     }
 

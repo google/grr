@@ -1,4 +1,10 @@
-import {ApiFlowReference, ApiHuntReference, ApiHuntStateReason, ForemanClientRuleSet, OutputPluginDescriptor} from '../api/api_interfaces';
+import {
+  ApiFlowReference,
+  ApiHuntReference,
+  ApiHuntStateReason,
+  ForemanClientRuleSet,
+  OutputPluginDescriptor,
+} from '../api/api_interfaces';
 import {Duration} from '../date_time';
 
 import {getFlowTitleFromFlowName} from './flow';
@@ -50,7 +56,7 @@ export enum HuntType {
 
 /** Resource Usage for this hunt. */
 export declare interface HuntResourceUsage {
-  totalCPUTime?: number;  // This can be a float
+  totalCPUTime?: number; // This can be a float
   totalNetworkTraffic?: bigint;
 }
 
@@ -108,9 +114,12 @@ export interface HuntCompletionProgressTableRow {
 }
 
 /** Gets the hunt title to be displayed across different pages */
-export function getHuntTitle(hunt: Hunt|null): string {
+export function getHuntTitle(hunt: Hunt | null): string {
   const name = hunt?.name === 'GenericHunt' ? '' : hunt?.name;
-  return hunt?.description || name ||
-      'Untitled fleet collection' +
-      (hunt?.flowName ? ': ' + getFlowTitleFromFlowName(hunt.flowName) : '');
+  return (
+    hunt?.description ||
+    name ||
+    'Untitled fleet collection' +
+      (hunt?.flowName ? ': ' + getFlowTitleFromFlowName(hunt.flowName) : '')
+  );
 }

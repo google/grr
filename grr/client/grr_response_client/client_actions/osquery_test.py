@@ -2,12 +2,12 @@
 """A module with client action for talking with osquery."""
 import hashlib
 import io
+import json
 import os
 import platform
 import socket
 import time
-from typing import List
-from typing import Text
+from typing import List, Text
 
 from absl import flags
 from absl.testing import absltest
@@ -39,6 +39,47 @@ class OsqueryTest(absltest.TestCase):
     super(OsqueryTest, cls).setUpClass()
     if not config.CONFIG.initialized:
       config.CONFIG.Initialize(FLAGS.config)
+
+  def testConfigurationArgError(self):
+    with self.assertRaises(ValueError):
+      args = rdf_osquery.OsqueryArgs(
+          query="SELECT bar FROM foo;", configuration_path="bar"
+      )
+      _ = list(osquery.Osquery().Process(args))
+
+  def testConfigurationContent(self):
+    configuration_content = json.dumps(
+        {"views": {"bar": "SELECT * FROM processes;"}}
+    )
+
+    args = rdf_osquery.OsqueryArgs(
+        query="SELECT * FROM bar where pid = {};".format(os.getpid()),
+        configuration_content=configuration_content,
+    )
+    results = list(osquery.Osquery().Process(args))
+    self.assertLen(results, 1)
+
+    table = results[0].table
+    self.assertEqual(list(table.Column("pid")), [str(os.getpid())])
+
+  def testConfigurationPath(self):
+    with temp.AutoTempFilePath() as configuration_path:
+      configuration_content = json.dumps(
+          {"views": {"bar": "SELECT * FROM processes;"}}
+      )
+
+      with io.open(configuration_path, "wt") as config_handle:
+        config_handle.write(configuration_content)
+
+      args = rdf_osquery.OsqueryArgs(
+          query="SELECT * FROM bar where pid = {};".format(os.getpid()),
+          configuration_path=configuration_path,
+      )
+      results = list(osquery.Osquery().Process(args))
+      self.assertLen(results, 1)
+
+      table = results[0].table
+      self.assertEqual(list(table.Column("pid")), [str(os.getpid())])
 
   def testPid(self):
     results = _Query("""

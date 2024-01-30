@@ -7,13 +7,10 @@ server parts.
 """
 
 from grr_response_core.lib import rdfvalue
-from grr_response_core.lib.rdfvalues import artifacts as rdf_artifacts
-from grr_response_core.lib.rdfvalues import chipsec_types as rdf_chipsec_types
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import client_action as rdf_client_action
 from grr_response_core.lib.rdfvalues import client_fs as rdf_client_fs
 from grr_response_core.lib.rdfvalues import client_network as rdf_client_network
-from grr_response_core.lib.rdfvalues import client_stats as rdf_client_stats
 from grr_response_core.lib.rdfvalues import cloud as rdf_cloud
 from grr_response_core.lib.rdfvalues import dummy as rdf_dummy
 from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
@@ -32,14 +29,6 @@ class ClientActionStub:
 
   in_rdfvalue = None
   out_rdfvalues = [None]
-
-
-# from artifacts.py
-class ArtifactCollector(ClientActionStub):
-  """The client side artifact collector implementation."""
-
-  in_rdfvalue = rdf_artifacts.ClientArtifactCollectorArgs
-  out_rdfvalues = [rdf_artifacts.ClientArtifactCollectorResult]
 
 
 # from windows/windows.py, osx/osx.py and linux/linux.py
@@ -157,17 +146,6 @@ class GetClientInfo(ClientActionStub):
   """Obtains information about the GRR client installed."""
 
   out_rdfvalues = [rdf_client.ClientInformation]
-
-
-class GetClientStats(ClientActionStub):
-  """This retrieves some stats about the GRR process."""
-
-  in_rdfvalue = rdf_client_action.GetClientStatsRequest
-  out_rdfvalues = [rdf_client_stats.ClientStats]
-
-
-class GetClientStatsAuto(GetClientStats):
-  """Action used to send the reply to a well known flow on the server."""
 
 
 class SendStartupInfo(ClientActionStub):
@@ -340,21 +318,6 @@ class FingerprintFile(ClientActionStub):
 
   in_rdfvalue = rdf_client_action.FingerprintRequest
   out_rdfvalues = [rdf_client_action.FingerprintResponse]
-
-
-# from components/chipsec_support
-class DumpFlashImage(ClientActionStub):
-  """A client action to collect the BIOS via SPI using Chipsec."""
-
-  in_rdfvalue = rdf_chipsec_types.DumpFlashImageRequest
-  out_rdfvalues = [rdf_chipsec_types.DumpFlashImageResponse]
-
-
-class DumpACPITable(ClientActionStub):
-  """A client action to collect the ACPI table(s)."""
-
-  in_rdfvalue = rdf_chipsec_types.DumpACPITableRequest
-  out_rdfvalues = [rdf_chipsec_types.DumpACPITableResponse]
 
 
 # from memory.py

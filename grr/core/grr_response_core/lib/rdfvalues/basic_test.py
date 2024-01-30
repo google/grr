@@ -11,6 +11,8 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import test_base as rdf_test_base
 from grr.test_lib import test_lib
 
+BILLION = 1000000000
+
 
 class RDFBytesTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFBytes
@@ -23,7 +25,7 @@ class RDFStringTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFString
 
   def GenerateSample(self, number=0):
-    return rdfvalue.RDFString(u"Grüezi %s" % number)
+    return rdfvalue.RDFString("Grüezi %s" % number)
 
   def testRDFStringGetItem(self):
     rdfstring = rdfvalue.RDFString("123456789")
@@ -53,7 +55,6 @@ class RDFIntegerTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(10 * rdfvalue.RDFInteger(10), 100)
 
   def testUsableInBitwiseOr(self):
-
     def TestOr(val1, val2, expected):
       self.assertEqual(rdfvalue.RDFInteger(val1) | val2, expected)
       self.assertEqual(val1 | rdfvalue.RDFInteger(val2), expected)
@@ -72,7 +73,6 @@ class RDFIntegerTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     TestOr(True, True, True)
 
   def testUsableInBitwiseAnd(self):
-
     def TestAnd(val1, val2, expected):
       self.assertEqual(rdfvalue.RDFInteger(val1) & val2, expected)
       self.assertEqual(val1 & rdfvalue.RDFInteger(val2), expected)
@@ -91,8 +91,9 @@ class RDFIntegerTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     TestAnd(True, True, True)
 
 
-class DurationSecondsTest(rdf_test_base.RDFValueTestMixin,
-                          test_lib.GRRBaseTest):
+class DurationSecondsTest(
+    rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest
+):
   rdfvalue_class = rdfvalue.DurationSeconds
 
   def GenerateSample(self, number=5):
@@ -175,7 +176,7 @@ class RDFURNTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(urn, "/abc/def")
     self.assertEqual(urn, "abc/def")
 
-    self.assertNotEqual(urn, None)
+    self.assertIsNotNone(urn)
 
     string_list = ["abc", "ghi", "def", "mno", "jkl"]
     urn_list = [rdfvalue.RDFURN(s) for s in string_list]
@@ -186,9 +187,9 @@ class RDFURNTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     s = "some_urn"
     s2 = "some_other_urn"
     self.assertEqual(s, rdfvalue.RDFURN(s))
-    self.assertFalse(s != rdfvalue.RDFURN(s))
+    self.assertFalse(s != rdfvalue.RDFURN(s))  # pylint: disable=g-generic-assert
     self.assertNotEqual(s, rdfvalue.RDFURN(s2))
-    self.assertFalse(s == rdfvalue.RDFURN(s2))
+    self.assertFalse(s == rdfvalue.RDFURN(s2))  # pylint: disable=g-generic-assert
 
   def testHashing(self):
 
@@ -217,8 +218,9 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.RDFDatetime
 
   def GenerateSample(self, number=0):
-    result = self.rdfvalue_class.FromHumanReadable("2011/11/%02d" %
-                                                   (number + 1))
+    result = self.rdfvalue_class.FromHumanReadable(
+        "2011/11/%02d" % (number + 1)
+    )
     return result
 
   def testTimeZoneConversions(self):
@@ -231,8 +233,11 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(date1.AsMicrosecondsSinceEpoch(), 1320142980000000)
 
     self.assertEqual(
-        time.strftime("%Y-%m-%d %H:%M:%S",
-                      time.gmtime(date1.AsSecondsSinceEpoch())), time_string)
+        time.strftime(
+            "%Y-%m-%d %H:%M:%S", time.gmtime(date1.AsSecondsSinceEpoch())
+        ),
+        time_string,
+    )
 
     # We always stringify the date in UTC timezone.
     self.assertEqual(str(date1), time_string)
@@ -244,8 +249,9 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
       date = self.rdfvalue_class.FromSerializedBytes(b"")
       self.assertEqual(int(date), 0)
 
-      self.assertEqual(self.rdfvalue_class.Now().AsMicrosecondsSinceEpoch(),
-                       int(1000 * 1e6))
+      self.assertEqual(
+          self.rdfvalue_class.Now().AsMicrosecondsSinceEpoch(), 1000 * 1000000
+      )
 
   def testInitFromDatetimeObject(self):
     # Test initializing from a datetime object
@@ -253,87 +259,92 @@ class RDFDatetimeTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
     self.assertEqual(self.rdfvalue_class.FromDatetime(date).AsDatetime(), date)
     date = datetime.datetime.utcfromtimestamp(99999)
     self.assertEqual(
-        self.rdfvalue_class.FromDatetime(date).AsSecondsSinceEpoch(), 99999)
+        self.rdfvalue_class.FromDatetime(date).AsSecondsSinceEpoch(), 99999
+    )
     self.assertEqual(
         self.rdfvalue_class.FromDatetime(date).AsMicrosecondsSinceEpoch(),
-        99999000000)
+        99999000000,
+    )
     # Test microsecond support
     date = datetime.datetime(1970, 1, 1, 0, 0, 0, 567)
     self.assertEqual(
-        rdfvalue.RDFDatetime.FromDatetime(date).AsMicrosecondsSinceEpoch(), 567)
+        rdfvalue.RDFDatetime.FromDatetime(date).AsMicrosecondsSinceEpoch(), 567
+    )
 
   def testInitFromDateObject(self):
     date = datetime.date(2018, 2, 1)
     self.assertEqual(
         self.rdfvalue_class.FromDate(date),
-        self.rdfvalue_class.FromHumanReadable("2018-02-01 00:00:00"))
+        self.rdfvalue_class.FromHumanReadable("2018-02-01 00:00:00"),
+    )
 
   def testAddNumber(self):
-    date = rdfvalue.RDFDatetime(1e9)
-    self.assertEqual(int(date + 60), 1e9 + 60e6)
-    self.assertEqual(int(date + 1000.23), 1e9 + 1000230e3)
-    self.assertEqual(int(date + (-10)), 1e9 - 10e6)
+    date = rdfvalue.RDFDatetime(BILLION)
+    self.assertEqual(int(date + 60), BILLION + 60 * 1000000)
+    self.assertEqual(int(date + (-10)), BILLION - 10 * 1000000)
 
   def testSubNumber(self):
-    date = rdfvalue.RDFDatetime(1e9)
-    self.assertEqual(int(date - 60), 1e9 - 60e6)
-    self.assertEqual(int(date - (-1000.23)), 1e9 + 1000230e3)
-    self.assertEqual(int(date - 1e12), 1e9 - 1e18)
+    date = rdfvalue.RDFDatetime(BILLION)
+    self.assertEqual(int(date - 60), BILLION - 60 * 1000000)
+    self.assertEqual(int(date - int(1e12)), BILLION - int(1e12) * 1000000)
 
   def testIAddNumber(self):
-    date = rdfvalue.RDFDatetime(1e9)
+    date = rdfvalue.RDFDatetime(BILLION)
     date += 60
-    self.assertEqual(date, 1e9 + 60e6)
+    self.assertEqual(date, BILLION + 60 * 1000000)
 
-    date = rdfvalue.RDFDatetime(1e9)
-    date += 1000.23
-    self.assertEqual(date, 1e9 + 1000230e3)
-
-    date = rdfvalue.RDFDatetime(1e9)
+    date = rdfvalue.RDFDatetime(BILLION)
     date += -10
-    self.assertEqual(date, 1e9 - 10e6)
+    self.assertEqual(date, BILLION - 10 * 1000000)
 
   def testISubNumber(self):
-    date = rdfvalue.RDFDatetime(1e9)
+    date = rdfvalue.RDFDatetime(BILLION)
     date -= 60
-    self.assertEqual(date, 1e9 - 60e6)
+    self.assertEqual(date, BILLION - 60 * 1000000)
 
-    date = rdfvalue.RDFDatetime(1e9)
-    date -= -1000.23
-    self.assertEqual(date, 1e9 + 1000230e3)
-
-    date = rdfvalue.RDFDatetime(1e9)
-    date -= 1e12
-    self.assertEqual(date, 1e9 - 1e18)
+    date = rdfvalue.RDFDatetime(BILLION)
+    date -= int(1e12)
+    self.assertEqual(date, BILLION - int(1e12) * 1000000)
 
   def testAddDuration(self):
     duration = rdfvalue.Duration.FromHumanReadable("12h")
-    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(int(1e9))
-    self.assertEqual((date + duration).AsMicrosecondsSinceEpoch(),
-                     1e9 + 12 * 3600e6)
+    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(BILLION)
+    self.assertEqual(
+        (date + duration).AsMicrosecondsSinceEpoch(),
+        BILLION + 12 * 3600 * 1000000,
+    )
 
   def testSubDuration(self):
     duration = rdfvalue.Duration.FromHumanReadable("5m")
-    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(int(1e9))
-    self.assertEqual((date - duration).AsMicrosecondsSinceEpoch(),
-                     1e9 - 5 * 60e6)
+    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(BILLION)
+    self.assertEqual(
+        (date - duration).AsMicrosecondsSinceEpoch(), BILLION - 5 * 60 * 1000000
+    )
     duration = rdfvalue.Duration.FromHumanReadable("1w")
-    self.assertEqual((date - duration).AsMicrosecondsSinceEpoch(),
-                     1e9 - 7 * 24 * 3600e6)
+    self.assertEqual(
+        (date - duration).AsMicrosecondsSinceEpoch(),
+        BILLION - 7 * 24 * 3600 * 1000000,
+    )
 
   def testIAddDuration(self):
-    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(int(1e9))
+    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(BILLION)
     date += rdfvalue.Duration.FromHumanReadable("12h")
-    self.assertEqual(date.AsMicrosecondsSinceEpoch(), 1e9 + 12 * 3600e6)
+    self.assertEqual(
+        date.AsMicrosecondsSinceEpoch(), BILLION + 12 * 3600 * 1000000
+    )
 
   def testISubDuration(self):
-    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(int(1e9))
+    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(BILLION)
     date -= rdfvalue.Duration.FromHumanReadable("5m")
-    self.assertEqual(date.AsMicrosecondsSinceEpoch(), 1e9 - 5 * 60e6)
+    self.assertEqual(
+        date.AsMicrosecondsSinceEpoch(), BILLION - 5 * 60 * 1000000
+    )
 
-    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(int(1e9))
+    date = self.rdfvalue_class.FromMicrosecondsSinceEpoch(BILLION)
     date -= rdfvalue.Duration.FromHumanReadable("1w")
-    self.assertEqual(date.AsMicrosecondsSinceEpoch(), 1e9 - 7 * 24 * 3600e6)
+    self.assertEqual(
+        date.AsMicrosecondsSinceEpoch(), BILLION - 7 * 24 * 3600 * 1000000
+    )
 
 
 class RDFDatetimeSecondsTest(RDFDatetimeTest):
@@ -344,17 +355,23 @@ class HashDigestTest(rdf_test_base.RDFValueTestMixin, test_lib.GRRBaseTest):
   rdfvalue_class = rdfvalue.HashDigest
 
   def GenerateSample(self, number=0):
-    return rdfvalue.HashDigest(b"\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
-                               b"\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
-                               b"\xaf\xeeH\xbb%s" % str(number).encode("ascii"))
+    return rdfvalue.HashDigest(
+        b"\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
+        b"\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
+        b"\xaf\xeeH\xbb%s"
+        % str(number).encode("ascii")
+    )
 
   def testEqNeq(self):
-    binary_digest = (b"\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
-                     b"\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
-                     b"\xaf\xeeH\xbb")
+    binary_digest = (
+        b"\xca\x97\x81\x12\xca\x1b\xbd\xca\xfa\xc21\xb3"
+        b"\x9a#\xdcM\xa7\x86\xef\xf8\x14|Nr\xb9\x80w\x85"
+        b"\xaf\xeeH\xbb"
+    )
     sample = rdfvalue.HashDigest(binary_digest)
-    hex_digest = ("ca978112ca1bbdcafac231b39a23dc4da786eff81"
-                  "47c4e72b9807785afee48bb")
+    hex_digest = (
+        "ca978112ca1bbdcafac231b39a23dc4da786eff8147c4e72b9807785afee48bb"
+    )
     self.assertEqual(str(sample), hex_digest)
     self.assertEqual(sample.SerializeToBytes(), binary_digest)
     self.assertNotEqual(sample.SerializeToBytes(), b"\xaa\xbb")

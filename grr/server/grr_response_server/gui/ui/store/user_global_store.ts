@@ -8,11 +8,10 @@ import {translateGrrUser} from '../lib/api_translation/user';
 import {GrrUser} from '../lib/models/user';
 import {isNonNull} from '../lib/preconditions';
 
-
 interface UserState {
-  readonly currentUserName: string|undefined;
+  readonly currentUserName: string | undefined;
   readonly users: {
-    readonly [key: string]: GrrUser,
+    readonly [key: string]: GrrUser;
   };
 }
 
@@ -35,29 +34,32 @@ class UserComponentStore extends ComponentStore<UserState> {
     };
   });
 
-  private readonly fetchCurrentUser = this.effect(
-      obs$ => obs$.pipe(
-          switchMap(() => this.httpApiService.fetchCurrentUser()),
-          map(u => translateGrrUser(u)),
-          tap(u => {
-            this.updateUser(u);
-          }),
-          ));
+  private readonly fetchCurrentUser = this.effect((obs$) =>
+    obs$.pipe(
+      switchMap(() => this.httpApiService.fetchCurrentUser()),
+      map((u) => translateGrrUser(u)),
+      tap((u) => {
+        this.updateUser(u);
+      }),
+    ),
+  );
 
   /** An observable emitting the current user object. */
   readonly currentUser$: Observable<GrrUser> = of(undefined).pipe(
-      // Ensure that the query is done on subscription.
-      tap(() => {
-        this.fetchCurrentUser();
-      }),
-      switchMap(() => this.select(state => {
+    // Ensure that the query is done on subscription.
+    tap(() => {
+      this.fetchCurrentUser();
+    }),
+    switchMap(() =>
+      this.select((state) => {
         if (state.currentUserName) {
           return state.users[state.currentUserName];
         }
         return undefined;
-      })),
-      filter(isNonNull),
-      shareReplay(1),  // Ensure that the query is done just once.
+      }),
+    ),
+    filter(isNonNull),
+    shareReplay(1), // Ensure that the query is done just once.
   );
 }
 

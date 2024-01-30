@@ -1079,7 +1079,7 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
     data_store.REL_DB.WriteYaraSignatureReference(blob_id, username="foobarski")
 
     args = rdf_memory.YaraProcessScanRequest()
-    args.yara_signature_blob_id = blob_id.AsBytes()
+    args.yara_signature_blob_id = bytes(blob_id)
 
     shards = []
 
@@ -1102,7 +1102,7 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
     blob_id = data_store.BLOBS.WriteBlobWithUnknownHash(data.encode("utf-8"))
 
     args = rdf_memory.YaraProcessScanRequest()
-    args.yara_signature_blob_id = blob_id.AsBytes()
+    args.yara_signature_blob_id = bytes(blob_id)
 
     with self.assertRaisesRegex(RuntimeError, "signature reference"):
       self._YaraProcessScan(args)
@@ -1125,7 +1125,7 @@ class YaraProcessScanTest(flow_test_lib.FlowTestsBaseclass):
 
     args = rdf_memory.YaraProcessScanRequest()
     args.yara_signature = signature
-    args.yara_signature_blob_id = blob_id.AsBytes()
+    args.yara_signature_blob_id = bytes(blob_id)
 
     with self.assertRaisesRegex(RuntimeError, "can't be used together"):
       self._YaraProcessScan(args)

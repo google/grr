@@ -63,6 +63,17 @@ $row-padding: 1.5em;
     height: 4em;
   }
 
+  .toggle {
+    margin-top: 20px;
+  }
+
+  .toggle-custom-form-row {
+    display: flex;
+    align-items: center;
+    height: 4em;
+    margin-bottom: 1em;
+  }
+
   .info-icon {
     margin-left: 0.5em;
     position: relative;
@@ -80,6 +91,10 @@ $row-padding: 1.5em;
 
     > div {
       flex-grow: 1;
+    }
+
+    .half {
+      flex: 1;
     }
 
     mat-form-field {

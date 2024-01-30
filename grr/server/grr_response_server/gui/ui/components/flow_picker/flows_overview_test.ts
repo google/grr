@@ -9,23 +9,15 @@ import {initTestEnvironment} from '../../testing';
 
 import {FlowPickerModule} from './module';
 
-
-
 initTestEnvironment();
-
 
 describe('FlowsOverview component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            FlowPickerModule,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, FlowPickerModule],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   const flowsByCategory: FlowsByCategory = new Map([
@@ -44,7 +36,7 @@ describe('FlowsOverview component', () => {
           description: 'Bar',
           enabled: true,
         },
-      ]
+      ],
     ],
     [
       'Browser',
@@ -55,7 +47,7 @@ describe('FlowsOverview component', () => {
           description: 'Something',
           enabled: true,
         },
-      ]
+      ],
     ],
   ]);
 
@@ -64,8 +56,9 @@ describe('FlowsOverview component', () => {
     fixture.componentInstance.flowsByCategory = flowsByCategory;
     fixture.detectChanges();
 
-    const categories =
-        fixture.debugElement.queryAll(By.css('.category .title'));
+    const categories = fixture.debugElement.queryAll(
+      By.css('.category .title'),
+    );
     expect(categories.length).toBe(2);
 
     expect(categories[0].nativeElement.innerText).toContain('Browser');
@@ -80,8 +73,9 @@ describe('FlowsOverview component', () => {
     const items = fixture.debugElement.queryAll(By.css('.item'));
     expect(items.length).toBe(3);
 
-    expect(items[0].nativeElement.innerText)
-        .toContain('Collect browser history');
+    expect(items[0].nativeElement.innerText).toContain(
+      'Collect browser history',
+    );
     expect(items[1].nativeElement.innerText).toContain('Forensic artifacts');
     expect(items[2].nativeElement.innerText).toContain('Osquery');
   });
@@ -91,7 +85,7 @@ describe('FlowsOverview component', () => {
     fixture.componentInstance.flowsByCategory = flowsByCategory;
     fixture.detectChanges();
 
-    let selectedFlowListItem: FlowListItem|undefined;
+    let selectedFlowListItem: FlowListItem | undefined;
     fixture.componentInstance.flowSelected.subscribe((v: FlowListItem) => {
       selectedFlowListItem = v;
     });

@@ -7,19 +7,19 @@ replaced with a more intelligent one. Do not implement anything based on this
 code, it is a placeholder for something real.
 
 For anyone who wants a useful reference, see this:
-- https://forensicswiki.xyz/wiki/index.php?title=Internet_Explorer_History_File_Format
-- https://github.com/libyal/libmsiecf/blob/master/documentation/MSIE%20Cache%20File%20%28index.dat%29%20format.asciidoc
+https://forensicswiki.xyz/wiki/index.php?title=Internet_Explorer_History_File_Format
+https://github.com/libyal/libmsiecf/blob/master/documentation/MSIE%20Cache%20File%20%28index.dat%29%20format.asciidoc
 """
 # pylint: enable=line-too-long
 
 import logging
 import operator
 import struct
-from typing import IO
-from typing import Iterator
+from typing import IO, Iterator
 from urllib import parse as urlparse
 
 from grr_response_core.lib import parsers
+from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import client as rdf_client
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import webhistory as rdf_webhistory
@@ -29,7 +29,8 @@ WIN_UNIX_DIFF_MSECS = 11644473600 * 1e6
 
 
 class IEHistoryParser(
-    parsers.SingleFileParser[rdf_webhistory.BrowserHistoryItem]):
+    parsers.SingleFileParser[rdf_webhistory.BrowserHistoryItem]
+):
   """Parse IE index.dat files into BrowserHistoryItem objects."""
 
   output_types = [rdf_webhistory.BrowserHistoryItem]
@@ -46,12 +47,16 @@ class IEHistoryParser(
     # TODO(user): Convert this to use the far more intelligent plaso parser.
     ie = IEParser(filedesc)
     for dat in ie.Parse():
+      access_time = rdfvalue.RDFDatetime.FromMicrosecondsSinceEpoch(
+          int(dat.get("mtime"))
+      )
       yield rdf_webhistory.BrowserHistoryItem(
           url=dat["url"],
           domain=urlparse.urlparse(dat["url"]).netloc,
-          access_time=dat.get("mtime"),
+          access_time=access_time,
           program_name="Internet Explorer",
-          source_path=pathspec.CollapsePath())
+          source_path=pathspec.CollapsePath(),
+      )
 
 
 class IEParser(object):
@@ -109,20 +114,24 @@ class IEParser(object):
       A dict containing a single browser history record.
     """
     record_header = "<4sLQQL"
-    get4 = lambda x: struct.unpack("<L", self.input_dat[x:x + 4])[0]
-    url_offset = struct.unpack("B", self.input_dat[offset + 52:offset + 53])[0]
+    get4 = lambda x: struct.unpack("<L", self.input_dat[x : x + 4])[0]
+    url_offset = struct.unpack("B", self.input_dat[offset + 52 : offset + 53])[
+        0
+    ]
     if url_offset in [0xFF, 0xFE]:
       return None
     data_offset = get4(offset + 68)
     data_size = get4(offset + 72)
     start_pos = offset + data_offset
-    data = struct.unpack("{0}s".format(data_size),
-                         self.input_dat[start_pos:start_pos + data_size])[0]
+    data = struct.unpack(
+        "{0}s".format(data_size),
+        self.input_dat[start_pos : start_pos + data_size],
+    )[0]
     fmt = record_header
     unknown_size = url_offset - struct.calcsize(fmt)
     fmt += "{0}s".format(unknown_size)
     fmt += "{0}s".format(record_size - struct.calcsize(fmt))
-    dat = struct.unpack(fmt, self.input_dat[offset:offset + record_size])
+    dat = struct.unpack(fmt, self.input_dat[offset : offset + record_size])
     header, blocks, mtime, ctime, ftime, _, url = dat
     url = url.split(b"\x00")[0].decode("utf-8")
     if mtime:
@@ -139,7 +148,7 @@ class IEParser(object):
         "mtime": mtime,  # modified time
         "ctime": ctime,  # created time
         "ftime": ftime,  # file time
-        "url": url  # the url visited
+        "url": url,  # the url visited
     }
 
   def _DoParse(self):
@@ -148,12 +157,12 @@ class IEParser(object):
     Yields:
       Dicts containing browser history
     """
-    get4 = lambda x: struct.unpack("<L", self.input_dat[x:x + 4])[0]
-    filesize = get4(0x1c)
+    get4 = lambda x: struct.unpack("<L", self.input_dat[x : x + 4])[0]
+    filesize = get4(0x1C)
     offset = get4(0x20)
     coffset = offset
     while coffset < filesize:
-      etype = struct.unpack("4s", self.input_dat[coffset:coffset + 4])[0]
+      etype = struct.unpack("4s", self.input_dat[coffset : coffset + 4])[0]
       if etype == b"REDR":
         pass
       elif etype in [b"URL "]:

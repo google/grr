@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 """Utility functions and classes for GRR API client library."""
+
 import time
 from typing import Any
 from typing import Callable
@@ -79,7 +80,8 @@ def MapItemsIterator(
 ) -> ItemsIterator[_T2]:
   """Maps ItemsIterator via given function."""
   return ItemsIterator(
-      items=map(function, items), total_count=items.total_count)
+      items=map(function, items), total_count=items.total_count
+  )
 
 
 class BinaryChunkIterator(object):
@@ -129,7 +131,8 @@ def Poll(
 
     if timeout and (time.time() - started) > timeout:
       raise errors.PollTimeoutError(
-          "Polling on %s timed out after %ds." % (obj, timeout))
+          "Polling on %s timed out after %ds." % (obj, timeout)
+      )
     time.sleep(interval)
 
 
@@ -139,7 +142,7 @@ AFF4_PREFIX = "aff4:/"
 def UrnStringToClientId(urn: str) -> str:
   """Converts given URN string to a client id string."""
   if urn.startswith(AFF4_PREFIX):
-    urn = urn[len(AFF4_PREFIX):]
+    urn = urn[len(AFF4_PREFIX) :]
 
   components = urn.split("/")
   return components[0]
@@ -148,7 +151,7 @@ def UrnStringToClientId(urn: str) -> str:
 def UrnStringToHuntId(urn: str) -> str:
   """Converts given URN string to a flow id string."""
   if urn.startswith(AFF4_PREFIX):
-    urn = urn[len(AFF4_PREFIX):]
+    urn = urn[len(AFF4_PREFIX) :]
 
   components = urn.split("/")
   if len(components) != 2 or components[0] != "hunts":
@@ -171,10 +174,12 @@ def TypeUrlToMessage(type_url: str) -> message.Message:
   """Returns a message instance corresponding to a given type URL."""
 
   if not type_url.startswith(TYPE_URL_PREFIX):
-    raise ValueError("Type URL has to start with a prefix %s: %s" %
-                     (TYPE_URL_PREFIX, type_url))
+    raise ValueError(
+        "Type URL has to start with a prefix %s: %s"
+        % (TYPE_URL_PREFIX, type_url)
+    )
 
-  full_name = type_url[len(TYPE_URL_PREFIX):]
+  full_name = type_url[len(TYPE_URL_PREFIX) :]
 
   # In open-source, proto files used not to have a package specified. Because
   # the API can be used with some legacy flows and hunts as well, we need to
@@ -214,7 +219,8 @@ class UnknownProtobuf(object):
 
 
 def UnpackAny(
-    proto_any: any_pb2.Any) -> Union[UnknownProtobuf, message.Message]:
+    proto_any: any_pb2.Any,
+) -> Union[UnknownProtobuf, message.Message]:
   try:
     proto = TypeUrlToMessage(proto_any.type_url)
   except ProtobufTypeNotFound as e:
@@ -298,7 +304,8 @@ def RegisterProtoDescriptors(
   db.RegisterFileDescriptor(dummy_pb2.DESCRIPTOR)
 
   db.RegisterFileDescriptor(
-      wrappers_pb2.DESCRIPTOR)  # type: ignore[attr-defined]
+      wrappers_pb2.DESCRIPTOR
+  )  # type: ignore[attr-defined]
 
   for d in additional_descriptors:
     db.RegisterFileDescriptor(d)

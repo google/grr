@@ -1,4 +1,10 @@
-import {ChangeDetectionStrategy, Component, EventEmitter, Input, Output} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  EventEmitter,
+  Input,
+  Output,
+} from '@angular/core';
 import {BehaviorSubject} from 'rxjs';
 
 import {FlowListItem} from '../../lib/models/flow';
@@ -14,7 +20,7 @@ import {FlowListItem} from '../../lib/models/flow';
 })
 export class FlowChips {
   @Input()
-  set flows(value: readonly FlowListItem[]|null) {
+  set flows(value: readonly FlowListItem[] | null) {
     this.flows$.next(value ?? []);
   }
 

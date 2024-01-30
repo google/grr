@@ -15,6 +15,7 @@ import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
 import {RouterModule} from '@angular/router';
 
+import {DurationComponentsModule} from '../../components/form/duration_input/module';
 import {ApprovalChipModule} from '../approval_chip/approval_chip_module';
 import {SubmitOnMetaEnterModule} from '../form/submit_on_meta_enter/submit_on_meta_enter_module';
 import {TextWithLinksModule} from '../helpers/text_with_links/text_with_links_module';
@@ -28,12 +29,13 @@ import {ApprovalCard} from './approval_card';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ApprovalChipModule,
     BrowserAnimationsModule,
     ClipboardModule,
     CommonModule,
+    DurationComponentsModule,
     FormsModule,
     MatAutocompleteModule,
     MatButtonModule,
@@ -51,14 +53,8 @@ import {ApprovalCard} from './approval_card';
     TextWithLinksModule,
     UserImageModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    ApprovalCard,
-  ],
-  exports: [
-    ApprovalCard,
-  ],
+  declarations: [ApprovalCard],
+  exports: [ApprovalCard],
 })
-export class ApprovalCardModule {
-}
+export class ApprovalCardModule {}

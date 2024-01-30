@@ -28,7 +28,7 @@ import {HuntResultsModule} from './hunt_results/module';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ApprovalCardModule,
     CommonModule,
@@ -50,9 +50,7 @@ import {HuntResultsModule} from './hunt_results/module';
     TitleEditorModule,
     UserImageModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [HuntPage],
 })
-export class HuntPageModule {
-}
+export class HuntPageModule {}

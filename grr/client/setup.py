@@ -113,12 +113,10 @@ setup_args = dict(
     url="https://github.com/google/grr",
     entry_points={
         "console_scripts": [
-            "grr_client = grr_response_client.distro_entry:Client",
             (
                 "grr_fleetspeak_client = "
                 "grr_response_client.distro_entry:FleetspeakClient"
             ),
-            "grr_pool_client = grr_response_client.distro_entry:PoolClient",
             (
                 "fleetspeak_client = "
                 "grr_response_client.distro_entry:FleetspeakClientWrapper"
@@ -147,9 +145,6 @@ setup_args = dict(
         ],
     },
 )
-
-if platform.system() == "Linux":
-  setup_args["install_requires"].append("chipsec==1.5.1")
 
 if platform.system() != "Windows":
   setup_args["install_requires"].append("xattr==0.9.7")

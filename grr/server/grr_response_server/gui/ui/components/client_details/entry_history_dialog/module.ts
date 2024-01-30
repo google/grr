@@ -18,7 +18,7 @@ import {EntryHistoryDialog} from './entry_history_dialog';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     HumanReadableSizeModule,
@@ -30,14 +30,8 @@ import {EntryHistoryDialog} from './entry_history_dialog';
     UsersDetailsModule,
     VolumesDetailsModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    EntryHistoryDialog,
-  ],
-  exports: [
-    EntryHistoryDialog,
-  ]
+  declarations: [EntryHistoryDialog],
+  exports: [EntryHistoryDialog],
 })
-export class EntryHistoryDialogModule {
-}
+export class EntryHistoryDialogModule {}

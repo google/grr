@@ -1,17 +1,35 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentRef, Inject, Injectable, Input, OnChanges, OnDestroy, ViewChild, ViewContainerRef} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ComponentRef,
+  Inject,
+  Injectable,
+  Input,
+  OnChanges,
+  OnDestroy,
+  ViewChild,
+  ViewContainerRef,
+} from '@angular/core';
 import {BehaviorSubject} from 'rxjs';
 import {filter, map} from 'rxjs/operators';
 
 import {FlowResultViewSection} from '../../../lib/flow_adapters/adapter';
-import {PaginatedResultView, PreloadedResultView, ResultQuery, ResultSource, viewQueriesResults} from '../../../lib/models/flow';
+import {
+  PaginatedResultView,
+  PreloadedResultView,
+  ResultQuery,
+  ResultSource,
+  viewQueriesResults,
+} from '../../../lib/models/flow';
 import {isNonNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {FlowResultsLocalStore} from '../../../store/flow_results_local_store';
 
 /** FlowResultViewSection including flow data in the query. */
-export interface FlowResultViewSectionWithFullQuery extends
-    FlowResultViewSection {
-  readonly flow: {readonly clientId: string, readonly flowId: string};
+export interface FlowResultViewSectionWithFullQuery
+  extends FlowResultViewSection {
+  readonly flow: {readonly clientId: string; readonly flowId: string};
   readonly totalResultCount: number;
 }
 
@@ -29,13 +47,14 @@ export class FlowResultSource<T> extends ResultSource<T> {
   readonly results$ = this.flowResultLocalStore.results$;
   readonly totalCount$ = new BehaviorSubject<number>(0);
   readonly query$ = this.flowResultLocalStore.query$.pipe(
-      filter(isNonNull), map(q => ({type: q.withType, tag: q.withTag})));
+    filter(isNonNull),
+    map((q) => ({type: q.withType, tag: q.withTag})),
+  );
 
   loadResults(query: ResultQuery) {
     this.flowResultLocalStore.queryPage(query);
   }
 }
-
 
 /** Component that displays an expandable flow result row. */
 @Component({
@@ -55,13 +74,14 @@ export class DynamicResultSection implements OnDestroy {
   @ViewChild('viewContainer', {read: ViewContainerRef, static: true})
   viewContainer!: ViewContainerRef;
 
-  protected view?:
-      ComponentRef<PreloadedResultView<unknown>|PaginatedResultView<unknown>>;
+  protected view?: ComponentRef<
+    PreloadedResultView<unknown> | PaginatedResultView<unknown>
+  >;
 
   constructor(
-      protected readonly flowResultsLocalStore: FlowResultsLocalStore,
-      @Inject(ResultSource) protected readonly resultSource:
-          FlowResultSource<unknown>,
+    protected readonly flowResultsLocalStore: FlowResultsLocalStore,
+    @Inject(ResultSource)
+    protected readonly resultSource: FlowResultSource<unknown>,
   ) {}
 
   showResults() {
@@ -79,14 +99,14 @@ export class DynamicResultSection implements OnDestroy {
       this.flowResultsLocalStore.queryMore(this.section.totalResultCount);
     }
 
-    this.flowResultsLocalStore.results$.subscribe(results => {
+    this.flowResultsLocalStore.results$.subscribe((results) => {
       const view = this.view?.instance;
 
       if (!view || viewQueriesResults(view)) {
         return;
       }
 
-      view.data = results.map(result => result.payload);
+      view.data = results.map((result) => result.payload);
 
       // Trigger change detection and ngNonChanges() by calling markForCheck().
       // For an unknown reason, this does not trigger the component's

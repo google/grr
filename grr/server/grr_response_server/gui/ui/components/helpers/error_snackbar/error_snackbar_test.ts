@@ -24,44 +24,44 @@ describe('ErrorSnackBar Component', () => {
   let clipboard: Partial<Clipboard>;
   let window: DeepPartial<Window>;
 
-  beforeEach((() => {
+  beforeEach(() => {
     clipboard = {
       copy: jasmine.createSpy('copy').and.returnValue(true),
     };
     window = {
       location: {
         reload: jasmine.createSpy('reload'),
-      }
+      },
     };
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            MatSnackBarModule, ErrorSnackBarModule,
-            NoopAnimationsModule,  // This makes test faster and more stable.
-          ],
-          declarations: [TestHostComponent],
-          providers: [
-            {
-              provide: OverlayContainer,
-              useFactory: () =>
-                  ({getContainerElement: () => fixture.nativeElement}),
-            },
-            {
-              provide: Clipboard,
-              useFactory: () => clipboard,
-            },
-            {
-              provide: WINDOW,
-              useFactory: () => window,
-            },
-          ]
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        MatSnackBarModule,
+        ErrorSnackBarModule,
+        NoopAnimationsModule, // This makes test faster and more stable.
+      ],
+      declarations: [TestHostComponent],
+      providers: [
+        {
+          provide: OverlayContainer,
+          useFactory: () => ({
+            getContainerElement: () => fixture.nativeElement,
+          }),
+        },
+        {
+          provide: Clipboard,
+          useFactory: () => clipboard,
+        },
+        {
+          provide: WINDOW,
+          useFactory: () => window,
+        },
+      ],
+    }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
     loader = TestbedHarnessEnvironment.documentRootLoader(fixture);
-  }));
+  });
 
   it('should contain the error message', async () => {
     const snackBar = TestBed.inject(MatSnackBar);
@@ -97,22 +97,22 @@ describe('ErrorSnackBar Component', () => {
     fixture.nativeElement.querySelector('button[aria-label="copy"]').click();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('button[aria-label="copy"]'))
-        .toBeNull();
+    expect(
+      fixture.nativeElement.querySelector('button[aria-label="copy"]'),
+    ).toBeNull();
     expect(fixture.nativeElement.textContent).toContain('Copied');
     expect(fixture.nativeElement.textContent).not.toContain('testerror');
     expect((await loader.getAllHarnesses(MatSnackBarHarness)).length).toBe(1);
   });
 
-  it('copies the error message to the clipboard when clicking on copy',
-     async () => {
-       const snackBar = TestBed.inject(MatSnackBar);
-       snackBar.openFromComponent(ErrorSnackBar, {data: 'testerror'});
+  it('copies the error message to the clipboard when clicking on copy', async () => {
+    const snackBar = TestBed.inject(MatSnackBar);
+    snackBar.openFromComponent(ErrorSnackBar, {data: 'testerror'});
 
-       expect(clipboard.copy).not.toHaveBeenCalled();
+    expect(clipboard.copy).not.toHaveBeenCalled();
 
-       fixture.nativeElement.querySelector('button[aria-label="copy"]').click();
+    fixture.nativeElement.querySelector('button[aria-label="copy"]').click();
 
-       expect(clipboard.copy).toHaveBeenCalledOnceWith('testerror');
-     });
+    expect(clipboard.copy).toHaveBeenCalledOnceWith('testerror');
+  });
 });

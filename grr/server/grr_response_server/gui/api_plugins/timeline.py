@@ -9,6 +9,7 @@ from grr_response_core.lib import utils
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.util import body
 from grr_response_core.lib.util import chunked
+from grr_response_proto import objects_pb2
 from grr_response_proto.api import timeline_pb2
 from grr_response_server import data_store
 from grr_response_server.flows.general import timeline
@@ -16,7 +17,6 @@ from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
-from grr_response_server.rdfvalues import objects as rdf_objects
 
 
 class ApiTimelineBodyOpts(rdf_structs.RDFProtoStruct):
@@ -193,7 +193,7 @@ class ApiGetCollectedHuntTimelinesHandler(api_call_handler_base.ApiCallHandler):
 
 
 def _GetHuntTimelineFilename(
-    snapshot: rdf_objects.ClientSnapshot,
+    snapshot: objects_pb2.ClientSnapshot,
     fmt: timeline_pb2.ApiGetCollectedTimelineArgs.Format,
 ) -> str:
   """Computes a timeline filename for the given client snapshot."""

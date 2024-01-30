@@ -10,7 +10,9 @@ import {MatIconModule} from '@angular/material/icon';
 import {MatInputModule} from '@angular/material/input';
 import {MatMenuModule} from '@angular/material/menu';
 import {MatProgressSpinnerModule} from '@angular/material/progress-spinner';
+import {MatTooltipModule} from '@angular/material/tooltip';
 import {BrowserAnimationsModule} from '@angular/platform-browser/animations';
+
 import {RouterModule} from '@angular/router';
 
 import {FlowArgsViewModule} from '../flow_args_view/module';
@@ -22,15 +24,13 @@ import {FlowDetails} from './flow_details';
 import {HelpersModule} from './helpers/module';
 import {PluginsModule} from './plugins/module';
 
-
-
 /**
  * Module for the flow_picker details component.
  */
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     ClipboardModule,
@@ -47,20 +47,15 @@ import {PluginsModule} from './plugins/module';
     MatInputModule,
     MatMenuModule,
     MatProgressSpinnerModule,
+    MatTooltipModule,
     PluginsModule,
     ReactiveFormsModule,
     RouterModule,
     TimestampModule,
     UserImageModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    FlowDetails,
-  ],
-  exports: [
-    FlowDetails,
-  ],
+  declarations: [FlowDetails],
+  exports: [FlowDetails],
 })
-export class FlowDetailsModule {
-}
+export class FlowDetailsModule {}

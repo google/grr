@@ -9,16 +9,16 @@ import {CopyButtonModule} from './copy_button_module';
 
 @Component({
   template:
-      '<app-copy-button [overrideCopyText]="overrideCopyText">{{ text }}</app-copy-button>'
+    '<app-copy-button [overrideCopyText]="overrideCopyText">{{ text }}</app-copy-button>',
 })
 class TestComponentWithTextNode {
   @Input() text: string = '';
-  @Input() overrideCopyText: string|undefined|null = undefined;
+  @Input() overrideCopyText: string | undefined | null = undefined;
 }
 
 @Component({
   template:
-      '<app-copy-button><div class="test-el">{{ text }}</div></app-copy-button>'
+    '<app-copy-button><div class="test-el">{{ text }}</div></app-copy-button>',
 })
 class TestComponentWithElementNode {
   @Input() text: string = '';
@@ -27,29 +27,26 @@ class TestComponentWithElementNode {
 describe('CopyButton component', () => {
   let clipboard: Partial<Clipboard>;
 
-  beforeEach((() => {
+  beforeEach(() => {
     clipboard = {
       copy: jasmine.createSpy('copy').and.returnValue(true),
     };
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            MatSnackBarModule, CopyButtonModule,
-            NoopAnimationsModule,  // This makes test faster and more stable.
-          ],
-          declarations:
-              [TestComponentWithTextNode, TestComponentWithElementNode],
-          providers: [
-
-            {
-              provide: Clipboard,
-              useFactory: () => clipboard,
-            },
-          ]
-        })
-        .compileComponents();
-  }));
+    TestBed.configureTestingModule({
+      imports: [
+        MatSnackBarModule,
+        CopyButtonModule,
+        NoopAnimationsModule, // This makes test faster and more stable.
+      ],
+      declarations: [TestComponentWithTextNode, TestComponentWithElementNode],
+      providers: [
+        {
+          provide: Clipboard,
+          useFactory: () => clipboard,
+        },
+      ],
+    }).compileComponents();
+  });
 
   it('should render text contents', () => {
     const fixture = TestBed.createComponent(TestComponentWithTextNode);
@@ -77,8 +74,9 @@ describe('CopyButton component', () => {
     expect(fixture.nativeElement.textContent).not.toContain('check');
     expect(fixture.nativeElement.textContent).toContain('content_copy');
 
-    fixture.debugElement.query(By.css('app-copy-button'))
-        .triggerEventHandler('click', new MouseEvent('click'));
+    fixture.debugElement
+      .query(By.css('app-copy-button'))
+      .triggerEventHandler('click', new MouseEvent('click'));
 
     fixture.detectChanges();
 
@@ -93,8 +91,9 @@ describe('CopyButton component', () => {
 
     expect(clipboard.copy).not.toHaveBeenCalled();
 
-    fixture.debugElement.query(By.css('app-copy-button'))
-        .triggerEventHandler('click', new MouseEvent('click'));
+    fixture.debugElement
+      .query(By.css('app-copy-button'))
+      .triggerEventHandler('click', new MouseEvent('click'));
 
     expect(clipboard.copy).toHaveBeenCalledOnceWith('test content');
   });
@@ -105,12 +104,14 @@ describe('CopyButton component', () => {
     fixture.componentInstance.overrideCopyText = 'overridden content';
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.textContent)
-        .not.toContain('overridden content');
+    expect(fixture.nativeElement.textContent).not.toContain(
+      'overridden content',
+    );
     expect(fixture.nativeElement.textContent).toContain('test content');
 
-    fixture.debugElement.query(By.css('app-copy-button'))
-        .triggerEventHandler('click', new MouseEvent('click'));
+    fixture.debugElement
+      .query(By.css('app-copy-button'))
+      .triggerEventHandler('click', new MouseEvent('click'));
 
     expect(clipboard.copy).toHaveBeenCalledOnceWith('overridden content');
   });

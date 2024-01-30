@@ -4,12 +4,9 @@
 from grr_response_server import server_stubs
 
 ACTION_STUB_BY_ID = {
-    "ArtifactCollector": server_stubs.ArtifactCollector,
     "CollectLargeFile": server_stubs.CollectLargeFile,
     "CheckFreeGRRTempSpace": server_stubs.CheckFreeGRRTempSpace,
     "DeleteGRRTempFiles": server_stubs.DeleteGRRTempFiles,
-    "DumpACPITable": server_stubs.DumpACPITable,
-    "DumpFlashImage": server_stubs.DumpFlashImage,
     "Dummy": server_stubs.Dummy,
     "Echo": server_stubs.Echo,
     "EnumerateFilesystems": server_stubs.EnumerateFilesystems,
@@ -23,7 +20,6 @@ ACTION_STUB_BY_ID = {
     "Find": server_stubs.Find,
     "FingerprintFile": server_stubs.FingerprintFile,
     "GetClientInfo": server_stubs.GetClientInfo,
-    "GetClientStats": server_stubs.GetClientStats,
     "GetCloudVMMetadata": server_stubs.GetCloudVMMetadata,
     "GetConfiguration": server_stubs.GetConfiguration,
     "GetFileStat": server_stubs.GetFileStat,

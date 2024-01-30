@@ -1,4 +1,12 @@
-import {AfterViewInit, ChangeDetectionStrategy, Component, ElementRef, OnDestroy, OnInit, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  OnDestroy,
+  OnInit,
+  ViewChild,
+} from '@angular/core';
 import {BehaviorSubject, combineLatest, fromEvent} from 'rxjs';
 import {map, startWith, takeUntil, withLatestFrom} from 'rxjs/operators';
 
@@ -27,55 +35,54 @@ export class FlowForm implements OnInit, OnDestroy, AfterViewInit {
 
   private readonly flowArgsFormValid$ = new BehaviorSubject<boolean>(true);
 
-  readonly disabled$ =
-      combineLatest([
-        this.flowArgsFormValid$,
-        this.clientPageGlobalStore.startFlowStatus$,
-      ])
-          .pipe(
-              map(([valid, startFlowStatus]) => !valid ||
-                      startFlowStatus?.status === RequestStatusType.SENT),
-              startWith(false),
-          );
+  readonly disabled$ = combineLatest([
+    this.flowArgsFormValid$,
+    this.clientPageGlobalStore.startFlowStatus$,
+  ]).pipe(
+    map(
+      ([valid, startFlowStatus]) =>
+        !valid || startFlowStatus?.status === RequestStatusType.SENT,
+    ),
+    startWith(false),
+  );
 
   readonly requestInProgress$ =
-      this.clientPageGlobalStore.startFlowStatus$.pipe(
-          map(status => status?.status === RequestStatusType.SENT),
-      );
+    this.clientPageGlobalStore.startFlowStatus$.pipe(
+      map((status) => status?.status === RequestStatusType.SENT),
+    );
 
   readonly error$ = this.clientPageGlobalStore.startFlowStatus$.pipe(
-      map(status => status?.status === RequestStatusType.ERROR ? status.error :
-                                                                 undefined));
+    map((status) =>
+      status?.status === RequestStatusType.ERROR ? status.error : undefined,
+    ),
+  );
 
-  readonly hasAccess$ =
-      this.clientPageGlobalStore.hasAccess$.pipe(startWith(false));
+  readonly hasAccess$ = this.clientPageGlobalStore.hasAccess$.pipe(
+    startWith(false),
+  );
 
-  constructor(
-      private readonly clientPageGlobalStore: ClientPageGlobalStore,
-  ) {}
+  constructor(private readonly clientPageGlobalStore: ClientPageGlobalStore) {}
 
   ngOnInit() {}
 
   ngAfterViewInit() {
     fromEvent(this.formElement.nativeElement, 'submit')
-        .pipe(
-            takeUntil(this.ngOnDestroy.triggered$),
-            withLatestFrom(
-                this.flowArgsForm.flowArgValues$,
-                this.disabled$,
-                ),
-            )
-        .subscribe(([e, flowArgs, disabled]) => {
-          e.preventDefault();
+      .pipe(
+        takeUntil(this.ngOnDestroy.triggered$),
+        withLatestFrom(this.flowArgsForm.flowArgValues$, this.disabled$),
+      )
+      .subscribe(([e, flowArgs, disabled]) => {
+        e.preventDefault();
 
-          if (!disabled) {
-            this.clientPageGlobalStore.scheduleOrStartFlow(flowArgs);
-          }
-        });
+        if (!disabled) {
+          this.clientPageGlobalStore.scheduleOrStartFlow(flowArgs);
+        }
+      });
 
-    this.flowArgsForm.valid$.pipe(takeUntil(this.ngOnDestroy.triggered$))
-        .subscribe(valid => {
-          this.flowArgsFormValid$.next(valid);
-        });
+    this.flowArgsForm.valid$
+      .pipe(takeUntil(this.ngOnDestroy.triggered$))
+      .subscribe((valid) => {
+        this.flowArgsFormValid$.next(valid);
+      });
   }
 }

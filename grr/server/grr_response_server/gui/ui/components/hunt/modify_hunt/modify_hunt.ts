@@ -1,4 +1,11 @@
-import {AfterViewInit, ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, ViewChild} from '@angular/core';
+import {
+  AfterViewInit,
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  OnDestroy,
+  ViewChild,
+} from '@angular/core';
 import {Router} from '@angular/router';
 import {filter, take, tap} from 'rxjs/operators';
 
@@ -24,30 +31,31 @@ export class ModifyHunt implements OnDestroy, AfterViewInit {
   @ViewChild('rolloutForm', {static: false}) rolloutForm!: RolloutForm;
 
   constructor(
-      private readonly huntPageGlobalStore: HuntPageGlobalStore,
-      private readonly changeDetection: ChangeDetectorRef,
-      private readonly router: Router,
+    private readonly huntPageGlobalStore: HuntPageGlobalStore,
+    private readonly changeDetection: ChangeDetectorRef,
+    private readonly router: Router,
   ) {}
 
   protected readonly hunt$ = this.huntPageGlobalStore.selectedHunt$;
 
   ngAfterViewInit() {
     this.huntPageGlobalStore.selectedHunt$
-        .pipe(
-            filter(isNonNull),
-            // We don't want to reset the form on each poll, only once.
-            take(1),
-            tap(hunt => {
-              this.rolloutForm.setFormState(hunt.safetyLimits);
-            }),
-            )
-        .subscribe();
+      .pipe(
+        filter(isNonNull),
+        // We don't want to reset the form on each poll, only once.
+        take(1),
+        tap((hunt) => {
+          this.rolloutForm.setFormState(hunt.safetyLimits);
+        }),
+      )
+      .subscribe();
     this.changeDetection.detectChanges();
   }
 
   modifyAndContinue() {
     this.huntPageGlobalStore.modifyAndStartHunt(
-        this.rolloutForm.getPartialLimits());
+      this.rolloutForm.getPartialLimits(),
+    );
     // Close drawer
     this.router.navigate([{outlets: {'drawer': null}}], {replaceUrl: true});
   }

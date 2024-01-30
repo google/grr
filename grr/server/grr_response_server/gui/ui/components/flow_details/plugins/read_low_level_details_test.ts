@@ -9,20 +9,15 @@ import {ResultAccordionHarness} from '../helpers/testing/result_accordion_harnes
 import {PluginsModule} from './module';
 import {ReadLowLevelDetails} from './read_low_level_details';
 
-
 initTestEnvironment();
 
 describe('ReadLowLevelDetails component', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            PluginsModule,
-          ],
-          providers: [],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [PluginsModule],
+      providers: [],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
   }));
 
   it('displays summary in title WITHOUT offset', () => {
@@ -33,8 +28,9 @@ describe('ReadLowLevelDetails component', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText)
-        .toContain('10 bytes from /some/path');
+    expect(fixture.nativeElement.innerText).toContain(
+      '10 bytes from /some/path',
+    );
   });
 
   it('displays summary in title WITH offset', () => {
@@ -45,8 +41,9 @@ describe('ReadLowLevelDetails component', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.innerText)
-        .toContain('10 bytes starting at 6 from /some/path');
+    expect(fixture.nativeElement.innerText).toContain(
+      '10 bytes starting at 6 from /some/path',
+    );
   });
 
   it('displays args when opened', async () => {
@@ -57,8 +54,9 @@ describe('ReadLowLevelDetails component', () => {
     });
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const resultAccordionHarness =
-        await harnessLoader.getHarness(ResultAccordionHarness);
+    const resultAccordionHarness = await harnessLoader.getHarness(
+      ResultAccordionHarness,
+    );
     await resultAccordionHarness.toggle();
 
     fixture.detectChanges();
@@ -78,9 +76,10 @@ describe('ReadLowLevelDetails component', () => {
     });
     fixture.detectChanges();
 
-    expect(fixture.componentInstance
-               .getExportMenuItems(fixture.componentInstance.flow)[0]
-               .url)
-        .toEqual('/api/v2/clients/C.1234/vfs-blob/temp/C.1234_456_somepath');
+    expect(
+      fixture.componentInstance.getExportMenuItems(
+        fixture.componentInstance.flow,
+      )[0].url,
+    ).toEqual('/api/v2/clients/C.1234/vfs-blob/temp/C.1234_456_somepath');
   });
 });

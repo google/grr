@@ -14,6 +14,7 @@ from grr_response_server import events
 from grr_response_server import fleetspeak_utils
 from grr_response_server.bin import fleetspeak_frontend_server
 from grr_response_server.flows.general import processes as flow_processes
+from grr_response_server.models import clients
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import flow_test_lib
@@ -72,11 +73,14 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
         fs_server.Process(fs_message, None)
 
     # Ensure the last-ping timestamp gets updated.
-    client_data = data_store.REL_DB.MultiReadClientMetadata([client_id])
-    self.assertEqual(client_data[client_id].ping, now)
+    client_data = data_store.REL_DB.ReadClientMetadata(client_id)
+    self.assertEqual(client_data.ping, now)
     self.assertEqual(
-        client_data[client_id].last_fleetspeak_validation_info.ToStringDict(),
-        {"foo": "bar"})
+        clients.FleetspeakValidationInfoToDict(
+            client_data.last_fleetspeak_validation_info
+        ),
+        {"foo": "bar"},
+    )
 
     flow_data = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
         client_id, flow_id)
@@ -131,11 +135,14 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
       fs_server.Process(fs_message, None)
 
     # Ensure the last-ping timestamp gets updated.
-    client_data = data_store.REL_DB.MultiReadClientMetadata([client_id])
-    self.assertEqual(client_data[client_id].ping, now)
+    client_data = data_store.REL_DB.ReadClientMetadata(client_id)
+    self.assertEqual(client_data.ping, now)
     self.assertEqual(
-        client_data[client_id].last_fleetspeak_validation_info.ToStringDict(),
-        {"foo": "bar"})
+        clients.FleetspeakValidationInfoToDict(
+            client_data.last_fleetspeak_validation_info
+        ),
+        {"foo": "bar"},
+    )
 
     flow_data = data_store.REL_DB.ReadAllFlowRequestsAndResponses(
         client_id, flow_id)
@@ -180,7 +187,7 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
 
     # Ensure the last-ping timestamp doesn't get updated.
     client_data = data_store.REL_DB.ReadClientMetadata(client_id)
-    self.assertEqual(client_data.ping, now)
+    self.assertEqual(client_data.ping, int(now))
 
   def testMetadataGetsUpdatedIfPreviousUpdateIsOldEnough(self):
     fs_server = fleetspeak_frontend_server.GRRFSServer()
@@ -222,7 +229,7 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
 
     # Ensure the last-ping timestamp does get updated.
     client_data = data_store.REL_DB.ReadClientMetadata(client_id)
-    self.assertNotEqual(client_data.ping, past)
+    self.assertNotEqual(client_data.ping, int(past))
 
   def testWriteLastPingForNewClients(self):
     fs_server = fleetspeak_frontend_server.GRRFSServer()
@@ -253,8 +260,8 @@ class FleetspeakGRRFEServerTest(flow_test_lib.FlowTestsBaseclass):
         with test_lib.FakeTime(fake_time):
           fs_server.Process(fs_message, None)
         self.assertEqual(write_metadata_fn.call_count, 1)
-        client_data = data_store.REL_DB.MultiReadClientMetadata([client_id])
-        self.assertEqual(client_data[client_id].ping, fake_time)
+        client_data = data_store.REL_DB.ReadClientMetadata(client_id)
+        self.assertEqual(client_data.ping, fake_time)
         # TODO(user): publish_event_fn.assert_any_call(
         #     "ClientEnrollment", mock.ANY, token=mock.ANY) doesn't work here
         # for some reason.

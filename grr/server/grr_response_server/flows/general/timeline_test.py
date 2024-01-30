@@ -10,6 +10,7 @@ from grr_response_core.lib import rdfvalue
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.rdfvalues import timeline as rdf_timeline
 from grr_response_core.lib.util import temp
+from grr_response_proto import objects_pb2
 from grr_response_proto import timeline_pb2
 from grr_response_server import blob_store as abstract_bs
 from grr_response_server import flow_responses
@@ -17,7 +18,7 @@ from grr_response_server.databases import db as abstract_db
 from grr_response_server.databases import db_test_utils
 from grr_response_server.flows.general import timeline as timeline_flow
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr.test_lib import action_mocks
 from grr.test_lib import db_test_lib
 from grr.test_lib import filesystem_test_lib
@@ -139,7 +140,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     client_id = self.client_id
     db.WriteClientMetadata(client_id)
 
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.os = "Linux"
     snapshot.startup_info.client_info.timeline_btime_support = False
@@ -166,7 +167,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     client_id = self.client_id
     db.WriteClientMetadata(client_id)
 
-    snapshot = rdf_objects.ClientSnapshot()
+    snapshot = objects_pb2.ClientSnapshot()
     snapshot.client_id = client_id
     snapshot.knowledge_base.os = "Linux"
     snapshot.startup_info.client_info.timeline_btime_support = True
@@ -218,7 +219,7 @@ class TimelineTest(flow_test_lib.FlowTestsBaseclass):
     args.root = b"/foo/bar"
 
     result = rrg_get_filesystem_timeline_pb2.Result()
-    result.blob_sha256 = bs.WriteBlobWithUnknownHash(os.urandom(1024)).AsBytes()
+    result.blob_sha256 = bytes(bs.WriteBlobWithUnknownHash(os.urandom(1024)))
     result.entry_count = 1337
 
     result_response = rdf_flow_objects.FlowResponse()
@@ -281,7 +282,7 @@ class FilesystemTypeTest(absltest.TestCase):
     flow_result.client_id = client_id
     flow_result.flow_id = flow_id
     flow_result.payload = rdf_timeline.TimelineResult(filesystem_type="ntfs")
-    db.WriteFlowResults([flow_result])
+    db.WriteFlowResults([mig_flow_objects.ToProtoFlowResult(flow_result)])
 
     self.assertEqual(timeline_flow.FilesystemType(client_id, flow_id), "ntfs")
 

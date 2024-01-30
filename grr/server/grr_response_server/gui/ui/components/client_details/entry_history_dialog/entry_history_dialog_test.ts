@@ -1,5 +1,10 @@
 import {OverlayContainer} from '@angular/cdk/overlay';
-import {ComponentFixture, inject, TestBed, waitForAsync} from '@angular/core/testing';
+import {
+  ComponentFixture,
+  inject,
+  TestBed,
+  waitForAsync,
+} from '@angular/core/testing';
 import {MAT_DIALOG_DATA, MatDialogModule} from '@angular/material/dialog';
 import {By} from '@angular/platform-browser';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -8,9 +13,11 @@ import {Client} from '../../../lib/models/client';
 import {newClient} from '../../../lib/models/model_test_util';
 import {initTestEnvironment} from '../../../testing';
 
-import {EntryHistoryDialog, EntryHistoryDialogParams} from './entry_history_dialog';
+import {
+  EntryHistoryDialog,
+  EntryHistoryDialogParams,
+} from './entry_history_dialog';
 import {EntryHistoryDialogModule} from './module';
-
 
 initTestEnvironment();
 
@@ -41,20 +48,16 @@ describe('Entry History Dialog', () => {
         age: new Date(2000, 2, 1),
       }),
     ];
-    TestBed
-        .configureTestingModule({
-          declarations: [EntryHistoryDialog],
-          imports: [
-            EntryHistoryDialogModule,
-            NoopAnimationsModule,
-            MatDialogModule,
-          ],
-          providers: [
-            {provide: MAT_DIALOG_DATA, useFactory: () => providedData},
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      declarations: [EntryHistoryDialog],
+      imports: [
+        EntryHistoryDialogModule,
+        NoopAnimationsModule,
+        MatDialogModule,
+      ],
+      providers: [{provide: MAT_DIALOG_DATA, useFactory: () => providedData}],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
     inject([OverlayContainer], (oc: OverlayContainer) => {
       overlayContainer = oc;
       overlayContainerElement = oc.getContainerElement();
@@ -144,7 +147,7 @@ describe('Entry History Dialog', () => {
     expect(() => TestBed.createComponent(EntryHistoryDialog)).toThrowError();
   });
 
-  it('shows a HumanReadableSize component for type \'size\'', () => {
+  it("shows a HumanReadableSize component for type 'size'", () => {
     providedData = {
       path: ['memorySize'],
       type: 'size',
@@ -153,12 +156,13 @@ describe('Entry History Dialog', () => {
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    const sizeComponent =
-        fixture.debugElement.query(By.css('human-readable-size'));
+    const sizeComponent = fixture.debugElement.query(
+      By.css('human-readable-size'),
+    );
     expect(sizeComponent).toBeTruthy();
   });
 
-  it('shows a Timestamp component for type \'timestamp\'', () => {
+  it("shows a Timestamp component for type 'timestamp'", () => {
     providedData = {
       path: ['osInfo', 'installDate'],
       type: 'timestamp',
@@ -167,12 +171,13 @@ describe('Entry History Dialog', () => {
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    const timestampComponent =
-        fixture.debugElement.query(By.css('app-timestamp'));
+    const timestampComponent = fixture.debugElement.query(
+      By.css('app-timestamp'),
+    );
     expect(timestampComponent).toBeTruthy();
   });
 
-  it('shows a users-details component for type \'user-list\'', () => {
+  it("shows a users-details component for type 'user-list'", () => {
     providedData = {
       path: ['users'],
       type: 'user-list',
@@ -181,12 +186,13 @@ describe('Entry History Dialog', () => {
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    const usersDetailsComponent =
-        fixture.debugElement.query(By.css('users-details'));
+    const usersDetailsComponent = fixture.debugElement.query(
+      By.css('users-details'),
+    );
     expect(usersDetailsComponent).toBeTruthy();
   });
 
-  it('shows a interfaces-details component for type \'interface-list\'', () => {
+  it("shows a interfaces-details component for type 'interface-list'", () => {
     providedData = {
       path: ['networkInterfaces'],
       type: 'interface-list',
@@ -195,12 +201,13 @@ describe('Entry History Dialog', () => {
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    const interfacesDetailsComponent =
-        fixture.debugElement.query(By.css('interfaces-details'));
+    const interfacesDetailsComponent = fixture.debugElement.query(
+      By.css('interfaces-details'),
+    );
     expect(interfacesDetailsComponent).toBeTruthy();
   });
 
-  it('shows a volumes-details component for type \'volume-list\'', () => {
+  it("shows a volumes-details component for type 'volume-list'", () => {
     providedData = {
       path: ['volumes'],
       type: 'volume-list',
@@ -210,8 +217,9 @@ describe('Entry History Dialog', () => {
     fixture = TestBed.createComponent(EntryHistoryDialog);
     component = fixture.componentInstance;
     fixture.detectChanges();
-    const volumesDetailsComponent =
-        fixture.debugElement.query(By.css('volumes-details'));
+    const volumesDetailsComponent = fixture.debugElement.query(
+      By.css('volumes-details'),
+    );
     expect(volumesDetailsComponent).toBeTruthy();
   });
 });

@@ -6,8 +6,9 @@ import {ListProcessesAdapter} from './list_processes';
 export const DEFAULT_ADAPTER = new FlowDetailsAdapter();
 
 /** Lookup table from flow name to FlowDetailsAdapter instance. */
-export const FLOW_ADAPTERS:
-    {readonly [flowName: string]: FlowDetailsAdapter|undefined} = {
-      'ListProcesses': new ListProcessesAdapter(),
-      'Timeline': new TimelineAdapter(),
-    };
+export const FLOW_ADAPTERS: {
+  readonly [flowName: string]: FlowDetailsAdapter | undefined;
+} = {
+  'ListProcesses': new ListProcessesAdapter(),
+  'Timeline': new TimelineAdapter(),
+};

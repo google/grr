@@ -1,5 +1,8 @@
 import {TestBed} from '@angular/core/testing';
-import {BrowserDynamicTestingModule, platformBrowserDynamicTesting} from '@angular/platform-browser-dynamic/testing';
+import {
+  BrowserDynamicTestingModule,
+  platformBrowserDynamicTesting,
+} from '@angular/platform-browser-dynamic/testing';
 import {ActivatedRoute, Router} from '@angular/router';
 import {NEVER} from 'rxjs';
 
@@ -8,7 +11,9 @@ import {DateTime} from './lib/date_time';
 
 /** Implements an equality tester for luxon's DateTime objects. */
 export function dateTimeEqualityTester(
-    first: unknown, second: unknown): boolean|void {
+  first: unknown,
+  second: unknown,
+): boolean | void {
   if (first instanceof DateTime && second instanceof DateTime) {
     return first.valueOf() === second.valueOf();
   }
@@ -20,8 +25,10 @@ export function dateTimeEqualityTester(
 export function initTestEnvironment() {
   try {
     TestBed.initTestEnvironment(
-        BrowserDynamicTestingModule, platformBrowserDynamicTesting(),
-        {teardown: {destroyAfterEach: false}});
+      BrowserDynamicTestingModule,
+      platformBrowserDynamicTesting(),
+      {teardown: {destroyAfterEach: false}},
+    );
   } catch (e) {
     // Ignore exceptions when calling it multiple times.
   }
@@ -29,8 +36,8 @@ export function initTestEnvironment() {
 
 /** Removes keys with value `undefined` to make testing of objects easier. */
 export function removeUndefinedKeys<T>(obj: T[]): T[];
-export function removeUndefinedKeys<T>(obj: T): Partial<T>|T;
-export function removeUndefinedKeys<T>(obj: T|T[]): T|Partial<T>|T[] {
+export function removeUndefinedKeys<T>(obj: T): Partial<T> | T;
+export function removeUndefinedKeys<T>(obj: T | T[]): T | Partial<T> | T[] {
   if (Array.isArray(obj)) {
     return obj.map<T>(removeUndefinedKeys);
   } else if (obj === null) {
@@ -38,13 +45,16 @@ export function removeUndefinedKeys<T>(obj: T|T[]): T|Partial<T>|T[] {
   } else if (typeof obj === 'object' && (obj as {}).constructor === Object) {
     // TODO: Type '{ [k: string]: any; }' is not assignable to type
     // 'T | Partial<T> | T[]'.
-    return Object.fromEntries(Object.entries(obj)
-                                  .filter(([, value]) => value !== undefined)
-                                  .map(([key, value]) => ([
-                                         key, removeUndefinedKeys(value)
-                                         // OSS code.
-                                         // tslint:disable-next-line:no-any
-                                       ]))) as any;
+    return Object.fromEntries(
+      Object.entries(obj)
+        .filter(([, value]) => value !== undefined)
+        .map(([key, value]) => [
+          key,
+          removeUndefinedKeys(value),
+          // OSS code.
+          // tslint:disable-next-line:no-any
+        ]),
+    ) as any;
   } else {
     return obj;
   }

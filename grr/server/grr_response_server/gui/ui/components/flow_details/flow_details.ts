@@ -1,15 +1,39 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, ComponentRef, EventEmitter, Input, OnChanges, Output, SimpleChanges, ViewChild, ViewContainerRef} from '@angular/core';
-import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  ComponentRef,
+  EventEmitter,
+  Input,
+  OnChanges,
+  Output,
+  SimpleChanges,
+  ViewChild,
+  ViewContainerRef,
+} from '@angular/core';
+import {BehaviorSubject, Observable, combineLatest} from 'rxjs';
 import {map, startWith} from 'rxjs/operators';
 
-import {ExportMenuItem, Plugin as FlowDetailsPlugin} from '../../components/flow_details/plugins/plugin';
-import {type Flow, type FlowDescriptor, FlowState, FlowType, getFlowTitleFromFlow} from '../../lib/models/flow';
+import {
+  ExportMenuItem,
+  Plugin as FlowDetailsPlugin,
+} from '../../components/flow_details/plugins/plugin';
+import {
+  FlowState,
+  FlowType,
+  getFlowTitleFromFlow,
+  type Flow,
+  type FlowDescriptor,
+} from '../../lib/models/flow';
 import {isNonNull} from '../../lib/preconditions';
 import {FlowResultsLocalStore} from '../../store/flow_results_local_store';
 import {FlowArgsViewData} from '../flow_args_view/flow_args_view';
 
 import {ColorScheme} from './helpers/result_accordion';
-import {FLOW_DETAILS_DEFAULT_PLUGIN, FLOW_DETAILS_PLUGIN_REGISTRY} from './plugin_registry';
+import {
+  FLOW_DETAILS_DEFAULT_PLUGIN,
+  FLOW_DETAILS_PLUGIN_REGISTRY,
+} from './plugin_registry';
 
 /** Enum of Actions that can be triggered in the Flow Context Menu. */
 export enum FlowMenuAction {
@@ -34,38 +58,39 @@ export enum FlowMenuAction {
 export class FlowDetails implements OnChanges {
   readonly colorScheme = ColorScheme;
 
-  private detailsComponent: ComponentRef<FlowDetailsPlugin>|undefined;
+  private detailsComponent: ComponentRef<FlowDetailsPlugin> | undefined;
 
   flowState = FlowState;
   flowMenuAction = FlowMenuAction;
 
-  private readonly flow$ = new BehaviorSubject<Flow|null>(null);
-  private readonly flowDescriptor$ =
-      new BehaviorSubject<FlowDescriptor|null>(null);
-  readonly flowArgsViewData$: Observable<FlowArgsViewData|null> =
-      combineLatest([this.flow$, this.flowDescriptor$])
-          .pipe(
-              map(([flow, flowDescriptor]) => {
-                if (!flow || !flowDescriptor) {
-                  return null;
-                }
-                return {
-                  flowDescriptor,
-                  flowArgs: this.flow!.args as {},
-                };
-              }),
-              startWith(null));
+  private readonly flow$ = new BehaviorSubject<Flow | null>(null);
+  private readonly flowDescriptor$ = new BehaviorSubject<FlowDescriptor | null>(
+    null,
+  );
+  readonly flowArgsViewData$: Observable<FlowArgsViewData | null> =
+    combineLatest([this.flow$, this.flowDescriptor$]).pipe(
+      map(([flow, flowDescriptor]) => {
+        if (!flow || !flowDescriptor) {
+          return null;
+        }
+        return {
+          flowDescriptor,
+          flowArgs: this.flow!.args as {},
+        };
+      }),
+      startWith(null),
+    );
 
-  readonly flowTitle$: Observable<string|undefined> =
-      combineLatest([
-        this.flow$, this.flowDescriptor$
-      ]).pipe(map(([flow, fd]) => getFlowTitleFromFlow(flow, fd)));
+  readonly flowTitle$: Observable<string | undefined> = combineLatest([
+    this.flow$,
+    this.flowDescriptor$,
+  ]).pipe(map(([flow, fd]) => getFlowTitleFromFlow(flow, fd)));
 
   /**
    * Flow list entry to display.
    */
   @Input()
-  set flow(flow: Flow|null|undefined) {
+  set flow(flow: Flow | null | undefined) {
     this.flow$.next(flow ?? null);
   }
 
@@ -78,7 +103,7 @@ export class FlowDetails implements OnChanges {
    * allowed to start this flow or flow class has been deprecated/removed.
    */
   @Input()
-  set flowDescriptor(desc: FlowDescriptor|null|undefined) {
+  set flowDescriptor(desc: FlowDescriptor | null | undefined) {
     this.flowDescriptor$.next(desc ?? null);
   }
 
@@ -106,7 +131,7 @@ export class FlowDetails implements OnChanges {
     }
 
     let componentClass =
-        FLOW_DETAILS_PLUGIN_REGISTRY[this.flow.name as FlowType];
+      FLOW_DETAILS_PLUGIN_REGISTRY[this.flow.name as FlowType];
 
     // As fallback for flows without details plugin and flows that do not report
     // resultCount metadata, show a default view that links to the old UI.
@@ -118,12 +143,13 @@ export class FlowDetails implements OnChanges {
     if (componentClass !== this.detailsComponent?.instance.constructor) {
       this.detailsContainer.clear();
       this.detailsComponent =
-          this.detailsContainer.createComponent(componentClass);
+        this.detailsContainer.createComponent(componentClass);
     }
 
     if (!this.detailsComponent) {
       throw new Error(
-          'detailsComponentInstance was expected to be defined at this point.');
+        'detailsComponentInstance was expected to be defined at this point.',
+      );
     }
 
     this.detailsComponent.instance.flow = this.flow;
@@ -151,19 +177,19 @@ export class FlowDetails implements OnChanges {
   }
 
   get resultDescription() {
-    return this.flow ?
-        this.detailsComponent?.instance?.getResultDescription(this.flow) :
-        undefined;
+    return this.flow
+      ? this.detailsComponent?.instance?.getResultDescription(this.flow)
+      : undefined;
   }
 
   get exportMenuItems() {
-    return (this.flow?.state === FlowState.FINISHED) ?
-        this.detailsComponent?.instance?.getExportMenuItems(this.flow) :
-        undefined;
+    return this.flow?.state === FlowState.FINISHED
+      ? this.detailsComponent?.instance?.getExportMenuItems(this.flow)
+      : undefined;
   }
 
   get hasResults() {
-    return isNonNull(this.flow?.resultCounts?.find(rc => rc.count > 0));
+    return isNonNull(this.flow?.resultCounts?.find((rc) => rc.count > 0));
   }
 
   trackExportMenuItem(index: number, entry: ExportMenuItem) {

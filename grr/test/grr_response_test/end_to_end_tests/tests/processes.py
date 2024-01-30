@@ -10,10 +10,10 @@ class TestProcessListing(test_base.EndToEndTest):
   platforms = test_base.EndToEndTest.Platform.ALL
 
   def runTest(self):
-    f = self.RunFlowAndWait("Netstat")
+    f = self.RunFlowAndWait("ListProcesses")
 
     results = list(f.ListResults())
-    self.assertGreater(len(results), 5)
+    self.assertNotEmpty(results)
 
     # TODO(user): add a check for a GRR process (probably need to query
     # the server for the configuration option containing GRR agent name

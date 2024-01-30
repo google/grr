@@ -51,6 +51,8 @@ message ExportedMetadata {
   }];
   optional uint64 client_age = 4
       [(sem_type) = { type: "RDFDatetime", description: "Age of the client." }];
+  // TODO: Remove this field once it is confirmed that it is safe
+  // to do.
   optional string uname = 5 [(sem_type) = { description: "Uname string." }];
   optional string os_release = 6 [(sem_type) = {
     description: "The OS release identifier e.g. 7, OSX, debian."

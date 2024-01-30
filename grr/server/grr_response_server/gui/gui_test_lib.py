@@ -28,6 +28,7 @@ from grr_response_core.lib.rdfvalues import file_finder as rdf_file_finder
 from grr_response_core.lib.rdfvalues import paths as rdf_paths
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import tests_pb2
+from grr_response_proto import user_pb2
 from grr_response_server import data_store
 from grr_response_server import flow_base
 from grr_response_server import foreman_rules
@@ -39,7 +40,6 @@ from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_router_with_approval_checks
 from grr_response_server.gui import webauth
 from grr_response_server.gui import wsgiapp_testlib
-from grr_response_server.gui.api_plugins import user as api_user
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import acl_test_lib
@@ -689,7 +689,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest, acl_test_lib.AclTestMixin):
 
     # Make the user use the advanced gui so we can test it.
     data_store.REL_DB.WriteGRRUser(
-        self.test_username, ui_mode=api_user.GUISettings.UIMode.DEBUG
+        self.test_username, ui_mode=user_pb2.GUISettings.UIMode.DEBUG
     )
 
     artifact_patcher = ar_test_lib.PatchDatastoreOnlyArtifactRegistry()

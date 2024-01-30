@@ -13,7 +13,7 @@ import {GlobExpressionInput} from './glob_expression_input';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     FormsModule,
@@ -23,16 +23,8 @@ import {GlobExpressionInput} from './glob_expression_input';
     MatTooltipModule,
     ReactiveFormsModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    GlobExpressionExplanation,
-    GlobExpressionInput,
-  ],
-  exports: [
-    GlobExpressionExplanation,
-    GlobExpressionInput,
-  ],
+  declarations: [GlobExpressionExplanation, GlobExpressionInput],
+  exports: [GlobExpressionExplanation, GlobExpressionInput],
 })
-export class GlobExpressionExplanationModule {
-}
+export class GlobExpressionExplanationModule {}

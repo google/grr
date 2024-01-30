@@ -18,7 +18,6 @@ import requests
 
 from google.protobuf import json_format
 from grr_response_core import config
-from grr_response_core.lib.rdfvalues import flows as rdf_flows
 from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_proto import output_plugin_pb2
@@ -27,6 +26,8 @@ from grr_response_server import export
 from grr_response_server import output_plugin
 from grr_response_server.export_converters import base
 from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
+from grr_response_server.rdfvalues import mig_objects
 
 BULK_OPERATIONS_PATH = "_bulk"
 
@@ -74,8 +75,11 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
 
     self._url = urlparse.urljoin(url, BULK_OPERATIONS_PATH)
 
-  def ProcessResponses(self, state: rdf_protodict.AttributedDict,
-                       responses: List[rdf_flows.GrrMessage]) -> None:
+  def ProcessResponses(
+      self,
+      state: rdf_protodict.AttributedDict,
+      responses: List[rdf_flow_objects.FlowResult],
+  ) -> None:
     """See base class."""
     client_id = self._GetClientId(responses)
     flow_id = self._GetFlowId(responses)
@@ -86,16 +90,16 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
     events = [self._MakeEvent(response, client, flow) for response in responses]
     self._SendEvents(events)
 
-  def _GetClientId(self, responses: List[rdf_flows.GrrMessage]) -> Text:
-    client_ids = {msg.source.Basename() for msg in responses}
+  def _GetClientId(self, responses: List[rdf_flow_objects.FlowResult]) -> Text:
+    client_ids = {msg.client_id for msg in responses}
     if len(client_ids) > 1:
       raise AssertionError((
           "ProcessResponses received messages from different Clients {}, which "
           "violates OutputPlugin constraints.").format(client_ids))
     return client_ids.pop()
 
-  def _GetFlowId(self, responses: List[rdf_flows.GrrMessage]) -> Text:
-    flow_ids = {msg.session_id.Basename() for msg in responses}
+  def _GetFlowId(self, responses: List[rdf_flow_objects.FlowResult]) -> Text:
+    flow_ids = {msg.flow_id for msg in responses}
     if len(flow_ids) > 1:
       raise AssertionError(
           ("ProcessResponses received messages from different Flows {}, which "
@@ -104,6 +108,7 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
 
   def _GetClientMetadata(self, client_id: Text) -> base.ExportedMetadata:
     info = data_store.REL_DB.ReadClientFullInfo(client_id)
+    info = mig_objects.ToRDFClientFullInfo(info)
     metadata = export.GetMetadata(client_id, info)
     metadata.timestamp = None  # timestamp is sent outside of metadata.
     return metadata
@@ -113,14 +118,17 @@ class ElasticsearchOutputPlugin(output_plugin.OutputPlugin):
     flow_obj = data_store.REL_DB.ReadFlowObject(client_id, flow_id)
     return api_flow.ApiFlow().InitFromFlowObject(flow_obj)
 
-  def _MakeEvent(self, message: rdf_flows.GrrMessage,
-                 client: base.ExportedMetadata,
-                 flow: api_flow.ApiFlow) -> JsonDict:
+  def _MakeEvent(
+      self,
+      message: rdf_flow_objects.FlowResult,
+      client: base.ExportedMetadata,
+      flow: api_flow.ApiFlow,
+  ) -> JsonDict:
 
     event = {
         "client": _ToDict(client),
         "flow": _ToDict(flow),
-        "resultType": message.args_rdf_name,
+        "resultType": message.payload.__class__.__name__,
         "result": _ToDict(message.payload),
     }
 

@@ -16,7 +16,7 @@ import {Timestamp, TimestampRefreshTimer} from './timestamp';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ClipboardModule,
     CommonModule,
@@ -25,17 +25,11 @@ import {Timestamp, TimestampRefreshTimer} from './timestamp';
     MatIconModule,
     MatTooltipModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    Timestamp,
-  ],
-  exports: [
-    Timestamp,
-  ],
+  declarations: [Timestamp],
+  exports: [Timestamp],
 })
-export class TimestampModule {
-}
+export class TimestampModule {}
 
 /**
  * Module that mocks the Timestamp's timer to prevent timer problems, e.g.
@@ -49,5 +43,4 @@ export class TimestampModule {
     },
   ],
 })
-export class TimestampTestingModule {
-}
+export class TimestampTestingModule {}

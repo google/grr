@@ -1,16 +1,45 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
-import {AbstractControl, FormArray, FormControl, ValidationErrors} from '@angular/forms';
+import {
+  AbstractControl,
+  FormArray,
+  FormControl,
+  ValidationErrors,
+} from '@angular/forms';
 
 import {ExtFlagsCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/ext_flags_condition';
-import {createLiteralMatchFormGroup, fileFinderContentsLiteralMatchConditionToFormValue, formValuesToFileFinderContentsLiteralMatchCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
-import {createRegexMatchFormGroup, formValuesToFileFinderContentsRegexMatchCondition, regexMatchConditionFlowArgsToFormValues} from '../../components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
-import {createSizeFormGroup, sizeConditionToFormValue} from '../../components/flow_args_form/collect_multiple_files_form_helpers/size_condition';
-import {createTimeRangeFormGroup, fileFinderAccessTimeConditionToFormValue, fileFinderInodeChangeTimeConditionToFormValue, fileFinderModificationTimeConditionToFormValue, formValuesToFileFinderAccessTimeCondition, formValuesToFileFinderInodeChangeTimeCondition, formValuesToFileFinderModificationTimeCondition} from '../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
-import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
-import {CollectMultipleFilesArgs, FileFinderSizeCondition} from '../../lib/api/api_interfaces';
+import {
+  createLiteralMatchFormGroup,
+  fileFinderContentsLiteralMatchConditionToFormValue,
+  formValuesToFileFinderContentsLiteralMatchCondition,
+} from '../../components/flow_args_form/collect_multiple_files_form_helpers/literal_match_condition';
+import {
+  createRegexMatchFormGroup,
+  formValuesToFileFinderContentsRegexMatchCondition,
+  regexMatchConditionFlowArgsToFormValues,
+} from '../../components/flow_args_form/collect_multiple_files_form_helpers/regex_match_condition';
+import {
+  createSizeFormGroup,
+  sizeConditionToFormValue,
+} from '../../components/flow_args_form/collect_multiple_files_form_helpers/size_condition';
+import {
+  createTimeRangeFormGroup,
+  fileFinderAccessTimeConditionToFormValue,
+  fileFinderInodeChangeTimeConditionToFormValue,
+  fileFinderModificationTimeConditionToFormValue,
+  formValuesToFileFinderAccessTimeCondition,
+  formValuesToFileFinderInodeChangeTimeCondition,
+  formValuesToFileFinderModificationTimeCondition,
+} from '../../components/flow_args_form/collect_multiple_files_form_helpers/time_range_condition';
+import {
+  ControlValues,
+  FlowArgumentForm,
+} from '../../components/flow_args_form/form_interface';
+import {
+  CollectMultipleFilesArgs,
+  FileFinderSizeCondition,
+} from '../../lib/api/api_interfaces';
 import {isNonNull} from '../../lib/preconditions';
 import {ClientPageGlobalStore} from '../../store/client_page_global_store';
-
 
 function atLeastOnePathExpression(control: AbstractControl): ValidationErrors {
   for (const c of (control as FormArray).controls) {
@@ -32,14 +61,14 @@ declare interface Controls {
   contentsLiteralMatch?: ReturnType<typeof createLiteralMatchFormGroup>;
   contentsRegexMatch?: ReturnType<typeof createRegexMatchFormGroup>;
   size?: ReturnType<typeof createSizeFormGroup>;
-  extFlags?: ReturnType<typeof ExtFlagsCondition['createFormGroup']>;
+  extFlags?: ReturnType<(typeof ExtFlagsCondition)['createFormGroup']>;
 }
 
 function makeControls(): Controls {
   return {
-    pathExpressions: new FormArray(
-        [new FormControl('', {nonNullable: true})],
-        {validators: [atLeastOnePathExpression]}),
+    pathExpressions: new FormArray([new FormControl('', {nonNullable: true})], {
+      validators: [atLeastOnePathExpression],
+    }),
   };
 }
 
@@ -49,10 +78,11 @@ function makeControls(): Controls {
   templateUrl: './collect_multiple_files_form.ng.html',
   styleUrls: ['./collect_multiple_files_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
-export class CollectMultipleFilesForm extends
-    FlowArgumentForm<CollectMultipleFilesArgs, Controls> {
+export class CollectMultipleFilesForm extends FlowArgumentForm<
+  CollectMultipleFilesArgs,
+  Controls
+> {
   override makeControls() {
     return makeControls();
   }
@@ -60,20 +90,29 @@ export class CollectMultipleFilesForm extends
   override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     const allResults: CollectMultipleFilesArgs = {
       pathExpressions: formState.pathExpressions,
-      modificationTime: formState.modificationTime &&
-          formValuesToFileFinderModificationTimeCondition(
-                            formState.modificationTime),
-      accessTime: formState.accessTime &&
-          formValuesToFileFinderAccessTimeCondition(formState.accessTime),
-      inodeChangeTime: formState.inodeChangeTime &&
-          formValuesToFileFinderInodeChangeTimeCondition(
-                           formState.inodeChangeTime),
-      contentsLiteralMatch: formState.contentsLiteralMatch &&
-          formValuesToFileFinderContentsLiteralMatchCondition(
-                                formState.contentsLiteralMatch),
-      contentsRegexMatch: formState.contentsRegexMatch &&
-          formValuesToFileFinderContentsRegexMatchCondition(
-                              formState.contentsRegexMatch),
+      modificationTime:
+        formState.modificationTime &&
+        formValuesToFileFinderModificationTimeCondition(
+          formState.modificationTime,
+        ),
+      accessTime:
+        formState.accessTime &&
+        formValuesToFileFinderAccessTimeCondition(formState.accessTime),
+      inodeChangeTime:
+        formState.inodeChangeTime &&
+        formValuesToFileFinderInodeChangeTimeCondition(
+          formState.inodeChangeTime,
+        ),
+      contentsLiteralMatch:
+        formState.contentsLiteralMatch &&
+        formValuesToFileFinderContentsLiteralMatchCondition(
+          formState.contentsLiteralMatch,
+        ),
+      contentsRegexMatch:
+        formState.contentsRegexMatch &&
+        formValuesToFileFinderContentsRegexMatchCondition(
+          formState.contentsRegexMatch,
+        ),
       size: formState.size as FileFinderSizeCondition,
       extFlags: formState.extFlags,
     };
@@ -89,15 +128,15 @@ export class CollectMultipleFilesForm extends
 
   readonly client$ = this.clientPageGlobalStore.selectedClient$;
 
-  constructor(
-      private readonly clientPageGlobalStore: ClientPageGlobalStore,
-  ) {
+  constructor(private readonly clientPageGlobalStore: ClientPageGlobalStore) {
     super();
   }
 
   override resetFlowArgs(flowArgs: CollectMultipleFilesArgs): void {
-    while ((flowArgs.pathExpressions?.length ?? 0) >
-           this.controls.pathExpressions.length) {
+    while (
+      (flowArgs.pathExpressions?.length ?? 0) >
+      this.controls.pathExpressions.length
+    ) {
       this.addPathExpression();
     }
 
@@ -133,27 +172,25 @@ export class CollectMultipleFilesForm extends
   }
 
   override convertFlowArgsToFormState(
-      flowArgs: CollectMultipleFilesArgs,
-      ): ControlValues<Controls> {
+    flowArgs: CollectMultipleFilesArgs,
+  ): ControlValues<Controls> {
     return {
-      pathExpressions: flowArgs.pathExpressions?.length ?
-          [...flowArgs.pathExpressions] :
-          [''],
+      pathExpressions: flowArgs.pathExpressions?.length
+        ? [...flowArgs.pathExpressions]
+        : [''],
       contentsRegexMatch: regexMatchConditionFlowArgsToFormValues(
-          flowArgs.contentsRegexMatch,
-          ),
+        flowArgs.contentsRegexMatch,
+      ),
       contentsLiteralMatch: fileFinderContentsLiteralMatchConditionToFormValue(
-          flowArgs.contentsLiteralMatch,
-          ),
+        flowArgs.contentsLiteralMatch,
+      ),
       modificationTime: fileFinderModificationTimeConditionToFormValue(
-          flowArgs.modificationTime,
-          ),
-      accessTime: fileFinderAccessTimeConditionToFormValue(
-          flowArgs.accessTime,
-          ),
+        flowArgs.modificationTime,
+      ),
+      accessTime: fileFinderAccessTimeConditionToFormValue(flowArgs.accessTime),
       inodeChangeTime: fileFinderInodeChangeTimeConditionToFormValue(
-          flowArgs.inodeChangeTime,
-          ),
+        flowArgs.inodeChangeTime,
+      ),
       size: sizeConditionToFormValue(flowArgs.size),
       extFlags: flowArgs.extFlags,
     };

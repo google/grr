@@ -3,7 +3,11 @@ import {MatDialog} from '@angular/material/dialog';
 
 import {Client} from '../../../lib/models/client';
 import {ClientDetailsGlobalStore} from '../../../store/client_details_global_store';
-import {EntryHistoryDialog, EntryHistoryDialogParams, type EntryType} from '../entry_history_dialog/entry_history_dialog';
+import {
+  EntryHistoryDialog,
+  EntryHistoryDialogParams,
+  type EntryType,
+} from '../entry_history_dialog/entry_history_dialog';
 
 /**
  * Component displaying a button with the associated entry changes,
@@ -21,12 +25,12 @@ export class EntryHistoryButton {
   @Input() type: EntryType = 'primitive';
 
   constructor(
-      private readonly clientDetailsGlobalStore: ClientDetailsGlobalStore,
-      private readonly dialog: MatDialog,
+    private readonly clientDetailsGlobalStore: ClientDetailsGlobalStore,
+    private readonly dialog: MatDialog,
   ) {}
 
   readonly clientEntryChanges$ =
-      this.clientDetailsGlobalStore.selectedClientEntriesChanged$;
+    this.clientDetailsGlobalStore.selectedClientEntriesChanged$;
 
   openEntryHistoryDialog(clientVersions: readonly Client[]) {
     const data: EntryHistoryDialogParams = {

@@ -11,7 +11,7 @@ import {ErrorSnackBar, WINDOW} from './error_snackbar';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     ClipboardModule,
     CommonModule,
@@ -19,14 +19,12 @@ import {ErrorSnackBar, WINDOW} from './error_snackbar';
     MatIconModule,
     MatSnackBarModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: [ErrorSnackBar],
   providers: [
     {provide: WINDOW, useFactory: () => window},
     {provide: SnackBarErrorHandler},
   ],
-  exports: [ErrorSnackBar]
+  exports: [ErrorSnackBar],
 })
-export class ErrorSnackBarModule {
-}
+export class ErrorSnackBarModule {}

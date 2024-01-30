@@ -5,6 +5,7 @@ from absl import app
 
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
+from grr_response_proto import objects_pb2
 from grr_response_server import artifact_registry
 from grr_response_server import data_store
 from grr_response_server import maintenance_utils
@@ -21,7 +22,6 @@ from grr_response_server.gui import api_auth_manager
 from grr_response_server.gui import api_call_context
 from grr_response_server.gui import gui_test_lib
 from grr_response_server.gui.api_plugins import flow as api_flow
-from grr_response_server.rdfvalues import objects as rdf_objects
 from grr.test_lib import test_lib
 
 
@@ -391,7 +391,8 @@ class FlowCreationTest(gui_test_lib.GRRSeleniumTest):
   def _SetUpAdminUser(self):
     data_store.REL_DB.WriteGRRUser(
         self.test_username,
-        user_type=rdf_objects.GRRUser.UserType.USER_TYPE_ADMIN)
+        user_type=objects_pb2.GRRUser.UserType.USER_TYPE_ADMIN,
+    )
 
   def testScheduleLaunchBinaryFlow(self):
     self._SetUpAdminUser()

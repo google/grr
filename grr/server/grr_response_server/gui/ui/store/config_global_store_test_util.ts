@@ -1,4 +1,6 @@
-/** Test helpers. */
+/**
+ * Test helpers.
+ */
 // tslint:disable:enforce-comments-on-exported-symbols
 
 import {ConfigGlobalStore} from './config_global_store';

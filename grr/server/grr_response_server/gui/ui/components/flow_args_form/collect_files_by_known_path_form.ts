@@ -1,9 +1,14 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {AbstractControl, FormControl, ValidationErrors} from '@angular/forms';
 
-import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
-import {CollectFilesByKnownPathArgs, CollectFilesByKnownPathArgsCollectionLevel} from '../../lib/api/api_interfaces';
-
+import {
+  ControlValues,
+  FlowArgumentForm,
+} from '../../components/flow_args_form/form_interface';
+import {
+  CollectFilesByKnownPathArgs,
+  CollectFilesByKnownPathArgsCollectionLevel,
+} from '../../lib/api/api_interfaces';
 
 interface CollectionLevel {
   readonly value: CollectFilesByKnownPathArgsCollectionLevel;
@@ -13,15 +18,15 @@ interface CollectionLevel {
 const COLLECTION_LEVELS: readonly CollectionLevel[] = [
   {
     value: CollectFilesByKnownPathArgsCollectionLevel.CONTENT,
-    label: 'Collect entire file(s) (stat & hash included)'
+    label: 'Collect entire file(s) (stat & hash included)',
   },
   {
     value: CollectFilesByKnownPathArgsCollectionLevel.HASH,
-    label: 'Collect file(s) hash(es) (stat included)'
+    label: 'Collect file(s) hash(es) (stat included)',
   },
   {
     value: CollectFilesByKnownPathArgsCollectionLevel.STAT,
-    label: 'Collect file(s) stat'
+    label: 'Collect file(s) stat',
   },
 ];
 
@@ -35,11 +40,14 @@ function atLeastOnePath(control: AbstractControl): ValidationErrors {
 
 function makeControls() {
   return {
-    paths:
-        new FormControl('', {nonNullable: true, validators: [atLeastOnePath]}),
+    paths: new FormControl('', {
+      nonNullable: true,
+      validators: [atLeastOnePath],
+    }),
     collectionLevel: new FormControl(
-        CollectFilesByKnownPathArgsCollectionLevel.CONTENT,
-        {nonNullable: true}),
+      CollectFilesByKnownPathArgsCollectionLevel.CONTENT,
+      {nonNullable: true},
+    ),
   };
 }
 
@@ -54,10 +62,11 @@ type Controls = ReturnType<typeof makeControls>;
   templateUrl: './collect_files_by_known_path_form.ng.html',
   styleUrls: ['./collect_files_by_known_path_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
-export class CollectFilesByKnownPathForm extends
-    FlowArgumentForm<CollectFilesByKnownPathArgs, Controls> {
+export class CollectFilesByKnownPathForm extends FlowArgumentForm<
+  CollectFilesByKnownPathArgs,
+  Controls
+> {
   readonly collectionLevels = COLLECTION_LEVELS;
 
   hideAdvancedParams = true;
@@ -68,9 +77,10 @@ export class CollectFilesByKnownPathForm extends
 
   override convertFormStateToFlowArgs(formState: ControlValues<Controls>) {
     return {
-      paths: formState.paths?.split('\n')
-                 .map(path => path.trim())
-                 .filter(path => path !== ''),
+      paths: formState.paths
+        ?.split('\n')
+        .map((path) => path.trim())
+        .filter((path) => path !== ''),
       collectionLevel: formState.collectionLevel,
     };
   }
@@ -78,8 +88,8 @@ export class CollectFilesByKnownPathForm extends
   override convertFlowArgsToFormState(flowArgs: CollectFilesByKnownPathArgs) {
     return {
       paths: flowArgs.paths?.join('\n') ?? this.controls.paths.defaultValue,
-      collectionLevel: flowArgs.collectionLevel ??
-          this.controls.collectionLevel.defaultValue,
+      collectionLevel:
+        flowArgs.collectionLevel ?? this.controls.collectionLevel.defaultValue,
     };
   }
 

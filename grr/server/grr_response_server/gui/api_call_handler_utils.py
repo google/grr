@@ -82,7 +82,7 @@ def FilterList(l, offset, count=0, filter_value=None):
   index = 0
   items = []
   for item in l:
-    serialized_item = item.SerializeToBytes()
+    serialized_item = item.SerializeToString()
     regex = re.escape(filter_value).encode("utf-8")
     if re.search(regex, serialized_item, re.I):
       if index >= offset:

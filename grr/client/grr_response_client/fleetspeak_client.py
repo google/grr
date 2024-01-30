@@ -15,7 +15,6 @@ import zlib
 
 from absl import flags
 
-from grr_response_client import client_metrics
 from grr_response_client import comms
 from grr_response_core import config
 from grr_response_core.lib import rdfvalue
@@ -147,7 +146,7 @@ class GRRFleetspeakClient(object):
     self._threads["Worker"].SendReply(
         rdf_protodict.DataBlob(),
         session_id=rdfvalue.FlowSessionID(flow_name="Foreman"),
-        require_fastpoll=False)
+    )
     time.sleep(period)
 
   def _SendMessages(self, grr_msgs, background=False):
@@ -175,22 +174,16 @@ class GRRFleetspeakClient(object):
         break
 
     try:
-      sent_bytes = self._fs.Send(fs_msg)
+      self._fs.Send(fs_msg)
     except (IOError, struct.error):
       logging.critical("Broken local Fleetspeak connection (write end).")
       raise
-
-    client_metrics.GRR_CLIENT_SENT_BYTES.Increment(sent_bytes)
 
   def _SendOp(self):
     """Sends messages through Fleetspeak."""
     msg = self._sender_queue.get()
     msgs = []
-    background_msgs = []
-    if not msg.require_fastpoll:
-      background_msgs.append(msg)
-    else:
-      msgs.append(msg)
+    msgs.append(msg)
 
     count = 1
     size = len(msg.SerializeToBytes())
@@ -198,10 +191,7 @@ class GRRFleetspeakClient(object):
     while count < _MAX_MSG_LIST_MSG_COUNT and size < _MAX_MSG_LIST_BYTES:
       try:
         msg = self._sender_queue.get(timeout=1)
-        if not msg.require_fastpoll:
-          background_msgs.append(msg)
-        else:
-          msgs.append(msg)
+        msgs.append(msg)
         count += 1
         size += len(msg.SerializeToBytes())
       except queue.Empty:
@@ -209,13 +199,11 @@ class GRRFleetspeakClient(object):
 
     if msgs:
       self._SendMessages(msgs)
-    if background_msgs:
-      self._SendMessages(background_msgs, background=True)
 
   def _ReceiveOp(self):
     """Receives a single message through Fleetspeak."""
     try:
-      fs_msg, received_bytes = self._fs.Recv()
+      fs_msg, _ = self._fs.Recv()
     except (IOError, struct.error) as e:
       logging.critical("Broken local Fleetspeak connection (read end).")
       raise BrokenFSConnectionError() from e
@@ -225,8 +213,6 @@ class GRRFleetspeakClient(object):
       raise ValueError(
           "Unexpected proto type received through Fleetspeak: %r; expected "
           "grr.GrrMessage." % received_type)
-
-    client_metrics.GRR_CLIENT_RECEIVED_BYTES.Increment(received_bytes)
 
     grr_msg = rdf_flows.GrrMessage.FromSerializedBytes(fs_msg.data.value)
     # Authentication is ensured by Fleetspeak.

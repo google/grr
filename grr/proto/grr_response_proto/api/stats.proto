@@ -9,26 +9,6 @@ package grr;
 // Entities.
 //
 
-message ApiStatsStoreMetricDataPoint {
-  optional uint64 timestamp = 1 [(sem_type) = {
-    type: "RDFDatetime",
-    description: "Timestamp of the data point."
-  }];
-  optional double value = 2
-      [(sem_type) = { description: "Value corresponding to the timestamp." }];
-}
-
-message ApiStatsStoreMetric {
-  optional string metric_name = 1;
-  optional uint64 start = 2 [(sem_type) = {
-    type: "RDFDatetime",
-  }];
-  optional uint64 end = 3 [(sem_type) = {
-    type: "RDFDatetime",
-  }];
-  repeated ApiStatsStoreMetricDataPoint data_points = 4;
-}
-
 message ApiReportDescriptor {
   enum ReportType {
     CLIENT = 0 [(description) = "Client"];
@@ -69,45 +49,20 @@ message ApiReportData {
   };
 
   enum RepresentationType {
-    STACK_CHART = 0 [(description) = "Stack chart"];
-    PIE_CHART = 1 [(description) = "Pie chart"];
-    LINE_CHART = 2 [(description) = "Line chart"];
+    UNDEFINED = 0 [(description) = "Undefined"];
+    reserved 1;
+    reserved 2;
+    // TODO: deprecate audit charts and the whole reporting
+    // subsystem.
     AUDIT_CHART = 3 [(description) = "Audit chart"];
   }
 
   optional RepresentationType representation_type = 1;
 
-  optional ApiStackChartReportData stack_chart = 2;
-  optional ApiPieChartReportData pie_chart = 3;
-  optional ApiLineChartReportData line_chart = 4;
+  reserved 2;
+  reserved 3;
+  reserved 4;
   optional ApiAuditChartReportData audit_chart = 5;
-}
-
-message ApiStackChartReportData {
-  repeated ApiReportDataSeries2D data = 1
-      [(sem_type) = { description: "What the report contains." }];
-
-  repeated ApiReportTickSpecifier x_ticks = 2 [(sem_type) = {
-    description: "X axis ticks. See: github.com/flot/flot/blob/master/API.md"
-  }];
-
-  repeated ApiReportTickSpecifier y_ticks = 3 [(sem_type) = {
-    description: "Y axis ticks. See: github.com/flot/flot/blob/master/API.md"
-  }];
-
-  optional float bar_width = 4 [
-    (sem_type) = { description: "Width of the bars displayed on the chart." }
-  ];
-}
-
-message ApiPieChartReportData {
-  repeated ApiReportDataPoint1D data = 1
-      [(sem_type) = { description: "What the report contains." }];
-}
-
-message ApiLineChartReportData {
-  repeated ApiReportDataSeries2D data = 1
-      [(sem_type) = { description: "What the report contains." }];
 }
 
 message ApiAuditChartReportData {
@@ -117,30 +72,6 @@ message ApiAuditChartReportData {
 
   repeated AuditEvent rows = 2
       [(sem_type) = { description: "Data to be shown in the chart." }];
-}
-
-message ApiReportDataPoint1D {
-  optional float x = 1;
-
-  optional string label = 2
-      [(sem_type) = { description: "The series is labeled with this string." }];
-}
-
-message ApiReportDataSeries2D {
-  optional string label = 1
-      [(sem_type) = { description: "The series is labeled with this string." }];
-
-  repeated ApiReportDataPoint2D points = 2;
-}
-
-message ApiReportDataPoint2D {
-  optional float x = 1;
-  optional float y = 2;
-}
-
-message ApiReportTickSpecifier {
-  optional float x = 1;
-  optional string label = 2;
 }
 
 //

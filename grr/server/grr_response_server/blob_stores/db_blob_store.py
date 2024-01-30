@@ -6,7 +6,7 @@ from typing import Optional
 
 from grr_response_server import blob_store
 from grr_response_server import data_store
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import blobs
 
 
 class DbBlobStore(blob_store.BlobStore):
@@ -32,18 +32,18 @@ class DbBlobStore(blob_store.BlobStore):
 
   def WriteBlobs(
       self,
-      blob_id_data_map: Dict[rdf_objects.BlobID, bytes],
+      blob_id_data_map: Dict[blobs.BlobID, bytes],
   ) -> None:
     return self._delegate.WriteBlobs(blob_id_data_map)
 
   def ReadBlobs(
       self,
-      blob_ids: Iterable[rdf_objects.BlobID],
-  ) -> Dict[rdf_objects.BlobID, Optional[bytes]]:
+      blob_ids: Iterable[blobs.BlobID],
+  ) -> Dict[blobs.BlobID, Optional[bytes]]:
     return self._delegate.ReadBlobs(blob_ids)
 
   def CheckBlobsExist(
       self,
-      blob_ids: Iterable[rdf_objects.BlobID],
-  ) -> Dict[rdf_objects.BlobID, bool]:
+      blob_ids: Iterable[blobs.BlobID],
+  ) -> Dict[blobs.BlobID, bool]:
     return self._delegate.CheckBlobsExist(blob_ids)

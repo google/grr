@@ -8,12 +8,14 @@ import {Duration} from '../../../lib/date_time';
 import {HuntState} from '../../../lib/models/hunt';
 import {newHunt} from '../../../lib/models/model_test_util';
 import {GrrUser} from '../../../lib/models/user';
-import {injectMockStore, STORE_PROVIDERS} from '../../../store/store_test_providers';
+import {
+  injectMockStore,
+  STORE_PROVIDERS,
+} from '../../../store/store_test_providers';
 import {UserGlobalStore} from '../../../store/user_global_store';
 
 import {HuntStatusChip} from './hunt_status_chip';
 import {HuntStatusChipModule} from './module';
-
 
 @Component({
   template: `<app-hunt-status-chip [hunt]="hunt"></app-hunt-status-chip>`,
@@ -24,42 +26,32 @@ class TestHostComponent {
 
 describe('HuntStatusChip', () => {
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            HuntStatusChipModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-          providers: [
-            ...STORE_PROVIDERS,
-          ]
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, HuntStatusChipModule],
+      declarations: [TestHostComponent],
+      providers: [...STORE_PROVIDERS],
+    }).compileComponents();
   }));
 
-  it('shows "Collection not started" for "Not started" hunt APPROVAL',
-     async () => {
-       const fixture = TestBed.createComponent(TestHostComponent);
-       fixture.detectChanges();
+  it('shows "Collection not started" for "Not started" hunt APPROVAL', async () => {
+    const fixture = TestBed.createComponent(TestHostComponent);
+    fixture.detectChanges();
 
-       fixture.componentInstance.hunt = newHunt({state: HuntState.NOT_STARTED});
-       injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
-         name: 'unused_but_required',
-         huntApprovalRequired: true,
-       } as GrrUser);
-       fixture.detectChanges();
+    fixture.componentInstance.hunt = newHunt({state: HuntState.NOT_STARTED});
+    injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
+      name: 'unused_but_required',
+      huntApprovalRequired: true,
+    } as GrrUser);
+    fixture.detectChanges();
 
-       const text = fixture.debugElement.nativeElement.textContent;
-       expect(text).toContain('Collection not started');
+    const text = fixture.debugElement.nativeElement.textContent;
+    expect(text).toContain('Collection not started');
 
-       const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-       const harness = await harnessLoader.getHarness(MatTooltipHarness);
-       await harness.show();
-       expect(await harness.getTooltipText()).toContain('approval');
-     });
+    const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
+    const harness = await harnessLoader.getHarness(MatTooltipHarness);
+    await harness.show();
+    expect(await harness.getTooltipText()).toContain('approval');
+  });
 
   it('shows "Collection not started" for "Not started" hunt', async () => {
     const fixture = TestBed.createComponent(TestHostComponent);
@@ -81,8 +73,9 @@ describe('HuntStatusChip', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.hunt =
-        newHunt({state: HuntState.REACHED_CLIENT_LIMIT});
+    fixture.componentInstance.hunt = newHunt({
+      state: HuntState.REACHED_CLIENT_LIMIT,
+    });
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -109,8 +102,10 @@ describe('HuntStatusChip', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.hunt =
-        newHunt({state: HuntState.CANCELLED, stateComment: ''});
+    fixture.componentInstance.hunt = newHunt({
+      state: HuntState.CANCELLED,
+      stateComment: '',
+    });
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -126,8 +121,10 @@ describe('HuntStatusChip', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.hunt = newHunt(
-        {state: HuntState.CANCELLED, stateComment: 'Something went wrong'});
+    fixture.componentInstance.hunt = newHunt({
+      state: HuntState.CANCELLED,
+      stateComment: 'Something went wrong',
+    });
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -143,8 +140,9 @@ describe('HuntStatusChip', () => {
     const fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
 
-    fixture.componentInstance.hunt =
-        newHunt({state: HuntState.REACHED_TIME_LIMIT});
+    fixture.componentInstance.hunt = newHunt({
+      state: HuntState.REACHED_TIME_LIMIT,
+    });
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;
@@ -168,8 +166,10 @@ describe('HuntStatusChip', () => {
 
     // 3 days plus buffer to unflake the test.
     const threeDays = Duration.fromObject({day: 3, minute: 1});
-    fixture.componentInstance.hunt =
-        newHunt({state: HuntState.RUNNING, duration: threeDays});
+    fixture.componentInstance.hunt = newHunt({
+      state: HuntState.RUNNING,
+      duration: threeDays,
+    });
     fixture.detectChanges();
 
     const text = fixture.debugElement.nativeElement.textContent;

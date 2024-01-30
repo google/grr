@@ -2,7 +2,6 @@
 """A module with API handlers related to the Osquery flow."""
 import csv
 import io
-
 from typing import Iterable
 from typing import Iterator
 from typing import Optional
@@ -17,6 +16,7 @@ from grr_response_server.gui import api_call_context
 from grr_response_server.gui import api_call_handler_base
 from grr_response_server.gui.api_plugins import client as api_client
 from grr_response_server.gui.api_plugins import flow as api_flow
+from grr_response_server.rdfvalues import mig_flow_objects
 
 
 class ApiGetOsqueryResultsArgs(rdf_structs.RDFProtoStruct):
@@ -86,12 +86,13 @@ def _FetchOsqueryResults(
     next_to_fetch += last_fetched_count
 
     for datum in data_fetched:
-      if not isinstance(datum.payload, rdf_osquery.OsqueryResult):
+      payload = mig_flow_objects.ToRDFFlowResult(datum).payload
+      if not isinstance(payload, rdf_osquery.OsqueryResult):
         # TODO(user): Cover the cases when the flow yields other result
         # types (at the moment of writing this, file collection results need to
         # be considered too).
         raise ValueError(f"Incorrect payload type: {type(datum.payload)}")
-      yield datum.payload
+      yield payload
 
 
 def _ParseToCsvBytes(

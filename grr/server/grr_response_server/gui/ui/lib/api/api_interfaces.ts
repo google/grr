@@ -2,9 +2,9 @@
  * @fileoverview The module provides mappings for GRR API protos
  * (in JSON format) to TypeScript interfaces. This file is generated
  * from the OpenAPI description.
+ * g3-prettier-ignore-file
  */
 
-// clang-format off
 
 /** BinaryStream proto mapping. */
 export type BinaryStream = string;
@@ -440,6 +440,7 @@ export declare interface ApiFlowDescriptor {
   readonly argsType?: string;
   readonly defaultArgs?: Any;
   readonly behaviours?: readonly string[];
+  readonly blockHuntCreation?: boolean;
 }
 
 /** ApiFlowLikeObjectReference proto mapping. */
@@ -501,35 +502,6 @@ export declare interface ApiGetClientApprovalArgs {
 export declare interface ApiGetClientArgs {
   readonly clientId?: string;
   readonly timestamp?: RDFDatetime;
-}
-
-/** ApiGetClientLoadStatsArgs proto mapping. */
-export declare interface ApiGetClientLoadStatsArgs {
-  readonly clientId?: string;
-  readonly start?: RDFDatetime;
-  readonly end?: RDFDatetime;
-  readonly metric?: ApiGetClientLoadStatsArgsMetric;
-}
-
-/** ApiGetClientLoadStatsArgs.Metric proto mapping. */
-export enum ApiGetClientLoadStatsArgsMetric {
-  CPU_PERCENT = 'CPU_PERCENT',
-  CPU_SYSTEM = 'CPU_SYSTEM',
-  CPU_USER = 'CPU_USER',
-  IO_READ_BYTES = 'IO_READ_BYTES',
-  IO_WRITE_BYTES = 'IO_WRITE_BYTES',
-  IO_READ_OPS = 'IO_READ_OPS',
-  IO_WRITE_OPS = 'IO_WRITE_OPS',
-  NETWORK_BYTES_RECEIVED = 'NETWORK_BYTES_RECEIVED',
-  NETWORK_BYTES_SENT = 'NETWORK_BYTES_SENT',
-  MEMORY_PERCENT = 'MEMORY_PERCENT',
-  MEMORY_RSS_SIZE = 'MEMORY_RSS_SIZE',
-  MEMORY_VMS_SIZE = 'MEMORY_VMS_SIZE',
-}
-
-/** ApiGetClientLoadStatsResult proto mapping. */
-export declare interface ApiGetClientLoadStatsResult {
-  readonly dataPoints?: readonly ApiStatsStoreMetricDataPoint[];
 }
 
 /** ApiGetClientVersionTimesArgs proto mapping. */
@@ -1253,11 +1225,6 @@ export declare interface ApiKillFleetspeakArgs {
   readonly force?: boolean;
 }
 
-/** ApiLineChartReportData proto mapping. */
-export declare interface ApiLineChartReportData {
-  readonly data?: readonly ApiReportDataSeries2D[];
-}
-
 /** ApiListAndResetUserNotificationsArgs proto mapping. */
 export declare interface ApiListAndResetUserNotificationsArgs {
   readonly offset?: ProtoInt64;
@@ -1893,11 +1860,6 @@ export enum ApiParserDescriptorType {
   MULTI_FILE = 'MULTI_FILE',
 }
 
-/** ApiPieChartReportData proto mapping. */
-export declare interface ApiPieChartReportData {
-  readonly data?: readonly ApiReportDataPoint1D[];
-}
-
 /** ApiRDFAllowedEnumValueDescriptor proto mapping. */
 export declare interface ApiRDFAllowedEnumValueDescriptor {
   readonly name?: string;
@@ -1953,36 +1915,13 @@ export declare interface ApiReport {
 /** ApiReportData proto mapping. */
 export declare interface ApiReportData {
   readonly representationType?: ApiReportDataRepresentationType;
-  readonly stackChart?: ApiStackChartReportData;
-  readonly pieChart?: ApiPieChartReportData;
-  readonly lineChart?: ApiLineChartReportData;
   readonly auditChart?: ApiAuditChartReportData;
 }
 
 /** ApiReportData.RepresentationType proto mapping. */
 export enum ApiReportDataRepresentationType {
-  STACK_CHART = 'STACK_CHART',
-  PIE_CHART = 'PIE_CHART',
-  LINE_CHART = 'LINE_CHART',
+  UNDEFINED = 'UNDEFINED',
   AUDIT_CHART = 'AUDIT_CHART',
-}
-
-/** ApiReportDataPoint1D proto mapping. */
-export declare interface ApiReportDataPoint1D {
-  readonly x?: ProtoFloat;
-  readonly label?: string;
-}
-
-/** ApiReportDataPoint2D proto mapping. */
-export declare interface ApiReportDataPoint2D {
-  readonly x?: ProtoFloat;
-  readonly y?: ProtoFloat;
-}
-
-/** ApiReportDataSeries2D proto mapping. */
-export declare interface ApiReportDataSeries2D {
-  readonly label?: string;
-  readonly points?: readonly ApiReportDataPoint2D[];
 }
 
 /** ApiReportDescriptor proto mapping. */
@@ -1999,12 +1938,6 @@ export enum ApiReportDescriptorReportType {
   CLIENT = 'CLIENT',
   FILE_STORE = 'FILE_STORE',
   SERVER = 'SERVER',
-}
-
-/** ApiReportTickSpecifier proto mapping. */
-export declare interface ApiReportTickSpecifier {
-  readonly x?: ProtoFloat;
-  readonly label?: string;
 }
 
 /** ApiRestartFleetspeakGrrServiceArgs proto mapping. */
@@ -2034,20 +1967,6 @@ export declare interface ApiSearchClientsArgs {
 /** ApiSearchClientsResult proto mapping. */
 export declare interface ApiSearchClientsResult {
   readonly items?: readonly ApiClient[];
-}
-
-/** ApiStackChartReportData proto mapping. */
-export declare interface ApiStackChartReportData {
-  readonly data?: readonly ApiReportDataSeries2D[];
-  readonly xTicks?: readonly ApiReportTickSpecifier[];
-  readonly yTicks?: readonly ApiReportTickSpecifier[];
-  readonly barWidth?: ProtoFloat;
-}
-
-/** ApiStatsStoreMetricDataPoint proto mapping. */
-export declare interface ApiStatsStoreMetricDataPoint {
-  readonly timestamp?: RDFDatetime;
-  readonly value?: ProtoDouble;
 }
 
 /** ApiStructuredSearchClientsArgs proto mapping. */
@@ -2089,6 +2008,8 @@ export declare interface ApiUiConfig {
   readonly profileImageUrl?: string;
   readonly defaultHuntRunnerArgs?: HuntRunnerArgs;
   readonly clientWarnings?: AdminUIClientWarningsConfigOption;
+  readonly defaultAccessDurationSeconds?: ProtoUint64;
+  readonly maxAccessDurationSeconds?: ProtoUint64;
 }
 
 /** ApiUnscheduleFlowArgs proto mapping. */
@@ -2429,20 +2350,6 @@ export declare interface ClientResourcesStats {
   readonly worstPerformers?: readonly ClientResources[];
 }
 
-/** ClientStats proto mapping. */
-export declare interface ClientStats {
-  readonly cpuSamples?: readonly CpuSample[];
-  readonly rssSize?: ProtoUint64;
-  readonly vmsSize?: ProtoUint64;
-  readonly memoryPercent?: ProtoFloat;
-  readonly bytesReceived?: ProtoUint64;
-  readonly bytesSent?: ProtoUint64;
-  readonly ioSamples?: readonly IOSample[];
-  readonly createTime?: RDFDatetime;
-  readonly bootTime?: RDFDatetime;
-  readonly timestamp?: RDFDatetime;
-}
-
 /** ClientSummary proto mapping. */
 export declare interface ClientSummary {
   readonly clientId?: string;
@@ -2537,6 +2444,17 @@ export declare interface CollectLargeFileFlowArgs {
   readonly signedUrl?: string;
 }
 
+/** CollectLargeFileFlowProgress proto mapping. */
+export declare interface CollectLargeFileFlowProgress {
+  readonly sessionUri?: string;
+}
+
+/** CollectLargeFileFlowResult proto mapping. */
+export declare interface CollectLargeFileFlowResult {
+  readonly sessionUri?: string;
+  readonly totalBytesSent?: ProtoUint64;
+}
+
 /** CollectMultipleFilesArgs proto mapping. */
 export declare interface CollectMultipleFilesArgs {
   readonly pathExpressions?: readonly GlobExpression[];
@@ -2583,14 +2501,6 @@ export declare interface ConditionExpression {
 export enum ConditionExpressionConditionType {
   UNKNOWN = 'UNKNOWN',
   OS = 'OS',
-}
-
-/** CpuSample proto mapping. */
-export declare interface CpuSample {
-  readonly userCpuTime?: ProtoFloat;
-  readonly systemCpuTime?: ProtoFloat;
-  readonly cpuPercent?: ProtoFloat;
-  readonly timestamp?: RDFDatetime;
 }
 
 /** CpuSeconds proto mapping. */
@@ -2672,19 +2582,6 @@ export declare interface DummyArgs {
 /** DummyFlowResult proto mapping. */
 export declare interface DummyFlowResult {
   readonly flowOutput?: string;
-}
-
-/** DumpACPITableArgs proto mapping. */
-export declare interface DumpACPITableArgs {
-  readonly logging?: boolean;
-  readonly tableSignatureList?: readonly string[];
-}
-
-/** DumpFlashImageArgs proto mapping. */
-export declare interface DumpFlashImageArgs {
-  readonly logLevel?: ProtoUint32;
-  readonly chunkSize?: ProtoUint32;
-  readonly notifySyslog?: boolean;
 }
 
 /** EdrAgent proto mapping. */
@@ -3015,7 +2912,6 @@ export declare interface FlowRunnerArgs {
   readonly requestState?: RequestState;
   readonly flowName?: string;
   readonly writeIntermediateResults?: boolean;
-  readonly requireFastpoll?: boolean;
   readonly outputPlugins?: readonly OutputPluginDescriptor[];
   readonly originalFlow?: FlowReference;
 }
@@ -3103,7 +2999,6 @@ export declare interface ForemanRegexClientRule {
 export enum ForemanRegexClientRuleForemanStringField {
   UNSET = 'UNSET',
   USERNAMES = 'USERNAMES',
-  UNAME = 'UNAME',
   FQDN = 'FQDN',
   HOST_IPS = 'HOST_IPS',
   CLIENT_NAME = 'CLIENT_NAME',
@@ -3114,6 +3009,7 @@ export enum ForemanRegexClientRuleForemanStringField {
   OS_VERSION = 'OS_VERSION',
   OS_RELEASE = 'OS_RELEASE',
   CLIENT_LABELS = 'CLIENT_LABELS',
+  CLIENT_ID = 'CLIENT_ID',
 }
 
 /** GUISettings proto mapping. */
@@ -3183,7 +3079,6 @@ export declare interface GrrMessage {
   readonly authState?: GrrMessageAuthorizationState;
   readonly type?: GrrMessageType;
   readonly ttl?: ProtoUint32;
-  readonly requireFastpoll?: boolean;
   readonly cpuLimit?: ProtoFloat;
   readonly argsRdfName?: string;
   readonly taskId?: ProtoUint64;
@@ -3334,15 +3229,6 @@ export declare interface HuntRunnerArgs {
   readonly perClientCpuLimit?: ProtoUint64;
   readonly perClientNetworkLimitBytes?: ProtoUint64;
   readonly originalObject?: FlowLikeObjectReference;
-}
-
-/** IOSample proto mapping. */
-export declare interface IOSample {
-  readonly readCount?: ProtoUint64;
-  readonly writeCount?: ProtoUint64;
-  readonly readBytes?: ProtoUint64;
-  readonly writeBytes?: ProtoUint64;
-  readonly timestamp?: RDFDatetime;
 }
 
 /** Interface proto mapping. */
@@ -3596,6 +3482,8 @@ export declare interface OsqueryFlowArgs {
   readonly timeoutMillis?: ProtoUint64;
   readonly ignoreStderrErrors?: boolean;
   readonly fileCollectionColumns?: readonly string[];
+  readonly configurationPath?: string;
+  readonly configurationContent?: string;
 }
 
 /** OsqueryHeader proto mapping. */

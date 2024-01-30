@@ -1,26 +1,58 @@
-import {ChangeDetectionStrategy, Component, TrackByFunction} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  TrackByFunction,
+} from '@angular/core';
 import {map} from 'rxjs/operators';
 
-import {FlowFileResult, flowFileResultFromStatEntry} from '../../../components/flow_details/helpers/file_results_table';
+import {
+  FlowFileResult,
+  flowFileResultFromStatEntry,
+} from '../../../components/flow_details/helpers/file_results_table';
 import {ExecuteResponse, StatEntry} from '../../../lib/api/api_interfaces';
-import {isRegistryEntry, isStatEntry, translateArtifactCollectorFlowProgress, translateExecuteResponse, translateVfsStatEntry} from '../../../lib/api_translation/flow';
-import {ArtifactProgress, Flow, FlowResult, RegistryKey, RegistryValue} from '../../../lib/models/flow';
+import {
+  isRegistryEntry,
+  isStatEntry,
+  translateArtifactCollectorFlowProgress,
+  translateExecuteResponse,
+  translateVfsStatEntry,
+} from '../../../lib/api_translation/flow';
+import {
+  ArtifactProgress,
+  Flow,
+  FlowResult,
+  RegistryKey,
+  RegistryValue,
+} from '../../../lib/models/flow';
 import {isNull} from '../../../lib/preconditions';
-import {MetricsService, UiRedirectDirection, UiRedirectSource} from '../../../lib/service/metrics_service/metrics_service';
+import {
+  MetricsService,
+  UiRedirectDirection,
+  UiRedirectSource,
+} from '../../../lib/service/metrics_service/metrics_service';
 import {Writable} from '../../../lib/type_utils';
-import {FlowResultMapFunction, FlowResultsQueryWithAdapter} from '../helpers/load_flow_results_directive';
+import {
+  FlowResultMapFunction,
+  FlowResultsQueryWithAdapter,
+} from '../helpers/load_flow_results_directive';
 
 import {Plugin} from './plugin';
 
-function getResults(results: readonly FlowResult[], typeName: 'StatEntry'):
-    readonly StatEntry[];
 function getResults(
-    results: readonly FlowResult[],
-    typeName: 'ExecuteResponse'): readonly ExecuteResponse[];
+  results: readonly FlowResult[],
+  typeName: 'StatEntry',
+): readonly StatEntry[];
 function getResults(
-    results: readonly FlowResult[], typeName: string): ReadonlyArray<{}> {
-  return results.filter(item => item.payloadType === typeName)
-      .map(item => item.payload as {});
+  results: readonly FlowResult[],
+  typeName: 'ExecuteResponse',
+): readonly ExecuteResponse[];
+function getResults(
+  results: readonly FlowResult[],
+  typeName: string,
+): ReadonlyArray<{}> {
+  return results
+    .filter((item) => item.payloadType === typeName)
+    .map((item) => item.payload as {});
 }
 
 declare interface ArtifactRow {
@@ -54,26 +86,31 @@ function toRow(flow: Flow, artifact: ArtifactProgress): ArtifactRow {
 
 interface ArtifactResults {
   readonly fileResults: readonly FlowFileResult[];
-  readonly registryResults: ReadonlyArray<RegistryKey|RegistryValue>;
+  readonly registryResults: ReadonlyArray<RegistryKey | RegistryValue>;
   readonly executeResponseResults: readonly ExecuteResponse[];
   readonly unknownResultCount: number;
 }
 
 const mapFlowResults: FlowResultMapFunction<ArtifactResults> = (rawResults) => {
-  const statEntryResults =
-      getResults(rawResults ?? [], 'StatEntry').map(translateVfsStatEntry);
+  const statEntryResults = getResults(rawResults ?? [], 'StatEntry').map(
+    translateVfsStatEntry,
+  );
 
   const results: Writable<ArtifactResults> = {
-    fileResults: statEntryResults.filter(isStatEntry)
-                     .map(stat => flowFileResultFromStatEntry(stat)),
+    fileResults: statEntryResults
+      .filter(isStatEntry)
+      .map((stat) => flowFileResultFromStatEntry(stat)),
     registryResults: statEntryResults.filter(isRegistryEntry),
-    executeResponseResults: getResults(rawResults ?? [], 'ExecuteResponse')
-                                .map(translateExecuteResponse),
+    executeResponseResults: getResults(rawResults ?? [], 'ExecuteResponse').map(
+      translateExecuteResponse,
+    ),
     unknownResultCount: rawResults?.length ?? 0,
   };
 
-  results.unknownResultCount -= results.fileResults.length +
-      results.registryResults.length + results.executeResponseResults.length;
+  results.unknownResultCount -=
+    results.fileResults.length +
+    results.registryResults.length +
+    results.executeResponseResults.length;
 
   return results;
 };
@@ -89,17 +126,23 @@ export class ArtifactCollectorFlowDetails extends Plugin {
   readonly INITIAL_COUNT = 100;
 
   readonly artifactRows$ = this.flow$.pipe(
-      map((flow) => Array
-                        .from(translateArtifactCollectorFlowProgress(flow)
-                                  .artifacts.values())
-                        .map(a => toRow(flow, a))));
+    map((flow) =>
+      Array.from(
+        translateArtifactCollectorFlowProgress(flow).artifacts.values(),
+      ).map((a) => toRow(flow, a)),
+    ),
+  );
 
-  readonly trackArtifactByName: TrackByFunction<ArtifactRow> =
-      (index, artifact) => artifact.name;
+  readonly trackArtifactByName: TrackByFunction<ArtifactRow> = (
+    index,
+    artifact,
+  ) => artifact.name;
 
   fallbackUrlClicked() {
     this.metricsService.registerUIRedirect(
-        UiRedirectDirection.NEW_TO_OLD, UiRedirectSource.RESULT_DETAILS_BUTTON);
+      UiRedirectDirection.NEW_TO_OLD,
+      UiRedirectSource.RESULT_DETAILS_BUTTON,
+    );
   }
 
   constructor(private readonly metricsService: MetricsService) {

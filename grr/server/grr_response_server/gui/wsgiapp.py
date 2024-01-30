@@ -303,7 +303,6 @@ class AdminUIApp(object):
     is_development = contexts.DEBUG_CONTEXT in config.CONFIG.context
 
     context = {
-        "is_development": is_development,
         "use_debug_bundle": is_development or request.args.get(
             "use_debug_bundle", False
         ),

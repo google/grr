@@ -145,12 +145,16 @@ class HttpConnector(abstract.Connector):
       validate_version = True
 
     self.api_endpoint: str = api_endpoint
-    self.auth: Optional[Tuple[str, str]] = auth
     self.proxies: Optional[Dict[str, str]] = proxies
     self.verify: bool = verify
     self.cert: Optional[str] = cert
-    self.trust_env: bool = trust_env
     self._page_size: int = page_size
+    self.session = requests.Session()
+    self.session.auth = auth
+    self.session.cert = cert
+    self.session.proxies = proxies
+    self.session.trust_env = trust_env
+    self.session.verify = verify
 
     self.csrf_token: Optional[str] = None
     self.api_methods: Dict[str, reflection_pb2.ApiMethod] = {}
@@ -164,14 +168,7 @@ class HttpConnector(abstract.Connector):
   def _GetCSRFToken(self) -> Optional[str]:
     logger.debug("Fetching CSRF token from %s...", self.api_endpoint)
 
-    with requests.Session() as session:
-      session.trust_env = self.trust_env
-      index_response = session.get(
-          self.api_endpoint,
-          auth=self.auth,
-          proxies=self.proxies,
-          verify=self.verify,
-          cert=self.cert)
+    index_response = self.session.get(self.api_endpoint)
 
     self._CheckResponseStatus(index_response)
 
@@ -193,17 +190,11 @@ class HttpConnector(abstract.Connector):
 
     url = "%s/%s" % (self.api_endpoint.strip("/"),
                      "api/v2/reflection/api-methods")
-
-    with requests.Session() as session:
-      session.trust_env = self.trust_env
-      response = session.get(
-          url,
-          headers=headers,
-          cookies=cookies,
-          auth=self.auth,
-          proxies=self.proxies,
-          verify=self.verify,
-          cert=self.cert)
+    response = self.session.get(
+        url,
+        headers=headers,
+        cookies=cookies,
+    )
     self._CheckResponseStatus(response)
 
     json_str = response.content[len(self.JSON_PREFIX):]
@@ -254,16 +245,11 @@ class HttpConnector(abstract.Connector):
         "csrftoken": self.csrf_token,
     }
 
-    with requests.Session() as session:
-      session.trust_env = self.trust_env
-      response = session.get(
-          url=f"{self.api_endpoint}/api/v2/metadata/version",
-          headers=headers,
-          cookies=cookies,
-          auth=self.auth,
-          proxies=self.proxies,
-          verify=self.verify,
-          cert=self.cert)
+    response = self.session.get(
+        url=f"{self.api_endpoint}/api/v2/metadata/version",
+        headers=headers,
+        cookies=cookies,
+    )
 
     try:
       self._CheckResponseStatus(response)
@@ -400,7 +386,7 @@ class HttpConnector(abstract.Connector):
         params=query_params,
         headers=headers,
         cookies=cookies,
-        auth=self.auth)
+    )
 
   @property
   def page_size(self) -> int:
@@ -415,14 +401,12 @@ class HttpConnector(abstract.Connector):
     method_descriptor = self.api_methods[handler_name]
 
     request = self.BuildRequest(method_descriptor.name, args)
-    prepped_request = request.prepare()
+    prepped_request = self.session.prepare_request(request)
 
-    with requests.Session() as session:
-      session.trust_env = self.trust_env
-      options = session.merge_environment_settings(prepped_request.url,
-                                                   self.proxies or {}, None,
-                                                   self.verify, self.cert)
-      response = session.send(prepped_request, **options)
+    options = self.session.merge_environment_settings(
+        prepped_request.url, self.proxies or {}, None, self.verify, self.cert
+    )
+    response = self.session.send(prepped_request, **options)
 
     self._CheckResponseStatus(response)
 
@@ -444,22 +428,19 @@ class HttpConnector(abstract.Connector):
     method_descriptor = self.api_methods[handler_name]
 
     request = self.BuildRequest(method_descriptor.name, args)
-    prepped_request = request.prepare()
+    prepped_request = self.session.prepare_request(request)
 
-    session = requests.Session()
-    session.trust_env = self.trust_env
-    options = session.merge_environment_settings(prepped_request.url,
-                                                 self.proxies or {}, None,
-                                                 self.verify, self.cert)
+    options = self.session.merge_environment_settings(
+        prepped_request.url, self.proxies or {}, None, self.verify, self.cert
+    )
     options["stream"] = True
-    response = session.send(prepped_request, **options)
+    response = self.session.send(prepped_request, **options)
     self._CheckResponseStatus(response)
 
     def GenerateChunks() -> Iterator[bytes]:
-      with contextlib.closing(session):  # pytype: disable=wrong-arg-types
-        with contextlib.closing(response):
-          for chunk in response.iter_content(self.DEFAULT_BINARY_CHUNK_SIZE):
-            yield chunk
+      with contextlib.closing(response):
+        for chunk in response.iter_content(self.DEFAULT_BINARY_CHUNK_SIZE):
+          yield chunk
 
     return utils.BinaryChunkIterator(chunks=GenerateChunks())
 

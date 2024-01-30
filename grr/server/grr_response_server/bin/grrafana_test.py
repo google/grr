@@ -10,10 +10,8 @@ from werkzeug import wrappers as werkzeug_wrappers
 
 from google.protobuf import timestamp_pb2
 
-from grr_response_server import data_store
 from grr_response_server import fleetspeak_connector
 from grr_response_server.bin import grrafana
-from grr_response_server.fleet_utils import FleetStats
 
 from fleetspeak.src.server.proto.fleetspeak_server import admin_pb2
 from fleetspeak.src.server.proto.fleetspeak_server import resource_pb2
@@ -66,79 +64,7 @@ _TEST_CLIENT_RESOURCE_USAGE_RECORD_2 = {
     "mean_resident_memory_mib": 59,
     "max_resident_memory_mib": 59
 }
-_TEST_CLIENT_BREAKDOWN_STATS = FleetStats(
-    day_buckets=grrafana._FLEET_BREAKDOWN_DAY_BUCKETS,
-    label_counts={
-        1: {
-            "foo-label": {
-                "bar-os": 3,
-                "baz-os": 4
-            },
-            "bar-label": {
-                "bar-os": 5,
-                "foo-os": 1
-            }
-        },
-        7: {
-            "foo-label": {
-                "bar-os": 6,
-                "baz-os": 5
-            },
-            "bar-label": {
-                "bar-os": 5,
-                "foo-os": 2
-            }
-        },
-        14: {
-            "foo-label": {
-                "bar-os": 6,
-                "baz-os": 5
-            },
-            "bar-label": {
-                "bar-os": 5,
-                "foo-os": 2
-            },
-            "baz-label": {
-                "bar-os": 1
-            }
-        },
-        30: {
-            "foo-label": {
-                "bar-os": 6,
-                "baz-os": 5
-            },
-            "bar-label": {
-                "bar-os": 5,
-                "foo-os": 2
-            },
-            "baz-label": {
-                "bar-os": 3,
-                "foo-os": 1
-            }
-        }
-    },
-    total_counts={
-        1: {
-            "bar-os": 8,
-            "baz-os": 4,
-            "foo-os": 1
-        },
-        7: {
-            "bar-os": 11,
-            "baz-os": 5,
-            "foo-os": 2
-        },
-        14: {
-            "bar-os": 12,
-            "baz-os": 5,
-            "foo-os": 2
-        },
-        30: {
-            "bar-os": 14,
-            "baz-os": 5,
-            "foo-os": 3
-        }
-    })
+
 _TEST_VALID_RUD_QUERY = {
     "app": "dashboard",
     "requestId": "Q119",
@@ -191,50 +117,9 @@ _TEST_VALID_RUD_QUERY = {
     },
     "adhocFilters": []
 }
-_TEST_VALID_CLIENT_STATS_QUERY = {
-    "app": "dashboard",
-    "requestId": "Q1",
-    "timezone": "browser",
-    "panelId": 12345,
-    "dashboardId": 1,
-    "range": {
-        "from": "2020-10-21T04:29:36.806Z",
-        "to": "2020-10-21T10:29:36.806Z",
-        "raw": {
-            "from": "now-6h",
-            "to": "now"
-        }
-    },
-    "timeInfo": "",
-    "interval": "15s",
-    "intervalMs": 15000,
-    "targets": [{
-        "data": "",
-        "refId": "A",
-        "target": "OS Platform Breakdown - 7 Day Active",
-        "type": "timeseries",
-        "datasource": "JSON"
-    }],
-    "maxDataPoints": 1700,
-    "scopedVars": {
-        "__interval": {
-            "text": "15s",
-            "value": "15s"
-        },
-        "__interval_ms": {
-            "text": "15000",
-            "value": 15000
-        }
-    },
-    "startTime": 1603276176806,
-    "rangeRaw": {
-        "from": "now-6h",
-        "to": "now"
-    },
-    "adhocFilters": [],
-    "endTime": 1603276176858
-}
+
 _TEST_INVALID_TARGET_QUERY = copy.deepcopy(_TEST_VALID_RUD_QUERY)
+
 _TEST_INVALID_TARGET_QUERY["targets"][0]["target"] = "unavailable_metric"
 
 
@@ -258,13 +143,6 @@ def _MockConnReturningRecords(client_ruds):
   conn.outgoing.FetchClientResourceUsageRecords.return_value = admin_pb2.FetchClientResourceUsageRecordsResponse(
       records=records)
   return conn
-
-
-def _MockDatastoreReturningPlatformFleetStats(client_fleet_stats):
-  client_fleet_stats.Validate()
-  rel_db = mock.MagicMock()
-  rel_db.CountClientPlatformsByLabel.return_value = client_fleet_stats
-  return rel_db
 
 
 class GrrafanaTest(absltest.TestCase):
@@ -293,18 +171,6 @@ class GrrafanaTest(absltest.TestCase):
         "Max System CPU Rate", "Mean Resident Memory MB",
         "Max Resident Memory MB"
     ]
-    expected_res.extend([
-        f"OS Platform Breakdown - {n_days} Day Active"
-        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS
-    ])
-    expected_res.extend([
-        f"OS Release Version Breakdown - {n_days} Day Active"
-        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS
-    ])
-    expected_res.extend([
-        f"Client Version Strings - {n_days} Day Active"
-        for n_days in grrafana._FLEET_BREAKDOWN_DAY_BUCKETS
-    ])
     self.assertListEqual(response.json, expected_res)
 
   def testClientResourceUsageMetricQuery(self):
@@ -335,26 +201,6 @@ class GrrafanaTest(absltest.TestCase):
     with mock.patch.object(fleetspeak_connector, "CONN", conn):
       with self.assertRaises(KeyError):
         self.client.post("/query", json=_TEST_INVALID_TARGET_QUERY)
-
-  def testClientsStatisticsMetric(self):
-    rel_db = _MockDatastoreReturningPlatformFleetStats(
-        _TEST_CLIENT_BREAKDOWN_STATS)
-    with mock.patch.object(data_store, "REL_DB", rel_db):
-      valid_response = self.client.post(
-          "/query", json=_TEST_VALID_CLIENT_STATS_QUERY)
-      self.assertEqual(200, valid_response.status_code)
-      expected_res = [{
-          "columns": [{
-              "text": "Label",
-              "type": "string"
-          }, {
-              "text": "Value",
-              "type": "number"
-          }],
-          "rows": [["bar-os", 11], ["baz-os", 5], ["foo-os", 2]],
-          "type": "table"
-      }]
-      self.assertEqual(valid_response.json, expected_res)
 
 
 class TimeToProtoTimestampTest(absltest.TestCase):

@@ -13,21 +13,15 @@ import {EntryHistoryButton} from './entry_history_button';
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     CommonModule,
     EntryHistoryDialogModule,
     MatButtonModule,
     MatDialogModule,
     // keep-sorted end
-    // clang-format on
   ],
-  declarations: [
-    EntryHistoryButton,
-  ],
-  exports: [
-    EntryHistoryButton,
-  ]
+  declarations: [EntryHistoryButton],
+  exports: [EntryHistoryButton],
 })
-export class EntryHistoryButtonModule {
-}
+export class EntryHistoryButtonModule {}

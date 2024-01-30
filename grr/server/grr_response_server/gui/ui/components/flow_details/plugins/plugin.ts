@@ -2,8 +2,13 @@ import {Component, Input, OnDestroy} from '@angular/core';
 import {ReplaySubject} from 'rxjs';
 import {map} from 'rxjs/operators';
 
-import {getExportedResultsCsvUrl, getExportedResultsSqliteUrl, getExportedResultsYamlUrl, getFlowFilesArchiveUrl} from '../../../lib/api/http_api_service';
-import {type Flow, FlowState} from '../../../lib/models/flow';
+import {
+  getExportedResultsCsvUrl,
+  getExportedResultsSqliteUrl,
+  getExportedResultsYamlUrl,
+  getFlowFilesArchiveUrl,
+} from '../../../lib/api/http_api_service';
+import {FlowState, type Flow} from '../../../lib/models/flow';
 import {isNonNull} from '../../../lib/preconditions';
 import {observeOnDestroy} from '../../../lib/reactive';
 import {makeLegacyLink} from '../../../lib/routing';
@@ -36,10 +41,12 @@ export abstract class Plugin implements OnDestroy {
    */
   readonly flow$ = new ReplaySubject<Flow>(1);
 
-  readonly fallbackUrl$ = this.flow$.pipe(map(flow => {
-    const {flowId, clientId} = flow;
-    return makeLegacyLink(`#/clients/${clientId}/flows/${flowId}`);
-  }));
+  readonly fallbackUrl$ = this.flow$.pipe(
+    map((flow) => {
+      const {flowId, clientId} = flow;
+      return makeLegacyLink(`#/clients/${clientId}/flows/${flowId}`);
+    }),
+  );
 
   readonly ngOnDestroy = observeOnDestroy(this, () => {
     this.flow$.complete();
@@ -87,7 +94,7 @@ export abstract class Plugin implements OnDestroy {
 
     // TODO: There are cases where StatEntries are but no actual
     // file contents are collected. In this case, we shouldn't show this entry.
-    if (flow?.resultCounts?.find(rc => rc.type === 'StatEntry' && rc.count)) {
+    if (flow?.resultCounts?.find((rc) => rc.type === 'StatEntry' && rc.count)) {
       items.push(this.getDownloadFilesExportMenuItem(flow));
     }
 
@@ -115,10 +122,12 @@ export abstract class Plugin implements OnDestroy {
    * Returns a brief description of the amount of results, e.g. "5 files" to be
    * shown in the flow card.
    */
-  getResultDescription(flow: Flow): string|undefined {
+  getResultDescription(flow: Flow): string | undefined {
     if (isNonNull(flow.resultCounts)) {
       const totalCount = flow.resultCounts.reduce(
-          (sum, resultCount) => sum + (resultCount.count ?? 0), 0);
+        (sum, resultCount) => sum + (resultCount.count ?? 0),
+        0,
+      );
 
       if (totalCount === 0 && flow.state === FlowState.RUNNING) {
         // Hide "0 results" if flow is still running.

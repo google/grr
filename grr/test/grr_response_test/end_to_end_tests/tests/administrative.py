@@ -4,31 +4,6 @@
 from grr_response_test.end_to_end_tests import test_base
 
 
-class TestGetClientStats(test_base.EndToEndTest):
-  """GetClientStats test."""
-
-  platforms = test_base.EndToEndTest.Platform.ALL
-
-  def runTest(self):
-    f = self.RunFlowAndWait("GetClientStats")
-
-    results = list(f.ListResults())
-    self.assertTrue(results)
-
-    cstats = results[0].payload
-    self.assertNotEmpty(cstats.cpu_samples)
-    if self.platform != test_base.EndToEndTest.Platform.DARWIN:
-      # No io counters on mac.
-      self.assertNotEmpty(cstats.io_samples)
-
-    self.assertGreater(cstats.RSS_size, 0)
-    self.assertGreater(cstats.VMS_size, 0)
-    self.assertGreater(cstats.boot_time, 0)
-    self.assertGreater(cstats.bytes_received, 0)
-    self.assertGreater(cstats.bytes_sent, 0)
-    self.assertGreater(cstats.memory_percent, 0)
-
-
 class TestLaunchBinaries(test_base.EndToEndTest):
 
   platforms = [

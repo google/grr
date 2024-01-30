@@ -1,5 +1,5 @@
 import {ChangeDetectionStrategy, Component, Input} from '@angular/core';
-import {BehaviorSubject, combineLatest, Observable} from 'rxjs';
+import {BehaviorSubject, Observable, combineLatest} from 'rxjs';
 import {map} from 'rxjs/operators';
 
 import {type ClientApproval} from '../../../lib/models/client';
@@ -20,34 +20,32 @@ import {RecentClientFlowsLocalStore} from '../../../store/recent_client_flows_lo
 })
 export class RecentClientFlows {
   constructor(
-      private readonly configGlobalStore: ConfigGlobalStore,
-      private readonly recentClientFlowsLocalStore: RecentClientFlowsLocalStore,
+    private readonly configGlobalStore: ConfigGlobalStore,
+    private readonly recentClientFlowsLocalStore: RecentClientFlowsLocalStore,
   ) {}
 
-  private readonly approval$ = new BehaviorSubject<ClientApproval|null>(null);
+  private readonly approval$ = new BehaviorSubject<ClientApproval | null>(null);
 
   readonly showApprovalChip$: Observable<boolean> =
-      this.recentClientFlowsLocalStore.hasAccess$.pipe(map((hasAccess => {
+    this.recentClientFlowsLocalStore.hasAccess$.pipe(
+      map((hasAccess) => {
         if (isNull(this.approval) || isNull(hasAccess)) {
           return false;
         }
         const inconsistency1 =
-            (hasAccess === true && this.approval.status.type !== 'valid');
+          hasAccess === true && this.approval.status.type !== 'valid';
         const inconsistency2 =
-            (hasAccess === false && this.approval.status.type === 'valid');
+          hasAccess === false && this.approval.status.type === 'valid';
         return !inconsistency1 && !inconsistency2;
-      })));
+      }),
+    );
 
   readonly hasAccess$ = this.recentClientFlowsLocalStore.hasAccess$;
 
-  readonly entries$: Observable<readonly FlowWithDescriptor[]> =
-      combineLatest([
-        this.recentClientFlowsLocalStore.flowListEntries$,
-        this.configGlobalStore.flowDescriptors$,
-      ])
-          .pipe(
-              map(([{flows}, fds]) => flows?.map(withDescriptor(fds)) ?? []),
-          );
+  readonly entries$: Observable<readonly FlowWithDescriptor[]> = combineLatest([
+    this.recentClientFlowsLocalStore.flowListEntries$,
+    this.configGlobalStore.flowDescriptors$,
+  ]).pipe(map(([{flows}, fds]) => flows?.map(withDescriptor(fds)) ?? []));
 
   entryTrackByFunction(index: number, entry: FlowWithDescriptor) {
     return entry.flow.flowId;
@@ -57,7 +55,7 @@ export class RecentClientFlows {
    * Approval to display.
    */
   @Input()
-  set approval(approval: ClientApproval|null|undefined) {
+  set approval(approval: ClientApproval | null | undefined) {
     this.approval$.next(approval ?? null);
     if (approval) {
       this.recentClientFlowsLocalStore.selectClient(approval.clientId);

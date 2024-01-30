@@ -3,7 +3,7 @@
 
 from absl import app
 
-from grr_response_core.lib.rdfvalues import paths as rdf_paths
+from grr_response_proto import jobs_pb2
 from grr_response_server.gui import api_call_handler_utils
 from grr.test_lib import test_lib
 
@@ -17,7 +17,11 @@ class FilterListTest(test_lib.GRRBaseTest):
     self.l = []
     for i in range(10):
       self.l.append(
-          rdf_paths.PathSpec(path="/var/os/tmp-%d" % i, pathtype="OS"))
+          jobs_pb2.PathSpec(
+              path="/var/os/tmp-%d" % i,
+              pathtype=jobs_pb2.PathSpec.OS,
+          )
+      )
 
   def testFiltersByOffsetAndCount(self):
     data = api_call_handler_utils.FilterList(self.l, 2, 5, None)

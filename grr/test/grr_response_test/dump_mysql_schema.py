@@ -15,23 +15,22 @@ def main(argv):
   del argv
   testing_startup.TestInit()
 
-  mysql_test.TestMysqlDB.setUpClass()
+  test_db = mysql_test.TestMysqlDB()
+  test_db.__class__.setUpClass()
   try:
-    # TODO(user): refactor the code to not use protected methods.
-    db, fin = mysql_test.TestMysqlDB._CreateDatabase()  # pylint: disable=protected-access
-    try:
+    db, cleanup_fn = test_db.CreateDatabase()
+    # Safe to ignore here, since this cleanup function will be called by
+    # `tearDownClass()`
+    del cleanup_fn
 
-      def _DumpSchema(conn):
-        with contextlib.closing(conn.cursor()) as cursor:
-          return mysql_migration.DumpCurrentSchema(cursor)
+    def _DumpSchema(conn):
+      with contextlib.closing(conn.cursor()) as cursor:
+        return mysql_migration.DumpCurrentSchema(cursor)
 
-      schema = db._RunInTransaction(_DumpSchema)  # pylint: disable=protected-access
-      print(schema)
-    finally:
-      fin()
-
+    schema = db._RunInTransaction(_DumpSchema)  # pylint: disable=protected-access
+    print(schema)
   finally:
-    mysql_test.TestMysqlDB.tearDownClass()
+    test_db.__class__.tearDownClass()
 
 
 def DistEntry():

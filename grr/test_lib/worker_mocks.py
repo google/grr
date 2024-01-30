@@ -3,7 +3,6 @@
 
 import threading
 
-from grr_response_client import client_stats
 from grr_response_client import comms
 from grr_response_core.lib.rdfvalues import flows as rdf_flows
 
@@ -16,7 +15,6 @@ class FakeMixin(object):
     self.responses = []
     self.sent_bytes_per_flow = {}
     self.lock = threading.RLock()
-    self.stats_collector = client_stats.ClientStatsCollector(self)
 
   def SendReply(self,
                 rdf_value,
@@ -34,14 +32,6 @@ class FakeMixin(object):
 
 class ClientWorker(comms.GRRClientWorker):
   """A GRR client worker with disabled threads."""
-
-  def __init__(self, *args, **kwargs):
-    super().__init__(*args, **kwargs)
-    self.stats_collector = client_stats.ClientStatsCollector(self)
-
-  def StartStatsCollector(self):
-    # Don't start any threads in tests.
-    pass
 
   def start(self):
     # Don't start any threads in tests.

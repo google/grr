@@ -28,7 +28,7 @@ export enum CellComponent {
   FILE_MODE,
   HASH,
   HUMAN_READABLE_SIZE,
-  TIMESTAMP,  // Takes in a Date object (see ComponentToType below)
+  TIMESTAMP, // Takes in a Date object (see ComponentToType below)
   TRACE,
   USERNAME,
 }
@@ -37,7 +37,7 @@ export enum CellComponent {
 export declare interface ClientHuntFlow {
   clientId?: string;
   flowId?: string;
-  resultData?: unknown;  // ApiHuntResult import creates a circular
+  resultData?: unknown; // ApiHuntResult import creates a circular
 }
 
 /**
@@ -47,14 +47,14 @@ export declare interface ClientHuntFlow {
  */
 // TODO: Expand CellComponent enum types.
 export declare interface ComponentToType {
-  [CellComponent.DEFAULT]: string|number|undefined;
-  [CellComponent.DRAWER_LINK]: string[]|undefined;
-  [CellComponent.FILE_MODE]: bigint|undefined;
-  [CellComponent.HASH]: HexHash|undefined;
-  [CellComponent.HUMAN_READABLE_SIZE]: bigint|undefined;
-  [CellComponent.TIMESTAMP]: Date|undefined;
-  [CellComponent.TRACE]: string|undefined;
-  [CellComponent.USERNAME]: string|undefined;
+  [CellComponent.DEFAULT]: string | number | undefined;
+  [CellComponent.DRAWER_LINK]: string[] | undefined;
+  [CellComponent.FILE_MODE]: bigint | undefined;
+  [CellComponent.HASH]: HexHash | undefined;
+  [CellComponent.HUMAN_READABLE_SIZE]: bigint | undefined;
+  [CellComponent.TIMESTAMP]: Date | undefined;
+  [CellComponent.TRACE]: string | undefined;
+  [CellComponent.USERNAME]: string | undefined;
 }
 
 /**
@@ -94,10 +94,9 @@ export declare interface ColumnDescriptorHasComponent {
  *        comes from: [CellComponent.TIMESTAMP]: Date|undefined;
  */
 export declare type CellData<T extends {[key: string]: ColumnDescriptor}> = {
-  [key in keyof T]:
-      ComponentToType[T[key] extends ColumnDescriptorHasComponent ?
-                          T[key]['component'] :
-                          CellComponent.DEFAULT];
+  [key in keyof T]: ComponentToType[T[key] extends ColumnDescriptorHasComponent
+    ? T[key]['component']
+    : CellComponent.DEFAULT];
 };
 
 /**
@@ -105,7 +104,8 @@ export declare type CellData<T extends {[key: string]: ColumnDescriptor}> = {
  * given PayloadType into rederable information.
  */
 export declare interface PayloadTranslation<
-    T extends {[key: string]: ColumnDescriptor}> {
+  T extends {[key: string]: ColumnDescriptor},
+> {
   translateFn(...args: unknown[]): CellData<T>;
   columns: T;
   tabName: string;
@@ -148,8 +148,7 @@ export const RESULT_KEY_SEPARATOR = '-';
  * indexing/representing results.
  */
 export function toResultKeyString(r: ResultKey): string {
-  return `${r.clientId}${RESULT_KEY_SEPARATOR}${r.flowId}${
-      RESULT_KEY_SEPARATOR}${r.timestamp}`;
+  return `${r.clientId}${RESULT_KEY_SEPARATOR}${r.flowId}${RESULT_KEY_SEPARATOR}${r.timestamp}`;
 }
 
 /**
@@ -159,8 +158,9 @@ export function toResultKeyString(r: ResultKey): string {
 export function toResultKey(s: string): ResultKey {
   const parts = s.split(RESULT_KEY_SEPARATOR);
   if (parts.length !== 3) {
-    throw new Error(`Error parsing result key "${s}": got length ${
-        parts.length}; expected 3`);
+    throw new Error(
+      `Error parsing result key "${s}": got length ${parts.length}; expected 3`,
+    );
   }
   return {clientId: parts[0], flowId: parts[1], timestamp: parts[2]};
 }

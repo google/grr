@@ -32,6 +32,7 @@ import {CommaSeparatedInputModule} from '../form/comma_separated_input/module';
 import {TimestampModule} from '../timestamp/module';
 
 import {CollectFilesByKnownPathForm} from './collect_files_by_known_path_form';
+import {CollectLargeFileFlowForm} from './collect_large_file_flow_form';
 import {ExecutePythonHackForm} from './execute_python_hack_form';
 import {FallbackFlowArgsForm} from './fallback_flow_args_form';
 import {FlowArgsForm} from './flow_args_form';
@@ -57,6 +58,7 @@ const FORMS = [
   ExecutePythonHackForm,
   FallbackFlowArgsForm,
   FlowArgsForm,
+  CollectLargeFileFlowForm,
   LaunchBinaryForm,
   ListDirectoryForm,
   ListNamedPipesForm,
@@ -73,7 +75,7 @@ const FORMS = [
 @NgModule({
   imports: [
     // TODO: re-enable clang format when solved.
-    // clang-format off
+    // prettier-ignore
     // keep-sorted start block=yes
     BrowserAnimationsModule,
     ByteComponentsModule,
@@ -105,12 +107,8 @@ const FORMS = [
     TimestampModule,
     ValidationModule,
     // keep-sorted end
-    // clang-format on
   ],
   declarations: FORMS,
-  exports: [
-    FlowArgsForm,
-  ]
+  exports: [FlowArgsForm],
 })
-export class FlowArgsFormModule {
-}
+export class FlowArgsFormModule {}

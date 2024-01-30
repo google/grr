@@ -1,11 +1,20 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FormControl} from '@angular/forms';
 
-import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
-import {ListDirectoryArgs, PathSpecPathType} from '../../lib/api/api_interfaces';
+import {
+  ControlValues,
+  FlowArgumentForm,
+} from '../../components/flow_args_form/form_interface';
+import {
+  ListDirectoryArgs,
+  PathSpecPathType,
+} from '../../lib/api/api_interfaces';
 
-const COLLECTION_METHODS: readonly PathSpecPathType[] =
-    [PathSpecPathType.OS, PathSpecPathType.TSK, PathSpecPathType.NTFS];
+const COLLECTION_METHODS: readonly PathSpecPathType[] = [
+  PathSpecPathType.OS,
+  PathSpecPathType.TSK,
+  PathSpecPathType.NTFS,
+];
 
 function makeControls() {
   return {
@@ -16,7 +25,6 @@ function makeControls() {
 
 type Controls = ReturnType<typeof makeControls>;
 
-
 /**
  * A form that makes it possible to configure the list directory flow.
  */
@@ -25,10 +33,11 @@ type Controls = ReturnType<typeof makeControls>;
   templateUrl: './list_directory_form.ng.html',
   styleUrls: ['./list_directory_form.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-
 })
-export class ListDirectoryForm extends
-    FlowArgumentForm<ListDirectoryArgs, Controls> {
+export class ListDirectoryForm extends FlowArgumentForm<
+  ListDirectoryArgs,
+  Controls
+> {
   readonly collectionMethods = COLLECTION_METHODS;
 
   override makeControls() {
@@ -37,8 +46,9 @@ export class ListDirectoryForm extends
 
   override convertFlowArgsToFormState(flowArgs: ListDirectoryArgs) {
     return {
-      collectionMethod: flowArgs.pathspec?.pathtype ??
-          this.controls.collectionMethod.defaultValue,
+      collectionMethod:
+        flowArgs.pathspec?.pathtype ??
+        this.controls.collectionMethod.defaultValue,
       path: flowArgs.pathspec?.path ?? this.controls.path.defaultValue,
     };
   }

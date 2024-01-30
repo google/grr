@@ -1,13 +1,29 @@
-import {ChangeDetectionStrategy, ChangeDetectorRef, Component, HostBinding, HostListener} from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  HostBinding,
+  HostListener,
+} from '@angular/core';
 import {FormArray, FormBuilder, FormControl, FormGroup} from '@angular/forms';
 
-import {ForemanClientRule, ForemanClientRuleSet, ForemanClientRuleSetMatchMode, ForemanClientRuleType, ForemanIntegerClientRuleForemanIntegerField, ForemanIntegerClientRuleOperator, ForemanLabelClientRule, ForemanLabelClientRuleMatchMode, ForemanRegexClientRuleForemanStringField} from '../../../../lib/api/api_interfaces';
+import {
+  ForemanClientRule,
+  ForemanClientRuleSet,
+  ForemanClientRuleSetMatchMode,
+  ForemanClientRuleType,
+  ForemanIntegerClientRuleForemanIntegerField,
+  ForemanIntegerClientRuleOperator,
+  ForemanLabelClientRule,
+  ForemanLabelClientRuleMatchMode,
+  ForemanRegexClientRuleForemanStringField,
+} from '../../../../lib/api/api_interfaces';
 import {toStringFormControls} from '../../../../lib/form';
 import {ConfigGlobalStore} from '../../../../store/config_global_store';
 
-
-type ForemanEnumValue = ForemanIntegerClientRuleForemanIntegerField|
-    ForemanRegexClientRuleForemanStringField;
+type ForemanEnumValue =
+  | ForemanIntegerClientRuleForemanIntegerField
+  | ForemanRegexClientRuleForemanStringField;
 
 interface Rule {
   readonly name: string;
@@ -35,10 +51,12 @@ export class ClientsForm {
   readonly operatingSystems = OS_DEFAULTS;
   readonly fb = new FormBuilder();
   readonly rulesMatchModeControl =
-      new FormControl<ForemanClientRuleSetMatchMode>(
-          this.RuleSetMatchMode.MATCH_ALL);
-  readonly conditionsArray: FormArray<FormGroup> =
-      this.fb.array([this.newOsForm('Operating System')]);
+    new FormControl<ForemanClientRuleSetMatchMode>(
+      this.RuleSetMatchMode.MATCH_ALL,
+    );
+  readonly conditionsArray: FormArray<FormGroup> = this.fb.array([
+    this.newOsForm('Operating System'),
+  ]);
   readonly clientForm: FormGroup = this.fb.group({
     'rulesMatchMode': this.rulesMatchModeControl,
     'conditions': this.conditionsArray,
@@ -47,90 +65,90 @@ export class ClientsForm {
     {
       name: 'Client Version',
       type: ForemanClientRuleType.INTEGER,
-      enumValue: ForemanIntegerClientRuleForemanIntegerField.CLIENT_VERSION
+      enumValue: ForemanIntegerClientRuleForemanIntegerField.CLIENT_VERSION,
     },
     {name: 'Label', type: ForemanClientRuleType.LABEL, enumValue: undefined},
     {
       name: 'Operating System',
       type: ForemanClientRuleType.OS,
-      enumValue: undefined
+      enumValue: undefined,
     },
     {
       name: 'OS Version',
       type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.OS_VERSION
+      enumValue: ForemanRegexClientRuleForemanStringField.OS_VERSION,
     },
   ];
   readonly otherRules: readonly Rule[] = [
     {
       name: 'Client Clock',
       type: ForemanClientRuleType.INTEGER,
-      enumValue: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK
+      enumValue: ForemanIntegerClientRuleForemanIntegerField.CLIENT_CLOCK,
     },
     {
       name: 'Client Description',
       type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.CLIENT_DESCRIPTION
+      enumValue: ForemanRegexClientRuleForemanStringField.CLIENT_DESCRIPTION,
+    },
+    {
+      name: 'Client ID',
+      type: ForemanClientRuleType.REGEX,
+      enumValue: ForemanRegexClientRuleForemanStringField.CLIENT_ID,
     },
     {
       name: 'Client Labels',
       type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.CLIENT_LABELS
+      enumValue: ForemanRegexClientRuleForemanStringField.CLIENT_LABELS,
     },
     {
       name: 'Client Name',
       type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.CLIENT_NAME
+      enumValue: ForemanRegexClientRuleForemanStringField.CLIENT_NAME,
     },
     {
       name: 'FQDN',
       type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.FQDN
+      enumValue: ForemanRegexClientRuleForemanStringField.FQDN,
     },
     {
       name: 'Host IPs',
       type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.HOST_IPS
+      enumValue: ForemanRegexClientRuleForemanStringField.HOST_IPS,
     },
     {
       name: 'Install Time',
       type: ForemanClientRuleType.INTEGER,
-      enumValue: ForemanIntegerClientRuleForemanIntegerField.INSTALL_TIME
+      enumValue: ForemanIntegerClientRuleForemanIntegerField.INSTALL_TIME,
     },
     {
       name: 'Kernel Version',
       type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.KERNEL_VERSION
+      enumValue: ForemanRegexClientRuleForemanStringField.KERNEL_VERSION,
     },
     {
       name: 'Last Boot Time',
       type: ForemanClientRuleType.INTEGER,
-      enumValue: ForemanIntegerClientRuleForemanIntegerField.LAST_BOOT_TIME
+      enumValue: ForemanIntegerClientRuleForemanIntegerField.LAST_BOOT_TIME,
     },
     {
       name: 'Mac Addresses',
       type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.MAC_ADDRESSES
+      enumValue: ForemanRegexClientRuleForemanStringField.MAC_ADDRESSES,
     },
     {
       name: 'OS Release',
       type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.OS_RELEASE
+      enumValue: ForemanRegexClientRuleForemanStringField.OS_RELEASE,
     },
     {
       name: 'System',
       type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.SYSTEM
-    },
-    {
-      name: 'Uname',
-      type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.UNAME
+      enumValue: ForemanRegexClientRuleForemanStringField.SYSTEM,
     },
     {
       name: 'User Names',
       type: ForemanClientRuleType.REGEX,
-      enumValue: ForemanRegexClientRuleForemanStringField.USERNAMES
+      enumValue: ForemanRegexClientRuleForemanStringField.USERNAMES,
     },
   ];
 
@@ -140,8 +158,9 @@ export class ClientsForm {
   readonly allClientsLabels$ = this.configGlobalStore.clientsLabels$;
 
   constructor(
-      private readonly changeDetection: ChangeDetectorRef,
-      private readonly configGlobalStore: ConfigGlobalStore) {}
+    private readonly changeDetection: ChangeDetectorRef,
+    private readonly configGlobalStore: ConfigGlobalStore,
+  ) {}
 
   conditions(): FormArray<FormGroup> {
     return this.conditionsArray;
@@ -151,36 +170,45 @@ export class ClientsForm {
     return this.conditions().at(conditionIndex);
   }
 
-  labelMatchMode(conditionIndex: number):
-      FormControl<ForemanLabelClientRuleMatchMode> {
-    return this.conditions().at(conditionIndex).get('matchMode') as
-        FormControl<ForemanLabelClientRuleMatchMode>;
+  labelMatchMode(
+    conditionIndex: number,
+  ): FormControl<ForemanLabelClientRuleMatchMode> {
+    return this.conditions()
+      .at(conditionIndex)
+      .get('matchMode') as FormControl<ForemanLabelClientRuleMatchMode>;
   }
 
   labelNames(conditionIndex: number): FormArray<FormControl<string>> {
-    return this.conditions().at(conditionIndex).get('names') as
-        FormArray<FormControl<string>>;
+    return this.conditions().at(conditionIndex).get('names') as FormArray<
+      FormControl<string>
+    >;
   }
 
   addLabelName(conditionIndex: number) {
-    this.labelNames(conditionIndex).push(new FormControl('', {
-      nonNullable: true
-    }));
+    this.labelNames(conditionIndex).push(
+      new FormControl('', {
+        nonNullable: true,
+      }),
+    );
   }
 
   newLabelForm(
-      name: string, matchMode?: ForemanLabelClientRuleMatchMode,
-      names?: string[]|undefined): FormGroup {
+    name: string,
+    matchMode?: ForemanLabelClientRuleMatchMode,
+    names?: string[] | undefined,
+  ): FormGroup {
     const defaultMode = this.matchMode.MATCH_ALL;
     const defaultNames = [new FormControl('', {nonNullable: true})];
 
     return this.fb.group({
       'type': [ForemanClientRuleType.LABEL],
       'name': [name],
-      'matchMode':
-          new FormControl(matchMode ?? defaultMode, {nonNullable: true}),
-      'names':
-          this.fb.array(names ? toStringFormControls(names) : defaultNames),
+      'matchMode': new FormControl(matchMode ?? defaultMode, {
+        nonNullable: true,
+      }),
+      'names': this.fb.array(
+        names ? toStringFormControls(names) : defaultNames,
+      ),
     });
   }
 
@@ -188,23 +216,29 @@ export class ClientsForm {
     return this.conditions().at(conditionIndex).get('options') as FormGroup;
   }
 
-  osOptionControl(conditionIndex: number, osName: string):
-      FormControl<boolean> {
-    return this.conditions().at(conditionIndex).get('options')?.get(osName) as
-        FormControl<boolean>;
+  osOptionControl(
+    conditionIndex: number,
+    osName: string,
+  ): FormControl<boolean> {
+    return this.conditions()
+      .at(conditionIndex)
+      .get('options')
+      ?.get(osName) as FormControl<boolean>;
   }
 
   newOsForm(
-      name: string,
-      options?: {[key in keyof typeof OS_DEFAULTS]: boolean}): FormGroup {
+    name: string,
+    options?: {[key in keyof typeof OS_DEFAULTS]: boolean},
+  ): FormGroup {
     const osMap = options ?? this.operatingSystems;
-    const operatingSystemsControls:
-        {[key in keyof typeof osMap]: FormControl<boolean>} = Object.assign(
-            {},
-            ...Object.entries(osMap).map(([osName, osValue]) => ({
-                                           [osName]: new FormControl<boolean>(
-                                               osValue, {nonNullable: true})
-                                         })));
+    const operatingSystemsControls: {
+      [key in keyof typeof osMap]: FormControl<boolean>;
+    } = Object.assign(
+      {},
+      ...Object.entries(osMap).map(([osName, osValue]) => ({
+        [osName]: new FormControl<boolean>(osValue, {nonNullable: true}),
+      })),
+    );
     return this.fb.group({
       'type': [ForemanClientRuleType.OS],
       'name': [name],
@@ -212,42 +246,55 @@ export class ClientsForm {
     });
   }
 
-  integerOperator(conditionIndex: number):
-      FormControl<ForemanIntegerClientRuleOperator> {
-    return this.conditions().at(conditionIndex).get('operator') as
-        FormControl<ForemanIntegerClientRuleOperator>;
+  integerOperator(
+    conditionIndex: number,
+  ): FormControl<ForemanIntegerClientRuleOperator> {
+    return this.conditions()
+      .at(conditionIndex)
+      .get('operator') as FormControl<ForemanIntegerClientRuleOperator>;
   }
 
   integerValue(conditionIndex: number): FormControl<bigint> {
-    return this.conditions().at(conditionIndex).get('value') as
-        FormControl<bigint>;
+    return this.conditions()
+      .at(conditionIndex)
+      .get('value') as FormControl<bigint>;
   }
 
   newIntegerForm(
-      name: string,
-      enumValue: ForemanIntegerClientRuleForemanIntegerField|
-      ForemanRegexClientRuleForemanStringField|undefined,
-      operator?: ForemanIntegerClientRuleOperator, value?: bigint): FormGroup {
+    name: string,
+    enumValue:
+      | ForemanIntegerClientRuleForemanIntegerField
+      | ForemanRegexClientRuleForemanStringField
+      | undefined,
+    operator?: ForemanIntegerClientRuleOperator,
+    value?: bigint,
+  ): FormGroup {
     return this.fb.group({
       'type': [ForemanClientRuleType.INTEGER],
       'name': [name],
       'operator': new FormControl<ForemanIntegerClientRuleOperator>(
-          operator ?? this.operator.EQUAL, {nonNullable: true}),
+        operator ?? this.operator.EQUAL,
+        {nonNullable: true},
+      ),
       'value': new FormControl<bigint>(value ?? BigInt(0), {nonNullable: true}),
       'enumName': [enumValue],
     });
   }
 
   regexAttribute(conditionIndex: number): FormControl<string> {
-    return this.conditionGroup(conditionIndex).get('attribute') as
-        FormControl<string>;
+    return this.conditionGroup(conditionIndex).get(
+      'attribute',
+    ) as FormControl<string>;
   }
 
   newRegexForm(
-      name: string,
-      enumValue: ForemanIntegerClientRuleForemanIntegerField|
-      ForemanRegexClientRuleForemanStringField|undefined,
-      attribute?: string): FormGroup {
+    name: string,
+    enumValue:
+      | ForemanIntegerClientRuleForemanIntegerField
+      | ForemanRegexClientRuleForemanStringField
+      | undefined,
+    attribute?: string,
+  ): FormGroup {
     return this.fb.group({
       'type': [ForemanClientRuleType.REGEX],
       'name': [name],
@@ -257,9 +304,13 @@ export class ClientsForm {
   }
 
   addNewRule(
-      name: string, type: ForemanClientRuleType,
-      enumValue: ForemanIntegerClientRuleForemanIntegerField|
-      ForemanRegexClientRuleForemanStringField|undefined) {
+    name: string,
+    type: ForemanClientRuleType,
+    enumValue:
+      | ForemanIntegerClientRuleForemanIntegerField
+      | ForemanRegexClientRuleForemanStringField
+      | undefined,
+  ) {
     switch (type) {
       case ForemanClientRuleType.LABEL: {
         this.conditions().push(this.newLabelForm(name));
@@ -291,8 +342,10 @@ export class ClientsForm {
     this.labelNames(conditionIndex).removeAt(labelIndex);
   }
 
-  findName(type: ForemanClientRuleType, enumValue?: ForemanEnumValue|undefined):
-      string {
+  findName(
+    type: ForemanClientRuleType,
+    enumValue?: ForemanEnumValue | undefined,
+  ): string {
     const allRules: Rule[] = [...this.commonRules, ...this.otherRules];
 
     for (const rule of allRules) {
@@ -318,26 +371,37 @@ export class ClientsForm {
           case ForemanClientRuleType.LABEL: {
             const ruleName = this.findName(ForemanClientRuleType.LABEL);
             const f = this.newLabelForm(
-                ruleName, rule.label?.matchMode,
-                rule.label?.labelNames ? [...rule.label?.labelNames] :
-                                         undefined);
+              ruleName,
+              rule.label?.matchMode,
+              rule.label?.labelNames ? [...rule.label?.labelNames] : undefined,
+            );
             this.conditions().push(f);
             break;
           }
           case ForemanClientRuleType.INTEGER: {
             const ruleName = this.findName(
-                ForemanClientRuleType.INTEGER, rule.integer?.field);
+              ForemanClientRuleType.INTEGER,
+              rule.integer?.field,
+            );
             const f = this.newIntegerForm(
-                ruleName, rule.integer?.field, rule.integer?.operator,
-                BigInt(rule.integer?.value ?? 0));
+              ruleName,
+              rule.integer?.field,
+              rule.integer?.operator,
+              BigInt(rule.integer?.value ?? 0),
+            );
             this.conditions().push(f);
             break;
           }
           case ForemanClientRuleType.REGEX: {
-            const ruleName =
-                this.findName(ForemanClientRuleType.REGEX, rule.regex?.field);
+            const ruleName = this.findName(
+              ForemanClientRuleType.REGEX,
+              rule.regex?.field,
+            );
             const f = this.newRegexForm(
-                ruleName, rule.integer?.field, rule.regex?.attributeRegex);
+              ruleName,
+              rule.integer?.field,
+              rule.regex?.attributeRegex,
+            );
             this.conditions().push(f);
             break;
           }
@@ -348,7 +412,7 @@ export class ClientsForm {
             const options = {
               'Windows': rule.os?.osWindows ?? false,
               'Linux': rule.os?.osLinux ?? false,
-              'Darwin': rule.os?.osDarwin ?? false
+              'Darwin': rule.os?.osDarwin ?? false,
             };
             const f = this.newOsForm(ruleName, options);
             this.conditions().push(f);
@@ -369,8 +433,9 @@ export class ClientsForm {
       switch (control.get('type')!.value) {
         case ForemanClientRuleType.LABEL: {
           const namesFormArray = control.get('names') as FormArray;
-          const labelNames =
-              namesFormArray.controls.map(formCtrl => formCtrl.value);
+          const labelNames = namesFormArray.controls.map(
+            (formCtrl) => formCtrl.value,
+          );
           const labelRule: ForemanLabelClientRule = {
             labelNames,
             matchMode: control.get('matchMode')!.value,
@@ -427,7 +492,6 @@ export class ClientsForm {
       rules: rulesArray,
     };
   }
-
 
   @HostBinding('class.closed') hideContent = false;
 

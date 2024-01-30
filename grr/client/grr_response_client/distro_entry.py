@@ -7,8 +7,9 @@ from absl import app
 
 
 def FleetspeakClient():
-  from grr_response_client import grr_fs_client
-  app.run(grr_fs_client.main)
+  from grr_response_client import client
+
+  app.run(client.main)
 
 
 def FleetspeakClientWrapper():

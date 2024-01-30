@@ -6,8 +6,9 @@ import random
 import string
 from typing import Any, Callable, Dict, Iterable, Optional, Text
 
+from grr_response_core.lib import rdfvalue
+from grr_response_proto import flows_pb2
 from grr_response_server.databases import db as abstract_db
-from grr_response_server.rdfvalues import cronjobs as rdf_cronjobs
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import hunt_objects as rdf_hunt_objects
 from grr_response_proto.rrg import startup_pb2 as rrg_startup_pb2
@@ -19,10 +20,12 @@ class QueryTestHelpersMixin(object):
   # Pytype does not work well with mixins.
   # pytype: disable=attribute-error
 
-  def DoOffsetAndCountTest(self,
-                           fetch_all_fn: Callable[[], Iterable[Any]],
-                           fetch_range_fn: Callable[[int, int], Iterable[Any]],
-                           error_desc: Optional[Text] = None):
+  def DoOffsetAndCountTest(
+      self,
+      fetch_all_fn: Callable[[], Iterable[Any]],
+      fetch_range_fn: Callable[[int, int], Iterable[Any]],
+      error_desc: Optional[Text] = None,
+  ):
     """Tests a DB API method with different offset/count combinations.
 
     This helper method works by first fetching all available objects with
@@ -35,29 +38,39 @@ class QueryTestHelpersMixin(object):
         objects using the API method that's being tested.
       fetch_range_fn: Function that calls an API method that's being tested
         passing 2 positional arguments: offset and count. It should return a
-          list of objects.
+        list of objects.
       error_desc: Optional string to be used in error messages. May be useful to
         identify errors from a particular test.
     """
     all_objects = list(fetch_all_fn())
-    self.assertNotEmpty(all_objects,
-                        "Fetched objects can't be empty (%s)." % error_desc)
+    self.assertNotEmpty(
+        all_objects, "Fetched objects can't be empty (%s)." % error_desc
+    )
 
     for i in range(len(all_objects)):
       for l in range(1, len(all_objects) + 1):
         results = list(fetch_range_fn(i, l))
-        expected = list(all_objects[i:i + l])
+        expected = list(all_objects[i : i + l])
 
         self.assertListEqual(
-            results, expected,
-            "Results differ from expected (offset %d, count %d%s): %s vs %s" %
-            (i, l,
-             (", " + error_desc) if error_desc else "", results, expected))
+            results,
+            expected,
+            "Results differ from expected (offset %d, count %d%s): %s vs %s"
+            % (
+                i,
+                l,
+                (", " + error_desc) if error_desc else "",
+                results,
+                expected,
+            ),
+        )
 
-  def DoFilterCombinationsTest(self,
-                               fetch_fn: Callable[..., Iterable[Any]],
-                               conditions: Dict[Text, Any],
-                               error_desc: Optional[Text] = None):
+  def DoFilterCombinationsTest(
+      self,
+      fetch_fn: Callable[..., Iterable[Any]],
+      conditions: Dict[Text, Any],
+      error_desc: Optional[Text] = None,
+  ):
     """Tests a DB API method with different keyword arguments combinations.
 
     This test method works by fetching sets of objects for each individual
@@ -78,9 +91,9 @@ class QueryTestHelpersMixin(object):
     perms = list(
         itertools.chain.from_iterable([
             itertools.combinations(sorted(conditions.keys()), i)
-            for i in range(1,
-                           len(conditions) + 1)
-        ]))
+            for i in range(1, len(conditions) + 1)
+        ])
+    )
     self.assertNotEmpty(perms)
 
     all_objects = fetch_fn()
@@ -99,17 +112,26 @@ class QueryTestHelpersMixin(object):
 
       # Make sure that the order of keys->values is stable in the error message.
       kw_args_str = ", ".join(
-          "%r: %r" % (k, kw_args[k]) for k in sorted(kw_args))
+          "%r: %r" % (k, kw_args[k]) for k in sorted(kw_args)
+      )
       self.assertListEqual(
-          got, expected, "Results differ from expected ({%s}%s): %s vs %s" %
-          (kw_args_str,
-           (", " + error_desc) if error_desc else "", got, expected))
+          got,
+          expected,
+          "Results differ from expected ({%s}%s): %s vs %s"
+          % (
+              kw_args_str,
+              (", " + error_desc) if error_desc else "",
+              got,
+              expected,
+          ),
+      )
 
-  def DoFilterCombinationsAndOffsetCountTest(self,
-                                             fetch_fn: Callable[...,
-                                                                Iterable[Any]],
-                                             conditions: Dict[Text, Any],
-                                             error_desc: Optional[Text] = None):
+  def DoFilterCombinationsAndOffsetCountTest(
+      self,
+      fetch_fn: Callable[..., Iterable[Any]],
+      conditions: Dict[Text, Any],
+      error_desc: Optional[Text] = None,
+  ):
     """Tests a DB API methods with combinations of offset/count args and kwargs.
 
     This test methods works in 2 steps:
@@ -132,14 +154,15 @@ class QueryTestHelpersMixin(object):
     self.DoFilterCombinationsTest(
         lambda **kw_args: fetch_fn(0, abstract_db.MAX_COUNT, **kw_args),
         conditions,
-        error_desc=error_desc)
+        error_desc=error_desc,
+    )
 
     perms = list(
         itertools.chain.from_iterable([
             itertools.combinations(sorted(conditions.keys()), i)
-            for i in range(1,
-                           len(conditions) + 1)
-        ]))
+            for i in range(1, len(conditions) + 1)
+        ])
+    )
     self.assertNotEmpty(perms)
 
     for condition_perm in perms:
@@ -149,12 +172,13 @@ class QueryTestHelpersMixin(object):
 
       # Make sure that the order of keys->values is stable in the error message.
       kw_args_str = ", ".join(
-          "%r: %r" % (k, kw_args[k]) for k in sorted(kw_args))
+          "%r: %r" % (k, kw_args[k]) for k in sorted(kw_args)
+      )
       self.DoOffsetAndCountTest(
           lambda: fetch_fn(0, abstract_db.MAX_COUNT, **kw_args),  # pylint: disable=cell-var-from-loop
           lambda offset, count: fetch_fn(offset, count, **kw_args),  # pylint: disable=cell-var-from-loop
-          error_desc="{%s}%s" %
-          (kw_args_str, ", " + error_desc) if error_desc else "")
+          error_desc=f"{{{kw_args_str}}}, {error_desc}" if error_desc else "",
+      )
 
   # pytype: enable=attribute-error
 
@@ -232,6 +256,8 @@ def InitializeFlow(
     db: abstract_db.Database,
     client_id: str,
     flow_id: Optional[str] = None,
+    parent_flow_id: Optional[str] = None,
+    parent_hunt_id: Optional[str] = None,
     **kwargs,
 ) -> str:
   """Initializes a test flow.
@@ -241,6 +267,8 @@ def InitializeFlow(
     client_id: A client id of the client to run the flow on.
     flow_id: A specific flow id to use for initialized flow. If none is provided
       a randomly generated one is used.
+    parent_flow_id: Identifier of the parent flow (optional).
+    parent_hunt_id: Identifier of the parent hunt (optional).
     **kwargs: Parameters to initialize the flow object with.
 
   Returns:
@@ -253,6 +281,13 @@ def InitializeFlow(
   flow_obj = rdf_flow_objects.Flow(**kwargs)
   flow_obj.client_id = client_id
   flow_obj.flow_id = flow_id
+
+  if parent_flow_id is not None:
+    flow_obj.parent_flow_id = parent_flow_id
+
+  if parent_hunt_id is not None:
+    flow_obj.parent_hunt_id = parent_hunt_id
+
   db.WriteFlowObject(flow_obj)
 
   return flow_id
@@ -307,8 +342,10 @@ def InitializeCronJob(
     random_char = lambda: random.choice(string.ascii_uppercase)
     cron_job_id = "".join(random_char() for _ in range(8))
 
-  cron_job = rdf_cronjobs.CronJob()
-  cron_job.cron_job_id = cron_job_id
-  db.WriteCronJob(cron_job)
+  job = flows_pb2.CronJob(
+      cron_job_id=cron_job_id,
+      created_at=rdfvalue.RDFDatetime.Now().AsMicrosecondsSinceEpoch(),
+  )
+  db.WriteCronJob(job)
 
   return cron_job_id

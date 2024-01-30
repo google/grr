@@ -1,9 +1,15 @@
 import {ChangeDetectionStrategy, Component} from '@angular/core';
 import {FormControl} from '@angular/forms';
 
-import {ControlValues, FlowArgumentForm} from '../../components/flow_args_form/form_interface';
+import {
+  ControlValues,
+  FlowArgumentForm,
+} from '../../components/flow_args_form/form_interface';
 import {TimelineArgs} from '../../lib/api/api_interfaces';
-import {decodeBase64ToString, encodeStringToBase64} from '../../lib/api_translation/primitive';
+import {
+  decodeBase64ToString,
+  encodeStringToBase64,
+} from '../../lib/api_translation/primitive';
 
 function makeControls() {
   return {
@@ -29,8 +35,9 @@ export class TimelineForm extends FlowArgumentForm<TimelineArgs, Controls> {
 
   override convertFlowArgsToFormState(flowArgs: TimelineArgs) {
     return {
-      root: flowArgs.root ? decodeBase64ToString(flowArgs.root) :
-                            this.controls.root.defaultValue,
+      root: flowArgs.root
+        ? decodeBase64ToString(flowArgs.root)
+        : this.controls.root.defaultValue,
     };
   }
 

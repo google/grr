@@ -7,11 +7,8 @@ import {TextWithLinks} from './text_with_links';
  * Module for the Linkify component.
  */
 @NgModule({
-  imports: [
-    CommonModule,
-  ],
+  imports: [CommonModule],
   declarations: [TextWithLinks],
-  exports: [TextWithLinks]
+  exports: [TextWithLinks],
 })
-export class TextWithLinksModule {
-}
+export class TextWithLinksModule {}

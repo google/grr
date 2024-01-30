@@ -5,7 +5,7 @@ import functools
 import logging
 import re
 import traceback
-from typing import Any, Callable, Iterator, Mapping, NamedTuple, Optional, Sequence, Tuple, Type
+from typing import Any, Callable, Collection, Iterator, Mapping, NamedTuple, Optional, Sequence, Tuple, Type
 
 from google.protobuf import any_pb2
 from google.protobuf import message as pb_message
@@ -16,6 +16,7 @@ from grr_response_core.lib.rdfvalues import protodict as rdf_protodict
 from grr_response_core.lib.rdfvalues import structs as rdf_structs
 from grr_response_core.lib.registry import FlowRegistry
 from grr_response_core.stats import metrics
+from grr_response_proto import flows_pb2
 from grr_response_server import access_control
 from grr_response_server import action_registry
 from grr_response_server import data_store
@@ -30,6 +31,7 @@ from grr_response_server import server_stubs
 from grr_response_server.databases import db
 from grr_response_server.rdfvalues import flow_objects as rdf_flow_objects
 from grr_response_server.rdfvalues import flow_runner as rdf_flow_runner
+from grr_response_server.rdfvalues import mig_flow_objects
 from grr_response_server.rdfvalues import objects as rdf_objects
 from grr_response_proto import rrg_pb2
 
@@ -154,6 +156,8 @@ class FlowBase(metaclass=FlowRegistry):
   category = ""
   friendly_name = None
 
+  block_hunt_creation = False
+
   # Behaviors set attributes of this flow. See FlowBehavior() in
   # grr_response_server/flow.py.
   behaviours = BEHAVIOUR_ADVANCED
@@ -265,6 +269,8 @@ class FlowBase(metaclass=FlowRegistry):
       self,
       action: rrg_pb2.Action,
       args: pb_message.Message,
+      # TODO: Use more pythonic filter wrappers.
+      filters: Collection[rrg_pb2.Filter] = (),
       next_state: Optional[str] = None,
   ) -> None:
     """Invokes a RRG action.
@@ -276,6 +282,7 @@ class FlowBase(metaclass=FlowRegistry):
     Args:
       action: The action to invoke on the endpoint.
       args: Arguments to invoke the action with.
+      filters: Filters to apply to action results.
       next_state: A flow state method to call with action results.
 
     Raises:
@@ -297,6 +304,9 @@ class FlowBase(metaclass=FlowRegistry):
     rrg_request.request_id = request_id
     rrg_request.action = action
     rrg_request.args.Pack(args)
+
+    for rrg_filter in filters:
+      rrg_request.filters.append(rrg_filter)
 
     # TODO: Add support for limits.
 
@@ -677,9 +687,7 @@ class FlowBase(metaclass=FlowRegistry):
       if self.rdf_flow.parent_flow_id:
         self.flow_responses.append(status)
       elif self.rdf_flow.parent_hunt_id:
-        hunt_obj = hunt.StopHuntIfCPUOrNetworkLimitsExceeded(
-            self.rdf_flow.parent_hunt_id)
-        hunt.CompleteHuntIfExpirationTimeReached(hunt_obj)
+        hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.rdf_flow.parent_hunt_id)
 
     self.rdf_flow.flow_state = self.rdf_flow.FlowState.FINISHED
 
@@ -701,11 +709,12 @@ class FlowBase(metaclass=FlowRegistry):
     else:
       message = format_str % args
 
-    log_entry = rdf_flow_objects.FlowLogEntry(
+    log_entry = flows_pb2.FlowLogEntry(
         client_id=self.rdf_flow.client_id,
         flow_id=self.rdf_flow.flow_id,
         hunt_id=self.rdf_flow.parent_hunt_id,
-        message=message)
+        message=message,
+    )
     data_store.REL_DB.WriteFlowLogEntry(log_entry)
 
   def RunStateMethod(
@@ -934,15 +943,26 @@ class FlowBase(metaclass=FlowRegistry):
     if self.replies_to_write:
       # For top-level hunt-induced flows, write results to the hunt collection.
       if self.rdf_flow.parent_hunt_id:
-        data_store.REL_DB.WriteFlowResults(self.replies_to_write)
+        data_store.REL_DB.WriteFlowResults(
+            [
+                mig_flow_objects.ToProtoFlowResult(r)
+                for r in self.replies_to_write
+            ]
+        )
         hunt.StopHuntIfCPUOrNetworkLimitsExceeded(self.rdf_flow.parent_hunt_id)
       else:
         # Write flow results to REL_DB, even if the flow is a nested flow.
-        data_store.REL_DB.WriteFlowResults(self.replies_to_write)
+        data_store.REL_DB.WriteFlowResults(
+            [
+                mig_flow_objects.ToProtoFlowResult(r)
+                for r in self.replies_to_write
+            ]
+        )
       self.replies_to_write = []
 
   def _ProcessRepliesWithHuntOutputPlugins(
-      self, replies: Sequence[rdf_flow_objects.FlowResponse]) -> None:
+      self, replies: Sequence[rdf_flow_objects.FlowResult]
+  ) -> None:
     """Applies output plugins to hunt results."""
     hunt_obj = data_store.REL_DB.ReadHuntObject(self.rdf_flow.parent_hunt_id)
     self.rdf_flow.output_plugins = hunt_obj.output_plugins
@@ -978,7 +998,7 @@ class FlowBase(metaclass=FlowRegistry):
         HUNT_OUTPUT_PLUGIN_ERRORS.Increment(fields=[plugin_def.plugin_name])
 
   def _ProcessRepliesWithFlowOutputPlugins(
-      self, replies: Sequence[rdf_flow_objects.FlowResponse]
+      self, replies: Sequence[rdf_flow_objects.FlowResult]
   ) -> Sequence[Optional[output_plugin_lib.OutputPlugin]]:
     """Processes replies with output plugins."""
     created_output_plugins = []
@@ -991,23 +1011,23 @@ class FlowBase(metaclass=FlowRegistry):
           source_urn=self.rdf_flow.long_flow_id, args=args)
 
       try:
-        # TODO(user): refactor output plugins to use FlowResponse
-        # instead of GrrMessage.
         output_plugin.ProcessResponses(
             output_plugin_state.plugin_state,
-            [r.AsLegacyGrrMessage() for r in replies])
+            replies,
+        )
         output_plugin.Flush(output_plugin_state.plugin_state)
         output_plugin.UpdateState(output_plugin_state.plugin_state)
 
         data_store.REL_DB.WriteFlowOutputPluginLogEntry(
-            rdf_flow_objects.FlowOutputPluginLogEntry(
+            flows_pb2.FlowOutputPluginLogEntry(
                 client_id=self.rdf_flow.client_id,
                 flow_id=self.rdf_flow.flow_id,
                 hunt_id=self.rdf_flow.parent_hunt_id,
                 output_plugin_id="%d" % index,
-                log_entry_type=rdf_flow_objects.FlowOutputPluginLogEntry
-                .LogEntryType.LOG,
-                message="Processed %d replies." % len(replies)))
+                log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.LOG,
+                message="Processed %d replies." % len(replies),
+            )
+        )
 
         self.Log("Plugin %s successfully processed %d flow replies.",
                  plugin_descriptor, len(replies))
@@ -1019,15 +1039,16 @@ class FlowBase(metaclass=FlowRegistry):
         created_output_plugins.append(None)
 
         data_store.REL_DB.WriteFlowOutputPluginLogEntry(
-            rdf_flow_objects.FlowOutputPluginLogEntry(
+            flows_pb2.FlowOutputPluginLogEntry(
                 client_id=self.rdf_flow.client_id,
                 flow_id=self.rdf_flow.flow_id,
                 hunt_id=self.rdf_flow.parent_hunt_id,
                 output_plugin_id="%d" % index,
-                log_entry_type=rdf_flow_objects.FlowOutputPluginLogEntry
-                .LogEntryType.ERROR,
-                message="Error while processing %d replies: %s" %
-                (len(replies), str(e))))
+                log_entry_type=flows_pb2.FlowOutputPluginLogEntry.LogEntryType.ERROR,
+                message="Error while processing %d replies: %s"
+                % (len(replies), str(e)),
+            )
+        )
 
         self.Log("Plugin %s failed to process %d replies due to: %s",
                  plugin_descriptor, len(replies), e)

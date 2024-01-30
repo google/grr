@@ -1,3 +1,4 @@
+// g3-format-changed-lines-during-prettier-version-upgrade
 import {TestbedHarnessEnvironment} from '@angular/cdk/testing/testbed';
 import {TestBed, waitForAsync} from '@angular/core/testing';
 import {MatPaginatorHarness} from '@angular/material/paginator/testing';
@@ -7,9 +8,16 @@ import {ReplaySubject} from 'rxjs';
 
 import {StatEntry} from '../../../lib/api/api_interfaces';
 import {createStatEntry} from '../../../lib/api/api_test_util';
-import {FlowResult, ResultSource, ResultTypeQuery} from '../../../lib/models/flow';
+import {
+  FlowResult,
+  ResultSource,
+  ResultTypeQuery,
+} from '../../../lib/models/flow';
 import {HuntPageGlobalStore} from '../../../store/hunt_page_global_store';
-import {HuntPageGlobalStoreMock, mockHuntPageGlobalStore} from '../../../store/hunt_page_global_store_test_util';
+import {
+  HuntPageGlobalStoreMock,
+  mockHuntPageGlobalStore,
+} from '../../../store/hunt_page_global_store_test_util';
 import {STORE_PROVIDERS} from '../../../store/store_test_providers';
 import {initTestEnvironment} from '../../../testing';
 
@@ -33,31 +41,29 @@ describe('DataTableView component', () => {
   beforeEach(waitForAsync(() => {
     huntPageGlobalStore = mockHuntPageGlobalStore();
     resultSource = mockResultSource();
-    TestBed
-        .configureTestingModule({
-          imports: [
-            DataTableView,
-            NoopAnimationsModule,
-            RouterTestingModule.withRoutes([
-              // Dummy route to stop error when navigating to details.
-              {
-                outlet: 'drawer',
-                path: 'result-details/:id',
-                component: DataTableView
-              },
-            ]),
-          ],
-          providers: [
-            ...STORE_PROVIDERS,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            HuntPageGlobalStore, {useFactory: () => huntPageGlobalStore})
-        .overrideProvider(
-            ResultSource,
-            {useFactory: () => resultSource as ResultSource<unknown>})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        DataTableView,
+        NoopAnimationsModule,
+        RouterTestingModule.withRoutes([
+          // Dummy route to stop error when navigating to details.
+          {
+            outlet: 'drawer',
+            path: 'result-details/:id',
+            component: DataTableView,
+          },
+        ]),
+      ],
+      providers: [...STORE_PROVIDERS],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(HuntPageGlobalStore, {
+        useFactory: () => huntPageGlobalStore,
+      })
+      .overrideProvider(ResultSource, {
+        useFactory: () => resultSource as ResultSource<unknown>,
+      })
+      .compileComponents();
   }));
 
   it('displays translated flow results', () => {
@@ -78,7 +84,7 @@ describe('DataTableView component', () => {
         payloadType: 'StatEntry',
         tag: '',
         payload: {pathspec: {path: '/bar'}} as StatEntry,
-      }
+      },
     ]);
     fixture.detectChanges();
 
@@ -90,15 +96,16 @@ describe('DataTableView component', () => {
       FILE_MODE,
       HASH,
       HUMAN_READABLE_SIZE,
-      TIMESTAMP
+      TIMESTAMP,
     }
 
     let cells = rows[0].querySelectorAll('mat-cell');
     expect(cells[CellIndexOf.PATH].innerText).toContain('/foo');
     expect(cells[CellIndexOf.FILE_MODE].innerText).toContain('-rw-r--r--');
     expect(cells[CellIndexOf.HUMAN_READABLE_SIZE].innerText).toContain('442 B');
-    expect(cells[CellIndexOf.TIMESTAMP].innerText)
-        .toContain('2023-03-30 01:33:20 UTC');
+    expect(cells[CellIndexOf.TIMESTAMP].innerText).toContain(
+      '2023-03-30 01:33:20 UTC',
+    );
 
     cells = rows[1].querySelectorAll('mat-cell');
     expect(cells[CellIndexOf.PATH].innerText).toContain('/bar');
@@ -126,12 +133,15 @@ describe('DataTableView component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const paginationHarness =
-        await harnessLoader.getHarness(MatPaginatorHarness);
+    const paginationHarness = await harnessLoader.getHarness(
+      MatPaginatorHarness,
+    );
     const pageSize = await paginationHarness.getPageSize();
 
-    expect(resultSource.loadResults)
-        .toHaveBeenCalledOnceWith({offset: 0, count: pageSize});
+    expect(resultSource.loadResults).toHaveBeenCalledOnceWith({
+      offset: 0,
+      count: pageSize,
+    });
   });
 
   it('queries next page upon pagination', async () => {
@@ -140,13 +150,16 @@ describe('DataTableView component', () => {
     fixture.detectChanges();
 
     const harnessLoader = TestbedHarnessEnvironment.loader(fixture);
-    const paginationHarness =
-        await harnessLoader.getHarness(MatPaginatorHarness);
+    const paginationHarness = await harnessLoader.getHarness(
+      MatPaginatorHarness,
+    );
     await paginationHarness.goToNextPage();
 
     const pageSize = await paginationHarness.getPageSize();
 
-    expect(resultSource.loadResults)
-        .toHaveBeenCalledWith({offset: pageSize, count: pageSize});
+    expect(resultSource.loadResults).toHaveBeenCalledWith({
+      offset: pageSize,
+      count: pageSize,
+    });
   });
 });

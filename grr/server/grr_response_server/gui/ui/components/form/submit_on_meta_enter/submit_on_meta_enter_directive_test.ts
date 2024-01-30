@@ -1,4 +1,3 @@
-
 import {Component, ElementRef, Input, ViewChild} from '@angular/core';
 import {ComponentFixture, TestBed, waitForAsync} from '@angular/core/testing';
 import {NoopAnimationsModule} from '@angular/platform-browser/animations';
@@ -19,13 +18,14 @@ initTestEnvironment();
     </form>`,
 })
 class TestHostComponent {
-  readonly onSubmit = jasmine.createSpy('submit').and.callFake(event => {
+  readonly onSubmit = jasmine.createSpy('submit').and.callFake((event) => {
     event.preventDefault();
   });
-  readonly onButtonClick =
-      jasmine.createSpy('button:click').and.callFake(event => {
-        event.preventDefault();
-      });
+  readonly onButtonClick = jasmine
+    .createSpy('button:click')
+    .and.callFake((event) => {
+      event.preventDefault();
+    });
 
   @Input() appSubmitOnMetaEnter: boolean = true;
   @Input() appSubmitOnEnter?: boolean = undefined;
@@ -41,18 +41,11 @@ describe('[appSubmitOnMetaEnter] directive', () => {
   let fixture: ComponentFixture<TestHostComponent>;
 
   beforeEach(waitForAsync(() => {
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            SubmitOnMetaEnterModule,
-          ],
-          declarations: [
-            TestHostComponent,
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [NoopAnimationsModule, SubmitOnMetaEnterModule],
+      declarations: [TestHostComponent],
+      teardown: {destroyAfterEach: false},
+    }).compileComponents();
 
     fixture = TestBed.createComponent(TestHostComponent);
     fixture.detectChanges();
@@ -61,7 +54,8 @@ describe('[appSubmitOnMetaEnter] directive', () => {
   it('submits on META+ENTER press', () => {
     expect(fixture.componentInstance.onSubmit).not.toHaveBeenCalled();
     fixture.componentInstance.form.nativeElement.dispatchEvent(
-        new KeyboardEvent('keydown', {key: 'Enter', metaKey: true}));
+      new KeyboardEvent('keydown', {key: 'Enter', metaKey: true}),
+    );
     fixture.detectChanges();
     expect(fixture.componentInstance.onSubmit).toHaveBeenCalledTimes(1);
   });
@@ -69,7 +63,8 @@ describe('[appSubmitOnMetaEnter] directive', () => {
   it('submits on CTRL+ENTER press', () => {
     expect(fixture.componentInstance.onSubmit).not.toHaveBeenCalled();
     fixture.componentInstance.form.nativeElement.dispatchEvent(
-        new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true}));
+      new KeyboardEvent('keydown', {key: 'Enter', ctrlKey: true}),
+    );
     fixture.detectChanges();
     expect(fixture.componentInstance.onSubmit).toHaveBeenCalledTimes(1);
   });

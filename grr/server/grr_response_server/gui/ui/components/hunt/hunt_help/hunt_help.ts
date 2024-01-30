@@ -9,5 +9,4 @@ import {ChangeDetectionStrategy, Component} from '@angular/core';
   styleUrls: ['./hunt_help.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
-export class HuntHelp {
-}
+export class HuntHelp {}

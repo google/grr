@@ -5,13 +5,21 @@ import {NoopAnimationsModule} from '@angular/platform-browser/animations';
 import {ActivatedRoute, Router} from '@angular/router';
 import {RouterTestingModule} from '@angular/router/testing';
 
-import {ApiHuntError, ApiHuntResult, ApiHuntState, Browser} from '../../../lib/api/api_interfaces';
+import {
+  ApiHuntError,
+  ApiHuntResult,
+  ApiHuntState,
+  Browser,
+} from '../../../lib/api/api_interfaces';
 import {HttpApiService} from '../../../lib/api/http_api_service';
 import {mockHttpApiService} from '../../../lib/api/http_api_service_test_util';
 import {translateHuntApproval} from '../../../lib/api_translation/hunt';
 import {getFlowTitleFromFlowName} from '../../../lib/models/flow';
 import {getHuntTitle, HuntState} from '../../../lib/models/hunt';
-import {newFlowDescriptorMap, newHunt} from '../../../lib/models/model_test_util';
+import {
+  newFlowDescriptorMap,
+  newHunt,
+} from '../../../lib/models/model_test_util';
 import {PayloadType} from '../../../lib/models/result';
 import {ConfigGlobalStore} from '../../../store/config_global_store';
 import {mockConfigGlobalStore} from '../../../store/config_global_store_test_util';
@@ -20,8 +28,14 @@ import {mockHuntApprovalLocalStore} from '../../../store/hunt_approval_local_sto
 import {HuntPageGlobalStore} from '../../../store/hunt_page_global_store';
 import {mockHuntPageGlobalStore} from '../../../store/hunt_page_global_store_test_util';
 import {HuntResultDetailsGlobalStore} from '../../../store/hunt_result_details_global_store';
-import {HuntResultDetailsGlobalStoreMock, mockHuntResultDetailsGlobalStore} from '../../../store/hunt_result_details_global_store_test_util';
-import {injectMockStore, STORE_PROVIDERS} from '../../../store/store_test_providers';
+import {
+  HuntResultDetailsGlobalStoreMock,
+  mockHuntResultDetailsGlobalStore,
+} from '../../../store/hunt_result_details_global_store_test_util';
+import {
+  injectMockStore,
+  STORE_PROVIDERS,
+} from '../../../store/store_test_providers';
 import {UserGlobalStore} from '../../../store/user_global_store';
 import {mockUserGlobalStore} from '../../../store/user_global_store_test_util';
 import {getActivatedChildRoute, initTestEnvironment} from '../../../testing';
@@ -47,8 +61,10 @@ async function createHuntPageWithState(state: HuntState) {
   await TestBed.inject(Router).navigate(['hunts/1984']);
   const fixture = TestBed.createComponent(HuntPage);
   fixture.detectChanges();
-  const huntPageLocalStore =
-      injectMockStore(HuntPageGlobalStore, fixture.debugElement);
+  const huntPageLocalStore = injectMockStore(
+    HuntPageGlobalStore,
+    fixture.debugElement,
+  );
   const hunt = {...TEST_HUNT, state};
   huntPageLocalStore.mockedObservables.selectedHunt$.next(hunt);
   fixture.detectChanges();
@@ -63,58 +79,62 @@ describe('hunt page test', () => {
   beforeEach(waitForAsync(() => {
     huntResultDetailsGlobalStore = mockHuntResultDetailsGlobalStore();
 
-    TestBed
-        .configureTestingModule({
-          imports: [
-            NoopAnimationsModule,
-            HuntPageModule,
-            RouterTestingModule.withRoutes([...HUNT_ROUTES]),
-          ],
-          providers: [
-            ...STORE_PROVIDERS,
-            {provide: ActivatedRoute, useFactory: getActivatedChildRoute},
-            {provide: HttpApiService, useFactory: () => httpApiService},
-            {provide: UserGlobalStore, useFactory: mockUserGlobalStore},
-            {
-              provide: HuntResultDetailsGlobalStore,
-              useFactory: () => huntResultDetailsGlobalStore,
-            },
-          ],
-          teardown: {destroyAfterEach: false}
-        })
-        .overrideProvider(
-            HuntPageGlobalStore, {useFactory: mockHuntPageGlobalStore})
-        .overrideProvider(
-            ConfigGlobalStore, {useFactory: mockConfigGlobalStore})
-        .overrideProvider(
-            HuntApprovalLocalStore, {useFactory: mockHuntApprovalLocalStore})
-        .compileComponents();
+    TestBed.configureTestingModule({
+      imports: [
+        NoopAnimationsModule,
+        HuntPageModule,
+        RouterTestingModule.withRoutes([...HUNT_ROUTES]),
+      ],
+      providers: [
+        ...STORE_PROVIDERS,
+        {provide: ActivatedRoute, useFactory: getActivatedChildRoute},
+        {provide: HttpApiService, useFactory: () => httpApiService},
+        {provide: UserGlobalStore, useFactory: mockUserGlobalStore},
+        {
+          provide: HuntResultDetailsGlobalStore,
+          useFactory: () => huntResultDetailsGlobalStore,
+        },
+      ],
+      teardown: {destroyAfterEach: false},
+    })
+      .overrideProvider(HuntPageGlobalStore, {
+        useFactory: mockHuntPageGlobalStore,
+      })
+      .overrideProvider(ConfigGlobalStore, {useFactory: mockConfigGlobalStore})
+      .overrideProvider(HuntApprovalLocalStore, {
+        useFactory: mockHuntApprovalLocalStore,
+      })
+      .compileComponents();
   }));
 
   it('selects huntId based on the route', async () => {
     await TestBed.inject(Router).navigate(['hunts/999']);
     const fixture = TestBed.createComponent(HuntPage);
     fixture.detectChanges();
-    const huntPageLocalStore =
-        injectMockStore(HuntPageGlobalStore, fixture.debugElement);
+    const huntPageLocalStore = injectMockStore(
+      HuntPageGlobalStore,
+      fixture.debugElement,
+    );
     fixture.detectChanges();
 
     expect(huntPageLocalStore.selectHunt).toHaveBeenCalledWith('999');
   });
 
   it('displays basic hunt overview information', async () => {
-    const fixture =
-        (await createHuntPageWithState(HuntState.NOT_STARTED)).fixture;
+    const fixture = (await createHuntPageWithState(HuntState.NOT_STARTED))
+      .fixture;
 
-    const huntOverviewLink =
-        fixture.debugElement.query(By.css('title-editor a'));
+    const huntOverviewLink = fixture.debugElement.query(
+      By.css('title-editor a'),
+    );
     expect(huntOverviewLink.attributes['href']).toBe('/hunts');
 
-    const overviewSection =
-        fixture.debugElement.query(By.css('.hunt-overview'));
+    const overviewSection = fixture.debugElement.query(
+      By.css('.hunt-overview'),
+    );
     expect(
-        overviewSection.query(By.css('title-editor')).nativeElement.textContent)
-        .toContain(getHuntTitle(TEST_HUNT));
+      overviewSection.query(By.css('title-editor')).nativeElement.textContent,
+    ).toContain(getHuntTitle(TEST_HUNT));
     const text = overviewSection.nativeElement.textContent;
     expect(text).toContain('1984');
     expect(text).toContain('buster');
@@ -126,59 +146,70 @@ describe('hunt page test', () => {
 
   describe('displays correct status chip', () => {
     it('not started', async () => {
-      const fixture =
-          (await createHuntPageWithState(HuntState.NOT_STARTED)).fixture;
+      const fixture = (await createHuntPageWithState(HuntState.NOT_STARTED))
+        .fixture;
       const statusChip = fixture.debugElement.query(
-          By.css('.hunt-overview app-hunt-status-chip'));
-      expect(statusChip.nativeElement.textContent)
-          .toContain('Collection not started');
+        By.css('.hunt-overview app-hunt-status-chip'),
+      );
+      expect(statusChip.nativeElement.textContent).toContain(
+        'Collection not started',
+      );
     });
 
     it('client limit', async () => {
-      const fixture =
-          (await createHuntPageWithState(HuntState.REACHED_CLIENT_LIMIT))
-              .fixture;
+      const fixture = (
+        await createHuntPageWithState(HuntState.REACHED_CLIENT_LIMIT)
+      ).fixture;
       const statusChip = fixture.debugElement.query(
-          By.css('.hunt-overview app-hunt-status-chip'));
-      expect(statusChip.nativeElement.textContent)
-          .toContain('Reached client limit  (200 clients)');
+        By.css('.hunt-overview app-hunt-status-chip'),
+      );
+      expect(statusChip.nativeElement.textContent).toContain(
+        'Reached client limit  (200 clients)',
+      );
     });
 
     it('running', async () => {
-      const fixture =
-          (await createHuntPageWithState(HuntState.RUNNING)).fixture;
+      const fixture = (await createHuntPageWithState(HuntState.RUNNING))
+        .fixture;
       const statusChip = fixture.debugElement.query(
-          By.css('.hunt-overview app-hunt-status-chip'));
-      expect(statusChip.nativeElement.textContent)
-          .toContain('Collection running');
+        By.css('.hunt-overview app-hunt-status-chip'),
+      );
+      expect(statusChip.nativeElement.textContent).toContain(
+        'Collection running',
+      );
     });
 
     it('cancelled', async () => {
-      const fixture =
-          (await createHuntPageWithState(HuntState.CANCELLED)).fixture;
+      const fixture = (await createHuntPageWithState(HuntState.CANCELLED))
+        .fixture;
       const statusChip = fixture.debugElement.query(
-          By.css('.hunt-overview app-hunt-status-chip'));
-      expect(statusChip.nativeElement.textContent)
-          .toContain('Collection cancelled');
+        By.css('.hunt-overview app-hunt-status-chip'),
+      );
+      expect(statusChip.nativeElement.textContent).toContain(
+        'Collection cancelled',
+      );
     });
 
     it('client limit', async () => {
-      const fixture =
-          (await createHuntPageWithState(HuntState.REACHED_TIME_LIMIT)).fixture;
+      const fixture = (
+        await createHuntPageWithState(HuntState.REACHED_TIME_LIMIT)
+      ).fixture;
       const statusChip = fixture.debugElement.query(
-          By.css('.hunt-overview app-hunt-status-chip'));
-      expect(statusChip.nativeElement.textContent)
-          .toContain('Reached time limit   (32 seconds)');
+        By.css('.hunt-overview app-hunt-status-chip'),
+      );
+      expect(statusChip.nativeElement.textContent).toContain(
+        'Reached time limit   (32 seconds)',
+      );
     });
   });
 
   describe('displays correct actions', () => {
     it('not started', async () => {
-      const fixture =
-          (await createHuntPageWithState(HuntState.NOT_STARTED)).fixture;
-      const actionsText =
-          fixture.debugElement.query(By.css('.hunt-overview .actions'))
-              .nativeElement.textContent;
+      const fixture = (await createHuntPageWithState(HuntState.NOT_STARTED))
+        .fixture;
+      const actionsText = fixture.debugElement.query(
+        By.css('.hunt-overview .actions'),
+      ).nativeElement.textContent;
       expect(actionsText).toContain('Copy and tweak');
       expect(actionsText).toContain('Cancel collection');
       expect(actionsText).toContain('Start collection');
@@ -186,12 +217,12 @@ describe('hunt page test', () => {
     });
 
     it('paused', async () => {
-      const fixture =
-          (await createHuntPageWithState(HuntState.REACHED_CLIENT_LIMIT))
-              .fixture;
-      const actionsText =
-          fixture.debugElement.query(By.css('.hunt-overview .actions'))
-              .nativeElement.textContent;
+      const fixture = (
+        await createHuntPageWithState(HuntState.REACHED_CLIENT_LIMIT)
+      ).fixture;
+      const actionsText = fixture.debugElement.query(
+        By.css('.hunt-overview .actions'),
+      ).nativeElement.textContent;
       expect(actionsText).toContain('Copy and tweak');
       expect(actionsText).toContain('Cancel collection');
       expect(actionsText).not.toContain('Restart collection');
@@ -199,42 +230,46 @@ describe('hunt page test', () => {
     });
 
     it('running', async () => {
-      const fixture =
-          (await createHuntPageWithState(HuntState.RUNNING)).fixture;
-      const actionsText =
-          fixture.debugElement.query(By.css('.hunt-overview .actions'))
-              .nativeElement.textContent;
+      const fixture = (await createHuntPageWithState(HuntState.RUNNING))
+        .fixture;
+      const actionsText = fixture.debugElement.query(
+        By.css('.hunt-overview .actions'),
+      ).nativeElement.textContent;
       expect(actionsText).toContain('Copy and tweak');
       expect(actionsText).toContain('Cancel collection');
       expect(actionsText).not.toContain('Start collection');
-      expect(actionsText)
-          .not.toContain('Change rollout parameters and continue');
+      expect(actionsText).not.toContain(
+        'Change rollout parameters and continue',
+      );
     });
 
     it('cancelled', async () => {
-      const fixture =
-          (await createHuntPageWithState(HuntState.CANCELLED)).fixture;
-      const actionsText =
-          fixture.debugElement.query(By.css('.hunt-overview .actions'))
-              .nativeElement.textContent;
+      const fixture = (await createHuntPageWithState(HuntState.CANCELLED))
+        .fixture;
+      const actionsText = fixture.debugElement.query(
+        By.css('.hunt-overview .actions'),
+      ).nativeElement.textContent;
       expect(actionsText).toContain('Copy and tweak');
       expect(actionsText).not.toContain('Cancel collection');
       expect(actionsText).not.toContain('Start collection');
-      expect(actionsText)
-          .not.toContain('Change rollout parameters and continue');
+      expect(actionsText).not.toContain(
+        'Change rollout parameters and continue',
+      );
     });
 
     it('completed', async () => {
-      const fixture =
-          (await createHuntPageWithState(HuntState.REACHED_TIME_LIMIT)).fixture;
-      const actionsText =
-          fixture.debugElement.query(By.css('.hunt-overview .actions'))
-              .nativeElement.textContent;
+      const fixture = (
+        await createHuntPageWithState(HuntState.REACHED_TIME_LIMIT)
+      ).fixture;
+      const actionsText = fixture.debugElement.query(
+        By.css('.hunt-overview .actions'),
+      ).nativeElement.textContent;
       expect(actionsText).toContain('Copy and tweak');
       expect(actionsText).not.toContain('Cancel collection');
       expect(actionsText).not.toContain('Restart collection');
-      expect(actionsText)
-          .not.toContain('Change rollout parameters and continue');
+      expect(actionsText).not.toContain(
+        'Change rollout parameters and continue',
+      );
     });
   });
 
@@ -242,28 +277,36 @@ describe('hunt page test', () => {
     await TestBed.inject(Router).navigate(['hunts/1984']);
     const fixture = TestBed.createComponent(HuntPage);
     fixture.detectChanges();
-    const huntPageLocalStore =
-        injectMockStore(HuntPageGlobalStore, fixture.debugElement);
+    const huntPageLocalStore = injectMockStore(
+      HuntPageGlobalStore,
+      fixture.debugElement,
+    );
     const flowName = 'CollectBrowserHistory';
-    huntPageLocalStore.mockedObservables.selectedHunt$.next(newHunt({
-      flowName,
-      flowArgs: {
-        '@type':
+    huntPageLocalStore.mockedObservables.selectedHunt$.next(
+      newHunt({
+        flowName,
+        flowArgs: {
+          '@type':
             'type.googleapis.com/grr.CollectBrowserHistoryArgs',
-        'browsers': [Browser.CHROME]
-      },
-    }));
-    const configGlobalStore =
-        injectMockStore(ConfigGlobalStore, fixture.debugElement);
+          'browsers': [Browser.CHROME],
+        },
+      }),
+    );
+    const configGlobalStore = injectMockStore(
+      ConfigGlobalStore,
+      fixture.debugElement,
+    );
     configGlobalStore.mockedObservables.flowDescriptors$.next(
-        newFlowDescriptorMap({
-          name: flowName,
-          friendlyName: 'Browser History',
-        }));
+      newFlowDescriptorMap({
+        name: flowName,
+        friendlyName: 'Browser History',
+      }),
+    );
     fixture.detectChanges();
 
-    const showFlowParams =
-        fixture.debugElement.query(By.css('.flow-params-button'));
+    const showFlowParams = fixture.debugElement.query(
+      By.css('.flow-params-button'),
+    );
     showFlowParams.nativeElement.click();
     fixture.detectChanges();
 
@@ -281,8 +324,9 @@ describe('hunt page test', () => {
     const fixture = testData.fixture;
     const huntPageLocalStore = testData.huntPageLocalStore;
 
-    const cancelButton =
-        fixture.debugElement.query(By.css('button[name=cancel-button]'));
+    const cancelButton = fixture.debugElement.query(
+      By.css('button[name=cancel-button]'),
+    );
     cancelButton.nativeElement.click();
     expect(huntPageLocalStore.cancelHunt).toHaveBeenCalledTimes(1);
   });
@@ -292,42 +336,49 @@ describe('hunt page test', () => {
     const fixture = testData.fixture;
     const huntPageLocalStore = testData.huntPageLocalStore;
 
-    const startButton =
-        fixture.debugElement.query(By.css('button[name=start-button]'));
+    const startButton = fixture.debugElement.query(
+      By.css('button[name=start-button]'),
+    );
     startButton.nativeElement.click();
     expect(huntPageLocalStore.startHunt).toHaveBeenCalledTimes(1);
   });
 
   it('Cancel and Start buttons are disabled when no access', async () => {
-    const fixture =
-        (await createHuntPageWithState(HuntState.NOT_STARTED)).fixture;
-    const huntApprovalLocalStore =
-        injectMockStore(HuntApprovalLocalStore, fixture.debugElement);
+    const fixture = (await createHuntPageWithState(HuntState.NOT_STARTED))
+      .fixture;
+    const huntApprovalLocalStore = injectMockStore(
+      HuntApprovalLocalStore,
+      fixture.debugElement,
+    );
     huntApprovalLocalStore.mockedObservables.hasAccess$.next(false);
     fixture.detectChanges();
 
-    const cancelButton =
-        fixture.debugElement.query(By.css('button[name=cancel-button]'));
+    const cancelButton = fixture.debugElement.query(
+      By.css('button[name=cancel-button]'),
+    );
     expect(cancelButton.nativeElement.disabled).toBe(true);
-    const startButton =
-        fixture.debugElement.query(By.css('button[name=start-button]'));
+    const startButton = fixture.debugElement.query(
+      By.css('button[name=start-button]'),
+    );
     expect(startButton.nativeElement.disabled).toBe(true);
   });
 
   it('does not display progress/results when not started', async () => {
-    const fixture =
-        (await createHuntPageWithState(HuntState.NOT_STARTED)).fixture;
+    const fixture = (await createHuntPageWithState(HuntState.NOT_STARTED))
+      .fixture;
 
     expect(fixture.debugElement.query(By.css('app-hunt-progress'))).toBeNull();
     expect(fixture.debugElement.query(By.css('app-hunt-results'))).toBeNull();
   });
 
   it('displays progress/results when other state', async () => {
-    const fixture =
-        (await createHuntPageWithState(HuntState.REACHED_CLIENT_LIMIT)).fixture;
+    const fixture = (
+      await createHuntPageWithState(HuntState.REACHED_CLIENT_LIMIT)
+    ).fixture;
 
-    expect(fixture.debugElement.query(By.css('app-hunt-progress')))
-        .toBeTruthy();
+    expect(
+      fixture.debugElement.query(By.css('app-hunt-progress')),
+    ).toBeTruthy();
     expect(fixture.debugElement.query(By.css('app-hunt-results'))).toBeTruthy();
   });
 
@@ -335,71 +386,79 @@ describe('hunt page test', () => {
     await TestBed.inject(Router).navigate(['hunts/1984']);
     const fixture = TestBed.createComponent(HuntPage);
     fixture.detectChanges();
-    const huntPageLocalStore =
-        injectMockStore(HuntPageGlobalStore, fixture.debugElement);
-    huntPageLocalStore.mockedObservables.selectedHunt$.next(newHunt({
-      allClientsCount: BigInt(10),
-      completedClientsCount: BigInt(3),
-      remainingClientsCount: BigInt(7),
-      clientsWithResultsCount: BigInt(1),
-    }));
+    const huntPageLocalStore = injectMockStore(
+      HuntPageGlobalStore,
+      fixture.debugElement,
+    );
+    huntPageLocalStore.mockedObservables.selectedHunt$.next(
+      newHunt({
+        allClientsCount: BigInt(10),
+        completedClientsCount: BigInt(3),
+        remainingClientsCount: BigInt(7),
+        clientsWithResultsCount: BigInt(1),
+      }),
+    );
     fixture.detectChanges();
 
-    const overviewSection =
-        fixture.debugElement.query(By.css('app-hunt-progress'));
+    const overviewSection = fixture.debugElement.query(
+      By.css('app-hunt-progress'),
+    );
     const text = overviewSection.nativeElement.textContent;
     expect(text).toContain('Total progress');
     expect(text).toContain('~ 10 clients');
-    expect(text).toContain('30 %');  // Complete
-    expect(text).toContain('70 %');  // In progress
-    expect(text).toContain('20 %');  // No results
-    expect(text).toContain('10 %');  // With results
+    expect(text).toContain('30 %'); // Complete
+    expect(text).toContain('70 %'); // In progress
+    expect(text).toContain('20 %'); // No results
+    expect(text).toContain('10 %'); // With results
   });
 
-  it('modify hunt button navigates to modify hunt drawer',
-     fakeAsync(async () => {
-       await TestBed.inject(Router).navigate(['hunts/1984']);
-       const location: Location = TestBed.inject(Location);
+  it('modify hunt button navigates to modify hunt drawer', fakeAsync(async () => {
+    await TestBed.inject(Router).navigate(['hunts/1984']);
+    const location: Location = TestBed.inject(Location);
 
-       const fixture = TestBed.createComponent(HuntPage);
-       fixture.detectChanges();
-       const huntPageLocalStore =
-           injectMockStore(HuntPageGlobalStore, fixture.debugElement);
-       huntPageLocalStore.mockedObservables.selectedHunt$.next(newHunt({
-         huntId: '1984',
-         description: 'Ghost',
-         creator: 'buster',
-         state: HuntState.REACHED_CLIENT_LIMIT,
-       }));
-       fixture.detectChanges();
+    const fixture = TestBed.createComponent(HuntPage);
+    fixture.detectChanges();
+    const huntPageLocalStore = injectMockStore(
+      HuntPageGlobalStore,
+      fixture.debugElement,
+    );
+    huntPageLocalStore.mockedObservables.selectedHunt$.next(
+      newHunt({
+        huntId: '1984',
+        description: 'Ghost',
+        creator: 'buster',
+        state: HuntState.REACHED_CLIENT_LIMIT,
+      }),
+    );
+    fixture.detectChanges();
 
-       const modifyHuntButton =
-           fixture.debugElement.query(By.css('a[name=modify-button]'));
-       modifyHuntButton.nativeElement.click();
+    const modifyHuntButton = fixture.debugElement.query(
+      By.css('a[name=modify-button]'),
+    );
+    modifyHuntButton.nativeElement.click();
 
-       fixture.detectChanges();
-       tick();  // after tick(), URL changes will have taken into effect.
+    fixture.detectChanges();
+    tick(); // after tick(), URL changes will have taken into effect.
 
-       expect(location.path()).toBe('/hunts/1984(drawer:modify-hunt)');
-     }));
+    expect(location.path()).toBe('/hunts/1984(drawer:modify-hunt)');
+  }));
 
-  it('Copy button navigates to new hunt page with correct param',
-     fakeAsync(async () => {
-       await TestBed.inject(Router).navigate(['hunts/1984']);
-       const location: Location = TestBed.inject(Location);
+  it('Copy button navigates to new hunt page with correct param', fakeAsync(async () => {
+    await TestBed.inject(Router).navigate(['hunts/1984']);
+    const location: Location = TestBed.inject(Location);
 
-       const fixture =
-           (await createHuntPageWithState(HuntState.RUNNING)).fixture;
+    const fixture = (await createHuntPageWithState(HuntState.RUNNING)).fixture;
 
-       const copyHuntButton =
-           fixture.debugElement.query(By.css('button[name=copy-button]'));
-       copyHuntButton.nativeElement.click();
+    const copyHuntButton = fixture.debugElement.query(
+      By.css('button[name=copy-button]'),
+    );
+    copyHuntButton.nativeElement.click();
 
-       fixture.detectChanges();
-       tick();  // after tick(), URL changes will have taken into effect.
+    fixture.detectChanges();
+    tick(); // after tick(), URL changes will have taken into effect.
 
-       expect(location.path()).toBe('/new-hunt?huntId=1984');
-     }));
+    expect(location.path()).toBe('/new-hunt?huntId=1984');
+  }));
 
   it('does not display approval component if disabled', async () => {
     await TestBed.inject(Router).navigate(['hunts/1984']);
@@ -436,102 +495,107 @@ describe('hunt page test', () => {
   });
 
   it('displays correct approval information on card', fakeAsync(async () => {
-       await TestBed.inject(Router).navigate(['hunts/1984']);
-       const fixture = TestBed.createComponent(HuntPage);
-       fixture.detectChanges();
-       injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
-         name: 'approver',
-         canaryMode: false,
-         huntApprovalRequired: true,
-       });
-       const huntApprovalLocalStore =
-           injectMockStore(HuntApprovalLocalStore, fixture.debugElement);
-       huntApprovalLocalStore.mockedObservables.latestApproval$.next(
-           translateHuntApproval({
-             subject: {
-               huntId: 'hunt_1234',
-               creator: 'creator',
-               name: 'name',
-               state: ApiHuntState.PAUSED,
-               created: '12345',
-               huntRunnerArgs: {clientRate: 0},
-               flowArgs: {},
-               flowName: 'name',
-             },
-             id: '2',
-             reason: 'Pending reason',
-             requestor: 'requestor',
-             isValid: false,
-             isValidMessage: 'Need at least 1 more approvers.',
-             approvers: ['approver'],
-             notifiedUsers: ['b', 'c'],
-           }));
-       fixture.detectChanges();
+    await TestBed.inject(Router).navigate(['hunts/1984']);
+    const fixture = TestBed.createComponent(HuntPage);
+    fixture.detectChanges();
+    injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
+      name: 'approver',
+      canaryMode: false,
+      huntApprovalRequired: true,
+    });
+    const huntApprovalLocalStore = injectMockStore(
+      HuntApprovalLocalStore,
+      fixture.debugElement,
+    );
+    huntApprovalLocalStore.mockedObservables.latestApproval$.next(
+      translateHuntApproval({
+        subject: {
+          huntId: 'hunt_1234',
+          creator: 'creator',
+          name: 'name',
+          state: ApiHuntState.PAUSED,
+          created: '12345',
+          huntRunnerArgs: {clientRate: 0},
+          flowArgs: {},
+          flowName: 'name',
+        },
+        id: '2',
+        reason: 'Pending reason',
+        requestor: 'requestor',
+        isValid: false,
+        isValidMessage: 'Need at least 1 more approvers.',
+        approvers: ['approver'],
+        notifiedUsers: ['b', 'c'],
+      }),
+    );
+    fixture.detectChanges();
 
-       expect(fixture.componentInstance.approvalCard).toBeDefined();
-       expect(fixture.nativeElement.textContent).toContain('b');
-       expect(fixture.nativeElement.textContent).toContain('c');
-       expect(fixture.nativeElement.textContent).toContain('Pending reason');
-       expect(fixture.nativeElement.textContent).toContain('Send new request');
-     }));
+    expect(fixture.componentInstance.approvalCard).toBeDefined();
+    expect(fixture.nativeElement.textContent).toContain('b');
+    expect(fixture.nativeElement.textContent).toContain('c');
+    expect(fixture.nativeElement.textContent).toContain('Pending reason');
+    expect(fixture.nativeElement.textContent).toContain('Send new request');
+  }));
 
-  it('Hides approval card content by default if there is no approval',
-     async () => {
-       await TestBed.inject(Router).navigate(['hunts/1984']);
-       const fixture = TestBed.createComponent(HuntPage);
-       injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
-         name: 'approver',
-         canaryMode: false,
-         huntApprovalRequired: true,
-       });
-       injectMockStore(HuntApprovalLocalStore)
-           .mockedObservables.latestApproval$.next(null);
-       fixture.detectChanges();
+  it('Hides approval card content by default if there is no approval', async () => {
+    await TestBed.inject(Router).navigate(['hunts/1984']);
+    const fixture = TestBed.createComponent(HuntPage);
+    injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
+      name: 'approver',
+      canaryMode: false,
+      huntApprovalRequired: true,
+    });
+    injectMockStore(
+      HuntApprovalLocalStore,
+    ).mockedObservables.latestApproval$.next(null);
+    fixture.detectChanges();
 
-       const approvalCard = fixture.componentInstance.approvalCard;
-       expect(approvalCard).toBeDefined();
+    const approvalCard = fixture.componentInstance.approvalCard;
+    expect(approvalCard).toBeDefined();
 
-       const approvalCardContent =
-           fixture.debugElement.query(By.css('approval-card .content'));
-       expect(approvalCardContent.nativeNode.clientHeight).toBe(0);
-     });
+    const approvalCardContent = fixture.debugElement.query(
+      By.css('approval-card .content'),
+    );
+    expect(approvalCardContent.nativeNode.clientHeight).toBe(0);
+  });
 
-  it('Does not close the approval card after receiving a polled empty-approval',
-     async () => {
-       await TestBed.inject(Router).navigate(['hunts/1984']);
-       const fixture = TestBed.createComponent(HuntPage);
-       fixture.detectChanges();
+  it('Does not close the approval card after receiving a polled empty-approval', async () => {
+    await TestBed.inject(Router).navigate(['hunts/1984']);
+    const fixture = TestBed.createComponent(HuntPage);
+    fixture.detectChanges();
 
-       injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
-         name: 'approver',
-         canaryMode: false,
-         huntApprovalRequired: true,
-       });
-       const mockHuntApprovalStore = injectMockStore(HuntApprovalLocalStore);
-       mockHuntApprovalStore.mockedObservables.latestApproval$.next(null);
-       fixture.detectChanges();
+    injectMockStore(UserGlobalStore).mockedObservables.currentUser$.next({
+      name: 'approver',
+      canaryMode: false,
+      huntApprovalRequired: true,
+    });
+    const mockHuntApprovalStore = injectMockStore(HuntApprovalLocalStore);
+    mockHuntApprovalStore.mockedObservables.latestApproval$.next(null);
+    fixture.detectChanges();
 
-       const approvalCard = fixture.componentInstance.approvalCard;
-       expect(approvalCard).toBeDefined();
+    const approvalCard = fixture.componentInstance.approvalCard;
+    expect(approvalCard).toBeDefined();
 
-       const approvalCardContent =
-           fixture.debugElement.query(By.css('approval-card .content'));
-       expect(approvalCardContent.nativeNode.clientHeight).toBe(0);
+    const approvalCardContent = fixture.debugElement.query(
+      By.css('approval-card .content'),
+    );
+    expect(approvalCardContent.nativeNode.clientHeight).toBe(0);
 
-       const approvalCardHeader =
-           fixture.debugElement.query(By.css('approval-card .header'));
-       expect(approvalCardHeader).toBeDefined();
+    const approvalCardHeader = fixture.debugElement.query(
+      By.css('approval-card .header'),
+    );
+    expect(approvalCardHeader).toBeDefined();
 
-       approvalCardHeader.nativeElement.click();
-       fixture.detectChanges();
+    approvalCardHeader.nativeElement.click();
+    fixture.detectChanges();
 
-       expect(approvalCardContent.nativeNode.clientHeight).not.toBe(0);
+    expect(approvalCardContent.nativeNode.clientHeight).not.toBe(0);
 
-       mockHuntApprovalStore.mockedObservables.latestApproval$.next(null);
-       fixture.detectChanges();
+    mockHuntApprovalStore.mockedObservables.latestApproval$.next(null);
+    fixture.detectChanges();
 
-       expect(approvalCardContent.nativeNode.clientHeight).not.toBe(0);
-     });
+    expect(approvalCardContent.nativeNode.clientHeight).not.toBe(0);
+  });
 
   describe('Hunt Result/Error selection', () => {
     it('catches the hunt result selection event', () => {
@@ -540,15 +604,19 @@ describe('hunt page test', () => {
 
       component.huntId = TEST_HUNT.huntId;
 
-      const huntPageLocalStore =
-          injectMockStore(HuntPageGlobalStore, fixture.debugElement);
+      const huntPageLocalStore = injectMockStore(
+        HuntPageGlobalStore,
+        fixture.debugElement,
+      );
 
       huntPageLocalStore.mockedObservables.selectedHunt$.next(TEST_HUNT);
-      huntPageLocalStore.mockedObservables.huntResultTabs$.next([{
-        tabName: 'User',
-        totalResultsCount: 1,
-        payloadType: PayloadType.USER,
-      }]);
+      huntPageLocalStore.mockedObservables.huntResultTabs$.next([
+        {
+          tabName: 'User',
+          totalResultsCount: 1,
+          payloadType: PayloadType.USER,
+        },
+      ]);
 
       fixture.detectChanges();
 
@@ -558,12 +626,13 @@ describe('hunt page test', () => {
           'foo': 'bar',
         },
         'payloadType': PayloadType.USER,
-        'timestamp': '1'
+        'timestamp': '1',
       };
 
       // We provide a mock response for the Hunt Results Local Store:
-      httpApiService.mockedObservables.listResultsForHunt.next(
-          [mockHuntResult]);
+      httpApiService.mockedObservables.listResultsForHunt.next([
+        mockHuntResult,
+      ]);
 
       fixture.detectChanges();
 
@@ -574,8 +643,10 @@ describe('hunt page test', () => {
       expect(rows.length).toBe(1);
       expect(rows[0].innerText).toContain('View details');
 
-      const eventListenerSpy =
-          spyOn(component, 'openHuntResultDetailsInDrawer');
+      const eventListenerSpy = spyOn(
+        component,
+        'openHuntResultDetailsInDrawer',
+      );
 
       fixture.nativeElement.querySelector('.view-details-button').click();
 
@@ -593,15 +664,19 @@ describe('hunt page test', () => {
 
       component.huntId = TEST_HUNT.huntId;
 
-      const huntPageLocalStore =
-          injectMockStore(HuntPageGlobalStore, fixture.debugElement);
+      const huntPageLocalStore = injectMockStore(
+        HuntPageGlobalStore,
+        fixture.debugElement,
+      );
 
       huntPageLocalStore.mockedObservables.selectedHunt$.next(TEST_HUNT);
-      huntPageLocalStore.mockedObservables.huntResultTabs$.next([{
-        tabName: 'Errors',
-        totalResultsCount: 1,
-        payloadType: PayloadType.API_HUNT_ERROR,
-      }]);
+      huntPageLocalStore.mockedObservables.huntResultTabs$.next([
+        {
+          tabName: 'Errors',
+          totalResultsCount: 1,
+          payloadType: PayloadType.API_HUNT_ERROR,
+        },
+      ]);
 
       fixture.detectChanges();
 
@@ -624,8 +699,10 @@ describe('hunt page test', () => {
       expect(rows.length).toBe(1);
       expect(rows[0].innerText).toContain('View details');
 
-      const eventListenerSpy =
-          spyOn(component, 'openHuntResultDetailsInDrawer');
+      const eventListenerSpy = spyOn(
+        component,
+        'openHuntResultDetailsInDrawer',
+      );
 
       fixture.nativeElement.querySelector('.view-details-button').click();
 
@@ -652,7 +729,7 @@ describe('hunt page test', () => {
           'foo': 'bar',
         },
         'payloadType': PayloadType.USER,
-        'timestamp': '1'
+        'timestamp': '1',
       };
 
       const mockResultKey = 'C.1234-1234ABCD-1';
@@ -664,14 +741,17 @@ describe('hunt page test', () => {
         payloadType: PayloadType.USER,
       });
 
-      expect(navigateSpy).toHaveBeenCalledWith([{
-        outlets: {
-          'drawer': `result-details/${mockResultKey}/${PayloadType.USER}`,
+      expect(navigateSpy).toHaveBeenCalledWith([
+        {
+          outlets: {
+            'drawer': `result-details/${mockResultKey}/${PayloadType.USER}`,
+          },
         },
-      }]);
+      ]);
 
-      expect(huntResultDetailsGlobalStore.selectHuntResultOrError)
-          .toHaveBeenCalledWith(mockResult, component.huntId);
+      expect(
+        huntResultDetailsGlobalStore.selectHuntResultOrError,
+      ).toHaveBeenCalledWith(mockResult, component.huntId);
     });
 
     it('navigates to route and selects error on store', () => {
@@ -687,7 +767,7 @@ describe('hunt page test', () => {
         clientId: 'C.1234',
         timestamp: '1',
         logMessage: 'foo',
-        backtrace: 'bar'
+        backtrace: 'bar',
       };
 
       const mockResultKey = 'C.1234-1234ABCD-1';
@@ -699,15 +779,17 @@ describe('hunt page test', () => {
         payloadType: PayloadType.API_HUNT_ERROR,
       });
 
-      expect(navigateSpy).toHaveBeenCalledWith([{
-        outlets: {
-          'drawer':
-              `result-details/${mockResultKey}/${PayloadType.API_HUNT_ERROR}`,
+      expect(navigateSpy).toHaveBeenCalledWith([
+        {
+          outlets: {
+            'drawer': `result-details/${mockResultKey}/${PayloadType.API_HUNT_ERROR}`,
+          },
         },
-      }]);
+      ]);
 
-      expect(huntResultDetailsGlobalStore.selectHuntResultOrError)
-          .toHaveBeenCalledWith(mockError, component.huntId);
+      expect(
+        huntResultDetailsGlobalStore.selectHuntResultOrError,
+      ).toHaveBeenCalledWith(mockError, component.huntId);
     });
   });
 });

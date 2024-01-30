@@ -7,7 +7,7 @@ from typing import Optional
 from grr_response_server import blob_store
 from grr_response_server.databases import db as abstract_db
 from grr_response_server.keystore import abstract as abstract_ks
-from grr_response_server.rdfvalues import objects as rdf_objects
+from grr_response_server.models import blobs as blob_models
 
 
 class EncryptedBlobStore(blob_store.BlobStore):
@@ -40,7 +40,7 @@ class EncryptedBlobStore(blob_store.BlobStore):
 
   def WriteBlobs(
       self,
-      blobs: dict[rdf_objects.BlobID, bytes],
+      blobs: dict[blob_models.BlobID, bytes],
   ) -> None:
     """Writes blobs to the blobstore."""
     crypter = self._ks.Crypter(self._key_name)
@@ -49,9 +49,7 @@ class EncryptedBlobStore(blob_store.BlobStore):
     key_names = dict()
 
     for blob_id, blob in blobs.items():
-      blob_id_bytes = blob_id.AsBytes()
-
-      encrypted_blobs[blob_id] = crypter.Encrypt(blob, blob_id_bytes)
+      encrypted_blobs[blob_id] = crypter.Encrypt(blob, bytes(blob_id))
       key_names[blob_id] = self._key_name
 
     logging.info("Writing %s encrypted blobs using key '%s' (%s)", len(blobs),
@@ -64,11 +62,13 @@ class EncryptedBlobStore(blob_store.BlobStore):
 
   def ReadBlobs(
       self,
-      blob_ids: Iterable[rdf_objects.BlobID],
-  ) -> dict[rdf_objects.BlobID, Optional[bytes]]:
+      blob_ids: Iterable[blob_models.BlobID],
+  ) -> dict[blob_models.BlobID, Optional[bytes]]:
     """Reads specified blobs from the blobstore."""
     blobs = dict()
 
+    # TODO: Refactor `ReadBlobs` to take a collection rather than
+    # an iterable.
     key_names = self._db.ReadBlobEncryptionKeys(list(blob_ids))
     encrypted_blobs = self._bs.ReadBlobs(blob_ids)
 
@@ -77,14 +77,14 @@ class EncryptedBlobStore(blob_store.BlobStore):
         blobs[blob_id] = None
         continue
 
-      blob_id_bytes = blob_id.AsBytes()
+      blob_id_bytes = bytes(blob_id)
 
       key_name = key_names[blob_id]
       if key_name is None:
         # There is no associated key. It is possible that the blob is just not
         # encrypted: we can verify by computing its blob identifier and compare
         # it with the identifier we wanted to read.
-        if rdf_objects.BlobID.FromBlobData(encrypted_blob) == blob_id:
+        if blob_models.BlobID.Of(encrypted_blob) == blob_id:
           # The blob identifier of "encrypted" blob matches to blob identifier
           # of the original blob, which means it is not encrypted, and we can
           # just return it.
@@ -127,8 +127,8 @@ class EncryptedBlobStore(blob_store.BlobStore):
 
   def CheckBlobsExist(
       self,
-      blob_ids: Iterable[rdf_objects.BlobID],
-  ) -> dict[rdf_objects.BlobID, bool]:
+      blob_ids: Iterable[blob_models.BlobID],
+  ) -> dict[blob_models.BlobID, bool]:
     """Checks whether the specified blobs exist in the blobstore."""
     return self._bs.CheckBlobsExist(blob_ids)
 
@@ -140,7 +140,7 @@ class EncryptedBlobWithoutKeysError(Exception):
   writing the encryption keys to the database fails.
   """
 
-  def __init__(self, blob_id: rdf_objects.BlobID) -> None:
+  def __init__(self, blob_id: blob_models.BlobID) -> None:
     """Initializes the error.
 
     Args:

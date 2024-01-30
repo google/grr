@@ -5,16 +5,8 @@ import {MatFormFieldModule} from '@angular/material/form-field';
 import {LiteralPathGlobExpressionWarning} from './literal_path_glob_expression_warning';
 
 @NgModule({
-  imports: [
-    CommonModule,
-    MatFormFieldModule,
-  ],
-  declarations: [
-    LiteralPathGlobExpressionWarning,
-  ],
-  exports: [
-    LiteralPathGlobExpressionWarning,
-  ]
+  imports: [CommonModule, MatFormFieldModule],
+  declarations: [LiteralPathGlobExpressionWarning],
+  exports: [LiteralPathGlobExpressionWarning],
 })
-export class ValidationModule {
-}
+export class ValidationModule {}

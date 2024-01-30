@@ -1,10 +1,15 @@
-import {ApiClient, CloudInstanceInstanceType, NetworkAddressFamily, WindowsVolumeWindowsDriveTypeEnum, WindowsVolumeWindowsVolumeAttributeEnum} from '../../lib/api/api_interfaces';
+import {
+  ApiClient,
+  CloudInstanceInstanceType,
+  NetworkAddressFamily,
+  WindowsVolumeWindowsDriveTypeEnum,
+  WindowsVolumeWindowsVolumeAttributeEnum,
+} from '../../lib/api/api_interfaces';
 import {Client} from '../../lib/models/client';
 import {initTestEnvironment} from '../../testing';
 import {newClient} from '../models/model_test_util';
 
 import {translateClient} from './client';
-
 
 initTestEnvironment();
 
@@ -40,42 +45,48 @@ describe('Client API Translation', () => {
         timelineBtimeSupport: true,
         sandboxSupport: true,
       },
-      volumes: [{
-        name: 'A',
-        devicePath: '/foo/bar',
-        fileSystemType: 'NTFS',
-        bytesPerSector: '4096',
-        actualAvailableAllocationUnits: '100000',
-        sectorsPerAllocationUnit: '1',
-        totalAllocationUnits: '1000000',
-        creationTime: '1571789496679000',
-        unixvolume: {mountPoint: '/', options: 'readonly'},
-        windowsvolume: {
-          attributesList: [WindowsVolumeWindowsVolumeAttributeEnum.READONLY],
-          driveLetter: 'D',
-          driveType: WindowsVolumeWindowsDriveTypeEnum.DRIVE_CDROM,
-        },
-      }],
-      interfaces: [{
-        macAddress: 'qqusra6v',
-        ifname: 'lo',
-        addresses: [
-          {addressType: NetworkAddressFamily.INET, packedBytes: 'gAAAAQ=='},
-          {
-            addressType: NetworkAddressFamily.INET6,
-            packedBytes: '8AAAAAAAAAAAAAAAAAAAAQ=='
+      volumes: [
+        {
+          name: 'A',
+          devicePath: '/foo/bar',
+          fileSystemType: 'NTFS',
+          bytesPerSector: '4096',
+          actualAvailableAllocationUnits: '100000',
+          sectorsPerAllocationUnit: '1',
+          totalAllocationUnits: '1000000',
+          creationTime: '1571789496679000',
+          unixvolume: {mountPoint: '/', options: 'readonly'},
+          windowsvolume: {
+            attributesList: [WindowsVolumeWindowsVolumeAttributeEnum.READONLY],
+            driveLetter: 'D',
+            driveType: WindowsVolumeWindowsDriveTypeEnum.DRIVE_CDROM,
           },
-        ],
-      }],
-      users: [{
-        username: 'foo.bar',
-        fullName: 'Foo Bar',
-        lastLogon: '1571789996679000',
-        homedir: '/home/foobar',
-        uid: 123,
-        gid: 234,
-        shell: '/bin/bash',
-      }],
+        },
+      ],
+      interfaces: [
+        {
+          macAddress: 'qqusra6v',
+          ifname: 'lo',
+          addresses: [
+            {addressType: NetworkAddressFamily.INET, packedBytes: 'gAAAAQ=='},
+            {
+              addressType: NetworkAddressFamily.INET6,
+              packedBytes: '8AAAAAAAAAAAAAAAAAAAAQ==',
+            },
+          ],
+        },
+      ],
+      users: [
+        {
+          username: 'foo.bar',
+          fullName: 'Foo Bar',
+          lastLogon: '1571789996679000',
+          homedir: '/home/foobar',
+          uid: 123,
+          gid: 234,
+          shell: '/bin/bash',
+        },
+      ],
       cloudInstance: {
         cloudType: 'GOOGLE' as CloudInstanceInstanceType,
         google: {
@@ -150,44 +161,50 @@ describe('Client API Translation', () => {
         libcVer: '10',
         architecture: 'x86_64',
       },
-      users: [{
-        username: 'foo.bar',
-        fullName: 'Foo Bar',
-        lastLogon: new Date(1571789996679),
-        homedir: '/home/foobar',
-        uid: 123,
-        gid: 234,
-        shell: '/bin/bash',
-      }],
-      networkInterfaces: [{
-        macAddress: 'AA:AB:AC:AD:AE:AF',
-        interfaceName: 'lo',
-        addresses: [
-          {
-            addressType: 'IPv4',
-            ipAddress: '128.0.0.1',
-          },
-          {
-            addressType: 'IPv6',
-            ipAddress: 'F000:0000:0000:0000:0000:0000:0000:0001',
-          },
-        ],
-      }],
-      volumes: [{
-        name: 'A',
-        devicePath: '/foo/bar',
-        fileSystemType: 'NTFS',
-        bytesPerSector: BigInt('4096'),
-        totalSize: BigInt('4096000000'),
-        freeSpace: BigInt('409600000'),
-        creationTime: new Date(1571789496679),
-        unixDetails: {mountPoint: '/', mountOptions: 'readonly'},
-        windowsDetails: {
-          attributes: ['READONLY'],
-          driveLetter: 'D',
-          driveType: 'DRIVE_CDROM',
+      users: [
+        {
+          username: 'foo.bar',
+          fullName: 'Foo Bar',
+          lastLogon: new Date(1571789996679),
+          homedir: '/home/foobar',
+          uid: 123,
+          gid: 234,
+          shell: '/bin/bash',
         },
-      }],
+      ],
+      networkInterfaces: [
+        {
+          macAddress: 'AA:AB:AC:AD:AE:AF',
+          interfaceName: 'lo',
+          addresses: [
+            {
+              addressType: 'IPv4',
+              ipAddress: '128.0.0.1',
+            },
+            {
+              addressType: 'IPv6',
+              ipAddress: 'F000:0000:0000:0000:0000:0000:0000:0001',
+            },
+          ],
+        },
+      ],
+      volumes: [
+        {
+          name: 'A',
+          devicePath: '/foo/bar',
+          fileSystemType: 'NTFS',
+          bytesPerSector: BigInt('4096'),
+          totalSize: BigInt('4096000000'),
+          freeSpace: BigInt('409600000'),
+          creationTime: new Date(1571789496679),
+          unixDetails: {mountPoint: '/', mountOptions: 'readonly'},
+          windowsDetails: {
+            attributes: ['READONLY'],
+            driveLetter: 'D',
+            driveType: 'DRIVE_CDROM',
+          },
+        },
+      ],
       cloudInstance: {
         cloudType: CloudInstanceInstanceType.GOOGLE,
         google: {

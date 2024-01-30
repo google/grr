@@ -1,7 +1,18 @@
 import {Type} from '@angular/core';
 
-import {getExportedResultsCsvUrl, getExportedResultsSqliteUrl, getExportedResultsYamlUrl, getFlowFilesArchiveUrl} from '../api/http_api_service';
-import {Flow, FlowResultCount, FlowState, PaginatedResultView, PreloadedResultView} from '../models/flow';
+import {
+  getExportedResultsCsvUrl,
+  getExportedResultsSqliteUrl,
+  getExportedResultsYamlUrl,
+  getFlowFilesArchiveUrl,
+} from '../api/http_api_service';
+import {
+  Flow,
+  FlowResultCount,
+  FlowState,
+  PaginatedResultView,
+  PreloadedResultView,
+} from '../models/flow';
 import {isNonNull} from '../preconditions';
 import {makeLegacyLink} from '../routing';
 
@@ -23,23 +34,24 @@ export interface ExportMenuItem {
 /** Rendering a group of flow results (e.g. by type/tag) in a component. */
 export interface FlowResultViewSection {
   readonly title: string;
-  readonly component:
-      Type<PreloadedResultView<unknown>|PaginatedResultView<unknown>>;
+  readonly component: Type<
+    PreloadedResultView<unknown> | PaginatedResultView<unknown>
+  >;
   // Flow result section definitions provide a query with tag and/or type. As
   // an example, the flow adapter can choose to display all flow results of one
   // type in a view (e.g. all StatEntries), all results with one tag in one view
   // (e.g. all results of a specific artifact) or mix-and-match.
-  readonly query: {readonly type?: string, readonly tag?: string;};
+  readonly query: {readonly type?: string; readonly tag?: string};
 }
 
 /** Providing a link to view details about flow results. */
 export interface FlowResultLinkSection {
   readonly title: string;
-  readonly routerLink: {}|string;
+  readonly routerLink: {} | string;
 }
 
 /** A section of flow results that can be rendered with a view or as a link. */
-export type FlowResultSection = FlowResultViewSection|FlowResultLinkSection;
+export type FlowResultSection = FlowResultViewSection | FlowResultLinkSection;
 
 /**
  * An adapter describing how to render results, export menu items, and further
@@ -50,24 +62,30 @@ export class FlowDetailsAdapter<F extends Flow = Flow> {
   //  fallback.
   getResultViews(flow: F): readonly FlowResultSection[] {
     if (!flow.resultCounts) {
-      return [{
-        title: 'View legacy flow in the old UI',
-        routerLink:
-            makeLegacyLink(`#/clients/${flow.clientId}/flows/${flow.flowId}`)
-      }];
+      return [
+        {
+          title: 'View legacy flow in the old UI',
+          routerLink: makeLegacyLink(
+            `#/clients/${flow.clientId}/flows/${flow.flowId}`,
+          ),
+        },
+      ];
     }
 
     // TODO: Deduplicate views with same tag, type, component.
-    return flow.resultCounts.map((rc) => this.getResultView(rc, flow.args))
-        .filter(isNonNull);
+    return flow.resultCounts
+      .map((rc) => this.getResultView(rc, flow.args))
+      .filter(isNonNull);
   }
 
   /**
    * Returns a FlowResultSection for a group of flow results with the same tag
    * and type.
    */
-  getResultView(resultGroup: FlowResultCount, args: F['args']):
-      FlowResultSection|undefined {
+  getResultView(
+    resultGroup: FlowResultCount,
+    args: F['args'],
+  ): FlowResultSection | undefined {
     return;
   }
 
@@ -100,7 +118,7 @@ export class FlowDetailsAdapter<F extends Flow = Flow> {
 
     // TODO: There are cases where StatEntries are but no actual
     // file contents are collected. In this case, we shouldn't show this entry.
-    if (flow.resultCounts?.find(rc => rc.type === 'StatEntry' && rc.count)) {
+    if (flow.resultCounts?.find((rc) => rc.type === 'StatEntry' && rc.count)) {
       items.push(this.getDownloadFilesExportMenuItem(flow));
     }
 
@@ -128,10 +146,12 @@ export class FlowDetailsAdapter<F extends Flow = Flow> {
    * Returns a brief description of the amount of results, e.g. "5 files" to be
    * shown in the flow card.
    */
-  getResultDescription(flow: F): string|undefined {
+  getResultDescription(flow: F): string | undefined {
     if (isNonNull(flow.resultCounts)) {
       const totalCount = flow.resultCounts.reduce(
-          (sum, resultCount) => sum + (resultCount.count ?? 0), 0);
+        (sum, resultCount) => sum + (resultCount.count ?? 0),
+        0,
+      );
 
       if (totalCount === 0 && flow.state === FlowState.RUNNING) {
         // Hide "0 results" if flow is still running.

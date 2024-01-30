@@ -22,7 +22,9 @@ export interface OnDestroyObserver {
  * @return ngOnDestroy function with `triggered$` property.
  */
 export function observeOnDestroy(
-    component: OnDestroy, callback?: () => void): OnDestroyObserver {
+  component: OnDestroy,
+  callback?: () => void,
+): OnDestroyObserver {
   const subject = new Subject<void>();
   const handler = function ngOnDestroy() {
     subject.next();
@@ -62,11 +64,11 @@ export function allValuesFrom<T>(obs: Observable<T>): Promise<readonly T[]> {
 const NO_VALUE = Symbol();
 
 class LatestValueFromHandler<T> {
-  private internalLatestValue: T|typeof NO_VALUE = NO_VALUE;
+  private internalLatestValue: T | typeof NO_VALUE = NO_VALUE;
   private readonly subscription: Subscription;
 
   constructor(obs: Observable<T>) {
-    this.subscription = obs.subscribe(value => {
+    this.subscription = obs.subscribe((value) => {
       this.internalLatestValue = value;
     });
   }

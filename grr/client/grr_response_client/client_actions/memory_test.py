@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 import os
 from unittest import mock
 
@@ -30,23 +29,30 @@ class YaraProcessScanTest(client_test_lib.EmptyActionTest):
     requests = [
         rdf_memory.YaraProcessScanRequest(
             signature_shard=rdf_memory.YaraSignatureShard(
-                index=0, payload=b"123"),
-            num_signature_shards=3),
+                index=0, payload=b"123"
+            ),
+            num_signature_shards=3,
+        ),
         rdf_memory.YaraProcessScanRequest(
             signature_shard=rdf_memory.YaraSignatureShard(
-                index=1, payload=b"456"),
-            num_signature_shards=3),
+                index=1, payload=b"456"
+            ),
+            num_signature_shards=3,
+        ),
         rdf_memory.YaraProcessScanRequest(
             signature_shard=rdf_memory.YaraSignatureShard(
-                index=2, payload=b"789"),
-            num_signature_shards=3),
+                index=2, payload=b"789"
+            ),
+            num_signature_shards=3,
+        ),
     ]
     flow_id = "01234567"
     signature_dir = os.path.join(self.temp_dir, "GRRTest", "Sig_%s" % flow_id)
     session_id = "C.0123456789abcdef/%s" % flow_id
 
     results = self.ExecuteAction(
-        memory.YaraProcessScan, arg=requests[2], session_id=session_id)
+        memory.YaraProcessScan, arg=requests[2], session_id=session_id
+    )
     self.assertLen(results, 1)
     self.assertIsInstance(results[0], rdf_flows.GrrStatus)
     self.assertTrue(os.path.isdir(signature_dir))
@@ -55,16 +61,19 @@ class YaraProcessScanTest(client_test_lib.EmptyActionTest):
       self.assertEqual(f.read(), b"789")
 
     results = self.ExecuteAction(
-        memory.YaraProcessScan, arg=requests[0], session_id=session_id)
+        memory.YaraProcessScan, arg=requests[0], session_id=session_id
+    )
     self.assertLen(results, 1)
     self.assertIsInstance(results[0], rdf_flows.GrrStatus)
     self.assertCountEqual(
-        os.listdir(signature_dir), ["shard_00_of_03", "shard_02_of_03"])
+        os.listdir(signature_dir), ["shard_00_of_03", "shard_02_of_03"]
+    )
     with open(os.path.join(signature_dir, "shard_00_of_03"), "rb") as f:
       self.assertEqual(f.read(), b"123")
 
     results = self.ExecuteAction(
-        memory.YaraProcessScan, arg=requests[1], session_id=session_id)
+        memory.YaraProcessScan, arg=requests[1], session_id=session_id
+    )
     # We expect at least one YaraProcessScanResponse and a final GrrStatus.
     self.assertGreater(len(results), 1)
     self.assertIsInstance(results[0], rdf_memory.YaraProcessScanResponse)
@@ -81,10 +90,12 @@ class YaraProcessScanTest(client_test_lib.EmptyActionTest):
     session_id = "C.0123456789abcdef/%s" % flow_id
     scan_request = rdf_memory.YaraProcessScanRequest(
         signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
-        num_signature_shards=1)
+        num_signature_shards=1,
+    )
 
     results = self.ExecuteAction(
-        memory.YaraProcessScan, arg=scan_request, session_id=session_id)
+        memory.YaraProcessScan, arg=scan_request, session_id=session_id
+    )
     # We expect at least one YaraProcessScanResponse and a final GrrStatus.
     self.assertGreater(len(results), 1)
     self.assertIsInstance(results[0], rdf_memory.YaraProcessScanResponse)
@@ -92,6 +103,27 @@ class YaraProcessScanTest(client_test_lib.EmptyActionTest):
     # The temporary directory should not get created if there is only one
     # shard.
     self.assertFalse(os.path.exists(signature_dir))
+
+  def testRaisesWhenNoMatchingProcesses(self):
+    invalid_process_regex = r"INVALID_PROCESS_REGEX"
+    session_id = "C.0123456789abcdef/01234567"
+    scan_request = rdf_memory.YaraProcessScanRequest(
+        signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
+        num_signature_shards=1,
+        process_regex=invalid_process_regex,
+    )
+
+    results = self.ExecuteAction(
+        memory.YaraProcessScan, arg=scan_request, session_id=session_id
+    )
+    print(results)
+    self.assertGreater(len(results), 1)
+    self.assertIsInstance(results[0], rdf_memory.YaraProcessScanResponse)
+    self.assertLen(results[0].errors, 1)
+    self.assertIsInstance(results[0].errors[0], rdf_memory.ProcessMemoryError)
+    self.assertEqual(
+        results[0].errors[0].error, "No matching processes to scan."
+    )
 
 
 def R(start, size):
@@ -111,22 +143,26 @@ class PrioritizeRegionsTest(absltest.TestCase):
   def testFewerOffsetsThanRegions(self):
     r0, r1, r2 = R(0, 10), R(10, 10), R(20, 10)
     self.assertEqual(
-        memory._PrioritizeRegions([r0, r1, r2], [10]), [r1, r0, r2])
+        memory._PrioritizeRegions([r0, r1, r2], [10]), [r1, r0, r2]
+    )
 
   def testRegionContainsMultipleOffsets(self):
     r0, r1, r2 = R(0, 10), R(10, 10), R(20, 10)
     self.assertEqual(
-        memory._PrioritizeRegions([r0, r1, r2], [10, 10, 11]), [r1, r0, r2])
+        memory._PrioritizeRegions([r0, r1, r2], [10, 10, 11]), [r1, r0, r2]
+    )
 
   def testMultipleOffsets(self):
     r0, r1, r2 = R(0, 10), R(10, 10), R(20, 10)
     self.assertEqual(
-        memory._PrioritizeRegions([r0, r1, r2], [10, 20]), [r1, r2, r0])
+        memory._PrioritizeRegions([r0, r1, r2], [10, 20]), [r1, r2, r0]
+    )
 
   def testOffsetInEveryRegion(self):
     r0, r1, r2 = R(0, 10), R(10, 10), R(20, 10)
     self.assertEqual(
-        memory._PrioritizeRegions([r0, r1, r2], [5, 15, 25]), [r0, r1, r2])
+        memory._PrioritizeRegions([r0, r1, r2], [5, 15, 25]), [r0, r1, r2]
+    )
 
 
 def _GetStartAndDumpedSize(regions):
@@ -139,29 +175,34 @@ class ApplySizeLimitTest(absltest.TestCase):
     r0, r1, r2 = R(0, 10), R(20, 10), R(40, 10)
     self.assertEqual(
         _GetStartAndDumpedSize(memory._ApplySizeLimit([r0, r1, r2], 30)),
-        [(0, 10), (20, 10), (40, 10)])
+        [(0, 10), (20, 10), (40, 10)],
+    )
 
   def testExcludesFollowingRegionsAfterLimit(self):
     r0, r1, r2 = R(0, 10), R(20, 10), R(40, 10)
     self.assertEqual(
         _GetStartAndDumpedSize(memory._ApplySizeLimit([r0, r1, r2], 20)),
-        [(0, 10), (20, 10)])
+        [(0, 10), (20, 10)],
+    )
 
   def testDumpsLastRegionPartiallyWhenSizeLimitIsReached(self):
     r0, r1, r2 = R(0, 10), R(20, 10), R(40, 10)
     self.assertEqual(
         _GetStartAndDumpedSize(memory._ApplySizeLimit([r0, r1, r2], 19)),
-        [(0, 10), (20, 9)])
+        [(0, 10), (20, 9)],
+    )
 
     r0, r1, r2 = R(0, 10), R(20, 10), R(40, 10)
     self.assertEqual(
         _GetStartAndDumpedSize(memory._ApplySizeLimit([r0, r1, r2], 11)),
-        [(0, 10), (20, 1)])
+        [(0, 10), (20, 1)],
+    )
 
     r0, r1, r2 = R(0, 10), R(20, 10), R(40, 10)
     self.assertEqual(
         _GetStartAndDumpedSize(memory._ApplySizeLimit([r0, r1, r2], 1)),
-        [(0, 1)])
+        [(0, 1)],
+    )
 
 
 def Process(pid, *cmdline):
@@ -173,23 +214,30 @@ def Process(pid, *cmdline):
   p.ppid = 0
   p.uids.return_value = (0, 0, 0)
   p.gids.return_value = (0, 0, 0)
-  p.cpu_times().user = 0.
-  p.cpu_times().system = 0.
+  p.cpu_times().user = 0.0
+  p.cpu_times().system = 0.0
   p.memory_info().rss = 0
   p.memory_info().vms = 0
-  p.memory_percent.return_value = 0.
+  p.memory_percent.return_value = 0.0
 
   return p
 
 
-def GetProcessIteratorPids(pids=(),
-                           process_regex_string=None,
-                           cmdline_regex_string=None,
-                           ignore_grr_process=False):
+def GetProcessIteratorPids(
+    pids=(),
+    process_regex_string=None,
+    cmdline_regex_string=None,
+    ignore_grr_process=False,
+):
   return [
-      p.pid for p in
-      memory.ProcessIterator(pids, process_regex_string, cmdline_regex_string,
-                             ignore_grr_process, [])
+      p.pid
+      for p in memory.ProcessIterator(
+          pids,
+          process_regex_string,
+          cmdline_regex_string,
+          ignore_grr_process,
+          [],
+      )
   ]
 
 
@@ -205,35 +253,43 @@ class ProcessFilteringTest(client_test_lib.EmptyActionTest):
             Process(1, "svchost.exe", "-k", "def"),
             Process(2, "svchost.exe"),
             Process(3, "foo"),
-        ])
+        ],
+    )
     patcher.start()
     self.addCleanup(patcher.stop)
 
   def testCmdlineRegexFilter(self):
     self.assertCountEqual(
-        [1], GetProcessIteratorPids(cmdline_regex_string=r"svchost.exe -k def"))
-
-    self.assertCountEqual([0, 1],
-                          GetProcessIteratorPids(
-                              cmdline_regex_string=r"svchost.exe -k (abc|def)"))
+        [1], GetProcessIteratorPids(cmdline_regex_string=r"svchost.exe -k def")
+    )
 
     self.assertCountEqual(
-        [0, 1, 2],
-        GetProcessIteratorPids(cmdline_regex_string=r"svchost.exe.*"))
+        [0, 1],
+        GetProcessIteratorPids(
+            cmdline_regex_string=r"svchost.exe -k (abc|def)"
+        ),
+    )
 
     self.assertCountEqual(
-        [2], GetProcessIteratorPids(cmdline_regex_string=r"^svchost.exe$"))
+        [0, 1, 2], GetProcessIteratorPids(cmdline_regex_string=r"svchost.exe.*")
+    )
+
+    self.assertCountEqual(
+        [2], GetProcessIteratorPids(cmdline_regex_string=r"^svchost.exe$")
+    )
 
   def testCmdlineRegex(self):
     scan_request = rdf_memory.YaraProcessScanRequest(
         signature_shard=rdf_memory.YaraSignatureShard(index=0, payload=b"123"),
         num_signature_shards=1,
-        cmdline_regex="svchost.exe -k def")
+        cmdline_regex="svchost.exe -k def",
+    )
 
     with mock.patch.object(
         memory.YaraProcessScan,
         "_GetMatches",
-        return_value=[rdf_memory.YaraMatch()]):
+        return_value=[rdf_memory.YaraMatch()],
+    ):
       results = self.ExecuteAction(memory.YaraProcessScan, arg=scan_request)
     self.assertLen(results, 2)
     self.assertLen(results[0].matches, 1)
